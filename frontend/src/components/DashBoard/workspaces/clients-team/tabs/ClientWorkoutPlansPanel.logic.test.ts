@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildClientPlanVault,
   normalizeClientWorkoutPlansResponse,
   type ClientPlanPdfFile,
 } from './ClientWorkoutPlansPanel.logic';
@@ -59,6 +60,33 @@ describe('ClientWorkoutPlansPanel.logic PDF safety', () => {
 });
 
 describe('ClientWorkoutPlansPanel.logic plan vault primary reconciliation', () => {
+  it('prefers the active plan over stale primary metadata in fallback plan lists', () => {
+    const vault = buildClientPlanVault([
+      {
+        id: 'plan-6m-stale',
+        name: 'Stale Six Month Primary',
+        status: 'paused',
+        goal: 'strength',
+        horizonKey: 'six_month',
+        isPrimary: true,
+      },
+      {
+        id: 'plan-9m-active',
+        name: 'Nine Month Active Arc',
+        status: 'active',
+        goal: 'performance',
+        horizonKey: 'nine_month',
+      },
+    ]);
+
+    expect(vault.primaryPlanId).toBe('plan-9m-active');
+    expect(vault.primaryHorizonKey).toBe('nine_month');
+    expect(vault.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isPrimary: false,
+      plan: { id: 'plan-6m-stale' },
+    });
+  });
+
   it('reconciles a stale server primaryPlanId to the primary filled slot', () => {
     const { serverPlanVault } = normalizeClientWorkoutPlansResponse({
       trainingPlanCatalog: {
@@ -103,6 +131,54 @@ describe('ClientWorkoutPlansPanel.logic plan vault primary reconciliation', () =
     expect(serverPlanVault?.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
       isPrimary: true,
       plan: { id: 'plan-6m', isPrimary: true },
+    });
+  });
+
+  it('prefers an active server catalog slot over a stale paused primary id', () => {
+    const { serverPlanVault } = normalizeClientWorkoutPlansResponse({
+      trainingPlanCatalog: {
+        primaryPlanId: 'plan-6m-stale',
+        primaryHorizonKey: 'six_month',
+        slots: [
+          {
+            horizonKey: 'six_month',
+            label: '6 Month',
+            durationWeeks: 26,
+            durationDays: 182,
+            isDefaultHorizon: true,
+            isFilled: true,
+            isPrimary: true,
+            plan: {
+              id: 'plan-6m-stale',
+              title: 'Paused Stale Primary',
+              status: 'paused',
+              durationWeeks: 26,
+            },
+          },
+          {
+            horizonKey: 'nine_month',
+            label: '9 Month',
+            durationWeeks: 39,
+            durationDays: 273,
+            isDefaultHorizon: false,
+            isFilled: true,
+            isPrimary: false,
+            plan: {
+              id: 'plan-9m-active',
+              title: 'Current Nine Month Arc',
+              status: 'active',
+              durationWeeks: 39,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(serverPlanVault?.primaryPlanId).toBe('plan-9m-active');
+    expect(serverPlanVault?.primaryHorizonKey).toBe('nine_month');
+    expect(serverPlanVault?.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isPrimary: false,
+      plan: { id: 'plan-6m-stale', isPrimary: false },
     });
   });
 

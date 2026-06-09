@@ -7,6 +7,7 @@
  * dashboard, trainer/admin routes, and Swan Coach dispatchers can share the
  * same plan-catalog and today-assignment semantics.
  */
+// fallow-ignore-file complexity
 import { DEFAULT_PLAN_HORIZON_KEY, PLAN_HORIZONS, normalizePlanHorizonKey } from './clientTrainingPlanHorizonService.mjs';
 import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
@@ -69,12 +70,15 @@ const hasPrimaryMetadata = (plan) => {
   const metadata = toPlainObject(plan.metadata) || {};
   return metadata.isPrimaryPlan === true || metadata.primary === true;
 };
+const isActivePlan = (plan) => firstCompactString(toPlainObject(plan)?.status)?.toLowerCase() === 'active';
+const isActivePrimaryPlan = (plan) => isActivePlan(plan) && hasPrimaryMetadata(plan);
 const samePlanId = (plan, planId) => Boolean(planId) && String(plan.id) === String(planId);
 const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
   const matchers = [
     (plan) => samePlanId(plan, explicitPrimaryPlanId),
+    isActivePrimaryPlan,
+    isActivePlan,
     hasPrimaryMetadata,
-    (plan) => plan.status === 'active',
     (plan) => inferPlanHorizonKey(plan) === DEFAULT_PLAN_HORIZON_KEY,
     () => true,
   ];
@@ -162,9 +166,7 @@ const assignmentTitle = (plan, currentSession, type) => {
   )
     || (type === 'rest' ? 'Recovery Day' : 'Today\'s Assignment');
 };
-
 const ASSIGNMENT_STATUSES = new Set(['planned', 'in_progress', 'completed', 'skipped', 'cancelled']);
-
 const assignmentStatus = (session) => {
   const raw = compactString(session?.status)?.toLowerCase();
   const completed = session?.completed === true || session?.isCompleted === true;

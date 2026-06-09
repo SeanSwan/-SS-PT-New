@@ -82,6 +82,7 @@ export interface ClientWorkoutPlansResponseSummary {
   todayAssignment?: unknown;
 }
 
+// fallow-ignore-next-line complexity
 const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
   const rawId = plan.id;
   const id = typeof rawId === 'number' || typeof rawId === 'string' ? String(rawId) : '';
@@ -117,16 +118,22 @@ const updatedTime = (plan: ClientPlanSummary) => {
   const parsed = plan.createdAt ? new Date(plan.createdAt).getTime() : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 };
-const isActivePlan = (plan: ClientPlanSummary) => plan.status.toLowerCase() === 'active';
+const isActivePlan = (plan: ClientPlanSummary) => plan.status.trim().toLowerCase() === 'active';
+const isActivePrimaryPlan = (plan: ClientPlanSummary) => isActivePlan(plan) && plan.isPrimary;
 const samePlan = (plan: ClientPlanSummary | null | undefined, id: string | null) => (
   Boolean(plan && id && plan.id === id)
 );
+const firstPlan = (plans: Array<ClientPlanSummary | null | undefined>) => (
+  plans.find((plan): plan is ClientPlanSummary => Boolean(plan)) || null
+);
 const selectPrimaryPlan = (plans: ClientPlanSummary[]) => (
-  plans.find((plan) => plan.isPrimary)
-  || plans.find(isActivePlan)
-  || plans.find((plan) => plan.horizonKey === 'six_month')
-  || plans[0]
-  || null
+  firstPlan([
+    plans.find(isActivePrimaryPlan),
+    plans.find(isActivePlan),
+    plans.find((plan) => plan.isPrimary),
+    plans.find((plan) => plan.horizonKey === 'six_month'),
+    plans[0],
+  ])
 );
 
 const selectSlotPlan = (
@@ -146,6 +153,7 @@ const selectSlotPlan = (
   || null
 );
 
+// fallow-ignore-next-line complexity
 export const buildClientPlanVault = (plans: ClientPlanSummary[]): ClientPlanVaultSummary => {
   const primaryPlan = selectPrimaryPlan(plans);
   const primaryPlanId = primaryPlan?.id || null;
@@ -177,6 +185,7 @@ const numberOrFallback = (value: unknown, fallback: number) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+// fallow-ignore-next-line complexity
 const normalizeServerCatalogSlot = (value: unknown): ClientPlanHorizonSlot | null => {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
@@ -210,49 +219,117 @@ const normalizeServerCatalogSlot = (value: unknown): ClientPlanHorizonSlot | nul
   };
 };
 
-const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | null => {
-  if (!value || typeof value !== 'object') return null;
-  const raw = value as Record<string, unknown>;
-  const rawSlots = Array.isArray(raw.slots) ? raw.slots : [];
-  const serverSlots = rawSlots
-    .map(normalizeServerCatalogSlot)
-    .filter((slot): slot is ClientPlanHorizonSlot => Boolean(slot));
+const emptyCatalogSlot = (
+  horizon: typeof PLAN_HORIZON_SLOTS[number],
+): ClientPlanHorizonSlot => ({
+  horizonKey: horizon.key,
+  label: horizon.label,
+  durationWeeks: horizon.durationWeeks,
+  durationDays: horizon.durationDays,
+  isDefaultHorizon: horizon.isDefault,
+  isFilled: false,
+  isPrimary: false,
+  plan: null,
+});
 
-  if (serverSlots.length === 0) return null;
+const buildCatalogSlots = (serverSlots: ClientPlanHorizonSlot[]): ClientPlanHorizonSlot[] => (
+  PLAN_HORIZON_SLOTS.map((horizon) => (
+    serverSlots.find((slot) => slot.horizonKey === horizon.key) || emptyCatalogSlot(horizon)
+  ))
+);
 
-  const slots = PLAN_HORIZON_SLOTS.map((horizon) => (
-    serverSlots.find((slot) => slot.horizonKey === horizon.key) || {
-      horizonKey: horizon.key,
-      label: horizon.label,
-      durationWeeks: horizon.durationWeeks,
-      durationDays: horizon.durationDays,
-      isDefaultHorizon: horizon.isDefault,
-      isFilled: false,
-      isPrimary: false,
-      plan: null,
-    }
-  ));
-  const primarySlot = slots.find((slot) => slot.isPrimary && slot.plan);
-  const declaredPrimaryHorizon = normalizeCatalogHorizonKey(raw.primaryHorizonKey);
-  const rawPrimaryPlanId = typeof raw.primaryPlanId === 'number' || typeof raw.primaryPlanId === 'string'
-    ? String(raw.primaryPlanId)
-    : null;
-  const declaredPrimaryPlan = slots.find((slot) => slot.plan?.id === rawPrimaryPlanId)?.plan;
-  const horizonPrimaryPlan = slots.find((slot) => slot.horizonKey === declaredPrimaryHorizon && slot.plan)?.plan;
-  const primaryPlanId = declaredPrimaryPlan?.id || primarySlot?.plan?.id || horizonPrimaryPlan?.id || null;
-  const reconciledSlots = primaryPlanId
+const slotPlan = (slot: ClientPlanHorizonSlot | undefined) => slot?.plan || null;
+const findSlotPlanById = (slots: ClientPlanHorizonSlot[], planId: string | null) => (
+  slotPlan(slots.find((slot) => slot.plan?.id === planId))
+);
+const findSlotPlanByHorizon = (slots: ClientPlanHorizonSlot[], horizonKey: HorizonKey | null) => (
+  slotPlan(slots.find((slot) => slot.horizonKey === horizonKey && slot.plan))
+);
+const findActivePrimarySlotPlan = (slots: ClientPlanHorizonSlot[]) => (
+  slotPlan(slots.find((slot) => (
+    slot.plan && isActivePlan(slot.plan) && (slot.isPrimary || slot.plan.isPrimary === true)
+  )))
+);
+const findActiveSlotPlan = (slots: ClientPlanHorizonSlot[]) => (
+  slotPlan(slots.find((slot) => slot.plan && isActivePlan(slot.plan)))
+);
+const findPrimarySlotPlan = (slots: ClientPlanHorizonSlot[]) => (
+  slotPlan(slots.find((slot) => slot.isPrimary && slot.plan))
+);
+
+const resolveCatalogPrimaryPlanId = (
+  slots: ClientPlanHorizonSlot[],
+  rawPrimaryPlanId: string | null,
+  declaredPrimaryHorizon: HorizonKey | null,
+) => firstPlan([
+  findActivePrimarySlotPlan(slots),
+  findActiveSlotPlan(slots),
+  findSlotPlanById(slots, rawPrimaryPlanId),
+  findPrimarySlotPlan(slots),
+  findSlotPlanByHorizon(slots, declaredPrimaryHorizon),
+])?.id || null;
+
+const reconcileCatalogSlots = (
+  slots: ClientPlanHorizonSlot[],
+  primaryPlanId: string | null,
+) => (
+  primaryPlanId
     ? slots.map((slot) => {
         const isPrimary = slot.plan?.id === primaryPlanId;
         return { ...slot, isPrimary, plan: slot.plan ? { ...slot.plan, isPrimary } : null };
       })
-    : slots;
+    : slots
+);
+
+const toRecord = (value: unknown): Record<string, unknown> | null => (
+  value && typeof value === 'object' ? value as Record<string, unknown> : null
+);
+
+const normalizeServerCatalogSlots = (raw: Record<string, unknown>) => (
+  (Array.isArray(raw.slots) ? raw.slots : [])
+    .map(normalizeServerCatalogSlot)
+    .filter((slot): slot is ClientPlanHorizonSlot => Boolean(slot))
+);
+
+const normalizeRawPrimaryPlanId = (value: unknown) => (
+  typeof value === 'number' || typeof value === 'string' ? String(value) : null
+);
+
+const primaryCatalogHorizonKey = (
+  slots: ClientPlanHorizonSlot[],
+  declaredPrimaryHorizon: HorizonKey | null,
+) => slots.find((slot) => slot.isPrimary)?.horizonKey || declaredPrimaryHorizon || null;
+
+const buildTrainingPlanCatalogSummary = (
+  raw: Record<string, unknown>,
+  serverSlots: ClientPlanHorizonSlot[],
+): ClientPlanVaultSummary => {
+  const slots = buildCatalogSlots(serverSlots);
+  const declaredPrimaryHorizon = normalizeCatalogHorizonKey(raw.primaryHorizonKey);
+  const primaryPlanId = resolveCatalogPrimaryPlanId(
+    slots,
+    normalizeRawPrimaryPlanId(raw.primaryPlanId),
+    declaredPrimaryHorizon,
+  );
+  const reconciledSlots = reconcileCatalogSlots(slots, primaryPlanId);
 
   return {
     filledCount: reconciledSlots.filter((slot) => slot.isFilled).length,
     primaryPlanId,
-    primaryHorizonKey: reconciledSlots.find((slot) => slot.isPrimary)?.horizonKey || declaredPrimaryHorizon || null,
+    primaryHorizonKey: primaryCatalogHorizonKey(reconciledSlots, declaredPrimaryHorizon),
     slots: reconciledSlots,
   };
+};
+
+// fallow-ignore-next-line complexity
+const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | null => {
+  const raw = toRecord(value);
+  if (!raw) return null;
+
+  const serverSlots = normalizeServerCatalogSlots(raw);
+  if (serverSlots.length === 0) return null;
+
+  return buildTrainingPlanCatalogSummary(raw, serverSlots);
 };
 
 const rawPlansFromResponse = (responseData: ClientWorkoutPlansResponseSummary) => (

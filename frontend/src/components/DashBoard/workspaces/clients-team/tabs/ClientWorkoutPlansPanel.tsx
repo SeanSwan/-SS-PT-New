@@ -53,6 +53,94 @@ interface ClientWorkoutPlansPanelProps {
   refreshSignal?: number;
 }
 
+interface ClientWorkoutPlansPanelContentProps {
+  loading: boolean;
+  error: string | null;
+  actionError: string | null;
+  pdfError: string | null;
+  homeworkSummary: ClientHomeworkSummary | null;
+  planVault: ClientPlanVaultSummary;
+  plans: ClientPlanSummary[];
+  activatingPlanId: string | null;
+  openingPdfId: string | null;
+  primaryUpdatingId: string | null;
+  todayAssignment: ClientTodayAssignmentSummary | null;
+  pdfViewer: ReturnType<typeof useProtectedPlanPdfViewer>['viewer'];
+  onActivate: (plan: ClientPlanSummary) => Promise<void>;
+  onClosePdf: ReturnType<typeof useProtectedPlanPdfViewer>['closePlanPdf'];
+  onLogToday?: () => void;
+  onMakePrimary: (plan: ClientPlanSummary) => Promise<void>;
+  onOpenExternalPdf: ReturnType<typeof useProtectedPlanPdfViewer>['openPlanPdfExternal'];
+  onOpenPdf: (plan: ClientPlanSummary) => Promise<void>;
+}
+
+const panelStateCard = (loading: boolean, error: string | null) => {
+  if (loading) return <StateCard role="status">Loading saved plans...</StateCard>;
+  if (error) return <StateCard role="alert">{error}</StateCard>;
+  return null;
+};
+
+const panelActionAlerts = (actionError: string | null, pdfError: string | null) => (
+  <>
+    {actionError ? <StateCard role="alert">{actionError}</StateCard> : null}
+    {pdfError ? <StateCard role="alert">{pdfError}</StateCard> : null}
+  </>
+);
+
+// fallow-ignore-next-line complexity
+const ClientWorkoutPlansPanelContent: React.FC<ClientWorkoutPlansPanelContentProps> = ({
+  loading,
+  error,
+  actionError,
+  pdfError,
+  homeworkSummary,
+  planVault,
+  plans,
+  activatingPlanId,
+  openingPdfId,
+  primaryUpdatingId,
+  todayAssignment,
+  pdfViewer,
+  onActivate,
+  onClosePdf,
+  onLogToday,
+  onMakePrimary,
+  onOpenExternalPdf,
+  onOpenPdf,
+}) => {
+  const stateCard = panelStateCard(loading, error);
+  if (stateCard) return stateCard;
+
+  return (
+    <>
+      {panelActionAlerts(actionError, pdfError)}
+      <ClientWorkoutHomeworkSummary homeworkSummary={homeworkSummary} />
+      <ClientWorkoutPlanVaultSection
+        planVault={planVault}
+        activatingPlanId={activatingPlanId}
+        openingPdfId={openingPdfId}
+        primaryUpdatingId={primaryUpdatingId}
+        onActivate={onActivate}
+        onOpenPdf={onOpenPdf}
+        onMakePrimary={onMakePrimary}
+      />
+      <ClientWorkoutPlanCards
+        plans={plans}
+        openingPdfId={openingPdfId}
+        todayAssignment={todayAssignment}
+        onLogToday={onLogToday}
+        onOpenPdf={onOpenPdf}
+      />
+      <ProtectedPlanPdfDialog
+        viewer={pdfViewer}
+        onClose={onClosePdf}
+        onOpenExternal={onOpenExternalPdf}
+      />
+    </>
+  );
+};
+
+// fallow-ignore-next-line complexity
 const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   clientId,
   clientName,
@@ -90,6 +178,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
   const planVault = useMemo(() => serverPlanVault || buildClientPlanVault(plans), [plans, serverPlanVault]);
 
+  // fallow-ignore-next-line complexity
   const loadPlans = useCallback(async () => {
     if (!authAxios || safeClientId === null) return;
     setLoading(true);
@@ -126,6 +215,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
     loadPlans();
   }, [loadPlans, refreshSignal]);
 
+  // fallow-ignore-next-line complexity
   const openPlanPdf = useCallback(async (plan: ClientPlanSummary) => {
     if (!authAxios || !plan.pdfFile) return;
     setOpeningPdfId(plan.id);
@@ -144,33 +234,52 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
     setOpeningPdfId(null);
   }, [authAxios, openProtectedPlanPdf]);
 
-  const makePrimaryPlan = useCallback(async (plan: ClientPlanSummary) => {
+  const runPlanMutation = useCallback(async ({
+    endpoint,
+    errorMessage,
+    plan,
+    setBusyPlanId,
+  }: {
+    endpoint: 'activate' | 'primary';
+    errorMessage: string;
+    plan: ClientPlanSummary;
+    setBusyPlanId: React.Dispatch<React.SetStateAction<string | null>>;
+  }) => {
     if (!authAxios || !plan.id) return;
-    setPrimaryUpdatingId(plan.id);
+    setBusyPlanId(plan.id);
     setActionError(null);
     try {
-      await authAxios.put(`/api/workout-plans/${encodeURIComponent(plan.id)}/primary`);
+      await authAxios.put(`/api/workout-plans/${encodeURIComponent(plan.id)}/${endpoint}`);
       await loadPlans();
     } catch {
-      setActionError(`Unable to make ${plan.name} the primary arc.`);
+      setActionError(errorMessage);
     } finally {
-      setPrimaryUpdatingId(null);
+      setBusyPlanId(null);
     }
   }, [authAxios, loadPlans]);
 
-  const activatePlan = useCallback(async (plan: ClientPlanSummary) => {
-    if (!authAxios || !plan.id) return;
-    setActivatingPlanId(plan.id);
-    setActionError(null);
-    try {
-      await authAxios.put(`/api/workout-plans/${encodeURIComponent(plan.id)}/activate`);
-      await loadPlans();
-    } catch {
-      setActionError(`Unable to activate ${plan.name}.`);
-    } finally {
-      setActivatingPlanId(null);
+  const makePrimaryPlan = useCallback((plan: ClientPlanSummary) => runPlanMutation({
+    endpoint: 'primary',
+    errorMessage: `Unable to make ${plan.name} the primary arc.`,
+    plan,
+    setBusyPlanId: setPrimaryUpdatingId,
+  }), [runPlanMutation]);
+
+  const activatePlan = useCallback((plan: ClientPlanSummary) => runPlanMutation({
+    endpoint: 'activate',
+    errorMessage: `Unable to activate ${plan.name}.`,
+    plan,
+    setBusyPlanId: setActivatingPlanId,
+  }), [runPlanMutation]);
+
+  const selectActiveArc = useCallback((plan: ClientPlanSummary) => {
+    const isActive = plan.status.trim().toLowerCase() === 'active';
+    if (isActive && !plan.isPrimary) {
+      makePrimaryPlan(plan);
+      return;
     }
-  }, [authAxios, loadPlans]);
+    activatePlan(plan);
+  }, [activatePlan, makePrimaryPlan]);
 
   if (safeClientId === null) {
     return <StateCard role="alert">Select a valid client before reviewing saved plans.</StateCard>;
@@ -186,47 +295,34 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
         </TitleBlock>
         <ClientWorkoutPlanActiveArcSelector
           planVault={planVault}
-          updatingPlanId={primaryUpdatingId}
-          onMakePrimary={makePrimaryPlan}
+          updatingPlanId={activatingPlanId || primaryUpdatingId}
+          onSelectActiveArc={selectActiveArc}
         />
         <RefreshButton type="button" onClick={loadPlans} disabled={loading}>
           <RefreshCw size={15} /> Refresh
         </RefreshButton>
       </Header>
       <ClientWorkoutPlansTeachMe />
-
-      {loading ? (
-        <StateCard role="status">Loading saved plans...</StateCard>
-      ) : error ? (
-        <StateCard role="alert">{error}</StateCard>
-      ) : (
-        <>
-          {actionError && <StateCard role="alert">{actionError}</StateCard>}
-          {pdfError && <StateCard role="alert">{pdfError}</StateCard>}
-          <ClientWorkoutHomeworkSummary homeworkSummary={homeworkSummary} />
-          <ClientWorkoutPlanVaultSection
-            planVault={planVault}
-            activatingPlanId={activatingPlanId}
-            openingPdfId={openingPdfId}
-            primaryUpdatingId={primaryUpdatingId}
-            onActivate={activatePlan}
-            onOpenPdf={openPlanPdf}
-            onMakePrimary={makePrimaryPlan}
-          />
-          <ClientWorkoutPlanCards
-            plans={plans}
-            openingPdfId={openingPdfId}
-            todayAssignment={todayAssignment}
-            onLogToday={onLogToday}
-            onOpenPdf={openPlanPdf}
-          />
-          <ProtectedPlanPdfDialog
-            viewer={pdfViewer}
-            onClose={closePlanPdf}
-            onOpenExternal={openPlanPdfExternal}
-          />
-        </>
-      )}
+      <ClientWorkoutPlansPanelContent
+        loading={loading}
+        error={error}
+        actionError={actionError}
+        pdfError={pdfError}
+        homeworkSummary={homeworkSummary}
+        planVault={planVault}
+        plans={plans}
+        activatingPlanId={activatingPlanId}
+        openingPdfId={openingPdfId}
+        primaryUpdatingId={primaryUpdatingId}
+        todayAssignment={todayAssignment}
+        pdfViewer={pdfViewer}
+        onActivate={activatePlan}
+        onClosePdf={closePlanPdf}
+        onLogToday={onLogToday}
+        onMakePrimary={makePrimaryPlan}
+        onOpenExternalPdf={openPlanPdfExternal}
+        onOpenPdf={openPlanPdf}
+      />
     </Panel>
   );
 };

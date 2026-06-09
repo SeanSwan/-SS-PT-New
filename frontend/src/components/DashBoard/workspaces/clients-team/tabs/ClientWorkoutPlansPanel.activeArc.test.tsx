@@ -43,7 +43,7 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     });
   });
 
-  it('lets trainer and admin users promote a filled plan horizon from one active-arc control', async () => {
+  it('lets trainer and admin users activate a filled plan horizon from one active-arc control', async () => {
     const user = userEvent.setup();
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
@@ -55,9 +55,23 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
-      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
     });
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('activates a draft arc from the active-arc selector before it can drive client homework', async () => {
+    const user = userEvent.setup();
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    const activeArcSelector = await screen.findByRole('combobox', { name: /active training arc/i });
+    await user.selectOptions(activeArcSelector, 'plan-9m');
+
+    await waitFor(() => {
+      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
+    });
+    expect(mockAuthAxios.put).not.toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
   });
 
   it('lets trainer and admin users activate a non-active saved horizon before it drives client homework', async () => {

@@ -138,7 +138,63 @@ beforeEach(async () => {
 // ──────────────────────────── ACTIVATE ────────────────────────────
 
 describe('PUT /api/workout-plans/:id/activate', () => {
-  it('demotes sibling active plans and activates target (happy path)', async () => {
+  it('makes the activated plan primary and clears stale primary flags on siblings', async () => {
+    const tx = {
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+      LOCK: { UPDATE: 'UPDATE' },
+    };
+    mockTransaction.mockResolvedValueOnce(tx);
+    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
+    const targetUpdate = vi.fn().mockResolvedValue(undefined);
+    const targetPlan = makePlan({
+      id: 50,
+      userId: 99,
+      status: 'draft',
+      metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, painAware: true },
+      update: targetUpdate,
+    });
+    const stalePrimarySibling = makePlan({
+      id: 51,
+      userId: 99,
+      status: 'active',
+      metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
+      update: siblingUpdate,
+    });
+
+    mockFindAll
+      .mockResolvedValueOnce([targetPlan, stalePrimarySibling])
+      .mockResolvedValueOnce([stalePrimarySibling]);
+    mockFindByPk.mockResolvedValueOnce(targetPlan);
+
+    const res = await request(app)
+      .put('/api/workout-plans/50/activate')
+      .set('x-test-user-id', '98')
+      .set('x-test-user-role', 'trainer')
+      .set('x-test-plan', JSON.stringify(targetPlan));
+
+    expect(res.status).toBe(200);
+    expect(siblingUpdate).toHaveBeenCalledWith({
+      status: 'paused',
+      metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
+    }, { transaction: tx });
+    expect(targetUpdate).toHaveBeenCalledWith({
+      status: 'active',
+      metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true, primary: true },
+    }, { transaction: tx });
+    expect(res.body.trainingPlanCatalog).toMatchObject({
+      primaryPlanId: 50,
+      primaryHorizonKey: 'nine_month',
+    });
+    expect(res.body.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isPrimary: false,
+      plan: { id: 51, status: 'paused' },
+    });
+    expect(tx.commit).toHaveBeenCalledOnce();
+    expect(tx.rollback).not.toHaveBeenCalled();
+  });
+
+  it('locks client plan rows and activates the target as primary (happy path)', async () => {
     const res = await request(app)
       .put('/api/workout-plans/50/activate')
       .set('x-test-user-id', '98')
@@ -153,19 +209,11 @@ describe('PUT /api/workout-plans/:id/activate', () => {
       lock: 'UPDATE',
     }));
 
-    // Bulk update demoted sibling actives (status='active' AND id != target)
-    expect(mockBulkUpdate).toHaveBeenCalledWith(
-      { status: 'paused' },
-      expect.objectContaining({
-        where: expect.objectContaining({
-          userId: 99,
-          status: 'active',
-        }),
-      }),
-    );
-
-    // Target plan was set to 'active'
-    expect(mockUserUpdate).toHaveBeenCalledWith({ status: 'active' }, expect.any(Object));
+    expect(mockBulkUpdate).not.toHaveBeenCalled();
+    expect(mockUserUpdate).toHaveBeenCalledWith({
+      status: 'active',
+      metadata: { isPrimaryPlan: true, primary: true },
+    }, expect.any(Object));
   });
 
   it('returns 404 when verifyClientAccessByPlanId denies (cross-trainer IDOR)', async () => {

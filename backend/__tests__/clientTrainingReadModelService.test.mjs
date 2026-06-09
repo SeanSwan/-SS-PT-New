@@ -117,6 +117,45 @@ describe('clientTrainingReadModelService', () => {
     });
   });
 
+  it('prefers the active plan over stale primary metadata left on a paused sibling', () => {
+    const catalog = buildClientTrainingOverview({
+      activePlan: {
+        id: 'plan-9m-active',
+        title: 'Nine Month Active Arc',
+        status: 'active',
+        durationWeeks: 39,
+        metadata: { planHorizon: 'nine_month' },
+      },
+      plans: [
+        {
+          id: 'plan-6m-stale',
+          title: 'Stale Six Month Primary',
+          status: 'paused',
+          durationWeeks: 26,
+          metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+        },
+        {
+          id: 'plan-9m-active',
+          title: 'Nine Month Active Arc',
+          status: 'active',
+          durationWeeks: 39,
+          metadata: { planHorizon: 'nine_month' },
+        },
+      ],
+    }).trainingPlanCatalog;
+
+    expect(catalog.primaryPlanId).toBe('plan-9m-active');
+    expect(catalog.primaryHorizonKey).toBe('nine_month');
+    expect(catalog.slots.find((slot) => slot.horizonKey === 'nine_month')).toMatchObject({
+      isPrimary: true,
+      plan: { id: 'plan-9m-active' },
+    });
+    expect(catalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isPrimary: false,
+      plan: { id: 'plan-6m-stale' },
+    });
+  });
+
   it('exposes plan PDF attachment metadata in the seven-slot catalog when a plan has a PDF file', () => {
     const catalog = buildClientTrainingOverview({
       activePlan: sixMonthPlan,

@@ -8,8 +8,39 @@ import type {
 interface ClientWorkoutPlanActiveArcSelectorProps {
   planVault: ClientPlanVaultSummary;
   updatingPlanId: string | null;
-  onMakePrimary: (plan: ClientPlanSummary) => void;
+  onSelectActiveArc: (plan: ClientPlanSummary) => void;
 }
+
+type ClientPlanVaultSlot = ClientPlanVaultSummary['slots'][number];
+
+const filledPlanSlots = (planVault: ClientPlanVaultSummary) => (
+  planVault.slots.filter((slot) => slot.isFilled && slot.plan)
+);
+
+const resolveActivePlanId = (planVault: ClientPlanVaultSummary, filledSlots: ClientPlanVaultSlot[]) => (
+  planVault.primaryPlanId || filledSlots[0]?.plan?.id || ''
+);
+
+const findSelectedArcPlan = (
+  filledSlots: ClientPlanVaultSlot[],
+  planId: string,
+) => filledSlots.find((slot) => slot.plan?.id === planId)?.plan || null;
+
+const selectorMetaText = (planVault: ClientPlanVaultSummary, updatingPlanId: string | null) => (
+  updatingPlanId
+    ? 'Updating current arc...'
+    : `${planVault.filledCount} saved arc${planVault.filledCount === 1 ? '' : 's'} available`
+);
+
+const renderActiveArcOptions = (filledSlots: ClientPlanVaultSlot[]) => (
+  filledSlots.length === 0 ? (
+    <option value="">No saved plan arcs</option>
+  ) : filledSlots.map((slot) => (
+    <option key={slot.plan?.id} value={slot.plan?.id}>
+      {slot.label} - {slot.plan?.name}
+    </option>
+  ))
+);
 
 const SelectorShell = styled.div`
   display: grid;
@@ -58,16 +89,16 @@ const SelectorMeta = styled.span`
 const ClientWorkoutPlanActiveArcSelector: React.FC<ClientWorkoutPlanActiveArcSelectorProps> = ({
   planVault,
   updatingPlanId,
-  onMakePrimary,
+  onSelectActiveArc,
 }) => {
-  const filledSlots = useMemo(() => planVault.slots.filter((slot) => slot.isFilled && slot.plan), [planVault.slots]);
-  const activePlanId = planVault.primaryPlanId || filledSlots[0]?.plan?.id || '';
+  const filledSlots = useMemo(() => filledPlanSlots(planVault), [planVault]);
+  const activePlanId = resolveActivePlanId(planVault, filledSlots);
   const disabled = filledSlots.length === 0 || Boolean(updatingPlanId);
 
   const selectActiveArc = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedPlan = filledSlots.find((slot) => slot.plan?.id === event.target.value)?.plan;
+    const selectedPlan = findSelectedArcPlan(filledSlots, event.target.value);
     if (selectedPlan && selectedPlan.id !== activePlanId) {
-      onMakePrimary(selectedPlan);
+      onSelectActiveArc(selectedPlan);
     }
   };
 
@@ -80,15 +111,9 @@ const ClientWorkoutPlanActiveArcSelector: React.FC<ClientWorkoutPlanActiveArcSel
         onChange={selectActiveArc}
         disabled={disabled}
       >
-        {filledSlots.length === 0 ? (
-          <option value="">No saved plan arcs</option>
-        ) : filledSlots.map((slot) => (
-          <option key={slot.plan?.id} value={slot.plan?.id}>
-            {slot.label} - {slot.plan?.name}
-          </option>
-        ))}
+        {renderActiveArcOptions(filledSlots)}
       </SelectControl>
-      <SelectorMeta>{planVault.filledCount} saved arc{planVault.filledCount === 1 ? '' : 's'} available</SelectorMeta>
+      <SelectorMeta>{selectorMetaText(planVault, updatingPlanId)}</SelectorMeta>
     </SelectorShell>
   );
 };
