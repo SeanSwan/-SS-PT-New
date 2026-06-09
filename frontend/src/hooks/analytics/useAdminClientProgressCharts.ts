@@ -24,53 +24,40 @@
  * the other.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   CANONICAL_CHART_IDS,
   CANONICAL_CHART_ROUTES,
   type CanonicalProgressCharts,
-  type AttendanceBundle,
-  type SetsRepsBundle,
-  type AnchorLiftsBundle,
-} from './useClientProgressCharts';
-import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
+} from './useClientProgressCharts.types';
+import {
+  useCanonicalProgressChartsFetch,
+  type UseCanonicalProgressChartsFetchReturn,
+} from './useCanonicalProgressChartsFetch';
 
-// Re-export the shared types + IDs so consumers can import from one place.
+// Re-export the shared bundle type so consumers can import from one place.
 export type { CanonicalProgressCharts };
-export { CANONICAL_CHART_IDS, CANONICAL_CHART_ROUTES };
 
-const EMPTY_ATTENDANCE: AttendanceBundle = {
-  data: [],
-  reliabilityPercent: 0,
-  totals: { completed: 0, skipped: 0, cancelled: 0, resolved: 0 },
-};
-const EMPTY_SETS_REPS: SetsRepsBundle = { sets: [], reps: [] };
-const EMPTY_ANCHOR_LIFTS: AnchorLiftsBundle = { data: {}, exercises: [] };
+const fetchAdminChartResponse = (
+  authAxios: any,
+  userId: number | string,
+  suffix: string,
+) => (
+  authAxios
+    .get(`/api/analytics/${userId}/${suffix}`)
+    .then((res: any) => res?.data)
+    .catch(() => null)
+);
 
-const EMPTY_BUNDLE: CanonicalProgressCharts = {
-  workoutFrequency: [],
-  attendanceReliability: EMPTY_ATTENDANCE,
-  weeklyVolume: [],
-  setsRepsTrend: EMPTY_SETS_REPS,
-  durationTrend: [],
-  intensityRpeTrend: [],
-  prTimeline: [],
-  anchorLifts: EMPTY_ANCHOR_LIFTS,
-  exerciseFrequency: [],
-  movementPatternBalance: [],
-  muscleGroupBalance: [],
-  recoverySignal: [],
-};
-
-interface UseAdminClientProgressChartsReturn {
-  charts: CanonicalProgressCharts;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
-  nonEmptyChartCount: number;
-  unavailableChartCount: number;
-}
+const fetchAdminChartResponses = (
+  authAxios: any,
+  userId: number | string,
+) => Promise.all(
+  CANONICAL_CHART_IDS.map((id) => (
+    fetchAdminChartResponse(authAxios, userId, CANONICAL_CHART_ROUTES[id])
+  )),
+);
 
 /**
  * Admin/trainer-scoped chart hook. Same 12 canonical charts as
@@ -81,110 +68,13 @@ interface UseAdminClientProgressChartsReturn {
  */
 export function useAdminClientProgressCharts(
   userId: number | string | null | undefined,
-): UseAdminClientProgressChartsReturn {
+): UseCanonicalProgressChartsFetchReturn {
   const { authAxios } = useAuth();
-  const [charts, setCharts] = useState<CanonicalProgressCharts>(EMPTY_BUNDLE);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [unavailableChartCount, setUnavailableChartCount] = useState(0);
+  const hasClientId = Boolean(userId);
 
-  const fetchAll = useCallback(async () => {
-    if (!authAxios || !userId) return;
-    setIsLoading(true);
-    setError(null);
-    setUnavailableChartCount(0);
-
-    const get = (suffix: string) =>
-      authAxios
-        .get(`/api/analytics/${userId}/${suffix}`)
-        .then((res: any) => res?.data)
-        .catch(() => null);
-
-    try {
-      const responses = await Promise.all(
-        CANONICAL_CHART_IDS.map((id) => get(CANONICAL_CHART_ROUTES[id])),
-      );
-      setUnavailableChartCount(responses.filter((response) => !response?.success).length);
-      const [
-        workoutFreqRes, attendanceRes, weeklyVolumeRes, setsRepsRes,
-        durationRes, intensityRes, prRes, anchorLiftsRes,
-        exerciseFreqRes, movementPatternRes, muscleGroupRes, recoveryRes,
-      ] = responses;
-
-      const listOrEmpty = (r: any): any[] =>
-        r?.success && Array.isArray(r?.data) ? r.data : [];
-
-      const next: CanonicalProgressCharts = sanitizeClientProgressChartsBundle({
-        workoutFrequency: listOrEmpty(workoutFreqRes),
-        attendanceReliability: attendanceRes?.success
-          ? {
-              data: Array.isArray(attendanceRes.data) ? attendanceRes.data : [],
-              reliabilityPercent: typeof attendanceRes.reliabilityPercent === 'number'
-                ? attendanceRes.reliabilityPercent : 0,
-              totals: attendanceRes.totals || EMPTY_ATTENDANCE.totals,
-            }
-          : EMPTY_ATTENDANCE,
-        weeklyVolume: listOrEmpty(weeklyVolumeRes),
-        setsRepsTrend: setsRepsRes?.success && setsRepsRes?.data
-          ? {
-              sets: Array.isArray(setsRepsRes.data.sets) ? setsRepsRes.data.sets : [],
-              reps: Array.isArray(setsRepsRes.data.reps) ? setsRepsRes.data.reps : [],
-            }
-          : EMPTY_SETS_REPS,
-        durationTrend: listOrEmpty(durationRes),
-        intensityRpeTrend: listOrEmpty(intensityRes),
-        prTimeline: listOrEmpty(prRes),
-        anchorLifts: anchorLiftsRes?.success
-          ? {
-              data: anchorLiftsRes.data && typeof anchorLiftsRes.data === 'object'
-                ? anchorLiftsRes.data : {},
-              exercises: Array.isArray(anchorLiftsRes.exercises)
-                ? anchorLiftsRes.exercises : [],
-            }
-          : EMPTY_ANCHOR_LIFTS,
-        exerciseFrequency: listOrEmpty(exerciseFreqRes),
-        movementPatternBalance: listOrEmpty(movementPatternRes),
-        muscleGroupBalance: listOrEmpty(muscleGroupRes),
-        recoverySignal: listOrEmpty(recoveryRes),
-      });
-
-      setCharts(next);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load progress charts');
-      setUnavailableChartCount(CANONICAL_CHART_IDS.length);
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchResponses = useCallback(() => {
+    return fetchAdminChartResponses(authAxios, userId as number | string);
   }, [authAxios, userId]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  const nonEmptyChartCount = useMemo(() => {
-    let count = 0;
-    if (charts.workoutFrequency.length > 0) count++;
-    if (charts.attendanceReliability.data.length > 0) count++;
-    if (charts.weeklyVolume.length > 0) count++;
-    if (charts.setsRepsTrend.sets.length > 0) count++;
-    if (charts.durationTrend.length > 0) count++;
-    if (charts.intensityRpeTrend.length > 0) count++;
-    if (charts.prTimeline.length > 0) count++;
-    if (charts.anchorLifts.exercises.length > 0) count++;
-    if (charts.exerciseFrequency.length > 0) count++;
-    if (charts.movementPatternBalance.length > 0) count++;
-    if (charts.muscleGroupBalance.length > 0) count++;
-    if (charts.recoverySignal.length > 0) count++;
-    return count;
-  }, [charts]);
-
-  return useMemo(
-    () => ({
-      charts,
-      isLoading,
-      error,
-      refetch: fetchAll,
-      nonEmptyChartCount,
-      unavailableChartCount,
-    }),
-    [charts, isLoading, error, fetchAll, nonEmptyChartCount, unavailableChartCount],
-  );
+  return useCanonicalProgressChartsFetch(hasClientId, fetchResponses);
 }

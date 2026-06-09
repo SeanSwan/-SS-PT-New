@@ -66,4 +66,5 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
     expect(screen.getByTestId('canonical-progress-charts-grid')).toBeInTheDocument();
     expect(screen.getByText(/top 8 - all time/i)).toBeInTheDocument();
   });
+
 });

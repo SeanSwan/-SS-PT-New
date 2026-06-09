@@ -7,6 +7,7 @@
 import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useClientProgressCharts } from '../../../../hooks/analytics/useClientProgressCharts';
+import { getProgressProofStatusText } from '../../../../utils/progressProofStatusText';
 import ClientExerciseMegaStats from '../../progress/ClientExerciseMegaStats';
 import {
   AnchorLiftsCard,
@@ -36,7 +37,7 @@ interface CanonicalProgressChartsGridProps {
 }
 
 const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = () => {
-  const { charts, isLoading, error, nonEmptyChartCount } = useClientProgressCharts();
+  const { charts, isLoading, error, nonEmptyChartCount, unavailableChartCount } = useClientProgressCharts();
 
   if (isLoading && nonEmptyChartCount === 0) {
     return <LoadingStrip>Loading progress charts...</LoadingStrip>;
@@ -50,7 +51,7 @@ const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = 
     <div data-testid="canonical-progress-charts-grid">
       <SectionHeader>
         <TrendingUp size={13} />
-        <span>Progress overview - {nonEmptyChartCount} of 12 charts populated</span>
+        <span>Progress overview - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
       </SectionHeader>
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>

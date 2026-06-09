@@ -40,7 +40,8 @@ vi.mock('../../../../../hooks/analytics/useAdminClientProgressCharts', () => ({
   }),
 }));
 
-import AdminProgressChartsGrid, { getProgressProofStatusText } from './AdminProgressChartsGrid';
+import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
+import AdminProgressChartsGrid from './AdminProgressChartsGrid';
 
 describe('AdminProgressChartsGrid mega stats', () => {
   it('keeps the active admin progress grid component under the 300-line cap', () => {

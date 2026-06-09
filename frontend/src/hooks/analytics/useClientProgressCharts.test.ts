@@ -19,7 +19,7 @@ import {
   CANONICAL_CHART_IDS,
   CANONICAL_CHART_ROUTES,
   type CanonicalChartId,
-} from './useClientProgressCharts';
+} from './useClientProgressCharts.types';
 import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +27,14 @@ const __dirname = dirname(__filename);
 
 const HOOK_SOURCE = readFileSync(
   resolve(__dirname, './useClientProgressCharts.ts'),
+  'utf8',
+);
+const MAPPING_SOURCE = readFileSync(
+  resolve(__dirname, './useClientProgressChartsResponseMapping.ts'),
+  'utf8',
+);
+const SHARED_FETCH_SOURCE = readFileSync(
+  resolve(__dirname, './useCanonicalProgressChartsFetch.ts'),
   'utf8',
 );
 const GRID_SOURCE = readFileSync(
@@ -118,11 +126,13 @@ describe('Phase 14 — hook fetch contract', () => {
   });
 
   it('has truthful empty shapes (no demo/preview fallbacks)', () => {
-    // EMPTY_BUNDLE must initialize every field to [] or a typed empty obj.
-    expect(HOOK_SOURCE).toMatch(/const\s+EMPTY_BUNDLE:\s*CanonicalProgressCharts/);
-    expect(HOOK_SOURCE).toMatch(/workoutFrequency:\s*\[\]/);
-    expect(HOOK_SOURCE).toMatch(/weeklyVolume:\s*\[\]/);
-    expect(HOOK_SOURCE).toMatch(/recoverySignal:\s*\[\]/);
+    // EMPTY_CANONICAL_PROGRESS_CHARTS must initialize every field to [] or a typed empty obj.
+    expect(MAPPING_SOURCE).toMatch(
+      /EMPTY_CANONICAL_PROGRESS_CHARTS:\s*CanonicalProgressCharts/,
+    );
+    expect(MAPPING_SOURCE).toMatch(/workoutFrequency:\s*\[\]/);
+    expect(MAPPING_SOURCE).toMatch(/weeklyVolume:\s*\[\]/);
+    expect(MAPPING_SOURCE).toMatch(/recoverySignal:\s*\[\]/);
 
     // No demo/placeholder symbol in the hook source. The docstring uses
     // the word "preview" as prose ("no demo / preview / fake fallbacks"),
@@ -132,7 +142,12 @@ describe('Phase 14 — hook fetch contract', () => {
   });
 
   it('derives nonEmptyChartCount to drive the grid empty-state summary', () => {
-    expect(HOOK_SOURCE).toMatch(/nonEmptyChartCount/);
+    expect(SHARED_FETCH_SOURCE).toMatch(/nonEmptyChartCount/);
+  });
+
+  it('tracks unavailable chart feeds separately from empty chart data', () => {
+    expect(SHARED_FETCH_SOURCE).toMatch(/unavailableChartCount/);
+    expect(GRID_SOURCE).toMatch(/getProgressProofStatusText/);
   });
 
   it('sanitizes malformed chart coordinates before Victory receives them', () => {
