@@ -55,6 +55,7 @@
 import logger from '../utils/logger.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
+import { buildClientDataOverview } from '../services/clientDataOverviewService.mjs';
 import {
   TOTAL_QUESTION_COUNT,
   isPlainObject,
@@ -408,15 +409,7 @@ export const getClientDataOverview = async (req, res) => {
     }
 
     const models = getAllModels();
-    const {
-      User,
-      ClientTrainerAssignment,
-      ClientOnboardingQuestionnaire,
-      ClientBaselineMeasurements,
-      ClientNutritionPlan,
-      ClientPhoto,
-      ClientNote,
-    } = models;
+    const { User, ClientTrainerAssignment } = models;
 
     const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);
     if (!accessResult.ok) {
@@ -428,113 +421,15 @@ export const getClientDataOverview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const includeTrainerNoteSummary = req.user?.role !== 'client';
-
-    const [
-      questionnaire,
-      baselineMeasurement,
-      nutritionPlan,
-      photoCount,
-      latestPhoto,
-      noteCount,
-      latestNote,
-    ] = await Promise.all([
-      ClientOnboardingQuestionnaire.findOne({
-        where: { userId: targetUserId },
-        order: [['createdAt', 'DESC']],
-      }),
-      ClientBaselineMeasurements.findOne({
-        where: { userId: targetUserId },
-        order: [['takenAt', 'DESC']],
-      }),
-      ClientNutritionPlan.findOne({
-        where: { userId: targetUserId, status: 'active' },
-        order: [['startDate', 'DESC']],
-      }),
-      ClientPhoto.count({ where: { userId: targetUserId, isDeleted: false } }),
-      ClientPhoto.findOne({
-        where: { userId: targetUserId, isDeleted: false },
-        order: [['uploadedAt', 'DESC']],
-      }),
-      includeTrainerNoteSummary
-        ? ClientNote.count({ where: { userId: targetUserId } })
-        : Promise.resolve(0),
-      includeTrainerNoteSummary
-        ? ClientNote.findOne({
-            where: { userId: targetUserId },
-            order: [['createdAt', 'DESC']],
-          })
-        : Promise.resolve(null),
-    ]);
-
-    const responses = normalizeJsonObject(questionnaire?.responsesJson) ?? {};
-    const completionPercentage = questionnaire ? calculateCompletionPercentage(responses) : 0;
-    const onboardingCompleted = questionnaire?.status === 'completed' || completionPercentage === 100;
-
-    const movementCompleted = !!baselineMeasurement;
-    const movementDate = baselineMeasurement?.takenAt ?? baselineMeasurement?.createdAt ?? null;
-
-        const baselineSummary = baselineMeasurement
-          ? {
-              bodyWeight: baselineMeasurement?.bodyWeight ?? null,
-              bodyFatPercentage: baselineMeasurement?.bodyFatPercentage ?? null,
-              plankDuration: baselineMeasurement?.plankDuration ?? null,
-              restingHeartRate: baselineMeasurement?.restingHeartRate ?? null,
-              bloodPressure: baselineMeasurement?.bloodPressureSystolic && baselineMeasurement?.bloodPressureDiastolic
-                ? `${baselineMeasurement.bloodPressureSystolic}/${baselineMeasurement.bloodPressureDiastolic}`
-                : null,
-          benchPress: baselineMeasurement?.benchPressWeight && baselineMeasurement?.benchPressReps
-            ? `${baselineMeasurement.benchPressWeight} lbs x ${baselineMeasurement.benchPressReps}`
-            : null,
-          squat: baselineMeasurement?.squatWeight && baselineMeasurement?.squatReps
-            ? `${baselineMeasurement.squatWeight} lbs x ${baselineMeasurement.squatReps}`
-            : null,
-          lastUpdated: movementDate,
-        }
-      : null;
-
-    const nutritionSummary = nutritionPlan
-      ? {
-          active: true,
-          dailyCalories: nutritionPlan.dailyCalories ?? null,
-          macros: {
-            protein: nutritionPlan.proteinGrams ? Number(nutritionPlan.proteinGrams) : null,
-            carbs: nutritionPlan.carbsGrams ? Number(nutritionPlan.carbsGrams) : null,
-            fat: nutritionPlan.fatGrams ? Number(nutritionPlan.fatGrams) : null,
-          },
-        }
-      : {
-          active: false,
-          dailyCalories: null,
-          macros: { protein: null, carbs: null, fat: null },
-        };
+    const overview = await buildClientDataOverview({
+      models,
+      targetUserId,
+      requesterRole: req.user?.role,
+    });
 
     return res.status(200).json({
       success: true,
-      overview: {
-        userId: targetUserId,
-        onboardingStatus: {
-          completed: onboardingCompleted,
-          completionPercentage,
-          primaryGoal: questionnaire?.primaryGoal ?? null,
-          trainingTier: questionnaire?.trainingTier ?? null,
-        },
-        movementScreen: {
-          completed: movementCompleted,
-          nasmAssessmentScore: baselineMeasurement?.nasmAssessmentScore ?? null,
-          date: movementDate,
-        },
-        baselineMeasurements: baselineSummary,
-        nutritionPlan: nutritionSummary,
-        progressPhotos: {
-          count: photoCount ?? 0,
-          lastUpload: latestPhoto?.uploadedAt ?? null,
-        },
-        trainerNotes: {
-          count: noteCount ?? 0,
-          lastNote: latestNote?.createdAt ?? null,
-        },
-      },
+      overview,
     });
   } catch (error) {
     logger.error('Client data overview fetch failed:', error);
