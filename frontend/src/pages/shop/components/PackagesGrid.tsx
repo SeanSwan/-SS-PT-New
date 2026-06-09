@@ -71,9 +71,9 @@ interface PackagesGridProps {
   packages: any[];
   canViewPrices: boolean;
   canPurchase: boolean;
-  revealPrices: { [key: string]: boolean };
+  revealPrices?: { [key: string]: boolean };
   isAddingToCart: number | null;
-  onTogglePrice: (packageId: number) => void;
+  onTogglePrice?: (packageId: number) => void;
   onAddToCart: (pkg: any) => void;
 }
 
@@ -201,9 +201,7 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
   packages,
   canViewPrices,
   canPurchase,
-  revealPrices,
   isAddingToCart,
-  onTogglePrice,
   onAddToCart
 }) => {
   const fixedPackagesSectionRef = useRef<HTMLDivElement>(null);
@@ -245,13 +243,11 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
         activeSpecial={pkg.activeSpecial}
         canViewPrices={canViewPrices}
         canPurchase={canPurchase}
-        isPriceRevealed={revealPrices[pkg.id] || false}
         isAdding={isAddingToCart === pkg.id}
-        onTogglePrice={onTogglePrice}
         onAddToCart={onAddToCart}
       />
     ));
-  }, [canViewPrices, canPurchase, revealPrices, isAddingToCart, onTogglePrice, onAddToCart]);
+  }, [canViewPrices, canPurchase, isAddingToCart, onAddToCart]);
 
   return (
     <MotionConfig reducedMotion="user">

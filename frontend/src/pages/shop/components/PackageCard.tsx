@@ -6,7 +6,7 @@
  *
  * Responsibilities:
  * - Individual package display and styling
- * - Price reveal/hide functionality
+ * - Total package investment and session math display
  * - Add to cart interaction
  * - Theme-based visual styling
  * - Accessibility features
@@ -20,7 +20,7 @@
 import React, { memo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/GlowButton';
 import { SpecialBadge } from './SpecialBadge';
 import { logger } from '@/utils/logger';
@@ -70,9 +70,7 @@ interface PackageCardProps {
   package: StoreItem;
   canViewPrices: boolean;
   canPurchase: boolean;
-  isPriceRevealed: boolean;
   isAdding: boolean;
-  onTogglePrice: (packageId: number) => void;
   onAddToCart: (pkg: StoreItem) => void;
   activeSpecial?: {
     id: number;
@@ -84,26 +82,24 @@ interface PackageCardProps {
 }
 
 // Subtle theme accent for card top-border glow
-const getThemeAccent = (theme: string = 'purple') => {
-  switch (theme) {
-    case "cosmic":  return 'rgba(93, 63, 211, 0.3)';
-    case "ruby":    return 'rgba(232, 80, 120, 0.3)';
-    case "emerald": return 'rgba(0, 212, 170, 0.3)';
-    case "purple":
-    default:        return 'rgba(139, 92, 246, 0.3)';
-  }
+const THEME_ACCENTS: Record<string, string> = {
+  cosmic: 'rgba(93, 63, 211, 0.3)',
+  ruby: 'rgba(232, 80, 120, 0.3)',
+  emerald: 'rgba(0, 212, 170, 0.3)',
+  purple: 'rgba(139, 92, 246, 0.3)',
 };
 
+const getThemeAccent = (theme: string = 'purple') => THEME_ACCENTS[theme] ?? THEME_ACCENTS.purple;
+
 // Fallback gradient for video error
-const getFallbackGradient = (theme: string = 'purple') => {
-  switch (theme) {
-    case "cosmic":  return `linear-gradient(135deg, rgba(93, 63, 211, 0.4), rgba(0, 212, 170, 0.2))`;
-    case "ruby":    return `linear-gradient(135deg, rgba(232, 80, 120, 0.4), rgba(139, 92, 246, 0.2))`;
-    case "emerald": return `linear-gradient(135deg, rgba(0, 212, 170, 0.4), rgba(72, 232, 200, 0.2))`;
-    case "purple":
-    default:        return `linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(200, 148, 255, 0.2))`;
-  }
+const FALLBACK_GRADIENTS: Record<string, string> = {
+  cosmic: 'linear-gradient(135deg, rgba(93, 63, 211, 0.4), rgba(0, 212, 170, 0.2))',
+  ruby: 'linear-gradient(135deg, rgba(232, 80, 120, 0.4), rgba(139, 92, 246, 0.2))',
+  emerald: 'linear-gradient(135deg, rgba(0, 212, 170, 0.4), rgba(72, 232, 200, 0.2))',
+  purple: 'linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(200, 148, 255, 0.2))',
 };
+
+const getFallbackGradient = (theme: string = 'purple') => FALLBACK_GRADIENTS[theme] ?? FALLBACK_GRADIENTS.purple;
 
 // Dynamic movie matching utility
 const getMatchingMovieFile = (packageName: string): string | null => {
@@ -154,18 +150,42 @@ const getPackageMedia = (imageUrl: string | null, packageName: string): { type: 
   };
 };
 
-const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } => {
-  if (!pkg.pricePerSession) return { text: '', isGoodValue: false };
+const EMPTY_VALUE_BADGE = { text: '', isGoodValue: false };
+const VALUE_BADGES = [
+  { maxPrice: 142, badge: { text: 'Best Value', isGoodValue: true } },
+  { maxPrice: 150, badge: { text: 'Great Value', isGoodValue: true } },
+  { maxPrice: 165, badge: { text: 'Good Value', isGoodValue: false } },
+] as const;
 
-  if (pkg.pricePerSession <= 142) {
-    return { text: 'Best Value', isGoodValue: true };
-  } else if (pkg.pricePerSession <= 150) {
-    return { text: 'Great Value', isGoodValue: true };
-  } else if (pkg.pricePerSession <= 165) {
-    return { text: 'Good Value', isGoodValue: false };
-  }
-  return { text: '', isGoodValue: false };
-};
+const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } => (
+  VALUE_BADGES.find(({ maxPrice }) => Number(pkg.pricePerSession) <= maxPrice)?.badge ?? EMPTY_VALUE_BADGE
+);
+
+const getFixedSessionSummary = (sessionCount: number, bonusSessions = 0): string => (
+  bonusSessions > 0
+    ? `${sessionCount} sessions included + ${bonusSessions} bonus training sessions`
+    : `${sessionCount} sessions included`
+);
+
+const getMonthlySessionSummary = (pkg: StoreItem): string => (
+  `${pkg.months ?? 0} months - ${pkg.sessionsPerWeek ?? 0} sessions/week - ${pkg.totalSessions ?? 0} total sessions`
+);
+
+const getFixedSessionCount = (pkg: StoreItem): number => pkg.sessions ?? pkg.totalSessions ?? 0;
+const getBonusSessionCount = (activeSpecial?: PackageCardProps['activeSpecial']): number => activeSpecial?.bonusSessions ?? 0;
+
+const getSessionSummary = (
+  pkg: StoreItem,
+  activeSpecial?: PackageCardProps['activeSpecial'],
+): string => (
+  pkg.packageType === 'monthly'
+    ? getMonthlySessionSummary(pkg)
+    : getFixedSessionSummary(getFixedSessionCount(pkg), getBonusSessionCount(activeSpecial))
+);
+
+const getPerSessionLabel = (pkg: StoreItem): string | null => (
+  pkg.pricePerSession ? `${formatPrice(pkg.pricePerSession)}/session` : null
+);
 
 // Keyframe animations
 const shimmer = keyframes`
@@ -183,7 +203,7 @@ const CardContainer = styled(motion.div)<{ $theme?: string }>`
   border: 1px solid rgba(0, 212, 170, 0.12);
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
+  cursor: default;
   height: 100%;
   min-height: 520px;
   display: flex;
@@ -416,7 +436,7 @@ const CardDescription = styled.p`
 `;
 
 const SessionInfo = styled.div`
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   padding: 1rem;
   background: rgba(15, 25, 35, 0.6);
   border-radius: 12px;
@@ -425,14 +445,14 @@ const SessionInfo = styled.div`
 
   .session-details {
     font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     color: rgba(240, 248, 255, 0.85);
     margin-bottom: 0.5rem;
   }
 
   .per-session-price {
     font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: ${T.primary};
   }
@@ -570,17 +590,11 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   package: pkg,
   canViewPrices,
   canPurchase,
-  isPriceRevealed,
   isAdding,
-  onTogglePrice,
   onAddToCart,
   activeSpecial
 }) => {
   const cardTheme = (pkg.theme || 'purple') as GlowButtonColorScheme;
-
-  const handleCardClick = useCallback(() => {
-    onTogglePrice(pkg.id);
-  }, [onTogglePrice, pkg.id]);
 
   const handleAddToCart = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -594,12 +608,6 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
     onAddToCart(pkg);
   }, [onAddToCart, pkg]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      onTogglePrice(pkg.id);
-    }
-  }, [onTogglePrice, pkg.id]);
-
   let badgeDisplay = '';
   if (pkg.packageType === 'fixed' && pkg.sessions) {
     badgeDisplay = `${pkg.sessions} Session${pkg.sessions > 1 ? 's' : ''}`;
@@ -609,15 +617,14 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
 
   const valueBadge = getValueBadge(pkg);
   const mediaInfo = getPackageMedia(pkg.imageUrl, pkg.name);
+  const sessionSummary = getSessionSummary(pkg, activeSpecial);
+  const perSessionLabel = getPerSessionLabel(pkg);
 
   return (
     <CardContainer
       $theme={pkg.theme}
-      onClick={handleCardClick}
       aria-label={`View details for ${pkg.name}`}
-      role="button"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
+      role="group"
       variants={itemVariants}
     >
       {activeSpecial && (
@@ -642,75 +649,48 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
           {pkg.description || 'Premium training package designed for stellar results.'}
         </CardDescription>
 
-        {canViewPrices && pkg.pricePerSession && (
-          <SessionInfo>
-            <div className="session-details">
-              {pkg.packageType === 'fixed'
-                ? `${pkg.sessions}${activeSpecial ? ` + ${activeSpecial.bonusSessions} Bonus ` : ' '}training sessions`
-                : `${pkg.months} months \u2022 ${pkg.sessionsPerWeek} sessions/week \u2022 ${pkg.totalSessions} total sessions`}
-            </div>
-            <div className="per-session-price">
-              {formatPrice(pkg.pricePerSession)} per session
-            </div>
+        <PriceBox variants={itemVariants} aria-live="polite">
+          {canViewPrices ? (
+            <PriceContent
+              key="price"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <PriceLabel>Total Investment</PriceLabel>
+              <Price>{formatPrice(pkg.displayPrice)}</Price>
+              {valueBadge.text && (
+                <ValueBadge $isGoodValue={valueBadge.isGoodValue}>
+                  {valueBadge.text}
+                </ValueBadge>
+              )}
+            </PriceContent>
+          ) : (
+            <motion.div
+              key="login"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%'
+              }}
+            >
+              <LoginMessage>Login to view premium prices and purchase</LoginMessage>
+            </motion.div>
+          )}
+        </PriceBox>
+
+        {canViewPrices && (
+          <SessionInfo aria-label="Package pricing details">
+            <div className="session-details">{sessionSummary}</div>
+            {perSessionLabel && (
+              <div className="per-session-price">{perSessionLabel}</div>
+            )}
           </SessionInfo>
         )}
-
-        <PriceBox variants={itemVariants} aria-live="polite">
-          <AnimatePresence mode="wait">
-            {canViewPrices ? (
-              isPriceRevealed ? (
-                <PriceContent
-                  key="price"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <PriceLabel>Total Investment</PriceLabel>
-                  <Price>{formatPrice(pkg.displayPrice)}</Price>
-                  {valueBadge.text && (
-                    <ValueBadge $isGoodValue={valueBadge.isGoodValue}>
-                      {valueBadge.text}
-                    </ValueBadge>
-                  )}
-                </PriceContent>
-              ) : (
-                <motion.div
-                  key="reveal"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: T.textSecondary
-                  }}
-                >
-                  Click to reveal price
-                </motion.div>
-              )
-            ) : (
-              <motion.div
-                key="login"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%'
-                }}
-              >
-                <LoginMessage>Login to view premium prices and purchase</LoginMessage>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </PriceBox>
 
         <CardActions>
           <motion.div {...buttonMotionProps} style={{ width: '100%'}}>

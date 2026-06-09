@@ -14,6 +14,7 @@ describe('PackageCard with Specials', () => {
     name: '10-Pack Bundle',
     description: 'Test package',
     price: 1650,
+    displayPrice: 1650,
     sessions: 10,
     pricePerSession: 165,
     packageType: 'fixed' as const,
@@ -26,9 +27,7 @@ describe('PackageCard with Specials', () => {
     package: basePackage,
     canViewPrices: true,
     canPurchase: true,
-    isPriceRevealed: false,
     isAdding: false,
-    onTogglePrice: vi.fn(),
     onAddToCart: vi.fn()
   };
 
@@ -37,6 +36,40 @@ describe('PackageCard with Specials', () => {
 
     expect(screen.getByText('10-Pack Bundle')).toBeInTheDocument();
     expect(screen.queryByTestId('special-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows total investment first without requiring a price reveal click', () => {
+    render(<PackageCard {...baseProps} />);
+
+    expect(screen.getByText('Total Investment')).toBeInTheDocument();
+    expect(screen.getByText('$1,650')).toBeInTheDocument();
+    expect(screen.getByText('10 sessions included')).toBeInTheDocument();
+    expect(screen.getByText('$165/session')).toBeInTheDocument();
+    expect(screen.queryByText(/click to reveal price/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps long-term program math secondary to the total investment', () => {
+    render(
+      <PackageCard
+        {...baseProps}
+        package={{
+          ...basePackage,
+          id: 2,
+          name: '6-Month Program',
+          packageType: 'monthly',
+          months: 6,
+          sessions: undefined,
+          sessionsPerWeek: 4,
+          totalSessions: 96,
+          pricePerSession: 175,
+          displayPrice: 16800,
+        }}
+      />
+    );
+
+    expect(screen.getByText('$16,800')).toBeInTheDocument();
+    expect(screen.getByText('6 months - 4 sessions/week - 96 total sessions')).toBeInTheDocument();
+    expect(screen.getByText('$175/session')).toBeInTheDocument();
   });
 
   it('renders special badge when activeSpecial is provided', () => {
