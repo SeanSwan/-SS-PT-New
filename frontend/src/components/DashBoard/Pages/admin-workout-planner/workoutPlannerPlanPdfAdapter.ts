@@ -9,7 +9,7 @@ import type { jsPDF as PdfDoc } from 'jspdf';
 import type { PlannerClient } from './WorkoutPlannerTypes';
 import { normalizeClientSource } from '../../../../utils/clientSource';
 import { toPositiveInteger, toRecord } from '../../../../utils/objectValueGuards';
-import { closestWorkoutPlanHorizon } from '../../../../utils/workoutPlanHorizonTokens';
+import { workoutPlanHorizonForKey } from '../../../../utils/workoutPlanHorizonTokens';
 import { buildPlanningSignalLines, renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
 interface PdfPlanFallbacks {
   goal: string;
@@ -20,6 +20,7 @@ interface PdfPlanFallbacks {
 interface BuildPlanPdfFileInput extends PdfPlanFallbacks {
   planData: unknown;
   selectedClient: PlannerClient | null | undefined;
+  horizonKey?: string | null;
 }
 
 interface PrintableExercise {
@@ -286,6 +287,7 @@ export const buildPlanPdfFileFromPlanData = async ({
   goal,
   nasmPhase,
   durationWeeks,
+  horizonKey,
 }: BuildPlanPdfFileInput): Promise<File | null> => {
   if (typeof File === 'undefined') return null;
 
@@ -296,7 +298,7 @@ export const buildPlanPdfFileFromPlanData = async ({
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const clientName = getClientDisplayName(selectedClient);
   const blob = renderPlanPdfBlob(doc, pdfPlan, clientName, selectedClient?.clientSource);
-  const horizonToken = closestWorkoutPlanHorizon(pdfPlan.planSummary.durationWeeks).token;
+  const horizonToken = workoutPlanHorizonForKey(horizonKey, pdfPlan.planSummary.durationWeeks).token;
   const filename = `SwanStudios-${horizonToken}-Plan-${safeFilenamePart(clientName)}.pdf`;
 
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });

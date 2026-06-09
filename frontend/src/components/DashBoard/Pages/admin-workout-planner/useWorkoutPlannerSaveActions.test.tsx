@@ -90,6 +90,7 @@ describe('useWorkoutPlannerSaveActions', () => {
     expect(mocks.buildPlanPdfFileFromPlanData).toHaveBeenCalledWith(expect.objectContaining({
       planData,
       durationWeeks: 26,
+      horizonKey: 'six_month',
       goal: 'strength',
       nasmPhase: 2,
     }));
@@ -132,5 +133,44 @@ describe('useWorkoutPlannerSaveActions', () => {
       '/api/workout-plans/loaded-plan/pdf/upload',
       expect.any(FormData),
     );
+  });
+
+  it('keeps single-session plans attached to one-day plan vault PDFs', async () => {
+    const singlePlanData = {
+      weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Mobility Prep' }] }] }],
+    };
+    const authAxios = {
+      post: vi.fn((url: string) => (
+        url === '/api/workout-plans'
+          ? Promise.resolve({ data: { plan: { id: 'plan-1d', title: 'Single Day Plan' } } })
+          : Promise.resolve({ data: { success: true } })
+      )),
+      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+    };
+    const input = makeHookInput(authAxios, {
+      planDuration: 'single',
+      hasGeneratedHorizonPlan: false,
+      planExercisesLength: 1,
+      buildPlanData: vi.fn(() => singlePlanData),
+    });
+
+    const { result } = renderHook(() => useWorkoutPlannerSaveActions(input));
+
+    await act(async () => {
+      await result.current.handleSaveDraft();
+    });
+
+    expect(authAxios.post).toHaveBeenNthCalledWith(1, '/api/workout-plans', expect.objectContaining({
+      durationWeeks: 1,
+      metadata: expect.objectContaining({
+        planHorizon: 'one_day',
+        planSource: 'manual_builder',
+      }),
+    }));
+    expect(mocks.buildPlanPdfFileFromPlanData).toHaveBeenCalledWith(expect.objectContaining({
+      planData: singlePlanData,
+      durationWeeks: 1,
+      horizonKey: 'one_day',
+    }));
   });
 });

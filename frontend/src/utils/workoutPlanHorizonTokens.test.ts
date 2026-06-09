@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { closestWorkoutPlanHorizon } from './workoutPlanHorizonTokens';
+import { closestWorkoutPlanHorizon, workoutPlanHorizonForKey } from './workoutPlanHorizonTokens';
 
 describe('closestWorkoutPlanHorizon', () => {
   it('maps exact SwanStudios plan arcs to stable PDF tokens', () => {
@@ -16,5 +16,17 @@ describe('closestWorkoutPlanHorizon', () => {
     expect(closestWorkoutPlanHorizon(21).token).toBe('6mo');
     expect(closestWorkoutPlanHorizon(33).token).toBe('9mo');
     expect(closestWorkoutPlanHorizon(46).token).toBe('12mo');
+  });
+
+  it('resolves explicit one-day plan vault horizons without treating them as one-week plans', () => {
+    expect(workoutPlanHorizonForKey('one_day', 1)).toMatchObject({
+      key: 'one_day',
+      token: '1d',
+      label: '1-Day',
+    });
+    expect(workoutPlanHorizonForKey('unknown', 26)).toMatchObject({
+      key: 'six_month',
+      token: '6mo',
+    });
   });
 });

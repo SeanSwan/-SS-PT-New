@@ -6,11 +6,15 @@
  */
 
 export interface WorkoutPlanHorizonToken {
-  key: WorkoutPlanDurationHorizonKey;
+  key: WorkoutPlanHorizonKey;
   weeks: number;
   token: string;
   label: string;
 }
+
+export type WorkoutPlanHorizonKey =
+  | 'one_day'
+  | WorkoutPlanDurationHorizonKey;
 
 export type WorkoutPlanDurationHorizonKey =
   | 'one_week'
@@ -20,7 +24,7 @@ export type WorkoutPlanDurationHorizonKey =
   | 'nine_month'
   | 'twelve_month';
 
-const WORKOUT_PLAN_HORIZON_TOKENS: WorkoutPlanHorizonToken[] = [
+const WORKOUT_PLAN_DURATION_HORIZON_TOKENS: WorkoutPlanHorizonToken[] = [
   { key: 'one_week', weeks: 1, token: '1wk', label: '1-Week' },
   { key: 'one_month', weeks: 4, token: '1mo', label: '1-Month' },
   { key: 'three_month', weeks: 12, token: '3mo', label: '3-Month' },
@@ -29,11 +33,25 @@ const WORKOUT_PLAN_HORIZON_TOKENS: WorkoutPlanHorizonToken[] = [
   { key: 'twelve_month', weeks: 52, token: '12mo', label: '12-Month' },
 ];
 
+const WORKOUT_PLAN_VAULT_HORIZON_TOKENS: WorkoutPlanHorizonToken[] = [
+  { key: 'one_day', weeks: 1, token: '1d', label: '1-Day' },
+  ...WORKOUT_PLAN_DURATION_HORIZON_TOKENS,
+];
+
 export const closestWorkoutPlanHorizon = (durationWeeks: number): WorkoutPlanHorizonToken =>
-  WORKOUT_PLAN_HORIZON_TOKENS.reduce((closest, horizon) => {
+  WORKOUT_PLAN_DURATION_HORIZON_TOKENS.reduce((closest, horizon) => {
     const currentDistance = Math.abs(horizon.weeks - durationWeeks);
     const closestDistance = Math.abs(closest.weeks - durationWeeks);
     if (currentDistance < closestDistance) return horizon;
     if (currentDistance === closestDistance && horizon.weeks > closest.weeks) return horizon;
     return closest;
-  }, WORKOUT_PLAN_HORIZON_TOKENS[0]);
+  }, WORKOUT_PLAN_DURATION_HORIZON_TOKENS[0]);
+
+export const workoutPlanHorizonForKey = (
+  horizonKey: string | null | undefined,
+  fallbackDurationWeeks: number,
+): WorkoutPlanHorizonToken => {
+  const normalizedKey = String(horizonKey || '').trim();
+  return WORKOUT_PLAN_VAULT_HORIZON_TOKENS.find(horizon => horizon.key === normalizedKey)
+    || closestWorkoutPlanHorizon(fallbackDurationWeeks);
+};

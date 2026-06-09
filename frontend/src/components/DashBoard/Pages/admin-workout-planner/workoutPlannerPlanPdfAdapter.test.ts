@@ -78,11 +78,12 @@ describe('workout planner PDF source adapter', () => {
   });
 
   it('adapts manual builder planData into a printable plan summary', async () => {
-    await buildPlanPdfFileFromPlanData({
+    const file = await buildPlanPdfFileFromPlanData({
       selectedClient,
       goal: 'strength',
       nasmPhase: 2,
       durationWeeks: 1,
+      horizonKey: 'one_day',
       planData: {
         goal: 'fat_loss',
         weeks: [
@@ -98,6 +99,7 @@ describe('workout planner PDF source adapter', () => {
       },
     });
 
+    expect(file?.name).toBe('SwanStudios-1d-Plan-Client-FortyTwo.pdf');
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
       'Duration: 1 weeks',
       'Primary goal: fat_loss',

@@ -102,6 +102,7 @@ export const useWorkoutPlannerSaveActions = ({
     planData: unknown,
     client: PlannerClient | undefined,
     durationWeeks: number,
+    horizonKey: string | null | undefined,
   ): Promise<PdfAttachResult> => {
     if (typeof FormData === 'undefined') return 'skipped';
     try {
@@ -111,6 +112,7 @@ export const useWorkoutPlannerSaveActions = ({
         goal,
         nasmPhase: phaseNumber,
         durationWeeks,
+        horizonKey,
       });
       if (!file) return 'skipped';
 
@@ -187,7 +189,7 @@ export const useWorkoutPlannerSaveActions = ({
         setLoadedPlanName(planTitle ? String(planTitle) : null);
       }
       const pdfResult = planId
-        ? await attachGeneratedPdf(planId, planData, client, saveFields.durationWeeks)
+        ? await attachGeneratedPdf(planId, planData, client, saveFields.durationWeeks, saveFields.metadata.planHorizon)
         : 'skipped';
       setStatusMsg({ type: 'success', text: saveStatusText(successText, pdfResult) });
       await fetchSavedPlans(selectedClientId);

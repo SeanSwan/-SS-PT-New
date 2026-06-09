@@ -16,7 +16,7 @@ const CLIENT_PLAN_VAULT_HORIZONS = [
   { horizonKey: 'twelve_month', label: '12 Month', durationWeeks: 52, durationDays: 365, isDefaultHorizon: false },
 ] as const;
 
-const CLIENT_PLAN_VAULT_HORIZON_KEYS = new Set(
+const CLIENT_PLAN_VAULT_HORIZON_KEYS = new Set<string>(
   CLIENT_PLAN_VAULT_HORIZONS.map((slot) => slot.horizonKey),
 );
 
