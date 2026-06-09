@@ -186,3 +186,32 @@ export async function inspectTrainerClientContactEmailFit(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectFramedClientCardTop(page: Page, selector: string) {
+  return page.evaluate((cardSelector) => {
+    const issues: string[] = [];
+    if (window.innerWidth > 768) return { issues };
+
+    const card = document.querySelector<HTMLElement>(cardSelector);
+    const identity = card?.querySelector<HTMLElement>('[data-swan-card-section$="identity"]');
+    if (!card || !identity) return { issues: ['missing framed client card identity section'] };
+
+    const clipParentFor = (node: Element) => {
+      let parent = node.parentElement;
+      while (parent) {
+        const style = window.getComputedStyle(parent);
+        const clips = style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflowY === 'hidden';
+        if (clips && parent.clientHeight > 0) return parent;
+        parent = parent.parentElement;
+      }
+      return document.documentElement;
+    };
+    const clipTop = clipParentFor(card).getBoundingClientRect().top;
+    const identityRect = identity.getBoundingClientRect();
+    if (identityRect.top < clipTop - 1) {
+      issues.push(`framed client card identity is clipped above ${Math.round(clipTop)}px`);
+    }
+
+    return { issues };
+  }, selector);
+}

@@ -20,6 +20,7 @@ import {
   inspectClientDetailIdentitySubtext,
   inspectClientDetailTabLabelFit,
   inspectClientWorkspaceTopBar,
+  inspectFramedClientCardTop,
   inspectNestedClientCardLayout,
   inspectSelectedClientActionStripFootprint,
   inspectTrainerClientContactEmailFit,
@@ -77,7 +78,12 @@ const frameCardForScreenshot = async (page: Page, selector: string) => {
     };
     const alignCard = () => {
       const rect = element.getBoundingClientRect();
-      scrollBy(rect.top - safeTop);
+      const documentScroller = scrollParent === document.body || scrollParent === document.documentElement;
+      const parentTop = scrollParent instanceof HTMLElement
+        ? scrollParent.getBoundingClientRect().top
+        : safeTop;
+      const targetTop = documentScroller ? safeTop : Math.max(safeTop, parentTop + 8);
+      scrollBy(rect.top - targetTop);
     };
     alignCard();
     await new Promise(requestAnimationFrame);
@@ -114,6 +120,7 @@ for (const viewport of responsiveViewports) {
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await frameCardForScreenshot(page, '[data-swan-client-card="admin"]');
+    expect((await inspectFramedClientCardTop(page, '[data-swan-client-card="admin"]')).issues).toEqual([]);
     expect((await inspectMobileDashboardSafeArea(page)).issues).toEqual([]);
     expect((await inspectFixedControlsAgainstClientCards(page)).issues).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`admin-client-cards-${viewport.name}.png`), fullPage: false });
@@ -166,6 +173,7 @@ for (const viewport of responsiveViewports) {
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await frameCardForScreenshot(page, '[data-swan-client-card="trainer"]');
+    expect((await inspectFramedClientCardTop(page, '[data-swan-client-card="trainer"]')).issues).toEqual([]);
     expect((await inspectMobileDashboardSafeArea(page)).issues).toEqual([]);
     expect((await inspectFixedControlsAgainstClientCards(page)).issues).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`trainer-client-cards-${viewport.name}.png`), fullPage: false });
