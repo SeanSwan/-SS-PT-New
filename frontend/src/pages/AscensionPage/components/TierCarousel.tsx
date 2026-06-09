@@ -1,5 +1,15 @@
+/**
+ * FILE: TierCarousel.tsx
+ * PURPOSE: Render mobile tier-card navigation for the Ascension subscription surface.
+ * LAST VALIDATED: 2026-06-09 via TierCarousel contract and Ascension mobile Guardian smoke.
+ */
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import {
+  CarouselWrapper,
+  Dot,
+  DotIndicators,
+  ScrollContainer,
+} from './TierCarousel.styles';
 
 interface TierCarouselProps {
   children: React.ReactNode;
@@ -10,14 +20,42 @@ const TierCarousel: React.FC<TierCarouselProps> = ({ children, cardCount }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const getCards = useCallback((el: HTMLDivElement) => (
+    Array.from(el.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
+  ), []);
+
+  const getClosestIndex = useCallback((el: HTMLDivElement) => {
+    const cards = getCards(el);
+    if (cards.length === 0) return 0;
+
+    const viewportCenter = el.scrollLeft + el.clientWidth / 2;
+    return cards.reduce((closest, card, index) => {
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const currentDistance = Math.abs(cardCenter - viewportCenter);
+      const closestCard = cards[closest];
+      const closestCenter = closestCard.offsetLeft + closestCard.offsetWidth / 2;
+      const closestDistance = Math.abs(closestCenter - viewportCenter);
+      return currentDistance < closestDistance ? index : closest;
+    }, 0);
+  }, [getCards]);
+
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const scrollLeft = el.scrollLeft;
-    const cardWidth = el.scrollWidth / cardCount;
-    const idx = Math.round(scrollLeft / cardWidth);
-    setActiveIndex(Math.min(idx, cardCount - 1));
-  }, [cardCount]);
+    setActiveIndex(Math.min(getClosestIndex(el), cardCount - 1));
+  }, [cardCount, getClosestIndex]);
+
+  const scrollToIndex = useCallback((index: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const card = getCards(el)[index];
+    if (!card) return;
+
+    const left = card.offsetLeft + card.offsetWidth / 2 - el.clientWidth / 2;
+    el.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+    setActiveIndex(index);
+  }, [getCards]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -36,14 +74,11 @@ const TierCarousel: React.FC<TierCarouselProps> = ({ children, cardCount }) => {
           <Dot
             key={i}
             $active={i === activeIndex}
-            onClick={() => {
-              const el = scrollRef.current;
-              if (!el) return;
-              const cardWidth = el.scrollWidth / cardCount;
-              el.scrollTo({ left: cardWidth * i, behavior: 'smooth' });
-            }}
+            onClick={() => scrollToIndex(i)}
             aria-label={`Go to card ${i + 1}`}
             aria-current={i === activeIndex ? 'true' : undefined}
+            aria-pressed={i === activeIndex}
+            type="button"
           />
         ))}
       </DotIndicators>
@@ -52,58 +87,3 @@ const TierCarousel: React.FC<TierCarouselProps> = ({ children, cardCount }) => {
 };
 
 export default TierCarousel;
-
-const CarouselWrapper = styled.div`
-  width: 100%;
-  overflow: hidden;
-`;
-
-const ScrollContainer = styled.div`
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  gap: 1rem;
-  padding: 0 7.5vw;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
-
-  & > * {
-    flex: 0 0 85vw;
-    scroll-snap-align: center;
-  }
-`;
-
-const DotIndicators = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1.5rem 0 0.5rem;
-`;
-
-const Dot = styled.button<{ $active: boolean }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  min-width: 44px;
-  min-height: 44px;
-  cursor: pointer;
-  background: transparent;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${({ $active }) => $active ? '#60C0F0' : 'rgba(224, 236, 244, 0.2)'};
-    transition: background 0.3s, transform 0.3s;
-    ${({ $active }) => $active && 'transform: translate(-50%, -50%) scale(1.3);'}
-  }
-`;
