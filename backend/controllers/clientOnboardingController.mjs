@@ -59,10 +59,15 @@ import { createBaselineMeasurementRecord } from '../services/clientBaselineMeasu
 import { buildClientDataOverview } from '../services/clientDataOverviewService.mjs';
 import { createMovementScreenRecord } from '../services/clientMovementScreenService.mjs';
 import {
+  buildAdminOnboardingClient,
+  buildOnboardingQueueEntry,
+  buildOnboardingQueueIncludes,
+  onboardingQueueEntryMatches,
+} from '../services/onboardingQueueSummaryService.mjs';
+import {
   normalizeJsonObject,
   toNumber,
   calculateCompletionPercentage,
-  normalizeOnboardingQueueStatus,
   extractPrimaryGoal,
   extractTrainingTier,
   extractCommitmentLevel,
@@ -331,7 +336,7 @@ export const getClientDataOverview = async (req, res) => {
  */
 export const getAdminOnboardingList = async (req, res) => {
   try {
-    const { User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements, Package } = await getAllModels();
+    const { User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = await getAllModels();
 
     // Parse query params
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
@@ -354,81 +359,19 @@ export const getAdminOnboardingList = async (req, res) => {
     // Fetch users with their onboarding data
     const { count, rows: users } = await User.findAndCountAll({
       where: userWhere,
-      include: [
-        {
-          model: Package,
-          as: 'packages',
-          required: false,
-        },
-        {
-          model: ClientOnboardingQuestionnaire,
-          as: 'questionnaires',
-          required: false,
-          order: [['createdAt', 'DESC']],
-          limit: 1,
-        },
-        {
-          model: ClientBaselineMeasurements,
-          as: 'baselineMeasurements',
-          required: false,
-          order: [['createdAt', 'DESC']],
-          limit: 1,
-        },
-      ],
+      include: buildOnboardingQueueIncludes({
+        ClientOnboardingQuestionnaire,
+        ClientBaselineMeasurements,
+      }),
       limit,
       offset,
       distinct: true,
     });
 
-    // Format response data
-    const clients = users.map((user) => {
-      const latestQuestionnaire = user.questionnaires?.[0] || null;
-      const latestBaseline = user.baselineMeasurements?.[0] || null;
-      const activePackage = user.packages?.find((pkg) => pkg.status === 'active') || user.packages?.[0] || null;
-
-      // Apply status filter
-      const questionnaireStatus = normalizeOnboardingQueueStatus(latestQuestionnaire?.status);
-
-      if (statusFilter && statusFilter !== 'all' && questionnaireStatus !== statusFilter) {
-        return null;
-      }
-
-      // Apply package filter
-      if (packageFilter && packageFilter !== 'all' && activePackage?.name !== packageFilter) {
-        return null;
-      }
-
-      return {
-        userId: user.id,
-        client: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-        },
-        package: {
-          name: activePackage?.name || 'No Package',
-        },
-        questionnaire: latestQuestionnaire
-          ? {
-              status: latestQuestionnaire.status,
-              completionPercentage: latestQuestionnaire.completionPercentage || 0,
-              primaryGoal: latestQuestionnaire.primaryGoal,
-              createdAt: latestQuestionnaire.createdAt,
-            }
-          : null,
-        movementScreen: latestBaseline
-          ? {
-              nasmAssessmentScore: latestBaseline.nasmAssessmentScore,
-              status: latestBaseline.nasmAssessmentScore !== null ? 'completed' : 'pending',
-              createdAt: latestBaseline.createdAt,
-            }
-          : {
-              nasmAssessmentScore: null,
-              status: 'pending',
-            },
-      };
-    }).filter(Boolean);
+    const clients = users
+      .map(buildOnboardingQueueEntry)
+      .filter((entry) => onboardingQueueEntryMatches(entry, { statusFilter, packageFilter }))
+      .map(buildAdminOnboardingClient);
 
     const totalPages = Math.ceil(count / limit);
 

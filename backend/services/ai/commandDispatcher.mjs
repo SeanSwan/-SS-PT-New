@@ -186,9 +186,13 @@ import { dispatchOnboardingQuestions } from './dispatchers/onboardingQuestionsDi
 import {
   calculateCompletionPercentage,
   computeDerivedFields,
-  normalizeOnboardingQueueStatus,
 } from '../../utils/onboardingHelpers.mjs';
 import { transformQuestionnaireToMasterPrompt } from '../onboardingMasterPromptBuilder.mjs';
+import {
+  buildOnboardingQueueEntry,
+  buildOnboardingQueueIncludes,
+  onboardingQueueEntryMatches,
+} from '../onboardingQueueSummaryService.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -337,7 +341,7 @@ const dispatchViewOnboardingStatus = async (params, ctx) => {
 };
 
 const dispatchViewOrientationQueue = async (params = {}) => {
-  const { User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements, Package } = getAllModels();
+  const { User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = getAllModels();
   const page = Math.max(1, Number.parseInt(params.page, 10) || 1);
   const limit = Math.min(20, Math.max(1, Number.parseInt(params.limit, 10) || 10));
   const offset = (page - 1) * limit;
@@ -346,48 +350,21 @@ const dispatchViewOrientationQueue = async (params = {}) => {
 
   const { count, rows: users } = await User.findAndCountAll({
     where: {},
-    include: [
-      { model: Package, as: 'packages', required: false },
-      {
-        model: ClientOnboardingQuestionnaire,
-        as: 'questionnaires',
-        required: false,
-        order: [['createdAt', 'DESC']],
-        limit: 1,
-      },
-      {
-        model: ClientBaselineMeasurements,
-        as: 'baselineMeasurements',
-        required: false,
-        order: [['createdAt', 'DESC']],
-        limit: 1,
-      },
-    ],
+    include: buildOnboardingQueueIncludes({
+      ClientOnboardingQuestionnaire,
+      ClientBaselineMeasurements,
+    }),
     limit,
     offset,
     distinct: true,
   });
 
   const entries = users
-    .map((user) => {
-      const latestQuestionnaire = user.questionnaires?.[0] || null;
-      const latestBaseline = user.baselineMeasurements?.[0] || null;
-      const activePackage = user.packages?.find((pkg) => pkg.status === 'active') || user.packages?.[0] || null;
-      const queueStatus = normalizeOnboardingQueueStatus(latestQuestionnaire?.status);
-      const movementStatus = latestBaseline?.nasmAssessmentScore !== null
-        && latestBaseline?.nasmAssessmentScore !== undefined
-        ? 'completed'
-        : 'pending';
-
-      return {
-        userId: user.id,
-        queueStatus,
-        movementStatus,
-        packageName: activePackage?.name ?? null,
-      };
-    })
-    .filter((entry) => !requestedStatus || entry.queueStatus === requestedStatus)
-    .filter((entry) => !packageFilter || entry.packageName === packageFilter);
+    .map(buildOnboardingQueueEntry)
+    .filter((entry) => onboardingQueueEntryMatches(entry, {
+      statusFilter: requestedStatus,
+      packageFilter,
+    }));
 
   const countByStatus = (status) => entries.filter((entry) => entry.queueStatus === status).length;
   const firstAction = entries.find((entry) => (

@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 
 describe('clientOnboardingController regression after helper extraction', () => {
   let source;
+  let queueServiceSource;
 
   beforeAll(() => {
     const controllerPath = path.resolve(
@@ -24,7 +25,15 @@ describe('clientOnboardingController regression after helper extraction', () => 
       'controllers',
       'clientOnboardingController.mjs'
     );
+    const queueServicePath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'onboardingQueueSummaryService.mjs'
+    );
     source = fs.readFileSync(controllerPath, 'utf-8');
+    queueServiceSource = fs.readFileSync(queueServicePath, 'utf-8');
   });
 
   test('imports shared helpers from onboardingHelpers.mjs', () => {
@@ -83,6 +92,14 @@ describe('clientOnboardingController regression after helper extraction', () => 
     expect(source).not.toContain('const { userId, ...measurementData } = req.body;');
     expect(source).not.toContain('restingHeartRate: measurementData.restingHeartRate || null');
     expect(source).not.toContain('rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion)');
+  });
+
+  test('onboarding queue summaries use live User association aliases', () => {
+    expect(source).toContain("from '../services/onboardingQueueSummaryService.mjs'");
+    expect(queueServiceSource).toContain("as: 'onboardingQuestionnaires'");
+    expect(queueServiceSource).toContain("as: 'baselineMeasurements'");
+    expect(queueServiceSource).not.toContain("as: 'questionnaires'");
+    expect(queueServiceSource).not.toContain("as: 'packages'");
   });
 
   test('baseline measurement service preserves the current create payload contract', async () => {

@@ -143,21 +143,18 @@ describe('Swan Coach onboarding command dispatchers', () => {
     const users = [
       {
         id: 100,
-        questionnaires: [{ status: 'completed', completionPercentage: 100, primaryGoal: 'strength' }],
+        onboardingQuestionnaires: [{ status: 'completed', completionPercentage: 100, primaryGoal: 'strength' }],
         baselineMeasurements: [{ nasmAssessmentScore: 84 }],
-        packages: [{ status: 'active', name: 'Swan Studios' }],
       },
       {
         id: 101,
-        questionnaires: [{ status: 'in_progress', completionPercentage: 35, primaryGoal: 'fat_loss' }],
+        onboardingQuestionnaires: [{ status: 'in_progress', completionPercentage: 35, primaryGoal: 'fat_loss' }],
         baselineMeasurements: [],
-        packages: [],
       },
       {
         id: 102,
-        questionnaires: [],
+        onboardingQuestionnaires: [],
         baselineMeasurements: [],
-        packages: [],
       },
     ];
     const { dispatch, hasDispatcher, findAndCountAll } = await loadDispatcher({}, null, users);
@@ -175,6 +172,10 @@ describe('Swan Coach onboarding command dispatchers', () => {
       offset: 0,
       distinct: true,
     }));
+    expect(findAndCountAll.mock.calls[0][0].include.map((include) => include.as)).toEqual([
+      'onboardingQuestionnaires',
+      'baselineMeasurements',
+    ]);
     expect(result).toEqual({
       totalCount: 3,
       returnedCount: 3,
