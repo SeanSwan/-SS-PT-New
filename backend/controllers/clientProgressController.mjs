@@ -1,340 +1,265 @@
-/**
- * FILE: clientProgressController.mjs
- * SYSTEM: Client Progress Tracking
- *
- * PURPOSE:
- * Provide progress summaries and measurement history for client dashboards.
- *
- * ARCHITECTURE:
- * [Routes] -> [Controller] -> [Models: User, BodyMeasurement, ClientBaselineMeasurements, Session] -> [Response]
- */
-import { getAllModels, Op } from '../models/index.mjs';
+// backend/controllers/clientProgressController.mjs
+
+import { Op } from 'sequelize';
+import {
+  getClientPainEntry,
+  getClientProgress as getClientProgressModel,
+  getGoal,
+  getUser,
+  getWorkoutSession,
+} from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { COMPARISON_LEVEL_FIELDS, buildComparisonAnalytics } from '../services/clientProgress/comparisonAnalyticsReadModel.mjs';
+import {
+  handleClientProgressError,
+  requirePositiveClientId,
+} from '../services/clientProgress/routeResponses.mjs';
+import { buildGoalTrackingData } from '../services/clientProgress/goalTrackingReadModel.mjs';
+import {
+  normalizeGoalCreatePayload,
+  normalizeGoalUpdatePayload,
+} from '../services/clientProgress/goalPayloadNormalizer.mjs';
+import { buildInjuryRiskAssessment } from '../services/clientProgress/injuryRiskReadModel.mjs';
+import {
+  parseWorkoutHistoryTimeframe,
+  toWorkoutHistoryEntry,
+} from '../services/clientProgress/workoutHistoryReadModel.mjs';
+import {
+  applyCurrentClientProgressUpdates,
+  applyTrainerProgressUpdates,
+} from '../services/clientProgress/currentProgressMutations.mjs';
+import {
+  createLegacyMeasurement,
+  getLegacyClientProgress,
+  getLegacyMeasurementHistory,
+} from '../services/clientProgress/legacyClientProgressApi.mjs';
 
-const toNumber = (value) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
-};
+const GOAL_STATUSES = ['draft', 'active', 'completed', 'paused', 'cancelled', 'failed'];
 
-const parsePositiveInt = (value) => {
-  const normalized = String(value ?? '').trim();
-  if (!/^\d+$/.test(normalized)) return null;
-  const num = Number.parseInt(normalized, 10);
-  return Number.isSafeInteger(num) && num > 0 ? num : null;
-};
-
-const parseOptionalPositiveInt = (value, fallback) => {
-  if (value === undefined || value === null || value === '') return fallback;
-  return parsePositiveInt(value);
-};
-
-const getRequesterId = (req) => {
-  const id = Number(req.user?.id);
-  return Number.isInteger(id) && id > 0 ? id : null;
-};
-
-const isUserAssignedToTrainer = async ({ ClientTrainerAssignment }, clientId, trainerId) => {
-  if (!ClientTrainerAssignment) {
-    return false;
+const clientProgressHandler = (action, logMessage, publicMessage, options) => async (req, res) => {
+  try {
+    return await action(req, res);
+  } catch (error) {
+    return handleClientProgressError(res, error, logMessage, publicMessage, options);
   }
+};
 
-  const assignment = await ClientTrainerAssignment.findOne({
-    where: {
-      clientId,
-      trainerId,
-      status: 'active'
-    }
+const findClientOrNull = async (userId, attributes) => {
+  const User = getUser();
+  return User.findOne({
+    where: { id: userId, role: 'client' },
+    attributes,
+  });
+};
+
+const sendNotFound = (res, message) => res.status(404).json({
+  success: false,
+  message,
+});
+
+export const getCurrentClientProgress = clientProgressHandler(async (req, res) => {
+  const ClientProgress = getClientProgressModel();
+  const [clientProgress, created] = await ClientProgress.findOrCreate({
+    where: { userId: req.user.id },
+    defaults: {
+      userId: req.user.id,
+      overallLevel: 0,
+      experiencePoints: 0,
+    },
   });
 
-  return Boolean(assignment);
-};
+  if (created) logger.info(`Created new progress record for user ${req.user.id}`);
+  return res.status(200).json({ success: true, progress: clientProgress });
+}, 'Error fetching client progress:', 'Server error fetching progress data');
 
-const ensureProgressAccess = async (req, clientId, models) => {
-  const requesterId = getRequesterId(req);
-  if (!requesterId) {
-    return { allowed: false, status: 401, message: 'Invalid auth context' };
+export const updateCurrentClientProgress = clientProgressHandler(async (req, res) => {
+  const clientProgress = await getClientProgressModel().findOne({ where: { userId: req.user.id } });
+  if (!clientProgress) return sendNotFound(res, 'Client progress record not found');
+
+  applyCurrentClientProgressUpdates(clientProgress, req.body);
+  await clientProgress.save();
+  return res.status(200).json({
+    success: true,
+    message: 'Progress updated successfully',
+    progress: clientProgress,
+  });
+}, 'Error updating client progress:', 'Server error updating progress data');
+
+export const getClientProgressLeaderboard = clientProgressHandler(async (_req, res) => {
+  const ClientProgress = getClientProgressModel();
+  const User = getUser();
+  const leaderboard = await ClientProgress.findAll({
+    attributes: ['overallLevel', 'userId'],
+    include: [{
+      model: User,
+      as: 'user',
+      attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+    }],
+    order: [['overallLevel', 'DESC']],
+    limit: 10,
+  });
+  return res.status(200).json({ success: true, leaderboard });
+}, 'Error fetching leaderboard:', 'Server error fetching leaderboard');
+
+export const getClientWorkoutHistory = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const WorkoutSession = getWorkoutSession();
+  if (!WorkoutSession) {
+    logger.warn('[workout-history] WorkoutSession model unavailable');
+    return res.status(200).json([]);
   }
 
-  if (req.user?.role === 'admin') {
-    return { allowed: true };
+  const days = parseWorkoutHistoryTimeframe(req.query.timeframe);
+  const where = { userId: numericClientId, status: 'completed' };
+  if (days) {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    where.date = { [Op.gte]: since };
   }
 
-  if (req.user?.role === 'client') {
-    if (requesterId === clientId) {
-      return { allowed: true };
-    }
-    return { allowed: false, status: 403, message: 'Access denied' };
-  }
+  const sessions = await WorkoutSession.findAll({
+    where,
+    order: [['date', 'DESC']],
+    limit: 200,
+    attributes: ['id', 'title', 'date', 'duration', 'intensity', 'notes'],
+  });
+  return res.status(200).json(sessions.map(toWorkoutHistoryEntry));
+}, 'Error fetching client workout history:', 'Server error fetching workout history');
 
-  if (req.user?.role === 'trainer') {
-    const assigned = await isUserAssignedToTrainer(models, clientId, requesterId);
-    if (!assigned) {
-      return { allowed: false, status: 403, message: 'Access denied' };
-    }
-    return { allowed: true };
-  }
+export const getClientComparisonAnalytics = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const ClientProgress = getClientProgressModel();
+  const fields = ['userId', ...COMPARISON_LEVEL_FIELDS.map(({ field }) => field)];
+  const [clientProgress, cohortProgress] = await Promise.all([
+    ClientProgress.findOne({ where: { userId: numericClientId }, attributes: fields }),
+    ClientProgress.findAll({
+      where: { userId: { [Op.ne]: numericClientId } },
+      attributes: fields,
+      limit: 500,
+    }),
+  ]);
+  return res.status(200).json(buildComparisonAnalytics({
+    clientProgress,
+    cohortProgress,
+    comparisonType: req.query.type,
+    timeframe: req.query.timeframe,
+  }));
+}, 'Error fetching client comparison analytics:', 'Server error fetching comparison analytics');
 
-  return { allowed: false, status: 403, message: 'Access denied' };
-};
+export const getClientGoals = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const Goal = getGoal();
+  const goals = Goal ? await Goal.findAll({
+    where: { userId: numericClientId, status: { [Op.in]: GOAL_STATUSES } },
+    order: [['updatedAt', 'DESC']],
+    limit: 100,
+  }) : [];
+  return res.status(200).json(buildGoalTrackingData({ goals }));
+}, 'Error fetching client goal tracking:', 'Server error fetching goal tracking');
 
-export const getClientProgress = async (req, res) => {
-  try {
-    const clientId = parsePositiveInt(req.params.userId);
-    if (!clientId) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID' });
-    }
+export const createClientGoal = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const Goal = getGoal();
+  const goal = await Goal.create({
+    userId: numericClientId,
+    ...normalizeGoalCreatePayload(req.body),
+  });
+  return res.status(201).json({
+    success: true,
+    goal: buildGoalTrackingData({ goals: [goal] }).goals[0],
+  });
+}, 'Error creating client goal:', 'Server error creating goal');
 
-    const models = getAllModels();
-    const { User, ClientBaselineMeasurements, BodyMeasurement, Session } = models;
+export const updateClientGoal = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const Goal = getGoal();
+  const goal = await Goal.findOne({ where: { userId: numericClientId, id: req.params.goalId } });
+  if (!goal) return sendNotFound(res, 'Goal not found');
 
-    const client = await User.findByPk(clientId, {
-      attributes: ['id', 'role', 'weight', 'masterPromptJson']
-    });
+  goal.set(normalizeGoalUpdatePayload(req.body, goal));
+  await goal.save();
+  return res.status(200).json({
+    success: true,
+    goal: buildGoalTrackingData({ goals: [goal] }).goals[0],
+  });
+}, 'Error updating client goal:', 'Server error updating goal');
 
-    if (!client || client.role !== 'client') {
-      return res.status(404).json({ success: false, message: 'Client not found' });
-    }
+export const getClientInjuryRiskAssessment = clientProgressHandler(async (req, res) => {
+  const numericClientId = requirePositiveClientId(req.params.clientId);
+  const ClientProgress = getClientProgressModel();
+  const ClientPainEntry = getClientPainEntry();
+  const WorkoutSession = getWorkoutSession();
+  const [clientProgress, painEntries, recentSessions] = await Promise.all([
+    ClientProgress.findOne({
+      where: { userId: numericClientId },
+      attributes: [
+        'userId',
+        'balanceLevel',
+        'stabilityLevel',
+        'flexibilityLevel',
+        'injuryPreventionLevel',
+        'injuryRecoveryLevel',
+      ],
+    }),
+    ClientPainEntry ? ClientPainEntry.findAll({
+      where: { userId: numericClientId, isActive: true },
+      order: [['updatedAt', 'DESC']],
+      limit: 50,
+    }) : [],
+    WorkoutSession ? WorkoutSession.findAll({
+      where: { userId: numericClientId, status: 'completed' },
+      order: [['date', 'DESC']],
+      limit: 40,
+      attributes: ['id', 'title', 'date', 'duration', 'intensity', 'avgRPE', 'completedAt', 'updatedAt'],
+    }) : [],
+  ]);
+  return res.status(200).json(buildInjuryRiskAssessment({
+    clientProgress,
+    painEntries,
+    recentSessions,
+  }));
+}, 'Error fetching client injury risk assessment:', 'Server error fetching injury risk assessment');
 
-    const access = await ensureProgressAccess(req, clientId, models);
-    if (!access.allowed) {
-      return res.status(access.status || 403).json({ success: false, message: access.message });
-    }
+export const getTargetClientProgress = clientProgressHandler(async (req, res) => {
+  const userId = requirePositiveClientId(req.params.userId, 'userId');
+  const client = await findClientOrNull(userId, ['id', 'firstName', 'lastName', 'username', 'photo']);
+  if (!client) return sendNotFound(res, 'Client not found');
 
-    const [latestBaseline, latestMeasurement, firstMeasurement, sessionsCompleted, lastSession] =
-      await Promise.all([
-        ClientBaselineMeasurements?.findOne({
-          where: { userId: clientId },
-          order: [['takenAt', 'DESC']]
-        }),
-        BodyMeasurement?.findOne({
-          where: { userId: clientId },
-          order: [['measurementDate', 'DESC']]
-        }),
-        BodyMeasurement?.findOne({
-          where: { userId: clientId },
-          order: [['measurementDate', 'ASC']]
-        }),
-        Session?.count({
-          where: { userId: clientId, status: 'completed' }
-        }),
-        Session?.findOne({
-          where: {
-            userId: clientId,
-            status: 'completed',
-            sessionDate: { [Op.not]: null }
-          },
-          order: [['sessionDate', 'DESC']]
-        })
-      ]);
+  const progress = await getClientProgressModel().findOne({ where: { userId } });
+  if (!progress) return sendNotFound(res, 'Client progress record not found');
+  return res.status(200).json({ success: true, client, progress });
+}, 'Error fetching client progress:', 'Server error fetching progress data');
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentMeasurements = await BodyMeasurement?.findAll({
-      where: {
-        userId: clientId,
-        measurementDate: { [Op.gte]: thirtyDaysAgo }
-      },
-      attributes: ['measurementDate', 'weight', 'bodyFatPercentage'],
-      order: [['measurementDate', 'DESC']],
-      limit: 30
-    });
+export const updateTargetClientProgress = clientProgressHandler(async (req, res) => {
+  const userId = requirePositiveClientId(req.params.userId, 'userId');
+  const client = await findClientOrNull(userId);
+  if (!client) return sendNotFound(res, 'Client not found');
 
-    const masterPrompt = client.masterPromptJson || {};
-    const measurementInfo = masterPrompt.measurements || {};
+  const clientProgress = await getClientProgressModel().findOne({ where: { userId } });
+  if (!clientProgress) return sendNotFound(res, 'Client progress record not found');
+  applyTrainerProgressUpdates(clientProgress, req.body);
+  await clientProgress.save();
+  return res.status(200).json({
+    success: true,
+    message: 'Progress updated successfully by trainer/admin',
+    progress: clientProgress,
+  });
+}, 'Error updating client progress:', 'Server error updating progress data');
 
-    const currentWeight =
-      toNumber(latestMeasurement?.weight) ??
-      toNumber(client.weight) ??
-      toNumber(measurementInfo.currentWeight);
-    const startingWeight =
-      toNumber(firstMeasurement?.weight) ??
-      toNumber(measurementInfo.currentWeight) ??
-      currentWeight;
-    const weightChange =
-      currentWeight !== null && startingWeight !== null ? currentWeight - startingWeight : null;
+export const getClientProgress = clientProgressHandler(
+  getLegacyClientProgress,
+  'Failed to load client progress',
+  'Failed to load client progress',
+);
 
-    const goals = [];
-    const targetWeight = toNumber(measurementInfo.targetWeight);
-    if (targetWeight !== null) {
-      goals.push({
-        name: 'Target Weight',
-        target: targetWeight,
-        current: currentWeight,
-        unit: 'lbs'
-      });
-    }
+export const getMeasurementHistory = clientProgressHandler(
+  getLegacyMeasurementHistory,
+  'Failed to load measurement history',
+  'Failed to load measurement history',
+);
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        currentWeight,
-        startingWeight,
-        weightChange,
-        nasmScore: toNumber(latestBaseline?.nasmAssessmentScore),
-        sessionsCompleted: Number(sessionsCompleted || 0),
-        lastSessionDate: lastSession?.sessionDate || null,
-        goals,
-        recentMeasurements: (recentMeasurements || []).map((row) => ({
-          date: row.measurementDate,
-          weight: toNumber(row.weight),
-          bodyFat: toNumber(row.bodyFatPercentage)
-        })).reverse()
-      }
-    });
-  } catch (error) {
-    logger.error('Failed to load client progress', { error: error.message });
-    return res.status(500).json({ success: false, message: 'Failed to load client progress' });
-  }
-};
-
-export const getMeasurementHistory = async (req, res) => {
-  try {
-    const clientId = parsePositiveInt(req.params.userId);
-    if (!clientId) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID' });
-    }
-
-    const models = getAllModels();
-    const { User, BodyMeasurement } = models;
-
-    const client = await User.findByPk(clientId, { attributes: ['id', 'role'] });
-    if (!client || client.role !== 'client') {
-      return res.status(404).json({ success: false, message: 'Client not found' });
-    }
-
-    const access = await ensureProgressAccess(req, clientId, models);
-    if (!access.allowed) {
-      return res.status(access.status || 403).json({ success: false, message: access.message });
-    }
-
-    const type = String(req.query.type || 'weight');
-    const allowedTypes = {
-      weight: 'weight',
-      bodyFat: 'bodyFatPercentage',
-      chest: 'chest',
-      waist: 'naturalWaist',
-      hips: 'hips'
-    };
-
-    const field = allowedTypes[type];
-    if (!field) {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported measurement type: ${type}`
-      });
-    }
-
-    const requestedLimit = parseOptionalPositiveInt(req.query.limit, 30);
-    if (!requestedLimit) {
-      return res.status(400).json({ success: false, message: 'Invalid limit' });
-    }
-    const limit = Math.min(requestedLimit, 365);
-    const measurements = await BodyMeasurement.findAll({
-      where: {
-        userId: clientId,
-        [field]: { [Op.not]: null }
-      },
-      attributes: ['measurementDate', field],
-      order: [['measurementDate', 'DESC']],
-      limit
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: measurements
-        .map((row) => ({
-          date: row.measurementDate,
-          value: toNumber(row[field]),
-          type
-        }))
-        .reverse()
-    });
-  } catch (error) {
-    logger.error('Failed to load measurement history', { error: error.message });
-    return res.status(500).json({ success: false, message: 'Failed to load measurement history' });
-  }
-};
-
-export const createMeasurement = async (req, res) => {
-  try {
-    const clientId = parsePositiveInt(req.params.userId);
-    if (!clientId) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID' });
-    }
-
-    const models = getAllModels();
-    const { User, BodyMeasurement } = models;
-
-    const client = await User.findByPk(clientId, { attributes: ['id', 'role'] });
-    if (!client || client.role !== 'client') {
-      return res.status(404).json({ success: false, message: 'Client not found' });
-    }
-
-    const access = await ensureProgressAccess(req, clientId, models);
-    if (!access.allowed) {
-      return res.status(access.status || 403).json({ success: false, message: access.message });
-    }
-
-    const {
-      measurementDate,
-      weight,
-      bodyFat,
-      chest,
-      waist,
-      hips,
-      arms,
-      thighs,
-      notes
-    } = req.body || {};
-
-    const hasMetrics = [
-      weight,
-      bodyFat,
-      chest,
-      waist,
-      hips,
-      arms,
-      thighs
-    ].some((value) => value !== undefined && value !== null && value !== '');
-
-    if (!hasMetrics) {
-      return res.status(400).json({
-        success: false,
-        message: 'At least one measurement value is required'
-      });
-    }
-
-    const parsedDate = measurementDate ? new Date(measurementDate) : new Date();
-    if (Number.isNaN(parsedDate.getTime())) {
-      return res.status(400).json({ success: false, message: 'Invalid measurementDate' });
-    }
-
-    const requesterId = getRequesterId(req);
-    if (!requesterId) {
-      return res.status(401).json({ success: false, message: 'Invalid auth context' });
-    }
-
-    const measurement = await BodyMeasurement.create({
-      userId: clientId,
-      recordedBy: requesterId,
-      measurementDate: parsedDate,
-      weight,
-      bodyFatPercentage: bodyFat,
-      chest,
-      naturalWaist: waist,
-      hips,
-      rightBicep: arms,
-      leftBicep: arms,
-      rightThigh: thighs,
-      leftThigh: thighs,
-      notes
-    });
-
-    return res.status(201).json({
-      success: true,
-      measurement
-    });
-  } catch (error) {
-    logger.error('Failed to create measurement', { error: error.message });
-    return res.status(500).json({ success: false, message: 'Failed to create measurement' });
-  }
-};
+export const createMeasurement = clientProgressHandler(
+  createLegacyMeasurement,
+  'Failed to create measurement',
+  'Failed to create measurement',
+);

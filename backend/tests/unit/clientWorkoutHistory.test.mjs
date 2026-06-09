@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseWorkoutHistoryTimeframe,
   toWorkoutHistoryEntry,
-} from '../../routes/clientProgressRoutes.mjs';
+} from '../../services/clientProgress/workoutHistoryReadModel.mjs';
 
 describe('parseWorkoutHistoryTimeframe', () => {
   it('maps the named windows used by the frontend service', () => {

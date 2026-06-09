@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInjuryRiskAssessment } from '../../routes/clientProgressRoutes.mjs';
+import { buildInjuryRiskAssessment } from '../../services/clientProgress/injuryRiskReadModel.mjs';
 
 const daysAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -73,5 +73,29 @@ describe('client progress injury risk assessment builder', () => {
         integrate: [],
       },
     });
+  });
+
+  it('does not convert unrated completed sessions into intensity or training-load evidence', () => {
+    const result = buildInjuryRiskAssessment({
+      clientProgress: null,
+      painEntries: [],
+      recentSessions: [
+        { date: daysAgo(2), duration: 60, intensity: null, avgRPE: null, status: 'completed' },
+        { date: daysAgo(6), duration: 45, intensity: null, avgRPE: null, status: 'completed' },
+      ],
+    });
+
+    const recoveryLoad = result.categories.find((category) => category.id === 'recovery-load');
+    const trainingProgression = result.categories.find((category) => category.id === 'training-progression');
+    const averageIntensityFinding = recoveryLoad?.findings.find(
+      (finding) => finding.pattern === 'Average intensity',
+    );
+
+    expect(averageIntensityFinding?.notes).toBe('No intensity ratings were saved on the recent completed sessions.');
+    expect(trainingProgression?.score).toBe(0);
+    expect(trainingProgression?.findings[0].notes).toBe(
+      'Not enough rated training-load data exists for a trend comparison.',
+    );
+    expect(result.criticalAlerts).toEqual([]);
   });
 });

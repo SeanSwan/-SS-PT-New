@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/clientProgressApiRoutes.mjs'), 'utf8');
 const controllerSource = readFileSync(resolve(__dirname, '../../controllers/clientProgressController.mjs'), 'utf8');
+const legacyServiceSource = readFileSync(resolve(__dirname, '../../services/clientProgress/legacyClientProgressApi.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 
 describe('client progress API route access guard', () => {
@@ -19,17 +20,19 @@ describe('client progress API route access guard', () => {
   });
 
   it('rejects malformed and fractional user IDs before model access', () => {
-    expect(controllerSource).toContain('const parsePositiveInt = (value) => {');
-    expect(controllerSource).toContain("if (!/^\\d+$/.test(normalized)) return null;");
-    expect(controllerSource).toContain('return Number.isSafeInteger(num) && num > 0 ? num : null;');
-    expect(controllerSource).not.toContain('if (!Number.isFinite(clientId))');
+    expect(controllerSource).toContain('export const getClientProgress = clientProgressHandler(');
+    expect(legacyServiceSource).toContain('const parsePositiveInt = (value) => {');
+    expect(legacyServiceSource).toContain('const POSITIVE_INT_RE = /^[1-9]\\d*$/;');
+    expect(legacyServiceSource).toContain('if (!POSITIVE_INT_RE.test(normalized)) return null;');
+    expect(legacyServiceSource).toContain('return Number.isSafeInteger(num) ? num : null;');
+    expect(legacyServiceSource).not.toContain('if (!Number.isFinite(clientId))');
   });
 
   it('bounds measurement history limits without loose Number coercion', () => {
-    expect(controllerSource).toContain('const parseOptionalPositiveInt = (value, fallback) => {');
-    expect(controllerSource).toContain('const requestedLimit = parseOptionalPositiveInt(req.query.limit, 30);');
-    expect(controllerSource).toContain("return res.status(400).json({ success: false, message: 'Invalid limit' });");
-    expect(controllerSource).toContain('const limit = Math.min(requestedLimit, 365);');
-    expect(controllerSource).not.toContain('Math.max(Number(req.query.limit)');
+    expect(legacyServiceSource).toContain('const parseOptionalPositiveInt = (value, fallback) => {');
+    expect(legacyServiceSource).toContain('const requestedLimit = parseOptionalPositiveInt(req.query.limit, 30);');
+    expect(legacyServiceSource).toContain("res.status(400).json({ success: false, message: 'Invalid limit' });");
+    expect(legacyServiceSource).toContain('return Math.min(requestedLimit, 365);');
+    expect(legacyServiceSource).not.toContain('Math.max(Number(req.query.limit)');
   });
 });

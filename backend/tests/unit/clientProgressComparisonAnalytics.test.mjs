@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildComparisonAnalytics } from '../../routes/clientProgressRoutes.mjs';
+import { buildComparisonAnalytics } from '../../services/clientProgress/comparisonAnalyticsReadModel.mjs';
 
 describe('client progress comparison analytics builder', () => {
   it('derives metrics from real ClientProgress level fields instead of fixed benchmark stories', () => {

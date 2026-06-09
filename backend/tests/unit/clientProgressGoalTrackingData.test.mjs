@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGoalTrackingData } from '../../routes/clientProgressRoutes.mjs';
+import { buildGoalTrackingData } from '../../services/clientProgress/goalTrackingReadModel.mjs';
 
 describe('client progress goal tracking builder', () => {
   it('maps real Goal rows into trainer goal tracking data without seeded stories', () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   normalizeGoalCreatePayload,
   normalizeGoalUpdatePayload,
-} from '../../routes/clientProgressRoutes.mjs';
+} from '../../services/clientProgress/goalPayloadNormalizer.mjs';
 
 const futureDate = () => {
   const date = new Date();
