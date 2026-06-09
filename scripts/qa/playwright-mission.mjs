@@ -17,6 +17,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertStorageStateMatchesRole } from './prod-auth-state-role.mjs';
 import {
   chooseFrontendPort,
   cleanupFrontendProcess,
@@ -135,6 +136,12 @@ function assertRequiredProdAuthStates(requiredRoles) {
     const resolvedPath = normalizeAuthStatePath(authPath);
     if (!existsSync(resolvedPath)) {
       fail(`required production auth state for ${role} does not exist at ${resolvedPath} (${envName})`);
+    }
+
+    try {
+      assertStorageStateMatchesRole({ expectedRole: role, authPath: resolvedPath, envName });
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
     }
   });
 }
