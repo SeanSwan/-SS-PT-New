@@ -38,6 +38,7 @@ import {
 } from './ClientWorkoutPlansPanel.styles';
 import {
   buildClientPlanVault,
+  isClientPlanActiveStatus,
   normalizeClientWorkoutPlansResponse,
   type ClientHomeworkSummary,
   type ClientPlanSummary,
@@ -175,7 +176,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
     openPlanPdfExternal,
   } = useProtectedPlanPdfViewer(authAxios as ProtectedPlanPdfAuthClient | undefined);
 
-  const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
+  const activeCount = useMemo(() => plans.filter((plan) => isClientPlanActiveStatus(plan.status)).length, [plans]);
   const planVault = useMemo(() => serverPlanVault || buildClientPlanVault(plans), [plans, serverPlanVault]);
 
   // fallow-ignore-next-line complexity
@@ -273,7 +274,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   }), [runPlanMutation]);
 
   const selectActiveArc = useCallback((plan: ClientPlanSummary) => {
-    const isActive = plan.status.trim().toLowerCase() === 'active';
+    const isActive = isClientPlanActiveStatus(plan.status);
     if (isActive && !plan.isPrimary) {
       makePrimaryPlan(plan);
       return;

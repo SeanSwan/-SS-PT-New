@@ -81,6 +81,21 @@ describe('SavedPlanCard — basic render', () => {
     expect(screen.queryByTestId('action-activate-p-51')).not.toBeInTheDocument();
   });
 
+  it('treats legacy uppercase active plans as current', () => {
+    const h = handlers();
+    render(
+      <SavedPlanCard
+        plan={{ ...activePlan, status: 'ACTIVE' }}
+        loaded={false}
+        archiveBlocked={false}
+        {...h}
+      />
+    );
+
+    expect(screen.getByTestId('current-badge')).toHaveTextContent(/current/i);
+    expect(screen.queryByTestId('action-activate-p-51')).not.toBeInTheDocument();
+  });
+
   it('shows "Make Current" button on non-active plan cards', () => {
     const h = handlers();
     render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);

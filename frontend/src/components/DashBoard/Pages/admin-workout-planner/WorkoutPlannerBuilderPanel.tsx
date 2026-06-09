@@ -10,6 +10,7 @@ import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 import { workoutPlannerExplanationKey } from './WorkoutPlannerRowKeys';
+import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import {
   ActionBtn,
   BuilderRow,
@@ -111,7 +112,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   const loadedPlan = loadedPlanId
     ? savedPlans.find(plan => plan.id === loadedPlanId)
     : null;
-  const loadedIsCurrent = loadedPlan?.status === 'active';
+  const loadedIsCurrent = isWorkoutPlanActiveStatus(loadedPlan?.status);
 
   return (
     <DegradedPanel $degraded={degradedIntelligence}>

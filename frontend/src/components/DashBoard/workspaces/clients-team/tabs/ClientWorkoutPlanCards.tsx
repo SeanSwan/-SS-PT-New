@@ -15,6 +15,7 @@ import { CheckCircle2, Dumbbell, ExternalLink } from 'lucide-react';
 import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
   formatClientPlanUpdated,
+  isClientPlanActiveStatus,
   type ClientPlanSummary,
   type ClientTodayAssignmentSummary,
 } from './ClientWorkoutPlansPanel.logic';
@@ -40,8 +41,6 @@ interface ClientWorkoutPlanCardsProps {
 const statusText = (plan: ClientPlanSummary, active: boolean) => (
   plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status
 );
-
-const isActivePlanStatus = (status: string) => status.trim().toLowerCase() === 'active';
 
 const assignmentKeyFor = (assignment: ClientTodayAssignmentSummary) => {
   if (assignment.assignmentKey) return assignment.assignmentKey;
@@ -214,7 +213,7 @@ const ClientWorkoutPlanCard: React.FC<{
   onLogToday?: () => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
 }> = ({ openingPdfId, plan, todayAssignment, onLogToday, onOpenPdf }) => {
-  const active = isActivePlanStatus(plan.status);
+  const active = isClientPlanActiveStatus(plan.status);
   const matchedTodayAssignment = todayAssignmentForPlan(plan, todayAssignment);
 
   return (

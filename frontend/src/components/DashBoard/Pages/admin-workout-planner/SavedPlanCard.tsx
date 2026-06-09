@@ -8,6 +8,7 @@
 import React, { useCallback, useState } from 'react';
 import { Archive, Check, Copy, Edit3, Play, Star, X } from 'lucide-react';
 import SavedPlanPdfPanel from './SavedPlanPdfPanel';
+import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import {
   Card,
   CardActionButton,
@@ -72,7 +73,8 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
 }) => {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(plan.name);
-  const isCurrent = plan.status === 'active';
+  const isCurrent = isWorkoutPlanActiveStatus(plan.status);
+  const normalizedStatus = String(plan.status || '').trim().toLowerCase();
 
   const handleCardClick = useCallback(() => {
     if (renaming) return;
@@ -165,8 +167,8 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
           <CardTitle title={plan.name}>{plan.name}</CardTitle>
         )}
         <StatusBadge
-          $status={plan.status}
-          data-testid={isCurrent ? 'current-badge' : `status-badge-${plan.status}`}
+          $status={normalizedStatus}
+          data-testid={isCurrent ? 'current-badge' : `status-badge-${normalizedStatus}`}
         >
           {isCurrent ? 'Current' : plan.status}
         </StatusBadge>

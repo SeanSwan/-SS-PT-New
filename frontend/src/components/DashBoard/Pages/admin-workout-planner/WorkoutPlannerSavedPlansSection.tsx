@@ -8,6 +8,7 @@ import React from 'react';
 import { ClipboardList, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
+import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import {
   MesocycleGrid,
   MesocycleSection,
@@ -76,7 +77,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
     plan.horizonKey === 'six_month' || plan.horizonLabel === '6 Month'
   ));
   const primaryPlan = savedPlans.find(plan => plan.isPrimary)
-    || savedPlans.find(plan => plan.status === 'active')
+    || savedPlans.find(plan => isWorkoutPlanActiveStatus(plan.status))
     || defaultSixMonthPlan
     || savedPlans[0]
     || null;

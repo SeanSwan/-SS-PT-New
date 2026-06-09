@@ -118,7 +118,8 @@ const updatedTime = (plan: ClientPlanSummary) => {
   const parsed = plan.createdAt ? new Date(plan.createdAt).getTime() : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 };
-const isActivePlan = (plan: ClientPlanSummary) => plan.status.trim().toLowerCase() === 'active';
+export const isClientPlanActiveStatus = (status: string) => status.trim().toLowerCase() === 'active';
+const isActivePlan = (plan: ClientPlanSummary) => isClientPlanActiveStatus(plan.status);
 const isActivePrimaryPlan = (plan: ClientPlanSummary) => isActivePlan(plan) && plan.isPrimary;
 const samePlan = (plan: ClientPlanSummary | null | undefined, id: string | null) => (
   Boolean(plan && id && plan.id === id)

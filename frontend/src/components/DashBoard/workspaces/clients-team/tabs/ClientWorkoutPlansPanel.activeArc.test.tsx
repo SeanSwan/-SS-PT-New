@@ -86,4 +86,46 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     });
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
   });
+
+  it('treats legacy uppercase active status as current before changing the primary arc', async () => {
+    const user = userEvent.setup();
+    mockAuthAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        plans: [
+          {
+            id: 'plan-6m',
+            title: 'Primary Six Month Arc',
+            status: 'active',
+            durationWeeks: 26,
+            updatedAt: '2026-06-03T12:00:00.000Z',
+            metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+          },
+          {
+            id: 'plan-9m',
+            title: 'Already Active Nine Month Arc',
+            status: 'ACTIVE',
+            durationWeeks: 39,
+            updatedAt: '2026-06-04T12:00:00.000Z',
+            metadata: { planHorizon: 'nine_month' },
+          },
+        ],
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText(/2 current plans for fixture client/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /activate 9 month arc/i })).toBeNull();
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: /active training arc/i }),
+      'plan-9m'
+    );
+
+    await waitFor(() => {
+      expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+    });
+    expect(mockAuthAxios.put).not.toHaveBeenCalledWith('/api/workout-plans/plan-9m/activate');
+  });
 });

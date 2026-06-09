@@ -71,4 +71,16 @@ describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
 
     expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-6m');
   });
+
+  it('prefers a legacy uppercase active arc before the 6 Month default', () => {
+    render(<WorkoutPlannerSavedPlansSection
+      {...props}
+      savedPlans={[
+        { ...plans[1], status: 'ACTIVE', isPrimary: false },
+        { ...plans[0], status: 'draft', isPrimary: false },
+      ]}
+    />);
+
+    expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-9m');
+  });
 });

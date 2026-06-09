@@ -15,7 +15,11 @@
 
 import React from 'react';
 import { Crown, ExternalLink, PlayCircle } from 'lucide-react';
-import type { ClientPlanHorizonSlot, ClientPlanSummary } from './ClientWorkoutPlansPanel.logic';
+import {
+  isClientPlanActiveStatus,
+  type ClientPlanHorizonSlot,
+  type ClientPlanSummary,
+} from './ClientWorkoutPlansPanel.logic';
 import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
   PlanActionButton,
@@ -40,7 +44,7 @@ interface ClientWorkoutPlanVaultSlotProps {
 
 function vaultSlotStatus(slot: ClientPlanHorizonSlot) {
   if (slot.isPrimary) return 'Primary';
-  if (slot.plan?.status === 'active') return 'Active';
+  if (slot.plan && isClientPlanActiveStatus(slot.plan.status)) return 'Active';
   if (slot.isFilled) return slot.plan?.status === 'paused' ? 'Paused' : 'Ready';
   if (slot.isDefaultHorizon) return 'Default';
   return 'Pending';
@@ -77,7 +81,7 @@ const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
     <VaultSlotDetail>{vaultSlotDetail(slot)}</VaultSlotDetail>
     {slot.plan && (
       <PlanActions>
-        {slot.plan.status !== 'active' && (
+        {!isClientPlanActiveStatus(slot.plan.status) && (
           <PlanActionButton
             type="button"
             disabled={activatingPlanId === slot.plan.id}

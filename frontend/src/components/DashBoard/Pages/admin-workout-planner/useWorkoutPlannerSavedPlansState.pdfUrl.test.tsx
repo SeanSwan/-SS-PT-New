@@ -114,6 +114,31 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
     });
   });
 
+  it('blocks archiving the only current plan when legacy status casing is uppercase', async () => {
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({
+        data: {
+          success: true,
+          plans: [{
+            id: 'legacy-active-plan',
+            title: 'Legacy Active Arc',
+            status: 'ACTIVE',
+            planData: { goal: 'strength' },
+          }],
+        },
+      }),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    await waitFor(() => expect(result.current.savedPlans).toHaveLength(1));
+
+    expect(result.current.archiveBlockedFor('ACTIVE')).toBe(true);
+  });
+
   it('opens protected saved-plan PDFs through the authenticated blob proxy', async () => {
     const createObjectURL = vi.fn(() => 'blob:planner-plan-pdf');
     const revokeObjectURL = vi.fn();

@@ -18,6 +18,7 @@ import {
   type ProtectedPlanPdfAuthClient,
 } from '../../shared/plan-pdf/useProtectedPlanPdfViewer';
 import { mapSavedPlan } from './workoutPlannerSavedPlanMapping';
+import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 
 interface PlannerAuthClient {
   get: (url: string, config?: AxiosRequestConfig) => Promise<{ data?: unknown }>;
@@ -258,12 +259,12 @@ export const useWorkoutPlannerSavedPlansState = ({
   }, [authAxios, fetchSavedPlans, revokePdfObjectUrl, selectedClientId, setStatusMsg]);
 
   const activePlanCount = useMemo(
-    () => savedPlans.filter(plan => plan.status === 'active').length,
+    () => savedPlans.filter(plan => isWorkoutPlanActiveStatus(plan.status)).length,
     [savedPlans],
   );
 
   const archiveBlockedFor = useCallback((planStatus: string) =>
-    planStatus === 'active' && activePlanCount <= 1,
+    isWorkoutPlanActiveStatus(planStatus) && activePlanCount <= 1,
     [activePlanCount],
   );
 
