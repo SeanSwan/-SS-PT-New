@@ -9,6 +9,8 @@
 import type { SavedPlanSummary } from './SavedPlanCard';
 import { normalizeProtectedPlanPdfUrl } from '../../shared/plan-pdf/workoutPlanPdfUrl';
 
+type PlanRecord = Record<string, unknown>;
+
 const HORIZON_LABELS: Record<string, string> = {
   one_day: '1 Day',
   one_week: '1 Week',
@@ -28,6 +30,33 @@ const WEEKS_TO_HORIZON: Array<{ weeks: number; key: keyof typeof HORIZON_LABELS 
   { weeks: 52, key: 'twelve_month' },
 ];
 
+const HORIZON_METADATA_FIELDS = [
+  'planHorizon',
+  'horizonKey',
+  'durationPreset',
+  'planDurationKey',
+] as const;
+
+const asRecord = (value: unknown): PlanRecord | undefined => (
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? value as PlanRecord
+    : undefined
+);
+
+const recordValue = (record: PlanRecord | undefined, field: string) => (
+  record ? record[field] : undefined
+);
+
+const firstTruthy = (...values: unknown[]) => values.find(Boolean);
+
+const stringFrom = (fallback: string, ...values: unknown[]) => (
+  String(firstTruthy(...values) || fallback)
+);
+
+const optionalString = (value: unknown) => (
+  typeof value === 'string' ? value : null
+);
+
 const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
   const key = raw.replace(/[\s-]+/g, '_');
@@ -45,37 +74,50 @@ const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => 
   }, WEEKS_TO_HORIZON[0]).key;
 };
 
-const mapPlanPdf = (plan: Record<string, unknown>) => {
-  const metadata = plan.metadata as Record<string, unknown> | undefined;
-  const rawPdf = (plan.pdfFile || metadata?.planPdf || metadata?.pdfFile) as Record<string, unknown> | undefined;
-  const url = normalizeProtectedPlanPdfUrl(rawPdf?.url);
+const horizonMetadataValue = (metadata: PlanRecord | undefined) => (
+  firstTruthy(...HORIZON_METADATA_FIELDS.map(field => recordValue(metadata, field)))
+);
+
+const isPrimaryPlan = (metadata: PlanRecord | undefined) => (
+  recordValue(metadata, 'isPrimaryPlan') === true || recordValue(metadata, 'primary') === true
+);
+
+const planPdfRecord = (plan: PlanRecord, metadata: PlanRecord | undefined) => (
+  asRecord(firstTruthy(
+    recordValue(plan, 'pdfFile'),
+    recordValue(metadata, 'planPdf'),
+    recordValue(metadata, 'pdfFile'),
+  ))
+);
+
+const mapPlanPdf = (plan: PlanRecord) => {
+  const metadata = asRecord(plan.metadata);
+  const rawPdf = planPdfRecord(plan, metadata);
+  const url = normalizeProtectedPlanPdfUrl(recordValue(rawPdf, 'url'));
   if (!url) return null;
 
   return {
     url,
-    fileName: String(rawPdf?.fileName || 'Workout Plan.pdf'),
-    contentType: String(rawPdf?.contentType || 'application/pdf'),
-    updatedAt: typeof rawPdf?.updatedAt === 'string' ? rawPdf.updatedAt : null,
+    fileName: stringFrom('Workout Plan.pdf', recordValue(rawPdf, 'fileName')),
+    contentType: stringFrom('application/pdf', recordValue(rawPdf, 'contentType')),
+    updatedAt: optionalString(recordValue(rawPdf, 'updatedAt')),
   };
 };
 
 export const mapSavedPlan = (plan: Record<string, unknown>): SavedPlanSummary => {
-  const metadata = plan.metadata as Record<string, unknown> | undefined;
-  const planData = plan.planData as Record<string, unknown> | undefined;
-  const horizonKey = normalizeHorizonKey(
-    metadata?.planHorizon || metadata?.horizonKey || metadata?.durationPreset || metadata?.planDurationKey,
-    plan.durationWeeks,
-  );
+  const metadata = asRecord(plan.metadata);
+  const planData = asRecord(plan.planData);
+  const horizonKey = normalizeHorizonKey(horizonMetadataValue(metadata), plan.durationWeeks);
 
   return {
-    id: String(plan.id || ''),
-    name: String(plan.title || plan.name || 'Untitled Plan'),
-    status: String(plan.status || 'draft'),
-    createdAt: String(plan.createdAt || ''),
-    goal: String(planData?.goal || plan.goal || ''),
+    id: stringFrom('', plan.id),
+    name: stringFrom('Untitled Plan', plan.title, plan.name),
+    status: stringFrom('draft', plan.status),
+    createdAt: stringFrom('', plan.createdAt),
+    goal: stringFrom('', recordValue(planData, 'goal'), plan.goal),
     horizonKey,
     horizonLabel: HORIZON_LABELS[horizonKey] || '6 Month',
-    isPrimary: metadata?.isPrimaryPlan === true || metadata?.primary === true,
+    isPrimary: isPrimaryPlan(metadata),
     pdfFile: mapPlanPdf(plan),
   };
 };
