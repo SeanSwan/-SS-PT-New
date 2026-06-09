@@ -59,8 +59,8 @@ export interface ClientContext {
   workouts: {
     sessionsLast2Weeks: number;
     recentExercises: string[];
-    avgFormRating: number;
-    avgIntensity: number;
+    avgFormRating: number | null;
+    avgIntensity: number | null;
   };
   equipment: EquipmentLocation[];
   variation: {
@@ -134,7 +134,7 @@ export interface GeneratedWorkout {
     painWarnings: number;
     compensations: number;
     recentWorkouts: number;
-    avgFormRating: number;
+    avgFormRating: number | null;
     equipmentProfileId: number | null;
   };
 }

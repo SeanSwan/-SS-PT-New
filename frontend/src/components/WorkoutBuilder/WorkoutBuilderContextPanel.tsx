@@ -84,13 +84,18 @@ const MovementContextCards: React.FC<{ context: ClientContext; parsedClientId: n
   </>
 );
 
+const formatLoggedScore = (value: number | null | undefined, suffix: string) => (
+  typeof value === 'number' && Number.isFinite(value) ? `${value}${suffix}` : 'not logged'
+);
+
 const ActivityContextCards: React.FC<{ context: ClientContext }> = ({ context }) => (
   <>
     <ContextCard $severity="info">
       <ContextLabel>Recent Activity</ContextLabel>
       <ContextValue>{context.workouts.sessionsLast2Weeks} sessions (2 wks)</ContextValue>
       <ContextMeta>
-        Avg form: {context.workouts.avgFormRating}/5 | Intensity: {context.workouts.avgIntensity}/10
+        Avg form: {formatLoggedScore(context.workouts.avgFormRating, '/5')} | Intensity:{' '}
+        {formatLoggedScore(context.workouts.avgIntensity, '/10')}
       </ContextMeta>
     </ContextCard>
 
