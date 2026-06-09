@@ -159,6 +159,45 @@ export async function inspectFixedControlsAgainstClientCards(page: Page) {
   });
 }
 
+export async function inspectMobileDashboardSafeArea(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 1024) return { issues };
+
+    const guard = document.querySelector<HTMLElement>('[data-swan-mobile-dashboard-safe-area]');
+    if (!guard) return { issues: ['missing mobile dashboard safe-area guard'] };
+
+    const guardRect = guard.getBoundingClientRect();
+    const guardStyle = window.getComputedStyle(guard);
+    const visibleFixedControls = Array.from(document.querySelectorAll<HTMLElement>('body *')).filter((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return style.position === 'fixed'
+        && rect.width > 0
+        && rect.height > 0
+        && rect.width <= 150
+        && rect.height <= 150
+        && rect.top < window.innerHeight / 2
+        && style.visibility !== 'hidden'
+        && style.display !== 'none';
+    });
+
+    if (guardStyle.position !== 'fixed') issues.push('mobile dashboard safe-area guard is not fixed');
+    if (guardStyle.pointerEvents !== 'none') issues.push('mobile dashboard safe-area guard blocks taps');
+
+    visibleFixedControls.forEach((control) => {
+      const rect = control.getBoundingClientRect();
+      const label = control.getAttribute('aria-label') || control.textContent?.trim() || control.tagName.toLowerCase();
+      const coversControlBand = guardRect.top <= rect.top + 1 && guardRect.bottom >= rect.bottom + 8;
+      if (!coversControlBand) {
+        issues.push(`mobile dashboard safe-area guard does not cover ${label}`);
+      }
+    });
+
+    return { issues };
+  });
+}
+
 export function collectUnexpectedConsoleErrors(page: Page) {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {

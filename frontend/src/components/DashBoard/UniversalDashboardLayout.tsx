@@ -353,6 +353,33 @@ const UniversalPageContainer = styled(motion.div)`
 // ─── Mobile Back/Close Button ────────────────────────────
 // Shows on mobile when user navigates into a sub-page (not overview)
 // Provides a persistent way to return to the main dashboard
+const MobileDashboardSafeArea = styled.div`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    height: 96px;
+    z-index: 998;
+    pointer-events: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+    background:
+      linear-gradient(180deg,
+        color-mix(in srgb, var(--bg-base, #0A0A0F) 98%, transparent) 0%,
+        color-mix(in srgb, var(--bg-base, #0A0A0F) 97%, transparent) 76%,
+        color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent) 100%);
+    box-shadow: 0 16px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 32%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  @media (max-width: 375px) {
+    height: 90px;
+  }
+`;
+
 const MobileBackBtn = styled.button`
   display: none;
   position: fixed;
@@ -913,6 +940,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         <UniversalLayoutContainer>
           {/* Role-specific Stellar Sidebar */}
           {renderSidebar()}
+          <MobileDashboardSafeArea data-swan-mobile-dashboard-safe-area aria-hidden="true" />
 
           {/* Mobile back/close button — returns to dashboard overview */}
           {!location.pathname.endsWith('/overview') && (
