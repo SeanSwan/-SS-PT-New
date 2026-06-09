@@ -21,4 +21,15 @@ describe('ClientHubGridCard style extraction', () => {
     expect(stylesSource).toContain("$source === 'mf'");
     expect(stylesSource).not.toContain("$source === 'move_fitness'");
   });
+
+  it('lets compact metric notes wrap instead of clipping session policy text', () => {
+    const metricNoteBlock = stylesSource.slice(
+      stylesSource.indexOf('export const MetricNote'),
+      stylesSource.indexOf('export const MetricNote') + 360
+    );
+
+    expect(metricNoteBlock).toContain('white-space: normal');
+    expect(metricNoteBlock).toContain('overflow-wrap: anywhere');
+    expect(metricNoteBlock).not.toContain('text-overflow: ellipsis');
+  });
 });

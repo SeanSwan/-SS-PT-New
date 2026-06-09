@@ -186,11 +186,11 @@ export const MetricStack = styled.span`
 `;
 
 export const MetricNote = styled.span`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text-muted, rgba(224, 236, 244, 0.72));
   font-family: 'Fira Code', monospace;
   font-size: 10px;
   font-weight: 700;
+  line-height: 1.25;
 `;
