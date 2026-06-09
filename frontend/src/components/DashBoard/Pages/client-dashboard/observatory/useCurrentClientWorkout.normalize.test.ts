@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { normalizeCurrentClientWorkout } from './currentClientWorkoutNormalizer';
+import {
+  normalizeCurrentClientWorkout,
+  normalizeTrainingPlanVault,
+} from './currentClientWorkoutNormalizer';
 
 describe('normalizeCurrentClientWorkout', () => {
   it('keeps assignment-only responses visible when no active plan exists', () => {
@@ -73,6 +76,51 @@ describe('normalizeCurrentClientWorkout', () => {
       dayLabel: 'Lower Body Strength',
       exerciseCount: 1,
       firstExercise: 'Goblet Squat',
+    });
+  });
+});
+
+describe('normalizeTrainingPlanVault', () => {
+  it('expands partial training-plan catalogs to all seven SwanStudios arcs', () => {
+    const vault = normalizeTrainingPlanVault({
+      trainingPlanCatalog: {
+        defaultHorizonKey: 'six_month',
+        primaryPlanId: 'plan-6m',
+        slots: [
+          {
+            horizonKey: 'six_month',
+            label: '6 Month',
+            isFilled: true,
+            isPrimary: true,
+            plan: {
+              id: 'plan-6m',
+              title: 'Six Month Foundation',
+              status: 'active',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(vault?.slots.map((slot) => slot.horizonKey)).toEqual([
+      'one_day',
+      'one_week',
+      'one_month',
+      'three_month',
+      'six_month',
+      'nine_month',
+      'twelve_month',
+    ]);
+    expect(vault?.filledCount).toBe(1);
+    expect(vault?.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isFilled: true,
+      isPrimary: true,
+      planTitle: 'Six Month Foundation',
+    });
+    expect(vault?.slots.find((slot) => slot.horizonKey === 'one_day')).toMatchObject({
+      label: '1 Day',
+      isFilled: false,
+      isPrimary: false,
     });
   });
 });

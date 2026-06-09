@@ -54,6 +54,29 @@ const CURRENT_HOMEWORK: CurrentClientWorkout = {
 };
 
 describe('ClientTrainingPlanVaultCard', () => {
+  it('renders every SwanStudios plan arc in the no-catalog fallback state', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={null}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    const vault = screen.getByTestId('client-plan-vault-card');
+    [
+      '1 Day',
+      '1 Week',
+      '1 Month',
+      '3 Month',
+      '6 Month',
+      '9 Month',
+      '12 Month',
+    ].forEach((label) => {
+      expect(vault).toHaveTextContent(label);
+    });
+  });
+
   it('routes the primary active plan directly into today-loaded workout logging', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();

@@ -7,6 +7,7 @@ import React from 'react';
 import { Dumbbell, FileText, Layers3 } from 'lucide-react';
 import { formatPlanBillingIntentLabel, formatPlanUseLabel } from '../../../../../utils/workoutPlanAssignmentSemantics';
 import type { ClientTrainingPlanSlot, ClientTrainingPlanVault, CurrentClientWorkout } from './useCurrentClientWorkout';
+import { CLIENT_PLAN_VAULT_FALLBACK_SLOTS } from './clientTrainingPlanVaultNormalizer';
 import { CardInner, MutedText, SectionKicker, SectionTitle } from './ClientObservatoryShell.styles';
 import {
   SmallButton,
@@ -28,12 +29,6 @@ interface ClientTrainingPlanVaultCardProps {
   onViewPdf: (slot: ClientTrainingPlanSlot) => void;
   showOpenButton?: boolean;
 }
-
-const FALLBACK_SLOTS: ClientTrainingPlanSlot[] = [
-  {
-    horizonKey: 'six_month', label: '6 Month', isDefaultHorizon: true, isFilled: false, isPrimary: false,
-  },
-];
 
 function slotStatus(slot: ClientTrainingPlanSlot): string {
   if (slot.isPrimary) return 'Primary';
@@ -95,7 +90,7 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
   onViewPdf,
   showOpenButton = true,
 }) => {
-  const slots = planVault?.slots?.length ? planVault.slots : FALLBACK_SLOTS;
+  const slots = planVault?.slots?.length ? planVault.slots : CLIENT_PLAN_VAULT_FALLBACK_SLOTS;
   const filledCount = planVault?.filledCount || 0;
 
   return (

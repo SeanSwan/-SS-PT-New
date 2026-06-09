@@ -6,6 +6,20 @@
 import { normalizeProtectedPlanPdfUrl } from '../../../shared/plan-pdf/workoutPlanPdfUrl';
 import { normalizeWorkoutPlanUse } from '../../../../../utils/workoutPlanAssignmentSemantics';
 
+const CLIENT_PLAN_VAULT_HORIZONS = [
+  { horizonKey: 'one_day', label: '1 Day', durationWeeks: 1, durationDays: 1, isDefaultHorizon: false },
+  { horizonKey: 'one_week', label: '1 Week', durationWeeks: 1, durationDays: 7, isDefaultHorizon: false },
+  { horizonKey: 'one_month', label: '1 Month', durationWeeks: 4, durationDays: 30, isDefaultHorizon: false },
+  { horizonKey: 'three_month', label: '3 Month', durationWeeks: 12, durationDays: 90, isDefaultHorizon: false },
+  { horizonKey: 'six_month', label: '6 Month', durationWeeks: 26, durationDays: 182, isDefaultHorizon: true },
+  { horizonKey: 'nine_month', label: '9 Month', durationWeeks: 39, durationDays: 273, isDefaultHorizon: false },
+  { horizonKey: 'twelve_month', label: '12 Month', durationWeeks: 52, durationDays: 365, isDefaultHorizon: false },
+] as const;
+
+const CLIENT_PLAN_VAULT_HORIZON_KEYS = new Set(
+  CLIENT_PLAN_VAULT_HORIZONS.map((slot) => slot.horizonKey),
+);
+
 interface ClientPlanPdfPreview {
   url?: string;
   fileName?: string;
@@ -84,10 +98,30 @@ export interface ClientTrainingPlanVault {
   slots: ClientTrainingPlanSlot[];
 }
 
+const emptyPlanVaultSlot = (
+  horizon: typeof CLIENT_PLAN_VAULT_HORIZONS[number],
+): ClientTrainingPlanSlot => ({
+  horizonKey: horizon.horizonKey,
+  label: horizon.label,
+  durationWeeks: horizon.durationWeeks,
+  durationDays: horizon.durationDays,
+  isDefaultHorizon: horizon.isDefaultHorizon,
+  isFilled: false,
+  isPrimary: false,
+});
+
+export const CLIENT_PLAN_VAULT_FALLBACK_SLOTS: ClientTrainingPlanSlot[] = (
+  CLIENT_PLAN_VAULT_HORIZONS.map(emptyPlanVaultSlot)
+);
+
 const toPositiveInteger = (raw: unknown): number | undefined => {
   const value = Number(raw);
   return Number.isInteger(value) && value > 0 ? value : undefined;
 };
+
+const knownHorizonKey = (value?: string) => (
+  value && CLIENT_PLAN_VAULT_HORIZON_KEYS.has(value) ? value : null
+);
 
 function normalizePlanPdfFile(raw?: ClientPlanPdfPreview | null): ClientTrainingPlanSlot['pdfFile'] {
   const url = normalizeProtectedPlanPdfUrl(raw?.url);
@@ -115,10 +149,13 @@ export function normalizeTrainingPlanVault(
   const slots = Array.isArray(catalog?.slots) ? catalog.slots : [];
   if (!slots.length) return null;
 
-  const normalizedSlots = slots.map((slot) => {
+  const normalizedSlotPairs = slots.map((slot) => {
+    const horizonKey = knownHorizonKey(slot.horizonKey);
+    if (!horizonKey) return null;
+
     const planUse = slot.plan ? normalizeWorkoutPlanUse(slot.plan) : {};
-    return {
-      horizonKey: slot.horizonKey || 'unknown',
+    return [horizonKey, {
+      horizonKey,
       label: slot.label || 'Plan',
       durationWeeks: slot.durationWeeks,
       durationDays: slot.durationDays,
@@ -134,8 +171,12 @@ export function normalizeTrainingPlanVault(
       currentWeek: toPositiveInteger(slot.plan?.currentWeek),
       currentDay: toPositiveInteger(slot.plan?.currentDay),
       pdfFile: normalizePlanPdfFile(slot.plan?.pdfFile || slot.plan?.planPdf),
-    };
-  });
+    }] as const;
+  }).filter((slot): slot is NonNullable<typeof slot> => Boolean(slot));
+  const normalizedSlotsByKey = new Map(normalizedSlotPairs);
+  const normalizedSlots = CLIENT_PLAN_VAULT_HORIZONS.map((horizon) => (
+    normalizedSlotsByKey.get(horizon.horizonKey) || emptyPlanVaultSlot(horizon)
+  ));
   const filledHorizonKeys = Array.isArray(catalog?.filledHorizonKeys)
     ? catalog.filledHorizonKeys
     : normalizedSlots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey);
