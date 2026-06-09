@@ -51,7 +51,10 @@ const detailResponse = (record: any = makeRecord(), badges: string[] = []) => ({
   data: { data: { record: { ...record, dateOfBirth: '1990-05-15', activityTypes: [], versionLinks: [], submittedByGuardian: false, guardianName: null, ipAddress: null, userAgent: null }, badges } },
 });
 
-const wrap = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+const wrap = (
+  ui: React.ReactElement,
+  initialEntry = '/dashboard/admin/waivers',
+) => render(<MemoryRouter initialEntries={[initialEntry]}>{ui}</MemoryRouter>);
 
 // ── Reset ────────────────────────────────────────────────────
 beforeEach(() => {
@@ -240,5 +243,24 @@ describe('AdminWaiversManager', () => {
       expect(clientCalls.length).toBeGreaterThan(0);
       expect(clientCalls[0][0]).toContain('limit=50');
     });
+  });
+
+  it('W11 - forwards activation clientId deep links to the waiver API', async () => {
+    wrap(<AdminWaiversManager />, '/dashboard/admin/waivers?clientId=42');
+
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('clientId=42'));
+  });
+
+  it('W12 - drops malformed activation clientId deep links before calling the API', async () => {
+    wrap(<AdminWaiversManager />, '/dashboard/admin/waivers?clientId=42junk');
+
+    await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+
+    const waiverCalls = mockGet.mock.calls
+      .map((call: any[]) => call[0])
+      .filter((url: string) => url.startsWith('/api/admin/waivers?'));
+    expect(waiverCalls.every((url: string) => !url.includes('clientId='))).toBe(true);
   });
 });

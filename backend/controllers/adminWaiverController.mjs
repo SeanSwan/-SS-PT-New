@@ -28,6 +28,32 @@ const BADGE_LABELS = {
   PENDING_MATCH: 'Pending Match',
 };
 
+const POSITIVE_INTEGER = /^[1-9]\d*$/;
+
+function parseOptionalPositiveInteger(value) {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  const normalized = String(value).trim();
+  if (!POSITIVE_INTEGER.test(normalized)) return Number.NaN;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
+}
+
+function applyClientWaiverFilter(where, clientId) {
+  const clientFilter = [
+    { userId: clientId },
+    { '$pendingMatches.candidateUserId$': clientId },
+  ];
+
+  if (where[Op.or]) {
+    const existingAnd = Array.isArray(where[Op.and]) ? where[Op.and] : [];
+    where[Op.and] = [...existingAnd, { [Op.or]: where[Op.or] }, { [Op.or]: clientFilter }];
+    delete where[Op.or];
+    return;
+  }
+
+  where[Op.or] = clientFilter;
+}
+
 function computeBadges(record) {
   const badges = [];
 
@@ -110,6 +136,11 @@ export const listWaiverRecords = async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
     const offset = (page - 1) * limit;
+    const clientId = parseOptionalPositiveInteger(req.query.clientId);
+
+    if (Number.isNaN(clientId)) {
+      return res.status(400).json({ success: false, error: 'Invalid clientId filter' });
+    }
 
     const where = {};
     if (req.query.status) where.status = req.query.status;
@@ -122,6 +153,7 @@ export const listWaiverRecords = async (req, res) => {
         { phone: { [Op.iLike]: term } },
       ];
     }
+    if (clientId !== null) applyClientWaiverFilter(where, clientId);
 
     const { rows, count } = await WaiverRecord.findAndCountAll({
       where,

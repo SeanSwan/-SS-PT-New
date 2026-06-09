@@ -13,11 +13,6 @@
  *   UniversalDashboardLayout → /dashboard/admin/waivers → AdminWaiversManager
  *   Also reachable via sidebar "Waivers" workspace item.
  *
- * KEY DECISIONS:
- * - Quick-filter chips replace the dropdown for faster ops-floor scanning.
- * - Search is debounced 300ms to reduce API chatter.
- * - Pending-match count surfaced inline as an urgent stat badge.
- * - All existing actions (approve/reject/revoke/attach-user) preserved.
  *
  * ╔═══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: AdminWaiversManager                               ║
@@ -28,6 +23,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import apiService from '../../../../services/api';
 import type {
@@ -42,26 +38,22 @@ import AdminWaiversTable from './AdminWaiversTable';
 import AdminWaiverDetailModal from './AdminWaiverDetailModal';
 import AdminManualLinkModal from './AdminManualLinkModal';
 import AdminWaiverConfirmDialog, { type AdminWaiverConfirmRequest } from './AdminWaiverConfirmDialog';
+import {
+  getWaiverActivationClientId,
+  QUICK_FILTERS,
+  SEARCH_DEBOUNCE_MS,
+} from './AdminWaiversManager.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
 // ─────────────────────────────────────────────────────────────
-
-const QUICK_FILTERS: { label: string; value: WaiverStatus | '' }[] = [
-  { label: 'All', value: '' },
-  { label: 'Pending Match', value: 'pending_match' },
-  { label: 'Linked', value: 'linked' },
-  { label: 'Superseded', value: 'superseded' },
-  { label: 'Revoked', value: 'revoked' },
-];
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 
 const AdminWaiversManager: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [records, setRecords] = useState<WaiverRecordSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -71,6 +63,7 @@ const AdminWaiversManager: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activationClientId = getWaiverActivationClientId(searchParams);
 
   // Detail modal
   const [detailRecord, setDetailRecord] = useState<WaiverRecordDetail | null>(null);
@@ -102,6 +95,7 @@ const AdminWaiversManager: React.FC = () => {
       const params = new URLSearchParams({ page: String(page), limit: '25' });
       if (statusFilter) params.set('status', statusFilter);
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (activationClientId) params.set('clientId', activationClientId);
 
       const res = await apiService.get(`/api/admin/waivers?${params}`);
       const data = res.data?.data;
@@ -114,7 +108,7 @@ const AdminWaiversManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, debouncedSearch]);
+  }, [page, statusFilter, debouncedSearch, activationClientId]);
 
   useEffect(() => {
     fetchRecords();

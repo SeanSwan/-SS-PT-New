@@ -49,6 +49,7 @@ vi.mock('../../models/index.mjs', () => ({
     return base;
   }),
   Op: {
+    and: Symbol('and'),
     ne: Symbol('ne'),
     or: Symbol('or'),
     iLike: Symbol('iLike'),
@@ -253,6 +254,64 @@ describe('listWaiverRecords', () => {
     await listWaiverRecords(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it('B6 - filters activation deep links by linked or pending-match clientId', async () => {
+    mockFindAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+    const { Op } = await import('../../models/index.mjs');
+    const req = makeReq({ query: { clientId: '42' } });
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+
+    const callArgs = mockFindAndCountAll.mock.calls[0][0];
+    expect(callArgs.where[Op.or]).toEqual([
+      { userId: 42 },
+      { '$pendingMatches.candidateUserId$': 42 },
+    ]);
+  });
+
+  it('B7 - rejects malformed activation clientId filters', async () => {
+    const req = makeReq({ query: { clientId: '42junk' } });
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindAndCountAll).not.toHaveBeenCalled();
+  });
+
+  it('B8 - combines search and activation clientId filters without overwriting either', async () => {
+    mockFindAndCountAll.mockResolvedValue({ rows: [], count: 0 });
+    const { Op } = await import('../../models/index.mjs');
+    const req = makeReq({ query: { search: 'jane', clientId: '42' } });
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+
+    const callArgs = mockFindAndCountAll.mock.calls[0][0];
+    expect(callArgs.where[Op.or]).toBeUndefined();
+    expect(callArgs.where[Op.and]).toEqual([
+      {
+        [Op.or]: [
+          { fullName: { [Op.iLike]: '%jane%' } },
+          { email: { [Op.iLike]: '%jane%' } },
+          { phone: { [Op.iLike]: '%jane%' } },
+        ],
+      },
+      {
+        [Op.or]: [
+          { userId: 42 },
+          { '$pendingMatches.candidateUserId$': 42 },
+        ],
+      },
+    ]);
+  });
+
+  it('B9 - rejects unsafe integer-shaped activation clientId filters', async () => {
+    const req = makeReq({ query: { clientId: '9007199254740992' } });
+    const res = makeRes();
+    await listWaiverRecords(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(mockFindAndCountAll).not.toHaveBeenCalled();
   });
 });
 
