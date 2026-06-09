@@ -190,6 +190,21 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/schedule');
   });
 
+  it('keeps Log Workout and Progress as first-viewport hero actions', async () => {
+    const user = userEvent.setup();
+    await renderClientHomeSettled();
+
+    const hero = screen.getByLabelText('Client dashboard observatory');
+    const logWorkoutButton = within(hero).getByRole('button', { name: /log workout/i });
+    const progressButton = within(hero).getByRole('button', { name: /view progress/i });
+
+    await user.click(logWorkoutButton);
+    await user.click(progressButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/progress');
+  });
+
   it('does not expose SwanStudios booking actions for Move Fitness clients', async () => {
     mockAuthUser.current = {
       id: 42,

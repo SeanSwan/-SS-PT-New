@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Calendar, UserRound } from 'lucide-react';
+import { BarChart3, Calendar, Dumbbell, UserRound } from 'lucide-react';
 import {
   LENS_TABS,
   type LensId,
@@ -123,11 +123,19 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
         </div>
 
         <HeroActions>
+          <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/log-workout')}>
+            <Dumbbell size={17} aria-hidden="true" />
+            Log Workout
+          </PrimaryButton>
+          <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/progress')}>
+            <BarChart3 size={17} aria-hidden="true" />
+            View Progress
+          </GhostButton>
           {canBookSessions && (
-            <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/schedule')}>
+            <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/schedule')}>
               <Calendar size={17} aria-hidden="true" />
               Book Session
-            </PrimaryButton>
+            </GhostButton>
           )}
           <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/profile')}>
             <UserRound size={17} aria-hidden="true" />

@@ -152,7 +152,14 @@ export const StatLabel = styled.span`
 export const HeroActions = styled.div`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 520px) {
+    > button {
+      flex: 1 1 100%;
+    }
+  }
 `;
 
 export const ArtworkPanel = styled.div`
