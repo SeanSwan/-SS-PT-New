@@ -3,7 +3,7 @@
  * ======================
  * Frontend wrapper for the unified /api/plaud/intake read model.
  */
-import { isAxiosError } from 'axios';
+import { isAxiosError, type AxiosError } from 'axios';
 import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
 
@@ -95,6 +95,8 @@ interface PlaudErrorMeta {
   status: number;
 }
 
+type PlaudAxiosError = AxiosError<PlaudErrorMeta['data']>;
+
 function fallbackText(value: unknown, fallback: string): string {
   return typeof value === 'string' && value ? value : fallback;
 }
@@ -103,15 +105,44 @@ function fallbackValue<T>(value: T | undefined | null, fallback: T): T {
   return value || fallback;
 }
 
-function plaudErrorMeta(err: unknown): PlaudErrorMeta {
-  if (!isAxiosError(err)) return { status: 0 };
-  const data = err.response?.data as PlaudErrorMeta['data'] | undefined;
+function axiosErrorOrNull(err: unknown): PlaudAxiosError | null {
+  return isAxiosError(err) ? err : null;
+}
+
+function responseData(err: PlaudAxiosError): PlaudErrorMeta['data'] | undefined {
+  return err.response?.data;
+}
+
+function responseStatus(err: PlaudAxiosError): number {
+  return err.response?.status || 0;
+}
+
+function responseError(data: PlaudErrorMeta['data']) {
+  return data?.error;
+}
+
+function errorCode(error: NonNullable<PlaudErrorMeta['data']>['error']) {
+  return error ? error.code : undefined;
+}
+
+function errorMessage(error: NonNullable<PlaudErrorMeta['data']>['error'], fallback: string) {
+  return fallbackText(error ? error.message : undefined, fallback);
+}
+
+function axiosPlaudErrorMeta(err: PlaudAxiosError): PlaudErrorMeta {
+  const data = responseData(err);
+  const error = responseError(data);
   return {
-    code: data?.error?.code,
+    code: errorCode(error),
     data,
-    message: data?.error?.message || err.message,
-    status: err.response?.status || 0,
+    message: errorMessage(error, err.message),
+    status: responseStatus(err),
   };
+}
+
+function plaudErrorMeta(err: unknown): PlaudErrorMeta {
+  const axiosError = axiosErrorOrNull(err);
+  return axiosError ? axiosPlaudErrorMeta(axiosError) : { status: 0 };
 }
 
 function buildAxiosPlaudError(err: unknown, fallbackMessage: string): PlaudApiError {

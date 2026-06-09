@@ -104,10 +104,26 @@ function queueStatusForClip(status) {
 }
 
 function queueStatusForMerge(row) {
-  if (ARCHIVED_MERGE_STATUSES.has(row.status)) return 'archived';
-  if (isReadyMergeRow(row)) return 'ready_review';
-  if (isFailedMergeRow(row)) return 'failed';
-  return MERGE_QUEUE_STATUS_BY_STATUS[row.status] || 'archived';
+  return archivedMergeStatus(row)
+    || readyMergeStatus(row)
+    || failedMergeStatus(row)
+    || literalMergeStatus(row.status);
+}
+
+function archivedMergeStatus(row) {
+  return ARCHIVED_MERGE_STATUSES.has(row.status) ? 'archived' : null;
+}
+
+function readyMergeStatus(row) {
+  return isReadyMergeRow(row) ? 'ready_review' : null;
+}
+
+function failedMergeStatus(row) {
+  return isFailedMergeRow(row) ? 'failed' : null;
+}
+
+function literalMergeStatus(status) {
+  return MERGE_QUEUE_STATUS_BY_STATUS[status] || 'archived';
 }
 
 function isReadyMergeRow(row) {

@@ -117,26 +117,40 @@ interface HoldReasonSectionProps {
   visible: boolean;
 }
 
+function hasHoldReason({ label, visible }: HoldReasonSectionProps) {
+  return visible && Boolean(label);
+}
+
+const HoldReasonDetailLine: React.FC<{ detail: string | null }> = ({ detail }) => (
+  detail ? <HoldReasonDetail>{detail}</HoldReasonDetail> : null
+);
+
+const HoldReasonFactList: React.FC<{ facts: string[] }> = ({ facts }) => {
+  if (facts.length === 0) return null;
+
+  return (
+    <HoldReasonFacts aria-label="Hold reason facts">
+      {facts.map((fact) => <HoldReasonFact key={fact}>{fact}</HoldReasonFact>)}
+    </HoldReasonFacts>
+  );
+};
+
 export const HoldReasonSection: React.FC<HoldReasonSectionProps> = ({
   detail,
   facts,
   label,
   visible,
 }) => {
-  if (!visible || !label) return null;
+  if (!hasHoldReason({ detail, facts, label, visible })) return null;
 
   return (
     <HoldReasonPanel aria-label="Hold reason">
       <HoldReasonCopy>
         <HoldReasonLabel>Hold reason</HoldReasonLabel>
         <HoldReasonTitle>{label}</HoldReasonTitle>
-        {detail ? <HoldReasonDetail>{detail}</HoldReasonDetail> : null}
+        <HoldReasonDetailLine detail={detail} />
       </HoldReasonCopy>
-      {facts.length > 0 ? (
-        <HoldReasonFacts aria-label="Hold reason facts">
-          {facts.map((fact) => <HoldReasonFact key={fact}>{fact}</HoldReasonFact>)}
-        </HoldReasonFacts>
-      ) : null}
+      <HoldReasonFactList facts={facts} />
     </HoldReasonPanel>
   );
 };
