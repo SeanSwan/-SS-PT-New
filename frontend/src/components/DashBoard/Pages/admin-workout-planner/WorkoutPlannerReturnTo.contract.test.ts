@@ -8,6 +8,7 @@ const commandPanelSource = readFileSync(resolve(process.cwd(), 'src/components/D
 const clientStateHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts'), 'utf8');
 const pageActionsHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPageActions.ts'), 'utf8');
 const loadPlanHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts'), 'utf8');
+const loadPlanHydrationSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts'), 'utf8');
 
 describe('WorkoutPlannerPage returnTo contract', () => {
   it('renders a safe Client Hub return action when opened from Clients & Team', () => {
@@ -33,7 +34,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
     expect(source).toContain("from './WorkoutPlannerClientIdentity'");
     expect(clientStateHookSource).toContain('parseWorkoutPlannerClientId(user?.id)');
     expect(clientStateHookSource).toContain('pickWorkoutPlannerClientId(clients, requestedClientId)');
-    expect(loadPlanHookSource).toContain('resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)');
+    expect(loadPlanHydrationSource).toContain('resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)');
     expect(loadPlanHookSource).toContain('Unable to load generated plan because it is missing a valid client id.');
     expect(source).not.toContain('Number(user?.id) === Number(selectedClientId)');
     expect(clientStateHookSource).not.toContain('Number(user?.id) === Number(selectedClientId)');
