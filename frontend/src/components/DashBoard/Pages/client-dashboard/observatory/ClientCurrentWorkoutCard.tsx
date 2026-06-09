@@ -57,7 +57,7 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
   return (
     <WidgetCard data-testid="current-workout-card">
       <CardInner>
-        <WidgetHeader>
+        <WidgetHeader data-current-workout-header>
           <div>
             <SectionKicker>
               <ClipboardCheck size={14} aria-hidden="true" />

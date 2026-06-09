@@ -121,6 +121,32 @@ async function mockDashboardApi(page: Page) {
         pagination: { total: 1, limit: 10, offset: 0 },
       });
     }
+    if (endpoint === '/api/workouts/101/current') {
+      return fulfillJson(route, {
+        success: true,
+        data: {
+          id: 'plan-qa-six-month',
+          title: 'Lower Body Strength Assignment With Long Mobile-Safe Copy',
+          todayAssignment: {
+            assignmentKey: 'plan-qa-six-month:w2:d3:homework',
+            assignmentType: 'homework',
+            sessionType: 'solo',
+            isLoggable: true,
+            ctaLabel: 'Log Assignment',
+            weekNumber: 2,
+            dayNumber: 3,
+            exerciseCount: 4,
+            firstExerciseName: 'Goblet Squat',
+          },
+          homeworkSummary: {
+            assignmentType: 'homework',
+            todayIsLoggable: true,
+            recentCompletedCount: 2,
+            recentCompletions: [],
+          },
+        },
+      });
+    }
     if (endpoint.includes('/weekly-recap')) {
       return fulfillJson(route, { success: true, current: { streak: 4, xp: 1240 }, data: [] });
     }
@@ -168,6 +194,30 @@ async function inspectLayout(page: Page) {
   });
 }
 
+async function inspectCurrentWorkoutPriorityCard(page: Page) {
+  return page.evaluate(() => {
+    const card = [...document.querySelectorAll('[data-testid="current-workout-card"]')]
+      .find((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      });
+    if (!card) return null;
+    const rect = card.getBoundingClientRect();
+    const button = card.querySelector('button');
+    const buttonRect = button?.getBoundingClientRect();
+    return {
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      cardTop: Math.round(rect.top),
+      cardBottom: Math.round(rect.bottom),
+      cardOverflowX: Math.max(0, card.scrollWidth - card.clientWidth),
+      buttonWidth: buttonRect ? Math.round(buttonRect.width) : 0,
+      buttonHeight: buttonRect ? Math.round(buttonRect.height) : 0,
+    };
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await mockDashboardApi(page);
   await page.addInitScript(
@@ -201,6 +251,16 @@ for (const route of routes) {
     expect(layout.bodyLength).toBeGreaterThan(80);
     expect(layout.overflowX).toBeLessThanOrEqual(12);
     expect(layout.smallTargets).toEqual([]);
+    if (route.path === '/dashboard/client/overview') {
+      const priorityCard = await inspectCurrentWorkoutPriorityCard(page);
+      expect(priorityCard).not.toBeNull();
+      expect(priorityCard?.cardOverflowX).toBe(0);
+      expect(priorityCard?.buttonWidth).toBeGreaterThanOrEqual(44);
+      expect(priorityCard?.buttonHeight).toBeGreaterThanOrEqual(44);
+      if ((priorityCard?.viewportWidth || 0) <= 600) {
+        expect(priorityCard?.cardTop).toBeLessThanOrEqual((priorityCard?.viewportHeight || 0) * 0.72);
+      }
+    }
     expect(actionableConsoleErrors(consoleErrors, failedResources)).toEqual([]);
   });
 }

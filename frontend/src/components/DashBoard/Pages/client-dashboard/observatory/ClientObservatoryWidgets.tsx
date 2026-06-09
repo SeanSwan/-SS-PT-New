@@ -22,6 +22,7 @@ import type {
 } from './useCurrentClientWorkout';
 import {
   CardInner,
+  DesktopWidgetOnly,
   GhostButton,
   MobileDock,
   MutedText,
@@ -108,12 +109,14 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
 
   return (
     <>
-      <ClientCurrentWorkoutCard
-        currentWorkout={currentWorkout}
-        currentWorkoutError={currentWorkoutError}
-        currentWorkoutLoading={currentWorkoutLoading}
-        onNavigate={onNavigate}
-      />
+      <DesktopWidgetOnly>
+        <ClientCurrentWorkoutCard
+          currentWorkout={currentWorkout}
+          currentWorkoutError={currentWorkoutError}
+          currentWorkoutLoading={currentWorkoutLoading}
+          onNavigate={onNavigate}
+        />
+      </DesktopWidgetOnly>
 
       <ClientTrainingPlanVaultCard
         planVault={planVault}

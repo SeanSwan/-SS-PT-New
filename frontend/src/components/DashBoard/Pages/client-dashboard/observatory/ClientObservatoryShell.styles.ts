@@ -69,6 +69,34 @@ export const SideColumn = styled.aside`
   gap: 0.875rem;
 `;
 
+export const MobilePriorityRail = styled.div`
+  display: none;
+
+  @media (max-width: 760px) {
+    display: block;
+    margin-bottom: 0.875rem;
+
+    [data-current-workout-header] {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    [data-current-workout-header] button {
+      width: 100%;
+      white-space: normal;
+      line-height: 1.15;
+    }
+  }
+`;
+
+export const DesktopWidgetOnly = styled.div`
+  display: contents;
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
 export const ObservatoryCard = styled.div`
   position: relative;
   overflow: hidden;

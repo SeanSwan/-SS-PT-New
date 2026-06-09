@@ -49,6 +49,7 @@ import {
   SectionTitle,
   SideColumn,
 } from './ClientObservatoryShell.styles';
+import ClientMobileWorkoutPriorityRail from './ClientMobileWorkoutPriorityRail';
 
 const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'));
 const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'));
@@ -217,6 +218,13 @@ const ClientObservatoryHome: React.FC = () => {
 
   return (
     <PageShell>
+      <ClientMobileWorkoutPriorityRail
+        currentWorkout={currentWorkout.workout}
+        currentWorkoutError={currentWorkout.error}
+        currentWorkoutLoading={currentWorkout.loading}
+        onNavigate={handleNavigate}
+      />
+
       <ClientObservatoryHero
         activeLens={activeLens}
         avatar={avatar}
