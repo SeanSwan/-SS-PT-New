@@ -44,9 +44,9 @@ export interface ProfileChartVisibility {
 }
 
 export const DEFAULT_CHART_VISIBILITY: ProfileChartVisibility = {
-  workoutFrequency: false,
+  workoutFrequency: true,
   weightProgression: true,
-  muscleRadar: true,
+  muscleRadar: false,
   macroSplit: false,
   cardioEndurance: false,
   sessionFrequency: false,
@@ -54,8 +54,8 @@ export const DEFAULT_CHART_VISIBILITY: ProfileChartVisibility = {
   muscleRecovery: false,
   rpeByExercise: false,
   exerciseRolodex: false,
-  workoutHeatmap: true,
-  goalProgress: true,
+  workoutHeatmap: false,
+  goalProgress: false,
 };
 
 const CHART_LABELS: Record<keyof ProfileChartVisibility, string> = {

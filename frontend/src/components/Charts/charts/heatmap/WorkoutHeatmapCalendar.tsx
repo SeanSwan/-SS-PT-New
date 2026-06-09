@@ -51,14 +51,28 @@ interface Props {
 }
 
 const WorkoutHeatmapCalendar: React.FC<Props> = ({ data }) => {
-  const chartData = data && data.length > 0 ? data : DEMO_DATA;
-  const isDemo = !data || data.length === 0;
+  const hasRealData = !!(data && data.length > 0);
+  const allowDemoFallback = !hasRealData && import.meta.env.DEV;
+  const chartData = hasRealData ? data! : (allowDemoFallback ? DEMO_DATA : []);
+
+  if (chartData.length === 0) {
+    return (
+      <ChartCard role="region" aria-label="Workout frequency heatmap calendar" tabIndex={0}>
+        <ChartHeader>
+          <div>
+            <ChartTitle>Workout Calendar</ChartTitle>
+            <ChartSubtitle>No workout calendar data yet</ChartSubtitle>
+          </div>
+        </ChartHeader>
+      </ChartCard>
+    );
+  }
 
   return (
     <ChartCard role="region" aria-label="Workout frequency heatmap calendar" tabIndex={0}>
       <ChartHeader>
         <div>
-          <ChartTitle>Workout Frequency{isDemo ? ' (Preview)' : ''}</ChartTitle>
+          <ChartTitle>Workout Calendar{allowDemoFallback ? ' (Dev Preview)' : ''}</ChartTitle>
           <ChartSubtitle>Last 12 weeks — GitHub-style calendar</ChartSubtitle>
         </div>
       </ChartHeader>
@@ -66,7 +80,7 @@ const WorkoutHeatmapCalendar: React.FC<Props> = ({ data }) => {
         <Grid>
           {chartData.map((row, r) =>
             [<DayLabel key={`d-${r}`}>{DAYS[r]}</DayLabel>].concat(
-              row.map((v, c) => <Cell key={`${r}-${c}`} $intensity={v} $isDemo={isDemo} title={`${DAYS[r]} Wk${c + 1}: ${v} sessions`} />)
+              row.map((v, c) => <Cell key={`${r}-${c}`} $intensity={v} $isDemo={allowDemoFallback} title={`${DAYS[r]} Wk${c + 1}: ${v} sessions`} />)
             )
           )}
         </Grid>
