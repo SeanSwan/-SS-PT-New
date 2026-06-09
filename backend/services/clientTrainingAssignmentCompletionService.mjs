@@ -6,6 +6,8 @@
  * assignment logs onto the client training read model.
  */
 
+import { Op, Sequelize } from 'sequelize';
+
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const toPositiveInteger = (value) => {
@@ -15,6 +17,11 @@ const toPositiveInteger = (value) => {
 const DAILY_FORM_COMPLETION_ATTRIBUTES = ['id', 'formData', 'submittedAt', 'updatedAt'];
 const DAILY_FORM_RECENT_COMPLETION_ATTRIBUTES = ['id', 'date', 'formData', 'submittedAt', 'updatedAt'];
 const DAILY_FORM_COMPLETION_ORDER = [['submittedAt', 'DESC'], ['updatedAt', 'DESC']];
+const recentCompletionLimit = (limit) => Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 12));
+const plannedAssignmentExistsWhere = () => Sequelize.where(
+  Sequelize.json('form_data.plannedAssignment'),
+  { [Op.ne]: null },
+);
 
 const parseJsonObject = (value) => {
   if (!value) return null;
@@ -96,10 +103,13 @@ export const findRecentPlannedAssignmentCompletions = async (
 
   try {
     const dailyForms = await DailyWorkoutForm.findAll({
-      where: { clientId },
+      where: {
+        clientId,
+        [Op.and]: [plannedAssignmentExistsWhere()],
+      },
       attributes: DAILY_FORM_RECENT_COMPLETION_ATTRIBUTES,
       order: DAILY_FORM_COMPLETION_ORDER,
-      limit: Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 12)),
+      limit: recentCompletionLimit(limit),
     });
     return buildCompletionList(dailyForms);
   } catch (error) {
