@@ -28,6 +28,10 @@
     "backend/uploads/**",
     "frontend/src/assets/user-dashboard/dashboard-export/**"
   ],
+  "ignoreDependencies": [
+    "dcraw-vendored-linux",
+    "supertest"
+  ],
   "rules": {
     "unused-files": "warn",
     "unused-exports": "warn",

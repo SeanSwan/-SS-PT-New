@@ -94,7 +94,6 @@ import { getPhaseTemplate } from './NASMPhaseTemplates';
 import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
-  CurrentWorkoutPlanResponse,
   PlannedAssignment,
   WorkoutLoggerClient,
   WorkoutLoggerExerciseOption,
@@ -103,20 +102,13 @@ import type {
 import {
   coerceToNumericId,
   convertAIWorkoutExercisesToEntries,
-  currentWorkoutAssignmentMatchesRouteIntent,
   ensureWorkoutLoggerExerciseRowIdentity,
   ensureWorkoutLoggerSetId,
-  getCurrentWorkoutCursorSession,
-  getCurrentWorkoutPlanId,
-  getCurrentWorkoutTodayAssignment,
-  getCurrentWorkoutTodayAssignmentExercises,
   getExerciseEntryRowKey,
-  getPlanDayForDate,
   hasIncompleteWorkoutSets,
-  isCurrentWorkoutAssignmentLoggable,
   normalizeWorkoutDate,
-  plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
+import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
@@ -591,100 +583,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // - Load Today's Plan -
   const loadTodaysPlan = useCallback(async () => {
-    setIsLoadingPlan(true);
-    try {
-      const api = new ApiService();
-      // Short-circuit when the role route has no client context.
-      if (typeof effectiveClientId !== 'number') {
-        toast.info('No client context - cannot load a plan');
-        setPlannedAssignment(null);
-        setIsLoadingPlan(false);
-        return;
-      }
-      const response = await api.get(`/api/workouts/${effectiveClientId}/current`);
-      const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
-      const todayAssignment = getCurrentWorkoutTodayAssignment(data);
-      const currentPlanId = getCurrentWorkoutPlanId(data);
-      if (!currentWorkoutAssignmentMatchesRouteIntent(todayAssignment, {
-        assignmentKey: routeAssignmentKey,
-        assignmentType: routeAssignmentType,
-      })) {
-        setPlannedAssignment(null);
-        toast.info('Today\'s assignment changed. Open it again from your dashboard before logging.');
-        return;
-      }
-      const canLoadCurrentAssignment = isCurrentWorkoutAssignmentLoggable(todayAssignment, {
-        hasScheduledSession: Boolean(scheduledSessionId),
-      });
-      if (!canLoadCurrentAssignment) {
-        const assignmentLabel = todayAssignment?.title || todayAssignment?.dayLabel || 'Today\'s assignment';
-        setPlannedAssignment(null);
-        toast.info(`${assignmentLabel} is not loggable right now. Review your workout history or plan vault.`);
-        return;
-      }
-
-      // Primary path: cursor-driven currentSession.exercises.
-      const cursorSession = getCurrentWorkoutCursorSession(data);
-      const cursorExercises = Array.isArray(cursorSession?.exercises) ? cursorSession.exercises : [];
-      if (cursorSession && cursorExercises.length > 0) {
-        const prefilled = cursorExercises.map((exercise) =>
-          plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
-        );
-        setExercises(prev => [...prev, ...prefilled]);
-        setPlannedAssignment(todayAssignment && currentPlanId
-          ? { ...todayAssignment, planId: currentPlanId }
-          : null);
-        const weekNum = cursorSession.weekNumber ?? '?';
-        const dayLabel = cursorSession.dayLabel || `Day ${cursorSession.dayNumber ?? '?'}`;
-        toast.success(`Loaded ${prefilled.length} exercises from Week ${weekNum} — ${dayLabel}`);
-        return;
-      }
-
-      // Assignment-level fallback: the shared read model can carry off-day
-      // homework exercises on todayAssignment even when currentSession is not
-      // present in an older or narrowed route shape.
-      const assignmentExercises = getCurrentWorkoutTodayAssignmentExercises(data);
-      if (canLoadCurrentAssignment && todayAssignment && assignmentExercises.length > 0) {
-        const prefilled = assignmentExercises.map((exercise) =>
-          plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('assignment'))
-        );
-        setExercises(prev => [...prev, ...prefilled]);
-        setPlannedAssignment(currentPlanId
-          ? { ...todayAssignment, planId: currentPlanId }
-          : todayAssignment);
-        const assignmentLabel = todayAssignment.title || todayAssignment.dayLabel || 'today assignment';
-        toast.success(`Loaded ${prefilled.length} exercises from ${assignmentLabel}`);
-        return;
-      }
-
-      // Fallback: legacy day-of-week match against plan.days[].
-      if (!data?.plan?.days?.length) {
-        setPlannedAssignment(null);
-        toast.info('No active workout plan found for this client');
-        return;
-      }
-
-      const planDay = getPlanDayForDate(data.plan.days);
-      const dayLabel = planDay?.dayName || new Date().toLocaleDateString('en-US', { weekday: 'long' });
-
-      if (!planDay?.exercises?.length) {
-        setPlannedAssignment(null);
-        toast.info(`No exercises scheduled for ${dayLabel} in the active plan`);
-        return;
-      }
-
-      const prefilled = planDay.exercises.map((exercise) =>
-        plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
-      );
-      setExercises(prev => [...prev, ...prefilled]);
-      setPlannedAssignment(null);
-      toast.success(`Loaded ${prefilled.length} exercises from ${dayLabel}'s plan`);
-    } catch (error: unknown) {
-      console.error('Failed to load today\'s plan:', error);
-      toast.error(getErrorMessage(error, 'Could not load today\'s workout plan'));
-    } finally {
-      setIsLoadingPlan(false);
-    }
+    await loadTodaysPlanIntoLogger({
+      effectiveClientId,
+      createWorkoutLoggerLocalId,
+      routeAssignmentKey,
+      routeAssignmentType,
+      scheduledSessionId,
+      setExercises,
+      setIsLoadingPlan,
+      setPlannedAssignment,
+    });
   }, [effectiveClientId, createWorkoutLoggerLocalId, routeAssignmentKey, routeAssignmentType, scheduledSessionId]);
 
   useEffect(() => {

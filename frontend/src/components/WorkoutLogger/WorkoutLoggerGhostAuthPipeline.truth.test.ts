@@ -12,6 +12,7 @@ const stripComments = (source: string) =>
 
 const layout = read('../DashBoard/UniversalDashboardLayout.tsx');
 const enhancedLogger = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx');
+const enhancedLoggerIdentity = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.identity.ts');
 const enhancedLoggerView = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx');
 const workoutLogger = read('./WorkoutLogger.tsx');
 const ghostHookRaw = read('./useGhostPreFill.ts');
@@ -30,8 +31,12 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(layout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
     expect(enhancedLogger).toMatch(/import EnhancedWorkoutLoggerView from '\.\/EnhancedWorkoutLogger\.view'/);
     expect(enhancedLogger).toMatch(
-      /import\s+\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/,
+      /import\s+\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerSessionId[\s\S]*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/,
     );
+    expect(enhancedLogger).toMatch(/import\s+\{\s*resolveLoggerClientId\s*\}\s+from '\.\/EnhancedWorkoutLogger\.identity'/);
+    expect(enhancedLoggerIdentity).toMatch(/import\s+\{\s*parseLoggerClientId\s*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/);
+    expect(enhancedLoggerIdentity).toMatch(/parseLoggerClientId\(urlClientId\)/);
+    expect(enhancedLoggerIdentity).toMatch(/parseLoggerClientId\(activeClientId\)/);
     expect(enhancedLoggerView).toMatch(/import WorkoutLogger from '\.\.\/\.\.\/WorkoutLogger\/WorkoutLogger'/);
     expect(enhancedLoggerView).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
     expect(enhancedLoggerView).not.toMatch(/clientId=\{parseInt\(client\.id\)/);

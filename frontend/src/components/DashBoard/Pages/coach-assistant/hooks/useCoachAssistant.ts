@@ -12,13 +12,17 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAIChat } from '../../../../../hooks/useAIChat';
 import { isCommandLaneCandidate } from '../../../../../hooks/aiMessageLimits';
 import { useCoachCommand } from '../../../../../hooks/useCoachCommand';
-import { DEFAULT_RESPONSE_STYLE, WELCOME_MESSAGE } from '../SwanCoachConstants';
+import { DEFAULT_RESPONSE_STYLE } from '../SwanCoachConstants';
 import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoachTypes';
 import type { CoachRouteContext } from '../CoachRouteContext';
 import { safeCommandConfirmationFailure } from '../CoachIntakeOperationalText.logic';
 import { commandResultSummary } from '../utils/coachCommandResultSummary';
 import { buildCommandErrorMessages } from './useCoachAssistantCommandError';
 import { useCoachAssistantFoodMessages } from './useCoachAssistantFoodMessages';
+import {
+  buildCoachAssistantMessages,
+  buildRouteRequestContext,
+} from './useCoachAssistantMessageUtils';
 import { useCoachAssistantTranscriptMessages } from './useCoachAssistantTranscriptMessages';
 
 interface UseCoachAssistantOptions {
@@ -27,15 +31,6 @@ interface UseCoachAssistantOptions {
   chat?: ReturnType<typeof useAIChat>;
   targetClientId?: number | null;
   routeContext?: CoachRouteContext | null;
-}
-
-function buildRouteRequestContext(routeContext: CoachRouteContext | null) {
-  if (!routeContext?.scheduledSessionId) return null;
-  return {
-    scheduledSessionId: routeContext.scheduledSessionId,
-    ...(routeContext.scheduledSessionDate ? { scheduledSessionDate: routeContext.scheduledSessionDate } : {}),
-    ...(routeContext.scheduledSessionCredits ? { scheduledSessionCredits: routeContext.scheduledSessionCredits } : {}),
-  };
 }
 
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
@@ -63,26 +58,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // ── Merge chat-lane messages with command-lane messages ──
-  const chatMessages: CoachMessageData[] = chat.activeConversation?.messages?.length
-      ? chat.activeConversation.messages.map((m, i) => ({
-        id: `${chat.activeConversation!.id}-${i}`,
-        role: m.role as CoachMessageData['role'],
-        content: m.content,
-        timestamp: m.timestamp,
-        metadata: m.metadata as CoachMessageData['metadata'],
-      }))
-    : localMessages;
-
-  const allMessages = [...chatMessages, ...commandMessages];
-
-  const messages: CoachMessageData[] = allMessages.length > 0
-    ? allMessages
-    : [{
-        id: 'welcome',
-        role: WELCOME_MESSAGE.role as CoachMessageData['role'],
-        content: WELCOME_MESSAGE.content,
-        timestamp: WELCOME_MESSAGE.timestamp,
-      }];
+  const messages = buildCoachAssistantMessages(chat, localMessages, commandMessages);
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {

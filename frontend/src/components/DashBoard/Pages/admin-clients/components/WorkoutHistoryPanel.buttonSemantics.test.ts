@@ -11,8 +11,16 @@ const sessionCardSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistorySessionCard.tsx'),
   'utf8',
 );
+const panelContentSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanelContent.tsx'),
+  'utf8',
+);
 const trainingSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx'),
+  'utf8',
+);
+const trainingSectionContentSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabSectionContent.tsx'),
   'utf8',
 );
 const workspaceTabsSource = readFileSync(
@@ -41,8 +49,9 @@ describe('WorkoutHistoryPanel button semantics', () => {
     expect(layoutSource).toContain("path: '/client-management'");
     expect(layoutSource).toContain("import('./workspaces/ClientsWorkspace')");
     expect(workspaceTabsSource).toContain("lazy(() => import('./clients-team/tabs/TrainingTabContent'))");
-    expect(trainingSource).toContain("import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')");
-    expect(trainingSource).toContain('variant="embedded"');
+    expect(trainingSource).toContain("import TrainingTabSectionContent");
+    expect(trainingSectionContentSource).toContain("import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')");
+    expect(trainingSectionContentSource).toContain('variant="embedded"');
     expect(analyticsHookSource).toContain('const analyticsUserId = String(numericUserId);');
     expect(analyticsHookSource).toContain('authAxios.get(`/api/admin/clients/${analyticsUserId}/workouts`');
     expect(backendRoutesSource).toContain("app.use('/api/admin', adminWorkoutLoggerRoutes)");
@@ -50,9 +59,9 @@ describe('WorkoutHistoryPanel button semantics', () => {
   });
 
   it('keeps canonical workout history click controls as explicit non-submit buttons', () => {
-    expect(source).not.toMatch(/<RetryButton(?![^>]*\btype=)[^>]*\bonClick=/);
+    expect(panelContentSource).not.toMatch(/<RetryButton(?![^>]*\btype=)[^>]*\bonClick=/);
     expect(sessionCardSource).not.toMatch(/<ShareIconBtn(?![^>]*\btype=)[^>]*\bonClick=/);
-    expect(source).toMatch(/<RetryButton\s+type="button"[\s\S]{0,80}onClick=\{refetch\}/);
+    expect(panelContentSource).toMatch(/<RetryButton\s+type="button"[\s\S]{0,80}onClick=\{onRetry\}/);
     expect(sessionCardSource).toMatch(/<ShareIconBtn\s+type="button"[\s\S]{0,160}onClick=\{\(\) => onShareSession\(session\)\}/);
   });
 });

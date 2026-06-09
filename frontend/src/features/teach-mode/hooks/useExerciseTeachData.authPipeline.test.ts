@@ -13,6 +13,7 @@ const stripComments = (source: string) =>
 const hookSource = stripComments(read('./useExerciseTeachData.ts'));
 const layoutSource = read('../../../components/DashBoard/UniversalDashboardLayout.tsx');
 const workoutPlannerSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx');
+const workoutPlannerLayoutSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPageLayout.tsx');
 const plannerSidebarSource = read('../../../components/DashBoard/Pages/admin-workout-planner/TeachModeSidebar.tsx');
 const coachPageSource = read('../../../components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx');
 const coachPanelSource = read('../../../components/DashBoard/Pages/coach-assistant/CoachTeachModePanel.tsx');
@@ -25,7 +26,9 @@ describe('useExerciseTeachData auth pipeline', () => {
     expect(layoutSource).toMatch(/const SwanCoachAssistantPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/SwanCoachAssistantPage'\)\)/);
     expect(layoutSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
     expect(layoutSource).toMatch(/path: '\/coach-assistant', component: SwanCoachAssistantPage/);
-    expect(workoutPlannerSource).toMatch(/<TeachModeSidebar[\s\S]*?exercise=\{selectedExercise\}/);
+    expect(workoutPlannerSource).toMatch(/teachModeProps:\s*\{\s*exercise:\s*selectedExercise,\s*phaseNumber,\s*onPhaseChange:\s*setPhaseNumber\s*\}/);
+    expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);
+    expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar \{\.\.\.teachModeProps\} onClose=\{onTeachModeToggle\} \/>/);
     expect(plannerSidebarSource).toMatch(/useExerciseTeachData\(\s*exercise\?\.id \?\? null/);
     expect(coachPageSource).toMatch(/<CoachTeachModePanel teachMode=\{teachMode\} \/>/);
     expect(coachPanelSource).toMatch(/useExerciseTeachData\(\s*teachMode\.selectedExercise\?\.id \?\? null/);

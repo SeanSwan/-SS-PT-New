@@ -61,13 +61,26 @@ describe('workoutSessionRoutes live-surface hardening', () => {
     mocks.create.mockResolvedValue({ id: 'session-1' });
   });
 
-  it('is mounted at the canonical workout session API path used by frontend callers', () => {
+  it('documents production route ownership for the workout session history path', () => {
     const coreRoutes = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+    const workoutRoutes = readFileSync(resolve(__dirname, '../../routes/workoutRoutes.mjs'), 'utf8');
     const serviceSource = readFileSync(resolve(__dirname, '../../../frontend/src/services/workout-session-service.ts'), 'utf8');
+    const workoutMountIndex = coreRoutes.indexOf("app.use('/api/workout', workoutRoutes)");
+    const workoutSessionMountIndex = coreRoutes.indexOf("app.use('/api/workout/sessions', workoutSessionRoutes)");
 
+    expect(workoutMountIndex).toBeGreaterThanOrEqual(0);
+    expect(workoutSessionMountIndex).toBeGreaterThan(workoutMountIndex);
+    expect(workoutRoutes).toContain("router.get('/sessions', protect, workoutController.getWorkoutSessions)");
     expect(coreRoutes).toContain("app.use('/api/workout/sessions', workoutSessionRoutes)");
     expect(serviceSource).toContain("api.get('/api/workout/sessions'");
     expect(serviceSource).toContain('api.get(`/api/workout/sessions/${sessionId}`');
+  });
+
+  it('keeps frontend statistics reads off the shadowed sessions-statistics alias', () => {
+    const serviceSource = readFileSync(resolve(__dirname, '../../../frontend/src/services/workout-session-service.ts'), 'utf8');
+
+    expect(serviceSource).toContain('api.get(`/api/workout/statistics/${userId}`');
+    expect(serviceSource).not.toContain('/api/workout/sessions/statistics');
   });
 
   it('rejects malformed pagination before querying workout sessions', async () => {

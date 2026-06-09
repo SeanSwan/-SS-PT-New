@@ -13,11 +13,15 @@ describe('EquipmentProfilePicker auth pipeline', () => {
     const workoutLoggerSource = readSource('frontend/src/components/WorkoutLogger/WorkoutLogger.tsx');
     const bootcampConfigSource = readSource('frontend/src/components/BootcampBuilder/ConfigPanel.tsx');
     const longHorizonSource = readSource('frontend/src/components/DashBoard/Pages/admin-clients/components/LongHorizonContent.tsx');
+    const longHorizonConfigureFormSource = readSource('frontend/src/components/DashBoard/Pages/admin-clients/components/LongHorizonConfigureForm.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
 
     expect(workoutLoggerSource).toContain("import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker'");
     expect(bootcampConfigSource).toContain("import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker'");
-    expect(longHorizonSource).toContain("import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker'");
+    expect(longHorizonSource).toContain("import LongHorizonConfigureForm from './LongHorizonConfigureForm'");
+    expect(longHorizonSource).toContain('setEquipmentProfileId={workflow.setEquipmentProfileId}');
+    expect(longHorizonConfigureFormSource).toContain("import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker'");
+    expect(longHorizonConfigureFormSource).toContain('<EquipmentProfilePicker');
     expect(coreRoutesSource).toContain("app.use('/api/equipment-profiles', equipmentRoutes)");
     expect(pickerSource).toContain('const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps>');
   });

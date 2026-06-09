@@ -31,6 +31,12 @@ export interface ClientHomeworkSummary {
   recentCompletions: ClientHomeworkCompletion[];
 }
 
+export interface ClientHomeworkAccountabilityStatus {
+  label: string;
+  detail: string;
+  isPrimarySignal: boolean;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null
 );
@@ -79,6 +85,60 @@ export const normalizeClientHomeworkSummary = (value: unknown): ClientHomeworkSu
     lastCompletedAt: stringOrNull(value.lastCompletedAt),
     recentCompletions: normalizeRecentCompletions(value.recentCompletions),
   };
+};
+
+const hasHomeworkToday = (summary: ClientHomeworkSummary) => summary.assignmentType === 'homework';
+
+const hasHomeworkSignal = (summary: ClientHomeworkSummary) => (
+  hasHomeworkToday(summary) || summary.recentCompletedCount > 0
+);
+
+const recentLogPlural = (count: number) => count === 1 ? '' : 's';
+
+type HomeworkStatusRule = {
+  matches: (summary: ClientHomeworkSummary) => boolean;
+  status: (summary: ClientHomeworkSummary) => ClientHomeworkAccountabilityStatus;
+};
+
+const ACCOUNTABILITY_STATUS_RULES: HomeworkStatusRule[] = [
+  {
+    matches: (summary) => summary.todayIsCompleted,
+    status: () => ({
+      label: 'Homework logged today',
+      detail: 'Recent off-day work is ready for trainer review.',
+      isPrimarySignal: true,
+    }),
+  },
+  {
+    matches: (summary) => hasHomeworkToday(summary) && summary.recentCompletedCount <= 0,
+    status: () => ({
+      label: 'First homework log pending',
+      detail: 'No off-day homework diary logs yet.',
+      isPrimarySignal: false,
+    }),
+  },
+  {
+    matches: (summary) => hasHomeworkToday(summary) && summary.todayIsLoggable,
+    status: () => ({
+      label: 'Homework ready today',
+      detail: 'Client can log this off-day plan work without session deduction.',
+      isPrimarySignal: false,
+    }),
+  },
+];
+
+const homeworkHistoryStatus = (summary: ClientHomeworkSummary): ClientHomeworkAccountabilityStatus => ({
+  label: 'Homework history available',
+  detail: `${summary.recentCompletedCount} recent homework log${recentLogPlural(summary.recentCompletedCount)} ready for review.`,
+  isPrimarySignal: false,
+});
+
+export const buildHomeworkAccountabilityStatus = (
+  summary?: ClientHomeworkSummary | null,
+): ClientHomeworkAccountabilityStatus | null => {
+  if (!summary || !hasHomeworkSignal(summary)) return null;
+  return ACCOUNTABILITY_STATUS_RULES.find((rule) => rule.matches(summary))?.status(summary)
+    || homeworkHistoryStatus(summary);
 };
 
 const completionDateValue = (completion?: ClientHomeworkCompletion | null) => {

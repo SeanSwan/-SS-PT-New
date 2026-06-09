@@ -18,10 +18,17 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
     expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
     expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain("import CoachCommandLogPanel from './CoachCommandLogPanel'");
-    expect(pageSource).toContain('<CoachCommandLogPanel logs={commandCenter.logs}');
+    expect(pageSource).toContain('<CoachCommandLogPanel');
+    expect(pageSource).toContain('logs={commandCenter.logs}');
+    expect(pageSource).toContain('onCancelCommand={commandCenter.handleCancelCommand}');
+    expect(pageSource).toContain('onConfirmCommand={commandCenter.handleConfirmCommand}');
     expect(pageSource).toContain('onReset={commandCenter.resetLogs}');
     expect(panelSource).toContain("import CoachCommandLogEntry from './CoachCommandLogEntry'");
-    expect(panelSource).toContain('<CoachCommandLogEntry entry={entry} key={entry.id} />');
+    expect(panelSource).toContain('<CoachCommandLogEntry');
+    expect(panelSource).toContain('entry={entry}');
+    expect(panelSource).toContain('key={entry.id}');
+    expect(panelSource).toContain('onCancelCommand={onCancelCommand}');
+    expect(panelSource).toContain('onConfirmCommand={onConfirmCommand}');
   });
 
   it('keeps the command-log renderer split into capped renderer, style, and type modules', () => {

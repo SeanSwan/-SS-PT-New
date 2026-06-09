@@ -70,6 +70,10 @@ const TRAINING_TAB_SOURCE = readFileSync(
   resolve(__dirname, './tabs/TrainingTabContent.tsx'),
   'utf8',
 );
+const TRAINING_SECTION_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/TrainingTabSectionContent.tsx'),
+  'utf8',
+);
 
 describe('Phase 15.3 — Clients & Team Progress tab', () => {
   it('ClientDetailView TABS array includes a progress entry', () => {
@@ -147,11 +151,12 @@ describe('Phase 5.9 - Clients & Team PLAUD placement', () => {
   });
 
   it('PLAUD Uploads mounts the reusable merge workspace with editable selected-client context', () => {
-    expect(TRAINING_TAB_SOURCE).toMatch(/PlaudMergeWorkspace/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/initialClientId=\{safeClientId\}/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/initialClientName=\{clientName\}/);
-    expect(TRAINING_TAB_SOURCE).not.toMatch(/lockClientId=\{true\}/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/embedded=\{true\}/);
+    expect(TRAINING_TAB_SOURCE).toMatch(/<TrainingTabSectionContent/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/PlaudMergeWorkspace/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/initialClientId=\{safeClientId\}/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/initialClientName=\{clientName\}/);
+    expect(TRAINING_SECTION_SOURCE).not.toMatch(/lockClientId=\{true\}/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/embedded=\{true\}/);
   });
 });
 
@@ -213,19 +218,19 @@ describe('Phase 15.3 — AdminProgressChartsGrid truthfulness', () => {
 });
 
 describe('Phase 15.3 — SessionCard scroll fix', () => {
-  const PANEL_SOURCE = readFileSync(
+  const SESSION_STYLES_SOURCE = readFileSync(
     resolve(
       __dirname,
-      '../../Pages/admin-clients/components/WorkoutHistoryPanel.tsx',
+      '../../Pages/admin-clients/components/WorkoutHistoryPanel.sessionStyles.ts',
     ),
     'utf8',
   );
 
   it('SessionCard uses overflow: visible (not overflow: hidden)', () => {
-    const cardIdx = PANEL_SOURCE.indexOf('const SessionCard');
+    const cardIdx = SESSION_STYLES_SOURCE.indexOf('SessionCard');
     expect(cardIdx).toBeGreaterThan(0);
-    const blockEnd = PANEL_SOURCE.indexOf('`;', cardIdx);
-    const slice = PANEL_SOURCE.slice(cardIdx, blockEnd);
+    const blockEnd = SESSION_STYLES_SOURCE.indexOf('`;', cardIdx);
+    const slice = SESSION_STYLES_SOURCE.slice(cardIdx, blockEnd);
     expect(slice).toMatch(/overflow:\s*visible;/);
     expect(slice).not.toMatch(/overflow:\s*hidden;/);
   });

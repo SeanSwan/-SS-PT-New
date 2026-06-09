@@ -35,7 +35,7 @@ const SURFACES: Array<{ label: string; path: string }> = [
   // UserDashboard cluster
   { label: 'CreativeGalleryCard.styles.ts', path: '../components/UserDashboard/components/CreativeGalleryCard.styles.ts' },
   // Admin Dashboard cluster
-  { label: 'ClientTrainerAssignments.tsx', path: '../components/Admin/ClientTrainerAssignments.tsx' },
+  { label: 'ClientTrainerAssignments.styles.ts', path: '../components/Admin/ClientTrainerAssignments.styles.ts' },
   { label: 'WorkoutClientDrawer.tsx', path: '../components/DashBoard/workspaces/WorkoutClientDrawer.tsx' },
   { label: 'CommunicationCenter.tsx', path: '../components/DashBoard/Pages/admin-clients/components/CommunicationCenter.tsx' },
   { label: 'EnhancedTrainerDataManagement.tsx', path: '../components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx' },

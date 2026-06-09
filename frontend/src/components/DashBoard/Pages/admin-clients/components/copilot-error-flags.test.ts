@@ -8,12 +8,18 @@ const panelSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel.tsx'),
   'utf8',
 );
+const contentSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/CopilotPanelContent.tsx'),
+  'utf8',
+);
 
 describe('getCopilotErrorFlags', () => {
-  it('keeps error classification outside the copilot render shell', () => {
-    expect(panelSource).toContain("from './copilot-error-flags'");
+  it('keeps error classification outside the copilot state shell', () => {
+    expect(panelSource).toContain("from './CopilotPanelContent'");
+    expect(panelSource).not.toContain("from './copilot-error-flags'");
     expect(panelSource).not.toContain("errorCode?.startsWith('AI_CONSENT')");
     expect(panelSource).not.toContain("['AI_RATE_LIMITED', 'AI_PII_LEAK'");
+    expect(contentSource).toContain("from './copilot-error-flags'");
   });
 
   it('classifies consent and waiver errors', () => {

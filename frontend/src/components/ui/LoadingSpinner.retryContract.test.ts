@@ -10,6 +10,10 @@ const workoutLoggerSource = readFileSync(
   resolve(srcDir, './components/TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx'),
   'utf8'
 );
+const workoutLoggerViewSource = readFileSync(
+  resolve(srcDir, './components/TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx'),
+  'utf8'
+);
 const clientsViewSource = readFileSync(
   resolve(srcDir, './components/TrainerDashboard/ClientManagement/MyClientsView.tsx'),
   'utf8'
@@ -17,7 +21,9 @@ const clientsViewSource = readFileSync(
 
 describe('LoadingSpinner retry contract', () => {
   it('restarts its own timeout state instead of reloading the page', () => {
-    expect(workoutLoggerSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
+    expect(workoutLoggerSource).toContain("import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view'");
+    expect(workoutLoggerSource).toContain('onRetry={loadClientData}');
+    expect(workoutLoggerViewSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
     expect(clientsViewSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
 
     expect(spinnerSource).not.toContain('window.location.reload()');

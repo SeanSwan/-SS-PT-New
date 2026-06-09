@@ -6,10 +6,12 @@ const componentPath = resolve(process.cwd(), 'src/components/WorkoutLogger/Corre
 const stylesPath = resolve(process.cwd(), 'src/components/WorkoutLogger/CorrectiveRecommendationsPanel.styles.ts');
 const routePath = resolve(process.cwd(), 'src/routes/main-routes.tsx');
 const builderPath = resolve(process.cwd(), 'src/components/WorkoutBuilder/WorkoutBuilderPage.tsx');
+const builderContextPath = resolve(process.cwd(), 'src/components/WorkoutBuilder/WorkoutBuilderContextPanel.tsx');
 
 const componentSource = readFileSync(componentPath, 'utf8');
 const routeSource = readFileSync(routePath, 'utf8');
 const builderSource = readFileSync(builderPath, 'utf8');
+const builderContextSource = readFileSync(builderContextPath, 'utf8');
 const stylesSource = existsSync(stylesPath) ? readFileSync(stylesPath, 'utf8') : '';
 
 const lineCount = (source: string) => source.split(/\r?\n/).length;
@@ -19,8 +21,10 @@ describe('CorrectiveRecommendationsPanel style extraction contract', () => {
     expect(routeSource).toContain("() => import('../components/WorkoutBuilder/WorkoutBuilderPage')");
     expect(routeSource).toContain("path: 'workout-builder'");
     expect(routeSource).toContain('<WorkoutBuilder />');
-    expect(builderSource).toContain('../WorkoutLogger/CorrectiveRecommendationsPanel');
-    expect(builderSource).toContain('<CorrectiveRecommendationsPanel');
+    expect(builderSource).toContain("import WorkoutBuilderContextPanel from './WorkoutBuilderContextPanel'");
+    expect(builderSource).toContain('<WorkoutBuilderContextPanel');
+    expect(builderContextSource).toContain('../WorkoutLogger/CorrectiveRecommendationsPanel');
+    expect(builderContextSource).toContain('<CorrectiveRecommendationsPanel');
   });
 
   it('keeps the component logic under the file cap by extracting styles', () => {

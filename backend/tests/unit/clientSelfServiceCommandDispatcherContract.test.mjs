@@ -80,6 +80,12 @@ describe('client self-service command dispatchers', () => {
         recentCompletedCount: 0,
         lastCompletedAt: null,
         recentCompletions: [],
+        accountabilityStatus: {
+          key: 'due_today',
+          label: 'Due today',
+          priority: 'log_prompt',
+          coachDirective: 'Encourage the client to log the assigned homework; do not mark it complete.',
+        },
       },
       trainingPlanCatalog: {
         defaultHorizonKey: 'six_month',

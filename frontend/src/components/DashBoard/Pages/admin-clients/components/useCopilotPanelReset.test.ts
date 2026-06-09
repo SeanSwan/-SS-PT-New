@@ -19,6 +19,8 @@ const createSetters = () => ({
   setWarnings: vi.fn(),
   setMissingInputs: vi.fn(),
   setGenerationMode: vi.fn(),
+  setSwanCoachPlanning: vi.fn(),
+  setPlanningReviewAcknowledged: vi.fn(),
   setAuditLogId: vi.fn(),
   setTrainerNotes: vi.fn(),
   setOverrideReason: vi.fn(),
@@ -58,6 +60,8 @@ describe('useCopilotPanelReset', () => {
     expect(setters.setWarnings).toHaveBeenCalledWith([]);
     expect(setters.setMissingInputs).toHaveBeenCalledWith([]);
     expect(setters.setGenerationMode).toHaveBeenCalledWith('');
+    expect(setters.setSwanCoachPlanning).toHaveBeenCalledWith(null);
+    expect(setters.setPlanningReviewAcknowledged).toHaveBeenCalledWith(false);
     expect(setters.setAuditLogId).toHaveBeenCalledWith(null);
     expect(setters.setTrainerNotes).toHaveBeenCalledWith('');
     expect(setters.setOverrideReason).toHaveBeenCalledWith('');

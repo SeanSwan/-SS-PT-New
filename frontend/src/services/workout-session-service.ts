@@ -13,6 +13,16 @@ import {
   SaveSessionParams
 } from '../pages/workout/types/session.types';
 
+const maybeRecord = (value: any) => (
+  value && typeof value === 'object' ? value : {}
+);
+const nestedStatistics = (payload: any) => maybeRecord(maybeRecord(payload).data).statistics;
+const directStatistics = (payload: any) => maybeRecord(payload).statistics;
+const firstDefined = (...values: any[]) => values.find((value) => value !== undefined);
+const normalizeStatisticsResponse = (payload: any) => ({
+  statistics: firstDefined(nestedStatistics(payload), directStatistics(payload), payload),
+});
+
 /**
  * Workout Session Service
  * Handles all API requests related to workout sessions
@@ -103,8 +113,8 @@ const workoutSessionService = {
     includeIntensityTrends?: boolean;
   }) => {
     try {
-      const response = await api.get(`/api/workout/sessions/statistics/${userId}`, { params });
-      return response.data;
+      const response = await api.get(`/api/workout/statistics/${userId}`, { params });
+      return normalizeStatisticsResponse(response.data);
     } catch (error) {
       console.error(`Error fetching session statistics for user ${userId}:`, error);
       throw error;

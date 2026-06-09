@@ -88,6 +88,29 @@ describe('ClientWorkoutPlansPanel homework summary', () => {
     expect(todayHomework).toHaveTextContent(/homework is non-billable/i);
   });
 
+  it('surfaces an accountability signal when the first homework log is still pending', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce(responseWithHomework({
+      assignmentType: 'homework',
+      todayStatus: 'planned',
+      todayIsCompleted: false,
+      todayIsLoggable: true,
+      todayShouldDeductSession: false,
+      todayWeekNumber: 1,
+      todayDayNumber: 2,
+      todayExerciseCount: 4,
+      todayFirstExerciseName: 'Split Squat',
+      recentCompletedCount: 0,
+      recentCompletions: [],
+    }));
+
+    renderPanel();
+
+    const homeworkPanel = await screen.findByLabelText(/off-day homework summary/i);
+    const accountability = within(homeworkPanel).getByLabelText(/homework accountability status/i);
+    expect(accountability).toHaveTextContent(/first homework log pending/i);
+    expect(accountability).toHaveTextContent(/no off-day homework diary logs yet/i);
+  });
+
   it('stays hidden when there is no homework today or recent homework history', async () => {
     mockAuthAxios.get.mockResolvedValueOnce(responseWithHomework({
       assignmentType: 'trainer_session',

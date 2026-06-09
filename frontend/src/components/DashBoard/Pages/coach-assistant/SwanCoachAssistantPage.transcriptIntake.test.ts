@@ -831,6 +831,18 @@ describe('Phase 13 — WorkoutHistoryPanel consolidation', () => {
     resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
     'utf8',
   );
+  const PANEL_CONTENT_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanelContent.tsx'),
+    'utf8',
+  );
+  const PANEL_HEADER_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanelHeader.tsx'),
+    'utf8',
+  );
+  const EXERCISE_TABLE_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryExerciseTable.tsx'),
+    'utf8',
+  );
   const MODAL_SOURCE = readFileSync(
     resolve(__dirname, '../admin-clients/components/EnhancedWorkoutsModal.tsx'),
     'utf8',
@@ -842,22 +854,32 @@ describe('Phase 13 — WorkoutHistoryPanel consolidation', () => {
     ),
     'utf8',
   );
+  const TRAINING_SECTION_SOURCE = readFileSync(
+    resolve(
+      __dirname,
+      '../../workspaces/clients-team/tabs/TrainingTabSectionContent.tsx',
+    ),
+    'utf8',
+  );
 
   it('WorkoutHistoryPanel uses the shared useWorkoutAnalytics hook', () => {
     expect(PANEL_SOURCE).toMatch(/useWorkoutAnalytics/);
   });
 
   it('WorkoutHistoryPanel renders all three canonical tabs', () => {
-    expect(PANEL_SOURCE).toMatch(/activeTab === 'history'/);
-    expect(PANEL_SOURCE).toMatch(/activeTab === 'charts'/);
-    expect(PANEL_SOURCE).toMatch(/activeTab === 'prs'/);
+    expect(PANEL_HEADER_SOURCE).toMatch(/id:\s*'history'/);
+    expect(PANEL_HEADER_SOURCE).toMatch(/id:\s*'charts'/);
+    expect(PANEL_HEADER_SOURCE).toMatch(/id:\s*'prs'/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/history:/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/charts:/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/prs:/);
   });
 
   it('WorkoutHistoryPanel conditionally renders Tempo/Rest/RPE/Est.1RM columns', () => {
-    expect(PANEL_SOURCE).toMatch(/hasTempo\s*&&\s*<Th>Tempo<\/Th>/);
-    expect(PANEL_SOURCE).toMatch(/hasRest\s*&&\s*<Th>Rest<\/Th>/);
-    expect(PANEL_SOURCE).toMatch(/hasRPE\s*&&\s*<Th>RPE<\/Th>/);
-    expect(PANEL_SOURCE).toMatch(/hasWeight\s*&&\s*<Th>Est\. 1RM<\/Th>/);
+    expect(EXERCISE_TABLE_SOURCE).toMatch(/hasTempo\s*&&\s*<Th>Tempo<\/Th>/);
+    expect(EXERCISE_TABLE_SOURCE).toMatch(/hasRest\s*&&\s*<Th>Rest<\/Th>/);
+    expect(EXERCISE_TABLE_SOURCE).toMatch(/hasRPE\s*&&\s*<Th>RPE<\/Th>/);
+    expect(EXERCISE_TABLE_SOURCE).toMatch(/hasWeight\s*&&\s*<Th>Est\. 1RM<\/Th>/);
   });
 
   it('WorkoutHistoryPanel accepts a variant prop (modal | embedded)', () => {
@@ -893,11 +915,12 @@ describe('Phase 13 — WorkoutHistoryPanel consolidation', () => {
     // The panel is lazy-imported via React.lazy + dynamic import() — not
     // a top-level `from` statement. Lock both the dynamic-import path and
     // the JSX mount.
-    expect(TRAINING_TAB_SOURCE).toMatch(
+    expect(TRAINING_TAB_SOURCE).toMatch(/<TrainingTabSectionContent/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(
       /import\(\s*['"][^'"]*admin-clients\/components\/WorkoutHistoryPanel['"]/,
     );
-    expect(TRAINING_TAB_SOURCE).toMatch(/<WorkoutHistoryPanel/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/variant=['"]embedded['"]/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/<WorkoutHistoryPanel/);
+    expect(TRAINING_SECTION_SOURCE).toMatch(/variant=['"]embedded['"]/);
   });
 
   it('Clients & Team history section label is "Workout History" (not "Vault History")', () => {
@@ -979,6 +1002,26 @@ describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
     resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
     'utf8',
   );
+  const PANEL_CONTENT_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanelContent.tsx'),
+    'utf8',
+  );
+  const SESSION_FOOTER_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistorySessionFooter.tsx'),
+    'utf8',
+  );
+  const EXERCISE_TABLE_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryExerciseTable.tsx'),
+    'utf8',
+  );
+  const EDITOR_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/useWorkoutHistoryEditor.ts'),
+    'utf8',
+  );
+  const EDIT_PAYLOAD_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/workoutHistoryEditPayload.ts'),
+    'utf8',
+  );
   // Scoped read — the Phase 13 describe block above has its own const,
   // but that one is local to that block. Re-read here so this describe
   // is self-contained.
@@ -988,27 +1031,27 @@ describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
   );
 
   it('exposes an Edit workout entry point', () => {
-    expect(PANEL_SOURCE).toMatch(/Edit workout/);
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-start-\$\{session\.id\}`\}/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/Edit workout/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/data-testid=\{`edit-start-\$\{session\.id\}`\}/);
   });
 
   it('exposes Save / Cancel actions when in edit mode', () => {
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-save-\$\{session\.id\}`\}/);
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-cancel-\$\{session\.id\}`\}/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/data-testid=\{`edit-save-\$\{session\.id\}`\}/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/data-testid=\{`edit-cancel-\$\{session\.id\}`\}/);
   });
 
   it('PATCH payload groups by exercise and preserves tempo / rest / RPE / notes', () => {
     // The PATCH builder must conditionally include tempo/rest/rpe/notes
     // only when they are real values — this prevents the save from
     // overwriting existing fields with empty/zero placeholders.
-    expect(PANEL_SOURCE).toMatch(/out\.tempo\s*=\s*s\.tempo\.trim\(\)/);
-    expect(PANEL_SOURCE).toMatch(/out\.rest\s*=\s*s\.rest/);
-    expect(PANEL_SOURCE).toMatch(/out\.rpe\s*=\s*s\.rpe/);
-    expect(PANEL_SOURCE).toMatch(/out\.notes\s*=\s*s\.notes\.trim\(\)/);
+    expect(EDIT_PAYLOAD_SOURCE).toMatch(/out\.tempo\s*=\s*set\.tempo\.trim\(\)/);
+    expect(EDIT_PAYLOAD_SOURCE).toMatch(/out\.rest\s*=\s*set\.rest/);
+    expect(EDIT_PAYLOAD_SOURCE).toMatch(/out\.rpe\s*=\s*set\.rpe/);
+    expect(EDIT_PAYLOAD_SOURCE).toMatch(/out\.notes\s*=\s*set\.notes\.trim\(\)/);
   });
 
   it('PATCH posts to the canonical admin workouts endpoint', () => {
-    expect(PANEL_SOURCE).toMatch(
+    expect(EDITOR_SOURCE).toMatch(
       /authAxios\.patch\(\s*`\/api\/admin\/clients\/\$\{clientId\}\/workouts\/\$\{workoutId\}`/,
     );
   });
@@ -1019,9 +1062,9 @@ describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
     // pull the authoritative view back in. The window is generous
     // because the Phase 15 save path grew substantially to carry
     // `exerciseNote` at the exercise level on the PATCH payload.
-    const saveIdx = PANEL_SOURCE.indexOf('const saveEdit');
+    const saveIdx = EDITOR_SOURCE.indexOf('const saveEdit');
     expect(saveIdx).toBeGreaterThan(0);
-    const slice = PANEL_SOURCE.slice(saveIdx, saveIdx + 4000);
+    const slice = EDITOR_SOURCE.slice(saveIdx, saveIdx + 4000);
     expect(slice).toMatch(/await\s+refetch\(\)/);
   });
 
@@ -1029,30 +1072,29 @@ describe('Phase 13.1 — WorkoutHistoryPanel inline edit restored', () => {
     // The dormant WorkoutHistoryTimeline had per-session edit state with
     // a discard-on-switch behavior. Port that exact semantic so users
     // can't accidentally save edits into the wrong session.
-    expect(PANEL_SOURCE).toMatch(
-      /editingSessionId\s*&&\s*editingSessionId\s*!==\s*id[\s\S]{0,200}setEditingSessionId\(null\)/,
-    );
+    expect(PANEL_SOURCE).toMatch(/editingSessionId\s*&&\s*editingSessionId\s*!==\s*id[\s\S]{0,200}cancelEdit\(\)/);
+    expect(EDITOR_SOURCE).toMatch(/const cancelEdit[\s\S]{0,400}setEditingSessionId\(null\)/);
   });
 
   it('Add set button appears for each exercise group while editing', () => {
-    expect(PANEL_SOURCE).toMatch(/Add set to\s*\{/);
-    expect(PANEL_SOURCE).toMatch(/addEditRow/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/Add set to\s*\{/);
+    expect(SESSION_FOOTER_SOURCE).toMatch(/addEditRow/);
   });
 
   it('Remove set button appears per row while editing', () => {
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-remove-\$\{logIndex\}`\}/);
+    expect(EXERCISE_TABLE_SOURCE).toMatch(/data-testid=\{`edit-remove-\$\{logIndex\}`\}/);
   });
 
   it('preserves the existing history/charts/PRs tab architecture', () => {
     // Anti-regression: the edit restoration must NOT collapse the 3-tab
     // layout back into a flat table. The canonical surface still hosts
     // analytics + share behavior alongside edit.
-    expect(PANEL_SOURCE).toMatch(/activeTab === 'charts'/);
-    expect(PANEL_SOURCE).toMatch(/activeTab === 'prs'/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/charts:/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/prs:/);
     // Charts tab now mounts the canonical 12-chart admin-scoped Victory
     // grid (AdminProgressChartsGrid), replacing the legacy WorkoutChartsTab
     // weekly-volume-only surface. The 3-tab architecture is preserved.
-    expect(PANEL_SOURCE).toMatch(/AdminProgressChartsGrid/);
+    expect(PANEL_CONTENT_SOURCE).toMatch(/AdminProgressChartsGrid/);
   });
 
   it('does NOT remount the dormant WorkoutHistoryTimeline as the canonical surface', () => {
@@ -1104,6 +1146,18 @@ describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
     resolve(__dirname, '../admin-clients/components/WorkoutHistoryPanel.tsx'),
     'utf8',
   );
+  const NOTES_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/workoutHistoryNotes.ts'),
+    'utf8',
+  );
+  const NOTES_BLOCK_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/WorkoutHistoryExerciseNotesBlock.tsx'),
+    'utf8',
+  );
+  const EDIT_PAYLOAD_SOURCE = readFileSync(
+    resolve(__dirname, '../admin-clients/components/workoutHistoryEditPayload.ts'),
+    'utf8',
+  );
   const MAPPER_SOURCE = readFileSync(
     resolve(__dirname, './utils/parsedWorkoutToLogPayload.ts'),
     'utf8',
@@ -1121,35 +1175,35 @@ describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
   });
 
   it('panel and mapper agree on the legacy separator string', () => {
-    expect(PANEL_SOURCE).toMatch(/const EXERCISE_NOTE_SEPARATOR\s*=\s*' · Coach: '/);
+    expect(NOTES_SOURCE).toMatch(/EXERCISE_NOTE_SEPARATOR\s*=\s*' \\u00b7 Coach: '/);
   });
 
   it('panel exposes Phase 15 resolveExerciseNote helper (not merge/split contract)', () => {
     // Phase 15.0: the canonical read helper is `resolveExerciseNote`,
     // which prefers the dedicated `exerciseNote` column and falls back
     // to legacy parsing only when no row in the group has it set.
-    expect(PANEL_SOURCE).toMatch(/function resolveExerciseNote\(/);
+    expect(NOTES_SOURCE).toMatch(/function resolveExerciseNote\(/);
     // The legacy helper is retained as read-only fallback, clearly
     // renamed so nobody wires it into new write paths.
-    expect(PANEL_SOURCE).toMatch(/function splitLegacyStoredNote\(/);
+    expect(NOTES_SOURCE).toMatch(/function splitLegacyStoredNote\(/);
     // The old merge helper is gone — Phase 15 writes emit the
     // exerciseNote field directly on the PATCH payload, no string
     // concatenation.
-    expect(PANEL_SOURCE).not.toMatch(/function mergeStoredNote\(/);
+    expect(NOTES_SOURCE).not.toMatch(/function mergeStoredNote\(/);
   });
 
   it('panel renders a per-exercise notes block with a testid hook', () => {
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`notes-block-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/data-testid=\{`notes-block-\$\{sessionId\}-\$\{exerciseName\}`\}/);
   });
 
   it('panel shows "None given" when an exercise has no notes at all', () => {
-    expect(PANEL_SOURCE).toMatch(/None given/);
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`notes-empty-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/None given/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/data-testid=\{`notes-empty-\$\{sessionId\}-\$\{exerciseName\}`\}/);
   });
 
   it('panel edit mode exposes per-set note inputs and an exercise-level coach note input', () => {
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-notes-set-\$\{row\.logIndex\}`\}/);
-    expect(PANEL_SOURCE).toMatch(/data-testid=\{`edit-notes-exercise-\$\{session\.id\}-\$\{exerciseName\}`\}/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/data-testid=\{`edit-notes-set-\$\{row\.logIndex\}`\}/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/data-testid=\{`edit-notes-exercise-\$\{sessionId\}-\$\{exerciseName\}`\}/);
   });
 
   it('panel edit save path still includes notes in the PATCH payload', () => {
@@ -1157,7 +1211,7 @@ describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
     // present. The Phase 13.2 notes-edit path threads edits through
     // updateEditField('notes', merged), so the existing PATCH builder
     // continues to work.
-    expect(PANEL_SOURCE).toMatch(/out\.notes\s*=\s*s\.notes\.trim\(\)/);
+    expect(EDIT_PAYLOAD_SOURCE).toMatch(/out\.notes\s*=\s*set\.notes\.trim\(\)/);
   });
 
   it('panel notes block reads exerciseNote via resolveExerciseNote, not raw set.notes', () => {
@@ -1166,10 +1220,8 @@ describe('Phase 13.2 — WorkoutHistoryPanel notes display and edit', () => {
     // column wins and legacy rows still render safely. If the display
     // short-circuits to `log.notes` directly it would miss the new
     // column and silently fall back to the old ambiguous contract.
-    const blockIdx = PANEL_SOURCE.indexOf('notes-block-');
-    expect(blockIdx).toBeGreaterThan(0);
-    const slice = PANEL_SOURCE.slice(Math.max(0, blockIdx - 2500), blockIdx + 4000);
-    expect(slice).toMatch(/resolveExerciseNote\(groupSets\)/);
+    expect(NOTES_BLOCK_SOURCE).toMatch(/buildWorkoutHistoryNotesDisplay\(groupSets,\s*activeLogs\)/);
+    expect(NOTES_SOURCE).toMatch(/const resolved\s*=\s*resolveExerciseNote\(groupSets\)/);
   });
 });
 

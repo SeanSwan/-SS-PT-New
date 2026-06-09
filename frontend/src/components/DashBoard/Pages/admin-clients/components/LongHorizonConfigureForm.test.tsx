@@ -42,7 +42,7 @@ describe('LongHorizonConfigureForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /12 months/i }));
     fireEvent.click(screen.getByRole('button', { name: /select equipment/i }));
-    fireEvent.click(screen.getByRole('button', { name: /generate draft/i }));
+    fireEvent.click(screen.getByRole('button', { name: /swan coach draft/i }));
 
     expect(setHorizonMonths).toHaveBeenCalledWith(12);
     expect(setEquipmentProfileId).toHaveBeenCalledWith(77);
