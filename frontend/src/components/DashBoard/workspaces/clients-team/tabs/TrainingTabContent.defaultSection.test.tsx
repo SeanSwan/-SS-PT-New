@@ -165,6 +165,11 @@ describe('TrainingTabContent daily workflow default', () => {
     );
     expect(onSectionChange).toHaveBeenCalledWith('plans');
   });
+  it('names the plan-generation tab as Swan Coach planning, not a generic architect', () => {
+    renderTraining();
+    expect(screen.getByRole('tab', { name: /swan coach architect/i })).toBeInTheDocument();
+    expect(screen.queryByText('Program Architect')).not.toBeInTheDocument();
+  });
   it('forwards scheduled session context into the embedded workout logger', async () => {
     renderTraining({
       scheduledSessionCreditHint: 2,

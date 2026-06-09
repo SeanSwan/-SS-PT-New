@@ -113,6 +113,22 @@ describe('ClientDailyActionStrip', () => {
     expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i })).toBeInTheDocument();
   });
 
+  it('presents the coaching lane as Swan Coach instead of generic AI', () => {
+    render(
+      <ClientDailyActionStrip
+        clientName="Fixture Client"
+        workoutCount={7}
+        sessionsLeft={12}
+        clientSource="swanstudios"
+        {...handlers}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i }))
+      .toHaveTextContent('Swan Coach');
+    expect(screen.queryByText('Dictate / AI')).not.toBeInTheDocument();
+  });
+
   it('keeps phone actions compact instead of stacking into a full-screen blocker', () => {
     expect(source).toMatch(
       /@media \(max-width: 420px\)\s*{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/

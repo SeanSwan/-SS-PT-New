@@ -50,7 +50,7 @@ const SECTIONS: {
   shortLabel: string;
   icon: React.ReactNode;
 }[] = [
-  { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
+  { id: 'architect', label: 'Swan Coach Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
   { id: 'plans', label: 'Training Plans', shortLabel: 'Plans', icon: <ClipboardList size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
   { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },

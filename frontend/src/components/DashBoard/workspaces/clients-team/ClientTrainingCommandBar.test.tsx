@@ -201,6 +201,9 @@ describe('ClientTrainingCommandBar', () => {
       chatMock.sendMessageWithConversation.mock.calls[0];
 
     expect(message).toContain('Bench press 3 sets of 10 at 135, RPE 7');
+    expect(message).toContain('You are Swan Coach');
+    expect(message).toContain('SwanStudios');
+    expect(message).toContain('NASM-aligned');
     expect(message).toContain('review-gated workout_log proposal');
     expect(message).toContain('clientId=424242');
     expect(message).not.toContain('Fixture Client');

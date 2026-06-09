@@ -242,7 +242,7 @@ const ClientDailyActionStrip: React.FC<ClientDailyActionStripProps> = ({
           aria-label={`Dictate to Swan for ${clientName}`}
         >
           <MessageCircle size={16} />
-          Dictate / AI
+          Swan Coach
         </CockpitButton>
       </ActionGroup>
     </Strip>
