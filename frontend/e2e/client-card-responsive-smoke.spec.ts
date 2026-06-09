@@ -17,6 +17,7 @@ import {
   trainerUser,
 } from './client-card-responsive-smoke.fixtures';
 import {
+  inspectClientDetailTabLabelFit,
   inspectClientWorkspaceTopBar,
   inspectNestedClientCardLayout,
 } from './client-card-responsive-overlap';
@@ -130,6 +131,7 @@ for (const viewport of responsiveViewports) {
     const layout = await inspectClientDetailLayout(page);
     expect(layout.overflowX, `detail horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
+    expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await page.screenshot({ path: testInfo.outputPath(`admin-client-detail-biometrics-${viewport.name}.png`), fullPage: false });
@@ -181,6 +183,7 @@ test('admin selected client measurements expansion has no phone overflow', async
   const layout = await inspectClientDetailLayout(page);
   expect(layout.overflowX, 'measurements expansion phone horizontal overflow').toBeLessThanOrEqual(12);
   expect(layout.issues).toEqual([]);
+  expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
   expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-client-measurements-expanded-phone.png'), fullPage: false });

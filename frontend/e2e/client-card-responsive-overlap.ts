@@ -68,3 +68,24 @@ export async function inspectClientWorkspaceTopBar(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectClientDetailTabLabelFit(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 768) return { issues };
+
+    const tabs = Array.from(document.querySelectorAll<HTMLElement>('[role="tablist"][aria-label="Client detail tabs"] [role="tab"]'));
+    if (!tabs.length) return { issues: ['missing client detail tabs'] };
+
+    tabs.forEach((tab) => {
+      const label = tab.textContent?.trim().replace(/\s+/g, ' ') || tab.id;
+      const labelEl = tab.querySelector<HTMLElement>('span');
+      if (!labelEl) return;
+      if (labelEl.scrollWidth > labelEl.clientWidth + 1) {
+        issues.push(`${label} tab label clips ${labelEl.scrollWidth}px into ${labelEl.clientWidth}px`);
+      }
+    });
+
+    return { issues };
+  });
+}

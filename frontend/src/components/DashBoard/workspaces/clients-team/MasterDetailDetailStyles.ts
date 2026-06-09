@@ -133,10 +133,9 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
   }
 
   @media (max-width: 640px) {
-    box-sizing: border-box;
+    box-sizing: border-box; flex-direction: column;
     min-width: 0;
-    gap: 4px;
-    padding: 9px 3px;
+    gap: 2px; padding: 6px 3px;
     border: 1px solid ${({ $active }) => (
       $active
         ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 65%, transparent)'
@@ -145,13 +144,12 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
     border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(224, 236, 244, 0.08))')};
     border-radius: 8px;
     box-shadow: none;
-    font-size: 9px;
-    line-height: 1;
-    letter-spacing: 0;
+    font-size: 9px; line-height: 1; letter-spacing: 0;
     overflow: hidden; white-space: nowrap;
 
     svg {
       flex: 0 0 auto;
+      width: 12px; height: 12px;
     }
   }
 `;
