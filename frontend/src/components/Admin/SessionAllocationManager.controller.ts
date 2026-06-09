@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import sessionService from '../../services/sessionService';
 import { useToast } from '../../hooks/use-toast';
 import type { Toast } from '../../hooks/use-toast';
@@ -22,6 +22,8 @@ import type {
 
 type ToastDispatcher = (toast: Omit<Toast, 'id'>) => void;
 
+const POSITIVE_CLIENT_ID = /^[1-9]\d*$/;
+
 interface SubmitManualSessionAllocationOptions {
   loadClientSessionData: () => Promise<void>;
   onSessionCountChange?: () => void;
@@ -42,6 +44,12 @@ const isFailedManualSessionAllocationResult = (
 const getManualSessionAllocationFailureMessage = (
   result: ManualSessionAllocationServiceResult | null | undefined,
 ): string => result?.message || 'Failed to add sessions';
+
+const getAllocationClientIdFromSearch = (search: string): number | null => {
+  const clientId = new URLSearchParams(search).get('clientId')?.trim() || '';
+  if (!POSITIVE_CLIENT_ID.test(clientId)) return null;
+  return Number(clientId);
+};
 
 const assertManualSessionAllocationSucceeded = (
   result: ManualSessionAllocationServiceResult | null | undefined,
@@ -113,7 +121,9 @@ export const useSessionAllocationManagerController = ({
 }: SessionAllocationManagerProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const openedDeepLinkClientRef = useRef<number | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,6 +131,11 @@ export const useSessionAllocationManagerController = ({
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [addSessionCount, setAddSessionCount] = useState(1);
   const [addSessionReason, setAddSessionReason] = useState('');
+
+  const deepLinkClientId = useMemo(
+    () => getAllocationClientIdFromSearch(location.search),
+    [location.search],
+  );
 
   const loadClientSessionData = useCallback(async () => {
     try {
@@ -171,6 +186,17 @@ export const useSessionAllocationManagerController = ({
     setSelectedClient(client);
     setShowAddModal(true);
   }, []);
+
+  useEffect(() => {
+    if (!deepLinkClientId || openedDeepLinkClientRef.current === deepLinkClientId || showAddModal) return;
+
+    const deepLinkClient = clients.find((client) => client.id === deepLinkClientId);
+    if (!deepLinkClient || getManualSessionAllocationBlockReason(deepLinkClient)) return;
+
+    openedDeepLinkClientRef.current = deepLinkClientId;
+    setSelectedClient(deepLinkClient);
+    setShowAddModal(true);
+  }, [clients, deepLinkClientId, showAddModal]);
 
   const handleAddSessions = useCallback(async () => {
     const allocation = buildManualSessionAllocationRequest(

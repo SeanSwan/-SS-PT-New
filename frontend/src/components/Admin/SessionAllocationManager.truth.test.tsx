@@ -7,6 +7,7 @@ import { buildManualSessionAllocationRequest } from './SessionAllocationManager.
 
 const mockNavigate = vi.fn();
 const mockToast = vi.fn();
+let mockLocationSearch = '';
 const mockSessionService = vi.hoisted(() => ({
   getClients: vi.fn(),
   getUserSessionSummary: vi.fn(),
@@ -15,6 +16,7 @@ const mockSessionService = vi.hoisted(() => ({
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useLocation: () => ({ search: mockLocationSearch }),
 }));
 
 vi.mock('../../hooks/use-toast', () => ({
@@ -61,6 +63,7 @@ describe('SessionAllocationManager active admin contract', () => {
     mockSessionService.getClients.mockReset();
     mockSessionService.getUserSessionSummary.mockReset();
     mockSessionService.addSessionsToClient.mockReset();
+    mockLocationSearch = '';
 
     mockSessionService.getClients.mockResolvedValue([client]);
     mockSessionService.getUserSessionSummary.mockResolvedValue({
@@ -98,6 +101,19 @@ describe('SessionAllocationManager active admin contract', () => {
 
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getAllByText('7').length).toBeGreaterThan(0);
+  });
+
+  it('opens the manual allocation modal for the paid activation clientId deep link', async () => {
+    mockLocationSearch = '?clientId=9';
+
+    render(<SessionAllocationManager />);
+
+    expect(await screen.findByText('Ada Lovelace')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /add sessions to ada lovelace/i })).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/number of sessions/i)).toHaveValue(1);
   });
 
   it('adds manual sessions through sessionService.addSessionsToClient', async () => {
