@@ -21,15 +21,15 @@ export const PageWrapper = styled.main`
     radial-gradient(circle at 20% 8%, color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent), transparent 26%),
     radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--wing-purple, #8B5CF6) 16%, transparent), transparent 28%),
     var(--bg-base, #0A0A0F);
-  padding: 2rem 1rem 4rem;
+  padding: 1.5rem 1rem 4rem;
   overflow-x: hidden;
 
   @media (min-width: 768px) {
-    padding: 3rem 2rem 5rem;
+    padding: 2rem 2rem 5rem;
   }
 
   @media (min-width: 1024px) {
-    padding: 4rem 2rem 6rem;
+    padding: 2rem 2rem 6rem;
   }
 `;
 
@@ -46,10 +46,10 @@ export const LoadingState = styled.div`
 export const HeroSection = styled.header`
   text-align: center;
   max-width: 700px;
-  margin: 0 auto 3rem;
+  margin: 0 auto 2rem;
 
   @media (min-width: 1024px) {
-    margin-bottom: 4rem;
+    margin-bottom: 2rem;
   }
 `;
 
