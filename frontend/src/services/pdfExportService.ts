@@ -674,51 +674,46 @@ const pickFirstNonEmpty = <T>(...arrays: (T[] | undefined)[]): T[] => {
   return [];
 };
 
-/**
- * L3 (2026-05-02) - branded PDF export of the populated long-horizon
- * workout plan. Walks every week in the horizon and prints each day's
- * exercises in a compact table. Co-brands with Move Fitness when the
- * client is an MF-tier client (text mark for now; image asset can drop
- * in later when MF approves logo licensing per receipt §G8).
- */
-export function exportPopulatedPlanPDF(
+const addPopulatedPlanHeader = (
+  doc: jsPDF,
   plan: PDFPopulatedPlan,
+  horizon: ReturnType<typeof closestWorkoutPlanHorizon>,
   clientName?: string,
   clientSource?: PDFClientSource,
-): void {
-  const doc = createPDF();
-  const pageW = doc.internal.pageSize.getWidth();
-  const horizon = closestWorkoutPlanHorizon(plan.planSummary.durationWeeks);
-
-  // ── Header (Swan + optional MF co-brand text mark) ─────────────────
+): number => {
   const titleLine = `${horizon.label} Periodized Plan`;
   const subtitle = `${plan.planSummary.totalSessions} sessions · ${plan.planSummary.sessionsPerWeek}×/week${clientName ? ` · ${clientName}` : ''}`;
-  let y = addHeader(doc, titleLine, subtitle);
+  const y = addHeader(doc, titleLine, subtitle);
 
   if (normalizeClientSource(clientSource) === 'move_fitness') {
-    // Co-brand mark. Receipt §G8: Move Fitness logo image asset is a
-    // non-engineering blocker. Until MF approves the logo for export
-    // PDFs, render a text mark in the gilded-fern accent so the brand
-    // pairing is visually intentional rather than absent.
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.setTextColor(...BRAND.gildedFern);
-    doc.text('IN PARTNERSHIP WITH MOVE FITNESS', pageW - 14, 19, { align: 'right' });
+    doc.text('IN PARTNERSHIP WITH MOVE FITNESS', doc.internal.pageSize.getWidth() - 14, 19, { align: 'right' });
   }
 
-  // ── Plan Summary ───────────────────────────────────────────────────
-  y = addSectionTitle(doc, y, 'Plan Summary');
-  y = addKeyValue(doc, y, 'Duration', `${plan.planSummary.durationWeeks} weeks (${horizon.label} arc)`);
-  y = addKeyValue(doc, y, 'Sessions per week', String(plan.planSummary.sessionsPerWeek));
-  y = addKeyValue(doc, y, 'Total sessions', String(plan.planSummary.totalSessions));
-  y = addKeyValue(doc, y, 'Primary goal', plan.planSummary.primaryGoal);
-  y = addKeyValue(doc, y, 'Starting NASM phase', `Phase ${plan.planSummary.startingPhase}`);
-  y += 2;
+  return y;
+};
 
-  // ── Mesocycle Breakdown table ──────────────────────────────────────
-  y = addSectionTitle(doc, y, 'Mesocycles');
+const addPopulatedPlanSummary = (
+  doc: jsPDF,
+  y: number,
+  plan: PDFPopulatedPlan,
+  horizon: ReturnType<typeof closestWorkoutPlanHorizon>,
+): number => {
+  let nextY = addSectionTitle(doc, y, 'Plan Summary');
+  nextY = addKeyValue(doc, nextY, 'Duration', `${plan.planSummary.durationWeeks} weeks (${horizon.label} arc)`);
+  nextY = addKeyValue(doc, nextY, 'Sessions per week', String(plan.planSummary.sessionsPerWeek));
+  nextY = addKeyValue(doc, nextY, 'Total sessions', String(plan.planSummary.totalSessions));
+  nextY = addKeyValue(doc, nextY, 'Primary goal', plan.planSummary.primaryGoal);
+  nextY = addKeyValue(doc, nextY, 'Starting NASM phase', `Phase ${plan.planSummary.startingPhase}`);
+  return nextY + 2;
+};
+
+const addPopulatedPlanMesocycles = (doc: jsPDF, y: number, plan: PDFPopulatedPlan): number => {
+  let nextY = addSectionTitle(doc, y, 'Mesocycles');
   addAutoTable(doc, {
-    startY: y,
+    startY: nextY,
     head: [['#', 'Phase', 'Weeks', 'Focus', 'Sets', 'Reps', 'Intensity', 'Rest']],
     body: plan.mesocycles.map((m) => [
       String(m.mesocycle),
@@ -738,127 +733,168 @@ export function exportPopulatedPlanPDF(
     margin: { left: 16, right: 16 },
     columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { fontStyle: 'bold' } },
   });
-  y = getLastAutoTableY(doc, y) + 6;
+  nextY = getLastAutoTableY(doc, nextY) + 6;
+  return nextY;
+};
 
-  // ── Recommendations ────────────────────────────────────────────────
-  if (plan.recommendations.length > 0) {
-    y = checkPageBreak(doc, y, 12 + plan.recommendations.length * 5);
-    y = addSectionTitle(doc, y, 'AI Recommendations');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    plan.recommendations.forEach((rec, i) => {
-      const detail = plan.recommendationDetails?.[i];
-      const bullet = `• ${rec}`;
-      doc.setTextColor(...BRAND.textDark);
-      const lines = doc.splitTextToSize(bullet, pageW - 36);
-      doc.text(lines, 18, y);
-      y += lines.length * 4;
-      if (detail?.type) {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(6.5);
-        doc.setTextColor(...BRAND.textMuted);
-        doc.text(`  source type: ${detail.type}`, 22, y);
-        y += 3.5;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-      }
-      y += 1;
+const addPopulatedPlanRecommendations = (doc: jsPDF, y: number, plan: PDFPopulatedPlan): number => {
+  if (plan.recommendations.length === 0) return y;
+
+  let nextY = checkPageBreak(doc, y, 12 + plan.recommendations.length * 5);
+  nextY = addSectionTitle(doc, nextY, 'AI Recommendations');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+
+  plan.recommendations.forEach((rec, i) => {
+    const detail = plan.recommendationDetails?.[i];
+    const bullet = `• ${rec}`;
+    doc.setTextColor(...BRAND.textDark);
+    const lines = doc.splitTextToSize(bullet, doc.internal.pageSize.getWidth() - 36);
+    doc.text(lines, 18, nextY);
+    nextY += lines.length * 4;
+    if (detail?.type) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6.5);
+      doc.setTextColor(...BRAND.textMuted);
+      doc.text(`  source type: ${detail.type}`, 22, nextY);
+      nextY += 3.5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+    }
+    nextY += 1;
+  });
+
+  return nextY + 2;
+};
+
+const getPopulatedPlanSetCount = (exercise: PDFLongHorizonExercise): number => {
+  if (Array.isArray(exercise.sets)) return exercise.sets.length;
+  return typeof exercise.sets === 'number' ? exercise.sets : 3;
+};
+
+const buildPopulatedExerciseRow = (exercise: PDFLongHorizonExercise): string[] => {
+  const reps = exercise.targetReps ?? exercise.reps ?? '10';
+  const rest = exercise.restSeconds ?? exercise.restTime ?? '';
+  const restCell = rest ? `${rest}s` : '-';
+  const noteCell = [
+    exercise.tempo ? `tempo ${exercise.tempo}` : null,
+    exercise.rotationFallback ? '⚑ fallback' : null,
+    exercise.notes || null,
+  ].filter(Boolean).join(' · ') || '-';
+
+  return [
+    exercise.exerciseName || exercise.name || 'Unknown',
+    String(getPopulatedPlanSetCount(exercise)),
+    String(reps),
+    restCell,
+    noteCell,
+  ];
+};
+
+const addPopulatedPlanDay = (doc: jsPDF, y: number, day: PDFLongHorizonDay): number => {
+  const dayLabel = day.name || day.dayName || `Day ${day.dayNumber}`;
+  let nextY = checkPageBreak(doc, y, 18 + (day.exercises?.length || 0) * 5);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...BRAND.midnightSapphire);
+  doc.text(`${dayLabel}${day.focus ? ` · ${day.focus}` : ''}`, 18, nextY);
+  nextY += 4;
+
+  if (Array.isArray(day.exercises) && day.exercises.length > 0) {
+    addAutoTable(doc, {
+      startY: nextY,
+      head: [['Exercise', 'Sets', 'Reps', 'Rest', 'Notes']],
+      body: day.exercises.map(buildPopulatedExerciseRow),
+      theme: 'grid',
+      headStyles: { fillColor: BRAND.royalDepth, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
+      alternateRowStyles: { fillColor: BRAND.lightGray },
+      styles: { cellPadding: 1.5, lineColor: BRAND.borderGray, lineWidth: 0.15 },
+      margin: { left: 18, right: 16 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 60 },
+        1: { cellWidth: 12, halign: 'center' },
+        2: { cellWidth: 16, halign: 'center' },
+        3: { cellWidth: 14, halign: 'center' },
+      },
     });
-    y += 2;
+    return getLastAutoTableY(doc, nextY) + 4;
   }
 
-  // ── Per-week per-day exercise listing ──────────────────────────────
-  // Group weeks into months (4-week chunks) for readability. Each month
-  // gets a section header; each week is a small subheader; each day is
-  // a compact 5-column table.
-  if (Array.isArray(plan.weeks) && plan.weeks.length > 0) {
-    plan.weeks.forEach((week, wIdx) => {
-      const monthIndex = Math.floor(wIdx / 4) + 1;
-      const isFirstWeekOfMonth = wIdx % 4 === 0;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(...BRAND.textMuted);
+  doc.text('(no exercises populated)', 22, nextY);
+  return nextY + 5;
+};
 
-      if (isFirstWeekOfMonth) {
-        y = checkPageBreak(doc, y, 14);
-        y = addSectionTitle(doc, y, `Month ${monthIndex}`);
-      }
-
-      y = checkPageBreak(doc, y, 10);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(...BRAND.wingPurple);
-      doc.text(`Week ${week.weekNumber}${week.focus ? ` — ${week.focus}` : ''}`, 16, y);
-      y += 5;
-
-      const days = pickFirstNonEmpty(week.days, week.sessions);
-      if (days.length === 0) {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(7);
-        doc.setTextColor(...BRAND.textMuted);
-        doc.text('(no sessions populated for this week)', 18, y);
-        y += 5;
-        return;
-      }
-
-      days.forEach((day) => {
-        const dayLabel = day.name || day.dayName || `Day ${day.dayNumber}`;
-        y = checkPageBreak(doc, y, 18 + (day.exercises?.length || 0) * 5);
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(...BRAND.midnightSapphire);
-        doc.text(`${dayLabel}${day.focus ? ` · ${day.focus}` : ''}`, 18, y);
-        y += 4;
-
-        if (Array.isArray(day.exercises) && day.exercises.length > 0) {
-          addAutoTable(doc, {
-            startY: y,
-            head: [['Exercise', 'Sets', 'Reps', 'Rest', 'Notes']],
-            body: day.exercises.map((ex) => {
-              const setCount = Array.isArray(ex.sets)
-                ? ex.sets.length
-                : (typeof ex.sets === 'number' ? ex.sets : 3);
-              const reps = ex.targetReps ?? ex.reps ?? '10';
-              const rest = ex.restSeconds ?? ex.restTime ?? '';
-              const restCell = rest ? `${rest}s` : '-';
-              const noteCell = [
-                ex.tempo ? `tempo ${ex.tempo}` : null,
-                ex.rotationFallback ? '⚑ fallback' : null,
-                ex.notes || null,
-              ].filter(Boolean).join(' · ') || '-';
-              return [
-                ex.exerciseName || ex.name || 'Unknown',
-                String(setCount),
-                String(reps),
-                restCell,
-                noteCell,
-              ];
-            }),
-            theme: 'grid',
-            headStyles: { fillColor: BRAND.royalDepth, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold' },
-            bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
-            alternateRowStyles: { fillColor: BRAND.lightGray },
-            styles: { cellPadding: 1.5, lineColor: BRAND.borderGray, lineWidth: 0.15 },
-            margin: { left: 18, right: 16 },
-            columnStyles: {
-              0: { fontStyle: 'bold', cellWidth: 60 },
-              1: { cellWidth: 12, halign: 'center' },
-              2: { cellWidth: 16, halign: 'center' },
-              3: { cellWidth: 14, halign: 'center' },
-            },
-          });
-          y = getLastAutoTableY(doc, y) + 4;
-        } else {
-          doc.setFont('helvetica', 'italic');
-          doc.setFontSize(7);
-          doc.setTextColor(...BRAND.textMuted);
-          doc.text('(no exercises populated)', 22, y);
-          y += 5;
-        }
-      });
-
-      y += 2;
-    });
+const addPopulatedPlanWeek = (
+  doc: jsPDF,
+  y: number,
+  week: PDFLongHorizonWeek,
+  weekIndex: number,
+): number => {
+  let nextY = y;
+  if (weekIndex % 4 === 0) {
+    nextY = checkPageBreak(doc, nextY, 14);
+    nextY = addSectionTitle(doc, nextY, `Month ${Math.floor(weekIndex / 4) + 1}`);
   }
 
+  nextY = checkPageBreak(doc, nextY, 10);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...BRAND.wingPurple);
+  doc.text(`Week ${week.weekNumber}${week.focus ? ` — ${week.focus}` : ''}`, 16, nextY);
+  nextY += 5;
+
+  const days = pickFirstNonEmpty(week.days, week.sessions);
+  if (days.length === 0) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7);
+    doc.setTextColor(...BRAND.textMuted);
+    doc.text('(no sessions populated for this week)', 18, nextY);
+    return nextY + 7;
+  }
+
+  days.forEach((day) => {
+    nextY = addPopulatedPlanDay(doc, nextY, day);
+  });
+
+  return nextY + 2;
+};
+
+const addPopulatedPlanWeeks = (doc: jsPDF, y: number, plan: PDFPopulatedPlan): number => {
+  if (!Array.isArray(plan.weeks) || plan.weeks.length === 0) return y;
+  return plan.weeks.reduce(
+    (nextY, week, weekIndex) => addPopulatedPlanWeek(doc, nextY, week, weekIndex),
+    y,
+  );
+};
+
+const buildPopulatedPlanFilename = (horizonToken: string, clientName?: string): string => {
   const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'Plan';
-  finalizeAndDownload(doc, `SwanStudios-${horizon.token}-Plan-${fname}.pdf`);
+  return `SwanStudios-${horizonToken}-Plan-${fname}.pdf`;
+};
+
+/**
+ * L3 (2026-05-02) - branded PDF export of the populated long-horizon
+ * workout plan. Walks every week in the horizon and prints each day's
+ * exercises in a compact table. Co-brands with Move Fitness when the
+ * client is an MF-tier client (text mark for now; image asset can drop
+ * in later when MF approves logo licensing per receipt §G8).
+ */
+export function exportPopulatedPlanPDF(
+  plan: PDFPopulatedPlan,
+  clientName?: string,
+  clientSource?: PDFClientSource,
+): void {
+  const doc = createPDF();
+  const horizon = closestWorkoutPlanHorizon(plan.planSummary.durationWeeks);
+  let y = addPopulatedPlanHeader(doc, plan, horizon, clientName, clientSource);
+  y = addPopulatedPlanSummary(doc, y, plan, horizon);
+  y = addPopulatedPlanMesocycles(doc, y, plan);
+  y = addPopulatedPlanRecommendations(doc, y, plan);
+  addPopulatedPlanWeeks(doc, y, plan);
+  finalizeAndDownload(doc, buildPopulatedPlanFilename(horizon.token, clientName));
 }
