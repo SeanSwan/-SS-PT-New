@@ -19,14 +19,20 @@ function parseOrderNotes(notes) {
   }
 }
 
-export function hasOfflinePaymentNoteItems(order) {
+function canUsePaymentNoteItems(order, notes) {
+  return Array.isArray(notes?.items)
+    && notes.items.length > 0
+    && (notes.type === 'offline_payment' || notes.type === 'ach_payment' || order?.paymentMethod === 'ach');
+}
+
+export function hasPaymentNoteItems(order) {
   const notes = parseOrderNotes(order?.notes);
-  return notes?.type === 'offline_payment' && Array.isArray(notes.items) && notes.items.length > 0;
+  return canUsePaymentNoteItems(order, notes);
 }
 
 async function buildOrderItemsFromOfflineNotes(order, StorefrontItem, logger, logPrefix) {
   const notes = parseOrderNotes(order?.notes);
-  if (!notes || notes.type !== 'offline_payment' || !Array.isArray(notes.items)) {
+  if (!canUsePaymentNoteItems(order, notes)) {
     return [];
   }
 

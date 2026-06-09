@@ -81,4 +81,28 @@ describe('SessionAllocationService offline payment note fallback', () => {
     );
     expect(mocks.session.bulkCreate.mock.calls[0][0]).toHaveLength(20);
   });
+
+  it('allocates sessions for legacy ACH orders whose items only exist in notes', async () => {
+    mocks.order.findOne.mockResolvedValueOnce({
+      id: 92,
+      userId: 42,
+      orderNumber: 'SS-20260609-ACH-LEGACY',
+      totalAmount: '200.00',
+      paymentMethod: 'ach',
+      status: 'completed',
+      orderItems: [],
+      notes: JSON.stringify({
+        items: [
+          { storefrontItemId: 10, quantity: 2, name: 'Ten Session Pack' },
+        ],
+      }),
+    });
+    const service = new SessionAllocationService();
+
+    const result = await service.allocateSessionsFromOrder(92, 42);
+
+    expect(result.success).toBe(true);
+    expect(result.allocated).toBe(20);
+    expect(result.totalSessions).toBe(20);
+  });
 });

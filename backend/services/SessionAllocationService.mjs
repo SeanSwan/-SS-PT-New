@@ -26,7 +26,7 @@ import {
   getFinancialTransaction 
 } from '../models/index.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
-import { extractOrderSessionData, hasOfflinePaymentNoteItems } from './orderSessionExtraction.mjs';
+import { extractOrderSessionData, hasPaymentNoteItems } from './orderSessionExtraction.mjs';
 
 class SessionAllocationService {
   constructor() {
@@ -146,7 +146,7 @@ class SessionAllocationService {
       throw new Error(`Order ${orderId} not found or not completed for user ${userId}`);
     }
 
-    if ((!order.orderItems || order.orderItems.length === 0) && !hasOfflinePaymentNoteItems(order)) {
+    if ((!order.orderItems || order.orderItems.length === 0) && !hasPaymentNoteItems(order)) {
       throw new Error(`Order ${orderId} has no items`);
     }
 

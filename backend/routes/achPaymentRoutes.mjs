@@ -25,6 +25,10 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
+import {
+  backfillMissingPaymentOrderItems,
+  createPaymentOrderItems,
+} from '../services/offlinePaymentOrderItems.mjs';
 
 const router = express.Router();
 
@@ -77,6 +81,17 @@ router.post('/create-intent', protect, async (req, res) => {
           return {};
         }
       })();
+      const existingItems = Array.isArray(existingNotes.items) ? existingNotes.items : items;
+      const existingDbItems = await StorefrontItem.findAll({
+        where: { id: existingItems.map(i => i.storefrontItemId).filter(Boolean) },
+      });
+      await backfillMissingPaymentOrderItems({
+        order: existingOrder,
+        requestItems: existingItems,
+        storefrontItems: existingDbItems,
+        paymentMethod: 'ach',
+        metadataSource: 'ach_payment',
+      });
 
       logger.info(`[ACH] Idempotency hit: returning existing PaymentIntent ${existingOrder.paymentId} for order ${existingOrder.orderNumber}`);
       return res.json({
@@ -93,11 +108,11 @@ router.post('/create-intent', protect, async (req, res) => {
     // Server-side price validation (same as offlinePaymentRoutes)
     const itemIds = items.map(i => i.storefrontItemId);
     const dbItems = await StorefrontItem.findAll({ where: { id: itemIds } });
-    const dbPriceMap = new Map(dbItems.map(i => [i.id, new Decimal(i.price || 0)]));
+    const dbPriceMap = new Map(dbItems.map(i => [Number(i.id), new Decimal(i.price || 0)]));
 
     let serverTotal = new Decimal(0);
     for (const item of items) {
-      const unitPrice = dbPriceMap.get(item.storefrontItemId);
+      const unitPrice = dbPriceMap.get(Number(item.storefrontItemId));
       if (!unitPrice) {
         return res.status(400).json({ success: false, message: `Item ${item.storefrontItemId} not found` });
       }
@@ -152,6 +167,7 @@ router.post('/create-intent', protect, async (req, res) => {
           paymentMethod: 'ach',
           idempotencyKey,
           notes: JSON.stringify({
+            type: 'ach_payment',
             items,
             customerInfo,
             subtotal: serverTotal.toNumber(),
@@ -162,6 +178,15 @@ router.post('/create-intent', protect, async (req, res) => {
       });
 
       if (!created) {
+        await backfillMissingPaymentOrderItems({
+          order,
+          requestItems: items,
+          storefrontItems: dbItems,
+          paymentMethod: 'ach',
+          metadataSource: 'ach_payment',
+          transaction: t,
+        });
+
         if (!order.paymentId) {
           return { order, paymentIntent: null, incomplete: true };
         }
@@ -169,6 +194,15 @@ router.post('/create-intent', protect, async (req, res) => {
         const paymentIntent = await stripe.paymentIntents.retrieve(order.paymentId);
         return { order, paymentIntent, reused: true };
       }
+
+      await createPaymentOrderItems({
+        order,
+        requestItems: items,
+        storefrontItems: dbItems,
+        paymentMethod: 'ach',
+        metadataSource: 'ach_payment',
+        transaction: t,
+      });
 
       // Create Stripe PaymentIntent with us_bank_account
       const paymentIntent = await stripe.paymentIntents.create({

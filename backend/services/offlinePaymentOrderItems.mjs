@@ -11,7 +11,13 @@
 import Decimal from 'decimal.js';
 import OrderItem from '../models/OrderItem.mjs';
 
-export function buildOfflineOrderItemRows(orderId, requestItems, storefrontItems, paymentMethod) {
+export function buildPaymentOrderItemRows(
+  orderId,
+  requestItems,
+  storefrontItems,
+  paymentMethod,
+  metadataSource = 'offline_payment',
+) {
   const storefrontMap = new Map(storefrontItems.map(item => [Number(item.id), item]));
 
   return requestItems.map(item => {
@@ -30,7 +36,7 @@ export function buildOfflineOrderItemRows(orderId, requestItems, storefrontItems
       itemType: storefrontItem.packageType || null,
       imageUrl: storefrontItem.imageUrl || null,
       metadata: {
-        source: 'offline_payment',
+        source: metadataSource,
         paymentMethod,
         sessions: storefrontItem.sessions ?? null,
         totalSessions: storefrontItem.totalSessions ?? null,
@@ -39,25 +45,33 @@ export function buildOfflineOrderItemRows(orderId, requestItems, storefrontItems
   });
 }
 
-export async function createOfflineOrderItems({
+export async function createPaymentOrderItems({
   order,
   requestItems,
   storefrontItems,
   paymentMethod,
+  metadataSource = 'offline_payment',
   transaction,
 }) {
-  const rows = buildOfflineOrderItemRows(order.id, requestItems, storefrontItems, paymentMethod);
+  const rows = buildPaymentOrderItemRows(
+    order.id,
+    requestItems,
+    storefrontItems,
+    paymentMethod,
+    metadataSource,
+  );
   await OrderItem.bulkCreate(rows, {
     validate: true,
     ...(transaction ? { transaction } : {}),
   });
 }
 
-export async function backfillMissingOfflineOrderItems({
+export async function backfillMissingPaymentOrderItems({
   order,
   requestItems,
   storefrontItems,
   paymentMethod,
+  metadataSource = 'offline_payment',
   transaction,
 }) {
   const existingCount = await OrderItem.count({
@@ -67,11 +81,16 @@ export async function backfillMissingOfflineOrderItems({
 
   if (existingCount > 0) return;
 
-  await createOfflineOrderItems({
+  await createPaymentOrderItems({
     order,
     requestItems,
     storefrontItems,
     paymentMethod,
+    metadataSource,
     transaction,
   });
 }
+
+export const buildOfflineOrderItemRows = buildPaymentOrderItemRows;
+export const createOfflineOrderItems = createPaymentOrderItems;
+export const backfillMissingOfflineOrderItems = backfillMissingPaymentOrderItems;

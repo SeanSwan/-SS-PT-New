@@ -16,6 +16,7 @@ import { sendNotification } from '../services/notificationService.mjs';
 import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { getStorefrontSessionCredits, grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
 import sequelize from '../database.mjs';
@@ -217,15 +218,30 @@ const stripeWebhookHandler = async (req, res) => {
             const order = await Order.findOne({
               where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
             });
-            if (order && order.status !== 'completed') {
+            if (order && !order.paymentAppliedAt) {
+              const completedAt = order.completedAt || new Date();
+              if (order.status !== 'completed') {
+                await order.update({
+                  status: 'completed',
+                  completedAt,
+                  paymentReference: pi.id,
+                });
+              }
+
+              const sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(order.id, order.userId);
               await order.update({
-                status: 'completed',
                 paymentAppliedAt: new Date(),
+                paymentReference: pi.id,
+                completedAt,
               });
-              logger.info(`[ACH Webhook] Order ${pi.metadata.orderNumber} marked completed`);
+              logger.info(`[ACH Webhook] Order ${pi.metadata.orderNumber} marked completed`, {
+                sessionsAllocated: sessionCreationResult.allocated,
+                totalSessions: sessionCreationResult.totalSessions,
+              });
             }
           } catch (achErr) {
             logger.error(`[ACH Webhook] Failed to complete order: ${achErr.message}`);
+            throw achErr;
           }
         } else {
           logger.info(`Payment succeeded: ${pi.id}`);
