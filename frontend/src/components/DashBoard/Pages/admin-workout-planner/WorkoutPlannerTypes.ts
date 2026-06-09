@@ -198,25 +198,20 @@ export interface PlannerEquipmentProfile {
   isDefault?: boolean;
 }
 
-// L2.A (2026-05-02): annual option is 48 weeks (12 × 4-week mesocycles),
-// not 52 calendar weeks. NASM OPT periodization runs in 4-week blocks,
-// so 12 months of programming = 12 mesocycles = 48 weeks. The backend
-// validator still caps at 52 to leave slack for non-mesocycle plans
-// (see backend/services/ai/outputValidator.mjs:80).
-export type PlanDuration = 'single' | '1' | '4' | '8' | '12' | '16' | '24' | '36' | '48';
+// SwanStudios exposes the same seven plan arcs in trainer/admin planning
+// and the client Plan Vault. The single option saves into the 1 Day slot.
+export type PlanDuration = 'single' | '1' | '4' | '12' | '26' | '39' | '52';
 export type PlanGoal = 'general_fitness' | 'hypertrophy' | 'strength' | 'fat_loss' | 'athletic_performance' | 'golf_performance';
 export type WorkoutCategory = 'full_body' | 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core';
 
 export const PLAN_DURATIONS: { value: PlanDuration; label: string; description: string }[] = [
-  { value: 'single', label: 'Single Session', description: 'One workout' },
-  { value: '1', label: '1 Week (Trial)', description: 'Intro/deload week' },
+  { value: 'single', label: '1 Day', description: 'One workout' },
+  { value: '1', label: '1 Week', description: 'Intro/deload week' },
   { value: '4', label: '1 Month (4 weeks)', description: 'Standard mesocycle' },
-  { value: '8', label: '2 Months (8 weeks)', description: 'Training block' },
   { value: '12', label: '3 Months (12 weeks)', description: 'Quarter plan' },
-  { value: '16', label: '4 Months (16 weeks)', description: 'Contest/event prep' },
-  { value: '24', label: '6 Months (24 weeks)', description: 'Long-horizon periodization' },
-  { value: '36', label: '9 Months (36 weeks)', description: 'Seasonal athlete plan' },
-  { value: '48', label: '12 Months (48 weeks)', description: 'Annual periodization (12 × 4-week mesocycles)' },
+  { value: '26', label: '6 Months (26 weeks)', description: 'Default primary arc' },
+  { value: '39', label: '9 Months (39 weeks)', description: 'Seasonal athlete plan' },
+  { value: '52', label: '12 Months (52 weeks)', description: 'Annual periodization' },
 ];
 
 export const PLAN_GOALS: { value: PlanGoal; label: string }[] = [

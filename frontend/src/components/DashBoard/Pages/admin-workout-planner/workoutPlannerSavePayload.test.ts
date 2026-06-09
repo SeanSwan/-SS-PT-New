@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PLAN_DURATIONS } from './WorkoutPlannerTypes';
 import { buildWorkoutPlanSaveFields } from './workoutPlannerSavePayload';
 
 const makeGeneratedPlanData = (durationWeeks: number) => ({
@@ -16,21 +17,33 @@ const makeGeneratedPlanData = (durationWeeks: number) => ({
 });
 
 describe('workout planner save payload metadata', () => {
-  it('preserves the selected generated duration and maps 24 weeks to the SwanStudios 6 Month horizon', () => {
-    const planData = makeGeneratedPlanData(24);
+  it('exposes only the seven SwanStudios plan arcs in the planner duration control', () => {
+    expect(PLAN_DURATIONS.map(duration => duration.value)).toEqual([
+      'single',
+      '1',
+      '4',
+      '12',
+      '26',
+      '39',
+      '52',
+    ]);
+  });
+
+  it('preserves the selected generated duration and maps 26 weeks to the SwanStudios 6 Month horizon', () => {
+    const planData = makeGeneratedPlanData(26);
 
     expect(buildWorkoutPlanSaveFields({
       planData,
-      planDuration: '24',
+      planDuration: '26',
       hasGeneratedHorizonPlan: true,
       userRole: 'trainer',
     })).toMatchObject({
-      durationWeeks: 24,
+      durationWeeks: 26,
       createdBy: 'swan_coach_planning',
       metadata: {
         planHorizon: 'six_month',
         planDurationKey: 'six_month',
-        durationPreset: '24',
+        durationPreset: '26',
         planSource: 'swan_coach_planning',
         createdByRole: 'trainer',
         assignmentDefault: 'trainer_session',
@@ -64,12 +77,20 @@ describe('workout planner save payload metadata', () => {
     });
   });
 
-  it('maps annual 48-week NASM plans to the 12 Month horizon instead of falling back to 6 Month', () => {
-    const planData = makeGeneratedPlanData(48);
+  it('maps nine-month and annual plans to their exact SwanStudios horizons', () => {
+    const nineMonthPlan = makeGeneratedPlanData(39);
+    const annualPlan = makeGeneratedPlanData(52);
 
     expect(buildWorkoutPlanSaveFields({
-      planData,
-      planDuration: '48',
+      planData: nineMonthPlan,
+      planDuration: '39',
+      hasGeneratedHorizonPlan: true,
+      userRole: 'trainer',
+    }).metadata.planHorizon).toBe('nine_month');
+
+    expect(buildWorkoutPlanSaveFields({
+      planData: annualPlan,
+      planDuration: '52',
       hasGeneratedHorizonPlan: true,
       userRole: 'trainer',
     }).metadata.planHorizon).toBe('twelve_month');

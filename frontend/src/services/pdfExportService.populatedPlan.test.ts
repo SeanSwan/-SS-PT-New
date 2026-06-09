@@ -110,11 +110,11 @@ beforeEach(() => {
 });
 
 describe('exportPopulatedPlanPDF — file naming', () => {
-  it('emits a SwanStudios-{months}mo-Plan-{client}.pdf filename', () => {
+  it('emits a SwanStudios horizon-token Plan filename for custom durations', () => {
     exportPopulatedPlanPDF(buildPlan(), 'Test Client');
     expect(savedFilenames).toHaveLength(1);
-    // 8 weeks → ceil(8/4) = 2 months. Client name sanitized.
-    expect(savedFilenames[0]).toBe('SwanStudios-2mo-Plan-Test-Client.pdf');
+    // 8 weeks maps to the closest SwanStudios horizon token.
+    expect(savedFilenames[0]).toBe('SwanStudios-3mo-Plan-Test-Client.pdf');
   });
 
   it('falls back to "Plan" when no client name is supplied', () => {

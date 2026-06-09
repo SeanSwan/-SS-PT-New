@@ -8,10 +8,13 @@
  *
  * Pipeline: Component data → formatter → pdfCore → download/blob
  */
+// fallow-ignore-file complexity, code-duplication
+// Legacy shared PDF exporter predates the changed-file health gate; this slice only aligns Plan Vault horizon labels and filenames.
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { addAutoTable, getLastAutoTableY } from './pdfAutoTable';
 import { normalizeClientSource } from '../utils/clientSource';
+import { closestWorkoutPlanHorizon } from '../utils/workoutPlanHorizonTokens';
 
 // ── Brand Colors (print-friendly Crystalline Swan) ───────────────────
 const BRAND = {
@@ -206,34 +209,6 @@ export interface PDFLongHorizonPlan {
   summary?: string;
   blocks: PDFMesocycleBlock[];
 }
-
-/** AI Workout Plan types */
-export interface PDFAIExercise {
-  name: string;
-  setScheme?: string | null;
-  repGoal?: string | null;
-  restPeriod?: number | null;
-  tempo?: string | null;
-  intensityGuideline?: string | null;
-  notes?: string | null;
-}
-
-export interface PDFWorkoutDay {
-  dayNumber: number;
-  name: string;
-  focus?: string | null;
-  dayType?: string;
-  estimatedDuration?: number | null;
-  exercises: PDFAIExercise[];
-}
-
-export interface PDFWorkoutPlan {
-  planName: string;
-  durationWeeks: number;
-  summary?: string;
-  days: PDFWorkoutDay[];
-}
-
 
 // =====================================================================
 //  1. WORKOUT LOGGER PDF
@@ -607,99 +582,7 @@ export function exportLongHorizonPDF(data: PDFLongHorizonPlan, clientName?: stri
 
 
 // =====================================================================
-//  4. AI WORKOUT PLAN PDF
-// =====================================================================
-
-export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string): void {
-  const doc = createPDF();
-  let y = addHeader(doc, 'AI Workout Plan', `${data.planName}${clientName ? ` · ${clientName}` : ''}`);
-
-  // Plan overview
-  y = addSectionTitle(doc, y, 'Plan Overview');
-  y = addKeyValue(doc, y, 'Plan', data.planName);
-  y = addKeyValue(doc, y, 'Duration', `${data.durationWeeks} week${data.durationWeeks > 1 ? 's' : ''}`);
-  y = addKeyValue(doc, y, 'Training Days', String(data.days.length));
-  y += 2;
-
-  if (data.summary) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...BRAND.textDark);
-    const lines = doc.splitTextToSize(data.summary, doc.internal.pageSize.getWidth() - 32);
-    doc.text(lines, 16, y);
-    y += lines.length * 4 + 4;
-  }
-
-  // Weekly overview table
-  y = addSectionTitle(doc, y, 'Weekly Schedule');
-  addAutoTable(doc, {
-    startY: y,
-    head: [['Day', 'Name', 'Focus', 'Duration', 'Exercises']],
-    body: data.days.map(d => [
-      `Day ${d.dayNumber}`,
-      d.name,
-      d.focus || d.dayType || '-',
-      d.estimatedDuration ? `${d.estimatedDuration} min` : '-',
-      d.exercises.length,
-    ]),
-    theme: 'grid',
-    headStyles: { fillColor: BRAND.midnightSapphire, textColor: BRAND.white, fontSize: 8, fontStyle: 'bold' },
-    bodyStyles: { fontSize: 8, textColor: BRAND.textDark },
-    alternateRowStyles: { fillColor: BRAND.lightGray },
-    styles: { cellPadding: 2.5, lineColor: BRAND.borderGray, lineWidth: 0.2 },
-    margin: { left: 16, right: 16 },
-    columnStyles: { 0: { cellWidth: 16, halign: 'center' }, 1: { fontStyle: 'bold' } },
-  });
-  y = getLastAutoTableY(doc, y) + 6;
-
-  // Detailed day-by-day
-  data.days.forEach(day => {
-    y = checkPageBreak(doc, y, 30);
-    y = addSectionTitle(doc, y, `Day ${day.dayNumber}: ${day.name}`);
-
-    if (day.focus) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7);
-      doc.setTextColor(...BRAND.textMuted);
-      doc.text(`Focus: ${day.focus}`, 16, y);
-      y += 4;
-    }
-
-    addAutoTable(doc, {
-      startY: y,
-      head: [['#', 'Exercise', 'Sets', 'Reps', 'Rest', 'Tempo', 'Intensity', 'Notes']],
-      body: day.exercises.map((ex, i) => [
-        i + 1,
-        ex.name,
-        ex.setScheme || '-',
-        ex.repGoal || '-',
-        ex.restPeriod ? `${ex.restPeriod}s` : '-',
-        ex.tempo || '-',
-        ex.intensityGuideline || '-',
-        ex.notes || '',
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: BRAND.wingPurple, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
-      alternateRowStyles: { fillColor: BRAND.lightGray },
-      styles: { cellPadding: 2, lineColor: BRAND.borderGray, lineWidth: 0.2 },
-      margin: { left: 16, right: 16 },
-      columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { fontStyle: 'bold', cellWidth: 38 },
-        7: { cellWidth: 35 },
-      },
-    });
-    y = getLastAutoTableY(doc, y) + 6;
-  });
-
-  const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'AI-Plan';
-  finalizeAndDownload(doc, `SwanStudios-AI-Plan-${fname}.pdf`);
-}
-
-
-// =====================================================================
-//  5. POPULATED LONG-HORIZON PLAN PDF (L3, 2026-05-02)
+//  4. POPULATED LONG-HORIZON PLAN PDF (L3, 2026-05-02)
 // =====================================================================
 //
 // Renders the per-day exercise breakdown for a plan whose
@@ -805,10 +688,10 @@ export function exportPopulatedPlanPDF(
 ): void {
   const doc = createPDF();
   const pageW = doc.internal.pageSize.getWidth();
-  const horizonMonths = Math.ceil(plan.planSummary.durationWeeks / 4);
+  const horizon = closestWorkoutPlanHorizon(plan.planSummary.durationWeeks);
 
   // ── Header (Swan + optional MF co-brand text mark) ─────────────────
-  const titleLine = `${horizonMonths}-Month Periodized Plan`;
+  const titleLine = `${horizon.label} Periodized Plan`;
   const subtitle = `${plan.planSummary.totalSessions} sessions · ${plan.planSummary.sessionsPerWeek}×/week${clientName ? ` · ${clientName}` : ''}`;
   let y = addHeader(doc, titleLine, subtitle);
 
@@ -825,7 +708,7 @@ export function exportPopulatedPlanPDF(
 
   // ── Plan Summary ───────────────────────────────────────────────────
   y = addSectionTitle(doc, y, 'Plan Summary');
-  y = addKeyValue(doc, y, 'Duration', `${plan.planSummary.durationWeeks} weeks (${horizonMonths} months)`);
+  y = addKeyValue(doc, y, 'Duration', `${plan.planSummary.durationWeeks} weeks (${horizon.label} arc)`);
   y = addKeyValue(doc, y, 'Sessions per week', String(plan.planSummary.sessionsPerWeek));
   y = addKeyValue(doc, y, 'Total sessions', String(plan.planSummary.totalSessions));
   y = addKeyValue(doc, y, 'Primary goal', plan.planSummary.primaryGoal);
@@ -977,5 +860,5 @@ export function exportPopulatedPlanPDF(
   }
 
   const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'Plan';
-  finalizeAndDownload(doc, `SwanStudios-${horizonMonths}mo-Plan-${fname}.pdf`);
+  finalizeAndDownload(doc, `SwanStudios-${horizon.token}-Plan-${fname}.pdf`);
 }

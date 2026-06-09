@@ -172,8 +172,11 @@ describe('useWorkoutPlannerGenerationActions', () => {
     });
   });
 
-  it('includes the selected equipment profile in long-horizon generation', async () => {
-    const { hook, authAxios } = renderGenerationHook({ selectedEquipmentProfileId: 77 });
+  it('sends the selected SwanStudios horizon and equipment profile in long-horizon generation', async () => {
+    const { hook, authAxios } = renderGenerationHook({
+      planDuration: '26',
+      selectedEquipmentProfileId: 77,
+    });
 
     await act(async () => {
       await hook.result.current.handleGeneratePlan(91);
@@ -181,6 +184,7 @@ describe('useWorkoutPlannerGenerationActions', () => {
 
     expect(authAxios.post).toHaveBeenCalledWith('/api/workout-builder/plan', expect.objectContaining({
       clientId: 91,
+      durationWeeks: 26,
       equipmentProfileId: 77,
     }));
   });

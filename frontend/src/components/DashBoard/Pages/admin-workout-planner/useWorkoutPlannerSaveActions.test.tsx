@@ -12,9 +12,9 @@ vi.mock('./workoutPlannerPlanPdfAdapter', () => ({
 
 const planData = {
   planSummary: {
-    durationWeeks: 24,
+    durationWeeks: 26,
     sessionsPerWeek: 3,
-    totalSessions: 72,
+    totalSessions: 78,
     primaryGoal: 'strength',
     startingPhase: 2,
   },
@@ -29,7 +29,7 @@ const makeHookInput = (authAxios: any, overrides: Record<string, unknown> = {}) 
   planExercisesLength: 0,
   hasGeneratedHorizonPlan: true,
   loadedPlanId: null,
-  planDuration: '24' as const,
+  planDuration: '26' as const,
   userRole: 'trainer',
   phaseName: 'Strength Endurance',
   phaseNumber: 2,
@@ -62,7 +62,7 @@ describe('useWorkoutPlannerSaveActions', () => {
     const authAxios = {
       post: vi.fn((url: string) => (
         url === '/api/workout-plans'
-          ? Promise.resolve({ data: { plan: { id: 'plan-24', title: 'Client Plan' } } })
+          ? Promise.resolve({ data: { plan: { id: 'plan-26', title: 'Client Plan' } } })
           : Promise.resolve({ data: { success: true } })
       )),
       put: vi.fn().mockResolvedValue({ data: { success: true } }),
@@ -76,26 +76,26 @@ describe('useWorkoutPlannerSaveActions', () => {
     });
 
     expect(authAxios.post).toHaveBeenNthCalledWith(1, '/api/workout-plans', expect.objectContaining({
-      durationWeeks: 24,
+      durationWeeks: 26,
       createdBy: 'swan_coach_planning',
       planData,
       metadata: expect.objectContaining({
         planHorizon: 'six_month',
         planDurationKey: 'six_month',
-        durationPreset: '24',
+        durationPreset: '26',
         planSource: 'swan_coach_planning',
       }),
     }));
-    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-24/activate');
+    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-26/activate');
     expect(mocks.buildPlanPdfFileFromPlanData).toHaveBeenCalledWith(expect.objectContaining({
       planData,
-      durationWeeks: 24,
+      durationWeeks: 26,
       goal: 'strength',
       nasmPhase: 2,
     }));
     expect(authAxios.post).toHaveBeenNthCalledWith(
       2,
-      '/api/workout-plans/plan-24/pdf/upload',
+      '/api/workout-plans/plan-26/pdf/upload',
       expect.any(FormData),
     );
     expect(input.setStatusMsg).toHaveBeenCalledWith({
@@ -119,7 +119,7 @@ describe('useWorkoutPlannerSaveActions', () => {
 
     expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/loaded-plan', expect.objectContaining({
       nasmPhase: 2,
-      durationWeeks: 24,
+      durationWeeks: 26,
       planData,
       metadata: expect.objectContaining({
         planHorizon: 'six_month',

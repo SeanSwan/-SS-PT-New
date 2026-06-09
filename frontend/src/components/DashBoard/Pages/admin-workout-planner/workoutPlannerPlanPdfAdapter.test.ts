@@ -56,9 +56,9 @@ describe('workout planner PDF source adapter', () => {
       durationWeeks: 1,
       planData: {
         planSummary: {
-          durationWeeks: 24,
+          durationWeeks: 26,
           sessionsPerWeek: 3,
-          totalSessions: 72,
+          totalSessions: 78,
           primaryGoal: 'strength',
           startingPhase: 2,
         },
@@ -69,8 +69,8 @@ describe('workout planner PDF source adapter', () => {
 
     expect(file?.name).toBe('SwanStudios-6mo-Plan-Client-FortyTwo.pdf');
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
-      'Duration: 24 weeks',
-      'Total sessions: 72',
+      'Duration: 26 weeks',
+      'Total sessions: 78',
       'IN PARTNERSHIP WITH MOVE FITNESS',
       '- Progress only when tempo is consistent.',
       'Split Squat - 3 sets x 8-12',
@@ -111,12 +111,12 @@ describe('workout planner PDF source adapter', () => {
       selectedClient,
       goal: 'strength',
       nasmPhase: 2,
-      durationWeeks: 24,
+      durationWeeks: 26,
       planData: {
         planSummary: {
-          durationWeeks: 24,
+          durationWeeks: 26,
           sessionsPerWeek: 3,
-          totalSessions: 72,
+          totalSessions: 78,
           primaryGoal: 'strength',
           startingPhase: 2,
         },
