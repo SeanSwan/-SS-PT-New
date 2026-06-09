@@ -13,6 +13,7 @@ import {
   watchConsoleErrors,
   type MissionApiState,
 } from './missionHarness';
+import { getProgressProofStatusText } from '../../src/utils/progressProofStatusText';
 
 test.describe.configure({ retries: 0 });
 
@@ -43,7 +44,7 @@ test('@mission @contract @readonly client sees assignment, log CTA, and progress
   await expect(page.getByText(/wk workouts/i)).toBeVisible();
   await expect(page.getByText(/^3$/).first()).toBeVisible();
   await expect(page.getByTestId('canonical-progress-charts-grid')).toBeVisible();
-  await expect(page.getByText(/progress overview - 12 of 12 charts populated/i)).toBeVisible();
+  await expect(page.getByText(`Progress overview - ${getProgressProofStatusText(12, 0)}`)).toBeVisible();
   await expect(page.getByText(/goblet squat/i).first()).toBeVisible();
 
   const layout = await page.evaluate(() => ({
