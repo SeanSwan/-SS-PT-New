@@ -6,15 +6,19 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { swanSectionBackdrop } from '../../DashBoard/workspaces/clients-team/clientCardSystem';
 
 export const ClientsContainer = styled(motion.div)`
+  ${swanSectionBackdrop}
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 1rem;
+  border-radius: 18px;
 
   @media (max-width: 768px) {
     padding: 0.5rem;
+    border-radius: 0;
   }
 `;
 
@@ -101,11 +105,12 @@ export const FilterSection = styled(motion.div)`
 
 export const SearchContainer = styled.div`
   position: relative;
-  flex: 1;
-  min-width: 250px;
+  flex: 1 1 250px;
+  min-width: min(250px, 100%);
 
   .search-input {
     width: 100%;
+    min-height: 44px;
     background: var(--surface-elevated, rgba(30, 30, 60, 0.6));
     border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.3));
     border-radius: 12px;
@@ -146,6 +151,7 @@ export const FilterButton = styled(motion.button)<{ active?: boolean }>`
       : 'var(--border-accent-soft, rgba(139, 92, 246, 0.3))'
   };
   border-radius: 8px;
+  min-height: 44px;
   padding: 0.5rem 1rem;
   color: var(--text-primary, #ffffff);
   font-size: 0.85rem;

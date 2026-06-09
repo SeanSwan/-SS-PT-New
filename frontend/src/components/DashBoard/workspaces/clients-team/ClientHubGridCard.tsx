@@ -24,6 +24,7 @@ import {
   CardBody,
   CardButton,
   CardShell,
+  ContactLine,
   GoalLine,
   Metric,
   MetricGrid,
@@ -43,21 +44,112 @@ interface ClientHubGridCardProps {
 const sourceLabel = (client: ClientOption) =>
   getClientSourceLabel(client.clientSource);
 
+const trimmedOrFallback = (value: string | undefined, fallback: string) => {
+  const trimmed = value?.trim();
+  return trimmed || fallback;
+};
+
+const hasCapturedClientName = (client: ClientOption) =>
+  Boolean(client.firstName?.trim() || client.lastName?.trim());
+
+const onboardingLabelFor = (onboardingPct: number | undefined) => {
+  if (onboardingPct === undefined) return 'intake pending';
+  return `${onboardingPct}% onboarded`;
+};
+
+const onboardingNoteFor = (onboardingPct: number | undefined) => {
+  if (onboardingPct === undefined) return 'needs intake';
+  if (onboardingPct >= 100) return 'intake complete';
+  return 'intake progress';
+};
+
+const onboardingToneFor = (onboardingPct: number | undefined) => (
+  onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'
+);
+
+const activeLabelFor = (client: ClientOption) => (client.isActive === false ? 'inactive' : 'active');
+
+const ContactIdentityLine = ({
+  client,
+  show,
+}: {
+  client: ClientOption;
+  show: boolean;
+}) => {
+  if (!show || !client.email) return null;
+  return <ContactLine>{client.email}</ContactLine>;
+};
+
+const ClientCardMetrics = ({
+  client,
+  sessionSignal,
+  onboardingPct,
+}: {
+  client: ClientOption;
+  sessionSignal: ReturnType<typeof getClientSessionSignal>;
+  onboardingPct: number | undefined;
+}) => (
+  <MetricGrid data-swan-card-section="admin-metrics">
+    <Metric>
+      <Dumbbell size={14} />
+      {client.workoutCount || 0} workouts
+    </Metric>
+    <Metric $tone={sessionSignal.tone}>
+      <Activity size={14} />
+      <MetricStack>
+        <span>{sessionSignal.label}</span>
+        <MetricNote>{sessionSignal.note}</MetricNote>
+      </MetricStack>
+    </Metric>
+    <Metric>
+      <Target size={14} />
+      {activeLabelFor(client)}
+    </Metric>
+    <Metric $tone={onboardingToneFor(onboardingPct)}>
+      <ClipboardCheck size={14} />
+      <MetricStack>
+        <span>{onboardingLabelFor(onboardingPct)}</span>
+        <MetricNote>{onboardingNoteFor(onboardingPct)}</MetricNote>
+      </MetricStack>
+    </Metric>
+  </MetricGrid>
+);
+
+const QuickActionPanel = ({
+  client,
+  clientName,
+  onQuickAction,
+}: {
+  client: ClientOption;
+  clientName: string;
+  onQuickAction?: (client: ClientOption, action: ClientHubQuickAction) => void;
+}) => {
+  if (!onQuickAction) return null;
+  return (
+    <ClientHubGridCardActions
+      clientName={clientName}
+      onAction={(action) => onQuickAction(client, action)}
+    />
+  );
+};
+
 const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect, onQuickAction }) => {
   const fullName = getClientDisplayName(client);
-  const experience = client.trainingExperience?.trim() || 'experience pending';
-  const goal = client.fitnessGoal?.trim() || 'Goal not captured';
+  const hasCapturedName = hasCapturedClientName(client);
+  const experience = trimmedOrFallback(client.trainingExperience, 'experience pending');
+  const goal = trimmedOrFallback(client.fitnessGoal, 'Goal not captured');
   const sessionSignal = getClientSessionSignal(client);
   const sourceTone = getClientSourceTone(client.clientSource);
   const onboardingPct = getClientOnboardingPct(client);
-  const onboardingLabel = onboardingPct === undefined ? 'intake pending' : `${onboardingPct}% onboarded`;
-  const onboardingNote = onboardingPct === undefined
-    ? 'needs intake'
-    : onboardingPct >= 100 ? 'intake complete' : 'intake progress';
 
   return (
-    <CardShell>
-      <CardButton type="button" onClick={() => onSelect(client)} aria-label={`Open ${fullName}`}>
+    <CardShell data-swan-client-card="admin">
+      <CardButton
+        type="button"
+        onClick={() => onSelect(client)}
+        aria-label={`Open ${fullName}`}
+        data-swan-card-section="admin-identity"
+      >
         <Avatar $source={sourceTone}>{getClientInitials(client)}</Avatar>
         <CardBody>
           <TopLine>
@@ -68,39 +160,12 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
             </Pill>
             <Pill>{experience}</Pill>
           </TopLine>
+          <ContactIdentityLine client={client} show={hasCapturedName} />
           <GoalLine>{goal}</GoalLine>
-          <MetricGrid>
-            <Metric>
-              <Dumbbell size={14} />
-              {client.workoutCount || 0} workouts
-            </Metric>
-            <Metric $tone={sessionSignal.tone}>
-              <Activity size={14} />
-              <MetricStack>
-                <span>{sessionSignal.label}</span>
-                <MetricNote>{sessionSignal.note}</MetricNote>
-              </MetricStack>
-            </Metric>
-            <Metric>
-              <Target size={14} />
-              {client.isActive === false ? 'inactive' : 'active'}
-            </Metric>
-            <Metric $tone={onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'}>
-              <ClipboardCheck size={14} />
-              <MetricStack>
-                <span>{onboardingLabel}</span>
-                <MetricNote>{onboardingNote}</MetricNote>
-              </MetricStack>
-            </Metric>
-          </MetricGrid>
+          <ClientCardMetrics client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
         </CardBody>
       </CardButton>
-      {onQuickAction && (
-        <ClientHubGridCardActions
-          clientName={fullName}
-          onAction={(action) => onQuickAction(client, action)}
-        />
-      )}
+      <QuickActionPanel client={client} clientName={fullName} onQuickAction={onQuickAction} />
     </CardShell>
   );
 };

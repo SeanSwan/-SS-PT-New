@@ -42,6 +42,13 @@ SwanStudios is workout-progress-first. The main product loop is: log the workout
 - **Typography:** Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming)
 - **Rarity:** Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient
 
+## Swan Card/Button Standard
+- The attached `SwanStudios Store Card -Handoff-.html` defines the house card/button direction: sapphire deep-gradient section backdrops, SheenCard-style chrome borders, GlowButton-style 44px+ controls, Frost White text, Ice Wing + Wing Purple glow discipline, and reduced-motion fallbacks.
+- store/showcase cards may use the full animated SheenCard/GlowButton treatment, including metallic sheen and premium glints, when the card is meant to sell, feature, or showcase.
+- Client/data cards must use the same geometry, dark blue gradient surface, chrome edge, pill/metric/button language, and clear focus states, but stay low-motion: no pointer tracking, no heavy animation loops, no hover-only actions, and no hidden controls.
+- Client, trainer, admin, biometrics, program, measurement, and workout-log cards must preserve all available useful data without duplicating the same fact in multiple places. Prefer compact grouped facts, 44px icon buttons, and responsive wrap/stack behavior over dense text blocks.
+- Any client-management surface must be checked at phone width before completion. On mobile, cards, tabs, buttons, biometrics, measurements, programs, and action rows must not overlap, clip critical text, or require hover to operate.
+
 ## Karpathy Coding Principles (cross-cutting; bias toward caution over speed)
 
 These four principles distill common LLM coding pitfalls (per Andrej Karpathy's 2026 observations on agent failure modes, codified by `forrestchang/andrej-karpathy-skills`). They cross-cut the numbered MANDATORY rules below; the framing here is a memory aid for application.

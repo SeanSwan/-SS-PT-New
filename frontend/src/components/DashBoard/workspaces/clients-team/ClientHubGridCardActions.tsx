@@ -5,6 +5,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { ClipboardList, Dumbbell, MessageCircle, TrendingUp } from 'lucide-react';
+import { swanClientActionButton } from './clientCardSystem';
 
 export type ClientHubQuickAction = 'log' | 'plan' | 'progress' | 'coach';
 
@@ -27,46 +28,16 @@ const ActionRow = styled.div`
 `;
 
 const QuickButton = styled.button`
-  min-width: 44px;
-  min-height: 44px;
+  ${swanClientActionButton}
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
   padding: 8px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
-  background: color-mix(in srgb, var(--bg-elevated, #141419) 88%, transparent);
-  color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 11px;
   font-weight: 800;
-  cursor: pointer;
-  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease,
-    box-shadow 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 10px 22px var(--shadow-accent, rgba(96, 192, 240, 0.14));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 
   @media (max-width: 430px) {
     span {
       display: none;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &:hover {
-      transform: none;
     }
   }
 `;
@@ -75,7 +46,7 @@ const ClientHubGridCardActions: React.FC<ClientHubGridCardActionsProps> = ({
   clientName,
   onAction,
 }) => (
-  <ActionRow aria-label={`${clientName} quick actions`}>
+  <ActionRow aria-label={`${clientName} quick actions`} data-swan-card-section="admin-actions">
     {QUICK_ACTIONS.map(({ action, label, Icon, aria }) => {
       const actionLabel = aria(clientName);
       return (

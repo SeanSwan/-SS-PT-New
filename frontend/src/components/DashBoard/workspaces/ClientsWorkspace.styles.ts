@@ -7,12 +7,13 @@
  */
 
 import styled from 'styled-components';
+import { swanSectionBackdrop } from './clients-team/clientCardSystem';
 
 export const HubContainer = styled.div`
+  ${swanSectionBackdrop}
   display: flex;
   flex-direction: column;
   height: calc(100vh - 64px);
-  background: var(--bg-base, #0A0A0F);
   color: var(--text-primary, #E0ECF4);
   overflow: hidden;
 

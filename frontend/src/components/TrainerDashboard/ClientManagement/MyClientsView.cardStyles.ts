@@ -5,32 +5,17 @@
  */
 
 import { motion } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
-
-const clientPulse = keyframes`
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-`;
-
-const cardHover = keyframes`
-  0% { transform: translateX(0); }
-  100% { transform: translateX(8px); }
-`;
-
-const needsPlanPulse = keyframes`
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.7; }
-`;
+import styled from 'styled-components';
+import {
+  swanClientActionButton,
+  swanClientAvatar,
+  swanDataCardShell,
+  swanMetricTile,
+} from '../../DashBoard/workspaces/clients-team/clientCardSystem';
 
 export const ClientCard = styled(motion.div)<{ $membershipColor: string }>`
-  background: var(--surface-elevated, rgba(30, 30, 60, 0.6));
-  border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.3));
-  border-radius: 16px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  --swan-card-padding: 1.35rem;
+  ${swanDataCardShell}
 
   &::before {
     content: '';
@@ -42,41 +27,23 @@ export const ClientCard = styled(motion.div)<{ $membershipColor: string }>`
     background: ${props => props.$membershipColor};
     opacity: 0.8;
   }
-
-  &:hover {
-    border-color: var(--border-accent-strong, rgba(139, 92, 246, 0.6));
-    box-shadow: 0 8px 32px var(--accent-purple-soft-shadow, rgba(139, 92, 246, 0.2));
-    animation: ${cardHover} 0.3s ease forwards;
-
-    .client-actions {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
 `;
 
 export const ClientHeader = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1rem;
 `;
 
 export const ClientAvatar = styled.div<{ $status: string }>`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  --swan-avatar-size: 60px;
+  ${swanClientAvatar}
   background: linear-gradient(
     135deg,
-    var(--accent-purple-strong, #8B5CF6),
-    var(--accent-purple, #8b5cf6)
+    var(--primary, #002060),
+    var(--accent-primary, #60C0F0)
   );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary, #ffffff);
-  font-weight: 700;
-  font-size: 1.2rem;
   position: relative;
 
   &::after {
@@ -96,7 +63,7 @@ export const ClientAvatar = styled.div<{ $status: string }>`
       }
     }};
     border: 2px solid var(--surface-elevated, rgba(30, 30, 60, 0.6));
-    animation: ${clientPulse} 2s ease-in-out infinite;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 `;
 
@@ -106,6 +73,7 @@ export const ClientInfo = styled.div`
 `;
 
 export const ClientName = styled.h3`
+  min-width: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary, #ffffff);
@@ -113,6 +81,7 @@ export const ClientName = styled.h3`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 
   .membership-badge {
     padding: 0.2rem 0.6rem;
@@ -125,6 +94,8 @@ export const ClientName = styled.h3`
 `;
 
 export const ClientNameButton = styled.button`
+  max-width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 0 0.25rem;
   border: 0;
@@ -136,6 +107,7 @@ export const ClientNameButton = styled.button`
   align-items: center;
   font: inherit;
   text-align: left;
+  overflow-wrap: anywhere;
 
   &:hover {
     color: var(--accent-primary, #60C0F0);
@@ -148,6 +120,22 @@ export const ClientDetails = styled.div`
   font-size: 0.85rem;
   color: var(--text-secondary, rgba(255, 255, 255, 0.7));
   line-height: 1.4;
+  display: grid;
+  gap: 0.3rem;
+
+  div {
+    min-width: 0;
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    overflow-wrap: anywhere;
+  }
+
+  svg {
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+    color: var(--accent-primary, #60C0F0);
+  }
 `;
 
 export const ClientMetrics = styled.div`
@@ -158,13 +146,12 @@ export const ClientMetrics = styled.div`
 `;
 
 export const MetricItem = styled.div`
+  ${swanMetricTile}
   text-align: center;
   padding: 0.75rem;
-  background: var(--surface-subtle, rgba(0, 0, 0, 0.2));
-  border-radius: 8px;
 
   .metric-icon {
-    color: var(--accent-purple, #8b5cf6);
+    color: var(--accent-primary, #60C0F0);
     margin-bottom: 0.25rem;
   }
 
@@ -190,7 +177,6 @@ export const ClientActions = styled.div`
   margin-top: 1rem;
   opacity: 1;
   transform: none;
-  transition: all 0.3s ease;
 
   @media (max-width: 768px) {
     justify-content: flex-start;
@@ -200,34 +186,26 @@ export const ClientActions = styled.div`
 export const ActionButton = styled(motion.button)<{
   $variant: 'primary' | 'secondary' | 'success' | 'warning';
 }>`
-  background: ${props => {
+  ${swanClientActionButton}
+  --swan-action-bg: ${props => {
     switch (props.$variant) {
       case 'primary':
-        return 'linear-gradient(135deg, var(--accent-purple-strong, #8B5CF6), var(--accent-purple, #8b5cf6))';
+        return 'linear-gradient(135deg, var(--primary, #002060), var(--accent-secondary, #8B5CF6))';
       case 'success':
-        return 'linear-gradient(135deg, var(--status-success, #10b981), var(--status-success-light, #34d399))';
+        return 'linear-gradient(135deg, var(--primary, #002060), var(--accent-primary, #60C0F0))';
       case 'warning':
-        return 'linear-gradient(135deg, var(--status-warning, #f59e0b), var(--status-warning-light, #fbbf24))';
+        return 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))';
       default:
-        return 'var(--surface-interactive, rgba(255, 255, 255, 0.1))';
+        return 'color-mix(in srgb, var(--bg-elevated, #141419) 86%, transparent)';
     }
   }};
-  border: none;
-  border-radius: 8px;
+  --swan-action-border: color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+  --swan-action-shadow: ${props => (
+    props.$variant === 'warning'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)'
+  )};
   padding: 0.5rem;
-  color: var(--text-primary, #ffffff);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  min-width: 44px;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px var(--shadow-strong, rgba(0, 0, 0, 0.3));
-  }
 `;
 
 export const NeedsPlanWrapper = styled.div`
@@ -244,5 +222,5 @@ export const NeedsPlanDot = styled.span`
   border-radius: 50%;
   background: var(--status-danger-soft, #ff6b6b);
   border: 2px solid var(--surface-deep, #1a1a2e);
-  animation: ${needsPlanPulse} 2s ease-in-out infinite;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--status-danger-soft, #ff6b6b) 42%, transparent);
 `;

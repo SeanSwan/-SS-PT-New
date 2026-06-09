@@ -7,28 +7,9 @@
 
 import styled from 'styled-components';
 
-export const ClientDetailLine = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-
-  svg {
-    flex: 0 0 auto;
-    color: var(--accent-primary, #60C0F0);
-  }
-
-  span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-`;
-
 export const ClientReadinessStrip = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 0.5rem;
   margin: 0.75rem 0 0;
 
@@ -66,8 +47,11 @@ export const WorkoutProofPanel = styled.div`
   margin: 1rem 0;
   padding: 0.85rem;
   border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.22));
-  border-radius: 8px;
-  background: var(--surface-subtle, rgba(0, 0, 0, 0.2));
+  border-radius: 12px;
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--surface-accent, #003080) 26%, transparent),
+      color-mix(in srgb, var(--bg-base, #050810) 76%, transparent));
 `;
 
 export const ProofHeader = styled.div`
@@ -76,6 +60,7 @@ export const ProofHeader = styled.div`
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.45rem;
+  flex-wrap: wrap;
 `;
 
 export const ProofLabel = styled.span`
@@ -94,5 +79,5 @@ export const ProofSubtext = styled.div`
   color: var(--text-tertiary, rgba(255, 255, 255, 0.62));
   font-size: 0.75rem;
   line-height: 1.4;
-  text-align: center;
+  text-align: left;
 `;

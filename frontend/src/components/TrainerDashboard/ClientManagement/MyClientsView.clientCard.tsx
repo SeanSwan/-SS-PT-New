@@ -14,7 +14,9 @@ import {
   ClipboardList,
   Edit,
   Layers,
+  Mail,
   MessageSquare,
+  PhoneCall,
   Sparkles,
   Target,
 } from 'lucide-react';
@@ -67,6 +69,43 @@ interface TrainerClientCardProps {
   onOpenCopilot: (clientId: string, clientName: string) => void;
 }
 
+const timelineLabelFor = (joinedAgo: string | null, assignedAgo: string | null) => {
+  if (joinedAgo) return `Joined ${joinedAgo}`;
+  if (assignedAgo) return `Assigned ${assignedAgo}`;
+  return 'Start date unavailable';
+};
+
+const hasWorkoutProofFor = (client: ClientAssignment['client']) => (
+  client.totalSessionsCompleted > 0 || Boolean(client.lastSessionDate)
+);
+
+const proofValueFor = (client: ClientAssignment['client']) => (
+  hasWorkoutProofFor(client) ? `${client.totalSessionsCompleted} logged` : 'No logs yet'
+);
+
+const proofSubtextFor = (lastLoggedAgo: string | null) => (
+  lastLoggedAgo ? `Last logged: ${lastLoggedAgo}` : 'Log a workout to unlock trend proof'
+);
+
+const copilotTitleFor = (client: ClientAssignment['client']) => (
+  client.totalSessionsCompleted === 0 ? 'Generate first AI workout plan' : 'Workout Intelligence'
+);
+
+const PhoneDetail = ({ phone }: { phone?: string | null }) => {
+  if (!phone) return null;
+  return (
+    <div>
+      <PhoneCall size={14} aria-hidden="true" />
+      <span>{phone}</span>
+    </div>
+  );
+};
+
+const NeedsPlanIndicator = ({ show }: { show: boolean }) => {
+  if (!show) return null;
+  return <NeedsPlanDot />;
+};
+
 export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardProps>(function TrainerClientCard({
   assignment,
   index,
@@ -79,20 +118,19 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
 }, ref) {
   const { client } = assignment;
   const membershipColor = getMembershipColor(client.membershipLevel);
-  const hasWorkoutProof = client.totalSessionsCompleted > 0 || Boolean(client.lastSessionDate);
   const joinedAgo = formatTimeAgo(client.joinDate);
   const assignedAgo = formatTimeAgo(assignment.assignedAt);
-  const timelineLabel = joinedAgo
-    ? `Joined ${joinedAgo}`
-    : assignedAgo
-      ? `Assigned ${assignedAgo}`
-      : 'Start date unavailable';
+  const timelineLabel = timelineLabelFor(joinedAgo, assignedAgo);
   const lastLoggedAgo = formatTimeAgo(client.lastSessionDate);
+  const proofValue = proofValueFor(client);
+  const proofSubtext = proofSubtextFor(lastLoggedAgo);
   const sessionSignal = getClientSessionSignal(client);
   const clientName = `${client.firstName} ${client.lastName}`;
   const sourceLabel = getClientSourceLabel(client.clientSource);
   const nextSessionLabel = getNextSessionLabel(client.nextSessionDate);
   const onboardingLabel = getOnboardingReadinessLabel(client);
+  const copilotTitle = copilotTitleFor(client);
+  const needsFirstPlan = client.totalSessionsCompleted === 0;
 
   return (
     <ClientCard
@@ -100,13 +138,10 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
       $membershipColor={membershipColor}
       role="article"
       aria-label={`${clientName} trainer client summary`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      whileHover={{ scale: 1.02 }}
+      data-swan-client-card="trainer"
+      data-card-index={index}
     >
-      <ClientHeader>
+      <ClientHeader data-swan-card-section="trainer-identity">
         <ClientAvatar $status={client.status}>
           {getInitials(client.firstName, client.lastName)}
         </ClientAvatar>
@@ -126,15 +161,24 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
               {client.membershipLevel}
             </span>
           </ClientName>
-          <ClientDetails>
-            <div>📧 {client.email}</div>
-            {client.phone && <div>📞 {client.phone}</div>}
-            <div>📅 {timelineLabel}</div>
+          <ClientDetails data-swan-card-section="trainer-contact">
+            <div>
+              <Mail size={14} aria-hidden="true" />
+              <span>{client.email}</span>
+            </div>
+            <PhoneDetail phone={client.phone} />
+            <div>
+              <Calendar size={14} aria-hidden="true" />
+              <span>{timelineLabel}</span>
+            </div>
           </ClientDetails>
         </ClientInfo>
       </ClientHeader>
 
-      <ClientReadinessStrip aria-label={`${clientName} client readiness`}>
+      <ClientReadinessStrip
+        aria-label={`${clientName} client readiness`}
+        data-swan-card-section="trainer-readiness"
+      >
         <ReadinessChip>
           <Layers size={15} aria-hidden="true" />
           <span>{sourceLabel}</span>
@@ -153,7 +197,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         </ReadinessChip>
       </ClientReadinessStrip>
 
-      <ClientMetrics>
+      <ClientMetrics data-swan-card-section="trainer-metrics">
         <MetricItem>
           <Calendar size={16} className="metric-icon" />
           <div className="metric-value">{sessionSignal.label}</div>
@@ -179,17 +223,12 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
       <WorkoutProofPanel>
         <ProofHeader>
           <ProofLabel>Workout Proof</ProofLabel>
-          <ProofValue>
-            {hasWorkoutProof ? `${client.totalSessionsCompleted} logged` : 'No logs yet'}
-          </ProofValue>
+          <ProofValue>{proofValue}</ProofValue>
         </ProofHeader>
-        <ProofSubtext>
-          {lastLoggedAgo && <>Last logged: {lastLoggedAgo}</>}
-          {!lastLoggedAgo && <>Log a workout to unlock trend proof</>}
-        </ProofSubtext>
+        <ProofSubtext>{proofSubtext}</ProofSubtext>
       </WorkoutProofPanel>
 
-      <ClientActions className="client-actions">
+      <ClientActions className="client-actions" data-swan-card-section="trainer-actions">
         <ActionIconButton
           title="Log Workout"
           variant="primary"
@@ -216,14 +255,12 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         />
         <NeedsPlanWrapper>
           <ActionIconButton
-            title={client.totalSessionsCompleted === 0
-              ? 'Generate first AI workout plan'
-              : 'Workout Intelligence'}
+            title={copilotTitle}
             variant="primary"
             onClick={() => onOpenCopilot(client.id, clientName)}
             icon={<Sparkles size={16} />}
           />
-          {client.totalSessionsCompleted === 0 && <NeedsPlanDot />}
+          <NeedsPlanIndicator show={needsFirstPlan} />
         </NeedsPlanWrapper>
       </ClientActions>
     </ClientCard>
@@ -251,8 +288,6 @@ const ActionIconButton = ({
       event.stopPropagation();
       onClick();
     }}
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.9 }}
     title={title}
   >
     {icon}
