@@ -138,6 +138,16 @@ describe('onboardingController.mjs named exports', () => {
     mod = await import('../../controllers/onboardingController.mjs');
   });
 
+  test('12a - keeps master prompt mapping outside the route controller', () => {
+    const controllerSource = readFileSync(
+      path.join(__dirname, '../../controllers/onboardingController.mjs'),
+      'utf8',
+    );
+
+    expect(controllerSource).toContain("from '../services/onboardingMasterPromptBuilder.mjs'");
+    expect(controllerSource).not.toContain('export const transformQuestionnaireToMasterPrompt = (formData, userId) => {');
+  });
+
   test('12 — transformQuestionnaireToMasterPrompt is exported and callable', () => {
     expect(typeof mod.transformQuestionnaireToMasterPrompt).toBe('function');
     const result = mod.transformQuestionnaireToMasterPrompt({ fullName: 'Test', primaryGoal: 'strength' }, 1);

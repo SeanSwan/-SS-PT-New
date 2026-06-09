@@ -188,7 +188,7 @@ import {
   computeDerivedFields,
   normalizeOnboardingQueueStatus,
 } from '../../utils/onboardingHelpers.mjs';
-import { transformQuestionnaireToMasterPrompt } from '../../controllers/onboardingController.mjs';
+import { transformQuestionnaireToMasterPrompt } from '../onboardingMasterPromptBuilder.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 

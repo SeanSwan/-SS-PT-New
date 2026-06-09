@@ -22,10 +22,8 @@ import {
   calculateCompletionPercentage,
   computeDerivedFields,
 } from '../utils/onboardingHelpers.mjs';
-import {
-  transformQuestionnaireToMasterPrompt,
-  generateSpiritName,
-} from './onboardingController.mjs';
+import { transformQuestionnaireToMasterPrompt } from '../services/onboardingMasterPromptBuilder.mjs';
+import { generateSpiritName } from './onboardingController.mjs';
 
 /**
  * POST /api/admin/clients/:clientId/onboarding
