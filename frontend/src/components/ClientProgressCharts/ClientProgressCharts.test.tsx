@@ -74,7 +74,9 @@ vi.mock('./charts/MuscleGroupRadar', () => ({
 }));
 
 vi.mock('./charts/TrainingLoadChart', () => ({
-  default: () => <div data-testid="training-load-chart" />,
+  default: ({ data }: { data: Array<{ avgIntensity: number | null }> }) => (
+    <div data-testid="training-load-chart">{JSON.stringify(data)}</div>
+  ),
 }));
 
 vi.mock('./charts/RPEDistributionChart', () => ({
@@ -211,6 +213,26 @@ describe('ClientProgressCharts — detailed progress truth', () => {
     });
   });
 
+  it('does not invent neutral training-load intensity when weekly tonnage has no effort rating', async () => {
+    mockGet.mockResolvedValue(
+      makeProgressResponse({
+        volumeProgression: [
+          { date: '2026-04-08', totalWeight: 12450, totalReps: 80, totalSets: 12 },
+        ],
+        workoutHistory: [],
+      })
+    );
+
+    render(<ClientProgressCharts />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('training-load-chart')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('training-load-chart')).toHaveTextContent('"avgIntensity":null');
+    expect(screen.getByTestId('training-load-chart')).not.toHaveTextContent('"avgIntensity":5');
+  });
+
   it('hides the RPE Distribution chart when the backend ships an empty distribution', async () => {
     mockGet.mockResolvedValue(makeProgressResponse({ rpeDistribution: [] }));
 
@@ -292,6 +314,25 @@ describe('ClientProgressCharts — detailed progress truth', () => {
     await waitFor(() => {
       expect(screen.getByTestId('session-intensity-chart')).toBeInTheDocument();
     });
+  });
+
+  it('hides the Session Intensity chart when backend session-intensity rows are unrated', async () => {
+    mockGet.mockResolvedValue(
+      makeProgressResponse({
+        sessionIntensity: [
+          { date: '2026-04-08', duration: 55, intensity: null, totalVolume: 12450 },
+        ],
+        workoutHistory: [],
+      })
+    );
+
+    render(<ClientProgressCharts />);
+
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByTestId('session-intensity-chart')).not.toBeInTheDocument();
   });
 
   it('Rest Compliance chart JSX is removed from the canonical surface — structurally unmeasurable', () => {

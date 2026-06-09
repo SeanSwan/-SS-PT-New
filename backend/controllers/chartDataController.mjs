@@ -347,14 +347,18 @@ export async function getIntensityRPETrendChart(req, res) {
        ORDER BY DATE_TRUNC('week', ws.date)`,
       { userId }, 'getIntensityRPETrendChart');
 
-    const data = rows.map(r => {
-      const hasRpe = r.rpe_count > 0 && r.avg_rpe !== null;
-      const value = hasRpe ? r.avg_rpe : r.avg_intensity;
-      return {
+    const data = rows.flatMap(r => {
+      const avgRpe = Number(r.avg_rpe);
+      const avgIntensity = Number(r.avg_intensity);
+      const hasRpe = r.rpe_count > 0 && Number.isFinite(avgRpe) && avgRpe > 0;
+      const hasIntensity = Number.isFinite(avgIntensity) && avgIntensity > 0;
+      const value = hasRpe ? avgRpe : hasIntensity ? avgIntensity : null;
+      if (value === null) return [];
+      return [{
         x: r.week,
-        y: value === null ? 0 : Math.round(value * 10) / 10,
+        y: Math.round(value * 10) / 10,
         source: hasRpe ? 'rpe' : 'intensity',
-      };
+      }];
     });
 
     res.json({ success: true, data });

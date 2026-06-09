@@ -42,6 +42,11 @@ const finite = (value: unknown, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const positiveFinite = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 const label = (value: unknown, fallback: string): string =>
   typeof value === 'string' && value.trim() ? value.trim() : fallback;
 
@@ -154,10 +159,10 @@ export function sanitizeProgressPayload(raw: RawRow = {}): SanitizedProgressPayl
     })),
     sessionIntensity: dateRows(raw.sessionIntensity, (row) => ({
       date: dateOrEmpty(row.date),
-      duration: finite(row.duration),
-      intensity: finite(row.intensity),
+      duration: positiveFinite(row.duration) ?? 0,
+      intensity: positiveFinite(row.intensity) ?? 0,
       totalVolume: finite(row.totalVolume),
       sessionTitle: typeof row.sessionTitle === 'string' ? row.sessionTitle : undefined,
-    })),
+    })).filter((row) => row.duration > 0 && row.intensity > 0),
   };
 }

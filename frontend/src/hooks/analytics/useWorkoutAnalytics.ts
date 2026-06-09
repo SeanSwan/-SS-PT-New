@@ -69,6 +69,20 @@ const getNumericAnalyticsUserId = (userId: number | string | null): number | nul
 // SECTION: Hook
 // ─────────────────────────────────────────────────────────────
 
+const toLoggedIntensity = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+};
+
+const hasLoggedIntensity = (
+  session: WorkoutSession,
+): session is WorkoutSession & { intensity: number } => (
+  typeof session.intensity === 'number' && session.intensity > 0
+);
+
+const roundToTenths = (value: number): number => Math.round(value * 10) / 10;
+
 export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutAnalyticsReturn {
   const { authAxios } = useAuth();
   const numericUserId = useMemo(() => getNumericAnalyticsUserId(userId), [userId]);
@@ -115,7 +129,7 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
             title: w.title || 'Workout',
             date: w.date,
             duration: w.duration || 0,
-            intensity: w.intensity || 0,
+            intensity: toLoggedIntensity(w.intensity),
             status: w.status || 'completed',
             totalSets: w.totalSets || 0,
             totalReps: w.totalReps || 0,
@@ -216,8 +230,8 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
         .slice(0, 15);
 
       // Intensity trend (from sessions)
-      const intensityTrend: IntensityPoint[] = sessions
-        .filter(s => s.intensity > 0)
+      const ratedSessions = sessions.filter(hasLoggedIntensity);
+      const intensityTrend: IntensityPoint[] = ratedSessions
         .map(s => ({ date: s.date, intensity: s.intensity }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -247,9 +261,9 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
       // Summary
       const totalVolume = sessions.reduce((sum, s) => sum + s.totalWeight, 0);
       const totalExercises = new Set(sessions.flatMap(s => s.logs.map(l => l.exerciseName))).size;
-      const avgIntensity = sessions.length > 0
-        ? sessions.reduce((sum, s) => sum + s.intensity, 0) / sessions.length
-        : 0;
+      const avgIntensity = ratedSessions.length > 0
+        ? ratedSessions.reduce((sum, s) => sum + s.intensity, 0) / ratedSessions.length
+        : null;
       const allRPEs = sessions.flatMap(s => s.logs.filter(l => l.rpe && l.rpe > 0).map(l => l.rpe!));
       const avgRPE = allRPEs.length > 0
         ? allRPEs.reduce((sum, r) => sum + r, 0) / allRPEs.length
@@ -269,8 +283,8 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
           totalWorkouts: sessions.length,
           totalExercises,
           totalVolume,
-          avgIntensity: Math.round(avgIntensity * 10) / 10,
-          avgRPE: Math.round(avgRPE * 10) / 10,
+          avgIntensity: avgIntensity === null ? null : roundToTenths(avgIntensity),
+          avgRPE: roundToTenths(avgRPE),
           longestStreak,
         },
       });

@@ -31,6 +31,17 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const toNullableNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const roundNullableTenths = (value) => {
+  const parsed = toNullableNumber(value);
+  return parsed === null ? null : Math.round(parsed * 10) / 10;
+};
+
 export async function calculateVolumeOverTimeFromLogs(userId, options = {}) {
   const parsedUserId = parsePositiveInteger(userId);
   if (!parsedUserId) return [];
@@ -85,7 +96,7 @@ export async function calculateVolumeOverTimeFromLogs(userId, options = {}) {
       sessionsCount,
       workoutCount: sessionsCount,
       avgVolumePerSession: sessionsCount > 0 ? Math.round(totalVolume / sessionsCount) : 0,
-      avgIntensity: Math.round(toNumber(row.avg_intensity) * 10) / 10,
+      avgIntensity: roundNullableTenths(row.avg_intensity),
     };
   });
 }

@@ -173,10 +173,10 @@ describe('Phase 15.3 — AdminProgressChartsGrid truthfulness', () => {
       'utf8',
     );
     expect(ADMIN_HOOK).toMatch(/\/api\/analytics\/\$\{userId\}\/\$\{suffix\}/);
-    // The fetchAll body must NOT contain the client-safe path as a URL
-    // template literal. Comments may mention it — scope the check to the
-    // actual template strings (delimited by backticks) only.
-    const fetchIdx = ADMIN_HOOK.indexOf('const fetchAll');
+    // The admin fetch helper body must NOT contain the client-safe path as a
+    // URL template literal. Comments may mention it, so scope the check to the
+    // actual fetch implementation instead of the whole file.
+    const fetchIdx = ADMIN_HOOK.indexOf('const fetchAdminChartResponse');
     expect(fetchIdx).toBeGreaterThan(0);
     const fetchBody = ADMIN_HOOK.slice(fetchIdx, fetchIdx + 1500);
     expect(fetchBody).not.toMatch(/`\/api\/client\/analytics\//);

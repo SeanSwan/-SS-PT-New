@@ -82,4 +82,28 @@ describe('analyticsService.calculateVolumeOverTime truth path', () => {
     expect(options.replacements.startDate).toEqual(new Date('2026-05-01T00:00:00Z'));
     expect(options.replacements.endDate).toEqual(new Date('2026-05-31T00:00:00Z'));
   });
+
+  it('preserves null average intensity when completed sessions are unrated', async () => {
+    querySpy.mockResolvedValue([
+      [
+        {
+          period: '2026-W21',
+          total_volume: 1800,
+          total_reps: 60,
+          total_exercises: 3,
+          sessions_count: 2,
+          avg_intensity: null,
+        },
+      ],
+    ]);
+
+    const data = await calculateVolumeOverTime(42, { groupBy: 'week' });
+
+    expect(data[0]).toMatchObject({
+      week: '2026-W21',
+      totalVolume: 1800,
+      workoutCount: 2,
+      avgIntensity: null,
+    });
+  });
 });

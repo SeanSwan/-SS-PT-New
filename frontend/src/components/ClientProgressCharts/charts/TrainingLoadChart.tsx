@@ -47,6 +47,10 @@ const AXIS_STYLE = {
   grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
 };
 
+const formatIntensityLabel = (value: number | null): string => (
+  typeof value === 'number' && value > 0 ? `${value}/10` : 'not logged'
+);
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -95,7 +99,7 @@ const TrainingLoadChart: React.FC<TrainingLoadChartProps> = ({
           containerComponent={
             <VictoryVoronoiContainer
               labels={({ datum }) =>
-                `${datum.week}\n${datum.y.toLocaleString()} lbs\n${datum.sessions} sessions\nIntensity: ${datum.avgIntensity}/10`
+                `${datum.week}\n${datum.y.toLocaleString()} lbs\n${datum.sessions} sessions\nIntensity: ${formatIntensityLabel(datum.avgIntensity)}`
               }
               labelComponent={
                 <VictoryTooltip

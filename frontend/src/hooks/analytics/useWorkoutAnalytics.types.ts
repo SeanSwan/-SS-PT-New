@@ -11,7 +11,7 @@ export interface WorkoutSession {
   title: string;
   date: string;
   duration: number;
-  intensity: number;
+  intensity: number | null;
   status: string;
   totalSets: number;
   totalReps: number;
@@ -77,7 +77,7 @@ export interface AnalyticsData {
     totalWorkouts: number;
     totalExercises: number;
     totalVolume: number;
-    avgIntensity: number;
+    avgIntensity: number | null;
     avgRPE: number;
     longestStreak: number;
   };

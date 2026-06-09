@@ -40,7 +40,7 @@ const buildSummaryChips = (data: AnalyticsData): Array<{
     { key: 'volume', content: <><Flame size={14} /> <strong>{formatWorkoutHistoryVolume(data.summary.totalVolume)}</strong></> },
     { key: 'prs', content: <><Trophy size={14} /> <strong>{data.personalRecords.length}</strong> PRs</> },
   ];
-  if (data.summary.avgIntensity > 0) {
+  if (typeof data.summary.avgIntensity === 'number' && data.summary.avgIntensity > 0) {
     chips.push({
       key: 'intensity',
       content: <><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</>,

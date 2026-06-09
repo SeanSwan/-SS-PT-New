@@ -544,9 +544,9 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         exerciseFrequencyData: pd.exerciseFrequency.length > 0
           ? pd.exerciseFrequency
           : processExerciseFrequency(workoutLogs),
-        sessionIntensityData: pd.sessionIntensity.length > 0
-          ? pd.sessionIntensity
-          : processSessionIntensity(workoutLogs),
+        sessionIntensityData: processSessionIntensity(
+          pd.sessionIntensity.length > 0 ? pd.sessionIntensity : workoutLogs,
+        ),
       };
 
       setProgressData(processedData);
@@ -636,7 +636,8 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       if (!weeks[key]) weeks[key] = { tonnage: 0, sessions: 0, intensities: [] };
       weeks[key].tonnage += (entry.totalWeight || 0);
       weeks[key].sessions += 1;
-      if (entry.intensity) weeks[key].intensities.push(entry.intensity);
+      const intensity = toLoggedEffort(entry.intensity);
+      if (intensity !== null) weeks[key].intensities.push(intensity);
     });
     return Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b)).map(([key, val]) => ({
       week: new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -644,7 +645,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       sessions: val.sessions,
       avgIntensity: val.intensities.length > 0
         ? Math.round(val.intensities.reduce((s, v) => s + v, 0) / val.intensities.length * 10) / 10
-        : 5,
+        : null,
     }));
   };
 
@@ -691,13 +692,17 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
 
   const processSessionIntensity = (workoutHistory: any[]): SessionIntensityDataPoint[] => {
     if (!workoutHistory || workoutHistory.length === 0) return [];
-    return workoutHistory.filter((e: any) => e.duration && toLoggedEffort(e.intensity) !== null).map((entry: any) => ({
-      date: entry.date || entry.completedAt || '',
-      duration: entry.duration || 0,
-      intensity: toLoggedEffort(entry.intensity) ?? 0,
-      totalVolume: entry.totalVolume || 0,
-      sessionTitle: entry.title,
-    }));
+    return workoutHistory.flatMap((entry: any) => {
+      const intensity = toLoggedEffort(entry.intensity);
+      if (!entry.duration || intensity === null) return [];
+      return [{
+        date: entry.date || entry.completedAt || '',
+        duration: entry.duration || 0,
+        intensity,
+        totalVolume: entry.totalVolume || 0,
+        sessionTitle: entry.title,
+      }];
+    });
   };
 
   // ==================== PRINT / DOWNLOAD HANDLERS ====================

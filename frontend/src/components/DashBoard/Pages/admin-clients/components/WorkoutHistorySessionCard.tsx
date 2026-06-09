@@ -141,7 +141,7 @@ const WorkoutHistorySessionCard: React.FC<WorkoutHistorySessionCardProps> = ({
                 <MetaChip><Clock size={12} /> {session.duration}min</MetaChip>
               )}
               <MetaChip><Dumbbell size={12} /> {exerciseGroups.length} exercises</MetaChip>
-              {session.intensity > 0 && (
+              {typeof session.intensity === 'number' && session.intensity > 0 && (
                 <MetaChip><Target size={12} /> {session.intensity}/10</MetaChip>
               )}
             </SessionMeta>

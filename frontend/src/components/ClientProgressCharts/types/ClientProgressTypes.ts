@@ -273,7 +273,7 @@ export interface TrainingLoadDataPoint {
   week: string;       // "Mar 3" or "W12"
   tonnage: number;    // total weight × reps
   sessions: number;   // sessions that week
-  avgIntensity: number; // avg session intensity 1-10
+  avgIntensity: number | null; // avg session intensity 1-10, null when unrated
 }
 
 export interface RPEDistributionDataPoint {

@@ -83,6 +83,6 @@ describe('ClientProgressCharts payload sanitizers', () => {
     expect(sanitized.personalRecords[0]).toMatchObject({ weight: 405, reps: 3, estimated1RM: 0 });
     expect(sanitized.restCompliance[0]).toMatchObject({ prescribed: 60, actual: 0 });
     expect(sanitized.exerciseFrequency[0]).toMatchObject({ count: 8, lastPerformed: '' });
-    expect(sanitized.sessionIntensity[0]).toMatchObject({ duration: 60, intensity: 0, totalVolume: 15000 });
+    expect(sanitized.sessionIntensity).toEqual([]);
   });
 });

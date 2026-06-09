@@ -47,10 +47,10 @@ import {
   getRPEByExerciseChart,
 } from '../../controllers/chartDataController.mjs';
 
-const makeReqRes = ({ sql = [] } = {}) => {
+const makeReqRes = ({ sql = [], rows = [] } = {}) => {
   const querySpy = vi.fn(async (s) => {
     sql.push(s);
-    return [[]]; // [rows, metadata]
+    return [rows]; // [rows, metadata]
   });
   const fakeSequelize = { query: querySpy };
   const req = {
@@ -242,6 +242,23 @@ describe('Phase 14 — chart-intensity-rpe-trend', () => {
     expect(executedSql).toMatch(/AVG\(wl\.rpe\)/i);
     expect(executedSql).toMatch(/AVG\(ws\.intensity\)/i);
     assertNoForbiddenTables(executedSql);
+  });
+
+  it('omits weeks with no logged RPE or intensity instead of emitting a fake zero point', async () => {
+    const { req, res } = makeReqRes({
+      rows: [
+        {
+          week: '05/10',
+          avg_rpe: null,
+          avg_intensity: null,
+          rpe_count: 0,
+        },
+      ],
+    });
+
+    await getIntensityRPETrendChart(req, res);
+
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: [] });
   });
 });
 
