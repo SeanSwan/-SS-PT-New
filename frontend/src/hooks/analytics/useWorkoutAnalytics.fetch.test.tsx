@@ -40,7 +40,7 @@ describe('useWorkoutAnalytics fetch boundary', () => {
     const urls = mockAuthAxiosGet.mock.calls.map(([url]) => String(url));
     expect(urls).toContain('/api/analytics/42/volume-progression');
     expect(urls).toContain('/api/analytics/42/personal-records');
-    expect(urls).toContain('/api/analytics/42/frequency');
+    expect(urls).not.toContain('/api/analytics/42/frequency');
   });
 
   it('preserves unrated workout intensity as null and excludes it from the intensity average', async () => {

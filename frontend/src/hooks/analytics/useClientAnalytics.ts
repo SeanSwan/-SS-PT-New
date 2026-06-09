@@ -17,14 +17,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
-  derive1RMProgression, deriveMuscleGroupVolume, deriveRPETrend,
-  calcLongestStreak, calcBrzycki1RM,
-} from './workoutAnalyticsUtils';
+  buildAnalyticsData,
+  buildPersonalRecordsFromApi,
+  buildWeeklyVolumeFromApi,
+  mapWorkoutSessions,
+  withEstimatedOneRepMaxes,
+} from './workoutAnalyticsData';
 import type {
-  AnalyticsData, WorkoutSession, WeeklyVolume,
-  PersonalRecord, ExerciseFrequency, IntensityPoint,
-  WorkoutCalendarEntry,
-} from './useWorkoutAnalytics';
+  AnalyticsData,
+} from './useWorkoutAnalytics.types';
 
 // Re-export types for consumers
 export type { AnalyticsData };
@@ -124,131 +125,19 @@ export function useClientAnalytics(): UseClientAnalyticsReturn {
         params: { limit: 50 }
       }).catch(() => null);
 
-      const sessions: WorkoutSession[] = [];
-      if (workoutsRes?.data?.sessions || workoutsRes?.data?.workouts) {
-        const raw = workoutsRes.data.sessions || workoutsRes.data.workouts || [];
-        for (const w of raw) {
-          sessions.push({
-            id: w.id,
-            title: w.title || 'Workout',
-            date: w.date,
-            duration: w.duration || 0,
-            intensity: w.intensity || 0,
-            status: w.status || 'completed',
-            totalSets: w.totalSets || 0,
-            totalReps: w.totalReps || 0,
-            totalWeight: w.totalWeight || 0,
-            notes: w.notes,
-            logs: (w.logs || w.WorkoutLogs || []).map((l: any) => ({
-              id: l.id,
-              exerciseName: l.exerciseName,
-              setNumber: l.setNumber,
-              reps: l.reps,
-              weight: l.weight,
-              tempo: l.tempo,
-              rest: l.rest,
-              rpe: l.rpe,
-              notes: l.notes,
-              // Phase 15.0: dedicated exercise-note column.
-              exerciseNote: l.exerciseNote,
-            })),
-          });
-        }
-      }
+      const sessions = mapWorkoutSessions(
+        workoutsRes?.data?.sessions ?? workoutsRes?.data?.workouts,
+      );
 
       // Weekly volume
-      const weeklyVolume: WeeklyVolume[] = [];
-      if (volumeRes.status === 'fulfilled' && volumeRes.value.data?.success) {
-        const vd = volumeRes.value.data.data || volumeRes.value.data.volumeProgression || [];
-        for (const v of vd) {
-          weeklyVolume.push({
-            week: v.week || v.period || v.label,
-            volume: v.volume || v.totalVolume || 0,
-            workoutCount: v.workoutCount || v.count || 0,
-          });
-        }
-      }
+      const weeklyVolume = buildWeeklyVolumeFromApi(volumeRes);
 
       // Personal records
-      const personalRecords: PersonalRecord[] = [];
-      if (prsRes.status === 'fulfilled' && prsRes.value.data?.success) {
-        const prs = prsRes.value.data.data || prsRes.value.data.personalRecords || [];
-        for (const pr of prs) {
-          personalRecords.push({
-            exercise: pr.exerciseName || pr.exercise || pr.name,
-            weight: pr.weight || pr.maxWeight || 0,
-            reps: pr.reps || pr.bestReps || 0,
-            date: pr.date || pr.achievedAt || '',
-            estimated1RM: pr.estimated1RM || (pr.weight > 0 && pr.reps > 0
-              ? calcBrzycki1RM(pr.weight, pr.reps) : undefined),
-          });
-        }
-      }
+      const personalRecords = withEstimatedOneRepMaxes(
+        buildPersonalRecordsFromApi(prsRes),
+      );
 
-      // Derived analytics from sessions
-      const exerciseFrequency: ExerciseFrequency[] = [];
-      const freqMap = new Map<string, { count: number; totalVolume: number }>();
-      for (const s of sessions) {
-        const exerciseNames = new Set(s.logs.map(l => l.exerciseName));
-        for (const name of exerciseNames) {
-          const existing = freqMap.get(name) || { count: 0, totalVolume: 0 };
-          existing.count += 1;
-          const exerciseLogs = s.logs.filter(l => l.exerciseName === name);
-          existing.totalVolume += exerciseLogs.reduce((sum, l) => sum + (l.weight * l.reps), 0);
-          freqMap.set(name, existing);
-        }
-      }
-      for (const [name, val] of freqMap) {
-        exerciseFrequency.push({ name, ...val });
-      }
-      exerciseFrequency.sort((a, b) => b.count - a.count);
-
-      const intensityTrend: IntensityPoint[] = sessions
-        .filter(s => s.intensity > 0)
-        .map(s => ({ date: s.date, intensity: s.intensity }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      const calMap = new Map<string, number>();
-      for (const s of sessions) {
-        const dateKey = new Date(s.date).toISOString().split('T')[0];
-        calMap.set(dateKey, (calMap.get(dateKey) || 0) + 1);
-      }
-      const workoutCalendar: WorkoutCalendarEntry[] = Array.from(calMap.entries())
-        .map(([date, count]) => ({ date, count }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-      const oneRMProgression = derive1RMProgression(sessions);
-      const muscleGroupVolume = deriveMuscleGroupVolume(sessions);
-      const rpeTrend = deriveRPETrend(sessions);
-      const longestStreak = calcLongestStreak(sessions);
-
-      const totalVolume = sessions.reduce((sum, s) => sum + s.totalWeight, 0);
-      const totalExercises = new Set(sessions.flatMap(s => s.logs.map(l => l.exerciseName))).size;
-      const avgIntensity = sessions.length > 0
-        ? sessions.reduce((sum, s) => sum + s.intensity, 0) / sessions.length : 0;
-      const allRPEs = sessions.flatMap(s => s.logs.filter(l => l.rpe && l.rpe > 0).map(l => l.rpe!));
-      const avgRPE = allRPEs.length > 0
-        ? allRPEs.reduce((sum, r) => sum + r, 0) / allRPEs.length : 0;
-
-      setData({
-        sessions: sessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-        weeklyVolume,
-        exerciseFrequency: exerciseFrequency.slice(0, 15),
-        intensityTrend,
-        workoutCalendar,
-        personalRecords,
-        oneRMProgression,
-        muscleGroupVolume,
-        rpeTrend,
-        summary: {
-          totalWorkouts: sessions.length,
-          totalExercises,
-          totalVolume,
-          avgIntensity: Math.round(avgIntensity * 10) / 10,
-          avgRPE: Math.round(avgRPE * 10) / 10,
-          longestStreak,
-        },
-      });
+      setData(buildAnalyticsData(sessions, weeklyVolume, personalRecords));
     } catch (err: any) {
       setError(err.message || 'Failed to load analytics');
     } finally {
