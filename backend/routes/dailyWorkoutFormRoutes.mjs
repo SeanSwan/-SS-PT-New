@@ -2319,10 +2319,12 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
     const totalVolume = exercises.reduce((sum, ex) => {
       return sum + (ex.sets || []).reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0);
     }, 0);
-    const avgRpe = exercises.reduce((sum, ex) => {
-      const rpes = (ex.sets || []).filter(s => s.rpe).map(s => s.rpe);
-      return sum + rpes.reduce((a, b) => a + b, 0) / Math.max(rpes.length, 1);
-    }, 0) / Math.max(exercises.length, 1);
+    const allRpes = exercises
+      .flatMap(ex => (ex.sets || []).map(s => normalizeWorkoutLogRpe(s.rpe)))
+      .filter(rpe => rpe !== null);
+    const avgRpe = allRpes.length > 0
+      ? allRpes.reduce((a, b) => a + b, 0) / allRpes.length
+      : null;
 
     const exerciseLines = exercises.map(ex => {
       const sets = ex.sets?.length || 0;
@@ -2336,7 +2338,7 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
       ...exerciseLines,
       ``,
       `Total: ${totalSets} sets, ${Math.round(totalVolume).toLocaleString()} lbs volume`,
-      avgRpe > 0 ? `Average intensity (RPE): ${avgRpe.toFixed(1)}/10` : null,
+      avgRpe !== null ? `Average intensity (RPE): ${avgRpe.toFixed(1)}/10` : null,
       trainerNotes ? `\nTrainer Notes: ${trainerNotes}` : null,
     ].filter(Boolean).join('\n');
 
@@ -2351,7 +2353,7 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
           exerciseCount: exercises.length,
           totalSets,
           totalVolume: Math.round(totalVolume),
-          avgRpe: Math.round(avgRpe * 10) / 10
+          avgRpe: avgRpe !== null ? Math.round(avgRpe * 10) / 10 : null
         },
         source: 'auto-generated'
       }

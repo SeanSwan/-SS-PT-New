@@ -33,6 +33,17 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
+const numericRatingInRange = (value, min, max) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
+};
+
+const roundedAverageOrNull = (values) => {
+  if (!values.length) return null;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return Math.round((total / values.length) * 10) / 10;
+};
+
 /**
  * NASM Form Data Structure (for reference)
  * This is the expected structure stored in the formData JSONB field:
@@ -123,15 +134,29 @@ class DailyWorkoutForm extends Model {
 
   /**
    * Get average form rating from all exercises
-   * @returns {number} Average form rating (1-5 scale)
+   * @returns {number|null} Average form rating (1-5 scale), or null when unrated
    */
   getAverageFormRating() {
-    if (!this.formData || !this.formData.exercises) return 0;
-    const exercisesWithRatings = this.formData.exercises.filter(ex => ex.formRating);
-    if (exercisesWithRatings.length === 0) return 0;
-    
-    const total = exercisesWithRatings.reduce((sum, ex) => sum + ex.formRating, 0);
-    return Math.round((total / exercisesWithRatings.length) * 10) / 10; // Round to 1 decimal
+    if (!this.formData || !Array.isArray(this.formData.exercises)) return null;
+    const ratings = this.formData.exercises
+      .map((ex) => numericRatingInRange(ex.formRating, 1, 5))
+      .filter((rating) => rating !== null);
+    return roundedAverageOrNull(ratings);
+  }
+
+  /**
+   * Get average RPE from all rated sets
+   * @returns {number|null} Average RPE (1-10 scale), or null when unrated
+   */
+  getAverageRPE() {
+    if (!this.formData || !Array.isArray(this.formData.exercises)) return null;
+    const ratings = this.formData.exercises.flatMap((exercise) => {
+      if (!Array.isArray(exercise.sets)) return [];
+      return exercise.sets
+        .map((set) => numericRatingInRange(set.rpe, 1, 10))
+        .filter((rating) => rating !== null);
+    });
+    return roundedAverageOrNull(ratings);
   }
 
   /**
@@ -160,7 +185,7 @@ class DailyWorkoutForm extends Model {
       totalSets: this.getTotalSets(),
       totalVolume: this.getTotalVolume(),
       averageFormRating: this.getAverageFormRating(),
-      overallIntensity: this.formData?.overallIntensity || 0,
+      overallIntensity: numericRatingInRange(this.formData?.overallIntensity, 1, 10),
       pointsEarned: this.totalPointsEarned,
       sessionDeducted: this.sessionDeducted,
       mcpProcessed: this.mcpProcessed,
