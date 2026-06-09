@@ -8,6 +8,11 @@ interface AdminOverviewMockOptions {
   recentActivityUnavailable?: boolean;
 }
 
+type FailedResource = {
+  status: number;
+  url: string;
+};
+
 const adminUser = {
   id: 1,
   email: 'qa.admin@swanstudios.local',
@@ -32,6 +37,34 @@ async function fulfillJson(route: Route, body: unknown, status = 200) {
     status,
     contentType: 'application/json',
     body: JSON.stringify(body),
+  });
+}
+
+function watchAdminConsole(page: Page) {
+  const consoleErrors: string[] = [];
+  const failedResources: FailedResource[] = [];
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      failedResources.push({ status: response.status(), url: response.url() });
+    }
+  });
+
+  return { consoleErrors, failedResources };
+}
+
+function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (!/Failed to load resource: the server responded with a status of 400/i.test(message)) return false;
+
+  return failedResources.some((resource) => {
+    if (resource.status !== 400) return false;
+
+    const url = new URL(resource.url);
+    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
   });
 }
 
@@ -221,14 +254,9 @@ async function mockAdminOverviewApi(page: Page, options: AdminOverviewMockOption
 }
 
 test('admin compliance widget shows unavailable state instead of demo at-risk clients', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page);
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -244,6 +272,7 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
     !/preloaded using link preload/i.test(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
@@ -251,14 +280,9 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
 });
 
 test('admin business KPI widget shows unavailable state instead of demo revenue KPIs', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page, { businessKpisUnavailable: true });
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -273,6 +297,7 @@ test('admin business KPI widget shows unavailable state instead of demo revenue 
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/business-kpis/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
@@ -280,14 +305,9 @@ test('admin business KPI widget shows unavailable state instead of demo revenue 
 });
 
 test('admin revenue chart shows unavailable state instead of demo revenue trend', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page, { revenueUnavailable: true });
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -302,6 +322,7 @@ test('admin revenue chart shows unavailable state instead of demo revenue trend'
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/revenue/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
@@ -309,14 +330,9 @@ test('admin revenue chart shows unavailable state instead of demo revenue trend'
 });
 
 test('admin user growth chart shows unavailable state instead of demo growth trend', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page, { userGrowthUnavailable: true });
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -331,6 +347,7 @@ test('admin user growth chart shows unavailable state instead of demo growth tre
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/users/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
@@ -338,14 +355,9 @@ test('admin user growth chart shows unavailable state instead of demo growth tre
 });
 
 test('admin session tracking widget shows unavailable state instead of demo sessions', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page, { sessionTrackingUnavailable: true });
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -360,6 +372,7 @@ test('admin session tracking widget shows unavailable state instead of demo sess
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/statistics\/workouts/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
@@ -367,14 +380,9 @@ test('admin session tracking widget shows unavailable state instead of demo sess
 });
 
 test('admin recent activity feed shows unavailable state instead of demo platform events', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
+  const { consoleErrors, failedResources } = watchAdminConsole(page);
   await seedAdminAuth(page);
   await mockAdminOverviewApi(page, { recentActivityUnavailable: true });
-
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
 
   await page.goto('/dashboard/admin/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -388,6 +396,7 @@ test('admin recent activity feed shows unavailable state instead of demo platfor
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/gamification\/activity-feed/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
