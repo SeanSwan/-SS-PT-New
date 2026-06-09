@@ -1,12 +1,48 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+/**
+ * COMPONENT: AscensionPage
+ * PURPOSE: Present SwanStudios membership tiers and route users into trial or checkout.
+ * OWNER: Codex | LAST VALIDATED: 2026-06-09
+ *
+ * WIREFRAME:
+ * [optional guardian upgrade banner]
+ * [membership hero]
+ * [tier cards: starter, guardian, crystalline]
+ * [mission note]
+ *
+ * DATA FLOW:
+ * Props In: none.
+ * State: donation amount, annual billing, mobile layout, subscription tier data.
+ * API Calls: useSubscription.fetchTiers, startTrial, checkout.
+ * Events: tier checkout, annual toggle, starter signup, trial start.
+ * Children: VaultCard, TierCarousel, page-shell visual primitives.
+ *
+ * ARCHITECTURE: AscensionPage -> AscensionPage.styles + VaultCard/TierCarousel.
+ */
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import VaultCard from './components/VaultCard';
 import TierCarousel from './components/TierCarousel';
+import {
+  DesktopGrid,
+  Eyebrow,
+  Headline,
+  HeroSection,
+  HeroSub,
+  LoadingState,
+  MissionNote,
+  PageWrapper,
+  PromoBanner,
+  PromoBtn,
+  PromoContent,
+  PromoIcon,
+  PromoText,
+  PromoTitle,
+} from './AscensionPage.styles';
 
 const staggerContainer = {
   hidden: {},
@@ -21,7 +57,9 @@ const AscensionPage: React.FC = () => {
   const [isAnnual, setIsAnnual] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => { fetchTiers(); }, [fetchTiers]);
+  useEffect(() => {
+    void fetchTiers();
+  }, [fetchTiers]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -42,10 +80,11 @@ const AscensionPage: React.FC = () => {
 
   const handleCheckout = (tier: 'pro' | 'elite') => {
     if (tier === 'pro') {
-      checkout('pro', donationAmount);
-    } else {
-      checkout('elite', undefined, isAnnual ? 'year' : 'month');
+      void checkout('pro', donationAmount);
+      return;
     }
+
+    void checkout('elite', undefined, isAnnual ? 'year' : 'month');
   };
 
   const handleStartTrial = async () => {
@@ -95,7 +134,7 @@ const AscensionPage: React.FC = () => {
     <PageWrapper>
       <Helmet>
         <title>Ascend Your Training | SwanStudios</title>
-        <meta name="description" content="Choose your SwanStudios tier — free Swan Coach for everyone, advanced analytics for Guardians, and human trainer access for Crystalline members." />
+        <meta name="description" content="Choose your SwanStudios tier: free Swan Coach for everyone, advanced analytics for Guardians, and human trainer access for Crystalline members." />
       </Helmet>
 
       {showCrystallinePromo && (
@@ -105,16 +144,19 @@ const AscensionPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <PromoIcon>✦</PromoIcon>
+          <PromoIcon>
+            <Sparkles size={24} aria-hidden="true" />
+          </PromoIcon>
           <PromoContent>
-            <PromoTitle>You've Unlocked the Crystalline Upgrade</PromoTitle>
+            <PromoTitle>You Have Unlocked the Crystalline Upgrade</PromoTitle>
             <PromoText>
               Your Guardian donations have crossed $25. Crystalline Swan is available
-              to you — direct trainer access, full analytics, all premium tools.
+              to you with direct trainer access, full analytics, and all premium tools.
             </PromoText>
           </PromoContent>
           <PromoBtn
-            onClick={() => checkout('elite', undefined, isAnnual ? 'year' : 'month')}
+            type="button"
+            onClick={() => void checkout('elite', undefined, isAnnual ? 'year' : 'month')}
           >
             Upgrade Now
           </PromoBtn>
@@ -173,7 +215,7 @@ const AscensionPage: React.FC = () => {
         viewport={{ once: true }}
       >
         SwanStudios exists to help people. Your donations keep the platform
-        free and accessible for everyone — including those who can't afford
+        free and accessible for everyone, including those who cannot afford
         a gym membership. Health first. Community always.
       </MissionNote>
     </PageWrapper>
@@ -181,164 +223,3 @@ const AscensionPage: React.FC = () => {
 };
 
 export default AscensionPage;
-
-// ─── Animations ─────────────────────────────────────────────────
-
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
-// ─── Styled Components ────────────────��────────────────────────
-
-const PageWrapper = styled.main`
-  min-height: 100vh;
-  background: #0A0A0F;
-  padding: 2rem 1rem 4rem;
-  overflow-x: hidden;
-
-  @media (min-width: 768px) { padding: 3rem 2rem 5rem; }
-  @media (min-width: 1024px) { padding: 4rem 2rem 6rem; }
-`;
-
-const LoadingState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-  font-family: 'Sora', sans-serif;
-  color: rgba(224, 236, 244, 0.5);
-  font-size: 1rem;
-`;
-
-const HeroSection = styled.header`
-  text-align: center;
-  max-width: 700px;
-  margin: 0 auto 3rem;
-
-  @media (min-width: 1024px) { margin-bottom: 4rem; }
-`;
-
-const Eyebrow = styled.span`
-  display: block;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #60C0F0;
-  margin-bottom: 0.75rem;
-`;
-
-const Headline = styled.h1`
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-weight: 700;
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  color: #E0ECF4;
-  margin: 0 0 1rem;
-  line-height: 1.1;
-  background: linear-gradient(90deg, #E0ECF4 0%, #60C0F0 50%, #8B5CF6 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: ${shimmer} 8s linear infinite;
-
-  @media (prefers-reduced-motion: reduce) { animation: none; }
-`;
-
-const HeroSub = styled.p`
-  font-family: 'Sora', sans-serif;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: rgba(224, 236, 244, 0.7);
-  margin: 0;
-`;
-
-const DesktopGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  align-items: start;
-
-  & > :nth-child(2) {
-    margin-top: -1rem;
-  }
-`;
-
-const MissionNote = styled.p`
-  text-align: center;
-  max-width: 600px;
-  margin: 3rem auto 0;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: rgba(224, 236, 244, 0.35);
-
-  @media (min-width: 1024px) { margin-top: 4rem; }
-`;
-
-// ─── Promo Banner (Guardian → Crystalline upgrade prompt) ───────
-
-const PromoBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  max-width: 900px;
-  margin: 0 auto 2rem;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(96,192,240,0.08));
-  border: 1px solid rgba(139,92,246,0.4);
-  border-radius: 14px;
-
-  @media (max-width: 600px) {
-    flex-direction: column;
-    text-align: center;
-  }
-`;
-
-const PromoIcon = styled.span`
-  font-size: 1.75rem;
-  flex-shrink: 0;
-  color: #8B5CF6;
-`;
-
-const PromoContent = styled.div`
-  flex: 1;
-`;
-
-const PromoTitle = styled.p`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ice-wing, #60C0F0);
-  margin: 0 0 0.3rem;
-`;
-
-const PromoText = styled.p`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: rgba(224,236,244,0.65);
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const PromoBtn = styled.button`
-  flex-shrink: 0;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  color: #030712;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  min-height: 44px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.2s;
-  &:hover { opacity: 0.88; }
-`;
