@@ -22,6 +22,7 @@ import {
   inspectClientWorkspaceTopBar,
   inspectNestedClientCardLayout,
   inspectSelectedClientActionStripFootprint,
+  inspectTrainerClientContactEmailFit,
 } from './client-card-responsive-overlap';
 
 const frameCardForScreenshot = async (page: Page, selector: string) => {
@@ -161,6 +162,7 @@ for (const viewport of responsiveViewports) {
     expect(layout.overflowX, `horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
     expect(nestedLayout.issues).toEqual([]);
+    expect((await inspectTrainerClientContactEmailFit(page)).issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await frameCardForScreenshot(page, '[data-swan-client-card="trainer"]');

@@ -151,3 +151,38 @@ export async function inspectClientDetailIdentitySubtext(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectTrainerClientContactEmailFit(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 520) return { issues };
+
+    document.querySelectorAll<HTMLElement>('[data-swan-client-card="trainer"]').forEach((card) => {
+      const contact = card.querySelector<HTMLElement>('[data-swan-card-section="trainer-contact"]');
+      const row = contact?.querySelector<HTMLElement>('[data-swan-trainer-email-row]')
+        || contact?.firstElementChild as HTMLElement | null;
+      const email = row?.querySelector<HTMLElement>('[data-swan-trainer-email], span');
+      if (!email) return;
+
+      const lineHeight = Number.parseFloat(window.getComputedStyle(email).lineHeight || '0');
+      const fontSize = Number.parseFloat(window.getComputedStyle(email).fontSize || '0');
+      const range = document.createRange();
+      range.selectNodeContents(email);
+      const lines = new Set(Array.from(range.getClientRects()).map((rect) => Math.round(rect.top)));
+      if (lines.size > 1) {
+        const label = card.getAttribute('aria-label') || 'trainer client card';
+        issues.push(`${label} email wraps across ${lines.size} visual lines`);
+      }
+      if (fontSize > 0 && email.getBoundingClientRect().height > fontSize * 1.8) {
+        const label = card.getAttribute('aria-label') || 'trainer client card';
+        issues.push(`${label} email height indicates wrapping`);
+      }
+      if (lineHeight > 0 && email.getBoundingClientRect().height > lineHeight * 1.35) {
+        const label = card.getAttribute('aria-label') || 'trainer client card';
+        issues.push(`${label} email wraps across visual lines`);
+      }
+    });
+
+    return { issues };
+  });
+}

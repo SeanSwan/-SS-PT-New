@@ -131,6 +131,17 @@ export const ClientDetails = styled.div`
     overflow-wrap: anywhere;
   }
 
+  span {
+    min-width: 0;
+  }
+
+  [data-swan-trainer-email='true'] {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   svg {
     flex: 0 0 auto;
     margin-top: 0.1rem;

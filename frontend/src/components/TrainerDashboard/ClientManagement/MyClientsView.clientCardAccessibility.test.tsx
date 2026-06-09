@@ -117,6 +117,15 @@ describe('TrainerClientCard accessibility', () => {
     expect(screen.getAllByText('deducts when logged').length).toBeGreaterThan(0);
   });
 
+  it('marks the email row for compact mobile ellipsis while preserving the full value', () => {
+    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+
+    const email = screen.getByText('accessible@example.com');
+    expect(email).toHaveAttribute('data-swan-trainer-email', 'true');
+    expect(email.parentElement).toHaveAttribute('title', 'accessible@example.com');
+    expect(email.parentElement).toHaveAttribute('aria-label', 'accessible@example.com');
+  });
+
   it('distinguishes Move Fitness tracking clients from paid SwanStudios session clients', () => {
     const moveFitnessAssignment: ClientAssignment = {
       ...assignment,

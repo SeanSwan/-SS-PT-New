@@ -162,9 +162,13 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
             </span>
           </ClientName>
           <ClientDetails data-swan-card-section="trainer-contact">
-            <div>
+            <div
+              data-swan-trainer-email-row
+              aria-label={client.email}
+              title={client.email}
+            >
               <Mail size={14} aria-hidden="true" />
-              <span>{client.email}</span>
+              <span data-swan-trainer-email="true">{client.email}</span>
             </div>
             <PhoneDetail phone={client.phone} />
             <div>
