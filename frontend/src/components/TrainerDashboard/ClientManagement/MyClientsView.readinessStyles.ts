@@ -14,6 +14,10 @@ export const ClientReadinessStrip = styled.div`
   margin: 0.75rem 0 0;
 
   @media (max-width: 520px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 360px) {
     grid-template-columns: 1fr;
   }
 `;
