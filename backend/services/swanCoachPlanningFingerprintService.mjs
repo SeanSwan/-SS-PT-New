@@ -36,6 +36,7 @@ const DATA_INPUT_READERS = {
   activeProgram: context => present(context.activeProgram),
   planVault: hasTrainingVault,
   equipment: context => present(context.equipment),
+  clientSourcePolicy: context => present(context.sourcePolicy?.clientSource || context.clientSource),
 };
 
 const dataLabel = key => DATA_INPUT_LABELS[key] || key;

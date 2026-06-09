@@ -46,6 +46,7 @@ export const DATA_INPUT_LABELS = {
   activeProgram: 'active plans',
   planVault: 'workout plan vault/current assignments',
   equipment: 'equipment profile',
+  clientSourcePolicy: 'client source/session policy',
 };
 
 export const SWAN_COACH_PLANNING_GUIDANCE = `

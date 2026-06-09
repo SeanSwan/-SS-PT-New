@@ -40,6 +40,13 @@ function fakeContext(overrides = {}) {
     progressLevels: overrides.progressLevels ?? null,
     safety: overrides.safety ?? null,
     health: overrides.health ?? null,
+    clientSource: overrides.clientSource ?? 'swanstudios',
+    sourcePolicy: overrides.sourcePolicy ?? {
+      clientSource: 'swanstudios',
+      isFreeTracking: false,
+      shouldDeductPaidSessions: true,
+      sessionBalancePolicy: 'paid_sessions_deduct_on_billable_training',
+    },
     streak: null,
     activeProgram: null,
     trainingVault: overrides.trainingVault ?? null,
@@ -165,7 +172,12 @@ describe('generatePlan - goal-driven phase progression', () => {
     expect(plan.swanCoachPlanning.planInputsUsed.goals).toBe(true);
     expect(plan.swanCoachPlanning.planInputsUsed.painInjury).toBe(true);
     expect(plan.swanCoachPlanning.planInputsUsed.planVault).toBe(true);
+    expect(plan.swanCoachPlanning.planInputsUsed.clientSourcePolicy).toBe(true);
     expect(plan.clientIntelligence.trainingVault.filledHorizonKeys).toEqual(['six_month']);
+    expect(plan.clientIntelligence.sourcePolicy).toEqual(expect.objectContaining({
+      clientSource: 'swanstudios',
+      shouldDeductPaidSessions: true,
+    }));
     expect(plan.swanCoachPlanning.nasmDomainsApplied).toEqual(expect.arrayContaining([
       'OPT',
       'Corrective Exercise',

@@ -40,6 +40,10 @@ import {
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { buildClientTrainingVaultContext } from './clientTrainingVaultContextService.mjs';
+import {
+  isNonDeductingClientSource,
+  normalizeClientSource,
+} from './sessionBillingPolicy.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -73,6 +77,84 @@ function toNullablePositiveNumber(value) {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function hasText(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function buildClientSourcePolicy(clientSource) {
+  const normalizedSource = normalizeClientSource(clientSource);
+  const isFreeTracking = isNonDeductingClientSource(normalizedSource);
+
+  return {
+    clientSource: normalizedSource,
+    isFreeTracking,
+    shouldDeductPaidSessions: !isFreeTracking,
+    sessionBalancePolicy: isFreeTracking
+      ? 'free_tracking_no_session_deduction'
+      : 'paid_sessions_deduct_on_billable_training',
+  };
+}
+
+const SPECIAL_POPULATION_PATTERNS = [
+  { flag: 'pregnancy_postpartum', pattern: /pregnan|postpartum/i },
+  { flag: 'older_adult', pattern: /older[_\s-]*adult|senior|age[_\s-]*65|over[_\s-]*65/i },
+  { flag: 'youth', pattern: /youth|adolescent|minor/i },
+];
+
+function collectSpecialPopulationFlags(value) {
+  const flags = new Set();
+  const visit = (node, key = '') => {
+    if (node === null || node === undefined) return;
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => visit(item, `${key}_${index}`));
+      return;
+    }
+    if (typeof node === 'object') {
+      Object.entries(node).forEach(([childKey, childValue]) => {
+        visit(childValue, key ? `${key}_${childKey}` : childKey);
+      });
+      return;
+    }
+
+    const text = node === true || typeof node === 'string'
+      ? `${key} ${String(node)}`
+      : key;
+    for (const { flag, pattern } of SPECIAL_POPULATION_PATTERNS) {
+      if (pattern.test(text)) flags.add(flag);
+    }
+  };
+
+  visit(value);
+  return Array.from(flags).sort();
+}
+
+function normalizeHealthRisk(value) {
+  if (!hasText(value)) return null;
+  return String(value).trim().toLowerCase();
+}
+
+function buildClientHealthReviewContext({ healthConcerns, healthRisk, onboardingResponses, baseline }) {
+  const normalizedRisk = normalizeHealthRisk(healthRisk);
+  const specialPopulationFlags = collectSpecialPopulationFlags(onboardingResponses);
+  const medicalClearanceRequired = Boolean(baseline?.medicalClearanceRequired);
+  const hasHealthConcerns = hasText(healthConcerns);
+  const riskRequiresReview = Boolean(normalizedRisk && normalizedRisk !== 'low');
+
+  return {
+    hasHealthConcerns,
+    healthRisk: normalizedRisk,
+    medicalClearanceRequired,
+    specialPopulationFlags,
+    reviewRequired: Boolean(
+      hasHealthConcerns
+      || riskRequiresReview
+      || medicalClearanceRequired
+      || specialPopulationFlags.length > 0,
+    ),
+    referralRecommended: Boolean(medicalClearanceRequired || normalizedRisk === 'high'),
+  };
 }
 
 function toClientIntelligenceErrorMetadata(error) {
@@ -502,7 +584,17 @@ export async function getClientContext(clientId, trainerId) {
 
     // 7. Client user record (with fitnessGoal)
     getUser().findByPk(clientId, {
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'fitnessGoal', 'trainingExperience'],
+      attributes: [
+        'id',
+        'firstName',
+        'lastName',
+        'email',
+        'role',
+        'fitnessGoal',
+        'trainingExperience',
+        'clientSource',
+        'healthConcerns',
+      ],
     }).catch(err => {
       logger.warn(
         '[ClientIntelligence] User fetch failed:',
@@ -788,6 +880,13 @@ export async function getClientContext(clientId, trainerId) {
 
   // ── Process Baseline (1RM, NASM Assessment) ──────────────────
 
+  const parqScreening = baselineMeasurements
+    ? safeJsonParse(baselineMeasurements.parqScreening, null)
+    : null;
+  const medicalClearanceRequired = Boolean(
+    baselineMeasurements?.medicalClearanceRequired
+    || parqScreening?.medicalClearanceRequired,
+  );
   const baselineSummary = baselineMeasurements ? {
     benchPress1RM: safeBrzycki1RM(baselineMeasurements.benchPressWeight, baselineMeasurements.benchPressReps),
     squat1RM: safeBrzycki1RM(baselineMeasurements.squatWeight, baselineMeasurements.squatReps),
@@ -797,7 +896,8 @@ export async function getClientContext(clientId, trainerId) {
     plankDuration: baselineMeasurements.plankDuration || null,
     nasmAssessmentScore: baselineMeasurements.nasmAssessmentScore || null,
     correctiveStrategy: baselineMeasurements.correctiveExerciseStrategy || null,
-    parqCleared: !!baselineMeasurements.parqScreening,
+    parqCleared: Boolean(parqScreening && !medicalClearanceRequired),
+    medicalClearanceRequired,
   } : null;
 
   // ── Process Nutrition ────────────────────────────────────────
@@ -844,6 +944,20 @@ export async function getClientContext(clientId, trainerId) {
     sourceType: activeProgramPlan.sourceType,
   } : null;
 
+  const sourcePolicy = buildClientSourcePolicy(clientUser?.clientSource);
+  const onboardingResponses = safeJsonParse(onboardingQuestionnaire?.responsesJson, {});
+  const healthSummary = buildClientHealthReviewContext({
+    healthConcerns: clientUser?.healthConcerns,
+    healthRisk: onboardingQuestionnaire?.healthRisk,
+    onboardingResponses,
+    baseline: baselineSummary,
+  });
+  const safetySummary = {
+    medicalClearanceRequired: healthSummary.medicalClearanceRequired,
+    referralRecommended: healthSummary.referralRecommended,
+    healthReviewRecommended: healthSummary.reviewRequired,
+  };
+
   // ── Build ClientContext ────────────────────────────────────────
 
   return {
@@ -853,11 +967,15 @@ export async function getClientContext(clientId, trainerId) {
       ? `${clientUser.firstName || ''} ${clientUser.lastName || ''}`.trim()
       : `Client #${clientId}`,
     fetchedAt: now.toISOString(),
+    clientSource: sourcePolicy.clientSource,
+    sourcePolicy,
 
     // Safety flag: if critical subsystems failed to load, the workout builder
     // should warn the trainer before generating potentially unsafe workouts
     criticalDataUnavailable: criticalFailures.length > 0,
     criticalFailures,
+    safety: safetySummary,
+    health: healthSummary,
 
     pain: {
       activeEntries: safePainEntries.length,
