@@ -37,7 +37,7 @@ import {
 import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
-const HORIZON_OPTIONS = [3, 6, 12] as const;
+const HORIZON_OPTIONS = [3, 6, 9, 12] as const;
 type HorizonMonths = typeof HORIZON_OPTIONS[number];
 
 interface LongHorizonConfigureFormProps {

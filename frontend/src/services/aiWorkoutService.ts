@@ -54,9 +54,11 @@ export interface MesocycleBlock {
   rationale?: string | null;
 }
 
+export type LongHorizonMonths = 3 | 6 | 9 | 12;
+
 export interface LongHorizonPlan {
   planName: string;
-  horizonMonths: 3 | 6 | 12;
+  horizonMonths: LongHorizonMonths;
   summary?: string;
   blocks: MesocycleBlock[];
 }
@@ -152,7 +154,7 @@ export interface LongHorizonDraftResponse {
   planningSystem: 'swan_coach_planning';
   swanCoachPlanning: SwanCoachPlanningFingerprint;
   plan: LongHorizonPlan;
-  horizonMonths: 3 | 6 | 12;
+  horizonMonths: LongHorizonMonths;
   warnings: string[];
   provider: string;
   auditLogId: number | null;
@@ -255,10 +257,10 @@ export function createAiWorkoutService(authAxios: any) {
       return data;
     },
 
-    /** Generate a long-horizon draft plan (3/6/12 month periodization) */
+    /** Generate a long-horizon draft plan (3/6/9/12 month periodization) */
     async generateLongHorizonDraft(params: {
       userId: number;
-      horizonMonths: 3 | 6 | 12;
+      horizonMonths: LongHorizonMonths;
       equipmentProfileId?: number;
       overrideReason?: string;
     }): Promise<LongHorizonGenerateResponse> {
@@ -275,7 +277,7 @@ export function createAiWorkoutService(authAxios: any) {
     async approveLongHorizonDraft(params: {
       userId: number;
       plan: LongHorizonPlan;
-      horizonMonths: 3 | 6 | 12;
+      horizonMonths: LongHorizonMonths;
       auditLogId: number;
       overrideReason?: string;
       trainerNotes?: string;

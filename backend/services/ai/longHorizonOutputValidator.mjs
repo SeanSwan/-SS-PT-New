@@ -31,8 +31,8 @@ const MesocycleBlockSchema = z.object({
 
 export const LongHorizonPlanOutputSchema = z.object({
   planName: z.string().min(1).max(200),
-  horizonMonths: z.number().int().refine(v => [3, 6, 12].includes(v), {
-    message: 'horizonMonths must be 3, 6, or 12',
+  horizonMonths: z.number().int().refine(v => [3, 6, 9, 12].includes(v), {
+    message: 'horizonMonths must be 3, 6, 9, or 12',
   }),
   summary: z.string().max(2000).optional().default(''),
   blocks: z.array(MesocycleBlockSchema).min(1).max(20),
@@ -67,7 +67,7 @@ export function validateLongHorizonSchema(rawText) {
  * Apply NASM business rules to a parsed long-horizon plan.
  *
  * @param {object} plan - Zod-validated plan
- * @param {3|6|12} requestedHorizon - Horizon from the request
+ * @param {3|6|9|12} requestedHorizon - Horizon from the request
  * @returns {{ ok: boolean, errors: string[], warnings: string[] }}
  */
 export function validateLongHorizonRules(plan, requestedHorizon) {
@@ -95,7 +95,7 @@ export function validateLongHorizonRules(plan, requestedHorizon) {
   }
 
   // Rule 4: Total weeks must not exceed horizon
-  const maxWeeks = { 3: 13, 6: 26, 12: 52 };
+  const maxWeeks = { 3: 13, 6: 26, 9: 39, 12: 52 };
   const totalWeeks = plan.blocks.reduce((sum, b) => sum + b.durationWeeks, 0);
   if (totalWeeks > (maxWeeks[requestedHorizon] || 52)) {
     errors.push(`Total block duration (${totalWeeks}w) exceeds ${requestedHorizon}-month horizon (max ${maxWeeks[requestedHorizon]}w)`);
@@ -112,7 +112,7 @@ export function validateLongHorizonRules(plan, requestedHorizon) {
   }
 
   // Rule 6: Warn if total weeks is significantly less than horizon
-  const minWeeks = { 3: 8, 6: 16, 12: 36 };
+  const minWeeks = { 3: 8, 6: 16, 9: 28, 12: 36 };
   if (totalWeeks < (minWeeks[requestedHorizon] || 8)) {
     warnings.push(`Total block duration (${totalWeeks}w) is short for a ${requestedHorizon}-month plan (expected ≥${minWeeks[requestedHorizon]}w)`);
   }
@@ -149,7 +149,7 @@ export function validateLongHorizonRules(plan, requestedHorizon) {
  * @param {string} rawText - Provider response text
  * @param {object} [opts]
  * @param {string} [opts.userName] - For PII detection
- * @param {3|6|12} [opts.requestedHorizon] - Horizon from request
+ * @param {3|6|9|12} [opts.requestedHorizon] - Horizon from request
  * @returns {LongHorizonValidationResult}
  */
 export function runLongHorizonValidationPipeline(rawText, opts = {}) {

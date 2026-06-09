@@ -1,7 +1,7 @@
 /**
  * LongTermProgramPlan Model
  * =========================
- * Represents a 3/6/12 month NASM-aligned training program.
+ * Represents a 3/6/9/12 month NASM-aligned training program.
  * Coach-drafted (AI-assisted or manual) macro-level plan
  * containing mesocycle blocks with progression intent.
  *
@@ -32,9 +32,9 @@ LongTermProgramPlan.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       validate: {
-        isIn: [[3, 6, 12]],
+        isIn: [[3, 6, 9, 12]],
       },
-      comment: 'Plan duration: 3, 6, or 12 months',
+      comment: 'Plan duration: 3, 6, 9, or 12 months',
     },
     status: {
       type: DataTypes.ENUM('draft', 'approved', 'active', 'archived', 'superseded'),

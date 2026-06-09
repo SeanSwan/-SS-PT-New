@@ -30,7 +30,7 @@ export const LONG_HORIZON_SYSTEM_MESSAGE =
  *
  * @param {Object} params
  * @param {Object} params.deidentifiedPayload - De-identified client profile
- * @param {3|6|12} params.horizonMonths - Plan duration
+ * @param {3|6|9|12} params.horizonMonths - Plan duration
  * @param {Object|null} params.longHorizonContext - Output of buildLongHorizonContext()
  * @param {Object|null} params.nasmConstraints - Server-derived NASM constraints
  * @param {Object|null} params.templateContext - Output of buildTemplateContext()

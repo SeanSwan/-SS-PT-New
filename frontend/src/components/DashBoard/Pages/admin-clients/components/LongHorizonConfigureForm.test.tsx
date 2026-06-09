@@ -49,6 +49,36 @@ describe('LongHorizonConfigureForm', () => {
     expect(onGenerate).toHaveBeenCalledTimes(1);
   });
 
+  it('offers the SwanStudios 9-month seasonal long-horizon arc', () => {
+    const setHorizonMonths = vi.fn();
+
+    render(
+      <LongHorizonConfigureForm
+        clientId={56}
+        horizonMonths={6}
+        setHorizonMonths={setHorizonMonths}
+        clientGoals={{ primaryGoal: 'strength', secondaryGoals: [], constraints: [] }}
+        goalsLoading={false}
+        goalsError=""
+        equipmentProfileId={null}
+        setEquipmentProfileId={vi.fn()}
+        trainerNotes=""
+        setTrainerNotes={vi.fn()}
+        isAdmin
+        overrideReasonRequired={false}
+        overrideReason=""
+        setOverrideReason={vi.fn()}
+        isSubmitting={false}
+        onClose={vi.fn()}
+        onGenerate={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /9 months/i }));
+
+    expect(setHorizonMonths).toHaveBeenCalledWith(9);
+  });
+
   it('shows override reason when required', () => {
     render(
       <LongHorizonConfigureForm

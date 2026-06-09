@@ -25,7 +25,7 @@ import { LongHorizonPlanOutputSchema, validateLongHorizonRules } from './longHor
  *
  * @param {Object} params
  * @param {unknown} params.plan - The plan object (possibly edited by coach)
- * @param {3|6|12} params.requestedHorizon - horizonMonths from request body
+ * @param {3|6|9|12} params.requestedHorizon - horizonMonths from request body
  * @returns {{
  *   valid: boolean,
  *   errors: Array<{code: string, field?: string, message: string}>,

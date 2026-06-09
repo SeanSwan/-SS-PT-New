@@ -2,7 +2,7 @@
  * Long-Horizon Plan Controller — Phase 5C-C / 5C-D
  * ==================================================
  * Generation (5C-C) + Approval/Persistence (5C-D) for
- * 3/6/12 month NASM-aligned periodization plans via AI.
+ * 3/6/9/12 month NASM-aligned periodization plans via AI.
  *
  * Exports:
  *   generateLongHorizonPlan  — POST /api/ai/long-horizon/generate
@@ -31,7 +31,7 @@ import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlannin
 import { buildLongHorizonPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 
 // ── Allowed horizons ────────────────────────────────────────────────
-const VALID_HORIZONS = new Set([3, 6, 12]);
+const VALID_HORIZONS = new Set([3, 6, 9, 12]);
 
 // ── OPT Phase helpers (shared with aiWorkoutController) ─────────────
 const OPT_PHASE_KEY_BY_NUMBER = {
@@ -121,7 +121,7 @@ const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArr
  * POST /api/ai/long-horizon/generate
  *
  * Request body:
- *   { userId: number, horizonMonths: 3|6|12 }
+ *   { userId: number, horizonMonths: 3|6|9|12 }
  *
  * Always returns draft (5C-C). Approval/persist in 5C-D.
  */
@@ -148,7 +148,7 @@ export const generateLongHorizonPlan = async (req, res) => {
     if (!VALID_HORIZONS.has(horizonMonths)) {
       return res.status(400).json({
         success: false,
-        message: 'horizonMonths must be 3, 6, or 12',
+        message: 'horizonMonths must be 3, 6, 9, or 12',
       });
     }
 
@@ -634,7 +634,7 @@ export const approveLongHorizonPlan = async (req, res) => {
     if (!VALID_HORIZONS.has(horizonMonths)) {
       return res.status(400).json({
         success: false,
-        message: 'horizonMonths must be 3, 6, or 12',
+        message: 'horizonMonths must be 3, 6, 9, or 12',
       });
     }
 

@@ -14,6 +14,7 @@ import {
   isDegraded,
   isLongHorizonDraft,
   type DegradedResponse,
+  type LongHorizonMonths,
   type LongHorizonPlan,
   type MesocycleBlock,
   type SwanCoachPlanningFingerprint,
@@ -46,7 +47,7 @@ export const useLongHorizonWorkflow = ({
   const isAdmin = user?.role === 'admin';
   const service = useMemo(() => createAiWorkoutService(authAxios), [authAxios]);
   const [state, setState] = useState<LHState>('idle');
-  const [horizonMonths, setHorizonMonths] = useState<3 | 6 | 12>(6);
+  const [horizonMonths, setHorizonMonths] = useState<LongHorizonMonths>(6);
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
   const [trainerNotes, setTrainerNotes] = useState('');
   const [overrideReason, setOverrideReason] = useState('');

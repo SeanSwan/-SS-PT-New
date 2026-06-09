@@ -1,7 +1,7 @@
 /**
  * Long-Horizon Context Builder — Phase 5C-B
  * ==========================================
- * Builds de-identified, trend-aware client context for 3/6/12 month
+ * Builds de-identified, trend-aware client context for 3/6/9/12 month
  * NASM-aligned training program generation.
  *
  * Called AFTER auth, RBAC, assignment, and consent checks.
@@ -30,6 +30,7 @@ import logger from '../../utils/logger.mjs';
 const HORIZON_WINDOW = {
   3:  { weeks: 4,  label: '4w'  },
   6:  { weeks: 8,  label: '8w'  },
+  9:  { weeks: 10, label: '10w' },
   12: { weeks: 12, label: '12w' },
 };
 
@@ -39,7 +40,7 @@ const HORIZON_WINDOW = {
  * Build long-horizon context for AI planning generation.
  *
  * @param {number} userId - Target client user ID
- * @param {3|6|12} horizonMonths - Plan duration
+ * @param {3|6|9|12} horizonMonths - Plan duration
  * @param {Object} models - Sequelize models object from getAllModels()
  * @returns {Promise<LongHorizonContext>}
  */

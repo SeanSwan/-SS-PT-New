@@ -294,9 +294,9 @@ export const GOLDEN_SCENARIOS = [
   {
     id: 'schema_invalid_04',
     category: 'schema_invalid',
-    description: 'Invalid horizonMonths: 9 (must be 3/6/12)',
+    description: 'Invalid horizonMonths: 5 (must be 3/6/9/12)',
     type: 'long_horizon',
-    input: validLongHorizon({ horizonMonths: 9 }),
+    input: validLongHorizon({ horizonMonths: 5 }),
     opts: {},
     knownGap: false,
     rationale: null,

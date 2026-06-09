@@ -171,8 +171,8 @@ describe('validateLongHorizonSchema', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('11 — accepts horizonMonths 3, 6, 12', () => {
-    for (const h of [3, 6, 12]) {
+  it('11 — accepts horizonMonths 3, 6, 9, 12', () => {
+    for (const h of [3, 6, 9, 12]) {
       const plan = makeValidPlan({ horizonMonths: h });
       const result = validateLongHorizonSchema(JSON.stringify(plan));
       expect(result.ok).toBe(true);
@@ -732,13 +732,14 @@ describe('Security: controller structure', () => {
     expect(content).toContain('payloadHash');
   });
 
-  it('55 — controller validates horizonMonths (3, 6, 12 only)', async () => {
+  it('55 — controller validates SwanStudios long-horizon months including 9', async () => {
     const fs = await import('fs');
     const content = fs.readFileSync(
       new URL('../../controllers/longHorizonController.mjs', import.meta.url),
       'utf-8',
     );
-    expect(content).toContain('horizonMonths must be 3, 6, or 12');
+    expect(content).toContain('new Set([3, 6, 9, 12])');
+    expect(content).toContain('horizonMonths must be 3, 6, 9, or 12');
   });
 
   it('56 — requestType is long_horizon_generation (distinct from workout_generation)', async () => {

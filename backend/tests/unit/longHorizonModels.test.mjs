@@ -73,9 +73,9 @@ describe('LongTermProgramPlan model definition', () => {
     expect(attrs.sourceType.defaultValue).toBe('manual');
   });
 
-  it('10 — horizonMonths validates isIn [3, 6, 12]', () => {
+  it('10 — horizonMonths validates isIn [3, 6, 9, 12]', () => {
     const attrs = LongTermProgramPlan.getAttributes();
-    expect(attrs.horizonMonths.validate).toEqual({ isIn: [[3, 6, 12]] });
+    expect(attrs.horizonMonths.validate).toEqual({ isIn: [[3, 6, 9, 12]] });
   });
 
   it('11 — planName validates notEmpty and len [1, 200]', () => {

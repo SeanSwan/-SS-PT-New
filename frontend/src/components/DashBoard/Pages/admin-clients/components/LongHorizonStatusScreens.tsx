@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { DegradedResponse } from '../../../../../services/aiWorkoutService';
+import type { LongHorizonMonths } from '../../../../../services/aiWorkoutService';
 import {
   CenterContent,
   InfoContent,
@@ -38,7 +39,7 @@ interface LongHorizonIdleStateProps {
 }
 
 interface LongHorizonGeneratingStateProps {
-  horizonMonths: 3 | 6 | 12;
+  horizonMonths: LongHorizonMonths;
 }
 
 interface LongHorizonDegradedStateProps {
@@ -65,7 +66,7 @@ export const LongHorizonIdleState: React.FC<LongHorizonIdleStateProps> = ({
     <Sparkles size={48} color={SWAN_CYAN} />
     <PanelTitle>Long-Horizon Planning</PanelTitle>
     <PanelCopy $maxWidth={520}>
-      Generate a 3/6/12-month NASM-aligned mesocycle plan for {clientName}. Review and edit
+      Generate a 3/6/9/12-month NASM-aligned mesocycle plan for {clientName}. Review and edit
       before final approval.
     </PanelCopy>
     <PrimaryButton onClick={onConfigure} disabled={isSubmitting}>
