@@ -37,10 +37,13 @@ import {
 import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
+const HORIZON_OPTIONS = [3, 6, 12] as const;
+type HorizonMonths = typeof HORIZON_OPTIONS[number];
+
 interface LongHorizonConfigureFormProps {
   clientId: number;
-  horizonMonths: 3 | 6 | 12;
-  setHorizonMonths: (months: 3 | 6 | 12) => void;
+  horizonMonths: HorizonMonths;
+  setHorizonMonths: (months: HorizonMonths) => void;
   clientGoals: ClientGoals | null;
   goalsLoading: boolean;
   goalsError: string;
@@ -56,6 +59,141 @@ interface LongHorizonConfigureFormProps {
   onClose: () => void;
   onGenerate: () => void;
 }
+
+interface HorizonPickerProps {
+  horizonMonths: HorizonMonths;
+  setHorizonMonths: (months: HorizonMonths) => void;
+}
+
+const HorizonPicker: React.FC<HorizonPickerProps> = ({ horizonMonths, setHorizonMonths }) => (
+  <FormGroup $fullWidth>
+    <Label>Horizon</Label>
+    <HorizonRadioGroup>
+      {HORIZON_OPTIONS.map((option) => (
+        <HorizonRadioButton
+          key={option}
+          $active={horizonMonths === option}
+          onClick={() => setHorizonMonths(option)}
+        >
+          {option} months
+        </HorizonRadioButton>
+      ))}
+    </HorizonRadioGroup>
+  </FormGroup>
+);
+
+interface GoalsSummaryProps {
+  clientGoals: ClientGoals | null;
+  goalsLoading: boolean;
+  goalsError: string;
+}
+
+const goalText = (value: string | undefined, fallback: string) => value || fallback;
+const goalListText = (values: string[] | undefined) => (
+  values?.length ? values.join(', ') : 'None provided'
+);
+
+interface GoalSummaryView {
+  primaryGoal: string;
+  secondaryGoals: string;
+  constraints: string;
+}
+
+const buildGoalSummaryView = (clientGoals: ClientGoals | null): GoalSummaryView => ({
+  primaryGoal: goalText(clientGoals?.primaryGoal, 'general_fitness'),
+  secondaryGoals: goalListText(clientGoals?.secondaryGoals),
+  constraints: goalListText(clientGoals?.constraints),
+});
+
+const GoalsLoadingContent: React.FC = () => (
+  <GoalLoadingRow>
+    <GoalLoadingSpinner />
+    <span>Loading goals...</span>
+  </GoalLoadingRow>
+);
+
+const GoalsErrorContent: React.FC<{ goalsError: string }> = ({ goalsError }) => (
+  <FlushInfoPanel $variant="info">
+    <IconSlot><Info size={16} /></IconSlot>
+    <InfoContent>{goalsError}</InfoContent>
+  </FlushInfoPanel>
+);
+
+const GoalsReadyContent: React.FC<{ summary: GoalSummaryView }> = ({ summary }) => (
+  <>
+    <div>
+      <Label>Primary Goal</Label>
+      <ReadOnlyField>{summary.primaryGoal}</ReadOnlyField>
+    </div>
+    <div>
+      <Label>Secondary Goals</Label>
+      <ReadOnlyField>{summary.secondaryGoals}</ReadOnlyField>
+    </div>
+    <div>
+      <Label>Constraints</Label>
+      <ReadOnlyField>{summary.constraints}</ReadOnlyField>
+    </div>
+  </>
+);
+
+const GoalsSummaryContent: React.FC<GoalsSummaryProps> = ({ clientGoals, goalsLoading, goalsError }) => {
+  if (goalsLoading) {
+    return <GoalsLoadingContent />;
+  }
+
+  if (goalsError) {
+    return <GoalsErrorContent goalsError={goalsError} />;
+  }
+
+  return <GoalsReadyContent summary={buildGoalSummaryView(clientGoals)} />;
+};
+
+const GoalsSummary: React.FC<GoalsSummaryProps> = (props) => (
+  <GoalSummaryPanel>
+    <GoalsSummaryContent {...props} />
+  </GoalSummaryPanel>
+);
+
+interface OverrideReasonFieldProps {
+  overrideReasonRequired: boolean;
+  overrideReason: string;
+  setOverrideReason: (value: string) => void;
+}
+
+const OverrideReasonField: React.FC<OverrideReasonFieldProps> = ({
+  overrideReasonRequired,
+  overrideReason,
+  setOverrideReason,
+}) => (
+  <FormGroup $fullWidth>
+    <OverrideSection>
+      <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
+      <OverrideTextArea
+        $required={overrideReasonRequired}
+        value={overrideReason}
+        onChange={(e) => setOverrideReason(e.target.value)}
+        placeholder="Provide justification when consent override is required"
+        rows={3}
+      />
+    </OverrideSection>
+  </FormGroup>
+);
+
+interface LongHorizonActionsProps {
+  isSubmitting: boolean;
+  onClose: () => void;
+  onGenerate: () => void;
+}
+
+const LongHorizonActions: React.FC<LongHorizonActionsProps> = ({ isSubmitting, onClose, onGenerate }) => (
+  <ActionRow $justify="flex-end">
+    <SecondaryButton onClick={onClose}>Close</SecondaryButton>
+    <PrimaryButton onClick={onGenerate} disabled={isSubmitting}>
+      {isSubmitting ? <Spinner size={16} /> : <Sparkles size={16} />}
+      {isSubmitting ? 'Planning...' : 'Swan Coach Planning Draft'}
+    </PrimaryButton>
+  </ActionRow>
+);
 
 const LongHorizonConfigureForm: React.FC<LongHorizonConfigureFormProps> = ({
   clientId,
@@ -79,63 +217,13 @@ const LongHorizonConfigureForm: React.FC<LongHorizonConfigureFormProps> = ({
   <>
     <SectionTitle>Long-Horizon Planning</SectionTitle>
     <FormGrid>
-      <FormGroup $fullWidth>
-        <Label>Horizon</Label>
-        <HorizonRadioGroup>
-          {[3, 6, 12].map((option) => (
-            <HorizonRadioButton
-              key={option}
-              $active={horizonMonths === option}
-              onClick={() => setHorizonMonths(option as 3 | 6 | 12)}
-            >
-              {option} months
-            </HorizonRadioButton>
-          ))}
-        </HorizonRadioGroup>
-      </FormGroup>
+      <HorizonPicker horizonMonths={horizonMonths} setHorizonMonths={setHorizonMonths} />
 
       <FormGroup $fullWidth>
         <Label>
           Client Goals <ProfileBadge><Info size={12} />From profile</ProfileBadge>
         </Label>
-        <GoalSummaryPanel>
-          {goalsLoading && (
-            <GoalLoadingRow>
-              <GoalLoadingSpinner />
-              <span>Loading goals...</span>
-            </GoalLoadingRow>
-          )}
-          {!goalsLoading && goalsError && (
-            <FlushInfoPanel $variant="info">
-              <IconSlot><Info size={16} /></IconSlot>
-              <InfoContent>{goalsError}</InfoContent>
-            </FlushInfoPanel>
-          )}
-          {!goalsLoading && !goalsError && (
-            <>
-              <div>
-                <Label>Primary Goal</Label>
-                <ReadOnlyField>{clientGoals?.primaryGoal || 'general_fitness'}</ReadOnlyField>
-              </div>
-              <div>
-                <Label>Secondary Goals</Label>
-                <ReadOnlyField>
-                  {clientGoals?.secondaryGoals.length
-                    ? clientGoals.secondaryGoals.join(', ')
-                    : 'None provided'}
-                </ReadOnlyField>
-              </div>
-              <div>
-                <Label>Constraints</Label>
-                <ReadOnlyField>
-                  {clientGoals?.constraints.length
-                    ? clientGoals.constraints.join(', ')
-                    : 'None provided'}
-                </ReadOnlyField>
-              </div>
-            </>
-          )}
-        </GoalSummaryPanel>
+        <GoalsSummary clientGoals={clientGoals} goalsLoading={goalsLoading} goalsError={goalsError} />
       </FormGroup>
 
       <FormGroup $fullWidth>
@@ -168,30 +256,17 @@ const LongHorizonConfigureForm: React.FC<LongHorizonConfigureFormProps> = ({
       </FormGroup>
 
       {(isAdmin || overrideReasonRequired) && (
-        <FormGroup $fullWidth>
-          <OverrideSection>
-            <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
-            <OverrideTextArea
-              $required={overrideReasonRequired}
-              value={overrideReason}
-              onChange={(e) => setOverrideReason(e.target.value)}
-              placeholder="Provide justification when consent override is required"
-              rows={3}
-            />
-          </OverrideSection>
-        </FormGroup>
+        <OverrideReasonField
+          overrideReasonRequired={overrideReasonRequired}
+          overrideReason={overrideReason}
+          setOverrideReason={setOverrideReason}
+        />
       )}
     </FormGrid>
 
     <Divider />
 
-    <ActionRow $justify="flex-end">
-      <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-      <PrimaryButton onClick={onGenerate} disabled={isSubmitting}>
-        {isSubmitting ? <Spinner size={16} /> : <Sparkles size={16} />}
-        {isSubmitting ? 'Planning...' : 'Swan Coach Planning Draft'}
-      </PrimaryButton>
-    </ActionRow>
+    <LongHorizonActions isSubmitting={isSubmitting} onClose={onClose} onGenerate={onGenerate} />
   </>
 );
 
