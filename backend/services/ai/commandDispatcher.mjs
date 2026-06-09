@@ -131,6 +131,7 @@ import {
   dispatchSetTrainerPermissions,
   dispatchViewTrainerClients,
 } from './dispatchers/trainerCommandDispatchers.mjs';
+import { dispatchViewWorkoutStatistics } from './dispatchers/workoutStatisticsReadDispatcher.mjs';
 import { dispatchUpdateClient } from './dispatchers/clientProfileWriteDispatchers.mjs';
 import { dispatchViewClientProfile } from './dispatchers/clientProfileReadDispatcher.mjs';
 import {
@@ -661,59 +662,6 @@ const dispatchDeactivateClient = async (params, ctx) => {
     await transaction.rollback();
     throw error;
   }
-};
-
-const dispatchViewWorkoutStatistics = async (params, ctx) => {
-  const { WorkoutSession, WorkoutLog } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const rows = await WorkoutSession.findAll({
-    where: { userId: clientId, status: 'completed' },
-    include: [{ model: WorkoutLog, as: 'logs' }],
-    order: [['completedAt', 'DESC']],
-    limit: 100,
-  });
-
-  const exerciseCounts = new Map();
-  let totalDuration = 0;
-  let totalSets = 0;
-  let totalReps = 0;
-  let intensityTotal = 0;
-  let intensityCount = 0;
-
-  for (const row of rows) {
-    totalDuration += Number(row.duration || 0);
-    const logs = Array.isArray(row.logs) ? row.logs : [];
-    totalSets += logs.length || Number(row.totalSets || 0);
-    const logReps = logs.reduce((sum, log) => sum + Number(log.reps || 0), 0);
-    totalReps += logReps || Number(row.totalReps || 0);
-
-    const intensity = Number(row.intensity ?? row.intensityRating);
-    if (Number.isFinite(intensity) && intensity > 0) {
-      intensityTotal += intensity;
-      intensityCount += 1;
-    }
-
-    for (const log of logs) {
-      const exerciseName = String(log.exerciseName || '').trim();
-      if (exerciseName) {
-        exerciseCounts.set(exerciseName, (exerciseCounts.get(exerciseName) || 0) + 1);
-      }
-    }
-  }
-
-  const [topExercise = null, topExerciseSets = 0] =
-    [...exerciseCounts.entries()].sort((a, b) => b[1] - a[1])[0] || [];
-
-  return {
-    totalWorkouts: rows.length,
-    totalDuration,
-    totalSets,
-    totalReps,
-    averageIntensity: intensityCount ? Number((intensityTotal / intensityCount).toFixed(1)) : null,
-    lastWorkoutDate: toDateOnly(rows[0]?.completedAt || rows[0]?.date),
-    topExercise,
-    topExerciseSets,
-  };
 };
 
 const dispatchViewExerciseRecommendations = async (params, ctx) => {
