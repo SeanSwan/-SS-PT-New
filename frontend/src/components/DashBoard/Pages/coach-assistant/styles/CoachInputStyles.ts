@@ -22,9 +22,19 @@ export const InputBar = styled.div`
   background: var(--bg-elevated, #141419);
   flex-shrink: 0;
 
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+    align-items: end;
+    gap: 8px;
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
   @media (max-width: 375px) {
-    padding: 8px 10px;
-    gap: 6px;
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
+    gap: 8px;
+    padding: 8px;
   }
 
   @media (min-width: 1024px) {
@@ -51,6 +61,7 @@ export const InputBar = styled.div`
 export const ChatInput = styled.textarea`
   flex: 1;
   width: 100%;
+  min-width: 0;
   padding: 12px 14px;
   min-height: 48px;
   max-height: 200px;
@@ -129,6 +140,14 @@ export const SendBtn = styled.button`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
   }
+
+  @media (max-width: 520px) {
+    justify-self: end;
+  }
+
+  @media (max-width: 375px) {
+    justify-self: end;
+  }
 `;
 
 export const VoiceOrbWrap = styled.button<{ $listening?: boolean; $size?: number }>`
@@ -174,6 +193,18 @@ export const VoiceOrbWrap = styled.button<{ $listening?: boolean; $size?: number
     transition: box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease;
     will-change: box-shadow;
   }
+
+  @media (max-width: 520px) {
+    width: 48px;
+    height: 48px;
+    justify-self: center;
+  }
+
+  @media (max-width: 375px) {
+    width: 44px;
+    height: 44px;
+    justify-self: center;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -200,5 +231,13 @@ export const TtsToggle = styled.button<{ $active?: boolean }>`
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 520px) {
+    justify-self: start;
+  }
+
+  @media (max-width: 375px) {
+    justify-self: start;
   }
 `;

@@ -91,8 +91,16 @@ export const MessageBubbleAI = styled.div`
     font-size: 0.9em;
   }
 
+  @media (max-width: 520px) {
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px 14px;
+    max-width: 100%;
+  }
+
   @media (max-width: 375px) {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.5;
     padding: 10px 12px;
     max-width: 96%;
   }

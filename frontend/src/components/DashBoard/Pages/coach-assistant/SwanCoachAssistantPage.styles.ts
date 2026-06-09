@@ -4,9 +4,28 @@ export const PageShell = styled.div`
   display: flex;
   height: 100%;
   min-height: 0;
+  box-sizing: border-box;
   background: var(--bg-base, #030712);
   color: var(--text-primary, #E0ECF4);
   overflow: hidden;
+
+  @media (max-width: 1024px) {
+    height: calc(100dvh - 188px);
+    min-height: calc(100dvh - 188px);
+    max-height: calc(100dvh - 188px);
+  }
+
+  @media (max-width: 430px) {
+    height: calc(100dvh - 180px);
+    min-height: calc(100dvh - 180px);
+    max-height: calc(100dvh - 180px);
+  }
+
+  @media (max-width: 375px) {
+    height: calc(100dvh - 172px);
+    min-height: calc(100dvh - 172px);
+    max-height: calc(100dvh - 172px);
+  }
 `;
 
 export const MainPanel = styled.div`

@@ -62,6 +62,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {
+    if (messages.length === 1 && messages[0]?.id === 'welcome') return;
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 

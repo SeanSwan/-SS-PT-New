@@ -9,6 +9,11 @@ export const InputWrap = styled.div`
   position: relative;
   flex: 1;
   min-width: 0;
+
+  @media (max-width: 520px) {
+    grid-column: 1 / -1;
+    order: -1;
+  }
 `;
 
 export const CharCount = styled.span<{ $near: boolean }>`
