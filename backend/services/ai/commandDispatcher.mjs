@@ -183,6 +183,7 @@ import {
 import { dispatchLogMyNutrition } from './dispatchers/clientSelfServiceNutritionDispatchers.mjs';
 import { dispatchRequestPlanAdjustment } from './dispatchers/clientPlanAdjustmentDispatcher.mjs';
 import { dispatchOnboardingQuestions } from './dispatchers/onboardingQuestionsDispatcher.mjs';
+import { dispatchViewOnboardingStatus } from './dispatchers/onboardingStatusDispatcher.mjs';
 import { dispatchFillBaselineMeasurements } from './dispatchers/onboardingBaselineDispatcher.mjs';
 import {
   calculateCompletionPercentage,
@@ -228,55 +229,6 @@ const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
 const normalizeSequelizeUpdateCount = (result) => {
   if (Array.isArray(result)) return Number(result[0] || 0);
   return Number(result || 0);
-};
-
-const dispatchViewOnboardingStatus = async (params, ctx) => {
-  const { ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const [questionnaire, baseline] = await Promise.all([
-    ClientOnboardingQuestionnaire.findOne({
-      where: { userId: clientId },
-      order: [['createdAt', 'DESC']],
-    }),
-    ClientBaselineMeasurements.findOne({
-      where: { userId: clientId },
-      order: [['takenAt', 'DESC']],
-    }),
-  ]);
-
-  if (!questionnaire) {
-    return {
-      clientId,
-      questionnaireId: null,
-      status: 'not_started',
-      completionPercentage: 0,
-      primaryGoal: null,
-      trainingTier: null,
-      healthRisk: null,
-      movementScreenStatus: baseline ? 'recorded' : 'pending',
-      baselineRecorded: Boolean(baseline),
-      lastUpdatedAt: null,
-    };
-  }
-
-  const movementScreenStatus = baseline
-    ? baseline.nasmAssessmentScore !== null && baseline.nasmAssessmentScore !== undefined
-      ? 'completed'
-      : 'recorded'
-    : 'pending';
-
-  return {
-    clientId,
-    questionnaireId: questionnaire.id ?? null,
-    status: questionnaire.status ?? null,
-    completionPercentage: calculateCompletionPercentage(questionnaire.responsesJson),
-    primaryGoal: questionnaire.primaryGoal ?? null,
-    trainingTier: questionnaire.trainingTier ?? null,
-    healthRisk: questionnaire.healthRisk ?? null,
-    movementScreenStatus,
-    baselineRecorded: Boolean(baseline),
-    lastUpdatedAt: toDateOnly(questionnaire.updatedAt ?? questionnaire.createdAt),
-  };
 };
 
 const dispatchViewOrientationQueue = async (params = {}) => {

@@ -19,6 +19,11 @@ describe('clientOnboardingController regression after helper extraction', () => 
   let commandDispatcherSource;
   let onboardingBaselineDispatcherSource;
   let onboardingBaselineDispatcherExists;
+  let onboardingStatusDispatcherSource;
+  let onboardingStatusDispatcherExists;
+  let onboardingQuestionsDispatcherSource;
+  let onboardingStateReaderSource;
+  let onboardingStateReaderExists;
 
   beforeAll(() => {
     const controllerPath = path.resolve(
@@ -52,12 +57,48 @@ describe('clientOnboardingController regression after helper extraction', () => 
       'dispatchers',
       'onboardingBaselineDispatcher.mjs'
     );
+    const onboardingStatusDispatcherPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'dispatchers',
+      'onboardingStatusDispatcher.mjs'
+    );
+    const onboardingQuestionsDispatcherPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'dispatchers',
+      'onboardingQuestionsDispatcher.mjs'
+    );
+    const onboardingStateReaderPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'dispatchers',
+      'onboardingStateReader.mjs'
+    );
     source = fs.readFileSync(controllerPath, 'utf-8');
     queueServiceSource = fs.readFileSync(queueServicePath, 'utf-8');
     commandDispatcherSource = fs.readFileSync(commandDispatcherPath, 'utf-8');
     onboardingBaselineDispatcherExists = fs.existsSync(onboardingBaselineDispatcherPath);
     onboardingBaselineDispatcherSource = onboardingBaselineDispatcherExists
       ? fs.readFileSync(onboardingBaselineDispatcherPath, 'utf-8')
+      : '';
+    onboardingStatusDispatcherExists = fs.existsSync(onboardingStatusDispatcherPath);
+    onboardingStatusDispatcherSource = onboardingStatusDispatcherExists
+      ? fs.readFileSync(onboardingStatusDispatcherPath, 'utf-8')
+      : '';
+    onboardingQuestionsDispatcherSource = fs.readFileSync(onboardingQuestionsDispatcherPath, 'utf-8');
+    onboardingStateReaderExists = fs.existsSync(onboardingStateReaderPath);
+    onboardingStateReaderSource = onboardingStateReaderExists
+      ? fs.readFileSync(onboardingStateReaderPath, 'utf-8')
       : '';
   });
 
@@ -134,6 +175,19 @@ describe('clientOnboardingController regression after helper extraction', () => 
     );
     expect(commandDispatcherSource).not.toContain('const dispatchFillBaselineMeasurements = async');
     expect(onboardingBaselineDispatcherSource).toContain('export const dispatchFillBaselineMeasurements');
+  });
+
+  test('Coach onboarding status uses a shared state reader outside the central command dispatcher', () => {
+    expect(onboardingStatusDispatcherExists).toBe(true);
+    expect(onboardingStateReaderExists).toBe(true);
+    expect(commandDispatcherSource).toContain(
+      "from './dispatchers/onboardingStatusDispatcher.mjs'"
+    );
+    expect(commandDispatcherSource).not.toContain('const dispatchViewOnboardingStatus = async');
+    expect(onboardingStatusDispatcherSource).toContain('export const dispatchViewOnboardingStatus');
+    expect(onboardingStatusDispatcherSource).toContain('readLatestOnboardingState');
+    expect(onboardingQuestionsDispatcherSource).toContain('readLatestOnboardingState');
+    expect(onboardingStateReaderSource).toContain('export const readLatestOnboardingState');
   });
 
   test('baseline measurement service preserves the current create payload contract', async () => {
