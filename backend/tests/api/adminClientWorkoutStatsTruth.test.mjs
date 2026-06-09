@@ -15,4 +15,9 @@ describe('admin client workout stats truth path', () => {
     expect(slice).not.toMatch(/DailyWorkoutForm\.count/);
     expect(slice).not.toMatch(/totalForms,\s*$/m);
   });
+
+  it('preserves unrated workout intensity as null instead of inventing zero', () => {
+    expect(slice).not.toMatch(/intensity:\s*w\.intensity\s*\|\|\s*0/);
+    expect(slice).toMatch(/intensity:\s*w\.intensity\s*\?\?\s*null/);
+  });
 });

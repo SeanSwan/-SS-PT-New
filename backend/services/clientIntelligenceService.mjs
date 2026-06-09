@@ -143,6 +143,52 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
 
 // ── Body Region to NASM Muscle Taxonomy ──────────────────────────────
 
+export function buildClientWorkoutSummary(recentWorkouts = []) {
+  const workouts = Array.isArray(recentWorkouts) ? recentWorkouts : [];
+  const workoutSummary = {
+    sessionsLast2Weeks: workouts.length,
+    recentExercises: [],
+    avgFormRating: null,
+    avgIntensity: null,
+  };
+
+  const recentExerciseSet = new Set();
+  let totalFormRating = 0;
+  let formRatingCount = 0;
+  let totalIntensity = 0;
+  let intensityCount = 0;
+
+  for (const workout of workouts) {
+    const formData = safeJsonParse(workout.formData, {});
+
+    if (formData?.exercises) {
+      for (const ex of formData.exercises) {
+        if (ex.exerciseName) recentExerciseSet.add(ex.exerciseName);
+        const formRating = toNullablePositiveNumber(ex.formRating);
+        if (formRating !== null) {
+          totalFormRating += formRating;
+          formRatingCount++;
+        }
+      }
+    }
+    const overallIntensity = toNullablePositiveNumber(formData?.overallIntensity);
+    if (overallIntensity !== null) {
+      totalIntensity += overallIntensity;
+      intensityCount++;
+    }
+  }
+
+  workoutSummary.recentExercises = Array.from(recentExerciseSet);
+  workoutSummary.avgFormRating = formRatingCount > 0
+    ? Math.round((totalFormRating / formRatingCount) * 10) / 10
+    : null;
+  workoutSummary.avgIntensity = intensityCount > 0
+    ? Math.round((totalIntensity / intensityCount) * 10) / 10
+    : null;
+
+  return workoutSummary;
+}
+
 const REGION_TO_MUSCLE_MAP = {
   // Head / Neck
   neck: ['sternocleidomastoid', 'upper_trapezius', 'levator_scapulae'],
@@ -634,46 +680,7 @@ export async function getClientContext(clientId, trainerId) {
 
   // ── Process Recent Workout Data ────────────────────────────────
 
-  const workoutSummary = {
-    sessionsLast2Weeks: recentWorkouts.length,
-    recentExercises: [],
-    avgFormRating: 0,
-    avgIntensity: 0,
-  };
-
-  const recentExerciseSet = new Set();
-  let totalFormRating = 0;
-  let formRatingCount = 0;
-  let totalIntensity = 0;
-  let intensityCount = 0;
-
-  for (const workout of recentWorkouts) {
-    const formData = safeJsonParse(workout.formData, {});
-
-    if (formData?.exercises) {
-      for (const ex of formData.exercises) {
-        if (ex.exerciseName) recentExerciseSet.add(ex.exerciseName);
-        const formRating = toNullablePositiveNumber(ex.formRating);
-        if (formRating !== null) {
-          totalFormRating += formRating;
-          formRatingCount++;
-        }
-      }
-    }
-    const overallIntensity = toNullablePositiveNumber(formData?.overallIntensity);
-    if (overallIntensity !== null) {
-      totalIntensity += overallIntensity;
-      intensityCount++;
-    }
-  }
-
-  workoutSummary.recentExercises = Array.from(recentExerciseSet);
-  workoutSummary.avgFormRating = formRatingCount > 0
-    ? Math.round((totalFormRating / formRatingCount) * 10) / 10
-    : 0;
-  workoutSummary.avgIntensity = intensityCount > 0
-    ? Math.round((totalIntensity / intensityCount) * 10) / 10
-    : 0;
+  const workoutSummary = buildClientWorkoutSummary(recentWorkouts);
 
   // ── Process Equipment ──────────────────────────────────────────
 

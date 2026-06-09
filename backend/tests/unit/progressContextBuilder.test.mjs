@@ -128,7 +128,7 @@ describe('progressContextBuilder — volume & intensity', () => {
     expect(ctx.sessionDetails.weeklyVolumeTrend[0].avgIntensity).toBe(8);
   });
 
-  it('8b — reports zero average intensity when no sessions are rated', () => {
+  it('8b - reports null average intensity when no sessions are rated', () => {
     const sessions = [
       makeSession({ date: new Date('2026-02-10'), intensity: null }),
       makeSession({ id: 's2', date: new Date('2026-02-12'), intensity: undefined }),
@@ -136,8 +136,8 @@ describe('progressContextBuilder — volume & intensity', () => {
 
     const ctx = buildProgressContext(sessions);
 
-    expect(ctx.avgIntensity).toBe(0);
-    expect(ctx.sessionDetails.weeklyVolumeTrend[0].avgIntensity).toBe(0);
+    expect(ctx.avgIntensity).toBeNull();
+    expect(ctx.sessionDetails.weeklyVolumeTrend[0].avgIntensity).toBeNull();
   });
 });
 

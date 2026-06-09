@@ -57,7 +57,7 @@ export const toWorkoutHistoryEntry = (session) => {
     date: isoDate,
     type: raw?.title || 'Workout',
     duration: Number.isFinite(raw?.duration) ? raw.duration : 0,
-    intensity: Number.isFinite(raw?.intensity) ? raw.intensity : 0,
+    intensity: Number.isFinite(raw?.intensity) ? raw.intensity : null,
     notes: raw?.notes || undefined,
   };
 };

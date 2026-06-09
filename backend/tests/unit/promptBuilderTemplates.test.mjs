@@ -6,7 +6,11 @@
  * Phase 4A — Template Registry + Structured Schema Integration
  */
 import { describe, it, expect } from 'vitest';
-import { buildWorkoutPrompt, buildTemplatePromptSection } from '../../services/ai/promptBuilder.mjs';
+import {
+  buildSessionDetailsSection,
+  buildWorkoutPrompt,
+  buildTemplatePromptSection,
+} from '../../services/ai/promptBuilder.mjs';
 import { buildTemplateContext } from '../../services/ai/templateContextBuilder.mjs';
 
 const SAMPLE_PAYLOAD = { goals: { primary: 'muscle_gain' }, fitness_level: 'intermediate' };
@@ -171,5 +175,22 @@ describe('buildWorkoutPrompt template integration', () => {
     expect(prompt).toContain('Apply NASM credential domains');
     expect(prompt).toContain('Move Fitness/external free-tracking semantics');
     expect(prompt).toContain('Never deduct or change paid-session balances');
+  });
+});
+
+describe('buildSessionDetailsSection', () => {
+  it('does not describe unrated weekly intensity as zero out of ten', () => {
+    const section = buildSessionDetailsSection({
+      recoveryPattern: 'moderate',
+      avgRecoveryDays: 2,
+      fatigueIndicator: 'none',
+      weeklyVolumeTrend: [
+        { week: 1, totalVolume: 12000, sessions: 2, avgIntensity: null },
+      ],
+    });
+
+    expect(section).toContain('avg intensity not logged');
+    expect(section).not.toContain('avg intensity 0/10');
+    expect(section).not.toContain('avg intensity null/10');
   });
 });

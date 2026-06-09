@@ -1327,7 +1327,7 @@ class AdminClientController {
             date: w.date,
             duration: w.duration || 0,
             exercises: w.totalSets || 0,
-            intensity: w.intensity || 0,
+            intensity: w.intensity ?? null,
             notes: w.notes || null,
           })),
           dateRange: { startDate: safeStartDate, endDate: safeEndDate }

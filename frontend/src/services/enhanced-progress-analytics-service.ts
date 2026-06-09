@@ -157,7 +157,7 @@ export interface WorkoutHistoryEntry {
   date: string;
   type: string;
   duration: number;
-  intensity: number;
+  intensity: number | null;
   exercises?: string[];
   notes?: string;
 }

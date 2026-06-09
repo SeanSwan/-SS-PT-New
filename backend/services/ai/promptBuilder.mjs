@@ -479,7 +479,10 @@ export function buildSessionDetailsSection(details) {
   if (recent.length > 0) {
     lines.push('Recent weekly volume (last 4 weeks):');
     for (const w of recent) {
-      lines.push(`  Week ${w.week}: ${w.totalVolume} lbs total, ${w.sessions} sessions, avg intensity ${w.avgIntensity}/10`);
+      const intensityText = typeof w.avgIntensity === 'number'
+        ? `avg intensity ${w.avgIntensity}/10`
+        : 'avg intensity not logged';
+      lines.push(`  Week ${w.week}: ${w.totalVolume} lbs total, ${w.sessions} sessions, ${intensityText}`);
     }
   }
 

@@ -84,7 +84,7 @@ describe('toWorkoutHistoryEntry', () => {
     expect(entry.type).toBe('Workout');
   });
 
-  it('coerces non-finite duration/intensity to 0 rather than NaN', () => {
+  it('preserves missing intensity as null rather than inventing a zero rating', () => {
     const entry = toWorkoutHistoryEntry({
       title: 'Mobility',
       date: '2026-04-05T00:00:00.000Z',
@@ -92,7 +92,7 @@ describe('toWorkoutHistoryEntry', () => {
       intensity: undefined,
     });
     expect(entry.duration).toBe(0);
-    expect(entry.intensity).toBe(0);
+    expect(entry.intensity).toBeNull();
   });
 
   it('returns null date for invalid dates instead of crashing', () => {

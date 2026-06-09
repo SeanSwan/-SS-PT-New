@@ -9,6 +9,7 @@ vi.mock('../../database.mjs', () => ({
 }));
 
 import {
+  buildClientWorkoutSummary,
   fetchRecentWorkoutLogSummaries,
 } from '../../services/clientIntelligenceService.mjs';
 
@@ -87,5 +88,26 @@ describe('clientIntelligenceService recent workout truth path', () => {
         },
       },
     ]);
+  });
+
+  it('summarizes recent workouts without inventing form or intensity averages', () => {
+    const summary = buildClientWorkoutSummary([
+      {
+        formData: {
+          overallIntensity: null,
+          exercises: [
+            { exerciseName: 'Deadlift', formRating: null },
+            { exerciseName: 'Carry' },
+          ],
+        },
+      },
+    ]);
+
+    expect(summary).toMatchObject({
+      sessionsLast2Weeks: 1,
+      recentExercises: ['Deadlift', 'Carry'],
+      avgFormRating: null,
+      avgIntensity: null,
+    });
   });
 });

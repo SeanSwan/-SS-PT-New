@@ -135,7 +135,7 @@ function emptyContext() {
     avgRepsPerSession: 0,
     avgSetsPerSession: 0,
     avgDurationMin: 0,
-    avgIntensity: 0,
+    avgIntensity: null,
     rpeTrend: 'no_data',
     volumeTrend: 'no_data',
     adherenceTrend: 'no_data',
@@ -230,7 +230,7 @@ function toPositiveNumber(value) {
 }
 
 function averageNumbers(values) {
-  return values.length > 0 ? round2(sum(values, v => v) / values.length) : 0;
+  return values.length > 0 ? round2(sum(values, v => v) / values.length) : null;
 }
 
 // ─── NEW: Per-exercise progression curves ────────────────────────
@@ -436,7 +436,7 @@ function buildSessionDetails(sortedSessions) {
       week: weekNum + 1,
       totalVolume: round2(data.totalVolume),
       sessions: data.sessions,
-      avgIntensity: data.intensityCount > 0 ? round2(data.totalIntensity / data.intensityCount) : 0,
+      avgIntensity: data.intensityCount > 0 ? round2(data.totalIntensity / data.intensityCount) : null,
       totalDurationMin: round2(data.totalDuration),
     }));
 
@@ -460,8 +460,8 @@ function buildSessionDetails(sortedSessions) {
   const priorWeeks = weeklyVolumeTrend.slice(-4, -2);
   let fatigueIndicator = 'none';
   if (recentWeeks.length >= 1 && priorWeeks.length >= 1) {
-    const recentAvgIntensity = averageNumbers(recentWeeks.map(w => w.avgIntensity).filter(v => v > 0));
-    const priorAvgIntensity = averageNumbers(priorWeeks.map(w => w.avgIntensity).filter(v => v > 0));
+    const recentAvgIntensity = averageNumbers(recentWeeks.map(w => w.avgIntensity).filter(v => v !== null && v > 0));
+    const priorAvgIntensity = averageNumbers(priorWeeks.map(w => w.avgIntensity).filter(v => v !== null && v > 0));
     const recentVolume = recentWeeks.reduce((a, w) => a + w.totalVolume, 0) / recentWeeks.length;
     const priorVolume = priorWeeks.reduce((a, w) => a + w.totalVolume, 0) / priorWeeks.length;
 

@@ -31,7 +31,7 @@ interface WorkoutEntry {
   date: string;
   duration: number;
   exercises: number;
-  intensity: number;
+  intensity: number | null;
   notes?: string;
 }
 
@@ -145,7 +145,7 @@ const ClientWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, onCl
                         <Dumbbell size={13} /> {w.exercises} exercises
                       </div>
                     )}
-                    {w.intensity > 0 && (
+                    {typeof w.intensity === 'number' && w.intensity > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.8125rem' }}>
                         <Target size={13} /> Intensity {w.intensity}/10
                       </div>
