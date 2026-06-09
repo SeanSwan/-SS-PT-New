@@ -1,6 +1,6 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { BarChart3, ClipboardList, Dumbbell, Mail, UserPlus, Users } from 'lucide-react';
+import { BarChart3, ClipboardList, Dumbbell, Mail, UserCheck, UserPlus, Users } from 'lucide-react';
 import { buildClientCoachOnboardingRoute } from '../../../workspaces/clients-team/clientDailyTrainingRoutes';
 import { AdminQuickAction } from './AdminOverview.types';
 
@@ -13,6 +13,13 @@ export const buildAdminOverviewQuickActions = (
     description: 'Start Swan Coach intake',
     icon: <UserPlus size={20} />,
     action: () => navigate(buildClientCoachOnboardingRoute()),
+  },
+  {
+    id: 'client-activation-queue',
+    title: 'Activation Queue',
+    description: 'Finish paid-client setup',
+    icon: <UserCheck size={20} />,
+    action: () => navigate('/dashboard/admin/client-management'),
   },
   {
     id: 'log-client-workout',

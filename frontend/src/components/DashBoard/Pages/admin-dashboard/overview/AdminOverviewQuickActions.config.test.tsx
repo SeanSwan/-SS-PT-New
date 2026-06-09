@@ -22,4 +22,19 @@ describe('AdminOverviewQuickActions config', () => {
     expect(navigate).toHaveBeenCalledWith('/dashboard/admin/client-management?intent=log_workout');
     expect(navigate).not.toHaveBeenCalledWith('/dashboard/admin/admin-sessions');
   });
+
+  it('keeps paid-client activation one click from the admin command center', () => {
+    const navigate = vi.fn();
+    const actions = buildAdminOverviewQuickActions(navigate as any);
+
+    expect(actions.slice(0, 3).map(action => action.id)).toEqual([
+      'coach-client-intake',
+      'client-activation-queue',
+      'log-client-workout',
+    ]);
+
+    actions.find(action => action.id === 'client-activation-queue')?.action();
+
+    expect(navigate).toHaveBeenCalledWith('/dashboard/admin/client-management');
+  });
 });
