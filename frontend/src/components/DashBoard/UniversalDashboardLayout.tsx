@@ -303,24 +303,24 @@ const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }
   @media (max-width: 1024px) {
     margin-left: 0;
     padding: 16px;
-    padding-top: 132px;
+    padding-top: 116px;
   }
 
   @media (max-width: 430px) {
     padding: 12px;
-    padding-top: 128px;
+    padding-top: 112px;
     /* Bump base font size for readability on small phones */
     font-size: 15px;
   }
 
   @media (max-width: 375px) {
     padding: 8px;
-    padding-top: 122px;
+    padding-top: 108px;
   }
 
   @media (max-width: 320px) {
     padding: 6px;
-    padding-top: 118px;
+    padding-top: 104px;
   }
 
   @media (min-width: 2560px) {
@@ -362,7 +362,7 @@ const MobileDashboardSafeArea = styled.div`
     top: 56px;
     left: 0;
     right: 0;
-    height: 96px;
+    height: 60px;
     z-index: 998;
     pointer-events: none;
     border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
@@ -376,7 +376,7 @@ const MobileDashboardSafeArea = styled.div`
   }
 
   @media (max-width: 375px) {
-    height: 90px;
+    height: 56px;
   }
 `;
 
@@ -416,11 +416,13 @@ const MobileBackBtn = styled.button`
 
   @media (max-width: 1024px) {
     display: flex;
+    top: 60px;
+    right: 10px;
   }
 
   @media (max-width: 480px) {
-    top: 62px;
-    right: 12px;
+    top: 60px;
+    right: 10px;
   }
 
   @media (max-width: 375px) {

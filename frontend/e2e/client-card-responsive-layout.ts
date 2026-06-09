@@ -169,6 +169,7 @@ export async function inspectMobileDashboardSafeArea(page: Page) {
 
     const guardRect = guard.getBoundingClientRect();
     const guardStyle = window.getComputedStyle(guard);
+    const main = document.querySelector<HTMLElement>('main');
     const visibleFixedControls = Array.from(document.querySelectorAll<HTMLElement>('body *')).filter((element) => {
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
@@ -184,6 +185,21 @@ export async function inspectMobileDashboardSafeArea(page: Page) {
 
     if (guardStyle.position !== 'fixed') issues.push('mobile dashboard safe-area guard is not fixed');
     if (guardStyle.pointerEvents !== 'none') issues.push('mobile dashboard safe-area guard blocks taps');
+
+    if (window.innerWidth <= 520) {
+      const mainPaddingTop = main ? Number.parseFloat(window.getComputedStyle(main).paddingTop || '0') : 0;
+      const maxControlBottom = Math.max(0, ...visibleFixedControls.map((control) => control.getBoundingClientRect().bottom));
+
+      if (guardRect.height > 64) {
+        issues.push(`mobile dashboard safe-area guard is too tall at ${Math.round(guardRect.height)}px`);
+      }
+      if (maxControlBottom > 108) {
+        issues.push(`mobile dashboard fixed controls consume ${Math.round(maxControlBottom)}px`);
+      }
+      if (mainPaddingTop > 118) {
+        issues.push(`mobile dashboard content starts too low at ${Math.round(mainPaddingTop)}px`);
+      }
+    }
 
     visibleFixedControls.forEach((control) => {
       const rect = control.getBoundingClientRect();

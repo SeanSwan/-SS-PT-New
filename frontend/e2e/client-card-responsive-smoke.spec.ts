@@ -56,7 +56,11 @@ const frameCardForScreenshot = async (page: Page, selector: string) => {
       return bottom;
     }, 0);
     const scrollParent = scrollParentFor(element);
-    const safeTop = Math.max(132, fixedBottom + 12);
+    const guard = document.querySelector<HTMLElement>('[data-swan-mobile-dashboard-safe-area]');
+    const guardBottom = guard ? guard.getBoundingClientRect().bottom : 0;
+    const safeTop = window.innerWidth <= 1024
+      ? Math.max(112, guardBottom + 8, fixedBottom + 12)
+      : 24;
     const scrollBy = (delta: number) => {
       if (scrollParent === document.body || scrollParent === document.documentElement) {
         window.scrollBy(0, delta);

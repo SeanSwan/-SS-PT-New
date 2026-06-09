@@ -27,14 +27,14 @@ export const Overlay = styled.div<{ $visible: boolean }>`
 
 export const MobileMenuBtn = styled.button`
   position: fixed;
-  top: 68px;
-  left: 12px;
+  top: 60px;
+  left: 10px;
   z-index: 1002;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 11px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
   background: var(--bg-surface, #141419);
   color: var(--accent-primary, #60C0F0);
@@ -55,7 +55,7 @@ export const MobileMenuBtn = styled.button`
   }
 
   @media (max-width: 375px) {
-    top: 62px;
+    top: 58px;
     left: 8px;
   }
 `;
