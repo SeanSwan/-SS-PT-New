@@ -53,6 +53,12 @@ export async function inspectClientWorkspaceTopBar(page: Page) {
 
     const topbarRect = topbar.getBoundingClientRect();
     const selectorRect = selector.getBoundingClientRect();
+    const guard = document.querySelector<HTMLElement>('[data-swan-mobile-dashboard-safe-area]');
+    const guardBottom = guard?.getBoundingClientRect().bottom ?? 0;
+
+    if (guardBottom > 0 && topbarRect.top < guardBottom - 1) {
+      issues.push(`client workspace top bar starts under mobile safe area at ${Math.round(topbarRect.top)}px`);
+    }
     if (topbarRect.height > 112) issues.push(`client workspace top bar is ${Math.round(topbarRect.height)}px tall`);
     if (selectorRect.height > 50) issues.push(`client selector compact height is ${Math.round(selectorRect.height)}px`);
     if (topbar.scrollWidth > topbar.clientWidth + 12) issues.push('client workspace top bar has horizontal overflow');
