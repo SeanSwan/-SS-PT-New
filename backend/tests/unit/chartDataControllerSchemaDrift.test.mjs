@@ -64,6 +64,22 @@ const makeReqRes = ({ sql = [], rows = [] } = {}) => {
   return { req, res, querySpy, sql };
 };
 
+const makeFailingReqRes = (error = new Error('database unavailable')) => {
+  const querySpy = vi.fn(async () => {
+    throw error;
+  });
+  const fakeSequelize = { query: querySpy };
+  const req = {
+    params: { userId: '42' },
+    app: { get: vi.fn((k) => (k === 'sequelize' ? fakeSequelize : undefined)) },
+  };
+  const res = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+  };
+  return { req, res, querySpy };
+};
+
 describe('chartDataController — canonical /progress default-visible charts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -191,6 +207,19 @@ describe('Phase 14 — chart-weekly-volume', () => {
     expect(executedSql).toMatch(/SUM\(wl\.weight\s*\*\s*wl\.reps\)/i);
     expect(executedSql).toMatch(/DATE_TRUNC\('week'/);
     assertNoForbiddenTables(executedSql);
+  });
+
+  it('surfaces query failures as unavailable chart data instead of empty success', async () => {
+    const { req, res } = makeFailingReqRes();
+
+    await getWeeklyVolumeChart(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Unable to load chart data',
+      error: 'internal_error',
+    });
   });
 });
 

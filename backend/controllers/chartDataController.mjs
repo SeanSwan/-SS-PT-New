@@ -72,7 +72,7 @@ const safeQuery = async (sequelize, sql, replacements, context = '') => {
       message: error?.message,
       userId: replacements?.userId,
     });
-    return [];
+    throw error;
   }
 };
 
