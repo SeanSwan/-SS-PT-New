@@ -182,16 +182,31 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       try {
         // Get validated token from cleanup utility
-        const token = tokenCleanup.getValidatedToken();
-        const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+        let token = tokenCleanup.getValidatedToken();
+        let tokenTimestamp = localStorage.getItem('tokenTimestamp');
         
         if (!token) {
-          logger.log('No valid token found');
-          if (isMounted) {
-            setUser(null);
-            setLoading(false);
+          const storedToken = ProductionTokenManager.getToken();
+          const hasRefreshToken = !!ProductionTokenManager.getRefreshToken();
+
+          if (storedToken && ProductionTokenManager.isTokenExpired(storedToken) && hasRefreshToken) {
+            logger.log('Stored token expired, attempting refresh...');
+            const refreshed = await refreshToken();
+
+            if (refreshed) {
+              token = tokenCleanup.getValidatedToken() || ProductionTokenManager.getToken();
+              tokenTimestamp = localStorage.getItem('tokenTimestamp');
+            }
           }
-          return;
+
+          if (!token) {
+            logger.log('No valid token found');
+            if (isMounted) {
+              setUser(null);
+              setLoading(false);
+            }
+            return;
+          }
         }
         
         // Check token age (24 hours)
@@ -205,6 +220,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             
             if (!refreshed) {
               logger.log('Token refresh failed, logging out');
+              if (isMounted) logout();
+              return;
+            }
+
+            token = tokenCleanup.getValidatedToken() || ProductionTokenManager.getToken();
+            tokenTimestamp = localStorage.getItem('tokenTimestamp');
+
+            if (!token) {
+              logger.log('Token refresh did not return a valid access token');
               if (isMounted) logout();
               return;
             }
