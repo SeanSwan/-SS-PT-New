@@ -11,37 +11,35 @@
 
 import { buildClientTrainingOverview } from './clientTrainingReadModelService.mjs';
 import { summarizeAssignmentExercises } from './clientTrainingExercisePreviewService.mjs';
-import { findPlannedAssignmentCompletionsForDate } from './clientTrainingAssignmentCompletionService.mjs';
+import { readAssignmentCompletionContext } from './clientTrainingAssignmentCompletionService.mjs';
+import { summarizeHomeworkSummary } from './clientTrainingHomeworkSummaryReadSanitizer.mjs';
+import {
+  compactString,
+  compactStringOr,
+  stringIdOrNull,
+  toBoolean,
+  toDateOnly,
+  toPlainObject,
+  valueOr,
+} from './clientTrainingSafeReadValueService.mjs';
 import { extractCurrentSession } from './workoutPlanShapeService.mjs';
 
 const ACTIVE_STATUSES = ['active', 'paused', 'draft'];
-
-const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
-const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
-const toBoolean = (value) => value === true;
-const toDateOnly = (value) => {
-  if (!value) return null;
-  const raw = String(value);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-};
-
-const planId = (plan) => (plan?.id == null ? null : String(plan.id));
+const EMPTY_ASSIGNMENT = Object.freeze({});
 
 const safePlanSummary = (plan) => {
   if (!plan) return null;
   return {
-    id: planId(plan),
-    status: compactString(plan.status) || 'draft',
-    durationWeeks: plan.durationWeeks ?? null,
-    currentWeek: plan.currentWeek ?? null,
-    currentDay: plan.currentDay ?? null,
-    nasmPhase: plan.nasmPhase ?? null,
-    createdBy: compactString(plan.createdBy) || null,
+    id: stringIdOrNull(plan.id),
+    status: compactStringOr(plan.status, 'draft'),
+    durationWeeks: valueOr(plan.durationWeeks, null),
+    currentWeek: valueOr(plan.currentWeek, null),
+    currentDay: valueOr(plan.currentDay, null),
+    nasmPhase: valueOr(plan.nasmPhase, null),
+    createdBy: compactString(plan.createdBy),
     pdfAttached: Boolean(plan.pdfFile),
-    assignmentDefault: compactString(plan.assignmentDefault) || null,
-    billingIntent: compactString(plan.billingIntent) || null,
+    assignmentDefault: compactString(plan.assignmentDefault),
+    billingIntent: compactString(plan.billingIntent),
     defaultShouldDeductSession: toBoolean(plan.defaultShouldDeductSession),
   };
 };
@@ -56,28 +54,36 @@ const safeSlotSummary = (slot) => ({
   plan: slot.plan ? safePlanSummary(slot.plan) : null,
 });
 
-const safeAssignmentSummary = (assignment) => ({
-  assignmentKey: compactString(assignment?.assignmentKey),
-  assignmentType: compactString(assignment?.assignmentType) || 'none',
-  sessionType: compactString(assignment?.sessionType) || 'solo',
-  status: compactString(assignment?.status) || 'none',
-  isLoggable: toBoolean(assignment?.isLoggable),
-  isBillable: toBoolean(assignment?.isBillable),
-  shouldDeductSession: toBoolean(assignment?.shouldDeductSession),
-  ctaLabel: compactString(assignment?.ctaLabel),
-  weekNumber: assignment?.weekNumber ?? null,
-  dayNumber: assignment?.dayNumber ?? null,
-  exerciseCount: assignment?.exerciseCount ?? 0,
-  firstExerciseName: compactString(assignment?.firstExerciseName),
-  exercisePreview: summarizeAssignmentExercises(assignment?.exercises),
-  ...(assignment?.completion ? {
-    completion: {
-      source: compactString(assignment.completion.source),
-      formId: assignment.completion.formId == null ? null : String(assignment.completion.formId),
-      completedAt: toDateOnly(assignment.completion.completedAt),
-    },
-  } : {}),
+const safeAssignmentCompletion = (completion) => {
+  if (!completion) return null;
+  return {
+    source: compactString(completion.source),
+    formId: stringIdOrNull(completion.formId),
+    completedAt: toDateOnly(completion.completedAt),
+  };
+};
+
+const safeAssignmentBaseSummary = (assignment = EMPTY_ASSIGNMENT) => ({
+  assignmentKey: compactString(assignment.assignmentKey),
+  assignmentType: compactStringOr(assignment.assignmentType, 'none'),
+  sessionType: compactStringOr(assignment.sessionType, 'solo'),
+  status: compactStringOr(assignment.status, 'none'),
+  isLoggable: toBoolean(assignment.isLoggable),
+  isBillable: toBoolean(assignment.isBillable),
+  shouldDeductSession: toBoolean(assignment.shouldDeductSession),
+  ctaLabel: compactString(assignment.ctaLabel),
+  weekNumber: valueOr(assignment.weekNumber, null),
+  dayNumber: valueOr(assignment.dayNumber, null),
+  exerciseCount: valueOr(assignment.exerciseCount, 0),
+  firstExerciseName: compactString(assignment.firstExerciseName),
+  exercisePreview: summarizeAssignmentExercises(assignment.exercises),
 });
+
+const safeAssignmentSummary = (assignment) => {
+  const completion = safeAssignmentCompletion(assignment?.completion);
+  const summary = safeAssignmentBaseSummary(assignment || {});
+  return completion ? { ...summary, completion } : summary;
+};
 
 const selectActivePlan = (plans) => (
   plans.find((plan) => plan.status === 'active')
@@ -88,6 +94,57 @@ const statusWhere = (Op) => (
   Op?.in ? { [Op.in]: ACTIVE_STATUSES } : ACTIVE_STATUSES
 );
 
+const unavailableContext = () => ({
+  available: false,
+  reason: 'workout_plan_model_unavailable',
+  defaultHorizonKey: 'six_month',
+  primaryPlanId: null,
+  primaryHorizonKey: null,
+  filledHorizonKeys: [],
+  slots: [],
+  todayAssignment: safeAssignmentSummary(null),
+  homeworkSummary: summarizeHomeworkSummary(),
+});
+
+const hasWorkoutPlanReader = ({ clientId, WorkoutPlan }) => (
+  Boolean(clientId) && typeof WorkoutPlan?.findAll === 'function'
+);
+
+const readCandidatePlans = async ({ clientId, WorkoutPlan, Op }) => (
+  WorkoutPlan.findAll({
+    where: {
+      userId: clientId,
+      status: statusWhere(Op),
+    },
+    order: [['updatedAt', 'DESC']],
+    limit: 14,
+  })
+);
+
+const normalizePlanRows = (rows) => (
+  (Array.isArray(rows) ? rows : []).map(toPlainObject).filter(Boolean)
+);
+
+const currentSessionFor = (activePlan) => (
+  activePlan ? extractCurrentSession(activePlan) : null
+);
+
+const stringPrimaryPlanId = (catalog) => stringIdOrNull(catalog.primaryPlanId);
+
+const availableContext = ({ plans, overview }) => {
+  const catalog = overview.trainingPlanCatalog;
+  return {
+    available: plans.length > 0,
+    defaultHorizonKey: catalog.defaultHorizonKey,
+    primaryPlanId: stringPrimaryPlanId(catalog),
+    primaryHorizonKey: catalog.primaryHorizonKey,
+    filledHorizonKeys: catalog.filledHorizonKeys,
+    slots: catalog.slots.map(safeSlotSummary),
+    todayAssignment: safeAssignmentSummary(overview.todayAssignment),
+    homeworkSummary: summarizeHomeworkSummary(overview.homeworkSummary),
+  };
+};
+
 export async function buildClientTrainingVaultContext({
   clientId,
   WorkoutPlan,
@@ -95,52 +152,23 @@ export async function buildClientTrainingVaultContext({
   Op,
   today,
 } = {}) {
-  if (!clientId || !WorkoutPlan?.findAll) {
-    return {
-      available: false,
-      reason: 'workout_plan_model_unavailable',
-      defaultHorizonKey: 'six_month',
-      primaryPlanId: null,
-      primaryHorizonKey: null,
-      filledHorizonKeys: [],
-      slots: [],
-      todayAssignment: safeAssignmentSummary(null),
-    };
-  }
+  if (!hasWorkoutPlanReader({ clientId, WorkoutPlan })) return unavailableContext();
 
-  const rows = await WorkoutPlan.findAll({
-    where: {
-      userId: clientId,
-      status: statusWhere(Op),
-    },
-    order: [['updatedAt', 'DESC']],
-    limit: 14,
-  });
-
-  const plans = (Array.isArray(rows) ? rows : []).map(toPlainObject).filter(Boolean);
+  const rows = await readCandidatePlans({ clientId, WorkoutPlan, Op });
+  const plans = normalizePlanRows(rows);
   const activePlan = selectActivePlan(plans);
-  const currentSession = activePlan ? extractCurrentSession(activePlan) : null;
   const todayDate = toDateOnly(today);
-  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
+  const completionContext = await readAssignmentCompletionContext(
     DailyWorkoutForm,
     { clientId, date: todayDate },
   );
   const overview = buildClientTrainingOverview({
     activePlan,
     plans,
-    currentSession,
+    currentSession: currentSessionFor(activePlan),
     today,
-    assignmentCompletions,
+    assignmentCompletions: completionContext.assignmentCompletions,
+    recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
   });
-  const catalog = overview.trainingPlanCatalog;
-
-  return {
-    available: plans.length > 0,
-    defaultHorizonKey: catalog.defaultHorizonKey,
-    primaryPlanId: catalog.primaryPlanId == null ? null : String(catalog.primaryPlanId),
-    primaryHorizonKey: catalog.primaryHorizonKey,
-    filledHorizonKeys: catalog.filledHorizonKeys,
-    slots: catalog.slots.map(safeSlotSummary),
-    todayAssignment: safeAssignmentSummary(overview.todayAssignment),
-  };
+  return availableContext({ plans, overview });
 }
