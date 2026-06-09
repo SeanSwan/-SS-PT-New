@@ -132,6 +132,7 @@ import {
   dispatchViewTrainerClients,
 } from './dispatchers/trainerCommandDispatchers.mjs';
 import { dispatchUpdateClient } from './dispatchers/clientProfileWriteDispatchers.mjs';
+import { dispatchViewClientProfile } from './dispatchers/clientProfileReadDispatcher.mjs';
 import {
   dispatchCreateGoal,
   dispatchUpdateGoalProgress,
@@ -222,61 +223,6 @@ const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
 const normalizeSequelizeUpdateCount = (result) => {
   if (Array.isArray(result)) return Number(result[0] || 0);
   return Number(result || 0);
-};
-
-const dispatchViewClientProfile = async (params, ctx) => {
-  const { User, ClientProgress, Session, WorkoutSession, Order } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const include = [
-    { model: ClientProgress, as: 'clientProgress', required: false },
-    { model: Session, as: 'clientSessions', required: false },
-    { model: Order, as: 'orders', required: false, limit: 10, order: [['createdAt', 'DESC']] },
-  ];
-
-  if (User.associations?.workoutSessions) {
-    include.push({
-      model: WorkoutSession,
-      as: 'workoutSessions',
-      required: false,
-      limit: 10,
-      order: [['completedAt', 'DESC']],
-    });
-  }
-
-  const client = await User.findOne({
-    where: { id: clientId, role: 'client' },
-    include,
-    attributes: { exclude: ['password', 'refreshTokenHash'] },
-  });
-
-  if (!client) {
-    return {
-      clientId,
-      found: false,
-    };
-  }
-
-  const data = typeof client.toJSON === 'function' ? client.toJSON() : client;
-  const workoutSessions = Array.isArray(data.workoutSessions) ? data.workoutSessions : [];
-  const clientSessions = Array.isArray(data.clientSessions) ? data.clientSessions : [];
-  const orders = Array.isArray(data.orders) ? data.orders : [];
-  const lastWorkout = workoutSessions[0] || null;
-  const nextSession = clientSessions[0] || null;
-
-  return {
-    clientId,
-    found: true,
-    isActive: data.isActive ?? null,
-    clientSource: data.clientSource ?? null,
-    availableSessions: data.availableSessions ?? null,
-    fitnessGoal: data.fitnessGoal ?? null,
-    onboardingComplete: Boolean(data.masterPromptJson),
-    totalWorkouts: workoutSessions.length,
-    totalOrders: orders.length,
-    lastWorkoutDate: toDateOnly(lastWorkout?.completedAt ?? lastWorkout?.date),
-    nextSessionDate: toDateOnly(nextSession?.sessionDate),
-    latestWeight: data.clientProgress?.weight ?? data.weight ?? null,
-  };
 };
 
 const dispatchListActiveClients = async (params, ctx) => {
