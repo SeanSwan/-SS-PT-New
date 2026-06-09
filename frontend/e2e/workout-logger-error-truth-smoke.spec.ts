@@ -49,8 +49,25 @@ async function inspectLayout(page: Page) {
   }));
 }
 
+type FailedResource = {
+  status: number;
+  url: string;
+};
+
+function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (!/Failed to load resource: the server responded with a status of 400/i.test(message)) return false;
+
+  return failedResources.some((resource) => {
+    if (resource.status !== 400) return false;
+
+    const url = new URL(resource.url);
+    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
+  });
+}
+
 test('trainer workout logger failed client load does not fall back to demo mode', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
+  const failedResources: FailedResource[] = [];
 
   await mockWorkoutLoggerApi(page);
   await page.addInitScript(
@@ -66,6 +83,9 @@ test('trainer workout logger failed client load does not fall back to demo mode'
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
+  page.on('response', (response) => {
+    if (response.status() >= 400) failedResources.push({ status: response.status(), url: response.url() });
+  });
 
   await page.goto('/dashboard/trainer/log-workout?clientId=77', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -86,6 +106,7 @@ test('trainer workout logger failed client load does not fall back to demo mode'
     !/preloaded using link preload/i.test(item)
     && !/Failed to load resource: the server responded with a status of 403/i.test(item)
     && !/\/api\/workout-forms\/client\/77\/info/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
 
