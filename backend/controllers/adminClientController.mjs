@@ -277,6 +277,7 @@ import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
+import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -287,9 +288,19 @@ let WorkoutSession;
 let Order;
 let DailyWorkoutForm;
 let ClientTrainerAssignment;
+let ClientOnboardingQuestionnaire;
 
 const ensureModels = () => {
-  if (User && ClientProgress && Session && WorkoutSession && Order && DailyWorkoutForm && ClientTrainerAssignment) return;
+  if (
+    User &&
+    ClientProgress &&
+    Session &&
+    WorkoutSession &&
+    Order &&
+    DailyWorkoutForm &&
+    ClientTrainerAssignment &&
+    ClientOnboardingQuestionnaire !== undefined
+  ) return;
   const models = getAllModels();
   User = models.User;
   ClientProgress = models.ClientProgress;
@@ -298,6 +309,7 @@ const ensureModels = () => {
   Order = models.Order;
   DailyWorkoutForm = models.DailyWorkoutForm;
   ClientTrainerAssignment = models.ClientTrainerAssignment;
+  ClientOnboardingQuestionnaire = models.ClientOnboardingQuestionnaire ?? null;
   if (!User) throw new Error('User model not available — model cache may not be initialized');
 };
 
@@ -376,6 +388,21 @@ const serializeClientsToCsv = (rows) => [
   CLIENT_EXPORT_FIELDS.join(','),
   ...rows.map((row) => CLIENT_EXPORT_FIELDS.map((field) => escapeCsvValue(row[field])).join(',')),
 ].join('\n');
+
+const buildOnboardingProgressMap = (questionnaires) => {
+  const progressMap = {};
+  for (const questionnaire of questionnaires) {
+    if (!questionnaire?.userId || progressMap[questionnaire.userId]) continue;
+
+    const responses = normalizeJsonObject(questionnaire.responsesJson) ?? {};
+    const completionPercentage = calculateCompletionPercentage(responses);
+    progressMap[questionnaire.userId] = {
+      completionPercentage,
+      onboardingComplete: questionnaire.status === 'completed' || completionPercentage === 100
+    };
+  }
+  return progressMap;
+};
 
 /**
  * AdminClientController class
@@ -547,6 +574,28 @@ class AdminClientController {
         }
       }
 
+      const onboardingProgressMap = {};
+      if (ClientOnboardingQuestionnaire?.findAll && clientIds.length > 0) {
+        try {
+          const questionnaires = await ClientOnboardingQuestionnaire.findAll({
+            attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+            where: {
+              userId: { [Op.in]: clientIds },
+              status: { [Op.ne]: 'archived' }
+            },
+            order: [
+              ['userId', 'ASC'],
+              ['updatedAt', 'DESC'],
+              ['createdAt', 'DESC']
+            ],
+            raw: true
+          });
+          Object.assign(onboardingProgressMap, buildOnboardingProgressMap(questionnaires));
+        } catch (metricError) {
+          logger.warn(`Client onboarding progress unavailable: ${metricError.message}`);
+        }
+      }
+
       // Enrich client data with computed fields
       const enrichedClients = clients.map((client) => {
         // Strip masterPromptJson from list response (large blob, fetch on detail view only)
@@ -554,10 +603,20 @@ class AdminClientController {
 
         // Measurement schedule status (green/yellow/red)
         const scheduleStatus = getMeasurementStatus(clientData);
+        const onboardingProgress = onboardingProgressMap[client.id] || null;
+        const onboardingComplete = clientData.isOnboardingComplete === true ||
+          masterPromptJson != null ||
+          onboardingProgress?.onboardingComplete === true;
+        const onboardingPct = Number.isInteger(onboardingProgress?.completionPercentage)
+          ? onboardingProgress.completionPercentage
+          : onboardingComplete ? 100 : null;
 
         return {
           ...clientData,
-          onboardingComplete: masterPromptJson != null,
+          onboardingComplete,
+          completionPercentage: onboardingPct,
+          onboardingCompletionPercentage: onboardingPct,
+          onboardingPct,
           totalWorkouts: workoutCountMap[client.id] || 0,
           totalOrders: orderCountMap[client.id] || 0,
           lastWorkout: clientData.workoutSessions?.[0] || null,
