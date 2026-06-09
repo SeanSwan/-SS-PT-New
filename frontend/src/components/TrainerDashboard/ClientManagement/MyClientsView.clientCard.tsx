@@ -11,6 +11,7 @@ import {
   CalendarClock,
   CheckCircle,
   ClipboardCheck,
+  ClipboardList,
   Edit,
   Layers,
   MessageSquare,
@@ -43,6 +44,7 @@ import {
   getMembershipBadgeStyle,
   getMembershipColor,
   getNextSessionLabel,
+  getOnboardingReadinessLabel,
 } from './MyClientsView.logic';
 import {
   ClientReadinessStrip,
@@ -90,6 +92,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
   const clientName = `${client.firstName} ${client.lastName}`;
   const sourceLabel = getClientSourceLabel(client.clientSource);
   const nextSessionLabel = getNextSessionLabel(client.nextSessionDate);
+  const onboardingLabel = getOnboardingReadinessLabel(client);
 
   return (
     <ClientCard
@@ -139,6 +142,10 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         <ReadinessChip>
           <CalendarClock size={15} aria-hidden="true" />
           <span>{nextSessionLabel}</span>
+        </ReadinessChip>
+        <ReadinessChip>
+          <ClipboardList size={15} aria-hidden="true" />
+          <span>{onboardingLabel}</span>
         </ReadinessChip>
         <ReadinessChip>
           <ClipboardCheck size={15} aria-hidden="true" />

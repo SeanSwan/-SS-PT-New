@@ -22,6 +22,10 @@ type AdminClient = {
   photo?: string;
   availableSessions?: number;
   clientSource?: Client['clientSource'];
+  onboardingStatus?: string | null;
+  onboardingComplete?: boolean;
+  onboardingCompletionPercentage?: number | null;
+  onboardingPct?: number | null;
   totalWorkouts?: number;
   lastWorkoutDate?: string;
   nextSessionDate?: string;
@@ -56,6 +60,10 @@ const adaptAdminClient = (client: AdminClient): ClientAssignment | null => {
       photo: client.photo,
       availableSessions: toSessionCount(client.availableSessions),
       clientSource: client.clientSource ?? 'swanstudios',
+      onboardingStatus: client.onboardingStatus,
+      onboardingComplete: client.onboardingComplete,
+      onboardingCompletionPercentage: client.onboardingCompletionPercentage ?? client.onboardingPct ?? null,
+      onboardingPct: client.onboardingPct ?? client.onboardingCompletionPercentage ?? null,
       totalSessionsCompleted: client.totalWorkouts ?? 0,
       lastSessionDate: client.lastWorkoutDate,
       nextSessionDate: client.nextSessionDate,

@@ -230,11 +230,13 @@ import express from 'express';
 import { protect, adminOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import {
   getClientTrainerAssignment,
+  getModel,
   getUser
 } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
+import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
 
 const router = express.Router();
 const VALID_ASSIGNMENT_STATUSES = new Set(['active', 'inactive', 'pending']);
@@ -258,6 +260,52 @@ const sendInternalError = (res, message) => res.status(500).json({
   message,
   error: 'internal_error'
 });
+
+const buildOnboardingProgressMap = (questionnaires) => {
+  const progressMap = {};
+
+  for (const questionnaire of questionnaires) {
+    if (!questionnaire?.userId || progressMap[questionnaire.userId]) continue;
+
+    const responses = normalizeJsonObject(questionnaire.responsesJson) ?? {};
+    const derivedCompletion = calculateCompletionPercentage(responses);
+    progressMap[questionnaire.userId] = {
+      status: questionnaire.status ?? null,
+      onboardingCompletionPercentage: derivedCompletion,
+      onboardingComplete: questionnaire.status === 'completed' || derivedCompletion === 100
+    };
+  }
+
+  return progressMap;
+};
+
+const attachOnboardingReadiness = (assignments, progressMap) => assignments.map((assignment) => {
+  const assignmentData = typeof assignment?.toJSON === 'function' ? assignment.toJSON() : assignment;
+  const clientData = assignmentData?.client;
+  if (!clientData) return assignmentData;
+
+  const onboardingProgress = progressMap[clientData.id] ?? null;
+
+  return {
+    ...assignmentData,
+    client: {
+      ...clientData,
+      onboardingStatus: onboardingProgress?.status ?? null,
+      onboardingComplete: onboardingProgress?.onboardingComplete === true,
+      onboardingCompletionPercentage: onboardingProgress?.onboardingCompletionPercentage ?? null,
+      onboardingPct: onboardingProgress?.onboardingCompletionPercentage ?? null
+    }
+  };
+});
+
+const getClientOnboardingQuestionnaireModel = () => {
+  try {
+    return typeof getModel === 'function' ? getModel('ClientOnboardingQuestionnaire') : null;
+  } catch (error) {
+    logger.warn(`Client onboarding questionnaire model unavailable: ${error.message}`);
+    return null;
+  }
+};
 
 /**
  * @route   GET /api/assignments/test
@@ -485,6 +533,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
+    const ClientOnboardingQuestionnaire = getClientOnboardingQuestionnaireModel();
 
     const assignments = await ClientTrainerAssignment.findAll({
       where: {
@@ -509,6 +558,34 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
       order: [['createdAt', 'DESC']]
     });
 
+    const clientIds = assignments
+      .map((assignment) => assignment?.client?.id)
+      .filter((clientId) => Number.isSafeInteger(Number(clientId)) && Number(clientId) > 0);
+    let onboardingProgressMap = {};
+
+    if (ClientOnboardingQuestionnaire?.findAll && clientIds.length > 0) {
+      try {
+        const questionnaires = await ClientOnboardingQuestionnaire.findAll({
+          attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+          where: {
+            userId: { [Op.in]: clientIds },
+            status: { [Op.ne]: 'archived' }
+          },
+          order: [
+            ['userId', 'ASC'],
+            ['updatedAt', 'DESC'],
+            ['createdAt', 'DESC']
+          ],
+          raw: true
+        });
+        onboardingProgressMap = buildOnboardingProgressMap(questionnaires);
+      } catch (metricError) {
+        logger.warn(`Trainer assignment onboarding progress unavailable: ${metricError.message}`);
+      }
+    }
+
+    const enrichedAssignments = attachOnboardingReadiness(assignments, onboardingProgressMap);
+
     logger.info(`Trainer ${parsedTrainerId} retrieved ${assignments.length} assigned clients`, {
       requestingUserId,
       trainerId: parsedTrainerId
@@ -516,8 +593,8 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     res.json({
       success: true,
-      assignments,
-      totalClients: assignments.length
+      assignments: enrichedAssignments,
+      totalClients: enrichedAssignments.length
     });
 
   } catch (error) {

@@ -20,4 +20,12 @@ describe('client trainer assignment clientSource contract', () => {
       expect(list).toContain("'clientSource'");
     }
   });
+
+  it('derives onboarding readiness for trainer client cards without relying on a fake model column', () => {
+    expect(source).toContain('calculateCompletionPercentage');
+    expect(source).toContain('ClientOnboardingQuestionnaire');
+    expect(source).toContain('onboardingCompletionPercentage');
+    expect(source).toContain('responsesJson');
+    expect(source).not.toContain("'completionPercentage'");
+  });
 });

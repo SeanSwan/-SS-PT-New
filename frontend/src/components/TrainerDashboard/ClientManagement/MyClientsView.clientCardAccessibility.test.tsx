@@ -15,6 +15,8 @@ const assignment: ClientAssignment = {
     email: 'accessible@example.com',
     availableSessions: 4,
     clientSource: 'swanstudios',
+    onboardingCompletionPercentage: 67,
+    onboardingStatus: 'in_progress',
     totalSessionsCompleted: 3,
     lastSessionDate: '2026-05-20T12:00:00.000Z',
     nextSessionDate: '2026-06-12T12:00:00.000Z',
@@ -110,6 +112,7 @@ describe('TrainerClientCard accessibility', () => {
 
     expect(screen.getByText('SwanStudios paid')).toBeInTheDocument();
     expect(screen.getByText('Next session: Jun 12')).toBeInTheDocument();
+    expect(screen.getByText('Intake 67%')).toBeInTheDocument();
     expect(screen.getAllByText('4 paid sessions').length).toBeGreaterThan(0);
     expect(screen.getAllByText('deducts when logged').length).toBeGreaterThan(0);
   });

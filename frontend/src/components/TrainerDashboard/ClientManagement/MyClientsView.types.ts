@@ -19,6 +19,10 @@ export interface Client {
   photo?: string;
   availableSessions: number;
   clientSource?: ClientSource;
+  onboardingStatus?: string | null;
+  onboardingComplete?: boolean;
+  onboardingCompletionPercentage?: number | null;
+  onboardingPct?: number | null;
   totalSessionsCompleted: number;
   lastSessionDate?: string;
   nextSessionDate?: string;

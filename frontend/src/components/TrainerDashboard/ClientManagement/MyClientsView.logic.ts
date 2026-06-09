@@ -6,7 +6,7 @@
 
 import type { CSSProperties } from 'react';
 import { normalizeClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
-import type { TrainerClientIntent } from './MyClientsView.types';
+import type { Client, TrainerClientIntent } from './MyClientsView.types';
 
 export const getInitials = (firstName: string, lastName: string): string => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -52,6 +52,34 @@ export const getClientSourceLabel = (source?: string | null): string => {
     default:
       return 'SwanStudios paid';
   }
+};
+
+export const getOnboardingReadinessLabel = (client: Pick<
+  Client,
+  'onboardingComplete' | 'onboardingCompletionPercentage' | 'onboardingPct' | 'onboardingStatus'
+>): string => {
+  const rawPercentage = client.onboardingCompletionPercentage ?? client.onboardingPct;
+  const parsedPercentage = typeof rawPercentage === 'number' ? rawPercentage : Number(rawPercentage);
+  const percentage = Number.isFinite(parsedPercentage)
+    ? Math.max(0, Math.min(100, Math.round(parsedPercentage)))
+    : null;
+  const status = typeof client.onboardingStatus === 'string'
+    ? client.onboardingStatus.toLowerCase()
+    : '';
+
+  if (client.onboardingComplete === true || status === 'completed' || percentage === 100) {
+    return 'Intake complete';
+  }
+
+  if (percentage !== null && percentage > 0) {
+    return `Intake ${percentage}%`;
+  }
+
+  if (status === 'submitted') {
+    return 'Intake submitted';
+  }
+
+  return 'Intake pending';
 };
 
 export const getMembershipColor = (level: string): string => {
