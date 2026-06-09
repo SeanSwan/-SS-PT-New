@@ -579,9 +579,13 @@ router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, as
     });
 
     if (!cart) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Active cart not found' 
+      return res.status(200).json({
+        success: true,
+        message: 'Cart already empty',
+        items: [],
+        total: 0,
+        totalSessions: 0,
+        itemCount: 0
       });
     }
 

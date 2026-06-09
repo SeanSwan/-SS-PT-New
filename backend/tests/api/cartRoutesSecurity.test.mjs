@@ -77,6 +77,17 @@ describe('cart routes security hardening', () => {
     expect(removeRoute).toContain('where: { id: normalizedItemId }');
   });
 
+  it('treats clear-cart as idempotent after checkout completes the active cart', () => {
+    const clearRoute = sliceBetween(
+      cartRouteSource,
+      "router.delete('/clear'",
+      "router.post('/checkout'"
+    );
+
+    expect(clearRoute).toContain('message: \'Cart already empty\'');
+    expect(clearRoute).not.toContain('message: \'Active cart not found\'');
+  });
+
   it('strictly parses Stripe webhook cart metadata before granting sessions', () => {
     const webhookRoute = cartRouteSource.slice(cartRouteSource.indexOf("router.post('/webhook'"));
 
