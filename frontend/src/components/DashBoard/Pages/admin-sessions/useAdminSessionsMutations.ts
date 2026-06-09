@@ -13,15 +13,17 @@ interface UseAdminSessionsMutationsParams {
   fetchSessions: RefreshCallback;
   fetchClients: RefreshCallback;
   fetchTrainers: RefreshCallback;
+  initialNewSessionClientId?: string;
 }
 
 const useAdminSessionsMutations = ({
   fetchSessions,
   fetchClients,
   fetchTrainers,
+  initialNewSessionClientId = '',
 }: UseAdminSessionsMutationsParams) => {
   const { toast } = useToast();
-  const state = useAdminSessionsDialogState();
+  const state = useAdminSessionsDialogState({ initialNewSessionClientId });
 
   const handleViewSession = (session: Session) => {
     state.setSelectedSession(session);

@@ -86,7 +86,7 @@ describe('client activation queue adapter', () => {
 
     expect(getAdminActivationCta(makeRow('schedule_first_session', 9))).toEqual({
       label: 'Schedule Session',
-      route: '/dashboard/admin-sessions?clientId=9',
+      route: '/dashboard/admin/admin-sessions?clientId=9',
     });
   });
 

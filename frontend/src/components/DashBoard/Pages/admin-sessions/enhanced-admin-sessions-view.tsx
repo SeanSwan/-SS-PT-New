@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 import { PageContainer, ContentContainer } from './AdminSessionsShell.styles';
 import { containerVariants } from './AdminSessionsTheme.styles';
@@ -18,11 +19,13 @@ import {
   sortAdminSessions,
   type AdminSessionsSortConfig,
 } from './AdminSessionsSessionList.logic';
+import { getAdminSessionsClientIdFromSearch } from './AdminSessionsDeepLink.logic';
 
 type SortKey = AdminSessionsSortConfig['key'];
 type SortConfig = AdminSessionsSortConfig;
 
 const EnhancedAdminSessionsView: React.FC = () => {
+  const location = useLocation();
   const {
     sessions,
     loading,
@@ -35,10 +38,15 @@ const EnhancedAdminSessionsView: React.FC = () => {
     fetchClients,
     fetchTrainers,
   } = useAdminSessionsData();
+  const initialNewSessionClientId = React.useMemo(
+    () => getAdminSessionsClientIdFromSearch(location.search),
+    [location.search],
+  );
   const sessionMutations = useAdminSessionsMutations({
     fetchSessions,
     fetchClients,
     fetchTrainers,
+    initialNewSessionClientId,
   });
 
   const [page, setPage] = useState(0);

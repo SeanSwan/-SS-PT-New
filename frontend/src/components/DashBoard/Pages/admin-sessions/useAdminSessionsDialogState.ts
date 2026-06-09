@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import type { Session } from './ViewSessionModal.types';
 
-const useAdminSessionsDialogState = () => {
+interface UseAdminSessionsDialogStateOptions {
+  initialNewSessionClientId?: string;
+}
+
+const useAdminSessionsDialogState = ({
+  initialNewSessionClientId = '',
+}: UseAdminSessionsDialogStateOptions = {}) => {
+  const hasInitialNewSessionClient = Boolean(initialNewSessionClientId);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -10,7 +17,7 @@ const useAdminSessionsDialogState = () => {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [openNewDialog, setOpenNewDialog] = useState(false);
+  const [openNewDialog, setOpenNewDialog] = useState(hasInitialNewSessionClient);
   const [openAddSessionsDialog, setOpenAddSessionsDialog] = useState(false);
   const [selectedClient, setSelectedClient] = useState('');
   const [sessionsToAdd, setSessionsToAdd] = useState(1);
@@ -29,7 +36,7 @@ const useAdminSessionsDialogState = () => {
   const [newSessionDuration, setNewSessionDuration] = useState(60);
   const [newSessionLocation, setNewSessionLocation] = useState('Main Studio');
   const [newSessionNotes, setNewSessionNotes] = useState('');
-  const [newSessionClient, setNewSessionClient] = useState('');
+  const [newSessionClient, setNewSessionClient] = useState(initialNewSessionClientId);
   const [newSessionTrainer, setNewSessionTrainer] = useState('');
 
   return {
