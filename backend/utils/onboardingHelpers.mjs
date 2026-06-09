@@ -5,10 +5,24 @@
  * Extracted from clientOnboardingController.mjs for reuse in adminOnboardingController.mjs.
  */
 
-export const TOTAL_QUESTION_COUNT = 85;
+const TOTAL_QUESTION_COUNT = 85;
 
 export const isPlainObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
+
+export const normalizeJsonObject = (value) => {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return null;
+    }
+  }
+  return isPlainObject(value) ? value : null;
+};
 
 export const toNumber = (value) => {
   if (value === null || value === undefined) return null;
@@ -16,7 +30,60 @@ export const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-export const countAnsweredQuestions = (value) => {
+const readFirstValue = (values, fallback = null) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return fallback;
+};
+
+const readField = (source, fields, fallback = null) => {
+  if (!isPlainObject(source)) {
+    return fallback;
+  }
+  for (const field of fields) {
+    const value = source[field];
+    if (value !== null && value !== undefined) {
+      return value;
+    }
+  }
+  return fallback;
+};
+
+const arrayOrEmpty = (value) => (Array.isArray(value) ? value : []);
+
+const countArrayItemsFromValues = (values) =>
+  values.reduce((sum, value) => {
+    if (!Array.isArray(value)) {
+      return sum;
+    }
+    return sum + value.length;
+  }, 0);
+
+const HEALTH_RISK_LABELS = ['low', 'medium', 'high', 'critical'];
+
+const MEDICAL_RISK_LEVELS = [
+  { min: 3, level: 3 },
+  { min: 1, level: 2 },
+];
+
+const INJURY_RISK_LEVELS = [
+  { min: 2, level: 2 },
+  { min: 1, level: 1 },
+];
+
+const PAIN_RISK_LEVELS = [
+  { min: 8, level: 3 },
+  { min: 5, level: 2 },
+  { min: 3, level: 1 },
+];
+
+const findRiskLevel = (value, thresholds) =>
+  thresholds.find(({ min }) => value >= min)?.level ?? 0;
+
+const countAnsweredQuestions = (value) => {
   if (value === null || value === undefined) return 0;
   if (Array.isArray(value)) return value.length > 0 ? 1 : 0;
   if (typeof value === 'object') {
@@ -42,103 +109,94 @@ export const normalizeOnboardingQueueStatus = (status) => {
 };
 
 export const extractPrimaryGoal = (responses) => {
-  return (
-    responses?.section2_goals?.primary_goal ??
-    responses?.section2_goals?.primaryGoal ??
-    responses?.section2?.primary_goal ??
-    responses?.section2?.primaryGoal ??
-    responses?.goals?.primary_goal ??
-    responses?.goals?.primary ??
-    responses?.primaryGoal ??
-    null
-  );
+  return readFirstValue([
+    readField(responses?.section2_goals, ['primary_goal', 'primaryGoal']),
+    readField(responses?.section2, ['primary_goal', 'primaryGoal']),
+    readField(responses?.goals, ['primary_goal', 'primary']),
+    readField(responses, ['primaryGoal']),
+  ]);
 };
 
 export const extractTrainingTier = (responses) => {
-  return (
-    responses?.section2_goals?.preferred_package ??
-    responses?.section2_goals?.preferredPackage ??
-    responses?.section2?.preferred_package ??
-    responses?.section2?.preferredPackage ??
-    responses?.package?.tier ??
-    responses?.trainingTier ??
-    null
-  );
+  return readFirstValue([
+    readField(responses?.section2_goals, ['preferred_package', 'preferredPackage']),
+    readField(responses?.section2, ['preferred_package', 'preferredPackage']),
+    readField(responses?.package, ['tier']),
+    readField(responses, ['trainingTier']),
+  ]);
 };
 
 export const extractCommitmentLevel = (responses) => {
-  const rawValue =
-    responses?.section3_lifestyle?.commitment_level ??
-    responses?.section3_lifestyle?.commitmentLevel ??
-    responses?.section2_goals?.commitment_level ??
-    responses?.section2_goals?.commitmentLevel ??
-    responses?.goals?.commitmentLevel ??
-    responses?.commitmentLevel ??
-    null;
+  const rawValue = readFirstValue([
+    readField(responses?.section3_lifestyle, ['commitment_level', 'commitmentLevel']),
+    readField(responses?.section2_goals, ['commitment_level', 'commitmentLevel']),
+    readField(responses?.goals, ['commitmentLevel']),
+    readField(responses, ['commitmentLevel']),
+  ]);
   const parsed = toNumber(rawValue);
   return parsed !== null ? Math.round(parsed) : null;
 };
 
 export const extractNutritionPrefs = (responses) => {
-  const nutrition = responses?.section5_nutrition ?? responses?.nutrition ?? {};
-  const dietaryRestrictions =
-    nutrition?.dietary_restrictions ??
-    nutrition?.dietaryRestrictions ??
-    nutrition?.dietary_preferences ??
-    responses?.dietaryPreferences ??
-    responses?.dietary_preferences ??
-    [];
-  const allergies =
-    nutrition?.allergies ??
-    responses?.foodAllergies ??
-    responses?.allergies ??
-    [];
-  const mealFrequency =
-    nutrition?.meals_per_day ??
-    nutrition?.meal_frequency ??
-    nutrition?.mealFrequency ??
-    responses?.mealFrequency ??
-    null;
+  const nutrition = readFirstValue([responses?.section5_nutrition, responses?.nutrition], {});
+  const dietaryRestrictions = readFirstValue([
+    readField(nutrition, ['dietary_restrictions', 'dietaryRestrictions', 'dietary_preferences']),
+    readField(responses, ['dietaryPreferences', 'dietary_preferences']),
+  ], []);
+  const allergies = readFirstValue([
+    readField(nutrition, ['allergies']),
+    readField(responses, ['foodAllergies', 'allergies']),
+  ], []);
+  const mealFrequency = readFirstValue([
+    readField(nutrition, ['meals_per_day', 'meal_frequency', 'mealFrequency']),
+    readField(responses, ['mealFrequency']),
+  ]);
 
   return {
-    dietary_restrictions: Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [],
+    dietary_restrictions: arrayOrEmpty(dietaryRestrictions),
     meal_frequency: toNumber(mealFrequency) ?? 3,
-    allergies: Array.isArray(allergies) ? allergies : [],
+    allergies: arrayOrEmpty(allergies),
   };
 };
 
-export const calculateHealthRisk = (responses) => {
-  const health = responses?.section4_health ?? responses?.health ?? {};
-  const history = responses?.section3_health_history ?? responses?.health_history ?? {};
-
-  const medicalConditions = [
-    health?.medical_conditions,
-    health?.medicalConditions,
-    health?.chronic_conditions,
-    history?.chronic_conditions,
-    history?.medical_conditions,
-    // Flat keys used by transformQuestionnaireToMasterPrompt
-    responses?.medicalConditions,
-  ].reduce((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0);
-
-  const injuries = [
-    health?.current_injuries,
-    health?.injuries,
-    history?.injuries,
-    history?.past_injuries,
-    // Flat keys
-    responses?.pastInjuries,
-    responses?.currentPain,
-  ].reduce((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0);
-
-  const painLevel = toNumber(
-    health?.pain_level ?? health?.painLevel ?? responses?.pain_level ?? responses?.painLevel ?? responses?.currentPainLevel ?? 0
+const classifyHealthRisk = ({ medicalConditions, injuries, painLevel }) => {
+  const riskLevel = Math.max(
+    findRiskLevel(medicalConditions, MEDICAL_RISK_LEVELS),
+    findRiskLevel(injuries, INJURY_RISK_LEVELS),
+    findRiskLevel(painLevel ?? 0, PAIN_RISK_LEVELS),
   );
 
-  if (medicalConditions >= 3 || (painLevel !== null && painLevel >= 8)) return 'critical';
-  if (medicalConditions >= 1 || injuries >= 2 || (painLevel !== null && painLevel >= 5)) return 'high';
-  if (injuries >= 1 || (painLevel !== null && painLevel >= 3)) return 'medium';
-  return 'low';
+  return HEALTH_RISK_LABELS[riskLevel];
+};
+
+export const calculateHealthRisk = (responses) => {
+  const health = readFirstValue([
+    readField(responses, ['section4_health', 'health']),
+  ], {});
+  const history = readFirstValue([
+    readField(responses, ['section3_health_history', 'health_history']),
+  ], {});
+
+  const medicalConditions = countArrayItemsFromValues([
+    readField(health, ['medical_conditions', 'medicalConditions', 'chronic_conditions']),
+    readField(history, ['chronic_conditions', 'medical_conditions']),
+    // Flat keys used by transformQuestionnaireToMasterPrompt
+    readField(responses, ['medicalConditions']),
+  ]);
+
+  const injuries = countArrayItemsFromValues([
+    readField(health, ['current_injuries', 'injuries']),
+    readField(history, ['injuries', 'past_injuries']),
+    // Flat keys
+    readField(responses, ['pastInjuries', 'currentPain']),
+  ]);
+
+  const painLevel = toNumber(readFirstValue([
+    readField(health, ['pain_level', 'painLevel']),
+    readField(responses, ['pain_level', 'painLevel', 'currentPainLevel']),
+  ], 0));
+
+  return classifyHealthRisk({ medicalConditions, injuries, painLevel });
 };
 
 /**

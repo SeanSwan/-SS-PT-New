@@ -24,13 +24,21 @@ const __dirname = path.dirname(__filename);
 
 describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
   let helpers;
+  let helperSource;
 
   beforeAll(async () => {
     helpers = await import('../../utils/onboardingHelpers.mjs');
+    helperSource = readFileSync(path.resolve(__dirname, '../../utils/onboardingHelpers.mjs'), 'utf8');
   });
 
-  test('1 — exports TOTAL_QUESTION_COUNT = 85', () => {
-    expect(helpers.TOTAL_QUESTION_COUNT).toBe(85);
+  test('1 — completion scoring keeps the 85-question denominator', () => {
+    const almostComplete = {};
+    const complete = {};
+    for (let i = 0; i < 84; i++) almostComplete[`q${i}`] = 'answered';
+    for (let i = 0; i < 85; i++) complete[`q${i}`] = 'answered';
+
+    expect(helpers.calculateCompletionPercentage(almostComplete)).toBe(99);
+    expect(helpers.calculateCompletionPercentage(complete)).toBe(100);
   });
 
   test('2 — isPlainObject identifies objects correctly', () => {
@@ -90,6 +98,13 @@ describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
     })).toBe('medium');
   });
 
+  test('8b - nutrition and health derivation use shared fallback helpers', () => {
+    expect(helperSource).toContain('const readField =');
+    expect(helperSource).toContain('const readFirstValue =');
+    expect(helperSource).toContain('const countArrayItemsFromValues =');
+    expect(helperSource).not.toContain('].reduce((sum, value) => sum + (Array.isArray(value) ? value.length : 0), 0);');
+  });
+
   test('9 — computeDerivedFields returns all five summary fields', () => {
     const responses = {
       section2_goals: { primary_goal: 'weight_loss', preferred_package: 'Gold' },
@@ -112,12 +127,12 @@ describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
     expect(helpers.calculateCompletionPercentage(full)).toBe(100);
   });
 
-  test('11 — countAnsweredQuestions handles nested objects, arrays, strings', () => {
-    expect(helpers.countAnsweredQuestions(null)).toBe(0);
-    expect(helpers.countAnsweredQuestions('')).toBe(0);
-    expect(helpers.countAnsweredQuestions('yes')).toBe(1);
-    expect(helpers.countAnsweredQuestions(['a', 'b'])).toBe(1); // array counts as 1 if non-empty
-    expect(helpers.countAnsweredQuestions({ a: 'x', b: { c: 'y' } })).toBe(2);
+  test('11 — completion scoring handles nested objects, arrays, and strings', () => {
+    expect(helpers.calculateCompletionPercentage(null)).toBe(0);
+    expect(helpers.calculateCompletionPercentage({ empty: '' })).toBe(0);
+    expect(helpers.calculateCompletionPercentage({ answer: 'yes' })).toBe(1);
+    expect(helpers.calculateCompletionPercentage({ choices: ['a', 'b'] })).toBe(1);
+    expect(helpers.calculateCompletionPercentage({ a: 'x', b: { c: 'y' } })).toBe(2);
   });
 
   test('11b - normalizeOnboardingQueueStatus treats canonical completed records as complete', () => {

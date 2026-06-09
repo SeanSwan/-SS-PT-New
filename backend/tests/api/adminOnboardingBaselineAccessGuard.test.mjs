@@ -25,8 +25,9 @@ describe('admin onboarding baseline access guard', () => {
 
   it('keeps direct controller calls on the same assignment policy', () => {
     expect(controllerSource).toContain('Number.isInteger(parsed) && parsed > 0 ? parsed : null');
-    expect(controllerSource).toContain('const accessResult = await ensureTrainerAccess(req.user, targetUserId, ClientTrainerAssignment);');
-    expect(controllerSource).toContain('const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);');
+    expect(controllerSource).toContain('access: ensureTrainerAccess');
+    expect(controllerSource).toContain('access: ensureClientAccess');
+    expect(controllerSource).toContain('const accessResult = await access(req.user, targetUserId, ClientTrainerAssignment);');
     expect(controllerSource).not.toContain("req.user.role === 'admin' || req.user.role === 'trainer'");
   });
 

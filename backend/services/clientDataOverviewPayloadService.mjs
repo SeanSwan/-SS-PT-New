@@ -11,22 +11,8 @@
 
 import {
   calculateCompletionPercentage,
-  isPlainObject,
+  normalizeJsonObject,
 } from '../utils/onboardingHelpers.mjs';
-
-const normalizeJsonObject = (value) => {
-  if (!value) {
-    return null;
-  }
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      return null;
-    }
-  }
-  return isPlainObject(value) ? value : null;
-};
 
 const nullableNumber = (value) => (value ? Number(value) : null);
 
@@ -34,7 +20,7 @@ const formatPair = (first, second, template) => (
   first && second ? template(first, second) : null
 );
 
-export const buildBaselineSummary = (baselineMeasurement, movementDate) => {
+const buildBaselineSummary = (baselineMeasurement, movementDate) => {
   if (!baselineMeasurement) {
     return null;
   }
@@ -63,7 +49,7 @@ export const buildBaselineSummary = (baselineMeasurement, movementDate) => {
   };
 };
 
-export const buildNutritionSummary = (nutritionPlan) => {
+const buildNutritionSummary = (nutritionPlan) => {
   if (!nutritionPlan) {
     return {
       active: false,

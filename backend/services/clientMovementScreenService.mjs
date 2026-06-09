@@ -22,22 +22,9 @@
 
 import {
   isPlainObject,
+  normalizeJsonObject,
   toNumber,
 } from '../utils/onboardingHelpers.mjs';
-
-const normalizeJsonObject = (value) => {
-  if (!value) {
-    return null;
-  }
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      return null;
-    }
-  }
-  return isPlainObject(value) ? value : null;
-};
 
 const hasParqRisk = (parqScreening) => {
   if (!parqScreening || !isPlainObject(parqScreening)) {

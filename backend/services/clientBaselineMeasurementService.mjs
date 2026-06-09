@@ -9,25 +9,11 @@
  * - Centralize JSON-object normalization for range-of-motion data.
  */
 
-import { isPlainObject } from '../utils/onboardingHelpers.mjs';
-
-const normalizeJsonObject = (value) => {
-  if (!value) {
-    return null;
-  }
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      return null;
-    }
-  }
-  return isPlainObject(value) ? value : null;
-};
+import { normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
 
 const nullableValue = (value) => value || null;
 
-export const buildBaselineMeasurementCreatePayload = ({
+const buildBaselineMeasurementCreatePayload = ({
   targetUserId,
   recordedByUserId,
   measurementData = {},

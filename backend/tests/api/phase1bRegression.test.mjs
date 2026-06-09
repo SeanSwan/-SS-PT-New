@@ -29,8 +29,7 @@ describe('clientOnboardingController regression after helper extraction', () => 
 
   test('imports shared helpers from onboardingHelpers.mjs', () => {
     expect(source).toContain("from '../utils/onboardingHelpers.mjs'");
-    expect(source).toContain('TOTAL_QUESTION_COUNT');
-    expect(source).toContain('isPlainObject');
+    expect(source).toContain('normalizeJsonObject');
     expect(source).toContain('toNumber');
     expect(source).toContain('extractPrimaryGoal');
     expect(source).toContain('extractTrainingTier');
@@ -53,6 +52,7 @@ describe('clientOnboardingController regression after helper extraction', () => 
       /^const calculateHealthRisk\s*=/m,
       /^const TOTAL_QUESTION_COUNT\s*=/m,
       /^const isPlainObject\s*=/m,
+      /^const normalizeJsonObject\s*=/m,
     ];
 
     for (const pattern of localDefs) {
@@ -86,10 +86,19 @@ describe('clientOnboardingController regression after helper extraction', () => 
   });
 
   test('baseline measurement service preserves the current create payload contract', async () => {
-    const { buildBaselineMeasurementCreatePayload } = await import('../../services/clientBaselineMeasurementService.mjs');
+    const { createBaselineMeasurementRecord } = await import('../../services/clientBaselineMeasurementService.mjs');
     const takenAt = new Date('2026-02-03T04:05:06.000Z');
+    let payload;
 
-    const payload = buildBaselineMeasurementCreatePayload({
+    await createBaselineMeasurementRecord({
+      models: {
+        ClientBaselineMeasurements: {
+          create: async (nextPayload) => {
+            payload = nextPayload;
+            return nextPayload;
+          },
+        },
+      },
       targetUserId: 51,
       recordedByUserId: 9,
       measurementData: {

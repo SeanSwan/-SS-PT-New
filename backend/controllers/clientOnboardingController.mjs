@@ -59,10 +59,8 @@ import { createBaselineMeasurementRecord } from '../services/clientBaselineMeasu
 import { buildClientDataOverview } from '../services/clientDataOverviewService.mjs';
 import { createMovementScreenRecord } from '../services/clientMovementScreenService.mjs';
 import {
-  TOTAL_QUESTION_COUNT,
-  isPlainObject,
+  normalizeJsonObject,
   toNumber,
-  countAnsweredQuestions,
   calculateCompletionPercentage,
   normalizeOnboardingQueueStatus,
   extractPrimaryGoal,
@@ -79,21 +77,23 @@ const parseUserId = (value) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-const normalizeJsonObject = (value) => {
-  if (!value) {
-    return null;
-  }
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch (error) {
-      return null;
-    }
-  }
-  return isPlainObject(value) ? value : null;
-};
+const findActiveTrainerAssignment = (ClientTrainerAssignment, requesterId, targetUserId) => (
+  ClientTrainerAssignment.findOne({
+    where: {
+      clientId: targetUserId,
+      trainerId: requesterId,
+      status: 'active',
+    },
+  })
+);
 
-const ensureClientAccess = async (requester, targetUserId, ClientTrainerAssignment) => {
+const ensureScopedClientAccess = async ({
+  requester,
+  targetUserId,
+  ClientTrainerAssignment,
+  allowSelf,
+  invalidRoleMessage,
+}) => {
   const requesterId = parseUserId(requester?.id);
   const requesterRole = requester?.role;
 
@@ -106,79 +106,79 @@ const ensureClientAccess = async (requester, targetUserId, ClientTrainerAssignme
   }
 
   if (requesterRole === 'trainer') {
-    const assignment = await ClientTrainerAssignment.findOne({
-      where: {
-        clientId: targetUserId,
-        trainerId: requesterId,
-        status: 'active',
-      },
-    });
-
+    const assignment = await findActiveTrainerAssignment(ClientTrainerAssignment, requesterId, targetUserId);
     if (!assignment) {
       return { ok: false, status: 403, message: 'Access denied: Trainer not assigned to this client' };
     }
     return { ok: true };
   }
 
-  if (SELF_ROLES.has(requesterRole)) {
+  if (allowSelf && SELF_ROLES.has(requesterRole)) {
     if (requesterId !== targetUserId) {
       return { ok: false, status: 403, message: 'Access denied: Cannot access another user' };
     }
     return { ok: true };
   }
 
-  return { ok: false, status: 403, message: 'Access denied: Invalid role' };
+  return { ok: false, status: 403, message: invalidRoleMessage };
 };
 
-const ensureTrainerAccess = async (requester, targetUserId, ClientTrainerAssignment) => {
-  const requesterId = parseUserId(requester?.id);
-  const requesterRole = requester?.role;
+const ensureClientAccess = (requester, targetUserId, ClientTrainerAssignment) => (
+  ensureScopedClientAccess({
+    requester,
+    targetUserId,
+    ClientTrainerAssignment,
+    allowSelf: true,
+    invalidRoleMessage: 'Access denied: Invalid role',
+  })
+);
 
-  if (!requesterId || !requesterRole) {
-    return { ok: false, status: 401, message: 'Not authenticated' };
+const ensureTrainerAccess = (requester, targetUserId, ClientTrainerAssignment) => (
+  ensureScopedClientAccess({
+    requester,
+    targetUserId,
+    ClientTrainerAssignment,
+    allowSelf: false,
+    invalidRoleMessage: 'Access denied: Only trainers or admins can perform assessments',
+  })
+);
+
+const resolveAuthorizedClientRequest = async ({ req, res, access }) => {
+  const targetUserId = parseUserId(req.params.userId);
+  if (!targetUserId) {
+    return {
+      ok: false,
+      response: res.status(400).json({ success: false, message: 'Invalid userId parameter' }),
+    };
   }
 
-  if (requesterRole === 'admin') {
-    return { ok: true };
+  const models = getAllModels();
+  const { User, ClientTrainerAssignment } = models;
+  const accessResult = await access(req.user, targetUserId, ClientTrainerAssignment);
+  if (!accessResult.ok) {
+    return {
+      ok: false,
+      response: res.status(accessResult.status).json({ success: false, message: accessResult.message }),
+    };
   }
 
-  if (requesterRole === 'trainer') {
-    const assignment = await ClientTrainerAssignment.findOne({
-      where: {
-        clientId: targetUserId,
-        trainerId: requesterId,
-        status: 'active',
-      },
-    });
-
-    if (!assignment) {
-      return { ok: false, status: 403, message: 'Access denied: Trainer not assigned to this client' };
-    }
-    return { ok: true };
+  const targetUser = await User.findByPk(targetUserId);
+  if (!targetUser) {
+    return {
+      ok: false,
+      response: res.status(404).json({ success: false, message: 'User not found' }),
+    };
   }
 
-  return { ok: false, status: 403, message: 'Access denied: Only trainers or admins can perform assessments' };
+  return { ok: true, models, targetUserId, targetUser };
 };
 
 export const createQuestionnaire = async (req, res) => {
   try {
-    const targetUserId = parseUserId(req.params.userId);
-    if (!targetUserId) {
-      return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
-    }
-
-    const models = getAllModels();
-    const { User, ClientTrainerAssignment, ClientOnboardingQuestionnaire } = models;
-
-    const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);
-    if (!accessResult.ok) {
-      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
-    }
-
-    const targetUser = await User.findByPk(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+    if (!context.ok) return context.response;
+    const { models, targetUserId } = context;
+    const { ClientOnboardingQuestionnaire } = models;
 
     const rawResponses = req.body?.responses ?? req.body?.responsesJson;
     const responses = normalizeJsonObject(rawResponses);
@@ -234,23 +234,10 @@ export const createQuestionnaire = async (req, res) => {
 
 export const getQuestionnaire = async (req, res) => {
   try {
-    const targetUserId = parseUserId(req.params.userId);
-    if (!targetUserId) {
-      return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
-    }
-
-    const models = getAllModels();
-    const { User, ClientTrainerAssignment, ClientOnboardingQuestionnaire } = models;
-
-    const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);
-    if (!accessResult.ok) {
-      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
-    }
-
-    const targetUser = await User.findByPk(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+    if (!context.ok) return context.response;
+    const { models, targetUserId } = context;
+    const { ClientOnboardingQuestionnaire } = models;
 
     const questionnaire = await ClientOnboardingQuestionnaire.findOne({
       where: { userId: targetUserId },
@@ -290,23 +277,9 @@ export const getQuestionnaire = async (req, res) => {
 
 export const createMovementScreen = async (req, res) => {
   try {
-    const targetUserId = parseUserId(req.params.userId);
-    if (!targetUserId) {
-      return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
-    }
-
-    const models = getAllModels();
-    const { User, ClientTrainerAssignment } = models;
-
-    const accessResult = await ensureTrainerAccess(req.user, targetUserId, ClientTrainerAssignment);
-    if (!accessResult.ok) {
-      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
-    }
-
-    const targetUser = await User.findByPk(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureTrainerAccess });
+    if (!context.ok) return context.response;
+    const { models, targetUserId } = context;
 
     const result = await createMovementScreenRecord({
       models,
@@ -331,23 +304,9 @@ export const createMovementScreen = async (req, res) => {
 
 export const getClientDataOverview = async (req, res) => {
   try {
-    const targetUserId = parseUserId(req.params.userId);
-    if (!targetUserId) {
-      return res.status(400).json({ success: false, message: 'Invalid userId parameter' });
-    }
-
-    const models = getAllModels();
-    const { User, ClientTrainerAssignment } = models;
-
-    const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);
-    if (!accessResult.ok) {
-      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
-    }
-
-    const targetUser = await User.findByPk(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+    if (!context.ok) return context.response;
+    const { models, targetUserId } = context;
 
     const overview = await buildClientDataOverview({
       models,
