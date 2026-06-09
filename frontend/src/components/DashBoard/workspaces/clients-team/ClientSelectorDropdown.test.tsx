@@ -155,4 +155,29 @@ describe('ClientSelectorDropdown', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem('ss-recent-clients')).toBe('[11]');
   });
+
+  it('closes the client list with Escape', () => {
+    render(
+      <ClientSelectorDropdown
+        clients={[
+          {
+            id: 12,
+            firstName: 'Escape',
+            lastName: 'Ready',
+            email: 'escape.ready@example.test',
+            clientSource: 'swanstudios',
+          },
+        ]}
+        selectedId={null}
+        onSelect={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /select a client/i }));
+    expect(screen.getByRole('listbox', { name: /client list/i })).toBeVisible();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox', { name: /client list/i })).not.toBeInTheDocument();
+  });
 });

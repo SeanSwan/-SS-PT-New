@@ -121,6 +121,17 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
+
   // Focus search on open
   useEffect(() => {
     if (open) setTimeout(() => searchRef.current?.focus(), 50);

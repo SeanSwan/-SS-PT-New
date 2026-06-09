@@ -198,6 +198,38 @@ export async function inspectMobileDashboardSafeArea(page: Page) {
   });
 }
 
+export async function inspectClientSelectorDropdownSurface(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    const dropdown = document.querySelector<HTMLElement>('[role="listbox"][aria-label="Client list"]');
+    if (!dropdown) return { issues: ['missing client selector listbox'] };
+
+    const rect = dropdown.getBoundingClientRect();
+    const style = window.getComputedStyle(dropdown);
+    const visible = rect.width > 0
+      && rect.height > 0
+      && style.display !== 'none'
+      && style.visibility !== 'hidden';
+
+    if (!visible) return { issues };
+
+    const alphaMatch = style.backgroundColor.match(/rgba?\(([^)]+)\)/);
+    const alpha = alphaMatch
+      ? Number.parseFloat(alphaMatch[1].split(',').at(3) ?? '1')
+      : 1;
+
+    if (alpha < 0.95) {
+      issues.push(`client selector dropdown background alpha is ${alpha}`);
+    }
+
+    if (Number.parseInt(style.zIndex || '0', 10) < 100) {
+      issues.push(`client selector dropdown z-index is ${style.zIndex || 'auto'}`);
+    }
+
+    return { issues };
+  });
+}
+
 export function collectUnexpectedConsoleErrors(page: Page) {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {

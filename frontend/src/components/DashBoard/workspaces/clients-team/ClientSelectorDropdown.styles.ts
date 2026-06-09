@@ -103,9 +103,13 @@ export const Dropdown = styled.div<{ $open: boolean }>`
   overflow-y: auto;
   border-radius: 12px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-surface, #1A1A24);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-base, #050810) 94%, var(--surface-accent, #003080) 6%),
+      color-mix(in srgb, var(--bg-base, #050810) 90%, var(--primary, #002060) 10%));
+  background-color: var(--bg-base, #050810);
   box-shadow: var(--shadow-strong, 0 16px 48px rgba(0, 0, 0, 0.5));
-  z-index: 50;
+  z-index: 180;
   display: ${({ $open }) => $open ? 'block' : 'none'};
 
   &::-webkit-scrollbar { width: 4px; }
@@ -123,7 +127,11 @@ export const SearchWrap = styled.div`
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   position: sticky;
   top: 0;
-  background: var(--bg-surface, #1A1A24);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-base, #050810) 94%, var(--surface-accent, #003080) 6%),
+      color-mix(in srgb, var(--bg-base, #050810) 90%, var(--primary, #002060) 10%));
+  background-color: var(--bg-base, #050810);
   z-index: 1;
 `;
 

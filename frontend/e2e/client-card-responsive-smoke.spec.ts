@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   collectUnexpectedConsoleErrors,
   inspectCardLayout,
+  inspectClientSelectorDropdownSurface,
   inspectClientDetailLayout,
   inspectFixedControlsAgainstClientCards,
   inspectMobileDashboardSafeArea,
@@ -18,6 +19,7 @@ import { inspectNestedClientCardLayout } from './client-card-responsive-overlap'
 
 const frameCardForScreenshot = async (page: Page, selector: string) => {
   await page.keyboard.press('Escape');
+  await page.locator('[role="listbox"][aria-label="Client list"]').waitFor({ state: 'hidden', timeout: 1000 }).catch(() => undefined);
   const card = page.locator(selector).first();
   await card.scrollIntoViewIfNeeded();
   await card.evaluate(async (element) => {
@@ -86,6 +88,7 @@ for (const viewport of responsiveViewports) {
     await page.getByRole('button', { name: /select a client/i }).click();
     await page.getByLabel(/search clients/i).fill('biometrics');
     await expect(page.getByRole('option', { name: /Alexandria-Cassandra/i })).toBeVisible();
+    expect((await inspectClientSelectorDropdownSurface(page)).issues).toEqual([]);
 
     const layout = await inspectCardLayout(page);
     const nestedLayout = await inspectNestedClientCardLayout(page);
