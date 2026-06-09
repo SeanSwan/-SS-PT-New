@@ -208,6 +208,12 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
       title: 'Client deactivated',
       description: expect.stringContaining('retained for 6 months'),
     }));
+    expect(await screen.findByRole('button', {
+      name: /reactivate fixture client/i,
+    })).toBeInTheDocument();
+    expect(screen.queryByRole('button', {
+      name: /deactivate fixture client/i,
+    })).not.toBeInTheDocument();
   });
 
   it('reactivates an inactive selected client without losing retained records', async () => {

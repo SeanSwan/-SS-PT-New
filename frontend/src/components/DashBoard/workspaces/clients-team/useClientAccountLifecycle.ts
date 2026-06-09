@@ -17,6 +17,72 @@ interface UseClientAccountLifecycleParams {
   toast: ClientHubToast;
 }
 
+const asDeactivatedClient = (client: ClientOption): ClientOption => ({
+  ...client,
+  isActive: false,
+});
+
+const retainDeactivatedClient = (
+  clients: ClientOption[],
+  selectedClient: ClientOption
+): ClientOption[] => {
+  const deactivatedClient = asDeactivatedClient(selectedClient);
+  const hasSelectedClient = clients.some(client => client.id === selectedClient.id);
+  if (!hasSelectedClient) return [deactivatedClient, ...clients];
+
+  return clients.map(client =>
+    client.id === selectedClient.id ? asDeactivatedClient(client) : client
+  );
+};
+
+const retainSelectedDeactivatedClient = (
+  currentClient: ClientOption | null,
+  selectedClientId: number
+): ClientOption | null =>
+  currentClient?.id === selectedClientId
+    ? asDeactivatedClient(currentClient)
+    : currentClient;
+
+const asReactivatedClient = (client: ClientOption): ClientOption => ({
+  ...client,
+  isActive: true,
+});
+
+const retainReactivatedClient = (
+  clients: ClientOption[],
+  selectedClient: ClientOption
+): ClientOption[] => {
+  const reactivatedClient = asReactivatedClient(selectedClient);
+  const hasSelectedClient = clients.some(client => client.id === selectedClient.id);
+  if (!hasSelectedClient) return [reactivatedClient, ...clients];
+
+  return clients.map(client =>
+    client.id === selectedClient.id ? asReactivatedClient(client) : client
+  );
+};
+
+const retainSelectedReactivatedClient = (
+  currentClient: ClientOption | null,
+  selectedClientId: number
+): ClientOption | null =>
+  currentClient?.id === selectedClientId
+    ? asReactivatedClient(currentClient)
+    : currentClient;
+
+const hasLifecycleTarget = (
+  authAxios: any,
+  selectedClient: ClientOption | null
+): selectedClient is ClientOption =>
+  Boolean(authAxios && selectedClient);
+
+const getResponseMessage = (data: any, fallback: string): string => {
+  const message = data?.message;
+  return typeof message === 'string' && message.trim() ? message : fallback;
+};
+
+const getLifecycleErrorMessage = (error: any, fallback: string): string =>
+  getResponseMessage(error?.response?.data, error?.message || fallback);
+
 export const useClientAccountLifecycle = ({
   authAxios,
   selectedClient,
@@ -28,16 +94,19 @@ export const useClientAccountLifecycle = ({
     useState<ClientLifecycleConfirmRequest | null>(null);
 
   const deactivateSelectedClient = useCallback(async () => {
-    if (!authAxios || !selectedClient) return;
+    if (!hasLifecycleTarget(authAxios, selectedClient)) return;
 
     try {
       const response = await authAxios.delete(`/api/admin/clients/${selectedClient.id}`, {
         data: { softDelete: true },
       });
-      const message = response.data?.message || 'Client deactivated successfully. Records are retained for 6 months.';
-      setClients(prev => prev.filter(client => client.id !== selectedClient.id));
+      const message = getResponseMessage(
+        response.data,
+        'Client deactivated successfully. Records are retained for 6 months.'
+      );
+      setClients(prev => retainDeactivatedClient(prev, selectedClient));
       setSelectedClient(prev =>
-        prev?.id === selectedClient.id ? null : prev
+        retainSelectedDeactivatedClient(prev, selectedClient.id)
       );
       toast({
         title: 'Client deactivated',
@@ -47,7 +116,7 @@ export const useClientAccountLifecycle = ({
     } catch (error: any) {
       toast({
         title: 'Client deactivation failed',
-        description: error?.response?.data?.message || error?.message || 'Unable to deactivate this client.',
+        description: getLifecycleErrorMessage(error, 'Unable to deactivate this client.'),
         variant: 'destructive',
       });
     }
@@ -70,16 +139,17 @@ export const useClientAccountLifecycle = ({
   }, []);
 
   const handleReactivateClient = useCallback(async () => {
-    if (!authAxios || !selectedClient) return;
+    if (!hasLifecycleTarget(authAxios, selectedClient)) return;
 
     try {
       const response = await authAxios.put(`/api/admin/clients/${selectedClient.id}/restore`, {});
-      const message = response.data?.message || 'Client reactivated successfully. Login access restored.';
-      setClients(prev => prev.map(client =>
-        client.id === selectedClient.id ? { ...client, isActive: true } : client
-      ));
+      const message = getResponseMessage(
+        response.data,
+        'Client reactivated successfully. Login access restored.'
+      );
+      setClients(prev => retainReactivatedClient(prev, selectedClient));
       setSelectedClient(prev =>
-        prev?.id === selectedClient.id ? { ...prev, isActive: true } : prev
+        retainSelectedReactivatedClient(prev, selectedClient.id)
       );
       toast({
         title: 'Client reactivated',
@@ -89,7 +159,7 @@ export const useClientAccountLifecycle = ({
     } catch (error: any) {
       toast({
         title: 'Client reactivation failed',
-        description: error?.response?.data?.message || error?.message || 'Unable to reactivate this client.',
+        description: getLifecycleErrorMessage(error, 'Unable to reactivate this client.'),
         variant: 'destructive',
       });
     }

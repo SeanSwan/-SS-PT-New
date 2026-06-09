@@ -110,9 +110,13 @@ describe('useClientAccountLifecycle', () => {
       blankNameClient,
       { ...blankNameClient, id: 9, email: 'active.client@example.test' },
     ])).toEqual([
+      { ...blankNameClient, isActive: false },
       { ...blankNameClient, id: 9, email: 'active.client@example.test' },
     ]);
-    expect(updateSelectedClient(blankNameClient)).toBeNull();
+    expect(updateSelectedClient(blankNameClient)).toEqual({
+      ...blankNameClient,
+      isActive: false,
+    });
   });
 
   it('sends password reset email only after branded confirmation', async () => {
@@ -160,5 +164,43 @@ describe('useClientAccountLifecycle', () => {
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Reset link sent',
     }));
+  });
+
+  it('keeps a directly loaded inactive client in the local list after reactivation', async () => {
+    const putMock = vi.fn().mockResolvedValue({
+      data: { message: 'Client reactivated successfully. Login access restored.' },
+    });
+    const setClients = vi.fn();
+    const setSelectedClient = vi.fn();
+    const inactiveClient = { ...blankNameClient, isActive: false };
+
+    const ActionHarness = () => {
+      const { handleReactivateClient } = useClientAccountLifecycle({
+        authAxios: { delete: vi.fn(), post: vi.fn(), put: putMock },
+        selectedClient: inactiveClient,
+        setClients,
+        setSelectedClient,
+        toast: vi.fn(),
+      });
+
+      return (
+        <button type="button" onClick={handleReactivateClient}>
+          Reactivate
+        </button>
+      );
+    };
+
+    render(<ActionHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: /reactivate/i }));
+
+    const updateClients = setClients.mock.calls.at(-1)?.[0];
+    const updateSelectedClient = setSelectedClient.mock.calls.at(-1)?.[0];
+
+    expect(updateClients([])).toEqual([{ ...inactiveClient, isActive: true }]);
+    expect(updateSelectedClient(inactiveClient)).toEqual({
+      ...inactiveClient,
+      isActive: true,
+    });
   });
 });
