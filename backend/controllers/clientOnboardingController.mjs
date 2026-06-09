@@ -56,6 +56,7 @@ import logger from '../utils/logger.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import { buildClientDataOverview } from '../services/clientDataOverviewService.mjs';
+import { createMovementScreenRecord } from '../services/clientMovementScreenService.mjs';
 import {
   TOTAL_QUESTION_COUNT,
   isPlainObject,
@@ -89,23 +90,6 @@ const normalizeJsonObject = (value) => {
     }
   }
   return isPlainObject(value) ? value : null;
-};
-
-const hasParqRisk = (parqScreening) => {
-  if (!parqScreening || !isPlainObject(parqScreening)) {
-    return false;
-  }
-  const parqKeys = [
-    'q1_heart_condition',
-    'q2_chest_pain',
-    'q3_balance_dizziness',
-    'q4_bone_joint_problem',
-    'q5_blood_pressure_meds',
-    'q6_medical_reason',
-    'q7_aware_of_other',
-  ];
-
-  return parqKeys.some((key) => parqScreening[key] === true);
 };
 
 const ensureClientAccess = async (requester, targetUserId, ClientTrainerAssignment) => {
@@ -311,12 +295,7 @@ export const createMovementScreen = async (req, res) => {
     }
 
     const models = getAllModels();
-    const {
-      User,
-      ClientTrainerAssignment,
-      ClientBaselineMeasurements,
-      ClientOnboardingQuestionnaire,
-    } = models;
+    const { User, ClientTrainerAssignment } = models;
 
     const accessResult = await ensureTrainerAccess(req.user, targetUserId, ClientTrainerAssignment);
     if (!accessResult.ok) {
@@ -328,72 +307,20 @@ export const createMovementScreen = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const parqScreening = normalizeJsonObject(req.body?.parqScreening);
-    const overheadSquatAssessment = normalizeJsonObject(req.body?.overheadSquatAssessment);
-    const posturalAssessment = normalizeJsonObject(req.body?.posturalAssessment);
-    const performanceAssessments = normalizeJsonObject(req.body?.performanceAssessments);
-
-    if (!parqScreening || !overheadSquatAssessment) {
-      return res.status(400).json({
-        success: false,
-        message: 'parqScreening and overheadSquatAssessment are required',
-      });
-    }
-
-    const medicalClearanceRequired =
-      parqScreening.medicalClearanceRequired === true || hasParqRisk(parqScreening);
-    const normalizedParq = { ...parqScreening, medicalClearanceRequired };
-
-    const nasmAssessmentScore = ClientBaselineMeasurements.calculateNASMScore(overheadSquatAssessment);
-    const correctiveExerciseStrategy =
-      ClientBaselineMeasurements.generateCorrectiveStrategy(overheadSquatAssessment);
-
-    const latestQuestionnaire = await ClientOnboardingQuestionnaire.findOne({
-      where: { userId: targetUserId },
-      order: [['createdAt', 'DESC']],
-    });
-
-    const optPhase = ClientBaselineMeasurements.selectOPTPhase(
-      nasmAssessmentScore ?? 0,
-      latestQuestionnaire?.primaryGoal ?? 'general_fitness'
-    );
-
-    const baseline = await ClientBaselineMeasurements.create({
-      userId: targetUserId,
+    const result = await createMovementScreenRecord({
+      models,
+      targetUserId,
       recordedBy: parseUserId(req.user?.id),
-      takenAt: req.body?.takenAt ? new Date(req.body.takenAt) : new Date(),
-      parqScreening: normalizedParq,
-      overheadSquatAssessment,
-      nasmAssessmentScore,
-      posturalAssessment,
-      performanceAssessments,
-      correctiveExerciseStrategy,
-      bodyFatPercentage: toNumber(req.body?.bodyFatPercentage),
-      plankDuration: toNumber(req.body?.plankDuration),
-      flexibilityNotes: req.body?.flexibilityNotes ?? null,
-      injuryNotes: req.body?.injuryNotes ?? null,
-      painLevel: toNumber(req.body?.painLevel),
-      medicalClearanceRequired,
-      medicalClearanceDate: req.body?.medicalClearanceDate ?? null,
-      medicalClearanceProvider: req.body?.medicalClearanceProvider ?? null,
+      body: req.body,
     });
+
+    if (!result.ok) {
+      return res.status(result.status).json({ success: false, message: result.message });
+    }
 
     return res.status(201).json({
       success: true,
-      movementScreen: {
-        id: baseline.id,
-        userId: baseline.userId,
-        nasmAssessmentScore: baseline.nasmAssessmentScore,
-        correctiveExerciseStrategy: baseline.correctiveExerciseStrategy,
-        optPhase,
-        bodyFatPercentage: baseline.bodyFatPercentage ?? null,
-        plankDuration: baseline.plankDuration ?? null,
-        flexibilityNotes: baseline.flexibilityNotes,
-        injuryNotes: baseline.injuryNotes,
-        painLevel: baseline.painLevel,
-        medicalClearanceRequired: baseline.medicalClearanceRequired,
-        createdAt: baseline.createdAt,
-      },
+      movementScreen: result.movementScreen,
     });
   } catch (error) {
     logger.error('Movement screen creation failed:', error);

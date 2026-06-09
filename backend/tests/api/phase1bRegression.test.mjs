@@ -72,6 +72,12 @@ describe('clientOnboardingController regression after helper extraction', () => 
     expect(typeof mod.getBaselineMeasurementsHistory).toBe('function');
   });
 
+  test('moves movement screen scoring and persistence into a service', () => {
+    expect(source).toContain("from '../services/clientMovementScreenService.mjs'");
+    expect(source).not.toContain('ClientBaselineMeasurements.calculateNASMScore(overheadSquatAssessment)');
+    expect(source).not.toContain('parqScreening.medicalClearanceRequired === true || hasParqRisk(parqScreening)');
+  });
+
   test('still exports createQuestionnaire and getQuestionnaire', () => {
     expect(source).toContain('export const createQuestionnaire');
     expect(source).toContain('export const getQuestionnaire');
