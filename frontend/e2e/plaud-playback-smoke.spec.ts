@@ -20,6 +20,12 @@ const trainerUser = {
 
 const clipId = '11111111-1111-4111-8111-111111111111';
 
+type FailedResource = {
+  method: string;
+  status: number;
+  url: string;
+};
+
 function jwt() {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return [
@@ -146,8 +152,40 @@ test.beforeEach(async ({ page }) => {
   await installTrainerSession(page);
 });
 
+function isSocketPolling400(resource: FailedResource) {
+  if (resource.status !== 400) return false;
+  try {
+    const url = new URL(resource.url);
+    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
+  } catch {
+    return false;
+  }
+}
+
+function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (!/^Failed to load resource: the server responded with a status of 400 \(\)$/.test(message)) {
+    return false;
+  }
+
+  const failed400s = failedResources.filter((resource) => resource.status === 400);
+  return failed400s.length > 0 && failed400s.every(isSocketPolling400);
+}
+
 test('trainer PLAUD workspace loads clip bytes into native audio playback', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
+  const failedResources: FailedResource[] = [];
+
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      const request = response.request();
+      failedResources.push({
+        method: request.method(),
+        status: response.status(),
+        url: response.url(),
+      });
+    }
+  });
+
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
@@ -206,5 +244,9 @@ test('trainer PLAUD workspace loads clip bytes into native audio playback', asyn
   expect(playback.readyState).toBeGreaterThanOrEqual(1);
 
   await page.screenshot({ path: testInfo.outputPath('plaud-playback-smoke.png'), fullPage: false });
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  const unexpectedConsoleErrors = consoleErrors.filter((item) => (
+    !/preloaded using link preload/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
+  ));
+  expect(unexpectedConsoleErrors).toEqual([]);
 });

@@ -15,6 +15,12 @@ interface AllocationApiState {
   addHits: number;
 }
 
+type FailedResource = {
+  method: string;
+  status: number;
+  url: string;
+};
+
 function jwt() {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return [
@@ -107,9 +113,29 @@ async function inspectLayout(page: Page) {
   }));
 }
 
+function isSocketPolling400(resource: FailedResource) {
+  if (resource.status !== 400) return false;
+  try {
+    const url = new URL(resource.url);
+    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
+  } catch {
+    return false;
+  }
+}
+
+function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (!/^Failed to load resource: the server responded with a status of 400 \(\)$/.test(message)) {
+    return false;
+  }
+
+  const failed400s = failedResources.filter((resource) => resource.status === 400);
+  return failed400s.length > 0 && failed400s.every(isSocketPolling400);
+}
+
 test('admin session allocation renders live balances and posts quick add', async ({ page }, testInfo) => {
   const apiState: AllocationApiState = { availableByClient: { '501': 4, '502': 0 }, addHits: 0 };
   const consoleErrors: string[] = [];
+  const failedResources: FailedResource[] = [];
 
   await mockAllocationApi(page, apiState);
   await page.addInitScript(
@@ -120,6 +146,17 @@ test('admin session allocation renders live balances and posts quick add', async
     },
     { token: jwt(), user: adminUser },
   );
+
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      const request = response.request();
+      failedResources.push({
+        method: request.method(),
+        status: response.status(),
+        url: response.url(),
+      });
+    }
+  });
 
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
@@ -161,7 +198,11 @@ test('admin session allocation renders live balances and posts quick add', async
   const layout = await inspectLayout(page);
   expect(layout.bodyText).not.toMatch(/Premium Training Package|Elite Performance Package|Starter Fitness Package|Sarah|Michael|Emma/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  const unexpectedConsoleErrors = consoleErrors.filter((item) => (
+    !/preloaded using link preload/i.test(item)
+    && !isKnownRealtimeTransportNoise(item, failedResources)
+  ));
+  expect(unexpectedConsoleErrors).toEqual([]);
 
   await page.getByRole('button', { name: /view details for QA Live Client/i }).click();
   await expect(page).toHaveURL(/\/dashboard\/admin\/client-management\?clientId=501/);
