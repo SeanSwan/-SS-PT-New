@@ -131,6 +131,7 @@ import {
   dispatchSetTrainerPermissions,
   dispatchViewTrainerClients,
 } from './dispatchers/trainerCommandDispatchers.mjs';
+import { dispatchAssignTrainer } from './dispatchers/trainerAssignmentWriteDispatcher.mjs';
 import { dispatchViewWorkoutStatistics } from './dispatchers/workoutStatisticsReadDispatcher.mjs';
 import { dispatchUpdateClient } from './dispatchers/clientProfileWriteDispatchers.mjs';
 import { dispatchViewClientProfile } from './dispatchers/clientProfileReadDispatcher.mjs';
@@ -219,11 +220,6 @@ const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
     totalSets: rows.reduce((s, r) => s + (r.totalSets || 0), 0),
     totalReps: rows.reduce((s, r) => s + (r.totalReps || 0), 0),
   };
-};
-
-const normalizeSequelizeUpdateCount = (result) => {
-  if (Array.isArray(result)) return Number(result[0] || 0);
-  return Number(result || 0);
 };
 
 const dispatchListActiveClients = async (params, ctx) => {
@@ -503,116 +499,6 @@ const dispatchLockClient = async (params, ctx) => {
     await transaction.rollback();
     logger.error('[CommandDispatcher] lock_client failed', {
       clientId,
-      error: error.message,
-    });
-    throw error;
-  }
-};
-
-const dispatchAssignTrainer = async (params, ctx) => {
-  const { User, ClientTrainerAssignment } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const trainerId = Number(params.trainerId);
-  const assignedBy = Number(ctx.user?.id);
-  const notes = String(params.notes || 'Assigned via Swan Coach command center').trim()
-    || 'Assigned via Swan Coach command center';
-  const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
-  const transaction = await sequelize.transaction();
-
-  try {
-    const [client, trainer] = await Promise.all([
-      User.findOne({
-        where: {
-          id: clientId,
-          role: { [Op.in]: ['client', 'user'] },
-        },
-        transaction,
-      }),
-      User.findOne({
-        where: {
-          id: trainerId,
-          role: { [Op.in]: ['trainer', 'admin'] },
-        },
-        transaction,
-      }),
-    ]);
-
-    if (!client || !trainer || !Number.isSafeInteger(assignedBy)) {
-      await transaction.rollback();
-      return {
-        clientId,
-        trainerId,
-        assigned: false,
-        alreadyAssigned: false,
-        assignmentId: null,
-        priorAssignmentsDeactivated: 0,
-      };
-    }
-
-    const existingAssignment = await ClientTrainerAssignment.findOne({
-      where: { clientId, trainerId, status: 'active' },
-      transaction,
-    });
-
-    if (existingAssignment) {
-      await transaction.rollback();
-      return {
-        clientId,
-        trainerId,
-        assigned: false,
-        alreadyAssigned: true,
-        assignmentId: existingAssignment.id ?? null,
-        priorAssignmentsDeactivated: 0,
-      };
-    }
-
-    const deactivatedResult = await ClientTrainerAssignment.update(
-      {
-        status: 'inactive',
-        deactivatedAt: new Date(),
-        lastModifiedBy: assignedBy,
-      },
-      {
-        where: { clientId, status: 'active' },
-        transaction,
-      }
-    );
-
-    const [rows] = await sequelize.query(
-      `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
-       VALUES (:clientId, :trainerId, :assignedBy, :notes, 'active', NOW(), NOW())
-       RETURNING *`,
-      {
-        replacements: {
-          clientId,
-          trainerId,
-          assignedBy,
-          notes,
-        },
-        transaction,
-      }
-    );
-
-    const assignmentId = rows?.[0]?.id ?? null;
-    const assignment = assignmentId
-      ? await ClientTrainerAssignment.findByPk(assignmentId, { transaction })
-      : null;
-
-    await transaction.commit();
-
-    return {
-      clientId,
-      trainerId,
-      assigned: true,
-      alreadyAssigned: false,
-      assignmentId: assignment?.id ?? assignmentId,
-      priorAssignmentsDeactivated: normalizeSequelizeUpdateCount(deactivatedResult),
-    };
-  } catch (error) {
-    await transaction.rollback();
-    logger.error('[CommandDispatcher] assign_trainer failed', {
-      clientId,
-      trainerId,
       error: error.message,
     });
     throw error;
