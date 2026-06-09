@@ -26,6 +26,7 @@ export const buildWorkoutGenerationPlanningFingerprint = ({
   nutritionContext,
   nasmConstraints,
   equipmentContext,
+  sourcePolicy,
 }) => buildSwanCoachPlanningFingerprint({
   context: {
     workouts: {
@@ -55,7 +56,15 @@ export const buildWorkoutGenerationPlanningFingerprint = ({
     nutrition: nutritionContext || safePayload?.nutrition,
     progressLevels: safePayload?.progressLevels,
     activeProgram: safePayload?.activeProgram || safePayload?.activePlans,
+    trainingVault: safePayload?.trainingVault || safePayload?.planVault,
     equipment: equipmentContext || safePayload?.equipment,
+    clientSource: unifiedContext?.clientSourceContext?.clientSource
+      || unifiedContext?.clientSourceContext?.source
+      || sourcePolicy?.clientSource
+      || safePayload?.clientSource,
+    sourcePolicy: unifiedContext?.clientSourceContext
+      || sourcePolicy
+      || safePayload?.sourcePolicy,
     safety: unifiedContext?.safetyConstraints
       || unifiedContext?.safety
       || safePayload?.safety
@@ -99,6 +108,7 @@ export function buildLongHorizonPlanningFingerprint({
   longHorizonContext,
   nasmConstraints,
   horizonMonths,
+  sourcePolicy,
 }) {
   const blocks = Array.isArray(aiPlan?.blocks) ? aiPlan.blocks : [];
   return buildSwanCoachPlanningFingerprint({
@@ -127,7 +137,17 @@ export function buildLongHorizonPlanningFingerprint({
       nutrition: safePayload?.nutrition || safePayload?.nutritionAndLifestyle,
       progressLevels: safePayload?.progressLevels,
       activeProgram: safePayload?.activeProgram || safePayload?.activePlans,
+      trainingVault: longHorizonContext?.trainingVault
+        || safePayload?.trainingVault
+        || safePayload?.planVault,
       equipment: safePayload?.equipment,
+      clientSource: sourcePolicy?.clientSource
+        || longHorizonContext?.sourcePolicy?.clientSource
+        || safePayload?.sourcePolicy?.clientSource
+        || safePayload?.clientSource,
+      sourcePolicy: sourcePolicy
+        || longHorizonContext?.sourcePolicy
+        || safePayload?.sourcePolicy,
       safety: longHorizonContext?.safetyConstraints
         || safePayload?.safety
         || safePayload?.healthScreening,

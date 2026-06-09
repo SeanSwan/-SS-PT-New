@@ -96,6 +96,12 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     constraintsBlock,
   ];
 
+  const sourcePolicy = serverConstraints?.sourcePolicy || serverConstraints?.clientSource;
+  if (sourcePolicy) {
+    parts.push('');
+    parts.push(buildClientSourcePolicySection(sourcePolicy));
+  }
+
   // Append structured NASM template section when available
   if (templateContext) {
     parts.push('');
@@ -143,6 +149,34 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
   }
 
   return appendSwanCoachPlanningGuidance(parts.join('\n'), { placement: 'prepend' });
+}
+
+export function buildClientSourcePolicySection(sourcePolicy) {
+  if (!sourcePolicy) return '';
+
+  const policy = typeof sourcePolicy === 'object'
+    ? sourcePolicy
+    : { source: sourcePolicy };
+  const clientSource = policy.clientSource || policy.source || 'swanstudios';
+  const shouldDeduct = policy.shouldDeductPaidSessions === undefined
+    ? policy.isFreeTracking !== true
+    : policy.shouldDeductPaidSessions === true;
+  const isFreeTracking = policy.isFreeTracking === undefined
+    ? shouldDeduct === false
+    : policy.isFreeTracking === true;
+  const sessionBalancePolicy = policy.sessionBalancePolicy
+    || (isFreeTracking
+      ? 'free_tracking_no_session_deduction'
+      : 'paid_sessions_deduct_on_billable_training');
+
+  return [
+    '--- Client Source Policy ---',
+    `Client source: ${clientSource}`,
+    `Free-tracking tier: ${isFreeTracking ? 'yes' : 'no'}`,
+    `Paid-session deduction policy: ${shouldDeduct ? 'yes' : 'no'}`,
+    `Session balance policy: ${sessionBalancePolicy}`,
+    'Never deduct or change paid-session balances from AI generation output.',
+  ].join('\n');
 }
 
 /**

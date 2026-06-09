@@ -57,7 +57,7 @@ import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs'
 import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
 import { buildMeasurementContext } from '../services/ai/measurementContextBuilder.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
-import { normalizeClientSource } from '../services/sessionBillingPolicy.mjs';
+import { buildClientSourcePolicy } from '../services/sessionBillingPolicy.mjs';
 import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
 import { buildWorkoutGenerationPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
@@ -635,6 +635,8 @@ export const generateWorkoutPlan = async (req, res) => {
       return result;
     }, 'equipment context');
 
+    const sourcePolicy = buildClientSourcePolicy(targetUser.clientSource);
+
     // Phase 5A: Build unified generation context
     const unifiedContext = buildUnifiedContext({
       deIdentifiedPayload: safePayload,
@@ -647,7 +649,8 @@ export const generateWorkoutPlan = async (req, res) => {
       healthHistory,
       movementAssessments,
       equipmentContext,
-      clientSource: normalizeClientSource(targetUser.clientSource),
+      clientSource: sourcePolicy.clientSource,
+      sourcePolicy,
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
@@ -680,6 +683,7 @@ export const generateWorkoutPlan = async (req, res) => {
     }
     if (unifiedContext.clientSourceContext) {
       serverConstraints.clientSource = unifiedContext.clientSourceContext;
+      serverConstraints.sourcePolicy = unifiedContext.clientSourceContext;
     }
 
     const payloadHash = hashPayload(safePayload);
@@ -884,6 +888,7 @@ export const generateWorkoutPlan = async (req, res) => {
       nutritionContext,
       nasmConstraints,
       equipmentContext,
+      sourcePolicy: unifiedContext.clientSourceContext,
     });
 
     // --- Phase 5A: Draft mode — return plan for coach review without persisting ---

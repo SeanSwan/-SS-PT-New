@@ -52,6 +52,20 @@ export const isNonDeductingClientSource = (clientSource) => (
   NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)
 );
 
+export function buildClientSourcePolicy(clientSource) {
+  const normalizedSource = normalizeClientSource(clientSource);
+  const isFreeTracking = isNonDeductingClientSource(normalizedSource);
+
+  return {
+    clientSource: normalizedSource,
+    isFreeTracking,
+    shouldDeductPaidSessions: !isFreeTracking,
+    sessionBalancePolicy: isFreeTracking
+      ? 'free_tracking_no_session_deduction'
+      : 'paid_sessions_deduct_on_billable_training',
+  };
+}
+
 const normalizeCreditsRequired = (value) => {
   if (value === undefined || value === null) return 1;
 

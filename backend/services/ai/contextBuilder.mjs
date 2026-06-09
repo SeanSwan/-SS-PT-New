@@ -56,6 +56,7 @@ export function buildUnifiedContext(inputs = {}) {
     movementAssessments,
     equipmentContext,
     clientSource,
+    sourcePolicy,
   } = inputs;
 
   const missingInputs = [];
@@ -170,9 +171,16 @@ export function buildUnifiedContext(inputs = {}) {
 
   // ── Client Source Context ─────────────────────────────────
   let clientSourceContext = null;
-  if (clientSource) {
-    clientSourceContext = { source: clientSource };
+  const safeSourcePolicy = sourcePolicy && typeof sourcePolicy === 'object' ? sourcePolicy : null;
+  const resolvedClientSource = safeSourcePolicy?.clientSource || clientSource;
+  if (resolvedClientSource) {
+    clientSourceContext = {
+      source: resolvedClientSource,
+      ...(safeSourcePolicy || {}),
+      clientSource: safeSourcePolicy?.clientSource || resolvedClientSource,
+    };
     dataSources.push('client_source');
+    if (safeSourcePolicy) dataSources.push('source_policy');
   }
 
   // ── Exercise Recommendations (1RM + load) ───────────────────

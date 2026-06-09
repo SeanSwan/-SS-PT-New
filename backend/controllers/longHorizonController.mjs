@@ -29,6 +29,7 @@ import { validateLongHorizonApproval } from '../services/ai/longHorizonApprovalV
 import { stableStringify } from '../services/ai/stableStringify.mjs';
 import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
 import { buildLongHorizonPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
+import { buildClientSourcePolicy } from '../services/sessionBillingPolicy.mjs';
 
 // ── Allowed horizons ────────────────────────────────────────────────
 const VALID_HORIZONS = new Set([3, 6, 9, 12]);
@@ -249,6 +250,8 @@ export const generateLongHorizonPlan = async (req, res) => {
       });
     }
 
+    const sourcePolicy = buildClientSourcePolicy(targetUser.clientSource);
+
     let resolvedMasterPrompt = targetUser.masterPromptJson;
     if (typeof resolvedMasterPrompt === 'string') {
       try {
@@ -355,6 +358,7 @@ export const generateLongHorizonPlan = async (req, res) => {
       longHorizonContext,
       nasmConstraints,
       templateContext,
+      sourcePolicy,
     });
 
     const payloadHash = hashPayload(safePayload);
@@ -389,6 +393,7 @@ export const generateLongHorizonPlan = async (req, res) => {
         longHorizonContext,
         templateContext,
         horizonMonths,
+        sourcePolicy,
       },
       // Pass pre-built prompt + system message so adapters use long-horizon
       // prompt instead of the default workout prompt (CRITICAL: without these,
@@ -507,6 +512,7 @@ export const generateLongHorizonPlan = async (req, res) => {
       longHorizonContext,
       nasmConstraints,
       horizonMonths,
+      sourcePolicy,
     });
 
     // ── Step 18: Draft response ─────────────────────────────────

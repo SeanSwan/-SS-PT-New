@@ -41,6 +41,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { buildClientTrainingVaultContext } from './clientTrainingVaultContextService.mjs';
 import {
+  buildClientSourcePolicy,
   isNonDeductingClientSource,
   normalizeClientSource,
 } from './sessionBillingPolicy.mjs';
@@ -81,20 +82,6 @@ function toNullablePositiveNumber(value) {
 
 function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0;
-}
-
-function buildClientSourcePolicy(clientSource) {
-  const normalizedSource = normalizeClientSource(clientSource);
-  const isFreeTracking = isNonDeductingClientSource(normalizedSource);
-
-  return {
-    clientSource: normalizedSource,
-    isFreeTracking,
-    shouldDeductPaidSessions: !isFreeTracking,
-    sessionBalancePolicy: isFreeTracking
-      ? 'free_tracking_no_session_deduction'
-      : 'paid_sessions_deduct_on_billable_training',
-  };
 }
 
 const SPECIAL_POPULATION_PATTERNS = [

@@ -13,6 +13,7 @@
  */
 
 import { appendSwanCoachPlanningGuidance } from '../swanCoachPlanningContextService.mjs';
+import { buildClientSourcePolicySection } from './promptBuilder.mjs';
 
 /**
  * System message for long-horizon plan generation.
@@ -34,6 +35,7 @@ export const LONG_HORIZON_SYSTEM_MESSAGE =
  * @param {Object|null} params.longHorizonContext - Output of buildLongHorizonContext()
  * @param {Object|null} params.nasmConstraints - Server-derived NASM constraints
  * @param {Object|null} params.templateContext - Output of buildTemplateContext()
+ * @param {Object|null} params.sourcePolicy - Client-source/session balance policy
  * @returns {string} The prompt text
  */
 export function buildLongHorizonPrompt({
@@ -42,6 +44,7 @@ export function buildLongHorizonPrompt({
   longHorizonContext,
   nasmConstraints,
   templateContext,
+  sourcePolicy,
 }) {
   const parts = [];
 
@@ -96,6 +99,10 @@ export function buildLongHorizonPrompt({
   );
 
   // ── Long-horizon context (trends, adherence, fatigue) ──────
+  if (sourcePolicy) {
+    parts.push(buildClientSourcePolicySection(sourcePolicy), '');
+  }
+
   if (longHorizonContext) {
     parts.push('--- Training Context (de-identified) ---');
 
