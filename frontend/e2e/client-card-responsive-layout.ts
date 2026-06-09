@@ -230,6 +230,45 @@ export async function inspectClientSelectorDropdownSurface(page: Page) {
   });
 }
 
+export async function inspectActivationQueueMobileFootprint(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 520) return { issues };
+
+    const panel = document.querySelector<HTMLElement>('[data-swan-activation-queue-panel]');
+    if (!panel) return { issues: ['missing paid activation queue panel'] };
+
+    const panelRect = panel.getBoundingClientRect();
+    const total = Number.parseInt(panel.getAttribute('data-swan-activation-queue-total') || '0', 10);
+    const list = document.querySelector<HTMLElement>('[data-swan-activation-queue-list]');
+    const toggle = document.querySelector<HTMLElement>('[data-swan-activation-queue-mobile-toggle]');
+
+    if (panelRect.height > 220) {
+      issues.push(`paid activation queue mobile footprint is ${Math.round(panelRect.height)}px`);
+    }
+
+    if (total > 0 && !toggle) {
+      issues.push('paid activation queue is missing its mobile expand control');
+    }
+
+    if (toggle) {
+      const toggleRect = toggle.getBoundingClientRect();
+      if (toggleRect.width < 43 || toggleRect.height < 43) {
+        issues.push(`paid activation queue mobile toggle touch target is ${Math.round(toggleRect.width)}x${Math.round(toggleRect.height)}`);
+      }
+    }
+
+    if (list && total > 0) {
+      const listStyle = window.getComputedStyle(list);
+      if (listStyle.display !== 'none') {
+        issues.push('paid activation queue rows are expanded by default on compact phone');
+      }
+    }
+
+    return { issues };
+  });
+}
+
 export function collectUnexpectedConsoleErrors(page: Page) {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {

@@ -6,7 +6,7 @@
  * contract or duplicating payment/waiver/onboarding truth in React.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Clock3, RefreshCw } from 'lucide-react';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import {
   fetchClientActivationQueue,
@@ -24,6 +24,7 @@ import {
   PanelMeta,
   PanelShell,
   PanelTitle,
+  MobileQueueToggle,
   QueueCard,
   QueueList,
   QueueMeta,
@@ -49,6 +50,7 @@ const ClientActivationQueuePanel: React.FC<ClientActivationQueuePanelProps> = ({
   const [queueData, setQueueData] = useState<ClientActivationQueueResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mobileQueueExpanded, setMobileQueueExpanded] = useState(false);
 
   const loadQueue = useCallback(async () => {
     try {
@@ -68,9 +70,15 @@ const ClientActivationQueuePanel: React.FC<ClientActivationQueuePanelProps> = ({
 
   const rows = queueData?.queue || [];
   const summary = queueData?.summary;
+  const visibleRows = rows.slice(0, 6);
 
   return (
-    <PanelShell aria-label="Paid client activation queue" aria-busy={loading}>
+    <PanelShell
+      aria-label="Paid client activation queue"
+      aria-busy={loading}
+      data-swan-activation-queue-panel
+      data-swan-activation-queue-total={summary?.total || 0}
+    >
       <PanelHeader>
         <TitleGroup>
           <PanelTitle>Paid Activation Queue</PanelTitle>
@@ -99,47 +107,63 @@ const ClientActivationQueuePanel: React.FC<ClientActivationQueuePanelProps> = ({
       ) : error ? (
         <StateText role="alert">{error}</StateText>
       ) : rows.length === 0 ? (
-        <StateText>No paid clients are waiting in the activation queue.</StateText>
+        <StateText $mobileQuiet>No paid clients are waiting in the activation queue.</StateText>
       ) : (
-        <QueueList>
-          {rows.slice(0, 6).map((row) => {
-            const cta = getAdminActivationCta(row);
-            const clientOption = rowToClientOption(row);
-            const clientName = getClientDisplayName(row.client);
-            return (
-              <QueueCard key={`${row.cartId}-${row.sessionId}`}>
-                <div>
-                  <ClientName>{clientName}</ClientName>
-                  <QueueMeta>{row.activation.nextStep} | {row.activation.sessionsAvailable} sessions</QueueMeta>
-                </div>
-                <ActionRow>
-                  <ActionButton
-                    type="button"
-                    onClick={() => {
-                      if (clientOption) onSelectClient(clientOption);
-                    }}
-                    aria-label={`Focus ${clientName}`}
-                    disabled={!clientOption}
-                  >
-                    Focus Client
-                  </ActionButton>
-                  <ActionButton
-                    type="button"
-                    $primary
-                    onClick={() => {
-                      if (cta) onNavigate(cta.route);
-                    }}
-                    aria-label={cta ? `${cta.label} for ${clientName}` : `Activation route unavailable for ${clientName}`}
-                    disabled={!cta}
-                  >
-                    {cta?.label || 'Unavailable'}
-                    {cta && <ArrowRight size={14} />}
-                  </ActionButton>
-                </ActionRow>
-              </QueueCard>
-            );
-          })}
-        </QueueList>
+        <>
+          <MobileQueueToggle
+            type="button"
+            data-swan-activation-queue-mobile-toggle
+            aria-controls="paid-activation-queue-list"
+            aria-expanded={mobileQueueExpanded}
+            onClick={() => setMobileQueueExpanded((expanded) => !expanded)}
+          >
+            {mobileQueueExpanded ? 'Hide queue' : `Show ${visibleRows.length} queued`}
+            {mobileQueueExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </MobileQueueToggle>
+          <QueueList
+            id="paid-activation-queue-list"
+            data-swan-activation-queue-list
+            $mobileExpanded={mobileQueueExpanded}
+          >
+            {visibleRows.map((row) => {
+              const cta = getAdminActivationCta(row);
+              const clientOption = rowToClientOption(row);
+              const clientName = getClientDisplayName(row.client);
+              return (
+                <QueueCard key={`${row.cartId}-${row.sessionId}`}>
+                  <div>
+                    <ClientName>{clientName}</ClientName>
+                    <QueueMeta>{row.activation.nextStep} | {row.activation.sessionsAvailable} sessions</QueueMeta>
+                  </div>
+                  <ActionRow>
+                    <ActionButton
+                      type="button"
+                      onClick={() => {
+                        if (clientOption) onSelectClient(clientOption);
+                      }}
+                      aria-label={`Focus ${clientName}`}
+                      disabled={!clientOption}
+                    >
+                      Focus Client
+                    </ActionButton>
+                    <ActionButton
+                      type="button"
+                      $primary
+                      onClick={() => {
+                        if (cta) onNavigate(cta.route);
+                      }}
+                      aria-label={cta ? `${cta.label} for ${clientName}` : `Activation route unavailable for ${clientName}`}
+                      disabled={!cta}
+                    >
+                      {cta?.label || 'Unavailable'}
+                      {cta && <ArrowRight size={14} />}
+                    </ActionButton>
+                  </ActionRow>
+                </QueueCard>
+              );
+            })}
+          </QueueList>
+        </>
       )}
     </PanelShell>
   );

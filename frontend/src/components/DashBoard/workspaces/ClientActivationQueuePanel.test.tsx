@@ -75,6 +75,15 @@ describe('ClientActivationQueuePanel', () => {
     expect(screen.getByRole('button', {
       name: /focus fallback.client@example.test/i,
     })).toHaveAttribute('type', 'button');
+
+    const mobileToggle = document.querySelector('[data-swan-activation-queue-mobile-toggle]');
+    expect(mobileToggle).toHaveTextContent(/show 1 queued/i);
+    expect(mobileToggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(mobileToggle as Element);
+
+    expect(mobileToggle).toHaveTextContent(/hide queue/i);
+    expect(mobileToggle).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('does not expose focus or navigation actions for malformed activation client ids', async () => {

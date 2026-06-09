@@ -17,6 +17,11 @@ export const PanelShell = styled.section`
   @media (max-width: 768px) {
     margin: 0 12px 10px;
   }
+
+  @media (max-width: 520px) {
+    margin: 0 8px 8px;
+    padding: 8px;
+  }
 `;
 
 export const PanelHeader = styled.div`
@@ -30,6 +35,7 @@ export const PanelHeader = styled.div`
 export const TitleGroup = styled.div`
   display: grid;
   gap: 2px;
+  min-width: 0;
 `;
 
 export const PanelTitle = styled.h3`
@@ -41,6 +47,10 @@ export const PanelTitle = styled.h3`
 export const PanelMeta = styled.div`
   font: 500 12px 'Fira Code', monospace;
   color: var(--text-muted, rgba(224, 236, 244, 0.78));
+
+  @media (max-width: 520px) {
+    display: none;
+  }
 `;
 
 export const IconButton = styled.button`
@@ -84,6 +94,12 @@ export const SummaryGrid = styled.div`
   @media (max-width: 900px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  @media (max-width: 520px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin-top: 8px;
+  }
 `;
 
 export const SummaryPill = styled.div`
@@ -96,13 +112,58 @@ export const SummaryPill = styled.div`
   background: var(--bg-elevated, #141419);
   color: var(--text-primary, #E0ECF4);
   font: 600 12px 'Sora', sans-serif;
+
+  @media (max-width: 520px) {
+    justify-content: center;
+    gap: 0;
+    min-height: 34px;
+    padding: 5px 4px;
+    font-size: 10px;
+    white-space: nowrap;
+
+    svg {
+      display: none;
+    }
+  }
 `;
 
-export const QueueList = styled.div`
+export const MobileQueueToggle = styled.button`
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border-radius: 8px;
+  background: var(--bg-elevated, #141419);
+  color: var(--text-primary, #E0ECF4);
+  font: 700 12px 'Sora', sans-serif;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 520px) {
+    display: inline-flex;
+  }
+`;
+
+export const QueueList = styled.div<{ $mobileExpanded?: boolean }>`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 10px;
   margin-top: 12px;
+
+  @media (max-width: 520px) {
+    display: ${({ $mobileExpanded }) => ($mobileExpanded ? 'grid' : 'none')};
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
 `;
 
 export const QueueCard = styled.article`
@@ -157,8 +218,12 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   }
 `;
 
-export const StateText = styled.div`
+export const StateText = styled.div<{ $mobileQuiet?: boolean }>`
   margin-top: 10px;
   color: var(--text-muted, rgba(224, 236, 244, 0.78));
   font: 500 13px 'Sora', sans-serif;
+
+  @media (max-width: 520px) {
+    display: ${({ $mobileQuiet }) => ($mobileQuiet ? 'none' : 'block')};
+  }
 `;

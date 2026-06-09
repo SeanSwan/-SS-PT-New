@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
+  inspectActivationQueueMobileFootprint,
   collectUnexpectedConsoleErrors,
   inspectCardLayout,
   inspectClientSelectorDropdownSurface,
@@ -89,6 +90,9 @@ for (const viewport of responsiveViewports) {
     await page.getByLabel(/search clients/i).fill('biometrics');
     await expect(page.getByRole('option', { name: /Alexandria-Cassandra/i })).toBeVisible();
     expect((await inspectClientSelectorDropdownSurface(page)).issues).toEqual([]);
+    await page.keyboard.press('Escape');
+    await page.locator('[role="listbox"][aria-label="Client list"]').waitFor({ state: 'hidden', timeout: 1000 }).catch(() => undefined);
+    expect((await inspectActivationQueueMobileFootprint(page)).issues).toEqual([]);
 
     const layout = await inspectCardLayout(page);
     const nestedLayout = await inspectNestedClientCardLayout(page);
