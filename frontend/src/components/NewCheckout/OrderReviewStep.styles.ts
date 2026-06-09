@@ -4,7 +4,7 @@
  * LAST VALIDATED: 2026-06-09 via OrderReviewStep theme contract.
  */
 import { motion } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 
 const totalGlow = keyframes`
   0%, 100% {
@@ -123,13 +123,13 @@ export const PriceRow = styled.div<{ $variant?: 'total' | 'sessions' }>`
   color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 82%, transparent));
   font-size: ${({ $variant }) => ($variant === 'total' ? '1.25rem' : '0.9rem')};
   font-weight: ${({ $variant }) => ($variant === 'total' || $variant === 'sessions' ? 700 : 400)};
-  ${({ $variant }) => $variant === 'total' && `
+  ${({ $variant }) => $variant === 'total' && css`
     color: var(--accent-primary, #60C0F0);
     padding-top: 1rem;
     border-top: 1px solid color-mix(in srgb, var(--wing-purple, #8B5CF6) 22%, transparent);
     animation: ${totalGlow} 2s ease-in-out infinite;
   `}
-  ${({ $variant }) => $variant === 'sessions' && `
+  ${({ $variant }) => $variant === 'sessions' && css`
     background: color-mix(in srgb, var(--success, #10B981) 10%, transparent);
     border: 1px solid color-mix(in srgb, var(--success, #10B981) 30%, transparent);
     border-radius: 8px;

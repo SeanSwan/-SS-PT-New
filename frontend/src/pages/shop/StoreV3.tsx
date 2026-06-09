@@ -13,7 +13,7 @@
  * - ParallaxHero: Swans.mp4 video background with poster + logo + CTAs
  * - PackagesSection: swan-golden.mp4 background, reuses PackagesGrid
  * - Consultation CTA: Final call-to-action section
- * - FloatingCart: Reused from existing components
+ * - StoreCartDock: Crystalline Swan cart access for authenticated buyers
  * - NoiseOverlay: Fixed SVG feTurbulence pattern for subtle grain
  *
  * Data Flow:
@@ -27,7 +27,7 @@
  * - Glass effects gated on theme.effects.glassmorphism
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { AnimatePresence } from 'framer-motion';
 
@@ -46,7 +46,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 
 // Existing Store Components
 import PackagesGrid from './components/PackagesGrid';
-import FloatingCart from './components/FloatingCart';
+import StoreCartDock from './components/StoreCartDock';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
 import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideoBackground';
@@ -585,6 +585,14 @@ const RetryButton = styled.button`
   }
 `;
 
+const CheckoutPanelMount = styled.div`
+  scroll-margin: 5rem 0;
+
+  @media (max-width: 768px) {
+    padding-bottom: 5rem;
+  }
+`;
+
 // ============================================================
 // Main Component
 // ============================================================
@@ -592,6 +600,7 @@ const StoreV3: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { cart, addToCart, refreshCart } = useCart();
   const { currentTheme } = useUniversalTheme();
+  const checkoutPanelRef = useRef<HTMLDivElement | null>(null);
 
   // Toast fallback (same pattern as original store)
   const toast = useCallback(
@@ -679,9 +688,16 @@ const StoreV3: React.FC = () => {
     setRevealPrices((prev) => ({ ...prev, [packageId]: !prev[packageId] }));
   }, []);
 
-  const handleToggleCart = useCallback(() => {
-    setShowCart((prev) => !prev);
+  const scrollCheckoutIntoView = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      checkoutPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }, []);
+
+  const handleOpenCart = useCallback(() => {
+    setShowCart(true);
+    scrollCheckoutIntoView();
+  }, [scrollCheckoutIntoView]);
 
   const handleHideCart = useCallback(() => {
     setShowCart(false);
@@ -932,6 +948,15 @@ const StoreV3: React.FC = () => {
         </ScrollReveal>
       </ContentOverlay>
 
+      {!showCart && (
+        <StoreCartDock
+          isAuthenticated={isAuthenticated}
+          cartItemCount={cartItemCount}
+          showPulse={showPulse}
+          onOpenCart={handleOpenCart}
+        />
+      )}
+
       {/* ============================================ */}
       {/* MODALS                                        */}
       {/* ============================================ */}
@@ -943,17 +968,18 @@ const StoreV3: React.FC = () => {
           />
         )}
         {showCart && (
-          <CheckoutView
-            key="checkout-modal"
-            onCancel={handleHideCart}
-            onSuccess={() => {
-              handleHideCart();
-              toast({
-                title: 'Success!',
-                description: 'Your training package purchase is complete!',
-              });
-            }}
-          />
+          <CheckoutPanelMount key="checkout-modal" ref={checkoutPanelRef}>
+            <CheckoutView
+              onCancel={handleHideCart}
+              onSuccess={() => {
+                handleHideCart();
+                toast({
+                  title: 'Success!',
+                  description: 'Your training package purchase is complete!',
+                });
+              }}
+            />
+          </CheckoutPanelMount>
         )}
       </AnimatePresence>
     </StoreContainer>
