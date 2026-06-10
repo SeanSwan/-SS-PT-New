@@ -1,7 +1,14 @@
 import { render, screen, within } from '@testing-library/react';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
 import ClientExerciseMegaStats, { getExerciseMegaStatRowKey } from './ClientExerciseMegaStats';
+
+const stylesSource = readFileSync(
+  resolve(__dirname, '../../../progress/ClientExerciseMegaStats.styles.ts'),
+  'utf8',
+);
 
 describe('ClientExerciseMegaStats', () => {
   it('renders every exercise ranked by most performed first', () => {
@@ -75,5 +82,15 @@ describe('ClientExerciseMegaStats', () => {
       .toBe(getExerciseMegaStatRowKey({ x: 'Push Up', y: 12, sets: 36 }));
     expect(getExerciseMegaStatRowKey({ x: 'Push Up', y: 18, sets: 54 }))
       .not.toBe(getExerciseMegaStatRowKey({ x: 'Pull Up', y: 18, sets: 54 }));
+  });
+
+  it('uses the shared Swan data-card system without clipping long phone labels', () => {
+    expect(stylesSource).toContain('swanDataCardShell');
+    expect(stylesSource).toContain('swanMetricTile');
+    expect(stylesSource).toContain('swanPill');
+    expect(stylesSource).toContain('grid-template-columns: auto minmax(0, 1fr)');
+    expect(stylesSource).toContain('overflow-wrap: anywhere');
+    expect(stylesSource).not.toContain('white-space: nowrap');
+    expect(stylesSource).not.toContain('text-overflow: ellipsis');
   });
 });
