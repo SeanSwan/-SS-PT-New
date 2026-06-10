@@ -53,7 +53,19 @@ describe('ROMAssessment controls', () => {
 
     expect(componentSource).not.toContain('style={{');
     expect(stylesSource).toContain('export const RomGridHeader');
-    expect(stylesSource).toContain('grid-template-columns: minmax(130px, 1.2fr) minmax(72px, 1fr) minmax(72px, 1fr) minmax(52px, 0.7fr);');
-    expect(stylesSource).toContain('grid-template-columns: minmax(94px, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(42px, 0.7fr);');
+    expect(stylesSource).toContain('swanDataCardShell');
+    expect(stylesSource).toContain('swanClientActionButton');
+    expect(stylesSource).toContain('grid-template-columns: minmax(130px, 1.2fr) repeat(2, minmax(72px, 1fr)) minmax(52px, 0.7fr);');
+    expect(stylesSource).toContain('grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(64px, 0.85fr)) minmax(50px, 0.6fr);');
+    expect(stylesSource).toContain('grid-template-columns: minmax(0, 1fr) repeat(2, minmax(56px, 0.75fr)) minmax(46px, 0.6fr);');
+    expect(stylesSource).not.toContain('minmax(42px');
+  });
+
+  it('keeps ROM inputs at phone-friendly 44px targets without content-box overflow', () => {
+    const stylesSource = readFileSync(resolve(__dirname, 'ROMAssessment.styles.ts'), 'utf8');
+
+    expect(stylesSource).toMatch(/DateInput[\s\S]*?box-sizing: border-box;[\s\S]*?min-height: 44px/);
+    expect(stylesSource).toMatch(/DegreeInput[\s\S]*?box-sizing: border-box;[\s\S]*?min-height: 44px/);
+    expect(stylesSource).not.toContain('min-height: 40px');
   });
 });

@@ -1,10 +1,17 @@
 import styled from 'styled-components';
+import { swanClientActionButton, swanDataCardShell, swanPill } from '../clientCardSystem';
 
 export const Container = styled.div`
-  padding: 20px;
+  --swan-card-padding: 20px;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
   max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 
-  @media (max-width: 768px) { padding: 12px; }
+  @media (max-width: 768px) {
+    --swan-card-padding: 14px;
+  }
 `;
 
 export const Header = styled.div`
@@ -25,6 +32,9 @@ export const Title = styled.h3`
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const TitleIcon = styled.span`
@@ -43,6 +53,7 @@ export const ClientNameAccent = styled.span`
 `;
 
 export const DateInput = styled.input`
+  box-sizing: border-box;
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
@@ -50,11 +61,17 @@ export const DateInput = styled.input`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 13px;
-  min-height: 40px;
+  min-height: 44px;
+  min-width: 0;
 
-  &:focus {
-    outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
     border-color: var(--accent-primary, #60C0F0);
+  }
+
+  @media (max-width: 520px) {
+    width: 100%;
   }
 `;
 
@@ -74,26 +91,36 @@ export const GroupHeader = styled.div`
 
 export const MovementRow = styled.div`
   display: grid;
-  grid-template-columns: minmax(130px, 1.2fr) minmax(72px, 1fr) minmax(72px, 1fr) minmax(52px, 0.7fr);
+  grid-template-columns: minmax(130px, 1.2fr) repeat(2, minmax(72px, 1fr)) minmax(52px, 0.7fr);
   gap: 8px;
   align-items: center;
   padding: 6px 0;
+  min-width: 0;
 
   @media (max-width: 600px) {
-    grid-template-columns: minmax(94px, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(42px, 0.7fr);
-    gap: 4px;
+    grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(64px, 0.85fr)) minmax(50px, 0.6fr);
+    gap: 6px;
+  }
+
+  @media (max-width: 360px) {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(56px, 0.75fr)) minmax(46px, 0.6fr);
   }
 `;
 
 export const RomGridHeader = styled.div`
   display: grid;
-  grid-template-columns: minmax(130px, 1.2fr) minmax(72px, 1fr) minmax(72px, 1fr) minmax(52px, 0.7fr);
+  grid-template-columns: minmax(130px, 1.2fr) repeat(2, minmax(72px, 1fr)) minmax(52px, 0.7fr);
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
 
   @media (max-width: 600px) {
-    grid-template-columns: minmax(94px, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(42px, 0.7fr);
-    gap: 4px;
+    grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(64px, 0.85fr)) minmax(50px, 0.6fr);
+    gap: 6px;
+  }
+
+  @media (max-width: 360px) {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(56px, 0.75fr)) minmax(46px, 0.6fr);
   }
 `;
 
@@ -106,6 +133,7 @@ export const MovementLabel = styled.div`
 `;
 
 export const DegreeInput = styled.input<{ $status: 'normal' | 'limited' | 'severe' }>`
+  box-sizing: border-box;
   width: 100%;
   padding: 8px 10px;
   border-radius: 8px;
@@ -118,11 +146,12 @@ export const DegreeInput = styled.input<{ $status: 'normal' | 'limited' | 'sever
   font-family: 'Fira Code', monospace;
   font-size: 13px;
   text-align: center;
-  min-height: 40px;
+  min-height: 44px;
   min-width: 0;
 
-  &:focus {
-    outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
     border-color: var(--accent-primary, #60C0F0);
   }
 
@@ -132,10 +161,13 @@ export const DegreeInput = styled.input<{ $status: 'normal' | 'limited' | 'sever
 `;
 
 export const NormalBadge = styled.span`
+  ${swanPill}
+  justify-content: center;
   font-family: 'Fira Code', monospace;
   font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.75));
   text-align: center;
+  min-height: 36px;
+  padding: 4px 6px;
 `;
 
 export const SideLabel = styled.div`
@@ -144,35 +176,38 @@ export const SideLabel = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
   text-align: center;
   padding-bottom: 2px;
+  overflow-wrap: anywhere;
 `;
 
 export const BtnRow = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 10px;
   margin-top: 16px;
-  flex-wrap: wrap;
 `;
 
 export const Btn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  display: flex;
-  align-items: center;
+  ${swanClientActionButton}
+  --swan-action-border: ${({ $variant }) =>
+    $variant === 'primary' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.18))'};
+  --swan-action-bg: ${({ $variant }) =>
+    $variant === 'primary'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, var(--surface-accent, #003080) 42%)'
+      : 'color-mix(in srgb, var(--surface-accent, #003080) 60%, transparent)'};
+  --swan-action-fg: var(--text-primary, #E0ECF4);
   gap: 8px;
   padding: 10px 18px;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid ${({ $variant }) =>
-    $variant === 'primary' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
-  background: ${({ $variant }) =>
-    $variant === 'primary' ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)' : 'transparent'};
-  color: ${({ $variant }) =>
-    $variant === 'primary' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
+  text-align: center;
+  overflow-wrap: anywhere;
 
-  &:hover { opacity: 0.85; }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 export const NotesArea = styled.textarea`

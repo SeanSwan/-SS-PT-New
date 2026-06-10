@@ -23,6 +23,9 @@ const savedPlanCardStyles = readRepoFile(
 const biometricsStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/tabs/BiometricsTabContent.styles.ts'
 );
+const romStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/tabs/ROMAssessment.styles.ts'
+);
 const workoutPlanStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/tabs/ClientWorkoutPlansPanel.styles.ts'
 );
@@ -60,6 +63,9 @@ describe('Swan client card system contract', () => {
     expect(savedPlanCardStyles).toContain('swanClientActionButton');
     expect(biometricsStyles).toContain('swanDataCardShell');
     expect(biometricsStyles).toContain('swanClientActionButton');
+    expect(romStyles).toContain('swanDataCardShell');
+    expect(romStyles).toContain('swanClientActionButton');
+    expect(romStyles).toContain('min-height: 44px');
     expect(workoutPlanStyles).toContain('swanDataCardShell');
     expect(workoutPlanStyles).toContain('swanClientActionButton');
     expect(workoutPlanStyles).toContain('swanPill');
