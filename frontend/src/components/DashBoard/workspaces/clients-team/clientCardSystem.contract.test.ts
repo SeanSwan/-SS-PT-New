@@ -62,6 +62,9 @@ const clientHeaderCard = readRepoFile(
 const selectorStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientSelectorDropdown.styles.ts'
 );
+const detailIdentityStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/MasterDetailIdentityStyles.ts'
+);
 const activationQueueStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/ClientActivationQueuePanel.styles.ts'
 );
@@ -142,6 +145,8 @@ describe('Swan client card system contract', () => {
     expect(selectorStyles).toContain('swanPill');
     expect(selectorStyles).not.toContain('white-space: nowrap');
     expect(selectorStyles).not.toContain('text-overflow: ellipsis');
+    expect(detailIdentityStyles).toContain('mask-image');
+    expect(detailIdentityStyles).not.toContain('text-overflow: ellipsis');
     expect(activationQueueStyles).toContain('swanDataCardShell');
     expect(activationQueueStyles).toContain('swanClientActionButton');
     expect(activationQueueStyles).toContain('swanPill');

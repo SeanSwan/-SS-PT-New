@@ -29,9 +29,22 @@ export const DetailSubtext = styled.p`
   }
 
   > span[data-swan-detail-email='true'] {
+    display: block;
+    max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      var(--swan-mask-solid, #000) calc(100% - 1.4rem),
+      transparent
+    );
+    mask-image: linear-gradient(
+      90deg,
+      var(--swan-mask-solid, #000) calc(100% - 1.4rem),
+      transparent
+    );
   }
 
   @media (max-width: 520px) {
