@@ -21,9 +21,18 @@ describe('ClientSelectorDropdown style extraction', () => {
     expect(styles).toContain('export const ChevronIndicator');
     expect(styles).toContain('export const ClearSearchButton');
     expect(styles).toContain('export const SectionLabelIcon');
+    expect(styles).toContain('swanClientActionButton');
+    expect(styles).toContain('swanDataCardShell');
+    expect(styles).toContain('swanPill');
     expect(styles).toMatch(/ClearSearchButton[\s\S]*?min-width:\s*44px/);
     expect(styles).toMatch(/ClearSearchButton[\s\S]*?min-height:\s*44px/);
     expect(styles).toMatch(/ClearSearchButton[\s\S]*?&:focus-visible/);
+    expect(styles).toContain('box-sizing: border-box');
+    expect(styles).toContain('background-color: var(--bg-base, #050810)');
+    expect(styles).toContain('overflow-wrap: anywhere');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(styles).not.toContain('white-space: nowrap');
+    expect(styles).not.toContain('text-overflow: ellipsis');
   });
 
   it('bridges selector source identity styling to theme variables', () => {

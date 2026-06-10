@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import type { ClientSourceTone } from './clientSourceDisplay';
+import { swanClientActionButton, swanDataCardShell, swanPill } from './clientCardSystem';
 
 export const SelectorWrap = styled.div`
   position: relative;
@@ -12,28 +13,20 @@ export const SelectorWrap = styled.div`
 `;
 
 export const SelectorButton = styled.button<{ $hasSelection: boolean }>`
+  ${swanClientActionButton}
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   width: 100%;
   padding: 10px 16px;
   min-height: 52px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-surface, #1A1A24);
-  color: var(--text-primary, #E0ECF4);
+  box-sizing: border-box;
   font-family: 'Sora', sans-serif;
   font-size: 15px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
+    transform: none;
   }
 
   @media (max-width: 520px) {
@@ -75,29 +68,51 @@ export const SelectionInfo = styled.div`
   flex: 1;
   text-align: left;
   min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const SelectionName = styled.div`
   font-weight: 600;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 520px) {
+    font-size: 13px;
+    line-height: 1.1;
+  }
 `;
 
 export const SelectionMeta = styled.div`
   font-size: 12px;
   color: var(--text-muted, rgba(224, 236, 244, 0.85));
   font-family: 'Fira Code', monospace;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 520px) {
+    display: none;
+  }
 `;
 
 export const SourceBadge = styled.span<{ $source: ClientSourceTone }>`
+  ${swanPill}
+  box-sizing: border-box;
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 10px;
   font-weight: 700;
+  line-height: 1;
   font-family: 'Sora', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   background: ${({ $source }) =>
     $source === 'mf'
       ? 'var(--client-source-move-soft, rgba(198, 168, 75, 0.15))'
@@ -110,25 +125,33 @@ export const SourceBadge = styled.span<{ $source: ClientSourceTone }>`
       : $source === 'external'
         ? 'var(--text-primary, #E0ECF4)'
       : 'var(--accent-primary, #60C0F0)'};
+  flex-shrink: 0;
+
+  @media (max-width: 520px) {
+    min-height: 24px;
+    padding: 2px 7px;
+    font-size: 9px;
+  }
 `;
 
 export const Dropdown = styled.div<{ $open: boolean }>`
+  --swan-card-padding: 0;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  max-height: 380px;
-  overflow-y: auto;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background:
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bg-base, #050810) 94%, var(--surface-accent, #003080) 6%),
-      color-mix(in srgb, var(--bg-base, #050810) 90%, var(--primary, #002060) 10%));
+  max-height: min(380px, calc(100vh - 160px));
   background-color: var(--bg-base, #050810);
-  box-shadow: var(--shadow-strong, 0 16px 48px rgba(0, 0, 0, 0.5));
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 180;
   display: ${({ $open }) => $open ? 'block' : 'none'};
+
+  &:hover {
+    transform: none;
+  }
 
   &::-webkit-scrollbar { width: 4px; }
   &::-webkit-scrollbar-thumb {
@@ -155,6 +178,9 @@ export const SearchWrap = styled.div`
 
 export const SearchInput = styled.input`
   flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
   background: transparent;
   border: none;
   outline: none;
@@ -177,6 +203,7 @@ export const MutedIconSlot = styled.span`
 
 export const SelectorPlaceholder = styled.span`
   opacity: 0.5;
+  overflow-wrap: anywhere;
 `;
 
 export const ChevronIndicator = styled.span<{ $open: boolean }>`
@@ -187,6 +214,10 @@ export const ChevronIndicator = styled.span<{ $open: boolean }>`
   opacity: 0.4;
   transform: ${({ $open }) => ($open ? 'rotate(180deg)' : 'none')};
   transition: transform 0.2s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 export const ClearSearchButton = styled.button`
@@ -230,8 +261,9 @@ export const SectionLabel = styled.div`
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
+  overflow-wrap: anywhere;
 `;
 
 export const ClientRow = styled.button<{ $active?: boolean }>`
@@ -241,6 +273,7 @@ export const ClientRow = styled.button<{ $active?: boolean }>`
   width: 100%;
   padding: 10px 14px;
   min-height: 48px;
+  box-sizing: border-box;
   border: none;
   background: ${({ $active }) =>
     $active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'transparent'};
@@ -263,6 +296,11 @@ export const NewClientRow = styled(ClientRow)`
   color: var(--accent-secondary, #8B5CF6);
   font-weight: 600;
   border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 `;
 
 export const EmptyMsg = styled.div`
@@ -271,4 +309,5 @@ export const EmptyMsg = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-family: 'Sora', sans-serif;
   font-size: 13px;
+  overflow-wrap: anywhere;
 `;

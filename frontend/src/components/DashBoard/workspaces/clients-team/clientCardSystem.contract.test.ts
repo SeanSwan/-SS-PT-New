@@ -56,6 +56,9 @@ const dailyActionStrip = readRepoFile(
 const clientHeaderCard = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientHeaderCard.tsx'
 );
+const selectorStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientSelectorDropdown.styles.ts'
+);
 const activationQueueStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/ClientActivationQueuePanel.styles.ts'
 );
@@ -124,6 +127,11 @@ describe('Swan client card system contract', () => {
     expect(clientHeaderCard).toContain('swanDataCardShell');
     expect(clientHeaderCard).toContain('swanClientAvatar');
     expect(clientHeaderCard).toContain('swanPill');
+    expect(selectorStyles).toContain('swanClientActionButton');
+    expect(selectorStyles).toContain('swanDataCardShell');
+    expect(selectorStyles).toContain('swanPill');
+    expect(selectorStyles).not.toContain('white-space: nowrap');
+    expect(selectorStyles).not.toContain('text-overflow: ellipsis');
     expect(activationQueueStyles).toContain('swanDataCardShell');
     expect(activationQueueStyles).toContain('swanClientActionButton');
     expect(activationQueueStyles).toContain('swanPill');
