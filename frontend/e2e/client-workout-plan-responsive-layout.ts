@@ -167,6 +167,61 @@ export async function inspectClientTrainingShellLayout(page: Page) {
   });
 }
 
+export async function inspectClientCurrentWorkoutCardLayout(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    const card = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="current-workout-card"]'))
+      .find((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      });
+    const visible = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    };
+    if (!card) {
+      return { overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), issues: ['missing current workout card'] };
+    }
+
+    const labelFor = (element: HTMLElement) => (
+      element.getAttribute('aria-label')
+      || element.getAttribute('data-testid')
+      || element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 96)
+      || element.tagName.toLowerCase()
+    );
+    const cardRect = card.getBoundingClientRect();
+
+    Array.from(card.querySelectorAll<HTMLElement>('button, [role="button"]')).forEach((control) => {
+      if (!visible(control)) return;
+      const rect = control.getBoundingClientRect();
+      if (rect.width < 43 || rect.height < 43) {
+        issues.push(`${labelFor(control)} touch target is ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+      }
+      if (rect.left < cardRect.left - 1 || rect.right > cardRect.right + 1) {
+        issues.push(`${labelFor(control)} escapes current workout card`);
+      }
+      if (control.scrollWidth > control.clientWidth + 2) {
+        issues.push(`${labelFor(control)} text overflows ${control.clientWidth}px`);
+      }
+    });
+
+    Array.from(card.querySelectorAll<HTMLElement>('h1,h2,h3,h4,p,span,strong,button')).forEach((textNode) => {
+      if (!visible(textNode)) return;
+      const rect = textNode.getBoundingClientRect();
+      if (rect.left < cardRect.left - 1 || rect.right > cardRect.right + 1) {
+        issues.push(`${labelFor(textNode)} text escapes current workout card`);
+      }
+      if (textNode.scrollWidth > textNode.clientWidth + 2) {
+        issues.push(`${labelFor(textNode)} text overflows ${textNode.clientWidth}px`);
+      }
+    });
+
+    return { overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), issues };
+  });
+}
+
 export async function inspectClientPlanVaultCardLayout(page: Page) {
   return page.evaluate(() => {
     const issues: string[] = [];
