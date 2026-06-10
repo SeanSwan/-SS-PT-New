@@ -958,6 +958,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           {/* Universal Main Content Area */}
           <UniversalMainContent
             ref={mainContentRef}
+            data-dashboard-scroll-root
             $sidebarCollapsed={sidebarCollapsed}
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -988,6 +989,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
                           path={path.replace(/^\//, '')}
                           element={
                             <UniversalPageContainer
+                              data-dashboard-scroll-root
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{ duration: 0.6 }}

@@ -298,3 +298,62 @@ test('client overview lens buttons stay inside the observatory route', async ({ 
 
   expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
 });
+
+test('client dashboard feed navigation releases bottom scroll and mobile body lock', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'Mobile Chrome', 'Mobile body lock only exists behind the mobile dashboard menu.');
+
+  await page.goto('/dashboard/client/progress', { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+
+  await page.evaluate(() => {
+    const roots = [...document.querySelectorAll<HTMLElement>('[data-dashboard-scroll-root]')];
+    roots.forEach((root) => {
+      root.scrollTop = Math.max(root.scrollHeight - root.clientHeight, 500);
+    });
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    document.documentElement.scrollTop = Math.max(document.documentElement.scrollHeight, 500);
+    document.body.scrollTop = Math.max(document.body.scrollHeight, 500);
+  });
+
+  await page.getByRole('button', { name: 'Open client menu' }).click();
+  await expect.poll(
+    () => page.evaluate(() => document.body.classList.contains('mobile-sidebar-open')),
+    { timeout: 10_000 },
+  ).toBe(true);
+
+  await page.getByRole('menuitem', { name: 'Home', exact: true }).click();
+
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 10_000 })
+    .toBe('/dashboard/client/overview');
+  await expect(page.getByLabel('Community feed preview')).toBeVisible();
+
+  await expect.poll(
+    () => page.evaluate(() => {
+      const roots = [...document.querySelectorAll<HTMLElement>('[data-dashboard-scroll-root]')];
+      const rootDetails = roots.map((root, index) => ({
+        index,
+        tag: root.tagName.toLowerCase(),
+        scrollTop: root.scrollTop,
+        className: root.className,
+      }));
+      const rootScrollTop = Math.max(0, ...rootDetails.map((root) => root.scrollTop));
+      const scrollingElement = document.scrollingElement as HTMLElement | null;
+      const activeDocumentScrollTop = scrollingElement?.scrollTop ?? 0;
+      return {
+        bodyLocked: document.body.classList.contains('mobile-sidebar-open'),
+        maxScrollTop: Math.max(
+          rootScrollTop,
+          window.scrollY,
+          activeDocumentScrollTop,
+        ),
+        windowScrollY: window.scrollY,
+        scrollingElementTag: scrollingElement?.tagName.toLowerCase() ?? null,
+        activeDocumentScrollTop,
+        documentScrollTop: document.documentElement.scrollTop,
+        bodyScrollTop: document.body.scrollTop,
+        rootDetails,
+      };
+    }),
+    { timeout: 10_000 },
+  ).toMatchObject({ bodyLocked: false, maxScrollTop: 0 });
+});

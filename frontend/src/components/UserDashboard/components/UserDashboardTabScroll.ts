@@ -9,6 +9,7 @@
  */
 
 const scrollToTop = { top: 0, left: 0, behavior: 'auto' as ScrollBehavior };
+const dashboardScrollRootSelector = '[data-user-dashboard-scroll-root], [data-dashboard-scroll-root]';
 
 function resetElementScroll(target: Element | null | undefined) {
   if (!target) return;
@@ -29,6 +30,9 @@ export function resetUserDashboardTabScroll() {
     resetElementScroll(document.scrollingElement);
     resetElementScroll(document.documentElement);
     resetElementScroll(document.body);
+    document
+      .querySelectorAll(dashboardScrollRootSelector)
+      .forEach(resetElementScroll);
   };
 
   reset();

@@ -74,7 +74,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
 }) => {
   return (
     <>
-      <ObservatoryGrid $profileBannerClearance={profileBannerClearance}>
+      <ObservatoryGrid data-user-dashboard-scroll-root $profileBannerClearance={profileBannerClearance}>
         <ObservatoryLeftRail
           activeTab={activeTab}
           profileHeaderVisible={profileHeaderVisible}
@@ -88,7 +88,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
           observatoryStreakDays={observatoryStreakDays}
         />
 
-        <ObservatoryMain>{children}</ObservatoryMain>
+        <ObservatoryMain data-user-dashboard-scroll-root>{children}</ObservatoryMain>
 
         <ObservatoryRightRail
           profileHeaderVisible={profileHeaderVisible}

@@ -45,10 +45,15 @@ const UserDashboardV3: React.FC = () => {
 
   return (
     <UserDashboardErrorBoundaryV3>
-      <ProfileContainer initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+      <ProfileContainer
+        data-user-dashboard-scroll-root
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+      >
         <NoiseOverlay />
         <MainContentZWrapper>
-          <ContentWrapper>
+          <ContentWrapper data-user-dashboard-scroll-root>
             {isHomeTab ? (
               <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}

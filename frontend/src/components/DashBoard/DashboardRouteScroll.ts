@@ -1,4 +1,6 @@
 const scrollToTop = { top: 0, left: 0, behavior: 'auto' as ScrollBehavior };
+const dashboardScrollRootSelector = '[data-dashboard-scroll-root]';
+const routeScrollResetDelays = [80, 240] as const;
 
 function resetElementScroll(target: Element | null | undefined) {
   if (!target) return;
@@ -22,11 +24,15 @@ export function resetDashboardRouteScroll(target?: Element | null) {
     document.activeElement.blur();
   }
 
+  document.body.classList.remove('mobile-sidebar-open');
   window.scrollTo(scrollToTop);
   resetElementScroll(document.scrollingElement);
   resetElementScroll(document.documentElement);
   resetElementScroll(document.body);
   resetElementScroll(document.getElementById('root'));
+  document
+    .querySelectorAll(dashboardScrollRootSelector)
+    .forEach(resetElementScroll);
   resetElementScroll(target);
 }
 
@@ -36,10 +42,12 @@ export function scheduleDashboardRouteScrollReset(target?: Element | null) {
   resetDashboardRouteScroll(target);
 
   const frame = window.requestAnimationFrame(() => resetDashboardRouteScroll(target));
-  const timeout = window.setTimeout(() => resetDashboardRouteScroll(target), 80);
+  const timeouts = routeScrollResetDelays.map((delay) => (
+    window.setTimeout(() => resetDashboardRouteScroll(target), delay)
+  ));
 
   return () => {
     window.cancelAnimationFrame(frame);
-    window.clearTimeout(timeout);
+    timeouts.forEach((timeout) => window.clearTimeout(timeout));
   };
 }

@@ -58,6 +58,35 @@ describe('dashboard route scroll reset', () => {
     document.body.removeChild(focusedInput);
   });
 
+  it('clears route-level scroll locks and registered dashboard scroll roots', () => {
+    const root = document.createElement('section');
+    const rootScrollTo = vi.fn(() => {
+      root.scrollTop = 0;
+    });
+
+    root.setAttribute('data-dashboard-scroll-root', '');
+    Object.defineProperty(window, 'scrollTo', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(root, 'scrollTo', {
+      configurable: true,
+      value: rootScrollTo,
+    });
+
+    root.scrollTop = 920;
+    document.body.classList.add('mobile-sidebar-open');
+    document.body.appendChild(root);
+
+    resetDashboardRouteScroll();
+
+    expect(rootScrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+    expect(root.scrollTop).toBe(0);
+    expect(document.body.classList.contains('mobile-sidebar-open')).toBe(false);
+
+    root.remove();
+  });
+
   it('retries after animation frame and delayed browser scroll restoration', () => {
     vi.useFakeTimers();
 
@@ -81,11 +110,11 @@ describe('dashboard route scroll reset', () => {
     });
 
     const cleanup = scheduleDashboardRouteScrollReset(target);
-    vi.advanceTimersByTime(80);
+    vi.advanceTimersByTime(240);
     cleanup?.();
 
     expect(animationFrame).toHaveBeenCalled();
-    expect(resetTarget).toHaveBeenCalledTimes(3);
+    expect(resetTarget).toHaveBeenCalledTimes(4);
     expect(cancelFrame).toHaveBeenCalledWith(1);
   });
 });
