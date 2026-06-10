@@ -32,10 +32,12 @@ describe('OverviewTabContent style extraction', () => {
   });
 
   it('keeps responsive, dark-first, theme-tokened dashboard styling', () => {
-    expect(stylesSource).toContain('grid-template-columns: repeat(4, 1fr)');
+    expect(stylesSource).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
     expect(stylesSource).toContain('@media (max-width: 1024px)');
     expect(stylesSource).toContain('@media (max-width: 430px)');
-    expect(stylesSource).toContain('var(--bg-surface, #141419)');
+    expect(stylesSource).toContain('swanDataCardShell');
+    expect(stylesSource).toContain('swanMetricTile');
+    expect(stylesSource).toContain('overflow-wrap: anywhere');
     expect(stylesSource).toContain('var(--accent-primary, #60C0F0)');
   });
 });
