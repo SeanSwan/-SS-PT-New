@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { swanClientActionButton, swanDataCardShell } from '../clientCardSystem';
 
 /**
  * Phase 13.2 scroll-ownership fix:
@@ -6,15 +7,20 @@ import styled from 'styled-components';
  * does not clip expanded workout sessions, notes, or edit controls.
  */
 export const LayoutWrapper = styled.div`
+  --swan-card-padding: 0;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
+
   display: flex;
   min-height: 400px;
   min-width: 0;
   max-width: 100%;
   gap: 0;
-  border-radius: 12px;
   overflow: visible;
-  background: var(--bg-surface, #141419);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
+
+  &:hover {
+    transform: none;
+  }
 
   @media (max-width: 767px) {
     flex-direction: column;
@@ -53,27 +59,30 @@ export const Sidebar = styled.div`
 `;
 
 export const SidebarItem = styled.button<{ $active: boolean }>`
-  display: flex;
-  align-items: center;
+  --swan-action-border: ${({ $active }) =>
+    $active
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 70%, transparent)'
+      : 'transparent'};
+  --swan-action-bg: ${({ $active }) =>
+    $active
+      ? 'color-mix(in srgb, var(--surface-accent, #003080) 76%, transparent)'
+      : 'transparent'};
+  --swan-action-fg: ${({ $active }) =>
+    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
+  ${swanClientActionButton}
+
   gap: 10px;
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  justify-content: flex-start;
+  text-align: left;
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: ${({ $active }) => ($active ? 600 : 400)};
-  transition: all 180ms ease;
   position: relative;
-  white-space: nowrap;
-  flex-shrink: 0;
-
-  color: ${({ $active }) =>
-    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
-  background: ${({ $active }) =>
-    $active ? 'var(--bg-active-sidebar, #003080)' : 'transparent'};
+  overflow-wrap: anywhere;
   text-shadow: ${({ $active }) =>
     $active
       ? '0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent)'
@@ -95,9 +104,9 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
   `}
 
   &:hover {
-    background: ${({ $active }) =>
+    --swan-action-bg: ${({ $active }) =>
       $active
-        ? 'var(--bg-active-sidebar, #003080)'
+        ? 'color-mix(in srgb, var(--surface-accent, #003080) 82%, transparent)'
         : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
     color: var(--accent-primary, #60C0F0);
   }
@@ -106,6 +115,10 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  }
+
+  svg {
+    flex: 0 0 auto;
   }
 
   @media (min-width: 768px) and (max-width: 1023px) {
@@ -128,7 +141,6 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
     flex: 0 0 auto;
     min-height: 44px;
     padding: 8px 14px;
-    border-radius: 20px;
     gap: 6px;
     font-size: 12px;
 
@@ -209,18 +221,26 @@ export const ShimmerLoader = styled.div`
       opacity: 0.8;
     }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    & > div {
+      animation: none;
+    }
+  }
 `;
 
 export const PlaceholderCard = styled.div`
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
   text-align: center;
-  border-radius: 12px;
-  background: var(--bg-elevated, #1A1A24);
-  border: 1px dashed var(--border-soft, rgba(224, 236, 244, 0.1));
+  border-style: dashed;
+  overflow-wrap: anywhere;
 
   h4 {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -234,5 +254,6 @@ export const PlaceholderCard = styled.div`
     font-size: 13px;
     color: var(--text-muted, #64748b);
     margin: 0;
+    overflow-wrap: anywhere;
   }
 `;

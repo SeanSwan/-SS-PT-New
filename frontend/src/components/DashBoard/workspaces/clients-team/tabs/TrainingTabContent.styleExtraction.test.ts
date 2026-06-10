@@ -39,4 +39,12 @@ describe('TrainingTabContent style extraction', () => {
     expect(stylesSource).not.toContain('min-height: 40px');
     expect(stylesSource).toContain('min-height: 44px');
   });
+
+  it('uses the shared Swan low-motion shell and button primitives without nowrap labels', () => {
+    expect(stylesSource).toContain('swanDataCardShell');
+    expect(stylesSource).toContain('swanClientActionButton');
+    expect(stylesSource).toContain('overflow-wrap: anywhere');
+    expect(stylesSource).toContain('prefers-reduced-motion: reduce');
+    expect(stylesSource).not.toContain('white-space: nowrap');
+  });
 });
