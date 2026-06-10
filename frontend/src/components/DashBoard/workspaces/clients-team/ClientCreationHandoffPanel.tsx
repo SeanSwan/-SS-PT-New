@@ -27,6 +27,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, Copy, Link2, MailCheck, X } from 'lucide-react';
 import { CLIENT_SOURCE_LABELS } from '../../../../services/adminClientService';
+import { swanClientActionButton, swanDataCardShell, swanMetricTile, swanPill } from './clientCardSystem';
 import type {
   ManualClientCreationCredentialMode,
   ManualClientCreationHandoff,
@@ -39,20 +40,14 @@ interface ClientCreationHandoffPanelProps {
 }
 
 const Panel = styled.section`
+  --swan-card-padding: 16px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 14px;
   align-items: start;
   margin: 14px 0;
-  padding: 16px;
-  border: 1px solid var(--handoff-border, rgba(96, 192, 240, 0.34));
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg,
-      var(--handoff-bg-start, rgba(0, 48, 128, 0.94)),
-      var(--handoff-bg-end, rgba(10, 10, 15, 0.92)));
-  color: var(--text-primary, #E0ECF4);
-  box-shadow: var(--handoff-shadow, 0 18px 42px rgba(0, 0, 0, 0.28));
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -60,6 +55,7 @@ const Panel = styled.section`
 `;
 
 const IconWrap = styled.div<{ $warning: boolean }>`
+  ${swanMetricTile}
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +64,6 @@ const IconWrap = styled.div<{ $warning: boolean }>`
   border-radius: 8px;
   color: ${({ $warning }) =>
     $warning ? 'var(--status-warning, #C6A84B)' : 'var(--accent-primary, #60C0F0)'};
-  background: var(--handoff-icon-bg, rgba(255, 255, 255, 0.06));
 `;
 
 const Content = styled.div`
@@ -92,12 +87,9 @@ const Title = styled.h3`
 `;
 
 const Badge = styled.span`
+  ${swanPill}
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 3px 9px;
-  border: 1px solid var(--handoff-badge-border, rgba(198, 168, 75, 0.42));
-  border-radius: 999px;
   color: var(--accent-luxury, #C6A84B);
   font: 700 0.72rem 'Sora', sans-serif;
 `;
@@ -120,29 +112,27 @@ const TokenRow = styled.div`
 `;
 
 const TokenText = styled.code`
+  ${swanMetricTile}
   min-height: 44px;
+  min-width: 0;
   display: flex;
   align-items: center;
   overflow-wrap: anywhere;
   padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--text-primary, #E0ECF4);
-  background: var(--handoff-token-bg, rgba(0, 0, 0, 0.22));
   font: 600 0.84rem/1.45 'Fira Code', monospace;
 `;
 
 const IconButton = styled.button`
-  min-width: 44px;
-  min-height: 44px;
+  ${swanClientActionButton}
+  --swan-action-border: var(--handoff-button-border, rgba(96, 192, 240, 0.34));
+  --swan-action-bg: var(--handoff-button-bg, rgba(255, 255, 255, 0.06));
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--handoff-button-border, rgba(96, 192, 240, 0.34));
-  border-radius: 8px;
-  color: var(--text-primary, #E0ECF4);
-  background: var(--handoff-button-bg, rgba(255, 255, 255, 0.06));
-  cursor: pointer;
+  padding: 8px 12px;
+  white-space: normal;
 `;
 
 const STATUS_COPY: Record<ManualClientCreationCredentialMode, { title: string; warning: boolean }> = {

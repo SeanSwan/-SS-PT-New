@@ -6,21 +6,25 @@
  * trainer/admin use.
  */
 import styled from 'styled-components';
+import {
+  swanClientActionButton,
+  swanDataCardShell,
+  swanPill,
+} from './clients-team/clientCardSystem';
 
 export const PanelShell = styled.section`
+  --swan-card-padding: 14px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   margin: 0 20px 12px;
-  padding: 14px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 92%, transparent);
 
   @media (max-width: 768px) {
     margin: 0 12px 10px;
   }
 
   @media (max-width: 520px) {
+    --swan-card-padding: 10px;
     margin: 0 8px 8px;
-    padding: 8px;
   }
 `;
 
@@ -54,28 +58,11 @@ export const PanelMeta = styled.div`
 `;
 
 export const IconButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  ${swanClientActionButton}
   width: 44px;
   min-width: 44px;
   height: 44px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
-  color: var(--accent-primary, #60C0F0);
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
+  padding: 0;
 
   &:disabled {
     cursor: not-allowed;
@@ -103,23 +90,18 @@ export const SummaryGrid = styled.div`
 `;
 
 export const SummaryPill = styled.div`
+  ${swanPill}
   display: flex;
   align-items: center;
-  gap: 8px;
   min-height: 44px;
   padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
   font: 600 12px 'Sora', sans-serif;
 
   @media (max-width: 520px) {
     justify-content: center;
-    gap: 0;
-    min-height: 34px;
+    min-height: 44px;
     padding: 5px 4px;
     font-size: 10px;
-    white-space: nowrap;
 
     svg {
       display: none;
@@ -128,24 +110,12 @@ export const SummaryPill = styled.div`
 `;
 
 export const MobileQueueToggle = styled.button`
+  ${swanClientActionButton}
   display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   width: 100%;
   min-height: 44px;
   margin-top: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
   font: 700 12px 'Sora', sans-serif;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 
   @media (max-width: 520px) {
     display: inline-flex;
@@ -154,7 +124,7 @@ export const MobileQueueToggle = styled.button`
 
 export const QueueList = styled.div<{ $mobileExpanded?: boolean }>`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 10px;
   margin-top: 12px;
 
@@ -167,22 +137,24 @@ export const QueueList = styled.div<{ $mobileExpanded?: boolean }>`
 `;
 
 export const QueueCard = styled.article`
+  --swan-card-padding: 12px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   display: grid;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
+  min-width: 0;
 `;
 
 export const ClientName = styled.div`
   font: 700 14px 'Sora', sans-serif;
   color: var(--text-heading, #E0ECF4);
+  overflow-wrap: anywhere;
 `;
 
 export const QueueMeta = styled.div`
   font: 500 12px 'Fira Code', monospace;
   color: var(--text-muted, rgba(224, 236, 244, 0.78));
+  overflow-wrap: anywhere;
 `;
 
 export const ActionRow = styled.div`
@@ -192,25 +164,19 @@ export const ActionRow = styled.div`
 `;
 
 export const ActionButton = styled.button<{ $primary?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid ${({ $primary }) =>
+  ${swanClientActionButton}
+  --swan-action-border: ${({ $primary }) =>
     $primary ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
-  background: ${({ $primary }) =>
+  --swan-action-bg: ${({ $primary }) =>
     $primary ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)' : 'transparent'};
-  color: ${({ $primary }) =>
+  --swan-action-fg: ${({ $primary }) =>
     $primary ? 'var(--accent-primary, #60C0F0)' : 'var(--text-primary, #E0ECF4)'};
+  flex: 1 1 min(100%, 148px);
+  min-width: 0;
+  padding: 8px 12px;
   font: 700 12px 'Sora', sans-serif;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
+  text-align: center;
+  white-space: normal;
 
   &:disabled {
     cursor: not-allowed;

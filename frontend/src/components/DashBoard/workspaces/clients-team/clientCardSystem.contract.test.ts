@@ -29,6 +29,12 @@ const workoutPlanStyles = readRepoFile(
 const dailyActionStrip = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientDailyActionStrip.tsx'
 );
+const activationQueueStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/ClientActivationQueuePanel.styles.ts'
+);
+const creationHandoffPanel = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientCreationHandoffPanel.tsx'
+);
 const cardSystem = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/clientCardSystem.ts'
 );
@@ -55,6 +61,13 @@ describe('Swan client card system contract', () => {
     expect(dailyActionStrip).toContain('swanDataCardShell');
     expect(dailyActionStrip).toContain('swanClientActionButton');
     expect(dailyActionStrip).toContain('swanPill');
+    expect(activationQueueStyles).toContain('swanDataCardShell');
+    expect(activationQueueStyles).toContain('swanClientActionButton');
+    expect(activationQueueStyles).toContain('swanPill');
+    expect(activationQueueStyles).toContain('minmax(min(100%, 260px), 1fr)');
+    expect(creationHandoffPanel).toContain('swanDataCardShell');
+    expect(creationHandoffPanel).toContain('swanClientActionButton');
+    expect(creationHandoffPanel).toContain('swanPill');
   });
 
   it('keeps trainer client cards low-motion instead of using hover/tap animation props', () => {
