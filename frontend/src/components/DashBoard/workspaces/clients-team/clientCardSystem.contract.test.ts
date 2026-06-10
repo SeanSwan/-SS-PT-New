@@ -44,6 +44,9 @@ const workoutHistoryStyles = readRepoFile(
 const settingsStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/tabs/SettingsTabContent.styles.ts'
 );
+const adminProgressStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/tabs/AdminProgressChartsGrid.styles.ts'
+);
 const dailyActionStrip = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientDailyActionStrip.tsx'
 );
@@ -101,6 +104,12 @@ describe('Swan client card system contract', () => {
     expect(settingsStyles).toContain('swanDataCardShell');
     expect(settingsStyles).toContain('swanMetricTile');
     expect(settingsStyles).toContain('minmax(0, 1fr)');
+    expect(adminProgressStyles).toContain('swanDataCardShell');
+    expect(adminProgressStyles).toContain('swanPill');
+    expect(adminProgressStyles).toContain('grid-template-columns: minmax(0, 1fr)');
+    expect(adminProgressStyles).toContain('letter-spacing: 0');
+    expect(adminProgressStyles).toContain('overflow-wrap: anywhere');
+    expect(adminProgressStyles).not.toContain('white-space: nowrap');
     expect(dailyActionStrip).toContain('swanDataCardShell');
     expect(dailyActionStrip).toContain('swanClientActionButton');
     expect(dailyActionStrip).toContain('swanPill');

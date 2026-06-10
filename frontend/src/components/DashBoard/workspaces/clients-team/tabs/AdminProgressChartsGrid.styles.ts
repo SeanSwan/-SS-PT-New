@@ -1,33 +1,38 @@
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
 import { CHART_COLORS } from '../../../../Charts/chartTheme';
+import { swanDataCardShell, swanPill } from '../clientCardSystem';
 
 export const GridWrap = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 1rem;
   min-width: 0;
   max-width: 100%;
+
+  @media (max-width: 430px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 export const Card = styled.div`
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  border-radius: 12px;
-  padding: 1rem 1.25rem 1.25rem;
+  --swan-card-padding: 1rem 1.25rem 1.25rem;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
   min-height: 220px;
   display: flex;
   flex-direction: column;
   min-width: 0;
 
   &:hover {
-    border-color: var(--border-hover, rgba(96, 192, 240, 0.18));
+    transform: none;
   }
 `;
 
 export const CardHeader = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
   min-width: 0;
@@ -58,19 +63,20 @@ export const Empty = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.55));
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
+  overflow-wrap: anywhere;
 `;
 
 export const SummaryLine = styled.div`
+  ${swanPill}
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-  font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 0.25rem 0 0.5rem;
+  letter-spacing: 0;
+  margin: 0.25rem 0 0.75rem;
+  overflow-wrap: anywhere;
 `;
 
 export const BarList = styled.ul`
@@ -100,10 +106,9 @@ export const BarRow = styled.li`
 `;
 
 export const BarLabel = styled.span`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const BarTrack = styled.div`
@@ -134,7 +139,9 @@ export const BarValue = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   color: var(--accent-primary, #60C0F0);
-  white-space: nowrap;
+  justify-self: end;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const LoadingStrip = styled.div`
@@ -143,6 +150,7 @@ export const LoadingStrip = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.45));
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 `;
 
 export const ErrorLoadingStrip = styled(LoadingStrip)`
@@ -168,12 +176,15 @@ export const AttendancePercent = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 2rem;
   font-weight: 700;
+  line-height: 1;
 `;
 
 export const AttendanceMeta = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.55));
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const RecoveryIcon = styled(AlertTriangle)`
