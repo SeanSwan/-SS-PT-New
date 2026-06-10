@@ -11,6 +11,7 @@ import {
   CalendarClock,
   CheckCircle,
   ClipboardList,
+  Dumbbell,
   Edit,
   Layers,
   Mail,
@@ -19,11 +20,11 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react';
-import { forwardRef, type ReactNode } from 'react';
+import { forwardRef } from 'react';
 
 import { getClientSessionSignal } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { ActionIconButton } from './MyClientsView.actionButton';
 import {
-  ActionButton,
   ClientActions,
   ClientAvatar,
   ClientCard,
@@ -92,6 +93,11 @@ const copilotTitleFor = (client: ClientAssignment['client']) => (
 
 const statusReadinessLabelFor = (status: string) => `${status.charAt(0).toUpperCase()}${status.slice(1)} client`;
 
+const compactClientFact = (value?: string | null) => {
+  const trimmed = value?.trim();
+  return trimmed || null;
+};
+
 const PhoneDetail = ({ phone }: { phone?: string | null }) => {
   if (!phone) return null;
   return (
@@ -130,6 +136,8 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
   const statusReadinessLabel = statusReadinessLabelFor(client.status);
   const copilotTitle = copilotTitleFor(client);
   const needsFirstPlan = client.totalSessionsCompleted === 0;
+  const fitnessGoal = compactClientFact(client.fitnessGoal);
+  const trainingExperience = compactClientFact(client.trainingExperience);
 
   return (
     <ClientCard
@@ -186,6 +194,18 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
           <Layers size={15} aria-hidden="true" />
           <span>{sourceLabel}</span>
         </ReadinessChip>
+        {trainingExperience && (
+          <ReadinessChip>
+            <Dumbbell size={15} aria-hidden="true" />
+            <span>{trainingExperience}</span>
+          </ReadinessChip>
+        )}
+        {fitnessGoal && (
+          <ReadinessChip>
+            <Target size={15} aria-hidden="true" />
+            <span>{fitnessGoal}</span>
+          </ReadinessChip>
+        )}
         <ReadinessChip>
           <CalendarClock size={15} aria-hidden="true" />
           <span>{nextSessionLabel}</span>
@@ -269,30 +289,3 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
     </ClientCard>
   );
 });
-
-interface ActionIconButtonProps {
-  title: string;
-  variant: 'primary' | 'secondary' | 'success' | 'warning';
-  onClick: () => void;
-  icon: ReactNode;
-}
-
-const ActionIconButton = ({
-  title,
-  variant,
-  onClick,
-  icon,
-}: ActionIconButtonProps) => (
-  <ActionButton
-    $variant={variant}
-    type="button"
-    aria-label={title}
-    onClick={(event) => {
-      event.stopPropagation();
-      onClick();
-    }}
-    title={title}
-  >
-    {icon}
-  </ActionButton>
-);

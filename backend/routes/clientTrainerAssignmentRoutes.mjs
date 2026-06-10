@@ -545,7 +545,17 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'phone'],
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'email',
+            'availableSessions',
+            'clientSource',
+            'phone',
+            'fitnessGoal',
+            'trainingExperience'
+          ],
           required: false
         },
         {

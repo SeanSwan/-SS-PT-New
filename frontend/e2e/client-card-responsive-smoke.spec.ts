@@ -7,7 +7,7 @@ import {
   inspectClientDetailLayout,
   inspectFixedControlsAgainstClientCards,
   inspectMobileDashboardSafeArea,
-  isKnownConsoleNoise,
+  filterKnownConsoleNoise,
 } from './client-card-responsive-layout';
 import {
   adminUser,
@@ -30,7 +30,6 @@ const frameCardForScreenshot = async (page: Page, selector: string) => {
   await page.keyboard.press('Escape');
   await page.locator('[role="listbox"][aria-label="Client list"]').waitFor({ state: 'hidden', timeout: 1000 }).catch(() => undefined);
   const card = page.locator(selector).first();
-  await card.scrollIntoViewIfNeeded();
   await card.evaluate(async (element) => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -67,27 +66,35 @@ const frameCardForScreenshot = async (page: Page, selector: string) => {
     const guard = document.querySelector<HTMLElement>('[data-swan-mobile-dashboard-safe-area]');
     const guardBottom = guard ? guard.getBoundingClientRect().bottom : 0;
     const safeTop = window.innerWidth <= 1024
-      ? Math.max(112, guardBottom + 8, fixedBottom + 12)
+      ? Math.max(144, guardBottom + 20, fixedBottom + 28)
       : 24;
-    const scrollBy = (delta: number) => {
-      if (scrollParent === document.body || scrollParent === document.documentElement) {
-        window.scrollBy(0, delta);
-        return;
-      }
-      scrollParent.scrollTop += delta;
-    };
-    const alignCard = () => {
+    const waitForFrame = () => new Promise(requestAnimationFrame);
+    const alignCard = async () => {
       const rect = element.getBoundingClientRect();
       const documentScroller = scrollParent === document.body || scrollParent === document.documentElement;
       const parentTop = scrollParent instanceof HTMLElement
         ? scrollParent.getBoundingClientRect().top
         : safeTop;
       const targetTop = documentScroller ? safeTop : Math.max(safeTop, parentTop + 8);
-      scrollBy(rect.top - targetTop);
+      element.dataset.swanFrameTargetTop = String(Math.round(targetTop));
+      element.dataset.swanFrameParentTop = String(Math.round(parentTop));
+      element.dataset.swanFrameSafeTop = String(Math.round(safeTop));
+      element.dataset.swanFrameScroller = documentScroller ? 'document' : scrollParent.tagName.toLowerCase();
+      const attemptScroll = async (delta: number) => {
+        if (Math.abs(delta) < 1) return;
+        if (!documentScroller) scrollParent.scrollTop += delta;
+        await waitForFrame();
+        const remaining = element.getBoundingClientRect().top - targetTop;
+        if (Math.abs(remaining) >= Math.abs(delta) - 1) {
+          window.scrollBy(0, remaining);
+          await waitForFrame();
+        }
+      };
+      await attemptScroll(rect.top - targetTop);
+      element.dataset.swanFrameFinalTop = String(Math.round(element.getBoundingClientRect().top));
     };
-    alignCard();
-    await new Promise(requestAnimationFrame);
-    alignCard();
+    await alignCard();
+    await alignCard();
   });
 };
 
@@ -117,7 +124,7 @@ for (const viewport of responsiveViewports) {
     expect(layout.overflowX, `horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
     expect(nestedLayout.issues).toEqual([]);
-    expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
+    expect(filterKnownConsoleNoise(consoleErrors)).toEqual([]);
 
     await frameCardForScreenshot(page, '[data-swan-client-card="admin"]');
     expect((await inspectFramedClientCardTop(page, '[data-swan-client-card="admin"]')).issues).toEqual([]);
@@ -145,7 +152,7 @@ for (const viewport of responsiveViewports) {
     expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
     expect((await inspectClientWorkspaceTopBar(page)).issues).toEqual([]);
     expect((await inspectSelectedClientActionStripFootprint(page)).issues).toEqual([]);
-    expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
+    expect(filterKnownConsoleNoise(consoleErrors)).toEqual([]);
 
     await page.screenshot({ path: testInfo.outputPath(`admin-client-detail-biometrics-${viewport.name}.png`), fullPage: false });
   });
@@ -171,7 +178,7 @@ for (const viewport of responsiveViewports) {
     expect(layout.issues).toEqual([]);
     expect(nestedLayout.issues).toEqual([]);
     expect((await inspectTrainerClientContactEmailFit(page)).issues).toEqual([]);
-    expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
+    expect(filterKnownConsoleNoise(consoleErrors)).toEqual([]);
 
     await frameCardForScreenshot(page, '[data-swan-client-card="trainer"]');
     expect((await inspectFramedClientCardTop(page, '[data-swan-client-card="trainer"]')).issues).toEqual([]);
@@ -199,7 +206,7 @@ test('admin selected client measurements expansion has no phone overflow', async
   expect(layout.overflowX, 'measurements expansion phone horizontal overflow').toBeLessThanOrEqual(12);
   expect(layout.issues).toEqual([]);
   expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
-  expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
+  expect(filterKnownConsoleNoise(consoleErrors)).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-client-measurements-expanded-phone.png'), fullPage: false });
 });

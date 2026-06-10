@@ -22,6 +22,8 @@ type AdminClient = {
   photo?: string;
   availableSessions?: number;
   clientSource?: Client['clientSource'];
+  fitnessGoal?: string | null;
+  trainingExperience?: string | null;
   onboardingStatus?: string | null;
   onboardingComplete?: boolean;
   onboardingCompletionPercentage?: number | null;
@@ -60,6 +62,8 @@ const adaptAdminClient = (client: AdminClient): ClientAssignment | null => {
       photo: client.photo,
       availableSessions: toSessionCount(client.availableSessions),
       clientSource: client.clientSource ?? 'swanstudios',
+      fitnessGoal: client.fitnessGoal ?? null,
+      trainingExperience: client.trainingExperience ?? null,
       onboardingStatus: client.onboardingStatus,
       onboardingComplete: client.onboardingComplete,
       onboardingCompletionPercentage: client.onboardingCompletionPercentage ?? client.onboardingPct ?? null,
@@ -108,6 +112,8 @@ const adaptTrainerAssignment = async (
       ...assignment.client,
       id: clientId,
       availableSessions: toSessionCount(assignment.client.availableSessions),
+      fitnessGoal: assignment.client.fitnessGoal ?? null,
+      trainingExperience: assignment.client.trainingExperience ?? null,
       status: assignmentStatus as Client['status'],
       joinDate: assignment.client.joinDate || assignment.client.createdAt || null,
       totalSessionsCompleted: sessionRows.filter((session: any) => session.status === 'completed').length,
@@ -136,6 +142,8 @@ const adaptTrainerAssignment = async (
         ...assignment.client,
         id: clientId,
         availableSessions: toSessionCount(assignment.client.availableSessions),
+        fitnessGoal: assignment.client.fitnessGoal ?? null,
+        trainingExperience: assignment.client.trainingExperience ?? null,
         status: assignmentStatus as Client['status'],
         joinDate: assignment.client.joinDate || assignment.client.createdAt || null,
         totalSessionsCompleted: 0,

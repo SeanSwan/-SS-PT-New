@@ -19,6 +19,8 @@ export interface Client {
   photo?: string;
   availableSessions: number;
   clientSource?: ClientSource;
+  fitnessGoal?: string | null;
+  trainingExperience?: string | null;
   onboardingStatus?: string | null;
   onboardingComplete?: boolean;
   onboardingCompletionPercentage?: number | null;

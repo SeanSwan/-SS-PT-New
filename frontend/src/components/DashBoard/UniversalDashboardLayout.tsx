@@ -303,24 +303,24 @@ const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }
   @media (max-width: 1024px) {
     margin-left: 0;
     padding: 16px;
-    padding-top: 116px;
+    padding-top: 128px;
   }
 
   @media (max-width: 430px) {
     padding: 12px;
-    padding-top: 112px;
+    padding-top: 132px;
     /* Bump base font size for readability on small phones */
     font-size: 15px;
   }
 
   @media (max-width: 375px) {
     padding: 8px;
-    padding-top: 108px;
+    padding-top: 128px;
   }
 
   @media (max-width: 320px) {
     padding: 6px;
-    padding-top: 104px;
+    padding-top: 124px;
   }
 
   @media (min-width: 2560px) {

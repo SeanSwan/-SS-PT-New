@@ -50,6 +50,8 @@ describe('useTrainerClients stats', () => {
                   lastName: 'Credits',
                   email: 'missing-credits@example.com',
                   clientSource: 'swanstudios',
+                  fitnessGoal: 'Strength and mobility',
+                  trainingExperience: 'beginner',
                   createdAt: '2026-04-01T12:00:00.000Z',
                 },
               },
@@ -88,6 +90,8 @@ describe('useTrainerClients stats', () => {
     expect(result.current.stats.completedSessions).toBe(1);
     expect(result.current.stats.paidSessionInventory).toBe(0);
     expect(Number.isNaN(result.current.stats.paidSessionInventory)).toBe(false);
+    expect(result.current.filteredClients[0].client.fitnessGoal).toBe('Strength and mobility');
+    expect(result.current.filteredClients[0].client.trainingExperience).toBe('beginner');
   });
 
   it('drops malformed assignment client ids before loading session history', async () => {

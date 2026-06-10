@@ -17,6 +17,9 @@ const trainerCardStyles = readRepoFile(
 const trainerCard = readRepoFile(
   'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.clientCard.tsx'
 );
+const cardSystem = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/clientCardSystem.ts'
+);
 const agentsDoc = readRepoFile('AGENTS.md');
 const claudeDoc = readRepoFile('CLAUDE.md');
 
@@ -31,6 +34,11 @@ describe('Swan client card system contract', () => {
   it('keeps trainer client cards low-motion instead of using hover/tap animation props', () => {
     expect(trainerCard).not.toContain('whileHover');
     expect(trainerCard).not.toContain('whileTap');
+  });
+
+  it('keeps mobile client-card scroll targets below dashboard fixed controls', () => {
+    expect(cardSystem).toContain('scroll-margin-block: var(--swan-card-scroll-margin-top, 148px) 24px');
+    expect(cardSystem).toContain('--swan-card-scroll-margin-top: 152px');
   });
 
   it('codifies the attached store-card visual standard in both project instruction files', () => {

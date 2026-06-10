@@ -21,6 +21,17 @@ describe('client trainer assignment clientSource contract', () => {
     }
   });
 
+  it('returns trainer card profile facts that already exist on the User model', () => {
+    const trainerClientRouteStart = source.indexOf("router.get('/trainer/:trainerId'");
+    const trainerClientRouteEnd = source.indexOf("router.get('/client/:clientId'");
+    const trainerClientRoute = source.slice(trainerClientRouteStart, trainerClientRouteEnd);
+
+    expect(trainerClientRouteStart).toBeGreaterThan(-1);
+    expect(trainerClientRouteEnd).toBeGreaterThan(trainerClientRouteStart);
+    expect(trainerClientRoute).toContain("'fitnessGoal'");
+    expect(trainerClientRoute).toContain("'trainingExperience'");
+  });
+
   it('derives onboarding readiness for trainer client cards without relying on a fake model column', () => {
     expect(source).toContain('calculateCompletionPercentage');
     expect(source).toContain('ClientOnboardingQuestionnaire');

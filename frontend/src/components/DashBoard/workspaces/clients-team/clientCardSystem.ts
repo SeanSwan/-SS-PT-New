@@ -34,7 +34,7 @@ export const swanDataCardShell = css`
       color-mix(in srgb, var(--bg-base, #050810) 74%, var(--primary, #002060) 26%));
   color: var(--text-primary, #E0ECF4);
   text-align: left;
-  scroll-margin-block: var(--swan-card-scroll-margin-top, 132px) 24px;
+  scroll-margin-block: var(--swan-card-scroll-margin-top, 148px) 24px;
   box-shadow:
     0 22px 50px var(--shadow-ambient, rgba(0, 0, 0, 0.34)),
     inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
@@ -79,11 +79,11 @@ export const swanDataCardShell = css`
   }
 
   @media (max-width: 430px) {
-    --swan-card-scroll-margin-top: 128px;
+    --swan-card-scroll-margin-top: 152px;
   }
 
   @media (max-width: 375px) {
-    --swan-card-scroll-margin-top: 122px;
+    --swan-card-scroll-margin-top: 148px;
   }
 `;
 

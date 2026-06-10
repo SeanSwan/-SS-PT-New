@@ -15,6 +15,8 @@ const assignment: ClientAssignment = {
     email: 'accessible@example.com',
     availableSessions: 4,
     clientSource: 'swanstudios',
+    fitnessGoal: 'Strength and mobility',
+    trainingExperience: 'beginner',
     onboardingCompletionPercentage: 67,
     onboardingStatus: 'in_progress',
     totalSessionsCompleted: 3,
@@ -111,6 +113,8 @@ describe('TrainerClientCard accessibility', () => {
     render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
 
     expect(screen.getByText('SwanStudios paid')).toBeInTheDocument();
+    expect(screen.getByText('beginner')).toBeInTheDocument();
+    expect(screen.getByText('Strength and mobility')).toBeInTheDocument();
     expect(screen.getByText('Next session: Jun 12')).toBeInTheDocument();
     expect(screen.getByText('Intake 67%')).toBeInTheDocument();
     expect(screen.getByText('Active client')).toBeInTheDocument();
