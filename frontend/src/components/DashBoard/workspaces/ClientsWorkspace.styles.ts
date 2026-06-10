@@ -76,7 +76,9 @@ export const TopBarActions = styled.div`
 export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-width: 0;
   padding: 10px 16px;
   min-height: 44px;
   border-radius: 10px;
@@ -103,7 +105,17 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+  }
 
   &:hover {
     background: ${({ $variant }) =>

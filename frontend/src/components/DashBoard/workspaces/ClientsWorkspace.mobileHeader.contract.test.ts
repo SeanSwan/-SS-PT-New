@@ -12,4 +12,9 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
     expect(styles).toContain('> section + *');
     expect(styles).toContain('display: none;');
   });
+
+  it('keeps client-management top action labels wrap-safe', () => {
+    expect(styles).toContain('overflow-wrap: anywhere');
+    expect(styles).not.toContain('white-space: nowrap');
+  });
 });
