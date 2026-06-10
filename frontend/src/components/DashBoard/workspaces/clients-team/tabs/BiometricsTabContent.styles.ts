@@ -1,8 +1,9 @@
 import styled, { keyframes } from 'styled-components';
+import { swanClientActionButton, swanDataCardShell, swanMetricTile } from '../clientCardSystem';
 
 const cardEntrance = keyframes`
-  0% { opacity: 0; transform: translateY(16px) scale(0.97); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
 `;
 
 const shimmer = keyframes`
@@ -25,10 +26,9 @@ export const BentoGrid = styled.div`
 `;
 
 export const InvalidClientAlert = styled.div`
+  ${swanMetricTile}
   padding: 24px;
   border-radius: 12px;
-  background: var(--bg-surface, #141419);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -36,21 +36,19 @@ export const InvalidClientAlert = styled.div`
 `;
 
 export const BentoCardWrapper = styled.button`
+  --swan-card-padding: 24px;
+  --swan-card-radius: 12px;
   all: unset;
   box-sizing: border-box;
+  ${swanDataCardShell}
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 12px;
   width: 100%;
   min-width: 0;
-  padding: 24px;
   min-height: 160px;
-  border-radius: 12px;
-  background: var(--bg-surface, #141419);
-  border: 1.5px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
-  transition: border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
-  animation: ${cardEntrance} 400ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: ${cardEntrance} 220ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   overflow-wrap: anywhere;
 
   &:nth-child(1) { animation-delay: 0ms; }
@@ -75,7 +73,7 @@ export const BentoCardWrapper = styled.button`
   &:active { transform: translateY(0); }
 
   @media (max-width: 768px) {
-    padding: 18px;
+    --swan-card-padding: 18px;
     min-height: 140px;
   }
 
@@ -157,8 +155,12 @@ export const StickyBackBar = styled.div`
 `;
 
 export const BackButton = styled.button`
+  --swan-action-border: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  --swan-action-bg: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  --swan-action-fg: var(--accent-primary, #60C0F0);
   all: unset;
   box-sizing: border-box;
+  ${swanClientActionButton}
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -169,21 +171,7 @@ export const BackButton = styled.button`
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: var(--accent-primary, #60C0F0);
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-  transition: background 150ms ease, border-color 150ms ease;
   flex-shrink: 0;
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
-    border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const ExpandedTitle = styled.h3`
@@ -194,17 +182,19 @@ export const ExpandedTitle = styled.h3`
   margin: 0;
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 520px) {
+    font-size: 16px;
+    line-height: 1.25;
+  }
 `;
 
 export const ComponentWrapper = styled.div`
+  ${swanMetricTile}
   border-radius: 12px;
   overflow-x: auto;
   overflow-y: auto;
-  background: var(--bg-surface, #141419);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   flex: 1;
   min-height: 0;
   min-width: 0;

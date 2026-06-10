@@ -10,14 +10,14 @@
  */
 
 import styled from 'styled-components';
+import { swanClientActionButton, swanDataCardShell, swanMetricTile, swanPill } from '../clientCardSystem';
 
 export const Panel = styled.section`
+  --swan-card-padding: 18px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   display: grid;
   gap: 14px;
-  padding: 18px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.14));
-  background: var(--bg-elevated, #1A1A24);
 `;
 
 export const Header = styled.div`
@@ -64,42 +64,31 @@ export const Hint = styled.p`
 `;
 
 export const RefreshButton = styled.button`
-  min-width: 44px;
-  min-height: 44px;
+  ${swanClientActionButton}
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, var(--accent-primary, #60C0F0) 8%);
-  color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 800;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const PlanGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 12px;
 `;
 
 export const PlanCard = styled.article`
+  --swan-card-padding: 14px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   display: grid;
   gap: 10px;
   min-height: 132px;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background: var(--bg-surface, #141419);
+  min-width: 0;
 `;
 
 export const PlanTitle = styled.h4`
@@ -110,6 +99,7 @@ export const PlanTitle = styled.h4`
 `;
 
 export const StatusBadge = styled.span<{ $active: boolean }>`
+  ${swanPill}
   width: fit-content;
   display: inline-flex;
   align-items: center;
@@ -144,12 +134,10 @@ export const PlanActions = styled.div`
 `;
 
 export const VaultSection = styled.div`
+  ${swanMetricTile}
   display: grid;
   gap: 10px;
   padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, var(--bg-elevated, #1A1A24) 28%);
 `;
 
 export const VaultHeader = styled.div`
@@ -185,16 +173,17 @@ export const VaultMeta = styled.span`
 
 export const VaultGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
   gap: 8px;
 `;
 
 export const VaultSlot = styled.article<{ $filled: boolean; $primary: boolean }>`
+  ${swanMetricTile}
   display: grid;
   gap: 7px;
   min-height: 126px;
+  min-width: 0;
   padding: 11px;
-  border-radius: 10px;
   border: 1px solid ${({ $primary, $filled }) =>
     $primary
       ? 'var(--accent-gold, #C6A84B)'
@@ -213,16 +202,20 @@ export const VaultSlotTop = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
 `;
 
 export const VaultSlotLabel = styled.strong`
+  min-width: 0;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
+  overflow-wrap: anywhere;
 `;
 
 export const VaultSlotStatus = styled.span<{ $primary?: boolean }>`
+  ${swanPill}
   min-height: 24px;
   display: inline-flex;
   align-items: center;
@@ -237,60 +230,54 @@ export const VaultSlotStatus = styled.span<{ $primary?: boolean }>`
 `;
 
 export const VaultSlotPlanName = styled.span`
+  min-width: 0;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   line-height: 1.3;
+  overflow-wrap: anywhere;
 `;
 
 export const VaultSlotDetail = styled.span`
+  min-width: 0;
   color: var(--text-muted, rgba(224, 236, 244, 0.72));
   font-family: 'Sora', sans-serif;
   font-size: 12px;
+  overflow-wrap: anywhere;
 `;
 
 export const PlanActionButton = styled.button<{ $variant?: 'primary' }>`
-  min-height: 44px;
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid ${({ $variant }) =>
+  ${swanClientActionButton}
+  --swan-action-border: ${({ $variant }) =>
     $variant === 'primary'
       ? 'var(--accent-secondary, #8B5CF6)'
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent)'};
-  background: ${({ $variant }) =>
+  --swan-action-bg: ${({ $variant }) =>
     $variant === 'primary'
       ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-tertiary, #4070C0))'
       : 'transparent'};
-  color: ${({ $variant }) =>
+  --swan-action-fg: ${({ $variant }) =>
     $variant === 'primary'
       ? 'var(--text-primary, #E0ECF4)'
       : 'var(--accent-primary, #60C0F0)'};
+  width: fit-content;
+  padding: 10px 12px;
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 800;
-  cursor: pointer;
 
   &:disabled {
     cursor: wait;
     opacity: 0.72;
   }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const StateCard = styled.div`
+  ${swanMetricTile}
   min-height: 112px;
   display: grid;
   place-items: center;
   padding: 18px;
-  border-radius: 12px;
   border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.16));
   color: var(--text-muted, rgba(224, 236, 244, 0.72));
   font-family: 'Sora', sans-serif;

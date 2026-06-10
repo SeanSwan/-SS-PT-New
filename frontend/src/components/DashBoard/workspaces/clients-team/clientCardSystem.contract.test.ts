@@ -17,6 +17,15 @@ const trainerCardStyles = readRepoFile(
 const trainerCard = readRepoFile(
   'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.clientCard.tsx'
 );
+const savedPlanCardStyles = readRepoFile(
+  'frontend/src/components/DashBoard/Pages/admin-workout-planner/SavedPlanCard.styles.ts'
+);
+const biometricsStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/tabs/BiometricsTabContent.styles.ts'
+);
+const workoutPlanStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/tabs/ClientWorkoutPlansPanel.styles.ts'
+);
 const cardSystem = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/clientCardSystem.ts'
 );
@@ -29,6 +38,17 @@ describe('Swan client card system contract', () => {
     expect(adminCardActions).toContain('swanClientActionButton');
     expect(trainerCardStyles).toContain('swanDataCardShell');
     expect(trainerCardStyles).toContain('swanClientActionButton');
+  });
+
+  it('uses the same Swan primitives for active client data cards', () => {
+    expect(savedPlanCardStyles).toContain('swanDataCardShell');
+    expect(savedPlanCardStyles).toContain('swanClientActionButton');
+    expect(biometricsStyles).toContain('swanDataCardShell');
+    expect(biometricsStyles).toContain('swanClientActionButton');
+    expect(workoutPlanStyles).toContain('swanDataCardShell');
+    expect(workoutPlanStyles).toContain('swanClientActionButton');
+    expect(workoutPlanStyles).toContain('swanPill');
+    expect(workoutPlanStyles).toContain('minmax(min(100%, 220px), 1fr)');
   });
 
   it('keeps trainer client cards low-motion instead of using hover/tap animation props', () => {
