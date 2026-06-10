@@ -7,11 +7,12 @@
  */
 
 import React, { memo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled from 'styled-components';
 import { Activity, Target } from 'lucide-react';
 import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
 import { getClientSourceLabel, getClientSourceTone, type ClientSourceTone } from './clientSourceDisplay';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
+import { swanClientAvatar, swanDataCardShell, swanMetricTile, swanPill } from './clientCardSystem';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -46,22 +47,17 @@ const getClientAge = (dateOfBirth?: string): number | null => {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
-const onboardingGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
-  50% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, transparent); }
-`;
-
 const CardWrap = styled.div`
+  --swan-card-padding: 16px 20px;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 20px;
-  border-radius: 14px;
-  background: var(--bg-surface, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   flex-wrap: wrap;
 
   @media (max-width: 768px) {
+    --swan-card-padding: 16px;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -69,21 +65,13 @@ const CardWrap = styled.div`
 `;
 
 const AvatarLarge = styled.div<{ $source?: ClientSourceTone }>`
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  --swan-avatar-size: 56px;
+  ${swanClientAvatar}
   background: ${({ $source }) =>
     $source === 'mf'
       ? 'linear-gradient(135deg, var(--accent-gold, #C6A84B) 0%, var(--accent-secondary, #8B5CF6) 100%)'
       : 'linear-gradient(135deg, var(--primary, #002060) 0%, var(--accent-primary, #60C0F0) 100%)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Sora', sans-serif;
   font-size: 20px;
-  font-weight: 700;
-  color: var(--button-text, #FFFFFF);
-  flex-shrink: 0;
 `;
 
 const InfoBlock = styled.div`
@@ -104,8 +92,7 @@ const ClientName = styled.h2`
 `;
 
 const Badge = styled.span<{ $variant: 'mf' | 'ss' | 'external' | 'status' }>`
-  padding: 3px 10px;
-  border-radius: 6px;
+  ${swanPill}
   font-size: 11px;
   font-weight: 700;
   font-family: 'Sora', sans-serif;
@@ -154,12 +141,10 @@ const StatsRow = styled.div`
 `;
 
 const StatPill = styled.div<{ $tone?: ClientSessionSignalTone }>`
+  ${swanPill}
   display: flex;
   align-items: center;
-  gap: 6px;
   padding: 6px 12px;
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
   font-family: 'Fira Code', monospace;
   font-size: 12px;
   color: ${({ $tone = 'default' }) => {
@@ -167,7 +152,7 @@ const StatPill = styled.div<{ $tone?: ClientSessionSignalTone }>`
     if ($tone === 'warning') return 'var(--accent-secondary, #8B5CF6)';
     return 'var(--text-primary, #E0ECF4)';
   }};
-  white-space: nowrap;
+  max-width: 100%;
 `;
 
 const StatStack = styled.span`
@@ -182,16 +167,14 @@ const StatNote = styled.span`
 `;
 
 const OnboardingBar = styled.div<{ $pct: number; $incomplete: boolean }>`
+  ${swanMetricTile}
   width: 100%;
   margin-top: 8px;
   padding: 8px 14px;
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
   border: 1px solid ${({ $incomplete }) =>
     $incomplete
       ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)'
       : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
-  ${({ $incomplete }) => $incomplete && css`animation: ${onboardingGlow} 3s ease-in-out infinite;`}
   display: flex;
   align-items: center;
   gap: 10px;
