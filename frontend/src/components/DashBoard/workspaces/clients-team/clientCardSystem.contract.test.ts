@@ -26,6 +26,9 @@ const biometricsStyles = readRepoFile(
 const workoutPlanStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/tabs/ClientWorkoutPlansPanel.styles.ts'
 );
+const dailyActionStrip = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientDailyActionStrip.tsx'
+);
 const cardSystem = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/clientCardSystem.ts'
 );
@@ -49,6 +52,9 @@ describe('Swan client card system contract', () => {
     expect(workoutPlanStyles).toContain('swanClientActionButton');
     expect(workoutPlanStyles).toContain('swanPill');
     expect(workoutPlanStyles).toContain('minmax(min(100%, 220px), 1fr)');
+    expect(dailyActionStrip).toContain('swanDataCardShell');
+    expect(dailyActionStrip).toContain('swanClientActionButton');
+    expect(dailyActionStrip).toContain('swanPill');
   });
 
   it('keeps trainer client cards low-motion instead of using hover/tap animation props', () => {

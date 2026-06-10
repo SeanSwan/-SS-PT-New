@@ -15,6 +15,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { ClipboardList, Dumbbell, MessageCircle, TrendingUp } from 'lucide-react';
 import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
+import { swanClientActionButton, swanDataCardShell, swanPill } from './clientCardSystem';
 
 interface ClientDailyActionStripProps {
   clientName: string;
@@ -28,29 +29,24 @@ interface ClientDailyActionStripProps {
 }
 
 const Strip = styled.section`
+  --swan-card-padding: 14px 16px;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
   display: grid;
   grid-template-columns: minmax(220px, 1fr) auto;
   gap: 14px;
   align-items: center;
-  padding: 14px 16px;
   margin-bottom: 12px;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--bg-surface, #141419) 94%, var(--accent-primary, #60C0F0) 6%),
-      color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, var(--accent-secondary, #8B5CF6) 12%));
-  box-shadow: 0 16px 42px var(--shadow-ambient, rgba(0, 0, 0, 0.28));
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
 
   @media (max-width: 520px) {
+    --swan-card-padding: 10px 12px 12px;
+    --swan-card-radius: 12px;
     gap: 8px;
-    padding: 10px 12px 12px;
     margin-bottom: 8px;
-    border-radius: 12px;
   }
 `;
 
@@ -104,19 +100,15 @@ const DetailLine = styled.div`
 `;
 
 const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
+  ${swanPill}
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 4px 9px;
-  border-radius: 8px;
   background: ${({ $tone = 'default' }) => {
     if ($tone === 'gold') return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-gold, #C6A84B) 10%)';
     if ($tone === 'warning') return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-secondary, #8B5CF6) 12%)';
     return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-primary, #60C0F0) 8%)';
   }};
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  white-space: nowrap;
+  max-width: 100%;
 
   @media (max-width: 520px) {
     min-height: 26px;
@@ -153,48 +145,23 @@ const ActionGroup = styled.div`
 `;
 
 const CockpitButton = styled.button<{ $variant?: 'primary' }>`
-  min-height: 44px;
-  min-width: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 13px;
-  border-radius: 10px;
-  border: 1px solid ${({ $variant }) =>
+  ${swanClientActionButton}
+  --swan-action-border: ${({ $variant }) =>
     $variant === 'primary'
       ? 'var(--accent-secondary, #8B5CF6)'
       : 'var(--border-soft, rgba(96, 192, 240, 0.14))'};
-  background: ${({ $variant }) =>
+  --swan-action-bg: ${({ $variant }) =>
     $variant === 'primary'
       ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-tertiary, #4070C0))'
       : 'color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, transparent)'};
-  color: var(--text-primary, #E0ECF4);
+  width: 100%;
+  min-width: 0;
+  padding: 10px 13px;
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 800;
-  cursor: pointer;
-  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms ease,
-    box-shadow 180ms ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 10px 26px var(--shadow-accent, rgba(96, 192, 240, 0.14));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-
-    &:hover {
-      transform: none;
-    }
-  }
+  text-align: center;
+  white-space: normal;
 
   @media (max-width: 420px) {
     gap: 6px;
