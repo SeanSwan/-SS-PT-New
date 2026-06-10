@@ -69,6 +69,7 @@ const secondClient = {
 };
 
 export const responsiveViewports = [
+  { name: 'narrow-phone', width: 360, height: 800 },
   { name: 'compact-phone', width: 390, height: 844 },
   { name: 'phone', width: 414, height: 896 },
   { name: 'desktop', width: 1440, height: 900 },

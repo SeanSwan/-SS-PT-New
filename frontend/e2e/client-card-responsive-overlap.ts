@@ -101,18 +101,65 @@ export async function inspectSelectedClientActionStripFootprint(page: Page) {
     const issues: string[] = [];
     if (window.innerWidth > 520) return { issues };
 
+    const visible = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    };
+    const labelFor = (element: HTMLElement) =>
+      element.getAttribute('aria-label')
+      || element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 64)
+      || element.tagName.toLowerCase();
+    const overlapArea = (a: DOMRect, b: DOMRect) => (
+      Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+      * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+    );
+    const checkChildrenFit = (container: HTMLElement, label: string) => {
+      const containerRect = container.getBoundingClientRect();
+      const children = Array.from(container.children).filter((child): child is HTMLElement =>
+        child instanceof HTMLElement && visible(child)
+      );
+
+      children.forEach((child) => {
+        const rect = child.getBoundingClientRect();
+        if (rect.left < containerRect.left - 1 || rect.right > containerRect.right + 1) {
+          issues.push(`${labelFor(child)} escapes ${label} horizontally`);
+        }
+      });
+
+      for (let i = 0; i < children.length; i += 1) {
+        for (let j = i + 1; j < children.length; j += 1) {
+          if (overlapArea(children[i].getBoundingClientRect(), children[j].getBoundingClientRect()) > 4) {
+            issues.push(`${labelFor(children[i])} overlaps ${labelFor(children[j])} in ${label}`);
+          }
+        }
+      }
+    };
+
     const strip = document.querySelector<HTMLElement>('section[aria-label*="daily training actions"]');
     if (!strip) return { issues: ['missing selected client daily action strip'] };
 
     const rect = strip.getBoundingClientRect();
     if (rect.height > 220) issues.push(`daily action strip is ${Math.round(rect.height)}px tall`);
     if (strip.scrollWidth > strip.clientWidth + 12) issues.push('daily action strip has horizontal overflow');
+    checkChildrenFit(strip, 'daily action strip');
+
+    const actionGroup = Array.from(strip.querySelectorAll<HTMLElement>('div'))
+      .find((element) => Array.from(element.children).filter((child) => child.tagName === 'BUTTON').length >= 2);
+    if (actionGroup) checkChildrenFit(actionGroup, 'daily action buttons');
+
+    const metricsLine = Array.from(strip.querySelectorAll<HTMLElement>('div'))
+      .find((element) => element.textContent?.includes('workouts logged') && element.children.length >= 2);
+    if (metricsLine) checkChildrenFit(metricsLine, 'daily action metrics');
 
     Array.from(strip.querySelectorAll<HTMLElement>('button')).forEach((button) => {
       const buttonRect = button.getBoundingClientRect();
+      const label = button.getAttribute('aria-label') || button.textContent?.trim() || 'daily action';
       if (buttonRect.width < 43 || buttonRect.height < 43) {
-        const label = button.getAttribute('aria-label') || button.textContent?.trim() || 'daily action';
         issues.push(`${label} touch target is ${Math.round(buttonRect.width)}x${Math.round(buttonRect.height)}`);
+      }
+      if (button.scrollWidth > button.clientWidth + 2) {
+        issues.push(`${label} text clips ${button.scrollWidth}px into ${button.clientWidth}px`);
       }
     });
 
