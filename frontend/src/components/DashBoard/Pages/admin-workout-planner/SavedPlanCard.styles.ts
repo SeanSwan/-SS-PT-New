@@ -1,4 +1,10 @@
 import styled, { css, keyframes } from 'styled-components';
+import {
+  swanClientActionButton,
+  swanDataCardShell,
+  swanMetricTile,
+  swanPill,
+} from '../../workspaces/clients-team/clientCardSystem';
 
 const cardEntry = keyframes`
   from { opacity: 0; transform: translateY(4px); }
@@ -12,11 +18,12 @@ const motionGuarded = css`
 `;
 
 export const Card = styled.div<{ $loaded: boolean; $isCurrent: boolean }>`
+  --swan-card-padding: 14px;
+  --swan-card-radius: 12px;
+  ${swanDataCardShell}
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 14px;
-  background: var(--bg-surface, rgba(0, 32, 96, 0.45));
   border: 1px solid ${({ $loaded, $isCurrent }) =>
     $isCurrent
       ? 'var(--accent-gold, #C6A84B)'
@@ -63,10 +70,9 @@ export const CardTitle = styled.div`
 `;
 
 export const StatusBadge = styled.span<{ $status: string }>`
+  ${swanPill}
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 6px;
   font-family: 'Sora', sans-serif;
   font-size: 0.65rem;
   font-weight: 600;
@@ -92,6 +98,7 @@ export const CardMeta = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   color: var(--text-secondary, rgba(224, 236, 244, 0.55));
+  overflow-wrap: anywhere;
 `;
 
 export const PlanArcRow = styled.div`
@@ -101,12 +108,11 @@ export const PlanArcRow = styled.div`
 `;
 
 export const HorizonBadge = styled.span`
+  ${swanPill}
   min-height: 28px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
-  border-radius: 6px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
   color: var(--accent-primary, #60C0F0);
   font: 700 0.68rem/1 'Sora', sans-serif;
@@ -119,12 +125,12 @@ export const PrimaryArcBadge = styled(HorizonBadge)`
 `;
 
 export const PdfPanel = styled.div<{ $hasFile: boolean }>`
+  ${swanMetricTile}
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border-radius: 10px;
   border: 1px solid ${({ $hasFile }) =>
     $hasFile
       ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent)'
@@ -193,11 +199,10 @@ export const CardActionRow = styled.div`
 `;
 
 export const CardActionButton = styled.button<{ $variant?: 'primary' | 'danger' | 'default' }>`
+  ${swanClientActionButton}
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 44px;
-  min-width: 44px;
   padding: 6px 10px;
   border: 1px solid ${({ $variant }) =>
     $variant === 'primary'
