@@ -74,6 +74,9 @@ const claudeDoc = readRepoFile('CLAUDE.md');
 describe('Swan client card system contract', () => {
   it('uses the same lightweight card and button primitives for admin and trainer client cards', () => {
     expect(adminCardStyles).toContain('swanDataCardShell');
+    expect(adminCardStyles).toContain('overflow-wrap: anywhere');
+    expect(adminCardStyles).not.toContain('white-space: nowrap');
+    expect(adminCardStyles).not.toContain('text-overflow: ellipsis');
     expect(adminCardActions).toContain('swanClientActionButton');
     expect(trainerCardStyles).toContain('swanDataCardShell');
     expect(trainerCardStyles).toContain('swanClientActionButton');

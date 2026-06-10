@@ -121,13 +121,14 @@ export const Pill = styled.span`
 
 export const ContactLine = styled.div`
   margin: -2px 0 8px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--text-muted, rgba(224, 236, 244, 0.76));
   font-family: 'Fira Code', monospace;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.3;
 `;
 
 export const GoalLine = styled.div`
@@ -172,7 +173,7 @@ export const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
   font-size: 12px;
   font-weight: 800;
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
 
   svg {
     flex: 0 0 auto;
