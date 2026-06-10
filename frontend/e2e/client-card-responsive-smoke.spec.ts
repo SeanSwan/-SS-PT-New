@@ -9,7 +9,10 @@ import {
   inspectMobileDashboardSafeArea,
   filterKnownConsoleNoise,
 } from './client-card-responsive-layout';
-import { inspectClientWorkoutPlanLayout } from './client-workout-plan-responsive-layout';
+import {
+  inspectClientTrainingShellLayout,
+  inspectClientWorkoutPlanLayout,
+} from './client-workout-plan-responsive-layout';
 import {
   adminUser,
   mockSharedApi,
@@ -230,9 +233,12 @@ for (const viewport of responsiveViewports) {
     await expect(page.getByLabel('6 Month plan arc').getByRole('button', { name: /open 6 month pdf plan/i })).toBeVisible();
 
     const detailLayout = await inspectClientDetailLayout(page);
+    const trainingShellLayout = await inspectClientTrainingShellLayout(page);
     const planLayout = await inspectClientWorkoutPlanLayout(page);
     expect(detailLayout.overflowX, `detail horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(detailLayout.issues).toEqual([]);
+    expect(trainingShellLayout.overflowX, `training shell horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
+    expect(trainingShellLayout.issues).toEqual([]);
     expect(planLayout.overflowX, `plan horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(planLayout.issues).toEqual([]);
     expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
