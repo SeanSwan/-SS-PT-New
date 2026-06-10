@@ -32,6 +32,9 @@ const workoutPlanStyles = readRepoFile(
 const overviewStyles = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/tabs/OverviewTabContent.styles.ts'
 );
+const commandBarStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.styles.ts'
+);
 const dailyActionStrip = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientDailyActionStrip.tsx'
 );
@@ -74,6 +77,11 @@ describe('Swan client card system contract', () => {
     expect(overviewStyles).toContain('swanMetricTile');
     expect(overviewStyles).toContain('minmax(0, 1fr)');
     expect(overviewStyles).toContain('overflow-wrap: anywhere');
+    expect(commandBarStyles).toContain('swanDataCardShell');
+    expect(commandBarStyles).toContain('swanClientActionButton');
+    expect(commandBarStyles).toContain('swanPill');
+    expect(commandBarStyles).toContain('box-sizing: border-box');
+    expect(commandBarStyles).not.toContain('white-space: nowrap');
     expect(dailyActionStrip).toContain('swanDataCardShell');
     expect(dailyActionStrip).toContain('swanClientActionButton');
     expect(dailyActionStrip).toContain('swanPill');
