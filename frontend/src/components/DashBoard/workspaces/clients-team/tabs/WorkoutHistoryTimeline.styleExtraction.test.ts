@@ -20,9 +20,15 @@ describe('WorkoutHistoryTimeline extraction and button semantics', () => {
     expect(styles).toContain('export const SetHeaderRow');
     expect(styles).toContain('export const SetNote');
     expect(styles).toContain('export const AddSetButton');
-    expect(styles).toMatch(/SmallBtn[\s\S]*?min-height:\s*44px/);
-    expect(styles).toMatch(/SmallBtn[\s\S]*?min-width:\s*44px/);
-    expect(styles).toMatch(/SmallBtn[\s\S]*?&:focus-visible/);
+    expect(styles).toContain('swanDataCardShell');
+    expect(styles).toContain('swanClientActionButton');
+    expect(styles).toContain('swanPill');
+    expect(styles).toContain('grid-template-columns: minmax(34px, 0.55fr)');
+    expect(styles).toContain('grid-template-columns: minmax(30px, 0.55fr)');
+    expect(styles).toContain('box-sizing: border-box');
+    expect(styles).not.toContain('white-space: nowrap');
+    expect(styles).not.toContain('grid-template-columns: 40px 70px 70px 60px auto');
+    expect(styles).toMatch(/SmallBtn[\s\S]*?swanClientActionButton/);
   });
 
   it('keeps workout history click controls as explicit non-submit buttons', () => {

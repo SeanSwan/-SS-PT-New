@@ -1,4 +1,5 @@
 import styled, { keyframes } from 'styled-components';
+import { swanClientActionButton, swanDataCardShell, swanPill } from '../clientCardSystem';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(8px); }
@@ -7,14 +8,22 @@ const fadeIn = keyframes`
 
 export const Container = styled.div`
   padding: 16px;
+  min-width: 0;
+  max-width: 100%;
   overflow-y: auto;
   max-height: calc(100vh - 280px);
+
+  @media (max-width: 560px) {
+    padding: 10px 0 0;
+  }
 `;
 
 export const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 16px;
 `;
 
@@ -27,6 +36,8 @@ export const Title = styled.h3`
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const TitleIcon = styled.span`
@@ -37,17 +48,23 @@ export const TitleIcon = styled.span`
 `;
 
 export const WorkoutCard = styled.div`
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  border-radius: 12px;
-  background: var(--bg-surface, #1A1A24);
+  --swan-card-padding: 0;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
+
   margin-bottom: 12px;
   overflow: hidden;
   animation: ${fadeIn} 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 export const WorkoutHeader = styled.button`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
@@ -67,20 +84,29 @@ export const WorkoutHeader = styled.button`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
   }
+
+  & > svg {
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 560px) {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
 `;
 
 export const DateBadge = styled.div`
+  ${swanPill}
+
   padding: 6px 10px;
-  border-radius: 8px;
-  background: var(--bg-elevated, #141419);
-  font-family: 'Fira Code', monospace;
   font-size: 12px;
   color: var(--accent-primary, #60C0F0);
   flex-shrink: 0;
 `;
 
 export const WorkoutInfo = styled.div`
-  flex: 1;
+  flex: 1 1 180px;
   min-width: 0;
 `;
 
@@ -88,9 +114,7 @@ export const WorkoutTitle = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 `;
 
 export const WorkoutMeta = styled.div`
@@ -107,6 +131,8 @@ export const MetaItem = styled.span`
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const ExerciseList = styled.div`
@@ -124,17 +150,29 @@ export const ExerciseName = styled.div`
   font-weight: 600;
   color: var(--accent-secondary, #8B5CF6);
   margin-bottom: 4px;
+  overflow-wrap: anywhere;
 `;
 
 export const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 40px 70px 70px 60px auto;
+  grid-template-columns: minmax(34px, 0.55fr) repeat(3, minmax(58px, 0.85fr)) minmax(64px, 1.1fr);
   gap: 6px;
   align-items: center;
   padding: 3px 0;
   font-family: 'Fira Code', monospace;
   font-size: 12px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+
+  & > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: minmax(30px, 0.55fr) repeat(3, minmax(52px, 0.9fr)) minmax(44px, 0.9fr);
+    gap: 4px;
+    font-size: 11px;
+  }
 `;
 
 export const SetHeaderRow = styled(SetRow)`
@@ -147,6 +185,7 @@ export const SetHeaderRow = styled(SetRow)`
 export const SetNote = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-size: 11px;
+  overflow-wrap: anywhere;
 `;
 
 export const SetLabel = styled.div`
@@ -155,8 +194,11 @@ export const SetLabel = styled.div`
 `;
 
 export const EditInput = styled.input`
+  box-sizing: border-box;
   width: 100%;
-  padding: 4px 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 6px;
   border-radius: 4px;
   border: 1px solid var(--accent-primary, #60C0F0);
   background: var(--bg-elevated, #141419);
@@ -173,38 +215,50 @@ export const EditInput = styled.input`
 
 export const ActionRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 16px 12px;
   justify-content: flex-end;
+
+  @media (max-width: 560px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+    padding: 8px 12px 12px;
+  }
 `;
 
 export const SmallBtn = styled.button<{ $variant?: 'save' | 'cancel' | 'danger' }>`
-  display: flex;
-  align-items: center;
+  ${({ $variant }) => {
+    if ($variant === 'save') {
+      return `
+        --swan-action-border: color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent);
+        --swan-action-bg: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, var(--bg-base, #0A0A0F));
+        --swan-action-fg: var(--accent-primary, #60C0F0);
+      `;
+    }
+    if ($variant === 'danger') {
+      return `
+        --swan-action-border: color-mix(in srgb, var(--danger, #C92A54) 34%, transparent);
+        --swan-action-bg: color-mix(in srgb, var(--danger, #C92A54) 15%, var(--bg-base, #0A0A0F));
+        --swan-action-fg: var(--danger, #C92A54);
+      `;
+    }
+    return `
+      --swan-action-bg: var(--button-muted-bg, rgba(224, 236, 244, 0.08));
+      --swan-action-fg: var(--text-muted, rgba(224, 236, 244, 0.72));
+    `;
+  }}
+  ${swanClientActionButton}
+
   gap: 4px;
-  justify-content: center;
   padding: 8px 12px;
-  border-radius: 6px;
-  border: none;
   font-family: 'Sora', sans-serif;
   font-size: 11px;
   font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-  ${({ $variant }) => {
-    if ($variant === 'save') return 'background: var(--accent-primary-soft, rgba(96, 192, 240, 0.15)); color: var(--accent-primary, #60C0F0);';
-    if ($variant === 'danger') return 'background: var(--danger-soft, rgba(201, 42, 84, 0.15)); color: var(--danger, #C92A54);';
-    return 'background: var(--button-muted-bg, rgba(224, 236, 244, 0.08)); color: var(--text-muted, rgba(224, 236, 244, 0.6));';
-  }}
+  overflow-wrap: anywhere;
 
   &:hover {
     opacity: 0.8;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
   }
 `;
 
@@ -213,6 +267,9 @@ export const AddSetButton = styled(SmallBtn)`
 `;
 
 export const EmptyState = styled.div`
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -221,6 +278,7 @@ export const EmptyState = styled.div`
   gap: 12px;
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
   font-family: 'Sora', sans-serif;
+  overflow-wrap: anywhere;
 `;
 
 export const EmptyIcon = styled.span`
@@ -237,14 +295,17 @@ export const EmptyTitle = styled.div`
 
 export const EmptyText = styled.div`
   font-size: 13px;
+  overflow-wrap: anywhere;
 `;
 
 export const StatusBadge = styled.span<{ $status: string }>`
+  ${swanPill}
+
   padding: 2px 8px;
-  border-radius: 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
+  margin-left: auto;
   ${({ $status }) => {
     if ($status === 'completed') return 'background: var(--success-soft, rgba(16, 185, 129, 0.15)); color: var(--success, #10B981);';
     if ($status === 'planned') return 'background: var(--info-soft, rgba(59, 130, 246, 0.15)); color: var(--info, #3B82F6);';
