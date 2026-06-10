@@ -166,3 +166,70 @@ export async function inspectClientTrainingShellLayout(page: Page) {
     return { overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), issues };
   });
 }
+
+export async function inspectClientPlanVaultCardLayout(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    const card = document.querySelector<HTMLElement>('[data-testid="client-plan-vault-card"]');
+    const visible = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    };
+    if (!card || !visible(card)) {
+      return { overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), issues: ['missing client plan vault card'] };
+    }
+
+    const labelFor = (element: HTMLElement) => (
+      element.getAttribute('aria-label')
+      || element.getAttribute('data-testid')
+      || element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 96)
+      || element.tagName.toLowerCase()
+    );
+    const overlapArea = (a: DOMRect, b: DOMRect) => (
+      Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+      * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+    );
+    const checkGroup = (group: HTMLElement) => {
+      const groupRect = group.getBoundingClientRect();
+      const children = Array.from(group.children).filter((child): child is HTMLElement => (
+        child instanceof HTMLElement && visible(child)
+      ));
+
+      children.forEach((child) => {
+        const rect = child.getBoundingClientRect();
+        if (rect.left < groupRect.left - 1 || rect.right > groupRect.right + 1) {
+          issues.push(`${labelFor(child)} escapes ${labelFor(group)} horizontally`);
+        }
+      });
+
+      for (let i = 0; i < children.length; i += 1) {
+        for (let j = i + 1; j < children.length; j += 1) {
+          if (overlapArea(children[i].getBoundingClientRect(), children[j].getBoundingClientRect()) > 2) {
+            issues.push(`${labelFor(children[i])} overlaps ${labelFor(children[j])} in ${labelFor(group)}`);
+          }
+        }
+      }
+    };
+
+    checkGroup(card);
+    Array.from(card.querySelectorAll<HTMLElement>('[aria-label$="plan arc"], div')).forEach((group) => {
+      if (visible(group)) checkGroup(group);
+    });
+    Array.from(card.querySelectorAll<HTMLElement>('button, [role="button"]')).forEach((control) => {
+      if (!visible(control)) return;
+      const rect = control.getBoundingClientRect();
+      if (rect.width < 43 || rect.height < 43) {
+        issues.push(`${labelFor(control)} touch target is ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+      }
+    });
+    Array.from(card.querySelectorAll<HTMLElement>('h1,h2,h3,h4,p,span,strong,button')).forEach((textNode) => {
+      if (!visible(textNode)) return;
+      if (textNode.scrollWidth > textNode.clientWidth + 2) {
+        issues.push(`${labelFor(textNode)} text overflows ${textNode.clientWidth}px`);
+      }
+    });
+
+    return { overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth), issues };
+  });
+}

@@ -1,4 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { workoutPlanCatalogResponse } from './client-workout-plan-responsive.fixtures';
+import { inspectClientPlanVaultCardLayout } from './client-workout-plan-responsive-layout';
 
 test.describe.configure({ retries: 0 });
 
@@ -25,6 +27,19 @@ async function fulfillJson(route: Route, body: unknown) {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
+const clientPlanVaultCatalog = {
+  ...workoutPlanCatalogResponse.trainingPlanCatalog,
+  slots: workoutPlanCatalogResponse.trainingPlanCatalog.slots.map((slot) => ({
+    ...slot,
+    plan: slot.plan ? {
+      ...slot.plan,
+      currentWeek: slot.horizonKey === 'six_month' ? 3 : 1,
+      currentDay: slot.horizonKey === 'six_month' ? 2 : 1,
+      pdfFile: slot.plan.metadata.planPdf,
+    } : null,
+  })),
+};
+
 async function mockWorkoutHistoryApi(page: Page) {
   await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
@@ -32,7 +47,26 @@ async function mockWorkoutHistoryApi(page: Page) {
     if (endpoint === '/api/auth/me') return fulfillJson(route, { user: demoUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: demoUser });
     if (endpoint === '/api/workouts/101/current') {
-      return fulfillJson(route, { success: true, data: null, trainingPlanCatalog: { slots: [] } });
+      return fulfillJson(route, {
+        success: true,
+        data: {
+          id: 'qa-plan-6m',
+          title: 'Six-Month Performance Rebuild Plan For Dense Client Cards',
+          todayAssignment: workoutPlanCatalogResponse.todayAssignment,
+          homeworkSummary: workoutPlanCatalogResponse.homeworkSummary,
+          trainingPlanCatalog: clientPlanVaultCatalog,
+        },
+        plan: {
+          id: 'qa-plan-6m',
+          title: 'Six-Month Performance Rebuild Plan For Dense Client Cards',
+          todayAssignment: workoutPlanCatalogResponse.todayAssignment,
+          homeworkSummary: workoutPlanCatalogResponse.homeworkSummary,
+          trainingPlanCatalog: clientPlanVaultCatalog,
+        },
+        todayAssignment: workoutPlanCatalogResponse.todayAssignment,
+        homeworkSummary: workoutPlanCatalogResponse.homeworkSummary,
+        trainingPlanCatalog: clientPlanVaultCatalog,
+      });
     }
     if (endpoint === '/api/workout/sessions') {
       return fulfillJson(route, {
@@ -115,4 +149,21 @@ test('client workout history keeps logged workout cards usable on responsive vie
   expect(layout.smallTargets).toEqual([]);
   expect(layout.tableOverflow.every((overflow) => overflow <= 12)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('client-workout-history.png'), fullPage: false });
+});
+
+test('client plan vault card keeps arc actions usable on responsive workout route', async ({ page }, testInfo) => {
+  await page.goto('/dashboard/client/workouts', { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+
+  const vault = page.getByTestId('client-plan-vault-card');
+  await expect(vault).toBeVisible();
+  await expect(vault.getByText(/plan vault/i)).toBeVisible();
+  await expect(vault.getByLabel(/6 month primary plan arc/i)).toBeVisible();
+  await expect(vault.getByRole('button', { name: /log today from 6 month primary plan/i })).toBeVisible();
+  await expect(vault.getByRole('button', { name: /view 6 month pdf plan/i })).toBeVisible();
+
+  const layout = await inspectClientPlanVaultCardLayout(page);
+  expect(layout.overflowX).toBeLessThanOrEqual(12);
+  expect(layout.issues).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('client-plan-vault-card.png'), fullPage: false });
 });
