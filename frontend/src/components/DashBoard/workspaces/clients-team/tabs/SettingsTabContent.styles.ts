@@ -3,32 +3,46 @@
  * PURPOSE: Read-only client settings layout primitives.
  */
 import styled from 'styled-components';
+import { swanDataCardShell, swanMetricTile } from '../clientCardSystem';
 
 export const SettingsGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   padding: 16px 0;
+  min-width: 0;
+  max-width: 100%;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (max-width: 430px) {
+    gap: 12px;
+    padding: 10px 0;
   }
 `;
 
 export const SettingsSection = styled.div`
-  background: var(--bg-surface, #141419);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-  border-radius: 12px;
-  padding: 20px;
+  --swan-card-padding: 20px;
+  --swan-card-radius: 14px;
+  ${swanDataCardShell}
+
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+
+  @media (max-width: 430px) {
+    --swan-card-padding: 14px;
+  }
 `;
 
 export const SectionHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
 `;
@@ -51,12 +65,15 @@ export const SectionTitle = styled.h4`
   font-weight: 600;
   color: var(--text-primary, #E0ECF4);
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const FieldGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 `;
 
 export const FieldLabel = styled.label`
@@ -65,18 +82,20 @@ export const FieldLabel = styled.label`
   font-weight: 500;
   color: var(--text-muted, rgba(224, 236, 244, 0.65));
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
 `;
 
 const inputStyles = `
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   color: var(--text-primary, #E0ECF4);
-  background: var(--bg-elevated, #1A1A24);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, var(--surface-accent, #003080) 10%);
   border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.08));
   border-radius: 8px;
   padding: 10px 12px;
   min-height: 44px;
+  min-width: 0;
   width: 100%;
   box-sizing: border-box;
   outline: none;
@@ -100,9 +119,12 @@ export const StyledInput = styled.input`
 export const StyledSelect = styled.select`
   ${inputStyles}
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234070C0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-tertiary, #4070C0) 50%),
+    linear-gradient(135deg, var(--accent-tertiary, #4070C0) 50%, transparent 50%);
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px, 5px 5px;
   padding-right: 32px;
 `;
 
@@ -114,20 +136,22 @@ export const StyledTextarea = styled.textarea`
 `;
 
 export const PolicyNote = styled.div`
+  ${swanMetricTile}
+
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   line-height: 1.45;
   color: var(--text-muted, rgba(224, 236, 244, 0.76));
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, var(--bg-elevated, #1A1A24));
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-  border-radius: 8px;
   padding: 10px 12px;
+  overflow-wrap: anywhere;
 `;
 
 export const ToggleRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   min-height: 44px;
   padding: 4px 0;
 `;
@@ -136,12 +160,15 @@ export const ToggleLabel = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   color: var(--text-primary, #E0ECF4);
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const TogglePill = styled.div<{ $on?: boolean }>`
-  width: 40px;
-  height: 22px;
-  border-radius: 11px;
+  width: 44px;
+  min-width: 44px;
+  height: 24px;
+  border-radius: 12px;
   background: ${({ $on }) =>
     $on
       ? 'var(--accent-primary, #60C0F0)'
@@ -158,11 +185,19 @@ export const TogglePill = styled.div<{ $on?: boolean }>`
     content: '';
     position: absolute;
     top: 2px;
-    left: ${({ $on }) => ($on ? '19px' : '2px')};
-    width: 16px;
-    height: 16px;
+    left: ${({ $on }) => ($on ? '21px' : '2px')};
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: var(--text-primary, #E0ECF4);
     transition: left 200ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::after {
+      transition: none;
+    }
   }
 `;
