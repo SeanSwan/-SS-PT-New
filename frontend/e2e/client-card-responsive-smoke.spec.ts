@@ -9,6 +9,7 @@ import {
   inspectMobileDashboardSafeArea,
   filterKnownConsoleNoise,
 } from './client-card-responsive-layout';
+import { inspectClientWorkoutPlanLayout } from './client-workout-plan-responsive-layout';
 import {
   adminUser,
   mockSharedApi,
@@ -210,3 +211,34 @@ test('admin selected client measurements expansion has no phone overflow', async
 
   await page.screenshot({ path: testInfo.outputPath('admin-client-measurements-expanded-phone.png'), fullPage: false });
 });
+
+for (const viewport of responsiveViewports) {
+  test(`admin selected client training plans have no program-card overlap at ${viewport.name}`, async ({ page }, testInfo) => {
+    const consoleErrors = collectUnexpectedConsoleErrors(page);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await seedAuth(page, adminUser);
+    await mockSharedApi(page, adminUser);
+
+    await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=plans', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+
+    await expect(page.getByRole('tab', { name: 'Training', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: /training plans/i })).toBeVisible();
+    await expect(page.getByLabel(/active training arc/i)).toBeVisible();
+    await expect(page.getByText(/Plan Arc Vault/i)).toBeVisible();
+    await expect(page.getByLabel('6 Month plan arc').getByText(/Six-Month Performance Rebuild/i)).toBeVisible();
+    await expect(page.getByLabel('6 Month plan arc').getByRole('button', { name: /open 6 month pdf plan/i })).toBeVisible();
+
+    const detailLayout = await inspectClientDetailLayout(page);
+    const planLayout = await inspectClientWorkoutPlanLayout(page);
+    expect(detailLayout.overflowX, `detail horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
+    expect(detailLayout.issues).toEqual([]);
+    expect(planLayout.overflowX, `plan horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
+    expect(planLayout.issues).toEqual([]);
+    expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
+    expect((await inspectSelectedClientActionStripFootprint(page)).issues).toEqual([]);
+    expect(filterKnownConsoleNoise(consoleErrors)).toEqual([]);
+
+    await page.screenshot({ path: testInfo.outputPath(`admin-client-training-plans-${viewport.name}.png`), fullPage: false });
+  });
+}

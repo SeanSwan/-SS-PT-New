@@ -8,6 +8,7 @@
  * touch-target, horizontal-scroll, and mobile fixed-overlay assertions.
  */
 import type { Page, Route } from '@playwright/test';
+import { workoutPlanCatalogResponse } from './client-workout-plan-responsive.fixtures';
 
 export const adminUser = {
   id: 1,
@@ -245,6 +246,9 @@ export async function mockSharedApi(page: Page, user: typeof adminUser | typeof 
     }
     if (endpoint === '/api/measurements/user/501') {
       return fulfillJson(route, { success: true, data: { measurements: [{ id: 7001, measurementDate: '2026-06-01', weight: 172 }] } });
+    }
+    if (endpoint === '/api/workout-plans/client/501') {
+      return fulfillJson(route, workoutPlanCatalogResponse);
     }
     return fulfillJson(route, { success: true, data: [], clients: [], stats: {}, notifications: [] });
   });
