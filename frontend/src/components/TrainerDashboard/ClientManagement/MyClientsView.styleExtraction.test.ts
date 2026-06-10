@@ -35,4 +35,24 @@ describe('MyClientsView style extraction', () => {
     expect(source).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
     expect(source).toContain('overflow-wrap: anywhere');
   });
+
+  it('keeps trainer card identity compact and filter controls wrapping on mobile', () => {
+    const cardSource = readFileSync(cardPath, 'utf8');
+    const clientCardSource = readFileSync(clientCardPath, 'utf8');
+    const layoutSource = readFileSync(layoutPath, 'utf8');
+    const emailBlock = cardSource.slice(
+      cardSource.indexOf("[data-swan-trainer-email='true']"),
+      cardSource.indexOf("[data-swan-trainer-email='true']") + 520
+    );
+
+    expect(emailBlock).toContain('white-space: nowrap');
+    expect(emailBlock).toContain('overflow: hidden');
+    expect(emailBlock).toContain('mask-image');
+    expect(emailBlock).not.toContain('text-overflow: ellipsis');
+    expect(clientCardSource).toContain('aria-label={client.email}');
+    expect(clientCardSource).toContain('title={client.email}');
+    expect(cardSource).not.toContain('text-overflow: ellipsis');
+    expect(layoutSource).toContain('overflow-wrap: anywhere');
+    expect(layoutSource).not.toContain('white-space: nowrap');
+  });
 });

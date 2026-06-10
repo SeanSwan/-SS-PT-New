@@ -14,6 +14,9 @@ const adminCardActions = readRepoFile(
 const trainerCardStyles = readRepoFile(
   'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.cardStyles.ts'
 );
+const trainerLayoutStyles = readRepoFile(
+  'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.layoutStyles.ts'
+);
 const trainerCard = readRepoFile(
   'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.clientCard.tsx'
 );
@@ -80,6 +83,10 @@ describe('Swan client card system contract', () => {
     expect(adminCardActions).toContain('swanClientActionButton');
     expect(trainerCardStyles).toContain('swanDataCardShell');
     expect(trainerCardStyles).toContain('swanClientActionButton');
+    expect(trainerCardStyles).toContain('overflow-wrap: anywhere');
+    expect(trainerCardStyles).toContain('mask-image');
+    expect(trainerCardStyles).not.toContain('text-overflow: ellipsis');
+    expect(trainerLayoutStyles).not.toContain('white-space: nowrap');
   });
 
   it('uses the same Swan primitives for active client data cards', () => {

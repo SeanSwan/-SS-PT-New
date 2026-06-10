@@ -72,7 +72,9 @@ export const HeaderTitle = styled.div`
     border-radius: 20px;
     font-size: 0.9rem;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 768px) {
@@ -158,7 +160,13 @@ export const FilterButton = styled(motion.button)<{ active?: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 
   &:hover {
     background: ${props =>
