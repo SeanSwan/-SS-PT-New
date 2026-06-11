@@ -4,11 +4,7 @@ import ActivityTicker from '../ActivityTicker';
 import FeedCoverStudio from './FeedCoverStudio';
 import NotificationBell from '../NotificationBell';
 import TrendingHashtags from '../TrendingHashtags';
-import {
-  FullFeedStats,
-  FullGamificationHeader,
-  RecentActivityBanner,
-} from './SocialFeedPanels';
+import { RecentActivityBanner } from './SocialFeedPanels';
 import { FeedTopBar } from '../styles/SocialFeedStyles';
 import type { SocialFeedViewModel } from '../hooks/useSocialFeedViewModel';
 
@@ -22,27 +18,22 @@ const SocialFeedNotificationBar: React.FC = () => (
   </FeedTopBar>
 );
 
-const SocialFeedProfileHeader: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
-  if (!viewModel.profileData) return null;
-
-  return (
-    <FullGamificationHeader
-      firstName={viewModel.firstName}
-      streakDays={viewModel.profileData.streakDays}
-      points={viewModel.profileData.points || 0}
-    />
-  );
-};
-
 const SocialFeedRecentActivity: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
   if (!viewModel.recentActivity) return null;
   return <RecentActivityBanner message={viewModel.recentActivity} />;
 };
 
-const SocialFeedStatsGate: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
-  if (viewModel.posts.length === 0) return null;
-  return <FullFeedStats stats={viewModel.feedStats} />;
-};
+/* Merge M1: the cover studio is the shared section lead for BOTH variants.
+   Its metric rail owns the feed numbers (the old FullFeedStats and
+   FullGamificationHeader duplicated facts the page sidebar + Coach dock
+   already carry — retired per the no-duplicate-facts card standard). */
+const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => (
+  <FeedCoverStudio
+    stats={viewModel.feedStats}
+    isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
+    onCreatePostFocus={viewModel.handleCreatePostFocus}
+  />
+);
 
 const SocialFeedActivityTicker: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
   if (viewModel.activityEvents.length === 0) return null;
@@ -76,9 +67,8 @@ const SocialFeedPartyGate: React.FC<SocialFeedSectionsProps> = ({ viewModel }) =
 export const SocialFeedFullSections: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => (
   <>
     <SocialFeedNotificationBar />
-    <SocialFeedProfileHeader viewModel={viewModel} />
+    <SocialFeedCover viewModel={viewModel} />
     <SocialFeedRecentActivity viewModel={viewModel} />
-    <SocialFeedStatsGate viewModel={viewModel} />
     <SocialFeedActivityTicker viewModel={viewModel} />
     <SocialFeedFactionGate viewModel={viewModel} />
     <SocialFeedPartyGate viewModel={viewModel} />
@@ -89,11 +79,7 @@ export const SocialFeedFullSections: React.FC<SocialFeedSectionsProps> = ({ view
 export const SocialFeedCompactSections: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => (
   <>
     <SocialFeedRecentActivity viewModel={viewModel} />
-    <FeedCoverStudio
-      stats={viewModel.feedStats}
-      isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
-      onCreatePostFocus={viewModel.handleCreatePostFocus}
-    />
+    <SocialFeedCover viewModel={viewModel} />
     <SocialFeedActivityTicker viewModel={viewModel} />
   </>
 );

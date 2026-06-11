@@ -18,9 +18,12 @@ export const StudioShell = styled.section`
   container-type: inline-size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 18px;
+  gap: 16px;
   overflow: hidden;
-  padding: clamp(18px, 5vw, 34px);
+  /* Lighter bottom padding: the metric rail is the last row, so the shell
+     doesn't need the full clamp below it — this was the dead-zone Sean
+     flagged on desktop AND mobile. */
+  padding: clamp(18px, 5vw, 34px) clamp(18px, 5vw, 34px) clamp(12px, 3vw, 20px);
   color: var(--text-primary, #E0ECF4);
   border-radius: 8px;
   background:
@@ -184,7 +187,9 @@ export const StatusPill = styled.span<{ $live: boolean }>`
 export const Stage = styled.div`
   position: relative;
   z-index: 1;
-  min-height: 230px;
+  /* Responsive stage: the fixed 230px block was the awkward dead zone on
+     phones and narrow columns — scale with the container instead. */
+  min-height: clamp(150px, 32cqw, 230px);
 `;
 
 export const CoverFrame = styled.div`
@@ -192,7 +197,7 @@ export const CoverFrame = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 230px;
+  min-height: clamp(150px, 32cqw, 230px);
   overflow: hidden;
   border-radius: 8px;
   background:

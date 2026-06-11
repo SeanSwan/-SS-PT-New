@@ -16,14 +16,34 @@ const studioStylesSource = readSource('./components/FeedCoverStudio.styles.ts');
 const viewModelSource = readSource('./hooks/useSocialFeedViewModel.ts');
 const socialFeedStylesSource = readSource('./styles/SocialFeedStyles.ts');
 
-describe('SocialFeed compact cover studio contract', () => {
-  it('mounts the cover studio only on the user-dashboard compact feed', () => {
+describe('SocialFeed cover studio contract', () => {
+  it('mounts the cover studio on BOTH the canonical /social full feed and the compact dashboard feed (merge M1)', () => {
     expect(readySource).toContain('compact: SocialFeedCompactSections');
     expect(sectionsSource).toContain("import FeedCoverStudio from './FeedCoverStudio';");
-    expect(sectionsSource).toContain('<FeedCoverStudio');
+    // One shared cover wrapper, rendered by BOTH variants.
+    expect(sectionsSource.match(/<SocialFeedCover viewModel=\{viewModel\} \/>/g)).toHaveLength(2);
     expect(sectionsSource).toContain('stats={viewModel.feedStats}');
     expect(sectionsSource).toContain('onCreatePostFocus={viewModel.handleCreatePostFocus}');
     expect(sectionsSource).toContain('export const SocialFeedFullSections');
+  });
+
+  it('retires the duplicate fact blocks the cover replaces (no-duplicate-facts rule)', () => {
+    // The cover metric rail now owns the feed numbers; the page sidebar +
+    // Coach dock own identity/greeting. The old header + stats blocks are gone.
+    expect(sectionsSource).not.toContain('<FullGamificationHeader');
+    expect(sectionsSource).not.toContain('<FullFeedStats');
+    expect(panelsSource).not.toContain('export const FullGamificationHeader');
+    expect(panelsSource).not.toContain('export const FullFeedStats');
+    // Still-live panels survive.
+    expect(panelsSource).toContain('RecentActivityBanner');
+    expect(panelsSource).toContain('EmptyFeedWelcome');
+    expect(panelsSource).toContain('export interface FeedStatsSummary');
+  });
+
+  it('kills the cover bottom dead-zone: responsive stage height, lighter bottom padding', () => {
+    // Fixed 230px stage was the awkward dead block on phones/narrow columns.
+    expect(studioStylesSource).not.toContain('min-height: 230px');
+    expect(studioStylesSource).toMatch(/min-height: clamp\(/);
   });
 
   it('routes the banner create action to the existing composer', () => {
