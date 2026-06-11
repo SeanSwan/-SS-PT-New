@@ -496,6 +496,32 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Cross-references:** Rule 4 (300-line cap), Rules 32-39 (repo hygiene and cleanup approval), Rule 50 (Tier-A deterministic tooling), Rule 56 (baseline disclosure), and Rule 61 (slice-internal hostile review).
 
+64. **Intent-Extraction Gate via `grill-me` (MANDATORY for net-new building and planning)** — Established 2026-06-09 by Sean from the Matt PCO "grill me" skill + Nate Herk's checkpointing version. Everyone using Claude Opus 4.8 gets the same model; what makes a SwanStudios output sound like *Sean* is his context — his taste, voice, and decisions. The hardest part of building a good operating system is getting that knowledge out of Sean's head and into the system. A 5-minute brain-dump is never enough. Before planning or building anything net-new, the AI (Codex included) MUST relentlessly interview Sean to extract his thought process, and checkpoint every answer to a durable brainstorm doc.
+
+    **When this auto-routes (mandatory):**
+    - Any **net-new component, page, dashboard surface, or feature** where Sean's preferences aren't already captured in a brainstorm doc or reference doc.
+    - Any **redesign** of an existing surface.
+    - Any **new system, integration, or product direction** (Swan Coach lane, gamification, nutrition, social, Hermes scope, etc.).
+    - Any **planning session** where the goal is still fuzzy / lives mostly in Sean's head.
+    - Any explicit "grill me", "interview me", "ask me questions about", or `/grill-me`.
+    - Any moment the AI is **about to guess** at Sean's taste, hierarchy, scope, or business logic instead of knowing it.
+
+    **When this does NOT trigger:** trivial bug fixes, typo/comment/formatting edits, read-only exploration with no build planned, or any surface whose brainstorm doc already exists and is current (read it instead, then offer a re-grill only for new gaps).
+
+    **The method (preserve all five):** (1) interview relentlessly until no gaps remain; (2) **one question at a time** — never a batch; (3) walk the design tree depth-first, resolving dependencies in order; (4) **always lead with a recommended answer + one-line reason** so Sean confirms or corrects fast; (5) **explore the codebase instead of asking** whenever the answer is discoverable from the repo (honors Rule 18 existing-pattern-first and Rule 49 no-manual-inspection). Use discrete-option prompts for choices (with `preview` mockups for UI/layout choices) and one-message-at-a-time chat for open-ended ones.
+
+    **Two phases — Extract, then Synthesize & Advise:** grill-me is not just a stenographer. **Phase 1 (Extract)** is the grill above — and it always starts at the *vision tier*: what the app/feature/component **is**, what it's **supposed to do**, and where it sits (is this the **parent** surface or a **child** of one?) — before descending into layout/data/states. **Phase 2 (Synthesize & Advise, MANDATORY before closeout)** steps back to the whole-system view and proactively produces, grounded in what it explored of the **parent component, its children, and the app-as-a-whole**: (a) features that are needed but not yet in Sean's plan, each tied to the Product Core Loop / next-best-action / Rule 62 strategy; (b) **minimal-click enhancements** with concrete before→after tap counts (Sean's standing least-clicks/least-time mandate); (c) parent/children/whole observations (duplicated facts across cards, a child that should be promoted to the parent, missing shared state, app-level coherence); (d) recommendations that may tune the plan, the build, or the skills themselves. Phase 2 is advisory — Sean accepts/modifies/rejects each suggestion, and his verdicts are captured back into the doc. Suggestions never invent scope for its own sake — they must strengthen coaching, adherence, progress proof, community, revenue, or trust.
+
+    **Checkpointing (mandatory):** brainstorm docs live at `docs/ai-workflow/brainstorms/<kebab-topic>-<YYYY-MM-DD>.md` (NOT repo root — honors Rule 35). Create the doc at grill start; append after **every single Q&A exchange** so context-window drift never loses an answer. Doc sections: Summary, Key Decisions, Q&A Log (question → recommended → Sean's answer → implication), Key Highlights, Architecture Notes (parent/children/whole), Suggestions & Enhancements (Phase 2), Minimal-Click Opportunities, Open Flags (things Sean must look up or get from a stakeholder — flag and keep going, don't block).
+
+    **Closeout:** when the grill ends (Phase 2 delivered and reacted to), set the doc `Status: complete`, scan for related skills/reference docs this knowledge should improve, and **offer to update them** (apply only on Sean's yes). Then hand off to the next gate.
+
+    **Order in the pipeline:** `grill-me` (extract intent) → `swan-orchestrator` (pre-task gate, Rules 15/17/26/32) → `swan-design-router` (if UI) → build → `closeout-evidence-lock`. Grill-me is the intent layer that makes recursive planning (Rule 15) actually match Sean's head instead of the AI's guess.
+
+    **Privacy (Rule 8):** brainstorm docs are committed to the repo — never write real client names, medical/immigration/PII, or secrets; use IDs and roles.
+
+    **Why:** Sean's words 2026-06-09 — "I want the AI to ask me questions to understand my thought process on every aspect of the sites I'm building so all AIs can know what I come to expect when building the SwanStudios app or any other app." Spending the extra time up front (sharpening the axe) jumps iteration-one quality from ~70% to ~90% and front-loads the context that pays off across every downstream slice. Full procedure: `.claude/skills/grill-me/SKILL.md`.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -707,15 +733,16 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** â€” read before ANY implementation task |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 14)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 15)
 
-The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41).
+The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64).
 
-### Default-exposed `.claude/skills/` = 14 entries
+### Default-exposed `.claude/skills/` = 15 entries
 
-**Swan orchestration (5):**
+**Swan orchestration (6):**
 | Skill | Role |
 |---|---|
+| `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
