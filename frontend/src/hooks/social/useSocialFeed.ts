@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
 import { useGamificationData } from '../gamification/useGamificationData';
@@ -514,6 +514,18 @@ export const useSocialFeed = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Refresh when another surface publishes a post (e.g. the social Coach
+  // dock's inline milestone share — separate hook instances share no state,
+  // so the dock dispatches 'swan:social-post-created' after a confirmed 2xx).
+  // Ref keeps the listener stable: fetchPosts' identity changes per offset.
+  const fetchPostsRef = useRef(fetchPosts);
+  fetchPostsRef.current = fetchPosts;
+  useEffect(() => {
+    const onExternalPostCreated = () => fetchPostsRef.current(true);
+    window.addEventListener('swan:social-post-created', onExternalPostCreated);
+    return () => window.removeEventListener('swan:social-post-created', onExternalPostCreated);
+  }, []);
   
   return {
     posts,

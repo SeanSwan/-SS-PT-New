@@ -40,6 +40,11 @@ vi.mock('../../../hooks/useChallenges', () => ({
   useChallenges: mockUseChallenges,
 }));
 
+vi.mock('../../../hooks/gamification/useGamificationData', () => ({
+  // Empty profile → the share panel renders its honest empty state.
+  useGamificationData: () => ({ profile: { data: null, isLoading: false } }),
+}));
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOCK_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.tsx'), 'utf8');
 const STYLES_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.styles.ts'), 'utf8');
@@ -74,7 +79,6 @@ describe('SocialCoachDock — chip wiring', () => {
   });
 
   it.each([
-    [/share a milestone/i, '/dashboard/client/coach-assistant'],
     [/log a workout/i, '/dashboard/client/log-workout'],
     [/cheer a friend/i, '/social/friends'],
   ])('chip %s navigates a member (role user) to %s', async (label, expected) => {
@@ -110,11 +114,40 @@ describe('SocialCoachDock — chip wiring', () => {
     const user = userEvent.setup();
     render(<SocialCoachDock />);
 
-    await user.click(screen.getByRole('button', { name: /share a milestone/i }));
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/coach-assistant');
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/log-workout');
+  });
+
+  it('share-a-milestone expands the inline share instead of navigating (D2c)', async () => {
+    const user = userEvent.setup();
+    render(<SocialCoachDock />);
+
+    const chip = screen.getByRole('button', { name: /share a milestone/i });
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
+
+    await user.click(chip);
+
+    expect(chip.getAttribute('aria-expanded')).toBe('true');
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Lazy mount: empty-profile state here (no mock milestone is ever shown).
+    expect(screen.getByText(/no fresh milestone yet/i)).toBeTruthy();
+  });
+
+  it('keeps the two inline panels mutually exclusive', async () => {
+    const user = userEvent.setup();
+    render(<SocialCoachDock />);
+
+    const shareChip = screen.getByRole('button', { name: /share a milestone/i });
+    const findChip = screen.getByRole('button', { name: /find a challenge/i });
+
+    await user.click(shareChip);
+    expect(shareChip.getAttribute('aria-expanded')).toBe('true');
+
+    await user.click(findChip);
+    expect(findChip.getAttribute('aria-expanded')).toBe('true');
+    expect(shareChip.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText(/no fresh milestone yet/i)).toBeNull();
   });
 
   it('still renders and routes safely when auth has no user (client fallback)', async () => {
@@ -129,9 +162,12 @@ describe('SocialCoachDock — chip wiring', () => {
 });
 
 describe('SocialCoachDock — D2a source contracts', () => {
-  it('reuses the shared role-routed dashboard path helpers', () => {
-    expect(DOCK_SOURCE).toContain('getSwanCoachDashboardPath');
+  it('reuses the shared role-routed dashboard path helper for quick-log', () => {
+    // getSwanCoachDashboardPath left the dock in D2c: the share chip now runs
+    // inline instead of deep-linking to the Coach page (D1 page entries keep it).
     expect(DOCK_SOURCE).toContain('getLogWorkoutDashboardPath');
+    // No import or call of the Coach-page helper remains (prose mentions OK).
+    expect(DOCK_SOURCE).not.toMatch(/getSwanCoachDashboardPath[,(]/);
   });
 
   it('has no tier gating — free users get the working dock (Q6 decision)', () => {
