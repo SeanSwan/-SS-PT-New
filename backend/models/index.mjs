@@ -163,6 +163,7 @@ export const getAutomationLog = () => getModel('AutomationLog');
 // AI Privacy Models
 export const getAiPrivacyProfile = () => getModel('AiPrivacyProfile');
 export const getAiInteractionLog = () => getModel('AiInteractionLog');
+export const getAiCommandAuditLog = () => getModel('AiCommandAuditLog');
 
 // AI Monitoring Models (Phase 10)
 export const getAiMetricsBucket = () => getModel('AiMetricsBucket');

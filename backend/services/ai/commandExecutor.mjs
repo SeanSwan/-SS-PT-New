@@ -30,6 +30,8 @@ import { buildDebateClientContext } from './debate/debateClientContextService.mj
 import { checkErrorLoop, recordAction } from './errorLoopPrevention.mjs';
 import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
+import { areCommandWritesEnabled, COMMAND_WRITES_PAUSED_MESSAGE } from './commandLaneControls.mjs';
+import { recordCommandAudit } from './commandAudit.mjs';
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
@@ -241,6 +243,24 @@ async function stepValidate(ctx) {
     ctx.intent.params = validatedParams;
   }
 
+  return ctx;
+}
+
+/** Step 4.5: Write kill switch — block write/destructive commands when paused.
+ *
+ * A command counts as a write when its registry entry declares
+ * `destructive: true` OR `requiresConfirmation: true` (per the V1 spec,
+ * reads never require confirmation). Read commands keep working.
+ * Uses ctx.error so the route returns the standard error envelope the
+ * Coach UI already renders (same path as an RBAC denial).
+ */
+async function stepWriteKillSwitch(ctx) {
+  ctx.stage = 'write_kill_switch';
+  if (!ctx.command) return ctx;
+  if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
+  if (areCommandWritesEnabled()) return ctx;
+
+  ctx.error = COMMAND_WRITES_PAUSED_MESSAGE;
   return ctx;
 }
 
@@ -485,6 +505,7 @@ const PIPELINE_STEPS = [
   stepPHIScan,
   stepClassify,
   stepValidate,
+  stepWriteKillSwitch,
   stepRBAC,
   stepResolveClient,
   stepDebateRouting,
@@ -591,6 +612,40 @@ function auditPipelineResult(ctx) {
   } else {
     logger.info('[CommandAudit] Pipeline complete', audit);
   }
+
+  // DB audit row — only when an actual command was involved (pure chat is
+  // logger-only). Best-effort by design: recordCommandAudit never throws.
+  if (ctx.command) {
+    const outcome = outcomeFromPipelineCtx(ctx);
+    recordCommandAudit({
+      userId: ctx.user?.id,
+      userRole: ctx.user?.role,
+      commandType: ctx.command.type,
+      targetClientId: ctx.resolvedClient?.id ?? null,
+      destructive: ctx.command.destructive || false,
+      requiresConfirmation: ctx.command.requiresConfirmation || false,
+      confirmationState: outcome === 'confirmation_required' ? 'pending' : 'none',
+      operationId: ctx.result?.operationId || ctx.pendingOperation?.operationId || null,
+      outcome,
+      errorCode: ctx.error ? ctx.stage : null,
+      params: ctx.intent?.params || null,
+      durationMs: ctx.metadata?.timing?.totalMs ?? null,
+    });
+  }
+}
+
+/** Map a finished pipeline context to an audit outcome string. */
+function outcomeFromPipelineCtx(ctx) {
+  if (ctx.error) {
+    if (ctx.stage === 'rbac') return 'denied';
+    if (ctx.stage === 'write_kill_switch') return 'blocked_killswitch';
+    return 'failed';
+  }
+  const resultType = ctx.result?.type;
+  if (resultType === 'confirmation_required') return 'confirmation_required';
+  if (resultType === 'not_wired') return 'not_wired';
+  if (resultType === 'debate_started') return 'debate_started';
+  return 'success';
 }
 
 /**
@@ -619,11 +674,36 @@ function auditPipelineResult(ctx) {
  * }>}
  */
 export async function executeConfirmedOperation(operationId, user, sequelize) {
+  // Audit helper for the confirm lane — best-effort, never throws.
+  const auditConfirm = (outcome, extras = {}) => {
+    recordCommandAudit({
+      userId: user?.id,
+      userRole: user?.role,
+      confirmationState: 'confirmed',
+      operationId,
+      outcome,
+      ...extras,
+    });
+  };
+
+  // Write kill switch covers the confirm lane too: a pending operation minted
+  // before the switch flipped must NOT execute after.
+  if (!areCommandWritesEnabled()) {
+    auditConfirm('blocked_killswitch');
+    return { success: false, type: 'error', message: COMMAND_WRITES_PAUSED_MESSAGE };
+  }
+
   // ── Path 1: Non-destructive pending confirmation ─────────────────────────
   const ndResult = retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
     if (operation.frontendEvent) {
+      auditConfirm('success', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
+        params: operation.params || null,
+      });
       return {
         success: true,
         type: 'frontend_dispatch',
@@ -640,6 +720,11 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       logger.warn('[CommandExecutor] Confirmed pending op has no dispatcher entry', {
         commandType: operation.commandType,
         operationId,
+      });
+      auditConfirm('not_wired', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
       });
       return {
         success: false,
@@ -661,6 +746,12 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
         userId: user.id,
         clientId: operation.clientId,
       });
+      auditConfirm('success', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
+        params: operation.params || null,
+      });
       return {
         success: true,
         type: 'executed',
@@ -675,6 +766,12 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
         operationId,
         error: err.message,
       });
+      auditConfirm('failed', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
+        errorCode: 'confirm_dispatch_failed',
+      });
       return {
         success: false,
         type: 'error',
@@ -687,6 +784,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   const { verified, operation, error } = verifyAndRetrieveOperation(operationId, user.id);
 
   if (!verified) {
+    auditConfirm('failed', { errorCode: 'verification_failed', destructive: true });
     return { success: false, type: 'error', message: error };
   }
 
@@ -702,6 +800,13 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
         options: { sequelize },
         resolvedClient: clientId ? { id: clientId } : null,
       });
+      auditConfirm('success', {
+        commandType,
+        targetClientId: clientId,
+        destructive: true,
+        requiresConfirmation: true,
+        params: operation.params || null,
+      });
       return {
         success: true,
         type: 'executed',
@@ -715,6 +820,13 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
         commandType,
         operationId,
         error: err.message,
+      });
+      auditConfirm('failed', {
+        commandType,
+        targetClientId: clientId,
+        destructive: true,
+        requiresConfirmation: true,
+        errorCode: 'confirm_dispatch_failed',
       });
       return {
         success: false,
@@ -730,6 +842,11 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
     operationId,
     commandType,
     operationType: operation.type,
+  });
+  auditConfirm('not_wired', {
+    commandType,
+    destructive: true,
+    requiresConfirmation: true,
   });
   return {
     success: false,

@@ -16,6 +16,8 @@
 import express from 'express';
 import logger from '../utils/logger.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiCommandGuards.mjs';
+import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import sequelize from '../database.mjs';
 import {
   executeCommandPipeline,
@@ -112,7 +114,7 @@ initializeRegistry();
 
 // ── POST /execute — Main command pipeline ───────────────────────────────────
 
-router.post('/execute', protect, async (req, res) => {
+router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
     const { message, selectedClientId, previousContext, routeContext } = req.body;
 
@@ -289,7 +291,7 @@ router.post('/execute', protect, async (req, res) => {
 
 // ── POST /confirm — Confirm a pending destructive operation ─────────────────
 
-router.post('/confirm', protect, async (req, res) => {
+router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
     const { operationId } = req.body;
 
@@ -322,6 +324,15 @@ router.post('/cancel', protect, async (req, res) => {
     }
 
     const cancelled = cancelOperation(operationId, req.user.id);
+    if (cancelled) {
+      recordCommandAudit({
+        userId: req.user.id,
+        userRole: req.user.role,
+        confirmationState: 'cancelled',
+        operationId,
+        outcome: 'cancelled',
+      });
+    }
     res.json({
       success: cancelled,
       message: cancelled ? 'Operation cancelled.' : 'Operation not found or already expired.',

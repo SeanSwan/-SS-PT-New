@@ -118,6 +118,7 @@ const setupAssociations = async () => {
     // AI Privacy Models (Phase 1)
     const AiPrivacyProfileModule = await import('./AiPrivacyProfile.mjs');
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
+    const AiCommandAuditLogModule = await import('./AiCommandAuditLog.mjs');
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucketModule = await import('./AiMetricsBucket.mjs');
@@ -319,6 +320,7 @@ const setupAssociations = async () => {
     // AI Privacy Models
     const AiPrivacyProfile = AiPrivacyProfileModule.default;
     const AiInteractionLog = AiInteractionLogModule.default;
+    const AiCommandAuditLog = AiCommandAuditLogModule.default;
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucket = AiMetricsBucketModule.default;
@@ -480,7 +482,7 @@ const setupAssociations = async () => {
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
-        AiPrivacyProfile, AiInteractionLog,
+        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog,
         // AI Monitoring Models (Phase 10)
         AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
@@ -1026,6 +1028,8 @@ const setupAssociations = async () => {
     AiPrivacyProfile.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiInteractionLog, { foreignKey: 'userId', as: 'aiInteractionLogs' });
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(AiCommandAuditLog, { foreignKey: 'userId', as: 'aiCommandAuditLogs' });
+    AiCommandAuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     // Long-Horizon Planning Associations (Phase 5C)
     User.hasMany(LongTermProgramPlan, { foreignKey: 'userId', as: 'programPlans' });
