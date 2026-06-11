@@ -90,7 +90,7 @@ git push origin main          # Render auto-deploys the revert
 Each slice reverts independently in reverse order; reverting D2c alone returns the share chip to a broken no-op (it no longer deep-links), so revert D2c+D2b together or all three.
 
 ## 10. Future review hooks
-1. **Fix the production enum drift NOW-ish:** `enum_SocialPosts_type` lacks `'singing'` and `'comedy'` (verified via read-only pg_enum query 2026-06-11) while the model, migration `20260309000001`, and the composer UI all offer them — **users posting those types get a 500 today.** Re-run the migration's ALTER TYPE statements manually (its try/catch swallowed the failure) and audit `enum_challenges_category` for the same gap.
+1. ~~Fix the production enum drift~~ **RESOLVED same day (commit `8f6adfc45`):** production `enum_SocialPosts_type` and `enum_challenges_category` were both hot-fixed via additive `ALTER TYPE ... ADD VALUE IF NOT EXISTS` and re-probed to 12 values [VERIFIED]; repair migration `20260611000001-repair-singing-comedy-enums.cjs` landed in the ledger (no try/catch — fails loudly). Residual sub-hook: the WHY of the original swallowed failure remains [HYPOTHESIS] (transaction-wrapped ALTER); if another enum migration fails silently, instrument the migration runner.
 2. Audit the friends API for slipping-friend / friend-milestone signals → upgrade cheer chip to smart nudge (fast-follow from the brainstorm).
 3. When workstream C (proactive briefings) lands, consume `milestoneResolver` — if C builds its own resolver, that's drift; consolidate.
 4. Ask Sean for verdicts on brainstorm Phase-2 suggestions #2 (state-aware chips), #3 (D1 sidebar button expands dock on feed), #4 (1/day share cap) — all designed-for but unbuilt.
