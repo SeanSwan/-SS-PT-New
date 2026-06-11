@@ -168,7 +168,7 @@ const RETIRED_CHALLENGE_FIXTURE: Challenge[] = [];
 
 /* ─── Theme Tokens ─────────────────────────────────── */
 
-const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
+export const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
   strength: '#f97316',
   cardio: '#ef4444',
   consistency: '#8b5cf6',

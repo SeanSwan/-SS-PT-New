@@ -6,8 +6,10 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the collapsed Coach strip (avatar + greeting +
- * four 44px action chips) at the top of the /social feed. D2a wiring is
- * deep-link-only: every chip navigates to an existing mounted surface.
+ * four 44px action chips) at the top of the /social feed. Share/log/cheer
+ * chips deep-link to existing mounted surfaces; the find-a-challenge chip
+ * (D2b) expands the inline finder — 1-2 real matches with one-tap join —
+ * lazily mounted so the feed never pays the challenges fetch unprompted.
  *
  * HOW IT FITS IN THE APP: Mounted once by SocialPage.V3 inside the feed branch
  * of renderContent (feed-tab-only per the 2026-06-11 grill-me decision Q5).
@@ -19,9 +21,9 @@
  * - Companion consumer of the canonical Coach lane, NOT a second chat surface
  *   (rule 27): no message input, no send rail. Deeper asks go to the full
  *   Coach page via the share-milestone chip's deep-link.
- * - Hybrid depth: quick-log + cheer deep-link to their final surfaces; share
- *   milestone + find challenge deep-link to interim surfaces (canonical Coach
- *   page / challenges tab) until D2b/D2c land their inline flows.
+ * - Hybrid depth: quick-log + cheer deep-link to their final surfaces; find
+ *   challenge is inline as of D2b (InlineChallengeFinder); share milestone
+ *   deep-links to the canonical Coach page until D2c lands its inline flow.
  * - NO tier gating — free users get the working dock (Q6: community-flywheel
  *   actions stay free; intentional divergence from the dashboard SwanCoachDock
  *   teaser/lock pattern. Heavy Coach AI stays behind existing chat-lane caps.)
@@ -29,7 +31,7 @@
  *   dock (same posture as the D1 mobile entry).
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles, Share2, Trophy, Dumbbell, ThumbsUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -37,6 +39,7 @@ import {
   getSwanCoachDashboardPath,
   getLogWorkoutDashboardPath,
 } from '../../UserDashboard/components/swanCoachDashboardRoute';
+import InlineChallengeFinder from './InlineChallengeFinder';
 import {
   ActionChip,
   ChipRow,
@@ -50,7 +53,7 @@ import {
   GreetingSub,
 } from './SocialCoachDock.styles';
 
-const DOCK_CHIPS = [
+const NAV_CHIPS_BEFORE_FINDER = [
   {
     label: 'Share a milestone',
     Icon: Share2,
@@ -58,13 +61,9 @@ const DOCK_CHIPS = [
     // the inline Coach-drafted share flow (real logged data only).
     getPath: (role?: string | null) => getSwanCoachDashboardPath(role),
   },
-  {
-    label: 'Find a challenge',
-    Icon: Trophy,
-    // Interim deep-link to the challenges tab; D2b replaces this with inline
-    // matches + one-tap join.
-    getPath: () => '/social/challenges',
-  },
+] as const;
+
+const NAV_CHIPS_AFTER_FINDER = [
   {
     label: 'Log a workout',
     Icon: Dumbbell,
@@ -82,6 +81,7 @@ const DOCK_CHIPS = [
 const SocialCoachDock: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [finderOpen, setFinderOpen] = useState(false);
 
   const firstName = user?.firstName || user?.username || '';
   const greeting = firstName
@@ -103,7 +103,28 @@ const SocialCoachDock: React.FC = () => {
         </DockHeader>
 
         <ChipRow role="group" aria-label="Coach quick actions">
-          {DOCK_CHIPS.map(({ label, Icon, getPath }) => (
+          {NAV_CHIPS_BEFORE_FINDER.map(({ label, Icon, getPath }) => (
+            <ActionChip
+              key={label}
+              onClick={() => navigate(getPath(user?.role))}
+              aria-label={label}
+            >
+              <Icon size={15} />
+              {label}
+            </ActionChip>
+          ))}
+          {/* D2b: inline finder toggle — expands matches in-dock instead of
+              navigating away (2-tap join per the grill-me click math). */}
+          <ActionChip
+            onClick={() => setFinderOpen((open) => !open)}
+            aria-label="Find a challenge"
+            aria-expanded={finderOpen}
+            aria-controls="coach-challenge-finder"
+          >
+            <Trophy size={15} />
+            Find a challenge
+          </ActionChip>
+          {NAV_CHIPS_AFTER_FINDER.map(({ label, Icon, getPath }) => (
             <ActionChip
               key={label}
               onClick={() => navigate(getPath(user?.role))}
@@ -114,6 +135,9 @@ const SocialCoachDock: React.FC = () => {
             </ActionChip>
           ))}
         </ChipRow>
+
+        {/* Lazy mount: the challenges fetch only fires when the user asks. */}
+        {finderOpen && <InlineChallengeFinder />}
       </DockInner>
     </DockShell>
   );

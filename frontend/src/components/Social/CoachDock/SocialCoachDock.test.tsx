@@ -22,9 +22,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import SocialCoachDock from './SocialCoachDock';
 
-const { mockNavigate, mockUseAuth } = vi.hoisted(() => ({
+const { mockNavigate, mockUseAuth, mockUseChallenges } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockUseAuth: vi.fn(),
+  mockUseChallenges: vi.fn(),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -33,6 +34,10 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../../../context/AuthContext', () => ({
   useAuth: mockUseAuth,
+}));
+
+vi.mock('../../../hooks/useChallenges', () => ({
+  useChallenges: mockUseChallenges,
 }));
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +52,15 @@ describe('SocialCoachDock — chip wiring', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     mockUseAuth.mockReturnValue({ user: { role: 'user', firstName: 'Sean' } });
+    mockUseChallenges.mockReturnValue({
+      challenges: [],
+      loading: false,
+      error: null,
+      isDemoData: false,
+      joinChallenge: vi.fn(),
+      leaveChallenge: vi.fn(),
+      refetch: vi.fn(),
+    });
   });
 
   it('renders the Coach greeting and all four action chips', () => {
@@ -61,7 +75,6 @@ describe('SocialCoachDock — chip wiring', () => {
 
   it.each([
     [/share a milestone/i, '/dashboard/client/coach-assistant'],
-    [/find a challenge/i, '/social/challenges'],
     [/log a workout/i, '/dashboard/client/log-workout'],
     [/cheer a friend/i, '/social/friends'],
   ])('chip %s navigates a member (role user) to %s', async (label, expected) => {
@@ -71,6 +84,25 @@ describe('SocialCoachDock — chip wiring', () => {
     await user.click(screen.getByRole('button', { name: label }));
 
     expect(mockNavigate).toHaveBeenCalledWith(expected);
+  });
+
+  it('find-a-challenge expands the inline finder instead of navigating (D2b)', async () => {
+    const user = userEvent.setup();
+    render(<SocialCoachDock />);
+
+    const chip = screen.getByRole('button', { name: /find a challenge/i });
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
+
+    await user.click(chip);
+
+    expect(chip.getAttribute('aria-expanded')).toBe('true');
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Lazy mount: the finder (empty state here) only exists after expand.
+    expect(screen.getByText(/no open challenges/i)).toBeTruthy();
+
+    await user.click(chip);
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByText(/no open challenges/i)).toBeNull();
   });
 
   it('routes the role-aware chips through the trainer dashboard for trainers', async () => {
