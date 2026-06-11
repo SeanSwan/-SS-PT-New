@@ -38,15 +38,16 @@ Non-negotiable product behaviors:
 - **Frontend:** `SwanCoachAssistantPage.tsx` mounted for trainer + client; `CoachCommandCenterPage.tsx` for admin; `CoachInputBar` + `VoiceRecordingOverlay` (voice capture + transcription).
 
 **Verified gaps (the upgrade surface):**
-1. **No streaming** — responses are batched; consensus path takes 5–8s with no progressive feedback.
+> **Ground-truth refresh 2026-06-11 (repo-verified):** several gaps below are now closed or stale — see the inline UPDATE notes. Gaps 7/8/9 were closed by F1 + decomposition work; do not re-plan them (rule 52).
+1. **No streaming** — responses are batched; consensus path takes 5–8s with no progressive feedback. **UPDATE 2026-06-11: B1a perceived-speed shipped (`c863a559e` — staged honest indicator, role-aware chips, instant echo). B1b true streaming gated on the deployed SSE spike (`5a45218a9`) — REMIND SEAN: flip `SWAN_STREAM_SPIKE_ENABLED=true` on Render + run `c:\tmp\sse-spike-probe.ps1`; verdict goes in the B1 plan doc.**
 2. **No hive-mind context assembly** — commands answer single-domain questions; there is no cross-domain "tell me everything about client X / my day" synthesis layer.
 3. **No proactive briefings** — no scheduled daily admin brief / trainer day-sheet / client nudge.
 4. **No per-user model config / BYOM** — model selection is server-side only; no encrypted user API-key storage (locked vision: swappable model slot).
-5. **No user-dashboard (social) Coach surface** — only admin/trainer/client mounts found; the fourth face is missing. Public visitor mode also unwired.
+5. **No user-dashboard (social) Coach surface** — only admin/trainer/client mounts found; the fourth face is missing. Public visitor mode also unwired. **UPDATE 2026-06-11: D1 shipped (`92783adec`) — "Ask Swan Coach" entries on the social hub (desktop sidebar Quick Action + mobile button), routing to the canonical role-routed Coach page via `getSwanCoachDashboardPath`. The user dashboard HomeTab already had `SwanCoachDock`/`SwanCoachActionLauncher` (tier-gated). STILL OPEN: embedded coach experience on /social (needs grill-me + design-router concept gate) and the public visitor mode.**
 6. **FRONTEND_DISPATCH blocked** (~8 commands) — depends on browser-local workout-logger state instead of server execution.
-7. **Audit trail is logger-based** — no verified immutable audit table for command execution (AiInteractionLog exists, schema unverified).
-8. **Rate limiting config unverified** at the command lane; no per-role/tier limits confirmed.
-9. **Oversized components** — `CoachCommandCenterPage` flagged for decomposition; `SwanCoachAssistantPage` far over the 300-line rule.
+7. **Audit trail is logger-based** — no verified immutable audit table for command execution (AiInteractionLog exists, schema unverified). **UPDATE 2026-06-11: CLOSED — `backend/models/AiCommandAuditLog.mjs` exists and `commandExecutor.mjs:34` imports/records via `recordCommandAudit` (F1).**
+8. **Rate limiting config unverified** at the command lane; no per-role/tier limits confirmed. **UPDATE 2026-06-11: CLOSED — `/api/ai-command/execute` and `/confirm` both run `aiCommandLaneKillSwitch` + `aiCommandRateLimiter` (`aiCommandRoutes.mjs:117,294`, middleware in `aiCommandGuards.mjs`); chat lane has `aiRateLimiter` on messages/transcribe/tts.**
+9. **Oversized components** — `CoachCommandCenterPage` flagged for decomposition; `SwanCoachAssistantPage` far over the 300-line rule. **UPDATE 2026-06-11: STALE — all coach-assistant runtime files are ≤300 lines (`CoachCommandCenterPage.tsx` 147, `SwanCoachAssistantPage.tsx` 298); only test files exceed. Workstream H is effectively done; do not re-plan it.**
 10. **Admin Command Center Phase 1 may be local-only** ("NOT PUSHED" per 2026-05-14 record — verify against git before building on it).
 
 ## Security Mandate (tightest gate — do this thinking on EVERY slice)
