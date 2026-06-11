@@ -18,12 +18,14 @@ import {
   Target,
   Award,
   Play,
+  MessageCircle,
 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useGamificationData } from '../../hooks/gamification/useGamificationData';
+import { getSwanCoachDashboardPath } from '../../components/UserDashboard/components/swanCoachDashboardRoute';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
@@ -485,6 +487,17 @@ const QuickActionBtn = styled.button`
   }
 `;
 
+/* Workstream D: mobile wrapper for the Coach quick action. ContentArea
+   already provides the horizontal gutter (width: 92%), so this only adds
+   bottom rhythm — flush with the gamification card above it. */
+const MobileCoachEntry = styled.div`
+  margin: 0 0 16px;
+
+  @media (min-width: 900px) {
+    display: none;
+  }
+`;
+
 // ─── Mobile Tab Bar ──────────────────────────────────────────────────
 
 const MobileTabBar = styled.div`
@@ -698,6 +711,19 @@ const SocialPageV3: React.FC = () => {
           </MobileGamification>
         )}
 
+        {/* Workstream D (fourth face): mobile Coach entry. Lives outside the
+            profile.data guard (gamification fetch failure must not hide the
+            Coach) and outside the tab bar (tabs switch in-page content; this
+            navigates to the canonical role-routed Coach page). */}
+        {!isDesktop && (
+          <MobileCoachEntry>
+            <QuickActionBtn onClick={() => navigate(getSwanCoachDashboardPath(user?.role))}>
+              <MessageCircle size={16} />
+              Ask Swan Coach
+            </QuickActionBtn>
+          </MobileCoachEntry>
+        )}
+
         {/* Mobile tab bar — conditionally rendered (Issue #2) */}
         {!isDesktop && <MobileTabBar>
           <MobileTab
@@ -822,6 +848,13 @@ const SocialPageV3: React.FC = () => {
 
                 <NavSection>
                   <NavTitle>Quick Actions</NavTitle>
+                  {/* Workstream D (fourth face): social-hub entry to the
+                      canonical role-routed Coach page — same cross-surface
+                      navigate pattern as View Rewards below. */}
+                  <QuickActionBtn onClick={() => navigate(getSwanCoachDashboardPath(user?.role))}>
+                    <MessageCircle size={16} />
+                    Ask Swan Coach
+                  </QuickActionBtn>
                   <QuickActionBtn onClick={() => handleTabChange('feed')}>
                     <PlusCircle size={16} />
                     Create Post
