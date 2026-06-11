@@ -31,7 +31,7 @@ const DOMAIN_LOADERS = {
     sequelize,
     `SELECT id, "firstName", "lastName", age, gender, "nasmPhase",
             "trainingExperience", "fitnessGoals", "clientSource", "isActive",
-            "availableSessions"
+            "availableSessions", points, level, tier, "streakDays", "totalWorkouts"
      FROM "Users"
      WHERE id = :clientId
      LIMIT 1`,
@@ -160,7 +160,12 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       dataQuality.push({ domain, status: 'degraded' });
     }
   });
-  dataQuality.push({ domain: 'gamification', status: 'deferred' }); // A2 — schema unverified
+  // Gamification rides the profile row (points/level/tier/streak columns on
+  // "Users" — schema verified 2026-06-10 via gamificationCommandDispatchers).
+  dataQuality.push({
+    domain: 'gamification',
+    status: dataQuality.find((d) => d.domain === 'profile')?.status === 'ok' ? 'ok' : 'degraded',
+  });
 
   // 3. De-identify. Names/emails never leave this function.
   const clientRow = (results.profile && results.profile[0]) || {};
@@ -175,19 +180,115 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
   );
 
   // 4. Attach PII-free extras the de-identifier doesn't model.
+  const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
+
   const context = {
     ...deIdentified,
-    sessionCredits: Number.isFinite(Number(clientRow.availableSessions))
-      ? Number(clientRow.availableSessions)
-      : null,
+    sessionCredits: toNum(clientRow.availableSessions),
     schedule: summarizeSchedule(results.schedule),
     workoutCount: Array.isArray(results.workouts) ? results.workouts.length : 0,
     lastWorkoutDate: results.workouts?.[0]?.createdAt
       ? new Date(results.workouts[0].createdAt).toISOString().slice(0, 10)
       : null,
+    gamification: {
+      points: toNum(clientRow.points),
+      level: toNum(clientRow.level),
+      tier: clientRow.tier ?? null,
+      streakDays: toNum(clientRow.streakDays),
+      totalWorkouts: toNum(clientRow.totalWorkouts),
+    },
   };
 
   return { ok: true, context, aliasMap, dataQuality, accessVia: access.via };
+}
+
+// ── Trainer Day-Sheet (Slice A2) ────────────────────────────────────────────
+
+/**
+ * Build the "how's my day look" context: today's sessions for the requester
+ * (trainer = own sessions ONLY; admin = all of today's sessions), with
+ * de-identified per-client attention flags. Bounded + batched: 3 queries max.
+ *
+ * @param {Object} args
+ * @param {Object} args.user      { id, role } — trainer or admin
+ * @param {Object} args.sequelize live Sequelize instance
+ * @returns {Promise<{ ok: boolean, message?: string, day?: Object }>}
+ */
+export async function buildTrainerDayContext({ user, sequelize }) {
+  if (!user?.id || (user.role !== 'trainer' && user.role !== 'admin')) {
+    return { ok: false, message: 'Day briefs are available to trainers and admins.' };
+  }
+  if (!sequelize?.query) {
+    return { ok: false, message: 'Database connection not available.' };
+  }
+
+  const isAdmin = user.role === 'admin';
+  let sessions;
+  try {
+    sessions = await safeQuery(
+      sequelize,
+      `SELECT id, "sessionDate", duration, status, "userId", "trainerId"
+       FROM sessions
+       WHERE "sessionDate" >= CURRENT_DATE
+         AND "sessionDate" < CURRENT_DATE + INTERVAL '1 day'
+         AND status IN ('scheduled', 'confirmed', 'completed')
+         ${isAdmin ? '' : 'AND "trainerId" = :trainerId'}
+       ORDER BY "sessionDate" ASC
+       LIMIT 20`,
+      isAdmin ? {} : { trainerId: user.id },
+    );
+  } catch (err) {
+    return { ok: false, message: 'Could not load today\'s schedule right now. No data was changed.' };
+  }
+
+  const clientIds = [...new Set(sessions.map((s) => s.userId).filter(Boolean))];
+
+  let clientRows = [];
+  let painRows = [];
+  if (clientIds.length > 0) {
+    [clientRows, painRows] = await Promise.all([
+      safeQuery(
+        sequelize,
+        `SELECT id, "availableSessions", "streakDays" FROM "Users" WHERE id IN (:clientIds)`,
+        { clientIds },
+      ).catch(() => []),
+      safeQuery(
+        sequelize,
+        `SELECT "userId", COUNT(*) AS "activePain"
+         FROM "PainEntries"
+         WHERE "userId" IN (:clientIds) AND "isActive" = true
+         GROUP BY "userId"`,
+        { clientIds },
+      ).catch(() => []),
+    ]);
+  }
+
+  const clientById = new Map(clientRows.map((r) => [Number(r.id), r]));
+  const painByClient = new Map(painRows.map((r) => [Number(r.userId), Number(r.activePain)]));
+
+  const day = {
+    sessionCount: sessions.length,
+    sessions: sessions.map((s) => {
+      const clientId = Number(s.userId);
+      const client = clientById.get(clientId) || {};
+      const credits = Number.isFinite(Number(client.availableSessions))
+        ? Number(client.availableSessions)
+        : null;
+      const flags = [];
+      if ((painByClient.get(clientId) || 0) > 0) flags.push('active pain');
+      if (credits !== null && credits <= 2) flags.push(`credits low (${credits})`);
+      return {
+        time: s.sessionDate ? new Date(s.sessionDate).toISOString() : null,
+        durationMinutes: s.duration ?? null,
+        status: s.status,
+        clientAlias: clientId ? `Client-${clientId}` : null,
+        clientId: clientId || null,
+        flags,
+      };
+    }),
+  };
+
+  return { ok: true, day };
 }
 
 export { DOMAIN_NAMES as CONTEXT_DOMAINS };

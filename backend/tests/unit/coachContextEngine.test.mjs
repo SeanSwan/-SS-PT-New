@@ -84,10 +84,11 @@ describe('buildCoachContext', () => {
     expect(r.context.painEntries).toEqual([]);
   });
 
-  it('reports gamification as deferred (A2)', async () => {
+  it('reports gamification status following the profile domain (live since A2)', async () => {
     accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
     const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize() });
-    expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('deferred');
+    expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('ok');
+    expect(r.context.gamification).toBeDefined();
   });
 
   it('covers all v1 domains', () => {

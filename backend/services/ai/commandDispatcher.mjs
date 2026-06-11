@@ -54,6 +54,8 @@
  *   N01-N07: view/review/inspect/health intake commands → plaud + coach intake dispatchers
  *   exec-substrate-v17 (Coach Context Engine, Slice A1):
  *   G09: brief_client → briefClientDispatcher (cross-domain de-identified brief; fail-closed clientAccess gate)
+ *   exec-substrate-v18 (Day Sheet, Slice A2):
+ *   G10: brief_my_day → dayBriefDispatcher (trainer own-day / admin all-day; de-identified per-client flags; gamification joins engine profile domain)
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -81,6 +83,7 @@ import {
 } from './dispatchers/availabilityDispatchers.mjs';
 import { dispatchSetAvailability } from './dispatchers/setAvailabilityDispatcher.mjs';
 import { dispatchBriefClient } from './dispatchers/briefClientDispatcher.mjs';
+import { dispatchBriefMyDay } from './dispatchers/dayBriefDispatcher.mjs';
 import {
   dispatchReviewNextPlaudIntake,
   dispatchViewPlaudIntakeQueue,
@@ -236,6 +239,7 @@ const DISPATCHERS = new Map([
   ['view_revenue', dispatchViewRevenue],
   ['view_business_kpis', dispatchViewBusinessKpis],
   ['brief_client', dispatchBriefClient],
+  ['brief_my_day', dispatchBriefMyDay],
   ['view_recent_signups', dispatchViewRecentSignups],
   ['view_system_health', dispatchViewSystemHealth],
   ['view_user_engagement', dispatchViewUserEngagement],

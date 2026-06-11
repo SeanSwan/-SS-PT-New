@@ -50,6 +50,16 @@ const commands = [
     requiresClientRef: false, category: 'G',
   },
   {
+    type: 'brief_my_day',
+    description: 'Day sheet — today\'s sessions with per-client attention flags',
+    naturalLanguagePatterns: ['how\'s my day look', 'brief my day', 'what\'s my day like', 'today\'s day sheet', 'who am I training today'],
+    method: 'GET', endpoint: '/api/ai-command/brief-my-day',
+    inputSchema: z.object({}).optional(),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: false, category: 'G',
+  },
+  {
     type: 'brief_client',
     description: 'Brief me on a client — cross-domain status summary with attention flags',
     naturalLanguagePatterns: ['brief me on', 'give me a rundown on', 'client status for', 'how is client doing', 'tell me about client'],
