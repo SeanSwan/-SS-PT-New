@@ -32,7 +32,7 @@ Most fitness apps help you log workouts. SwanStudios helps you build a life arou
 - **Premium** — Crystalline Swan aesthetic, not gym-bro. Not Planet Fitness.
 - **Inclusive** — ALL ages, ALL backgrounds, ALL sports
 - **Benevolent** — clean living, community-centered, family-centered
-- **Elite** — programmed by 25+ years of experience, NASM-certified, AI-augmented
+- **Elite** — programmed by 26+ years of experience, NASM-protocol trained, AI-augmented
 - **Secure** — E2EE messaging, zero PII to LLMs, data sovereignty
 
 ### Theme: Enchanted Apex — Crystalline Swan (Preset F-Alt)
@@ -467,7 +467,7 @@ Sourced from Sean's vision session + the Mo Gawdat "where AI is going" transcrip
 ## 6. What Makes SwanStudios Win
 
 ### Defensive Moats (Hard to Copy)
-1. **25+ years of Sean's training expertise** — encoded into agent behavior, program generation, client-specific patterns
+1. **26+ years of Sean's training expertise** — encoded into agent behavior, program generation, client-specific patterns
 2. **Karpathy Wiki accumulated knowledge** — 6+ months of real data will be unmatched by any competitor
 3. **Crystalline Swan design identity** — distinctive, premium, recognizable
 4. **RPG gamification depth** — V2-V4 roadmap creates sustained engagement
@@ -518,12 +518,12 @@ This document describes **vision and "where this is going"** framing. For active
 - Building SwanStudios as the portfolio proof point + revenue engine
 
 ### Trainer Credentials
-- **NASM Certified Personal Trainer** (in-person workshop)
+- **NASM Workshop — OPT Protocol Trained** (in-person workshop; never say "NASM-certified")
 - **NCEP** (National Council on Exercise Professionals)
 - **24 Hour Fitness Master Trainer**
 - **Gold's Gym Certified**
 - **LA Fitness Certified**
-- **25+ years** of hands-on training experience across all demographics
+- **26+ years** of hands-on training experience across all demographics
 
 ### Personal Context
 - **Family:** Spouse (principal Canada immigration applicant), multiple children
