@@ -731,27 +731,19 @@ router.post('/', upload.single('media'), async (req, res) => {
     if (req.body.userAchievementId) postData.userAchievementId = req.body.userAchievementId;
     if (req.body.challengeId) postData.challengeId = req.body.challengeId;
 
-    // ── Transaction: post creation + hashtag linking (atomic) ──
-    // Ensures post and its hashtag associations are created together or not at all
+    // ── Transaction: post creation only ──
+    // Hashtag linking deliberately runs AFTER commit (see below). 2026-06-11
+    // incident: when the hashtag tables were missing in production, the failed
+    // hashtag query POISONED this shared transaction; the inner catch swallowed
+    // the error as "non-fatal", and Postgres silently turned the later COMMIT
+    // into a ROLLBACK — every hashtagged post vanished while the API returned
+    // 201 with post:null. A post must never die for its decoration.
     const transaction = await sequelize.transaction();
     let post = null;
     let linkedHashtags = [];
 
     try {
       post = await SocialPost.create(postData, { transaction });
-
-      // Extract and process hashtags inside same transaction
-      try {
-        const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
-        const tagNames = extractHashtags(content);
-        if (tagNames.length > 0) {
-          linkedHashtags = await processHashtags(post.id, tagNames, transaction);
-        }
-      } catch (hashtagErr) {
-        // Non-fatal: hashtag failure should not roll back the post
-        console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
-      }
-
       await transaction.commit();
     } catch (txError) {
       await transaction.rollback();
@@ -767,6 +759,18 @@ router.post('/', upload.single('media'), async (req, res) => {
       }
 
       throw txError;
+    }
+
+    // Hashtag linking AFTER commit — best-effort, own auto-commit queries.
+    // A hashtag failure costs the tags, never the post.
+    try {
+      const { extractHashtags, processHashtags } = await import('./hashtags.mjs');
+      const tagNames = extractHashtags(content);
+      if (tagNames.length > 0) {
+        linkedHashtags = await processHashtags(post.id, tagNames);
+      }
+    } catch (hashtagErr) {
+      console.warn('Hashtag processing failed (non-fatal):', hashtagErr.message);
     }
 
     // Award points AFTER commit (non-transactional, fire-and-forget safe)
@@ -789,6 +793,13 @@ router.post('/', upload.single('media'), async (req, res) => {
         }
       ]
     });
+
+    // Honest-receipt guard: never report success for a post we cannot read
+    // back. (The 2026-06-11 silent-rollback bug shipped 201 + post:null.)
+    if (!fullPost) {
+      console.error(`Post creation verification failed: post ${post.id} not readable after commit`);
+      return sendSocialRouteError(res, 500, 'Failed to create post');
+    }
 
     // Build response with optional points data
     const responseData = {

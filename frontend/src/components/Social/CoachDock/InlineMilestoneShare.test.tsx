@@ -108,6 +108,22 @@ describe('InlineMilestoneShare — draft and confirm', () => {
     dispatchSpy.mockRestore();
   });
 
+  it('refuses a 2xx that carries no post — the silent-rollback fake-201 class', async () => {
+    mockUseGamificationData.mockReturnValue(
+      profileState({ streakDays: 7, level: 3, points: 800 }),
+    );
+    // 2026-06-11 incident shape: 201 {success:true, post:null} while the
+    // row was silently rolled back server-side.
+    mockPost.mockResolvedValue({ data: { success: true, post: null } });
+    const user = userEvent.setup();
+    render(<InlineMilestoneShare />);
+
+    await user.click(screen.getByRole('button', { name: /share to feed/i }));
+
+    expect(await screen.findByText(/didn't go through/i)).toBeTruthy();
+    expect(screen.queryByText(/shared to the feed/i)).toBeNull();
+  });
+
   it('shows an honest retry line when the post fails — no fake receipt', async () => {
     mockUseGamificationData.mockReturnValue(
       profileState({ streakDays: 7, level: 3, points: 800 }),

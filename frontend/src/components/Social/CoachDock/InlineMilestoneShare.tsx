@@ -84,9 +84,14 @@ const InlineMilestoneShare: React.FC<InlineMilestoneShareProps> = ({ onDismiss }
       const formData = new FormData();
       formData.append('content', milestone.draft);
       formData.append('type', 'milestone');
-      await authAxios.post('/api/social/posts', formData, {
+      const response = await authAxios.post('/api/social/posts', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      // Honest receipt: a 2xx without the created post is NOT success.
+      // (2026-06-11 silent-rollback incident shipped 201 + post:null.)
+      if (!response.data?.post?.id) {
+        throw new Error('create response missing post');
+      }
       setShareState('shared');
       window.dispatchEvent(new CustomEvent('swan:social-post-created'));
     } catch {
