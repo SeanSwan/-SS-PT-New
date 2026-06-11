@@ -20,7 +20,9 @@ import { commandResultSummary } from '../utils/coachCommandResultSummary';
 import { buildCommandErrorMessages } from './useCoachAssistantCommandError';
 import { useCoachAssistantFoodMessages } from './useCoachAssistantFoodMessages';
 import {
+  appendPendingEcho,
   buildCoachAssistantMessages,
+  buildCommandLaneMessages,
   buildRouteRequestContext,
 } from './useCoachAssistantMessageUtils';
 import { useCoachAssistantTranscriptMessages } from './useCoachAssistantTranscriptMessages';
@@ -55,10 +57,18 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const [responseStyle, setResponseStyle] = useState<ResponseStyle>(defaultStyle);
   const [localMessages, setLocalMessages] = useState<CoachMessageData[]>([]);
   const [commandMessages, setCommandMessages] = useState<CoachMessageData[]>([]);
+  // B1a: in-flight user message echoed instantly. The command lane only
+  // appends the user bubble after executeCommand resolves, and the chat
+  // lane's new-conversation path echoes only after the create POST — both
+  // left a dead gap where the user's words were invisible.
+  const [pendingEcho, setPendingEcho] = useState<CoachMessageData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // ── Merge chat-lane messages with command-lane messages ──
-  const messages = buildCoachAssistantMessages(chat, localMessages, commandMessages);
+  const messages = appendPendingEcho(
+    buildCoachAssistantMessages(chat, localMessages, commandMessages),
+    pendingEcho,
+  );
 
   // ── Auto-scroll on new messages ──
   useEffect(() => {
@@ -71,131 +81,67 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     const trimmedText = text.trim();
     if (!trimmedText || chat.sending || executingCommand) return;
 
-    let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
-    if (isCommandLaneCandidate(trimmedText)) {
-      cmdResult = await executeCommand(trimmedText, {
-        selectedClientId: targetClientId,
-        routeContext: routeContext as unknown as Record<string, unknown> | null,
-      });
-    } else {
-      cmdResult = { type: 'fallback_to_chat' };
-    }
-
-    if (cmdResult.type === 'error') {
-      setCommandMessages(prev => [...prev, ...buildCommandErrorMessages(trimmedText, cmdResult.error)]);
-      setLocalMessages([]);
-      return cmdResult;
-    }
-
-    if (cmdResult.type === 'fallback_to_chat') {
-      const backendStyle = responseStyle;
-      const routeRequestContext = buildRouteRequestContext(routeContext);
-      const chatResult = routeRequestContext
-        ? await chat.sendMessageWithConversation(
-            trimmedText,
-            context as Parameters<typeof chat.sendMessageWithConversation>[1],
-            'Swan Coach Session',
-            targetClientId,
-            backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
-            null,
-            routeRequestContext,
-          )
-        : await chat.sendMessageWithConversation(
-            trimmedText,
-            context as Parameters<typeof chat.sendMessageWithConversation>[1],
-            'Swan Coach Session',
-            targetClientId,
-            backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
-          );
-      setLocalMessages([]);
-      return chatResult;
-    }
-
-    const userMsg: CoachMessageData = {
-      id: `cmd-user-${Date.now()}`,
+    // B1a: echo the user's words instantly (<100ms acknowledgement);
+    // cleared in finally once the real user message has landed in the
+    // command lane or chat lane (appendPendingEcho dedups the overlap).
+    setPendingEcho({
+      id: `pending-echo-${Date.now()}`,
       role: 'user',
       content: trimmedText,
       timestamp: new Date().toISOString(),
-    };
+    });
 
-    if (cmdResult.type === 'confirmation_required') {
-      const cmdMsg: CoachMessageData = {
-        id: `cmd-confirm-${Date.now()}`,
-        role: 'assistant',
-        content: cmdResult.message,
-        timestamp: new Date().toISOString(),
-        metadata: {
-          commandConfirmation: {
-            message: cmdResult.message,
-            operationId: cmdResult.operationId,
-            command: cmdResult.command,
-            params: cmdResult.params,
-            client: cmdResult.client,
-            details: cmdResult.details,
-            isDestructive: cmdResult.isDestructive,
-          },
-        },
-      };
-      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
-      setLocalMessages([]);
-      return cmdResult;
-    }
+    try {
+      let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
+      if (isCommandLaneCandidate(trimmedText)) {
+        cmdResult = await executeCommand(trimmedText, {
+          selectedClientId: targetClientId,
+          routeContext: routeContext as unknown as Record<string, unknown> | null,
+        });
+      } else {
+        cmdResult = { type: 'fallback_to_chat' };
+      }
 
-    if (cmdResult.type === 'executed') {
-      const cmdMsg: CoachMessageData = {
-        id: `cmd-result-${Date.now()}`,
-        role: 'assistant',
-        content: commandResultSummary(cmdResult.command, cmdResult.result, cmdResult.client),
-        timestamp: new Date().toISOString(),
-        metadata: {
-          commandResult: {
-            command: cmdResult.command,
-            result: cmdResult.result,
-            client: cmdResult.client,
-          },
-        },
-      };
-      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
-      setLocalMessages([]);
-      return cmdResult;
-    }
+      if (cmdResult.type === 'error') {
+        setCommandMessages(prev => [...prev, ...buildCommandErrorMessages(trimmedText, cmdResult.error)]);
+        setLocalMessages([]);
+        return cmdResult;
+      }
 
-    if (cmdResult.type === 'frontend_dispatch') {
-      const cmdMsg: CoachMessageData = {
-        id: `cmd-frontend-${Date.now()}`,
-        role: 'assistant',
-        content: cmdResult.dispatched
-          ? cmdResult.message
-          : 'I understood the form action, but this page is not ready to receive it.',
-        timestamp: new Date().toISOString(),
-      };
-      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
-      setLocalMessages([]);
-      return cmdResult;
-    }
+      if (cmdResult.type === 'fallback_to_chat') {
+        const backendStyle = responseStyle;
+        const routeRequestContext = buildRouteRequestContext(routeContext);
+        const chatResult = routeRequestContext
+          ? await chat.sendMessageWithConversation(
+              trimmedText,
+              context as Parameters<typeof chat.sendMessageWithConversation>[1],
+              'Swan Coach Session',
+              targetClientId,
+              backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
+              null,
+              routeRequestContext,
+            )
+          : await chat.sendMessageWithConversation(
+              trimmedText,
+              context as Parameters<typeof chat.sendMessageWithConversation>[1],
+              'Swan Coach Session',
+              targetClientId,
+              backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
+            );
+        setLocalMessages([]);
+        return chatResult;
+      }
 
-    if (cmdResult.type === 'debate_started') {
-      const cmdMsg: CoachMessageData = {
-        id: `cmd-debate-${Date.now()}`,
-        role: 'assistant',
-        content: cmdResult.message,
-        timestamp: new Date().toISOString(),
-      };
-      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
-      setLocalMessages([]);
-      return cmdResult;
-    }
-
-    if (cmdResult.type === 'not_wired') {
-      const cmdMsg: CoachMessageData = {
-        id: `cmd-notwired-${Date.now()}`,
-        role: 'assistant',
-        content: cmdResult.message,
-        timestamp: new Date().toISOString(),
-      };
-      setCommandMessages(prev => [...prev, userMsg, cmdMsg]);
-      setLocalMessages([]);
-      return cmdResult;
+      // Confirmation / executed / frontend_dispatch / debate / not_wired:
+      // shared [userMsg, reply] mapping lives in the message utils.
+      const laneMessages = buildCommandLaneMessages(trimmedText, cmdResult);
+      if (laneMessages) {
+        setCommandMessages(prev => [...prev, ...laneMessages]);
+        setLocalMessages([]);
+        return cmdResult;
+      }
+    } finally {
+      setPendingEcho(null);
     }
   }, [chat, context, responseStyle, targetClientId, routeContext, executeCommand, executingCommand]);
 

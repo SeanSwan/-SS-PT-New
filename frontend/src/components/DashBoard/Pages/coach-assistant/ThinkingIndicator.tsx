@@ -7,6 +7,8 @@
  * │ AI VILLAGE VALIDATED: 2026-03-31                            │
  * │ DESIGN-2 UPGRADE: 2026-04-06 — Diamond shimmer via         │
  * │   clip-path polygon, zero rotation, GPU-composited.         │
+ * │ B1a UPGRADE: 2026-06-10 — stages advance one-way by real    │
+ * │   elapsed time; ≥10s switches to an honest long-wait state. │
  * └─────────────────────────────────────────────────────────────┘
  */
 
@@ -15,14 +17,25 @@ import styled, { keyframes } from 'styled-components';
 import { diamondShimmer } from './styles/CoachAnimations';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Thinking Stages (rotate every 3s while thinking)
+// SECTION: Thinking Stages (one-way, staged by elapsed time)
 // ─────────────────────────────────────────────────────────────
-const THINKING_STAGES = [
-  'Analyzing your question...',
-  'Consulting training knowledge...',
-  'Forming response...',
-  'Reviewing for accuracy...',
-];
+/*
+ * B1a perceived-speed contract: stages reflect honest elapsed time and
+ * never loop back — a reply that takes 8s walks Reading → Checking →
+ * Writing once. Past LONG_WAIT_MS the indicator stops pretending
+ * progress and says so plainly instead of appearing hung.
+ */
+// Exported as a test seam — ThinkingIndicator.test.tsx locks the 10s
+// honest-guard contract against this table.
+// fallow-ignore-next-line unused-export
+export const THINKING_STAGES = [
+  { atMs: 0, text: 'Reading your question…' },
+  { atMs: 2500, text: 'Checking the data…' },
+  { atMs: 6000, text: 'Writing your answer…' },
+  { atMs: 10000, text: 'Still working — big question…' },
+] as const;
+
+const STAGE_TICK_MS = 500;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -117,9 +130,17 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = memo(({ isThinking }
   useEffect(() => {
     if (isThinking) {
       setStageIndex(0);
+      const startedAt = Date.now();
       intervalRef.current = setInterval(() => {
-        setStageIndex(prev => (prev + 1) % THINKING_STAGES.length);
-      }, 3000);
+        const elapsed = Date.now() - startedAt;
+        // One-way walk: highest stage whose threshold has been reached.
+        // Monotonic elapsed time means we never regress to an earlier stage.
+        let next = 0;
+        for (let i = 0; i < THINKING_STAGES.length; i++) {
+          if (elapsed >= THINKING_STAGES[i].atMs) next = i;
+        }
+        setStageIndex(prev => (next > prev ? next : prev));
+      }, STAGE_TICK_MS);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
@@ -145,7 +166,9 @@ const ThinkingIndicator: React.FC<ThinkingIndicatorProps> = memo(({ isThinking }
             <Diamond $delay="var(--animation-shimmer-stagger-2, 0.2s)" />
             <Diamond $delay="var(--animation-shimmer-stagger-3, 0.4s)" />
           </DiamondsWrap>
-          <StageText key={stageIndex}>{THINKING_STAGES[stageIndex]}</StageText>
+          <StageText key={stageIndex} data-testid="thinking-stage-text">
+            {THINKING_STAGES[stageIndex].text}
+          </StageText>
         </Wrap>
       )}
     </StableSlot>

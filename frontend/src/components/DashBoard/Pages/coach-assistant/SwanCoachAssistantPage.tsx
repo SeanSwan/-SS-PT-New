@@ -46,6 +46,7 @@ import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import SwanCoachMessagesPanel from './SwanCoachMessagesPanel';
 import SwanCoachComposerPanel from './SwanCoachComposerPanel';
 import { useFileAttachment } from './hooks/useFileAttachment';
+import { useCoachSuggestionChips } from './hooks/useCoachSuggestionChips';
 import { useSwanCoachClientSelection } from './hooks/useSwanCoachClientSelection';
 import { useSwanCoachVoiceControls } from './hooks/useSwanCoachVoiceControls';
 import { useSwanCoachTranscriptReview } from './hooks/useSwanCoachTranscriptReview';
@@ -151,6 +152,13 @@ const SwanCoachAssistantPage: React.FC = () => {
     coachIntakeQueue,
     selectedClient,
   });
+  // B1a: role-aware next-action chips after each Coach reply
+  const suggestionChips = useCoachSuggestionChips({
+    userRole,
+    messages: coach.messages,
+    sending: coach.sending,
+    selectedClientFirstName: selectedClient?.firstName ?? null,
+  });
 
   // Load conversation list on mount
   useEffect(() => {
@@ -250,6 +258,8 @@ const SwanCoachAssistantPage: React.FC = () => {
           onSend={handleSend}
           onTranscriptDateChange={handleTranscriptDateChange}
           sending={coach.sending}
+          suggestionChips={suggestionChips.chips}
+          suggestionChipsVisible={suggestionChips.visible}
           transcriptProcessing={transcriptProcessing}
         />
 

@@ -9,6 +9,7 @@
 import React from 'react';
 import { CoachMessage } from './CoachMessage';
 import { safeAttachmentSourceLabel } from './CoachIntakeOperationalText.logic';
+import CoachSuggestionChips from './CoachSuggestionChips';
 import SuggestedPrompts from './SuggestedPrompts';
 import ThinkingIndicator from './ThinkingIndicator';
 import { MessagesArea } from './SwanCoachStyles';
@@ -48,6 +49,9 @@ interface SwanCoachMessagesPanelProps {
   onSend: SendMessage;
   onTranscriptDateChange: (messageId: string, nextDate: string) => void;
   sending: boolean;
+  /** B1a: role-aware next-action chips shown after a Coach reply. */
+  suggestionChips: string[];
+  suggestionChipsVisible: boolean;
   transcriptProcessing: TranscriptProcessingState;
 }
 
@@ -69,6 +73,8 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
   onSend,
   onTranscriptDateChange,
   sending,
+  suggestionChips,
+  suggestionChipsVisible,
   transcriptProcessing,
 }) => (
   <MessagesArea role="log" aria-live="polite" aria-label="Conversation">
@@ -94,6 +100,14 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
         onTranscriptDateChange={onTranscriptDateChange}
       />
     ))}
+
+    <CoachSuggestionChips
+      chips={suggestionChips}
+      visible={suggestionChipsVisible}
+      onSelect={(chip) => {
+        void onSend(chip);
+      }}
+    />
 
     <ThinkingIndicator isThinking={sending} />
 
