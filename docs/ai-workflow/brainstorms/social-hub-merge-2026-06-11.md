@@ -27,6 +27,6 @@ Sean: "the feed and the social page need to become one page and we need to take 
 6. **M6 — Redirect /user-dashboard → /social.** Only after M2-M4 parity. UserDashboard.V3 classified for the cleanup backlog (rule 34 — no deletion in this workstream).
 
 ## Open Flags
-- [ ] D2-smoke anomaly (separate track): QA bot's milestone share returned 2xx + receipt but the post is not in SocialPosts (userId 57) nor the rendered feed — suspect the enhanced-posts table fallback. Diagnose before trusting feed-write paths in M4/M5.
+- [x] ~~D2-smoke anomaly~~ **RESOLVED (commit `6f6759f16`):** root cause was NOT the enhanced table — production never had the hashtag tables (migration in an unscanned subdirectory), so every hashtagged post poisoned its own transaction and silently rolled back while the API 201'd. Fixed at 3 layers (tables created + hashtags moved after commit + honest-receipt guards server- and client-side); verified live — post id 32 with hashtag id 1 (the first ever persisted) rendering at the top of the production feed. Feed-write paths are now trustworthy for M4/M5.
 - [ ] Cover storage shape (M5): no existing cover/carousel field found yet — needs schema decision.
 - [ ] Observatory's Stories/Reels Spotlight/Photos/Creative/About tabs: keep-vs-profile-vs-drop calls deferred to M-slice grills; not silently dropped.
