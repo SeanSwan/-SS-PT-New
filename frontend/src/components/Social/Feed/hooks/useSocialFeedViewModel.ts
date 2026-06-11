@@ -70,6 +70,27 @@ export const useSocialFeedViewModel = () => {
     return () => observer.disconnect();
   }, [feed.hasMore, feed.isLoadingMore, feed.loadMore]);
 
+  /* Merge M2: identity strip data for the cover — REAL gamification profile
+     first (points/tier/streak derive from logged work), auth user as the
+     name/photo fallback. Null when nothing identifies the user, so the cover
+     degrades to its anonymous form instead of rendering empty chrome. */
+  const identity = useMemo(() => {
+    const p = profile.data;
+    const displayName = [p?.firstName || user?.firstName, p?.lastName || user?.lastName]
+      .filter(Boolean)
+      .join(' ');
+    const username = p?.username || user?.username || '';
+    if (!displayName && !username) return null;
+    return {
+      photo: p?.photo || user?.photo || null,
+      displayName: displayName || username,
+      username,
+      tier: p?.tier || null,
+      points: p?.points ?? null,
+      streakDays: p?.streakDays ?? null,
+    };
+  }, [profile.data, user]);
+
   const feedStats = useMemo(() => {
     return feed.posts.reduce((acc, post) => {
       acc.totalPosts += 1;
@@ -133,6 +154,7 @@ export const useSocialFeedViewModel = () => {
     handleCreatePostFocus,
     handleFindFriends,
     handleLikeToggle,
+    identity,
     joinParty,
     leaveParty,
     myRole,

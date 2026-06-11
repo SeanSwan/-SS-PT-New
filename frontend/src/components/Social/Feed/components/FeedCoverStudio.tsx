@@ -1,5 +1,16 @@
 import React from 'react';
-import { Activity, Dumbbell, Image, Radio, Send, Sparkles, Trophy } from 'lucide-react';
+import { Activity, Dumbbell, Flame, Image, Radio, Send, Sparkles, Star, Trophy } from 'lucide-react';
+import {
+  IdentityAvatar,
+  IdentityAvatarFallback,
+  IdentityChips,
+  IdentityHandle,
+  IdentityName,
+  IdentityRow,
+  IdentityStat,
+  IdentityText,
+  TierChip,
+} from './FeedCoverIdentity.styles';
 import {
   ActionRow,
   CoverFrame,
@@ -32,11 +43,25 @@ interface FeedCoverStats {
   totalComments: number;
 }
 
+export interface CoverIdentity {
+  photo: string | null;
+  displayName: string;
+  username: string;
+  tier: string | null;
+  points: number | null;
+  streakDays: number | null;
+}
+
 interface FeedCoverStudioProps {
   stats: FeedCoverStats;
   isLive: boolean;
   onCreatePostFocus: () => void;
+  /** Merge M2: real-data identity strip; null renders the anonymous cover. */
+  identity?: CoverIdentity | null;
 }
+
+const formatTier = (tier: string) =>
+  tier.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
 const compactNumber = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -49,6 +74,7 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
   stats,
   isLive,
   onCreatePostFocus,
+  identity = null,
 }) => {
   const milestoneCount = stats.achievementPosts + stats.transformationPosts;
   const engagementCount = stats.totalLikes + stats.totalComments;
@@ -62,6 +88,42 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
 
   return (
     <StudioShell aria-label="Feed cover studio">
+      {identity && (
+        <IdentityRow>
+          {identity.photo ? (
+            <IdentityAvatar src={identity.photo} alt="" />
+          ) : (
+            <IdentityAvatarFallback aria-hidden="true">
+              {identity.displayName.charAt(0).toUpperCase()}
+            </IdentityAvatarFallback>
+          )}
+          <IdentityText>
+            <IdentityName>{identity.displayName}</IdentityName>
+            {identity.username && <IdentityHandle>@{identity.username}</IdentityHandle>}
+          </IdentityText>
+          <IdentityChips>
+            {identity.tier && (
+              <TierChip>
+                <Sparkles size={13} aria-hidden="true" />
+                {formatTier(identity.tier)}
+              </TierChip>
+            )}
+            {identity.points != null && (
+              <IdentityStat>
+                <Star size={13} aria-hidden="true" />
+                <strong>{formatMetric(identity.points)}</strong> XP
+              </IdentityStat>
+            )}
+            {identity.streakDays != null && (
+              <IdentityStat>
+                <Flame size={13} aria-hidden="true" />
+                <strong>{identity.streakDays}</strong> day streak
+              </IdentityStat>
+            )}
+          </IdentityChips>
+        </IdentityRow>
+      )}
+
       <StudioCopy>
         <Kicker>
           <Sparkles size={16} aria-hidden="true" />

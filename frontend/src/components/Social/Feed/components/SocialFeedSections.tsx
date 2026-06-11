@@ -32,6 +32,7 @@ const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => (
     stats={viewModel.feedStats}
     isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
     onCreatePostFocus={viewModel.handleCreatePostFocus}
+    identity={viewModel.identity}
   />
 );
 

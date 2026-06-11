@@ -13,6 +13,7 @@ const stateSource = readSource('./components/SocialFeedState.tsx');
 const panelsSource = readSource('./components/SocialFeedPanels.tsx');
 const studioSource = readSource('./components/FeedCoverStudio.tsx');
 const studioStylesSource = readSource('./components/FeedCoverStudio.styles.ts');
+const identityStylesSource = readSource('./components/FeedCoverIdentity.styles.ts');
 const viewModelSource = readSource('./hooks/useSocialFeedViewModel.ts');
 const socialFeedStylesSource = readSource('./styles/SocialFeedStyles.ts');
 
@@ -38,6 +39,25 @@ describe('SocialFeed cover studio contract', () => {
     expect(panelsSource).toContain('RecentActivityBanner');
     expect(panelsSource).toContain('EmptyFeedWelcome');
     expect(panelsSource).toContain('export interface FeedStatsSummary');
+  });
+
+  it('folds the real-data identity strip into the cover (merge M2)', () => {
+    // View model composes identity from the gamification profile with the
+    // auth user as fallback; null when nothing identifies the user.
+    expect(viewModelSource).toContain('const identity = useMemo(');
+    expect(viewModelSource).toContain('p?.tier || null');
+    expect(viewModelSource).toContain('p?.streakDays ?? null');
+    // Sections pass it through; the cover renders it conditionally.
+    expect(sectionsSource).toContain('identity={viewModel.identity}');
+    expect(studioSource).toContain('export interface CoverIdentity');
+    expect(studioSource).toContain('{identity && (');
+    expect(studioSource).toContain('<IdentityRow>');
+    // Anonymous-safe: identity defaults to null, cover renders without it.
+    expect(studioSource).toContain('identity = null');
+    // Identity styles: 44px-class avatar, tokens, no animation (low-motion).
+    expect(identityStylesSource).toContain('var(--accent-gold, #C6A84B)');
+    expect(identityStylesSource).toContain('var(--accent-data, #50A0F0)');
+    expect(identityStylesSource).not.toMatch(/keyframes|animation:/);
   });
 
   it('kills the cover bottom dead-zone: responsive stage height, lighter bottom padding', () => {
@@ -80,6 +100,7 @@ describe('SocialFeed cover studio contract', () => {
       ['./components/SocialFeedPanels.tsx', panelsSource],
       ['./components/FeedCoverStudio.tsx', studioSource],
       ['./components/FeedCoverStudio.styles.ts', studioStylesSource],
+      ['./components/FeedCoverIdentity.styles.ts', identityStylesSource],
       ['./hooks/useSocialFeedViewModel.ts', viewModelSource],
       ['./styles/SocialFeedStyles.ts', socialFeedStylesSource],
     ].forEach(([file, source]) => {
@@ -99,6 +120,7 @@ describe('SocialFeed cover studio contract', () => {
       panelsSource,
       socialFeedStylesSource,
       studioStylesSource,
+      identityStylesSource,
       viewModelSource,
     ].forEach((source) => {
       expect(source).not.toContain('rgba(');
