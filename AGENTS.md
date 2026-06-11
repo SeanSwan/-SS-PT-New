@@ -174,11 +174,11 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
 45. **No amend/rewrite without Sean (MANDATORY)** â€” Do not use `git commit --amend`, `git rebase`, history rewrite, or force-push cleanup to polish a local commit unless Sean explicitly asks for that operation. If a SHA/reference or small mistake is discovered after a commit, make a normal follow-up commit.
 
-46. **Codex is Final Gate in the 3-Brain Review Loop (MANDATORY)** â€” For any substantial change (feature, refactor, bug fix, production incident, architectural work), the review order is fixed:
+46. **3-Brain Review Loop (MANDATORY; AMENDED 2026-06-10: Fable is the Final Decider. Codex's verdict is advisory input; Fable (or the fallback Final Decider) arbitrates all verdicts and owns the commit decision. Full amendment text: CLAUDE.md rule 46.)** â€” For any substantial change (feature, refactor, bug fix, production incident, architectural work), the review order is fixed:
     1. **Claude builds** â€” implementation + tests, narrow scope
     2. **Gemini reviews** â€” invoked via `node scripts/consult-gemini.mjs --file <path> --review` for architectural / design feedback. Gemini's output lands in `AI-Village-Documentation/gemini-consults/latest.md`.
     3. **Codex reviews both** â€” Claude's implementation AND Gemini's review. Codex cross-checks every Gemini finding against CLAUDE.md rules and filters valid-vs-contradicts-rule-vs-scope-creep. Codex also runs independent verification (browser smoke, rule 42 backend audit, test regression, security gate).
-    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's **APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
+    4. **Codex returns APPROVE / REVISE / REJECT.** Codex's verdict is advisory; **Fable's APPROVE is the commit gate.** If REVISE: Claude iterates, cycle repeats. If REJECT: work returns to planning.
 
     This ordering is mandatory because Codex has consistently caught what Claude and Gemini both missed:
     - Credential re-leak in handoff doc (2026-04-19) â€” Claude wrote leaked secret strings into a Markdown file; Codex caught it before commit.
@@ -188,10 +188,10 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     Sub-rules:
     - **Gemini review is mandatory before Codex** so Codex has the third perspective to cross-check. Skipping Gemini leaves Codex with only Claude's self-view.
-    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is the gate.
+    - **Codex can dispute Gemini.** Gemini is an author, not a gate; Codex is a hostile reviewer; Fable is the gate.
     - **CLAUDE.md rules win.** When Gemini suggests anything contradicting an existing rule, Codex rejects Gemini's suggestion and logs the contradiction.
     - **Village (15-brain) is a separate escalation track** for major architectural decisions. 3-brain per-fix; Village per-phase.
-    - **If Codex service is unavailable** (rate limit, outage), pause and wait. Do NOT commit substantial work without Codex approval to "save time"; that defeats the gate.
+    - **If Codex service is unavailable** (rate limit, outage), Fable may proceed with Gemini review + its own documented hostile pass; the skipped Codex input is recorded in the commit message for post-hoc review.
 
     Automation roadmap: today this runs as convention. Week 3+ (per `3-BRAIN-PIPELINE-PLAN-v3-FINAL-2026-04-19.md` Phase 2), `scripts/ai-workflow-run.sh` orchestrates the loop with structured `REVIEW_STATUS.json` state tracking. Future Hermes bridge (Phase R3+) lets Sean trigger the full chain from Telegram.
 
@@ -625,7 +625,8 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` â€” Swan Coach phase history, verified command-lane status, blocked areas, and next-slice logic
 
 ## Co-Orchestrator Hierarchy
-- **Opus 4.6 (CEO)** â€” FINAL authority on ALL decisions. Overrides everyone.
+- **Fable 5 (FINAL DECIDER)** - Established by Sean 2026-06-10: Fable (claude-fable-5) is the FINAL DECIDER on EVERYTHING - plans, reviews, commits, design arbitration, review-chain verdicts. Overrides everyone, including Codex's rule-46 verdict and Gemini's design authority. Fallback when Fable is unavailable: the next best available Claude model assumes the role (Opus 4.8 -> Opus 4.x -> Sonnet 4.6). Sean remains the human owner above all models.
+- **Opus 4.6 (CEO)** â€” Deputy / first fallback Final Decider when Fable is unavailable.
 - **Gemini 3.1 Pro (CTO)** â€” Lead Design Authority. Authoritative on aesthetics, Opus can override.
 - **Sonnet 4.6 (VP Eng)** â€” Premium code quality. Used in AI Village debates.
 - **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
