@@ -17,6 +17,18 @@ SwanStudios is not trying to copy a single competitor. The durable wedge is a tr
 
 The defensible product is not a generic fitness social network. It is a coach-led training, accountability, and progress-proof platform where community reinforces the training relationship instead of distracting from it.
 
+### Locked vision additions (2026-06-10 whole-app re-grill)
+
+Source: `docs/ai-workflow/brainstorms/swanstudios-whole-app-vision-regrill-2026-06-10.md` + `SWANSTUDIOS-FULL-VISION.md` §2.2.M/N. These are decided, not proposals:
+
+- **AI-durability thesis:** personal training is embodied + human-connection work, the most AI-durable job class. Swan Coach amplifies trainers; it never replaces them. AI job disruption (~2027+) is a trainer-recruitment tailwind ("human-centric career + AI superpowers, keep 90%, no monthly fee").
+- **Trainer marketplace fee:** 10% flat, all-inclusive (Stripe absorbed); trainer keeps a clean 90%, no monthly fee.
+- **BYOM (bring-your-own-model):** swappable model slot inside Swan Coach — users may plug their own API key; SwanStudios always owns the data, privacy gate, and tool layer. Also a platform-resilience hedge against vendor price/policy shocks.
+- **Ethical retention:** retain through real progress, streaks, and belonging — never dopamine dark patterns. Swan Coach advocates rest/recovery and will say "don't train today."
+- **Community policy:** no politics, no news — AI flag + human review queue; admin community-health KPIs.
+- **Pets:** pet profiles + "pets welcome" event tags (acquisition + shareable content); not pet fitness tracking.
+- **PT pricing:** $175/hr / $110/30min FLAT — tiered $300/$500 concepts superseded.
+
 ---
 
 ## North Star

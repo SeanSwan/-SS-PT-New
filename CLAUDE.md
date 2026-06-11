@@ -694,6 +694,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Claude Permission Syntax | `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` | `.claude/settings.json` permission patterns — read when editing allow/deny rules. |
 | Karpathy Wiki Operations | `docs/ai-workflow/references/KARPATHY-WIKI-OPERATIONS.md` | Hermes Wiki Bridge runtime ops, ingest, redaction posture. |
 | SwanStudios Full Vision | `docs/ai-workflow/references/SWANSTUDIOS-FULL-VISION.md` | Long-form product/business vision. Read for "where is this going" framing; for sequencing, defer to `SWANSTUDIOS-EXECUTION-ROADMAP.md`. |
+| SwanStudios Master Prompt | `docs/ai-workflow/references/SWANSTUDIOS-MASTER-PROMPT.md` | **Canonical compact vision loader** (2026-06-10) — ready-to-paste prompt giving any AI the complete vision in one shot. Supersedes all archived "MASTER PROMPT" docs. Use when briefing a fresh AI/session; FULL-VISION.md stays the deep reference. |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 

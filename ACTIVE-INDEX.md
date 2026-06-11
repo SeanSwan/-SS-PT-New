@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-06-02 (Coach selected-client stale-param closure + continuation refresh)
+**Last updated:** 2026-06-10 (whole-app vision re-grill: MASTER-PROMPT.md created, FULL-VISION.md expanded)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -97,6 +97,7 @@ Phase 3 move is reversible via `git mv` back if any quarantined skill needs to r
 Location: `docs/ai-workflow/references/`
 
 Core reference set (most frequently used):
+- `SWANSTUDIOS-MASTER-PROMPT.md` (NEW 2026-06-10) — canonical compact vision loader; paste into any fresh AI session. Deep version: `SWANSTUDIOS-FULL-VISION.md`. Grill record: `docs/ai-workflow/brainstorms/swanstudios-whole-app-vision-regrill-2026-06-10.md`
 - `BLUEPRINT-PROTOCOL.md`
 - `DOCUMENTATION-STANDARD.md`
 - `DASHBOARD-ARCHITECTURE.md`

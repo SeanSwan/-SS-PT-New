@@ -92,11 +92,17 @@ Most fitness apps help you log workouts. SwanStudios helps you build a life arou
 - **Bootcamp/group class builder** (30-90 min classes, stations, equipment, intensity targeting)
 - **Movement screening** — 7-step wizard, prospect support, auto-match pattern from WaiverRecord
 - **Program generation** — AI-assisted, golf-specific presets, senior-specific modifications
-- **Pricing:** $175/session (1hr), $110/session (30min)
+- **Pricing:** $175/session (1hr), $110/session (30min) — **FLAT, no tiers** (reaffirmed 2026-06-10; the $300/$500 "AI-powered/elite" tiers in `SEAN-AI-POWERED-TRAINING-MASTER-VISION.md` are SUPERSEDED — AI extras are included value; platform subscriptions are the upsell lane)
   - 3-month program: $8,400
   - 6-month: $16,800
   - 12-month: $33,600
   - Client on 4x/week = $2,800/mo recurring
+- **Training depth stack (folded in 2026-06-10):**
+  - 40-item client onboarding questionnaire (health history, goals, movement assessment)
+  - Comprehensive health data model: baseline metrics, daily check-ins, per-exercise tracking (weight/reps/sets/ROM degrees/form/fatigue/pain), progress snapshots
+  - Photo-based pain/posture diagnostics
+  - Research integration (PubMed scraper, peer-reviewed journal summaries)
+  - Specialized nutrition patterns available on request (blood-type, no-sugar, low-salt, non-GMO organic) — always labeled, never forced
 - **Regression-first** — start with easier variants, build up to complex
 - **Golf primary lead** — wealthy demographic in area, premium positioning, course partnerships
 - **ALL sports** — not just golf — football, basketball, MMA, tennis, baseball, soccer, combat sports, etc.
@@ -152,6 +158,10 @@ Not badges-and-points. A full RPG compulsion loop.
 - **Challenges** — 30-day squats, 100-mile month, clean eating streaks, etc. with XP rewards
 - **Clean Living Community** — unique positioning: farmers markets, organic food, outdoor activities, community gardens, sustainable living
 - **Benevolent energy** — no rage-bait, no toxic comparison culture, no spam
+- **NO politics, NO news — by design (locked 2026-06-10)** — motivation, art, dance, fitness, community content welcome; political and news content excluded. Enforcement: AI moderation flag (politics/news/rage-bait detection) → admin/moderator human review queue. The AI flags; a human makes the final call.
+- **Community health widget (admin)** — moderation KPIs surfaced (flag rate, review latency) so "community over profit" is measured, not vibes
+- **Pets & animals (locked 2026-06-10)** — pet profiles on user accounts (photo, name, breed) + "pets welcome" tag/filter on community events (dog-walk bootcamps, hike meetups). Acquisition angle for animal lovers; pet-friendly events double as highly shareable short-form content for the content engine. Explicitly NOT pet fitness tracking; RPG companion-pets remain a separate deferred idea.
+- **Progress-proof share cards** — one-tap (≤2 taps) rendering of a PR/streak/transformation into a beautiful Swan-branded share image; every share is organic marketing
 - **All ages, all backgrounds** — explicitly inclusive
 
 **Revenue model: Free community → $9.99/mo AI tier → $24.95/mo premium.**
@@ -295,6 +305,8 @@ Not badges-and-points. A full RPG compulsion loop.
 
 **Lazy loading:** `React.lazy()` + `SafeChart` error boundary. Never eagerly load full gallery.
 
+**Swan Chart Skin (locked 2026-06-10):** Sean's verdict — default Victory styling is not beautiful enough for the brand. The fix is NOT a library switch (Victory stays; rule 10 + React Native path protected). Build a signature reusable chart theme: Crystalline gradient fills, Ice Wing glow lines, animated draw-in, custom tooltips, Fira Code data labels. One theme upgrades all 50 charts. Victory-default styling anywhere is a design gap.
+
 #### L) Security — E2EE Encryption (2026-04-05)
 
 - **Signal Protocol** for all private messaging (WhatsApp-style)
@@ -307,6 +319,59 @@ Not badges-and-points. A full RPG compulsion loop.
 - Admin dashboard alerts
 - Dependency vulnerability monitoring
 - Render + R2 + DB health checks
+
+#### M) AI-Future Adaptation & Bring-Your-Own-Model (added 2026-06-10)
+
+Sourced from Sean's vision session + the Mo Gawdat "where AI is going" transcript (Diary of a CEO). Full mining: `docs/ai-workflow/brainstorms/swanstudios-whole-app-vision-regrill-2026-06-10.md`.
+
+**Strategic thesis — SwanStudios is positioned in the most AI-durable job class that exists:**
+- Embodied, human-connection work (personal training) survives the AI wave longest; entry-level knowledge work erodes first (Gawdat: serious impact ~2027).
+- "Lived experience and resonance will still create a job class" — Swan Coach does analysis/admin/charts; the human trainer provides relationship, accountability, presence. **Never market Swan Coach as replacing trainers — it lets trainers be MORE human.** (About page already says it: "Technology amplifies human coaching — it never replaces it.")
+- AI job disruption = trainer recruitment opportunity: displaced knowledge workers seeking embodied second careers are the marketplace's on-ramp wave.
+- Every trainer gets a superintelligent back office ("borrowing 100 IQ points") — one trainer serves more clients at higher quality without burnout.
+- Community/human connection becomes the scarce good as AI isolates people. The social layer is the long-game moat, not garnish.
+- Purposeful compute: Swan Coach always drives a next-best-action (log, adjust, celebrate, reach out) — never idle chat.
+- Counter-cyclical positioning: if unemployment rises, the donation-based Guardian tier keeps the community growing when wallets tighten.
+
+**Bring-Your-Own-Model (BYOM) — locked scope: swappable model slot**
+- Swan Coach stays THE coach — same chat bar, same commands, same role-based permissions — but users can plug in their own API key (OpenAI, Gemini, Claude, local model) to power it.
+- SwanStudios always owns the data, privacy gate, and tool layer. **Only the brain is swappable; the coach is not.**
+- Architecture direction: Swan Coach backend routes LLM calls through a provider-abstraction layer with per-user model config.
+- Economics: their tokens = their cost ($0 AI cost to platform for BYOM users).
+- Explicitly NOT in scope now: external agent access (MCP-style inbound connections from users' own agents) — revisit when the platform has traction.
+- Gawdat's "agents are the synapses; models become regions of one brain" supports model-agnosticism over single-vendor lock-in.
+
+**Trust narrative — "Your data, your story, your model" (adopted 2026-06-10):**
+- Package zero-PII-to-LLMs + E2EE messaging + no-politics feed + donation tier + BYOM into ONE explicit public trust story.
+- Trust is proven by sacrifice, not slogans (the Anthropic-turning-down-$500M lesson). These are demonstrable sacrifices that become a marketing-grade moat as public AI distrust grows.
+- **Vote-with-your-usage era:** users increasingly pick platforms on demonstrated values; SwanStudios' trust stack targets exactly that audience.
+
+**Ethical retention principle (locked 2026-06-10, from full transcript):**
+- The "moral AI vs evil AI" test: dopamine-slot-machine retention wins short-term and corrodes trust; SwanStudios retains through REAL progress, consistency streaks, and community belonging — never dark patterns.
+- Swan Coach is the caring-boundaries coach: it advocates rest, recovery, and deload weeks, and will say "don't train today" when the data says so. A coach that sometimes says no is trusted more than one that always says yes.
+
+**Second-half transcript additions (2026-06-10):**
+- **Personality beats information:** generic fitness info content will be AI-commoditized (prompt-your-own-podcast era). The YouTube engine leads with Sean's personality, story, lived experience, and client transformations — the moat is Sean, not the information.
+- **Model-agnosticism = platform resilience:** the BYOM provider-abstraction layer also protects SwanStudios itself from vendor price shocks and policy changes (Gawdat runs his own startup model-agnostic for this reason).
+- **Frontier models aren't needed for 90% of tasks:** validates the tiered AI cost strategy (free/cheap models for Starter/Guardian; frontier compute only where it earns its cost).
+- **Trainer recruitment speaks to the cut-off generation:** entry-level hiring is freezing (up to 30% of some sectors' jobs gone by 2027-28); the pitch to displaced knowledge workers and new grads is "human-centric career + AI superpowers included, keep 90%, no monthly fee."
+
+#### N) Operations, Teaching & Platform Experience (folded in 2026-06-10)
+
+**Operations & teaching pack:**
+- Teach-first guided product system — role-based first-run teaching for client/trainer/admin/user surfaces
+- Session deduction clarity — SwanStudios paid sessions deduct; Move Fitness free clients never deduct; cancellation/no-show policy explicit
+- Store/Stripe purchase workflow — cart, checkout, idempotent fulfillment, session grant
+- PLAUD audio playback — uploaded session audio playable in-app
+- iPad/tablet session logger — simple form + voice notes + photo capture + auto-sync
+- Twilio SMS automation — daily check-in reminders, voice-to-text capture into client record
+- Mission QA persona framework — contract / prod-read-only / prod-live / staging-write modes across admin, trainer, paid client, MF free client, stub personas
+
+**Platform & experience pack:**
+- Multinational readiness — i18n, time zones, currency handling (US/Canada/Mexico first, worldwide ambition), mobile-first + 1440p/4K desktop QA
+- Theme synchronization — Crystalline Swan tokens consistent across every dashboard surface, dark-first
+- Swan Coach as operating layer — contextually present on every surface (Home/Train/Clients), not a detached page
+- Activation loops (explicit, rule 62): trainee = first workout logged + first coach/group interaction + first visible progress proof within 7 days; trainer = first template + first client invite + payout path; admin = exceptions/stale clients/billing visible without hunting
 
 ---
 
@@ -360,8 +425,10 @@ Not badges-and-points. A full RPG compulsion loop.
    - Project-based: $2,000-$10,000/project
    - **Monthly revenue potential:** $2,000-$10,000 when active
 
-5. **Trainer Platform Fees**
-   - Independent trainers use platform, pay fees
+5. **Trainer Platform Fees — 10% flat, all-inclusive (locked 2026-06-10)**
+   - SwanStudios takes 10% of trainer-client transactions and absorbs Stripe (~3%) inside it — trainer keeps a clean 90%, no monthly SaaS fee (platform nets ~7%)
+   - Recruitment pitch: "No monthly fee. Keep 90%." — fairer than Trainerize-class $50-300/mo subscriptions
+   - **Trainer recruitment funnel page (adopted 2026-06-10):** public "Become a SwanStudios Trainer" surface telling the 90/10 story, timed to the AI job-disruption window
    - Each trainer = dozens of new users
    - **Revenue scales with trainer count + their client count**
 
@@ -501,3 +568,4 @@ That's the deal. Every feature must reinforce it.
 
 ## Change Log
 - 2026-04-17: Vision doc created as canonical source of truth. Ingest into wiki/raw/business/swanstudios-full-vision.md for agent context.
+- 2026-06-10: Whole-app vision re-grill (Fable session). Added: §2.2.M AI-Future Adaptation & BYOM (Gawdat transcript mining, swappable model slot, trust narrative), §2.2.N Operations/Teaching/Platform packs + activation loops, pets & no-politics moderation + share cards in §2.2.D, Swan Chart Skin in §2.2.K, 10% flat trainer fee + recruitment funnel in §4.5, training depth stack + $175-flat pricing reaffirmation in §2.2.A. Companion: `docs/ai-workflow/brainstorms/swanstudios-whole-app-vision-regrill-2026-06-10.md` + new `SWANSTUDIOS-MASTER-PROMPT.md`.
