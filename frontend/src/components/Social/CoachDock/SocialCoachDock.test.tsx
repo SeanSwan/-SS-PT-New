@@ -56,7 +56,14 @@ const PAGE_SOURCE = readFileSync(
 describe('SocialCoachDock — chip wiring', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
-    mockUseAuth.mockReturnValue({ user: { role: 'user', firstName: 'Sean' } });
+    mockUseAuth.mockReturnValue({
+      user: { id: 1, role: 'user', firstName: 'Sean' },
+      // Cheer panel lanes resolve empty → honest empty state in dock tests.
+      authAxios: {
+        get: vi.fn(async () => ({ data: { posts: [], friends: [] } })),
+        post: vi.fn(async () => ({ data: { success: true } })),
+      },
+    });
     mockUseChallenges.mockReturnValue({
       challenges: [],
       loading: false,
@@ -80,7 +87,6 @@ describe('SocialCoachDock — chip wiring', () => {
 
   it.each([
     [/log a workout/i, '/dashboard/client/log-workout'],
-    [/cheer a friend/i, '/social/friends'],
   ])('chip %s navigates a member (role user) to %s', async (label, expected) => {
     const user = userEvent.setup();
     render(<SocialCoachDock />);
@@ -88,6 +94,21 @@ describe('SocialCoachDock — chip wiring', () => {
     await user.click(screen.getByRole('button', { name: label }));
 
     expect(mockNavigate).toHaveBeenCalledWith(expected);
+  });
+
+  it('cheer-a-friend expands the inline picker instead of navigating (cheer v2)', async () => {
+    const user = userEvent.setup();
+    render(<SocialCoachDock />);
+
+    const chip = screen.getByRole('button', { name: /cheer a friend/i });
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
+
+    await user.click(chip);
+
+    expect(chip.getAttribute('aria-expanded')).toBe('true');
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // Lanes mocked empty → the picker's honest empty state.
+    expect(await screen.findByText(/no fresh wins to cheer/i)).toBeTruthy();
   });
 
   it('find-a-challenge expands the inline finder instead of navigating (D2b)', async () => {
@@ -148,6 +169,11 @@ describe('SocialCoachDock — chip wiring', () => {
     expect(findChip.getAttribute('aria-expanded')).toBe('true');
     expect(shareChip.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByText(/no fresh milestone yet/i)).toBeNull();
+
+    const cheerChip = screen.getByRole('button', { name: /cheer a friend/i });
+    await user.click(cheerChip);
+    expect(cheerChip.getAttribute('aria-expanded')).toBe('true');
+    expect(findChip.getAttribute('aria-expanded')).toBe('false');
   });
 
   it('still renders and routes safely when auth has no user (client fallback)', async () => {

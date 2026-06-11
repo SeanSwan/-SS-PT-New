@@ -6,10 +6,11 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the collapsed Coach strip (avatar + greeting +
- * four 44px action chips) at the top of the /social feed. Log/cheer chips
- * deep-link to existing mounted surfaces; share-a-milestone (D2c) and
- * find-a-challenge (D2b) expand mutually-exclusive inline panels — both
- * lazily mounted so the feed never pays their data fetches unprompted.
+ * four 44px action chips) at the top of the /social feed. Log-a-workout
+ * deep-links to the role-routed logger; share-a-milestone (D2c),
+ * find-a-challenge (D2b), and cheer-a-friend (cheer v2, feed-anchored)
+ * expand mutually-exclusive inline panels — all lazily mounted so the feed
+ * never pays their data fetches unprompted.
  *
  * HOW IT FITS IN THE APP: Mounted once by SocialPage.V3 inside the feed branch
  * of renderContent (feed-tab-only per the 2026-06-11 grill-me decision Q5).
@@ -21,8 +22,11 @@
  * - Companion consumer of the canonical Coach lane, NOT a second chat surface
  *   (rule 27): no message input, no send rail. Deeper asks go to the full
  *   Coach page via the share-milestone chip's deep-link.
- * - Hybrid depth complete: quick-log + cheer deep-link to their final
- *   surfaces; find challenge (D2b) and share milestone (D2c) run inline.
+ * - Hybrid depth complete: quick-log deep-links; find challenge (D2b),
+ *   share milestone (D2c), and cheer a friend (cheer v2) run inline. The
+ *   cheer panel is feed-anchored — the friends API exposes no activity
+ *   signals (audit 2026-06-11), so friends' celebration posts are the
+ *   honest signal and a swan reaction is the nudge.
  * - NO tier gating — free users get the working dock (Q6: community-flywheel
  *   actions stay free; intentional divergence from the dashboard SwanCoachDock
  *   teaser/lock pattern. Heavy Coach AI stays behind existing chat-lane caps.)
@@ -37,6 +41,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
 import InlineChallengeFinder from './InlineChallengeFinder';
 import InlineMilestoneShare from './InlineMilestoneShare';
+import InlineCheerPicker from './InlineCheerPicker';
 import {
   ActionChip,
   ChipRow,
@@ -56,16 +61,9 @@ const NAV_CHIPS = [
     Icon: Dumbbell,
     getPath: (role?: string | null) => getLogWorkoutDashboardPath(role),
   },
-  {
-    label: 'Cheer a friend',
-    Icon: ThumbsUp,
-    // Simple cheer picker fallback; smart nudge (friend-activity signals) is
-    // a fast-follow pending the friends-API signal audit.
-    getPath: () => '/social/friends',
-  },
 ] as const;
 
-type DockPanel = 'share' | 'finder';
+type DockPanel = 'share' | 'finder' | 'cheer';
 
 const SocialCoachDock: React.FC = () => {
   const { user } = useAuth();
@@ -127,6 +125,18 @@ const SocialCoachDock: React.FC = () => {
               {label}
             </ActionChip>
           ))}
+          {/* Cheer v2: feed-anchored — friends' real wins, one-tap swan
+              reaction (Sean-ratified over messaging/slipping-friend variants;
+              signal audit 2026-06-11). */}
+          <ActionChip
+            onClick={() => togglePanel('cheer')}
+            aria-label="Cheer a friend"
+            aria-expanded={openPanel === 'cheer'}
+            aria-controls="coach-cheer-picker"
+          >
+            <ThumbsUp size={15} />
+            Cheer a friend
+          </ActionChip>
         </ChipRow>
 
         {/* Lazy mounts: each panel's data fetch only fires when the user asks. */}
@@ -134,6 +144,7 @@ const SocialCoachDock: React.FC = () => {
           <InlineMilestoneShare onDismiss={() => setOpenPanel(null)} />
         )}
         {openPanel === 'finder' && <InlineChallengeFinder />}
+        {openPanel === 'cheer' && <InlineCheerPicker />}
       </DockInner>
     </DockShell>
   );
