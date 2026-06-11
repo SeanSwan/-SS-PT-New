@@ -298,11 +298,19 @@ export const createApp = async () => {
       level: 6,
       filter: (req, res) => {
         if (req.headers['x-no-compression']) return false;
+        // SSE must never be compressed: compression buffers the stream,
+        // turning incremental events into one end-of-response burst
+        // (B1b streaming spike, 2026-06-10). Content-Type is set before
+        // flushHeaders() in SSE handlers, so it is visible here.
+        const contentType = res.getHeader('Content-Type');
+        if (typeof contentType === 'string' && contentType.includes('text/event-stream')) {
+          return false;
+        }
         return compression.filter(req, res);
       }
     }));
 
-    logger.info('Production optimizations enabled: compression');
+    logger.info('Production optimizations enabled: compression (SSE exempt)');
   }
 
   // Health check endpoints are now handled by dedicated healthRoutes

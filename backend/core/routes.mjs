@@ -188,6 +188,7 @@ import mcpRoutes from '../routes/mcpRoutes.mjs';
 import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
 import aiRoutes from '../routes/aiRoutes.mjs';
 import aiChatRoutes from '../routes/aiChatRoutes.mjs';
+import aiStreamSpikeRoutes from '../routes/aiStreamSpikeRoutes.mjs';
 import aiCommandRoutes from '../routes/aiCommandRoutes.mjs';
 import hermesRoutes from '../routes/hermesRoutes.mjs';
 import aiDebateRoutes from '../routes/aiDebateRoutes.mjs';
@@ -610,6 +611,11 @@ export const setupRoutes = async (app) => {
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
+  // B1b SSE spike (throwaway, kill-switched, admin-only). Mounted BEFORE
+  // /api/ai-chat so it owns this exact path; aiChatRoutes defines no
+  // /stream-spike route today, so no shadow either way — mount order is
+  // pinned here to keep that true if aiChatRoutes grows (rule 31).
+  app.use('/api/ai-chat/stream-spike', aiStreamSpikeRoutes);
   app.use('/api/ai-chat', aiChatRoutes);
   app.use('/api/ai-command', aiCommandRoutes);
   app.use('/api/hermes', hermesRoutes);

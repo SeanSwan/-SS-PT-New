@@ -1,6 +1,7 @@
 # Swan Coach Slice B — Streaming + Perceived Speed (Recursive Plan, Phase A)
 
-> **Status:** PLAN — B1a awaiting Sean's rule-15 gate; B1b gated on B1a + a streaming spike.
+> **Status:** B1a SHIPPED 2026-06-10 (`c863a559e` — staged honest indicator, role-aware chips, instant echo; 527/527 frontend tests, tsc clean).
+> B1b SPIKE DEPLOYED (kill-switched OFF): `/api/ai-chat/stream-spike` (admin-only, fail-closed 404 until `SWAN_STREAM_SPIKE_ENABLED=true` on Render) + `text/event-stream` compression exemption. **Next action: Sean sets the env var on Render, runs `c:\tmp\sse-spike-probe.ps1`, verdict (STREAMING/BUFFERED) decides B1b's shape. Record the verdict here.**
 > **Parent prompt:** `SWAN-COACH-HIVE-MIND-MASTER-PROMPT-2026-06-10.md` (workstream B)
 > **Ground truth:** recon agent 2026-06-10 (file:line evidence in session transcript).
 
