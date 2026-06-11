@@ -7,6 +7,7 @@ import { useFaction } from '../../../../hooks/social/useFaction';
 import { useParty } from '../../../../hooks/social/useParty';
 import { useSocialFeed } from '../../../../hooks/social/useSocialFeed';
 import type { FeedStatsSummary } from '../components/SocialFeedPanels';
+import type { CoverIdentity } from '../components/FeedCoverStudio';
 
 export type SocialFeedVariant = 'full' | 'compact';
 
@@ -74,7 +75,7 @@ export const useSocialFeedViewModel = () => {
      first (points/tier/streak derive from logged work), auth user as the
      name/photo fallback. Null when nothing identifies the user, so the cover
      degrades to its anonymous form instead of rendering empty chrome. */
-  const identity = useMemo(() => {
+  const identity = useMemo((): CoverIdentity | null => {
     const p = profile.data;
     const displayName = [p?.firstName || user?.firstName, p?.lastName || user?.lastName]
       .filter(Boolean)
