@@ -27,6 +27,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 import { getSwanCoachDashboardPath } from '../../components/UserDashboard/components/swanCoachDashboardRoute';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
+import SocialCoachDock from '../../components/Social/CoachDock/SocialCoachDock';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 import SocialNotificationsPanel from '../../components/Social/Notifications/SocialNotificationsPanel';
@@ -630,7 +631,15 @@ const SocialPageV3: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'feed':
-        return <SocialFeed />;
+        /* Workstream D2a: Coach companion dock is feed-tab-only (grill-me Q5)
+           and lives inside the feed branch so reels stays immersive and the
+           D1 entries cover every other tab. */
+        return (
+          <>
+            <SocialCoachDock />
+            <SocialFeed />
+          </>
+        );
       case 'reels':
         return (
           <Suspense fallback={<div style={{ textAlign: 'center', padding: '40px', color: '#aaa' }}>Loading Reels...</div>}>
