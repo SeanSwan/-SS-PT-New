@@ -54,6 +54,7 @@ import AiConversation from '../models/AiConversation.mjs';
 import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
+import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -527,26 +528,26 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       : (conversation.targetUserId || req.user.id);  // clients always enrich with their own data
 
     // ── TRAINER RBAC: Verify trainer is assigned to target client ──
-    if (conversation.targetUserId && conversation.role === 'trainer') {
-      try {
-        const [assignmentRows] = await sequelize.query(
-          `SELECT 1 FROM sessions
-           WHERE ("trainerId" = :trainerId OR "userId" = :trainerId)
-             AND ("userId" = :clientId OR "trainerId" = :clientId)
-           LIMIT 1`,
-          { replacements: { trainerId: req.user.id, clientId: conversation.targetUserId }, type: sequelize.QueryTypes.SELECT }
-        ).then(r => [r]).catch(() => [[]]);
-
-        // If no session relationship found, also check if admin (admins bypass)
-        const hasRelation = Array.isArray(assignmentRows) ? assignmentRows.length > 0 : !!assignmentRows;
-        if (!hasRelation && req.user.role === 'trainer') {
-          // Soft check — log warning but allow (trainers may be newly assigned)
-          logger.warn('[AIChatRoutes] Trainer %d querying Client #%d data — no session relationship found',
-            req.user.id, conversation.targetUserId);
+    // Slice A1 (2026-06-10): HARDENED from soft warn-and-continue to the
+    // canonical fail-closed gate (contextEngine/clientAccess.mjs — active
+    // ClientTrainerAssignment OR session history; pending grants nothing).
+    // Escape hatch: AI_CHAT_CLIENT_ACCESS_SOFT=true restores legacy
+    // warn-only behavior if a real workflow breaks. Admins bypass.
+    if (conversation.targetUserId && conversation.role === 'trainer' && req.user.role === 'trainer') {
+      const access = await checkClientAccess(req.user, conversation.targetUserId, sequelize);
+      if (!access.allowed) {
+        if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT === 'true') {
+          logger.warn('[AIChatRoutes] SOFT MODE: trainer %d not verified for Client #%d (reason: %s) — allowing per AI_CHAT_CLIENT_ACCESS_SOFT',
+            req.user.id, conversation.targetUserId, access.reason);
+        } else {
+          logger.warn('[AIChatRoutes] Trainer %d DENIED access to Client #%d (reason: %s)',
+            req.user.id, conversation.targetUserId, access.reason);
+          return res.status(403).json({
+            success: false,
+            code: 'CLIENT_ACCESS_DENIED',
+            error: CLIENT_ACCESS_DENIED_MESSAGE,
+          });
         }
-      } catch (rbacErr) {
-        // Non-fatal: if sessions table structure differs, log and continue
-        logger.warn('[AIChatRoutes] RBAC check failed (non-fatal):', rbacErr.message);
       }
     }
     let sanitizedMessage = message.trim();

@@ -50,6 +50,18 @@ const commands = [
     requiresClientRef: false, category: 'G',
   },
   {
+    type: 'brief_client',
+    description: 'Brief me on a client — cross-domain status summary with attention flags',
+    naturalLanguagePatterns: ['brief me on', 'give me a rundown on', 'client status for', 'how is client doing', 'tell me about client'],
+    method: 'GET', endpoint: '/api/ai-command/brief-client',
+    inputSchema: z.object({
+      clientId: z.coerce.number().int().min(1),
+    }),
+    destructive: false, requiresConfirmation: false,
+    roleRequired: ['admin', 'trainer'],
+    requiresClientRef: true, category: 'G',
+  },
+  {
     type: 'view_recent_signups',
     description: 'Show who signed up recently',
     naturalLanguagePatterns: ['who signed up recently', 'recent signups', 'new clients this week'],

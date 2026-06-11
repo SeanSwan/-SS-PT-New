@@ -52,6 +52,8 @@
  *   A03: view_available_slots → availabilityService.getAvailableSlots (date-scoped open-slot summary)
  *   exec-substrate-v16 (PLAUD read commands):
  *   N01-N07: view/review/inspect/health intake commands → plaud + coach intake dispatchers
+ *   exec-substrate-v17 (Coach Context Engine, Slice A1):
+ *   G09: brief_client → briefClientDispatcher (cross-domain de-identified brief; fail-closed clientAccess gate)
  *
  * ADD COMMANDS: Import service fn → add DISPATCHERS entry → stepExecute picks it up automatically.
  * ============================================================================
@@ -78,6 +80,7 @@ import {
   dispatchViewAvailableSlots,
 } from './dispatchers/availabilityDispatchers.mjs';
 import { dispatchSetAvailability } from './dispatchers/setAvailabilityDispatcher.mjs';
+import { dispatchBriefClient } from './dispatchers/briefClientDispatcher.mjs';
 import {
   dispatchReviewNextPlaudIntake,
   dispatchViewPlaudIntakeQueue,
@@ -232,6 +235,7 @@ const DISPATCHERS = new Map([
   ['scan_command_center', dispatchScanCommandCenter],
   ['view_revenue', dispatchViewRevenue],
   ['view_business_kpis', dispatchViewBusinessKpis],
+  ['brief_client', dispatchBriefClient],
   ['view_recent_signups', dispatchViewRecentSignups],
   ['view_system_health', dispatchViewSystemHealth],
   ['view_user_engagement', dispatchViewUserEngagement],
