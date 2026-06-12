@@ -78,6 +78,11 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
     const isCarouselLayout = isBannerCarouselLayout(bannerCollageLayout);
     const photos = bannerCollagePhotos.slice(0, MAX_BANNER_COLLAGE_PHOTOS);
     const displayPhotos = isCarouselLayout ? [...photos, ...photos] : photos;
+    // Adaptive marquee speed (2026-06-11): ~6s of travel per photo, floored so
+    // a 2-photo reel doesn't whip past. Keeps px/sec steady across photo counts.
+    const carouselDurationStyle = {
+      '--banner-carousel-duration': `${Math.max(20, photos.length * 6)}s`,
+    } as React.CSSProperties;
     const collageFrames = displayPhotos.map((photo, index) => {
       const mediaKey = `${photo}-${index}`;
       const aspectRatio = collageAspectRatios[mediaKey] ?? DEFAULT_BANNER_COLLAGE_ASPECT_RATIO;
@@ -129,7 +134,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
               '--banner-object-position': bannerObjectPosition,
             } as React.CSSProperties}
           >
-            {isCarouselLayout ? <BannerCarouselTrack>{collageFrames}</BannerCarouselTrack> : collageFrames}
+            {isCarouselLayout ? <BannerCarouselTrack style={carouselDurationStyle}>{collageFrames}</BannerCarouselTrack> : collageFrames}
           </BannerCollageLayer>
         )}
         {isCarouselLayout && bannerStickyCarousel && (
@@ -138,7 +143,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
             data-layout={bannerCollageLayout}
             aria-hidden="true"
           >
-            <BannerStickyCarouselTrack>
+            <BannerStickyCarouselTrack style={carouselDurationStyle}>
               {displayPhotos.map((photo, index) => (
                 <BannerStickyCarouselFrame key={`${photo}-sticky-${index}`}>
                   {isBannerVideoUrl(photo) ? (

@@ -10,16 +10,26 @@ export const BannerCarouselTrack = styled.div`
   flex-wrap: nowrap;
   align-items: flex-start;
   gap: clamp(6px, 0.65vw, 14px);
+  /* Seamless loop fix (2026-06-11): the track is a duplicated [photos,photos]
+     run sized to its content. The old min-width:200% STRETCHED the track when
+     content was narrower than 2x the frame, so the translateX(-50%) reset no
+     longer landed on the seam -> a visible jump every loop. width:max-content
+     alone keeps the two halves identical, so -50% always hits the seam. */
   width: max-content;
-  min-width: 200%;
   height: auto;
   max-height: 100%;
-  animation: ${carouselTrack} 38s linear infinite;
-  will-change: transform;
+  /* Adaptive speed: duration scales with photo count via a CSS var set by the
+     media layer (more photos -> longer track -> longer duration -> steady px/s). */
+  animation: ${carouselTrack} var(--banner-carousel-duration, 38s) linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     transform: none;
+  }
+  /* will-change only while motion is allowed — avoids a permanent composited
+     layer (GPU memory) when the user prefers reduced motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    will-change: transform;
   }
 `;
 
@@ -47,15 +57,17 @@ export const BannerStickyCarouselLayer = styled.div`
 export const BannerStickyCarouselTrack = styled.div`
   display: flex;
   gap: 6px;
+  /* Same seamless-loop fix as BannerCarouselTrack — drop min-width:200%. */
   width: max-content;
-  min-width: 200%;
   height: 100%;
-  animation: ${carouselTrack} 34s linear infinite;
-  will-change: transform;
+  animation: ${carouselTrack} var(--banner-carousel-duration, 34s) linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
     transform: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    will-change: transform;
   }
 `;
 
@@ -71,7 +83,9 @@ const stickyCarouselMediaCss = css`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* Cover-fill (2026-06-11): was object-fit:contain, which letterboxed every
+     photo with pillarbox bars (cheap look). cover fills the frame edge-to-edge. */
+  object-fit: cover;
   object-position: center;
   background: var(--bg-base, #0A0A0F);
 `;
