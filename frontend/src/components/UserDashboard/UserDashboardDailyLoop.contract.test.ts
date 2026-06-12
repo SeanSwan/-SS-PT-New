@@ -126,6 +126,38 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeSource).toContain('<SwanCoachActionLauncher');
   });
 
+  it('keeps the Home tab honest — real cover layer, real latest post, no fabricated data (workstream N2)', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+    const railSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
+    const moodsSource = readSource('src/components/UserDashboard/components/HomeTabVision.data.ts');
+
+    // The identity header carries the user's REAL cover (photo/collage/carousel).
+    expect(homeSource).toContain('useSocialCoverBanner');
+    expect(homeSource).toContain('UserDashboardBannerMediaLayer');
+    expect(centerSource).toContain('bannerLayer');
+
+    // Latest-post card + spotlight read real data; fabricated engagement is gone.
+    expect(homeSource).toContain('buildLatestPostView');
+    expect(centerSource).not.toContain('1.3K likes');
+    expect(centerSource).not.toContain('86 comments');
+    expect(centerSource).not.toContain('Rise Through');
+    expect(centerSource).not.toContain('just now');
+    expect(centerSource).not.toContain('+25 XP');
+
+    // Quick Post offers three core moods (least-clicks mandate).
+    expect(moodsSource).not.toContain("{ id: 'music'");
+    expect(moodsSource).not.toContain("{ id: 'art'");
+    expect(moodsSource).not.toContain("{ id: 'challenge', label: 'Challenge'");
+    expect(moodsSource).not.toContain("{ id: 'transformation'");
+
+    // Right rail: pretend-features and fake charts removed; real actions wired.
+    expect(railSource).not.toContain('Stories from the Garden');
+    expect(railSource).not.toContain('[38, 52, 60, 70, 78, 86, 100]');
+    expect(railSource).toContain('transformationPhotoUrls');
+    expect(railSource).toContain('onLogWorkout');
+  });
+
   it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
 

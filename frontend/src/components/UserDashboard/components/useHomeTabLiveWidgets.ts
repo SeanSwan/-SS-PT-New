@@ -10,7 +10,6 @@ import { useTrendingHashtags } from '../../../hooks/useDashboardQueries';
 import {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
-  buildHomeStories,
   extractTrendingTagNames,
   selectActiveChallengeSummary,
 } from './HomeTabViewModel';
@@ -33,11 +32,6 @@ export function useHomeTabLiveWidgets({
   const activity = useActivityTicker();
   const challenges = useChallenges();
   const trending = useTrendingHashtags({ limit: 5 });
-
-  const stories = useMemo(() => buildHomeStories({
-    displayName,
-    feedPosts,
-  }), [displayName, feedPosts]);
 
   const liveActivityItems = useMemo(() => buildHomeLiveActivity({
     displayName,
@@ -63,7 +57,6 @@ export function useHomeTabLiveWidgets({
   );
 
   return {
-    stories,
     liveActivityItems,
     liveActivityConnected: activity.isConnected,
     activeChallenge,

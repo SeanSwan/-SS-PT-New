@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
-  buildHomeStories,
+  buildLatestPostView,
   buildCreatorStats,
   extractTrendingTagNames,
   buildHomePostPayload,
@@ -122,21 +122,40 @@ describe('HomeTabViewModel', () => {
     })).toBe(10);
   });
 
-  it('builds garden stories from real media posts instead of static creator names', () => {
-    const stories = buildHomeStories({
-      displayName: 'Sean',
-      feedPosts: [
-        { id: 'p1', mediaUrl: 'https://cdn.example.com/reel.jpg', user: { username: 'IronSean' } },
-        { id: 'p2', content: 'Text only update', user: { username: 'TextOnly' } },
-        { id: 'p3', mediaUrl: 'https://cdn.example.com/proof.jpg', user: { firstName: 'Maya' } },
-      ],
-    });
+  it('builds the latest-post view from REAL fields — no fabricated engagement numbers', () => {
+    const nowMs = new Date('2026-06-11T10:05:00Z').getTime();
+    const view = buildLatestPostView([
+      {
+        id: 'p1',
+        content: 'New PR on the trap bar.',
+        likesCount: 4,
+        commentsCount: 1,
+        mediaUrl: 'https://cdn.example.com/pr-clip.mp4',
+        createdAt: '2026-06-11T10:00:00Z',
+      },
+    ], nowMs);
 
-    expect(stories).toEqual([
-      { id: 'create-story', label: 'Your Story', tone: 'violet', isCreate: true },
-      { id: 'p1', label: 'IronSean', tone: 'cyan', mediaUrl: 'https://cdn.example.com/reel.jpg' },
-      { id: 'p3', label: 'Maya', tone: 'violet', mediaUrl: 'https://cdn.example.com/proof.jpg' },
-    ]);
+    expect(view).toEqual({
+      caption: 'New PR on the trap bar.',
+      mediaUrl: 'https://cdn.example.com/pr-clip.mp4',
+      isVideo: true,
+      timeAgo: '5m ago',
+      likes: 4,
+      comments: 1,
+    });
+  });
+
+  it('returns null for the latest-post view when the feed is empty (honest empty state)', () => {
+    expect(buildLatestPostView([], Date.now())).toBeNull();
+    expect(buildLatestPostView(null, Date.now())).toBeNull();
+  });
+
+  it('reads zero engagement as zero — never inflates counts', () => {
+    const view = buildLatestPostView([
+      { id: 'p1', content: 'Quiet post', createdAt: '2026-06-11T09:00:00Z' },
+    ], new Date('2026-06-11T10:00:00Z').getTime());
+
+    expect(view).toMatchObject({ likes: 0, comments: 0, mediaUrl: null, isVideo: false });
   });
 
   it('builds live activity from socket events, then recent feed posts as fallback', () => {

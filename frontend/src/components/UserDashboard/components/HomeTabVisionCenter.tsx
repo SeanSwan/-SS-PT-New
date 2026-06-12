@@ -4,15 +4,14 @@
  */
 
 import React from 'react';
-import styled from 'styled-components';
 import {
   ImagePlus,
   Loader2,
-  MoreHorizontal,
-  Play,
   Send,
   Sparkles,
+  Video,
 } from 'lucide-react';
+import type { HomeLatestPostView } from './HomeTabViewModel';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
@@ -36,9 +35,20 @@ import {
   GlassButton,
   MoodButton,
   MoodScroller,
-  PlayBadge,
   VideoFrame,
 } from './HomeTabVisionCards.styles';
+import {
+  CaptionCopy,
+  ComposerActions,
+  CoverLayerHost,
+  FeedCopy,
+  FeedVideoFrame,
+  HandleStamp,
+  HeroForeground,
+  SpotlightImage,
+  SpotlightVideo,
+  SpreadButtonRow,
+} from './HomeTabVisionCenter.styles';
 import {
   AvatarFrame,
   AvatarInner,
@@ -58,7 +68,7 @@ import {
   StatsStrip,
   StatValue,
 } from './HomeTabVisionHero.styles';
-import { CrystalScene, HeroRanges, LevelHex, VerifiedMark } from './HomeTabVisionScenes';
+import { HeroRanges, LevelHex, VerifiedMark } from './HomeTabVisionScenes';
 
 interface HomeTabVisionCenterProps {
   avatarSrc: string;
@@ -75,7 +85,10 @@ interface HomeTabVisionCenterProps {
   postText: string;
   activeMood: string;
   selectedMediaName?: string;
-  latestCaption: string;
+  /** Real cover composition (photo/collage/carousel) — null keeps the decorative backdrop. */
+  bannerLayer: React.ReactNode | null;
+  /** Real latest feed post — null renders honest empty states. */
+  latestPost: HomeLatestPostView | null;
   canPost: boolean;
   isPosting: boolean;
   onAction: (target: VisionTarget) => void;
@@ -90,42 +103,6 @@ const swapToFallback = (fallbackSrc: string) => (event: React.SyntheticEvent<HTM
   event.currentTarget.onerror = null;
   event.currentTarget.src = fallbackSrc;
 };
-
-const SpreadButtonRow = styled(ButtonRow)`
-  justify-content: space-between;
-  margin-bottom: 0.85rem;
-`;
-
-const ComposerActions = styled(ButtonRow)`
-  justify-content: space-between;
-  margin-top: 0.75rem;
-`;
-
-const SpotlightTitle = styled.h2`
-  margin: 0.85rem 0 0.25rem;
-  font-size: 1.35rem;
-`;
-
-const CaptionCopy = styled.p`
-  margin: 0;
-  color: var(--vision-soft);
-  line-height: 1.55;
-`;
-
-const HandleStamp = styled.div`
-  color: var(--vision-soft);
-  font-size: 0.8rem;
-`;
-
-const FeedCopy = styled.p`
-  margin: 0;
-  color: var(--text-primary, #E0ECF4);
-  line-height: 1.6;
-`;
-
-const FeedVideoFrame = styled(VideoFrame)`
-  min-height: 280px;
-`;
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   avatarSrc,
@@ -142,7 +119,8 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   postText,
   activeMood,
   selectedMediaName,
-  latestCaption,
+  bannerLayer,
+  latestPost,
   canPost,
   isPosting,
   onAction,
@@ -171,10 +149,15 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
     </TopBar>
 
     <HeroBanner>
-      <HeroRangesLayer>
-        <HeroRanges />
-      </HeroRangesLayer>
+      {bannerLayer ? (
+        <CoverLayerHost aria-hidden="true">{bannerLayer}</CoverLayerHost>
+      ) : (
+        <HeroRangesLayer>
+          <HeroRanges />
+        </HeroRangesLayer>
+      )}
       <GlowSweep />
+      <HeroForeground>
       <HeroContent>
         <AvatarFrame>
           <AvatarInner>
@@ -217,7 +200,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
           </StatBlock>
         </StatsStrip>
       </HeroContent>
-
+      </HeroForeground>
     </HeroBanner>
 
     <LensStrip aria-label="Creator dashboard sections">
@@ -236,24 +219,39 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         <SpreadButtonRow>
           <Eyebrow $tone="violet">
             <Sparkles size={14} aria-hidden="true" />
-            Reels Spotlight
+            Latest Drop
           </Eyebrow>
-          <Chip $tone="violet">Reel of the Day</Chip>
+          {latestPost?.mediaUrl && <Chip $tone="violet">From your feed</Chip>}
         </SpreadButtonRow>
-        <VideoFrame>
-          <CrystalScene tone="violet" />
-          <PlayBadge type="button" aria-label="Preview spotlight reel">
-            <Play size={22} fill="currentColor" aria-hidden="true" />
-          </PlayBadge>
-        </VideoFrame>
-        <SpotlightTitle>Rise Through</SpotlightTitle>
-        <CaptionCopy>{latestCaption}</CaptionCopy>
+        {latestPost?.mediaUrl ? (
+          <>
+            <VideoFrame>
+              {latestPost.isVideo ? (
+                <SpotlightVideo src={latestPost.mediaUrl} controls muted playsInline preload="metadata" />
+              ) : (
+                <SpotlightImage src={latestPost.mediaUrl} alt="Latest post media" />
+              )}
+            </VideoFrame>
+            {latestPost.caption && <CaptionCopy>{latestPost.caption}</CaptionCopy>}
+          </>
+        ) : (
+          <>
+            <CaptionCopy>
+              No media drops yet — your latest photo or clip will headline here.
+            </CaptionCopy>
+            <ComposerActions>
+              <GlassButton type="button" $variant="ghost" onClick={() => onAction('reels')}>
+                <Video size={15} aria-hidden="true" />
+                Open Reels
+              </GlassButton>
+            </ComposerActions>
+          </>
+        )}
       </Panel>
 
       <Panel as="form" $tone="cyan" onSubmit={onSubmitPost}>
         <SpreadButtonRow>
           <Eyebrow>Quick Post</Eyebrow>
-          <Chip $tone="gold">+25 XP</Chip>
         </SpreadButtonRow>
         <ComposerInput
           value={postText}
@@ -288,39 +286,43 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       </Panel>
     </CenterGrid>
 
-    <Panel as={FeedCard}>
-      <FeedHeader>
+    {/* Workstream N2: the feed card shows the REAL latest post — real
+        timestamp, real engagement counts, real media — or nothing at all. */}
+    {latestPost ? (
+      <Panel as={FeedCard}>
+        <FeedHeader>
+          <ButtonRow>
+            <AvatarMini>
+              <img src={avatarSrc} alt="" aria-hidden="true" onError={swapToFallback(fallbackAvatarSrc)} />
+            </AvatarMini>
+            <div>
+              <strong>{displayName}</strong>
+              <HandleStamp>{handle} · {latestPost.timeAgo}</HandleStamp>
+            </div>
+          </ButtonRow>
+        </FeedHeader>
+        <FeedCopy>
+          {latestPost.caption || 'Shared a new drop.'}
+        </FeedCopy>
+        {latestPost.mediaUrl && (
+          <FeedVideoFrame>
+            {latestPost.isVideo ? (
+              <SpotlightVideo src={latestPost.mediaUrl} controls muted playsInline preload="metadata" />
+            ) : (
+              <SpotlightImage src={latestPost.mediaUrl} alt="Post media" />
+            )}
+          </FeedVideoFrame>
+        )}
         <ButtonRow>
-          <AvatarMini>
-            <img src={avatarSrc} alt="" aria-hidden="true" onError={swapToFallback(fallbackAvatarSrc)} />
-          </AvatarMini>
-          <div>
-            <strong>{displayName}</strong>
-            <HandleStamp>{handle} · just now</HandleStamp>
-          </div>
+          <Chip>{latestPost.likes.toLocaleString()} likes</Chip>
+          <Chip $tone="violet">{latestPost.comments.toLocaleString()} comments</Chip>
         </ButtonRow>
-        <ButtonRow>
-          <Chip $tone="gold">+25 XP</Chip>
-          <IconButton type="button" aria-label="Post options">
-            <MoreHorizontal size={18} aria-hidden="true" />
-          </IconButton>
-        </ButtonRow>
-      </FeedHeader>
-      <FeedCopy>
-        {latestCaption || 'New set. New energy. Let us build.'}
-      </FeedCopy>
-      <FeedVideoFrame>
-        <CrystalScene tone="cyan" />
-        <PlayBadge type="button" aria-label="Preview feed media">
-          <Play size={22} fill="currentColor" aria-hidden="true" />
-        </PlayBadge>
-      </FeedVideoFrame>
-      <ButtonRow>
-        <Chip>1.3K likes</Chip>
-        <Chip $tone="violet">86 comments</Chip>
-        <Chip $tone="gold">96 shares</Chip>
-      </ButtonRow>
-    </Panel>
+      </Panel>
+    ) : (
+      <Panel as={FeedCard}>
+        <FeedCopy>Your first post will land here — share what you're building above.</FeedCopy>
+      </Panel>
+    )}
   </CenterColumn>
 );
 

@@ -9,14 +9,10 @@ import {
   Aperture,
   Camera,
   Dumbbell,
-  Flame,
   Home,
   Image as ImageIcon,
   Info,
   MessageCircle,
-  Mic2,
-  Palette,
-  Sparkles,
   Trophy,
   Users,
   Utensils,
@@ -53,13 +49,13 @@ export const HERO_LENSES: VisionAction[] = [
   { id: 'nutrition', label: 'Nutrition', Icon: Utensils, target: 'nutrition' },
 ];
 
+/* Workstream N2 (Sean's call): the quick composer offers three core moods —
+   too many choices slows the post. Smart intent inference still auto-types
+   anything else from the text, and the full 11-type composer lives on the
+   Feed tab. */
 export const POST_MOODS = [
   { id: 'workout', label: 'Workout', Icon: Dumbbell },
-  { id: 'transformation', label: 'Transformation', Icon: Sparkles },
   { id: 'achievement', label: 'Achievement', Icon: Trophy },
-  { id: 'challenge', label: 'Challenge', Icon: Flame },
-  { id: 'music', label: 'Music', Icon: Mic2 },
-  { id: 'art', label: 'Art', Icon: Palette },
   { id: 'community', label: 'Community', Icon: Users },
 ] as const;
 

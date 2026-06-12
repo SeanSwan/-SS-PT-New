@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import {
   ArrowRight,
   Crown,
@@ -19,7 +20,6 @@ import type {
   HomeChallengeSummary,
   HomeLeaderboardRow,
   HomeLiveActivityItem,
-  HomeStoryItem,
   TrendingTagSummary,
 } from './HomeTabViewModel';
 import { Eyebrow, Panel, RightRail } from './HomeTabVision.styles';
@@ -28,9 +28,6 @@ import {
   ButtonRow,
   Chip,
   Fill,
-  StoryBubble,
-  StoryItem,
-  StoryStrip,
 } from './HomeTabVisionCards.styles';
 import {
   ActivityCopy,
@@ -50,8 +47,6 @@ import {
   LeaderboardPoints,
   LeaderboardRank,
   LeaderboardRow,
-  MomentumBar,
-  MomentumBars,
   MomentumLayout,
   MomentumRing,
   MomentumValue,
@@ -59,18 +54,22 @@ import {
   RailHeader,
   SceneFrame,
   SoftParagraph,
-  StoryImage,
   TagName,
   TransformationGrid,
   TrendingGrid,
   TrendingRow,
 } from './HomeTabVisionRightRail.styles';
-import { CrystalScene, MiniScene, Sparkline } from './HomeTabVisionScenes';
+import { Sparkline } from './HomeTabVisionScenes';
+
+const TransformationImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+`;
 
 interface HomeTabVisionRightRailProps {
-  logoSrc: string;
   progressPercent: number;
-  stories: HomeStoryItem[];
   liveActivityItems: HomeLiveActivityItem[];
   liveActivityConnected: boolean;
   activeChallenge: HomeChallengeSummary | null;
@@ -79,7 +78,10 @@ interface HomeTabVisionRightRailProps {
   leaderboardRows: HomeLeaderboardRow[];
   trendingTags: TrendingTagSummary[];
   trendingLoading: boolean;
+  /** Real transformation photo URLs from the profile — empty renders a CTA. */
+  transformationPhotoUrls: string[];
   onAction: (target: VisionTarget) => void;
+  onLogWorkout: () => void;
 }
 
 function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
@@ -92,9 +94,7 @@ function iconForActivity(item: HomeLiveActivityItem): React.ElementType {
 }
 
 const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
-  logoSrc,
   progressPercent,
-  stories,
   liveActivityItems,
   liveActivityConnected,
   activeChallenge,
@@ -103,7 +103,9 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   leaderboardRows,
   trendingTags,
   trendingLoading,
+  transformationPhotoUrls,
   onAction,
+  onLogWorkout,
 }) => {
   const challengeButtonTarget: VisionTarget = 'challenges';
   const challengeButtonLabel = activeChallenge
@@ -112,31 +114,6 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
 
   return (
   <RightRail aria-label="Creator observatory widgets">
-    <Panel>
-      <RailHeader $spaced>
-        <Eyebrow>Stories from the Garden</Eyebrow>
-        <Chip>Live</Chip>
-      </RailHeader>
-      <StoryStrip>
-        {stories.map((story) => (
-          <StoryItem key={story.id}>
-            <StoryBubble>
-              <div>
-                {story.isCreate ? (
-                  <StoryImage src={logoSrc} alt="" aria-hidden="true" />
-                ) : story.mediaUrl ? (
-                  <StoryImage src={story.mediaUrl} alt="" aria-hidden="true" />
-                ) : (
-                  <MiniScene tone={story.tone} />
-                )}
-              </div>
-            </StoryBubble>
-            <span>{story.label}</span>
-          </StoryItem>
-        ))}
-      </StoryStrip>
-    </Panel>
-
     <Panel>
       <RailHeader>
         <Eyebrow>Live Activity</Eyebrow>
@@ -256,6 +233,8 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         <Eyebrow>Weekly Momentum</Eyebrow>
         <Chip>{progressPercent}%</Chip>
       </RailHeader>
+      {/* Workstream N2: the fake 7-bar chart is gone — the ring is the real
+          level-progress signal; the left rail already owns the streak week. */}
       <MomentumLayout>
         <MomentumRing>
           <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true">
@@ -264,26 +243,33 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
           </svg>
           <MomentumValue>{progressPercent}%</MomentumValue>
         </MomentumRing>
-        <MomentumBars>
-          {[38, 52, 60, 70, 78, 86, 100].map((height, index) => (
-            <MomentumBar key={height} $height={height} $gold={index === 6} />
-          ))}
-        </MomentumBars>
       </MomentumLayout>
     </Panel>
 
     <Panel>
       <Eyebrow>Transformation</Eyebrow>
-      <TransformationGrid>
-        <SceneFrame><CrystalScene tone="violet" /></SceneFrame>
-        <Chip><ArrowRight size={16} aria-hidden="true" /></Chip>
-        <SceneFrame><CrystalScene tone="cyan" /></SceneFrame>
-      </TransformationGrid>
+      {transformationPhotoUrls.length >= 2 ? (
+        <TransformationGrid>
+          <SceneFrame><TransformationImage src={transformationPhotoUrls[0]} alt="Before" /></SceneFrame>
+          <Chip><ArrowRight size={16} aria-hidden="true" /></Chip>
+          <SceneFrame><TransformationImage src={transformationPhotoUrls[transformationPhotoUrls.length - 1]} alt="After" /></SceneFrame>
+        </TransformationGrid>
+      ) : (
+        <>
+          <EmptyState>Add progress photos to unlock your before/after.</EmptyState>
+          <FullWidthAction type="button" $variant="accent" onClick={() => onAction('photos')}>
+            Add Photos
+          </FullWidthAction>
+        </>
+      )}
     </Panel>
 
     <Panel>
       <Eyebrow>Next Best Action</Eyebrow>
-      <SoftParagraph>Share progress and turn today into visible momentum.</SoftParagraph>
+      <SoftParagraph>Log today's training — workouts become visible progress proof.</SoftParagraph>
+      <FullWidthAction type="button" $variant="accent" onClick={onLogWorkout}>
+        Log a Workout
+      </FullWidthAction>
     </Panel>
   </RightRail>
   );

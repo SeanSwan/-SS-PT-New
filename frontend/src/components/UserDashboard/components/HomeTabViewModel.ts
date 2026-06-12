@@ -8,10 +8,10 @@ import {
   appendHashtag,
   inferSmartPostIntent,
 } from '../../Social/Feed/utils/postIntentInference';
+import { firstMediaUrl, formatAgo } from './HomeTabLiveWidgetViewModel';
 export {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
-  buildHomeStories,
   extractTrendingTagNames,
   selectActiveChallengeSummary,
 } from './HomeTabLiveWidgetViewModel';
@@ -20,7 +20,6 @@ export type {
   HomeChallengeSummary,
   HomeLeaderboardRow,
   HomeLiveActivityItem,
-  HomeStoryItem,
   TrendingTagSummary,
 } from './HomeTabLiveWidgetViewModel';
 
@@ -140,6 +139,49 @@ export function buildHomePostPayload(content: string, mood: string, media?: File
   };
   if (media) payload.media = media;
   return payload;
+}
+
+/** Real view of the user's latest feed post — no fabricated engagement. */
+export interface HomeLatestPostView {
+  caption: string;
+  mediaUrl: string | null;
+  isVideo: boolean;
+  timeAgo: string;
+  likes: number;
+  comments: number;
+}
+
+const VIDEO_URL_PATTERN = /\.(mp4|webm|mov|m4v)(\?|#|$)/i;
+
+export function buildLatestPostView(
+  feedPosts: unknown[] | null | undefined,
+  nowMs: number,
+): HomeLatestPostView | null {
+  const first = (feedPosts || [])[0];
+  if (!first || typeof first !== 'object') return null;
+  const record = first as Record<string, unknown>;
+
+  const readCount = (keys: string[]): number => {
+    for (const key of keys) {
+      const value = Number(record[key]);
+      if (Number.isFinite(value) && value >= 0) return Math.floor(value);
+    }
+    return 0;
+  };
+
+  const caption = [record.caption, record.content, record.text]
+    .find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    ?.trim() ?? '';
+  const mediaUrl = firstMediaUrl(record) || null;
+
+  return {
+    caption,
+    mediaUrl,
+    isVideo: !!mediaUrl && VIDEO_URL_PATTERN.test(mediaUrl),
+    timeAgo: formatAgo(record.createdAt ?? record.timestamp ?? record.updatedAt, nowMs),
+    likes: readCount(['likesCount', 'likes', 'likeCount']),
+    comments: readCount(['commentsCount', 'comments', 'commentCount']),
+  };
 }
 
 export function parseUnreadNotificationCount(payload: unknown): number {

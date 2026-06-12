@@ -7,15 +7,6 @@
  */
 
 type UnknownRecord = Record<string, unknown>;
-type StoryTone = 'cyan' | 'violet' | 'gold';
-
-export interface HomeStoryItem {
-  id: string;
-  label: string;
-  tone: StoryTone;
-  isCreate?: true;
-  mediaUrl?: string;
-}
 
 export interface HomeLiveActivityItem {
   id: string;
@@ -53,8 +44,6 @@ export interface TrendingTagSummary {
   count: number;
 }
 
-const STORY_TONES: StoryTone[] = ['cyan', 'violet', 'gold'];
-
 function asRecord(value: unknown): UnknownRecord {
   return value && typeof value === 'object' ? value as UnknownRecord : {};
 }
@@ -84,7 +73,7 @@ function clampPercentValue(value: number): number {
   return Math.min(Math.max(Math.round(value), 0), 100);
 }
 
-function firstMediaUrl(post: UnknownRecord): string {
+export function firstMediaUrl(post: UnknownRecord): string {
   const direct = readString(post, ['mediaUrl', 'media_url', 'imageUrl', 'thumbnailUrl', 'videoUrl']);
   if (direct) return direct;
 
@@ -107,7 +96,7 @@ function displayNameFromPost(post: UnknownRecord, fallback: string): string {
   );
 }
 
-function formatAgo(timestamp: unknown, nowMs: number): string {
+export function formatAgo(timestamp: unknown, nowMs: number): string {
   const timeMs = new Date(String(timestamp || '')).getTime();
   if (!Number.isFinite(timeMs)) return 'recently';
   const seconds = Math.max(0, Math.floor((nowMs - timeMs) / 1000));
@@ -128,36 +117,9 @@ function actionFromEvent(event: UnknownRecord): string {
   return `shared a ${postType}`;
 }
 
-export function buildHomeStories({
-  displayName,
-  feedPosts,
-  limit = 5,
-}: {
-  displayName: string;
-  feedPosts?: unknown[] | null;
-  limit?: number;
-}): HomeStoryItem[] {
-  const stories: HomeStoryItem[] = [
-    { id: 'create-story', label: 'Your Story', tone: 'violet', isCreate: true },
-  ];
-
-  for (const post of feedPosts || []) {
-    const record = asRecord(post);
-    const mediaUrl = firstMediaUrl(record);
-    if (!mediaUrl) continue;
-
-    const index = stories.length - 1;
-    stories.push({
-      id: readString(record, ['id', '_id', 'postId']) || `story-${stories.length}`,
-      label: displayNameFromPost(record, displayName),
-      tone: STORY_TONES[index % STORY_TONES.length],
-      mediaUrl,
-    });
-    if (stories.length >= limit) break;
-  }
-
-  return stories;
-}
+/* Workstream N2: buildHomeStories removed — stories are not a real product
+   feature (no backend), so the strip rendered feed media pretending to be one.
+   The Home rail now only carries widgets backed by real data. */
 
 export function buildHomeLiveActivity({
   events,

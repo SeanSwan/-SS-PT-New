@@ -3,7 +3,11 @@
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
 import React, { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocialCoverBanner } from '../../Social/Feed/hooks/useSocialCoverBanner';
+import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
+import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../hooks/useSubscription';
 import {
@@ -34,6 +38,7 @@ import {
   buildCreatorStats,
   buildHomePostPayload,
   buildHomeTopBarActions,
+  buildLatestPostView,
   parseUnreadNotificationCount,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
@@ -54,12 +59,6 @@ interface HomeTabProps {
   displayNameOverride: string;
   usernameOverride: string;
 }
-interface FeedPostPreview {
-  content?: string;
-  caption?: string;
-  likesCount?: number;
-  commentsCount?: number;
-}
 const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
@@ -69,6 +68,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   displayNameOverride,
   usernameOverride,
 }) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   const { isElite, loading: subLoading } = useSubscription();
@@ -82,7 +82,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const posts = useMemo(() => (Array.isArray(feedQuery.data) ? feedQuery.data : []), [feedQuery.data]);
-  const latestPost = posts[0] as FeedPostPreview | undefined;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
   const handle = `@${usernameOverride || user?.username || 'swancreator'}`;
   const avatarSrc = resolveHomeAvatarSrc({
@@ -109,7 +108,28 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
   const canPost = postText.trim().length >= 3 && !createPost.isPending;
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
-  const latestCaption = latestPost?.caption || latestPost?.content || 'Discipline. Focus. Create. Keep the next move visible.';
+  // Workstream N2: the identity header carries the user's REAL cover
+  // composition (photo / collage / carousel / crossfade) — same machinery as
+  // the feed cover studio. Null -> the decorative crystalline backdrop stays.
+  const coverBanner = useSocialCoverBanner();
+  const bannerLayer = coverBanner ? (
+    <UserDashboardBannerMediaLayer
+      backgroundImage={coverBanner.backgroundImage}
+      bannerObjectPosition={coverBanner.bannerObjectPosition}
+      bannerObjectFit={coverBanner.bannerObjectFit}
+      bannerImageScale={coverBanner.bannerImageScale}
+      bannerCollagePhotos={coverBanner.bannerCollagePhotos}
+      bannerCollageLayout={coverBanner.bannerCollageLayout}
+      bannerStickyCarousel={false}
+    />
+  ) : null;
+  const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
+  const transformationPhotoUrls = useMemo(
+    () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null)
+      .map((photo) => sanitizeImageUrl(photo.url))
+      .filter((url): url is string => !!url),
+    [profile],
+  );
   const liveWidgets = useHomeTabLiveWidgets({
     displayName,
     feedPosts: posts,
@@ -172,7 +192,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
           postText={postText}
           activeMood={activeMood}
           selectedMediaName={selectedMedia?.name}
-          latestCaption={latestCaption}
+          bannerLayer={bannerLayer}
+          latestPost={latestPostView}
           canPost={canPost}
           isPosting={createPost.isPending}
           onAction={runAction}
@@ -191,9 +212,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
         />
 
         <HomeTabVisionRightRail
-          logoSrc={brandLogo}
           progressPercent={progressPercent}
-          stories={liveWidgets.stories}
           liveActivityItems={liveWidgets.liveActivityItems}
           liveActivityConnected={liveWidgets.liveActivityConnected}
           activeChallenge={liveWidgets.activeChallenge}
@@ -202,7 +221,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
           leaderboardRows={liveWidgets.leaderboardRows}
           trendingTags={liveWidgets.trendingTags}
           trendingLoading={liveWidgets.trendingLoading}
+          transformationPhotoUrls={transformationPhotoUrls}
           onAction={runAction}
+          onLogWorkout={() => navigate(logWorkoutPath)}
         />
       </CreatorShell>
 
