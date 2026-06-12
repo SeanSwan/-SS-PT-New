@@ -254,14 +254,6 @@ const SidebarColumn = styled.div`
   }
 `;
 
-// ─── Mobile Gamification (hidden on desktop) ─────────────────────────
-
-const MobileGamification = styled.div`
-  @media (min-width: 900px) {
-    display: none;
-  }
-`;
-
 // ─── Glass Sidebar ───────────────────────────────────────────────────
 
 const GlassSidebar = styled.div`
@@ -282,90 +274,9 @@ const GlassSidebar = styled.div`
   }
 `;
 
-// ─── Gamification Card ───────────────────────────────────────────────
-
-const GamificationCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(139, 92, 246, 0.08));
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-radius: 1.25rem;
-  padding: 20px;
-  margin-bottom: 16px;
-`;
-
-const PointsRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-`;
-
-const PointsValue = styled.h3`
-  margin: 0;
-  font-size: 1.75rem;
-  font-weight: 700;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
-const PointsLabel = styled.span`
-  font-size: 0.8rem;
-  color: #50A0F0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'Fira Code', monospace;
-`;
-
-const LevelBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border-radius: 2rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: rgba(139, 92, 246, 0.12);
-  color: #8B5CF6;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-`;
-
-const StreakRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  font-size: 0.9rem;
-  color: #E0ECF4;
-
-  svg {
-    color: #C6A84B;
-  }
-`;
-
-const ProgressTrack = styled.div`
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
-  margin-top: 8px;
-  overflow: hidden;
-`;
-
-const ProgressFill = styled.div<{ $value: number }>`
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #8B5CF6, #60C0F0);
-  width: ${props => Math.min(Math.max(props.$value, 0), 100)}%;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-`;
-
-const ProgressLabel = styled.span`
-  font-size: 0.72rem;
-  color: #50A0F0;
-  font-family: 'Fira Code', monospace;
-`;
+/* Merge M3: the GamificationCard + Points/Level/Streak/Progress styled-
+   components were retired with the duplicate gamification cards — the M2
+   cover identity strip is the single identity/XP/streak source on /social. */
 
 // ─── Sidebar Navigation ─────────────────────────────────────────────
 
