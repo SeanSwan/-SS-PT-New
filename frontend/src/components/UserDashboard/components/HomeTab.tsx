@@ -8,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useHomeCoverBanner } from './useHomeCoverBanner';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
+import { useFaction } from '../../../hooks/social/useFaction';
 import { useSubscription } from '../../../hooks/useSubscription';
 import {
   useCreatePost,
@@ -74,6 +75,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
+  // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
+  const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
   const feedQuery = useSocialFeed({ limit: 4 });
   const notificationSummary = useNotificationSummary();
@@ -153,7 +156,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
     await createPost.mutateAsync(buildHomePostPayload(postText, activeMood, selectedMedia));
     setPostText('');
     setSelectedMedia(null);
-    setActiveLens('feed');
   };
 
   const runAction = (target: VisionTarget) => {
@@ -227,6 +229,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           leaderboardRows={liveWidgets.leaderboardRows}
           trendingTags={liveWidgets.trendingTags}
           trendingLoading={liveWidgets.trendingLoading}
+          factions={factions}
           transformationPhotoUrls={transformationPhotoUrls}
           onAction={runAction}
           onLogWorkout={() => navigate(logWorkoutPath)}

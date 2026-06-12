@@ -14,7 +14,6 @@ import {
   Bell,
   Dumbbell,
   Home,
-  Sparkles,
   Trophy,
   UserPlus,
   Utensils,
@@ -27,11 +26,11 @@ import { STUDIO_TAB_IDS } from '../types/UserDashboardTypes';
 
 /* Workstream N5 (tab compaction): 14 → 9 entries, mirroring the tab bar.
    Studio groups Creative/Photos/About/Activity; Profile + Community keep
-   their panels + URLs but leave the nav. */
+   their panels + URLs but leave the nav.
+   Workstream O: Feed left the nav — Home absorbed its unique widgets. */
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',          label: 'Home',          Icon: Home },
   { id: 'progress',      label: 'Progress',      Icon: Dumbbell },
-  { id: 'feed',          label: 'Feed',          Icon: Sparkles },
   { id: 'reels',         label: 'Reels',         Icon: Video },
   { id: 'friends',       label: 'Friends',       Icon: UserPlus },
   { id: 'challenges',    label: 'Challenges',    Icon: Trophy },

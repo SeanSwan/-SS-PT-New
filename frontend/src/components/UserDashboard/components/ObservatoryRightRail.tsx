@@ -73,18 +73,16 @@ class TrendingHashtagsBoundary extends React.Component<
 import type { ObservatoryBadge } from './ObservatoryShellTypes';
 
 interface ObservatoryRightRailProps {
-  profileHeaderVisible?: boolean;
   observatoryTierName: string;
   topBadges: ObservatoryBadge[];
 }
 
 const ObservatoryRightRail: React.FC<ObservatoryRightRailProps> = ({
-  profileHeaderVisible = false,
   observatoryTierName,
   topBadges,
 }) => {
   return (
-    <RightRailContainer aria-label="Profile observatory" $profileHeaderVisible={profileHeaderVisible}>
+    <RightRailContainer aria-label="Profile observatory">
       <ObservatoryGlassPanel>
         <ObservatoryPanelHeader>
           <ObservatoryPanelTitle>Tier</ObservatoryPanelTitle>

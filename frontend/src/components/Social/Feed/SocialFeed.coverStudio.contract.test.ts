@@ -92,10 +92,11 @@ describe('SocialFeed cover studio contract', () => {
     expect(studioSource).toContain('onEditCover');
     expect(sectionsSource).toContain('SocialCoverEditor');
     expect(sectionsSource).toContain('setCoverRefreshKey');
-    // Workstream N: the V3 Observatory mounts at /user-dashboard and its feed
-    // tab carries the cover studio + editor; /social redirects into it.
+    // Workstream O: the V3 Observatory mounts at /user-dashboard; the feed
+    // tab folded into Home, so /social redirects to the dashboard root (the
+    // cover editor now opens from Home's hero and the non-home cover hero).
     expect(routesSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
-    expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard\/feed" replace \/>/);
+    expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routesSource).toContain("import('../components/UserDashboard/UserDashboard.V3')");
   });
 

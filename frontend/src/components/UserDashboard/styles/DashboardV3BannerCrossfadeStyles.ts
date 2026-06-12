@@ -82,9 +82,13 @@ export const BannerCrossfadeScrim = styled.div`
   );
 `;
 
+/* Workstream O polish: dots moved bottom-CENTER (standard carousel pattern)
+   so they never collide with the bottom-right action clusters that hosts
+   (Home hero Edit Cover, ObservatoryCoverHero actions) place over the cover. */
 export const BannerCrossfadeDots = styled.div`
   position: absolute;
-  right: clamp(10px, 1.2vw, 18px);
+  left: 50%;
+  transform: translateX(-50%);
   bottom: clamp(8px, 1vw, 14px);
   display: flex;
   gap: 6px;

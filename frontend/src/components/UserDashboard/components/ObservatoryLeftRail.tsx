@@ -43,7 +43,6 @@ import type { TabId } from '../types/UserDashboardTypes';
 
 interface ObservatoryLeftRailProps {
   activeTab: TabId;
-  profileHeaderVisible?: boolean;
   onTabChange: (tab: TabId) => void;
   navItems: ReadonlyArray<ObservatoryNavItem>;
   observatoryLevel: number;
@@ -56,7 +55,6 @@ interface ObservatoryLeftRailProps {
 
 const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   activeTab,
-  profileHeaderVisible = false,
   onTabChange,
   navItems,
   observatoryLevel,
@@ -67,7 +65,7 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
   observatoryStreakDays,
 }) => {
   return (
-    <LeftRailContainer aria-label="Dashboard sidebar" $profileHeaderVisible={profileHeaderVisible}>
+    <LeftRailContainer aria-label="Dashboard sidebar">
       <LeftRailBrand>
         <LeftRailBrandMark>
           <img src={brandLogo} alt="" aria-hidden="true" />

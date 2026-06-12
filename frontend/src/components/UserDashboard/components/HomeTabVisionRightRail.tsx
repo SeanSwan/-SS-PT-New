@@ -15,6 +15,8 @@ import {
   Users,
 } from 'lucide-react';
 import { compactNumber, type VisionTarget } from './HomeTabVision.data';
+import HomeTabFactionPanel from './HomeTabFactionPanel';
+import type { Faction } from '../../../hooks/social/useFaction';
 import type {
   HomeBadgeItem,
   HomeChallengeSummary,
@@ -78,6 +80,8 @@ interface HomeTabVisionRightRailProps {
   leaderboardRows: HomeLeaderboardRow[];
   trendingTags: TrendingTagSummary[];
   trendingLoading: boolean;
+  /** Real faction totals (workstream O) — empty renders no panel at all. */
+  factions: Faction[];
   /** Real transformation photo URLs from the profile — empty renders a CTA. */
   transformationPhotoUrls: string[];
   onAction: (target: VisionTarget) => void;
@@ -103,6 +107,7 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   leaderboardRows,
   trendingTags,
   trendingLoading,
+  factions,
   transformationPhotoUrls,
   onAction,
   onLogWorkout,
@@ -208,6 +213,10 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         ))}
       </LeaderboardList>
     </Panel>
+
+    {/* Workstream O: the Faction War race moved here from the retired Feed
+        tab — renders nothing while no factions exist (honest gate). */}
+    <HomeTabFactionPanel factions={factions} />
 
     <Panel>
       <Eyebrow>Trending</Eyebrow>

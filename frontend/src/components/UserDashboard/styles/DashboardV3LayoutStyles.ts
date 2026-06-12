@@ -54,44 +54,56 @@ export const ProfileContainer = styled(motion.div)`
   }
 `;
 
-export const ContentWrapper = styled.div`
+export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
   position: relative;
   z-index: 1;
   max-width: 1440px;
   margin: 0 auto;
   padding: 3rem 2rem;
 
+  /* Workstream O: when the full-width cover hero sits directly above, the
+     page rhythm tightens — one small gap instead of the old 3rem-plus stack
+     of banner margins and rail clearances. */
+  ${({ $belowCover }) => $belowCover && 'padding-top: 1.25rem;'}
+
   @media (max-width: 1024px) {
     max-width: 100%;
     padding: 2rem 1.5rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 1rem;'}
   }
 
   @media (max-width: 768px) {
     padding: 1.5rem 1rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 0.85rem;'}
   }
 
   @media (max-width: 480px) {
     padding: 1rem 0.75rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 0.75rem;'}
   }
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
     padding: 0.75rem 0.5rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 0.6rem;'}
   }
 
   @media (min-width: 1920px) {
     max-width: 1760px;
     padding: 3.5rem 2.5rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 1.5rem;'}
   }
 
   @media (min-width: 2560px) {
     max-width: 2360px;
     padding: 4rem 3rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 1.75rem;'}
   }
 
   @media (min-width: 3840px) {
     max-width: 3440px;
     padding: 5rem 4rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 2rem;'}
   }
 `;
 

@@ -271,9 +271,12 @@ const UserDashboardV3 = lazyLoadWithErrorHandling(
 );
 
 // Preserves the tab segment when redirecting /social/:tab -> /user-dashboard/:tab.
+// Workstream O: the feed tab folded into Home (its widgets were duplicates;
+// Faction War moved to the Home right rail), so bare /social and /social/feed
+// both land on the dashboard Home.
 const SocialTabRedirect: React.FC = () => {
   const { tab } = useParams<{ tab?: string }>();
-  return <Navigate to={tab ? `/user-dashboard/${tab}` : '/user-dashboard/feed'} replace />;
+  return <Navigate to={tab && tab !== 'feed' ? `/user-dashboard/${tab}` : '/user-dashboard'} replace />;
 };
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
@@ -753,11 +756,11 @@ const MainRoutes: RouteObject = {
     },
 
     // Social alias routes — the hub lives at /user-dashboard (workstream N).
-    // Old /social links land on the dashboard's feed tab, /social/:tab on the
-    // matching dashboard tab.
+    // Old /social links land on the dashboard Home (the feed tab folded into
+    // Home in workstream O), /social/:tab on the matching dashboard tab.
     {
       path: 'social',
-      element: <Navigate to="/user-dashboard/feed" replace />
+      element: <Navigate to="/user-dashboard" replace />
     },
     {
       path: 'social/:tab',

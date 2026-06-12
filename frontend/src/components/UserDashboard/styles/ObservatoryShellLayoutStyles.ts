@@ -14,24 +14,14 @@
  * ============================================================================
  */
 
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
-interface ObservatoryRailProps {
-  $profileHeaderVisible?: boolean;
-  $profileBannerClearance?: number;
-}
+/* Workstream O: the old profile-header rail clearance machinery (per-rail
+   margin offsets keyed to the banner height) is gone — the cover hero now
+   sits in normal flow ABOVE the grid, so the rails never need to dodge a
+   full-bleed overlay. */
 
-const profileHeaderRailOffset = css<ObservatoryRailProps>`
-  margin-top: ${({ $profileHeaderVisible }) =>
-    $profileHeaderVisible
-      ? 'calc(var(--observatory-profile-banner-clearance, 340px) + 2.5rem)'
-      : '0'};
-`;
-
-export const ObservatoryGrid = styled.div<ObservatoryRailProps>`
-  --observatory-profile-banner-clearance: ${({ $profileBannerClearance }) =>
-    `${Math.min(1000, Math.max(180, $profileBannerClearance ?? 340))}px`};
-
+export const ObservatoryGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
@@ -71,14 +61,13 @@ export const ObservatoryGrid = styled.div<ObservatoryRailProps>`
   }
 `;
 
-export const ObservatoryLeftRail = styled.aside<ObservatoryRailProps>`
+export const ObservatoryLeftRail = styled.aside`
   display: none;
 
   @media (min-width: 1024px) {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    ${profileHeaderRailOffset}
     position: sticky;
     top: 1rem;
     align-self: start;
@@ -102,7 +91,7 @@ export const ObservatoryMain = styled.div`
   min-width: 0;
 `;
 
-export const ObservatoryRightRail = styled.aside<ObservatoryRailProps>`
+export const ObservatoryRightRail = styled.aside`
   display: none;
 
   /* 1280px in lockstep with the ObservatoryGrid 3-column breakpoint above.
@@ -111,7 +100,6 @@ export const ObservatoryRightRail = styled.aside<ObservatoryRailProps>`
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    ${profileHeaderRailOffset}
     position: sticky;
     top: 1rem;
     align-self: start;

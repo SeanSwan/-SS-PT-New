@@ -43,8 +43,6 @@ export type {
 
 interface ObservatoryShellProps {
   activeTab: TabId;
-  profileHeaderVisible?: boolean;
-  profileBannerClearance?: number;
   onTabChange: (tab: TabId) => void;
   observatoryLevel: number;
   observatoryPoints: number;
@@ -59,8 +57,6 @@ interface ObservatoryShellProps {
 
 const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   activeTab,
-  profileHeaderVisible = false,
-  profileBannerClearance,
   onTabChange,
   observatoryLevel,
   observatoryPoints,
@@ -74,10 +70,9 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
 }) => {
   return (
     <>
-      <ObservatoryGrid data-user-dashboard-scroll-root $profileBannerClearance={profileBannerClearance}>
+      <ObservatoryGrid data-user-dashboard-scroll-root>
         <ObservatoryLeftRail
           activeTab={activeTab}
-          profileHeaderVisible={profileHeaderVisible}
           onTabChange={onTabChange}
           navItems={navItems}
           observatoryLevel={observatoryLevel}
@@ -91,7 +86,6 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
         <ObservatoryMain data-user-dashboard-scroll-root>{children}</ObservatoryMain>
 
         <ObservatoryRightRail
-          profileHeaderVisible={profileHeaderVisible}
           observatoryTierName={observatoryTierName}
           topBadges={topBadges}
         />

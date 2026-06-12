@@ -106,10 +106,11 @@ export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'photos', 'about', 
  * 'community' stays in the TabId union for legacy types but is NOT routable —
  * its launcher panel was unmounted in N5 (cards duplicated first-class tabs);
  * /user-dashboard/community falls back to home.
+ * 'feed' was unmounted in workstream O (the panel duplicated Home; Faction War
+ * moved to the Home right rail) — /user-dashboard/feed falls back to home.
  */
 export const USER_DASHBOARD_TAB_IDS: readonly TabId[] = [
   'home',
-  'feed',
   'reels',
   'friends',
   'challenges',

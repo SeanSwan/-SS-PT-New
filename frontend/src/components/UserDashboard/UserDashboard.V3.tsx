@@ -13,12 +13,12 @@ import {
   ProfileContainer,
 } from './styles/DashboardV3Styles';
 import ObservatoryShell from './components/ObservatoryShell';
+import ObservatoryCoverHero from './components/ObservatoryCoverHero';
 import { OBSERVATORY_NAV_ITEMS } from './components/ObservatoryShellAdapter';
 import UserDashboardErrorBoundaryV3, {
   UserDashboardErrorState,
   UserDashboardLoadingState,
 } from './components/UserDashboardStatusStatesV3';
-import UserDashboardProfileHeaderV3 from './components/UserDashboardProfileHeaderV3';
 import UserDashboardSidebarV3 from './components/UserDashboardSidebarV3';
 import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
@@ -71,7 +71,26 @@ const UserDashboardV3: React.FC = () => {
       >
         <NoiseOverlay />
         <MainContentZWrapper>
-          <ContentWrapper data-user-dashboard-scroll-root>
+          {/* Workstream O: the cover carousel sits at the VERY top of every
+              non-home tab, edge-to-edge in normal flow — it replaces the
+              retired full-bleed profile header (banner + bulky identity
+              block + rail clearance offsets). Same media layer + embedded
+              editor as Home's hero (one cover system). */}
+          {!isHomeTab && (
+            <ObservatoryCoverHero
+              displayName={dashboard.getDisplayName()}
+              username={dashboard.getUsernameForDisplay()}
+              userInitials={dashboard.getUserInitials()}
+              tierName={dashboard.observatoryTierName}
+              level={dashboard.observatoryLevel}
+              profilePhoto={dashboard.profile?.photo}
+              onEditProfile={dashboard.handleEditProfile}
+              onSettings={dashboard.handleSettings}
+              onShare={dashboard.handleShare}
+              onAvatarClick={dashboard.handleProfileImageClick}
+            />
+          )}
+          <ContentWrapper data-user-dashboard-scroll-root $belowCover={!isHomeTab}>
             {isHomeTab ? (
               <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}
@@ -88,8 +107,6 @@ const UserDashboardV3: React.FC = () => {
             ) : (
               <ObservatoryShell
                 activeTab={dashboard.activeTab}
-                profileHeaderVisible={dashboard.activeTab !== 'home' && dashboard.activeTab !== 'feed'}
-                profileBannerClearance={dashboard.bannerFrameHeight}
                 onTabChange={handleTabChange}
                 observatoryLevel={dashboard.observatoryLevel}
                 observatoryPoints={dashboard.observatoryPoints}
@@ -105,56 +122,11 @@ const UserDashboardV3: React.FC = () => {
                   onTabChange={handleTabChange}
                 />
 
-                {/* Workstream N: the feed tab's cover IS the FeedCoverStudio
-                    inside SocialFeed (identity strip + embedded editor) — the
-                    classic banner header would double the cover there. */}
-                {dashboard.activeTab !== 'feed' && (
-                <UserDashboardProfileHeaderV3
-                  backgroundImage={dashboard.backgroundImage}
-                  bannerObjectPosition={dashboard.bannerObjectPosition}
-                  bannerObjectFit={dashboard.bannerObjectFit}
-                  bannerImageScale={dashboard.bannerImageScale}
-                  bannerFrameHeight={dashboard.bannerFrameHeight}
-                  bannerCollagePhotos={dashboard.bannerCollagePhotos}
-                  bannerCollageLayout={dashboard.bannerCollageLayout}
-                  bannerStickyCarousel={dashboard.bannerStickyCarousel}
-                  bannerPresets={dashboard.bannerPresets}
-                  showRepositionPanel={dashboard.showRepositionPanel}
-                  onToggleRepositionPanel={dashboard.toggleRepositionPanel}
-                  onBannerCropPreview={dashboard.previewBannerCrop}
-                  onBannerCropCommit={dashboard.handleBannerCropCommit}
-                  onBannerCollageFiles={dashboard.handleBannerCollageFiles}
-                  onBannerCollageRemove={dashboard.handleBannerCollageRemove}
-                  onBannerCollageLayoutCommit={dashboard.handleBannerCollageLayoutCommit}
-                  onBannerStickyCarouselCommit={dashboard.handleBannerStickyCarouselCommit}
-                  onBannerPresetSave={dashboard.handleBannerPresetSave}
-                  onBannerPresetApply={dashboard.handleBannerPresetApply}
-                  onBannerPresetRemove={dashboard.handleBannerPresetRemove}
-                  profile={dashboard.profile as any}
-                  displayStats={dashboard.displayStats}
-                  topBadges={dashboard.topBadges}
-                  level={dashboard.levelProgress?.level}
-                  displayName={dashboard.getDisplayName()}
-                  username={dashboard.getUsernameForDisplay()}
-                  userInitials={dashboard.getUserInitials()}
-                  onBackgroundClick={dashboard.handleBackgroundClick}
-                  onProfileImageClick={dashboard.handleProfileImageClick}
-                  onEditProfile={dashboard.handleEditProfile}
-                  onSettings={dashboard.handleSettings}
-                  onShare={dashboard.handleShare}
-                />
-                )}
-
-                {/* Feed runs full-width: its cover studio already carries the
-                    identity strip + metric rail the quick-stats sidebar would
-                    duplicate, and the social right rail needs the room. */}
-                <ContentGrid $fullWidth={dashboard.activeTab === 'feed'}>
-                  {dashboard.activeTab !== 'feed' && (
-                    <UserDashboardSidebarV3
-                      displayStats={dashboard.displayStats}
-                      canonicalLevel={dashboard.canonicalLevel}
-                    />
-                  )}
+                <ContentGrid>
+                  <UserDashboardSidebarV3
+                    displayStats={dashboard.displayStats}
+                    canonicalLevel={dashboard.canonicalLevel}
+                  />
 
                   <UserDashboardTabsV3
                     activeTab={dashboard.activeTab}

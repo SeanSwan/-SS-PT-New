@@ -14,7 +14,6 @@ import {
   Bell,
   Dumbbell,
   Home,
-  Sparkles,
   Trophy,
   UserPlus,
   Utensils,
@@ -32,11 +31,12 @@ interface UserDashboardTabBarV3Props {
 /* Workstream N5 (tab compaction, vision brief): 14 → 9 visible entries.
    Studio groups Creative/Photos/About/Activity behind one entry (in-panel
    lens strip switches between them). Profile (Settings flow) and Community
-   keep their panels + URLs but leave the bar. */
+   keep their panels + URLs but leave the bar.
+   Workstream O: Feed left the bar too — Home absorbed its unique widgets
+   (Faction War on the right rail); everything else was a duplicate of Home. */
 const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon; matches?: readonly TabId[] }> = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'progress', label: 'Progress', Icon: Dumbbell },
-  { id: 'feed', label: 'Feed', Icon: Sparkles },
   { id: 'reels', label: 'Reels', Icon: Video },
   { id: 'friends', label: 'Friends', Icon: UserPlus },
   { id: 'challenges', label: 'Challenges', Icon: Trophy },

@@ -14,7 +14,7 @@
  */
 
 import React, { memo } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { Shield, Zap, Star } from 'lucide-react';
 import type { Faction } from '../../../hooks/social/useFaction';
 
@@ -34,16 +34,20 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 
 interface FactionLeaderboardProps {
   factions: Faction[];
+  /** Skip the card chrome + internal title when a host panel already provides
+      both (e.g. the Home right-rail Faction War panel). Default keeps the
+      original standalone card for ClientCommunityPage. */
+  frameless?: boolean;
 }
 
-const FactionLeaderboard: React.FC<FactionLeaderboardProps> = memo(({ factions }) => {
+const FactionLeaderboard: React.FC<FactionLeaderboardProps> = memo(({ factions, frameless = false }) => {
   if (!factions.length) return null;
 
   const maxPoints = Math.max(...factions.map(f => Number(f.totalPoints)), 1);
 
   return (
-    <LeaderboardWrap>
-      <Title>Faction War</Title>
+    <LeaderboardWrap $frameless={frameless}>
+      {!frameless && <Title>Faction War</Title>}
       {factions.map((faction) => {
         const Icon = ICON_MAP[faction.icon] || Shield;
         const pct = (Number(faction.totalPoints) / maxPoints) * 100;
@@ -82,12 +86,20 @@ function formatPoints(n: number): string {
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 
-const LeaderboardWrap = styled.div`
+const LeaderboardWrap = styled.div<{ $frameless?: boolean }>`
   padding: 14px 16px;
   border-radius: 10px;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   margin: 12px 0;
+
+  ${({ $frameless }) => $frameless && css`
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    margin: 0;
+  `}
 `;
 
 const Title = styled.h4`

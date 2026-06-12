@@ -7,8 +7,7 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const routeSource = read('src/routes/main-routes.tsx');
-const dashboardFeedTabSource = read('src/components/UserDashboard/components/DashboardFeedTab.tsx');
-const feedViewModelSource = read('src/components/Social/Feed/hooks/useSocialFeedViewModel.ts');
+const homeTabSource = read('src/components/UserDashboard/components/HomeTab.tsx');
 const userDashboardTabsSource = read('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
 const homeLiveWidgetsSource = read('src/components/UserDashboard/components/useHomeTabLiveWidgets.ts');
 const tickerSource = stripComments(read('src/hooks/social/useActivityTicker.ts'));
@@ -16,11 +15,12 @@ const socketManagerSource = read('../backend/socket/socketManager.mjs');
 const socialAutoPostSource = stripComments(read('../backend/services/socialAutoPost.mjs'));
 
 describe('useActivityTicker socket auth pipeline', () => {
-  it('is mounted from the active user dashboard surfaces (workstream N)', () => {
+  it('is mounted from the active user dashboard surfaces (workstream O: Home owns the ticker)', () => {
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    expect(userDashboardTabsSource).toContain("const DashboardFeedTab = lazy(() => import('./DashboardFeedTab'))");
-    expect(dashboardFeedTabSource).toContain("import SocialFeed from '../../Social/Feed/SocialFeed'");
-    expect(feedViewModelSource).toContain("import { useActivityTicker } from '../../../../hooks/social/useActivityTicker'");
+    // Workstream O: the Feed panel is unmounted — Home's live widgets are the
+    // canonical ticker consumer on the user dashboard.
+    expect(userDashboardTabsSource).not.toContain('DashboardFeedTab');
+    expect(homeTabSource).toContain('useHomeTabLiveWidgets');
     expect(homeLiveWidgetsSource).toContain("import { useActivityTicker } from '../../../hooks/social/useActivityTicker'");
   });
 

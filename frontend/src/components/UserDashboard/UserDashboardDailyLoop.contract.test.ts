@@ -80,7 +80,8 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(routeSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
     expect(routeSource).toContain("path: 'user-dashboard/:tab'");
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard\/feed" replace \/>/);
+    // Workstream O: the feed tab folded into Home — /social lands on Home.
+    expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routeSource).toContain('<SocialTabRedirect />');
     expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
     // The retired social page ships no lazy chunk of its own.
@@ -297,7 +298,8 @@ describe('UserDashboard V3 daily loop contract', () => {
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
 
     // Bar/rail entries — Studio's id is 'creative' (the group's landing lens).
-    const barTabs = ['home', 'progress', 'feed', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
+    // Workstream O: 'feed' left the bar (panel unmounted; Home absorbed it).
+    const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
     barTabs.forEach((tabId) => {
       expect(tabsSource, `${tabId} panel must exist before navigation can expose it`)
         .toContain(`<TabPanel id="${tabId}"`);
@@ -320,6 +322,12 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     // Community is unmounted (duplicate launcher) — no orphan panel.
     expect(tabsSource).not.toContain('<TabPanel id="community"');
+
+    // Feed is unmounted (workstream O — duplicated Home; Faction War moved
+    // to the Home right rail) — no orphan panel, no stale nav entries.
+    expect(tabsSource).not.toContain('<TabPanel id="feed"');
+    expect(tabBarSource).not.toContain("id: 'feed'");
+    expect(adapterSource).not.toContain("id: 'feed'");
   });
 
   it('compacts the tab bar to the Studio group without breaking deep links (workstream N5)', () => {
@@ -355,9 +363,9 @@ describe('UserDashboard V3 daily loop contract', () => {
     const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
 
     expect(tabBarSource.indexOf("id: 'home'")).toBeLessThan(tabBarSource.indexOf("id: 'progress'"));
-    expect(tabBarSource.indexOf("id: 'progress'")).toBeLessThan(tabBarSource.indexOf("id: 'feed'"));
+    expect(tabBarSource.indexOf("id: 'progress'")).toBeLessThan(tabBarSource.indexOf("id: 'reels'"));
     expect(adapterSource.indexOf("id: 'home'")).toBeLessThan(adapterSource.indexOf("id: 'progress'"));
-    expect(adapterSource.indexOf("id: 'progress'")).toBeLessThan(adapterSource.indexOf("id: 'feed'"));
+    expect(adapterSource.indexOf("id: 'progress'")).toBeLessThan(adapterSource.indexOf("id: 'reels'"));
   });
 
   it('keeps shared role-dashboard workspaces independent from UserDashboard-only chrome', () => {
@@ -389,22 +397,36 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(reelsStylesSource).toContain("$frame === 'dashboard'");
   });
 
-  it('keeps desktop observatory rails below the profile banner on non-home tabs', () => {
+  it('puts the full-width cover hero at the top of non-home tabs with no rail clearance hacks (workstream O)', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
-    const leftRailSource = readSource('src/components/UserDashboard/components/ObservatoryLeftRail.tsx');
-    const rightRailSource = readSource('src/components/UserDashboard/components/ObservatoryRightRail.tsx');
+    const coverHeroSource = readSource('src/components/UserDashboard/components/ObservatoryCoverHero.tsx');
     const layoutSource = readSource('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
+    const wrapperSource = readSource('src/components/UserDashboard/styles/DashboardV3LayoutStyles.ts');
 
-    // Workstream N: the feed tab's cover is the FeedCoverStudio inside the
-    // feed itself, so the classic banner header is suppressed there too.
-    expect(dashboardSource).toContain("profileHeaderVisible={dashboard.activeTab !== 'home' && dashboard.activeTab !== 'feed'}");
-    expect(shellSource).toContain('profileHeaderVisible?: boolean;');
-    expect(leftRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
-    expect(rightRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
-    expect(layoutSource).toContain('--observatory-profile-banner-clearance: ${({ $profileBannerClearance }) =>');
-    expect(layoutSource).toContain('Math.min(1000, Math.max(180, $profileBannerClearance ?? 340))');
-    expect(layoutSource).toContain('margin-top: ${({ $profileHeaderVisible }) =>');
+    // The cover hero mounts ABOVE ContentWrapper (true edge-to-edge, normal
+    // flow) and the retired full-bleed ProfileHeader is gone from the shell.
+    expect(dashboardSource).toContain('{!isHomeTab && (');
+    expect(dashboardSource).toContain('<ObservatoryCoverHero');
+    expect(dashboardSource).not.toContain('UserDashboardProfileHeaderV3');
+    expect(dashboardSource).toContain('$belowCover={!isHomeTab}');
+    expect(wrapperSource).toContain('$belowCover');
+
+    // One cover system: the hero reuses Home's media-layer + embedded editor.
+    expect(coverHeroSource).toContain('useHomeCoverBanner()');
+    expect(coverHeroSource).toContain('aria-label="Edit cover"');
+    expect(coverHeroSource).toContain('aria-label="Edit profile"');
+    // Settings is the ONLY entry into the profile panel (N5 contract) — the
+    // hero must keep carrying it now that the old header is unmounted.
+    expect(coverHeroSource).toContain('aria-label="Open settings"');
+    expect(dashboardSource).toContain('onSettings={dashboard.handleSettings}');
+    expect(coverHeroSource).toContain('aria-label="Share profile"');
+    expect(coverHeroSource).toContain('aria-label="Change profile photo"');
+
+    // The rail clearance machinery is retired with the overlay banner.
+    expect(shellSource).not.toContain('profileHeaderVisible');
+    expect(layoutSource).not.toContain('$profileBannerClearance');
+    expect(layoutSource).not.toContain('$profileHeaderVisible');
     expect(layoutSource).toContain('@media (min-width: 2560px)');
     expect(layoutSource).toContain('@media (min-width: 3840px)');
   });

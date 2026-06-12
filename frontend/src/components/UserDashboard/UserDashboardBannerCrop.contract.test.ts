@@ -173,13 +173,15 @@ describe('UserDashboard banner crop contract', () => {
     expect(tileImageBlock).not.toContain('background:');
   });
 
-  it('keeps profile and observatory rails below the dynamic banner height', () => {
+  it('keeps the cover in normal flow with no rail clearance machinery (workstream O)', () => {
     expect(profilePhotoStyles).toMatch(/export const ProfileImageSection[\s\S]*?position: relative;/);
     expect(profilePhotoStyles).not.toContain('top: 230px');
-    expect(layoutStyles).toContain('$profileBannerClearance');
-    expect(layoutStyles).not.toContain('--observatory-profile-banner-clearance: 440px');
-    expect(layoutStyles).not.toContain('--observatory-profile-banner-clearance: 540px');
-    expect(shell).toContain('profileBannerClearance');
-    expect(dashboard).toContain('profileBannerClearance={dashboard.bannerFrameHeight}');
+    // The full-bleed overlay banner is retired: the ObservatoryCoverHero sits
+    // above the grid in normal flow, so no clearance offsets may come back.
+    expect(layoutStyles).not.toContain('$profileBannerClearance');
+    expect(layoutStyles).not.toContain('--observatory-profile-banner-clearance');
+    expect(shell).not.toContain('profileBannerClearance');
+    expect(dashboard).not.toContain('profileBannerClearance');
+    expect(dashboard).toContain('<ObservatoryCoverHero');
   });
 });

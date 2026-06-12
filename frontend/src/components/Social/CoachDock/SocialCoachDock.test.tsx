@@ -48,11 +48,8 @@ vi.mock('../../../hooks/gamification/useGamificationData', () => ({
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOCK_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.tsx'), 'utf8');
 const STYLES_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.styles.ts'), 'utf8');
-// Workstream N: the live feed surface is the V3 dashboard's feed tab.
-const FEED_TAB_SOURCE = readFileSync(
-  resolve(__dirname, '../../UserDashboard/components/DashboardFeedTab.tsx'),
-  'utf8',
-);
+// Workstream O: the Feed tab is unmounted — the dashboard must not remount
+// the dock anywhere (Home carries SwanCoachDock, a different component).
 const DASHBOARD_TABS_SOURCE = readFileSync(
   resolve(__dirname, '../../UserDashboard/components/UserDashboardTabsV3.tsx'),
   'utf8',
@@ -215,16 +212,10 @@ describe('SocialCoachDock — D2a source contracts', () => {
   });
 });
 
-describe('Dashboard feed tab — feed-tab-only mount (workstream N)', () => {
-  it('mounts the dock exactly once, above the feed in DashboardFeedTab', () => {
-    expect(FEED_TAB_SOURCE.match(/<SocialCoachDock \/>/g)).toHaveLength(1);
-    expect(FEED_TAB_SOURCE).toMatch(/<SocialCoachDock \/>\s*<SocialFeed \/>/);
-  });
-
-  it('keeps DashboardFeedTab scoped to the feed tab panel (dock is not a tab)', () => {
-    expect(DASHBOARD_TABS_SOURCE).toMatch(
-      /<TabPanel id="feed" activeTab={activeTab}>\s*<DashboardFeedTab \/>\s*<\/TabPanel>/,
-    );
-    expect(DASHBOARD_TABS_SOURCE.match(/<DashboardFeedTab \/>/g)).toHaveLength(1);
+describe('Dashboard feed tab — unmounted (workstream O)', () => {
+  it('keeps the retired feed panel (and its dock) out of the dashboard tab tree', () => {
+    expect(DASHBOARD_TABS_SOURCE).not.toContain('<TabPanel id="feed"');
+    expect(DASHBOARD_TABS_SOURCE).not.toContain('DashboardFeedTab');
+    expect(DASHBOARD_TABS_SOURCE).not.toContain('SocialCoachDock');
   });
 });

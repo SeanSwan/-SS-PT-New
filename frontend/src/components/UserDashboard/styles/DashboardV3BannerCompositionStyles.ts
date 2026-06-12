@@ -67,10 +67,15 @@ export const BannerCollageLayer = styled.div<{ $layout?: BannerCollageLayout }>`
   &[data-layout^='carousel-'] {
     display: flex;
     flex-wrap: nowrap;
-    align-items: flex-start;
-    align-content: flex-start;
+    /* Workstream O polish: photos ride the vertical center of the cover strip
+       (was flex-start, which left a dead band under short reels), and the
+       strip edges fade instead of hard-clipping mid-photo — clean-cut loop. */
+    align-items: center;
+    align-content: center;
     gap: clamp(6px, 0.65vw, 14px);
     padding: 0;
+    mask-image: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, 1) 4%, rgba(0, 0, 0, 1) 96%, transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, 1) 4%, rgba(0, 0, 0, 1) 96%, transparent 100%);
   }
 
   @media (max-width: 768px) {

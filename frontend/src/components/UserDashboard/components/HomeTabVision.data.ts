@@ -9,10 +9,8 @@ import {
   Aperture,
   Camera,
   Dumbbell,
-  Home,
   Image as ImageIcon,
   Info,
-  MessageCircle,
   Trophy,
   Users,
   Utensils,
@@ -29,8 +27,11 @@ export interface VisionAction {
   target: VisionTarget;
 }
 
+/* Workstream O: the Feed entry is gone (the tab folded into Home) — Progress
+   takes its slot, putting the workout/progress loop one tap from Home in both
+   the desktop rail and the mobile lens strip. */
 export const LEFT_NAV_ITEMS: VisionAction[] = [
-  { id: 'feed', label: 'Feed', Icon: Home, target: 'feed' },
+  { id: 'progress', label: 'Progress', Icon: Dumbbell, target: 'progress' },
   { id: 'reels', label: 'Reels', Icon: Video, target: 'reels' },
   { id: 'creative', label: 'Creative', Icon: Aperture, target: 'creative' },
   { id: 'photos', label: 'Photos', Icon: Camera, target: 'photos' },
@@ -40,8 +41,8 @@ export const LEFT_NAV_ITEMS: VisionAction[] = [
 ];
 
 export const HERO_LENSES: VisionAction[] = [
+  { id: 'progress', label: 'Progress', Icon: Dumbbell, target: 'progress' },
   { id: 'reels', label: 'Reels', Icon: Video, target: 'reels' },
-  { id: 'feed', label: 'Feed', Icon: MessageCircle, target: 'feed' },
   { id: 'creative', label: 'Creative', Icon: Aperture, target: 'creative' },
   { id: 'photos', label: 'Photos', Icon: ImageIcon, target: 'photos' },
   { id: 'about', label: 'About', Icon: Info, target: 'about' },
@@ -51,8 +52,8 @@ export const HERO_LENSES: VisionAction[] = [
 
 /* Workstream N2 (Sean's call): the quick composer offers three core moods —
    too many choices slows the post. Smart intent inference still auto-types
-   anything else from the text, and the full 11-type composer lives on the
-   Feed tab. */
+   anything else from the text (the Feed tab's full composer retired with the
+   tab in workstream O). */
 export const POST_MOODS = [
   { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'achievement', label: 'Achievement', Icon: Trophy },
