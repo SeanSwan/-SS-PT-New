@@ -3,7 +3,7 @@
  * Application route definitions — Crystalline Swan theme, dark-first.
  */
 import React, { Suspense } from 'react';
-import { RouteObject, Navigate, Outlet } from 'react-router-dom';
+import { RouteObject, Navigate, Outlet, useParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 
 // Layout and Error Handling
@@ -260,13 +260,21 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
-// Merge M6: the UserDashboard.V3 lazy chunk was retired with the
-// /user-dashboard -> /social redirect (no dead bundle chunk shipped).
+// Merge M6 retired the UserDashboard.V3 lazy chunk; merge M7 re-pointed the
+// canonical hub URL back to /user-dashboard (Sean 2026-06-11: the dashboard IS
+// the home feed). SocialPage.V3 is the one hub, mounted at /user-dashboard;
+// /social is kept as a redirect alias so old links and bookmarks keep working.
 const SocialPage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/SocialPage.V3'),
   'Social Hub',
   () => import('../pages/Social/SocialPage')
 );
+
+// Preserves the tab segment when redirecting /social/:tab -> /user-dashboard/:tab.
+const SocialTabRedirect: React.FC = () => {
+  const { tab } = useParams<{ tab?: string }>();
+  return <Navigate to={tab ? `/user-dashboard/${tab}` : '/user-dashboard'} replace />;
+};
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
 const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -683,15 +691,31 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
-      // Merge M6 (2026-06-12): the Observatory creator surface merged into the
-      // one social hub (workstream M, social-hub-merge-2026-06-11.md). Its best
-      // widgets (cover studio, identity strip, right rail, composer types) and
-      // the cover/banner EDITOR now live on /social; identity galleries live on
-      // /profile/:userId. UserDashboard.V3 files remain on disk (rule 34 —
-      // cleanup is a separate approved pass), classified legacy/unmounted.
+      // Merge M7 (2026-06-11, Sean's correction): /user-dashboard is the
+      // CANONICAL home — it mounts the one merged hub (cover studio, identity
+      // strip, feed, composer, right rail) built in workstream M. The merge
+      // direction in M6 (dashboard → /social) was inverted: the hub keeps all
+      // its M-series features but lives at the dashboard URL users log into.
+      // UserDashboard.V3 files remain on disk, legacy/unmounted (rule 34).
       {
         path: 'user-dashboard',
-        element: <Navigate to="/social" replace />
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <SocialPage />
+            </Suspense>
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: 'user-dashboard/:tab',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <SocialPage />
+            </Suspense>
+          </ProtectedRoute>
+        )
       },
     
     // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT
@@ -730,26 +754,15 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Social Hub Routes — /social, /social/friends, /social/challenges
+    // Social alias routes — the hub now lives at /user-dashboard (merge M7).
+    // Old /social links, bookmarks, and shared URLs land on the same hub.
     {
       path: 'social',
-      element: (
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <SocialPage />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <Navigate to="/user-dashboard" replace />
     },
     {
       path: 'social/:tab',
-      element: (
-        <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <SocialPage />
-          </Suspense>
-        </ProtectedRoute>
-      )
+      element: <SocialTabRedirect />
     },
 
     {

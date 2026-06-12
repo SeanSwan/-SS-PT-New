@@ -330,7 +330,7 @@ const SocialPage: React.FC = () => {
 
   // Handle tab change — update URL so back/forward work
   const handleTabChange = (newTab: SocialTab) => {
-    navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
+    navigate(newTab === 'feed' ? '/user-dashboard' : `/user-dashboard/${newTab}`);
   };
 
   // Render content based on active tab

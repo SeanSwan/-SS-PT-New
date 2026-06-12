@@ -533,7 +533,7 @@ const SocialPageV3: React.FC = () => {
   const notificationCount = socialNotifications.unreadCount;
 
   const handleTabChange = (newTab: SocialTab) => {
-    navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
+    navigate(newTab === 'feed' ? '/user-dashboard' : `/user-dashboard/${newTab}`);
   };
 
   const handleNotificationSelect = useCallback(
@@ -733,7 +733,7 @@ const SocialPageV3: React.FC = () => {
                     <PlusCircle size={16} />
                     Create Post
                   </QuickActionBtn>
-                  <QuickActionBtn onClick={() => navigate('/social/challenges')}>
+                  <QuickActionBtn onClick={() => navigate('/user-dashboard/challenges')}>
                     <Target size={16} />
                     Set Goal
                   </QuickActionBtn>

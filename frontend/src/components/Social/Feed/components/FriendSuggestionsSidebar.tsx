@@ -213,7 +213,7 @@ const FriendSuggestionsSidebar: React.FC<FriendSuggestionsSidebarProps> = ({
   );
 
   const handleSeeAll = useCallback(() => {
-    navigate('/social/friends');
+    navigate('/user-dashboard/friends');
   }, [navigate]);
 
   return (

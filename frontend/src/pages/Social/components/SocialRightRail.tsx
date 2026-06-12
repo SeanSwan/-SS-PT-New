@@ -151,7 +151,7 @@ const SocialRightRail: React.FC = () => {
         ) : (
           <RailEmpty>No active challenge right now.</RailEmpty>
         )}
-        <RailLink onClick={() => navigate('/social/challenges')}>
+        <RailLink onClick={() => navigate('/user-dashboard/challenges')}>
           All challenges <ChevronRight size={14} />
         </RailLink>
       </RailCard>

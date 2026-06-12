@@ -136,11 +136,11 @@ export const useSocialFeedViewModel = () => {
   }, []);
 
   const handleBrowseChallenges = useCallback(() => {
-    navigate('/social/challenges');
+    navigate('/user-dashboard/challenges');
   }, [navigate]);
 
   const handleFindFriends = useCallback(() => {
-    navigate('/social/friends');
+    navigate('/user-dashboard/friends');
   }, [navigate]);
 
   return {

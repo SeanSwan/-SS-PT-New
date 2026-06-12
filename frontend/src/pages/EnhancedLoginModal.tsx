@@ -449,8 +449,11 @@ const EnhancedLoginModal: React.FC = () => {
         navigate('/dashboard/admin');
       } else if (role === 'trainer') {
         navigate('/dashboard/trainer/overview');
-      } else {
+      } else if (role === 'client') {
         navigate('/dashboard/client/overview');
+      } else {
+        // Plain 'user' role lands on the main hub — the user dashboard home feed (merge M7)
+        navigate('/user-dashboard');
       }
     }
   }, [isAuthenticated, user, navigate]);
@@ -516,8 +519,11 @@ const EnhancedLoginModal: React.FC = () => {
             navigate("/dashboard/admin");
           } else if (loginUser.role === "trainer") {
             navigate("/dashboard/trainer/overview");
-          } else {
+          } else if (loginUser.role === "client") {
             navigate("/dashboard/client/overview");
+          } else {
+            // Plain 'user' role lands on the main hub — the user dashboard home feed (merge M7)
+            navigate("/user-dashboard");
           }
         }, 200);
       } else if (result.success) {

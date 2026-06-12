@@ -80,7 +80,7 @@ describe('SocialFeed cover studio contract', () => {
     expect(mediaLayerSource).toContain('setCrossfadeIndex');
   });
 
-  it('embeds the cover editor on /social and retires the dashboard route (merge M6)', () => {
+  it('embeds the cover editor on the hub, now canonical at /user-dashboard (merge M7)', () => {
     const editorSource = readSource('./components/SocialCoverEditor.tsx');
     const routesSource = readSource('../../../routes/main-routes.tsx');
     // The editor reuses the battle-tested banner machinery — no forks.
@@ -92,9 +92,10 @@ describe('SocialFeed cover studio contract', () => {
     expect(studioSource).toContain('onEditCover');
     expect(sectionsSource).toContain('SocialCoverEditor');
     expect(sectionsSource).toContain('setCoverRefreshKey');
-    // The merge endgame: /user-dashboard is a redirect, not a mounted surface,
-    // and its lazy chunk is gone from the routes file.
-    expect(routesSource).toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/social" replace \/>/);
+    // Merge M7: the hub mounts at /user-dashboard; /social is the redirect
+    // alias; the old Observatory lazy chunk stays gone from the routes file.
+    expect(routesSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
+    expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routesSource).not.toContain("import('../components/UserDashboard/UserDashboard.V3')");
   });
 

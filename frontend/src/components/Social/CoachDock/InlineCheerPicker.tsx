@@ -188,7 +188,7 @@ const InlineCheerPicker: React.FC = () => {
           ))}
         </>
       )}
-      <BrowseAllButton onClick={() => navigate('/social/friends')}>
+      <BrowseAllButton onClick={() => navigate('/user-dashboard/friends')}>
         See your friends
         <ChevronRight size={14} />
       </BrowseAllButton>

@@ -104,7 +104,7 @@ describe('InlineCheerPicker — candidate selection', () => {
 
     expect(await screen.findByText(/no fresh wins to cheer/i)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /see your friends/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/social/friends');
+    expect(mockNavigate).toHaveBeenCalledWith('/user-dashboard/friends');
   });
 
   it('degrades to community wins when the friendships lane fails', async () => {

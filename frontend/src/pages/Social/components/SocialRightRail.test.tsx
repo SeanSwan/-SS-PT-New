@@ -129,7 +129,7 @@ describe('SocialRightRail — populated', () => {
     const user = userEvent.setup();
     render(<SocialRightRail />);
     await user.click(screen.getByRole('button', { name: /all challenges/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/social/challenges');
+    expect(mockNavigate).toHaveBeenCalledWith('/user-dashboard/challenges');
   });
 });
 

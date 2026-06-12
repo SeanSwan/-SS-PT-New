@@ -112,7 +112,7 @@ describe('InlineChallengeFinder — match selection', () => {
 
     await user.click(screen.getByRole('button', { name: /browse all challenges/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/social/challenges');
+    expect(mockNavigate).toHaveBeenCalledWith('/user-dashboard/challenges');
   });
 });
 

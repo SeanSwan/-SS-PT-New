@@ -82,7 +82,7 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
           </HeroCopy>
           <HeroActions>
             <ActionLink to="/dashboard/client/rewards">Rewards</ActionLink>
-            <ActionLink to="/social/challenges">Challenges</ActionLink>
+            <ActionLink to="/user-dashboard/challenges">Challenges</ActionLink>
           </HeroActions>
         </HeroBand>
 

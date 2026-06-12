@@ -271,8 +271,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </motion.div>
           )}
           <motion.div variants={itemVariants}>
-            <MobileNavLink to="/social" onClick={closeMobileMenu} $isActive={isActive('/user-dashboard') || isActive('/social')}>
-              <User size={20} /> Social Hub
+            <MobileNavLink to="/user-dashboard" onClick={closeMobileMenu} $isActive={isActive('/user-dashboard') || isActive('/social')}>
+              <User size={20} /> My Dashboard
             </MobileNavLink>
           </motion.div>
           <motion.div variants={itemVariants}>

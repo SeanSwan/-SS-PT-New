@@ -963,7 +963,7 @@ const HomePageV3: React.FC = () => {
             variant="accent"
             size="small"
             leftIcon={<Globe size={14} />}
-            onClick={() => navigate('/social')}
+            onClick={() => navigate('/user-dashboard')}
           />
           <GlowButton
             text="Dashboard"
@@ -1347,7 +1347,7 @@ const HomePageV3: React.FC = () => {
                 text="Join the Community"
                 variant="accent"
                 size="large"
-                onClick={() => navigate('/social')}
+                onClick={() => navigate('/user-dashboard')}
               />
             </CenteredAction>
           </ScrollReveal>

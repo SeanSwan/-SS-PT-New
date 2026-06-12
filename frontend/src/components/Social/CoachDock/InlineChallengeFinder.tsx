@@ -136,7 +136,7 @@ const InlineChallengeFinder: React.FC = () => {
           );
         })
       )}
-      <BrowseAllButton onClick={() => navigate('/social/challenges')}>
+      <BrowseAllButton onClick={() => navigate('/user-dashboard/challenges')}>
         Browse all challenges
         <ChevronRight size={14} />
       </BrowseAllButton>
