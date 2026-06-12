@@ -2,7 +2,7 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialCoverBanner } from '../../Social/Feed/hooks/useSocialCoverBanner';
@@ -40,9 +40,14 @@ import {
   buildHomeTopBarActions,
   buildLatestPostView,
   parseUnreadNotificationCount,
+  previewHomePostIntent,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
+
+// Workstream N3: the SAME embedded cover editor the feed tab uses — heavy
+// profile machinery mounts only while editing.
+const SocialCoverEditor = lazy(() => import('../../Social/Feed/components/SocialCoverEditor'));
 import {
   CenterColumn,
   CreatorPage,
@@ -74,7 +79,10 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const { isElite, loading: subLoading } = useSubscription();
   const feedQuery = useSocialFeed({ limit: 4 });
   const notificationSummary = useNotificationSummary();
-  const messageSummary = useMessageSummary();
+  // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
+  const messageSummary = useMessageSummary({
+    enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
+  });
   const createPost = useCreatePost();
   const [postText, setPostText] = useState('');
   const [activeMood, setActiveMood] = useState('achievement');
@@ -108,10 +116,13 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
   const canPost = postText.trim().length >= 3 && !createPost.isPending;
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
-  // Workstream N2: the identity header carries the user's REAL cover
+  // Workstream N2/N3: the identity header carries the user's REAL cover
   // composition (photo / collage / carousel / crossfade) — same machinery as
   // the feed cover studio. Null -> the decorative crystalline backdrop stays.
-  const coverBanner = useSocialCoverBanner();
+  // Closing the embedded editor bumps refreshKey so the cover refetches once.
+  const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+  const [coverRefreshKey, setCoverRefreshKey] = useState(0);
+  const coverBanner = useSocialCoverBanner(coverRefreshKey);
   const bannerLayer = coverBanner ? (
     <UserDashboardBannerMediaLayer
       backgroundImage={coverBanner.backgroundImage}
@@ -124,6 +135,20 @@ const HomeTab: React.FC<HomeTabProps> = ({
     />
   ) : null;
   const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
+  const postIntentPreview = useMemo(
+    () => (postText.trim().length >= 3 ? previewHomePostIntent(postText, activeMood) : null),
+    [activeMood, postText],
+  );
+  const coverEditorSlot = coverEditorOpen ? (
+    <Suspense fallback={null}>
+      <SocialCoverEditor
+        onClose={() => {
+          setCoverEditorOpen(false);
+          setCoverRefreshKey((key) => key + 1);
+        }}
+      />
+    </Suspense>
+  ) : null;
   const transformationPhotoUrls = useMemo(
     () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null)
       .map((photo) => sanitizeImageUrl(photo.url))
@@ -193,6 +218,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
           activeMood={activeMood}
           selectedMediaName={selectedMedia?.name}
           bannerLayer={bannerLayer}
+          onEditCover={() => setCoverEditorOpen((open) => !open)}
+          coverEditorSlot={coverEditorSlot}
+          postIntentPreview={postIntentPreview}
           latestPost={latestPostView}
           canPost={canPost}
           isPosting={createPost.isPending}

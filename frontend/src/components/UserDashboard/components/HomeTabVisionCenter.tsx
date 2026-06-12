@@ -12,11 +12,11 @@ import {
   Video,
 } from 'lucide-react';
 import type { HomeLatestPostView } from './HomeTabViewModel';
+import HomeTabHeroHeader from './HomeTabHeroHeader';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
   Eyebrow,
-  GlowSweep,
   Panel,
   TopBar,
   IconButton,
@@ -40,35 +40,20 @@ import {
 import {
   CaptionCopy,
   ComposerActions,
-  CoverLayerHost,
   FeedCopy,
   FeedVideoFrame,
   HandleStamp,
-  HeroForeground,
+  IntentPreview,
+  IntentTag,
   SpotlightImage,
   SpotlightVideo,
   SpreadButtonRow,
 } from './HomeTabVisionCenter.styles';
 import {
-  AvatarFrame,
-  AvatarInner,
-  HeroBanner,
-  HeroContent,
-  HeroMeta,
-  HeroName,
-  HeroRangesLayer,
-  HeroTagline,
   LensButton,
   LensPuck,
   LensStrip,
-  LevelBadgeAnchor,
-  NameRow,
-  StatBlock,
-  StatLabel,
-  StatsStrip,
-  StatValue,
 } from './HomeTabVisionHero.styles';
-import { HeroRanges, LevelHex, VerifiedMark } from './HomeTabVisionScenes';
 
 interface HomeTabVisionCenterProps {
   avatarSrc: string;
@@ -87,6 +72,12 @@ interface HomeTabVisionCenterProps {
   selectedMediaName?: string;
   /** Real cover composition (photo/collage/carousel) — null keeps the decorative backdrop. */
   bannerLayer: React.ReactNode | null;
+  /** Opens the embedded cover editor (photo/collage/layouts/presets). */
+  onEditCover: () => void;
+  /** Lazy-mounted SocialCoverEditor instance while editing — renders under the hero. */
+  coverEditorSlot: React.ReactNode | null;
+  /** Live preview of the smart type + hashtags the quick post will ship with. */
+  postIntentPreview: { type: string; label: string | null; hashtags: string[] } | null;
   /** Real latest feed post — null renders honest empty states. */
   latestPost: HomeLatestPostView | null;
   canPost: boolean;
@@ -120,6 +111,9 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   activeMood,
   selectedMediaName,
   bannerLayer,
+  onEditCover,
+  coverEditorSlot,
+  postIntentPreview,
   latestPost,
   canPost,
   isPosting,
@@ -148,60 +142,21 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       </XpPill>
     </TopBar>
 
-    <HeroBanner>
-      {bannerLayer ? (
-        <CoverLayerHost aria-hidden="true">{bannerLayer}</CoverLayerHost>
-      ) : (
-        <HeroRangesLayer>
-          <HeroRanges />
-        </HeroRangesLayer>
-      )}
-      <GlowSweep />
-      <HeroForeground>
-      <HeroContent>
-        <AvatarFrame>
-          <AvatarInner>
-            <img src={avatarSrc} alt="" aria-hidden="true" onError={swapToFallback(fallbackAvatarSrc)} />
-          </AvatarInner>
-          <LevelBadgeAnchor>
-            <LevelHex level={level} />
-          </LevelBadgeAnchor>
-        </AvatarFrame>
-
-        <div>
-          <NameRow>
-            <HeroName>{displayName}</HeroName>
-            <VerifiedMark />
-          </NameRow>
-          <HeroMeta>
-            <span>{handle}</span>
-            <Chip $tone="violet">{tierName}</Chip>
-            <Chip>Creator</Chip>
-          </HeroMeta>
-          <HeroTagline>Create. Inspire. Level Up.</HeroTagline>
-        </div>
-
-        <StatsStrip aria-label="Creator stats">
-          <StatBlock>
-            <StatLabel>Posts</StatLabel>
-            <StatValue>{postsCount.toLocaleString()}</StatValue>
-          </StatBlock>
-          <StatBlock>
-            <StatLabel>Followers</StatLabel>
-            <StatValue>{followersCount.toLocaleString()}</StatValue>
-          </StatBlock>
-          <StatBlock>
-            <StatLabel>Following</StatLabel>
-            <StatValue>{followingCount.toLocaleString()}</StatValue>
-          </StatBlock>
-          <StatBlock>
-            <StatLabel>XP Balance</StatLabel>
-            <StatValue $gold>{points.toLocaleString()}</StatValue>
-          </StatBlock>
-        </StatsStrip>
-      </HeroContent>
-      </HeroForeground>
-    </HeroBanner>
+    <HomeTabHeroHeader
+      avatarSrc={avatarSrc}
+      fallbackAvatarSrc={fallbackAvatarSrc}
+      displayName={displayName}
+      handle={handle}
+      tierName={tierName}
+      level={level}
+      points={points}
+      postsCount={postsCount}
+      followersCount={followersCount}
+      followingCount={followingCount}
+      bannerLayer={bannerLayer}
+      onEditCover={onEditCover}
+    />
+    {coverEditorSlot}
 
     <LensStrip aria-label="Creator dashboard sections">
       {HERO_LENSES.map(({ id, label, Icon, target }) => (
@@ -268,6 +223,16 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
             </MoodButton>
           ))}
         </MoodScroller>
+        {/* Workstream N3: the smart-hashtag truth-line — exactly what this
+            post will ship as (same inference path as the submit payload). */}
+        {postIntentPreview && postIntentPreview.hashtags.length > 0 && (
+          <IntentPreview aria-live="polite">
+            <span>Posts as {postIntentPreview.label ?? postIntentPreview.type} with</span>
+            {postIntentPreview.hashtags.map((tag) => (
+              <IntentTag key={tag}>{tag}</IntentTag>
+            ))}
+          </IntentPreview>
+        )}
         <ComposerActions>
           <GlassButton
             type="button"

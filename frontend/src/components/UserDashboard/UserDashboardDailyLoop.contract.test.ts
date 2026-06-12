@@ -158,6 +158,29 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(railSource).toContain('onLogWorkout');
   });
 
+  it('gives Home the full cover editor, the smart-hashtag truth-line, and a tier-gated inbox poll (workstream N3)', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+    const heroSource = readSource('src/components/UserDashboard/components/HomeTabHeroHeader.tsx');
+    const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
+
+    // Edit Cover on the hero opens the SAME embedded editor as the feed tab,
+    // and closing it refreshes the live cover.
+    expect(heroSource).toContain('EditCoverButton');
+    expect(homeSource).toContain("lazy(() => import('../../Social/Feed/components/SocialCoverEditor'))");
+    expect(homeSource).toContain('useSocialCoverBanner(coverRefreshKey)');
+    expect(homeSource).toContain('setCoverRefreshKey((key) => key + 1)');
+
+    // Quick Post shows the live smart type + hashtags from the same
+    // inference path the payload uses.
+    expect(homeSource).toContain('previewHomePostIntent(postText, activeMood)');
+    expect(centerSource).toContain('postIntentPreview.hashtags.map');
+
+    // Free tiers never poll the elite-gated messaging endpoint (402 by design).
+    expect(queriesSource).toContain('options.enabled ?? true');
+    expect(homeSource).toMatch(/useMessageSummary\(\{\s*enabled: isElite/);
+  });
+
   it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
 

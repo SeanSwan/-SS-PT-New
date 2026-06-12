@@ -8,6 +8,7 @@ import {
   buildHomePostPayload,
   buildHomeTopBarActions,
   parseUnreadNotificationCount,
+  previewHomePostIntent,
   resolveHomeAvatarSrc,
   selectActiveChallengeSummary,
   sumUnreadConversations,
@@ -120,6 +121,19 @@ describe('HomeTabViewModel', () => {
     expect(sumUnreadConversations({
       conversations: [{ unreadCount: 4 }, { unreadCount: '6' }],
     })).toBe(10);
+  });
+
+  it('previews the SAME smart type + hashtags the payload will actually ship (single source of truth)', () => {
+    const content = 'Hit a new PR on the trap bar today';
+    const preview = previewHomePostIntent(content, 'community');
+    const payload = buildHomePostPayload(content, 'community');
+
+    // The preview must match the submitted payload exactly — no drift.
+    expect(preview.type).toBe(payload.type);
+    expect(preview.hashtags.length).toBeGreaterThan(0);
+    preview.hashtags.forEach((tag) => {
+      expect(payload.content).toContain(tag);
+    });
   });
 
   it('builds the latest-post view from REAL fields — no fabricated engagement numbers', () => {

@@ -63,6 +63,55 @@ export const HeroForeground = styled.div`
   z-index: 1;
 `;
 
+/* Workstream N3: 44px Edit-Cover entry on the Home hero — opens the same
+   embedded editor (photo/collage/layouts/presets) the feed cover uses. */
+export const EditCoverButton = styled.button`
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.95rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gilded-fern, #C6A84B) 55%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
+  color: var(--gilded-fern, #C6A84B);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--gilded-fern, #C6A84B) 16%, var(--bg-base, #0A0A0F));
+    box-shadow: 0 0 18px color-mix(in srgb, var(--gilded-fern, #C6A84B) 30%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+/* Workstream N3: truth-line under the Quick Post composer — shows the smart
+   type + hashtags the post will ACTUALLY ship with (same inference path). */
+export const IntentPreview = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--vision-soft);
+`;
+
+export const IntentTag = styled.span`
+  color: var(--accent-primary, #60C0F0);
+  font-weight: 600;
+`;
+
 export const SpotlightImage = styled.img`
   position: absolute;
   inset: 0;

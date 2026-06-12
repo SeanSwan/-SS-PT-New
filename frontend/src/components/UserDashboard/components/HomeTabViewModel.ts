@@ -125,6 +125,24 @@ const MOOD_TO_POST_TYPE: Record<string, PostType> = {
   community: 'general',
 };
 
+/**
+ * Live preview of what buildHomePostPayload will actually submit — SAME
+ * inference path, so the chips Sean sees are the truth, not a guess.
+ */
+export function previewHomePostIntent(content: string, mood: string): {
+  type: PostType;
+  label: string | null;
+  hashtags: string[];
+} {
+  const selectedType = MOOD_TO_POST_TYPE[mood] || 'general';
+  const intent = inferSmartPostIntent(content, selectedType);
+  return {
+    type: intent.submissionType,
+    label: intent.displayLabel,
+    hashtags: intent.hashtags,
+  };
+}
+
 export function buildHomePostPayload(content: string, mood: string, media?: File | null): HomePostPayload {
   const selectedType = MOOD_TO_POST_TYPE[mood] || 'general';
   const smartIntent = inferSmartPostIntent(content, selectedType);

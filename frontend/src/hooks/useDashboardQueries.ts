@@ -188,7 +188,7 @@ export function useNotificationSummary() {
   });
 }
 
-export function useMessageSummary() {
+export function useMessageSummary(options: { enabled?: boolean } = {}) {
   const { authAxios, user } = useAuth();
 
   return useQuery({
@@ -197,7 +197,10 @@ export function useMessageSummary() {
       const res = await authAxios.get('/api/messaging/conversations', { signal });
       return res.data;
     },
-    enabled: !!authAxios && !!user,
+    // Messaging is tier-gated server-side (requireTier('elite') —
+    // messagingRoutes.mjs); callers pass enabled=false for non-elite users
+    // so free tiers never poll an endpoint that 402s by design.
+    enabled: !!authAxios && !!user && (options.enabled ?? true),
     staleTime: 30 * 1000,
     retry: false,
   });
