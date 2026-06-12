@@ -222,24 +222,29 @@ const ContentArea = styled.div`
 
 // ─── Desktop Grid ────────────────────────────────────────────────────
 
+/* minmax(0, 1fr) everywhere (M5b QA fix, 2026-06-11): plain 1fr leaves grid
+   items at min-width:auto, so one unbreakable descendant (e.g. a long word in
+   a post) inflates the feed column past the track and the viewport — caught
+   live at 414px (column hit 459px, cover copy clipped). minmax(0,...) caps
+   the item at the track. */
 const DesktopGrid = styled.div<{ $threeCol?: boolean }>`
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 
   @media (min-width: 900px) {
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
   }
   /* Merge M3: feed tab gains a right rail as a 3rd column on wide desktops. */
   @media (min-width: 1200px) {
-    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '280px 1fr 300px' : '280px 1fr')};
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '280px minmax(0, 1fr) 300px' : '280px minmax(0, 1fr)')};
   }
   @media (min-width: 2560px) {
-    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '320px 1fr 340px' : '320px 1fr')};
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '320px minmax(0, 1fr) 340px' : '320px minmax(0, 1fr)')};
     gap: 32px;
   }
   @media (min-width: 3840px) {
-    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '380px 1fr 400px' : '380px 1fr')};
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '380px minmax(0, 1fr) 400px' : '380px minmax(0, 1fr)')};
     gap: 40px;
   }
 `;
