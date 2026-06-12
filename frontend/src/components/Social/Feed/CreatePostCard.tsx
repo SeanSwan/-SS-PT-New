@@ -74,6 +74,7 @@
 import React from 'react';
 import {
   User, Users, Globe, Plus, Dumbbell, Camera, Trophy, Target, Star, Image, Send,
+  Music2, Mic2, Mic, Palette, Gamepad2, Laugh,
 } from 'lucide-react';
 
 // Sub-components
@@ -109,6 +110,16 @@ export const POST_TYPE_OPTIONS: PostTypeOption[] = [
   { value: 'transformation', label: 'Transformation', icon: <Camera size={16} />, points: 50, description: 'Before & after progress photos' },
   { value: 'achievement', label: 'Achievement', icon: <Trophy size={16} />, points: 30, description: 'Celebrate a fitness milestone' },
   { value: 'challenge', label: 'Challenge', icon: <Target size={16} />, points: 20, description: 'Create or complete a challenge' },
+  // Merge M4: creative/expression types — the canonical composer must cover
+  // the full feed-supported range (backend enum + the retiring Observatory
+  // Quick Post offered these), so the M6 redirect loses no posting ability.
+  // Icons match ChallengesView's category map for cross-surface consistency.
+  { value: 'dance', label: 'Dance', icon: <Music2 size={16} />, points: 20, description: 'Share your moves' },
+  { value: 'music', label: 'Music', icon: <Mic2 size={16} />, points: 20, description: 'Share a track or playlist' },
+  { value: 'singing', label: 'Singing', icon: <Mic size={16} />, points: 20, description: 'Share your voice' },
+  { value: 'art', label: 'Art', icon: <Palette size={16} />, points: 20, description: 'Share your creative work' },
+  { value: 'gaming', label: 'Gaming', icon: <Gamepad2 size={16} />, points: 15, description: 'Share a gaming highlight' },
+  { value: 'comedy', label: 'Comedy', icon: <Laugh size={16} />, points: 15, description: 'Make the community laugh' },
 ];
 
 const VISIBILITY_OPTIONS: VisibilityOption[] = [
