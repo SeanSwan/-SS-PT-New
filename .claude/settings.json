@@ -7,7 +7,6 @@
       "Read",
       "Grep",
       "Glob",
-
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -23,7 +22,6 @@
       "Bash(git check-ignore:*)",
       "Bash(git blame:*)",
       "Bash(git reflog:*)",
-
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(npm run type-check:*)",
@@ -36,7 +34,6 @@
       "Bash(npm info:*)",
       "Bash(npm view:*)",
       "Bash(npm search:*)",
-
       "Bash(npx vitest run:*)",
       "Bash(npx vitest:*)",
       "Bash(npx tsc --noEmit:*)",
@@ -50,7 +47,6 @@
       "Bash(npx vite:*)",
       "Bash(NODE_OPTIONS=--max-old-space-size=* npx:*)",
       "Bash(NODE_OPTIONS=--max-old-space-size=* npm:*)",
-
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(head:*)",
@@ -91,25 +87,21 @@
       "Bash(dig:*)",
       "Bash(ss -tlnp)",
       "Bash(pg_isready:*)",
-
       "Bash(node scripts/list-users.mjs:*)",
       "Bash(node scripts/audit-links.mjs:*)",
       "Bash(node scripts/fix-broken-links.mjs:*)",
       "Bash(node scripts/ensure-simple-admin.mjs:*)",
       "Bash(node scripts/backup-database.mjs:*)",
       "Bash(node scripts/check-storefront-schema.mjs:*)",
-
       "Bash(bash scripts/scan-secrets.sh:*)",
       "Bash(bash scripts/validate-env.sh:*)",
       "Bash(scripts/scan-secrets.sh:*)",
       "Bash(scripts/validate-env.sh:*)",
-
       "Bash(python --version)",
       "Bash(python3 --version)",
       "Bash(python -m json.tool:*)",
       "Bash(python -m venv:*)",
       "Bash(python scripts/audit-links.py:*)",
-
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:ai.google.dev)",
       "WebFetch(domain:docs.render.com)",
@@ -118,9 +110,7 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:sswanstudios.com)",
-
       "WebSearch",
-
       "mcp__playwright__browser_navigate",
       "mcp__playwright__browser_take_screenshot",
       "mcp__playwright__browser_resize",
@@ -134,13 +124,23 @@
       "mcp__playwright__browser_press_key",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_navigate_back",
-      "mcp__playwright__browser_install"
+      "mcp__playwright__browser_install",
+      "Bash(npm run code-health:*)",
+      "Bash(git fetch:*)",
+      "Bash(Get-Content:*)",
+      "Bash(Get-ChildItem:*)",
+      "Bash(Test-Path:*)",
+      "Bash(Select-String:*)",
+      "Bash(Measure-Object:*)",
+      "Bash(node scripts/consult-gemini.mjs:*)",
+      "Bash(node scripts/consult-codex.mjs:*)",
+      "Bash(jq:*)",
+      "Bash(curl -s -o /dev/null:*)"
     ],
     "ask": [
       "Write",
       "Edit",
       "NotebookEdit",
-
       "Write(CLAUDE.md)",
       "Write(.gitignore)",
       "Write(.claude/settings.json)",
@@ -149,7 +149,6 @@
       "Edit(.gitignore)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
-
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
@@ -164,18 +163,15 @@
       "Bash(git stash drop:*)",
       "Bash(git config --local:*)",
       "Bash(git filter-repo:*)",
-
       "Bash(npm install:*)",
       "Bash(npm i:*)",
       "Bash(npm uninstall:*)",
       "Bash(npm update:*)",
-
       "Bash(mv:*)",
       "Bash(rm:*)",
       "Bash(rmdir:*)",
       "Bash(chmod:*)",
       "Bash(chown:*)",
-
       "Bash(node -e:*)",
       "Bash(python -c:*)",
       "Bash(python3 -c:*)",
@@ -194,7 +190,6 @@
       "Bash(xargs cp:*)",
       "Bash(xargs mv:*)",
       "Bash(xargs rm:*)",
-
       "Bash(node scripts/consult-gemini.mjs:*)",
       "Bash(node scripts/validation-orchestrator.mjs:*)",
       "Bash(node scripts/hermes-village.mjs:*)",
@@ -203,28 +198,22 @@
       "Bash(node scripts/*migrate*:*)",
       "Bash(node scripts/reseed*:*)",
       "Bash(node scripts/seed*:*)",
-
       "Bash(psql:*)",
       "Bash(PGPASSWORD=* psql:*)",
       "Bash(pg_dump:*)",
-
       "Bash(curl:*)",
       "Bash(curl.exe:*)",
       "Bash(wget:*)",
-
       "Bash(pip install:*)",
       "Bash(python -m pip install:*)",
       "Bash(python3 -m pip install:*)",
-
       "Bash(taskkill:*)",
       "Bash(powershell:*)",
       "Bash(cmd:*)",
       "Bash(start:*)",
-
       "Bash(docker:*)",
       "Bash(systemctl:*)",
       "Bash(sudo:*)",
-
       "mcp__playwright__browser_run_code",
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_file_upload",
@@ -245,10 +234,8 @@
       "Bash(rm -rf C:\\*)",
       "Bash(del /q /s /f C:\\*)",
       "Bash(rmdir /s /q C:\\*)",
-
       "Bash(chmod 777:*)",
       "Bash(chmod -R 777:*)",
-
       "Bash(* | bash)",
       "Bash(* | sh)",
       "Bash(curl * | bash:*)",
@@ -257,7 +244,6 @@
       "Bash(wget * | sh:*)",
       "Bash(bash <(curl*)*)",
       "Bash(sh <(curl*)*)",
-
       "Bash(git push --force main:*)",
       "Bash(git push --force origin main:*)",
       "Bash(git push -f main:*)",
@@ -267,12 +253,10 @@
       "Bash(git reset --hard HEAD:*)",
       "Bash(git clean -fdx:*)",
       "Bash(git filter-branch:*)",
-
       "Bash(DROP TABLE:*)",
       "Bash(DROP DATABASE:*)",
       "Bash(DELETE FROM \"Users\":*)",
       "Bash(TRUNCATE:*)",
-
       "Bash(*PGPASSWORD=*)",
       "Bash(*DATABASE_URL=postgresql:*)",
       "Bash(*DATABASE_URL=postgres:*)",
@@ -285,7 +269,6 @@
       "Bash(*ghp_*)",
       "Bash(*xoxb-*)",
       "Bash(*github_pat_*)",
-
       "Write(.env)",
       "Write(backend/.env)",
       "Write(frontend/.env)",
@@ -299,7 +282,6 @@
       "Write(.ai-workflow/audit/**)",
       "Write(.githooks/**)",
       "Write(.husky/**)",
-
       "Edit(.env)",
       "Edit(backend/.env)",
       "Edit(frontend/.env)",
@@ -309,6 +291,18 @@
       "Edit(package-lock.json)",
       "Edit(.git/**)",
       "Edit(.ai-workflow/audit/**)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/prompt-watcher.mjs"
+          }
+        ]
+      }
     ]
   },
   "_guidance": {

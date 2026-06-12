@@ -533,6 +533,15 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Why:** the transcript's core lesson — don't one-shot; use interview-before-build, adversarial multi-persona panels, and self-improving tooling. The skills institutionalize the highest-value techniques that weren't already covered by the existing gates. Privacy (rule 8): all skill output docs are committed — IDs/roles only, no PII/secrets.
 
+66. **`prompt-watcher` — per-prompt intent amplifier (MANDATORY, fires every prompt)** — Established 2026-06-11 by Sean. A `UserPromptSubmit` hook (`scripts/hooks/prompt-watcher.mjs`, wired in `.claude/settings.json`) injects a ~90-token classifier reminder on EVERY prompt. The model then:
+    - **Classifies SIMPLE vs VISION.** SIMPLE (instruction / question / correction / status / "go") → respond normally, do NOT load the skill — zero extra tokens. VISION (an idea Sean is bringing into reality) → load `.claude/skills/prompt-watcher`. Bias to SIMPLE when unsure.
+    - **For VISION: silently amplify, then act.** Gap-check the idea against the in-context vision (Product Core Loop, the four dashboards, rule 62), add features that genuinely strengthen it (surgical — rule 3), and rewrite it into a sharper prompt — then **act on the enhanced prompt automatically. No confirmation step, no printout.** Sean's directive 2026-06-11: don't show it and don't wait — just use it; that's the click + tokens he's cutting. **Reveal the enhanced prompt only if Sean asks** ("what prompt did you use / what did you change"). Retain it in working context for that; do not write a file per prompt.
+    - **Token discipline (Sean's explicit ask):** never bulk-reload CLAUDE.md/AGENTS.md (already in context); open a specific reference doc only when a real gap check needs it.
+    - **Standing safety still applies (not a confirmation gate):** surface the interpretation first only when acting blind would be irreversible/outward-facing/unauthorized (delete, overwrite, push, send external, spend, auth/billing/PII) or the build is genuinely ambiguous between two very different outcomes. Otherwise proceed silently.
+    - **Routing, not bypass:** if the enhanced prompt reveals a net-new surface or unproven bet, the *action* to start is the right gate — `grill-me` (rule 64) / then `chromie` (rule 65) → `swan-orchestrator` → `swan-design-router` (if UI) → build → `closeout-evidence-lock`. Invoking the gate IS acting on the prompt; it does not reintroduce a confirmation step.
+
+    **Why:** Sean's words 2026-06-11 — "I want every prompt I give to be the best that it could possibly be," with the AI telling SIMPLE apart from "an idea I'm trying to bring into reality," enhancing silently for least clicks / least tokens. Full procedure: `.claude/skills/prompt-watcher/SKILL.md`.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -745,19 +754,20 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** â€” read before ANY implementation task |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy suite added 2026-06-11, `.claude/skills/` count = 19)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11, `.claude/skills/` count = 20)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 19 entries
+### Default-exposed `.claude/skills/` = 20 entries
 
-**Strategy / adversarial / conversion / self-improvement (4) — rule 65:**
+**Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
 |---|---|
 | `chromie` | Top-product-CEO strategy pressure-test. Founder-panel interrogation (Zuck/Gates/Altman default), hostile pushback, spec + 3 ways it fails + absence-first gap ranking. Runs after `grill-me` for unproven bets. |
 | `attack-the-site` | Adversarial competitor/attacker red-team. Rival-founder + malicious-user hats; ranks threats by self-executability with defend + out-build moves. Distinct from `security-review` (code CVEs). |
 | `copy-tournament` | N copy variants → 5-judge panel → kill/merge/scoreboard for conversion surfaces. Visual side via `swan-design-router`. |
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
+| `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
 **Swan orchestration (6):**
 | Skill | Role |
