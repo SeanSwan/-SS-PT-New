@@ -13,8 +13,6 @@ import {
   Trophy,
   Bell,
   PlusCircle,
-  Star,
-  Zap,
   Target,
   Award,
   Play,
@@ -24,10 +22,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 import { getSwanCoachDashboardPath } from '../../components/UserDashboard/components/swanCoachDashboardRoute';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import SocialCoachDock from '../../components/Social/CoachDock/SocialCoachDock';
+import SocialRightRail from './components/SocialRightRail';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 import SocialNotificationsPanel from '../../components/Social/Notifications/SocialNotificationsPanel';
@@ -224,7 +222,7 @@ const ContentArea = styled.div`
 
 // ─── Desktop Grid ────────────────────────────────────────────────────
 
-const DesktopGrid = styled.div`
+const DesktopGrid = styled.div<{ $threeCol?: boolean }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
@@ -232,12 +230,16 @@ const DesktopGrid = styled.div`
   @media (min-width: 900px) {
     grid-template-columns: 280px 1fr;
   }
+  /* Merge M3: feed tab gains a right rail as a 3rd column on wide desktops. */
+  @media (min-width: 1200px) {
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '280px 1fr 300px' : '280px 1fr')};
+  }
   @media (min-width: 2560px) {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '320px 1fr 340px' : '320px 1fr')};
     gap: 32px;
   }
   @media (min-width: 3840px) {
-    grid-template-columns: 380px 1fr;
+    grid-template-columns: ${({ $threeCol }) => ($threeCol ? '380px 1fr 400px' : '380px 1fr')};
     gap: 40px;
   }
 `;
@@ -594,7 +596,6 @@ type SocialTab = (typeof VALID_TABS)[number];
 
 const SocialPageV3: React.FC = () => {
   const { user } = useAuth();
-  const { profile } = useGamificationData();
   const { tab } = useParams<{ tab?: string }>();
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement>(null);
@@ -693,32 +694,10 @@ const SocialPageV3: React.FC = () => {
 
       {/* ── Main Content ── */}
       <ContentArea>
-        {/* Mobile: Gamification summary — conditionally rendered (Issue #2) */}
-        {!isDesktop && profile.data && (
-          <MobileGamification>
-            <ScrollReveal direction="up" delay={0.05}>
-              <GamificationCard>
-                <PointsRow>
-                  <div>
-                    <PointsValue>{profile.data.points?.toLocaleString() || 0}</PointsValue>
-                    <PointsLabel>Points</PointsLabel>
-                  </div>
-                  <LevelBadge>
-                    <Star size={14} />
-                    Level {profile.data.level || 1}
-                  </LevelBadge>
-                </PointsRow>
-                <StreakRow>
-                  <Zap size={16} />
-                  {profile.data.streakDays || 0} day streak
-                </StreakRow>
-                <ProgressTrack>
-                  <ProgressFill $value={profile.data.nextLevelProgress || 0} />
-                </ProgressTrack>
-              </GamificationCard>
-            </ScrollReveal>
-          </MobileGamification>
-        )}
+        {/* Merge M3: the mobile gamification mini-card was retired — the M2
+            cover identity strip (avatar + tier + XP + streak) is now the single
+            source of identity/XP/streak on /social, so this duplicated it. Full
+            gamification lives on the dashboard. */}
 
         {/* Workstream D (fourth face): mobile Coach entry. Lives outside the
             profile.data guard (gamification fetch failure must not hide the
@@ -773,43 +752,13 @@ const SocialPageV3: React.FC = () => {
           </MobileTab>
         </MobileTabBar>}
 
-        {/* Desktop grid: sidebar + feed */}
-        <DesktopGrid>
-          {/* Sidebar — conditionally rendered on desktop only (Issue #2) */}
+        {/* Desktop grid: sidebar + feed (+ right rail on the feed tab — M3) */}
+        <DesktopGrid $threeCol={isDesktop && activeTab === 'feed'}>
+          {/* Sidebar — conditionally rendered on desktop only (Issue #2).
+              Merge M3: the sidebar GamificationCard was retired — it duplicated
+              the M2 cover identity strip. The right rail's Next Best Action now
+              carries the level-progress nudge. */}
           {isDesktop && <SidebarColumn>
-            {profile.data && (
-              <ScrollReveal direction="left" delay={0.1}>
-                <GamificationCard>
-                  <PointsRow>
-                    <div>
-                      <PointsValue>
-                        {profile.data.points?.toLocaleString() || 0}
-                      </PointsValue>
-                      <PointsLabel>Points</PointsLabel>
-                    </div>
-                    <LevelBadge>
-                      <Star size={14} />
-                      Level {profile.data.level || 1}
-                    </LevelBadge>
-                  </PointsRow>
-                  <StreakRow>
-                    <Zap size={16} />
-                    {profile.data.streakDays || 0} day streak
-                  </StreakRow>
-                  <div>
-                    <ProgressLabel>Next Level Progress</ProgressLabel>
-                    <ProgressTrack>
-                      <ProgressFill $value={profile.data.nextLevelProgress || 0} />
-                    </ProgressTrack>
-                    <ProgressLabel>
-                      {profile.data.nextLevelProgress || 0}% to Level{' '}
-                      {(profile.data.level || 1) + 1}
-                    </ProgressLabel>
-                  </div>
-                </GamificationCard>
-              </ScrollReveal>
-            )}
-
             <ScrollReveal direction="left" delay={0.2}>
               <GlassSidebar>
                 <NavSection>
@@ -885,6 +834,10 @@ const SocialPageV3: React.FC = () => {
           <ScrollReveal direction="up" delay={0.15}>
             <FeedContainer>{renderContent()}</FeedContainer>
           </ScrollReveal>
+
+          {/* Right rail — feed tab + desktop only (M3). Reachable surfaces
+              (challenges, leaderboard, logger) cover the data on smaller screens. */}
+          {isDesktop && activeTab === 'feed' && <SocialRightRail />}
         </DesktopGrid>
       </ContentArea>
     </PageWrapper>

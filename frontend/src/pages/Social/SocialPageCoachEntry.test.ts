@@ -36,18 +36,17 @@ describe('SocialPage.V3 Coach entry — source contract', () => {
     expect(PAGE_SOURCE.match(/Ask Swan Coach/g)).toHaveLength(2);
   });
 
-  it('keeps the mobile Coach entry outside the profile.data guard', () => {
-    // The mobile entry block must be its own {!isDesktop && ...} render,
-    // not nested inside the gamification card's profile.data condition.
+  it('keeps the mobile Coach entry outside any profile.data guard', () => {
+    // The mobile entry block must be its own {!isDesktop && ...} render, never
+    // gated on gamification data. (Merge M3 removed the mobile gamification
+    // card entirely — the M2 cover identity strip is now the single source —
+    // so the entry is no longer even near a profile.data condition.)
     expect(PAGE_SOURCE).toMatch(
       /\{!isDesktop && \(\s*<MobileCoachEntry>/,
     );
-    const mobileEntryIndex = PAGE_SOURCE.indexOf('<MobileCoachEntry>');
-    const gamificationGuardIndex = PAGE_SOURCE.indexOf('{!isDesktop && profile.data && (');
-    expect(mobileEntryIndex).toBeGreaterThan(-1);
-    expect(gamificationGuardIndex).toBeGreaterThan(-1);
-    // Entry renders after (sibling to) the guarded gamification block
-    expect(mobileEntryIndex).toBeGreaterThan(gamificationGuardIndex);
+    expect(PAGE_SOURCE).toContain('<MobileCoachEntry>');
+    // The old gamification guard the entry used to follow is gone post-M3.
+    expect(PAGE_SOURCE).not.toContain('{!isDesktop && profile.data && (');
   });
 
   it('does not add Coach to the in-page tab unions (it navigates away)', () => {
