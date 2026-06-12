@@ -7,7 +7,7 @@
  * ============================================================================
  */
 import styled from 'styled-components';
-import { ButtonRow, VideoFrame } from './HomeTabVisionCards.styles';
+import { ButtonRow } from './HomeTabVisionCards.styles';
 
 export const SpreadButtonRow = styled(ButtonRow)`
   justify-content: space-between;
@@ -25,20 +25,9 @@ export const CaptionCopy = styled.p`
   line-height: 1.55;
 `;
 
-export const HandleStamp = styled.div`
-  color: var(--vision-soft);
-  font-size: 0.8rem;
-`;
-
-export const FeedCopy = styled.p`
-  margin: 0;
-  color: var(--text-primary, #E0ECF4);
-  line-height: 1.6;
-`;
-
-export const FeedVideoFrame = styled(VideoFrame)`
-  min-height: 280px;
-`;
+/* Workstream O2: the single latest-post feed-card styles (HandleStamp,
+   FeedCopy, FeedVideoFrame) retired with the card — the real community feed
+   (HomeCommunityFeed + PostCard) replaced it. */
 
 /* Workstream N2: hosts the user's REAL cover (same media layer as the feed
    cover studio) behind the identity content, with a scrim for text contrast. */

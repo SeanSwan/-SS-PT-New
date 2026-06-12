@@ -368,6 +368,43 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(adapterSource.indexOf("id: 'progress'")).toBeLessThan(adapterSource.indexOf("id: 'reels'"));
   });
 
+  it('puts the REAL scrolling community feed on Home with full interactions (workstream O2)', () => {
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+    const feedSource = readSource('src/components/UserDashboard/components/HomeCommunityFeed.tsx');
+    const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
+
+    // Home's center column mounts the community feed (lazy) and the old
+    // single latest-post card is gone (the feed's first posts replace it).
+    expect(centerSource).toContain("lazy(() => import('./HomeCommunityFeed'))");
+    expect(centerSource).toContain('<HomeCommunityFeed />');
+    expect(centerSource).not.toContain('Your first post will land here');
+
+    // The feed reuses the battle-tested stateful hook + PostCard — no fork.
+    expect(feedSource).toContain("import { useSocialFeed } from '../../../hooks/social/useSocialFeed'");
+    expect(feedSource).toContain("import PostCard from '../../Social/Feed/PostCard'");
+    expect(feedSource).toContain('InfiniteScrollSentinel');
+    expect(feedSource).toContain('IntersectionObserver');
+    // Full interaction surface, honest empty/error states.
+    expect(feedSource).toContain('onReact={feed.reactToPost}');
+    expect(feedSource).toContain('onComment={feed.addComment}');
+    expect(feedSource).toContain('EmptyFeedWelcome');
+    expect(feedSource).toContain('Try again');
+
+    // Quick Post publishes ride the cross-surface event so the stateful feed
+    // refreshes instantly (react-query invalidation cannot reach it).
+    expect(queriesSource).toContain("window.dispatchEvent(new Event('swan:social-post-created'))");
+  });
+
+  it('gives the party squad widgets a real home on the Challenges tab (workstream O2)', () => {
+    const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
+    const partySource = readSource('src/components/UserDashboard/components/DashboardChallengesParty.tsx');
+
+    expect(tabsSource).toContain('<DashboardChallengesParty />');
+    expect(partySource).toContain("import { useParty } from '../../../hooks/social/useParty'");
+    expect(partySource).toContain('<PartyHPBar party={party} myRole={myRole} onLeave={leaveParty} />');
+    expect(partySource).toContain('<PartyCreateJoin onCreate={createParty} onJoin={joinParty} />');
+  });
+
   it('keeps shared role-dashboard workspaces independent from UserDashboard-only chrome', () => {
     const nutritionWorkspaceSource = readSource('src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');

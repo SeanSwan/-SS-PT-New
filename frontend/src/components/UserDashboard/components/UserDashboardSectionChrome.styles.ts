@@ -72,11 +72,13 @@ export const VisionTabSurface = styled.section`
   min-width: 0;
 `;
 
+/* Workstream O2 (density pass): the section hero is an identity strip, not a
+   billboard — tighter padding so content starts sooner under the new cover. */
 export const VisionSectionHero = styled.header<{ $tone?: 'cyan' | 'violet' | 'gold' }>`
   ${visionPanelCss}
   position: relative;
   overflow: hidden;
-  padding: clamp(1rem, 1.8vw, 1.55rem);
+  padding: clamp(0.8rem, 1.2vw, 1.15rem);
 
   &::before {
     content: '';
@@ -100,9 +102,9 @@ export const VisionHeroContent = styled.div`
 `;
 
 export const VisionHeroIcon = styled.div<{ $tone?: 'cyan' | 'violet' | 'gold' }>`
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   border: 1px solid color-mix(in srgb, ${({ $tone }) => {
@@ -130,17 +132,22 @@ export const VisionEyebrow = styled.span`
 `;
 
 export const VisionTitle = styled.h2`
-  margin: 0.35rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--text-heading, var(--text-primary, #E0ECF4));
-  font: 900 clamp(1.45rem, 2.4vw, 2.25rem)/1.05 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  font: 900 clamp(1.2rem, 1.9vw, 1.65rem)/1.05 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
   letter-spacing: 0;
 `;
 
 export const VisionCopy = styled.p`
   max-width: 68ch;
-  margin: 0.5rem 0 0;
+  margin: 0.35rem 0 0;
   color: var(--vision-soft);
-  font: 700 0.92rem/1.6 var(--font-ui, 'Sora', sans-serif);
+  font: 700 0.85rem/1.5 var(--font-ui, 'Sora', sans-serif);
+
+  /* Phones get the title only — the descriptive line costs a content row. */
+  @media (max-width: 480px) {
+    display: none;
+  }
 `;
 
 export const VisionLegacyScope = styled.div`

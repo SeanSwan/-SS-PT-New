@@ -34,6 +34,7 @@ const StudioLenses = lazy(() => import('./UserDashboardStudioLenses'));
 const VerticalReels = lazy(() => import('../../Social/Reels/VerticalReels'));
 const FriendsList = lazy(() => import('../../Social/Friends/FriendsList'));
 const ChallengesView = lazy(() => import('../../Social/Challenges/ChallengesView'));
+const DashboardChallengesParty = lazy(() => import('./DashboardChallengesParty'));
 const DashboardNotificationsTab = lazy(() => import('./DashboardNotificationsTab'));
 const CreativeGallery = lazy(() => import('./CreativeGallery'));
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
@@ -145,7 +146,13 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
       </TabPanel>
       <TabPanel id="challenges" activeTab={activeTab}>
         <SectionChrome id="challenges">
-          <ChallengesView />
+          <TabStack>
+            <ChallengesView />
+            {/* Workstream O2: the party (accountability squad) widgets moved
+                here from the retired Feed tab — squads belong with the
+                challenges they train against. */}
+            <DashboardChallengesParty />
+          </TabStack>
         </SectionChrome>
       </TabPanel>
       <TabPanel id="notifications" activeTab={activeTab}>

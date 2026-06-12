@@ -169,6 +169,10 @@ export function useCreatePost() {
       // Invalidate all feed queries to show the new post
       queryClient.invalidateQueries({ queryKey: ['social', 'feed'] });
       queryClient.invalidateQueries({ queryKey: ['gamification'] });
+      // Cross-surface contract (same event the Coach dock dispatches): the
+      // stateful useSocialFeed instances (Home community feed) listen for
+      // this and refetch — react-query invalidation can't reach them.
+      window.dispatchEvent(new Event('swan:social-post-created'));
     },
   });
 }

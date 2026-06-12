@@ -193,30 +193,8 @@ export const MoodButton = styled.button<{ $active?: boolean }>`
   ${focusRing}
 `;
 
-export const FeedCard = styled.article`
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-`;
-
-export const FeedHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  align-items: flex-start;
-`;
-
-export const AvatarMini = styled.div`
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex: 0 0 auto;
-  border: 2px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 44%, transparent);
-  background: var(--bg-elevated, #141419);
-
-  img { width: 100%; height: 100%; object-fit: cover; display: block; }
-`;
+/* Workstream O2: FeedCard / FeedHeader / AvatarMini retired with the single
+   latest-post card — HomeCommunityFeed + PostCard own that surface now. */
 
 export const StoryStrip = styled.div`
   display: grid;

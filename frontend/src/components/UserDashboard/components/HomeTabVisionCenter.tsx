@@ -3,7 +3,7 @@
  * PURPOSE: Center column for the Claude Design Creator Observatory Home view.
  */
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   ImagePlus,
   Loader2,
@@ -25,13 +25,9 @@ import {
   XpPill,
 } from './HomeTabVision.styles';
 import {
-  AvatarMini,
-  ButtonRow,
   CenterGrid,
   Chip,
   ComposerInput,
-  FeedCard,
-  FeedHeader,
   GlassButton,
   MoodButton,
   MoodScroller,
@@ -40,9 +36,6 @@ import {
 import {
   CaptionCopy,
   ComposerActions,
-  FeedCopy,
-  FeedVideoFrame,
-  HandleStamp,
   IntentPreview,
   IntentTag,
   SpotlightImage,
@@ -54,6 +47,9 @@ import {
   LensPuck,
   LensStrip,
 } from './HomeTabVisionHero.styles';
+
+// Lazy: PostCard + comment machinery stay out of Home's initial chunk.
+const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
 
 interface HomeTabVisionCenterProps {
   avatarSrc: string;
@@ -89,11 +85,6 @@ interface HomeTabVisionCenterProps {
   onSubmitPost: (event: React.FormEvent<HTMLFormElement>) => void;
   topBarActions: ReadonlyArray<{ label: string; Icon: React.ElementType; count: number }>;
 }
-
-const swapToFallback = (fallbackSrc: string) => (event: React.SyntheticEvent<HTMLImageElement>) => {
-  event.currentTarget.onerror = null;
-  event.currentTarget.src = fallbackSrc;
-};
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   avatarSrc,
@@ -251,43 +242,13 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       </Panel>
     </CenterGrid>
 
-    {/* Workstream N2: the feed card shows the REAL latest post — real
-        timestamp, real engagement counts, real media — or nothing at all. */}
-    {latestPost ? (
-      <Panel as={FeedCard}>
-        <FeedHeader>
-          <ButtonRow>
-            <AvatarMini>
-              <img src={avatarSrc} alt="" aria-hidden="true" onError={swapToFallback(fallbackAvatarSrc)} />
-            </AvatarMini>
-            <div>
-              <strong>{displayName}</strong>
-              <HandleStamp>{handle} · {latestPost.timeAgo}</HandleStamp>
-            </div>
-          </ButtonRow>
-        </FeedHeader>
-        <FeedCopy>
-          {latestPost.caption || 'Shared a new drop.'}
-        </FeedCopy>
-        {latestPost.mediaUrl && (
-          <FeedVideoFrame>
-            {latestPost.isVideo ? (
-              <SpotlightVideo src={latestPost.mediaUrl} controls muted playsInline preload="metadata" />
-            ) : (
-              <SpotlightImage src={latestPost.mediaUrl} alt="Post media" />
-            )}
-          </FeedVideoFrame>
-        )}
-        <ButtonRow>
-          <Chip>{latestPost.likes.toLocaleString()} likes</Chip>
-          <Chip $tone="violet">{latestPost.comments.toLocaleString()} comments</Chip>
-        </ButtonRow>
-      </Panel>
-    ) : (
-      <Panel as={FeedCard}>
-        <FeedCopy>Your first post will land here — share what you're building above.</FeedCopy>
-      </Panel>
-    )}
+    {/* Workstream O2: the REAL scrolling community feed lives on Home now —
+        full PostCard interactions + infinite scroll (the retired Feed tab's
+        single duplicated surface). Replaces the old one-post feed card; the
+        Latest Drop spotlight above still owns the user's own latest media. */}
+    <Suspense fallback={null}>
+      <HomeCommunityFeed />
+    </Suspense>
   </CenterColumn>
 );
 
