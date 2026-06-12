@@ -63,21 +63,27 @@ export const HeroForeground = styled.div`
   z-index: 1;
 `;
 
-/* Workstream N3: 44px Edit-Cover entry on the Home hero — opens the same
-   embedded editor (photo/collage/layouts/presets) the feed cover uses. */
-export const EditCoverButton = styled.button`
+/* Workstream N3/N4: Edit-Cover entry on the Home hero — opens the same
+   embedded editor (photo/collage/layouts/presets) the feed cover uses.
+   Sits bottom-right, OUT of the cover's focal area. $compact (when a real
+   cover exists) collapses it to a 44px icon-only circle so it never
+   obstructs the photo/carousel; the labeled pill only shows over the
+   decorative backdrop. Always visible — no hover-only actions. */
+export const EditCoverButton = styled.button<{ $compact?: boolean }>`
   position: absolute;
-  top: 0.85rem;
+  bottom: 0.85rem;
   right: 0.85rem;
   z-index: 2;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
   min-height: 44px;
-  padding: 0 0.95rem;
+  min-width: 44px;
+  padding: ${({ $compact }) => ($compact ? '0' : '0 0.95rem')};
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--gilded-fern, #C6A84B) 55%, transparent);
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) ${({ $compact }) => ($compact ? '55%' : '72%')}, transparent);
   color: var(--gilded-fern, #C6A84B);
   font-size: 0.82rem;
   font-weight: 600;

@@ -78,9 +78,17 @@ const HomeTabHeroHeader: React.FC<HomeTabHeroHeaderProps> = ({
       </HeroRangesLayer>
     )}
     <GlowSweep />
-    <EditCoverButton type="button" onClick={onEditCover}>
-      <ImagePlus size={15} aria-hidden="true" />
-      {bannerLayer ? 'Edit cover' : 'Design your cover'}
+    {/* Compact icon-only over a real cover so the photo/carousel stays
+        unobstructed; full label only over the decorative backdrop. */}
+    <EditCoverButton
+      type="button"
+      onClick={onEditCover}
+      $compact={!!bannerLayer}
+      aria-label={bannerLayer ? 'Edit cover' : 'Design your cover'}
+      title={bannerLayer ? 'Edit cover' : 'Design your cover'}
+    >
+      <ImagePlus size={17} aria-hidden="true" />
+      {!bannerLayer && 'Design your cover'}
     </EditCoverButton>
     <HeroForeground>
       <HeroContent>
