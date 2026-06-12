@@ -486,6 +486,17 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Why:** Sean's words 2026-06-09 — "I want the AI to ask me questions to understand my thought process on every aspect of the sites I'm building so all AIs can know what I come to expect when building the SwanStudios app or any other app." Spending the extra time up front (sharpening the axe) jumps iteration-one quality from ~70% to ~90% and front-loads the context that pays off across every downstream slice. Full procedure: `.claude/skills/grill-me/SKILL.md`.
 
+65. **Strategy / Adversarial / Conversion / Self-Improvement skill suite (MANDATORY routing)** — Established 2026-06-11 from the Fable-5 use-case transcript (interview-before-build, hire-it-to-kill-your-company, copywriting tournament, make-it-build-its-own-tools). Four skills were added and `grill-me` gained a top-builder lens. Route to them by trigger; each lives at `.claude/skills/<name>/SKILL.md`:
+    - **`chromie`** — top-product-CEO strategy pressure-test. Interviews Sean through a configurable founder panel (default **Zuckerberg / Gates / Altman**), ONE hostile question at a time, pushing back on vague answers, then writes the spec + **3 ways it fails** + **absence-first gap analysis** (what's missing, ranked by value/money left on the table). Runs AFTER `grill-me` for any net-new bet whose success is unproven (new product/feature lane, monetization, roadmap call). grill-me extracts what Sean *wants*; Chromie pressure-tests whether it *wins*. Skip for features whose value is already proven (go straight to `swan-orchestrator`).
+    - **`attack-the-site`** — adversarial competitor/attacker red-team. Comes at a surface/feature/the whole product as a well-funded rival who wants to out-build SwanStudios + a malicious user abusing the product-as-designed; ranks threats by self-executability (cheapest/fastest first) and pairs each with a defend + out-build move. Distinct from `security-review` (code CVEs — hand those off) and `code-review` (correctness). Trigger: "attack the site," "red-team," "how would a competitor beat me."
+    - **`copy-tournament`** — conversion-copy generator: N variants → 5-judge panel (skeptical CFO / midnight-scrolling founder / competitor / ideal customer / conversion copywriter) → kill losers → merge winner → scoreboard. For landing pages, hero/pricing/ascension copy, email. Visual side routes through `swan-design-router`; honors the credentials rule (26+ years / NASM-protocol, never "NASM-certified") and rule 9.
+    - **`skill-harvest`** — the self-improvement loop: scans recent work for repeated requests and proposes turning them into skills/ref-docs/rules (gap-filtered against what exists), and names what Sean still does by hand that should be delegated. Proposes only — never writes a skill without Sean's yes. Complements `auto-research` (which *tunes* existing skills; skill-harvest *finds new ones*). This is the loop that created the three skills above.
+    - **`grill-me` top-builder lens (upgrade):** grill-me can now interview through the founder lens on request ("grill me like Zuckerberg") with sharper pushback, while staying *extraction*; when the question turns to "will it win," it hands off to `chromie`.
+
+    **Updated pipeline order:** `grill-me` (intent) → `chromie` (strategy pressure-test, if the bet is unproven) → `swan-orchestrator` (rule 15/17/26/32 gate) → `swan-design-router` (if UI) → build → `closeout-evidence-lock`. `attack-the-site`, `copy-tournament`, and `skill-harvest` are triggered on demand, not in the linear build path.
+
+    **Why:** the transcript's core lesson — don't one-shot; use interview-before-build, adversarial multi-persona panels, and self-improving tooling. The skills institutionalize the highest-value techniques that weren't already covered by the existing gates. Privacy (rule 8): all skill output docs are committed — IDs/roles only, no PII/secrets.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -700,11 +711,19 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12, `.claude/skills/` count = 15)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy suite added 2026-06-11, `.claude/skills/` count = 19)
 
-The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64).
+The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 15 entries
+### Default-exposed `.claude/skills/` = 19 entries
+
+**Strategy / adversarial / conversion / self-improvement (4) — rule 65:**
+| Skill | Role |
+|---|---|
+| `chromie` | Top-product-CEO strategy pressure-test. Founder-panel interrogation (Zuck/Gates/Altman default), hostile pushback, spec + 3 ways it fails + absence-first gap ranking. Runs after `grill-me` for unproven bets. |
+| `attack-the-site` | Adversarial competitor/attacker red-team. Rival-founder + malicious-user hats; ranks threats by self-executability with defend + out-build moves. Distinct from `security-review` (code CVEs). |
+| `copy-tournament` | N copy variants → 5-judge panel → kill/merge/scoreboard for conversion surfaces. Visual side via `swan-design-router`. |
+| `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 
 **Swan orchestration (6):**
 | Skill | Role |

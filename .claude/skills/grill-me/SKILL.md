@@ -67,6 +67,16 @@ While grilling, build a real picture of the **whole**, not just the one componen
 
 This is the context that makes Phase 2's suggestions credible: grill-me can only recommend "fewer clicks here" or "this feature is missing" if it understands the parent, the children, and the loop they serve.
 
+### Optional: the top-builder lens (and when to hand off to Chromie)
+
+Sean can ask grill-me to interview him **through the lens of the world's top application builders** — "grill me like Zuckerberg" / "interview me like a top founder." When that lens is on, keep grill-me's job (extract Sean's vision/taste) but sharpen the questioning: hunt harder for the assumption he hasn't examined, and push back on vague answers instead of accepting the first reasonable one ("that's half an answer — give me the specific scene"). Default panel if Sean doesn't name names: Zuckerberg / Gates / Altman (swappable).
+
+Know the boundary, though — this lens is still **extraction**, not strategy pressure-testing:
+- If the question is *"what does Sean want / what is this / how should it feel,"* that's grill-me (with or without the lens).
+- If the question becomes *"will this actually win — PMF, moat, monetization, what kills it,"* that's **`chromie`**, the dedicated CEO pressure-test (founder panel, hostile pushback, spec + 3 ways it fails + absence-first gap ranking). Hand off: finish capturing the vision here, then say *"the vision's captured — want me to run Chromie to pressure-test whether it wins before we plan?"*
+
+Order stays: grill-me (intent) → chromie (strategy, if the bet is unproven) → swan-orchestrator → swan-design-router (if UI) → build → closeout.
+
 ### How to ask in Claude Code
 - Use the **`AskUserQuestion` tool** when the question has discrete, mutually-exclusive options (it gives Sean tap-to-answer chips and renders option previews for UI/layout choices — use the `preview` field for ASCII mockups or code snippets when comparing concrete artifacts).
 - Use **plain chat, one question per message** when the question is open-ended ("walk me through how you think about X"). Still lead with your recommended answer.
