@@ -8,6 +8,14 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 
 - **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
+## Four-C Router (second brain — where everything lives)
+> Navigation layer (Nate Herk "CLAUDE.md = router" model). This points to content that lives elsewhere in this file and the repo — it does not restate it. **Tool-agnostic:** AGENTS.md carries the identical map so Codex and Claude orient the same way. Fresh-session orientation: read this router → `ACTIVE-INDEX.md` → `.ai-workflow/continuity/rolling-last-done.md` (per the Source-of-Truth load order below).
+
+- **C1 — Context** (who/what we are): Identity + Product Core Loop + Active Palette (above); the 66 MANDATORY rules + dual-pass disciplines (below); vision/strategy in `docs/ai-workflow/references/` (BEST-IN-CLASS-TRAINING-APP-STRATEGY, SWANSTUDIOS-FULL-VISION, SWANSTUDIOS-MASTER-PROMPT) and `AI-HANDOFF/`. **Orient here first**, then `ACTIVE-INDEX.md` + the continuity bridge.
+- **C2 — Connections** (live data the brain reaches): LIVE = Render PostgreSQL, Cloudflare R2, `scripts/consult-gemini.mjs`/`consult-codex.mjs`, Hermes bridge (Sean-only, gated), Swan Oracle/SerpAPI. PLANNED (Stripe-read, calendar, accounting, Plaud, wearables) → `docs/ai-workflow/references/FOUR-C-CONNECTIONS-CADENCE-ROADMAP.md`.
+- **C3 — Capabilities** (what we can do): 20 `.claude/skills/` (see Swan Visual Operating System below), AI Village (`scripts/validation-orchestrator.mjs`), repo `scripts/`.
+- **C4 — Cadence** (runs on trigger/schedule, not just manually): LIVE = continuity bridge, pre-commit secret scan, `prompt-watcher` UserPromptSubmit hook (rule 66). PLANNED (nightly admin briefing, stale-client alert, deploy-health watch) → same roadmap doc. Automation must earn trust: keys-not-prompts, owner, kill switch (rule 48/50).
+
 ## Product Core Loop
 SwanStudios is workout-progress-first. The main product loop is: log the workout -> save the workout diary entry -> turn it into charts/progress proof -> help the user, trainer, and admin decide the next training action -> make meaningful milestones shareable with the community.
 
@@ -719,6 +727,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | SwanStudios Master Prompt | `docs/ai-workflow/references/SWANSTUDIOS-MASTER-PROMPT.md` | **Canonical compact vision loader** (2026-06-10) — ready-to-paste prompt giving any AI the complete vision in one shot. Supersedes all archived "MASTER PROMPT" docs. Use when briefing a fresh AI/session; FULL-VISION.md stays the deep reference. |
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
+| Four-C Connections/Cadence Roadmap | `docs/ai-workflow/references/FOUR-C-CONNECTIONS-CADENCE-ROADMAP.md` | Planned C2 (live-data connections) + C4 (scheduled/triggered automations) build-out. Pointed to by the Four-C Router. Read when scoping a connection or automation; loaded on demand to keep the operating files lean. |
 
 ## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11, `.claude/skills/` count = 20)
 
