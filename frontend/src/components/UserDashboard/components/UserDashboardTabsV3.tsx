@@ -31,11 +31,11 @@ import type { FollowStats, SocialPost, UserProfile } from '../../../services/pro
 
 const HomeTab = lazy(() => import('./HomeTab'));
 const DashboardFeedTab = lazy(() => import('./DashboardFeedTab'));
+const StudioLenses = lazy(() => import('./UserDashboardStudioLenses'));
 const VerticalReels = lazy(() => import('../../Social/Reels/VerticalReels'));
 const FriendsList = lazy(() => import('../../Social/Friends/FriendsList'));
 const ChallengesView = lazy(() => import('../../Social/Challenges/ChallengesView'));
 const DashboardNotificationsTab = lazy(() => import('./DashboardNotificationsTab'));
-const CommunityTab = lazy(() => import('./CommunityTab'));
 const CreativeGallery = lazy(() => import('./CreativeGallery'));
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
 const AboutSection = lazy(() => import('./AboutSection'));
@@ -155,12 +155,16 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           <DashboardNotificationsTab />
         </SectionChrome>
       </TabPanel>
+      {/* Workstream N5: the Studio group — one bar entry, four lenses.
+          Each lens keeps its own TabId + URL; the strip switches in place. */}
       <TabPanel id="creative" activeTab={activeTab}>
+        <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="creative">
           <CreativeGallery />
         </SectionChrome>
       </TabPanel>
       <TabPanel id="photos" activeTab={activeTab}>
+        <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="photos">
           <TabStack>
             <TransformationPhotoShowcase
@@ -173,11 +177,13 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
         </SectionChrome>
       </TabPanel>
       <TabPanel id="about" activeTab={activeTab}>
+        <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="about">
           <AboutSection />
         </SectionChrome>
       </TabPanel>
       <TabPanel id="activity" activeTab={activeTab}>
+        <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="activity">
           <ActivitySection />
         </SectionChrome>
@@ -192,11 +198,9 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           <WorkoutsTab />
         </SectionChrome>
       </TabPanel>
-      <TabPanel id="community" activeTab={activeTab}>
-        <SectionChrome id="community">
-          <CommunityTab />
-        </SectionChrome>
-      </TabPanel>
+      {/* Workstream N5: the Community launcher panel is unmounted — its cards
+          duplicated tabs that are now first-class (Friends/Challenges); the
+          component file stays on disk per rule 34 pending the cleanup pass. */}
       <TabPanel id="profile" activeTab={activeTab}>
         <SectionChrome id="profile">
           <TabStack>

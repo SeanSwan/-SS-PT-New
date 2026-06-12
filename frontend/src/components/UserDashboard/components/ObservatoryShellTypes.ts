@@ -15,6 +15,8 @@ export interface ObservatoryNavItem {
   id: TabId;
   label: string;
   Icon: LucideIcon;
+  /** Grouped entries (N5 tab compaction): tab ids this entry highlights for. */
+  matches?: readonly TabId[];
 }
 
 export interface ObservatoryBadge {

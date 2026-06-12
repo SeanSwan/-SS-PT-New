@@ -79,18 +79,21 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
       </LeftRailBrand>
       <ObservatoryGlassPanel>
         <LeftRailNavList role="navigation" aria-label="Dashboard sections">
-          {navItems.map(({ id, label, Icon }) => (
-            <LeftRailNavItem
-              key={id}
-              type="button"
-              $active={activeTab === id}
-              onClick={() => onTabChange(id)}
-              aria-current={activeTab === id ? 'page' : undefined}
-            >
-              <Icon size={18} aria-hidden="true" />
-              {label}
-            </LeftRailNavItem>
-          ))}
+          {navItems.map(({ id, label, Icon, matches }) => {
+            const isActive = matches ? matches.includes(activeTab) : activeTab === id;
+            return (
+              <LeftRailNavItem
+                key={id}
+                type="button"
+                $active={isActive}
+                onClick={() => onTabChange(id)}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <Icon size={18} aria-hidden="true" />
+                {label}
+              </LeftRailNavItem>
+            );
+          })}
         </LeftRailNavList>
       </ObservatoryGlassPanel>
       <LeftRailMomentumCard>

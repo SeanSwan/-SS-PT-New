@@ -94,7 +94,19 @@ export type TabId =
   | 'community'
   | 'profile';
 
-/** Canonical tab list — used for /user-dashboard/:tab URL validation (merge N1). */
+/**
+ * Workstream N5 (tab compaction): the Studio group — four media/identity
+ * lenses that share ONE visible nav entry. Each remains a real tab with its
+ * own URL; an in-panel lens strip switches between them.
+ */
+export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'photos', 'about', 'activity'];
+
+/**
+ * Canonical tab list — used for /user-dashboard/:tab URL validation (merge N1).
+ * 'community' stays in the TabId union for legacy types but is NOT routable —
+ * its launcher panel was unmounted in N5 (cards duplicated first-class tabs);
+ * /user-dashboard/community falls back to home.
+ */
 export const USER_DASHBOARD_TAB_IDS: readonly TabId[] = [
   'home',
   'feed',
@@ -108,7 +120,6 @@ export const USER_DASHBOARD_TAB_IDS: readonly TabId[] = [
   'activity',
   'nutrition',
   'progress',
-  'community',
   'profile',
 ];
 

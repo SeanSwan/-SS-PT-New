@@ -10,25 +10,24 @@
  */
 
 import {
-  Activity,
   Aperture,
   Bell,
-  Camera,
   Dumbbell,
   Home,
-  Info,
   Sparkles,
   Trophy,
-  UserCircle2,
   UserPlus,
-  Users,
   Utensils,
   Video,
 } from 'lucide-react';
 
 import type { TransformationPhoto, PhotoVisibility } from './TransformationPhotoTypes';
 import type { ObservatoryNavItem } from './ObservatoryShellTypes';
+import { STUDIO_TAB_IDS } from '../types/UserDashboardTypes';
 
+/* Workstream N5 (tab compaction): 14 → 9 entries, mirroring the tab bar.
+   Studio groups Creative/Photos/About/Activity; Profile + Community keep
+   their panels + URLs but leave the nav. */
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',          label: 'Home',          Icon: Home },
   { id: 'progress',      label: 'Progress',      Icon: Dumbbell },
@@ -37,13 +36,8 @@ export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'friends',       label: 'Friends',       Icon: UserPlus },
   { id: 'challenges',    label: 'Challenges',    Icon: Trophy },
   { id: 'notifications', label: 'Alerts',        Icon: Bell },
-  { id: 'creative',      label: 'Creative',      Icon: Aperture },
-  { id: 'photos',        label: 'Photos',        Icon: Camera },
-  { id: 'about',         label: 'About',         Icon: Info },
-  { id: 'activity',      label: 'Activity',      Icon: Activity },
   { id: 'nutrition',     label: 'Nutrition',     Icon: Utensils },
-  { id: 'community',     label: 'Community',     Icon: Users },
-  { id: 'profile',       label: 'Profile',       Icon: UserCircle2 },
+  { id: 'creative',      label: 'Studio',        Icon: Aperture, matches: STUDIO_TAB_IDS },
 ];
 
 export function getTransformationPhotos(

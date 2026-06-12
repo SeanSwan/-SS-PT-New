@@ -289,25 +289,16 @@ describe('UserDashboard V3 daily loop contract', () => {
     expectStyleBlockContains(uploadSource, 'ImageUploadButton', 'pointer-events: auto;');
   });
 
-  it('keeps every mounted UserDashboard V3 tab reachable from primary navigation', () => {
+  it('keeps every mounted UserDashboard V3 tab reachable from navigation (N5 compacted model)', () => {
     const tabBarSource = readSource('src/components/UserDashboard/components/UserDashboardTabBarV3.tsx');
     const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
-    const expectedTabs = [
-      'home',
-      'feed',
-      'reels',
-      'creative',
-      'photos',
-      'about',
-      'activity',
-      'nutrition',
-      'progress',
-      'community',
-      'profile',
-    ];
+    const lensesSource = readSource('src/components/UserDashboard/components/UserDashboardStudioLenses.tsx');
+    const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
 
-    expectedTabs.forEach((tabId) => {
+    // Bar/rail entries — Studio's id is 'creative' (the group's landing lens).
+    const barTabs = ['home', 'progress', 'feed', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
+    barTabs.forEach((tabId) => {
       expect(tabsSource, `${tabId} panel must exist before navigation can expose it`)
         .toContain(`<TabPanel id="${tabId}"`);
       expect(tabBarSource, `${tabId} must be reachable from sticky tab navigation`)
@@ -315,6 +306,48 @@ describe('UserDashboard V3 daily loop contract', () => {
       expect(adapterSource, `${tabId} must be reachable from desktop observatory rail`)
         .toContain(`id: '${tabId}'`);
     });
+
+    // Studio lenses are reachable via the in-panel strip.
+    ['photos', 'about', 'activity'].forEach((tabId) => {
+      expect(tabsSource, `${tabId} panel must exist`).toContain(`<TabPanel id="${tabId}"`);
+      expect(lensesSource, `${tabId} must be reachable from the Studio lens strip`)
+        .toContain(`id: '${tabId}'`);
+    });
+
+    // Profile panel is reachable via the Settings flow.
+    expect(tabsSource).toContain('<TabPanel id="profile"');
+    expect(controllerSource).toContain("setActiveTab('profile')");
+
+    // Community is unmounted (duplicate launcher) — no orphan panel.
+    expect(tabsSource).not.toContain('<TabPanel id="community"');
+  });
+
+  it('compacts the tab bar to the Studio group without breaking deep links (workstream N5)', () => {
+    const tabBarSource = readSource('src/components/UserDashboard/components/UserDashboardTabBarV3.tsx');
+    const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
+    const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
+    const leftRailSource = readSource('src/components/UserDashboard/components/ObservatoryLeftRail.tsx');
+
+    // One Studio entry replaces Creative/Photos/About/Activity in BOTH navs.
+    [tabBarSource, adapterSource].forEach((source) => {
+      expect(source).toContain("label: 'Studio'");
+      expect(source).toContain('matches: STUDIO_TAB_IDS');
+      expect(source).not.toContain("label: 'Photos'");
+      expect(source).not.toContain("label: 'About'");
+      expect(source).not.toContain("label: 'Activity'");
+      // Profile (Settings flow) and Community leave the bar but keep panels.
+      expect(source).not.toContain("id: 'profile'");
+      expect(source).not.toContain("id: 'community'");
+    });
+    // Grouped active state highlights Studio for every lens.
+    expect(tabBarSource).toContain('matches.includes(activeTab)');
+    expect(leftRailSource).toContain('matches.includes(activeTab)');
+    // Every lens + the Settings-flow profile keep their panels (URL-routable).
+    ['creative', 'photos', 'about', 'activity', 'profile'].forEach((id) => {
+      expect(tabsSource).toContain(`<TabPanel id="${id}"`);
+    });
+    // The four studio panels carry the in-panel lens strip.
+    expect(tabsSource.match(/<StudioLenses activeTab={activeTab} onTabChange={onTabChange} \/>/g)).toHaveLength(4);
   });
 
   it('keeps Progress immediately after Home in user-dashboard navigation', () => {
