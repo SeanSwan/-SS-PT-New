@@ -1,5 +1,7 @@
 # Phase Audit Record — Social Hub Merge (Workstream M, M1–M6)
 
+> **M7 ADDENDUM (2026-06-11, commit `0893291ef`) — REDIRECT DIRECTION INVERTED.** Sean's correction: the merged hub is the USER DASHBOARD home, so the canonical URL moved back to `/user-dashboard` (mounting SocialPage.V3 directly, incl. `/:tab`); `/social` and `/social/:tab` are now the redirect aliases. All hub-internal navigations, nav entries (DashboardSelector "My Dashboard", MobileMenu, signup), homepage CTAs, and the plain-`user` login landing point at `/user-dashboard`. Everything below describing the M1–M6 feature work remains accurate; only §3's route diagram and §5's redirect direction are superseded by M7.
+
 ## 1. Phase header
 - **Phase:** Workstream M — merge /user-dashboard (Crystalline Observatory) into /social, "One Hub — Observatory absorbed" (Sean-ratified direction A).
 - **Scope:** six slices + a visual-QA pass. Brainstorm/decision doc: `docs/ai-workflow/brainstorms/social-hub-merge-2026-06-11.md`.
