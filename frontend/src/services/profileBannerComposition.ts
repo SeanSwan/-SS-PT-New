@@ -35,6 +35,9 @@ export const BANNER_COLLAGE_LAYOUT_OPTIONS = [
   'stream',
   'mosaic',
   'spotlight',
+  // 2026-06-11 (M5b): cinematic crossfade hero — stacked photos fading
+  // through with a slow Ken-Burns drift. Standalone (NOT a marquee carousel).
+  'crossfade',
   ...BANNER_CAROUSEL_LAYOUT_OPTIONS,
 ] as const;
 export type BannerCollageLayout = (typeof BANNER_COLLAGE_LAYOUT_OPTIONS)[number];

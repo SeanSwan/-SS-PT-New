@@ -5,6 +5,12 @@ import {
   BannerCollageMediaFrame,
   BannerCollageVideo,
   BannerCarouselTrack,
+  BannerCrossfadeDot,
+  BannerCrossfadeDots,
+  BannerCrossfadeImage,
+  BannerCrossfadeLayer,
+  BannerCrossfadeScrim,
+  BannerCrossfadeVideo,
   BannerImage,
   BannerStickyCarouselFrame,
   BannerStickyCarouselImage,
@@ -58,6 +64,29 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
     ));
   }, []);
 
+  /* M5b crossfade hero: JS-driven active index (adaptive to photo count —
+     pure-CSS keyframe percentages can't parametrize N). Hooks stay top-level
+     so the hook order never changes across layout switches. */
+  const isCrossfade =
+    bannerObjectFit === 'collage'
+    && bannerCollageLayout === 'crossfade'
+    && bannerCollagePhotos.length > 0;
+  const crossfadePhotoCount = Math.min(bannerCollagePhotos.length, MAX_BANNER_COLLAGE_PHOTOS);
+  const [crossfadeIndex, setCrossfadeIndex] = React.useState(0);
+  React.useEffect(() => {
+    if (!isCrossfade || crossfadePhotoCount < 2) return undefined;
+    // Reduced-motion users keep a static first photo — no cycling.
+    if (typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return undefined;
+    }
+    const id = window.setInterval(
+      () => setCrossfadeIndex((current) => (current + 1) % crossfadePhotoCount),
+      6500,
+    );
+    return () => window.clearInterval(id);
+  }, [isCrossfade, crossfadePhotoCount]);
+
   if (bannerObjectFit === 'tile' && backgroundImage) {
     return (
       <BannerTileLayer style={{ '--banner-image-scale': String(bannerImageScale) } as React.CSSProperties}>
@@ -71,6 +100,47 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
           />
         ))}
       </BannerTileLayer>
+    );
+  }
+
+  if (isCrossfade) {
+    const photos = bannerCollagePhotos.slice(0, MAX_BANNER_COLLAGE_PHOTOS);
+    const activeIndex = crossfadeIndex % photos.length;
+    return (
+      <BannerCrossfadeLayer data-testid="banner-crossfade-layer">
+        {photos.map((photo, index) => (
+          isBannerVideoUrl(photo) ? (
+            <BannerCrossfadeVideo
+              key={`${photo}-${index}`}
+              src={photo}
+              data-testid="banner-crossfade-video"
+              $active={index === activeIndex}
+              muted
+              loop
+              autoPlay
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <BannerCrossfadeImage
+              key={`${photo}-${index}`}
+              src={photo}
+              alt=""
+              data-testid="banner-crossfade-image"
+              $active={index === activeIndex}
+              draggable={false}
+            />
+          )
+        ))}
+        <BannerCrossfadeScrim />
+        {photos.length > 1 && (
+          <BannerCrossfadeDots aria-hidden="true">
+            {photos.map((photo, index) => (
+              <BannerCrossfadeDot key={`${photo}-dot-${index}`} $active={index === activeIndex} />
+            ))}
+          </BannerCrossfadeDots>
+        )}
+      </BannerCrossfadeLayer>
     );
   }
 

@@ -162,6 +162,9 @@ const BANNER_COLLAGE_LAYOUTS = new Set([
   'stream',
   'mosaic',
   'spotlight',
+  // 2026-06-11 (M5b): cinematic crossfade hero — must stay in sync with
+  // frontend BANNER_COLLAGE_LAYOUT_OPTIONS (profileBannerComposition.ts).
+  'crossfade',
   'carousel-reel',
   'carousel-cinema',
   'carousel-coverflow',

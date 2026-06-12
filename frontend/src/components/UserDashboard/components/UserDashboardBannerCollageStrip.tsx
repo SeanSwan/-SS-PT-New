@@ -39,6 +39,7 @@ const COLLAGE_LAYOUT_LABELS: Record<BannerCollageLayout, { label: string; aria: 
   stream: { label: 'Stream', aria: 'stream' },
   mosaic: { label: 'Mosaic', aria: 'mosaic' },
   spotlight: { label: 'Spotlight', aria: 'spotlight' },
+  crossfade: { label: 'Crossfade', aria: 'cinematic crossfade hero' },
   'carousel-reel': { label: 'Reel', aria: 'reel carousel' },
   'carousel-cinema': { label: 'Cinema', aria: 'cinema carousel' },
   'carousel-coverflow': { label: 'Coverflow', aria: 'coverflow carousel' },

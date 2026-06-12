@@ -5,6 +5,8 @@ import FeedCoverStudio from './FeedCoverStudio';
 import NotificationBell from '../NotificationBell';
 import TrendingHashtags from '../TrendingHashtags';
 import { RecentActivityBanner } from './SocialFeedPanels';
+import UserDashboardBannerMediaLayer from '../../../UserDashboard/components/UserDashboardBannerMediaLayer';
+import { useSocialCoverBanner } from '../hooks/useSocialCoverBanner';
 import { FeedTopBar } from '../styles/SocialFeedStyles';
 import type { SocialFeedViewModel } from '../hooks/useSocialFeedViewModel';
 
@@ -27,14 +29,34 @@ const SocialFeedRecentActivity: React.FC<SocialFeedSectionsProps> = ({ viewModel
    Its metric rail owns the feed numbers (the old FullFeedStats and
    FullGamificationHeader duplicated facts the page sidebar + Coach dock
    already carry — retired per the no-duplicate-facts card standard). */
-const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => (
-  <FeedCoverStudio
-    stats={viewModel.feedStats}
-    isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
-    onCreatePostFocus={viewModel.handleCreatePostFocus}
-    identity={viewModel.identity}
-  />
-);
+const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
+  /* M5b: the user's REAL banner composition (crossfade/mosaic/photo) becomes
+     the cover backdrop. Sticky-carousel is hard-disabled on /social — its
+     fixed-position strip collides with the page chrome. Null -> the cover
+     keeps its decorative panels. */
+  const coverBanner = useSocialCoverBanner();
+  const bannerLayer = coverBanner ? (
+    <UserDashboardBannerMediaLayer
+      backgroundImage={coverBanner.backgroundImage}
+      bannerObjectPosition={coverBanner.bannerObjectPosition}
+      bannerObjectFit={coverBanner.bannerObjectFit}
+      bannerImageScale={coverBanner.bannerImageScale}
+      bannerCollagePhotos={coverBanner.bannerCollagePhotos}
+      bannerCollageLayout={coverBanner.bannerCollageLayout}
+      bannerStickyCarousel={false}
+    />
+  ) : null;
+
+  return (
+    <FeedCoverStudio
+      stats={viewModel.feedStats}
+      isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
+      onCreatePostFocus={viewModel.handleCreatePostFocus}
+      identity={viewModel.identity}
+      bannerLayer={bannerLayer}
+    />
+  );
+};
 
 const SocialFeedActivityTicker: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
   if (viewModel.activityEvents.length === 0) return null;

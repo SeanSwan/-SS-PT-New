@@ -60,6 +60,35 @@ describe('SocialFeed cover studio contract', () => {
     expect(identityStylesSource).not.toMatch(/keyframes|animation:/);
   });
 
+  it('surfaces the user’s REAL banner as the cover backdrop (merge M5b)', () => {
+    const hookSource = readSource('./hooks/useSocialCoverBanner.ts');
+    const mediaLayerSource = readSource(
+      '../../UserDashboard/components/UserDashboardBannerMediaLayer.tsx',
+    );
+    // Cover accepts the layer; decorative panels stay as the fallback.
+    expect(studioSource).toContain('bannerLayer');
+    expect(studioSource).toContain('{!bannerLayer && (');
+    // Sections fetch + wire it, with the sticky strip hard-disabled on /social.
+    expect(sectionsSource).toContain('useSocialCoverBanner');
+    expect(sectionsSource).toContain('bannerStickyCarousel={false}');
+    // The hook is the lightweight read — it never imports the heavy useProfile.
+    expect(hookSource).not.toMatch(/import .*useProfile/);
+    expect(hookSource).toContain('decorative fallback');
+    // Crossfade hero: reduced-motion users get a static photo (no cycling),
+    // and the media layer drives the index adaptively in JS.
+    expect(mediaLayerSource).toContain("'(prefers-reduced-motion: reduce)'");
+    expect(mediaLayerSource).toContain('setCrossfadeIndex');
+  });
+
+  it('keeps the crossfade layout in lockstep across frontend and backend (drift guard)', () => {
+    const compositionSource = readSource('../../../services/profileBannerComposition.ts');
+    const backendController = readSource(
+      '../../../../../backend/controllers/profileController.mjs',
+    );
+    expect(compositionSource).toContain("'crossfade',");
+    expect(backendController).toContain("'crossfade',");
+  });
+
   it('kills the cover bottom dead-zone: responsive stage height, lighter bottom padding', () => {
     // Fixed 230px stage was the awkward dead block on phones/narrow columns.
     expect(studioStylesSource).not.toContain('min-height: 230px');

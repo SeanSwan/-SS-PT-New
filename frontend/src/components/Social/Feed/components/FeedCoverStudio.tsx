@@ -58,6 +58,9 @@ interface FeedCoverStudioProps {
   onCreatePostFocus: () => void;
   /** Merge M2: real-data identity strip; null renders the anonymous cover. */
   identity?: CoverIdentity | null;
+  /** Merge M5b: the user's REAL banner media (crossfade/mosaic/photo) rendered
+   *  inside the stage in place of the decorative panels; null keeps them. */
+  bannerLayer?: React.ReactNode;
 }
 
 const formatTier = (tier: string) =>
@@ -75,6 +78,7 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
   isLive,
   onCreatePostFocus,
   identity = null,
+  bannerLayer = null,
 }) => {
   const milestoneCount = stats.achievementPosts + stats.transformationPosts;
   const engagementCount = stats.totalLikes + stats.totalComments;
@@ -163,17 +167,22 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
 
       <Stage aria-hidden="true">
         <CoverFrame>
+          {/* M5b: the user's real banner media leads when it exists; the
+              decorative panels remain the anonymous/empty fallback. */}
+          {bannerLayer}
           <StageHeader>
             <StageBadge>
               <Activity size={14} />
-              Community signal
+              {bannerLayer ? 'Your cover' : 'Community signal'}
             </StageBadge>
           </StageHeader>
-          <CoverGrid>
-            <CoverPanel $tone="primary" />
-            <CoverPanel $tone="accent" />
-            <CoverPanel $tone="gold" />
-          </CoverGrid>
+          {!bannerLayer && (
+            <CoverGrid>
+              <CoverPanel $tone="primary" />
+              <CoverPanel $tone="accent" />
+              <CoverPanel $tone="gold" />
+            </CoverGrid>
+          )}
         </CoverFrame>
       </Stage>
 

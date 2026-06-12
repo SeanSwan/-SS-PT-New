@@ -129,6 +129,43 @@ export const BannerCollageMediaFrame = styled.div`
     max-height: none;
   }
 
+  /* M5b crystalline chrome (2026-06-11): mosaic/spotlight tiles get the
+     SheenCard-class treatment — crisper radius, layered cyan ring + depth,
+     and a soft top sheen so the bento reads premium instead of flat. */
+  ${BannerCollageLayer}[data-layout='mosaic'] &,
+  ${BannerCollageLayer}[data-layout='spotlight'] & {
+    position: relative;
+    border-radius: 10px;
+    box-shadow:
+      0 16px 34px color-mix(in srgb, var(--bg-base, #0A0A0F) 52%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
+  }
+
+  ${BannerCollageLayer}[data-layout='mosaic'] &::after,
+  ${BannerCollageLayer}[data-layout='spotlight'] &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent) 0%,
+      transparent 26%
+    );
+  }
+
+  /* Featured tiles carry the Gilded Fern luxury edge. */
+  ${BannerCollageLayer}[data-layout='mosaic'] &[data-index='0'],
+  ${BannerCollageLayer}[data-layout='mosaic'] &[data-index='3'],
+  ${BannerCollageLayer}[data-layout='spotlight'] &[data-index='0'] {
+    box-shadow:
+      0 18px 40px color-mix(in srgb, var(--bg-base, #0A0A0F) 56%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-gold, #C6A84B) 38%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 16%, transparent);
+  }
+
   ${BannerCollageLayer}[data-layout='mosaic'] &[data-index='0'],
   ${BannerCollageLayer}[data-layout='mosaic'] &[data-index='3'] {
     grid-column: span 4;

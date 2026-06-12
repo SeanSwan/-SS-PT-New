@@ -211,6 +211,9 @@ export const CoverFrame = styled.div`
 `;
 
 export const StageHeader = styled.div`
+  /* M5b: keep the badge above the absolute banner media layers. */
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   padding: 12px;
