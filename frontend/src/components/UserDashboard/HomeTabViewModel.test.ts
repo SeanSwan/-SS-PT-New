@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
+  buildHomeTrainingProof,
   buildLatestPostView,
   buildCreatorStats,
   extractTrendingTagNames,
@@ -134,6 +135,34 @@ describe('HomeTabViewModel', () => {
     preview.hashtags.forEach((tag) => {
       expect(payload.content).toContain(tag);
     });
+  });
+
+  it('buckets logged workouts into a REAL 4-week trend with a truthful share line', () => {
+    const nowMs = new Date('2026-06-12T12:00:00Z').getTime();
+    const day = 24 * 60 * 60 * 1000;
+    const proof = buildHomeTrainingProof([
+      { id: 'w1', title: 'Push Day', date: new Date(nowMs - 1 * day).toISOString(), duration: 45 },
+      { id: 'w2', date: new Date(nowMs - 2 * day).toISOString(), duration: 30 },
+      { id: 'w3', title: 'Leg Day', date: new Date(nowMs - 9 * day).toISOString(), duration: 60 },
+      { id: 'w4', date: new Date(nowMs - 22 * day).toISOString() },
+      { id: 'old', date: new Date(nowMs - 60 * day).toISOString() },
+    ], nowMs);
+
+    // w4 is 22d ago (4th week back → bucket 0); w3 is 9d (bucket 2); w1+w2 this week (bucket 3).
+    expect(proof.weeklyCounts).toEqual([1, 0, 1, 2]);
+    expect(proof.thisWeekCount).toBe(2);
+    expect(proof.minutesThisWeek).toBe(75);
+    expect(proof.lastSession).toEqual({ title: 'Push Day', when: '1d ago' });
+    expect(proof.shareLine).toBe('Logged 2 workouts this week — 75 focused minutes. Progress you can see.');
+  });
+
+  it('reports honest zeros and no share line when nothing is logged', () => {
+    const proof = buildHomeTrainingProof([], new Date('2026-06-12T12:00:00Z').getTime());
+
+    expect(proof.weeklyCounts).toEqual([0, 0, 0, 0]);
+    expect(proof.thisWeekCount).toBe(0);
+    expect(proof.lastSession).toBeNull();
+    expect(proof.shareLine).toBeNull();
   });
 
   it('builds the latest-post view from REAL fields — no fabricated engagement numbers', () => {

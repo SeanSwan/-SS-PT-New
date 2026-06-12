@@ -202,6 +202,66 @@ export function buildLatestPostView(
   };
 }
 
+/** Real training proof from logged workout sessions — the Product Core Loop on Home. */
+export interface HomeTrainingProof {
+  thisWeekCount: number;
+  minutesThisWeek: number;
+  /** Last 4 weeks of logged-workout counts, oldest → current. REAL buckets. */
+  weeklyCounts: number[];
+  lastSession: { title: string; when: string } | null;
+  /** Prefill for the composer — the smart-hashtag system types/tags it. */
+  shareLine: string | null;
+}
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function buildHomeTrainingProof(
+  sessions: unknown[] | null | undefined,
+  nowMs: number,
+): HomeTrainingProof {
+  const weeklyCounts = [0, 0, 0, 0];
+  let minutesThisWeek = 0;
+  let last: { timeMs: number; title: string } | null = null;
+
+  for (const session of sessions || []) {
+    if (!session || typeof session !== 'object') continue;
+    const record = session as Record<string, unknown>;
+    const rawDate = record.date ?? record.completedAt ?? record.createdAt;
+    const timeMs = new Date(String(rawDate || '')).getTime();
+    if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
+
+    const weeksAgo = Math.floor((nowMs - timeMs) / WEEK_MS);
+    if (weeksAgo < 4) {
+      weeklyCounts[3 - weeksAgo] += 1;
+      if (weeksAgo === 0) {
+        const duration = Number(record.duration);
+        if (Number.isFinite(duration) && duration > 0) minutesThisWeek += Math.floor(duration);
+      }
+    }
+    if (!last || timeMs > last.timeMs) {
+      const title = typeof record.title === 'string' && record.title.trim()
+        ? record.title.trim()
+        : 'Workout';
+      last = { timeMs, title };
+    }
+  }
+
+  const thisWeekCount = weeklyCounts[3];
+  const shareLine = thisWeekCount > 0
+    ? `Logged ${thisWeekCount} workout${thisWeekCount === 1 ? '' : 's'} this week${
+        minutesThisWeek > 0 ? ` — ${minutesThisWeek} focused minutes` : ''
+      }. Progress you can see.`
+    : null;
+
+  return {
+    thisWeekCount,
+    minutesThisWeek,
+    weeklyCounts,
+    lastSession: last ? { title: last.title, when: formatAgo(new Date(last.timeMs).toISOString(), nowMs) } : null,
+    shareLine,
+  };
+}
+
 export function parseUnreadNotificationCount(payload: unknown): number {
   const data = payload as { unreadCount?: CountValue; notifications?: Array<Record<string, unknown>> } | undefined;
   if (hasCount(data?.unreadCount)) return toSafeCount(data?.unreadCount);

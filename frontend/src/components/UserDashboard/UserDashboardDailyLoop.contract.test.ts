@@ -132,9 +132,12 @@ describe('UserDashboard V3 daily loop contract', () => {
     const railSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
     const moodsSource = readSource('src/components/UserDashboard/components/HomeTabVision.data.ts');
 
-    // The identity header carries the user's REAL cover (photo/collage/carousel).
-    expect(homeSource).toContain('useSocialCoverBanner');
-    expect(homeSource).toContain('UserDashboardBannerMediaLayer');
+    // The identity header carries the user's REAL cover (photo/collage/carousel)
+    // via the extracted useHomeCoverBanner hook (N4 refactor).
+    const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
+    expect(homeSource).toContain('useHomeCoverBanner');
+    expect(coverHookSource).toContain('useSocialCoverBanner');
+    expect(coverHookSource).toContain('UserDashboardBannerMediaLayer');
     expect(centerSource).toContain('bannerLayer');
 
     // Latest-post card + spotlight read real data; fabricated engagement is gone.
@@ -160,16 +163,18 @@ describe('UserDashboard V3 daily loop contract', () => {
 
   it('gives Home the full cover editor, the smart-hashtag truth-line, and a tier-gated inbox poll (workstream N3)', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
     const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
     const heroSource = readSource('src/components/UserDashboard/components/HomeTabHeroHeader.tsx');
     const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
 
     // Edit Cover on the hero opens the SAME embedded editor as the feed tab,
-    // and closing it refreshes the live cover.
+    // and closing it refreshes the live cover (machinery lives in the hook).
     expect(heroSource).toContain('EditCoverButton');
-    expect(homeSource).toContain("lazy(() => import('../../Social/Feed/components/SocialCoverEditor'))");
-    expect(homeSource).toContain('useSocialCoverBanner(coverRefreshKey)');
-    expect(homeSource).toContain('setCoverRefreshKey((key) => key + 1)');
+    expect(homeSource).toContain('useHomeCoverBanner()');
+    expect(coverHookSource).toContain("lazy(() => import('../../Social/Feed/components/SocialCoverEditor'))");
+    expect(coverHookSource).toContain('useSocialCoverBanner(coverRefreshKey)');
+    expect(coverHookSource).toContain('setCoverRefreshKey((key) => key + 1)');
 
     // Quick Post shows the live smart type + hashtags from the same
     // inference path the payload uses.
@@ -178,7 +183,23 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     // Free tiers never poll the elite-gated messaging endpoint (402 by design).
     expect(queriesSource).toContain('options.enabled ?? true');
-    expect(homeSource).toMatch(/useMessageSummary\(\{\s*enabled: isElite/);
+    expect(homeSource).toMatch(/useMessageSummary\(\{\s*\/\/[^\n]*\n\s*enabled: isElite|useMessageSummary\(\{\s*enabled: isElite/);
+  });
+
+  it('puts real training proof from logged workouts on Home, one tap from a shareable post (workstream N4)', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const proofSource = readSource('src/components/UserDashboard/components/HomeTabTrainingProof.tsx');
+
+    // The strip reads REAL sessions through the dashboard query layer.
+    expect(homeSource).toContain('useWorkoutSessions({ limit: 50 })');
+    expect(homeSource).toContain('buildHomeTrainingProof(workoutSessions.data');
+    expect(homeSource).toContain('<HomeTabTrainingProof');
+    // Share progress prefills the composer — the hashtag system takes over.
+    expect(homeSource).toContain('onShareProgress={setPostText}');
+    expect(proofSource).toContain('onShareProgress(proof.shareLine!)');
+    // Honest empty state, no fabricated trend.
+    expect(proofSource).toContain('No logged workouts yet');
+    expect(proofSource).toContain('proof.weeklyCounts.map');
   });
 
   it('mounts ClientObservatoryHome inside the canonical client overview route', () => {

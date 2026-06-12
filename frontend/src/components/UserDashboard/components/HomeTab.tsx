@@ -2,11 +2,10 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { lazy, Suspense, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { useSocialCoverBanner } from '../../Social/Feed/hooks/useSocialCoverBanner';
-import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
+import { useHomeCoverBanner } from './useHomeCoverBanner';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../hooks/useSubscription';
@@ -15,6 +14,7 @@ import {
   useMessageSummary,
   useNotificationSummary,
   useSocialFeed,
+  useWorkoutSessions,
 } from '../../../hooks/useDashboardQueries';
 import fallbackAvatar from '../../../assets/logo.svg';
 import brandLogo from '../../../assets/Logo.png';
@@ -34,20 +34,18 @@ import {
   clampPercent,
   type VisionTarget,
 } from './HomeTabVision.data';
+import HomeTabTrainingProof from './HomeTabTrainingProof';
 import {
   buildCreatorStats,
   buildHomePostPayload,
   buildHomeTopBarActions,
+  buildHomeTrainingProof,
   buildLatestPostView,
   parseUnreadNotificationCount,
   previewHomePostIntent,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
-
-// Workstream N3: the SAME embedded cover editor the feed tab uses — heavy
-// profile machinery mounts only while editing.
-const SocialCoverEditor = lazy(() => import('../../Social/Feed/components/SocialCoverEditor'));
 import {
   CenterColumn,
   CreatorPage,
@@ -116,39 +114,19 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
   const canPost = postText.trim().length >= 3 && !createPost.isPending;
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
-  // Workstream N2/N3: the identity header carries the user's REAL cover
-  // composition (photo / collage / carousel / crossfade) — same machinery as
-  // the feed cover studio. Null -> the decorative crystalline backdrop stays.
-  // Closing the embedded editor bumps refreshKey so the cover refetches once.
-  const [coverEditorOpen, setCoverEditorOpen] = useState(false);
-  const [coverRefreshKey, setCoverRefreshKey] = useState(0);
-  const coverBanner = useSocialCoverBanner(coverRefreshKey);
-  const bannerLayer = coverBanner ? (
-    <UserDashboardBannerMediaLayer
-      backgroundImage={coverBanner.backgroundImage}
-      bannerObjectPosition={coverBanner.bannerObjectPosition}
-      bannerObjectFit={coverBanner.bannerObjectFit}
-      bannerImageScale={coverBanner.bannerImageScale}
-      bannerCollagePhotos={coverBanner.bannerCollagePhotos}
-      bannerCollageLayout={coverBanner.bannerCollageLayout}
-      bannerStickyCarousel={false}
-    />
-  ) : null;
+  // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
+  const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
+  // Workstream N4: real training proof from logged workout sessions.
+  const workoutSessions = useWorkoutSessions({ limit: 50 });
+  const trainingProof = useMemo(
+    () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
+    [workoutSessions.data],
+  );
   const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
   const postIntentPreview = useMemo(
     () => (postText.trim().length >= 3 ? previewHomePostIntent(postText, activeMood) : null),
     [activeMood, postText],
   );
-  const coverEditorSlot = coverEditorOpen ? (
-    <Suspense fallback={null}>
-      <SocialCoverEditor
-        onClose={() => {
-          setCoverEditorOpen(false);
-          setCoverRefreshKey((key) => key + 1);
-        }}
-      />
-    </Suspense>
-  ) : null;
   const transformationPhotoUrls = useMemo(
     () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null)
       .map((photo) => sanitizeImageUrl(photo.url))
@@ -218,7 +196,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           activeMood={activeMood}
           selectedMediaName={selectedMedia?.name}
           bannerLayer={bannerLayer}
-          onEditCover={() => setCoverEditorOpen((open) => !open)}
+          onEditCover={toggleCoverEditor}
           coverEditorSlot={coverEditorSlot}
           postIntentPreview={postIntentPreview}
           latestPost={latestPostView}
@@ -257,6 +235,15 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
       <SupportShell>
         <CenterColumn>
+          {/* Workstream N4: the Product Core Loop on Home — real progress
+              proof from logged workouts, one tap from a shareable post. */}
+          <Panel>
+            <HomeTabTrainingProof
+              proof={trainingProof}
+              onShareProgress={setPostText}
+            />
+          </Panel>
+
           <Panel>
             <DailyHealthLoop
               streakDays={streakDays}
