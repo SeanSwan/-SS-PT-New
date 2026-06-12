@@ -84,7 +84,7 @@ interface DashboardCreatePostInput {
 }
 
 export function useSocialFeed(params: FeedParams = {}) {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const queryParams: Record<string, string | number> = { limit: params.limit || 10 };
   if (params.category && params.category !== 'all') queryParams.category = params.category;
   if (params.hashtag) queryParams.hashtag = params.hashtag;
@@ -95,24 +95,24 @@ export function useSocialFeed(params: FeedParams = {}) {
       const res = await authAxios.get('/api/social/posts/feed', { params: queryParams, signal });
       return res.data?.posts || res.data?.data || [];
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
   });
 }
 
 export function useSocialChallenges() {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   return useQuery({
     queryKey: queryKeys.social.challenges(),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/social/challenges/active', { signal });
       return res.data?.data || res.data?.challenges || [];
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
   });
 }
 
 export function useTrendingHashtags(params: { limit?: number } = {}) {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const queryParams = { limit: params.limit || 5 };
 
   return useQuery({
@@ -124,7 +124,7 @@ export function useTrendingHashtags(params: { limit?: number } = {}) {
       });
       return res.data;
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
     staleTime: 60 * 1000,
     retry: false,
   });
@@ -174,7 +174,7 @@ export function useCreatePost() {
 }
 
 export function useNotificationSummary() {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
 
   return useQuery({
     queryKey: queryKeys.notifications.summary(),
@@ -182,14 +182,14 @@ export function useNotificationSummary() {
       const res = await authAxios.get('/api/notifications', { signal });
       return res.data;
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
     staleTime: 30 * 1000,
     retry: false,
   });
 }
 
 export function useMessageSummary() {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
 
   return useQuery({
     queryKey: queryKeys.messaging.summary(),
@@ -197,7 +197,7 @@ export function useMessageSummary() {
       const res = await authAxios.get('/api/messaging/conversations', { signal });
       return res.data;
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
     staleTime: 30 * 1000,
     retry: false,
   });
@@ -212,7 +212,7 @@ interface LeaderboardParams {
 }
 
 export function useLeaderboard(params: LeaderboardParams = {}) {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   return useQuery({
     queryKey: queryKeys.gamification.leaderboard(params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
@@ -222,7 +222,7 @@ export function useLeaderboard(params: LeaderboardParams = {}) {
       });
       return res.data?.data || res.data?.leaderboard || [];
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
     staleTime: 5 * 60 * 1000, // Leaderboard: 5 min stale (changes less frequently)
   });
 }
@@ -237,7 +237,7 @@ interface WorkoutSessionParams {
 }
 
 export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   return useQuery({
     queryKey: queryKeys.workouts.sessions(params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
@@ -253,7 +253,7 @@ export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
         : Array.isArray(payload) ? payload : [];
       return list;
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
   });
 }
 
@@ -262,27 +262,27 @@ export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
 // ─────────────────────────────────────────────────────────────
 
 export function useSystemHealth() {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   return useQuery({
     queryKey: queryKeys.admin.systemHealth(),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/admin/system-health', { signal });
       return res.data?.data || res.data;
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
     staleTime: 30 * 1000, // System health: 30s stale
     refetchInterval: 60 * 1000, // Auto-refresh every minute
   });
 }
 
 export function usePendingOrders() {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   return useQuery({
     queryKey: queryKeys.admin.pendingOrders(),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/admin/pending-orders', { signal });
       return res.data?.data || res.data?.orders || [];
     },
-    enabled: !!authAxios,
+    enabled: !!authAxios && !!user,
   });
 }
