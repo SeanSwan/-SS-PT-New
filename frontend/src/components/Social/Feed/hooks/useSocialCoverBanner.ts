@@ -43,7 +43,7 @@ export interface SocialCoverBanner {
   bannerCollageLayout: BannerCollageLayout;
 }
 
-export function useSocialCoverBanner(): SocialCoverBanner | null {
+export function useSocialCoverBanner(refreshKey = 0): SocialCoverBanner | null {
   const [banner, setBanner] = useState<SocialCoverBanner | null>(null);
 
   useEffect(() => {
@@ -63,7 +63,12 @@ export function useSocialCoverBanner(): SocialCoverBanner | null {
 
         const hasCollageMedia = bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0;
         const hasSingleMedia = bannerObjectFit !== 'collage' && Boolean(backgroundImage);
-        if (!hasCollageMedia && !hasSingleMedia) return; // no media -> decorative fallback
+        if (!hasCollageMedia && !hasSingleMedia) {
+          // No media -> decorative fallback. Explicitly clear so a refetch
+          // after the user REMOVES their media doesn't leave a stale banner.
+          setBanner(null);
+          return;
+        }
 
         setBanner({
           backgroundImage,
@@ -80,7 +85,9 @@ export function useSocialCoverBanner(): SocialCoverBanner | null {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // refreshKey lets the cover refetch after an edit session (M6a) without
+    // polling — bumped by the parent when the embedded editor closes.
+  }, [refreshKey]);
 
   return banner;
 }

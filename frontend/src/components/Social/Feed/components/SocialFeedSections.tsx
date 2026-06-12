@@ -6,6 +6,7 @@ import NotificationBell from '../NotificationBell';
 import TrendingHashtags from '../TrendingHashtags';
 import { RecentActivityBanner } from './SocialFeedPanels';
 import UserDashboardBannerMediaLayer from '../../../UserDashboard/components/UserDashboardBannerMediaLayer';
+import SocialCoverEditor from './SocialCoverEditor';
 import { useSocialCoverBanner } from '../hooks/useSocialCoverBanner';
 import { FeedTopBar } from '../styles/SocialFeedStyles';
 import type { SocialFeedViewModel } from '../hooks/useSocialFeedViewModel';
@@ -34,7 +35,12 @@ const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
      the cover backdrop. Sticky-carousel is hard-disabled on /social — its
      fixed-position strip collides with the page chrome. Null -> the cover
      keeps its decorative panels. */
-  const coverBanner = useSocialCoverBanner();
+  /* M6a: the editor is embedded right here — "Edit cover" expands it below
+     the cover (lazy: the heavy useProfile machinery mounts only while
+     editing). Closing bumps refreshKey so the live cover refetches once. */
+  const [editorOpen, setEditorOpen] = React.useState(false);
+  const [coverRefreshKey, setCoverRefreshKey] = React.useState(0);
+  const coverBanner = useSocialCoverBanner(coverRefreshKey);
   const bannerLayer = coverBanner ? (
     <UserDashboardBannerMediaLayer
       backgroundImage={coverBanner.backgroundImage}
@@ -48,13 +54,24 @@ const SocialFeedCover: React.FC<SocialFeedSectionsProps> = ({ viewModel }) => {
   ) : null;
 
   return (
-    <FeedCoverStudio
-      stats={viewModel.feedStats}
-      isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
-      onCreatePostFocus={viewModel.handleCreatePostFocus}
-      identity={viewModel.identity}
-      bannerLayer={bannerLayer}
-    />
+    <>
+      <FeedCoverStudio
+        stats={viewModel.feedStats}
+        isLive={viewModel.tickerConnected || viewModel.activityEvents.length > 0}
+        onCreatePostFocus={viewModel.handleCreatePostFocus}
+        identity={viewModel.identity}
+        bannerLayer={bannerLayer}
+        onEditCover={() => setEditorOpen((open) => !open)}
+      />
+      {editorOpen && (
+        <SocialCoverEditor
+          onClose={() => {
+            setEditorOpen(false);
+            setCoverRefreshKey((key) => key + 1);
+          }}
+        />
+      )}
+    </>
   );
 };
 

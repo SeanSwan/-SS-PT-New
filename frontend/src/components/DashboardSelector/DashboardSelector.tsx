@@ -34,9 +34,9 @@ const dashboardMeta = {
     iconColor: 'var(--gilded-fern, #C6A84B)'
   },
   user: {
-    title: 'User Dashboard',
-    description: 'Social profile and community features',
-    path: '/user-dashboard',
+    title: 'Social Hub',
+    description: 'Your feed, cover, and community',
+    path: '/social',
     badge: 'SOCIAL',
     Icon: UserCircle,
     iconColor: 'rgb(var(--status-success-rgb, 34, 197, 94))'

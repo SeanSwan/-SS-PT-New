@@ -1,5 +1,6 @@
 import React from 'react';
-import { Activity, Dumbbell, Flame, Image, Radio, Send, Sparkles, Star, Trophy } from 'lucide-react';
+import { Activity, Dumbbell, Flame, Image, Pencil, Radio, Send, Sparkles, Star, Trophy } from 'lucide-react';
+import { EditCoverButton } from './SocialCoverEditor.styles';
 import {
   IdentityAvatar,
   IdentityAvatarFallback,
@@ -61,6 +62,8 @@ interface FeedCoverStudioProps {
   /** Merge M5b: the user's REAL banner media (crossfade/mosaic/photo) rendered
    *  inside the stage in place of the decorative panels; null keeps them. */
   bannerLayer?: React.ReactNode;
+  /** Merge M6a: opens the embedded cover editor (edit where you see it). */
+  onEditCover?: () => void;
 }
 
 const formatTier = (tier: string) =>
@@ -79,6 +82,7 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
   onCreatePostFocus,
   identity = null,
   bannerLayer = null,
+  onEditCover,
 }) => {
   const milestoneCount = stats.achievementPosts + stats.transformationPosts;
   const engagementCount = stats.totalLikes + stats.totalComments;
@@ -158,6 +162,13 @@ const FeedCoverStudio: React.FC<FeedCoverStudioProps> = ({
             <Send size={17} aria-hidden="true" />
             Create post
           </PrimaryButton>
+          {/* M6a: edit the cover where you see it (Sean's least-clicks call). */}
+          {onEditCover && (
+            <EditCoverButton type="button" onClick={onEditCover}>
+              <Pencil size={15} aria-hidden="true" />
+              {bannerLayer ? 'Edit cover' : 'Design your cover'}
+            </EditCoverButton>
+          )}
           <StatusPill $live={isLive}>
             <Radio size={15} aria-hidden="true" />
             {isLive ? 'Live feed' : 'Feed ready'}

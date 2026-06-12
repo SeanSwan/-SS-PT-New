@@ -70,26 +70,31 @@ describe('UserDashboard V3 daily loop contract', () => {
     });
   });
 
-  it('keeps user-dashboard as its own user/social dashboard surface', () => {
+  it('redirects user-dashboard to the merged social hub (merge M6), never to the client dashboard', () => {
+    // Merge M6 (2026-06-12): the Observatory merged into /social. This
+    // contract's original intent holds — the social surface must never
+    // collapse into the PT client dashboard — it just lives at /social now.
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toContain("path: 'user-dashboard'");
-    expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    expect(routeSource).toContain('<UserDashboard />');
-    expect(routeSource).not.toContain("path: 'user-dashboard',\n      element: <Navigate to=\"/dashboard/client/overview\" replace />");
+    expect(routeSource).toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/social" replace \/>/);
+    expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
+    // The retired surface ships no dead lazy chunk.
+    expect(routeSource).not.toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
   });
 
-  it('keeps user dashboard navigation separate from the client training dashboard', () => {
+  it('keeps social-hub navigation separate from the client training dashboard', () => {
     const selectorSource = readSource('src/components/DashboardSelector/DashboardSelector.tsx');
     const mobileMenuSource = readSource('src/components/Header/components/MobileMenu.tsx');
     const signupSource = readSource('src/pages/OptimizedSignupModal.tsx');
     const vipConversionSource = readSource('src/pages/gallery/VIPConversionModal.tsx');
 
-    expect(selectorSource).toContain("title: 'User Dashboard'");
-    expect(selectorSource).toContain("path: '/user-dashboard'");
+    // Post-M6 the social entry points target /social directly (no redirect hop).
+    expect(selectorSource).toContain("title: 'Social Hub'");
+    expect(selectorSource).toContain("path: '/social'");
     expect(selectorSource).toContain("return ['admin', 'trainer', 'client', 'user'].includes(user.role);");
-    expect(mobileMenuSource).toContain('to="/user-dashboard"');
-    expect(signupSource).toContain("navigate('/user-dashboard')");
+    expect(mobileMenuSource).toContain('to="/social"');
+    expect(signupSource).toContain("navigate('/social')");
     expect(vipConversionSource).not.toContain("window.open('/user-dashboard/schedule'");
   });
 

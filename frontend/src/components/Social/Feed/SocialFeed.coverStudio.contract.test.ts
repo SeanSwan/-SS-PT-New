@@ -80,6 +80,24 @@ describe('SocialFeed cover studio contract', () => {
     expect(mediaLayerSource).toContain('setCrossfadeIndex');
   });
 
+  it('embeds the cover editor on /social and retires the dashboard route (merge M6)', () => {
+    const editorSource = readSource('./components/SocialCoverEditor.tsx');
+    const routesSource = readSource('../../../routes/main-routes.tsx');
+    // The editor reuses the battle-tested banner machinery — no forks.
+    expect(editorSource).toContain('useBannerCompositionState');
+    expect(editorSource).toContain('UserDashboardBannerRepositionPanelContent');
+    expect(editorSource).toContain('uploadBannerPhoto');
+    // The cover exposes the entry; sections lazy-mount the editor and refresh
+    // the live cover when it closes.
+    expect(studioSource).toContain('onEditCover');
+    expect(sectionsSource).toContain('SocialCoverEditor');
+    expect(sectionsSource).toContain('setCoverRefreshKey');
+    // The merge endgame: /user-dashboard is a redirect, not a mounted surface,
+    // and its lazy chunk is gone from the routes file.
+    expect(routesSource).toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/social" replace \/>/);
+    expect(routesSource).not.toContain("import('../components/UserDashboard/UserDashboard.V3')");
+  });
+
   it('keeps the crossfade layout in lockstep across frontend and backend (drift guard)', () => {
     const compositionSource = readSource('../../../services/profileBannerComposition.ts');
     const backendController = readSource(

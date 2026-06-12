@@ -260,11 +260,8 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
-const UserDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/UserDashboard/UserDashboard.V3'),
-  'User Dashboard',
-  () => import('../components/UserDashboard')
-);
+// Merge M6: the UserDashboard.V3 lazy chunk was retired with the
+// /user-dashboard -> /social redirect (no dead bundle chunk shipped).
 const SocialPage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/SocialPage.V3'),
   'Social Hub',
@@ -686,16 +683,15 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
-      // User dashboard is a separate social/creator surface from the PT client dashboard.
+      // Merge M6 (2026-06-12): the Observatory creator surface merged into the
+      // one social hub (workstream M, social-hub-merge-2026-06-11.md). Its best
+      // widgets (cover studio, identity strip, right rail, composer types) and
+      // the cover/banner EDITOR now live on /social; identity galleries live on
+      // /profile/:userId. UserDashboard.V3 files remain on disk (rule 34 —
+      // cleanup is a separate approved pass), classified legacy/unmounted.
       {
         path: 'user-dashboard',
-        element: (
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <UserDashboard />
-            </Suspense>
-          </ProtectedRoute>
-        )
+        element: <Navigate to="/social" replace />
       },
     
     // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT
