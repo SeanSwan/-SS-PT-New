@@ -82,6 +82,9 @@ export type TabId =
   | 'home'
   | 'feed'
   | 'reels'
+  | 'friends'
+  | 'challenges'
+  | 'notifications'
   | 'creative'
   | 'photos'
   | 'about'
@@ -90,6 +93,24 @@ export type TabId =
   | 'progress'
   | 'community'
   | 'profile';
+
+/** Canonical tab list — used for /user-dashboard/:tab URL validation (merge N1). */
+export const USER_DASHBOARD_TAB_IDS: readonly TabId[] = [
+  'home',
+  'feed',
+  'reels',
+  'friends',
+  'challenges',
+  'notifications',
+  'creative',
+  'photos',
+  'about',
+  'activity',
+  'nutrition',
+  'progress',
+  'community',
+  'profile',
+];
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component Props

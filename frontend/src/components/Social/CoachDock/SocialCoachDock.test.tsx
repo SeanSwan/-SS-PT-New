@@ -48,8 +48,13 @@ vi.mock('../../../hooks/gamification/useGamificationData', () => ({
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DOCK_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.tsx'), 'utf8');
 const STYLES_SOURCE = readFileSync(resolve(__dirname, './SocialCoachDock.styles.ts'), 'utf8');
-const PAGE_SOURCE = readFileSync(
-  resolve(__dirname, '../../../pages/Social/SocialPage.V3.tsx'),
+// Workstream N: the live feed surface is the V3 dashboard's feed tab.
+const FEED_TAB_SOURCE = readFileSync(
+  resolve(__dirname, '../../UserDashboard/components/DashboardFeedTab.tsx'),
+  'utf8',
+);
+const DASHBOARD_TABS_SOURCE = readFileSync(
+  resolve(__dirname, '../../UserDashboard/components/UserDashboardTabsV3.tsx'),
   'utf8',
 );
 
@@ -210,19 +215,16 @@ describe('SocialCoachDock — D2a source contracts', () => {
   });
 });
 
-describe('SocialPage.V3 — feed-tab-only mount', () => {
-  it('mounts the dock exactly once, inside the feed branch of renderContent', () => {
-    expect(PAGE_SOURCE.match(/<SocialCoachDock \/>/g)).toHaveLength(1);
-    // Dock renders in the `case 'feed':` branch (an explanatory comment may
-    // sit between the case label and the return), above SocialFeed.
-    expect(PAGE_SOURCE).toMatch(
-      /case 'feed':(?:(?!case ')[\s\S])*?return \(\s*<>\s*<SocialCoachDock \/>\s*<SocialFeed \/>/,
-    );
+describe('Dashboard feed tab — feed-tab-only mount (workstream N)', () => {
+  it('mounts the dock exactly once, above the feed in DashboardFeedTab', () => {
+    expect(FEED_TAB_SOURCE.match(/<SocialCoachDock \/>/g)).toHaveLength(1);
+    expect(FEED_TAB_SOURCE).toMatch(/<SocialCoachDock \/>\s*<SocialFeed \/>/);
   });
 
-  it('keeps the in-page tab union unchanged (dock is not a tab)', () => {
-    expect(PAGE_SOURCE).toContain(
-      "const VALID_TABS = ['feed', 'reels', 'friends', 'challenges', 'notifications'] as const",
+  it('keeps DashboardFeedTab scoped to the feed tab panel (dock is not a tab)', () => {
+    expect(DASHBOARD_TABS_SOURCE).toMatch(
+      /<TabPanel id="feed" activeTab={activeTab}>\s*<DashboardFeedTab \/>\s*<\/TabPanel>/,
     );
+    expect(DASHBOARD_TABS_SOURCE.match(/<DashboardFeedTab \/>/g)).toHaveLength(1);
   });
 });

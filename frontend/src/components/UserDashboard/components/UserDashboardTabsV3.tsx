@@ -9,24 +9,12 @@
 
 import React, { lazy, Suspense } from 'react';
 import {
-  Activity,
-  Aperture,
-  Camera,
-  Dumbbell,
-  Info,
-  MessageCircle,
-  UserRound,
-  Users,
-  Utensils,
-  Video,
-  type LucideIcon,
-} from 'lucide-react';
-import {
   LoadingContainer,
   LoadingSpinner,
   MainContent,
   TabStack,
 } from '../styles/DashboardV3Styles';
+import { sectionMeta } from './UserDashboardSectionMeta';
 import {
   VisionCopy,
   VisionEyebrow,
@@ -42,8 +30,11 @@ import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 
 const HomeTab = lazy(() => import('./HomeTab'));
-const SocialFeed = lazy(() => import('../../Social/Feed/SocialFeed'));
+const DashboardFeedTab = lazy(() => import('./DashboardFeedTab'));
 const VerticalReels = lazy(() => import('../../Social/Reels/VerticalReels'));
+const FriendsList = lazy(() => import('../../Social/Friends/FriendsList'));
+const ChallengesView = lazy(() => import('../../Social/Challenges/ChallengesView'));
+const DashboardNotificationsTab = lazy(() => import('./DashboardNotificationsTab'));
 const CommunityTab = lazy(() => import('./CommunityTab'));
 const CreativeGallery = lazy(() => import('./CreativeGallery'));
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
@@ -52,85 +43,6 @@ const ActivitySection = lazy(() => import('./ActivitySection'));
 const NutritionWorkspace = lazy(() => import('../../DashBoard/workspaces/NutritionWorkspace'));
 const WorkoutsTab = lazy(() => import('./WorkoutsTab'));
 const TransformationPhotoShowcase = lazy(() => import('./TransformationPhotoShowcase'));
-
-const sectionMeta: Record<Exclude<TabId, 'home'>, {
-  eyebrow: string;
-  title: string;
-  copy: string;
-  tone: 'cyan' | 'violet' | 'gold';
-  Icon: LucideIcon;
-}> = {
-  feed: {
-    eyebrow: 'Community Signal',
-    title: 'Feed',
-    copy: 'Creator posts, training updates, and visible momentum from the SwanStudios community.',
-    tone: 'cyan',
-    Icon: MessageCircle,
-  },
-  reels: {
-    eyebrow: 'Short-Form Studio',
-    title: 'Reels',
-    copy: 'Training clips, transformations, and creator highlights in the same crystalline dashboard language.',
-    tone: 'violet',
-    Icon: Video,
-  },
-  creative: {
-    eyebrow: 'Media Forge',
-    title: 'Creative',
-    copy: 'Video drops and shared media organized as a premium creator gallery.',
-    tone: 'violet',
-    Icon: Aperture,
-  },
-  photos: {
-    eyebrow: 'Visual Proof',
-    title: 'Photos',
-    copy: 'Progress photos, transformation media, and gallery uploads in one focused view.',
-    tone: 'cyan',
-    Icon: Camera,
-  },
-  about: {
-    eyebrow: 'Identity Core',
-    title: 'About',
-    copy: 'Profile signals, milestones, skill trees, and earned achievements.',
-    tone: 'gold',
-    Icon: Info,
-  },
-  activity: {
-    eyebrow: 'Live Momentum',
-    title: 'Activity',
-    copy: 'Recent posts, workouts, reactions, and creator movement without leaving the observatory.',
-    tone: 'cyan',
-    Icon: Activity,
-  },
-  nutrition: {
-    eyebrow: 'Fuel Lab',
-    title: 'Nutrition',
-    copy: 'Meal logging, hydration, macros, and food intelligence inside the same user dashboard shell.',
-    tone: 'gold',
-    Icon: Utensils,
-  },
-  progress: {
-    eyebrow: 'Training Signal',
-    title: 'Progress',
-    copy: 'Workout usage and training analytics for the user-side daily loop.',
-    tone: 'cyan',
-    Icon: Dumbbell,
-  },
-  community: {
-    eyebrow: 'Discovery',
-    title: 'Community',
-    copy: 'Feed, challenges, friends, factions, and community actions without duplicate navigation.',
-    tone: 'violet',
-    Icon: Users,
-  },
-  profile: {
-    eyebrow: 'Creator Profile',
-    title: 'Profile',
-    copy: 'The profile overview remains focused while deeper media sections live in their own tabs.',
-    tone: 'gold',
-    Icon: UserRound,
-  },
-};
 
 interface SectionChromeProps {
   id: Exclude<TabId, 'home'>;
@@ -217,14 +129,30 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           usernameOverride={homeUsername}
         />
       </TabPanel>
+      {/* Workstream N: the feed tab is the absorbed /social hub — full feed
+          (its FeedCoverStudio is the cover, so no SectionChrome hero here),
+          coach dock, and the desktop right rail. */}
       <TabPanel id="feed" activeTab={activeTab}>
-        <SectionChrome id="feed">
-          <SocialFeed variant="compact" />
-        </SectionChrome>
+        <DashboardFeedTab />
       </TabPanel>
       <TabPanel id="reels" activeTab={activeTab}>
         <SectionChrome id="reels">
           <VerticalReels frame="dashboard" />
+        </SectionChrome>
+      </TabPanel>
+      <TabPanel id="friends" activeTab={activeTab}>
+        <SectionChrome id="friends">
+          <FriendsList />
+        </SectionChrome>
+      </TabPanel>
+      <TabPanel id="challenges" activeTab={activeTab}>
+        <SectionChrome id="challenges">
+          <ChallengesView />
+        </SectionChrome>
+      </TabPanel>
+      <TabPanel id="notifications" activeTab={activeTab}>
+        <SectionChrome id="notifications">
+          <DashboardNotificationsTab />
         </SectionChrome>
       </TabPanel>
       <TabPanel id="creative" activeTab={activeTab}>

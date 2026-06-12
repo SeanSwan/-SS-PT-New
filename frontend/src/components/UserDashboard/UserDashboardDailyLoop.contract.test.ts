@@ -70,20 +70,21 @@ describe('UserDashboard V3 daily loop contract', () => {
     });
   });
 
-  it('mounts the merged hub at /user-dashboard (merge M7), never the client dashboard', () => {
-    // Merge M7 (2026-06-11, Sean's correction of M6): /user-dashboard is the
-    // canonical home and mounts the merged hub directly; /social is a redirect
-    // alias. The contract's original intent holds — the hub must never
-    // collapse into the PT client dashboard.
+  it('mounts the V3 Observatory at /user-dashboard (workstream N), never the client dashboard', () => {
+    // Workstream N (2026-06-11, Sean's direction): the V3 Observatory IS the
+    // main hub at /user-dashboard with URL-driven tabs; /social is a redirect
+    // alias into it. The contract's original intent holds — the hub must
+    // never collapse into the PT client dashboard.
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
     expect(routeSource).toContain("path: 'user-dashboard/:tab'");
-    expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
+    expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
+    expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard\/feed" replace \/>/);
     expect(routeSource).toContain('<SocialTabRedirect />');
     expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
-    // The retired Observatory surface still ships no dead lazy chunk.
-    expect(routeSource).not.toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
+    // The retired social page ships no lazy chunk of its own.
+    expect(routeSource).not.toContain("() => import('../pages/Social/SocialPage.V3')");
   });
 
   it('keeps user-dashboard navigation separate from the client training dashboard', () => {
@@ -138,7 +139,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
 
     expect(routeSource).toContain("path: 'social'");
-    expect(routeSource).toContain("() => import('../pages/Social/SocialPage.V3')");
+    expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
     expect(routeSource).not.toContain("() => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome')");
     expect(observatoryDataSource).toContain("export type LensId = 'feed' | 'reels' | 'friends' | 'challenges'");
     expect(observatoryDataSource).toContain("{ id: 'feed', label: 'Feed'");
@@ -286,7 +287,9 @@ describe('UserDashboard V3 daily loop contract', () => {
     const rightRailSource = readSource('src/components/UserDashboard/components/ObservatoryRightRail.tsx');
     const layoutSource = readSource('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
 
-    expect(dashboardSource).toContain("profileHeaderVisible={dashboard.activeTab !== 'home'}");
+    // Workstream N: the feed tab's cover is the FeedCoverStudio inside the
+    // feed itself, so the classic banner header is suppressed there too.
+    expect(dashboardSource).toContain("profileHeaderVisible={dashboard.activeTab !== 'home' && dashboard.activeTab !== 'feed'}");
     expect(shellSource).toContain('profileHeaderVisible?: boolean;');
     expect(leftRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
     expect(rightRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');

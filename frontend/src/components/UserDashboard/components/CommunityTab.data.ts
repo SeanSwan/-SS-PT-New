@@ -29,7 +29,7 @@ export const COMMUNITY_CARDS: CommunityCardDef[] = [
     Icon: UserPlus,
     colorRgb: '96, 192, 240',
     action: 'nav',
-    path: '/social/friends',
+    path: '/user-dashboard/friends',
   },
   {
     label: 'Factions & XP',

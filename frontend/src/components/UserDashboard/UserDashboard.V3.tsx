@@ -3,6 +3,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   ContentGrid,
   ContentWrapper,
@@ -23,17 +24,34 @@ import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
-import type { TabId } from './types/UserDashboardTypes';
+import { USER_DASHBOARD_TAB_IDS, type TabId } from './types/UserDashboardTypes';
 
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 const UserDashboardV3: React.FC = () => {
   const dashboard = useUserDashboardV3Controller();
+  const navigate = useNavigate();
+  const { tab: urlTab } = useParams<{ tab?: string }>();
+
+  // Workstream N: tabs are URL-driven (/user-dashboard/:tab) so old /social
+  // links, redirects, and back/forward all land on the right tab. Unknown
+  // segments fall back to home.
+  const routedTab: TabId = USER_DASHBOARD_TAB_IDS.includes(urlTab as TabId)
+    ? (urlTab as TabId)
+    : 'home';
+  const { setActiveTab } = dashboard;
+  React.useEffect(() => {
+    setActiveTab(routedTab);
+    // routedTab only — internal setActiveTab calls (e.g. Settings → profile)
+    // may diverge from the URL without being snapped back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routedTab, setActiveTab]);
+
   const isHomeTab = dashboard.activeTab === 'home';
   const handleTabChange = React.useCallback((tab: TabId) => {
-    dashboard.setActiveTab(tab);
+    navigate(tab === 'home' ? '/user-dashboard' : `/user-dashboard/${tab}`);
     resetUserDashboardTabScroll();
-  }, [dashboard.setActiveTab]);
+  }, [navigate]);
 
   if (dashboard.isLoading && !dashboard.profile) {
     return <UserDashboardLoadingState />;
@@ -70,7 +88,7 @@ const UserDashboardV3: React.FC = () => {
             ) : (
               <ObservatoryShell
                 activeTab={dashboard.activeTab}
-                profileHeaderVisible={dashboard.activeTab !== 'home'}
+                profileHeaderVisible={dashboard.activeTab !== 'home' && dashboard.activeTab !== 'feed'}
                 profileBannerClearance={dashboard.bannerFrameHeight}
                 onTabChange={handleTabChange}
                 observatoryLevel={dashboard.observatoryLevel}
@@ -87,6 +105,10 @@ const UserDashboardV3: React.FC = () => {
                   onTabChange={handleTabChange}
                 />
 
+                {/* Workstream N: the feed tab's cover IS the FeedCoverStudio
+                    inside SocialFeed (identity strip + embedded editor) — the
+                    classic banner header would double the cover there. */}
+                {dashboard.activeTab !== 'feed' && (
                 <UserDashboardProfileHeaderV3
                   backgroundImage={dashboard.backgroundImage}
                   bannerObjectPosition={dashboard.bannerObjectPosition}
@@ -121,12 +143,18 @@ const UserDashboardV3: React.FC = () => {
                   onSettings={dashboard.handleSettings}
                   onShare={dashboard.handleShare}
                 />
+                )}
 
-                <ContentGrid $fullWidth={dashboard.activeTab === 'home'}>
-                  <UserDashboardSidebarV3
-                    displayStats={dashboard.displayStats}
-                    canonicalLevel={dashboard.canonicalLevel}
-                  />
+                {/* Feed runs full-width: its cover studio already carries the
+                    identity strip + metric rail the quick-stats sidebar would
+                    duplicate, and the social right rail needs the room. */}
+                <ContentGrid $fullWidth={dashboard.activeTab === 'feed'}>
+                  {dashboard.activeTab !== 'feed' && (
+                    <UserDashboardSidebarV3
+                      displayStats={dashboard.displayStats}
+                      canonicalLevel={dashboard.canonicalLevel}
+                    />
+                  )}
 
                   <UserDashboardTabsV3
                     activeTab={dashboard.activeTab}

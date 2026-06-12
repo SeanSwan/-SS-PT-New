@@ -260,20 +260,20 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
-// Merge M6 retired the UserDashboard.V3 lazy chunk; merge M7 re-pointed the
-// canonical hub URL back to /user-dashboard (Sean 2026-06-11: the dashboard IS
-// the home feed). SocialPage.V3 is the one hub, mounted at /user-dashboard;
-// /social is kept as a redirect alias so old links and bookmarks keep working.
-const SocialPage = lazyLoadWithErrorHandling(
-  () => import('../pages/Social/SocialPage.V3'),
-  'Social Hub',
-  () => import('../pages/Social/SocialPage')
+// Workstream N (2026-06-11, Sean's direction): the V3 Observatory IS the main
+// hub. UserDashboard.V3 mounts at /user-dashboard with URL-driven tabs, and it
+// absorbed everything the retired /social page had (full feed + coach dock +
+// right rail on the feed tab; friends/challenges/notifications tabs).
+// SocialPage.V3 / SocialPage are unmounted legacy (rule 34 — files stay).
+const UserDashboardV3 = lazyLoadWithErrorHandling(
+  () => import('../components/UserDashboard/UserDashboard.V3'),
+  'User Dashboard'
 );
 
 // Preserves the tab segment when redirecting /social/:tab -> /user-dashboard/:tab.
 const SocialTabRedirect: React.FC = () => {
   const { tab } = useParams<{ tab?: string }>();
-  return <Navigate to={tab ? `/user-dashboard/${tab}` : '/user-dashboard'} replace />;
+  return <Navigate to={tab ? `/user-dashboard/${tab}` : '/user-dashboard/feed'} replace />;
 };
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
@@ -691,18 +691,16 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
-      // Merge M7 (2026-06-11, Sean's correction): /user-dashboard is the
-      // CANONICAL home — it mounts the one merged hub (cover studio, identity
-      // strip, feed, composer, right rail) built in workstream M. The merge
-      // direction in M6 (dashboard → /social) was inverted: the hub keeps all
-      // its M-series features but lives at the dashboard URL users log into.
-      // UserDashboard.V3 files remain on disk, legacy/unmounted (rule 34).
+      // Workstream N (2026-06-11): /user-dashboard is the canonical home and
+      // mounts the V3 Observatory directly. Its feed tab carries the absorbed
+      // /social hub (cover studio + composer + full feed + coach dock + right
+      // rail); friends/challenges/notifications are first-class tabs.
       {
         path: 'user-dashboard',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <SocialPage />
+              <UserDashboardV3 />
             </Suspense>
           </ProtectedRoute>
         )
@@ -712,7 +710,7 @@ const MainRoutes: RouteObject = {
         element: (
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <SocialPage />
+              <UserDashboardV3 />
             </Suspense>
           </ProtectedRoute>
         )
@@ -754,11 +752,12 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Social alias routes — the hub now lives at /user-dashboard (merge M7).
-    // Old /social links, bookmarks, and shared URLs land on the same hub.
+    // Social alias routes — the hub lives at /user-dashboard (workstream N).
+    // Old /social links land on the dashboard's feed tab, /social/:tab on the
+    // matching dashboard tab.
     {
       path: 'social',
-      element: <Navigate to="/user-dashboard" replace />
+      element: <Navigate to="/user-dashboard/feed" replace />
     },
     {
       path: 'social/:tab',

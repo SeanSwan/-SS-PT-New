@@ -92,11 +92,11 @@ describe('SocialFeed cover studio contract', () => {
     expect(studioSource).toContain('onEditCover');
     expect(sectionsSource).toContain('SocialCoverEditor');
     expect(sectionsSource).toContain('setCoverRefreshKey');
-    // Merge M7: the hub mounts at /user-dashboard; /social is the redirect
-    // alias; the old Observatory lazy chunk stays gone from the routes file.
+    // Workstream N: the V3 Observatory mounts at /user-dashboard and its feed
+    // tab carries the cover studio + editor; /social redirects into it.
     expect(routesSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
-    expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
-    expect(routesSource).not.toContain("import('../components/UserDashboard/UserDashboard.V3')");
+    expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard\/feed" replace \/>/);
+    expect(routesSource).toContain("import('../components/UserDashboard/UserDashboard.V3')");
   });
 
   it('keeps the crossfade layout in lockstep across frontend and backend (drift guard)', () => {

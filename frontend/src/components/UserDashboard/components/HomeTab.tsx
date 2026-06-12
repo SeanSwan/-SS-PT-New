@@ -3,7 +3,6 @@
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
 import React, { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../hooks/useSubscription';
@@ -70,7 +69,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   displayNameOverride,
   usernameOverride,
 }) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   const { isElite, loading: subLoading } = useSubscription();
@@ -137,7 +135,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   const runAction = (target: VisionTarget) => {
     if (target === 'challenges') {
-      navigate('/social/challenges');
+      // Challenges is a first-class dashboard tab post-merge (workstream N).
+      onTabChange('challenges');
       return;
     }
     setActiveLens(target);

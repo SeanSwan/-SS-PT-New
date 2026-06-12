@@ -32,6 +32,6 @@ describe('CommunityTab', () => {
     render(<CommunityTab />);
     fireEvent.click(screen.getByRole('button', { name: 'Find Friends' }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/social/friends');
+    expect(mockNavigate).toHaveBeenCalledWith('/user-dashboard/friends');
   });
 });

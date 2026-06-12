@@ -7,8 +7,8 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const routeSource = read('src/routes/main-routes.tsx');
-const socialPageSource = read('src/pages/Social/SocialPage.V3.tsx');
-const socialFeedSource = read('src/components/Social/Feed/SocialFeed.tsx');
+const dashboardFeedTabSource = read('src/components/UserDashboard/components/DashboardFeedTab.tsx');
+const feedViewModelSource = read('src/components/Social/Feed/hooks/useSocialFeedViewModel.ts');
 const userDashboardTabsSource = read('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
 const homeLiveWidgetsSource = read('src/components/UserDashboard/components/useHomeTabLiveWidgets.ts');
 const tickerSource = stripComments(read('src/hooks/social/useActivityTicker.ts'));
@@ -16,12 +16,11 @@ const socketManagerSource = read('../backend/socket/socketManager.mjs');
 const socialAutoPostSource = stripComments(read('../backend/services/socialAutoPost.mjs'));
 
 describe('useActivityTicker socket auth pipeline', () => {
-  it('is mounted from the active social and user dashboard surfaces', () => {
-    expect(routeSource).toContain("() => import('../pages/Social/SocialPage.V3')");
+  it('is mounted from the active user dashboard surfaces (workstream N)', () => {
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    expect(socialPageSource).toContain("import SocialFeed from '../../components/Social/Feed/SocialFeed'");
-    expect(socialFeedSource).toContain("import { useActivityTicker } from '../../../hooks/social/useActivityTicker'");
-    expect(userDashboardTabsSource).toContain("const SocialFeed = lazy(() => import('../../Social/Feed/SocialFeed'))");
+    expect(userDashboardTabsSource).toContain("const DashboardFeedTab = lazy(() => import('./DashboardFeedTab'))");
+    expect(dashboardFeedTabSource).toContain("import SocialFeed from '../../Social/Feed/SocialFeed'");
+    expect(feedViewModelSource).toContain("import { useActivityTicker } from '../../../../hooks/social/useActivityTicker'");
     expect(homeLiveWidgetsSource).toContain("import { useActivityTicker } from '../../../hooks/social/useActivityTicker'");
   });
 
