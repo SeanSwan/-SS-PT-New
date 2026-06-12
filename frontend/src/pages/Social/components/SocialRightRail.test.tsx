@@ -97,6 +97,27 @@ describe('SocialRightRail — populated', () => {
     expect(screen.getByText(/keep your 7-day streak/i)).toBeTruthy();
   });
 
+  it('renders FLAT leaderboard rows (the real production shape — rule 58 drift fix)', () => {
+    // progressController.getLeaderboard returns flat user attributes, not the
+    // legacy {userId, overallLevel, client:{...}} the type claims. Caught
+    // visually on production 2026-06-11 ("Member / Lvl" fallbacks).
+    mockUseGam.mockReturnValue({
+      leaderboard: {
+        data: [
+          { id: 57, firstName: 'QABot', username: 'qabottester2026', level: 2, points: 350 },
+          { id: 2, firstName: 'Sean', username: 'SeanSwan', level: 9, points: 9000 },
+        ],
+      },
+      profile: { data: { streakDays: 0, level: 1, nextLevelProgress: 0 } },
+    });
+    render(<SocialRightRail />);
+
+    expect(screen.getByText('QABot')).toBeTruthy();
+    expect(screen.getByText('Sean')).toBeTruthy();
+    expect(screen.getByText('Lvl 2')).toBeTruthy();
+    expect(screen.getByText('Lvl 9')).toBeTruthy();
+  });
+
   it('NBA Log-a-workout routes a member to the role-routed logger', async () => {
     const user = userEvent.setup();
     render(<SocialRightRail />);

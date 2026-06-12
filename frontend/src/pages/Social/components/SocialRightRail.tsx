@@ -73,7 +73,29 @@ const SocialRightRail: React.FC = () => {
     [challenges],
   );
 
-  const topThree = (leaderboard.data ?? []).slice(0, 3);
+  /* Rule 58 drift fix (2026-06-11, visually caught on production): the
+     leaderboard endpoint returns FLAT user rows ({id, firstName, username,
+     level, points} — progressController.getLeaderboard attributes), while the
+     legacy LeaderboardEntry type claims {userId, overallLevel, client:{...}}.
+     Read both shapes so real names/levels render either way. */
+  const topThree = (leaderboard.data ?? []).slice(0, 3).map((entry, index) => {
+    const flat = entry as unknown as {
+      id?: string | number;
+      firstName?: string;
+      username?: string;
+      level?: number;
+    };
+    return {
+      key: String(entry.userId ?? flat.id ?? flat.username ?? `rank-${index}`),
+      name:
+        entry.client?.firstName
+        || entry.client?.username
+        || flat.firstName
+        || flat.username
+        || 'Member',
+      level: entry.overallLevel ?? flat.level ?? null,
+    };
+  });
 
   const nba = useMemo(() => {
     const p = profile.data;
@@ -144,10 +166,10 @@ const SocialRightRail: React.FC = () => {
           <RailEmpty>Leaderboard fills as the community trains.</RailEmpty>
         ) : (
           topThree.map((entry, i) => (
-            <RailRow key={entry.userId}>
+            <RailRow key={entry.key}>
               <RailRank>{i + 1}</RailRank>
-              <RailName>{entry.client?.firstName || entry.client?.username || 'Member'}</RailName>
-              <RailMeta>Lvl {entry.overallLevel}</RailMeta>
+              <RailName>{entry.name}</RailName>
+              {entry.level != null && <RailMeta>Lvl {entry.level}</RailMeta>}
             </RailRow>
           ))
         )}
