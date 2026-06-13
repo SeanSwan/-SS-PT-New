@@ -22,6 +22,22 @@ import type { ChartVisibility } from './components/ChartVisibilityToggle';
 import RPGProfileHeader from '../../components/Social/RPGProfileHeader';
 import { FactionSelector, BadgeShowcase } from '../../components/Social/RPG';
 import type { ShowcaseBadge } from '../../components/Social/RPG';
+// Feed Banner Studio Slice 3 (2026-06-13): the public profile cover now uses
+// the SAME shared banner engine as the dashboard (single/tile/collage/carousel/
+// crossfade/Atrium/Vitrine) instead of a flat single-photo background:url().
+import UserDashboardBannerMediaLayer from '../../components/UserDashboard/components/UserDashboardBannerMediaLayer';
+import {
+  DEFAULT_BANNER_FRAME_HEIGHT,
+  DEFAULT_BANNER_OBJECT_FIT,
+  isBannerObjectFit,
+  normalizeBannerCollageLayout,
+  normalizeBannerCollagePhotos,
+  normalizeBannerFrameHeight,
+  normalizeBannerImageScale,
+  normalizeBannerObjectPosition,
+  type BannerCollageLayout,
+  type BannerObjectFit,
+} from '../../services/profileService';
 
 // ── Crystalline Swan Tokens ──
 const TOKENS = {
@@ -52,6 +68,14 @@ interface UserProfile {
   photo?: string;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   bannerPhoto?: string;
+  // Banner composition fields (already returned by GET /api/profile/:userId —
+  // it serializes the full User model; these were just untyped/unused here).
+  bannerObjectPosition?: string;
+  bannerObjectFit?: BannerObjectFit;
+  bannerImageScale?: number;
+  bannerFrameHeight?: number;
+  bannerCollagePhotos?: string[];
+  bannerCollageLayout?: BannerCollageLayout;
   bio?: string;
   location?: string;
   role?: string;
@@ -125,16 +149,16 @@ const BackButton = styled.button`
   }
 `;
 
-const BannerSection = styled.div<{ $src?: string }>`
-  width: 100%;
-  height: 200px;
-  background: ${({ $src }) => {
-    const safe = $src ? sanitizeImageUrl($src) : null;
-    return safe
-      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
-      : `linear-gradient(135deg, ${TOKENS.royalDepth} 0%, ${TOKENS.swanLavender} 50%, ${TOKENS.midnightSapphire} 100%)`;
-  }};
+const BannerSection = styled.div`
   position: relative;
+  width: 100%;
+  /* Respect the user's chosen cover height (same clamp as the dashboard) so the
+     full-bleed Stage has room; falls back to the 320px default. */
+  height: clamp(180px, var(--banner-frame-height, 320px), 1000px);
+  overflow: hidden;
+  /* Fallback backdrop: shows through when the viewed user has no banner media
+     (the shared engine renders nothing in that case). */
+  background: linear-gradient(135deg, ${TOKENS.royalDepth} 0%, ${TOKENS.swanLavender} 50%, ${TOKENS.midnightSapphire} 100%);
 
   &::after {
     content: '';
@@ -144,6 +168,12 @@ const BannerSection = styled.div<{ $src?: string }>`
     right: 0;
     height: 80px;
     background: linear-gradient(transparent, ${TOKENS.midnightSapphire});
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    height: clamp(160px, calc(var(--banner-frame-height, 320px) * 0.72), 720px);
   }
 `;
 
@@ -489,6 +519,32 @@ const UserProfilePage: React.FC = () => {
     return String(currentUser.id) === String(userId);
   }, [currentUser, userId]);
 
+  // Slice 3: normalize the viewed user's banner composition for the shared
+  // engine, mirroring useSocialCoverBanner (the dashboard's canonical read).
+  // Returns null when there's no usable media -> the BannerSection gradient
+  // backdrop shows through. bannerPhoto is re-sanitized (it's another user's
+  // data); collage URLs are sanitized by normalizeBannerCollagePhotos.
+  const bannerComposition = useMemo(() => {
+    if (!profile) return null;
+    const objectFit = isBannerObjectFit(profile.bannerObjectFit)
+      ? profile.bannerObjectFit
+      : DEFAULT_BANNER_OBJECT_FIT;
+    const collagePhotos = normalizeBannerCollagePhotos(profile.bannerCollagePhotos);
+    const backgroundImage = sanitizeImageUrl(profile.bannerPhoto ?? null) || null;
+    const hasCollageMedia = objectFit === 'collage' && collagePhotos.length > 0;
+    const hasSingleMedia = objectFit !== 'collage' && Boolean(backgroundImage);
+    if (!hasCollageMedia && !hasSingleMedia) return null;
+    return {
+      backgroundImage,
+      bannerObjectPosition: normalizeBannerObjectPosition(profile.bannerObjectPosition),
+      bannerObjectFit: objectFit,
+      bannerImageScale: normalizeBannerImageScale(profile.bannerImageScale),
+      bannerFrameHeight: normalizeBannerFrameHeight(profile.bannerFrameHeight),
+      bannerCollagePhotos: collagePhotos,
+      bannerCollageLayout: normalizeBannerCollageLayout(profile.bannerCollageLayout),
+    };
+  }, [profile]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -572,7 +628,23 @@ const UserProfilePage: React.FC = () => {
         <ArrowLeft size={18} /> Back
       </BackButton>
 
-      <BannerSection $src={profile.bannerPhoto || undefined} />
+      <BannerSection
+        style={{
+          '--banner-frame-height': `${bannerComposition?.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT}px`,
+        } as React.CSSProperties}
+      >
+        {bannerComposition && (
+          <UserDashboardBannerMediaLayer
+            backgroundImage={bannerComposition.backgroundImage}
+            bannerObjectPosition={bannerComposition.bannerObjectPosition}
+            bannerObjectFit={bannerComposition.bannerObjectFit}
+            bannerImageScale={bannerComposition.bannerImageScale}
+            bannerCollagePhotos={bannerComposition.bannerCollagePhotos}
+            bannerCollageLayout={bannerComposition.bannerCollageLayout}
+            bannerStickyCarousel={false}
+          />
+        )}
+      </BannerSection>
 
       <ProfileHeader>
         <AvatarRow>
