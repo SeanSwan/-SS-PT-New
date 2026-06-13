@@ -804,7 +804,7 @@ const StoreV2: React.FC = () => {
                 </SectionTitle>
                 <SectionSubtitle>
                   Invest in your transformation with our curated training programs,
-                  designed by a 25-year veteran of elite fitness coaching.
+                  designed by a 26+ year veteran of elite fitness coaching.
                 </SectionSubtitle>
               </PackagesSectionHeader>
             </ScrollReveal>

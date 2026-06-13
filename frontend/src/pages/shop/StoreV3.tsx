@@ -400,6 +400,38 @@ const SectionSubtitle = styled.p`
   }
 `;
 
+/*
+ * Trust-first pricing promise (2026-06-13). Community + trust is the #1 brand
+ * factor, so the store states plainly that pricing is all-inclusive — the price
+ * you see is the price you pay — instead of surprising buyers with extra charges
+ * at checkout. Worded to avoid any state-specific tax-law claim. If the operating
+ * state ever requires an explicit tax line, this is the single change point.
+ */
+const STORE_PRICING_NOTE =
+  'All-inclusive pricing — the price you see is the price you pay. No hidden fees or surprise charges at checkout.';
+
+const PricingTrustNote = styled.p`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem auto 0;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  max-width: 640px;
+  font-family: ${({ theme }) => theme.fonts?.ui || '"Sora", sans-serif'};
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: ${({ theme }) => theme.colors?.gold || '#C6A84B'};
+  background: ${({ theme }) => `color-mix(in srgb, ${theme.colors?.gold || '#C6A84B'} 10%, transparent)`};
+  border: 1px solid ${({ theme }) => `color-mix(in srgb, ${theme.colors?.gold || '#C6A84B'} 38%, transparent)`};
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    padding: 0.55rem 1.1rem;
+  }
+`;
+
 // ---- CTA Section ----
 
 const CTASection = styled.section`
@@ -903,8 +935,9 @@ const StoreV3: React.FC = () => {
                 </SectionTitle>
                 <SectionSubtitle>
                   Invest in your transformation with our curated training programs,
-                  designed by a 25-year veteran of elite fitness coaching.
+                  designed by a 26+ year veteran of elite fitness coaching.
                 </SectionSubtitle>
+                <PricingTrustNote>{STORE_PRICING_NOTE}</PricingTrustNote>
               </PackagesSectionHeader>
             </ScrollReveal>
 
