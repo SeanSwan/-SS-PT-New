@@ -150,6 +150,53 @@ StorefrontItem.init({
       min: 0
     }
   },
+  // ── Phase 0 commerce foundation (2026-06-13) ──────────────────────────────
+  // Distinguishes training packages (services, non-taxable, grant credits) from
+  // physical products (supplements/merch — taxable, shipped). Additive +
+  // defaulted so every existing package row is unchanged (back-compat).
+  itemKind: {
+    type: DataTypes.STRING(32),
+    allowNull: false,
+    defaultValue: 'training_package', // 'training_package' | 'physical_product'
+    validate: {
+      isIn: {
+        args: [['training_package', 'physical_product']],
+        msg: 'itemKind must be training_package or physical_product'
+      }
+    }
+  },
+  isTaxable: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false, // services are not CA sales-taxable; physical goods set true
+  },
+  fulfillmentType: {
+    type: DataTypes.STRING(16),
+    allowNull: false,
+    // 'none' (service) | 'dropship' (AGI supplements) | 'self_ship' (merch/gear)
+    // | 'local_delivery' (the recovery drink — local-first) | 'pickup'
+    defaultValue: 'none',
+    validate: {
+      isIn: {
+        args: [['none', 'dropship', 'self_ship', 'local_delivery', 'pickup']],
+        msg: 'fulfillmentType must be none, dropship, self_ship, local_delivery, or pickup'
+      }
+    }
+  },
+  stockQuantity: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // null = not inventory-tracked (services + dropship)
+    validate: { min: 0 }
+  },
+  sku: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+  },
+  shippingWeightOz: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // physical self-ship logistics
+    validate: { min: 0 }
+  },
   // createdAt and updatedAt are managed by Sequelize because timestamps: true
 }, {
   sequelize,
