@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assessStreakRisk,
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
   buildHomeTrainingProof,
@@ -153,7 +154,11 @@ describe('HomeTabViewModel', () => {
     expect(proof.thisWeekCount).toBe(2);
     expect(proof.minutesThisWeek).toBe(75);
     expect(proof.lastSession).toEqual({ title: 'Push Day', when: '1d ago' });
-    expect(proof.shareLine).toBe('Logged 2 workouts this week — 75 focused minutes. Progress you can see.');
+    // O3 weekly recap: the real week-over-week delta rides the share line,
+    // and the newest session id is exposed for the workout-proof attachment.
+    expect(proof.weekDelta).toBe(1);
+    expect(proof.latestSessionId).toBe('w1');
+    expect(proof.shareLine).toBe('Logged 2 workouts this week — 75 focused minutes, up 1 from last week. Progress you can see.');
   });
 
   it('reports honest zeros and no share line when nothing is logged', () => {
@@ -162,7 +167,25 @@ describe('HomeTabViewModel', () => {
     expect(proof.weeklyCounts).toEqual([0, 0, 0, 0]);
     expect(proof.thisWeekCount).toBe(0);
     expect(proof.lastSession).toBeNull();
+    expect(proof.weekDelta).toBeNull();
+    expect(proof.latestSessionId).toBeNull();
     expect(proof.shareLine).toBeNull();
+  });
+
+  it('flags streak risk only when the streak is live, today is unlogged, and evening started (O3)', () => {
+    const eveningMs = new Date('2026-06-12T19:00:00').getTime();
+    const morningMs = new Date('2026-06-12T09:00:00').getTime();
+    const todaySession = [{ id: 's1', date: new Date('2026-06-12T07:30:00').toISOString() }];
+    const yesterdaySession = [{ id: 's2', date: new Date('2026-06-11T18:00:00').toISOString() }];
+
+    // Live streak + nothing today + evening → rescue fires.
+    expect(assessStreakRisk(yesterdaySession, 4, eveningMs)).toBe(true);
+    // Trained today → safe.
+    expect(assessStreakRisk(todaySession, 4, eveningMs)).toBe(false);
+    // Morning → not yet urgent.
+    expect(assessStreakRisk(yesterdaySession, 4, morningMs)).toBe(false);
+    // No streak to lose → never urgent.
+    expect(assessStreakRisk(yesterdaySession, 0, eveningMs)).toBe(false);
   });
 
   it('builds the latest-post view from REAL fields — no fabricated engagement numbers', () => {

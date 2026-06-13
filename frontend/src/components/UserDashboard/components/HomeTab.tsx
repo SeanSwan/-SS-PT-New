@@ -2,19 +2,20 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useHomeCoverBanner } from './useHomeCoverBanner';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useFaction } from '../../../hooks/social/useFaction';
+// O3 feed unification: ONE stateful feed mount powers the community stream,
+// the Quick Post composer, the latest-post spotlight, and the live widgets.
+import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
 import {
-  useCreatePost,
   useMessageSummary,
   useNotificationSummary,
-  useSocialFeed,
   useWorkoutSessions,
 } from '../../../hooks/useDashboardQueries';
 import fallbackAvatar from '../../../assets/logo.svg';
@@ -36,14 +37,14 @@ import {
   type VisionTarget,
 } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
+import useHomeComposer from './useHomeComposer';
 import {
+  assessStreakRisk,
   buildCreatorStats,
-  buildHomePostPayload,
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
   parseUnreadNotificationCount,
-  previewHomePostIntent,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
@@ -78,19 +79,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
   // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
-  const feedQuery = useSocialFeed({ limit: 4 });
+  const communityFeed = useSocialFeed();
   const notificationSummary = useNotificationSummary();
   // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
   const messageSummary = useMessageSummary({
     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
   });
-  const createPost = useCreatePost();
-  const [postText, setPostText] = useState('');
-  const [activeMood, setActiveMood] = useState('achievement');
   const [activeLens, setActiveLens] = useState('reels');
-  const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
-  const mediaInputRef = useRef<HTMLInputElement>(null);
-  const posts = useMemo(() => (Array.isArray(feedQuery.data) ? feedQuery.data : []), [feedQuery.data]);
+  const posts = communityFeed.posts;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
   const handle = `@${usernameOverride || user?.username || 'swancreator'}`;
   const avatarSrc = resolveHomeAvatarSrc({
@@ -115,7 +111,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const streakDays = gamProfile?.data?.streakDays ?? 0;
   const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
   const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
-  const canPost = postText.trim().length >= 3 && !createPost.isPending;
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
   const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
@@ -125,11 +120,19 @@ const HomeTab: React.FC<HomeTabProps> = ({
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
-  const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
-  const postIntentPreview = useMemo(
-    () => (postText.trim().length >= 3 ? previewHomePostIntent(postText, activeMood) : null),
-    [activeMood, postText],
+  // O3 streak rescue: live streak + no session today + evening = escalate.
+  const streakAtRisk = useMemo(
+    () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
+    [streakDays, workoutSessions.data],
   );
+  // O3: Quick Post composer (extracted hook) — "Share my week" arms the
+  // workout-proof attachment with the latest REAL session link.
+  const composer = useHomeComposer({
+    createPost: communityFeed.createPost,
+    isCreatingPost: communityFeed.isCreatingPost,
+    latestSessionId: trainingProof.latestSessionId,
+  });
+  const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
   const transformationPhotoUrls = useMemo(
     () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null)
       .map((photo) => sanitizeImageUrl(photo.url))
@@ -143,20 +146,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
     leaderboard: leaderboard?.data,
     currentUserPoints: points,
   });
-
-  const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0] || null;
-    setSelectedMedia(file);
-    event.currentTarget.value = '';
-  };
-
-  const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canPost) return;
-    await createPost.mutateAsync(buildHomePostPayload(postText, activeMood, selectedMedia));
-    setPostText('');
-    setSelectedMedia(null);
-  };
 
   const runAction = (target: VisionTarget) => {
     if (target === 'challenges') {
@@ -194,28 +183,30 @@ const HomeTab: React.FC<HomeTabProps> = ({
           followersCount={creatorStats.followers}
           followingCount={creatorStats.following}
           activeLens={activeLens}
-          postText={postText}
-          activeMood={activeMood}
-          selectedMediaName={selectedMedia?.name}
+          postText={composer.postText}
+          activeMood={composer.activeMood}
+          selectedMediaName={composer.selectedMedia?.name}
+          communityFeed={communityFeed}
+          proofAttached={composer.proofAttached}
           bannerLayer={bannerLayer}
           onEditCover={toggleCoverEditor}
           coverEditorSlot={coverEditorSlot}
-          postIntentPreview={postIntentPreview}
+          postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}
-          canPost={canPost}
-          isPosting={createPost.isPending}
+          canPost={composer.canPost}
+          isPosting={communityFeed.isCreatingPost}
           onAction={runAction}
-          onSetMood={setActiveMood}
-          onAddMediaClick={() => mediaInputRef.current?.click()}
-          onPostTextChange={setPostText}
-          onSubmitPost={submitPost}
+          onSetMood={composer.setActiveMood}
+          onAddMediaClick={() => composer.mediaInputRef.current?.click()}
+          onPostTextChange={composer.setPostText}
+          onSubmitPost={composer.submitPost}
           topBarActions={topBarActions}
         />
         <input
-          ref={mediaInputRef}
+          ref={composer.mediaInputRef}
           type="file"
           accept="image/*,video/*"
-          onChange={handleMediaSelect}
+          onChange={composer.handleMediaSelect}
           hidden
         />
 
@@ -231,6 +222,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
           trendingLoading={liveWidgets.trendingLoading}
           factions={factions}
           transformationPhotoUrls={transformationPhotoUrls}
+          streakAtRisk={streakAtRisk}
+          streakDays={streakDays}
           onAction={runAction}
           onLogWorkout={() => navigate(logWorkoutPath)}
         />
@@ -243,7 +236,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           <Panel>
             <HomeTabTrainingProof
               proof={trainingProof}
-              onShareProgress={setPostText}
+              onShareProgress={composer.handleShareProgress}
             />
           </Panel>
 

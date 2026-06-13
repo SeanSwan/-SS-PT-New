@@ -24,11 +24,13 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Send, CornerDownRight } from 'lucide-react';
+import { Send, CornerDownRight, ShieldCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { PostCommentsProps, Comment } from '../types/PostCardTypes';
+import { isCoachRole } from '../types/PostCardTypes';
 import { AvatarEl } from './PostHeader';
 import {
+  CoachChip,
   CommentsSection,
   CommentsList,
   CommentItem,
@@ -101,12 +103,20 @@ const PostComments: React.FC<PostCommentsProps> = React.memo(({
         alt={`${comment.user.firstName} ${comment.user.lastName}`}
         fallback={`${comment.user.firstName[0]}${comment.user.lastName[0]}`}
         size={isReply ? 26 : 32}
+        coach={isCoachRole(comment.user.role)}
       />
       <div style={{ flex: 1 }}>
         <CommentBubble>
           <CommentAuthor>
             {isReply && <CornerDownRight size={12} style={{ marginRight: 4, opacity: 0.4 }} />}
             {comment.user.firstName} {comment.user.lastName}
+            {/* A coach answered — the gold mark makes the reply load-bearing. */}
+            {isCoachRole(comment.user.role) && (
+              <CoachChip title="SwanStudios Coach">
+                <ShieldCheck size={10} aria-hidden="true" />
+                Coach
+              </CoachChip>
+            )}
           </CommentAuthor>
           <CommentBody>{comment.content}</CommentBody>
         </CommentBubble>

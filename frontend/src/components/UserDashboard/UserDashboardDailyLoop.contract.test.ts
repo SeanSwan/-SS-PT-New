@@ -164,6 +164,7 @@ describe('UserDashboard V3 daily loop contract', () => {
 
   it('gives Home the full cover editor, the smart-hashtag truth-line, and a tier-gated inbox poll (workstream N3)', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
     const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
     const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
     const heroSource = readSource('src/components/UserDashboard/components/HomeTabHeroHeader.tsx');
@@ -179,7 +180,8 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     // Quick Post shows the live smart type + hashtags from the same
     // inference path the payload uses.
-    expect(homeSource).toContain('previewHomePostIntent(postText, activeMood)');
+    expect(homeSource).toContain('useHomeComposer({');
+    expect(composerSource).toContain('previewHomePostIntent(postText, activeMood)');
     expect(centerSource).toContain('postIntentPreview.hashtags.map');
 
     // Free tiers never poll the elite-gated messaging endpoint (402 by design).
@@ -189,18 +191,24 @@ describe('UserDashboard V3 daily loop contract', () => {
 
   it('puts real training proof from logged workouts on Home, one tap from a shareable post (workstream N4)', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
     const proofSource = readSource('src/components/UserDashboard/components/HomeTabTrainingProof.tsx');
 
     // The strip reads REAL sessions through the dashboard query layer.
     expect(homeSource).toContain('useWorkoutSessions({ limit: 50 })');
     expect(homeSource).toContain('buildHomeTrainingProof(workoutSessions.data');
     expect(homeSource).toContain('<HomeTabTrainingProof');
-    // Share progress prefills the composer — the hashtag system takes over.
-    expect(homeSource).toContain('onShareProgress={setPostText}');
+    // O3: "Share my week" prefills the composer AND arms the workout-proof
+    // attachment — the post ships typed workout with the real session link.
+    expect(homeSource).toContain('onShareProgress={composer.handleShareProgress}');
+    expect(composerSource).toContain('setPendingProofSessionId(latestSessionId)');
+    expect(composerSource).toContain('workoutSessionId: pendingProofSessionId');
     expect(proofSource).toContain('onShareProgress(proof.shareLine!)');
     // Honest empty state, no fabricated trend.
     expect(proofSource).toContain('No logged workouts yet');
     expect(proofSource).toContain('proof.weeklyCounts.map');
+    // O3 weekly recap: the real week-over-week delta is displayed, never faked.
+    expect(proofSource).toContain('proof.weekDelta');
   });
 
   it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
@@ -252,12 +260,15 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(observatoryFeedSource).not.toContain("onNavigate('/dashboard/client/community')");
   });
 
-  it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {
+  it('keeps every phone tab reachable in the bottom bar via snap scrolling (O3 supersedes the wrap-grid)', () => {
     const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
-    expect(stylesSource).toContain('@media (max-width: 430px)');
-    expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
-    expect(stylesSource).toContain('grid-column: 1 / -1');
+    // O3: the <=430px wrap-grid retired with the fixed bottom bar — tabs are
+    // a snap-scrolling row, so no entry can be clipped or orphaned.
+    expect(stylesSource).toContain('scroll-snap-type: x proximity');
+    expect(stylesSource).toContain('overscroll-behavior-x: contain');
+    expect(stylesSource).toContain('scroll-snap-align: start');
+    expect(stylesSource).not.toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
   });
 
   it('resets dashboard scroll when switching between Home and the in-page tabs', () => {
@@ -376,11 +387,15 @@ describe('UserDashboard V3 daily loop contract', () => {
     // Home's center column mounts the community feed (lazy) and the old
     // single latest-post card is gone (the feed's first posts replace it).
     expect(centerSource).toContain("lazy(() => import('./HomeCommunityFeed'))");
-    expect(centerSource).toContain('<HomeCommunityFeed />');
+    expect(centerSource).toContain('<HomeCommunityFeed feed={communityFeed} />');
     expect(centerSource).not.toContain('Your first post will land here');
 
-    // The feed reuses the battle-tested stateful hook + PostCard — no fork.
-    expect(feedSource).toContain("import { useSocialFeed } from '../../../hooks/social/useSocialFeed'");
+    // O3 unification: HomeTab owns the ONE stateful feed mount; the stream
+    // component is presentational (no duplicate fetch on Home).
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    expect(homeSource).toContain("import { useSocialFeed } from '../../../hooks/social/useSocialFeed'");
+    expect(homeSource).not.toContain('useSocialFeed({ limit: 4 })');
+    expect(feedSource).toContain("import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed'");
     expect(feedSource).toContain("import PostCard from '../../Social/Feed/PostCard'");
     expect(feedSource).toContain('InfiniteScrollSentinel');
     expect(feedSource).toContain('IntersectionObserver');
@@ -393,6 +408,57 @@ describe('UserDashboard V3 daily loop contract', () => {
     // Quick Post publishes ride the cross-surface event so the stateful feed
     // refreshes instantly (react-query invalidation cannot reach it).
     expect(queriesSource).toContain("window.dispatchEvent(new Event('swan:social-post-created'))");
+  });
+
+  it('marks coach presence on posts AND comments, and loads real comment threads (workstream O3)', () => {
+    const headerSource = readSource('src/components/Social/Feed/components/PostHeader.tsx');
+    const commentsSource = readSource('src/components/Social/Feed/components/PostComments.tsx');
+    const typesSource = readSource('src/components/Social/Feed/types/PostCardTypes.ts');
+    const cardSource = readSource('src/components/Social/Feed/PostCard.tsx');
+    const hookSource = readSource('src/hooks/social/useSocialFeed.ts');
+    const feedSource = readSource('src/components/UserDashboard/components/HomeCommunityFeed.tsx');
+
+    // Trainers AND the admin owner read as coaches (Sean's mandate: members
+    // must SEE a coach is present and able to answer questions).
+    expect(typesSource).toContain("role === 'trainer' || role === 'admin'");
+    expect(headerSource).toContain('isCoachRole(post.user.role)');
+    expect(headerSource).toContain('<CoachChip');
+    expect(commentsSource).toContain('isCoachRole(comment.user.role)');
+    expect(commentsSource).toContain('<CoachChip');
+
+    // Comment threads LOAD on first open — feed payloads carry counts only,
+    // so coach answers would otherwise never render.
+    expect(hookSource).toContain('const loadComments = useCallback(async (postId: string)');
+    expect(cardSource).toContain('onLoadComments');
+    expect(cardSource).toContain('post.commentsCount > 0');
+    expect(feedSource).toContain('onLoadComments={feed.loadComments}');
+  });
+
+  it('escalates Home to streak rescue from real session data (workstream O3)', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const nbaSource = readSource('src/components/UserDashboard/components/HomeTabNextBestAction.tsx');
+    const railSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
+
+    expect(homeSource).toContain('assessStreakRisk(workoutSessions.data, streakDays');
+    expect(railSource).toContain('<HomeTabNextBestAction');
+    expect(nbaSource).toContain('streak ends tonight without a logged workout');
+    expect(nbaSource).toContain('Save my ${streakDays}-day streak');
+  });
+
+  it('ships the phone app-shell: fixed bottom nav on every dashboard surface (workstream O3)', () => {
+    const navStyles = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
+    const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
+    const wrapperSource = readSource('src/components/UserDashboard/styles/DashboardV3LayoutStyles.ts');
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+
+    // Phones: the tab strip pins to the BOTTOM with safe-area clearance.
+    expect(navStyles).toMatch(/@media \(max-width: 768px\) \{[\s\S]*?position: fixed;[\s\S]*?bottom: 0;/);
+    expect(navStyles).toContain('env(safe-area-inset-bottom');
+    expect(wrapperSource).toContain('env(safe-area-inset-bottom');
+    // Home mounts the bar too — same nav on every dashboard surface.
+    expect(dashboardSource.match(/<UserDashboardTabBarV3/g)?.length).toBe(2);
+    // Top-bar actions with a destination navigate; no dead buttons.
+    expect(centerSource).toContain('onClick={target ? () => onAction(target) : undefined}');
   });
 
   it('gives the party squad widgets a real home on the Challenges tab (workstream O2)', () => {

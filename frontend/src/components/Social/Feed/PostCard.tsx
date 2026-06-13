@@ -33,12 +33,13 @@ import {
 } from './styles/PostCardStyles';
 import { logger } from '@/utils/logger';
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost, onLoadComments }) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+  const [commentsRequested, setCommentsRequested] = useState(false);
   const [transformationSliderValue] = useState(50);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -178,6 +179,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     setShareDialogOpen(false);
   }, [onRepost, post.id]);
 
+  /* Comment threads load on first open: feed payloads carry counts only, so
+     existing comments (including coach answers) must be fetched here. */
+  const handleToggleComments = useCallback(() => {
+    setShowComments(prev => {
+      const needsThread = !prev && !commentsRequested && !!onLoadComments
+        && post.commentsCount > 0 && (post.comments?.length ?? 0) === 0;
+      if (needsThread) {
+        setCommentsRequested(true);
+        void onLoadComments!(post.id);
+      }
+      return !prev;
+    });
+  }, [commentsRequested, onLoadComments, post.comments?.length, post.commentsCount, post.id]);
+
   return (
     <>
       <PostCardWrapper>
@@ -222,7 +237,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           reactionCounts={reactionCounts}
           onReaction={handleReaction}
           showComments={showComments}
-          onToggleComments={() => setShowComments(!showComments)}
+          onToggleComments={handleToggleComments}
           onShareClick={() => setShareDialogOpen(true)}
         />
 

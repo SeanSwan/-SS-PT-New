@@ -13,7 +13,7 @@
  * per component file. Uses Crystalline Swan theme tokens with fallbacks.
  */
 
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 
 // ─────────────────────────────────────────────────────────────
@@ -21,34 +21,28 @@ import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 // PURPOSE: All PostCard animations (entry, toast, reactions, points)
 // ─────────────────────────────────────────────────────────────
 
-export const pointEarnAnimation = keyframes`
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-`;
-
-export const toastSlideIn = keyframes`
+const toastSlideIn = keyframes`
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 `;
 
-export const toastSlideOut = keyframes`
+const toastSlideOut = keyframes`
   from { transform: translateX(-50%) translateY(0); opacity: 1; }
   to { transform: translateX(-50%) translateY(20px); opacity: 0; }
 `;
 
-export const breathe = keyframes`
+const breathe = keyframes`
   0% { opacity: 0.8; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.03); }
   100% { opacity: 0.8; transform: scale(1); }
 `;
 
-export const slideUpFade = keyframes`
+const slideUpFade = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-export const springScale = keyframes`
+const springScale = keyframes`
   0% { transform: scale(1); }
   50% { transform: scale(0.85); }
   75% { transform: scale(1.1); }
@@ -175,34 +169,6 @@ export const SwanWatermark = styled.div`
   }
 `;
 
-export const PostTypeIndicator = styled.div<{ $postType: string }>`
-  position: absolute;
-  top: 12px; right: 12px;
-  pointer-events: none;
-  background: ${props =>
-    props.$postType === 'workout' ? 'linear-gradient(135deg, #003080, #60C0F0)' :
-    props.$postType === 'transformation' ? 'linear-gradient(135deg, #e91e63, #f06292)' :
-    props.$postType === 'achievement' ? 'linear-gradient(135deg, #ff9800, #ffb74d)' :
-    props.$postType === 'challenge' ? 'linear-gradient(135deg, #9c27b0, #ba68c8)' :
-    props.$postType === 'dance' ? 'linear-gradient(135deg, #ec4899, #f472b6)' :
-    props.$postType === 'music' ? 'linear-gradient(135deg, #a855f7, #c084fc)' :
-    props.$postType === 'singing' ? 'linear-gradient(135deg, #f472b6, #fb7185)' :
-    props.$postType === 'art' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' :
-    props.$postType === 'gaming' ? 'linear-gradient(135deg, #22c55e, #4ade80)' :
-    props.$postType === 'comedy' ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' :
-    'linear-gradient(135deg, #757575, #9e9e9e)'
-  };
-  color: white;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 1;
-`;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Header Styles
 // ─────────────────────────────────────────────────────────────
@@ -225,7 +191,7 @@ export const UserInfo = styled.div`
   gap: 12px;
 `;
 
-export const AvatarStyled = styled.div<{ $size?: number }>`
+export const AvatarStyled = styled.div<{ $size?: number; $coach?: boolean }>`
   width: ${props => props.$size || 44}px;
   height: ${props => props.$size || 44}px;
   border-radius: 50%;
@@ -238,7 +204,34 @@ export const AvatarStyled = styled.div<{ $size?: number }>`
   color: #fff;
   overflow: hidden;
   flex-shrink: 0;
-  border: 2px solid rgba(96, 192, 240, 0.3);
+  /* Coach presence (trainer/admin authors): the Gilded Fern luxury ring marks
+     that a real coach is in the conversation. */
+  border: 2px solid ${({ $coach }) => ($coach
+    ? 'var(--accent-gold, #C6A84B)'
+    : 'rgba(96, 192, 240, 0.3)')};
+  ${({ $coach }) => $coach && css`
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-gold, #C6A84B) 45%, transparent);
+  `}
+`;
+
+/* Coach identity chip — Gilded Fern pill beside trainer/admin author names so
+   members instantly see a coach is present and can ask questions. */
+export const CoachChip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 55%, transparent);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent);
+  color: var(--accent-gold, #C6A84B);
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
 `;
 
 export const AvatarImage = styled.img`
@@ -378,13 +371,6 @@ export const PostText = styled.p`
   line-height: 1.6;
   color: #E0E0E0;
   word-wrap: break-word;
-`;
-
-export const PostMedia = styled.img`
-  width: 100%;
-  max-height: 450px;
-  object-fit: cover;
-  border-radius: 8px;
 `;
 
 export const WorkoutStatsContainer = styled.div`
@@ -709,19 +695,6 @@ export const NoCommentsText = styled.p`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Toast & Point Notification
 // ─────────────────────────────────────────────────────────────
-
-export const PointNotificationChip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #C6A84B, #d4b85a);
-  color: #000B18;
-  font-weight: bold;
-  font-size: 0.8125rem;
-  animation: ${pointEarnAnimation} 2s ease-out;
-`;
 
 export const Toast = styled.div<{ $visible: boolean }>`
   position: fixed;

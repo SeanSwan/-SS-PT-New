@@ -25,7 +25,7 @@ import { Users } from 'lucide-react';
 import PostCard from '../../Social/Feed/PostCard';
 import { EmptyFeedWelcome } from '../../Social/Feed/components/SocialFeedPanels';
 import { InfiniteScrollSentinel, Spinner } from '../../Social/Feed/styles/SocialFeedStyles';
-import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import { Eyebrow } from './HomeTabVision.styles';
 
 const FeedSection = styled.section`
@@ -75,24 +75,32 @@ const RetryButton = styled.button`
   }
 `;
 
-const HomeCommunityFeed: React.FC = () => {
+interface HomeCommunityFeedProps {
+  /** The single stateful feed mount, owned by HomeTab (O3 unification) —
+      one fetch powers composer, spotlight, widgets, and this stream. */
+  feed: SocialFeedApi;
+}
+
+const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({ feed }) => {
   const navigate = useNavigate();
-  const feed = useSocialFeed();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!feed.hasMore) return undefined;
     const sentinel = sentinelRef.current;
-    if (!sentinel || !feed.hasMore) return;
+    if (!sentinel) return undefined;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !feed.isLoadingMore) feed.loadMore();
-      },
-      { rootMargin: '200px' },
-    );
+    const observer = new IntersectionObserver((entries) => {
+      const isVisible = entries.some((entry) => entry.isIntersecting);
+      if (!isVisible || feed.isLoadingMore) return;
+      void feed.loadMore();
+    }, { rootMargin: '200px' });
 
     observer.observe(sentinel);
-    return () => observer.disconnect();
+    return () => {
+      observer.unobserve(sentinel);
+      observer.disconnect();
+    };
   }, [feed.hasMore, feed.isLoadingMore, feed.loadMore]);
 
   return (
@@ -139,6 +147,7 @@ const HomeCommunityFeed: React.FC = () => {
           onDelete={feed.deletePost}
           onReport={feed.reportPost}
           onRepost={feed.repostPost}
+          onLoadComments={feed.loadComments}
         />
       ))}
 

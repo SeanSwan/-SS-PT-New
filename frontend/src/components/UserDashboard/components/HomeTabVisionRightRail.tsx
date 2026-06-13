@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { compactNumber, type VisionTarget } from './HomeTabVision.data';
 import HomeTabFactionPanel from './HomeTabFactionPanel';
+import HomeTabNextBestAction from './HomeTabNextBestAction';
 import type { Faction } from '../../../hooks/social/useFaction';
 import type {
   HomeBadgeItem,
@@ -84,6 +85,9 @@ interface HomeTabVisionRightRailProps {
   factions: Faction[];
   /** Real transformation photo URLs from the profile — empty renders a CTA. */
   transformationPhotoUrls: string[];
+  /** O3 streak rescue — real signal from logged sessions + the live streak. */
+  streakAtRisk: boolean;
+  streakDays: number;
   onAction: (target: VisionTarget) => void;
   onLogWorkout: () => void;
 }
@@ -109,6 +113,8 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   trendingLoading,
   factions,
   transformationPhotoUrls,
+  streakAtRisk,
+  streakDays,
   onAction,
   onLogWorkout,
 }) => {
@@ -273,13 +279,13 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
       )}
     </Panel>
 
-    <Panel>
-      <Eyebrow>Next Best Action</Eyebrow>
-      <SoftParagraph>Log today's training — workouts become visible progress proof.</SoftParagraph>
-      <FullWidthAction type="button" $variant="accent" onClick={onLogWorkout}>
-        Log a Workout
-      </FullWidthAction>
-    </Panel>
+    {/* O3: streak rescue lives in the NBA panel — urgent when the real
+        streak has no logged session today and evening has started. */}
+    <HomeTabNextBestAction
+      streakAtRisk={streakAtRisk}
+      streakDays={streakDays}
+      onLogWorkout={onLogWorkout}
+    />
   </RightRail>
   );
 };

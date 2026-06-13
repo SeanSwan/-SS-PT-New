@@ -12,7 +12,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
-import { Dumbbell, Share2 } from 'lucide-react';
+import { Dumbbell, Share2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Eyebrow } from './HomeTabVision.styles';
 import { ButtonRow, Chip, GlassButton } from './HomeTabVisionCards.styles';
 import type { HomeTrainingProof } from './HomeTabViewModel';
@@ -90,7 +90,18 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
           <Dumbbell size={14} aria-hidden="true" />
           Training Proof
         </Eyebrow>
-        {proof.thisWeekCount > 0 && <Chip $tone="gold">{proof.thisWeekCount} this week</Chip>}
+        <ButtonRow>
+          {/* O3 weekly recap: the real week-over-week delta, worn proudly. */}
+          {proof.weekDelta !== null && proof.weekDelta !== 0 && (
+            <Chip $tone={proof.weekDelta > 0 ? 'gold' : 'cyan'}>
+              {proof.weekDelta > 0
+                ? <TrendingUp size={12} aria-hidden="true" />
+                : <TrendingDown size={12} aria-hidden="true" />}
+              {proof.weekDelta > 0 ? `+${proof.weekDelta}` : proof.weekDelta} vs last week
+            </Chip>
+          )}
+          {proof.thisWeekCount > 0 && <Chip $tone="gold">{proof.thisWeekCount} this week</Chip>}
+        </ButtonRow>
       </ProofHeader>
       {proof.weeklyCounts.some((count) => count > 0) ? (
         <>
@@ -123,9 +134,11 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
           )}
           {proof.shareLine && (
             <ButtonRow style={{ marginTop: '0.75rem' }}>
+              {/* O3: shares post as a REAL workout post — the parent attaches
+                  the latest session link (workoutSessionId) to the payload. */}
               <GlassButton type="button" $variant="primary" onClick={() => onShareProgress(proof.shareLine!)}>
                 <Share2 size={15} aria-hidden="true" />
-                Share progress
+                Share my week
               </GlassButton>
             </ButtonRow>
           )}

@@ -153,19 +153,25 @@ export const TabNavigation = styled.div`
   /* V3: Enhanced glassmorphism */
   backdrop-filter: blur(24px);
 
-  @media (max-width: 430px) {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-    overflow-x: visible;
+  /* O3 app-shell nav: phones get a FIXED BOTTOM bar — thumb-reach, app-like,
+     pre-aligned with the future native build. Horizontal scroll + snap keeps
+     all entries reachable; iOS home-indicator safe-area respected. */
+  @media (max-width: 768px) {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 16px 16px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
     scrollbar-width: none;
-    scroll-snap-type: none;
-  }
 
-  /* V3: Extended breakpoints */
-  @media (max-width: 320px) {
-    border-radius: 12px;
-    padding: 0.375rem;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   /* 2026-05-10 SLICE 1: scale the sticky offset at large breakpoints so
@@ -226,22 +232,9 @@ export const Tab = styled(motion.button)<{ $active?: boolean }>`
     };
   }
 
-  @media (max-width: 430px) {
-    width: 100%;
-    min-width: 0;
-    justify-content: center;
-    flex: 1 1 auto;
-    white-space: normal;
-    text-align: center;
-
-    &:last-child {
-      grid-column: 1 / -1;
-    }
-  }
-
-  /* Phase 20.2: tighten padding/gap below 414px so all 5 tabs are
-     more visible at iPhone XR portrait without page horizontal
-     overflow. min-height: 44px touch target preserved (parent rule). */
+  /* O3: the old <=430px wrap-grid retired with the bottom-bar conversion —
+     tabs stay a snap-scrolling row inside the fixed bar. Tightened so the
+     first five entries read at iPhone-XR width; 44px targets preserved. */
   @media (max-width: 414px) {
     padding: 0.625rem 0.75rem;
     font-size: 0.85rem;

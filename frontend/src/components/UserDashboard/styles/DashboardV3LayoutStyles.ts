@@ -72,19 +72,24 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
     ${({ $belowCover }) => $belowCover && 'padding-top: 1rem;'}
   }
 
+  /* O3: phones carry the fixed bottom nav bar — clear it (+ iOS safe area)
+     so the last content row is never buried under the bar. */
   @media (max-width: 768px) {
     padding: 1.5rem 1rem;
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
     ${({ $belowCover }) => $belowCover && 'padding-top: 0.85rem;'}
   }
 
   @media (max-width: 480px) {
     padding: 1rem 0.75rem;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     ${({ $belowCover }) => $belowCover && 'padding-top: 0.75rem;'}
   }
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
     padding: 0.75rem 0.5rem;
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     ${({ $belowCover }) => $belowCover && 'padding-top: 0.6rem;'}
   }
 

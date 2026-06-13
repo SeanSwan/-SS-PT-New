@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
 import { useGamificationData } from '../gamification/useGamificationData';
+import type {
+  AchievementPostData,
+  ChallengePostData,
+  TransformationPostData,
+  WorkoutPostData,
+} from '../../components/Social/Feed/types/PostCardTypes';
 
 // Types
 interface User {
@@ -43,28 +49,10 @@ interface Post {
   workoutSessionId?: string;
   achievementId?: string;
   challengeId?: string;
-  workoutData?: {
-    duration?: string;
-    exerciseCount?: string;
-    totalWeight?: string;
-    caloriesBurned?: string;
-  };
-  transformationData?: {
-    hasBeforeImage?: boolean;
-    hasAfterImage?: boolean;
-    beforeImageUrl?: string;
-    afterImageUrl?: string;
-  };
-  achievementData?: {
-    title?: string;
-    description?: string;
-    points?: number;
-  };
-  challengeData?: {
-    title?: string;
-    difficulty?: string;
-    duration?: string;
-  };
+  workoutData?: WorkoutPostData;
+  transformationData?: TransformationPostData;
+  achievementData?: AchievementPostData;
+  challengeData?: ChallengePostData;
 }
 
 interface CreatePostParams {
@@ -75,26 +63,10 @@ interface CreatePostParams {
   workoutSessionId?: string;
   achievementId?: string;
   challengeId?: string;
-  workoutData?: {
-    duration?: string;
-    exerciseCount?: string;
-    totalWeight?: string;
-    caloriesBurned?: string;
-  };
-  transformationData?: {
-    hasBeforeImage?: boolean;
-    hasAfterImage?: boolean;
-  };
-  achievementData?: {
-    title?: string;
-    description?: string;
-    points?: number;
-  };
-  challengeData?: {
-    title?: string;
-    difficulty?: string;
-    duration?: string;
-  };
+  workoutData?: WorkoutPostData;
+  transformationData?: TransformationPostData;
+  achievementData?: AchievementPostData;
+  challengeData?: ChallengePostData;
 }
 
 interface PointResult {
@@ -505,6 +477,24 @@ export const useSocialFeed = () => {
       return null;
     }
   }, [authAxios, user]);
+
+  // Load a post's full comment THREAD into feed state. The feed endpoint
+  // returns commentsCount only — without this, comments from other members
+  // (including coach answers) would never render in the stream.
+  const loadComments = useCallback(async (postId: string) => {
+    const details = await getPostDetails(postId);
+    if (!details) return;
+
+    setPosts(prevPosts =>
+      prevPosts.map(post => (post.id === postId
+        ? {
+          ...post,
+          comments: details.comments || [],
+          commentsCount: (details.comments || []).length,
+        }
+        : post))
+    );
+  }, [getPostDetails]);
   
   // Initial data fetch — depend only on user identity, not fetchPosts reference
   // (fetchPosts changes on every offset/toast update which would cause infinite loops)
@@ -546,6 +536,11 @@ export const useSocialFeed = () => {
     deletePost,
     reportPost,
     repostPost,
-    getPostDetails
+    getPostDetails,
+    loadComments
   };
 };
+
+/** Workstream O3: the full stateful feed API — HomeTab owns the single mount
+    and prop-drills it to the presentational community feed. */
+export type SocialFeedApi = ReturnType<typeof useSocialFeed>;

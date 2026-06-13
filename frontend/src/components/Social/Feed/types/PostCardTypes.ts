@@ -31,7 +31,39 @@ export interface Comment {
     lastName: string;
     username: string;
     photo?: string;
+    role?: string;
   };
+}
+
+/** Coach presence: trainers AND the admin owner count as coaches in the
+    community — their posts/comments carry the Gilded Fern coach marks. */
+export const isCoachRole = (role?: string): boolean =>
+  role === 'trainer' || role === 'admin';
+
+export interface WorkoutPostData {
+  duration?: string;
+  exerciseCount?: string;
+  totalWeight?: string;
+  caloriesBurned?: string;
+}
+
+export interface TransformationPostData {
+  hasBeforeImage?: boolean;
+  hasAfterImage?: boolean;
+  beforeImageUrl?: string;
+  afterImageUrl?: string;
+}
+
+export interface AchievementPostData {
+  title?: string;
+  description?: string;
+  points?: number;
+}
+
+export interface ChallengePostData {
+  title?: string;
+  difficulty?: string;
+  duration?: string;
 }
 
 export interface Post {
@@ -58,6 +90,7 @@ export interface Post {
     lastName: string;
     username: string;
     photo?: string;
+    role?: string;
     clientSource?: 'swanstudios' | 'move_fitness' | 'external';
     level?: number;
     tier?: string;
@@ -76,28 +109,10 @@ export interface Post {
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | null;
   comments?: Comment[];
-  workoutData?: {
-    duration?: string;
-    exerciseCount?: string;
-    totalWeight?: string;
-    caloriesBurned?: string;
-  };
-  transformationData?: {
-    hasBeforeImage?: boolean;
-    hasAfterImage?: boolean;
-    beforeImageUrl?: string;
-    afterImageUrl?: string;
-  };
-  achievementData?: {
-    title?: string;
-    description?: string;
-    points?: number;
-  };
-  challengeData?: {
-    title?: string;
-    difficulty?: string;
-    duration?: string;
-  };
+  workoutData?: WorkoutPostData;
+  transformationData?: TransformationPostData;
+  achievementData?: AchievementPostData;
+  challengeData?: ChallengePostData;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -115,6 +130,10 @@ export interface PostCardProps {
   onEdit?: (postId: string, content: string) => Promise<boolean>;
   onReport?: (postId: string, reason: string, description?: string) => Promise<boolean>;
   onRepost?: (postId: string, content?: string) => Promise<boolean>;
+  /** Fetches the post's comment THREAD on first open — feed payloads carry
+      counts only, so without this other members' (and coaches') comments
+      would never render. */
+  onLoadComments?: (postId: string) => Promise<unknown> | void;
 }
 
 export interface PostHeaderProps {
@@ -216,15 +235,6 @@ export const postTypeColors: Record<string, string> = {
   gaming: 'success',
   comedy: 'warning',
   creative: 'primary',
-};
-
-/** Chip border/text color lookup */
-export const chipColorMap: Record<string, string> = {
-  default: 'rgba(255,255,255,0.5)',
-  primary: '#60C0F0',
-  success: '#4ade80',
-  warning: '#fbbf24',
-  secondary: '#c084fc',
 };
 
 /** Default post background: SwanStudios Logo on Midnight Sapphire */

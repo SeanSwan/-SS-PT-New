@@ -11,7 +11,8 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react';
-import type { HomeLatestPostView } from './HomeTabViewModel';
+import type { HomeLatestPostView, HomeTopBarAction } from './HomeTabViewModel';
+import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import HomeTabHeroHeader from './HomeTabHeroHeader';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
@@ -66,6 +67,11 @@ interface HomeTabVisionCenterProps {
   postText: string;
   activeMood: string;
   selectedMediaName?: string;
+  /** O3: the single stateful feed mount (owned by HomeTab) — powers the
+      community stream below the composer. */
+  communityFeed: SocialFeedApi;
+  /** O3: true while "Share my week" has armed the workout-proof attachment. */
+  proofAttached: boolean;
   /** Real cover composition (photo/collage/carousel) — null keeps the decorative backdrop. */
   bannerLayer: React.ReactNode | null;
   /** Opens the embedded cover editor (photo/collage/layouts/presets). */
@@ -83,7 +89,7 @@ interface HomeTabVisionCenterProps {
   onAddMediaClick: () => void;
   onPostTextChange: (value: string) => void;
   onSubmitPost: (event: React.FormEvent<HTMLFormElement>) => void;
-  topBarActions: ReadonlyArray<{ label: string; Icon: React.ElementType; count: number }>;
+  topBarActions: ReadonlyArray<HomeTopBarAction>;
 }
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
@@ -101,6 +107,8 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   postText,
   activeMood,
   selectedMediaName,
+  communityFeed,
+  proofAttached,
   bannerLayer,
   onEditCover,
   coverEditorSlot,
@@ -121,8 +129,15 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         <strong>SwanStudios</strong>
         <span>Crystalline Observatory</span>
       </MobileBrandText>
-      {topBarActions.map(({ label, Icon, count }) => (
-        <IconButton key={label} type="button" aria-label={label}>
+      {/* O3: actions with a target NAVIGATE (no dead buttons) — the rest stay
+          passive status counters until their surface ships. */}
+      {topBarActions.map(({ label, Icon, count, target }) => (
+        <IconButton
+          key={label}
+          type="button"
+          aria-label={label}
+          onClick={target ? () => onAction(target) : undefined}
+        >
           <Icon size={18} aria-hidden="true" />
           {count > 0 && <NotifyDot>{count}</NotifyDot>}
         </IconButton>
@@ -198,6 +213,9 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       <Panel as="form" $tone="cyan" onSubmit={onSubmitPost}>
         <SpreadButtonRow>
           <Eyebrow>Quick Post</Eyebrow>
+          {/* O3: "Share my week" armed — this post ships as REAL workout
+              proof (type workout + the latest session link). */}
+          {proofAttached && <Chip $tone="gold">Workout proof attached</Chip>}
         </SpreadButtonRow>
         <ComposerInput
           value={postText}
@@ -247,7 +265,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         single duplicated surface). Replaces the old one-post feed card; the
         Latest Drop spotlight above still owns the user's own latest media. */}
     <Suspense fallback={null}>
-      <HomeCommunityFeed />
+      <HomeCommunityFeed feed={communityFeed} />
     </Suspense>
   </CenterColumn>
 );

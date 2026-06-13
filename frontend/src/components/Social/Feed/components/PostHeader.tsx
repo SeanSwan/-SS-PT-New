@@ -25,9 +25,9 @@
  */
 
 import React from 'react';
-import { MoreVertical, User, Link2, VolumeX, Flag, Trash2, Pencil } from 'lucide-react';
+import { MoreVertical, User, Link2, VolumeX, Flag, Trash2, Pencil, ShieldCheck } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
-import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
+import { isCoachRole, postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import RPGProfileHeader from '../../../Social/RPGProfileHeader';
 import swanLogoSrc from '../../../../assets/Logo.png';
 import {
@@ -36,6 +36,7 @@ import {
   UserInfo,
   AvatarStyled,
   AvatarImage,
+  CoachChip,
   PostType,
   UserName,
   AuthorLogoMark,
@@ -76,8 +77,8 @@ const postTypeIcons: Record<string, React.ElementType> = {
 // SECTION: Avatar helper
 // ─────────────────────────────────────────────────────────────
 
-export const AvatarEl: React.FC<{ src?: string; alt: string; fallback: string; size?: number }> = ({ src, alt, fallback, size }) => (
-  <AvatarStyled $size={size} title={alt}>
+export const AvatarEl: React.FC<{ src?: string; alt: string; fallback: string; size?: number; coach?: boolean }> = ({ src, alt, fallback, size, coach }) => (
+  <AvatarStyled $size={size} $coach={coach} title={coach ? `${alt} — Coach` : alt}>
     {src ? (
       <AvatarImage src={src} alt={alt} />
     ) : (
@@ -105,6 +106,7 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
   isOwnPost,
 }) => {
   const PostTypeIcon = postTypeIcons[post.type] || User;
+  const isCoach = isCoachRole(post.user.role);
 
   return (
     <PostHeaderRelative>
@@ -114,11 +116,20 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
             src={post.user.photo || undefined}
             alt={`${post.user.firstName} ${post.user.lastName}`}
             fallback={`${post.user.firstName[0]}${post.user.lastName[0]}`}
+            coach={isCoach}
           />
           <div>
             <UserName>
               {post.user.firstName} {post.user.lastName}
-              {post.user.clientSource === 'swanstudios' && (
+              {/* Coach presence — members see a real coach is here and can
+                  ask questions right in the thread. */}
+              {isCoach && (
+                <CoachChip title="SwanStudios Coach — ask them anything">
+                  <ShieldCheck size={11} aria-hidden="true" />
+                  Coach
+                </CoachChip>
+              )}
+              {!isCoach && post.user.clientSource === 'swanstudios' && (
                 <AuthorLogoMark
                   src={swanLogoSrc}
                   alt="SwanStudios logo"

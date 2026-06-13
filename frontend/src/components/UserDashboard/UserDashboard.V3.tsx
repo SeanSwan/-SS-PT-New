@@ -92,6 +92,14 @@ const UserDashboardV3: React.FC = () => {
           )}
           <ContentWrapper data-user-dashboard-scroll-root $belowCover={!isHomeTab}>
             {isHomeTab ? (
+              <>
+              {/* O3 app-shell nav: the tab bar mounts on Home too — phones get
+                  the same fixed bottom bar on every dashboard surface (it
+                  renders nothing >=1025px, where the left rail is the nav). */}
+              <UserDashboardTabBarV3
+                activeTab={dashboard.activeTab}
+                onTabChange={handleTabChange}
+              />
               <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}
                 onTabChange={handleTabChange}
@@ -104,6 +112,7 @@ const UserDashboardV3: React.FC = () => {
                 homeDisplayName={dashboard.getDisplayName()}
                 homeUsername={dashboard.getUsernameForDisplay()}
               />
+              </>
             ) : (
               <ObservatoryShell
                 activeTab={dashboard.activeTab}
