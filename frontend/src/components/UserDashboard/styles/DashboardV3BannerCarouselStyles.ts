@@ -16,7 +16,11 @@ export const BannerCarouselTrack = styled.div`
      longer landed on the seam -> a visible jump every loop. width:max-content
      alone keeps the two halves identical, so -50% always hits the seam. */
   width: max-content;
-  height: auto;
+  /* Full-bleed fill (Slice 1, 2026-06-13): full cover height so the frames'
+     height:100% resolves against a definite base (was height:auto, which sized
+     to the short frames and left dead padding bands). Width stays max-content so
+     the M5a -50% loop seam is unaffected. */
+  height: 100%;
   max-height: 100%;
   /* Adaptive speed: duration scales with photo count via a CSS var set by the
      media layer (more photos -> longer track -> longer duration -> steady px/s). */

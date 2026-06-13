@@ -102,7 +102,14 @@ const collageMediaCss = css`
   ${BannerCollageLayer}[data-layout^='carousel-'] & {
     width: auto;
     height: 100%;
-    max-width: min(58vw, 760px);
+    /* Full-bleed fill (Slice 1, 2026-06-13): width is driven purely by the
+       photo's aspect at full frame height, so the frame box matches the image
+       aspect and object-fit: contain fills it with ZERO internal bars at every
+       viewport/cover height. The old min(58vw, 760px) cap re-letterboxed wide
+       photos on mobile and tall covers ("doesn't fill the width"). The generous
+       px ceiling only bounds a pathological panorama (>2.4:1 at a 1000px cover);
+       in a horizontal marquee an over-wide frame simply scrolls. */
+    max-width: 2400px;
     object-fit: contain;
     background: transparent;
   }
@@ -195,10 +202,17 @@ export const BannerCollageMediaFrame = styled.div`
     grid-row: span 1;
   }
 
+  /* Full-bleed fill (Slice 1, 2026-06-13): carousel frames fill the FULL cover
+     height instead of a 0.34-0.6x band that left dead padding above/below the
+     reel (the "letterboxed / doesn't fill the height" complaint). Media stays
+     object-fit: contain + width:auto, so each frame is sized by its aspect ratio
+     at full height — a proper full-height film strip with no internal bars. The
+     paired BannerCarouselTrack is height:100% so this 100% has a definite base.
+     Variant identity is now structural: coverflow tilts, stack overlaps. */
   ${BannerCollageLayer}[data-layout^='carousel-'] & {
     flex: 0 0 auto;
     width: auto;
-    height: clamp(150px, calc(var(--banner-frame-height, 320px) * 0.46), 520px);
+    height: 100%;
     aspect-ratio: auto;
     max-height: 100%;
     overflow: visible;
@@ -206,22 +220,12 @@ export const BannerCollageMediaFrame = styled.div`
     box-shadow: none;
   }
 
-  ${BannerCollageLayer}[data-layout='carousel-cinema'] & {
-    height: clamp(180px, calc(var(--banner-frame-height, 320px) * 0.6), 640px);
-  }
-
   ${BannerCollageLayer}[data-layout='carousel-coverflow'] & {
-    height: clamp(160px, calc(var(--banner-frame-height, 320px) * 0.54), 540px);
     transform: perspective(900px) rotateY(-8deg);
   }
 
   ${BannerCollageLayer}[data-layout='carousel-stack'] & {
-    height: clamp(150px, calc(var(--banner-frame-height, 320px) * 0.5), 500px);
     margin-right: clamp(-36px, -2vw, -14px);
-  }
-
-  ${BannerCollageLayer}[data-layout='carousel-ticker'] & {
-    height: clamp(112px, calc(var(--banner-frame-height, 320px) * 0.34), 320px);
   }
 
   @media (max-width: 768px) {
