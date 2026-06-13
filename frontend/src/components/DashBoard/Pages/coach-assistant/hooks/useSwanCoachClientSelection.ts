@@ -1,11 +1,113 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useGlobalClient } from '../../../../../context/GlobalClientContext';
 import type { ClientInfo } from '../../../../AIAssistant/ClientPicker';
-import { parseRouteClientId } from '../CoachCommandCenter.logic';
+import { parseRouteClientId } from '../CoachCommandCenter.routeContext';
 
 type SwanCoachRole = 'admin' | 'trainer' | 'client';
+type SelectionAction =
+  | { type: 'none' }
+  | { type: 'adopt'; client: ClientInfo | null }
+  | { type: 'setSelected'; client: ClientInfo };
+
+const noSelectionAction: SelectionAction = { type: 'none' };
+
+function isStaffRole(userRole: SwanCoachRole): boolean {
+  return userRole === 'admin' || userRole === 'trainer';
+}
+
+function clientListReady(
+  fetchStartedRef: MutableRefObject<boolean>,
+  loadingClients: boolean,
+  clientCount: number,
+): boolean {
+  if (loadingClients) {
+    fetchStartedRef.current = true;
+    return false;
+  }
+  if (clientCount > 0) fetchStartedRef.current = true;
+  return fetchStartedRef.current;
+}
+
+function toClientInfo(client: {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  photo?: string;
+}): ClientInfo {
+  return {
+    id: client.id,
+    firstName: client.firstName || '',
+    lastName: client.lastName || '',
+    email: client.email || '',
+    profileImageUrl: client.photo,
+  };
+}
+
+function routeClientAction(
+  clientIdNumber: number | null,
+  clientList: Array<{ id: number; firstName?: string; lastName?: string; email?: string; photo?: string }>,
+  selectedClient: ClientInfo | null,
+): SelectionAction | null {
+  if (clientIdNumber === null) return null;
+  return routeClientMatchAction(
+    clientIdNumber,
+    clientList.find(client => client.id === clientIdNumber) ?? null,
+    selectedClient,
+  );
+}
+
+function routeClientMatchAction(
+  clientIdNumber: number,
+  found: { id: number; firstName?: string; lastName?: string; email?: string; photo?: string } | null,
+  selectedClient: ClientInfo | null,
+): SelectionAction {
+  if (!found) return { type: 'adopt', client: null };
+  return selectedClient?.id === clientIdNumber ? noSelectionAction : { type: 'adopt', client: toClientInfo(found) };
+}
+
+function activeClientAction(activeClient: {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  photo?: string;
+} | null, selectedClient: ClientInfo | null): SelectionAction {
+  return !selectedClient && activeClient
+    ? { type: 'setSelected', client: toClientInfo(activeClient) }
+    : noSelectionAction;
+}
+
+function nextSelectionAction(
+  clientIdNumber: number | null,
+  clientList: Array<{ id: number; firstName?: string; lastName?: string; email?: string; photo?: string }>,
+  selectedClient: ClientInfo | null,
+  activeClient: { id: number; firstName?: string; lastName?: string; email?: string; photo?: string } | null,
+): SelectionAction {
+  return routeClientAction(clientIdNumber, clientList, selectedClient)
+    ?? activeClientAction(activeClient, selectedClient);
+}
+
+function selectionReady(
+  userRole: SwanCoachRole,
+  fetchStartedRef: MutableRefObject<boolean>,
+  loadingClients: boolean,
+  clientCount: number,
+): boolean {
+  return isStaffRole(userRole) && clientListReady(fetchStartedRef, loadingClients, clientCount);
+}
+
+function applySelectionAction(
+  action: SelectionAction,
+  adoptClient: (client: ClientInfo | null) => void,
+  setSelectedClient: (client: ClientInfo) => void,
+) {
+  if (action.type === 'adopt') adoptClient(action.client);
+  if (action.type === 'setSelected') setSelectedClient(action.client);
+}
 
 export function useSwanCoachClientSelection(userRole: SwanCoachRole) {
   const { clientList, activeClient, setActiveClient, loadingClients } = useGlobalClient();
@@ -45,47 +147,9 @@ export function useSwanCoachClientSelection(userRole: SwanCoachRole) {
   }, [setActiveClient, setSearchParams]);
 
   useEffect(() => {
-    if (userRole !== 'admin' && userRole !== 'trainer') return;
-
-    if (loadingClients) {
-      clientListFetchStartedRef.current = true;
-      return;
-    }
-
-    if (!clientListFetchStartedRef.current && clientList.length > 0) {
-      clientListFetchStartedRef.current = true;
-    }
-
-    if (!clientListFetchStartedRef.current) return;
-
-    if (clientIdNumber !== null) {
-      const found = clientList.find(client => client.id === clientIdNumber);
-
-      if (found) {
-        if (selectedClient?.id === clientIdNumber) return;
-        adoptClient({
-          id: found.id,
-          firstName: found.firstName,
-          lastName: found.lastName,
-          email: found.email,
-          profileImageUrl: found.photo,
-        });
-        return;
-      }
-
-      adoptClient(null);
-      return;
-    }
-
-    if (!selectedClient && activeClient) {
-      setSelectedClient({
-        id: activeClient.id,
-        firstName: activeClient.firstName,
-        lastName: activeClient.lastName,
-        email: activeClient.email,
-        profileImageUrl: activeClient.photo,
-      });
-    }
+    if (!selectionReady(userRole, clientListFetchStartedRef, loadingClients, clientList.length)) return;
+    const action = nextSelectionAction(clientIdNumber, clientList, selectedClient, activeClient);
+    applySelectionAction(action, adoptClient, setSelectedClient);
   }, [clientIdNumber, clientList, loadingClients, activeClient, userRole, selectedClient, adoptClient]);
 
   return {
@@ -94,5 +158,3 @@ export function useSwanCoachClientSelection(userRole: SwanCoachRole) {
     selectedClient,
   };
 }
-
-export default useSwanCoachClientSelection;

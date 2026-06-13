@@ -2,7 +2,7 @@ import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
 export type ClientDetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
-export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'plaud' | 'copilot' | 'history';
 export type ClientDetailSearchParams = {
   clientId: string;
   tab: ClientDetailTab;
@@ -32,6 +32,7 @@ const CLIENT_TRAINING_SECTIONS = new Set<ClientTrainingSection>([
   'architect',
   'plans',
   'logger',
+  'import',
   'plaud',
   'copilot',
   'history',

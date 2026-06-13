@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildRouteContext,
-  commandCenterReturnLabel,
+  buildWorkflowReturnLabel,
   normalizeCommandCenterReturnTo,
   parseRouteClientId,
-} from './CoachCommandCenter.logic';
+} from './CoachCommandCenter.routeContext';
 
 describe('CoachCommandCenter route client parsing', () => {
   it('accepts only complete positive integer client ids', () => {
@@ -32,9 +32,10 @@ describe('CoachCommandCenter return route normalization', () => {
   });
 
   it('uses workflow-specific return labels for known origins', () => {
-    expect(commandCenterReturnLabel('clients-team')).toBe('Back to Client Hub');
-    expect(commandCenterReturnLabel('master-schedule')).toBe('Back to Schedule');
-    expect(commandCenterReturnLabel(null)).toBe('Back to Dashboard');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/client-management', 'clients-team')).toBe('Back to Client Hub');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/schedule', 'master-schedule')).toBe('Back to Schedule');
+    expect(buildWorkflowReturnLabel('/dashboard/admin', null)).toBe('Back to Dashboard');
+    expect(buildWorkflowReturnLabel(null, 'clients-team')).toBeNull();
   });
 });
 

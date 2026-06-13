@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
@@ -8,26 +8,55 @@ import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
+import {
+  useApplyRouteContextPrompt,
+  useAutoSelectCoachThread,
+  useLoadCoachConversations,
+  usePlaudReviewScroll,
+} from './CoachCommandCenter.controllerEffects';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
 import {
+  buildCoachThreads,
   buildClientContextTiles,
-  buildCommandRouteContext,
   buildDossierTiles,
   buildIntakeStates,
   buildQueueHealthRows,
   buildQueueSummary,
   buildRightRailItems,
-  buildRouteContext,
   buildStatusMetrics,
-  commandCenterReturnLabel,
+  buildVoiceStatus,
+  displaySelectedStatus,
   getConversationTitle,
+  pickAutoSelectedThread,
+  pickInitialReviewMergeRequestId,
+  pickRouteReviewNextMergeRequestId,
+  runCoachVoiceCommand,
+  selectedClientLabel as buildSelectedClientLabel,
+  shouldScrollPlaudReview,
+  toggleBoolean,
+} from './CoachCommandCenter.logic';
+import {
+  buildCommandRouteContext,
+  buildEffectiveRouteContext,
+  buildRouteContext,
+  buildRouteClientLabel,
+  buildWorkflowReturnLabel,
   getScheduledSessionRouteContextFromSearchParams,
   normalizeCommandCenterReturnTo,
   parseRouteClientId,
-  pickReviewNextMergeRequestId,
-} from './CoachCommandCenter.logic';
+  readHistoricalImportRouteDraft,
+} from './CoachCommandCenter.routeContext';
 import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
 import type { DrawerSide } from './CoachCommandCenter.types';
+
+function resolveVoiceCommandText(next: SetStateAction<string>, current: string): string {
+  const nextValue = typeof next === 'function' ? next(current) : next;
+  return nextValue === '' ? current : nextValue;
+}
+
+function capturedVoiceText(current: string, captured: string): string {
+  return current.trim() ? current : captured;
+}
 
 export function useCoachCommandCenterController() {
   const [searchParams] = useSearchParams();
@@ -56,16 +85,10 @@ export function useCoachCommandCenterController() {
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-  const coachThreads = useMemo(() => {
-    const threads = Array.isArray(chat.conversations) ? chat.conversations : [];
-    const query = threadSearch.trim().toLowerCase();
-    const coachOnly = threads.filter((thread) => !thread.context || thread.context === 'coach_assistant');
-    if (!query) return coachOnly;
-    return coachOnly.filter((thread) => {
-      const title = getConversationTitle(thread).toLowerCase();
-      return title.includes(query) || thread.context?.toLowerCase().includes(query);
-    });
-  }, [chat.conversations, threadSearch]);
+  const coachThreads = useMemo(
+    () => buildCoachThreads(chat.conversations, threadSearch),
+    [chat.conversations, threadSearch],
+  );
 
   const activeThread = useMemo(
     () => coachThreads.find((thread) => thread.id === activeThreadId) ?? null,
@@ -79,12 +102,17 @@ export function useCoachCommandCenterController() {
   );
   const routeIntent = searchParams.get('intent');
   const routeSource = searchParams.get('source');
+  const routeDraftKey = searchParams.get('draftKey');
+  const autoSelectedThread = useMemo(
+    () => pickAutoSelectedThread(coachThreads, routeIntent, routeClientId, activeThreadId),
+    [activeThreadId, coachThreads, routeClientId, routeIntent],
+  );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo')),
     [searchKey],
   );
-  const workflowReturnLabel = workflowReturnTo ? commandCenterReturnLabel(routeSource) : null;
-  const routeClientLabel = routeClientId ? `Client #${routeClientId}` : null;
+  const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, routeSource);
+  const routeClientLabel = buildRouteClientLabel(routeClientId);
   const scheduledSessionContext = useMemo(
     () => getScheduledSessionRouteContextFromSearchParams(searchParams),
     [searchKey],
@@ -92,6 +120,14 @@ export function useCoachCommandCenterController() {
   const routeContext = useMemo(
     () => buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, scheduledSessionContext],
+  );
+  const storedRouteDraft = useMemo(
+    () => readHistoricalImportRouteDraft(routeIntent, routeDraftKey),
+    [routeDraftKey, routeIntent, searchKey],
+  );
+  const effectiveRouteContext = useMemo(
+    () => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel),
+    [routeClientLabel, routeContext, storedRouteDraft],
   );
   const commandRouteContext = useMemo(
     () => buildCommandRouteContext(routeIntent, scheduledSessionContext),
@@ -106,12 +142,14 @@ export function useCoachCommandCenterController() {
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
   const reviewNextRequested = searchParams.get('review') === 'next';
   const plaudWorkspaceRequested = searchParams.get('workspace') === 'plaud';
-  const reviewNextMergeRequestId = reviewNextRequested || plaudWorkspaceRequested
-    ? pickReviewNextMergeRequestId(coachQueue.items)
-    : null;
-  const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId || undefined;
+  const reviewNextMergeRequestId = pickRouteReviewNextMergeRequestId(
+    reviewNextRequested,
+    plaudWorkspaceRequested,
+    coachQueue.items,
+  );
+  const initialReviewMergeRequestId = pickInitialReviewMergeRequestId(directMergeRequestId, reviewNextMergeRequestId);
   const summary = useMemo(() => buildQueueSummary(coachQueue.summary), [coachQueue.summary]);
-  const selectedClientLabel = routeClientLabel || (activeThread ? activeThreadTitle : 'Selected client');
+  const selectedClientLabel = buildSelectedClientLabel(routeClientLabel, activeThreadTitle, Boolean(activeThread));
   const statusMetrics = useMemo(
     () => buildStatusMetrics(
       summary,
@@ -129,13 +167,10 @@ export function useCoachCommandCenterController() {
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
   const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
-    setCommandText((current) => {
-      const nextValue = typeof next === 'function' ? next(current) : next;
-      return nextValue === '' ? current : nextValue;
-    });
+    setCommandText((current) => resolveVoiceCommandText(next, current));
   }, []);
   const handleVoiceCaptured = useCallback((text: string) => {
-    setCommandText((current) => current.trim() ? current : text);
+    setCommandText((current) => capturedVoiceText(current, text));
     setSelectedStatus('Voice command captured - press Prepare to review');
   }, []);
   const speech = useCoachBrowserSpeechInput({
@@ -162,7 +197,7 @@ export function useCoachCommandCenterController() {
     routeClientId,
     routeClientLabel,
     routeCommandContext: commandRouteContext,
-    routeContextPrompt: routeContext.prompt,
+    routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
     routeRequestContext: scheduledSessionContext,
     setActiveThreadId,
@@ -176,50 +211,24 @@ export function useCoachCommandCenterController() {
     setSelectedStatus,
   });
   const handleVoice = useCallback(() => {
-    if (!speech.speechSupported) {
-      setSelectedStatus('Voice input is not available in this browser');
-      return;
-    }
-    if (speech.cancelPillVisible) {
-      speech.handleCancelSend();
-      setSelectedStatus('Voice command cancelled');
-      return;
-    }
-    speech.toggleListening();
+    runCoachVoiceCommand({
+      cancelPillVisible: speech.cancelPillVisible,
+      handleCancelSend: speech.handleCancelSend,
+      speechSupported: speech.speechSupported,
+      toggleListening: speech.toggleListening,
+    }, setSelectedStatus);
   }, [speech.cancelPillVisible, speech.handleCancelSend, speech.speechSupported, speech.toggleListening]);
 
-  useEffect(() => {
-    void chat.listConversations('active', true);
-    // Load once on route mount; the hook owns its cache afterward.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useLoadCoachConversations(chat);
+  useAutoSelectCoachThread(autoSelectedThread, setActiveThreadId, setSelectedStatus);
+  useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
+  usePlaudReviewScroll(
+    shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested),
+    searchKey,
+    plaudReviewRef,
+  );
 
-  useEffect(() => {
-    if (routeIntent || routeClientId || activeThreadId !== null || coachThreads.length === 0) return;
-    const firstThread = coachThreads[0];
-    setActiveThreadId(firstThread.id);
-    setSelectedStatus(`${getConversationTitle(firstThread)} - thread ready`);
-  }, [activeThreadId, coachThreads, routeClientId, routeIntent]);
-
-  useEffect(() => {
-    if (!routeContext.prompt || !routeContext.status) return;
-    setActiveThreadId(null);
-    setSelectedStatus(routeContext.status);
-    setCommandText((current) => current.trim() ? current : routeContext.prompt || '');
-  }, [routeContext.prompt, routeContext.status, searchKey]);
-
-  useEffect(() => {
-    if (!plaudWorkspaceRequested && !rawMergeRequestId && !reviewNextRequested) return undefined;
-    const timer = window.setTimeout(() => {
-      plaudReviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      plaudReviewRef.current?.focus({ preventScroll: true });
-    }, 120);
-    return () => window.clearTimeout(timer);
-  }, [plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested, searchKey]);
-
-  const voiceStatus = voiceInputError
-    || (speech.interim ? `Listening: ${speech.interim}` : null)
-    || (speech.cancelPillVisible ? 'Voice command captured - tap Mic to cancel before it lands in the composer' : null);
+  const voiceStatus = buildVoiceStatus(voiceInputError, speech.interim, speech.cancelPillVisible);
 
   return {
     activeIntakeId: searchParams.get('intake'),
@@ -260,7 +269,7 @@ export function useCoachCommandCenterController() {
     rightRailItems,
     rightRailRef,
     selectedClientLabel,
-    selectedStatus: voiceStatus || selectedStatus,
+    selectedStatus: displaySelectedStatus(voiceStatus, selectedStatus),
     setCommandText,
     setQuickClientName,
     setQuickClientSource,
@@ -271,7 +280,7 @@ export function useCoachCommandCenterController() {
     summary,
     teachMode,
     threadSearch,
-    toggleTeachMode: () => setTeachMode((current) => !current),
+    toggleTeachMode: () => setTeachMode(toggleBoolean),
     voiceActive: speech.listening,
     voiceSupported: speech.speechSupported,
     workflowReturnLabel,

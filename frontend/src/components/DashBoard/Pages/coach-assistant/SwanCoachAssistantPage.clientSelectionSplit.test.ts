@@ -22,13 +22,14 @@ describe('SwanCoachAssistantPage client-selection split', () => {
     expect(pageSource).not.toContain('clientListFetchStartedRef');
 
     expect(hookSource).toContain("from '../../../../../context/GlobalClientContext'");
-    expect(hookSource).toContain("from '../CoachCommandCenter.logic'");
+    expect(hookSource).toContain("from '../CoachCommandCenter.routeContext'");
     expect(hookSource).toContain('useSearchParams');
     expect(hookSource).toContain('clientListFetchStartedRef');
     expect(hookSource).toContain("parseRouteClientId(searchParams.get('clientId'))");
     expect(hookSource).not.toContain('parseInt(');
-    expect(hookSource).toMatch(/!clientListFetchStartedRef\.current\s*&&\s*clientList\.length\s*>\s*0/);
-    expect(hookSource).toMatch(/if\s*\(!clientListFetchStartedRef\.current\)\s*return;/);
+    expect(hookSource).toContain('function clientListReady');
+    expect(hookSource).toMatch(/clientCount\s*>\s*0/);
+    expect(hookSource).toContain('return fetchStartedRef.current');
     expect(hookSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
 });

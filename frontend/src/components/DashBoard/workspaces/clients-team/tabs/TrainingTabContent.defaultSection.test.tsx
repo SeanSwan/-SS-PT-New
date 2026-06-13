@@ -82,7 +82,7 @@ vi.mock('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPane
   default: () => <div data-testid="workout-history-panel" />,
 }));
 import TrainingTabContent from './TrainingTabContent';
-type TestTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+type TestTrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'plaud' | 'copilot' | 'history';
 const renderTraining = (props: Partial<ComponentProps<typeof TrainingTabContent>> = {}) => render(
   <TrainingTabContent clientId={424242} clientName="Fixture Client" {...props} />
 );
@@ -103,9 +103,7 @@ describe('TrainingTabContent daily workflow default', () => {
   });
   it('opens on Workout Logger so the selected-client workflow starts with today', async () => {
     renderTraining();
-    expect(
-      screen.getByRole('region', { name: /fixture client swan daily training command/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /fixture client swan daily training command/i })).toBeInTheDocument();
     expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
       'aria-selected',

@@ -43,6 +43,12 @@ describe('ClientsWorkspace route state parsing', () => {
     expect(getClientTrainingSectionFromSearchParams(params)).toBe('plans');
   });
 
+  it('accepts the historical import return section after Coach planning', () => {
+    const params = new URLSearchParams('clientId=61&tab=training&trainingSection=import');
+
+    expect(getClientTrainingSectionFromSearchParams(params)).toBe('import');
+  });
+
   it('rejects unknown training sections instead of passing them into the Client Hub', () => {
     const params = new URLSearchParams('clientId=61&tab=training&trainingSection=javascript:alert(1)');
 

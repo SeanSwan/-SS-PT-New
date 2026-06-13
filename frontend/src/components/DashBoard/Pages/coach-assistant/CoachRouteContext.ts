@@ -5,6 +5,7 @@
  * focus. It never grants write authority; every app-side mutation remains
  * approval-gated by deterministic backend services.
  */
+import { normalizeIsoDateOnly } from '../../../../utils/isoDateOnly';
 
 export type CoachRouteSurface =
   | 'client_overview'
@@ -88,17 +89,20 @@ function routeScope(pathname: string): CoachRouteContext['scope'] {
   return 'unknown';
 }
 
+const SURFACE_MATCHERS: Array<[CoachRouteSurface, (pathname: string) => boolean]> = [
+  ['coach_command_center', (pathname) => pathname.includes('/coach-assistant')],
+  ['workout_logging', (pathname) => pathname.includes('/log-workout') || pathname.includes('/workouts')],
+  ['progress', (pathname) => pathname.includes('/progress')],
+  ['community', (pathname) => pathname.includes('/community')],
+  ['rewards', (pathname) => pathname.includes('/rewards')],
+  ['profile', (pathname) => pathname.includes('/profile')],
+  ['schedule', (pathname) => pathname.includes('/schedule')],
+  ['messages', (pathname) => pathname.includes('/messages')],
+  ['client_overview', (pathname) => pathname.includes('/overview')],
+];
+
 function routeSurface(pathname: string): CoachRouteSurface {
-  if (pathname.includes('/coach-assistant')) return 'coach_command_center';
-  if (pathname.includes('/log-workout') || pathname.includes('/workouts')) return 'workout_logging';
-  if (pathname.includes('/progress')) return 'progress';
-  if (pathname.includes('/community')) return 'community';
-  if (pathname.includes('/rewards')) return 'rewards';
-  if (pathname.includes('/profile')) return 'profile';
-  if (pathname.includes('/schedule')) return 'schedule';
-  if (pathname.includes('/messages')) return 'messages';
-  if (pathname.includes('/overview')) return 'client_overview';
-  return 'dashboard_unknown';
+  return SURFACE_MATCHERS.find(([, matches]) => matches(pathname))?.[0] ?? 'dashboard_unknown';
 }
 
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
@@ -115,11 +119,7 @@ function safePositiveIntegerString(rawValue: string | null): string | undefined 
 }
 
 function safeIsoDate(rawValue: string | null): string | undefined {
-  const token = rawValue?.trim();
-  if (!token || !/^\d{4}-\d{2}-\d{2}/.test(token)) return undefined;
-  const dateOnly = token.slice(0, 10);
-  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
-  return Number.isNaN(parsed.getTime()) ? undefined : dateOnly;
+  return normalizeIsoDateOnly(rawValue) ?? undefined;
 }
 
 function safePositiveInteger(rawValue: string | null): number | undefined {
@@ -129,6 +129,24 @@ function safePositiveInteger(rawValue: string | null): number | undefined {
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
 
+function compactRouteFields(
+  entries: Array<[keyof CoachRouteContext, CoachRouteContext[keyof CoachRouteContext] | undefined]>,
+): Partial<CoachRouteContext> {
+  return Object.fromEntries(entries.filter(([, value]) => value !== undefined)) as Partial<CoachRouteContext>;
+}
+
+function scheduledSessionFields(
+  scheduledSessionId: string | undefined,
+  params: URLSearchParams,
+): Partial<CoachRouteContext> {
+  if (!scheduledSessionId) return {};
+  return compactRouteFields([
+    ['scheduledSessionId', scheduledSessionId],
+    ['scheduledSessionDate', safeIsoDate(params.get('sessionDate'))],
+    ['scheduledSessionCredits', safePositiveInteger(params.get('sessionCredits'))],
+  ]);
+}
+
 export function buildCoachRouteContext(pathname: string, search = ''): CoachRouteContext {
   const params = new URLSearchParams(search);
   const sourcePath = params.get('sourcePath') || pathname;
@@ -136,18 +154,16 @@ export function buildCoachRouteContext(pathname: string, search = ''): CoachRout
   const source = safeToken(params.get('source'));
   const intent = safeToken(params.get('intent'));
   const scheduledSessionId = safePositiveIntegerString(params.get('sessionId'));
-  const scheduledSessionDate = scheduledSessionId ? safeIsoDate(params.get('sessionDate')) : undefined;
-  const scheduledSessionCredits = scheduledSessionId ? safePositiveInteger(params.get('sessionCredits')) : undefined;
 
   return {
     route: sourcePath,
     surface,
     scope: routeScope(sourcePath),
-    ...(source ? { source } : {}),
-    ...(intent ? { intent } : {}),
-    ...(scheduledSessionId ? { scheduledSessionId } : {}),
-    ...(scheduledSessionDate ? { scheduledSessionDate } : {}),
-    ...(scheduledSessionCredits ? { scheduledSessionCredits } : {}),
+    ...compactRouteFields([
+      ['source', source],
+      ['intent', intent],
+    ]),
+    ...scheduledSessionFields(scheduledSessionId, params),
     allowedActions: ACTIONS[surface],
     writeBackPolicy: 'approval_required',
   };

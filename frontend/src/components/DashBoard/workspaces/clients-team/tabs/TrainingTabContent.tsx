@@ -19,7 +19,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Archive, ClipboardList, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
+import { Archive, ClipboardList, FileAudio, Play, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
 import { isNaturalWorkoutDictationCandidate } from '../../../../../hooks/aiMessageLimits';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
 import {
@@ -53,6 +53,7 @@ const SECTIONS: {
   { id: 'architect', label: 'Swan Coach Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
   { id: 'plans', label: 'Training Plans', shortLabel: 'Plans', icon: <ClipboardList size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
+  { id: 'import', label: 'History Import', shortLabel: 'Import', icon: <UploadCloud size={18} /> },
   { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },
   { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
   { id: 'history', label: 'Workout History', shortLabel: 'History', icon: <Archive size={18} /> },

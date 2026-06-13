@@ -29,6 +29,10 @@ const WorkoutLogger = React.lazy(
   () => import('../../../../WorkoutLogger/WorkoutLogger')
 );
 
+const HistoricalWorkoutImportPanel = React.lazy(
+  () => import('./HistoricalWorkoutImportPanel')
+);
+
 const PlaudMergeWorkspace = React.lazy(
   () => import('../../../../PlaudClipMerge/PlaudMergeWorkspace')
     .then((m) => ({ default: m.PlaudMergeWorkspace }))
@@ -42,7 +46,7 @@ const WorkoutHistoryPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')
 );
 
-export type TrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+export type TrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'plaud' | 'copilot' | 'history';
 
 interface TrainingSectionContentProps {
   activeSection: TrainingSection;
@@ -107,6 +111,9 @@ const sectionRenderers: Record<TrainingSection, (props: TrainingSectionContentPr
       onComplete={onWorkoutComplete}
       onCancel={onWorkoutCancel}
     />
+  ),
+  import: ({ clientName, safeClientId }) => (
+    <HistoricalWorkoutImportPanel clientId={safeClientId} clientName={clientName} />
   ),
   plaud: ({ clientName, safeClientId }) => (
     <PlaudMergeWorkspace initialClientId={safeClientId} initialClientName={clientName} embedded={true} />
