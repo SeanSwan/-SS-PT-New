@@ -102,4 +102,41 @@ describe.each([
     expect(screen.getByRole('button', { name: /retry loading/i })).toBeInTheDocument();
     expect(mockPackagesGrid).not.toHaveBeenCalled();
   });
+
+  it('passes physical product variants from API data into the shared grid', async () => {
+    mockApiGet.mockResolvedValueOnce({
+      data: {
+        items: [{
+          id: 42,
+          name: 'Buddy Fat Skin Recovery Drink',
+          description: 'Fresh local recovery drink',
+          packageType: 'custom',
+          price: '17.00',
+          itemKind: 'physical_product',
+          isTaxable: true,
+          fulfillmentType: 'local_delivery',
+          variants: [
+            { id: 7, storefrontItemId: 42, label: 'Everyday 16oz', price: '6.50', displayOrder: 1 },
+          ],
+        }],
+      },
+    });
+
+    render(<StoreSurface />);
+
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/api/storefront'));
+    await waitFor(() => expect(mockPackagesGrid).toHaveBeenCalled());
+
+    const props = mockPackagesGrid.mock.calls[0][0];
+    expect(props.packages[0]).toMatchObject({
+      itemKind: 'physical_product',
+      isTaxable: true,
+      fulfillmentType: 'local_delivery',
+    });
+    expect(props.packages[0].variants[0]).toMatchObject({
+      id: 7,
+      label: 'Everyday 16oz',
+      price: 6.5,
+    });
+  });
 });

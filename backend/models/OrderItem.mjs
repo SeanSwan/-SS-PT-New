@@ -19,6 +19,10 @@ OrderItem.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    productVariantId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -50,6 +54,23 @@ OrderItem.init(
     },
     metadata: {
       type: DataTypes.JSON,
+      allowNull: true,
+    },
+    fulfillmentStatus: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'not_required',
+    },
+    fulfilledAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    fulfilledBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    fulfillmentNotes: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   },

@@ -114,6 +114,7 @@ const OrderReviewStep: React.FC<OrderReviewStepProps> = ({
             <ItemInfo>
               <ItemName>
                 {item.storefrontItem?.name || `Training Package #${item.storefrontItemId}`}
+                {item.productVariant?.label ? ` - ${item.productVariant.label}` : ''}
               </ItemName>
               <ItemDetails>
                 <ItemDetail>

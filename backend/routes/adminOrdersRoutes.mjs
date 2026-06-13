@@ -48,6 +48,10 @@ import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import {
+  completeFulfillmentItem,
+  getAdminFulfillmentQueue,
+} from '../services/adminFulfillmentQueueService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'internal_error';
@@ -601,6 +605,80 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
     return sendInternalError(res, 'Failed to retrieve completed orders');
   }
 });
+
+/**
+ * GET /api/admin/orders/fulfillment
+ * Item-level physical-product fulfillment queue for paid checkout orders.
+ */
+router.get('/orders/fulfillment', validatePagination, async (req, res) => {
+  try {
+    const result = await getAdminFulfillmentQueue({
+      status: req.query.status || 'pending_fulfillment',
+      search: req.query.search || '',
+      limit: req.query.limit || 50,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Fulfillment queue retrieved successfully',
+      items: result.items,
+      stats: result.stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Failed to fetch fulfillment queue for ${req.user.email}:`, error);
+    return sendInternalError(res, 'Failed to retrieve fulfillment queue');
+  }
+});
+
+/**
+ * PATCH /api/admin/orders/fulfillment-items/:itemId/complete
+ * Mark one physical product order item fulfilled.
+ */
+router.patch(
+  '/orders/fulfillment-items/:itemId(\\d+)/complete',
+  [
+    heavyOrdersRateLimit,
+    param('itemId').isInt({ min: 1 }).withMessage('Invalid order item ID'),
+    body('notes').optional().isString().trim().isLength({ max: 240 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid fulfillment request',
+        errors: errors.array()
+      });
+    }
+
+    try {
+      const result = await completeFulfillmentItem({
+        orderItemId: Number(req.params.itemId),
+        adminId: req.user.id,
+        notes: req.body?.notes || '',
+      });
+
+      return res.json({
+        success: true,
+        message: result.alreadyFulfilled
+          ? 'Fulfillment item was already complete'
+          : 'Fulfillment item marked complete',
+        data: result,
+      });
+    } catch (error) {
+      if (error.statusCode === 404) {
+        return res.status(404).json({ success: false, message: 'Fulfillment item not found' });
+      }
+      if (error.statusCode === 409) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
+
+      logger.error(`Failed to complete fulfillment item ${req.params.itemId}:`, error);
+      return sendInternalError(res, 'Failed to complete fulfillment item');
+    }
+  }
+);
 
 /**
  * POST /api/admin/orders/:id/complete

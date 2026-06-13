@@ -19,7 +19,6 @@ import {
   CheckCircle,
   RefreshCw,
   Send,
-  CheckSquare,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -45,7 +44,6 @@ import {
   StyledTableHeadCell,
   StyledTableCell,
   StyledTableRow,
-  ChipContainer,
   IconButtonContainer,
   StyledIconButton,
   FooterActionsContainer,
@@ -81,7 +79,6 @@ import {
 } from './admin-packages-view.layoutStyles';
 import {
   AvatarCircle,
-  CenteredFormField,
   ClientCheckItem,
   ClientListContainer,
   DiscountInput,
@@ -91,10 +88,8 @@ import {
   FormGrid,
   FormGridFull,
   FormGroupLabel,
-  FormInput,
   FormInputAccent,
   FormLabel,
-  FormSelect,
   FormTextarea,
   HiddenCheckbox,
   SelectedClientIcon,
@@ -111,8 +106,10 @@ import {
   RightAlignedCell,
   RightAlignedHeadCell,
   RowOpacityWrapper,
+  RowThumb,
   ThemeDot
 } from './admin-packages-view.tableStyles';
+import { EditPackageDialog, NewPackageDialog } from './admin-packages-view.dialogs';
 
 // Interface for session package data
 interface SessionPackage {
@@ -131,9 +128,28 @@ interface SessionPackage {
   imageUrl?: string | null;
   theme?: string | null;
   isActive: boolean;
+  // Commerce fields — physical products (drink / supplements / merch).
+  // Training packages keep defaults: training_package / not taxable / none.
+  itemKind?: 'training_package' | 'physical_product';
+  isTaxable?: boolean;
+  fulfillmentType?: 'none' | 'dropship' | 'self_ship' | 'local_delivery' | 'pickup';
+  stockQuantity?: number | null;
+  sku?: string | null;
+  shippingWeightOz?: number | null;
+  displayOrder?: number;
   createdAt?: string;
   updatedAt?: string;
 }
+
+// Human labels for the commerce enums (admin table + editor)
+const FULFILLMENT_LABELS: Record<string, string> = {
+  none: 'No shipping (service)',
+  dropship: 'Dropship (AGI)',
+  self_ship: 'Self-ship (inventory)',
+  local_delivery: 'Local delivery',
+  pickup: 'Pickup',
+};
+const isPhysicalProduct = (pkg: { itemKind?: string }) => pkg.itemKind === 'physical_product';
 
 // Interface for client data (simplified)
 interface Client {
@@ -185,6 +201,8 @@ const AdminPackagesView: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  // Inline one-click active/inactive toggle — tracks the row whose toggle is in flight
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   // State for dialogs
   const [selectedPackage, setSelectedPackage] = useState<SessionPackage | null>(null);
@@ -203,6 +221,14 @@ const AdminPackagesView: React.FC = () => {
   const [editSessionsPerWeek, setEditSessionsPerWeek] = useState<number>(0);
   const [editTheme, setEditTheme] = useState('cosmic');
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  // Product (commerce) settings — only meaningful when itemKind = physical_product
+  const [editItemKind, setEditItemKind] = useState<'training_package' | 'physical_product'>('training_package');
+  const [editIsTaxable, setEditIsTaxable] = useState<boolean>(false);
+  const [editFulfillmentType, setEditFulfillmentType] = useState<string>('none');
+  const [editSku, setEditSku] = useState<string>('');
+  const [editStockQuantity, setEditStockQuantity] = useState<string>('');
+  const [editProductPrice, setEditProductPrice] = useState<number>(0); // flat price for products
+  const [editImageUrl, setEditImageUrl] = useState<string>('');
 
   // Form state for new package
   const [newPackageName, setNewPackageName] = useState('');
@@ -213,6 +239,14 @@ const AdminPackagesView: React.FC = () => {
   const [newMonths, setNewMonths] = useState<number>(3);
   const [newSessionsPerWeek, setNewSessionsPerWeek] = useState<number>(4);
   const [newTheme, setNewTheme] = useState('cosmic');
+  // New-product (commerce) settings
+  const [newItemKind, setNewItemKind] = useState<'training_package' | 'physical_product'>('training_package');
+  const [newIsTaxable, setNewIsTaxable] = useState<boolean>(false);
+  const [newFulfillmentType, setNewFulfillmentType] = useState<string>('none');
+  const [newSku, setNewSku] = useState<string>('');
+  const [newStockQuantity, setNewStockQuantity] = useState<string>('');
+  const [newProductPrice, setNewProductPrice] = useState<number>(20);
+  const [newImageUrl, setNewImageUrl] = useState<string>('');
 
   // State for sending special offer
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
@@ -334,7 +368,10 @@ const AdminPackagesView: React.FC = () => {
       (pkg.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pkg.id?.toString() || '').includes(searchTerm.toLowerCase());
 
-    const matchesType = typeFilter === 'all' || pkg.packageType === typeFilter;
+    const matchesType =
+      typeFilter === 'all' ? true
+        : typeFilter === 'product' ? isPhysicalProduct(pkg)
+          : (!isPhysicalProduct(pkg) && pkg.packageType === typeFilter);
 
     return matchesSearch && matchesType;
   });
@@ -372,6 +409,13 @@ const AdminPackagesView: React.FC = () => {
     setEditSessionsPerWeek(pkg.sessionsPerWeek || 0);
     setEditTheme(pkg.theme || 'cosmic');
     setEditIsActive(pkg.isActive ?? true);
+    setEditItemKind(pkg.itemKind || 'training_package');
+    setEditIsTaxable(pkg.isTaxable ?? false);
+    setEditFulfillmentType(pkg.fulfillmentType || 'none');
+    setEditSku(pkg.sku || '');
+    setEditStockQuantity(typeof pkg.stockQuantity === 'number' ? String(pkg.stockQuantity) : '');
+    setEditProductPrice(Number(pkg.price) || Number(pkg.totalCost) || 0);
+    setEditImageUrl(pkg.imageUrl || '');
     setOpenEditDialog(true);
   };
 
@@ -380,27 +424,60 @@ const AdminPackagesView: React.FC = () => {
     if (!selectedPackage) return;
 
     try {
-      const totalSessions = editPackageType === 'monthly'
-        ? editMonths * editSessionsPerWeek * 4
-        : editSessions;
+      const isProduct = editItemKind === 'physical_product';
+      let updatedPackageData: Record<string, unknown>;
 
-      const totalCost = editPricePerSession * totalSessions;
+      if (isProduct) {
+        // Physical product: flat price, no sessions. pricePerSession must stay
+        // non-null (model rule, min 0), so we send 0. Carry the commerce fields.
+        const stockParsed = editStockQuantity.trim() === '' ? null : Number(editStockQuantity);
+        updatedPackageData = {
+          name: editPackageName,
+          packageType: 'fixed', // schema requires a packageType; products use 'fixed'
+          description: editPackageDescription,
+          price: editProductPrice,
+          displayPrice: editProductPrice,
+          totalCost: editProductPrice,
+          pricePerSession: 0,
+          sessions: 0,
+          months: null,
+          sessionsPerWeek: null,
+          totalSessions: 0,
+          theme: editTheme,
+          isActive: editIsActive,
+          itemKind: 'physical_product',
+          isTaxable: editIsTaxable,
+          fulfillmentType: editFulfillmentType,
+          sku: editSku.trim() || null,
+          stockQuantity: stockParsed !== null && Number.isFinite(stockParsed) ? stockParsed : null,
+        };
+      } else {
+        // Training package: price by session × count (existing behavior).
+        const totalSessions = editPackageType === 'monthly'
+          ? editMonths * editSessionsPerWeek * 4
+          : editSessions;
+        const totalCost = editPricePerSession * totalSessions;
+        updatedPackageData = {
+          name: editPackageName,
+          packageType: editPackageType,
+          description: editPackageDescription,
+          pricePerSession: editPricePerSession,
+          sessions: editPackageType === 'fixed' ? editSessions : null,
+          months: editPackageType === 'monthly' ? editMonths : null,
+          sessionsPerWeek: editPackageType === 'monthly' ? editSessionsPerWeek : null,
+          totalSessions,
+          totalCost,
+          price: totalCost,
+          displayPrice: totalCost,
+          theme: editTheme,
+          isActive: editIsActive,
+          itemKind: 'training_package',
+          isTaxable: false,
+          fulfillmentType: 'none',
+        };
+      }
 
-      const updatedPackageData = {
-        name: editPackageName,
-        packageType: editPackageType,
-        description: editPackageDescription,
-        pricePerSession: editPricePerSession,
-        sessions: editPackageType === 'fixed' ? editSessions : null,
-        months: editPackageType === 'monthly' ? editMonths : null,
-        sessionsPerWeek: editPackageType === 'monthly' ? editSessionsPerWeek : null,
-        totalSessions: totalSessions,
-        totalCost: totalCost,
-        price: totalCost, // Set price field to match totalCost
-        displayPrice: totalCost, // Set displayPrice as well
-        theme: editTheme,
-        isActive: editIsActive
-      };
+      updatedPackageData.imageUrl = editImageUrl.trim() || null;
 
       const response = await authAxios.put(`/api/admin/storefront/${selectedPackage.id}`, updatedPackageData);
 
@@ -436,27 +513,57 @@ const AdminPackagesView: React.FC = () => {
   // Handle create new package
   const handleCreateNewPackage = async () => {
     try {
-      const totalSessions = newPackageType === 'monthly'
-        ? newMonths * newSessionsPerWeek * 4
-        : newSessions;
+      const isProduct = newItemKind === 'physical_product';
+      let newPackageData: Record<string, unknown>;
 
-      const totalCost = newPricePerSession * totalSessions;
+      if (isProduct) {
+        const stockParsed = newStockQuantity.trim() === '' ? null : Number(newStockQuantity);
+        newPackageData = {
+          name: newPackageName,
+          packageType: 'fixed', // schema requires a packageType; products use 'fixed'
+          description: newPackageDescription,
+          price: newProductPrice,
+          displayPrice: newProductPrice,
+          totalCost: newProductPrice,
+          pricePerSession: 0,
+          sessions: 0,
+          months: null,
+          sessionsPerWeek: null,
+          totalSessions: 0,
+          theme: newTheme,
+          isActive: true,
+          itemKind: 'physical_product',
+          isTaxable: newIsTaxable,
+          fulfillmentType: newFulfillmentType,
+          sku: newSku.trim() || null,
+          stockQuantity: stockParsed !== null && Number.isFinite(stockParsed) ? stockParsed : null,
+        };
+      } else {
+        const totalSessions = newPackageType === 'monthly'
+          ? newMonths * newSessionsPerWeek * 4
+          : newSessions;
+        const totalCost = newPricePerSession * totalSessions;
+        newPackageData = {
+          name: newPackageName,
+          packageType: newPackageType,
+          description: newPackageDescription,
+          pricePerSession: newPricePerSession,
+          sessions: newPackageType === 'fixed' ? newSessions : null,
+          months: newPackageType === 'monthly' ? newMonths : null,
+          sessionsPerWeek: newPackageType === 'monthly' ? newSessionsPerWeek : null,
+          totalSessions,
+          totalCost,
+          price: totalCost,
+          displayPrice: totalCost,
+          theme: newTheme,
+          isActive: true,
+          itemKind: 'training_package',
+          isTaxable: false,
+          fulfillmentType: 'none',
+        };
+      }
 
-      const newPackageData = {
-        name: newPackageName,
-        packageType: newPackageType,
-        description: newPackageDescription,
-        pricePerSession: newPricePerSession,
-        sessions: newPackageType === 'fixed' ? newSessions : null,
-        months: newPackageType === 'monthly' ? newMonths : null,
-        sessionsPerWeek: newPackageType === 'monthly' ? newSessionsPerWeek : null,
-        totalSessions: totalSessions,
-        totalCost: totalCost,
-        price: totalCost, // Set price field to match totalCost
-        displayPrice: totalCost, // Set displayPrice as well
-        theme: newTheme,
-        isActive: true
-      };
+      newPackageData.imageUrl = newImageUrl.trim() || null;
 
       const response = await authAxios.post('/api/admin/storefront', newPackageData);
 
@@ -478,6 +585,13 @@ const AdminPackagesView: React.FC = () => {
         setNewMonths(3);
         setNewSessionsPerWeek(4);
         setNewTheme('cosmic');
+        setNewItemKind('training_package');
+        setNewIsTaxable(false);
+        setNewFulfillmentType('none');
+        setNewSku('');
+        setNewStockQuantity('');
+        setNewProductPrice(20);
+        setNewImageUrl('');
       } else {
         logger.warn('Package creation returned status:', response.status);
         toast({
@@ -588,6 +702,42 @@ const AdminPackagesView: React.FC = () => {
         description: errorMsg,
         variant: "destructive",
       });
+    }
+  };
+
+  // Inline one-click toggle: flip a product's active/visible state straight from the
+  // table row (no edit dialog). Optimistic update with revert-on-error so the slider
+  // feels instant; concurrency-guarded so a row can't fire two updates at once.
+  const handleToggleActive = async (pkg: SessionPackage) => {
+    if (togglingId !== null) return; // a toggle is already in flight
+    const nextActive = !pkg.isActive;
+    setTogglingId(pkg.id);
+
+    // Optimistic: flip the row + the active-count stat immediately
+    setPackages(prev => prev.map(p => (p.id === pkg.id ? { ...p, isActive: nextActive } : p)));
+    setStatsData(prev => ({
+      ...prev,
+      activePackages: Math.max(0, prev.activePackages + (nextActive ? 1 : -1)),
+    }));
+
+    try {
+      // Partial update — only isActive is sent; the backend updates just that field.
+      await authAxios.put(`/api/admin/storefront/${pkg.id}`, { isActive: nextActive });
+      toast({
+        title: nextActive ? 'Product is live' : 'Product hidden',
+        description: `"${pkg.name}" is now ${nextActive ? 'visible in the store' : 'hidden from the store'}.`,
+      });
+    } catch (err: unknown) {
+      // Revert both the row and the stat on failure
+      setPackages(prev => prev.map(p => (p.id === pkg.id ? { ...p, isActive: !nextActive } : p)));
+      setStatsData(prev => ({
+        ...prev,
+        activePackages: Math.max(0, prev.activePackages + (nextActive ? -1 : 1)),
+      }));
+      const errorMsg = getErrorMessage(err, 'Could not update product visibility');
+      toast({ title: 'Error', description: errorMsg, variant: 'destructive' });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -724,6 +874,13 @@ const AdminPackagesView: React.FC = () => {
                      >
                         Monthly Subscriptions
                      </FilterButton>
+                     <FilterButton
+                        $isActive={typeFilter === 'product'}
+                        $buttonColor="warning"
+                        onClick={() => setTypeFilter('product')}
+                     >
+                        Products
+                     </FilterButton>
                  </FilterButtonsContainer>
               </FilterContainer>
 
@@ -767,9 +924,13 @@ const AdminPackagesView: React.FC = () => {
                               {/* Package Name */}
                               <StyledTableCell>
                                 <FlexRow $gap="0.5rem">
-                                  <ThemeDot $theme={pkg.theme || 'cosmic'}>
-                                    {pkg.name.charAt(0)}
-                                  </ThemeDot>
+                                  {pkg.imageUrl ? (
+                                    <RowThumb $src={pkg.imageUrl} title={pkg.name} />
+                                  ) : (
+                                    <ThemeDot $theme={pkg.theme || 'cosmic'}>
+                                      {pkg.name.charAt(0)}
+                                    </ThemeDot>
+                                  )}
                                   <BodyText $weight={500}>
                                     {pkg.name}
                                   </BodyText>
@@ -782,6 +943,17 @@ const AdminPackagesView: React.FC = () => {
                                     $top="0.25rem"
                                   >
                                     {pkg.description}
+                                  </CaptionText>
+                                )}
+                                {isPhysicalProduct(pkg) && (
+                                  <CaptionText
+                                    $block
+                                    $top="0.25rem"
+                                    $color="var(--accent-gold, #C6A84B)"
+                                  >
+                                    🛍 Product · {FULFILLMENT_LABELS[pkg.fulfillmentType || 'none'] || pkg.fulfillmentType}
+                                    {pkg.isTaxable ? ' · Taxable' : ' · Tax-free'}
+                                    {typeof pkg.stockQuantity === 'number' ? ` · ${pkg.stockQuantity} in stock` : ''}
                                   </CaptionText>
                                 )}
                               </StyledTableCell>
@@ -825,13 +997,28 @@ const AdminPackagesView: React.FC = () => {
                                 </BodyText>
                               </StyledTableCell>
 
-                              {/* Status */}
+                              {/* Status — one-click inline on/off toggle (no dialog) */}
                               <StyledTableCell>
-                                <ChipContainer
-                                  chipstatus={pkg.isActive ? 'completed' : 'cancelled'}
+                                <SwitchLabel
+                                  htmlFor={`toggle-active-${pkg.id}`}
+                                  title={pkg.isActive
+                                    ? 'Active — visible in the store. Click to hide.'
+                                    : 'Inactive — hidden from the store. Click to make it live.'}
+                                  style={togglingId === pkg.id ? { opacity: 0.6, pointerEvents: 'none' } : undefined}
                                 >
+                                  <HiddenCheckbox
+                                    id={`toggle-active-${pkg.id}`}
+                                    type="checkbox"
+                                    checked={pkg.isActive}
+                                    disabled={togglingId === pkg.id}
+                                    aria-label={`${pkg.isActive ? 'Hide' : 'Show'} ${pkg.name} in the store`}
+                                    onChange={() => handleToggleActive(pkg)}
+                                  />
+                                  <SwitchTrack $checked={pkg.isActive}>
+                                    <SwitchThumb $checked={pkg.isActive} />
+                                  </SwitchTrack>
                                   {pkg.isActive ? 'Active' : 'Inactive'}
-                                </ChipContainer>
+                                </SwitchLabel>
                               </StyledTableCell>
 
                               {/* Actions */}
@@ -953,337 +1140,51 @@ const AdminPackagesView: React.FC = () => {
 
       {/* --- DIALOGS --- */}
 
-      {/* Edit Package Dialog */}
-      <StyledDialog $open={openEditDialog} onClick={() => setOpenEditDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-          <DialogTitleBar>
-            <FlexRow $gap="0.75rem">
-              <Edit size={20} />
-              <Heading6>Edit Package</Heading6>
-            </FlexRow>
-          </DialogTitleBar>
-          <DialogContentArea>
-            <DialogHintText>
-              Update the details for this session package.
-            </DialogHintText>
-            <FormGrid>
-              {/* Package Name */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="edit-package-name">Package Name *</FormLabel>
-                  <FormInput
-                    id="edit-package-name"
-                    value={editPackageName}
-                    onChange={(e) => setEditPackageName(e.target.value)}
-                    required
-                  />
-                </FormField>
-              </FormGridFull>
+      {/* Edit / Create dialogs (extracted to admin-packages-view.dialogs.tsx) */}
+      <EditPackageDialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        onSave={handleSaveEditedPackage}
+        formatCurrency={formatCurrency}
+        packageName={editPackageName} setPackageName={setEditPackageName}
+        description={editPackageDescription} setDescription={setEditPackageDescription}
+        packageType={editPackageType} setPackageType={setEditPackageType}
+        pricePerSession={editPricePerSession} setPricePerSession={setEditPricePerSession}
+        sessions={editSessions} setSessions={setEditSessions}
+        months={editMonths} setMonths={setEditMonths}
+        sessionsPerWeek={editSessionsPerWeek} setSessionsPerWeek={setEditSessionsPerWeek}
+        theme={editTheme} setTheme={setEditTheme}
+        isActive={editIsActive} setIsActive={setEditIsActive}
+        itemKind={editItemKind} setItemKind={setEditItemKind}
+        isTaxable={editIsTaxable} setIsTaxable={setEditIsTaxable}
+        fulfillmentType={editFulfillmentType} setFulfillmentType={setEditFulfillmentType}
+        sku={editSku} setSku={setEditSku}
+        stockQuantity={editStockQuantity} setStockQuantity={setEditStockQuantity}
+        productPrice={editProductPrice} setProductPrice={setEditProductPrice}
+        imageUrl={editImageUrl} setImageUrl={setEditImageUrl}
+      />
 
-              {/* Package Type */}
-              <FormField>
-                <FormLabel htmlFor="edit-package-type">Package Type</FormLabel>
-                <FormSelect
-                  id="edit-package-type"
-                  value={editPackageType}
-                  onChange={(e) => setEditPackageType(e.target.value as 'fixed' | 'monthly')}
-                >
-                  <option value="fixed">Fixed Sessions</option>
-                  <option value="monthly">Monthly Subscription</option>
-                </FormSelect>
-              </FormField>
-
-              {/* Theme */}
-              <FormField>
-                <FormLabel htmlFor="edit-package-theme">Theme</FormLabel>
-                <FormSelect
-                  id="edit-package-theme"
-                  value={editTheme}
-                  onChange={(e) => setEditTheme(e.target.value)}
-                >
-                  <option value="cosmic">Cosmic (Blue/Purple)</option>
-                  <option value="purple">Purple</option>
-                  <option value="ruby">Ruby (Red)</option>
-                  <option value="emerald">Emerald (Green)</option>
-                </FormSelect>
-              </FormField>
-
-              {/* Price Per Session */}
-              <FormField>
-                <FormLabel htmlFor="edit-price-per-session">Price Per Session ($) *</FormLabel>
-                <FormInput
-                  id="edit-price-per-session"
-                  type="number"
-                  value={editPricePerSession}
-                  onChange={(e) => setEditPricePerSession(Number(e.target.value))}
-                  required
-                  min={0}
-                  step={5}
-                />
-              </FormField>
-
-              {/* Sessions (for fixed packages) */}
-              {editPackageType === 'fixed' && (
-                <FormField>
-                  <FormLabel htmlFor="edit-number-of-sessions">Number of Sessions *</FormLabel>
-                  <FormInput
-                    id="edit-number-of-sessions"
-                    type="number"
-                    value={editSessions}
-                    onChange={(e) => setEditSessions(Number(e.target.value))}
-                    required
-                    min={1}
-                  />
-                </FormField>
-              )}
-
-              {/* Months (for monthly packages) */}
-              {editPackageType === 'monthly' && (
-                <>
-                  <FormField>
-                    <FormLabel htmlFor="edit-number-of-months">Number of Months *</FormLabel>
-                    <FormInput
-                      id="edit-number-of-months"
-                      type="number"
-                      value={editMonths}
-                      onChange={(e) => setEditMonths(Number(e.target.value))}
-                      required
-                      min={1}
-                    />
-                  </FormField>
-                  <FormField>
-                    <FormLabel htmlFor="edit-sessions-per-week">Sessions Per Week *</FormLabel>
-                    <FormInput
-                      id="edit-sessions-per-week"
-                      type="number"
-                      value={editSessionsPerWeek}
-                      onChange={(e) => setEditSessionsPerWeek(Number(e.target.value))}
-                      required
-                      min={1}
-                    />
-                  </FormField>
-                </>
-              )}
-
-              {/* Total Price Preview */}
-              <FormField>
-                <FormLabel htmlFor="edit-total-price">Total Price</FormLabel>
-                <FormInputAccent
-                  id="edit-total-price"
-                  readOnly
-                  value={formatCurrency(editPackageType === 'fixed'
-                    ? editPricePerSession * editSessions
-                    : editPricePerSession * editMonths * editSessionsPerWeek * 4)}
-                />
-              </FormField>
-
-              {/* Active Status */}
-              <CenteredFormField>
-                <SwitchLabel htmlFor="edit-package-active">
-                  <HiddenCheckbox
-                    id="edit-package-active"
-                    type="checkbox"
-                    checked={editIsActive ?? false}
-                    onChange={(e) => setEditIsActive(e.target.checked)}
-                  />
-                  <SwitchTrack $checked={editIsActive}>
-                    <SwitchThumb $checked={editIsActive} />
-                  </SwitchTrack>
-                  Active and Visible
-                </SwitchLabel>
-              </CenteredFormField>
-
-              {/* Description */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="edit-package-description">Description</FormLabel>
-                  <FormTextarea
-                    id="edit-package-description"
-                    value={editPackageDescription}
-                    onChange={(e) => setEditPackageDescription(e.target.value)}
-                    rows={3}
-                  />
-                </FormField>
-              </FormGridFull>
-            </FormGrid>
-          </DialogContentArea>
-          <DialogActionsBar>
-            <GlowButton
-              text="Cancel"
-              theme="cosmic"
-              size="small"
-              onClick={() => setOpenEditDialog(false)}
-            />
-            <GlowButton
-              text="Save Changes"
-              theme="emerald"
-              size="small"
-              leftIcon={<CheckSquare size={16} />}
-              onClick={handleSaveEditedPackage}
-            />
-          </DialogActionsBar>
-        </DialogPanel>
-      </StyledDialog>
-
-      {/* New Package Dialog */}
-      <StyledDialog $open={openNewDialog} onClick={() => setOpenNewDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-          <DialogTitleBar>
-            <FlexRow $gap="0.75rem">
-              <Plus size={20} />
-              <Heading6>Create New Package</Heading6>
-            </FlexRow>
-          </DialogTitleBar>
-          <DialogContentArea>
-            <DialogHintText>
-              Create a new session package to offer to clients.
-            </DialogHintText>
-            <FormGrid>
-              {/* Package Name */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="new-package-name">Package Name *</FormLabel>
-                  <FormInput
-                    id="new-package-name"
-                    value={newPackageName}
-                    onChange={(e) => setNewPackageName(e.target.value)}
-                    required
-                    placeholder="e.g., Gold Glimmer, Platinum Plus"
-                  />
-                </FormField>
-              </FormGridFull>
-
-              {/* Package Type */}
-              <FormField>
-                <FormLabel htmlFor="new-package-type">Package Type</FormLabel>
-                <FormSelect
-                  id="new-package-type"
-                  value={newPackageType}
-                  onChange={(e) => setNewPackageType(e.target.value as 'fixed' | 'monthly')}
-                >
-                  <option value="fixed">Fixed Sessions</option>
-                  <option value="monthly">Monthly Subscription</option>
-                </FormSelect>
-              </FormField>
-
-              {/* Theme */}
-              <FormField>
-                <FormLabel htmlFor="new-package-theme">Theme</FormLabel>
-                <FormSelect
-                  id="new-package-theme"
-                  value={newTheme}
-                  onChange={(e) => setNewTheme(e.target.value)}
-                >
-                  <option value="cosmic">Cosmic (Blue/Purple)</option>
-                  <option value="purple">Purple</option>
-                  <option value="ruby">Ruby (Red)</option>
-                  <option value="emerald">Emerald (Green)</option>
-                </FormSelect>
-              </FormField>
-
-              {/* Price Per Session */}
-              <FormField>
-                <FormLabel htmlFor="new-price-per-session">Price Per Session ($) *</FormLabel>
-                <FormInput
-                  id="new-price-per-session"
-                  type="number"
-                  value={newPricePerSession}
-                  onChange={(e) => setNewPricePerSession(Number(e.target.value))}
-                  required
-                  min={0}
-                  step={5}
-                />
-              </FormField>
-
-              {/* Sessions (for fixed packages) */}
-              {newPackageType === 'fixed' && (
-                <FormField>
-                  <FormLabel htmlFor="new-number-of-sessions">Number of Sessions *</FormLabel>
-                  <FormInput
-                    id="new-number-of-sessions"
-                    type="number"
-                    value={newSessions}
-                    onChange={(e) => setNewSessions(Number(e.target.value))}
-                    required
-                    min={1}
-                  />
-                </FormField>
-              )}
-
-              {/* Months (for monthly packages) */}
-              {newPackageType === 'monthly' && (
-                <>
-                  <FormField>
-                    <FormLabel htmlFor="new-number-of-months">Number of Months *</FormLabel>
-                    <FormInput
-                      id="new-number-of-months"
-                      type="number"
-                      value={newMonths}
-                      onChange={(e) => setNewMonths(Number(e.target.value))}
-                      required
-                      min={1}
-                    />
-                  </FormField>
-                  <FormField>
-                    <FormLabel htmlFor="new-sessions-per-week">Sessions Per Week *</FormLabel>
-                    <FormInput
-                      id="new-sessions-per-week"
-                      type="number"
-                      value={newSessionsPerWeek}
-                      onChange={(e) => setNewSessionsPerWeek(Number(e.target.value))}
-                      required
-                      min={1}
-                    />
-                  </FormField>
-                </>
-              )}
-
-              {/* Total Price Preview */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="new-total-price-preview">Total Price (Preview)</FormLabel>
-                  <FormInputAccent
-                    id="new-total-price-preview"
-                    readOnly
-                    value={formatCurrency(newPackageType === 'fixed'
-                      ? newPricePerSession * newSessions
-                      : newPricePerSession * newMonths * newSessionsPerWeek * 4)}
-                  />
-                </FormField>
-              </FormGridFull>
-
-              {/* Description */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="new-package-description">Description</FormLabel>
-                  <FormTextarea
-                    id="new-package-description"
-                    value={newPackageDescription}
-                    onChange={(e) => setNewPackageDescription(e.target.value)}
-                    rows={3}
-                    placeholder="Describe the key benefits and features of this package..."
-                  />
-                </FormField>
-              </FormGridFull>
-            </FormGrid>
-          </DialogContentArea>
-          <DialogActionsBar>
-            <GlowButton
-              text="Cancel"
-              theme="cosmic"
-              size="small"
-              onClick={() => setOpenNewDialog(false)}
-            />
-            <GlowButton
-              text="Create Package"
-              theme="emerald"
-              size="small"
-              leftIcon={<Plus size={16} />}
-              onClick={handleCreateNewPackage}
-            />
-          </DialogActionsBar>
-        </DialogPanel>
-      </StyledDialog>
+      <NewPackageDialog
+        open={openNewDialog}
+        onClose={() => setOpenNewDialog(false)}
+        onCreate={handleCreateNewPackage}
+        formatCurrency={formatCurrency}
+        packageName={newPackageName} setPackageName={setNewPackageName}
+        description={newPackageDescription} setDescription={setNewPackageDescription}
+        packageType={newPackageType} setPackageType={setNewPackageType}
+        pricePerSession={newPricePerSession} setPricePerSession={setNewPricePerSession}
+        sessions={newSessions} setSessions={setNewSessions}
+        months={newMonths} setMonths={setNewMonths}
+        sessionsPerWeek={newSessionsPerWeek} setSessionsPerWeek={setNewSessionsPerWeek}
+        theme={newTheme} setTheme={setNewTheme}
+        itemKind={newItemKind} setItemKind={setNewItemKind}
+        isTaxable={newIsTaxable} setIsTaxable={setNewIsTaxable}
+        fulfillmentType={newFulfillmentType} setFulfillmentType={setNewFulfillmentType}
+        sku={newSku} setSku={setNewSku}
+        stockQuantity={newStockQuantity} setStockQuantity={setNewStockQuantity}
+        productPrice={newProductPrice} setProductPrice={setNewProductPrice}
+        imageUrl={newImageUrl} setImageUrl={setNewImageUrl}
+      />
 
       {/* Send Special Offer Dialog */}
       <StyledDialog $open={openSendOfferDialog} onClick={() => setOpenSendOfferDialog(false)}>

@@ -9,8 +9,10 @@ import { AlertTriangle, ArrowLeft, CheckCircle, Home, Lock, Mail, Phone, Shield,
 import GlowButton from '../ui/buttons/GlowButton';
 import PaymentMethodSelector from '../Checkout/PaymentMethodSelector';
 import CheckoutButton from './CheckoutButton';
+import CheckoutFulfillmentSection from './CheckoutFulfillmentSection';
 import OrderReviewStep from './OrderReviewStep';
 import type { CheckoutCustomerInfo } from './CheckoutView.types';
+import type { CheckoutFulfillmentDetails, CheckoutFulfillmentIntent } from './CheckoutView.logic';
 import {
   ActionButtonContainer,
   BackButton,
@@ -199,9 +201,12 @@ export const CheckoutReadyView: React.FC<{
   checkoutReady: boolean;
   customerInfo: CheckoutCustomerInfo;
   error: string | null;
+  fulfillmentDetails: CheckoutFulfillmentDetails;
+  fulfillmentIntent: CheckoutFulfillmentIntent;
   isProcessing: boolean;
   onCancel?: () => void;
   onCheckout: () => void;
+  onFulfillmentDetailsChange: (details: CheckoutFulfillmentDetails) => void;
   sessionCount: number;
   subtotal: number;
   success: string | null;
@@ -212,9 +217,12 @@ export const CheckoutReadyView: React.FC<{
   checkoutReady,
   customerInfo,
   error,
+  fulfillmentDetails,
+  fulfillmentIntent,
   isProcessing,
   onCancel,
   onCheckout,
+  onFulfillmentDetailsChange,
   sessionCount,
   subtotal,
   success,
@@ -232,6 +240,11 @@ export const CheckoutReadyView: React.FC<{
     <CheckoutContent>
       <MainSection>
         <CustomerInformationSection customerInfo={customerInfo} />
+        <CheckoutFulfillmentSection
+          fulfillmentDetails={fulfillmentDetails}
+          fulfillmentIntent={fulfillmentIntent}
+          onFulfillmentDetailsChange={onFulfillmentDetailsChange}
+        />
         <PaymentActionSection
           total={total}
           disabled={!checkoutReady || isProcessing}

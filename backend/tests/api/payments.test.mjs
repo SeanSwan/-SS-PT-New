@@ -136,8 +136,11 @@ describe('Payment Flow API', () => {
     it('keeps v2 checkout Stripe session metadata server-owned', () => {
       const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
 
-      expect(source).toContain('const { cartId, customerInfo } = req.body;');
+      expect(source).toContain('const { cartId, customerInfo, fulfillmentIntent } = req.body;');
       expect(source).toContain("source: 'genesis_checkout'");
+      expect(source).toContain('const normalizedFulfillmentIntent = normalizeCheckoutFulfillmentIntent(fulfillmentIntent, cart.cartItems);');
+      expect(source).toContain('fulfillmentIntent: normalizedFulfillmentIntent.mode');
+      expect(source).toContain('physicalProductCount: normalizedFulfillmentIntent.itemCount.toString()');
       expect(source).not.toContain('...(metadata || {})');
     });
 

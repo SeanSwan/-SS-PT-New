@@ -18,7 +18,7 @@
  *
  * ARCHITECTURE: CheckoutView -> CheckoutView.sections -> CheckoutView.styles + payment services.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
@@ -26,6 +26,14 @@ import api from '../../services/api.service';
 import { logger } from '@/utils/logger';
 import { AuthRequiredCheckout, CheckoutReadyView } from './CheckoutView.sections';
 import type { CheckoutState } from './CheckoutView.types';
+import type { CheckoutFulfillmentDetails } from './CheckoutView.logic';
+import {
+  buildCheckoutFulfillmentIntent,
+  calculateCheckoutTotals,
+  createDefaultFulfillmentDetails,
+  mergeCheckoutFulfillmentDetails,
+  validateCheckoutFulfillment,
+} from './CheckoutView.logic';
 
 interface CheckoutViewProps {
   onSuccess?: () => void;
@@ -48,20 +56,20 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       email: user?.email || '',
       phone: user?.phone || '',
     },
+    fulfillmentDetails: createDefaultFulfillmentDetails({
+      recipientName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+      phone: user?.phone || '',
+    }),
   });
 
   const cartItems = cart?.items || [];
-  const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = Number(item.price) || 0;
-    const itemQuantity = item.quantity || 0;
-    return sum + (itemPrice * itemQuantity);
-  }, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
-  const sessionCount = cartItems.reduce((sum, item) => {
-    const itemSessions = item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0;
-    return sum + (itemSessions * (item.quantity || 0));
-  }, 0);
+  const checkoutTotals = useMemo(() => calculateCheckoutTotals(cartItems), [cartItems]);
+  const baseFulfillmentIntent = useMemo(() => buildCheckoutFulfillmentIntent(cartItems), [cartItems]);
+  const fulfillmentIntent = useMemo(
+    () => mergeCheckoutFulfillmentDetails(baseFulfillmentIntent, checkoutState.fulfillmentDetails),
+    [baseFulfillmentIntent, checkoutState.fulfillmentDetails]
+  );
+  const { subtotal, tax, total, sessionCount } = checkoutTotals;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -71,16 +79,37 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
 
   useEffect(() => {
     if (!user) return;
+    const displayName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
     setCheckoutState(prev => ({
       ...prev,
       customerInfo: {
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        name: displayName,
         email: user.email || '',
         phone: user.phone || '',
       },
+      fulfillmentDetails: {
+        ...prev.fulfillmentDetails,
+        recipientName: prev.fulfillmentDetails.recipientName || displayName,
+        phone: prev.fulfillmentDetails.phone || user.phone || '',
+      },
     }));
   }, [user]);
+
+  useEffect(() => {
+    if (!baseFulfillmentIntent.required || baseFulfillmentIntent.mode === 'none') return;
+    const nextMode = baseFulfillmentIntent.mode as CheckoutFulfillmentDetails['mode'];
+    setCheckoutState(prev => {
+      if (prev.fulfillmentDetails.mode === nextMode) return prev;
+      return {
+        ...prev,
+        fulfillmentDetails: {
+          ...prev.fulfillmentDetails,
+          mode: nextMode,
+        },
+      };
+    });
+  }, [baseFulfillmentIntent]);
 
   const handleCreateCheckoutSession = useCallback(async () => {
     if (!isAuthenticated || !user) {
@@ -96,6 +125,16 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         ...prev,
         error: 'Your cart is empty. Please add items before checkout.',
       }));
+      return;
+    }
+
+    const fulfillmentError = validateCheckoutFulfillment(fulfillmentIntent);
+    if (fulfillmentError) {
+      setCheckoutState(prev => ({
+        ...prev,
+        error: fulfillmentError,
+      }));
+      toastError(`Checkout Error: ${fulfillmentError}`);
       return;
     }
 
@@ -127,6 +166,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       const response = await api.post('/api/v2/payments/create-checkout-session', {
         cartId: cart.id,
         customerInfo: checkoutState.customerInfo,
+        fulfillmentIntent,
         metadata: {
           userId: user.id,
           cartId: cart.id,
@@ -217,6 +257,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     user,
     cart,
     checkoutState.customerInfo,
+    fulfillmentIntent,
     total,
     sessionCount,
     toastSuccess,
@@ -233,8 +274,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       && total > 0
       && checkoutState.customerInfo.name.trim()
       && checkoutState.customerInfo.email.trim()
+      && !validateCheckoutFulfillment(fulfillmentIntent)
     )
-  ), [isAuthenticated, user, cart, total, checkoutState.customerInfo]);
+  ), [isAuthenticated, user, cart, total, checkoutState.customerInfo, fulfillmentIntent]);
 
   if (!isAuthenticated) {
     return <AuthRequiredCheckout />;
@@ -246,14 +288,20 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       checkoutReady={isCheckoutReady()}
       customerInfo={checkoutState.customerInfo}
       error={checkoutState.error}
+      fulfillmentDetails={checkoutState.fulfillmentDetails}
       isProcessing={checkoutState.isProcessing}
       onCancel={onCancel}
       onCheckout={handleCreateCheckoutSession}
+      onFulfillmentDetailsChange={(details) => setCheckoutState(prev => ({
+        ...prev,
+        fulfillmentDetails: details,
+      }))}
       sessionCount={sessionCount}
       subtotal={subtotal}
       success={checkoutState.success}
       tax={tax}
       total={total}
+      fulfillmentIntent={fulfillmentIntent}
     />
   );
 };

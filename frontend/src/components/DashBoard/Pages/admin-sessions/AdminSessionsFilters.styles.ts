@@ -8,12 +8,14 @@ import styled from 'styled-components';
 const activeFilterGradient = (buttonColor?: string) => {
   if (buttonColor === 'success') return 'linear-gradient(135deg, var(--success, #10b981), #34d399)';
   if (buttonColor === 'error') return 'linear-gradient(135deg, var(--danger, #ef4444), #f87171)';
+  if (buttonColor === 'warning') return 'linear-gradient(135deg, var(--accent-gold, #C6A84B), #E0C56E)';
   return 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))';
 };
 
 const filterBorder = (buttonColor?: string) => {
   if (buttonColor === 'success') return 'color-mix(in srgb, var(--success, #10b981) 50%, transparent)';
   if (buttonColor === 'error') return 'color-mix(in srgb, var(--danger, #ef4444) 50%, transparent)';
+  if (buttonColor === 'warning') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 50%, transparent)';
   return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)';
 };
 

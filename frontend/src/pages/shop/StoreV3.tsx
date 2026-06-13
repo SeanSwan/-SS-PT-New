@@ -52,29 +52,8 @@ import { CheckoutView } from '../../components/NewCheckout';
 import SectionVideoBackground from '../../components/ui/backgrounds/SectionVideoBackground';
 import MembershipsSection from './components/MembershipsSection';
 import { logger } from '@/utils/logger';
-
-// ============================================================
-// Package Interface (matches PackagesGrid / PackageCard)
-// ============================================================
-interface StoreItem {
-  id: number;
-  name: string;
-  description: string;
-  packageType: 'fixed' | 'monthly';
-  pricePerSession?: number;
-  sessions?: number;
-  months?: number;
-  sessionsPerWeek?: number;
-  totalSessions?: number;
-  price?: number;
-  totalCost?: number;
-  displayPrice: number;
-  theme?: string;
-  isActive: boolean;
-  imageUrl: string | null;
-  displayOrder?: number;
-  includedFeatures?: string | null;
-}
+import { mapStorefrontItemToStoreItem } from './components/storeCatalog';
+import type { ProductVariant, StoreItem } from './components/storeCatalog.types';
 
 // ============================================================
 // Helper: Theme assignment by display order
@@ -677,23 +656,9 @@ const StoreV3: React.FC = () => {
         throw new Error('No packages returned from API');
       }
 
-      const fetchedPackages: StoreItem[] = packagesData.map((pkg: any) => ({
-        id: pkg.id,
-        name: pkg.name,
-        description: pkg.description || '',
-        packageType: pkg.packageType || 'fixed',
-        sessions: pkg.sessions,
-        months: pkg.months,
-        sessionsPerWeek: pkg.sessionsPerWeek,
-        totalSessions: pkg.totalSessions || pkg.sessions,
-        pricePerSession: parseFloat(pkg.pricePerSession || 0),
-        price: parseFloat(pkg.totalCost || pkg.price || 0),
-        displayPrice: parseFloat(pkg.totalCost || pkg.price || 0),
-        imageUrl: pkg.imageUrl || `/assets/images/package-${pkg.id}.jpg`,
-        theme: getThemeForPackage(pkg.displayOrder || pkg.id),
-        isActive: pkg.isActive !== false,
-        displayOrder: pkg.displayOrder || pkg.id,
-      }));
+      const fetchedPackages: StoreItem[] = packagesData.map((pkg: any) =>
+        mapStorefrontItemToStoreItem(pkg, getThemeForPackage(pkg.displayOrder || pkg.id))
+      );
 
       setPackages(fetchedPackages);
     } catch (error: any) {
@@ -736,7 +701,7 @@ const StoreV3: React.FC = () => {
   }, []);
 
   const handleAddToCart = useCallback(
-    async (pkg: StoreItem) => {
+    async (pkg: StoreItem, productVariant?: ProductVariant | null) => {
       if (!canPurchase) {
         toast({
           title: 'Login Required',
@@ -757,9 +722,17 @@ const StoreV3: React.FC = () => {
 
       setIsAddingToCart(pkg.id);
       try {
-        await addToCart({ id: pkg.id, quantity: 1 });
+        await addToCart({
+          id: pkg.id,
+          quantity: 1,
+          productVariantId: productVariant?.id,
+          name: productVariant ? `${pkg.name} - ${productVariant.label}` : pkg.name,
+        });
         setTimeout(() => refreshCart(), 500);
-        toast({ title: 'Success!', description: `Added ${pkg.name} to cart.` });
+        toast({
+          title: 'Success!',
+          description: `Added ${productVariant ? `${pkg.name} - ${productVariant.label}` : pkg.name} to cart.`,
+        });
         setShowPulse(true);
         setTimeout(() => setShowPulse(false), 1600);
       } catch (error: any) {

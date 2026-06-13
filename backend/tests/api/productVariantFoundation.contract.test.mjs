@@ -3,9 +3,9 @@ import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 
 /**
- * Product variant + storefront product-field foundation — Phase 1 (2026-06-13).
+ * Product variant + storefront product-field foundation - Phase 1 (2026-06-13).
  * ============================================================================
- * Physical products (the recovery drink in 1.5L/16oz; merch size×color) need a
+ * Physical products (the recovery drink in 1.5L/16oz; merch size x color) need a
  * variant data layer + the storefront API must expose the Phase-0 product fields
  * so the UI can render product cards (vs training-package cards) and a variant
  * picker. Locks the model, migration, association wiring, and API exposure.
@@ -41,8 +41,12 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
 
   it('storefront API exposes the product fields the UI needs', () => {
     const routes = read('routes/storeFrontRoutes.mjs');
-    expect(routes).toContain('itemKind: item.itemKind');
+    expect(routes).toContain("const getStorefrontItemKind = (item) => valueOrFallback(item.itemKind, 'training_package')");
+    expect(routes).toContain("'PHYSICAL_PRODUCT'");
     expect(routes).toContain('isTaxable: item.isTaxable');
-    expect(routes).toContain('fulfillmentType: item.fulfillmentType');
+    expect(routes).toContain("fulfillmentType: valueOrFallback(item.fulfillmentType, 'none')");
+    expect(routes).toContain('variants: getMappedProductVariants(item)');
+    expect(routes).toContain('include: variantInclude');
+    expect(routes).toContain("as: 'variants'");
   });
 });

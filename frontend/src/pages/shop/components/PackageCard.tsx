@@ -25,6 +25,7 @@ import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/G
 import { SpecialBadge } from './SpecialBadge';
 import { logger } from '@/utils/logger';
 import { VIDEO } from '../../../config/videoAssets';
+import type { StoreItem } from './storeCatalog.types';
 
 // EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
 const T = {
@@ -43,27 +44,6 @@ const noMotion = css`
     transition: none !important;
   }
 `;
-
-// Package Interface
-interface StoreItem {
-  id: number;
-  name: string;
-  description: string;
-  packageType: 'fixed' | 'monthly';
-  pricePerSession?: number;
-  sessions?: number;
-  months?: number;
-  sessionsPerWeek?: number;
-  totalSessions?: number;
-  price?: number;
-  totalCost?: number;
-  displayPrice: number;
-  theme?: string;
-  isActive: boolean;
-  imageUrl: string | null;
-  displayOrder?: number;
-  includedFeatures?: string | null;
-}
 
 // Component Props Interface
 interface PackageCardProps {

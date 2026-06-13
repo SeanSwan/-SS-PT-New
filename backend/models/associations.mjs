@@ -658,6 +658,8 @@ const setupAssociations = async () => {
     CartItem.belongsTo(ShoppingCart, { foreignKey: 'cartId', as: 'cart' });
     CartItem.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
     StorefrontItem.hasMany(CartItem, { foreignKey: 'storefrontItemId', as: 'cartItems' });
+    CartItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId', as: 'productVariant' });
+    ProductVariant.hasMany(CartItem, { foreignKey: 'productVariantId', as: 'cartItems' });
     // Phase 1 commerce: physical products can have variants (drink sizes, merch size/color)
     StorefrontItem.hasMany(ProductVariant, { foreignKey: 'storefrontItemId', as: 'variants' });
     ProductVariant.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
@@ -670,6 +672,8 @@ const setupAssociations = async () => {
     Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'orderItems' });
     OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
     OrderItem.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
+    OrderItem.belongsTo(ProductVariant, { foreignKey: 'productVariantId', as: 'productVariant' });
+    ProductVariant.hasMany(OrderItem, { foreignKey: 'productVariantId', as: 'orderItems' });
 
     // PACKAGE ASSOCIATIONS
     // ====================

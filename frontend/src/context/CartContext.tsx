@@ -15,6 +15,15 @@ interface CartItem {
   quantity: number;
   price: number;
   storefrontItemId: number;
+  productVariantId?: number | null;
+  productVariant?: {
+    id: number;
+    label: string;
+    sku?: string | null;
+    price?: number | null;
+    stockQuantity?: number | null;
+    attributes?: Record<string, unknown> | null;
+  } | null;
   storefrontItem?: {
     name: string;
     description: string;
@@ -23,6 +32,9 @@ interface CartItem {
     sessions?: number;
     totalSessions?: number;
     packageType?: string;
+    itemKind?: string;
+    isTaxable?: boolean;
+    fulfillmentType?: string;
   };
 }
 
@@ -40,6 +52,7 @@ interface AddToCartPayload {
     name?: string;
     price?: number;
     quantity?: number;
+    productVariantId?: number | string | null;
     sessionCount?: number;
     packageType?: string;
     totalSessions?: number;
@@ -226,6 +239,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     // 🔧 ROBUST FIX: Handle both 'id' and 'storefrontItemId' property names
     const itemId = (itemData as any).storefrontItemId || itemData.id;
     const storefrontItemId = typeof itemId === 'string' ? parseInt(itemId, 10) : itemId;
+    const rawProductVariantId = itemData.productVariantId;
+    const productVariantId = typeof rawProductVariantId === 'string'
+      ? parseInt(rawProductVariantId, 10)
+      : rawProductVariantId;
     
     logger.log('🔍 DEBUG: itemData.id =', itemData.id, '| storefrontItemId from data =', (itemData as any).storefrontItemId, '| final itemId =', itemId);
     
@@ -235,13 +252,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         return Promise.reject(new Error("Invalid item ID"));
     }
 
+    if (rawProductVariantId != null && rawProductVariantId !== '' && (!productVariantId || isNaN(Number(productVariantId)))) {
+        console.error("Invalid productVariantId provided to addToCart:", rawProductVariantId);
+        setError("Invalid product variant selected.");
+        return Promise.reject(new Error("Invalid product variant ID"));
+    }
+
     const quantity = itemData.quantity || 1;
+    const addPayload = productVariantId
+      ? { storefrontItemId, productVariantId, quantity }
+      : { storefrontItemId, quantity };
 
     setLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.post('/api/cart/add', { storefrontItemId, quantity });
+      const response = await apiService.post('/api/cart/add', addPayload);
       
       logger.log('Add to cart response:', response.status, response.statusText);
       

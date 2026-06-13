@@ -65,6 +65,9 @@ describe('PendingOrdersAdminPanel truth handling', () => {
     mockAuthAxios.get.mockImplementation((url: string) => {
       if (url === '/api/admin/orders/pending') return okOrders([makeOrder()]);
       if (url === '/api/admin/orders/completed') return okOrders([]);
+      if (url === '/api/admin/orders/fulfillment') {
+        return Promise.resolve({ data: { success: true, items: [], stats: { pending: 0, fulfilled: 0, total: 0 } } });
+      }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
     mockAuthAxios.post.mockResolvedValue({ data: { success: true } });
@@ -94,6 +97,9 @@ describe('PendingOrdersAdminPanel truth handling', () => {
     mockAuthAxios.get.mockImplementation((url: string) => {
       if (url === '/api/admin/orders/pending') return okOrders([makeOrder({ status: 'pending' })]);
       if (url === '/api/admin/orders/completed') return okOrders([]);
+      if (url === '/api/admin/orders/fulfillment') {
+        return Promise.resolve({ data: { success: true, items: [], stats: { pending: 0, fulfilled: 0, total: 0 } } });
+      }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
 
@@ -113,6 +119,9 @@ describe('PendingOrdersAdminPanel truth handling', () => {
     mockAuthAxios.get.mockImplementation((url: string) => {
       if (url === '/api/admin/orders/pending') return okOrders([makeOrder()]);
       if (url === '/api/admin/orders/completed') return Promise.reject(new Error('completed down'));
+      if (url === '/api/admin/orders/fulfillment') {
+        return Promise.resolve({ data: { success: true, items: [], stats: { pending: 0, fulfilled: 0, total: 0 } } });
+      }
       return Promise.reject(new Error(`Unexpected URL: ${url}`));
     });
 

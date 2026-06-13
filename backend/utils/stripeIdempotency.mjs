@@ -48,6 +48,7 @@ export function buildCartItemsStripeFingerprint(cartItems = [], getSessionCredit
   return (cartItems || [])
     .map((item) => [
       String(item?.storefrontItemId ?? ''),
+      String(item?.productVariantId ?? ''),
       normalizeStripeFingerprintNumber(item?.quantity || 0),
       normalizeStripeFingerprintNumber(item?.price || 0),
       normalizeStripeFingerprintNumber(getSessionCredits(item)),

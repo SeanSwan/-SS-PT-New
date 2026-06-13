@@ -36,6 +36,7 @@ import {
   formatCurrency,
   STORE_TOKENS,
 } from '../../store-shared/StoreDesignSystem';
+import AdminFulfillmentQueue from './AdminFulfillmentQueue';
 
 // ── Page-specific styled components ─────────────────────
 
@@ -490,6 +491,8 @@ const PendingOrdersAdminPanel: React.FC = () => {
       {partialWarning && (
         <ErrorBanner role="status"><AlertTriangle size={18} /> {partialWarning}</ErrorBanner>
       )}
+
+      <AdminFulfillmentQueue />
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (

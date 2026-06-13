@@ -5,6 +5,23 @@ import {
   StyledTableCell,
   StyledTableHeadCell
 } from '../admin-sessions/styled-admin-sessions';
+import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
+
+// Small product/package image thumbnail for the admin table. Sanitizes the URL
+// internally (same defense as AvatarCircle) so callers can pass a raw imageUrl.
+export const RowThumb = styled.div<{ $src?: string | null }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
+  background: ${({ $src }) => {
+    const safe = $src ? sanitizeImageUrl($src) : null;
+    return safe
+      ? `var(--bg-surface, #1A1A24) url(${cssUrlValue(safe)}) center/cover no-repeat`
+      : 'var(--bg-surface, #1A1A24)';
+  }};
+`;
 
 export const PaginationContainer = styled.div`
   display: flex;

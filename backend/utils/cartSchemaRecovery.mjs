@@ -31,6 +31,8 @@ const RECOVERABLE_CART_ITEM_COLUMNS = [
   'cart_id',
   'storefrontitemid',
   'storefront_item_id',
+  'productvariantid',
+  'product_variant_id',
   'quantity',
   'price',
   'cart_items',
@@ -248,6 +250,11 @@ async function findCartItemsWithStorefrontRaw(sequelize, StorefrontItem, cartId,
     'cart_items',
     ['storefrontItemId', 'storefront_item_id', 'storefrontitemid']
   );
+  const productVariantIdColumn = await resolveColumnMeta(
+    sequelize,
+    'cart_items',
+    ['productVariantId', 'product_variant_id', 'productvariantid']
+  );
   const quantityColumn = await resolveColumnMeta(sequelize, 'cart_items', ['quantity']);
   const priceColumn = await resolveColumnMeta(sequelize, 'cart_items', ['price']);
 
@@ -258,6 +265,7 @@ async function findCartItemsWithStorefrontRaw(sequelize, StorefrontItem, cartId,
   const cartItemSelect = [
     'id',
     `${storefrontIdColumn.expression} AS "storefrontItemId"`,
+    productVariantIdColumn ? `${productVariantIdColumn.expression} AS "productVariantId"` : 'NULL AS "productVariantId"',
     `${quantityColumn?.expression || '1'} AS "quantity"`,
     `${priceColumn?.expression || '0'} AS "price"`
   ];
@@ -321,6 +329,7 @@ async function findCartItemsWithStorefrontRaw(sequelize, StorefrontItem, cartId,
       cartId: normalizePositiveInteger(cartId, cartId),
       quantity: normalizePositiveInteger(row.quantity, 1),
       price: normalizeFiniteNumber(row.price, 0),
+      productVariantId: normalizePositiveInteger(row.productVariantId, 0) || null,
       storefrontItemId: storefrontItemId > 0 ? storefrontItemId : null,
       storefrontItem: storefrontItemId > 0 ? (storefrontById.get(storefrontItemId) || null) : null
     };
@@ -335,19 +344,32 @@ async function findCartItemsWithStorefrontRaw(sequelize, StorefrontItem, cartId,
 export async function safeLoadCartItemsWithStorefront({
   CartItem,
   StorefrontItem,
+  ProductVariant = null,
   cartId,
   storefrontAttributes = ['id', 'name', 'price'],
+  productVariantAttributes = ['id', 'storefrontItemId', 'label', 'sku', 'price', 'stockQuantity', 'attributes', 'isActive'],
   logger = console
 }) {
   try {
+    const include = [{
+      model: StorefrontItem,
+      as: 'storefrontItem',
+      attributes: storefrontAttributes,
+      required: false
+    }];
+
+    if (ProductVariant && CartItem.associations?.productVariant) {
+      include.push({
+        model: ProductVariant,
+        as: 'productVariant',
+        attributes: productVariantAttributes,
+        required: false
+      });
+    }
+
     return await CartItem.findAll({
       where: { cartId },
-      include: [{
-        model: StorefrontItem,
-        as: 'storefrontItem',
-        attributes: storefrontAttributes,
-        required: false
-      }]
+      include
     });
   } catch (error) {
     if (!isRecoverableCartItemsSchemaError(error)) {

@@ -1,12 +1,22 @@
 // backend/routes/adminPackageRoutes.mjs
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.mjs';
+import multer from 'multer';
+import { protect, rateLimiter } from '../middleware/authMiddleware.mjs';
+import { uploadPhoto } from '../services/photoStorageService.mjs';
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'internal_error';
 const MAX_PAGE_LIMIT = 300;
+
+// In-memory multipart for product images (reuses photoStorageService → R2/disk).
+const productImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB, same as profile/banner photos
+});
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
 const parsePositiveInteger = (value) => {
   const parsed = Number(value);
@@ -107,6 +117,15 @@ router.get('/', async (req, res) => {
       displayPrice: item.price || item.totalCost,
       theme: item.theme,
       isActive: item.isActive,
+      // Commerce fields (physical products: drink / supplements / merch).
+      // Training packages keep their defaults (training_package / not taxable / none).
+      itemKind: item.itemKind,
+      isTaxable: item.isTaxable,
+      fulfillmentType: item.fulfillmentType,
+      stockQuantity: item.stockQuantity,
+      sku: item.sku,
+      shippingWeightOz: item.shippingWeightOz,
+      displayOrder: item.displayOrder,
       stripeProductId: item.stripeProductId,
       stripePriceId: item.stripePriceId,
       imageUrl: item.imageUrl,
@@ -131,6 +150,47 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * Upload a product/package image (R2 with disk fallback).
+ * POST /api/admin/packages/upload-image  (and /api/admin/storefront/upload-image)
+ * Admin only. Returns { success, imageUrl }; the caller then persists imageUrl on
+ * the item via POST/PUT. Reuses photoStorageService (same path as profile/banner).
+ */
+router.post(
+  '/upload-image',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 }),
+  productImageUpload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image uploaded' });
+      }
+      const ext = `.${(req.file.originalname.split('.').pop() || '').toLowerCase()}`;
+      if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext) || !ALLOWED_IMAGE_MIME.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image type. Allowed: JPG, PNG, WEBP.',
+        });
+      }
+      const { url } = await uploadPhoto(req.file.buffer, {
+        userId: req.user.id,
+        category: 'products',
+        originalFilename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+      logger.info(`Admin uploaded product image: ${url}`);
+      return res.status(201).json({ success: true, imageUrl: url });
+    } catch (error) {
+      logger.error('Error uploading product image:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error while uploading product image',
+        error: INTERNAL_ERROR,
+      });
+    }
+  }
+);
+
+/**
  * Create a new package
  * POST /api/admin/packages (NEW) and /api/admin/storefront (LEGACY)
  * Admin only
@@ -138,13 +198,23 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
-    // Validate required fields
-    const { name, packageType, pricePerSession } = req.body;
+    // Validate required fields. Physical products price by a flat `price` and
+    // legitimately have pricePerSession = 0, so only training packages require
+    // a (non-zero) pricePerSession; products require a `price` instead.
+    const { name, packageType, pricePerSession, price, itemKind } = req.body;
+    const isProduct = itemKind === 'physical_product';
 
-    if (!name || !packageType || !pricePerSession) {
+    const missingPackagePrice = !isProduct
+      && (pricePerSession === undefined || pricePerSession === null || pricePerSession === '' || Number(pricePerSession) <= 0);
+    const missingProductPrice = isProduct
+      && (price === undefined || price === null || price === '' || Number(price) < 0);
+
+    if (!name || !packageType || missingPackagePrice || missingProductPrice) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, packageType, and pricePerSession'
+        message: isProduct
+          ? 'Missing required fields: name, packageType, and a non-negative price'
+          : 'Missing required fields: name, packageType, and pricePerSession'
       });
     }
 

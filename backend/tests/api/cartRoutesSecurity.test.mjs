@@ -65,9 +65,11 @@ describe('cart routes security hardening', () => {
     );
 
     expect(addRoute).toContain('const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);');
+    expect(addRoute).toContain('const normalizedProductVariantId = parseOptionalPositiveInteger(productVariantId);');
     expect(addRoute).toContain('const normalizedQuantity = parsePositiveInteger(quantity);');
-    expect(addRoute).toContain('StorefrontItem.findByPk(normalizedStorefrontItemId)');
+    expect(addRoute).toContain('const snapshot = await resolveCartItemSnapshot({');
     expect(addRoute).toContain('storefrontItemId: normalizedStorefrontItemId');
+    expect(addRoute).toContain('productVariantId: normalizedProductVariantId');
     expect(addRoute).toContain('quantity: normalizedQuantity');
     expect(updateRoute).toContain('const normalizedItemId = parsePositiveInteger(itemId);');
     expect(updateRoute).toContain('const normalizedQuantity = parsePositiveInteger(quantity);');

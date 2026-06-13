@@ -15,6 +15,7 @@ describe('CheckoutView API contract', () => {
     expect(source).toContain("api.post('/api/v2/payments/create-checkout-session'");
     expect(source).toContain('window.location.href = checkoutUrl');
     expect(source).toContain("source: 'swan_checkout'");
+    expect(source).toContain('validateCheckoutFulfillment(fulfillmentIntent)');
     expect(source).not.toContain('console.error');
   });
 });

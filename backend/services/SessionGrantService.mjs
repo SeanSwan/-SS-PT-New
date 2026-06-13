@@ -23,6 +23,10 @@
 import sequelize from '../database.mjs';
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  createCartOrderIfPossible,
+  loadOptionalFulfillmentModels,
+} from './cartCheckoutFulfillmentService.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 
 export function getStorefrontSessionCredits(storefrontItem) {
@@ -52,6 +56,94 @@ export function calculateCartSessionCredits(cartItems = []) {
   return cartItems.reduce((sum, item) => sum + getCartItemSessionCredits(item), 0);
 }
 
+async function findLockedCart({
+  ShoppingCart,
+  CartItem,
+  StorefrontItem,
+  ProductVariant,
+  User,
+  cartId,
+  userId,
+  transaction,
+}) {
+  const cartItemIncludes = [{ model: StorefrontItem, as: 'storefrontItem' }];
+
+  if (ProductVariant) {
+    cartItemIncludes.push({
+      model: ProductVariant,
+      as: 'productVariant',
+      required: false,
+    });
+  }
+
+  return ShoppingCart.findOne({
+    where: { id: cartId, userId },
+    include: [
+      {
+        model: CartItem,
+        as: 'cartItems',
+        include: cartItemIncludes,
+      },
+      {
+        model: User,
+        as: 'user',
+      },
+    ],
+    lock: {
+      level: transaction.LOCK.UPDATE,
+      of: ShoppingCart,
+    },
+    transaction,
+  });
+}
+
+async function findLockedUser(User, cart, userId, transaction) {
+  const user = await User.findByPk(cart.userId, {
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+
+  if (!user) {
+    throw new Error(`User ${userId} not found for cart ${cart.id}`);
+  }
+
+  return user;
+}
+
+function buildUserPurchaseUpdate(user, sessionsToAdd) {
+  const userPurchaseUpdate = {
+    hasPurchasedBefore: true,
+    lastPurchaseDate: new Date(),
+  };
+
+  if (sessionsToAdd > 0 && user.role === 'user') {
+    userPurchaseUpdate.role = 'client';
+  }
+
+  if (sessionsToAdd > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    userPurchaseUpdate.clientSource = 'swanstudios';
+  }
+
+  return userPurchaseUpdate;
+}
+
+async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, transaction }) {
+  await cart.update({
+    status: 'completed',
+    paymentStatus: 'paid',
+    completedAt: new Date(),
+    sessionsGranted: true,
+    stripeSessionData: JSON.stringify({
+      grantedBy,
+      grantedAt: new Date().toISOString(),
+      sessionsAdded: sessionsToAdd,
+      productItemsFulfilled: fulfillment.productItemsFulfilled,
+      orderId: fulfillment.orderId,
+      previousCartStatus: cart.status,
+    }),
+  }, { transaction });
+}
+
 /**
  * Atomically grants sessions for a completed cart.
  * Uses DB transaction with row-level lock to prevent race conditions.
@@ -70,26 +162,18 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
+    const { ProductVariant, Order, OrderItem } = await loadOptionalFulfillmentModels();
 
     // Fetch cart with row lock to prevent concurrent grant attempts
-    const cart = await ShoppingCart.findOne({
-      where: { id: cartId, userId },
-      include: [
-        {
-          model: CartItem,
-          as: 'cartItems',
-          include: [{ model: StorefrontItem, as: 'storefrontItem' }]
-        },
-        {
-          model: User,
-          as: 'user'
-        }
-      ],
-      lock: {
-        level: transaction.LOCK.UPDATE,
-        of: ShoppingCart,
-      },
-      transaction
+    const cart = await findLockedCart({
+      ShoppingCart,
+      CartItem,
+      StorefrontItem,
+      ProductVariant,
+      User,
+      cartId,
+      userId,
+      transaction,
     });
 
     if (!cart) {
@@ -106,15 +190,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
 
     const sessionsToAdd = calculateCartSessionCredits(cart.cartItems);
 
-    // Lock user row before incrementing to prevent lost updates
-    const user = await User.findByPk(cart.userId, {
-      transaction,
-      lock: transaction.LOCK.UPDATE
-    });
-
-    if (!user) {
-      throw new Error(`User ${userId} not found for cart ${cartId}`);
-    }
+    const user = await findLockedUser(User, cart, userId, transaction);
 
     // Atomic session increment (not read-then-write)
     if (sessionsToAdd > 0) {
@@ -124,41 +200,32 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       });
     }
 
-    // Update user purchase flags and unlock client-only surfaces for first-time purchasers.
-    const userPurchaseUpdate = {
-      hasPurchasedBefore: true,
-      lastPurchaseDate: new Date()
-    };
+    await user.update(buildUserPurchaseUpdate(user, sessionsToAdd), { transaction });
 
-    if (sessionsToAdd > 0 && user.role === 'user') {
-      userPurchaseUpdate.role = 'client';
-    }
+    const fulfillment = await createCartOrderIfPossible({
+      cart,
+      user,
+      grantedBy,
+      sessionsToAdd,
+      transaction,
+      Order,
+      OrderItem,
+      getCartItemSessionCredits,
+    });
 
-    if (sessionsToAdd > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
-      userPurchaseUpdate.clientSource = 'swanstudios';
-    }
-
-    await user.update(userPurchaseUpdate, { transaction });
-
-    // Update cart with idempotency flag + completion
-    await cart.update({
-      status: 'completed',
-      paymentStatus: 'paid',
-      completedAt: new Date(),
-      sessionsGranted: true,
-      stripeSessionData: JSON.stringify({
-        grantedBy,
-        grantedAt: new Date().toISOString(),
-        sessionsAdded: sessionsToAdd,
-        previousCartStatus: cart.status
-      })
-    }, { transaction });
+    await markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, transaction });
 
     await transaction.commit();
 
     logger.info(`[SessionGrant] Granted ${sessionsToAdd} sessions for cart ${cartId} (user ${userId}, caller: ${grantedBy})`);
 
-    return { granted: true, sessionsAdded: sessionsToAdd, alreadyProcessed: false };
+    return {
+      granted: true,
+      sessionsAdded: sessionsToAdd,
+      alreadyProcessed: false,
+      productItemsFulfilled: fulfillment.productItemsFulfilled,
+      orderId: fulfillment.orderId,
+    };
 
   } catch (error) {
     try {

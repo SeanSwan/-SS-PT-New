@@ -35,6 +35,10 @@ CartItem.init(
     storefrontItemId: {
       type: DataTypes.INTEGER,
       allowNull: false
+    },
+    productVariantId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   },
   {

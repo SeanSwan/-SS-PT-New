@@ -35,6 +35,7 @@ describe('CartContext auth pipeline', () => {
     expect(cartContextSource).toContain("import apiService from '../services/api.service';");
     expect(cartContextSource).toContain("apiService.get('/api/cart')");
     expect(cartContextSource).toContain("apiService.post('/api/cart/add'");
+    expect(cartContextSource).toContain('productVariantId');
     expect(cartContextSource).toContain('apiService.put(`/api/cart/update/${itemId}`');
     expect(cartContextSource).toContain('apiService.delete(`/api/cart/remove/${itemId}`)');
     expect(cartContextSource).toContain("apiService.delete('/api/cart/clear')");

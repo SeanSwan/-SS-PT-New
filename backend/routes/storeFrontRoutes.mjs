@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 // 🚀 ENHANCED: Coordinated model imports with associations
-import { getStorefrontItem, getAdminSpecial } from '../models/index.mjs';
+import { getStorefrontItem, getAdminSpecial, getProductVariant } from '../models/index.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading model to prevent initialization race condition
 // StorefrontItem model will be retrieved via getStorefrontItem() inside each route handler when needed
@@ -12,6 +12,24 @@ const INTERNAL_ERROR = 'internal_error';
 const MAX_STOREFRONT_LIMIT = 100;
 const MAX_STOREFRONT_OFFSET = 10000;
 const PACKAGE_TYPES = new Set(['fixed', 'monthly']);
+const PRODUCT_VARIANT_ATTRIBUTES = [
+  'id',
+  'storefrontItemId',
+  'label',
+  'sku',
+  'price',
+  'stockQuantity',
+  'attributes',
+  'displayOrder',
+  'isActive'
+];
+let cachedVariantTableAvailable = null;
+const EMPTY_MONEY_VALUES = new Set([null, undefined, '']);
+const TRAINING_ITEM_TYPES = {
+  fixed: 'TRAINING_PACKAGE_FIXED',
+  monthly: 'TRAINING_PACKAGE_SUBSCRIPTION',
+  custom: 'TRAINING_PACKAGE_SUBSCRIPTION'
+};
 
 function sendInternalError(res, message) {
   return res.status(500).json({
@@ -109,36 +127,130 @@ const sanitizeStorefrontPayload = (payload = {}) => {
   return sanitized;
 };
 
-const mapStorefrontItem = (item) => ({
-  id: item.id,
-  name: item.name,
-  description: sanitizeStorefrontDescription(item.description),
-  totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
-  displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-  pricePerSession: parseFloat(item.pricePerSession) || 0,
-  price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
-  priceDetails: item.packageType === 'monthly'
-    ? `${item.months} months, ${item.sessionsPerWeek} sessions/week`
-    : null,
-  imageUrl: item.imageUrl,
-  theme: item.theme || 'cosmic',
-  sessions: item.sessions,
-  months: item.months,
-  sessionsPerWeek: item.sessionsPerWeek,
-  totalSessions: item.totalSessions,
-  category: null,
-  itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
-  includedFeatures: item.includedFeatures || null,
-  packageType: item.packageType,
-  isActive: item.isActive,
-  displayOrder: item.displayOrder || 0,
-  // Phase 0 commerce fields — let the storefront distinguish training packages
-  // from physical products (supplements/merch) and render the right card + tax note.
-  itemKind: item.itemKind || 'training_package',
-  isTaxable: item.isTaxable === true,
-  fulfillmentType: item.fulfillmentType || 'none',
-  stockQuantity: (item.stockQuantity ?? null)
+const parseMoney = (value) => {
+  if (EMPTY_MONEY_VALUES.has(value)) return null;
+  const parsed = Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const firstMoney = (...values) => {
+  for (const value of values) {
+    const parsed = parseMoney(value);
+    if (parsed !== null) return parsed;
+  }
+
+  return 0;
+};
+
+const mapProductVariant = ({
+  id,
+  storefrontItemId,
+  label,
+  sku = null,
+  price,
+  stockQuantity = null,
+  attributes = null,
+  displayOrder = 0,
+  isActive = true
+}) => ({
+  id,
+  storefrontItemId,
+  label,
+  sku,
+  price: parseMoney(price),
+  stockQuantity,
+  attributes,
+  displayOrder,
+  isActive: isActive !== false
 });
+
+const getMappedProductVariants = (item) => {
+  if (!Array.isArray(item.variants)) return [];
+
+  return item.variants
+    .map(mapProductVariant)
+    .sort((left, right) => (left.displayOrder - right.displayOrder) || (left.id - right.id));
+};
+
+const resolveProductVariantInclude = async () => {
+  if (cachedVariantTableAvailable === false) return [];
+
+  try {
+    const ProductVariant = getProductVariant();
+
+    if (cachedVariantTableAvailable === null) {
+      const queryInterface = ProductVariant.sequelize.getQueryInterface();
+      await queryInterface.describeTable(ProductVariant.getTableName());
+      cachedVariantTableAvailable = true;
+    }
+
+    return [{
+      model: ProductVariant,
+      as: 'variants',
+      attributes: PRODUCT_VARIANT_ATTRIBUTES,
+      required: false,
+      where: { isActive: true }
+    }];
+  } catch (error) {
+    cachedVariantTableAvailable = false;
+    logger.warn('Product variants unavailable for storefront payload.', {
+      code: 'storefront_variants_unavailable'
+    });
+    return [];
+  }
+};
+
+const resolveStorefrontItemType = (itemKind, packageType) => {
+  if (itemKind === 'physical_product') return 'PHYSICAL_PRODUCT';
+  return TRAINING_ITEM_TYPES[packageType] || TRAINING_ITEM_TYPES.monthly;
+};
+
+const valueOrFallback = (value, fallback) => value || fallback;
+
+const nullishOrFallback = (value, fallback) => value ?? fallback;
+
+const getStorefrontItemKind = (item) => valueOrFallback(item.itemKind, 'training_package');
+
+const getStorefrontPriceDetails = (item) => (
+  item.packageType === 'monthly'
+    ? `${item.months} months, ${item.sessionsPerWeek} sessions/week`
+    : null
+);
+
+const mapStorefrontItem = (item) => {
+  const itemKind = getStorefrontItemKind(item);
+  const itemType = resolveStorefrontItemType(itemKind, item.packageType);
+
+  return {
+    id: item.id,
+    name: item.name,
+    description: sanitizeStorefrontDescription(item.description),
+    totalCost: firstMoney(item.totalCost, item.price),
+    displayPrice: firstMoney(item.price, item.totalCost),
+    pricePerSession: firstMoney(item.pricePerSession),
+    price: firstMoney(item.price, item.totalCost),
+    priceDetails: getStorefrontPriceDetails(item),
+    imageUrl: item.imageUrl,
+    theme: valueOrFallback(item.theme, 'cosmic'),
+    sessions: item.sessions,
+    months: item.months,
+    sessionsPerWeek: item.sessionsPerWeek,
+    totalSessions: item.totalSessions,
+    category: null,
+    itemType,
+    includedFeatures: valueOrFallback(item.includedFeatures, null),
+    packageType: item.packageType,
+    isActive: item.isActive,
+    displayOrder: nullishOrFallback(item.displayOrder, 0),
+    // Phase 0 commerce fields - let the storefront distinguish training packages
+    // from physical products (supplements/merch) and render the right card + tax note.
+    itemKind,
+    isTaxable: item.isTaxable === true,
+    fulfillmentType: valueOrFallback(item.fulfillmentType, 'none'),
+    stockQuantity: nullishOrFallback(item.stockQuantity, null),
+    variants: getMappedProductVariants(item)
+  };
+};
 
 /**
  * Get all storefront items
@@ -202,6 +314,7 @@ router.get('/', async (req, res) => {
 
     // Validate sortOrder
     const validSortOrder = ['ASC', 'DESC'].includes(sortOrder) ? sortOrder : 'ASC';
+    const variantInclude = await resolveProductVariantInclude();
     
     // Build the where clause for filtering
     const whereClause = {
@@ -226,7 +339,8 @@ router.get('/', async (req, res) => {
       where: whereClause,
       order: [[validSortBy, validSortOrder]],
       limit: safeLimit,
-      offset: safeOffset
+      offset: safeOffset,
+      include: variantInclude
     });
 
     // Transform data to meet frontend expectations
@@ -253,6 +367,7 @@ router.get('/', async (req, res) => {
             order: [[validSortBy, validSortOrder]],
             limit: safeLimit,
             offset: safeOffset,
+            include: variantInclude
           });
           const seededTransformed = seededItems.map(mapStorefrontItem);
           return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
@@ -478,7 +593,8 @@ router.get('/:id', async (req, res) => {
       where: {
         id: itemId
         // Removed pricing constraint to ensure all packages are visible
-      }
+      },
+      include: await resolveProductVariantInclude()
     });
     
     if (!item) {

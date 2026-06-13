@@ -92,6 +92,55 @@ foam rollers, stability balls, vibrating foam rollers, vibrating recovery pads (
 `none` (training package) · `dropship` (AGI supplements) · `self_ship` (merch/gear) ·
 `local_delivery` (the drink — local-first) · `pickup`.
 
+## Admin Store Control (2026-06-13 — Sean: "100% full control with buttons I can slide on/off")
+
+### What already exists (verified 2026-06-13)
+The admin store backend + a management UI are already live — this was a discovery, not a gap:
+- **Backend CRUD (complete):** `adminPackageRoutes.mjs` (`protect` + `requireAdmin`) — `GET /` (lists ALL items incl. inactive when no `isActive` filter), `POST /`, `PUT /:id` (full update → toggles `isActive`), `DELETE /:id`, `GET /:id`. Mounted at `/api/admin/storefront` (legacy) + `/api/admin/packages` (new). A second admin CRUD also exists in `storeFrontRoutes.mjs` (`POST/PUT/DELETE`, admin-role-gated) with a `pricePerSession ≥ $140` guard — that guard is route-only, NOT on the model.
+- **Admin UI (mounted):** `admin-packages-view.tsx` at `/dashboard/admin-packages` ("Store & Revenue" tab) — stats cards, searchable/filterable product table, Create/Edit/Delete dialogs, Send-Special-Offer, and an Active/Visible switch (it was inside the Edit dialog).
+
+### Gap Sean named → DONE this slice
+The on/off switch existed but was **buried in the Edit dialog** (open → flip → Save = 3+ clicks). Sean wants "buttons I can just slide on and off." **Built: a one-click inline row toggle** in the Status column (reuses the house 44px switch; optimistic update + revert-on-error; concurrency-guarded; keeps the active-count stat in sync). Now: **1 click to take a product live or hide it.**
+
+### Deeper admin feature set (recommended, ranked by value)
+*Tier 1 — control & safety (next):*
+1. **Inline toggle — DONE.** One-click product on/off from the table.
+2. **Surface product fields in the admin table + dialogs.** The admin mapper (`adminPackageRoutes` GET) omits `itemKind / isTaxable / fulfillmentType / stockQuantity / sku`. Add them so Sean can see/edit "is this a package or a product," "is it taxable," "how does it ship," and stock. *(Backend mapper + dialog fields; additive.)*
+3. **Product (vs package) create/edit mode.** The Create/Edit dialogs are package-shaped (sessions/months/price-per-session). Add a product mode (name, price, image, taxable, fulfillment, SKU, stock, variants) so physical products are managed from the same screen.
+4. **Destructive-action confirms + "deactivate, don't delete" nudge.** Delete already warns; enforce a typed/explicit confirm for delete, and steer toward toggle-off for anything that may have been purchased.
+
+*Tier 2 — merchandising & ops:*
+5. **Variant management** (the drink's tier×size; merch size×color) — CRUD on `ProductVariant` with per-variant price/stock/active. *(Needs admin variant endpoints — none yet.)*
+6. **Drag-to-reorder / `displayOrder` control** — Sean controls the order products appear in the store (the `displayOrder` column exists).
+7. **Inventory view + low-stock flags** for self-ship gear (foam rollers, etc.).
+8. **Image management** — upload/set product image (R2), per the existing R2 asset pattern.
+9. **Store-open master switch** — a single "store accepting orders" flag (maintenance / pre-launch) above per-product toggles.
+
+*Tier 3 — intelligence & trust:*
+10. **Order/fulfillment ops** — view orders, mark fulfilled, print/export (some lives in `adminOrdersRoutes`; wire to UI).
+11. **Tax control panel** — per-item `isTaxable`, Stripe Tax status, CA-registration health.
+12. **Sales analytics** — units, revenue, conversion per product (feeds the "Store & Revenue" tab).
+13. **Admin audit log** — who changed/toggled/deleted what, when (accountability; pairs with the destructive confirms).
+
+### Workflow & protocol (guardrails)
+- **Toggle = soft, instant, reversible.** On/off is non-destructive and 1-click; it never deletes data.
+- **Delete = hard, confirmed.** Requires explicit confirm; warns about purchased-package impact; prefer deactivate.
+- **Consumable go-live gate.** The recovery drink (and any ingestible) stays `isActive:false` until the **county health permit + Stripe Tax CA registration** are confirmed. The toggle can flip it on — but the protocol is: don't, until the real-world gates clear. (Same discipline as the Stripe Tax registration gate.)
+- **Taxable products need Stripe Tax live** before activation, or CA sales tax won't be collected on goods.
+- **Audit-worthy actions** (delete, price change, activation of a consumable) should be logged once the audit log lands.
+- **Mobile check** the admin table at phone width before calling the admin surface done (rule 24).
+
+### Admin Store Control — slice sequence
+- **AS-1 (DONE):** one-click inline on/off toggle.
+- **AS-2 (DONE):** admin mapper exposes the product fields; table shows a product meta line (kind/fulfillment/tax/stock); a "Products" filter. Item type carried on the admin model.
+- **AS-3 (DONE — except image):** product create/edit mode — Item Kind selector + flat-price/tax/fulfillment/SKU/stock fields in BOTH dialogs; product-aware backend POST validation (a product's `pricePerSession: 0` no longer rejected); save logic branches product (flat price) vs package (price×sessions). **Image upload deferred → AS-3b.** Both dialogs extracted to `admin-packages-view.dialogs.tsx` to stay under the rule-4 / style-extraction line budget.
+- **AS-3b (NEXT):** product image upload (R2) in the editor + image thumbnail in the table.
+- **AS-4:** variant management (ProductVariant admin CRUD + UI) — the drink's tier×size, merch size×color.
+- **AS-5:** displayOrder reorder + store-open master switch.
+- **AS-6:** orders/fulfillment ops + analytics + audit log.
+
+> Tech-debt note: `admin-packages-view.tsx` is ~1357 lines (still over the rule-4 300-line target, but under the file's style-extraction guard of 1525). The SendOffer + Delete dialogs and the table row are candidates for further extraction in a dedicated cleanup pass (rule 37) — not mixed into a feature slice.
+
 ## Open items for Sean
 - AGI supplement partnership: fulfillment API/process + product list (needed for Phase 3).
 - Merch line: SKUs, sizes/colors, shipping origin + rate model (needed for Phase 1/2).

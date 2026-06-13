@@ -910,7 +910,10 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                           >
                             <ItemLayout className="item-layout">
                               <ItemDetails>
-                                <ItemName className="item-name">{item.storefrontItem?.name || `Package #${item.storefrontItemId}`}</ItemName>
+                                <ItemName className="item-name">
+                                  {item.storefrontItem?.name || `Package #${item.storefrontItemId}`}
+                                  {item.productVariant?.label ? ` - ${item.productVariant.label}` : ''}
+                                </ItemName>
                                 <ItemDescription>{sessionDetails}</ItemDescription>
                                 
                                 {hasSessionData && (

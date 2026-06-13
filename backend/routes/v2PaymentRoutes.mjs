@@ -32,7 +32,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
-import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
+import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import {
   calculateCartSessionCredits,
@@ -64,6 +64,7 @@ import {
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
+const PRODUCT_TAX_RATE = 0.08;
 
 export function buildCheckoutSessionIdempotencyKey(userId, cart) {
   const itemFingerprint = buildCartItemsStripeFingerprint(
@@ -72,6 +73,109 @@ export function buildCheckoutSessionIdempotencyKey(userId, cart) {
   );
 
   return buildStripeIdempotencyKey(`checkout:${userId}:${cart?.id}`, itemFingerprint);
+}
+
+const toMoneyNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toStripeCents = (amount) => Math.round(toMoneyNumber(amount) * 100);
+
+const isPhysicalProductLine = (item) => (
+  item?.storefrontItem?.itemKind === 'physical_product' || Boolean(item?.productVariantId)
+);
+
+const isTaxablePhysicalProductLine = (item) => (
+  isPhysicalProductLine(item) && item?.storefrontItem?.isTaxable === true
+);
+
+const safeFulfillmentText = (value, max = 160) => (
+  typeof value === 'string' ? value.trim().slice(0, max) : ''
+);
+
+const normalizeFulfillmentDetails = (details = {}, mode = 'local_delivery_or_pickup') => ({
+  mode,
+  recipientName: safeFulfillmentText(details.recipientName, 120),
+  phone: safeFulfillmentText(details.phone, 40),
+  streetAddress: safeFulfillmentText(details.streetAddress, 160),
+  city: safeFulfillmentText(details.city, 80),
+  state: safeFulfillmentText(details.state, 40),
+  postalCode: safeFulfillmentText(details.postalCode, 24),
+  pickupWindow: safeFulfillmentText(details.pickupWindow, 120),
+  notes: safeFulfillmentText(details.notes, 240)
+});
+
+const normalizeCheckoutFulfillmentIntent = (fulfillmentIntent, cartItems = []) => {
+  const physicalItems = (cartItems || []).filter(isPhysicalProductLine);
+  if (!physicalItems.length) {
+    return {
+      required: false,
+      mode: 'none',
+      itemCount: 0,
+      fulfillmentTypes: []
+    };
+  }
+
+  const fulfillmentTypes = Array.from(new Set(
+    physicalItems
+      .map((item) => item?.storefrontItem?.fulfillmentType || 'local_delivery')
+      .filter(Boolean)
+  )).sort();
+  const requestedMode = fulfillmentIntent?.details?.mode || fulfillmentIntent?.mode;
+  const mode = ['local_delivery', 'pickup', 'local_delivery_or_pickup'].includes(requestedMode)
+    ? requestedMode
+    : 'local_delivery_or_pickup';
+
+  return {
+    required: true,
+    mode,
+    itemCount: physicalItems.length,
+    fulfillmentTypes,
+    details: normalizeFulfillmentDetails(fulfillmentIntent?.details, mode)
+  };
+};
+
+const resolveCheckoutProductName = (item) => {
+  const baseName = item?.storefrontItem?.name || `Storefront Item #${item?.storefrontItemId}`;
+  const variantLabel = item?.productVariant?.label;
+  return variantLabel ? `${baseName} - ${variantLabel}` : baseName;
+};
+
+const resolveCheckoutLineDescription = (item) => {
+  if (item?.productVariant?.sku) {
+    return `Variant SKU: ${item.productVariant.sku}`;
+  }
+
+  return item?.storefrontItem?.description || 'Premium SwanStudios purchase';
+};
+
+export function resolveCheckoutLineItem(item) {
+  const itemPrice = toMoneyNumber(item?.price);
+  const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
+  const storefrontItemId = item?.storefrontItemId?.toString?.() || '';
+  const sessions = getStorefrontSessionCredits(item?.storefrontItem).toString();
+
+  return {
+    lineItem: {
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: resolveCheckoutProductName(item),
+          description: resolveCheckoutLineDescription(item),
+          metadata: {
+            storefrontItemId,
+            productVariantId: item.productVariantId ? item.productVariantId.toString() : '',
+            sessions
+          }
+        },
+        unit_amount: toStripeCents(itemPrice),
+      },
+      quantity,
+    },
+    subtotal: itemPrice * quantity,
+    taxableProductSubtotal: isTaxablePhysicalProductLine(item) ? itemPrice * quantity : 0,
+  };
 }
 
 // Initialize Stripe with error handling
@@ -142,7 +246,7 @@ const checkStripeAvailability = (req, res, next) => {
 router.post('/create-checkout-session', protect, checkStripeAvailability, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { cartId, customerInfo } = req.body;
+    const { cartId, customerInfo, fulfillmentIntent } = req.body;
     const normalizedCartId = Number(cartId);
 
     if (!Number.isInteger(normalizedCartId) || normalizedCartId <= 0) {
@@ -163,11 +267,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     });
 
     // 🎯 P0 FIX: Get fully associated models from coordinated cache
-    let ShoppingCart, CartItem, StorefrontItem, User;
+    let ShoppingCart, CartItem, StorefrontItem, ProductVariant, User;
     try {
       ShoppingCart = getShoppingCart();
       CartItem = getCartItem();
       StorefrontItem = getStorefrontItem();
+      ProductVariant = getProductVariant();
       User = getUser();
 
       logger.info('[v2 Payment] Coordinated checkout models loaded', {
@@ -203,6 +308,10 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
             include: [{ 
               model: StorefrontItem, 
               as: 'storefrontItem' 
+            }, {
+              model: ProductVariant,
+              as: 'productVariant',
+              required: false
             }]
           },
           {
@@ -241,14 +350,16 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
-    // Step 2: Calculate totals
-    const subtotal = cart.cartItems.reduce((sum, item) => {
-      const itemPrice = parseFloat(item.price) || 0;
-      const itemQuantity = item.quantity || 0;
-      return sum + (itemPrice * itemQuantity);
-    }, 0);
-    
-    const tax = subtotal * 0.08; // 8% tax
+    const normalizedFulfillmentIntent = normalizeCheckoutFulfillmentIntent(fulfillmentIntent, cart.cartItems);
+
+    // Step 2: Calculate totals. Training packages are all-inclusive services;
+    // only taxable physical products receive the manual product-tax line.
+    const checkoutLines = cart.cartItems.map(resolveCheckoutLineItem);
+    const subtotal = checkoutLines.reduce((sum, item) => sum + item.subtotal, 0);
+    const taxableProductSubtotal = checkoutLines.reduce((sum, item) => (
+      sum + item.taxableProductSubtotal
+    ), 0);
+    const tax = Number((taxableProductSubtotal * PRODUCT_TAX_RATE).toFixed(2));
     const total = subtotal + tax;
     const totalCents = Math.round(total * 100); // Convert to cents for Stripe
 
@@ -314,35 +425,16 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     }
 
     // Step 4: Prepare line items for Stripe
-    const lineItems = cart.cartItems.map(item => {
-      const itemPrice = parseFloat(item.price) || 0;
-      const itemPriceCents = Math.round(itemPrice * 100);
-      
-      return {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.storefrontItem?.name || `Training Package #${item.storefrontItemId}`,
-            description: item.storefrontItem?.description || 'Premium training package',
-            metadata: {
-              storefrontItemId: item.storefrontItemId.toString(),
-              sessions: getStorefrontSessionCredits(item.storefrontItem).toString()
-            }
-          },
-          unit_amount: itemPriceCents,
-        },
-        quantity: item.quantity || 1,
-      };
-    });
+    const lineItems = checkoutLines.map((item) => item.lineItem);
 
-    // Add tax as a separate line item for transparency
+    // Add product tax as a separate line item for transparency
     if (tax > 0) {
       lineItems.push({
         price_data: {
           currency: 'usd',
           product_data: {
-            name: 'Tax',
-            description: 'Sales tax (8%)'
+            name: 'Product sales tax',
+            description: 'Sales tax on taxable physical products'
           },
           unit_amount: Math.round(tax * 100),
         },
@@ -364,6 +456,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         userId: userId.toString(),
         cartId: cart.id.toString(),
         totalSessions: totalSessions.toString(),
+        fulfillmentIntent: normalizedFulfillmentIntent.mode,
+        physicalProductCount: normalizedFulfillmentIntent.itemCount.toString(),
         source: 'genesis_checkout'
       },
       customer_update: {
@@ -392,6 +486,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         email: customerInfo?.email || user.email,
         phone: customerInfo?.phone || user.phone,
+        fulfillmentIntent: normalizedFulfillmentIntent,
         stripeCustomerId: stripeCustomer.id
       }),
       lastCheckoutAttempt: new Date()
@@ -422,6 +517,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           items: cart.cartItems.length,
           sessions: totalSessions,
           subtotal: subtotal,
+          taxableProductSubtotal,
+          fulfillmentIntent: normalizedFulfillmentIntent,
           tax: tax,
           total: total
         }

@@ -8,6 +8,7 @@ import {
   getShoppingCart,
   getCartItem, 
   getStorefrontItem,
+  getProductVariant,
   getUser
 } from '../models/index.mjs';
 
@@ -31,7 +32,23 @@ import {
 const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
 const router = express.Router();
-const STOREFRONT_CART_ATTRIBUTES = ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions'];
+const STOREFRONT_CART_ATTRIBUTES = [
+  'id',
+  'name',
+  'description',
+  'imageUrl',
+  'price',
+  'totalCost',
+  'packageType',
+  'sessions',
+  'totalSessions',
+  'itemKind',
+  'isTaxable',
+  'fulfillmentType',
+  'stockQuantity',
+  'sku'
+];
+const PRODUCT_VARIANT_CART_ATTRIBUTES = ['id', 'storefrontItemId', 'label', 'sku', 'price', 'stockQuantity', 'attributes', 'isActive'];
 const INTERNAL_ERROR = 'Internal server error';
 let cachedSafeStorefrontAttributes = null;
 
@@ -66,6 +83,80 @@ const parsePositiveInteger = (value) => {
 
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const parseOptionalPositiveInteger = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  return parsePositiveInteger(value);
+};
+
+const toMoneyNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const firstMoney = (...values) => {
+  for (const value of values) {
+    const parsed = toMoneyNumber(value);
+    if (parsed > 0) return parsed;
+  }
+  return 0;
+};
+
+const isPhysicalProduct = (storefrontItem) => (
+  storefrontItem?.itemKind === 'physical_product'
+);
+
+const getAvailableStock = (storefrontItem, variant = null) => {
+  if (typeof variant?.stockQuantity === 'number') return variant.stockQuantity;
+  if (typeof storefrontItem?.stockQuantity === 'number') return storefrontItem.stockQuantity;
+  return null;
+};
+
+const buildCartItemLookup = (cartId, storefrontItemId, productVariantId) => ({
+  cartId,
+  storefrontItemId,
+  productVariantId: productVariantId || null
+});
+
+const resolveCartItemSnapshot = async ({
+  StorefrontItem,
+  ProductVariant,
+  storefrontItemId,
+  productVariantId,
+  quantity
+}) => {
+  const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
+  if (!storeFrontItem) {
+    return { status: 404, message: 'Storefront item not found' };
+  }
+
+  let variant = null;
+  if (productVariantId) {
+    variant = await ProductVariant.findByPk(productVariantId);
+
+    if (!variant || variant.storefrontItemId !== storefrontItemId) {
+      return { status: 400, message: 'Selected product variant does not match this product' };
+    }
+
+    if (variant.isActive === false) {
+      return { status: 409, message: 'Selected product variant is not available' };
+    }
+  } else if (isPhysicalProduct(storeFrontItem)) {
+    return { status: 400, message: 'Please choose a product variant before adding this item' };
+  }
+
+  const availableStock = getAvailableStock(storeFrontItem, variant);
+  if (typeof availableStock === 'number' && quantity > availableStock) {
+    return { status: 409, message: 'Selected item quantity exceeds available stock' };
+  }
+
+  return {
+    status: 200,
+    storefrontItem: storeFrontItem,
+    variant,
+    price: firstMoney(variant?.price, storeFrontItem.totalCost, storeFrontItem.price)
+  };
 };
 
 const ensureNumericCartUser = (req, res, next) => {
@@ -178,6 +269,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
+    const ProductVariant = getProductVariant();
     
     // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
@@ -192,8 +284,10 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
     const cartItems = await safeLoadCartItemsWithStorefront({
       CartItem,
       StorefrontItem,
+      ProductVariant,
       cartId: cart.id,
       storefrontAttributes,
+      productVariantAttributes: PRODUCT_VARIANT_CART_ATTRIBUTES,
       logger
     });
 
@@ -238,11 +332,13 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
+    const ProductVariant = getProductVariant();
     const User = getUser();
     
-    const { storefrontItemId, quantity = 1 } = req.body;
+    const { storefrontItemId, productVariantId, quantity = 1 } = req.body;
     
     const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);
+    const normalizedProductVariantId = parseOptionalPositiveInteger(productVariantId);
     const normalizedQuantity = parsePositiveInteger(quantity);
 
     if (!normalizedStorefrontItemId) {
@@ -259,26 +355,42 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
+    if (productVariantId !== undefined && productVariantId !== null && productVariantId !== '' && !normalizedProductVariantId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid product variant ID is required'
+      });
+    }
+
     logger.debug('[Cart] Add item request accepted', {
       userId: req.authUserId,
       role: req.user.role,
       storefrontItemId: normalizedStorefrontItemId,
+      productVariantId: normalizedProductVariantId,
       quantity: normalizedQuantity
     });
 
     // 🚀 ENHANCED: Using coordinated model imports
     // Get the storefront item to check price
-    const storeFrontItem = await StorefrontItem.findByPk(normalizedStorefrontItemId);
-    if (!storeFrontItem) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Training package not found' 
+    const snapshot = await resolveCartItemSnapshot({
+      StorefrontItem,
+      ProductVariant,
+      storefrontItemId: normalizedStorefrontItemId,
+      productVariantId: normalizedProductVariantId,
+      quantity: normalizedQuantity
+    });
+
+    if (snapshot.status !== 200) {
+      return res.status(snapshot.status).json({
+        success: false,
+        message: snapshot.message
       });
     }
     
     logger.debug('[Cart] Adding storefront item to active cart', {
       userId: req.authUserId,
-      storefrontItemId: normalizedStorefrontItemId
+      storefrontItemId: normalizedStorefrontItemId,
+      productVariantId: normalizedProductVariantId
     });
 
     // Find or create the user's active cart with schema-drift recovery.
@@ -286,23 +398,30 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
 
     // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
-      where: {
-        cartId: cart.id,
-        storefrontItemId: normalizedStorefrontItemId
-      }
+      where: buildCartItemLookup(cart.id, normalizedStorefrontItemId, normalizedProductVariantId)
     });
 
     if (cartItem) {
       // Update quantity if item exists
-      cartItem.quantity += normalizedQuantity;
+      const nextQuantity = cartItem.quantity + normalizedQuantity;
+      const availableStock = getAvailableStock(snapshot.storefrontItem, snapshot.variant);
+      if (typeof availableStock === 'number' && nextQuantity > availableStock) {
+        return res.status(409).json({
+          success: false,
+          message: 'Selected item quantity exceeds available stock'
+        });
+      }
+
+      cartItem.quantity = nextQuantity;
       await cartItem.save();
     } else {
       // Create new cart item
       cartItem = await CartItem.create({
         cartId: cart.id,
         storefrontItemId: normalizedStorefrontItemId,
+        productVariantId: normalizedProductVariantId,
         quantity: normalizedQuantity,
-        price: storeFrontItem.totalCost || storeFrontItem.price || 0 // Use totalCost field if available, fallback to price
+        price: snapshot.price
       });
     }
 
@@ -321,8 +440,10 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     const updatedCartItems = await safeLoadCartItemsWithStorefront({
       CartItem,
       StorefrontItem,
+      ProductVariant,
       cartId: cart.id,
       storefrontAttributes,
+      productVariantAttributes: PRODUCT_VARIANT_CART_ATTRIBUTES,
       logger
     });
     
@@ -386,6 +507,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     
+    const ProductVariant = getProductVariant();
     const { itemId } = req.params;
     const { quantity } = req.body;
 
@@ -416,6 +538,14 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
           userId: req.authUserId,
           status: 'active'
         }
+      }, {
+        model: StorefrontItem,
+        as: 'storefrontItem',
+        required: false
+      }, {
+        model: ProductVariant,
+        as: 'productVariant',
+        required: false
       }]
     });
 
@@ -423,6 +553,14 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
       return res.status(404).json({ 
         success: false, 
         message: 'Cart item not found' 
+      });
+    }
+
+    const availableStock = getAvailableStock(cartItem.storefrontItem, cartItem.productVariant);
+    if (typeof availableStock === 'number' && normalizedQuantity > availableStock) {
+      return res.status(409).json({
+        success: false,
+        message: 'Selected item quantity exceeds available stock'
       });
     }
 
@@ -445,8 +583,10 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     const updatedCartItems = await safeLoadCartItemsWithStorefront({
       CartItem,
       StorefrontItem,
+      ProductVariant,
       cartId: cartItem.cartId,
       storefrontAttributes,
+      productVariantAttributes: PRODUCT_VARIANT_CART_ATTRIBUTES,
       logger
     });
 
@@ -483,6 +623,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     
+    const ProductVariant = getProductVariant();
     const { itemId } = req.params;
     const normalizedItemId = parsePositiveInteger(itemId);
 
@@ -533,8 +674,10 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     const updatedCartItems = await safeLoadCartItemsWithStorefront({
       CartItem,
       StorefrontItem,
+      ProductVariant,
       cartId,
       storefrontAttributes,
+      productVariantAttributes: PRODUCT_VARIANT_CART_ATTRIBUTES,
       logger
     });
 
