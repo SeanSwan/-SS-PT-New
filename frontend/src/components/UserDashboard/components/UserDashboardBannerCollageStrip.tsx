@@ -40,6 +40,8 @@ const COLLAGE_LAYOUT_LABELS: Record<BannerCollageLayout, { label: string; aria: 
   mosaic: { label: 'Mosaic', aria: 'mosaic' },
   spotlight: { label: 'Spotlight', aria: 'spotlight' },
   crossfade: { label: 'Crossfade', aria: 'cinematic crossfade hero' },
+  atrium: { label: 'Atrium', aria: 'atrium 3D coverflow stage' },
+  vitrine: { label: 'Vitrine', aria: 'vitrine hero and thumbnail rail stage' },
   'carousel-reel': { label: 'Reel', aria: 'reel carousel' },
   'carousel-cinema': { label: 'Cinema', aria: 'cinema carousel' },
   'carousel-coverflow': { label: 'Coverflow', aria: 'coverflow carousel' },

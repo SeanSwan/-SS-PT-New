@@ -38,6 +38,12 @@ export const BANNER_COLLAGE_LAYOUT_OPTIONS = [
   // 2026-06-11 (M5b): cinematic crossfade hero — stacked photos fading
   // through with a slow Ken-Burns drift. Standalone (NOT a marquee carousel).
   'crossfade',
+  // 2026-06-13 (Slice 2 — Feed Banner Studio): premium "Stage" layouts.
+  // Atrium = 3D coverflow gallery; Vitrine = hero + thumbnail rail. Both are
+  // auto-advancing, full-bleed standalone stages (NOT marquee carousels).
+  // MUST stay in sync with backend BANNER_COLLAGE_LAYOUTS (profileController.mjs).
+  'atrium',
+  'vitrine',
   ...BANNER_CAROUSEL_LAYOUT_OPTIONS,
 ] as const;
 export type BannerCollageLayout = (typeof BANNER_COLLAGE_LAYOUT_OPTIONS)[number];

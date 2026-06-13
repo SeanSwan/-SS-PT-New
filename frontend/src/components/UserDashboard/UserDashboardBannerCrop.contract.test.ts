@@ -25,6 +25,8 @@ describe('UserDashboard banner crop contract', () => {
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
   const compositionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCompositionStyles.ts');
   const carouselStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCarouselStyles.ts');
+  const stageStyles = read('src/components/UserDashboard/styles/DashboardV3BannerStageStyles.ts');
+  const backendController = read('../backend/controllers/profileController.mjs');
   const layoutStyles = read('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
   const profilePhotoStyles = read('src/components/UserDashboard/styles/DashboardV3ProfilePhotoStyles.ts');
 
@@ -153,6 +155,38 @@ describe('UserDashboard banner crop contract', () => {
     expect(carouselStyles).toContain('0.12');
     expect(carouselStyles).toContain('@media (max-width: 768px)');
     expect(compositionStyles).not.toMatch(/BannerCollageMediaFrame[\s\S]*animation:\s*\$\{carouselTrack\}/);
+  });
+
+  it('renders Atrium and Vitrine as full-bleed premium stage layouts (Slice 2)', () => {
+    // enum carries the two standalone stage layouts
+    expect(bannerCompositionService).toContain("'atrium'");
+    expect(bannerCompositionService).toContain("'vitrine'");
+    // they are NOT marquee carousels (must stay out of the carousel option set,
+    // so isBannerCarouselLayout() is false and the sticky-strip path is skipped)
+    const carouselArray = bannerCompositionService.match(/BANNER_CAROUSEL_LAYOUT_OPTIONS = \[[\s\S]*?\]/)?.[0] ?? '';
+    expect(carouselArray).not.toContain('atrium');
+    expect(carouselArray).not.toContain('vitrine');
+    // frontend <-> backend allowlist parity (drift here silently downgrades the
+    // saved layout to 'stream' — the M5b crossfade gotcha)
+    expect(backendController).toContain("'atrium'");
+    expect(backendController).toContain("'vitrine'");
+    // editor picker maps every option through a label record (exhaustive)
+    expect(header || cropControls).toBeDefined();
+    // the media layer renders each stage on its own branch with stable testids
+    expect(mediaLayer).toContain("bannerCollageLayout === 'atrium'");
+    expect(mediaLayer).toContain("bannerCollageLayout === 'vitrine'");
+    expect(mediaLayer).toContain('data-testid="banner-stage-atrium"');
+    expect(mediaLayer).toContain('data-testid="banner-stage-vitrine"');
+    expect(mediaLayer).toContain('buildAtriumSlotStyle');
+    expect(mediaLayer).toContain('BannerStageVitrineRail');
+    // the active index is reduced-motion-guarded in the media layer
+    expect(mediaLayer).toMatch(/setStageIndex[\s\S]*?prefers-reduced-motion: reduce/);
+    // stage styles exist, are will-change-scoped, and kill transitions under
+    // reduced motion (matches the M5a/M5b accessibility discipline)
+    expect(stageStyles).toContain('export const BannerStageAtrium');
+    expect(stageStyles).toContain('export const BannerStageVitrine');
+    expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: no-preference\)[\s\S]*?will-change: transform/);
+    expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition: none/);
   });
 
   it('keeps cover controls away from the desktop right-rail tier cards', () => {

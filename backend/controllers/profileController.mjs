@@ -165,6 +165,11 @@ const BANNER_COLLAGE_LAYOUTS = new Set([
   // 2026-06-11 (M5b): cinematic crossfade hero — must stay in sync with
   // frontend BANNER_COLLAGE_LAYOUT_OPTIONS (profileBannerComposition.ts).
   'crossfade',
+  // 2026-06-13 (Slice 2 — Feed Banner Studio): premium "Stage" layouts —
+  // Atrium (3D coverflow) + Vitrine (hero + thumbnail rail). Standalone,
+  // auto-advancing, full-bleed. Sync with frontend BANNER_COLLAGE_LAYOUT_OPTIONS.
+  'atrium',
+  'vitrine',
   'carousel-reel',
   'carousel-cinema',
   'carousel-coverflow',
