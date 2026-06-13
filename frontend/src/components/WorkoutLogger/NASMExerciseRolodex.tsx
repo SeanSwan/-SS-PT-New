@@ -115,6 +115,11 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   useEffect(() => {
     if (!isOpen) return;
+    setPreviewExercise(filteredResults[0] || null);
+  }, [filteredResults, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const handleClick = (event: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) onClose();
     };
@@ -163,6 +168,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         style={style}
         $highlighted={index === highlightIndex}
         onClick={() => handleSelect(ex)}
+        onFocus={() => setPreviewExercise(ex)}
         onMouseEnter={() => setPreviewExercise(ex)}
         role="option"
         aria-selected={index === highlightIndex}
@@ -277,7 +283,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         {query && ` - ${filteredResults.length} matching`}
         {category && category !== 'All' && ` - ${category}`}
         {sectionContext && sectionContext !== 'main' && ` - ${sectionContext.replace('_', ' ')}`}
-        {previewExercise && ' - hover to preview'}
+        {previewExercise && ` - previewing ${previewExercise.name}`}
       </StatusBar>
     </Wrapper>
   );

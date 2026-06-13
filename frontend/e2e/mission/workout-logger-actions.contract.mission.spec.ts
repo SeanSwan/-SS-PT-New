@@ -48,6 +48,14 @@ const exerciseLibrary = [
     equipmentNeeded: ['Dumbbell'],
     difficulty: 320,
     source: 'swanstudios',
+    videoUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.webm',
+    thumbnailUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.jpg',
+    defaultTempo: '3/1/1',
+    defaultRestSeconds: 60,
+    recommendedSets: 3,
+    recommendedReps: 10,
+    optPhases: [1, 2],
+    nasmMovementPattern: 'squat',
   },
 ];
 
@@ -76,6 +84,19 @@ function readPostJson(route: Route) {
 }
 
 async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
+  await page.route('**/socket.io/**', async (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/plain',
+    body: '0{"sid":"mission-qa","upgrades":[],"pingInterval":25000,"pingTimeout":20000}',
+  }));
+  await page.route('https://cdn.swanstudios.test/exercises/**', async (route) => {
+    const url = route.request().url();
+    return route.fulfill({
+      status: 200,
+      contentType: url.endsWith('.jpg') ? 'image/jpeg' : 'video/webm',
+      body: Buffer.from([]),
+    });
+  });
   await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -202,14 +223,20 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=logger&sessionId=910&sessionDate=2026-06-06', {
     waitUntil: 'domcontentloaded',
   });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => undefined);
 
-  await expect(page.getByText(/SwanStudios Paid Client/i).first()).toBeVisible();
+  await expect(page.locator('body')).toContainText('SwanStudios Paid Client');
   const loggerUrl = new URL(page.url());
   expect(loggerUrl.searchParams.get('sessionId')).toBe('910');
   expect(loggerUrl.searchParams.get('sessionDate')).toBe('2026-06-06');
   await page.getByRole('button', { name: /search and add exercises/i }).click();
   await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
+  const previewMedia = page.getByLabel('Goblet Squat exercise demo media');
+  await expect(previewMedia).toBeVisible();
+  await expect(previewMedia).toHaveAttribute('poster', /goblet-squat\.jpg/);
+  await expect(previewMedia).toHaveAttribute('src', /goblet-squat\.webm/);
+  await expect(page.getByText(/3 x 10/i)).toBeVisible();
+  await expect(page.getByText(/Tempo 3\/1\/1 \| 60s rest/i)).toBeVisible();
   await page.getByRole('option', { name: /goblet squat/i }).first().click();
 
   await expect(page.getByText(/Goblet Squat/i).first()).toBeVisible();

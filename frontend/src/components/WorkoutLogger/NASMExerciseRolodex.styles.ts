@@ -148,6 +148,10 @@ export const PreviewSide = styled.div`
   color: ${CS.textSecondary};
   max-height: ${MAX_ROWS_MOBILE * ROW_HEIGHT}px;
   overflow-y: auto;
+  @media (max-width: 600px) {
+    order: -1;
+    max-height: none;
+  }
   @media ${DESKTOP_BREAKPOINT_MQ} {
     max-height: ${MAX_ROWS_DESKTOP * ROW_HEIGHT}px;
   }

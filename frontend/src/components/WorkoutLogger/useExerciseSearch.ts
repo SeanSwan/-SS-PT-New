@@ -109,18 +109,39 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           }
           return [];
         };
+        const toOptionalString = (v: unknown): string | undefined => (
+          typeof v === 'string' && v.trim() ? v : undefined
+        );
+        const toOptionalNumber = (v: unknown): number | undefined => {
+          if (typeof v === 'number' && Number.isFinite(v)) return v;
+          if (typeof v === 'string' && /^\d+$/.test(v.trim())) return Number(v);
+          return undefined;
+        };
         const exercises: ExerciseSlim[] = body.exercises.map((ex: Record<string, unknown>) => ({
           id: String(ex?.id ?? ''),
           name: String(ex?.name ?? 'Unknown Exercise'),
           exerciseKey: String(ex?.exerciseKey ?? ex?.id ?? ''),
           exerciseType: String(ex?.exerciseType ?? 'exercise'),
           bodyPartCategory: String(ex?.bodyPartCategory ?? 'Full Body'),
-          primaryMuscles: Array.isArray(ex?.primaryMuscles) ? ex.primaryMuscles as string[] : [],
+          primaryMuscles: parseArr(ex?.primaryMuscles),
+          secondaryMuscles: parseArr(ex?.secondaryMuscles),
           difficulty: Number(ex?.difficulty) || 1,
           equipment: parseArr(ex?.equipment),
           equipmentNeeded: parseArr(ex?.equipmentNeeded),
           source: String(ex?.source ?? 'swanstudios'),
           description: (ex?.description as string) || undefined,
+          videoUrl: toOptionalString(ex?.videoUrl),
+          imageUrl: toOptionalString(ex?.imageUrl),
+          thumbnailUrl: toOptionalString(ex?.thumbnailUrl),
+          defaultTempo: toOptionalString(ex?.defaultTempo),
+          defaultRestSeconds: toOptionalNumber(ex?.defaultRestSeconds),
+          recommendedSets: toOptionalNumber(ex?.recommendedSets),
+          recommendedReps: toOptionalNumber(ex?.recommendedReps),
+          recommendedDuration: toOptionalNumber(ex?.recommendedDuration),
+          restInterval: toOptionalNumber(ex?.restInterval),
+          optPhases: parseArr(ex?.optPhases),
+          nasmMovementPattern: toOptionalString(ex?.nasmMovementPattern),
+          canBePerformedAtHome: Boolean(ex?.canBePerformedAtHome),
           easyVariation: (ex?.easyVariation as string) || undefined,
           hardVariation: (ex?.hardVariation as string) || undefined,
           kneeMod: (ex?.kneeMod as string) || undefined,

@@ -13,6 +13,11 @@ import { getExercise } from '../models/index.mjs';
 import { Op } from '../database.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  formatLibraryExercise,
+  getLibraryAttributes,
+  getLibraryWhere,
+} from '../services/exerciseLibraryContract.mjs';
 
 const router = express.Router();
 
@@ -455,13 +460,8 @@ router.get('/library', protect, apiLimiter, async (req, res) => {
     let exercises;
     try {
       exercises = await Exercise.findAll({
-        attributes: [
-          'id', 'name', 'exerciseType', 'primaryMuscles',
-          'exercise_key', 'bodyPartCategory', 'difficulty', 'equipmentNeeded', 'source',
-          'description', 'easyVariation', 'hardVariation',
-          'kneeMod', 'shoulderMod', 'ankleMod', 'wristMod', 'backMod', 'elbowMod', 'footMod', 'hipMod',
-        ],
-        where: { isActive: true },
+        attributes: getLibraryAttributes(Exercise),
+        where: getLibraryWhere(Exercise),
         order: [['name', 'ASC']],
         raw: true,
       });
@@ -473,39 +473,7 @@ router.get('/library', protect, apiLimiter, async (req, res) => {
       });
     }
 
-    const formatted = exercises.map(ex => {
-      let equipment = [];
-      try {
-        let parsed = ex.equipmentNeeded;
-        if (typeof parsed === 'string') {
-          parsed = JSON.parse(parsed);
-          if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-        }
-        equipment = Array.isArray(parsed) ? parsed : [];
-      } catch { equipment = []; }
-      return {
-        id: ex.id,
-        name: ex.name,
-        exerciseKey: ex.exercise_key || '',
-        exerciseType: ex.exerciseType || '',
-        bodyPartCategory: ex.bodyPartCategory || 'Full Body',
-        primaryMuscles: ex.primaryMuscles || [],
-        difficulty: ex.difficulty || 0,
-        equipment,
-        source: ex.source || 'swanstudios',
-        description: ex.description || null,
-        easyVariation: ex.easyVariation || null,
-        hardVariation: ex.hardVariation || null,
-        kneeMod: ex.kneeMod || null,
-        shoulderMod: ex.shoulderMod || null,
-        ankleMod: ex.ankleMod || null,
-        wristMod: ex.wristMod || null,
-        backMod: ex.backMod || null,
-        elbowMod: ex.elbowMod || null,
-        footMod: ex.footMod || null,
-        hipMod: ex.hipMod || null,
-      };
-    });
+    const formatted = exercises.map(formatLibraryExercise);
 
     res.set('Cache-Control', 'private, max-age=300');
     res.json({ success: true, exercises: formatted, count: formatted.length });
