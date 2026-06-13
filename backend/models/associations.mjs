@@ -42,6 +42,7 @@ const setupAssociations = async () => {
 
     // E-Commerce Models (Sequelize)
     const StorefrontItemModule = await import('./StorefrontItem.mjs');
+    const ProductVariantModule = await import('./ProductVariant.mjs');
     const ShoppingCartModule = await import('./ShoppingCart.mjs');
     const CartItemModule = await import('./CartItem.mjs');
     const OrderModule = await import('./Order.mjs');
@@ -250,6 +251,7 @@ const setupAssociations = async () => {
 
     // E-Commerce Models
     const StorefrontItem = StorefrontItemModule.default;
+    const ProductVariant = ProductVariantModule.default;
     const ShoppingCart = ShoppingCartModule.default;
     const CartItem = CartItemModule.default;
     const Order = OrderModule.default;
@@ -656,6 +658,9 @@ const setupAssociations = async () => {
     CartItem.belongsTo(ShoppingCart, { foreignKey: 'cartId', as: 'cart' });
     CartItem.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
     StorefrontItem.hasMany(CartItem, { foreignKey: 'storefrontItemId', as: 'cartItems' });
+    // Phase 1 commerce: physical products can have variants (drink sizes, merch size/color)
+    StorefrontItem.hasMany(ProductVariant, { foreignKey: 'storefrontItemId', as: 'variants' });
+    ProductVariant.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
 
     // ORDER ASSOCIATIONS
     // ==================

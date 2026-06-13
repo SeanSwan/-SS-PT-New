@@ -1,0 +1,48 @@
+import { describe, expect, it } from 'vitest';
+import { readFileSync, readdirSync } from 'fs';
+import { resolve } from 'path';
+
+/**
+ * Product variant + storefront product-field foundation — Phase 1 (2026-06-13).
+ * ============================================================================
+ * Physical products (the recovery drink in 1.5L/16oz; merch size×color) need a
+ * variant data layer + the storefront API must expose the Phase-0 product fields
+ * so the UI can render product cards (vs training-package cards) and a variant
+ * picker. Locks the model, migration, association wiring, and API exposure.
+ * See docs/ai-workflow/brainstorms/storefront-commerce-expansion-2026-06-13.md
+ */
+const root = process.cwd();
+const read = (path) => readFileSync(resolve(root, path), 'utf8');
+
+describe('product variant + storefront product-field foundation (Phase 1)', () => {
+  it('ProductVariant model declares the variant fields', () => {
+    const model = read('models/ProductVariant.mjs');
+    expect(model).toContain("tableName: 'product_variants'");
+    for (const field of ['storefrontItemId', 'label', 'sku', 'price', 'stockQuantity', 'attributes', 'displayOrder', 'isActive']) {
+      expect(model).toContain(`${field}:`);
+    }
+  });
+
+  it('a migration creates the product_variants table', () => {
+    const dir = resolve(root, 'migrations');
+    const created = readdirSync(dir)
+      .filter((file) => /\.cjs$/.test(file))
+      .map((file) => read(`migrations/${file}`))
+      .some((src) => src.includes("createTable('product_variants'"));
+    expect(created).toBe(true);
+  });
+
+  it('associations wire StorefrontItem <-> ProductVariant (as variants)', () => {
+    const assoc = read('models/associations.mjs');
+    expect(assoc).toContain("import('./ProductVariant.mjs')");
+    expect(assoc).toContain("StorefrontItem.hasMany(ProductVariant, { foreignKey: 'storefrontItemId', as: 'variants' })");
+    expect(assoc).toContain('ProductVariant.belongsTo(StorefrontItem');
+  });
+
+  it('storefront API exposes the product fields the UI needs', () => {
+    const routes = read('routes/storeFrontRoutes.mjs');
+    expect(routes).toContain('itemKind: item.itemKind');
+    expect(routes).toContain('isTaxable: item.isTaxable');
+    expect(routes).toContain('fulfillmentType: item.fulfillmentType');
+  });
+});

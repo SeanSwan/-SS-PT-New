@@ -131,7 +131,13 @@ const mapStorefrontItem = (item) => ({
   includedFeatures: item.includedFeatures || null,
   packageType: item.packageType,
   isActive: item.isActive,
-  displayOrder: item.displayOrder || 0
+  displayOrder: item.displayOrder || 0,
+  // Phase 0 commerce fields — let the storefront distinguish training packages
+  // from physical products (supplements/merch) and render the right card + tax note.
+  itemKind: item.itemKind || 'training_package',
+  isTaxable: item.isTaxable === true,
+  fulfillmentType: item.fulfillmentType || 'none',
+  stockQuantity: (item.stockQuantity ?? null)
 });
 
 /**
