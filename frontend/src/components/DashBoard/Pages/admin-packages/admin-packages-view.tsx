@@ -1145,6 +1145,7 @@ const AdminPackagesView: React.FC = () => {
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
         onSave={handleSaveEditedPackage}
+        itemId={selectedPackage?.id ?? null}
         formatCurrency={formatCurrency}
         packageName={editPackageName} setPackageName={setEditPackageName}
         description={editPackageDescription} setDescription={setEditPackageDescription}

@@ -110,7 +110,7 @@ The on/off switch existed but was **buried in the Edit dialog** (open → flip �
 4. **Destructive-action confirms + "deactivate, don't delete" nudge.** Delete already warns; enforce a typed/explicit confirm for delete, and steer toward toggle-off for anything that may have been purchased.
 
 *Tier 2 — merchandising & ops:*
-5. **Variant management** (the drink's tier×size; merch size×color) — CRUD on `ProductVariant` with per-variant price/stock/active. *(Needs admin variant endpoints — none yet.)*
+5. **Variant management** (the drink's tier/size; merch size/color) - first admin CRUD slice is in place; remaining polish is richer attributes, order controls, and live visual QA.
 6. **Drag-to-reorder / `displayOrder` control** — Sean controls the order products appear in the store (the `displayOrder` column exists).
 7. **Inventory view + low-stock flags** for self-ship gear (foam rollers, etc.).
 8. **Image management** — upload/set product image (R2), per the existing R2 asset pattern.
@@ -130,12 +130,13 @@ The on/off switch existed but was **buried in the Edit dialog** (open → flip �
 - **Audit-worthy actions** (delete, price change, activation of a consumable) should be logged once the audit log lands.
 - **Mobile check** the admin table at phone width before calling the admin surface done (rule 24).
 
-### Admin Store Control — slice sequence
+### Admin Store Control - slice sequence
 - **AS-1 (DONE):** one-click inline on/off toggle.
 - **AS-2 (DONE):** admin mapper exposes the product fields; table shows a product meta line (kind/fulfillment/tax/stock); a "Products" filter. Item type carried on the admin model.
 - **AS-3 (DONE — except image):** product create/edit mode — Item Kind selector + flat-price/tax/fulfillment/SKU/stock fields in BOTH dialogs; product-aware backend POST validation (a product's `pricePerSession: 0` no longer rejected); save logic branches product (flat price) vs package (price×sessions). **Image upload deferred → AS-3b.** Both dialogs extracted to `admin-packages-view.dialogs.tsx` to stay under the rule-4 / style-extraction line budget.
-- **AS-3b (NEXT):** product image upload (R2) in the editor + image thumbnail in the table.
-- **AS-4:** variant management (ProductVariant admin CRUD + UI) — the drink's tier×size, merch size×color.
+- **AS-3b (DONE):** product/package image upload - reusable `ProductImageField` (upload to R2 via `POST /api/admin/storefront/upload-image`, or paste a URL, with sanitized preview) in both dialogs; `RowThumb` thumbnail in the admin table; backend endpoint reuses `photoStorageService.uploadPhoto` (category `products`, 5MB, JPG/PNG/WEBP, clean 413 on oversize); `'products'` added to the serve-photo allowlist. Adversarial review caught and fixed the ProductDetail raw `imageUrl` CSS sink plus the multer oversize 500.
+  - **Deployment-QA note (R2 image URLs):** before relying on uploaded images in production, confirm production `R2_PUBLIC_URL` is either **unset** (uses the `/api/serve-photo` proxy - allowlist-safe) OR equals an allowlisted origin in `frontend/src/utils/imageUrl.ts` (currently `media.sswanstudios.com`, per `backend/utils/imageUrl.mjs`). If `R2_PUBLIC_URL` is changed to any other domain such as raw `*.r2.dev`, that origin MUST also be added to `VITE_PHOTO_ORIGINS` at frontend build time, or both the admin thumbnail and the public store card silently render the gradient fallback.
+- **AS-4 (FIRST SLICE DONE):** variant management - admin CRUD endpoints plus inline edit-dialog UI for physical products. Remaining polish: richer attributes UI, display ordering, and production-auth visual QA with real product rows.
 - **AS-5:** displayOrder reorder + store-open master switch.
 - **AS-6:** orders/fulfillment ops + analytics + audit log.
 

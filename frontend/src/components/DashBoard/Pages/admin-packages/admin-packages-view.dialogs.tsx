@@ -31,6 +31,7 @@ import {
   SwitchTrack,
 } from './admin-packages-view.formStyles';
 import ProductImageField from './ProductImageField';
+import ProductVariantsManager from './ProductVariantsManager';
 
 type Kind = 'training_package' | 'physical_product';
 type PackageType = 'fixed' | 'monthly';
@@ -40,6 +41,7 @@ export interface EditPackageDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
+  itemId: number | null; // the product being edited (for variant management)
   formatCurrency: FormatCurrency;
   packageName: string; setPackageName: (v: string) => void;
   description: string; setDescription: (v: string) => void;
@@ -61,7 +63,7 @@ export interface EditPackageDialogProps {
 
 export const EditPackageDialog: React.FC<EditPackageDialogProps> = (p) => {
   const {
-    open, onClose, onSave, formatCurrency,
+    open, onClose, onSave, itemId, formatCurrency,
     packageName: editPackageName, setPackageName: setEditPackageName,
     description: editPackageDescription, setDescription: setEditPackageDescription,
     packageType: editPackageType, setPackageType: setEditPackageType,
@@ -340,6 +342,13 @@ export const EditPackageDialog: React.FC<EditPackageDialogProps> = (p) => {
             <FormGridFull>
               <ProductImageField value={editImageUrl} onChange={setEditImageUrl} />
             </FormGridFull>
+
+            {/* Variants (physical products only, once the item exists) */}
+            {editItemKind === 'physical_product' && itemId && (
+              <FormGridFull>
+                <ProductVariantsManager itemId={itemId} />
+              </FormGridFull>
+            )}
           </FormGrid>
         </DialogContentArea>
         <DialogActionsBar>

@@ -8,6 +8,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton from '../ui/buttons/GlowButton';
 import ProductRecommendations from './ProductRecommendations';
+import { sanitizeImageUrl, cssUrlValue } from '../../utils/imageUrl';
 
 // Types
 interface ProductDetailType {
@@ -479,13 +480,18 @@ const ProductDetail: React.FC = () => {
           
           <ProductContent>
             <ImageContainer>
-              {product.imageUrl ? (
-                <ProductImage style={{ backgroundImage: `url(${product.imageUrl})` }} />
-              ) : (
-                <ImagePlaceholder>
-                  No Image Available
-                </ImagePlaceholder>
-              )}
+              {(() => {
+                // Sanitize before CSS url() using the same defense as PackageCard/RowThumb.
+                // A hostile/rejected URL falls through to the placeholder.
+                const safeImg = sanitizeImageUrl(product.imageUrl);
+                return safeImg ? (
+                  <ProductImage style={{ backgroundImage: `url(${cssUrlValue(safeImg)})` }} />
+                ) : (
+                  <ImagePlaceholder>
+                    No Image Available
+                  </ImagePlaceholder>
+                );
+              })()}
               <ThemeBadge theme={product.theme || 'purple'}>
                 {product.theme || 'Purple'}
               </ThemeBadge>

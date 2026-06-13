@@ -33,6 +33,14 @@ describe('admin storefront API — product image upload', () => {
     expect(routes).toContain('rateLimiter(');
   });
 
+  it('returns a clean 413 on oversize (not a generic 500)', () => {
+    // multer is wrapped so LIMIT_FILE_SIZE returns 413 and other multer errors return 400,
+    // instead of falling through to the global 500 handler.
+    expect(routes).toContain('handleProductImageUpload');
+    expect(routes).toContain("err.code === 'LIMIT_FILE_SIZE'");
+    expect(routes).toMatch(/status\(413\)/);
+  });
+
   it("the serve-photo proxy allowlist includes 'products'", () => {
     expect(coreRoutes).toMatch(/\['profiles'[^\]]*'products'\]/);
   });

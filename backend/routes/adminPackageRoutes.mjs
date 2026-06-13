@@ -18,6 +18,19 @@ const productImageUpload = multer({
 const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
 const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
+// Wrap multer so an oversized/invalid upload returns a clean 413/400 instead of
+// falling through to the generic 500 error handler (mirrors workoutLogUploadRoutes).
+const handleProductImageUpload = (req, res, next) => {
+  productImageUpload.single('image')(req, res, (err) => {
+    if (!err) return next();
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ success: false, message: 'Image too large. Max 5MB.' });
+    }
+    logger.warn('Product image upload rejected', { code: err.code || err.message, userId: req.user?.id });
+    return res.status(400).json({ success: false, message: 'Image upload failed.' });
+  });
+};
+
 const parsePositiveInteger = (value) => {
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
@@ -158,7 +171,7 @@ router.get('/', async (req, res) => {
 router.post(
   '/upload-image',
   rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 }),
-  productImageUpload.single('image'),
+  handleProductImageUpload,
   async (req, res) => {
     try {
       if (!req.file) {
@@ -388,6 +401,212 @@ router.get('/:id', async (req, res) => {
       message: 'Server error while retrieving storefront item',
       error: INTERNAL_ERROR
     });
+  }
+});
+
+// ===================== PRODUCT VARIANTS (physical products) =====================
+// A physical StorefrontItem (drink / supplements / merch) can have variants
+// (tier x size, size x color), each with its own price/stock/SKU. Admin-only
+// (whole router is protect + requireAdmin). Variants are persisted independently
+// of the parent item (managed from the product editor after the item exists).
+
+const VARIANT_FIELDS = ['label', 'sku', 'price', 'stockQuantity', 'attributes', 'displayOrder', 'isActive'];
+
+const validationError = (res, error) => {
+  if (error?.name === 'SequelizeValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: error.errors.map((e) => ({ field: e.path, message: e.message })),
+    });
+  }
+  return null;
+};
+
+const hasOwn = (source, field) => Object.prototype.hasOwnProperty.call(source, field);
+const BLANK_INPUTS = new Set([undefined, null, '']);
+
+const parseNullableNonNegativeNumber = (value, field) => {
+  if (BLANK_INPUTS.has(value)) return { value: null };
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0
+    ? { value: parsed }
+    : { error: `${field} must be a non-negative number` };
+};
+
+const parseNullableNonNegativeInteger = (value, field) => {
+  if (BLANK_INPUTS.has(value)) return { value: null };
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0
+    ? { value: parsed }
+    : { error: `${field} must be a non-negative integer` };
+};
+
+const normalizeVariantPayload = (body = {}, { requireLabel = false } = {}) => {
+  const payload = body && typeof body === 'object' ? body : {};
+  const updates = {};
+  if (requireLabel || hasOwn(payload, 'label')) {
+    updates.label = typeof payload.label === 'string' ? payload.label.trim() : '';
+    if (!updates.label) return { error: 'Variant label is required' };
+  }
+  if (hasOwn(payload, 'sku')) updates.sku = typeof payload.sku === 'string' && payload.sku.trim() ? payload.sku.trim() : null;
+  if (hasOwn(payload, 'price')) {
+    const parsed = parseNullableNonNegativeNumber(payload.price, 'Variant price');
+    if (parsed.error) return parsed;
+    updates.price = parsed.value;
+  }
+  if (hasOwn(payload, 'stockQuantity')) {
+    const parsed = parseNullableNonNegativeInteger(payload.stockQuantity, 'Variant stock');
+    if (parsed.error) return parsed;
+    updates.stockQuantity = parsed.value;
+  }
+  if (hasOwn(payload, 'displayOrder')) {
+    const parsed = parseNullableNonNegativeInteger(payload.displayOrder, 'Display order');
+    if (parsed.error) return parsed;
+    updates.displayOrder = parsed.value ?? 0;
+  }
+  if (hasOwn(payload, 'attributes')) {
+    const attrs = payload.attributes;
+    if (attrs !== null && (typeof attrs !== 'object' || Array.isArray(attrs))) {
+      return { error: 'Variant attributes must be an object or null' };
+    }
+    updates.attributes = attrs;
+  }
+  if (hasOwn(payload, 'isActive')) updates.isActive = Boolean(payload.isActive);
+  return { updates };
+};
+
+const requirePhysicalProduct = (item, res) => {
+  if (!item) {
+    res.status(404).json({ success: false, message: 'Product not found' });
+    return false;
+  }
+  if (item.itemKind !== 'physical_product') {
+    res.status(400).json({ success: false, message: 'Variants are only available for physical products' });
+    return false;
+  }
+  return true;
+};
+
+const findPhysicalProductForVariants = async (StorefrontItem, itemId, res) => {
+  const parent = await StorefrontItem.findByPk(itemId);
+  return requirePhysicalProduct(parent, res) ? parent : null;
+};
+
+/** GET /:id/variants - list a product's variants (admin) */
+router.get('/:id/variants', async (req, res) => {
+  try {
+    const { StorefrontItem, ProductVariant } = getAllModels();
+    if (!StorefrontItem || !ProductVariant) {
+      return res.status(503).json({ success: false, message: 'Variant data temporarily unavailable' });
+    }
+    const itemId = parsePositiveInteger(req.params.id);
+    if (!itemId) {
+      return res.status(400).json({ success: false, message: 'Product ID must be a positive integer' });
+    }
+    const parent = await findPhysicalProductForVariants(StorefrontItem, itemId, res);
+    if (!parent) return undefined;
+    const variants = await ProductVariant.findAll({
+      where: { storefrontItemId: itemId },
+      order: [['displayOrder', 'ASC'], ['id', 'ASC']],
+    });
+    return res.json({ success: true, variants });
+  } catch (error) {
+    logger.error('Error fetching product variants:', error);
+    return res.status(500).json({ success: false, message: 'Server error while retrieving variants', error: INTERNAL_ERROR });
+  }
+});
+
+/** POST /:id/variants - create a variant under a product (admin) */
+router.post('/:id/variants', async (req, res) => {
+  try {
+    const { StorefrontItem, ProductVariant } = getAllModels();
+    if (!StorefrontItem || !ProductVariant) {
+      return res.status(503).json({ success: false, message: 'Variant data temporarily unavailable' });
+    }
+    const itemId = parsePositiveInteger(req.params.id);
+    if (!itemId) {
+      return res.status(400).json({ success: false, message: 'Product ID must be a positive integer' });
+    }
+    const parent = await findPhysicalProductForVariants(StorefrontItem, itemId, res);
+    if (!parent) return undefined;
+    const normalized = normalizeVariantPayload(req.body, { requireLabel: true });
+    if (normalized.error) return res.status(400).json({ success: false, message: normalized.error });
+    const variant = await ProductVariant.create({
+      storefrontItemId: itemId, // bound to the URL's product; never from the body
+      label: normalized.updates.label,
+      sku: normalized.updates.sku ?? null,
+      price: normalized.updates.price ?? null,
+      stockQuantity: normalized.updates.stockQuantity ?? null,
+      attributes: normalized.updates.attributes ?? null,
+      displayOrder: normalized.updates.displayOrder ?? 0,
+      isActive: normalized.updates.isActive ?? true,
+    });
+    logger.info(`Admin created variant ${variant.id} for product ${itemId}`);
+    return res.status(201).json({ success: true, variant });
+  } catch (error) {
+    const handled = validationError(res, error);
+    if (handled) return handled;
+    logger.error('Error creating product variant:', error);
+    return res.status(500).json({ success: false, message: 'Server error while creating variant', error: INTERNAL_ERROR });
+  }
+});
+
+/** PUT /variants/:variantId - update a variant (admin). storefrontItemId is NOT reassignable. */
+router.put('/variants/:variantId', async (req, res) => {
+  try {
+    const { ProductVariant } = getAllModels();
+    if (!ProductVariant) {
+      return res.status(503).json({ success: false, message: 'Variant data temporarily unavailable' });
+    }
+    const variantId = parsePositiveInteger(req.params.variantId);
+    if (!variantId) {
+      return res.status(400).json({ success: false, message: 'Variant ID must be a positive integer' });
+    }
+    const variant = await ProductVariant.findByPk(variantId);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: 'Variant not found' });
+    }
+    const normalized = normalizeVariantPayload(req.body);
+    if (normalized.error) return res.status(400).json({ success: false, message: normalized.error });
+    const updates = Object.fromEntries(
+      Object.entries(normalized.updates).filter(([field]) => VARIANT_FIELDS.includes(field))
+    );
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'No variant updates supplied' });
+    }
+    await variant.update(updates);
+    logger.info(`Admin updated variant ${variantId}`);
+    return res.json({ success: true, variant });
+  } catch (error) {
+    const handled = validationError(res, error);
+    if (handled) return handled;
+    logger.error('Error updating product variant:', error);
+    return res.status(500).json({ success: false, message: 'Server error while updating variant', error: INTERNAL_ERROR });
+  }
+});
+
+/** DELETE /variants/:variantId - delete a variant (admin) */
+router.delete('/variants/:variantId', async (req, res) => {
+  try {
+    const { ProductVariant } = getAllModels();
+    if (!ProductVariant) {
+      return res.status(503).json({ success: false, message: 'Variant data temporarily unavailable' });
+    }
+    const variantId = parsePositiveInteger(req.params.variantId);
+    if (!variantId) {
+      return res.status(400).json({ success: false, message: 'Variant ID must be a positive integer' });
+    }
+    const variant = await ProductVariant.findByPk(variantId);
+    if (!variant) {
+      return res.status(404).json({ success: false, message: 'Variant not found' });
+    }
+    await variant.destroy();
+    logger.info(`Admin deleted variant ${variantId}`);
+    return res.json({ success: true, message: 'Variant deleted' });
+  } catch (error) {
+    logger.error('Error deleting product variant:', error);
+    return res.status(500).json({ success: false, message: 'Server error while deleting variant', error: INTERNAL_ERROR });
   }
 });
 

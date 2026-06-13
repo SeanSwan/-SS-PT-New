@@ -13,6 +13,7 @@ import { resolve } from 'path';
  */
 const root = process.cwd();
 const read = (path) => readFileSync(resolve(root, path), 'utf8');
+const adminRoutes = read('routes/adminPackageRoutes.mjs');
 
 describe('product variant + storefront product-field foundation (Phase 1)', () => {
   it('ProductVariant model declares the variant fields', () => {
@@ -48,5 +49,26 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
     expect(routes).toContain('variants: getMappedProductVariants(item)');
     expect(routes).toContain('include: variantInclude');
     expect(routes).toContain("as: 'variants'");
+  });
+
+  it('admin storefront exposes product-only variant CRUD endpoints', () => {
+    expect(adminRoutes).toContain("router.get('/:id/variants'");
+    expect(adminRoutes).toContain("router.post('/:id/variants'");
+    expect(adminRoutes).toContain("router.put('/variants/:variantId'");
+    expect(adminRoutes).toContain("router.delete('/variants/:variantId'");
+    expect(adminRoutes).toContain("router.use(protect)");
+    expect(adminRoutes).toContain("router.use(requireAdmin)");
+    expect(adminRoutes).toContain("Variants are only available for physical products");
+    expect(adminRoutes).toContain("StorefrontItem.findByPk(itemId)");
+    expect(adminRoutes).not.toContain("storefrontItemId: req.body");
+  });
+
+  it('admin variant writes normalize numeric fields before persistence', () => {
+    expect(adminRoutes).toContain('normalizeVariantPayload');
+    expect(adminRoutes).toContain("Variant price");
+    expect(adminRoutes).toContain("Variant stock");
+    expect(adminRoutes).toContain("must be a non-negative number");
+    expect(adminRoutes).toContain("must be a non-negative integer");
+    expect(adminRoutes).toContain("No variant updates supplied");
   });
 });
