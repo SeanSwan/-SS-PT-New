@@ -66,6 +66,11 @@ Optionally a steeping tea bag in-bottle. **Freshness is the priority.**
   shipping only considered later because freshness).
 - **Sizes:** hero **1.5L "day bottle"** (Sean's normal serving — sip through the day,
   re-water/refresh later) + optional **16oz "trial"**.
+- **Tiers (variants):** **Organic** (premium) + **Everyday** (lower-priced, clean but
+  non-certified-organic ingredients — for buyers who want it cheaper). So 4 variants =
+  tier × size, modeled via ProductVariant. Recommended prices: Organic 1.5L $24 / 16oz $9;
+  Everyday 1.5L $17 / 16oz $6.50 (adjust to real ingredient costs). Seed (inactive until
+  permit + Stripe Tax): `backend/seed-buddy-fat-skin-drink.mjs`.
 - **Pricing rec** (validate vs real Costco/Sprouts organic costs): est. COGS ~$5–8 per
   1.5L (organic honey is the cost driver; lemon/ginger/tea/spices modest; + bottle/label/
   prep). Recommended: **1.5L ≈ $22–26**, **16oz trial ≈ $8–10**. Consider a weekly
