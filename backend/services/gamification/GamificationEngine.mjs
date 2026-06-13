@@ -37,6 +37,51 @@
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import GamificationPersistence from './GamificationPersistence.mjs';
 
+const MAX_ENGINE_IDEMPOTENCY_KEY_LENGTH = 128;
+const ENGINE_IDENTITY_FIELDS = [
+  'sourceId',
+  'workoutId',
+  'postId',
+  'commentId',
+  'challengeId',
+  'goalId',
+  'sessionId',
+  'date'
+];
+
+function normalizeMetadata(metadata) {
+  return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+    ? { ...metadata }
+    : {};
+}
+
+function safeKeyPart(value) {
+  return String(value)
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9:._-]/g, '')
+    .slice(0, 48);
+}
+
+function buildEngineIdempotencyKey(userId, action, metadata) {
+  if (metadata.idempotencyKey) {
+    return safeKeyPart(metadata.idempotencyKey).slice(0, MAX_ENGINE_IDEMPOTENCY_KEY_LENGTH);
+  }
+
+  const parts = ['engine', safeKeyPart(action), `user:${safeKeyPart(userId)}`];
+  for (const field of ENGINE_IDENTITY_FIELDS) {
+    if (metadata[field] !== undefined && metadata[field] !== null && metadata[field] !== '') {
+      parts.push(`${field}:${safeKeyPart(metadata[field])}`);
+    }
+  }
+
+  if (parts.length === 3) {
+    parts.push(`day:${new Date().toISOString().slice(0, 10)}`);
+  }
+
+  return parts.join(':').slice(0, MAX_ENGINE_IDEMPOTENCY_KEY_LENGTH);
+}
+
 export class GamificationEngine {
   constructor() {
     this.persistence = new GamificationPersistence();
@@ -138,13 +183,30 @@ export class GamificationEngine {
       if (pointsAwarded === 0) {
         throw new Error(`Unknown action for points: ${action}`);
       }
+
+      const awardMetadata = normalizeMetadata(metadata);
+      awardMetadata.idempotencyKey = buildEngineIdempotencyKey(userId, action, awardMetadata);
       
       // Check for any multipliers (e.g., streak bonuses)
-      const multiplier = await this.calculateMultiplier(userId, action, metadata);
+      const multiplier = await this.calculateMultiplier(userId, action, awardMetadata);
       const finalPoints = Math.round(pointsAwarded * multiplier);
       
       // Record the points
-      await this.persistence.awardPoints(userId, finalPoints, action, metadata);
+      const awardResult = await this.persistence.awardPoints(userId, finalPoints, action, awardMetadata);
+      if (awardResult?.duplicate) {
+        return {
+          pointsAwarded: 0,
+          totalPoints: awardResult.totalPoints ?? await this.persistence.getUserTotalPoints(userId),
+          levelUp: false,
+          newLevel: null,
+          newAchievements: [],
+          multiplier,
+          duplicate: true,
+          idempotencyKey: awardMetadata.idempotencyKey,
+          surpriseMultiplier: null,
+          surpriseLabel: null
+        };
+      }
       
       // Check for level up
       const newTotalPoints = await this.persistence.getUserTotalPoints(userId);
@@ -153,7 +215,7 @@ export class GamificationEngine {
       const levelUp = newLevel > oldLevel;
       
       // Check for new achievements
-      const newAchievements = await this.checkForAchievements(userId, action, metadata);
+      const newAchievements = await this.checkForAchievements(userId, action, awardMetadata);
       
       // Log the award
       piiSafeLogger.trackGamificationEngagement('points_awarded', userId, {
@@ -172,9 +234,11 @@ export class GamificationEngine {
         newLevel,
         newAchievements,
         multiplier,
+        duplicate: false,
+        idempotencyKey: awardMetadata.idempotencyKey,
         // Variable ratio reinforcement — surprise multiplier info for UI celebration
-        surpriseMultiplier: metadata._surpriseMultiplier || null,
-        surpriseLabel: metadata._surpriseLabel || null
+        surpriseMultiplier: awardMetadata._surpriseMultiplier || null,
+        surpriseLabel: awardMetadata._surpriseLabel || null
       };
     } catch (error) {
       piiSafeLogger.error('Failed to award points', {

@@ -6,6 +6,7 @@ import PostContent from './components/PostContent';
 import PostHeader from './components/PostHeader';
 import PostMediaDisplay from './components/PostMediaDisplay';
 import type { Post } from './types/PostCardTypes';
+import { CATEGORY_GRADIENTS, postTypeColors, postTypeLabels } from './types/PostCardTypes';
 
 vi.mock('../RPGProfileHeader', () => ({
   default: () => <div data-testid="rpg-profile-header" />,
@@ -33,6 +34,23 @@ const achievementPost: Post = {
     description: 'Completed the first training milestone.',
     points: 30,
   },
+};
+
+const milestonePost: Post = {
+  id: 'post-2',
+  content: 'Progress proof level: Apex. 8/12 SwanStudios charts are populated from verified logged workouts. Next unlock: 4 charts to full proof. #ProgressProof #SwanProgress #SwanStudios',
+  type: 'milestone',
+  createdAt: new Date().toISOString(),
+  user: {
+    id: 'user-2',
+    firstName: 'Avery',
+    lastName: 'Swan',
+    username: 'averyswan',
+    clientSource: 'swanstudios',
+  },
+  likesCount: 0,
+  commentsCount: 0,
+  isLiked: false,
 };
 
 describe('PostCard feed display contract', () => {
@@ -74,5 +92,21 @@ describe('PostCard feed display contract', () => {
 
     expect(screen.getByText(/Completed the first training milestone/i)).toBeInTheDocument();
     expect(screen.getByText(/Unlocked for reaching this SwanStudios milestone/i)).toBeInTheDocument();
+  });
+
+  it('renders milestone posts as premium progress proof cards', () => {
+    render(<PostContent post={milestonePost} transformationSliderValue={50} />);
+
+    expect(screen.getByRole('group', { name: /apex progress proof milestone/i })).toBeInTheDocument();
+    expect(screen.getByText('Progress Proof')).toBeInTheDocument();
+    expect(screen.getByText('8 of 12')).toBeInTheDocument();
+    expect(screen.getByText('67%')).toBeInTheDocument();
+    expect(screen.getByText('4 charts to full proof')).toBeInTheDocument();
+  });
+
+  it('has social feed display metadata for milestone proof posts', () => {
+    expect(CATEGORY_GRADIENTS.milestone).toContain('var(--accent-gold');
+    expect(postTypeLabels.milestone).toBe('Progress Proof');
+    expect(postTypeColors.milestone).toBe('warning');
   });
 });

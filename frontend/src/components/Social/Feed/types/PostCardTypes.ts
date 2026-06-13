@@ -66,6 +66,14 @@ export interface ChallengePostData {
   duration?: string;
 }
 
+export interface ProgressProofPostData {
+  proofLevel?: string;
+  populatedCharts?: number;
+  totalCharts?: number;
+  nextUnlock?: string;
+  headline?: string;
+}
+
 export interface Post {
   id: string;
   content: string;
@@ -113,6 +121,7 @@ export interface Post {
   transformationData?: TransformationPostData;
   achievementData?: AchievementPostData;
   challengeData?: ChallengePostData;
+  progressProofData?: ProgressProofPostData;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -192,6 +201,7 @@ export interface PostMediaDisplayProps {
 /** Category gradient overlays (dark enough for text readability) */
 export const CATEGORY_GRADIENTS: Record<string, string> = {
   workout: 'linear-gradient(135deg, rgba(96,192,240,0.5) 0%, rgba(0,32,96,0.85) 100%)',
+  milestone: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-gold, #C6A84B) 58%, transparent) 0%, color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent) 45%, rgba(0,32,96,0.9) 100%)',
   transformation: 'linear-gradient(135deg, rgba(233,30,99,0.6) 0%, rgba(0,32,96,0.85) 100%)',
   achievement: 'linear-gradient(135deg, rgba(255,152,0,0.6) 0%, rgba(0,32,96,0.85) 100%)',
   challenge: 'linear-gradient(135deg, rgba(156,39,176,0.6) 0%, rgba(0,32,96,0.85) 100%)',
@@ -209,6 +219,7 @@ export const CATEGORY_GRADIENTS: Record<string, string> = {
 export const postTypeLabels: Record<string, string> = {
   general: 'Post',
   workout: 'Workout',
+  milestone: 'Progress Proof',
   achievement: 'Achievement',
   challenge: 'Challenge',
   transformation: 'Transformation',
@@ -225,6 +236,7 @@ export const postTypeLabels: Record<string, string> = {
 export const postTypeColors: Record<string, string> = {
   general: 'default',
   workout: 'primary',
+  milestone: 'warning',
   achievement: 'warning',
   challenge: 'warning',
   transformation: 'secondary',

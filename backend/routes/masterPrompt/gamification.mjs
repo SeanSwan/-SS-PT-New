@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
+import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
 import { ethicalGamification } from '../../services/gamification/EthicalGamification.mjs';
 import { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
@@ -66,7 +67,19 @@ router.post('/award-points',
         });
       }
       
-      const result = await gamificationEngine.awardPoints(userId, points, action, metadata);
+      const result = await GamificationPointsService.recordLedgerEntry({
+        userId,
+        points,
+        transactionType: 'earn',
+        source: 'admin_adjustment',
+        description: `Manual gamification award: ${action}`,
+        metadata: {
+          manualAction: action,
+          ...metadata
+        },
+        awardedBy: req.user?.id || null,
+        idempotencyKey: metadata.idempotencyKey || null
+      });
       
       // Track points award
       piiSafeLogger.trackGamificationEngagement('points_awarded', userId, {
@@ -89,8 +102,7 @@ router.post('/award-points',
       
       res.status(500).json({
         success: false,
-        message: 'Failed to award points',
-        error: error.message
+        message: 'Failed to award points'
       });
     }
   }

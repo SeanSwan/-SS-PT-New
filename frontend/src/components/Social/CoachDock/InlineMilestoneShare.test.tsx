@@ -24,10 +24,17 @@ import { dirname, resolve } from 'node:path';
 import InlineMilestoneShare from './InlineMilestoneShare';
 import { resolveShareableMilestone } from './milestoneResolver';
 
-const { mockNavigate, mockUseAuth, mockUseGamificationData, mockPost } = vi.hoisted(() => ({
+const {
+  mockNavigate,
+  mockUseAuth,
+  mockUseGamificationData,
+  mockUseClientProgressCharts,
+  mockPost,
+} = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockUseAuth: vi.fn(),
   mockUseGamificationData: vi.fn(),
+  mockUseClientProgressCharts: vi.fn(),
   mockPost: vi.fn(),
 }));
 
@@ -43,6 +50,10 @@ vi.mock('../../../hooks/gamification/useGamificationData', () => ({
   useGamificationData: mockUseGamificationData,
 }));
 
+vi.mock('../../../hooks/analytics/useClientProgressCharts', () => ({
+  useClientProgressCharts: mockUseClientProgressCharts,
+}));
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const profileState = (data: Record<string, unknown> | null, loading = false) => ({
@@ -56,6 +67,11 @@ beforeEach(() => {
   mockUseAuth.mockReturnValue({
     user: { role: 'user', firstName: 'Sean' },
     authAxios: { post: mockPost },
+  });
+  mockUseClientProgressCharts.mockReturnValue({
+    isLoading: false,
+    nonEmptyChartCount: 0,
+    unavailableChartCount: 0,
   });
 });
 
@@ -106,6 +122,46 @@ describe('InlineMilestoneShare — draft and confirm', () => {
       ),
     ).toBe(true);
     dispatchSpy.mockRestore();
+  });
+
+  it('adds progress proof to the share draft when chart readiness exists', async () => {
+    mockUseGamificationData.mockReturnValue(
+      profileState({ streakDays: 7, level: 3, points: 800 }),
+    );
+    mockUseClientProgressCharts.mockReturnValue({
+      isLoading: false,
+      nonEmptyChartCount: 8,
+      unavailableChartCount: 0,
+    });
+    const user = userEvent.setup();
+    render(<InlineMilestoneShare />);
+
+    expect(screen.getByText(/progress proof level: apex/i)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /share to feed/i }));
+
+    const formData = mockPost.mock.calls[0][1];
+    expect(formData.get('content')).toContain('7-day');
+    expect(formData.get('content')).toContain('Progress proof level: Apex');
+  });
+
+  it('shares chart proof when no streak, level, or points milestone is ready', async () => {
+    mockUseGamificationData.mockReturnValue(
+      profileState({ streakDays: 0, level: 1, points: 10 }),
+    );
+    mockUseClientProgressCharts.mockReturnValue({
+      isLoading: false,
+      nonEmptyChartCount: 4,
+      unavailableChartCount: 0,
+    });
+    const user = userEvent.setup();
+    render(<InlineMilestoneShare />);
+
+    expect(screen.getByText(/progress proof level: momentum/i)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /share to feed/i }));
+
+    const formData = mockPost.mock.calls[0][1];
+    expect(formData.get('type')).toBe('milestone');
+    expect(formData.get('content')).toContain('4/12 SwanStudios charts are populated');
   });
 
   it('refuses a 2xx that carries no post — the silent-rollback fake-201 class', async () => {

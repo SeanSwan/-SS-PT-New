@@ -16,6 +16,10 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
+import {
+  isProgressChartVisible,
+  type ProgressChartLensId,
+} from '../../../progress-proof/progressChartLens';
 import { CHART_COLORS, victoryTheme } from '../../../../Charts/chartTheme';
 import {
   durationLineProps,
@@ -38,15 +42,16 @@ import {
 
 interface AdminProgressPrimaryCardsProps {
   charts: CanonicalProgressCharts;
+  activeLensId: ProgressChartLensId;
 }
 
 const compactPadding = { top: 12, bottom: 36, left: 36, right: 8 };
 const volumePadding = { top: 12, bottom: 36, left: 48, right: 8 };
 const groupedPadding = { top: 20, bottom: 36, left: 44, right: 8 };
 
-export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts }) => (
+export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts, activeLensId }) => (
   <>
-    <Card data-testid="admin-chart-workoutFrequency">
+    {isProgressChartVisible(activeLensId, 'workoutFrequency') && <Card data-testid="admin-chart-workoutFrequency">
       <CardHeader>
         <Calendar size={14} color={CHART_COLORS.iceWing} />
         <CardTitle>Workout Frequency</CardTitle>
@@ -71,9 +76,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-attendance">
+    {isProgressChartVisible(activeLensId, 'attendanceReliability') && <Card data-testid="admin-chart-attendance">
       <CardHeader>
         <Users size={14} color={CHART_COLORS.gildedFern} />
         <CardTitle>Attendance Reliability</CardTitle>
@@ -89,9 +94,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </AttendanceSummary>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-weeklyVolume">
+    {isProgressChartVisible(activeLensId, 'weeklyVolume') && <Card data-testid="admin-chart-weeklyVolume">
       <CardHeader>
         <BarChart3 size={14} color={CHART_COLORS.wingPurple} />
         <CardTitle>Weekly Volume</CardTitle>
@@ -115,9 +120,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-setsReps">
+    {isProgressChartVisible(activeLensId, 'setsRepsTrend') && <Card data-testid="admin-chart-setsReps">
       <CardHeader>
         <Layers size={14} color={CHART_COLORS.arcticCyan} />
         <CardTitle>Sets & Reps Trend</CardTitle>
@@ -139,9 +144,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-duration">
+    {isProgressChartVisible(activeLensId, 'durationTrend') && <Card data-testid="admin-chart-duration">
       <CardHeader>
         <Activity size={14} color={CHART_COLORS.iceWing} />
         <CardTitle>Session Duration</CardTitle>
@@ -165,9 +170,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-intensityRpe">
+    {isProgressChartVisible(activeLensId, 'intensityRpeTrend') && <Card data-testid="admin-chart-intensityRpe">
       <CardHeader>
         <Flame size={14} color={CHART_COLORS.wingPurple} />
         <CardTitle>Effort Trend</CardTitle>
@@ -181,6 +186,6 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
   </>
 );

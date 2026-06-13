@@ -45,6 +45,76 @@
 // PostgreSQL-only architecture - MongoDB removed
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../../database.mjs';
+import GamificationPointsService from './GamificationPointsService.mjs';
+import PointTransaction from '../../models/PointTransaction.mjs';
+
+function normalizePointMetadata(metadata) {
+  return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+    ? metadata
+    : {};
+}
+
+function getPointIdempotencyKey(metadata) {
+  const normalized = normalizePointMetadata(metadata);
+  return normalized.idempotencyKey ? String(normalized.idempotencyKey).slice(0, 128) : null;
+}
+
+function stringifyPointMetadata(metadata) {
+  return JSON.stringify(normalizePointMetadata(metadata));
+}
+
+const VALID_POINT_SOURCES = new Set([
+  'workout_completion',
+  'exercise_completion',
+  'streak_bonus',
+  'level_up',
+  'achievement_earned',
+  'milestone_reached',
+  'reward_redemption',
+  'package_purchase',
+  'friend_referral',
+  'social_engagement',
+  'goal_milestone',
+  'goal_completed',
+  'admin_adjustment',
+  'trainer_award',
+  'challenge_completion'
+]);
+
+const LEGACY_REASON_SOURCE_MAP = {
+  workout_completed: 'workout_completion',
+  workout_completion: 'workout_completion',
+  workout_streak_3: 'streak_bonus',
+  workout_streak_7: 'streak_bonus',
+  workout_streak_14: 'streak_bonus',
+  goal_achieved: 'goal_completed',
+  form_improvement: 'exercise_completion',
+  helped_community: 'social_engagement',
+  profile_updated: 'social_engagement',
+  check_in_logged: 'social_engagement',
+  challenge_completion: 'challenge_completion'
+};
+
+function toPointSource(reason, metadata) {
+  if (VALID_POINT_SOURCES.has(metadata?.source)) return metadata.source;
+  if (String(reason || '').startsWith('achievement_')) return 'achievement_earned';
+  return LEGACY_REASON_SOURCE_MAP[reason] || 'social_engagement';
+}
+
+function toPointSourceId(metadata) {
+  for (const field of ['sourceId', 'workoutId', 'postId', 'commentId', 'challengeId', 'goalId', 'sessionId']) {
+    const parsed = Number(metadata?.[field]);
+    if (Number.isInteger(parsed)) return parsed;
+  }
+  return null;
+}
+
+function toPointDescription(reason) {
+  const label = String(reason || 'gamification_award')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return `Gamification: ${label}`;
+}
 
 class GamificationPersistence {
   constructor() {
@@ -192,6 +262,31 @@ class GamificationPersistence {
       // Calculate final points with category multiplier
       const category = this.pointCategories[reason] || this.pointCategories['workout_completion'];
       const finalPoints = Math.round(points * category.multiplier);
+      const ledgerResult = await GamificationPointsService.recordLedgerEntry({
+        userId,
+        points: finalPoints,
+        transactionType: 'earn',
+        source: toPointSource(reason, metadata),
+        sourceId: toPointSourceId(metadata),
+        description: toPointDescription(reason),
+        metadata: {
+          ...normalizePointMetadata(metadata),
+          legacyReason: reason
+        },
+        awardedBy: metadata?.awardedBy || null,
+        idempotencyKey: getPointIdempotencyKey(metadata)
+      });
+
+      if (ledgerResult.duplicate) {
+        return {
+          success: true,
+          duplicate: true,
+          pointsAwarded: 0,
+          totalPoints: ledgerResult.newBalance ?? await this.getTotalPoints(userId),
+          reason,
+          timestamp: Date.now()
+        };
+      }
 
       // 🎯 P0 FIX: Use Redis only if available, otherwise go straight to database
       if (this.redisEnabled && this.redis) {
@@ -219,9 +314,6 @@ class GamificationPersistence {
         }
       }
 
-      // Persistent storage with backup (PostgreSQL or MongoDB)
-      await this.persistPointTransaction(userId, finalPoints, reason, metadata);
-      
       // Check for achievements
       await this.checkAchievements(userId, reason, metadata);
 
@@ -235,8 +327,9 @@ class GamificationPersistence {
 
       return {
         success: true,
-        pointsAwarded: finalPoints,
-        totalPoints: await this.getTotalPoints(userId),
+        duplicate: false,
+        pointsAwarded: ledgerResult.pointsAwarded,
+        totalPoints: ledgerResult.newBalance ?? await this.getTotalPoints(userId),
         reason,
         timestamp: Date.now()
       };
@@ -265,7 +358,7 @@ class GamificationPersistence {
       userId,
       points,
       reason,
-      metadata: JSON.stringify(metadata),
+      metadata: stringifyPointMetadata(metadata),
       timestamp: new Date(),
       backedUp: false
     };
@@ -294,36 +387,31 @@ class GamificationPersistence {
    */
   async fallbackPointStorage(userId, points, reason, metadata) {
     try {
-      // Use PostgreSQL as primary fallback
-      if (this.usePostgreSQL) {
-        const [userPoints, created] = await sequelize.models.UserPointsLedger.findOrCreate({
-          where: { userId, reason, timestamp: new Date() },
-          defaults: {
-            userId,
-            points,
-            reason,
-            metadata: JSON.stringify(metadata),
-            timestamp: new Date()
-          }
-        });
+      const result = await GamificationPointsService.recordLedgerEntry({
+        userId,
+        points,
+        transactionType: 'earn',
+        source: toPointSource(reason, metadata),
+        sourceId: toPointSourceId(metadata),
+        description: toPointDescription(reason),
+        metadata: {
+          ...normalizePointMetadata(metadata),
+          legacyReason: reason,
+          fallbackUsed: 'postgresql'
+        },
+        awardedBy: metadata?.awardedBy || null,
+        idempotencyKey: getPointIdempotencyKey(metadata)
+      });
 
-        // Update user's total points
-        await sequelize.models.UserAchievements.increment('totalPoints', {
-          by: points,
-          where: { userId }
-        });
-
-        return {
-          success: true,
-          pointsAwarded: points,
-          fallbackUsed: 'postgresql',
-          reason,
-          timestamp: Date.now()
-        };
-      }
-
-      // MongoDB removed - PostgreSQL-only architecture
-      throw new Error('PostgreSQL fallback storage failed');
+      return {
+        success: true,
+        duplicate: !!result.duplicate,
+        pointsAwarded: result.pointsAwarded,
+        totalPoints: result.newBalance,
+        fallbackUsed: 'postgresql',
+        reason,
+        timestamp: Date.now()
+      };
     } catch (error) {
       piiSafeLogger.error('All storage methods failed', {
         error: error.message,
@@ -514,10 +602,11 @@ class GamificationPersistence {
       
       // Fallback to database
       try {
-        const result = await sequelize.models.UserPointsLedger.sum('points', {
-          where: { userId }
+        const latestTransaction = await PointTransaction.findOne({
+          where: { userId },
+          order: [['createdAt', 'DESC'], ['id', 'DESC']]
         });
-        return result || 0;
+        return Number(latestTransaction?.balance || 0);
       } catch (dbError) {
         piiSafeLogger.error('Failed to get total points', {
           error: dbError.message,
@@ -532,6 +621,10 @@ class GamificationPersistence {
       });
       return 0;
     }
+  }
+
+  async getUserTotalPoints(userId) {
+    return this.getTotalPoints(userId);
   }
 
   /**

@@ -4,10 +4,12 @@
  * PURPOSE: Admin/trainer-scoped 12-chart client progress surface.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
+import ProgressProofCockpit from '../../../progress-proof/ProgressProofCockpit';
+import type { ProgressChartLensId } from '../../../progress-proof/progressChartLens';
 import { AdminProgressChartDeck } from './AdminProgressChartsGrid.cards';
 import ClientExerciseMegaStats from '../../../progress/ClientExerciseMegaStats';
 import {
@@ -22,6 +24,7 @@ interface Props {
 }
 
 const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
+  const [activeLensId, setActiveLensId] = useState<ProgressChartLensId>('all');
   const {
     charts,
     isLoading,
@@ -40,12 +43,20 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
 
   return (
     <div data-testid="admin-progress-charts-grid">
+      <ProgressProofCockpit
+        activeLensId={activeLensId}
+        audience="admin"
+        nonEmptyChartCount={nonEmptyChartCount}
+        subjectLabel={clientName}
+        unavailableChartCount={unavailableChartCount}
+        onLensChange={setActiveLensId}
+      />
       <SummaryLine>
         <TrendingUp size={13} />
         <span>{clientName} - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
       </SummaryLine>
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
-      <AdminProgressChartDeck charts={charts} />
+      <AdminProgressChartDeck charts={charts} activeLensId={activeLensId} />
     </div>
   );
 };

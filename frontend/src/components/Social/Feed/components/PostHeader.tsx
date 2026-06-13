@@ -61,6 +61,7 @@ import {
 const postTypeIcons: Record<string, React.ElementType> = {
   general: User,
   workout: Dumbbell,
+  milestone: Trophy,
   achievement: Award,
   challenge: Trophy,
   transformation: Camera,

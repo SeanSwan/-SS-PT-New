@@ -9,14 +9,11 @@ import {
   VictoryAxis,
   VictoryBar,
   VictoryChart,
-  VictoryGroup,
-  VictoryLegend,
   VictoryLine,
   VictoryTooltip,
   VictoryVoronoiContainer,
-  VictoryArea,
 } from 'victory';
-import { Activity, BarChart3, Calendar, Flame, Layers, Users } from 'lucide-react';
+import { Activity, Calendar, Flame, Users } from 'lucide-react';
 import {
   type CanonicalProgressCharts,
   type ChartPoint,
@@ -26,10 +23,6 @@ import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
 import {
   durationLineProps,
   intensityLineProps,
-  repsBarProps,
-  setsBarProps,
-  setsRepsLegendProps,
-  weeklyVolumeAreaProps,
   workoutFrequencyBarProps,
 } from './CanonicalProgressChartsGrid.victoryProps';
 import {
@@ -123,91 +116,6 @@ export const AttendanceReliabilityCard: React.FC<{
             </StatPill>
           </StatStack>
         </RingWrap>
-      )}
-    </ChartBody>
-  </ChartCard>
-);
-
-export const WeeklyVolumeCard: React.FC<{
-  data: CanonicalProgressCharts['weeklyVolume'];
-}> = ({ data }) => (
-  <ChartCard data-testid="chart-card-weeklyVolume">
-    <CardHeader>
-      <CardIcon $color={CHART_COLORS.wingPurple}><BarChart3 size={16} /></CardIcon>
-      <CardTitle>Weekly Training Volume</CardTitle>
-      <CardSubtitle>lbs - 12 weeks</CardSubtitle>
-    </CardHeader>
-    <ChartBody>
-      {data.length === 0 ? (
-        <EmptyCard label="No logged lifts yet" hint="Sets x reps x weight will populate once workouts are logged." />
-      ) : (
-        <VictoryChart
-          theme={victoryTheme as any}
-          height={200}
-          padding={{ top: 16, bottom: 40, left: 52, right: 12 }}
-          containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-        >
-          <VictoryAxis />
-          <VictoryAxis dependentAxis />
-          <VictoryArea
-            data={data}
-            {...weeklyVolumeAreaProps}
-            labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`}
-            labelComponent={<VictoryTooltip renderInPortal={false} />}
-          />
-        </VictoryChart>
-      )}
-    </ChartBody>
-  </ChartCard>
-);
-
-export const SetsRepsTrendCard: React.FC<{
-  bundle: CanonicalProgressCharts['setsRepsTrend'];
-}> = ({ bundle }) => (
-  <ChartCard data-testid="chart-card-setsRepsTrend">
-    <CardHeader>
-      <CardIcon $color={CHART_COLORS.arcticCyan}><Layers size={16} /></CardIcon>
-      <CardTitle>Total Sets &amp; Reps</CardTitle>
-      <CardSubtitle>12 weeks</CardSubtitle>
-    </CardHeader>
-    <ChartBody>
-      {bundle.sets.length === 0 ? (
-        <EmptyCard label="No sets logged yet" />
-      ) : (
-        <VictoryChart
-          theme={victoryTheme as any}
-          height={200}
-          padding={{ top: 24, bottom: 40, left: 50, right: 12 }}
-          containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-        >
-          <VictoryLegend
-            x={50}
-            y={0}
-            orientation="horizontal"
-            gutter={16}
-            {...setsRepsLegendProps}
-            data={[
-              { name: 'Sets', symbol: { fill: CHART_COLORS.arcticCyan } },
-              { name: 'Reps', symbol: { fill: CHART_COLORS.gildedFern } },
-            ]}
-          />
-          <VictoryAxis />
-          <VictoryAxis dependentAxis />
-          <VictoryGroup offset={8}>
-            <VictoryBar
-              data={bundle.sets}
-              {...setsBarProps}
-              labels={({ datum }) => `Sets ${datum.x}: ${datum.y}`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-            <VictoryBar
-              data={bundle.reps}
-              {...repsBarProps}
-              labels={({ datum }) => `Reps ${datum.x}: ${datum.y}`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryGroup>
-        </VictoryChart>
       )}
     </ChartBody>
   </ChartCard>

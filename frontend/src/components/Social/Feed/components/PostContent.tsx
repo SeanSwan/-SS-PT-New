@@ -24,6 +24,7 @@
 import React from 'react';
 import { Clock, Dumbbell, Weight, Flame, Zap, Trophy, Star, Play } from 'lucide-react';
 import type { PostContentProps } from '../types/PostCardTypes';
+import ProofFeedCard from './ProofFeedCard';
 import {
   PostContentArea,
   PostText,
@@ -163,7 +164,11 @@ const PostContent: React.FC<PostContentProps> = React.memo(({ post, transformati
         <AchievementBadgeBlock achievementData={post.achievementData} />
       )}
 
-      <PostText>{post.content}</PostText>
+      {post.type === 'milestone' ? (
+        <ProofFeedCard post={post} />
+      ) : (
+        <PostText>{post.content}</PostText>
+      )}
 
       {/* Workout Stats */}
       {post.type === 'workout' && post.workoutData && (

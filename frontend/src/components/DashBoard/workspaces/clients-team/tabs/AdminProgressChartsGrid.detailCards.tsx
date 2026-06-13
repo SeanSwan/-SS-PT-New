@@ -13,6 +13,10 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
+import {
+  isProgressChartVisible,
+  type ProgressChartLensId,
+} from '../../../progress-proof/progressChartLens';
 import { CHART_COLORS, FULL_PALETTE, victoryTheme } from '../../../../Charts/chartTheme';
 import {
   getAnchorLineProps,
@@ -39,6 +43,7 @@ import {
 
 interface AdminProgressDetailCardsProps {
   charts: CanonicalProgressCharts;
+  activeLensId: ProgressChartLensId;
 }
 
 const anchorPadding = { top: 20, bottom: 36, left: 40, right: 8 };
@@ -59,9 +64,9 @@ const getBestPrs = (points: CanonicalProgressCharts['prTimeline']) => {
   return Array.from(bestByExercise.values()).sort((a, b) => b.y - a.y).slice(0, 6);
 };
 
-export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> = ({ charts }) => (
+export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> = ({ charts, activeLensId }) => (
   <>
-    <Card data-testid="admin-chart-prs">
+    {isProgressChartVisible(activeLensId, 'prTimeline') && <Card data-testid="admin-chart-prs">
       <CardHeader>
         <Trophy size={14} color={CHART_COLORS.gildedFern} />
         <CardTitle>PR Highlights</CardTitle>
@@ -83,9 +88,9 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           );
         })()}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-anchorLifts">
+    {isProgressChartVisible(activeLensId, 'anchorLifts') && <Card data-testid="admin-chart-anchorLifts">
       <CardHeader>
         <TrendIcon size={14} color={CHART_COLORS.iceWing} />
         <CardTitle>Anchor Lifts</CardTitle>
@@ -107,9 +112,9 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           </VictoryChart>
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-exerciseFreq">
+    {isProgressChartVisible(activeLensId, 'exerciseFrequency') && <Card data-testid="admin-chart-exerciseFreq">
       <CardHeader>
         <Dumbbell size={14} color={CHART_COLORS.arcticCyan} />
         <CardTitle>Exercise Frequency</CardTitle>
@@ -131,9 +136,9 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           );
         })()}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-movementPattern">
+    {isProgressChartVisible(activeLensId, 'movementPatternBalance') && <Card data-testid="admin-chart-movementPattern">
       <CardHeader>
         <Target size={14} color={CHART_COLORS.iceWing} />
         <CardTitle>Movement Patterns</CardTitle>
@@ -151,9 +156,9 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           />
         )}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-muscleGroup">
+    {isProgressChartVisible(activeLensId, 'muscleGroupBalance') && <Card data-testid="admin-chart-muscleGroup">
       <CardHeader>
         <BarChart3 size={14} color={CHART_COLORS.gildedFern} />
         <CardTitle>Muscle Group Volume</CardTitle>
@@ -174,9 +179,9 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           );
         })()}
       </CardBody>
-    </Card>
+    </Card>}
 
-    <Card data-testid="admin-chart-recovery">
+    {isProgressChartVisible(activeLensId, 'recoverySignal') && <Card data-testid="admin-chart-recovery">
       <CardHeader>
         <HeartPulse size={14} color={CHART_COLORS.crimsonFrost} />
         <CardTitle>Recovery Signals</CardTitle>
@@ -204,6 +209,6 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
           </BarList>
         )}
       </CardBody>
-    </Card>
+    </Card>}
   </>
 );
