@@ -1,89 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
-
-// Friend types
-export interface FriendUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  photo?: string;
-  role: string;
-  points?: number;
-  friendshipStatus?: 'pending' | 'accepted' | 'declined' | 'blocked' | null;
-  friendshipId?: string | null;
-  isRequester?: boolean;
-}
-
-interface Friend extends FriendUser {
-  friendshipId: string;
-  createdAt: string;
-}
-
-interface FriendRequest {
-  id: string;
-  requester: FriendUser;
-  createdAt: string;
-}
-
-type FriendRequestAction = 'accept' | 'decline';
-
-const FRIEND_REQUEST_ACTION_COPY: Record<FriendRequestAction, {
-  successTitle: string;
-  successDescription: string;
-  errorLog: string;
-  errorDescription: string;
-}> = {
-  accept: {
-    successTitle: 'Friend request accepted',
-    successDescription: 'You are now friends with this user.',
-    errorLog: 'Error accepting friend request:',
-    errorDescription: 'Unable to accept friend request. Please try again later.',
-  },
-  decline: {
-    successTitle: 'Friend request declined',
-    successDescription: 'The friend request has been declined.',
-    errorLog: 'Error declining friend request:',
-    errorDescription: 'Unable to decline friend request. Please try again later.',
-  },
-};
-
-type FriendRequestResponse = {
-  data?: {
-    friendship?: {
-      id?: string | number | null;
-    };
-  };
-};
-
-const FRIEND_REQUEST_SEND_FALLBACK = 'Unable to send friend request. Please try again later.';
-
-function responseFriendshipId(response: FriendRequestResponse) {
-  const friendshipId = response.data?.friendship?.id;
-  return friendshipId == null ? null : String(friendshipId);
-}
-
-function pendingSuggestion(candidate: FriendUser, recipientId: string, friendshipId: string | null) {
-  if (candidate.id !== recipientId) return candidate;
-  return {
-    ...candidate,
-    friendshipStatus: 'pending' as const,
-    friendshipId: friendshipId || candidate.friendshipId || null,
-    isRequester: true,
-  };
-}
-
-function friendRequestSendErrorDescription(err: unknown) {
-  return (err as { response?: { data?: { message?: string } } }).response?.data?.message || FRIEND_REQUEST_SEND_FALLBACK;
-}
-
-function socialSearchQuery(canSearch: boolean, query: string) {
-  const trimmedQuery = query.trim();
-  if (!canSearch) return null;
-  if (!trimmedQuery) return null;
-  return trimmedQuery;
-}
+import {
+  FRIEND_REQUEST_ACTION_COPY,
+  friendRequestSendErrorDescription,
+  pendingSuggestion,
+  responseFriendshipId,
+  socialSearchQuery,
+} from './useSocialFriends.helpers';
+import type { Friend, FriendRequest, FriendRequestAction, FriendUser } from './useSocialFriends.types';
 
 /**
  * Hook for managing social friends functionality

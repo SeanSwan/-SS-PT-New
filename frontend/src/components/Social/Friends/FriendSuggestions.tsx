@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, UserPlus, Users } from 'lucide-react';
-import type { FriendUser, SocialFriendsApi } from '../../../hooks/social/useSocialFriends';
+import type { SocialFriendsApi } from '../../../hooks/social/useSocialFriends';
+import type { FriendUser } from '../../../hooks/social/useSocialFriends.types';
 import CustomModal from '../../UniversalMasterSchedule/ui/CustomModal';
 import { FriendSearchPanel, FriendSuggestionsPanel } from './FriendSuggestionRows';
 import {

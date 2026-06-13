@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { CheckCircle, Search, UserPlus, Users } from 'lucide-react';
-import type { FriendUser } from '../../../hooks/social/useSocialFriends';
+import type { FriendUser } from '../../../hooks/social/useSocialFriends.types';
 import { cssUrlValue, sanitizeImageUrl } from '../../../utils/imageUrl';
 import {
   Avatar,
