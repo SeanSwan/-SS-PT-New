@@ -1716,8 +1716,9 @@ class UnifiedSessionService {
               userId: client.id
             });
           } else {
+            await client.increment('availableSessions', { by: 1, transaction });
+            // in-memory sync only — the atomic increment above is the source of truth.
             client.availableSessions = (client.availableSessions || 0) + 1;
-            await client.save({ transaction });
 
             // Mark credit as restored (idempotency flag for canonical restoreSessionCredit)
             session.sessionCreditRestored = true;
@@ -2575,9 +2576,12 @@ class UnifiedSessionService {
         user.clientSource = 'swanstudios';
       }
 
-      // Update user's available sessions count
+      // Update user's available sessions count atomically (handles +grant and
+      // -deduction; the DB computes the new balance in one UPDATE to avoid lost
+      // updates if balance changes race).
+      await user.increment('availableSessions', { by: sessionCount, transaction });
+      // in-memory sync only — the atomic increment above is the source of truth.
       user.availableSessions = (user.availableSessions || 0) + sessionCount;
-      await user.save({ transaction });
       
       logger.info(`[UnifiedSessionService] User ${user.id} balance updated with ${sessionCount} sessions`);
     } catch (error) {

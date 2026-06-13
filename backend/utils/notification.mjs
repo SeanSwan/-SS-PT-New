@@ -541,11 +541,14 @@ export const processSessionDeduction = async (session, client, transaction = nul
       };
     }
 
-    // Deduct session credits from client's available sessions
+    // Deduct session credits atomically — the DB computes the new balance in a
+    // single UPDATE, so two deductions racing the same client can't lose an
+    // update (the read-then-write version could double-spend a credit).
       const saveOptions = transaction ? { transaction } : {};
 
+      await client.decrement('availableSessions', { by: creditsToDeduct, ...saveOptions });
+      // in-memory sync only — the atomic decrement above is the source of truth.
       client.availableSessions = availableSessionCount - creditsToDeduct;
-      await client.save(saveOptions);
     
     // Mark session as deducted
     session.sessionDeducted = true;
