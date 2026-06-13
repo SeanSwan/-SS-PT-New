@@ -8,6 +8,17 @@ import React from 'react';
 import { Bell, CheckCheck, Inbox, RefreshCw } from 'lucide-react';
 import styled from 'styled-components';
 import type { SocialNotification } from '../../../hooks/useSocialNotifications';
+import {
+  ActionButton,
+  HeaderActions,
+  IconButton,
+  Kicker,
+  PanelHeader,
+  PanelShell,
+  PanelTitle,
+  TitleBlock,
+  UnreadPill,
+} from './SocialNotificationsPanel.styles';
 
 interface SocialNotificationsPanelProps {
   notifications: SocialNotification[];
@@ -16,6 +27,19 @@ interface SocialNotificationsPanelProps {
   error: string | null;
   onRefresh: () => void;
   onMarkAllRead: () => void;
+  onOpenNotification: (notification: SocialNotification) => void;
+}
+
+interface NotificationPanelBodyProps {
+  notifications: SocialNotification[];
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+  onOpenNotification: (notification: SocialNotification) => void;
+}
+
+interface NotificationListProps {
+  notifications: SocialNotification[];
   onOpenNotification: (notification: SocialNotification) => void;
 }
 
@@ -40,6 +64,94 @@ function getSenderName(notification: SocialNotification) {
   const sender = notification.sender;
   if (!sender) return null;
   return [sender.firstName, sender.lastName].filter(Boolean).join(' ') || null;
+}
+
+function LoadingNotificationsState() {
+  return (
+    <Stack aria-label="Loading notifications">
+      {[0, 1, 2].map((item) => (
+        <SkeletonRow key={item} />
+      ))}
+    </Stack>
+  );
+}
+
+function ErrorNotificationsState({ error, onRefresh }: Pick<NotificationPanelBodyProps, 'error' | 'onRefresh'>) {
+  return (
+    <StateBlock>
+      <Inbox size={34} />
+      <StateTitle>Notifications unavailable</StateTitle>
+      <StateText>{error}</StateText>
+      <ActionButton type="button" onClick={onRefresh}>
+        <RefreshCw size={16} />
+        Retry
+      </ActionButton>
+    </StateBlock>
+  );
+}
+
+function EmptyNotificationsState() {
+  return (
+    <StateBlock>
+      <Inbox size={34} />
+      <StateTitle>All clear</StateTitle>
+      <StateText>New session, progress, and reward updates will land here.</StateText>
+    </StateBlock>
+  );
+}
+
+function NotificationItem({
+  notification,
+  onOpenNotification,
+}: {
+  notification: SocialNotification;
+  onOpenNotification: (notification: SocialNotification) => void;
+}) {
+  const senderName = getSenderName(notification);
+
+  return (
+    <NotificationRow
+      key={notification.id}
+      type="button"
+      $unread={!notification.read}
+      onClick={() => onOpenNotification(notification)}
+    >
+      <StatusRail $unread={!notification.read} />
+      <NotificationCopy>
+        <MetaRow>
+          <TypePill>{TYPE_LABELS[notification.type] || notification.type || 'Update'}</TypePill>
+          <TimeText>{formatDate(notification.createdAt)}</TimeText>
+        </MetaRow>
+        <NotificationTitle>{notification.title}</NotificationTitle>
+        <NotificationMessage>{notification.message}</NotificationMessage>
+        {senderName && <SenderText>From {senderName}</SenderText>}
+      </NotificationCopy>
+    </NotificationRow>
+  );
+}
+
+function NotificationList({ notifications, onOpenNotification }: NotificationListProps) {
+  return (
+    <Stack>
+      {notifications.map((notification) => (
+        <NotificationItem key={notification.id} notification={notification} onOpenNotification={onOpenNotification} />
+      ))}
+    </Stack>
+  );
+}
+
+function NotificationPanelBody({
+  notifications,
+  loading,
+  error,
+  onRefresh,
+  onOpenNotification,
+}: NotificationPanelBodyProps) {
+  if (loading) return <LoadingNotificationsState />;
+  if (error) return <ErrorNotificationsState error={error} onRefresh={onRefresh} />;
+  if (notifications.length === 0) return <EmptyNotificationsState />;
+
+  return <NotificationList notifications={notifications} onOpenNotification={onOpenNotification} />;
 }
 
 const SocialNotificationsPanel: React.FC<SocialNotificationsPanelProps> = ({
@@ -74,136 +186,16 @@ const SocialNotificationsPanel: React.FC<SocialNotificationsPanelProps> = ({
           </IconButton>
         </HeaderActions>
       </PanelHeader>
-
-      {loading ? (
-        <Stack aria-label="Loading notifications">
-          {[0, 1, 2].map((item) => (
-            <SkeletonRow key={item} />
-          ))}
-        </Stack>
-      ) : error ? (
-        <StateBlock>
-          <Inbox size={34} />
-          <StateTitle>Notifications unavailable</StateTitle>
-          <StateText>{error}</StateText>
-          <ActionButton type="button" onClick={onRefresh}>
-            <RefreshCw size={16} />
-            Retry
-          </ActionButton>
-        </StateBlock>
-      ) : notifications.length === 0 ? (
-        <StateBlock>
-          <Inbox size={34} />
-          <StateTitle>All clear</StateTitle>
-          <StateText>New session, progress, and reward updates will land here.</StateText>
-        </StateBlock>
-      ) : (
-        <Stack>
-          {notifications.map((notification) => {
-            const senderName = getSenderName(notification);
-            return (
-              <NotificationRow
-                key={notification.id}
-                type="button"
-                $unread={!notification.read}
-                onClick={() => onOpenNotification(notification)}
-              >
-                <StatusRail $unread={!notification.read} />
-                <NotificationCopy>
-                  <MetaRow>
-                    <TypePill>{TYPE_LABELS[notification.type] || notification.type || 'Update'}</TypePill>
-                    <TimeText>{formatDate(notification.createdAt)}</TimeText>
-                  </MetaRow>
-                  <NotificationTitle>{notification.title}</NotificationTitle>
-                  <NotificationMessage>{notification.message}</NotificationMessage>
-                  {senderName && <SenderText>From {senderName}</SenderText>}
-                </NotificationCopy>
-              </NotificationRow>
-            );
-          })}
-        </Stack>
-      )}
+      <NotificationPanelBody
+        notifications={notifications}
+        loading={loading}
+        error={error}
+        onRefresh={onRefresh}
+        onOpenNotification={onOpenNotification}
+      />
     </PanelShell>
   );
 };
-
-const PanelShell = styled.section`
-  width: 100%;
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(0, 32, 96, 0.72), rgba(10, 10, 15, 0.88)),
-    var(--bg-elevated, #003080);
-  padding: clamp(18px, 3vw, 28px);
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const PanelHeader = styled.header`
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-
-  @media (max-width: 680px) {
-    flex-direction: column;
-  }
-`;
-
-const TitleBlock = styled.div`display: grid; gap: 6px;`;
-
-const Kicker = styled.span`
-  color: var(--accent-luxury, #C6A84B);
-  font: 700 0.72rem/1 'Fira Code', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
-const PanelTitle = styled.h2`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font: 700 clamp(1.35rem, 3vw, 2rem)/1.1 'Plus Jakarta Sans', sans-serif;
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-`;
-
-const UnreadPill = styled.span`
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--accent-luxury, #C6A84B) 34%, transparent);
-  border-radius: 999px;
-  padding: 0 12px;
-  color: var(--accent-luxury, #C6A84B);
-  font: 700 0.78rem/1 'Fira Code', monospace;
-`;
-
-const ActionButton = styled.button`
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--surface-primary, #003080) 68%, transparent);
-  color: var(--text-primary, #E0ECF4);
-  cursor: pointer;
-  font: 700 0.82rem/1 'Sora', sans-serif;
-  padding: 0 14px;
-`;
-
-const IconButton = styled(ActionButton)`
-  width: 44px;
-  justify-content: center;
-  padding: 0;
-`;
 
 const Stack = styled.div`display: grid; gap: 12px;`;
 
@@ -294,7 +286,12 @@ const StateText = styled.p`
 const SkeletonRow = styled.div`
   min-height: 92px;
   border-radius: 8px;
-  background: linear-gradient(90deg, rgba(96, 192, 240, 0.08), rgba(139, 92, 246, 0.12), rgba(96, 192, 240, 0.08));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent),
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent),
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)
+  );
 `;
 
 export default SocialNotificationsPanel;

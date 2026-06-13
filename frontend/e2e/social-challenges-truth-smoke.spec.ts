@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { watchSocialSmokeConsole } from './social-dashboard-smoke-utils';
 
 const clientUser = {
   id: '101',
@@ -79,11 +80,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('social challenges show an honest empty state when challenge API fails', async ({ page }, testInfo) => {
-  const consoleErrors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
+  const consoleWatcher = watchSocialSmokeConsole(page);
 
   await page.goto('/social/challenges', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -94,10 +91,10 @@ test('social challenges show an honest empty state when challenge API fails', as
   await expect(page.getByText(/showing sample challenges/i)).toHaveCount(0);
 
   const layout = await inspectLayout(page);
-  expect(new URL(page.url()).pathname).toBe('/social/challenges');
+  expect(new URL(page.url()).pathname).toBe('/user-dashboard/challenges');
   expect(layout.bodyText).not.toMatch(/Cardio Crusher|Original Song Challenge|Game Night Stream/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleWatcher.actionableErrors()).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('social-challenges-truth-smoke.png'), fullPage: false });
 });

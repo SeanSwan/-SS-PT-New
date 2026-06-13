@@ -71,9 +71,13 @@ export const coachCommandShellStyles = css`
   }
 
   .glass {
-    background: linear-gradient(180deg, rgba(18, 26, 45, 0.84), rgba(10, 16, 31, 0.74));
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--coach-surface-strong) 84%, transparent),
+      color-mix(in srgb, var(--coach-bg-2) 74%, transparent)
+    );
     border: 1px solid var(--coach-line);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.44);
+    box-shadow: 0 24px 70px color-mix(in srgb, var(--coach-bg) 76%, transparent);
     backdrop-filter: blur(22px) saturate(1.25);
   }
 
@@ -136,35 +140,35 @@ export const coachCommandShellStyles = css`
   .status-pill.processing {
     background: color-mix(in srgb, var(--coach-cyan) 14%, transparent);
     border-color: color-mix(in srgb, var(--coach-cyan) 34%, transparent);
-    color: #c9f5ff;
+    color: color-mix(in srgb, var(--coach-cyan) 78%, var(--coach-text));
   }
 
   .mini-chip.purple,
   .status-pill.stale {
     background: color-mix(in srgb, var(--coach-purple) 16%, transparent);
     border-color: color-mix(in srgb, var(--coach-purple) 34%, transparent);
-    color: #e3d8ff;
+    color: color-mix(in srgb, var(--coach-purple) 54%, var(--coach-text));
   }
 
   .mini-chip.gold,
   .status-pill.hold {
     background: color-mix(in srgb, var(--coach-gold) 16%, transparent);
     border-color: color-mix(in srgb, var(--coach-gold) 36%, transparent);
-    color: #ffe7ad;
+    color: color-mix(in srgb, var(--coach-gold) 68%, var(--coach-text));
   }
 
   .mini-chip.green,
   .status-pill.ready {
     background: color-mix(in srgb, var(--coach-success) 14%, transparent);
     border-color: color-mix(in srgb, var(--coach-success) 34%, transparent);
-    color: #cbffe3;
+    color: color-mix(in srgb, var(--coach-success) 68%, var(--coach-text));
   }
 
   .mini-chip.red,
   .status-pill.failed {
     background: color-mix(in srgb, var(--coach-danger) 14%, transparent);
     border-color: color-mix(in srgb, var(--coach-danger) 34%, transparent);
-    color: #ffd6de;
+    color: color-mix(in srgb, var(--coach-danger) 64%, var(--coach-text));
   }
 
   .primary-button,
@@ -185,9 +189,14 @@ export const coachCommandShellStyles = css`
   }
 
   .primary-button {
-    background: linear-gradient(135deg, var(--coach-cyan), #73f2ff 48%, var(--coach-purple));
+    background: linear-gradient(
+      135deg,
+      var(--coach-cyan),
+      color-mix(in srgb, var(--coach-cyan) 76%, var(--coach-text)) 48%,
+      var(--coach-purple)
+    );
     box-shadow: 0 16px 34px color-mix(in srgb, var(--coach-cyan) 16%, transparent);
-    color: #06101d;
+    color: var(--coach-bg);
   }
 
   .secondary-button,
@@ -210,8 +219,7 @@ export const coachCommandShellStyles = css`
   .primary-button:hover,
   .secondary-button:hover,
   .ghost-button:hover,
-  .rail-toggle:hover,
-  .workflow-card:hover {
+  .rail-toggle:hover {
     transform: translateY(-1px);
   }
 

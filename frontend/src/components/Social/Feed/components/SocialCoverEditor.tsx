@@ -27,7 +27,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';
 import { useProfile } from '../../../../hooks/profile/useProfile';
 import { useBannerCompositionState } from '../../../UserDashboard/hooks/useBannerCompositionState';
-import UserDashboardBannerRepositionPanelContent from '../../../UserDashboard/components/UserDashboardBannerRepositionPanelContent';
+import CoverStudioPanel from './CoverStudioPanel';
 import UserDashboardBannerMediaLayer from '../../../UserDashboard/components/UserDashboardBannerMediaLayer';
 import {
   EditorButton,
@@ -110,23 +110,19 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose }) => {
       </PreviewFrame>
 
       <PanelWell>
-        <UserDashboardBannerRepositionPanelContent
-          backgroundImage={backgroundImage}
+        <CoverStudioPanel
           bannerObjectPosition={composition.bannerObjectPosition}
           bannerObjectFit={composition.bannerObjectFit}
           bannerImageScale={composition.bannerImageScale}
           bannerFrameHeight={composition.bannerFrameHeight}
           bannerCollagePhotos={composition.bannerCollagePhotos}
           bannerCollageLayout={composition.bannerCollageLayout}
-          bannerStickyCarousel={composition.bannerStickyCarousel}
           bannerPresets={composition.bannerPresets}
-          canDragBanner={false}
           onBannerCropPreview={composition.previewBannerCrop}
           onBannerCropCommit={composition.handleBannerCropCommit}
           onBannerCollageFiles={composition.handleBannerCollageFiles}
           onBannerCollageRemove={composition.handleBannerCollageRemove}
           onBannerCollageLayoutCommit={composition.handleBannerCollageLayoutCommit}
-          onBannerStickyCarouselCommit={composition.handleBannerStickyCarouselCommit}
           onBannerPresetSave={composition.handleBannerPresetSave}
           onBannerPresetApply={composition.handleBannerPresetApply}
           onBannerPresetRemove={composition.handleBannerPresetRemove}

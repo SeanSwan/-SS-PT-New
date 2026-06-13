@@ -1,36 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Users, UserCheck, UserX } from 'lucide-react';
+import { Search, UserPlus, Users, UserCheck } from 'lucide-react';
 import { useSocialFriends } from '../../../hooks/social/useSocialFriends';
-import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import FriendRequests from './FriendRequests';
 import FriendSuggestions from './FriendSuggestions';
+import { FriendsContent, FriendsLoadingCard } from './FriendsListRows';
 import RemoveFriendConfirmDialog from './RemoveFriendConfirmDialog';
 import {
   CardBody,
   CardPanel,
   CountRow,
   CountText,
-  EmptyState,
-  EmptyText,
-  EmptyTitle,
-  FriendActions,
-  FriendAvatar,
-  FriendInfo,
-  FriendItem,
-  FriendName,
+  ActionBadge,
   FriendsContainer,
-  FriendUsername,
   HeaderLeft,
   HeaderRow,
   HeaderTitle,
   OutlineBtn,
-  PrimaryBtn,
-  RemoveBtn,
   SearchBarWrapper,
   SearchIcon,
   SearchInput,
-  SkeletonBlock,
   TextBtn,
 } from './FriendsList.styles';
 
@@ -39,25 +28,64 @@ type PendingRemoval = {
   friendName: string;
 };
 
+type Friend = ReturnType<typeof useSocialFriends>['friends'][number];
+
+function filterFriends(friends: Friend[], searchQuery: string) {
+  const query = searchQuery.toLowerCase();
+  return friends.filter(friend => {
+    const fullName = `${friend.firstName} ${friend.lastName}`.toLowerCase();
+    const username = friend.username.toLowerCase();
+    return fullName.includes(query) || username.includes(query);
+  });
+}
+
+function requestCountLabel(count: number) {
+  return `${count} ${count === 1 ? 'request' : 'requests'}`;
+}
+
+function RequestCountBadge({ label, count }: { label: string; count: number }) {
+  if (count === 0) return null;
+  return <ActionBadge>{label}</ActionBadge>;
+}
+
+function RemoveDialogSlot({
+  busy,
+  pendingRemoval,
+  onCancel,
+  onConfirm,
+}: {
+  busy: boolean;
+  pendingRemoval: PendingRemoval | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!pendingRemoval) return null;
+  return (
+    <RemoveFriendConfirmDialog
+      friendName={pendingRemoval.friendName}
+      busy={busy}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  );
+}
+
 /**
  * FriendsList Component
  * Displays a list of friends with search and filter capabilities
  */
 const FriendsList: React.FC = () => {
   const navigate = useNavigate();
-  const { friends, isLoading, removeFriend } = useSocialFriends();
+  const friendsApi = useSocialFriends();
+  const { friends, friendRequests, isLoading, removeFriend } = friendsApi;
   const [searchQuery, setSearchQuery] = useState('');
   const [showRequests, setShowRequests] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
   const [isRemovingFriend, setIsRemovingFriend] = useState(false);
 
-  const filteredFriends = friends.filter(friend => {
-    const fullName = `${friend.firstName} ${friend.lastName}`.toLowerCase();
-    const username = friend.username.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return fullName.includes(query) || username.includes(query);
-  });
+  const filteredFriends = filterFriends(friends, searchQuery);
+  const friendRequestCountLabel = requestCountLabel(friendRequests.length);
 
   const requestRemoveFriend = (friendshipId: string, friendName: string) => {
     setPendingRemoval({ friendshipId, friendName });
@@ -79,28 +107,7 @@ const FriendsList: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <FriendsContainer>
-        <CardPanel>
-          <CardBody>
-            <HeaderTitle style={{ marginBottom: 16 }}>Friends</HeaderTitle>
-            <SearchBarWrapper>
-              <SkeletonBlock $height="44px" $borderRadius="8px" />
-            </SearchBarWrapper>
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'center', padding: '12px 0' }}>
-                <SkeletonBlock $width="40px" $height="40px" $borderRadius="50%" />
-                <div style={{ flex: 1, marginLeft: 12 }}>
-                  <SkeletonBlock $width="120px" $height="18px" />
-                  <SkeletonBlock $width="80px" $height="14px" style={{ marginTop: 4 }} />
-                </div>
-                <SkeletonBlock $width="100px" $height="36px" $borderRadius="6px" />
-              </div>
-            ))}
-          </CardBody>
-        </CardPanel>
-      </FriendsContainer>
-    );
+    return <FriendsLoadingCard />;
   }
 
   return (
@@ -130,76 +137,43 @@ const FriendsList: React.FC = () => {
             <CountText>
               {friends.length} {friends.length === 1 ? 'Friend' : 'Friends'}
             </CountText>
-            <TextBtn onClick={() => setShowRequests(true)}>
+            <TextBtn
+              onClick={() => setShowRequests(true)}
+              aria-label={`Friend Requests, ${friendRequestCountLabel}`}
+            >
               <UserCheck size={16} /> Friend Requests
+              <RequestCountBadge label={friendRequestCountLabel} count={friendRequests.length} />
             </TextBtn>
           </CountRow>
 
-          {friends.length === 0 ? (
-            <EmptyState>
-              <Users size={48} />
-              <EmptyTitle>No friends yet</EmptyTitle>
-              <EmptyText>Connect with other users to see them here</EmptyText>
-              <PrimaryBtn onClick={() => setShowSuggestions(true)}>
-                <UserPlus size={16} /> Find Friends
-              </PrimaryBtn>
-            </EmptyState>
-          ) : (
-            <div>
-              {filteredFriends.map((friend) => {
-                const safeFriendPhoto = sanitizeImageUrl(friend.photo || undefined);
-                const friendAvatarImage = safeFriendPhoto ? cssUrlValue(safeFriendPhoto) : null;
-
-                return (
-                  <FriendItem key={friend.id}>
-                    <FriendAvatar $backgroundImage={friendAvatarImage}>
-                      {!safeFriendPhoto && `${friend.firstName[0]}${friend.lastName[0]}`}
-                    </FriendAvatar>
-                    <FriendInfo>
-                      <FriendName>{friend.firstName} {friend.lastName}</FriendName>
-                      <FriendUsername>@{friend.username}</FriendUsername>
-                    </FriendInfo>
-                    <FriendActions>
-                      <OutlineBtn onClick={() => handleViewProfile(friend.id)}>
-                        View Profile
-                      </OutlineBtn>
-                      <RemoveBtn
-                        onClick={() => requestRemoveFriend(
-                          friend.friendshipId,
-                          `${friend.firstName} ${friend.lastName}`,
-                        )}
-                        title="Remove friend"
-                        aria-label="Remove friend"
-                      >
-                        <UserX size={18} />
-                      </RemoveBtn>
-                    </FriendActions>
-                  </FriendItem>
-                );
-              })}
-            </div>
-          )}
+          <FriendsContent
+            friends={filteredFriends}
+            hasAnyFriends={friends.length > 0}
+            onFindFriends={() => setShowSuggestions(true)}
+            onRemoveFriend={requestRemoveFriend}
+            onViewProfile={handleViewProfile}
+          />
         </CardBody>
       </CardPanel>
 
       <FriendRequests
         open={showRequests}
         onClose={() => setShowRequests(false)}
+        friendsApi={friendsApi}
       />
 
       <FriendSuggestions
         open={showSuggestions}
         onClose={() => setShowSuggestions(false)}
+        friendsApi={friendsApi}
       />
 
-      {pendingRemoval && (
-        <RemoveFriendConfirmDialog
-          friendName={pendingRemoval.friendName}
-          busy={isRemovingFriend}
-          onCancel={() => setPendingRemoval(null)}
-          onConfirm={confirmRemoveFriend}
-        />
-      )}
+      <RemoveDialogSlot
+        busy={isRemovingFriend}
+        pendingRemoval={pendingRemoval}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={confirmRemoveFriend}
+      />
     </FriendsContainer>
   );
 };

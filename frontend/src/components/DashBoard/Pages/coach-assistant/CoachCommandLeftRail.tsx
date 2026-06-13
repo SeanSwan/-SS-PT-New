@@ -38,7 +38,7 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
     className={`left-rail glass ${drawer === 'left' ? 'is-open' : ''}`}
     ref={railRef}
     data-drawer="left"
-    aria-label="Coach threads and command modes"
+    aria-label="Coach threads and selected client context"
   >
     <section className="brand-block">
       <span className="route-chip">admin / coach-assistant</span>
@@ -112,23 +112,6 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
       </ul>
     </section>
 
-    <section className="rail-section">
-      <h3 className="panel-title">Coach Command Modes</h3>
-      <ul className="mode-list">
-        <li className="mode-item">
-          <span className="mode-title">Prepare draft</span>
-          <span className="thread-meta">Draft only, approval required</span>
-        </li>
-        <li className="mode-item">
-          <span className="mode-title">Review intake</span>
-          <span className="thread-meta">PLAUD/audio, transcript, and failed recovery</span>
-        </li>
-        <li className="mode-item">
-          <span className="mode-title">Resolve holds</span>
-          <span className="thread-meta">Confirmation, clarification, duplicate risk</span>
-        </li>
-      </ul>
-    </section>
   </aside>
 );
 

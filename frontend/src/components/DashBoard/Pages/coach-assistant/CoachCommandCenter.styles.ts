@@ -7,6 +7,7 @@ import styled from 'styled-components';
 
 import { coachCommandComposerStyles } from './CoachCommandCenter.composerStyles';
 import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationStyles';
+import { coachCommandMobileDockStyles } from './CoachCommandCenter.mobileDockStyles';
 import { coachCommandResponsiveStyles } from './CoachCommandCenter.responsiveStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 import { coachCommandWorkspaceStyles } from './CoachCommandCenter.workspaceStyles';
@@ -17,4 +18,5 @@ export const CommandCenterShell = styled.div`
   ${coachCommandWorkspaceStyles}
   ${coachCommandComposerStyles}
   ${coachCommandResponsiveStyles}
+  ${coachCommandMobileDockStyles}
 `;

@@ -1,6 +1,6 @@
 /**
  * FILE: CoachCommandCenterPage.tsx
- * PURPOSE: Admin-only Swan Coach Command Center shell based on the accepted Open Design prototype.
+ * PURPOSE: Admin-only Swan Coach review-gated command workspace.
  *
  * The page stays review-gated: Swan Coach prepares operator drafts,
  * blockers, and recommendations, while final writes remain an operator action.

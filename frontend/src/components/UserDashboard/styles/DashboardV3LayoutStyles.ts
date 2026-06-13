@@ -114,8 +114,10 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
 
 export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   display: grid;
-  grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '300px 1fr'};
+  grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '300px minmax(0, 1fr)'};
   gap: 2rem;
+  min-width: 0;
+  width: 100%;
   margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
   /* 2026-05-10 SLICE 1: removed overflow: hidden so the sticky tab strip
      above ContentGrid can pin to the viewport without being clipped to
@@ -134,19 +136,19 @@ export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   }
 
   @media (min-width: 1920px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '340px 1fr'};
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '340px minmax(0, 1fr)'};
     gap: 2.25rem;
     margin-top: 2.5rem;
   }
 
   @media (min-width: 2560px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '420px 1fr'};
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '420px minmax(0, 1fr)'};
     gap: 2.5rem;
     margin-top: 3rem;
   }
 
   @media (min-width: 3840px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? '1fr' : '520px 1fr'};
+    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '520px minmax(0, 1fr)'};
     gap: 3rem;
     margin-top: 4rem;
   }

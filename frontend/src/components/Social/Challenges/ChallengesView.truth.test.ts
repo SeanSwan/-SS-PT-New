@@ -18,4 +18,9 @@ describe('ChallengesView truth contract', () => {
     expect(viewSource).toContain('const displayData = isDemoData ? RETIRED_CHALLENGE_FIXTURE : challenges;');
     expect(viewSource).not.toContain('Use API data when available, mock data as fallback');
   });
+
+  it('keeps the live challenges component compact and free of legacy inline color styling', () => {
+    expect(viewSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(viewSource).not.toMatch(/rgba\(|#[0-9a-f]{3,8}/i);
+  });
 });

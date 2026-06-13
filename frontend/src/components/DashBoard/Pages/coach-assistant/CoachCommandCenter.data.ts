@@ -6,23 +6,6 @@
  * No entry in this file implies automatic client-facing writes.
  */
 
-export type CommandThread = {
-  id: string;
-  title: string;
-  meta: string;
-  prompt: string;
-  clientStatus: string;
-};
-
-export type WorkflowCard = {
-  id: string;
-  chip: 'cyan' | 'purple' | 'gold' | 'green' | 'red';
-  label: string;
-  title: string;
-  copy: string;
-  prompt: string;
-};
-
 export type CommandLogEntry = {
   id: string;
   actor: 'system' | 'operator' | 'coach';
@@ -48,97 +31,6 @@ export type CommandLogResult = {
   client: { id?: number; firstName?: string } | null;
   message?: string;
 };
-
-export const COMMAND_THREADS: CommandThread[] = [
-  {
-    id: 'plaid-intake-review',
-    title: 'PLAUD intake review',
-    meta: 'Client A-104 - 12 min ago - processing',
-    prompt: 'Review the active PLAUD intake for Client A-104 and list draft blockers.',
-    clientStatus: 'Client A-104 - parsing 82% - approval gate',
-  },
-  {
-    id: 'duplicate-risk-check',
-    title: 'Duplicate risk check',
-    meta: 'Client B-217 - 24 min ago - hold',
-    prompt: 'Review duplicate-risk logs for Client B-217 before any draft approval.',
-    clientStatus: 'Client B-217 - duplicate-risk hold',
-  },
-  {
-    id: 'four-week-block-draft',
-    title: '4-week block draft',
-    meta: 'Client C-309 - ready for approval',
-    prompt: 'Open Client C-309 ready 4-week block draft for operator approval review.',
-    clientStatus: 'Client C-309 - ready draft - approval pending',
-  },
-];
-
-export const COMMAND_WORKFLOWS: WorkflowCard[] = [
-  {
-    id: 'review-intake',
-    chip: 'cyan',
-    label: 'intake',
-    title: 'Review next intake',
-    copy: 'Open the highest-priority intake and list draft blockers.',
-    prompt: 'Review next intake',
-  },
-  {
-    id: 'build-block',
-    chip: 'purple',
-    label: 'draft',
-    title: 'Build next 4-week block',
-    copy: 'Prepare a draft block from selected client context.',
-    prompt: 'Build next 4-week block',
-  },
-  {
-    id: 'summarize-context',
-    chip: 'cyan',
-    label: 'context',
-    title: 'Summarize selected client last 30 days',
-    copy: 'Review attendance, notes, holds, and recent draft history.',
-    prompt: 'Summarize selected client last 30 days',
-  },
-  {
-    id: 'convert-transcript',
-    chip: 'purple',
-    label: 'audio',
-    title: 'Convert transcript into workout draft',
-    copy: 'Use parsed transcript after low-confidence segments are checked.',
-    prompt: 'Convert transcript into workout draft',
-  },
-  {
-    id: 'resolve-holds',
-    chip: 'gold',
-    label: 'holds',
-    title: 'Resolve client holds',
-    copy: 'Sort confirmation and clarification holds for operator action.',
-    prompt: 'Resolve client holds',
-  },
-  {
-    id: 'duplicate-risk',
-    chip: 'gold',
-    label: 'risk',
-    title: 'Review duplicate-risk logs',
-    copy: 'Inspect potential duplicate drafts before approval.',
-    prompt: 'Review duplicate-risk logs',
-  },
-  {
-    id: 'follow-up',
-    chip: 'green',
-    label: 'follow-up',
-    title: 'Prepare session follow-up',
-    copy: 'Draft a client-facing note for approval.',
-    prompt: 'Prepare session follow-up',
-  },
-  {
-    id: 'audio-recovery',
-    chip: 'red',
-    label: 'recovery',
-    title: 'Inspect failed audio intake',
-    copy: 'Recover failed transcript uploads and parse errors.',
-    prompt: 'Inspect failed audio intake',
-  },
-];
 
 export const INITIAL_COMMAND_LOGS: CommandLogEntry[] = [
   {

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
 
 // Friend types
-interface FriendUser {
+export interface FriendUser {
   id: string;
   firstName: string;
   lastName: string;
@@ -11,6 +11,9 @@ interface FriendUser {
   photo?: string;
   role: string;
   points?: number;
+  friendshipStatus?: 'pending' | 'accepted' | 'declined' | 'blocked' | null;
+  friendshipId?: string | null;
+  isRequester?: boolean;
 }
 
 interface Friend extends FriendUser {
@@ -22,6 +25,64 @@ interface FriendRequest {
   id: string;
   requester: FriendUser;
   createdAt: string;
+}
+
+type FriendRequestAction = 'accept' | 'decline';
+
+const FRIEND_REQUEST_ACTION_COPY: Record<FriendRequestAction, {
+  successTitle: string;
+  successDescription: string;
+  errorLog: string;
+  errorDescription: string;
+}> = {
+  accept: {
+    successTitle: 'Friend request accepted',
+    successDescription: 'You are now friends with this user.',
+    errorLog: 'Error accepting friend request:',
+    errorDescription: 'Unable to accept friend request. Please try again later.',
+  },
+  decline: {
+    successTitle: 'Friend request declined',
+    successDescription: 'The friend request has been declined.',
+    errorLog: 'Error declining friend request:',
+    errorDescription: 'Unable to decline friend request. Please try again later.',
+  },
+};
+
+type FriendRequestResponse = {
+  data?: {
+    friendship?: {
+      id?: string | number | null;
+    };
+  };
+};
+
+const FRIEND_REQUEST_SEND_FALLBACK = 'Unable to send friend request. Please try again later.';
+
+function responseFriendshipId(response: FriendRequestResponse) {
+  const friendshipId = response.data?.friendship?.id;
+  return friendshipId == null ? null : String(friendshipId);
+}
+
+function pendingSuggestion(candidate: FriendUser, recipientId: string, friendshipId: string | null) {
+  if (candidate.id !== recipientId) return candidate;
+  return {
+    ...candidate,
+    friendshipStatus: 'pending' as const,
+    friendshipId: friendshipId || candidate.friendshipId || null,
+    isRequester: true,
+  };
+}
+
+function friendRequestSendErrorDescription(err: unknown) {
+  return (err as { response?: { data?: { message?: string } } }).response?.data?.message || FRIEND_REQUEST_SEND_FALLBACK;
+}
+
+function socialSearchQuery(canSearch: boolean, query: string) {
+  const trimmedQuery = query.trim();
+  if (!canSearch) return null;
+  if (!trimmedQuery) return null;
+  return trimmedQuery;
 }
 
 /**
@@ -111,6 +172,8 @@ export const useSocialFriends = () => {
     
     try {
       const response = await authAxios.post(`/api/social/friendships/request/${recipientId}`);
+      const friendshipId = responseFriendshipId(response);
+      setFriendSuggestions(prev => prev.map((candidate) => pendingSuggestion(candidate, recipientId, friendshipId)));
       
       toast({
         title: 'Friend request sent',
@@ -123,7 +186,7 @@ export const useSocialFriends = () => {
       console.error('Error sending friend request:', err);
       toast({
         title: 'Error',
-        description: err.response?.data?.message || 'Unable to send friend request. Please try again later.',
+        description: friendRequestSendErrorDescription(err),
         variant: 'destructive'
       });
       
@@ -131,73 +194,58 @@ export const useSocialFriends = () => {
     }
   }, [authAxios, user, toast]);
   
-  // Accept a friend request
-  const acceptFriendRequest = useCallback(async (requestId: string) => {
+  const resolveFriendRequest = useCallback(async (requestId: string, action: FriendRequestAction) => {
     if (!user) return false;
+    const copy = FRIEND_REQUEST_ACTION_COPY[action];
     
     try {
-      const response = await authAxios.post(`/api/social/friendships/accept/${requestId}`);
+      await authAxios.post(`/api/social/friendships/${action}/${requestId}`);
       
       // Update requests list
       setFriendRequests(prev => prev.filter(request => request.id !== requestId));
       
-      // Update friends list
-      await fetchFriends();
+      if (action === 'accept') {
+        // Update friends list
+        await fetchFriends();
+      }
       
       toast({
-        title: 'Friend request accepted',
-        description: 'You are now friends with this user.',
+        title: copy.successTitle,
+        description: copy.successDescription,
         variant: 'default'
       });
       
       return true;
     } catch (err) {
-      console.error('Error accepting friend request:', err);
+      console.error(copy.errorLog, err);
       toast({
         title: 'Error',
-        description: 'Unable to accept friend request. Please try again later.',
+        description: copy.errorDescription,
         variant: 'destructive'
       });
       
       return false;
     }
   }, [authAxios, user, toast, fetchFriends]);
+
+  // Accept a friend request
+  const acceptFriendRequest = useCallback(
+    (requestId: string) => resolveFriendRequest(requestId, 'accept'),
+    [resolveFriendRequest]
+  );
   
   // Decline a friend request
-  const declineFriendRequest = useCallback(async (requestId: string) => {
-    if (!user) return false;
-    
-    try {
-      const response = await authAxios.post(`/api/social/friendships/decline/${requestId}`);
-      
-      // Update requests list
-      setFriendRequests(prev => prev.filter(request => request.id !== requestId));
-      
-      toast({
-        title: 'Friend request declined',
-        description: 'The friend request has been declined.',
-        variant: 'default'
-      });
-      
-      return true;
-    } catch (err) {
-      console.error('Error declining friend request:', err);
-      toast({
-        title: 'Error',
-        description: 'Unable to decline friend request. Please try again later.',
-        variant: 'destructive'
-      });
-      
-      return false;
-    }
-  }, [authAxios, user, toast]);
+  const declineFriendRequest = useCallback(
+    (requestId: string) => resolveFriendRequest(requestId, 'decline'),
+    [resolveFriendRequest]
+  );
   
   // Remove a friend
   const removeFriend = useCallback(async (friendshipId: string) => {
     if (!user) return false;
     
     try {
-      const response = await authAxios.delete(`/api/social/friendships/${friendshipId}`);
+      await authAxios.delete(`/api/social/friendships/${friendshipId}`);
       
       // Update friends list
       setFriends(prev => prev.filter(friend => friend.friendshipId !== friendshipId));
@@ -223,11 +271,12 @@ export const useSocialFriends = () => {
   
   // Search for users via backend API
   const searchUsers = useCallback(async (query: string) => {
-    if (!user || !query.trim()) return [];
+    const trimmedQuery = socialSearchQuery(Boolean(user), query);
+    if (!trimmedQuery) return [];
 
     try {
       const response = await authAxios.get('/api/social/friendships/search', {
-        params: { q: query.trim() }
+        params: { q: trimmedQuery }
       });
       return response.data.results || [];
     } catch (err) {
@@ -274,3 +323,5 @@ export const useSocialFriends = () => {
     searchUsers
   };
 };
+
+export type SocialFriendsApi = ReturnType<typeof useSocialFriends>;

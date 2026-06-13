@@ -6,6 +6,7 @@
  */
 import styled from 'styled-components';
 import type { ClientData } from './Analytics';
+import { SwanTabBar, SwanTabButton } from '../../common/SwanTabs.styles';
 
 export const PageWrapper = styled.div`
   padding: 24px;
@@ -157,50 +158,9 @@ export const TabsContainer = styled.div`
   margin-bottom: 24px;
 `;
 
-export const TabBar = styled.div`
-  display: flex;
-  overflow-x: auto;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-  gap: 4px;
-  scrollbar-width: thin;
+export const TabBar = styled(SwanTabBar)``;
 
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
-    border-radius: 2px;
-  }
-`;
-
-export const TabButton = styled.button<{ $active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  min-height: 44px;
-  min-width: 44px;
-  border: none;
-  border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'transparent')};
-  background: ${({ $active }) => ($active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'transparent')};
-  color: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #A9B7C8)')};
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-
-  &:hover {
-    color: var(--accent-primary, #60C0F0);
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: -2px;
-  }
-`;
+export const TabButton = styled(SwanTabButton)``;
 
 export const TabPanelWrapper = styled.div`
   padding: 24px 0;

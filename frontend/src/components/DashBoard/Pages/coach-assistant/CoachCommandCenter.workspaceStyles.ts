@@ -8,7 +8,6 @@ import { css } from 'styled-components';
 export const coachCommandWorkspaceStyles = css`
   .command-banner {
     border-radius: 22px;
-    min-height: 228px;
     overflow: hidden;
     padding: 22px;
     position: relative;
@@ -27,7 +26,7 @@ export const coachCommandWorkspaceStyles = css`
   .banner-content {
     display: grid;
     gap: 18px;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 36%);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 34%);
     position: relative;
     z-index: 1;
   }
@@ -46,41 +45,29 @@ export const coachCommandWorkspaceStyles = css`
     max-width: 780px;
   }
 
-  .banner-actions {
+  .utility-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 18px;
   }
 
-  .banner-orbit {
-    align-items: center;
+  .next-workflow-panel {
+    align-self: stretch;
+    background: color-mix(in srgb, var(--coach-surface-strong) 86%, transparent);
     border: 1px solid var(--coach-line);
     border-radius: 18px;
     display: grid;
-    min-height: 188px;
-    overflow: hidden;
+    gap: 12px;
+    justify-items: start;
     padding: 18px;
-    place-items: center;
-    position: relative;
   }
 
-  .orbit-core {
-    aspect-ratio: 1;
-    border: 1px solid var(--coach-line-strong);
-    border-radius: 50%;
-    box-shadow: 0 0 55px color-mix(in srgb, var(--coach-cyan) 24%, transparent);
-    width: min(128px, 46%);
-  }
-
-  .orbit-readout {
-    bottom: 18px;
-    color: var(--coach-muted);
-    font-family: 'Fira Code', monospace;
-    font-size: 12px;
-    left: 18px;
-    line-height: 1.7;
-    position: absolute;
+  .next-workflow-panel strong {
+    color: var(--coach-text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: clamp(18px, 1.9vw, 26px);
+    line-height: 1.14;
   }
 
   .queue-summary {
@@ -139,7 +126,7 @@ export const coachCommandWorkspaceStyles = css`
   }
 
   .progress-track {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--coach-text) 8%, transparent);
     border-radius: 999px;
     height: 8px;
     overflow: hidden;
@@ -150,34 +137,6 @@ export const coachCommandWorkspaceStyles = css`
     border-radius: inherit;
     height: 100%;
     width: var(--progress, 64%);
-  }
-
-  .workflow-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .workflow-card {
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid var(--coach-line);
-    border-radius: 14px;
-    color: var(--coach-text);
-    display: grid;
-    gap: 10px;
-    min-height: 148px;
-    min-width: 0;
-    padding: 14px;
-    text-align: left;
-  }
-
-  .workflow-card strong {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 15px;
-  }
-
-  .workflow-card span:last-child {
-    color: var(--coach-muted);
-    font-size: 12px;
-    line-height: 1.45;
   }
 
 `;

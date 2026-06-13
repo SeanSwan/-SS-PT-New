@@ -86,13 +86,13 @@ export const coachCommandComposerStyles = css`
   .quick-client-note.success {
     background: color-mix(in srgb, var(--coach-success) 10%, transparent);
     border-color: color-mix(in srgb, var(--coach-success) 30%, transparent);
-    color: #d7ffe9;
+    color: color-mix(in srgb, var(--coach-success) 72%, var(--coach-text));
   }
 
   .quick-client-note.error {
     background: color-mix(in srgb, var(--coach-danger) 10%, transparent);
     border-color: color-mix(in srgb, var(--coach-danger) 32%, transparent);
-    color: #ffd9e0;
+    color: color-mix(in srgb, var(--coach-danger) 62%, var(--coach-text));
   }
 
   .composer {
@@ -135,7 +135,7 @@ export const coachCommandComposerStyles = css`
 
   .plaud-start-button {
     box-shadow:
-      0 14px 34px color-mix(in srgb, var(--coach-purple) 20%, transparent),
+      0 10px 24px color-mix(in srgb, var(--coach-cyan) 10%, transparent),
       0 0 0 1px color-mix(in srgb, var(--coach-gold) 26%, transparent) inset;
     flex: 0 0 auto;
     white-space: nowrap;
@@ -155,9 +155,13 @@ export const coachCommandComposerStyles = css`
   .command-dock {
     background:
       linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 9%, transparent), transparent 34%),
-      linear-gradient(180deg, rgba(10, 16, 31, 0.9), rgba(5, 9, 20, 0.84));
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--coach-bg-2) 90%, transparent),
+        color-mix(in srgb, var(--coach-bg) 84%, transparent)
+      );
     border-color: var(--coach-line-strong);
-    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.34);
+    box-shadow: 0 18px 52px color-mix(in srgb, var(--coach-bg) 68%, transparent);
     order: -1;
     position: sticky;
     top: 0;

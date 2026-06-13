@@ -22,7 +22,6 @@ export const coachCommandResponsiveStyles = css`
     }
 
     .queue-summary,
-    .workflow-grid,
     .dossier-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -90,7 +89,7 @@ export const coachCommandResponsiveStyles = css`
     }
 
     .drawer-scrim {
-      background: rgba(1, 5, 12, 0.58);
+      background: color-mix(in srgb, var(--coach-bg) 58%, transparent);
       display: block;
       inset: 0;
       opacity: 0;
@@ -137,7 +136,6 @@ export const coachCommandResponsiveStyles = css`
     .content-grid,
     .live-intake-grid,
     .dossier-grid,
-    .workflow-grid,
     .operations-grid,
     .two-col-grid {
       grid-template-columns: minmax(0, 1fr);
@@ -146,11 +144,10 @@ export const coachCommandResponsiveStyles = css`
     .banner-content,
     .banner-copy,
     .banner-top,
-    .banner-actions,
+    .utility-actions,
     .card-top,
     .card-top > *,
     .mini-chip,
-    .workflow-card,
     .live-workspace-panel,
     .plaud-review-panel,
     .plaud-merge-frame,
@@ -175,103 +172,17 @@ export const coachCommandResponsiveStyles = css`
       white-space: nowrap;
     }
 
-    .banner-actions,
+    .utility-actions,
     .composer-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .command-dock {
-      background: linear-gradient(180deg, rgba(10, 16, 31, 0.94), rgba(4, 8, 18, 0.98));
-      border: 1px solid var(--coach-line-strong);
-      border-radius: 20px;
-      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.42);
-      display: grid;
-      gap: 8px;
-      margin-bottom: 12px;
-      padding: 10px;
-      position: sticky;
-      top: 0;
-      z-index: 60;
-    }
-
-    .mobile-command-strip {
-      display: grid;
-      gap: 7px;
-      grid-template-columns: 72px minmax(0, 1fr) 58px;
-    }
-
-    .mobile-command-strip button,
-    .mobile-command-client {
-      align-items: center;
-      background: var(--coach-soft);
-      border: 1px solid var(--coach-line);
-      border-radius: 12px;
-      color: var(--coach-text);
-      display: flex;
-      justify-content: center;
-      min-width: 0;
-      padding: 0 9px;
-    }
-
-    .mobile-command-client {
-      color: var(--coach-text-soft);
-      font-family: 'Fira Code', monospace;
-      font-size: 10px;
-      justify-content: flex-start;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .command-dock textarea {
-      max-height: 72px;
-      min-height: 44px;
-      resize: none;
-    }
-
-    .composer-header {
-      align-items: stretch;
-      display: grid;
-      gap: 8px;
-    }
-
-    .plaud-start-button {
-      width: 100%;
-    }
-
-    .command-dock .composer-actions {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-    }
-
-    .command-dock .composer-actions button,
-    .command-dock .file-control {
-      min-width: 0;
-      padding-inline: 6px;
-    }
-
-    .desktop-label {
-      display: none;
-    }
-
-    .mobile-label {
-      display: inline;
-    }
-
-    #composerStatus {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
   }
 
   @media (max-width: 430px) {
     .command-banner,
     .panel,
-    .status-card,
-    .workflow-card {
+    .status-card {
       border-radius: 18px;
     }
 
@@ -280,10 +191,6 @@ export const coachCommandResponsiveStyles = css`
       font-size: clamp(20px, 8vw, 30px);
     }
 
-    .command-dock {
-      border-radius: 16px;
-      padding-inline: 8px;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {

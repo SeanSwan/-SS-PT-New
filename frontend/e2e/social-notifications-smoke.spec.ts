@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { watchSocialSmokeConsole } from './social-dashboard-smoke-utils';
 
 const clientUser = {
   id: '101',
@@ -111,7 +112,7 @@ async function inspectLayout(page: Page) {
 
 test('social notifications route renders live unread data and mark-read action', async ({ page }, testInfo) => {
   const apiState: ApiState = { markAllReadHits: 0, allRead: false };
-  const consoleErrors: string[] = [];
+  const consoleWatcher = watchSocialSmokeConsole(page);
 
   await mockSocialApi(page, apiState);
   await page.addInitScript(
@@ -123,28 +124,24 @@ test('social notifications route renders live unread data and mark-read action',
     { token: jwt(), user: clientUser },
   );
 
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
-
   await page.goto('/social/notifications', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /^Notifications$/i })).toBeVisible();
+  const notificationsPanel = page.getByLabel('Social notifications');
+  await expect(notificationsPanel.getByRole('heading', { name: /^Notifications$/i })).toBeVisible();
   await expect(page.getByText(/session confirmed/i)).toBeVisible();
   await expect(page.getByText(/plan update ready/i)).toBeVisible();
   await expect(page.getByText(/1 unread/i)).toBeVisible();
 
-  await page.getByRole('button', { name: /mark read/i }).click();
+  await notificationsPanel.getByRole('button', { name: /mark read/i }).click();
   await expect.poll(() => apiState.markAllReadHits).toBe(1);
   await expect(page.getByText(/0 unread/i)).toBeVisible();
 
   const layout = await inspectLayout(page);
-  expect(new URL(page.url()).pathname).toBe('/social/notifications');
+  expect(new URL(page.url()).pathname).toBe('/user-dashboard/notifications');
   expect(layout.bodyText).not.toMatch(/TODO|sample notification/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleWatcher.actionableErrors()).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('social-notifications-smoke.png'), fullPage: false });
 });

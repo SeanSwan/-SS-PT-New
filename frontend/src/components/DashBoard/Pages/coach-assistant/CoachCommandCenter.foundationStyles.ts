@@ -78,7 +78,7 @@ export const coachCommandFoundationStyles = css`
   input,
   select,
   textarea {
-    background: rgba(0, 0, 0, 0.22);
+    background: color-mix(in srgb, var(--coach-bg) 72%, transparent);
     border: 1px solid var(--coach-line);
     border-radius: 12px;
     color: var(--coach-text);
@@ -113,7 +113,7 @@ export const coachCommandFoundationStyles = css`
   .health-item,
   .draft-item,
   .dossier-tile {
-    background: rgba(255, 255, 255, 0.045);
+    background: color-mix(in srgb, var(--coach-text) 4.5%, transparent);
     border: 1px solid var(--coach-line);
     border-radius: 14px;
     color: var(--coach-text);
@@ -165,8 +165,7 @@ export const coachCommandFoundationStyles = css`
 
   .context-grid,
   .queue-summary,
-  .dossier-main,
-  .workflow-grid {
+  .dossier-main {
     display: grid;
     gap: 12px;
   }
