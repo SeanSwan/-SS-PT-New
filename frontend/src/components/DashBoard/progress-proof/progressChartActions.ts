@@ -25,6 +25,9 @@ export interface ProgressChartDrilldownRow {
 
 export type ProgressChartCsvRow = Record<string, string | number | null | undefined>;
 
+export { buildProgressChartPulse } from './progressChartPulse';
+export type { ProgressChartPulse, ProgressChartPulseTone } from './progressChartPulse';
+
 const csvEscape = (value: string | number | null | undefined) => {
   const text = value === null || value === undefined ? '' : String(value);
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -73,52 +76,94 @@ const findExportSvg = (exportTargetId: string): SVGSVGElement | null => {
   return target?.querySelector<SVGSVGElement>('svg') || null;
 };
 
-export async function downloadChartPng(exportTargetId: string, filename: string): Promise<boolean> {
-  if (
-    typeof window === 'undefined'
-    || typeof XMLSerializer === 'undefined'
-    || typeof Blob === 'undefined'
-    || typeof Image === 'undefined'
-  ) {
-    return false;
-  }
+const canExportPng = (): boolean => (
+  [
+    typeof window,
+    typeof XMLSerializer,
+    typeof Blob,
+    typeof Image,
+  ].every((value) => value !== 'undefined')
+);
 
-  const svg = findExportSvg(exportTargetId);
-  if (!svg) return false;
+interface SerializedSvg {
+  height: number;
+  url: string;
+  width: number;
+}
 
+const firstPositiveNumber = (values: number[]): number => (
+  values.find((value) => Number.isFinite(value) && value > 0) ?? 0
+);
+
+const readSvgDimension = (
+  svg: SVGSVGElement,
+  attribute: 'height' | 'width',
+  fallback: number,
+): number => {
+  const attrValue = Number(svg.getAttribute(attribute));
+  const viewBoxValue = svg.viewBox.baseVal[attribute];
+  return firstPositiveNumber([attrValue, viewBoxValue, fallback]);
+};
+
+const serializeSvgForPng = (svg: SVGSVGElement): SerializedSvg => {
   const clone = svg.cloneNode(true) as SVGElement;
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  const width = Number(svg.getAttribute('width')) || svg.viewBox.baseVal?.width || 900;
-  const height = Number(svg.getAttribute('height')) || svg.viewBox.baseVal?.height || 520;
+  const width = readSvgDimension(svg, 'width', 900);
+  const height = readSvgDimension(svg, 'height', 520);
   clone.setAttribute('width', String(width));
   clone.setAttribute('height', String(height));
 
   const serialized = new XMLSerializer().serializeToString(clone);
   const svgBlob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
-  const svgUrl = URL.createObjectURL(svgBlob);
+  return { height, url: URL.createObjectURL(svgBlob), width };
+};
+
+const loadImageFromUrl = async (url: string): Promise<HTMLImageElement | null> => {
+  const image = new Image();
+  image.decoding = 'async';
+  const loaded = new Promise<boolean>((resolve) => {
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+  });
+  image.src = url;
+  return await loaded ? image : null;
+};
+
+const renderImageToPngBlob = async (
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+): Promise<Blob | null> => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return null;
+  context.fillStyle = '#0A0A0F';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+  return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png', 1));
+};
+
+const downloadPngBlob = (filename: string, pngBlob: Blob | null): boolean => {
+  if (!pngBlob) return false;
+  return downloadBlob(filename, pngBlob);
+};
+
+export async function downloadChartPng(exportTargetId: string, filename: string): Promise<boolean> {
+  if (!canExportPng()) return false;
+
+  const svg = findExportSvg(exportTargetId);
+  if (!svg) return false;
+
+  const serialized = serializeSvgForPng(svg);
 
   try {
-    const image = new Image();
-    image.decoding = 'async';
-    const loaded = new Promise<boolean>((resolve) => {
-      image.onload = () => resolve(true);
-      image.onerror = () => resolve(false);
-    });
-    image.src = svgUrl;
-    if (!(await loaded)) return false;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) return false;
-    context.fillStyle = '#0A0A0F';
-    context.fillRect(0, 0, width, height);
-    context.drawImage(image, 0, 0, width, height);
-
-    const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png', 1));
-    return !!pngBlob && downloadBlob(filename, pngBlob);
+    const image = await loadImageFromUrl(serialized.url);
+    if (!image) return false;
+    const pngBlob = await renderImageToPngBlob(image, serialized.width, serialized.height);
+    return downloadPngBlob(filename, pngBlob);
   } finally {
-    URL.revokeObjectURL(svgUrl);
+    URL.revokeObjectURL(serialized.url);
   }
 }

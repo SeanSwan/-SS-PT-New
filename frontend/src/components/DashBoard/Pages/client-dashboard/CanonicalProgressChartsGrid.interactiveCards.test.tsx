@@ -10,6 +10,8 @@ describe('Canonical progress interactive cards', () => {
     ]} />);
 
     expect(screen.getByText('Weekly Training Volume')).toBeTruthy();
+    expect(screen.getByText('Volume Pulse')).toBeTruthy();
+    expect(screen.getByText('+100% vs prior')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Recent' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'CSV' })).toBeTruthy();
 
@@ -24,10 +26,13 @@ describe('Canonical progress interactive cards', () => {
     }} />);
 
     const repsToggle = screen.getByRole('button', { name: 'Reps' });
+    expect(screen.getByText('Rep Pulse')).toBeTruthy();
+    expect(screen.getByText('+20% vs prior')).toBeTruthy();
     expect(repsToggle.getAttribute('aria-pressed')).toBe('true');
 
     fireEvent.click(repsToggle);
     expect(repsToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByText('Set Pulse')).toBeTruthy();
     expect(screen.getByText(/toggle sets and reps/i)).toBeTruthy();
   });
 });

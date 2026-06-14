@@ -1,0 +1,127 @@
+/**
+ * MODULE: progressChartPulse
+ * PURPOSE: Convert verified chart points into a compact, truthful coaching readout.
+ * OWNER: Client progress proof / Social proof surfaces.
+ * DATA POLICY: Uses only already-rendered chart values; never fabricates missing progress.
+ */
+
+import type { ChartPoint } from '../../../hooks/analytics/useClientProgressCharts';
+
+export type ProgressChartPulseTone = 'empty' | 'building' | 'rising' | 'steady' | 'falling' | 'record';
+
+export interface ProgressChartPulse {
+  label: string;
+  value: string;
+  detail: string;
+  target?: string;
+  tone: ProgressChartPulseTone;
+}
+
+interface ProgressChartPulseOptions {
+  label?: string;
+  unit?: string;
+  higherIsBetter?: boolean;
+}
+
+const formatPulseNumber = (value: number): string => {
+  if (!Number.isFinite(value)) return '0';
+  return Math.round(value).toLocaleString();
+};
+
+const formatDeltaPercent = (latest: number, previous: number): string => {
+  if (!Number.isFinite(previous) || previous === 0) return 'new baseline';
+  const deltaPct = ((latest - previous) / Math.abs(previous)) * 100;
+  const sign = deltaPct > 0 ? '+' : '';
+  return `${sign}${Math.round(deltaPct)}%`;
+};
+
+const formatPulseValue = (value: number, unit: string): string => (
+  `${formatPulseNumber(value)}${unit ? ` ${unit}` : ''}`
+);
+
+const buildEmptyPulse = (label: string): ProgressChartPulse => ({
+  label,
+  value: 'Waiting on logs',
+  detail: 'No verified rows exist in this range yet.',
+  tone: 'empty',
+});
+
+const getBestPoint = <T extends ChartPoint>(points: T[], higherIsBetter: boolean): T => (
+  [...points].sort((a, b) => (higherIsBetter ? b.y - a.y : a.y - b.y))[0]
+);
+
+const buildBaselinePulse = <T extends ChartPoint>(
+  label: string,
+  latest: T,
+  bestValue: string,
+): ProgressChartPulse => ({
+  label,
+  value: bestValue,
+  detail: `First verified point: ${latest.x}. Log another point to unlock momentum.`,
+  target: `Beat ${bestValue} to set the next proof mark.`,
+  tone: 'building',
+});
+
+const isImprovement = (latest: number, previous: number, higherIsBetter: boolean): boolean => (
+  higherIsBetter ? latest > previous : latest < previous
+);
+
+const isBestValue = (latest: number, best: number, higherIsBetter: boolean): boolean => (
+  higherIsBetter ? latest >= best : latest <= best
+);
+
+const resolveMomentumTone = <T extends ChartPoint>(
+  latest: T,
+  previous: T,
+  best: T,
+  higherIsBetter: boolean,
+): ProgressChartPulseTone => {
+  const delta = latest.y - previous.y;
+  if (Math.abs(delta) < 1) return 'steady';
+  if (isImprovement(latest.y, previous.y, higherIsBetter) && isBestValue(latest.y, best.y, higherIsBetter)) {
+    return 'record';
+  }
+  return isImprovement(latest.y, previous.y, higherIsBetter) ? 'rising' : 'falling';
+};
+
+const buildMomentumPulse = <T extends ChartPoint>(
+  label: string,
+  points: T[],
+  best: T,
+  unit: string,
+  higherIsBetter: boolean,
+): ProgressChartPulse => {
+  const latest = points[points.length - 1];
+  const previous = points[points.length - 2];
+  const tone = resolveMomentumTone(latest, previous, best, higherIsBetter);
+  const latestValue = formatPulseValue(latest.y, unit);
+  const bestValue = formatPulseValue(best.y, unit);
+
+  return {
+    label,
+    value: tone === 'steady' ? 'Stable' : `${formatDeltaPercent(latest.y, previous.y)} vs prior`,
+    detail: `Latest ${latest.x}: ${latestValue}. Best ${best.x}: ${bestValue}.`,
+    target: tone === 'record'
+      ? `Protect the new high mark: ${bestValue}.`
+      : `Next target: ${bestValue}.`,
+    tone,
+  };
+};
+
+export function buildProgressChartPulse<T extends ChartPoint>(
+  points: T[],
+  options: ProgressChartPulseOptions = {},
+): ProgressChartPulse {
+  const label = options.label ?? 'Progress Pulse';
+  const unit = options.unit ?? '';
+  const higherIsBetter = options.higherIsBetter ?? true;
+  if (points.length === 0) return buildEmptyPulse(label);
+
+  const latest = points[points.length - 1];
+  const best = getBestPoint(points, higherIsBetter);
+  const bestValue = formatPulseValue(best.y, unit);
+
+  return points.length === 1
+    ? buildBaselinePulse(label, latest, bestValue)
+    : buildMomentumPulse(label, points, best, unit, higherIsBetter);
+}
