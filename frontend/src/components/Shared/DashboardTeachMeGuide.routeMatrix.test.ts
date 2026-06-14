@@ -204,6 +204,16 @@ describe('DashboardTeachMeGuide route matrix', () => {
       to: '/dashboard/client/schedule',
     });
 
+    const onboarding = getDashboardTeachMeGuide({
+      role: 'client',
+      pathname: '/dashboard/client/onboarding',
+    });
+    expect(onboarding.primaryAction).toEqual({
+      label: 'Finish Onboarding',
+      to: '/dashboard/client/onboarding',
+    });
+    expect(onboarding.primaryPrompt).toContain('client onboarding');
+
     expect(getDashboardTeachMeGuide({
       role: 'client',
       pathname: '/dashboard/client/progress/detailed',

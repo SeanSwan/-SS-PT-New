@@ -20,6 +20,25 @@ const clientBookingFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, 
   primaryPrompt: 'teach me the client booking workflow',
 });
 
+const clientOnboardingFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Client onboarding flow',
+  summary: 'Use onboarding to finish the basics before Coach, logging, and booking start making smart recommendations.',
+  focus: 'Finish profile, consent, goals, and pain context first so the first workout is useful instead of generic.',
+  primaryAction: { label: 'Finish Onboarding', to: '/dashboard/client/onboarding' },
+  fastPath: [
+    'Finish profile and goals.',
+    'Confirm consent and pain context.',
+    'Book, log, or ask Coach next.',
+  ],
+  actions: [
+    { label: 'Finish Onboarding', to: '/dashboard/client/onboarding' },
+    { label: 'Coach Consent', to: '/dashboard/client/ai-consent' },
+    { label: 'Pain Chart', to: '/dashboard/client/body-map' },
+    { label: 'Book Session', to: '/dashboard/client/schedule' },
+  ],
+  primaryPrompt: 'teach me the client onboarding workflow',
+});
+
 const clientProgressProof = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Client progress proof',
   summary: 'Use progress routes to see what changed from real workout logs, then decide what to do next.',
@@ -190,6 +209,7 @@ export const refineClientGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (includesAny(path, ['onboarding'])) return clientOnboardingFlow(base);
   if (includesAny(path, ['schedule'])) return clientBookingFlow(base);
   if (includesAny(path, ['progress', 'rewards'])) return clientProgressProof(base);
   if (includesAny(path, ['log-workout'])) return clientWorkoutLogging(base);
