@@ -557,6 +557,14 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Tier-0.3 follow-up engine. No-op unless SWAN_AUTOMATION_CRON_ENABLED=true (kill switch).
+          const { startAutomationScheduler } = await import('../services/automationCron.mjs');
+          startAutomationScheduler();
+        } catch (automationErr) {
+          logger.warn(`Automation scheduler failed to start: ${automationErr.message}`);
+        }
+
+        try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
         } catch (eventErr) {
