@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  buildProgressChartPulse,
-  downloadChartPng,
-  downloadCsvFile,
-  sliceChartPointsByRange,
-} from './progressChartActions';
+import { downloadChartPng, downloadCsvFile, sliceChartPointsByRange } from './progressChartActions';
 
 describe('progress chart actions', () => {
   afterEach(() => {
@@ -43,40 +38,6 @@ describe('progress chart actions', () => {
     return expect(readBlobText(capturedBlob as Blob)).resolves.toBe(
       'week,value,note\nW1,100,clean\nW2,200,"heavy, controlled"'
     );
-  });
-
-  it('builds an honest empty pulse without fabricating chart momentum', () => {
-    expect(buildProgressChartPulse([], { label: 'Volume Pulse', unit: 'lbs' })).toEqual({
-      label: 'Volume Pulse',
-      value: 'Waiting on logs',
-      detail: 'No verified rows exist in this range yet.',
-      tone: 'empty',
-    });
-  });
-
-  it('turns verified chart points into a real momentum readout', () => {
-    expect(buildProgressChartPulse([
-      { x: 'W1', y: 1200 },
-      { x: 'W2', y: 2400 },
-    ], { label: 'Volume Pulse', unit: 'lbs' })).toMatchObject({
-      label: 'Volume Pulse',
-      value: '+100% vs prior',
-      detail: 'Latest W2: 2,400 lbs. Best W2: 2,400 lbs.',
-      target: 'Protect the new high mark: 2,400 lbs.',
-      tone: 'record',
-    });
-  });
-
-  it('reports a real decline without hiding the best verified point', () => {
-    expect(buildProgressChartPulse([
-      { x: 'W1', y: 2400 },
-      { x: 'W2', y: 1800 },
-    ], { label: 'Volume Pulse', unit: 'lbs' })).toMatchObject({
-      value: '-25% vs prior',
-      detail: 'Latest W2: 1,800 lbs. Best W1: 2,400 lbs.',
-      target: 'Next target: 2,400 lbs.',
-      tone: 'falling',
-    });
   });
 
   it('does not claim a PNG export when no rendered chart exists', async () => {

@@ -16,7 +16,6 @@ import {
   PROGRESS_CHART_TIME_RANGES,
   type ProgressChartCsvRow,
   type ProgressChartDrilldownRow,
-  type ProgressChartPulse,
   type ProgressChartTimeRange,
 } from './progressChartActions';
 import {
@@ -28,10 +27,6 @@ import {
   IconActionButton,
   LegendButton,
   LegendGroup,
-  PulseDetail,
-  PulsePanel,
-  PulseTarget,
-  PulseValue,
   RangeButton,
   RangeGroup,
   SummaryText,
@@ -50,129 +45,11 @@ interface ProgressChartActionBarProps {
   drilldownRows: ProgressChartDrilldownRow[];
   filename: string;
   range: ProgressChartTimeRange;
-  pulse?: ProgressChartPulse;
   summary: string;
   legendItems?: ProgressChartLegendItem[];
   onRangeChange: (range: ProgressChartTimeRange) => void;
   onToggleLegend?: (id: string) => void;
 }
-
-const RangePicker: React.FC<{
-  chartId: string;
-  range: ProgressChartTimeRange;
-  onRangeChange: (range: ProgressChartTimeRange) => void;
-}> = ({ chartId, range, onRangeChange }) => (
-  <RangeGroup role="group" aria-label={`${chartId} time range`}>
-    {PROGRESS_CHART_TIME_RANGES.map((item) => (
-      <RangeButton
-        key={item.id}
-        $active={range === item.id}
-        aria-pressed={range === item.id}
-        type="button"
-        onClick={() => onRangeChange(item.id)}
-      >
-        {item.label}
-      </RangeButton>
-    ))}
-  </RangeGroup>
-);
-
-const ExportButtons: React.FC<{
-  canExportPng: boolean;
-  panelId: string;
-  isOpen: boolean;
-  hasRows: boolean;
-  onCsvExport: () => void;
-  onPngExport: () => void;
-  onToggleDetails: () => void;
-}> = ({
-  canExportPng,
-  panelId,
-  isOpen,
-  hasRows,
-  onCsvExport,
-  onPngExport,
-  onToggleDetails,
-}) => (
-  <>
-    <IconActionButton type="button" onClick={onCsvExport}>
-      <Download size={14} aria-hidden="true" />
-      CSV
-    </IconActionButton>
-    <IconActionButton type="button" disabled={!canExportPng} onClick={onPngExport}>
-      <Download size={14} aria-hidden="true" />
-      PNG
-    </IconActionButton>
-    <IconActionButton
-      type="button"
-      aria-controls={panelId}
-      aria-expanded={isOpen}
-      disabled={!hasRows}
-      onClick={onToggleDetails}
-    >
-      <ListTree size={14} aria-hidden="true" />
-      Details
-    </IconActionButton>
-  </>
-);
-
-const LegendToggles: React.FC<{
-  chartId: string;
-  items: ProgressChartLegendItem[];
-  onToggleLegend?: (id: string) => void;
-}> = ({ chartId, items, onToggleLegend }) => {
-  if (items.length === 0) return null;
-
-  return (
-    <LegendGroup role="group" aria-label={`${chartId} visible series`}>
-      {items.map((item) => (
-        <LegendButton
-          key={item.id}
-          $active={item.active}
-          $color={item.color}
-          aria-pressed={item.active}
-          type="button"
-          onClick={() => onToggleLegend?.(item.id)}
-        >
-          {item.label}
-        </LegendButton>
-      ))}
-    </LegendGroup>
-  );
-};
-
-const PulseSummary: React.FC<{ pulse?: ProgressChartPulse }> = ({ pulse }) => {
-  if (!pulse) return null;
-
-  return (
-    <PulsePanel $tone={pulse.tone} aria-label={`${pulse.label}: ${pulse.value}`}>
-      <span>{pulse.label}</span>
-      <PulseValue>{pulse.value}</PulseValue>
-      <PulseDetail>{pulse.detail}</PulseDetail>
-      {pulse.target && <PulseTarget>{pulse.target}</PulseTarget>}
-    </PulsePanel>
-  );
-};
-
-const DrilldownRows: React.FC<{
-  isOpen: boolean;
-  panelId: string;
-  rows: ProgressChartDrilldownRow[];
-}> = ({ isOpen, panelId, rows }) => {
-  if (!isOpen) return null;
-
-  return (
-    <DrilldownPanel id={panelId}>
-      {rows.map((row) => (
-        <DrilldownRow key={row.id}>
-          <span>{row.label}</span>
-          <strong>{row.value}</strong>
-          {row.detail && <DrilldownDetail>{row.detail}</DrilldownDetail>}
-        </DrilldownRow>
-      ))}
-    </DrilldownPanel>
-  );
-};
 
 const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   chartId,
@@ -180,7 +57,6 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   drilldownRows,
   filename,
   range,
-  pulse,
   summary,
   legendItems = [],
   onRangeChange,
@@ -205,23 +81,70 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   return (
     <ActionShell>
       <ActionRow>
-        <RangePicker chartId={chartId} range={range} onRangeChange={onRangeChange} />
-        <ExportButtons
-          canExportPng={csvRows.length > 0}
-          panelId={panelId}
-          isOpen={isOpen}
-          hasRows={hasRows}
-          onCsvExport={handleExport}
-          onPngExport={handlePngExport}
-          onToggleDetails={() => setIsOpen((current) => !current)}
-        />
+        <RangeGroup role="group" aria-label={`${chartId} time range`}>
+          {PROGRESS_CHART_TIME_RANGES.map((item) => (
+            <RangeButton
+              key={item.id}
+              $active={range === item.id}
+              aria-pressed={range === item.id}
+              type="button"
+              onClick={() => onRangeChange(item.id)}
+            >
+              {item.label}
+            </RangeButton>
+          ))}
+        </RangeGroup>
+        <IconActionButton type="button" onClick={handleExport}>
+          <Download size={14} aria-hidden="true" />
+          CSV
+        </IconActionButton>
+        <IconActionButton type="button" disabled={csvRows.length === 0} onClick={handlePngExport}>
+          <Download size={14} aria-hidden="true" />
+          PNG
+        </IconActionButton>
+        <IconActionButton
+          type="button"
+          aria-controls={panelId}
+          aria-expanded={isOpen}
+          disabled={!hasRows}
+          onClick={() => setIsOpen((current) => !current)}
+        >
+          <ListTree size={14} aria-hidden="true" />
+          Details
+        </IconActionButton>
       </ActionRow>
 
-      <LegendToggles chartId={chartId} items={legendItems} onToggleLegend={onToggleLegend} />
-      <PulseSummary pulse={pulse} />
+      {legendItems.length > 0 && (
+        <LegendGroup role="group" aria-label={`${chartId} visible series`}>
+          {legendItems.map((item) => (
+            <LegendButton
+              key={item.id}
+              $active={item.active}
+              $color={item.color}
+              aria-pressed={item.active}
+              type="button"
+              onClick={() => onToggleLegend?.(item.id)}
+            >
+              {item.label}
+            </LegendButton>
+          ))}
+        </LegendGroup>
+      )}
+
       <SummaryText>{summary}</SummaryText>
       {exportStatus && <SummaryText role="status">{exportStatus}</SummaryText>}
-      <DrilldownRows isOpen={isOpen} panelId={panelId} rows={drilldownRows} />
+
+      {isOpen && (
+        <DrilldownPanel id={panelId}>
+          {drilldownRows.map((row) => (
+            <DrilldownRow key={row.id}>
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+              {row.detail && <DrilldownDetail>{row.detail}</DrilldownDetail>}
+            </DrilldownRow>
+          ))}
+        </DrilldownPanel>
+      )}
     </ActionShell>
   );
 };

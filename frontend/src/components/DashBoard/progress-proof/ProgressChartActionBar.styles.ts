@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import type { ProgressChartPulseTone } from './progressChartActions';
 
 export const ActionShell = styled.div`
   display: grid;
@@ -93,74 +92,6 @@ export const SummaryText = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   line-height: 1.45;
-`;
-
-const PULSE_TONE_BORDERS: Record<ProgressChartPulseTone, string> = {
-  building: 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))',
-  empty: 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))',
-  falling: 'var(--warning, #F59E0B)',
-  record: 'var(--accent-gold, #C6A84B)',
-  rising: 'var(--accent-primary, #60C0F0)',
-  steady: 'var(--accent-secondary, #8B5CF6)',
-};
-
-const pulseToneBorder = (tone: ProgressChartPulseTone) => {
-  return PULSE_TONE_BORDERS[tone];
-};
-
-export const PulsePanel = styled.div<{ $tone: ProgressChartPulseTone }>`
-  display: grid;
-  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1fr);
-  gap: 0.25rem 0.75rem;
-  padding: 0.72rem 0.85rem;
-  border: 1px solid ${({ $tone }) => pulseToneBorder($tone)};
-  border-radius: 8px;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, ${({ $tone }) => pulseToneBorder($tone)} 14%, transparent),
-      var(--bg-surface, #1A1A24) 58%
-    );
-  color: var(--text-secondary, rgba(224, 236, 244, 0.74));
-  font-family: 'Sora', sans-serif;
-
-  > span:first-child {
-    min-width: 0;
-    align-self: center;
-    color: var(--text-muted, rgba(224, 236, 244, 0.62));
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const PulseValue = styled.strong`
-  min-width: 0;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.88rem;
-  text-align: right;
-
-  @media (max-width: 520px) {
-    text-align: left;
-  }
-`;
-
-export const PulseDetail = styled.p`
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
-  font-size: 0.68rem;
-  line-height: 1.45;
-`;
-
-export const PulseTarget = styled(PulseDetail)`
-  color: var(--accent-primary, #60C0F0);
 `;
 
 export const LegendGroup = styled.div`
