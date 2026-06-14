@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { Download, ListTree, Share2 } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 import {
   downloadChartPng,
   downloadCsvFile,
@@ -22,6 +23,7 @@ import {
 } from './progressChartActions';
 import ProgressChartStudio from './ProgressChartStudio';
 import { buildProgressShareCard } from './progressShareCard';
+import { shareProgressCardToFeed } from './progressSocialShare';
 import {
   ActionRow,
   ActionShell,
@@ -197,6 +199,7 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   onRangeChange,
   onToggleLegend,
 }) => {
+  const { authAxios } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
@@ -252,6 +255,7 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
         filename={filename.replace(/\.csv$/i, '-proof-card.png')}
         isOpen={isStudioOpen}
         onClose={() => setIsStudioOpen(false)}
+        onShareToFeed={() => shareProgressCardToFeed(authAxios, shareCard)}
       />
     </ActionShell>
   );

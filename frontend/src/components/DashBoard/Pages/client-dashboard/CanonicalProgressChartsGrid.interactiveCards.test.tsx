@@ -1,8 +1,20 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SetsRepsTrendCard, WeeklyVolumeCard } from './CanonicalProgressChartsGrid.interactiveCards';
 
+const mockAuthPost = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../../context/AuthContext', () => ({
+  useAuth: () => ({
+    authAxios: { post: mockAuthPost },
+  }),
+}));
+
 describe('Canonical progress interactive cards', () => {
+  beforeEach(() => {
+    mockAuthPost.mockReset();
+  });
+
   it('renders weekly volume range controls and a verified-data drilldown', () => {
     render(<WeeklyVolumeCard data={[
       { x: 'W1', y: 1200, workouts: 1 },
@@ -23,8 +35,28 @@ describe('Canonical progress interactive cards', () => {
     expect(screen.getByRole('dialog', { name: /weekly training volume share card/i })).toBeTruthy();
     expect(screen.getByText('Shareable proof card')).toBeTruthy();
     expect(screen.getByText('Copy Caption')).toBeTruthy();
+    expect(screen.getByText('Share to Feed')).toBeTruthy();
     expect((screen.getByLabelText('Progress proof caption') as HTMLTextAreaElement).value)
       .toContain('Volume Pulse: +100% vs prior');
+  });
+
+  it('shares weekly volume proof to the social milestone feed from chart studio', async () => {
+    mockAuthPost.mockResolvedValue({ data: { post: { id: 'post-1' } } });
+
+    render(<WeeklyVolumeCard data={[
+      { x: 'W1', y: 1200, workouts: 1 },
+      { x: 'W2', y: 2400, workouts: 2 },
+    ]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Share to Feed' }));
+
+    await waitFor(() => expect(mockAuthPost).toHaveBeenCalledTimes(1));
+    const [url, formData] = mockAuthPost.mock.calls[0];
+    expect(url).toBe('/api/social/posts');
+    expect(formData.get('type')).toBe('milestone');
+    expect(formData.get('content')).toContain('Progress Proof: Weekly Training Volume');
+    expect(screen.getByText('Shared to the feed.')).toBeTruthy();
   });
 
   it('renders sets/reps legend toggles that can isolate a series', () => {
