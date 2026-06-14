@@ -52,6 +52,25 @@ const clientProgressProof = (base: DashboardTeachMeGuideCopy) => applyPatch(base
   primaryPrompt: 'teach me the client progress workflow',
 });
 
+const clientRewardsFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Client rewards flow',
+  summary: 'Use Rewards to see what training consistency unlocked, then turn the next milestone into action.',
+  focus: 'Rewards should pull you back into the training loop: claim the proof, then log, book, or share the next win.',
+  primaryAction: { label: 'Open Rewards', to: '/dashboard/client/rewards' },
+  fastPath: [
+    'Open your current rewards.',
+    'Check the next milestone.',
+    'Log, book, or share the next win.',
+  ],
+  actions: [
+    { label: 'Rewards', to: '/dashboard/client/rewards' },
+    { label: 'Progress', to: '/dashboard/client/progress' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
+    { label: 'Community', to: '/dashboard/client/community' },
+  ],
+  primaryPrompt: 'teach me the client rewards workflow',
+});
+
 const clientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Client workout logging',
   summary: 'Use Log Workout first so Coach, charts, and progress proof all work from the real session.',
@@ -211,7 +230,8 @@ export const refineClientGuide = (
 ): DashboardTeachMeGuideCopy => {
   if (includesAny(path, ['onboarding'])) return clientOnboardingFlow(base);
   if (includesAny(path, ['schedule'])) return clientBookingFlow(base);
-  if (includesAny(path, ['progress', 'rewards'])) return clientProgressProof(base);
+  if (includesAny(path, ['rewards'])) return clientRewardsFlow(base);
+  if (includesAny(path, ['progress'])) return clientProgressProof(base);
   if (includesAny(path, ['log-workout'])) return clientWorkoutLogging(base);
   if (includesAny(path, ['workouts'])) return clientWorkoutHistory(base);
   if (includesAny(path, ['live'])) return clientLiveFlow(base);

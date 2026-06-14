@@ -224,6 +224,14 @@ describe('DashboardTeachMeGuide route matrix', () => {
 
     expect(getDashboardTeachMeGuide({
       role: 'client',
+      pathname: '/dashboard/client/rewards',
+    }).primaryAction).toEqual({
+      label: 'Open Rewards',
+      to: '/dashboard/client/rewards',
+    });
+
+    expect(getDashboardTeachMeGuide({
+      role: 'client',
       pathname: '/dashboard/client/live',
     }).primaryAction).toEqual({
       label: 'Open Live Streams',
