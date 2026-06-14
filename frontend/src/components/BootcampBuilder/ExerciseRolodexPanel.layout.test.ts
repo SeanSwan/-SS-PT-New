@@ -10,14 +10,16 @@ const LIST_SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexList.tsx')
 const LIST_STYLES_SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexList.styles.ts'), 'utf8');
 
 describe('ExerciseRolodexPanel virtual card layout', () => {
-  it('reserves enough virtual row height for two-line names plus impact/equipment tags', () => {
-    expect(CONSTANTS_SOURCE).toContain('ROLODEX_ROW_HEIGHT = 76;');
+  it('reserves enough virtual row height for media previews, two-line names, and impact/equipment tags', () => {
+    expect(CONSTANTS_SOURCE).toContain('ROLODEX_ROW_HEIGHT = 112;');
     expect(LIST_SOURCE).toMatch(/rowHeight=\{ROLODEX_ROW_HEIGHT\}/);
     expect(LIST_SOURCE).toMatch(/height:\s*Math\.min\(exercisePairs\.length,\s*7\)\s*\*\s*ROLODEX_ROW_HEIGHT/);
+    expect(LIST_SOURCE).toContain('getExerciseMediaPreview');
   });
 
-  it('clips metadata inside each exercise card instead of letting tags overlap the next row', () => {
-    expect(LIST_STYLES_SOURCE).toMatch(/min-height:\s*64px/);
+  it('clips metadata and media inside each exercise card instead of letting tags overlap the next row', () => {
+    expect(LIST_STYLES_SOURCE).toMatch(/min-height:\s*100px/);
+    expect(LIST_STYLES_SOURCE).toContain('MediaPreview');
     expect(LIST_STYLES_SOURCE).toMatch(/CardMeta[\s\S]*?max-height:\s*26px/);
     expect(LIST_STYLES_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
   });

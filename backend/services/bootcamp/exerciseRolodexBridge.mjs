@@ -137,6 +137,7 @@ export async function queryExercisesForBootcamp(filters = {}) {
         difficulty, "exerciseType",
         "bodyPartCategory", "nasmMovementPattern",
         "optPhases", source,
+        "videoUrl", "imageUrl", "thumbnailUrl",
         "exercise_key",
         "easyVariation", "mediumVariation", "hardVariation",
         "kneeMod", "shoulderMod", "ankleMod", "wristMod", "backMod"
@@ -197,6 +198,9 @@ function formatForBootcamp(ex) {
     bodyPartCategory: ex.bodyPartCategory ?? 'full_body',
     optPhases: parseJsonField(ex.optPhases) || [1, 2, 3, 4, 5],
     source: ex.source ?? 'unknown',
+    videoUrl: ex.videoUrl ?? null,
+    imageUrl: ex.imageUrl ?? null,
+    thumbnailUrl: ex.thumbnailUrl ?? null,
     setupTimeSec: estimateSetupTime(ex),
     // Difficulty tiers
     easy: ex.easyVariation ?? null,

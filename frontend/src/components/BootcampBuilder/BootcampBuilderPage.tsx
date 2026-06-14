@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
-import { FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN } from './BootcampBuilderConstants';
+import { DEFAULT_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_WORKOUT_MIN, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN } from './BootcampBuilderConstants';
 import { PageWrapper } from './BootcampBuilderStyles';
 import { FourPane } from './BootcampModeStyles';
 import BootcampBuilderChrome from './BootcampBuilderChrome';
@@ -26,12 +26,12 @@ import {
 } from './BootcampBuilderPlacement';
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI();
-  const [classFormat, setClassFormat] = useState<ClassFormat>('2x8_r3');
+  const [classFormat, setClassFormat] = useState<ClassFormat>(DEFAULT_BOOTCAMP_FORMAT);
   const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
   const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
   const [equipmentProfileId, setEquipmentProfileId] = useState<number | null>(null);
-  const [targetDuration, setTargetDuration] = useState('50');
+  const [targetDuration, setTargetDuration] = useState(DEFAULT_BOOTCAMP_WORKOUT_MIN);
   const [expectedParticipants, setExpectedParticipants] = useState('12');
   const [className, setClassName] = useState('');
   const [optPhase, setOptPhase] = useState(1);

@@ -20,7 +20,7 @@ export const ExerciseCard = styled.div<{ $selected: boolean }>`
     $selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'var(--bg-base, #0A0A0F)'};
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
-  min-height: 64px;
+  min-height: 100px;
   overflow: hidden;
 
   &:hover,
@@ -29,6 +29,49 @@ export const ExerciseCard = styled.div<{ $selected: boolean }>`
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
     outline: none;
   }
+`;
+
+export const MediaPreview = styled.div`
+  position: relative;
+  min-height: 28px;
+  max-height: 28px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
+`;
+
+export const MediaImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
+export const MediaPlaceholder = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 48%, transparent));
+  font-family: 'Fira Code', monospace;
+  font-size: 8px;
+  text-transform: uppercase;
+`;
+
+export const MediaVideoBadge = styled.span`
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Fira Code', monospace;
+  font-size: 8px;
+  font-weight: 700;
 `;
 
 export const CardTop = styled.div`

@@ -31,20 +31,32 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Hexagon, Search, Film, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Search, Film, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import CoverageExerciseMediaDetail from './CoverageExerciseMediaDetail';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 interface CoverageExercise {
-  id: number;
+  id: string | number;
   name: string;
   exerciseKey: string;
   exerciseType: string;
   bodyPartCategory: string;
   difficulty: number;
   source: string;
+  videoUrl?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  mediaPreviewUrl?: string | null;
+  catalogVideoSample?: {
+    title?: string | null;
+    source?: string | null;
+    videoUrl?: string | null;
+    thumbnailUrl?: string | null;
+    durationSeconds?: number | null;
+  } | null;
   hasLegacyVideo: boolean;
   catalogVideoCount: number;
   covered: boolean;
@@ -58,7 +70,7 @@ interface CoverageSummary {
 }
 
 interface ByBodyPart {
-  [key: string]: { total: number; covered: number };
+  [key: string]: { total: number; covered: number; gaps?: number };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -239,9 +251,11 @@ const HexGrid = styled.div`
   padding: 8px 0;
 `;
 
-const HexCell = styled.div<{ $covered: boolean; $legacy: boolean; $selected: boolean }>`
-  width: 28px;
-  height: 32px;
+const HexCell = styled.button<{ $covered: boolean; $legacy: boolean; $selected: boolean }>`
+  all: unset;
+  box-sizing: border-box;
+  width: 44px;
+  height: 48px;
   position: relative;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -266,6 +280,11 @@ const HexCell = styled.div<{ $covered: boolean; $legacy: boolean; $selected: boo
         : $legacy
           ? 'rgba(139, 92, 246, 0.75)'
           : 'rgba(96, 192, 240, 0.15)'};
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-gilded-fern, #C6A84B);
+    outline-offset: 2px;
   }
 `;
 
@@ -387,6 +406,7 @@ const CrystallineCoverageTracker: React.FC = () => {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [hoveredEx, setHoveredEx] = useState<CoverageExercise | null>(null);
+  const [selectedEx, setSelectedEx] = useState<CoverageExercise | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const fetchCoverage = useCallback(async () => {
@@ -446,6 +466,8 @@ const CrystallineCoverageTracker: React.FC = () => {
   const handleHexLeave = useCallback(() => {
     setHoveredEx(null);
   }, []);
+
+  const activeDetailExercise = hoveredEx || selectedEx;
 
   // ─── Loading State ──────────────────────────────────────
   if (loading) {
@@ -558,10 +580,13 @@ const CrystallineCoverageTracker: React.FC = () => {
       <HexGrid>
         {filtered.map(ex => (
           <HexCell
+            type="button"
             key={ex.id}
             $covered={ex.covered}
             $legacy={ex.hasLegacyVideo && ex.catalogVideoCount === 0}
-            $selected={hoveredEx?.id === ex.id}
+            $selected={activeDetailExercise?.id === ex.id}
+            onClick={() => setSelectedEx(ex)}
+            onFocus={() => setSelectedEx(ex)}
             onMouseEnter={e => handleHexHover(ex, e)}
             onMouseMove={e => {
               if (tooltipRef.current) {
@@ -570,10 +595,13 @@ const CrystallineCoverageTracker: React.FC = () => {
               }
             }}
             onMouseLeave={handleHexLeave}
+            aria-label={`${ex.name}: ${ex.covered ? 'video covered' : 'video gap'}`}
             title={ex.name}
           />
         ))}
       </HexGrid>
+
+      <CoverageExerciseMediaDetail exercise={activeDetailExercise} />
 
       {/* Tooltip */}
       {hoveredEx && (

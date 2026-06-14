@@ -81,7 +81,7 @@ router.post('/generate', async (req, res) => {
     ];
     const VALID_INTENSITIES = ['high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'];
 
-    const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : 'stations_4x';
+    const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : '4x4_r2';
     const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
     const safeDuration = Math.min(Math.max(parseInt(targetDuration, 10) || 45, 20), 90);
     const safeParticipants = Math.min(Math.max(parseInt(expectedParticipants, 10) || 12, 1), 50);

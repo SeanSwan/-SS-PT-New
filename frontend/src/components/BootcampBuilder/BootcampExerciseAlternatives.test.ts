@@ -76,4 +76,31 @@ describe('Bootcamp exercise alternatives', () => {
     expect(exercise.easyVariation).toBe('Bodyweight split squat');
     expect(exercise.kneeMod).toBe('Short-range reverse lunge');
   });
+
+  it('carries Rolodex media into manual and hybrid bootcamp exercises', () => {
+    const exercise = buildBootcampExerciseFromRolodex(
+      {
+        id: 42,
+        name: 'Goblet Squat',
+        exerciseType: 'compound',
+        difficulty: 460,
+        primaryMuscles: ['glutes', 'quads'],
+        equipmentNeeded: ['Dumbbell'],
+        videoUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.mp4',
+        imageUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.jpg',
+        thumbnailUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat-thumb.jpg',
+      },
+      {
+        durationSec: 45,
+        restSec: 15,
+        sortOrder: 1,
+        stationIndex: 0,
+      },
+    );
+
+    expect(exercise.exerciseLibraryId).toBe(42);
+    expect(exercise.videoUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat.mp4');
+    expect(exercise.imageUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat.jpg');
+    expect(exercise.thumbnailUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat-thumb.jpg');
+  });
 });

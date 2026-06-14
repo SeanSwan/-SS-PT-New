@@ -3,7 +3,7 @@ export const EXERCISE_TYPES = ['All Types', 'Compound', 'Isolation', 'Calistheni
 export const EQUIPMENT_FILTERS = ['All Equipment', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine', 'Cable', 'Resistance Band', 'Kettlebell', 'Sliders', 'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX'];
 export const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
 export const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
-export const ROLODEX_ROW_HEIGHT = 76;
+export const ROLODEX_ROW_HEIGHT = 112;
 
 export function getJointImpact(ex: { exerciseType?: string | null; difficulty?: number | null }): string {
   const exerciseType = (ex.exerciseType || '').toLowerCase();

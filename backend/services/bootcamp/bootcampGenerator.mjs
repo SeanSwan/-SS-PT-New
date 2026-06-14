@@ -109,6 +109,7 @@ function selectFullGroupExercises(available) {
 function buildExerciseRecord(ex, opts) {
   // Use bridge estimator if exercise has equipment data, else fall back to stored value
   const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
+  const exerciseLibraryId = numericLibraryId(ex.exerciseLibraryId);
 
   return {
     stationIndex: opts.stationIndex ?? undefined,
@@ -128,9 +129,19 @@ function buildExerciseRecord(ex, opts) {
     backMod: ex.backMod ?? null,
     description: ex.description ?? null,
     equipmentRequired: Array.isArray(ex.equipment) ? ex.equipment.join(', ') : (ex.equipment ?? null),
+    videoUrl: ex.videoUrl ?? null,
+    imageUrl: ex.imageUrl ?? null,
+    thumbnailUrl: ex.thumbnailUrl ?? null,
     board: 'main',
     setupTimeSec: setupTime,
+    exerciseLibraryId,
   };
+}
+
+function numericLibraryId(value) {
+  if (Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  return null;
 }
 
 function addEquipmentToken(tokens, value) {
@@ -164,6 +175,35 @@ export function buildAvailableEquipmentList(equipmentItems = []) {
   }
 
   return [...tokens];
+}
+
+async function getAvailableEquipmentForBootcamp(equipmentProfileId) {
+  if (!equipmentProfileId) return buildAvailableEquipmentList([]);
+
+  try {
+    const { getAllModels } = await import('../../models/index.mjs');
+    const models = getAllModels();
+    const profile = models.EquipmentProfile
+      ? await models.EquipmentProfile.findByPk(equipmentProfileId)
+      : null;
+
+    if (!profile || !models.EquipmentItem) return buildAvailableEquipmentList([]);
+
+    const equipmentItems = await models.EquipmentItem.findAll({
+      where: {
+        profileId: equipmentProfileId,
+        isActive: true,
+        approvalStatus: { [Op.in]: ['approved', 'manual'] },
+      },
+      raw: true,
+    });
+
+    return buildAvailableEquipmentList(equipmentItems);
+  } catch (eqErr) {
+    const { default: logger } = await import('../../utils/logger.mjs');
+    logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
+    return buildAvailableEquipmentList([]);
+  }
 }
 
 function exerciseSearchText(exercise) {
@@ -237,7 +277,7 @@ export function rankExercisesForBootcamp(exercises, { intensityCategory } = {}) 
 export async function generateBootcampClass(options) {
   const {
     trainerId,
-    classFormat = 'stations_4x',
+    classFormat = '4x4_r2',
     classStyle = 'standard',
     dayType = 'full_body',
     intensityCategory,
@@ -289,49 +329,28 @@ export async function generateBootcampClass(options) {
 
   let availableExercises = [];
 
-  // Try Rolodex bridge first (equipment-aware, uses exercise_library table)
-  if (equipmentProfileId) {
-    try {
-      const { getAllModels } = await import('../../models/index.mjs');
-      const models = getAllModels();
-      const profile = models.EquipmentProfile
-        ? await models.EquipmentProfile.findByPk(equipmentProfileId)
-        : null;
+  // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
+  try {
+    const availableEquipment = await getAvailableEquipmentForBootcamp(equipmentProfileId);
 
-      if (profile) {
-        // Get equipment items for this profile
-        const equipmentItems = models.EquipmentItem
-          ? await models.EquipmentItem.findAll({
-              where: {
-                profileId: equipmentProfileId,
-                isActive: true,
-                approvalStatus: { [Op.in]: ['approved', 'manual'] },
-              },
-              raw: true,
-            })
-          : [];
-        const availableEquipment = buildAvailableEquipmentList(equipmentItems);
+    const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
+    const rolodexResults = await queryExercisesForBootcamp({
+      muscleGroups: targetMuscles,
+      availableEquipment,
+      excludeNames: [...combinedExclusions],
+      limit: 240,
+    });
 
-        const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
-        const rolodexResults = await queryExercisesForBootcamp({
-          muscleGroups: targetMuscles,
-          availableEquipment,
-          excludeNames: [...combinedExclusions],
-          limit: 200,
-        });
-
-        if (rolodexResults.length > 0) {
-          availableExercises = rolodexResults.map(ex => ({
-            key: ex.key || ex.name?.toLowerCase().replace(/\s+/g, '_'),
-            ...ex,
-          }));
-        }
-      }
-    } catch (eqErr) {
-      // Non-fatal — fall through to registry fallback
-      const { default: logger } = await import('../../utils/logger.mjs');
-      logger.warn('[BootcampGen] Equipment profile query failed, using full registry:', eqErr.message);
+    if (rolodexResults.length > 0) {
+      availableExercises = rolodexResults.map(ex => ({
+        key: ex.key || ex.name?.toLowerCase().replace(/\s+/g, '_'),
+        ...ex,
+      }));
     }
+  } catch (eqErr) {
+    // Non-fatal - fall through to registry fallback
+    const { default: logger } = await import('../../utils/logger.mjs');
+    logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);
   }
 
   // Fallback: use full exercise registry if Rolodex didn't produce results

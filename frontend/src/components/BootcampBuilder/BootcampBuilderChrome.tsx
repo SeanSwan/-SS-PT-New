@@ -44,9 +44,9 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
           $active={floorMode}
           onClick={onToggleFloorMode}
           aria-pressed={floorMode}
-          title="High-contrast mode for gym floor coaching"
+          title="Media-ready station demo mode for floor coaching"
         >
-          {floorMode ? 'Exit Floor' : 'Floor Mode'}
+          {floorMode ? 'Exit Demo' : 'Demo Mode'}
         </FloorModeToggle>
         <TeachMeToggle
           sectionId="bootcamp-builder"

@@ -17,6 +17,12 @@ import {
   getExerciseTrend,
 } from '../../models/index.mjs';
 
+function numericLibraryId(value) {
+  if (Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
 // ── Save Generated Class to Database ──────────────────────────────────
 
 export async function saveBootcampTemplate(generatedClass, trainerId) {
@@ -81,13 +87,16 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     hipMod: ex.hipMod,
     backMod: ex.backMod,
     equipmentRequired: ex.equipmentRequired,
+    videoUrl: ex.videoUrl ?? null,
+    imageUrl: ex.imageUrl ?? null,
+    thumbnailUrl: ex.thumbnailUrl ?? null,
     board: ex.board ?? 'main',
     setupTimeSec: ex.setupTimeSec ?? 0,
     pyramidStartWeight: ex.pyramidStartWeight ?? null,
     pyramidDrops: ex.pyramidDrops ?? null,
     supersetOrder: ex.supersetOrder ?? null,
     supersetGroupId: ex.supersetGroupId ?? null,
-    exerciseLibraryId: ex.exerciseLibraryId ?? null,
+    exerciseLibraryId: numericLibraryId(ex.exerciseLibraryId),
   }));
   if (exerciseRecords.length > 0) {
     await Exercise.bulkCreate(exerciseRecords);

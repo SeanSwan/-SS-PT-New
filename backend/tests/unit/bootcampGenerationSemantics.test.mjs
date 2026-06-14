@@ -3,12 +3,16 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
+import BootcampTemplate from '../../models/BootcampTemplate.mjs';
 import BootcampExercise from '../../models/BootcampExercise.mjs';
+import { FORMAT_CONFIG } from '../../services/bootcamp/bootcampConstants.mjs';
 import { __testing__ } from '../../services/bootcamp/bootcampGenerator.mjs';
 import { applyClassStyle, generateBoard2 } from '../../services/bootcamp/classStyleModifiers.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const bootcampCrudSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampCrud.mjs'), 'utf8');
+const bootcampGeneratorSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampGenerator.mjs'), 'utf8');
+const exerciseRolodexBridgeSource = readFileSync(resolve(__dirname, '../../services/bootcamp/exerciseRolodexBridge.mjs'), 'utf8');
 
 describe('bootcamp generation semantics', () => {
   it('orders calisthenics and flexibility requests around the selected intensity instead of treating it as metadata only', () => {
@@ -83,5 +87,40 @@ describe('bootcamp generation semantics', () => {
     expect(bootcampCrudSource).toContain('elbowMod: ex.elbowMod');
     expect(bootcampCrudSource).toContain('footMod: ex.footMod');
     expect(bootcampCrudSource).toContain('hipMod: ex.hipMod');
+  });
+
+  it('allows every generator class format to be saved as a bootcamp template', () => {
+    const modelValues = BootcampTemplate.rawAttributes.classFormat.values;
+    expect(modelValues).toEqual(expect.arrayContaining(Object.keys(FORMAT_CONFIG)));
+  });
+
+  it('allows every exposed class style to be saved as a bootcamp template', () => {
+    const modelValues = BootcampTemplate.rawAttributes.classStyle.values;
+    expect(modelValues).toEqual(expect.arrayContaining([
+      'standard', 'pyramid', 'superset', 'mixed', 'ladder', 'descending',
+      'chipper', 'countdown', 'death_by', 'ygig', 'contrast', 'density',
+    ]));
+  });
+
+  it('pulls Rolodex exercise media into generated bootcamp classes before falling back to the registry', () => {
+    const rolodexQueryIndex = bootcampGeneratorSource.indexOf('const rolodexResults = await queryExercisesForBootcamp');
+    const registryFallbackIndex = bootcampGeneratorSource.indexOf('const registry = getExerciseRegistry()');
+    const preRolodexQuery = bootcampGeneratorSource.slice(Math.max(0, rolodexQueryIndex - 700), rolodexQueryIndex);
+
+    expect(rolodexQueryIndex).toBeGreaterThan(-1);
+    expect(registryFallbackIndex).toBeGreaterThan(rolodexQueryIndex);
+    expect(preRolodexQuery).not.toContain('if (equipmentProfileId) {');
+    expect(exerciseRolodexBridgeSource).toContain('"videoUrl", "imageUrl", "thumbnailUrl"');
+    expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? null');
+  });
+
+  it('persists exercise media references for saved class templates and demo mode replay', () => {
+    expect(BootcampExercise.rawAttributes.videoUrl).toBeDefined();
+    expect(BootcampExercise.rawAttributes.imageUrl).toBeDefined();
+    expect(BootcampExercise.rawAttributes.thumbnailUrl).toBeDefined();
+    expect(bootcampCrudSource).toContain('videoUrl: ex.videoUrl ?? null');
+    expect(bootcampCrudSource).toContain('imageUrl: ex.imageUrl ?? null');
+    expect(bootcampCrudSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? null');
   });
 });

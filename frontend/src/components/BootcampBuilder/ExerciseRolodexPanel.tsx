@@ -8,7 +8,7 @@ import {
   buildEquipmentProfileTokens,
   filterExercisesByEquipmentProfile,
 } from './BootcampEquipmentProfileFilter';
-import { CLASS_FORMATS } from './BootcampBuilderConstants';
+import { CLASS_FORMATS, DEFAULT_BOOTCAMP_FORMAT } from './BootcampBuilderConstants';
 import ExerciseRolodexList from './ExerciseRolodexList';
 import {
   BODY_PARTS,
@@ -156,7 +156,7 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
 
       {showFormatSelector && onFormatChange ? (
         <FormatInfoBar>
-          <FormatSelect value={classFormat || '2x8_r3'} onChange={(event) => onFormatChange(event.target.value)}>
+          <FormatSelect value={classFormat || DEFAULT_BOOTCAMP_FORMAT} onChange={(event) => onFormatChange(event.target.value)}>
             {CLASS_FORMATS.map((format) => (
               <option key={format.value} value={format.value}>{format.label}</option>
             ))}

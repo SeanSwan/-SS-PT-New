@@ -15,6 +15,9 @@ import type { ClassFormat, DayType } from '../../hooks/useBootcampAPI';
 export const OVERHEAD_MIN = 13; // 5 demo + 5 clear + 3 stretch
 export const DEFAULT_REST_SEC = 15; // between exercises at same station
 export const ROTATION_SEC = 30;     // between stations
+export const DEFAULT_BOOTCAMP_FORMAT = '4x4_r2' as const;
+export const DEFAULT_BOOTCAMP_WORKOUT_MIN = '40';
+export const COMMON_CLASS_FORMAT_KEYS = ['4x4_r2', '4x5_r1', '3x4_r2', '3x5_r2'] as const;
 
 // ── Format Config ───────────────────────────────────────────
 export interface FormatConfig {
@@ -145,6 +148,13 @@ export const CLASS_FORMATS: Array<{ value: string; label: string; description: s
     category: formatCategory(key, cfg),
   }))
   .sort((a, b) => {
+    const commonA = COMMON_CLASS_FORMAT_KEYS.indexOf(a.value as typeof COMMON_CLASS_FORMAT_KEYS[number]);
+    const commonB = COMMON_CLASS_FORMAT_KEYS.indexOf(b.value as typeof COMMON_CLASS_FORMAT_KEYS[number]);
+    if (commonA !== -1 || commonB !== -1) {
+      if (commonA === -1) return 1;
+      if (commonB === -1) return -1;
+      return commonA - commonB;
+    }
     // Sort by category, then by label
     const catOrder: Record<string, number> = {};
     let idx = 0;

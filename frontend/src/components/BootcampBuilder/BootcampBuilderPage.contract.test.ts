@@ -13,9 +13,18 @@ describe('BootcampBuilderPage workflow contract', () => {
   ].join('\n');
   const sidePanelsSource = read('./BootcampBuilderSidePanels.tsx');
   const constantsSource = read('./BootcampBuilderPage.constants.ts');
+  const builderConstantsSource = read('./BootcampBuilderConstants.ts');
   const stylesSource = read('./BootcampBuilderStyles.ts');
   const modeStylesSource = read('./BootcampModeStyles.ts');
   const teachMeSource = constantsSource.match(/const BOOTCAMP_TEACH_ME_CONTENT = \[([\s\S]*?)\]\.join\(''\);/)?.[1] ?? '';
+
+  it('defaults new classes to the common four-station format instead of the old eight-station format', () => {
+    expect(builderConstantsSource).toContain("DEFAULT_BOOTCAMP_FORMAT = '4x4_r2'");
+    expect(builderConstantsSource).toContain("DEFAULT_BOOTCAMP_WORKOUT_MIN = '40'");
+    expect(pageSource).toContain('useState<ClassFormat>(DEFAULT_BOOTCAMP_FORMAT)');
+    expect(pageSource).not.toContain("useState<ClassFormat>('2x8_r3')");
+    expect(builderConstantsSource.indexOf("'4x4_r2'")).toBeLessThan(builderConstantsSource.indexOf("'2x8_r3'"));
+  });
 
   it('sends every visible generation control to the bootcamp API', () => {
     const generateCall = pageSource.match(/api\.generateClass\(\{[\s\S]*?\}\);/)?.[0] ?? '';

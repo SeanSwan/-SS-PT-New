@@ -4,6 +4,7 @@ import { Panel, PanelTitle, SectionDivider, InsightCard, PrimaryButton, TimingBa
 import { buildBootcampBoardViews } from './BootcampBoardViews';
 import ClassPreviewAlternatives from './ClassPreviewAlternatives';
 import ClassPreviewMainBoard from './ClassPreviewMainBoard';
+import BootcampDemoMode from './BootcampDemoMode';
 import type { BoardView, ClassPreviewPanelProps } from './ClassPreviewPanel.types';
 import {
   BoardTab,
@@ -92,6 +93,10 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                     : `${bottleneckCount} bottleneck${bottleneckCount > 1 ? 's' : ''}`}
                 </FlowSummary>
               </FlowInsightBar>
+            )}
+
+            {floorMode && activeBoard === 'main' && (
+              <BootcampDemoMode bootcamp={bootcamp} onSelectExercise={onSelectExercise} />
             )}
 
             {hasBoards && (

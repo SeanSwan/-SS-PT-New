@@ -85,6 +85,15 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
   equipmentRequired: {
     type: DataTypes.STRING(100),
   },
+  videoUrl: {
+    type: DataTypes.STRING(500),
+  },
+  imageUrl: {
+    type: DataTypes.STRING(500),
+  },
+  thumbnailUrl: {
+    type: DataTypes.STRING(500),
+  },
   notes: {
     type: DataTypes.TEXT,
   },

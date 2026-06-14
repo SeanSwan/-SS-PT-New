@@ -16,6 +16,10 @@ export const ModeBar = styled.div`
     padding: 6px 10px;
     gap: 4px;
   }
+
+  @media (min-width: 2200px) {
+    padding: 12px 22px;
+  }
 `;
 
 export const ModeBtn = styled.button<{ $active: boolean }>`
@@ -24,7 +28,7 @@ export const ModeBtn = styled.button<{ $active: boolean }>`
   gap: 6px;
   padding: 8px 14px;
   border-radius: 8px;
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid ${({ $active }) =>
     $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.1))'};
   background: ${({ $active }) =>
@@ -42,7 +46,12 @@ export const ModeBtn = styled.button<{ $active: boolean }>`
   @media (max-width: 430px) {
     font-size: 11px;
     padding: 6px 10px;
-    min-height: 32px;
+    min-height: 44px;
+  }
+
+  @media (min-width: 2200px) {
+    font-size: 14px;
+    padding: 10px 18px;
   }
 `;
 
@@ -63,6 +72,11 @@ export const TimingAlert = styled.div<{ $over: boolean }>`
     font-size: 10px;
     padding: 4px 10px;
   }
+
+  @media (min-width: 2200px) {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
 `;
 
 export const FourPane = styled.div`
@@ -75,5 +89,9 @@ export const FourPane = styled.div`
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
+  }
+
+  @media (min-width: 2200px) {
+    grid-template-columns: 340px minmax(0, 1fr) 380px;
   }
 `;

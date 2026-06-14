@@ -12,6 +12,10 @@ import {
   ExName,
   ExerciseCard,
   ExerciseGrid,
+  MediaImage,
+  MediaPlaceholder,
+  MediaPreview,
+  MediaVideoBadge,
   MetaTag,
   SkeletonBlock,
   VirtualRow,
@@ -58,6 +62,7 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
           const impact = getJointImpact(exercise);
           const eqArr = parseEquipment((exercise as any).equipment || (exercise as any).equipmentNeeded);
           const eqLabel = eqArr.length > 0 ? eqArr[0] : 'Bodyweight';
+          const media = getExerciseMediaPreview(exercise);
 
           return (
             <ExerciseCard
@@ -69,6 +74,16 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
               aria-label={`Select ${exercise.name}`}
               tabIndex={0}
             >
+              {media.hasMedia && (
+                <MediaPreview aria-label={`${exercise.name} media preview`}>
+                  {media.poster ? (
+                    <MediaImage src={media.poster} alt="" loading="lazy" />
+                  ) : (
+                    <MediaPlaceholder>Demo media</MediaPlaceholder>
+                  )}
+                  {media.videoUrl && <MediaVideoBadge>Video</MediaVideoBadge>}
+                </MediaPreview>
+              )}
               <CardTop>
                 <ExName>{exercise.name}</ExName>
                 <AddBtn
@@ -111,3 +126,13 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
 };
 
 export default ExerciseRolodexList;
+
+export function getExerciseMediaPreview(exercise: ExerciseSlim) {
+  const poster = exercise.thumbnailUrl || exercise.imageUrl || null;
+  const videoUrl = exercise.videoUrl || null;
+  return {
+    poster,
+    videoUrl,
+    hasMedia: Boolean(poster || videoUrl),
+  };
+}

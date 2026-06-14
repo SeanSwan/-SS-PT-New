@@ -5,6 +5,21 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../database.mjs';
 
+const BOOTCAMP_CLASS_FORMAT_VALUES = [
+  '2x5_r4', '2x5_r3', '2x6_r3', '2x6_r2', '2x7_r3', '2x7_r2',
+  '2x8_r3', '2x8_r2', '2x10_r2', '3x4_r3', '3x4_r2', '3x5_r2',
+  '3x5_r3', '3x6_r2', '3x6_r1', '3x8_r1', '4x4_r2', '4x4_r1',
+  '4x5_r2', '4x5_r1', '4x6_r1', '5x3_r2', '5x3_r1', '5x4_r1',
+  'stations_4x', 'stations_3x5', 'stations_2x7', 'stations_3x4',
+  'stations_5x3', 'full_group', 'circuit', 'emom', 'tabata', 'amrap',
+  'partner', 'hybrid', 'custom',
+];
+
+const BOOTCAMP_CLASS_STYLE_VALUES = [
+  'standard', 'pyramid', 'superset', 'mixed', 'ladder', 'descending',
+  'chipper', 'countdown', 'death_by', 'ygig', 'contrast', 'density',
+];
+
 const BootcampTemplate = sequelize.define('BootcampTemplate', {
   id: {
     type: DataTypes.INTEGER,
@@ -24,7 +39,7 @@ const BootcampTemplate = sequelize.define('BootcampTemplate', {
     type: DataTypes.TEXT,
   },
   classFormat: {
-    type: DataTypes.ENUM('stations_4x', 'stations_3x5', 'stations_2x7', 'full_group', 'custom'),
+    type: DataTypes.ENUM(...BOOTCAMP_CLASS_FORMAT_VALUES),
     allowNull: false,
   },
   targetDurationMin: {
@@ -90,7 +105,7 @@ const BootcampTemplate = sequelize.define('BootcampTemplate', {
   },
   // ── Upgrade Phase 0a: class style, intensity, stretch ──
   classStyle: {
-    type: DataTypes.ENUM('standard', 'pyramid', 'superset', 'mixed'),
+    type: DataTypes.ENUM(...BOOTCAMP_CLASS_STYLE_VALUES),
     defaultValue: 'standard',
   },
   intensityCategory: {

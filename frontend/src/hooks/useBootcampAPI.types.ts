@@ -21,6 +21,9 @@ export interface BootcampExercise {
   hipMod: string | null;
   description: string | null;
   equipmentRequired: string | null;
+  videoUrl?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   stationIndex?: number;
   board?: 'main' | 'alternative' | 'lowImpact';
   boardNumber?: number;

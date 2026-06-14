@@ -12,6 +12,9 @@ export interface RolodexLikeExercise {
   equipmentNeeded?: string[] | string | null;
   bodyPartCategory?: string;
   description?: string | null;
+  videoUrl?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   easyVariation?: string | null;
   mediumVariation?: string | null;
   hardVariation?: string | null;
@@ -63,6 +66,12 @@ function arrayText(value: unknown): string[] {
     }
   }
   return [];
+}
+
+function numericId(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  return undefined;
 }
 
 function includesAny(source: string, terms: string[]) {
@@ -182,9 +191,12 @@ export function buildBootcampExerciseFromRolodex(
     stationIndex: options.stationIndex,
     isCardioFinisher: includesAny((exercise.exerciseType || '').toLowerCase(), ['cardio', 'conditioning']),
     equipmentRequired: equipment.length > 0 ? equipment.join(', ') : null,
+    videoUrl: text(exercise.videoUrl),
+    imageUrl: text(exercise.imageUrl),
+    thumbnailUrl: text(exercise.thumbnailUrl),
     setupTimeSec: options.setupTimeSec ?? 5,
     description: text(exercise.description),
-    exerciseLibraryId: typeof exercise.id === 'number' ? exercise.id : undefined,
+    exerciseLibraryId: numericId(exercise.id),
   };
 }
 
