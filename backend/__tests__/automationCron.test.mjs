@@ -85,6 +85,17 @@ describe('automationCron (Tier 0.3 follow-up engine)', () => {
       expect(processScheduledMessages).not.toHaveBeenCalled();
       expect(checkClientsForRenewalAlerts).not.toHaveBeenCalled();
     });
+    it('clears the pending startup tick when stopped before the first outbound check', async () => {
+      process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
+      vi.useFakeTimers();
+      startAutomationScheduler();
+      stopAutomationScheduler();
+
+      await vi.advanceTimersByTimeAsync(6000);
+
+      expect(processScheduledMessages).not.toHaveBeenCalled();
+      expect(checkClientsForRenewalAlerts).not.toHaveBeenCalled();
+    });
     it('starts and ticks when explicitly enabled', async () => {
       process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
       vi.useFakeTimers();
@@ -92,7 +103,22 @@ describe('automationCron (Tier 0.3 follow-up engine)', () => {
       expect(res).toEqual({ started: true });
       await vi.advanceTimersByTimeAsync(6000); // past the 5s immediate run
       expect(processScheduledMessages).toHaveBeenCalled();
-      expect(checkClientsForRenewalAlerts).toHaveBeenCalled();
+      expect(checkClientsForRenewalAlerts).not.toHaveBeenCalled();
+    });
+    it('runs renewal refresh on its slower cadence, not every five-minute drip tick', async () => {
+      process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
+      vi.useFakeTimers();
+      startAutomationScheduler();
+
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(checkClientsForRenewalAlerts).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(25 * 1000);
+      expect(checkClientsForRenewalAlerts).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+      expect(processScheduledMessages).toHaveBeenCalledTimes(2);
+      expect(checkClientsForRenewalAlerts).toHaveBeenCalledTimes(1);
     });
   });
 });
