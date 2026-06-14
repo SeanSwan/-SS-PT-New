@@ -142,7 +142,7 @@ describe('CoachCommandCenter voice input', () => {
   it('routes the command center Mic button into browser speech input', () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /^Mic$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
 
     expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
   });
@@ -152,7 +152,7 @@ describe('CoachCommandCenter voice input', () => {
 
     renderPage();
 
-    expect(screen.getByRole('button', { name: /^Mic$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /voice dictation/i })).toBeDisabled();
   });
 
   it('keeps fake voice toggles out of the command action factory', () => {

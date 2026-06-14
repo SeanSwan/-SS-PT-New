@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelCommandMock,
@@ -11,44 +11,58 @@ import {
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
 
+const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
+const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
+
 describe('CoachCommandCenterPage shell', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('renders command-first labels, dock actions, and approval-gated copy', () => {
+  it('renders the chat-first command bridge: client switcher, tabs, dock, and welcome', () => {
     renderPage();
 
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
-    expect(screen.getAllByText(/Swan Coach Command Center/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Coach Command Modes/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Start with a workflow/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Operator next workflow/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Stage next review/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /New Coach Thread/i })).toBeInTheDocument();
-    expect(screen.getByText(/Command input/i)).toBeInTheDocument();
-    expect(screen.getByText(/One reviewed instruction at a time/i)).toBeInTheDocument();
-    expect(screen.queryByText(/recorder intake/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Upload saved PLAUD clips into Swan Coach/i)).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Import PLAUD/i })).toBeInTheDocument();
+
+    // Client switcher is the focal point
+    expect(screen.getByText(/Now coaching/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New client \/ conversation/i })).toBeInTheDocument();
+
+    // Section tabs (heavy ops moved off the default view)
+    expect(screen.getByRole('button', { name: /^Chat$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Intake/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^PLAUD/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^History/i })).toBeInTheDocument();
+
+    // No ops-dashboard banner / duplicate command-center title
+    expect(screen.queryByText(/review-gated operator console/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Operator next workflow/i)).not.toBeInTheDocument();
+
+    // Chat welcome + voice-forward dock
+    expect(screen.getByText(/Ready when you are/i)).toBeInTheDocument();
+    expect(composerInput()).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Attach$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Mic$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Import PLAUD/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Readback$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Prepare review$/i })).toBeInTheDocument();
-    expect(screen.getByText(/the operator approves the final write/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /voice dictation/i })).toBeInTheDocument();
+    expect(sendButton()).toBeInTheDocument();
+
+    // Quick intents + next-best-action
+    expect(screen.getByRole('button', { name: /^Log workout$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Onboard client$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Next: Review next ready intake/i)).toBeInTheDocument();
   });
 
-  it('keeps the command composer at the top of the command workspace before the banner', () => {
+  it('moves the heavy operator surfaces off the default chat view into tabs', () => {
     renderPage();
 
-    const workspace = screen.getByLabelText('Swan Coach command workspace');
-    const composer = within(workspace).getByRole('form', { name: /Swan Coach command composer/i });
-    const commandLog = within(workspace).getByRole('heading', { name: /Command log/i }).closest('section');
-    const banner = within(workspace).getByText(/review-gated operator console/i).closest('section');
+    expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
 
-    expect(commandLog).not.toBeNull();
-    expect(banner).not.toBeNull();
-    expect(composer.compareDocumentPosition(commandLog as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect((commandLog as Element).compareDocumentPosition(banner as Element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Intake/i }));
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^PLAUD/i }));
+    expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
   it('formats long coach responses into readable steps and keeps structured packets collapsed', async () => {
@@ -60,10 +74,8 @@ describe('CoachCommandCenterPage shell', () => {
     });
     renderPage();
 
-    fireEvent.change(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...'), {
-      target: { value: 'Prepare readable review.' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'Prepare readable review.' } });
+    fireEvent.click(sendButton());
 
     expect(await screen.findByText('Get Him Moving Gently')).toBeInTheDocument();
     expect(screen.getByText('Iron Out the Kinks')).toBeInTheDocument();
@@ -71,27 +83,23 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByText('Structured packet')).toBeInTheDocument();
   });
 
-  it('opens the embedded PLAUD uploader from the top command dock', () => {
+  it('opens the PLAUD upload lane from the dock PLAUD action', async () => {
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage();
 
-    const uploadInput = screen.getByTestId('plaud-uploader-input');
-    const clickSpy = vi.spyOn(uploadInput, 'click');
-
+    expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Import PLAUD/i }));
-
-    expect(clickSpy).toHaveBeenCalledTimes(1);
-    expect(screen.getAllByText(/PLAUD upload lane ready/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/PLAUD recorder upload lane opened/i)).toBeInTheDocument();
+    expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
+    await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+    clickSpy.mockRestore();
   });
 
-  it('uses real conversation thread buttons that update the composer and selected status', () => {
+  it('uses real conversation threads as one-tap client switches that update the dock and status', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: /Friday intake cleanup/i }));
 
-    expect(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...')).toHaveValue(
-      'Continue Friday intake cleanup with review-gated context.',
-    );
+    expect(composerInput()).toHaveValue('Continue Friday intake cleanup with review-gated context.');
     expect(loadConversationMock).toHaveBeenCalledWith(101);
     expect(screen.getAllByText(/Friday intake cleanup - thread loaded/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Friday intake cleanup/i })).toHaveAttribute('aria-current', 'true');
@@ -100,9 +108,8 @@ describe('CoachCommandCenterPage shell', () => {
   it('submits the command dock through the real coach conversation API', async () => {
     renderPage();
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
-    fireEvent.change(composer, { target: { value: 'Prepare today intake review.' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'Prepare today intake review.' } });
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -124,9 +131,8 @@ describe('CoachCommandCenterPage shell', () => {
     });
     renderPage();
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
-    fireEvent.change(composer, { target: { value: 'List active clients' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'List active clients' } });
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(executeCommandMock).toHaveBeenCalledWith('List active clients', {
@@ -156,9 +162,8 @@ describe('CoachCommandCenterPage shell', () => {
     });
     renderPage();
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
-    fireEvent.change(composer, { target: { value: 'Create external client Ava Stone' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'Create external client Ava Stone' } });
+    fireEvent.click(sendButton());
 
     expect(await screen.findByText(/Prepared draft waiting/i)).toBeInTheDocument();
     expect(screen.getByText(/Review client onboarding draft/i)).toBeInTheDocument();
@@ -166,7 +171,7 @@ describe('CoachCommandCenterPage shell', () => {
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?proposal=proposal-123');
   });
 
-  it('lets admins confirm command-lane approval holds from the command log', async () => {
+  it('lets admins confirm command-lane approval holds from the conversation', async () => {
     executeCommandMock.mockResolvedValueOnce({
       type: 'confirmation_required',
       message: 'Confirm that this no-show should cancel the paid session.',
@@ -186,9 +191,8 @@ describe('CoachCommandCenterPage shell', () => {
     });
     renderPage();
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
-    fireEvent.change(composer, { target: { value: 'Cancel session 42' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'Cancel session 42' } });
+    fireEvent.click(sendButton());
 
     expect(await screen.findByText(/Confirm Destructive Action/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
@@ -212,9 +216,8 @@ describe('CoachCommandCenterPage shell', () => {
     });
     renderPage();
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
-    fireEvent.change(composer, { target: { value: 'Cancel session 43' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.change(composerInput(), { target: { value: 'Cancel session 43' } });
+    fireEvent.click(sendButton());
 
     expect(await screen.findByText(/Confirm Destructive Action/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Cancel action/i }));

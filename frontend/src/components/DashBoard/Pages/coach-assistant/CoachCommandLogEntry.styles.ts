@@ -3,9 +3,22 @@ import styled, { css } from 'styled-components';
 import type { LogActor } from './CoachCommandLogEntry.types';
 
 const actorStyles = {
-  operator: css`background: color-mix(in srgb, var(--coach-purple, #8b5cf6) 11%, transparent);`,
-  coach: css`background: color-mix(in srgb, var(--coach-cyan, #60c0f0) 9%, transparent);`,
-  system: css`background: color-mix(in srgb, var(--coach-surface-strong, #102044) 74%, transparent);`,
+  operator: css`
+    align-self: flex-end;
+    max-width: 88%;
+    background: color-mix(in srgb, var(--coach-purple, #8b5cf6) 17%, transparent);
+    border-color: color-mix(in srgb, var(--coach-purple, #8b5cf6) 34%, transparent);
+  `,
+  coach: css`
+    align-self: flex-start;
+    max-width: 92%;
+    background: color-mix(in srgb, var(--coach-cyan, #60c0f0) 11%, transparent);
+  `,
+  system: css`
+    align-self: center;
+    max-width: 96%;
+    background: color-mix(in srgb, var(--coach-surface-strong, #102044) 72%, transparent);
+  `,
 };
 
 export const LogEntry = styled.article<{ $actor: LogActor }>`
@@ -33,8 +46,8 @@ export const LogBody = styled.div`
   color: var(--coach-text-soft, #dbeafe);
   display: grid;
   gap: 12px;
-  font-size: clamp(0.875rem, 0.82rem + 0.18vw, 0.98rem);
-  line-height: 1.62;
+  font-size: clamp(0.98rem, 0.92rem + 0.2vw, 1.1rem);
+  line-height: 1.58;
   overflow-wrap: anywhere;
   p { margin: 0; }
   strong { color: var(--coach-text, #e0ecf4); font-weight: 820; }

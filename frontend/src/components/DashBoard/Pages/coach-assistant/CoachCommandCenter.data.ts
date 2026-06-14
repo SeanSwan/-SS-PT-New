@@ -34,23 +34,9 @@ export type CommandLogResult = {
 
 export const INITIAL_COMMAND_LOGS: CommandLogEntry[] = [
   {
-    id: 'transcript-parsing',
-    actor: 'system',
-    label: 'transcript parsing',
-    body: 'PLAUD audio upload is parsing. Low-confidence segments remain blocked from draft conversion until reviewed.',
-    attachments: ['PLAUD_AUDIO_0513_0940.wav', 'parse-progress 82%'],
-  },
-  {
-    id: 'operator-command',
-    actor: 'operator',
-    label: 'command',
-    body: 'Summarize selected client context and prepare blockers before any draft work.',
-  },
-  {
-    id: 'prepared-recommendation',
+    id: 'coach-welcome',
     actor: 'coach',
-    label: 'prepared recommendation',
-    body: 'Summary prepared. Recommendation is ready for operator review: confirm shoulder note, check duplicate-risk log, then approve or revise the draft plan.',
-    attachments: ['draft_summary.md', 'operator approval pending'],
+    label: 'Swan Coach',
+    body: 'Ready when you are. Talk or type — log a workout, onboard a client, or pick up a past conversation. I prepare each action and wait for your confirmation before anything is saved.',
   },
 ];

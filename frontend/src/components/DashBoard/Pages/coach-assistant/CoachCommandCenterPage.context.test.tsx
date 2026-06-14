@@ -9,6 +9,10 @@ import {
   useCoachIntakeQueueMock,
 } from './CoachCommandCenterPage.test.harness';
 
+const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
+const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
+
 describe('CoachCommandCenterPage route context', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
@@ -17,7 +21,7 @@ describe('CoachCommandCenterPage route context', () => {
       '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
     );
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    const composer = composerInput();
     await waitFor(() => {
       expect((composer as HTMLTextAreaElement).value).toContain('Client #424242');
     });
@@ -25,7 +29,7 @@ describe('CoachCommandCenterPage route context', () => {
     expect(screen.getAllByText(/Client #424242/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/daily log context loaded/i).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -43,7 +47,7 @@ describe('CoachCommandCenterPage route context', () => {
       '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
     );
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    const composer = composerInput();
     await waitFor(() => {
       expect((composer as HTMLTextAreaElement).value).toContain('Client #424242');
     });
@@ -51,7 +55,7 @@ describe('CoachCommandCenterPage route context', () => {
     fireEvent.change(composer, {
       target: { value: 'Bench press 3 sets of 10 at 135, RPE 7.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -73,7 +77,7 @@ describe('CoachCommandCenterPage route context', () => {
       '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=master-schedule&sessionId=777&sessionDate=2026-06-07&sessionCredits=2',
     );
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    const composer = composerInput();
     await waitFor(() => {
       expect((composer as HTMLTextAreaElement).value).toContain('booked session #777');
     });
@@ -81,7 +85,7 @@ describe('CoachCommandCenterPage route context', () => {
     fireEvent.change(composer, {
       target: { value: 'Bench press 3 sets of 10 at 135, RPE 7.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -107,7 +111,7 @@ describe('CoachCommandCenterPage route context', () => {
       client: { id: 424242 },
     });
     fireEvent.change(composer, { target: { value: 'Log workout: squats 3 sets of 10.' } });
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(executeCommandMock).toHaveBeenCalledWith('Log workout: squats 3 sets of 10.', {
@@ -137,14 +141,14 @@ describe('CoachCommandCenterPage route context', () => {
       '/dashboard/admin/coach-assistant?intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management',
     );
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    const composer = composerInput();
     await waitFor(() => {
       expect((composer as HTMLTextAreaElement).value).toContain('New client onboarding intake');
     });
 
     expect(screen.getAllByText(/New client onboarding context loaded/i).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -162,7 +166,7 @@ describe('CoachCommandCenterPage route context', () => {
       '/dashboard/admin/coach-assistant?clientId=424242&intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
     );
 
-    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    const composer = composerInput();
     await waitFor(() => {
       expect((composer as HTMLTextAreaElement).value).toContain('Selected paid client onboarding activation');
     });
@@ -171,7 +175,7 @@ describe('CoachCommandCenterPage route context', () => {
     expect((composer as HTMLTextAreaElement).value).not.toContain('New client onboarding intake');
     expect(screen.getAllByText(/Client #424242 onboarding context loaded/i).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Prepare review$/i }));
+    fireEvent.click(sendButton());
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
@@ -187,6 +191,8 @@ describe('CoachCommandCenterPage route context', () => {
   it('does not show static workout or nutrition proof when selected-client data has not been loaded', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team');
 
+    fireEvent.click(screen.getByRole('button', { name: /^History/i }));
+
     const commandRail = screen.getByLabelText('Coach threads and selected client context');
     expect(within(commandRail).queryByText('12 sessions')).not.toBeInTheDocument();
     expect(within(commandRail).queryByText('context on')).not.toBeInTheDocument();
@@ -196,28 +202,31 @@ describe('CoachCommandCenterPage route context', () => {
     expect(within(commandRail).getByText('review gated')).toBeInTheDocument();
   });
 
-  it('opens and closes mobile drawers with aria-expanded and Escape handling', () => {
+  it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
-    const drawerTrigger = screen.getByRole('button', { name: /^Threads$/i, hidden: true });
-    expect(drawerTrigger).toHaveAttribute('aria-expanded', 'false');
+    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
+    expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(drawerTrigger);
-    expect(drawerTrigger).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(opsTrigger);
+    expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(drawerTrigger).toHaveAttribute('aria-expanded', 'false');
+    expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('uses the unified Coach intake queue and embeds the PLAUD merge workflow in the admin console', () => {
+  it('uses the unified Coach intake queue and reaches the embedded PLAUD merge workflow', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=plaud&mergeRequestId=11111111-2222-3333-4444-555555555555');
 
     expect(useCoachIntakeQueueMock).toHaveBeenCalledWith({ scope: 'actionable', limit: 12 });
-    expect(screen.getByText(/Unified PLAUD and Coach intake queue/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Review next ready intake/i).length).toBeGreaterThan(0);
-    expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
+
+    // Deep-link lands directly on the PLAUD tab with the embedded merge workspace
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveAttribute('data-embedded', 'true');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveTextContent('11111111-2222-3333-4444-555555555555');
+
+    // Unified intake queue is one tap away
+    fireEvent.click(screen.getByRole('button', { name: /^Intake/i }));
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 
   it('shows real queue counts in the operations rail instead of static prototype values', () => {
@@ -234,7 +243,7 @@ describe('CoachCommandCenterPage route context', () => {
     expect(within(operationsRail).getByText('Duplicate-risk holds').closest('li')).toHaveTextContent('2');
   });
 
-  it('creates a minimal client stub from the command rail and stages the composer for approved follow-up', async () => {
+  it('creates a minimal client stub from the operator drawer and stages the dock for approved follow-up', async () => {
     renderPage();
 
     expect(within(screen.getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();
@@ -249,9 +258,7 @@ describe('CoachCommandCenterPage route context', () => {
       });
     });
 
-    expect(screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...')).toHaveValue(
-      'Continue Ava Stone with review-gated context.',
-    );
+    expect(composerInput()).toHaveValue('Continue Ava Stone with review-gated context.');
     expect(screen.getAllByText(/Ava Stone - client stub ready/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
   });

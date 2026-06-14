@@ -8,10 +8,12 @@ const SECTION_FILES = [
   'CoachCommandCenter.actions.ts',
   'CoachCommandCenter.controller.ts',
   'useCoachCommandCenterDrawerEffects.ts',
+  'CoachCommandCenter.bridgeStyles.ts',
+  'CoachClientBar.tsx',
+  'CoachCommandTabBar.tsx',
+  'CoachChatTranscript.tsx',
+  'CoachConsoleDock.tsx',
   'CoachCommandLeftRail.tsx',
-  'CoachCommandComposer.tsx',
-  'CoachCommandLogPanel.tsx',
-  'CoachCommandOverview.tsx',
   'CoachCommandOpsRail.tsx',
 ];
 
@@ -25,15 +27,18 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(pageSource).toContain("from './CoachCommandCenter.controller'");
     expect(pageSource).toContain("from './useCoachCommandCenterDrawerEffects'");
+    expect(pageSource).toContain("from './CoachCommandCenter.bridgeStyles'");
+    expect(pageSource).toContain("from './CoachChatTranscript'");
+    expect(pageSource).toContain("from './CoachClientBar'");
+    expect(pageSource).toContain("from './CoachCommandTabBar'");
+    expect(pageSource).toContain("from './CoachConsoleDock'");
     expect(pageSource).toContain("from './CoachCommandLeftRail'");
-    expect(pageSource).toContain("from './CoachCommandComposer'");
-    expect(pageSource).toContain("from './CoachCommandLogPanel'");
-    expect(pageSource).toContain("from './CoachCommandOverview'");
     expect(pageSource).toContain("from './CoachCommandOpsRail'");
+    expect(pageSource).toContain('<CoachClientBar');
+    expect(pageSource).toContain('<CoachCommandTabBar');
+    expect(pageSource).toContain('<CoachChatTranscript');
+    expect(pageSource).toContain('<CoachConsoleDock');
     expect(pageSource).toContain('<CoachCommandLeftRail');
-    expect(pageSource).toContain('<CoachCommandComposer');
-    expect(pageSource).toContain('<CoachCommandLogPanel');
-    expect(pageSource).toContain('<CoachCommandOverview');
     expect(pageSource).toContain('<CoachCommandOpsRail');
 
     SECTION_FILES.forEach((fileName) => {
