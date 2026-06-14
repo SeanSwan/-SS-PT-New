@@ -61,12 +61,17 @@ import {
   isSessionPackageCheckoutSession,
   SessionPackageFulfillmentError,
 } from '../services/sessionPackageCheckoutFulfillmentService.mjs';
+import {
+  FULFILLMENT_DETAILS_REQUIRED_CODE,
+  normalizeCheckoutFulfillmentIntent,
+  validateCheckoutFulfillmentIntent,
+} from '../services/checkoutFulfillmentIntentService.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
 const PRODUCT_TAX_RATE = 0.08;
 
-export function buildCheckoutSessionIdempotencyKey(userId, cart) {
+function buildCheckoutSessionIdempotencyKey(userId, cart) {
   const itemFingerprint = buildCartItemsStripeFingerprint(
     cart?.cartItems,
     (item) => getStorefrontSessionCredits(item?.storefrontItem),
@@ -90,52 +95,6 @@ const isTaxablePhysicalProductLine = (item) => (
   isPhysicalProductLine(item) && item?.storefrontItem?.isTaxable === true
 );
 
-const safeFulfillmentText = (value, max = 160) => (
-  typeof value === 'string' ? value.trim().slice(0, max) : ''
-);
-
-const normalizeFulfillmentDetails = (details = {}, mode = 'local_delivery_or_pickup') => ({
-  mode,
-  recipientName: safeFulfillmentText(details.recipientName, 120),
-  phone: safeFulfillmentText(details.phone, 40),
-  streetAddress: safeFulfillmentText(details.streetAddress, 160),
-  city: safeFulfillmentText(details.city, 80),
-  state: safeFulfillmentText(details.state, 40),
-  postalCode: safeFulfillmentText(details.postalCode, 24),
-  pickupWindow: safeFulfillmentText(details.pickupWindow, 120),
-  notes: safeFulfillmentText(details.notes, 240)
-});
-
-const normalizeCheckoutFulfillmentIntent = (fulfillmentIntent, cartItems = []) => {
-  const physicalItems = (cartItems || []).filter(isPhysicalProductLine);
-  if (!physicalItems.length) {
-    return {
-      required: false,
-      mode: 'none',
-      itemCount: 0,
-      fulfillmentTypes: []
-    };
-  }
-
-  const fulfillmentTypes = Array.from(new Set(
-    physicalItems
-      .map((item) => item?.storefrontItem?.fulfillmentType || 'local_delivery')
-      .filter(Boolean)
-  )).sort();
-  const requestedMode = fulfillmentIntent?.details?.mode || fulfillmentIntent?.mode;
-  const mode = ['local_delivery', 'pickup', 'local_delivery_or_pickup'].includes(requestedMode)
-    ? requestedMode
-    : 'local_delivery_or_pickup';
-
-  return {
-    required: true,
-    mode,
-    itemCount: physicalItems.length,
-    fulfillmentTypes,
-    details: normalizeFulfillmentDetails(fulfillmentIntent?.details, mode)
-  };
-};
-
 const resolveCheckoutProductName = (item) => {
   const baseName = item?.storefrontItem?.name || `Storefront Item #${item?.storefrontItemId}`;
   const variantLabel = item?.productVariant?.label;
@@ -150,7 +109,7 @@ const resolveCheckoutLineDescription = (item) => {
   return item?.storefrontItem?.description || 'Premium SwanStudios purchase';
 };
 
-export function resolveCheckoutLineItem(item) {
+function resolveCheckoutLineItem(item) {
   const itemPrice = toMoneyNumber(item?.price);
   const quantity = Number(item?.quantity) > 0 ? Number(item.quantity) : 1;
   const storefrontItemId = item?.storefrontItemId?.toString?.() || '';
@@ -351,6 +310,18 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     }
 
     const normalizedFulfillmentIntent = normalizeCheckoutFulfillmentIntent(fulfillmentIntent, cart.cartItems);
+    const fulfillmentValidationError = validateCheckoutFulfillmentIntent(normalizedFulfillmentIntent);
+
+    if (fulfillmentValidationError) {
+      return res.status(400).json({
+        success: false,
+        message: fulfillmentValidationError,
+        error: {
+          code: FULFILLMENT_DETAILS_REQUIRED_CODE,
+          details: fulfillmentValidationError
+        }
+      });
+    }
 
     // Step 2: Calculate totals. Training packages are all-inclusive services;
     // only taxable physical products receive the manual product-tax line.
