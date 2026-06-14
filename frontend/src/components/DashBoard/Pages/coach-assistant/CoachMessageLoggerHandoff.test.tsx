@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -41,6 +41,15 @@ describe('CoachMessage logger handoff', () => {
 
     const sendLink = screen.getByRole('link', { name: /send 2 exercises to logger/i });
     expect(sendLink).toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
+    expect(sendLink).toHaveTextContent(/review in logger/i);
+
+    expect(screen.getByText('Workout ready for review')).toBeInTheDocument();
+    expect(screen.getByText(/review only - nothing logs until you save it/i)).toBeInTheDocument();
+    const preview = within(screen.getByLabelText('Parsed workout preview'));
+    expect(preview.getByText('Goblet squat')).toBeInTheDocument();
+    expect(preview.getByText('3 x 10')).toBeInTheDocument();
+    expect(preview.getByText('Push-up')).toBeInTheDocument();
+    expect(preview.getByText('3 x 8')).toBeInTheDocument();
 
     await user.click(sendLink);
 
@@ -85,6 +94,29 @@ describe('CoachMessage logger handoff', () => {
     expect(queued.map((plan: { exercises: { exerciseName: string }[] }) => (
       plan.exercises[0]?.exerciseName
     ))).toEqual(['Goblet squat', 'Push-up']);
+  });
+
+  it('keeps long generated workouts compact with a three-exercise preview', () => {
+    render(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage([
+            '- Goblet squat: 3 sets x 10 reps',
+            '- Push-up: 3 sets x 8 reps',
+            '- Romanian deadlift: 4 sets x 8 reps @ 135 lbs',
+            '- Plank: 3 sets x 30 reps',
+          ].join('\n'))}
+          workoutLoggerRoute="/dashboard/client/log-workout?loadPlan=today"
+        />
+      </MemoryRouter>,
+    );
+
+    const preview = within(screen.getByLabelText('Parsed workout preview'));
+    expect(preview.getByText('Goblet squat')).toBeInTheDocument();
+    expect(preview.getByText('Push-up')).toBeInTheDocument();
+    expect(preview.getByText('Romanian deadlift')).toBeInTheDocument();
+    expect(preview.queryByText('Plank')).not.toBeInTheDocument();
+    expect(screen.getByText('+1 more ready')).toBeInTheDocument();
   });
 
   it('does not show a logger action when Coach has no route client or workout draft', () => {
