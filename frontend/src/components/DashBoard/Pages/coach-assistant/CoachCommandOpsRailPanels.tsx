@@ -3,33 +3,9 @@
  * PURPOSE: Panel-level pieces for the Coach Command Center operations rail.
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Activity,
-  ArrowRight,
-  CalendarCheck,
-  Dumbbell,
-  FileAudio,
-  FileCheck2,
-  Inbox,
-  MessageSquareText,
-  ShieldCheck,
-  UserPlus,
-} from 'lucide-react';
+import { Activity, FileCheck2, ShieldCheck, UserPlus } from 'lucide-react';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import type { QueueHealthRow } from './CoachCommandCenter.types';
-
-const CLIENT_PICKER_ROUTE = '/dashboard/admin/client-management?intent=log_workout';
-
-type WorkoutCommandPanelProps = {
-  selectedClientLabel: string;
-  workoutLoggerRoute: string | null;
-  workoutLoggerScopeLabel: string | null;
-  workoutPlannerRoute: string | null;
-  onOpenIntake: () => void;
-  onOpenPlaud: () => void;
-  onStageWorkoutLog: () => void;
-};
 
 type OperatorControlsPanelProps = {
   teachMode: boolean;
@@ -55,110 +31,6 @@ type QueueSnapshotPanelProps = {
 function QuickClientNote({ message, tone }: { message: string | null; tone: 'success' | 'error' }) {
   if (!message) return null;
   return <p className={`quick-client-note ${tone}`}>{message}</p>;
-}
-
-export function WorkoutCommandPanel({
-  selectedClientLabel,
-  workoutLoggerRoute,
-  workoutLoggerScopeLabel,
-  workoutPlannerRoute,
-  onOpenIntake,
-  onOpenPlaud,
-  onStageWorkoutLog,
-}: WorkoutCommandPanelProps) {
-  const hasLoggerRoute = Boolean(workoutLoggerRoute);
-  const scopeLabel = hasLoggerRoute ? (workoutLoggerScopeLabel || selectedClientLabel) : 'Select a client route';
-
-  return (
-    <section className="panel workout-command-panel">
-      <div className="section-title-row">
-        <div>
-          <h2 className="panel-title">Workout command</h2>
-          <p className="panel-subtitle">The fastest route from Coach talk to training action.</p>
-        </div>
-        <Dumbbell size={19} aria-hidden="true" />
-      </div>
-
-      <div className={`workout-command-scope ${hasLoggerRoute ? 'is-ready' : ''}`}>
-        <span className="workout-command-scope-kicker">Active scope</span>
-        <strong>{scopeLabel}</strong>
-      </div>
-
-      <div className="workout-command-primary-grid" aria-label="Priority coach actions">
-        <button
-          type="button"
-          className="workout-command-card mission full"
-          onClick={onOpenIntake}
-          aria-label="Review next intake"
-        >
-          <span className="workout-command-icon"><Inbox size={18} aria-hidden="true" /></span>
-          <span>
-            <strong>Review next</strong>
-            <small>Open intake queue</small>
-          </span>
-          <ArrowRight size={17} aria-hidden="true" />
-        </button>
-
-        <button
-          type="button"
-          className="workout-command-card"
-          onClick={onStageWorkoutLog}
-          aria-label="Draft workout log prompt"
-        >
-          <span className="workout-command-icon"><MessageSquareText size={18} aria-hidden="true" /></span>
-          <span>
-            <strong>Draft log</strong>
-            <small>Stage prompt only</small>
-          </span>
-        </button>
-
-        <button type="button" className="workout-command-card" onClick={onOpenPlaud} aria-label="Import PLAUD audio">
-          <span className="workout-command-icon"><FileAudio size={18} aria-hidden="true" /></span>
-          <span>
-            <strong>PLAUD</strong>
-            <small>Import audio</small>
-          </span>
-        </button>
-      </div>
-
-      <div className="workout-command-route-grid" aria-label="Selected client workout routes">
-        {workoutLoggerRoute ? (
-          <Link className="workout-command-card route" to={workoutLoggerRoute} aria-label="Open Logger">
-            <span className="workout-command-icon"><CalendarCheck size={18} aria-hidden="true" /></span>
-            <span>
-              <strong>Open log</strong>
-              <small>{workoutPlannerRoute ? 'Selected client' : 'Your account'}</small>
-            </span>
-          </Link>
-        ) : null}
-
-        {workoutPlannerRoute ? (
-          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open Planner">
-            <span className="workout-command-icon"><Dumbbell size={18} aria-hidden="true" /></span>
-            <span>
-              <strong>Open builder</strong>
-              <small>Create plan</small>
-            </span>
-          </Link>
-        ) : null}
-
-        {!workoutPlannerRoute ? (
-          <Link
-            className="workout-command-card route full"
-            to={CLIENT_PICKER_ROUTE}
-            aria-label="Pick a client for workout logging"
-          >
-            <span className="workout-command-icon"><UserPlus size={18} aria-hidden="true" /></span>
-            <span>
-              <strong>Pick client</strong>
-              <small>Open Client Hub, then log or build</small>
-            </span>
-            <ArrowRight size={17} aria-hidden="true" />
-          </Link>
-        ) : null}
-      </div>
-    </section>
-  );
 }
 
 export function OperatorControlsPanel({ teachMode, onTeachModeToggle }: OperatorControlsPanelProps) {

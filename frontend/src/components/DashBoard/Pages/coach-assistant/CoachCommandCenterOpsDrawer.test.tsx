@@ -55,6 +55,51 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     expect(within(operationsRail).getByText('Duplicate-risk holds').closest('li')).toHaveTextContent('2');
   });
 
+  it('makes Sean/admin self logging the first ops action when no client is selected', () => {
+    renderPage('/dashboard/admin/coach-assistant');
+
+    const operationsRail = openOpsRail();
+    const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
+    const logNow = within(priorityActions).getByRole('link', { name: /Log my workout now/i });
+
+    expect(within(operationsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
+    expect(within(operationsRail).getByText('My workout log')).toBeInTheDocument();
+    expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
+    expect(within(operationsRail).getByText(/Nothing logs until you save in Logger/i)).toBeInTheDocument();
+  });
+
+  it('makes selected-client workout logging and building one-tap ops actions', () => {
+    renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
+
+    const operationsRail = openOpsRail();
+    const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
+    const logNow = within(priorityActions).getByRole('link', { name: /Log workout now/i });
+    const builder = within(priorityActions).getByRole('link', { name: /Open workout builder/i });
+
+    expect(logNow).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
+    );
+    expect(builder).toHaveAttribute(
+      'href',
+      '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
+    );
+    expect(within(priorityActions).getByRole('button', { name: /Review next intake/i })).toBeInTheDocument();
+    expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
+  });
+
+  it('routes trainer pick-client launchpad actions to the trainer clients surface', () => {
+    renderPage('/dashboard/trainer/coach-assistant', 'trainer');
+
+    const operationsRail = openOpsRail();
+    const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
+
+    expect(within(priorityActions).getByRole('link', { name: /Pick client first/i })).toHaveAttribute(
+      'href',
+      '/dashboard/trainer/clients',
+    );
+  });
+
   it('creates a minimal client stub from the operator drawer and stages the dock for approved follow-up', async () => {
     renderPage();
     const operationsRail = openOpsRail();

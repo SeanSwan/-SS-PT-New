@@ -3,14 +3,15 @@ import { X } from 'lucide-react';
 
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import type { DrawerSide, QueueHealthRow } from './CoachCommandCenter.types';
+import CoachCommandOpsLaunchpad from './CoachCommandOpsLaunchpad';
 import {
   OperatorControlsPanel,
   QueueSnapshotPanel,
   QuickClientPanel,
-  WorkoutCommandPanel,
 } from './CoachCommandOpsRailPanels';
 
 type CoachCommandOpsRailProps = {
+  clientPickerRoute: string;
   drawer: DrawerSide | null;
   quickClientBusy: boolean;
   quickClientError: string | null;
@@ -58,6 +59,7 @@ function opsRailDescription({
 }
 
 const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
+  clientPickerRoute,
   drawer,
   quickClientBusy,
   quickClientError,
@@ -110,7 +112,8 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
           <X size={18} aria-hidden="true" />
         </button>
       </div>
-      <WorkoutCommandPanel
+      <CoachCommandOpsLaunchpad
+        clientPickerRoute={clientPickerRoute}
         selectedClientLabel={selectedClientLabel}
         workoutLoggerRoute={workoutLoggerRoute}
         workoutLoggerScopeLabel={workoutLoggerScopeLabel}
