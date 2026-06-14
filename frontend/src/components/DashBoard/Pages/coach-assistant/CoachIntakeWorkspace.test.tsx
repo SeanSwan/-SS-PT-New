@@ -76,15 +76,15 @@ describe('CoachIntakeWorkspace', () => {
     expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();
     expect(screen.getByText(/order review/i)).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: /review next intake/i }))
+    expect(screen.getByRole('link', { name: /review ready draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
     expect(screen.getAllByText(/review target/i).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: /^ask coach$/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('review next Coach intake');
+    fireEvent.click(screen.getByRole('button', { name: /ask coach about review ready draft/i }));
+    expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringMatching(/Review ready Coach intake draft/i));
 
-    fireEvent.click(screen.getByRole('button', { name: /inspect audio pieces/i }));
+    fireEvent.click(screen.getByRole('button', { name: /inspect audio/i }));
     expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
-    expect(screen.getByRole('link', { name: /open full plaud workspace/i }))
+    expect(screen.getByRole('link', { name: /open plaud/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
 
@@ -110,7 +110,7 @@ describe('CoachIntakeWorkspace', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: /review next intake/i }))
+    expect(screen.getByRole('link', { name: /review ready draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud&mergeRequestId=11111111-1111-4111-8111-111111111111');
   });
 
@@ -262,7 +262,7 @@ describe('CoachIntakeWorkspace', () => {
     const readyTitle = screen.getByLabelText(/Queue item Coach voice note/i);
     const newerTitle = screen.getByLabelText(/Queue item Typed note/i);
 
-    expect(screen.getByRole('link', { name: /review next intake/i }))
+    expect(screen.getByRole('link', { name: /review ready draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=old-ready');
     expect(screen.queryByText(/Older ready workout draft/i)).toBeNull();
     expect(screen.queryByText(/Newer unprocessed note/i)).toBeNull();

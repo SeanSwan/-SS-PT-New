@@ -165,6 +165,8 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
 
   it('preserves the active scope when opening the next intake', () => {
     const queue = makeQueue('failed');
+    queue.summary.total = 1;
+    queue.summary.failed = 1;
     queue.items = [{
       id: 'failed-intake-1',
       entityId: 'failed-intake-1',
@@ -191,7 +193,7 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: /review next intake/i }))
+    expect(screen.getByRole('link', { name: /recover failed intake/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=failed-intake-1&scope=failed');
   });
 });
