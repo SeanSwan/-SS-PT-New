@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import logoImage from '../../assets/Logo.png';
 import { defaultShouldForwardProp } from '../../utils/styled-component-helpers';
+import FooterNewsletter from './FooterNewsletter';
 
 /* ═══════════════════════════════════════════════════════
    STYLED COMPONENTS — All theme-aware
@@ -357,6 +358,10 @@ const EnhancedFooter: React.FC = () => {
               <Youtube size={16} />
             </SocialIcon>
           </SocialIcons>
+
+          <div style={{ marginTop: '1.75rem', width: '100%', maxWidth: '360px' }}>
+            <FooterNewsletter />
+          </div>
         </LogoSection>
 
         {/* Quick Links */}

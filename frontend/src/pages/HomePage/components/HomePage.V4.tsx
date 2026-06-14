@@ -28,6 +28,7 @@ import TestimonialsSection from './sections/TestimonialsSection';
 import StatsSection from './sections/StatsSection';
 import SocialSection from './sections/SocialSection';
 import CTASection from './sections/CTASection';
+import NewsletterSection from './sections/NewsletterSection';
 
 const MainWrapper = styled.main`
   position: relative;
@@ -94,6 +95,9 @@ const HomePageV4: React.FC = () => {
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <SocialSection tier={tier} />
+        <SectionTransition animate={isFull} showGlow={showGlow} />
+
+        <NewsletterSection tier={tier} />
         <SectionTransition animate={isFull} showGlow={showGlow} />
 
         <CTASection tier={tier} />
