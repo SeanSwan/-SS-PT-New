@@ -426,20 +426,26 @@ const validationError = (res, error) => {
 const hasOwn = (source, field) => Object.prototype.hasOwnProperty.call(source, field);
 const BLANK_INPUTS = new Set([undefined, null, '']);
 
+// Upper bounds match the DB column types so an oversized value is rejected with
+// a clean 400 instead of overflowing at the DB: price is DECIMAL(10,2),
+// stock/displayOrder are PG INTEGER (max 2,147,483,647).
+const MAX_DECIMAL_10_2 = 99999999.99;
+const MAX_PG_INTEGER = 2147483647;
+
 const parseNullableNonNegativeNumber = (value, field) => {
   if (BLANK_INPUTS.has(value)) return { value: null };
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= MAX_DECIMAL_10_2
     ? { value: parsed }
-    : { error: `${field} must be a non-negative number` };
+    : { error: `${field} must be a non-negative number up to ${MAX_DECIMAL_10_2}` };
 };
 
 const parseNullableNonNegativeInteger = (value, field) => {
   if (BLANK_INPUTS.has(value)) return { value: null };
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= 0
+  return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= MAX_PG_INTEGER
     ? { value: parsed }
-    : { error: `${field} must be a non-negative integer` };
+    : { error: `${field} must be a non-negative integer up to ${MAX_PG_INTEGER}` };
 };
 
 const normalizeVariantPayload = (body = {}, { requireLabel = false } = {}) => {

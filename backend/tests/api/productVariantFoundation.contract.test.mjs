@@ -65,6 +65,8 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
 
   it('admin variant writes normalize numeric fields before persistence', () => {
     expect(adminRoutes).toContain('normalizeVariantPayload');
+    expect(adminRoutes).toContain('MAX_DECIMAL_10_2');
+    expect(adminRoutes).toContain('MAX_PG_INTEGER');
     expect(adminRoutes).toContain("Variant price");
     expect(adminRoutes).toContain("Variant stock");
     expect(adminRoutes).toContain("must be a non-negative number");
