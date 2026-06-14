@@ -17,7 +17,9 @@
  * module unit-testable with vi.mock.
  */
 
-const SIGNUP_LEAD_SCORE = 50;      // creating an account = strong intent (> contact form's 30)
+const CONTACT_FORM_LEAD_SCORE = 30;     // warm: they actively typed a message
+const CONTACT_FORM_REPEAT_BONUS = 15;   // repeat contact = higher intent
+const SIGNUP_LEAD_SCORE = 50;           // creating an account = strong intent
 const NON_SALES_ROLES = new Set(['admin', 'trainer']);
 
 /**
@@ -34,6 +36,79 @@ const mapClientSourceToLeadSource = (clientSource) => {
       return 'website';
   }
 };
+
+const splitLeadName = (name) => {
+  const [firstToken, ...rest] = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: firstToken || 'Unknown',
+    lastName: rest.length ? rest.join(' ') : null,
+  };
+};
+
+/**
+ * Capture a CRM lead from a successful public contact-form submission.
+ * This is best-effort and returns a status object instead of throwing.
+ *
+ * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
+ */
+export async function captureLeadFromContact({ contact, formData, consultationType } = {}) {
+  try {
+    const email = String(formData?.email || '').trim().toLowerCase();
+    if (!email) return { skipped: 'no_email' };
+
+    const { default: Lead } = await import('../models/Lead.mjs');
+    const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
+
+    const { firstName, lastName } = splitLeadName(formData?.name);
+    const sourceDetail = consultationType
+      ? `Contact form — ${String(consultationType).replace(/-/g, ' ')}`
+      : 'Contact form';
+
+    const [lead, created] = await Lead.findOrCreate({
+      where: { email },
+      defaults: {
+        firstName,
+        lastName,
+        email,
+        source: 'website',
+        sourceDetail,
+        status: 'new',
+        score: CONTACT_FORM_LEAD_SCORE,
+        notes: formData?.message || null,
+        tags: ['contact-form'],
+      },
+    });
+
+    if (created) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Lead captured from contact form',
+        description: `New website contact via ${sourceDetail}`,
+        metadata: { source: 'website', sourceDetail, contactId: contact?.id },
+      });
+    } else {
+      await lead.update({
+        lastContactedAt: new Date(),
+        contactCount: (lead.contactCount || 0) + 1,
+        score: Math.min(100, (lead.score || 0) + CONTACT_FORM_REPEAT_BONUS),
+      });
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Repeat contact-form submission',
+        description: `Existing lead submitted the contact form again via ${sourceDetail}`,
+        metadata: { source: 'website', sourceDetail, contactId: contact?.id },
+      });
+    }
+
+    return { leadId: lead.id, created };
+  } catch (err) {
+    return { error: err?.message || 'lead capture failed' };
+  }
+}
 
 /**
  * Capture a CRM lead from a successful public signup.
@@ -108,4 +183,4 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
   }
 }
 
-export default { captureLeadFromSignup };
+export default { captureLeadFromContact, captureLeadFromSignup };

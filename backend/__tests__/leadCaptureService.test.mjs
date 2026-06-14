@@ -19,7 +19,66 @@ const { leadFindOrCreate, leadActivityCreate } = vi.hoisted(() => ({
 vi.mock('../models/Lead.mjs', () => ({ default: { findOrCreate: leadFindOrCreate } }));
 vi.mock('../models/LeadActivity.mjs', () => ({ default: { create: leadActivityCreate } }));
 
-const { captureLeadFromSignup } = await import('../services/leadCaptureService.mjs');
+const { captureLeadFromContact, captureLeadFromSignup } = await import('../services/leadCaptureService.mjs');
+
+describe('captureLeadFromContact (Tier 0.2a)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leadFindOrCreate.mockResolvedValue([{ id: 5, score: 0, contactCount: 0, update: vi.fn() }, true]);
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it('creates a website lead from a contact submission', async () => {
+    const res = await captureLeadFromContact({
+      contact: { id: 101 },
+      formData: { name: 'Jane Doe', email: 'Jane@Example.com', message: 'I want to train for golf' },
+      consultationType: 'sports-performance',
+    });
+
+    expect(leadFindOrCreate).toHaveBeenCalledTimes(1);
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.where).toEqual({ email: 'jane@example.com' });
+    expect(call.defaults).toMatchObject({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      source: 'website',
+      sourceDetail: 'Contact form — sports performance',
+      status: 'new',
+      score: 30,
+      tags: ['contact-form'],
+    });
+    expect(leadActivityCreate.mock.calls[0][0].metadata.contactId).toBe(101);
+    expect(res).toEqual({ leadId: 5, created: true });
+  });
+
+  it('bumps an existing contact lead instead of duplicating it', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 5, score: 95, contactCount: 2, update }, false]);
+
+    const res = await captureLeadFromContact({
+      contact: { id: 102 },
+      formData: { name: 'Jane Doe', email: 'jane@example.com', message: 'Following up' },
+    });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      contactCount: 3,
+      score: 100,
+    }));
+    expect(leadActivityCreate.mock.calls[0][0].title).toBe('Repeat contact-form submission');
+    expect(res).toEqual({ leadId: 5, created: false });
+  });
+
+  it('is non-blocking: returns an error object instead of throwing', async () => {
+    leadFindOrCreate.mockRejectedValue(new Error('db down'));
+
+    const res = await captureLeadFromContact({
+      contact: { id: 103 },
+      formData: { name: 'Bob', email: 'bob@example.com', message: 'hi' },
+    });
+
+    expect(res.error).toBe('db down');
+  });
+});
 
 describe('captureLeadFromSignup (Tier 0.2b)', () => {
   beforeEach(() => {
