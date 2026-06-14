@@ -37,16 +37,21 @@ const QUICK_INTENTS: CoachQuickIntent[] = [
 
 const RECENT_CLIENT_LIMIT = 12;
 
-const CoachCommandCenterPage: React.FC = () => {
-  const commandCenter = useCoachCommandCenterController();
-  const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<CoachTab>(() =>
+function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
+  if (
     searchParams.get('workspace') === 'plaud' ||
     searchParams.get('mergeRequestId') ||
     searchParams.get('review') === 'next'
-      ? 'plaud'
-      : 'chat',
-  );
+  ) return 'plaud';
+  if (searchParams.get('intake') || searchParams.get('proposal')) return 'intake';
+  return null;
+}
+
+const CoachCommandCenterPage: React.FC = () => {
+  const commandCenter = useCoachCommandCenterController();
+  const [searchParams] = useSearchParams();
+  const routeForcedTab = tabFromRoute(searchParams);
+  const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const handledPlaudUploadRequestRef = useRef(0);
 
@@ -79,6 +84,10 @@ const CoachCommandCenterPage: React.FC = () => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);
     if (thread) commandCenter.handleThreadSelect(thread);
   };
+
+  useEffect(() => {
+    if (routeForcedTab) setActiveTab(routeForcedTab);
+  }, [routeForcedTab]);
 
   useEffect(() => {
     if (

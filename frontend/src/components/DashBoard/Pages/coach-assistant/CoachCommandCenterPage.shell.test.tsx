@@ -65,6 +65,14 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
+  it('opens the intake tab for direct active-intake review links', () => {
+    renderPage('/dashboard/admin/coach-assistant?intake=clip-111');
+
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
+    expect(screen.getByText('Active intake clip-111')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
+  });
+
   it('formats long coach responses into readable steps and keeps structured packets collapsed', async () => {
     sendMessageWithConversationMock.mockResolvedValueOnce({
       role: 'assistant',

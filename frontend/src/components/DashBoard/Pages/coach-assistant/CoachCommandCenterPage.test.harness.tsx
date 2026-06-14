@@ -52,9 +52,18 @@ vi.mock('../../../../hooks/useCoachCommand', () => ({
 }));
 
 vi.mock('./CoachIntakeWorkspace', () => ({
-  default: ({ queue, onCommandPrompt }: { queue: { summary: { actionable: number } }; onCommandPrompt: (prompt: string) => void }) => (
+  default: ({
+    activeIntakeId,
+    queue,
+    onCommandPrompt,
+  }: {
+    activeIntakeId?: string | null;
+    queue: { summary: { actionable: number } };
+    onCommandPrompt: (prompt: string) => void;
+  }) => (
     <section data-testid="mock-coach-intake-workspace">
       <span>Unified actionable {queue.summary.actionable}</span>
+      <span>Active intake {activeIntakeId || 'none'}</span>
       <button type="button" onClick={() => onCommandPrompt('Review next unified intake')}>
         Mock queue command
       </button>
