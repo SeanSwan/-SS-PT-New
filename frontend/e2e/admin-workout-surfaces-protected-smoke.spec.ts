@@ -296,7 +296,7 @@ test('protected admin bootcamp builder renders manual rolodex and accepts exerci
   await expect(page.getByText('90/90 Hip Stretch')).toBeVisible();
   await page.getByRole('button', { name: /add 90\/90 hip stretch/i }).click();
   await expect(page.getByText('Station 1')).toBeVisible();
-  await expect(page.getByRole('button', { name: /90\/90 Hip Stretch 50s/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /90\/90 Hip Stretch 60s/i })).toBeVisible();
   await page.getByRole('button', { name: /board 2.*joint-friendly alternatives/i }).click();
   await expect(page.getByText(/modification options/i)).toBeVisible();
   await page.getByRole('button', { name: /board 3.*low-impact swaps/i }).click();
