@@ -121,6 +121,15 @@ const routeScheduledSessionDate = (routeContext) => {
   return Number.isNaN(parsed.getTime()) ? null : value;
 };
 
+const routeWorkoutDate = (routeContext) => {
+  const value = typeof routeContext?.workoutDate === 'string'
+    ? routeContext.workoutDate.trim()
+    : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : value;
+};
+
 const buildParamsForValidation = (ctx, command) => {
   const params = (
     ctx.intent?.params &&
@@ -138,6 +147,10 @@ const buildParamsForValidation = (ctx, command) => {
     const scheduledSessionDate = routeScheduledSessionDate(ctx.options.routeContext);
     if (scheduledSessionDate && params.date == null) {
       params.date = scheduledSessionDate;
+    }
+    const workoutDate = routeWorkoutDate(ctx.options.routeContext);
+    if (workoutDate && params.date == null) {
+      params.date = workoutDate;
     }
   }
 

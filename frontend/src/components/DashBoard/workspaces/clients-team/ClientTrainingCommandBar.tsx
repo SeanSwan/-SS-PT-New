@@ -42,24 +42,15 @@ import {
   SubmitButton,
   VoiceButton,
 } from './ClientTrainingCommandBar.styles';
+import { buildClientTrainingCommandRouteContext, buildDailyCommandPrompt, selectedCommandClientId } from './clientTrainingCommandRouteContext';
 
 interface ClientTrainingCommandBarProps {
   clientId: number | string;
   clientName?: string;
+  scheduledSessionCreditHint?: number | null;
+  scheduledSessionDate?: string | null;
+  scheduledSessionId?: string | null;
   onCommandLaneStart?: (message: string) => void | Promise<void>;
-}
-
-function buildDailyCommandPrompt(clientId: number | string, command: string): string {
-  return [
-    'You are Swan Coach, the SwanStudios NASM-aligned daily training assistant.',
-    `Client-scoped daily training command for clientId=${clientId}.`,
-    'Use client ID only. Do not require or echo client display names.',
-    'Ground responses in available workout plans, workout logs, progress proof, pain/safety constraints, and trainer review context.',
-    'Intent: daily workout logging, set updates, workout review, and next-session readiness.',
-    'Prepare a review-gated workout_log proposal when enough detail exists.',
-    'Do not directly submit workout forms or bypass trainer review.',
-    `Operator command: ${command}`,
-  ].join('\n');
 }
 
 function proposalBelongsToClient(proposal: CoachActionProposal, clientId: number | string): boolean {
@@ -67,14 +58,12 @@ function proposalBelongsToClient(proposal: CoachActionProposal, clientId: number
   return proposalClientId != null && String(proposalClientId) === String(clientId);
 }
 
-function selectedCommandClientId(clientId: number | string): number | null {
-  const numericClientId = Number(clientId);
-  return Number.isSafeInteger(numericClientId) && numericClientId > 0 ? numericClientId : null;
-}
-
 const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
   clientId,
   clientName = 'selected client',
+  scheduledSessionCreditHint = null,
+  scheduledSessionDate = null,
+  scheduledSessionId = null,
   onCommandLaneStart,
 }) => {
   const [command, setCommand] = useState('');
@@ -123,11 +112,11 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
         await onCommandLaneStart?.(trimmed);
         const commandResult = await executeCommand(trimmed, {
           selectedClientId: selectedCommandClientId(clientId),
-          routeContext: {
-            source: 'clients-team',
-            intent: 'daily_training_command',
-            surface: 'client-training-command-bar',
-          },
+          routeContext: buildClientTrainingCommandRouteContext({
+            scheduledSessionDate,
+            scheduledSessionId,
+            scheduledSessionCreditHint,
+          }),
         });
         if (commandResult.type === 'error') {
           setStatusTone('error');
@@ -167,7 +156,17 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
       setStatusTone('success');
       setStatus('Sent to Swan. Review before save.');
     },
-    [busy, clearError, clientId, executeCommand, onCommandLaneStart, sendMessageWithConversation]
+    [
+      busy,
+      clearError,
+      clientId,
+      executeCommand,
+      onCommandLaneStart,
+      scheduledSessionCreditHint,
+      scheduledSessionDate,
+      scheduledSessionId,
+      sendMessageWithConversation,
+    ]
   );
 
   const speech = useCoachBrowserSpeechInput({

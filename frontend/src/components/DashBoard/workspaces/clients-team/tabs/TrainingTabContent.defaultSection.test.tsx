@@ -187,6 +187,35 @@ describe('TrainingTabContent daily workflow default', () => {
       '2'
     );
   });
+  it('forwards scheduled session context into inline Swan workout commands', async () => {
+    const user = userEvent.setup();
+    renderTraining({
+      scheduledSessionCreditHint: 2,
+      scheduledSessionDate: '2026-06-07',
+      scheduledSessionId: '72',
+    });
+    await user.type(
+      screen.getByLabelText(/tell swan about fixture client/i),
+      'Log bench press 3 sets of 10'
+    );
+    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+    await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
+    expect(commandMock.executeCommand).toHaveBeenCalledWith(
+      'Log bench press 3 sets of 10',
+      {
+        selectedClientId: 424242,
+        routeContext: {
+          source: 'clients-team',
+          intent: 'daily_training_command',
+          surface: 'client-training-command-bar',
+          workoutDate: '2026-06-07',
+          scheduledSessionId: '72',
+          scheduledSessionDate: '2026-06-07',
+          scheduledSessionCredits: 2,
+        },
+      }
+    );
+  });
   it('keeps training sub-section tabs as explicit non-submit buttons', () => {
     renderTraining();
     screen.getAllByRole('tab').forEach((tab) => {

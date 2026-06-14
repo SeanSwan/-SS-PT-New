@@ -82,6 +82,7 @@ describe('ClientTrainingCommandBar', () => {
           source: 'clients-team',
           intent: 'daily_training_command',
           surface: 'client-training-command-bar',
+          workoutDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
         },
       }
     );

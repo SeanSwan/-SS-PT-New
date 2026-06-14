@@ -40,6 +40,8 @@ function buildRouteContextLine(routeContext) {
   if (/^[1-9]\d*$/.test(scheduledSessionId)) parts.push(`scheduledSessionId=${scheduledSessionId}`);
   const scheduledSessionDate = String(routeContext.scheduledSessionDate || '').trim();
   if (ROUTE_CONTEXT_DATE_PATTERN.test(scheduledSessionDate)) parts.push(`scheduledSessionDate=${scheduledSessionDate}`);
+  const workoutDate = String(routeContext.workoutDate || '').trim();
+  if (ROUTE_CONTEXT_DATE_PATTERN.test(workoutDate)) parts.push(`workoutDate=${workoutDate}`);
   const scheduledSessionCredits = Number(routeContext.scheduledSessionCredits);
   if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
     parts.push(`scheduledSessionCredits=${scheduledSessionCredits}`);

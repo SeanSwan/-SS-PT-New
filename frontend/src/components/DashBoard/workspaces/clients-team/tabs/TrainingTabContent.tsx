@@ -157,6 +157,9 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
             <ClientTrainingCommandBar
               clientId={numericClientId}
               clientName={clientName}
+              scheduledSessionCreditHint={scheduledSessionCreditHint}
+              scheduledSessionDate={scheduledSessionDate}
+              scheduledSessionId={scheduledSessionId}
               onCommandLaneStart={handleCommandLaneStart}
             />
             <TrainingTabSectionContent
