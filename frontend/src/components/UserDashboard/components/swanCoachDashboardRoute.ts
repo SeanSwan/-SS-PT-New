@@ -32,5 +32,13 @@ export function getSwanCoachDashboardPath(role?: string | null): string {
 }
 
 export function getLogWorkoutDashboardPath(role?: string | null): string {
-  return `/dashboard/${getDashboardRolePath(role)}/log-workout`;
+  const dashboardRole = getDashboardRolePath(role);
+  if (dashboardRole === 'admin') return '/dashboard/admin/client-management?intent=log_workout';
+  if (dashboardRole === 'trainer') return '/dashboard/trainer/clients?intent=log_workout';
+
+  return '/dashboard/client/log-workout';
+}
+
+export function getPersonalLogWorkoutDashboardPath(): string {
+  return '/dashboard/client/log-workout';
 }

@@ -7,6 +7,7 @@ export interface WorkoutLoggerProps {
   clientId?: number;
   onComplete?: (formData: DailyWorkoutForm) => void;
   onCancel?: () => void;
+  forceSelfMode?: boolean;
   initialData?: Partial<ExerciseEntry[]>;
   loadTodayPlanSignal?: number;
   scheduledSessionCreditHint?: number | null;

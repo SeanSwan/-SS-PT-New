@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import { BarChart3, Calendar, Dumbbell, UserRound } from 'lucide-react';
+import { BarChart3, Calendar, Dumbbell, MessageCircle, UserRound } from 'lucide-react';
 import {
+  CLIENT_OVERVIEW_COACH_PATH,
   LENS_TABS,
   type LensId,
   OBSERVATORY_ASSETS,
@@ -54,6 +55,7 @@ interface ClientObservatoryHeroProps {
   tierLabel: string;
   tierTone: string;
   canBookSessions: boolean;
+  coachPath?: string;
   onLensSelect: (id: LensId, path: string) => void;
   onNavigate: (path: string) => void;
 }
@@ -70,6 +72,7 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
   tierLabel,
   tierTone,
   canBookSessions,
+  coachPath = CLIENT_OVERVIEW_COACH_PATH,
   onLensSelect,
   onNavigate,
 }) => (
@@ -126,6 +129,10 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
           <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/log-workout')}>
             <Dumbbell size={17} aria-hidden="true" />
             Log Workout
+          </PrimaryButton>
+          <PrimaryButton type="button" onClick={() => onNavigate(coachPath)}>
+            <MessageCircle size={17} aria-hidden="true" />
+            Ask Coach
           </PrimaryButton>
           <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/progress')}>
             <BarChart3 size={17} aria-hidden="true" />

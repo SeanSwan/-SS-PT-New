@@ -112,6 +112,35 @@ export function renderPage(route = '/dashboard/admin/coach-assistant') {
   );
 }
 
+const defaultCoachConversations = [
+  {
+    id: 101,
+    title: 'Friday intake cleanup',
+    context: 'coach_assistant',
+    status: 'active',
+    messageCount: 4,
+    lastMessageAt: '2026-05-14T11:30:00.000Z',
+    createdAt: '2026-05-14T10:00:00.000Z',
+  },
+  {
+    id: 102,
+    title: 'Client confirmation holds',
+    context: 'coach_assistant',
+    status: 'active',
+    messageCount: 2,
+    lastMessageAt: '2026-05-13T19:30:00.000Z',
+    createdAt: '2026-05-13T18:00:00.000Z',
+  },
+];
+
+export function setCoachCommandCenterConversations(conversations = defaultCoachConversations) {
+  const current = useAIChatMock.getMockImplementation()?.() || {};
+  useAIChatMock.mockReturnValue({
+    ...current,
+    conversations,
+  });
+}
+
 export function resetCoachCommandCenterMocks() {
   listConversationsMock.mockReset();
   loadConversationMock.mockReset();
@@ -148,26 +177,7 @@ export function resetCoachCommandCenterMocks() {
     isMoveFitness: true,
   });
   useAIChatMock.mockReturnValue({
-    conversations: [
-      {
-        id: 101,
-        title: 'Friday intake cleanup',
-        context: 'coach_assistant',
-        status: 'active',
-        messageCount: 4,
-        lastMessageAt: '2026-05-14T11:30:00.000Z',
-        createdAt: '2026-05-14T10:00:00.000Z',
-      },
-      {
-        id: 102,
-        title: 'Client confirmation holds',
-        context: 'coach_assistant',
-        status: 'active',
-        messageCount: 2,
-        lastMessageAt: '2026-05-13T19:30:00.000Z',
-        createdAt: '2026-05-13T18:00:00.000Z',
-      },
-    ],
+    conversations: defaultCoachConversations,
     activeConversation: null,
     messages: [],
     loading: false,

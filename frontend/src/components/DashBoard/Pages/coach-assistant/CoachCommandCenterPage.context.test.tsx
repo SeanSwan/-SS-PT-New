@@ -14,7 +14,7 @@ const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
 const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
-  return screen.getByLabelText('Coach operations rail');
+  return screen.getByLabelText('Coach operations command surface');
 };
 
 describe('CoachCommandCenterPage route context', () => {

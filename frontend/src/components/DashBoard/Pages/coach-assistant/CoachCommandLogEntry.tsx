@@ -6,76 +6,27 @@
  * structured packet. This component keeps the human copy readable and keeps the
  * raw packet available for audit without turning the console into one text blob.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
   AttachmentRow,
-  BulletList,
   LoggerHandoffRow,
   LogBody,
   LogEntry,
   LogMeta,
   PacketDetails,
-  StepList,
   StyleSwitch,
 } from './CoachCommandLogEntry.styles';
-import type {
-  CoachCommandLogEntryProps,
-  FormattedLogBody,
-  LogStyleVariantKey,
-} from './CoachCommandLogEntry.types';
+import type { CoachCommandLogEntryProps, LogStyleVariantKey } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
+import { CoachFormattedLogContent } from './CoachFormattedLogContent';
 import {
   buildCoachWorkoutLoggerHandoff,
   storeCoachWorkoutLoggerHandoff,
 } from './CoachCommandLoggerHandoff';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
-
-function renderInlineCopy(value: string): React.ReactNode[] {
-  const parts = value.split(/(\*\*[^*]+?\*\*)/g).filter(Boolean);
-
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={`${part}-${index}`}>{part.slice(2, -2).replace(/:$/, '')}</strong>;
-    }
-
-    return <React.Fragment key={`${part}-${index}`}>{part}</React.Fragment>;
-  });
-}
-
-function FormattedLogContent({ formatted }: { formatted: FormattedLogBody }) {
-  return (
-    <>
-      {formatted.leadParagraphs.map((paragraph, index) => (
-        <p key={`lead-${index}`}>{renderInlineCopy(paragraph)}</p>
-      ))}
-
-      {formatted.bullets.length ? (
-        <BulletList aria-label="Workout details">
-          {formatted.bullets.map((bullet) => (
-            <li key={bullet}>{renderInlineCopy(bullet)}</li>
-          ))}
-        </BulletList>
-      ) : null}
-
-      {formatted.steps.length ? (
-        <StepList>
-          {formatted.steps.map((step) => (
-            <li key={`${step.number}-${step.title}`}>
-              <span className="step-number">{step.number}</span>
-              <div>
-                <strong>{step.title}</strong>
-                <p>{renderInlineCopy(step.body)}</p>
-              </div>
-            </li>
-          ))}
-        </StepList>
-      ) : null}
-    </>
-  );
-}
 
 function CoachCommandLogEntry({
   entry,
@@ -116,7 +67,7 @@ function CoachCommandLogEntry({
           </StyleSwitch>
         ) : null}
 
-        <FormattedLogContent formatted={visibleBody} />
+        <CoachFormattedLogContent formatted={visibleBody} />
 
         {loggerHandoff && loggerRoute ? (
           <LoggerHandoffRow>

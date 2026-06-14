@@ -34,6 +34,15 @@ export interface QuickAction {
   path: string;
 }
 
+export interface ClientOverviewCoachSnapshot {
+  level: number;
+  points: number;
+  progress: number;
+  streakDays: number;
+  canBookSessions: boolean;
+  tierLabel?: string;
+}
+
 export type ClientSource = 'swanstudios' | 'move_fitness' | 'external' | string | null | undefined;
 
 export interface TierDisplay {
@@ -97,9 +106,36 @@ export const LENS_TABS: LensTab[] = [
   { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/dashboard/client/overview/challenges' },
 ];
 
+export const CLIENT_OVERVIEW_COACH_PROMPT =
+  "Teach me my client overview. Help me decide whether to log a workout, review progress, or ask for the next safe training action today.";
+
+export const CLIENT_OVERVIEW_COACH_PATH =
+  `/dashboard/client/coach-assistant?${new URLSearchParams({ teachPrompt: CLIENT_OVERVIEW_COACH_PROMPT }).toString()}`;
+
+export function buildClientOverviewCoachPrompt(snapshot?: ClientOverviewCoachSnapshot): string {
+  if (!snapshot) return CLIENT_OVERVIEW_COACH_PROMPT;
+  const level = Number.isFinite(snapshot.level) ? Math.max(1, Math.round(snapshot.level)) : 1;
+  const points = Number.isFinite(snapshot.points) ? Math.max(0, snapshot.points) : 0;
+  const progress = clampPercent(snapshot.progress);
+  const streakDays = Number.isFinite(snapshot.streakDays) ? Math.max(0, Math.round(snapshot.streakDays)) : 0;
+  const bookingCue = snapshot.canBookSessions ? 'booking is open' : 'book through your trainer';
+  return [
+    'Teach me this overview.',
+    `Snapshot: level ${level}; ${streakDays}d streak; ${progress}% to next level; ${compactNumber(points)} XP; ${bookingCue}.`,
+    'Show one safest next action: log workout, review progress, book, or ask trainer.',
+  ].join(' ');
+}
+
+export function buildClientOverviewCoachPath(snapshot?: ClientOverviewCoachSnapshot): string {
+  return `/dashboard/client/coach-assistant?${new URLSearchParams({
+    teachPrompt: buildClientOverviewCoachPrompt(snapshot),
+  }).toString()}`;
+}
+
 export const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Log Workout', Icon: Dumbbell, path: '/dashboard/client/log-workout' },
   { label: 'Progress', Icon: Flame, path: '/dashboard/client/progress' },
+  { label: 'Ask Coach', Icon: MessageCircle, path: CLIENT_OVERVIEW_COACH_PATH },
   { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },
 ];
 

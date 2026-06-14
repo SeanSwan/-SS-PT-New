@@ -34,11 +34,14 @@ describe('SwanCoachAssistantPage style extraction', () => {
     const hookSource = readCoachFile('hooks/useCoachAssistant.ts');
 
     expect(pageStyles).toContain('@media (max-width: 1024px)');
-    expect(pageStyles).toContain('height: calc(100dvh - 188px);');
+    expect(pageStyles).toContain('--coach-dashboard-chrome-offset');
+    expect(pageStyles).toContain('height: min(100%, calc(100dvh - var(--coach-dashboard-chrome-offset)));');
+    expect(pageStyles).toContain('max-height: calc(100dvh - var(--coach-dashboard-chrome-offset));');
     expect(pageStyles).toContain('@media (max-width: 430px)');
-    expect(pageStyles).toContain('height: calc(100dvh - 180px);');
     expect(pageStyles).toContain('@media (max-width: 375px)');
-    expect(pageStyles).toContain('height: calc(100dvh - 172px);');
+    expect(pageStyles).not.toContain('height: calc(100dvh - 188px);');
+    expect(pageStyles).not.toContain('height: calc(100dvh - 180px);');
+    expect(pageStyles).not.toContain('height: calc(100dvh - 172px);');
     expect(pageStyles).not.toContain('padding-top: 68px;');
     expect(inputStyles).not.toContain('grid-template-columns: 44px 44px minmax(0, 1fr) 56px 48px;');
     expect(inputStyles).toContain('grid-template-columns: repeat(4, minmax(44px, 1fr));');

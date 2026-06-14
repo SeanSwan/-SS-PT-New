@@ -209,6 +209,26 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/workouts/logger');
   });
 
+  it('Header "Ask Coach" CTA opens client Coach with workout-history context', async () => {
+    const user = userEvent.setup();
+    mockUseWorkoutSessions.mockReturnValue({
+      data: FULL_PAGE,
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<ClientMyWorkoutsPage />);
+
+    await user.click(screen.getByRole('button', { name: /ask coach about my workouts/i }));
+
+    const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const url = new URL(route, 'https://sswanstudios.test');
+    expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('teachPrompt')).toMatch(/workouts tab/i);
+    expect(url.searchParams.get('teachPrompt')).toMatch(/workout history/i);
+  });
+
   it('first-time empty state "Log Your First Workout" CTA navigates to /dashboard/client/log-workout', async () => {
     const user = userEvent.setup();
     mockUseWorkoutSessions.mockReturnValue({
@@ -225,6 +245,25 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/workouts/logger');
+  });
+
+  it('first-time empty state offers Coach guidance for what to log first', async () => {
+    const user = userEvent.setup();
+    mockUseWorkoutSessions.mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<ClientMyWorkoutsPage />);
+
+    await user.click(screen.getByRole('button', { name: /ask coach what to log first/i }));
+
+    const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const url = new URL(route, 'https://sswanstudios.test');
+    expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('teachPrompt')).toMatch(/safest next training action/i);
   });
 
   it('stat labels are explicitly page-scoped (not lifetime totals)', () => {

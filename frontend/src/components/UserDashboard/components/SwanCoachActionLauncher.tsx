@@ -41,7 +41,7 @@ import {
   StatusLine,
   Title,
 } from './SwanCoachActionLauncher.styles';
-import { getSwanCoachDashboardPath } from './swanCoachDashboardRoute';
+import { buildUserDashboardTeachCoachRoute } from '../UserDashboardTeachCoachRoute';
 
 interface SwanCoachActionLauncherProps {
   userName: string;
@@ -68,7 +68,6 @@ function summarizeContext(streakDays: number, level: number) {
 
 const SwanCoachActionLauncher: React.FC<SwanCoachActionLauncherProps> = ({
   userName,
-  userRole,
   streakDays,
   level,
 }) => {
@@ -148,6 +147,18 @@ const SwanCoachActionLauncher: React.FC<SwanCoachActionLauncherProps> = ({
     setStatus('Review receipt created locally. Nothing was saved or sent.');
   };
 
+  const handleOpenCoach = () => {
+    const cleanDraft = draft.trim();
+    const coachPath = buildUserDashboardTeachCoachRoute('');
+
+    if (!cleanDraft) {
+      navigate(coachPath);
+      return;
+    }
+
+    navigate(coachPath, { state: { teachPrompt: cleanDraft } });
+  };
+
   return (
     <LauncherShell
       initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
@@ -194,7 +205,7 @@ const SwanCoachActionLauncher: React.FC<SwanCoachActionLauncherProps> = ({
             <CheckCircle2 size={16} />
             Review Action
           </PrimaryButton>
-          <SecondaryButton type="button" onClick={() => navigate(getSwanCoachDashboardPath(userRole))}>
+          <SecondaryButton type="button" onClick={handleOpenCoach}>
             Open Swan Coach
             <ArrowRight size={15} />
           </SecondaryButton>

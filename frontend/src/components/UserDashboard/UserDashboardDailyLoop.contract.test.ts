@@ -568,7 +568,14 @@ describe('UserDashboard V3 daily loop contract', () => {
     const routeHelper = readSource('src/components/UserDashboard/components/swanCoachDashboardRoute.ts');
 
     expect(routeHelper).toContain('getLogWorkoutDashboardPath');
-    expect(routeHelper).toContain('/log-workout');
+    expect(routeHelper).toContain('getPersonalLogWorkoutDashboardPath');
+    expect(routeHelper).toContain('/dashboard/admin/client-management?intent=log_workout');
+    expect(routeHelper).toContain('/dashboard/trainer/clients?intent=log_workout');
+    expect(routeHelper).toContain('/dashboard/client/log-workout');
+    expect(readSource('src/components/UserDashboard/components/HomeTab.tsx'))
+      .toContain('getPersonalLogWorkoutDashboardPath()');
+    expect(readSource('src/components/UserDashboard/components/WorkoutsTab.tsx'))
+      .toContain('getPersonalLogWorkoutDashboardPath()');
 
     touchedActionFiles.forEach((file) => {
       const source = readSource(file);

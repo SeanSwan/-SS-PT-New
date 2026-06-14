@@ -32,6 +32,7 @@ import {
   type LensId,
   TIER_LABELS,
   avatarFrom,
+  buildClientOverviewCoachPath,
   canBookSwanStudiosSessions,
   clampPercent,
   displayNameFrom,
@@ -103,6 +104,14 @@ const ClientObservatoryHome: React.FC = () => {
   const points = profile?.points ?? 0;
   const streakDays = profile?.streakDays ?? 0;
   const canBookSessions = canBookSwanStudiosSessions(clientSource);
+  const coachPath = useMemo(() => buildClientOverviewCoachPath({
+    level,
+    points,
+    progress,
+    streakDays,
+    canBookSessions,
+    tierLabel: tier.label,
+  }), [canBookSessions, level, points, progress, streakDays, tier.label]);
 
   useEffect(() => {
     setActiveLens(lensFromRoute(tab));
@@ -237,6 +246,7 @@ const ClientObservatoryHome: React.FC = () => {
         tierLabel={tier.label}
         tierTone={tier.tone}
         canBookSessions={canBookSessions}
+        coachPath={coachPath}
         onLensSelect={handleLensSelect}
         onNavigate={handleNavigate}
       />

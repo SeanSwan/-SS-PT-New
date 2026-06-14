@@ -159,6 +159,47 @@ export function buildTrainerSessionCoachRoute(
   return `/dashboard/trainer/coach-assistant?${params.toString()}`;
 }
 
+const isClosedTrainerSession = (session: TrainerSession): boolean =>
+  session.status === 'completed' || session.status === 'cancelled';
+
+type TimedActionableTrainerSession = {
+  session: TrainerSession;
+  timestamp: number;
+};
+
+const getSessionActionTimestamp = (session: TrainerSession): number | null => {
+  const start = getSessionStartDate(session);
+  const timestamp = start ? start.getTime() : null;
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const isActionableTrainerSession = (session: TrainerSession): boolean =>
+  !isClosedTrainerSession(session) &&
+  Boolean(buildTrainerSessionLogRoute(session) || buildTrainerSessionCoachRoute(session));
+
+export function getNextActionableTrainerSession(
+  sessions: TrainerSession[],
+  now = new Date()
+): TrainerSession | null {
+  const actionable = sessions
+    .filter(isActionableTrainerSession)
+    .map((session) => ({ session, timestamp: getSessionActionTimestamp(session) }))
+    .filter((entry): entry is TimedActionableTrainerSession => entry.timestamp !== null);
+
+  if (actionable.length === 0) return null;
+
+  const nowTime = now.getTime();
+  const upcoming = actionable
+    .filter(({ timestamp }) => timestamp >= nowTime)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  if (upcoming[0]) return upcoming[0].session;
+
+  return actionable
+    .sort((a, b) => b.timestamp - a.timestamp)[0]
+    ?.session ?? null;
+}
+
 export function useTrainerTodaySessions() {
   const { authAxios } = useAuth();
   const [sessions, setSessions] = useState<TrainerSession[]>([]);

@@ -28,9 +28,9 @@ import CoachConsoleDock, { type CoachQuickIntent } from './CoachConsoleDock';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
 import {
-  buildClientWorkoutLoggerRoute,
   buildClientWorkoutPlannerRoute,
 } from '../../workspaces/clients-team/clientDailyTrainingRoutes';
+import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 
 const QUICK_INTENTS: CoachQuickIntent[] = [
   { label: 'Log workout', prompt: 'Log a workout for the selected client: ' },
@@ -84,13 +84,19 @@ const CoachCommandCenterPage: React.FC = () => {
   const intakeCount = commandCenter.summary.actionable;
   const plaudCount = commandCenter.summary.readyReview;
   const workoutLoggerRoute = useMemo(
-    () => (commandCenter.routeClientId ? buildClientWorkoutLoggerRoute(commandCenter.routeClientId) : null),
-    [commandCenter.routeClientId],
+    () => buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'admin',
+      selectedClientId: commandCenter.routeClientId,
+      searchParams,
+    }),
+    [commandCenter.routeClientId, searchParams],
   );
   const workoutPlannerRoute = useMemo(
     () => (commandCenter.routeClientId ? buildClientWorkoutPlannerRoute(commandCenter.routeClientId) : null),
     [commandCenter.routeClientId],
   );
+  const workoutLoggerScopeLabel = commandCenter.routeClientId ? commandCenter.selectedClientLabel : 'My workout log';
+  const workoutLoggerLabel = commandCenter.routeClientId ? 'Logger' : 'My Logger';
 
   const handleSelectClient = (id: number) => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);
@@ -210,6 +216,8 @@ const CoachCommandCenterPage: React.FC = () => {
             voiceActive={commandCenter.voiceActive}
             voiceSupported={commandCenter.voiceSupported}
             workoutLoggerRoute={workoutLoggerRoute}
+            workoutLoggerLabel={workoutLoggerLabel}
+            workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
@@ -237,7 +245,9 @@ const CoachCommandCenterPage: React.FC = () => {
           selectedClientLabel={commandCenter.selectedClientLabel}
           teachMode={commandCenter.teachMode}
           workoutLoggerRoute={workoutLoggerRoute}
+          workoutLoggerScopeLabel={workoutLoggerScopeLabel}
           workoutPlannerRoute={workoutPlannerRoute}
+          onClose={commandCenter.closeDrawer}
           onOpenIntake={() => setActiveTab('intake')}
           onOpenPlaud={handleStartPlaudUpload}
           onQuickClientNameChange={commandCenter.setQuickClientName}

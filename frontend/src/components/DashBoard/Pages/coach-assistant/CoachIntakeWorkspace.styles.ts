@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 export const Panel = styled.section`
-  margin: 0 12px 10px;
-  padding: 14px;
+  width: min(100%, 1240px);
+  margin: 0 auto 10px;
+  padding: clamp(10px, 1.6vw, 14px);
+  box-sizing: border-box;
+  overflow-x: hidden;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   border-radius: 12px;
   background:
@@ -23,6 +26,7 @@ export const Header = styled.div`
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  min-width: 0;
 
   @media (max-width: 720px) {
     flex-direction: column;
@@ -65,9 +69,86 @@ export const Eyebrow = styled.span`
 `;
 
 export const ActionRow = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: 8px;
-  flex-wrap: wrap;
+  width: min(100%, 720px);
+  min-width: 0;
+
+  > * {
+    min-width: 0;
+  }
+
+  > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 720px) {
+    width: 100%;
+  }
+`;
+
+export const FirstMovePanel = styled.div`
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.64fr);
+  gap: 10px;
+  align-items: stretch;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 11%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 9%, transparent)
+    ),
+    color-mix(in srgb, var(--bg-base, #030712) 36%, transparent);
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const FirstMoveCopy = styled.div`
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-family: 'Sora', sans-serif;
+
+  span {
+    color: var(--accent-gold, #C6A84B);
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  strong {
+    color: var(--text-primary, #E0ECF4);
+    font-size: 15px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  p {
+    margin: 0;
+    color: color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+`;
+
+export const FirstMoveActions = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const ActionButton = styled.button<{ $primary?: boolean }>`
@@ -90,6 +171,12 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 
@@ -133,6 +220,12 @@ export const WorkspaceLink = styled(Link)<{ $primary?: boolean }>`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
   text-decoration: none;
 
@@ -151,132 +244,13 @@ export const WorkspaceLink = styled(Link)<{ $primary?: boolean }>`
   }
 `;
 
-export const Grid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(260px, 1.18fr);
-  gap: 12px;
-
-  @media (max-width: 980px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const StatGrid = styled.dl`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-`;
-
-export const Stat = styled.div`
-  min-height: 64px;
-  padding: 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-base, #030712) 48%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
-
-  dt {
-    color: color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent);
-    font-family: 'Fira Code', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
-  }
-
-  dd {
-    margin: 4px 0 0;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--accent-primary, #60C0F0);
-  }
-`;
-
-export const ItemList = styled.div`
-  display: grid;
-  gap: 8px;
-`;
-
-export const ItemCard = styled.div<{ $active?: boolean }>`
-  min-height: 54px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  padding: 10px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-base, #030712) 44%, transparent);
-  border: 1px solid ${({ $active }) => $active
-    ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 55%, transparent)'
-    : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)'};
-  box-shadow: ${({ $active }) => $active
-    ? '0 0 18px color-mix(in srgb, var(--accent-gold, #C6A84B) 16%, transparent)'
-    : 'none'};
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--glow-accent, #8B5CF6);
-    outline-offset: 2px;
-  }
-`;
-
-export const ItemTitle = styled.div`
-  min-width: 0;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-
-  strong {
-    display: block;
-    margin-bottom: 3px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  span {
-    color: color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent);
-  }
-`;
-
-export const ChipColumn = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  flex-wrap: wrap;
-
-  @media (max-width: 640px) {
-    justify-content: flex-start;
-  }
-`;
-
-export const SourceChip = styled.span<{ $tone?: 'cyan' | 'gold' | 'purple' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 28px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: ${({ $tone }) => {
-    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent)';
-    if ($tone === 'purple') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)';
-    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
-  }};
-  border: 1px solid ${({ $tone }) => {
-    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 25%, transparent)';
-    if ($tone === 'purple') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent)';
-    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)';
-  }};
-  color: ${({ $tone }) => {
-    if ($tone === 'gold') return 'var(--accent-gold, #C6A84B)';
-    if ($tone === 'purple') return 'var(--accent-secondary, #8B5CF6)';
-    return 'var(--accent-primary, #60C0F0)';
-  }};
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  line-height: 1.25;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-`;
+export {
+  ChipColumn,
+  Grid,
+  ItemCard,
+  ItemList,
+  ItemTitle,
+  SourceChip,
+  Stat,
+  StatGrid,
+} from './CoachIntakeWorkspaceQueue.styles';

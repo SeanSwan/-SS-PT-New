@@ -1,13 +1,7 @@
-/**
- * AITerminalPanel
- *
- * Shared Swan Coach terminal for active dashboard and workout surfaces.
- * Chat traffic flows through useAIChat -> /api/ai-chat/*.
- * Canonical admin client hub: /dashboard/admin/client-management.
- */
+/** Shared Swan Coach terminal for active dashboard and workout surfaces. */
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, ChevronDown, ChevronUp, Send, Sparkles, Volume2, VolumeX, X } from 'lucide-react';
-import { useAIChat } from '../../hooks/useAIChat';
+import { useAIChat, type AIRequestContext } from '../../hooks/useAIChat';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import MarkdownRenderer from '../DashBoard/Pages/coach-assistant/MarkdownRenderer';
 import { CONTEXT_LABELS, DEEP_RESEARCH_LABEL, toDeepResearchLabel } from './AITerminalPanel.logic';
@@ -32,7 +26,11 @@ import {
   TtsToggle,
   TypingDots,
 } from './AITerminalPanel.styles';
-import type { AITerminalPanelProps } from './AITerminalPanel.types';
+import {
+  default as AITerminalQuickPrompts,
+} from './AITerminalQuickPrompts';
+import { useInitialPromptAutoSend } from './AITerminalPanel.initialPrompt';
+import type { AITerminalPanelProps, AITerminalQuickPrompt } from './AITerminalPanel.types';
 
 export type { AIContext, AITerminalPanelProps } from './AITerminalPanel.types';
 
@@ -45,6 +43,10 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   placeholder,
   label,
   emptyHint,
+  initialPrompt,
+  initialPromptSendImmediately,
+  requestContext,
+  quickPrompts = [],
   compact = false,
   defaultOpen = false,
 }) => {
@@ -65,14 +67,24 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
 
   const tts = useTextToSpeech({ rate: 1.05, volume: 0.9 });
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(initialPrompt || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const prevMessageCountRef = useRef(messages.length);
+  const previousInitialPromptRef = useRef(initialPrompt || '');
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const prompt = initialPrompt?.trim();
+    if (!prompt || prompt === previousInitialPromptRef.current) return;
+
+    setInputValue((current) => (current.trim() ? current : prompt));
+    previousInitialPromptRef.current = prompt;
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [initialPrompt]);
 
   useEffect(() => {
     if (messages.length > prevMessageCountRef.current) {
@@ -89,12 +101,15 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   }, [messages, tts]);
 
   const buildRequestContext = useCallback(() => {
-    if (!equipmentProfileId || equipmentProfileId <= 0) return null;
-    return { equipmentProfileId };
-  }, [equipmentProfileId]);
+    const contextPayload: AIRequestContext = { ...(requestContext || {}) };
+    if (equipmentProfileId && equipmentProfileId > 0) {
+      contextPayload.equipmentProfileId = equipmentProfileId;
+    }
+    return Object.keys(contextPayload).length ? contextPayload : null;
+  }, [equipmentProfileId, requestContext]);
 
-  const handleSend = useCallback(async () => {
-    const text = inputValue.trim();
+  const sendTextToCoach = useCallback(async (rawText: string) => {
+    const text = rawText.trim();
     if (!text || sending) return;
 
     setInputValue('');
@@ -103,7 +118,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
       await sendMessageWithConversation(
         text,
         context,
-        `${displayLabel} â€” ${context}`,
+        `${displayLabel} — ${context}`,
         clientId || null,
         'both',
         null,
@@ -118,33 +133,36 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
       `${displayLabel} — ${context}`,
       clientId || null,
     );
-  }, [buildRequestContext, clientId, context, displayLabel, inputValue, sendMessageWithConversation, sending]);
+  }, [buildRequestContext, clientId, context, displayLabel, sendMessageWithConversation, sending]);
 
-  const handleVoiceAutoSend = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || sending) return;
+  const openPanel = useCallback(() => setIsOpen(true), []);
 
-    const requestContext = buildRequestContext();
-    if (requestContext) {
-      await sendMessageWithConversation(
-        trimmed,
-        context,
-        `${displayLabel} â€” ${context}`,
-        clientId || null,
-        'both',
-        null,
-        requestContext,
-      );
+  useInitialPromptAutoSend({
+    initialPrompt,
+    initialPromptSendImmediately,
+    sending,
+    openPanel,
+    sendTextToCoach,
+  });
+
+  const handleQuickPrompt = useCallback((item: AITerminalQuickPrompt) => {
+    openPanel();
+    if (item.sendImmediately) {
+      void sendTextToCoach(item.prompt);
       return;
     }
 
-    await sendMessageWithConversation(
-      trimmed,
-      context,
-      `${displayLabel} — ${context}`,
-      clientId || null,
-    );
-  }, [buildRequestContext, clientId, context, displayLabel, sendMessageWithConversation, sending]);
+    setInputValue(item.prompt);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [openPanel, sendTextToCoach]);
+
+  const handleSend = useCallback(() => {
+    void sendTextToCoach(inputValue);
+  }, [inputValue, sendTextToCoach]);
+
+  const handleVoiceAutoSend = useCallback((text: string) => {
+    void sendTextToCoach(text);
+  }, [sendTextToCoach]);
 
   const handleVoiceTranscript = useCallback((text: string) => {
     setInputValue((prev) => (prev ? `${prev} ${text}` : text));
@@ -183,6 +201,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
 
       {isOpen && (
         <PanelBody>
+          <AITerminalQuickPrompts displayLabel={displayLabel} items={quickPrompts} onSelect={handleQuickPrompt} />
           <MessagesArea>
             {messages.length === 0 && (
               <EmptyHint>

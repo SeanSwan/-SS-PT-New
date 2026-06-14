@@ -30,6 +30,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Brain, ClipboardCheck, Users, Calendar } from 'lucide-react';
 import { AICommandBar } from '../../../Shared/AICommandBar';
+import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -172,6 +173,7 @@ function getGreeting(name: string): string {
 
 const CHIPS = [
   { label: 'Log Workout',  path: '/dashboard/trainer/clients?intent=log_workout', Icon: ClipboardCheck },
+  { label: 'Ask Coach',    path: TRAINER_HOME_COACH_PATH,                          Icon: Brain          },
   { label: 'View Clients', path: '/dashboard/trainer/clients',     Icon: Users          },
   { label: 'My Schedule',  path: '/dashboard/trainer/schedule',    Icon: Calendar       },
 ] as const;
@@ -183,12 +185,13 @@ interface SwanCoachDockTrainerProps {
   trainerName: string;
   sessionCount: number;
   level: number;
+  coachPath?: string;
   loading?: boolean;
   onNavigate: (path: string) => void;
 }
 
 const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
-  trainerName, sessionCount, level, loading = false, onNavigate,
+  trainerName, sessionCount, level, coachPath = TRAINER_HOME_COACH_PATH, loading = false, onNavigate,
 }) => {
   if (loading) return <DockSkeleton aria-hidden="true" />;
 
@@ -206,7 +209,11 @@ const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
 
       <ChipRow>
         {CHIPS.map(({ label, path, Icon }) => (
-          <Chip key={path} onClick={() => onNavigate(path)} aria-label={label}>
+          <Chip
+            key={path}
+            onClick={() => onNavigate(label === 'Ask Coach' ? coachPath : path)}
+            aria-label={label}
+          >
             <Icon size={14} aria-hidden="true" />
             {label}
           </Chip>

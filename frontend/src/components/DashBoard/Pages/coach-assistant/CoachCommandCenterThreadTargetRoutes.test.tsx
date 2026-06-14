@@ -1,0 +1,68 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  renderPage,
+  resetCoachCommandCenterMocks,
+  sendMessageWithConversationMock,
+  setCoachCommandCenterConversations,
+} from './CoachCommandCenterPage.test.harness';
+
+const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
+const openOpsRail = () => {
+  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
+  return screen.getByLabelText('Coach operations command surface');
+};
+
+describe('CoachCommandCenter selected thread target routes', () => {
+  beforeEach(resetCoachCommandCenterMocks);
+
+  it('uses active thread targetUserId for Logger and Planner routes when URL has no clientId', async () => {
+    setCoachCommandCenterConversations([
+      {
+        id: 201,
+        title: 'Ava Stone weekly training',
+        context: 'coach_assistant',
+        status: 'active',
+        messageCount: 6,
+        lastMessageAt: '2026-06-14T10:00:00.000Z',
+        createdAt: '2026-06-13T10:00:00.000Z',
+        targetUserId: 424242,
+      },
+    ]);
+
+    renderPage('/dashboard/admin/coach-assistant');
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Ava Stone weekly training/i })).toHaveAttribute(
+        'aria-current',
+        'true',
+      );
+    });
+
+    const opsRail = openOpsRail();
+    expect(within(opsRail).getByText(/route workout actions for Client #424242/i)).toBeInTheDocument();
+    expect(within(opsRail).getByText('Client #424242')).toBeInTheDocument();
+    expect(within(opsRail).queryByText(/route workout actions for Ava Stone weekly training/i)).not.toBeInTheDocument();
+    expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
+    );
+    expect(within(opsRail).getByRole('link', { name: /open planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/workout-planner?clientId=424242&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242%26tab%3Dtraining%26trainingSection%3Dplans',
+    );
+
+    fireEvent.change(composerInput(), { target: { value: 'Bench press 3 sets of 10.' } });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan coach/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        'Bench press 3 sets of 10.',
+        'coach_assistant',
+        'Ava Stone weekly training',
+        424242,
+        'both',
+      );
+    });
+  });
+});

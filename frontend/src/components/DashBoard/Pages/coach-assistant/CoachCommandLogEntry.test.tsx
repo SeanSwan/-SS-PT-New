@@ -45,6 +45,29 @@ describe('CoachCommandLogEntry', () => {
     expect(screen.getByText(/Use a weight you can control/i)).toBeInTheDocument();
   });
 
+  it('recognizes normal same-line Science and Keep It 100 headings from model output', async () => {
+    const user = userEvent.setup();
+    const entry = {
+      ...baseEntry,
+      body: [
+        'Science: Muscle protein synthesis is the repair signal after training.',
+        '',
+        'Keep it 100: Lift clean, eat protein, sleep, and repeat.',
+      ].join('\n'),
+    };
+
+    render(<CoachCommandLogEntry entry={entry} />);
+
+    expect(screen.getByRole('button', { name: 'Science' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Muscle protein synthesis/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Lift clean/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep It 100' }));
+
+    expect(screen.queryByText(/Muscle protein synthesis/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Lift clean/i)).toBeInTheDocument();
+  });
+
   it('formats workout bullets as a readable list instead of flattening them into one paragraph', () => {
     const formatted = formatCommandLogBody([
       'Workout for today:',
@@ -58,6 +81,24 @@ describe('CoachCommandLogEntry', () => {
     expect(formatted.bullets).toEqual([
       'Goblet squat: 3 sets x 10 reps',
       'Push-up: 3 sets x 8 reps',
+    ]);
+  });
+
+  it('formats plain numbered workout prescriptions as readable workout details', () => {
+    const formatted = formatCommandLogBody([
+      'Here is the plan:',
+      '1. Incline dumbbell press - 3 sets x 10 reps, rest 75 sec',
+      '2) Cable row: 4 sets x 8 reps',
+      'Coach note: stop every set with clean reps still available.',
+    ].join('\n'));
+
+    expect(formatted.leadParagraphs).toEqual([
+      'Here is the plan:',
+      'Coach note: stop every set with clean reps still available.',
+    ]);
+    expect(formatted.bullets).toEqual([
+      'Incline dumbbell press - 3 sets x 10 reps, rest 75 sec',
+      'Cable row: 4 sets x 8 reps',
     ]);
   });
 

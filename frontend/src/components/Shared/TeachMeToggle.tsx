@@ -19,6 +19,7 @@ interface TeachMeToggleProps {
   content: string | React.ReactNode;
   onAskAI?: () => void;
   defaultOpen?: boolean;
+  buttonLabel?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -49,6 +50,8 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  max-width: min(100%, 360px);
+  text-wrap: balance;
 
   &:hover {
     color: var(--accent-secondary, #8B5CF6);
@@ -61,6 +64,12 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   }
 `;
 
+const ToggleLabel = styled.span`
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+`;
+
 const Panel = styled.div`
   margin-top: 8px;
   padding: 16px;
@@ -68,13 +77,22 @@ const Panel = styled.div`
   border: 1px solid rgba(139, 92, 246, 0.15);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 4%, var(--bg-surface, #1A1A24));
   animation: ${slideIn} 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  max-height: min(680px, calc(100dvh - 144px));
+  overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
+
+  @media (max-width: 560px) {
+    padding: 12px;
+    border-radius: 10px;
+    max-height: calc(100dvh - 108px);
+  }
 `;
 
 const PanelHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   margin-bottom: 12px;
 `;
 
@@ -86,6 +104,8 @@ const PanelTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 const CloseBtn = styled.button`
@@ -130,6 +150,7 @@ const PanelContent = styled.div`
 const AskAIBtn = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 8px 14px;
   min-height: 44px;
@@ -144,12 +165,17 @@ const AskAIBtn = styled.button`
   cursor: pointer;
   margin-top: 12px;
   transition: all 0.2s ease;
+  text-align: center;
 
   &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent); }
 
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
   }
 `;
 
@@ -174,6 +200,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   content,
   onAskAI,
   defaultOpen,
+  buttonLabel,
 }) => {
   const [open, setOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
@@ -193,12 +220,19 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
 
   const toggle = useCallback(() => setOpen(p => !p), []);
   const close = useCallback(() => setOpen(false), []);
+  const resolvedButtonLabel = buttonLabel || 'Teach Me';
+  const resolvedAriaLabel = buttonLabel || `Teach Me: ${title}`;
 
   return (
     <>
-      <ToggleBtn onClick={toggle} $active={open} aria-expanded={open} aria-label={`Teach Me: ${title}`}>
+      <ToggleBtn
+        onClick={toggle}
+        $active={open}
+        aria-expanded={open}
+        aria-label={resolvedAriaLabel}
+      >
         <HelpCircle size={14} />
-        Teach Me
+        <ToggleLabel>{resolvedButtonLabel}</ToggleLabel>
         {isFirstTime && !open && <FirstTimeBadge>New</FirstTimeBadge>}
       </ToggleBtn>
 

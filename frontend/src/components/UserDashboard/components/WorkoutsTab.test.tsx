@@ -52,6 +52,88 @@ describe('WorkoutsTab', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
   });
+
+  it('routes the empty workout state to Coach with a staged workouts prompt', async () => {
+    const user = userEvent.setup();
+    authGet.mockResolvedValue({ data: { data: { workouts: [] } } });
+
+    render(<WorkoutsTab />);
+    await user.click(await screen.findByRole('button', { name: /ask coach what to log/i }));
+
+    const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const url = new URL(route, 'https://app.local');
+
+    expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('teachPrompt')).toMatch(/workouts tab/i);
+    expect(url.searchParams.get('teachPrompt')).toMatch(/save today's session/i);
+  });
+
+  it('keeps Ask Coach one click away when workout history exists', async () => {
+    const user = userEvent.setup();
+    authGet.mockResolvedValue({
+      data: {
+        data: {
+          workouts: [
+            {
+              workoutDate: '2026-06-14T08:00:00.000Z',
+              logs: [{ exerciseName: 'Barbell Bench Press' }],
+            },
+          ],
+        },
+      },
+    });
+
+    render(<WorkoutsTab />);
+    await user.click(await screen.findByRole('button', { name: /^ask coach$/i }));
+
+    const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const url = new URL(route, 'https://app.local');
+
+    expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('teachPrompt')).toMatch(/workout history/i);
+  });
+
+  it('shows a next-move strip and sends Coach the live workout snapshot', async () => {
+    const user = userEvent.setup();
+    authGet.mockResolvedValue({
+      data: {
+        data: {
+          workouts: [
+            {
+              workoutDate: '2026-06-14T08:00:00.000Z',
+              logs: [
+                { exerciseName: 'Barbell Bench Press' },
+                { exerciseName: 'Seated Cable Row' },
+              ],
+            },
+            {
+              workoutDate: '2026-06-13T08:00:00.000Z',
+              logs: [{ exerciseName: 'Barbell Bench Press' }],
+            },
+          ],
+        },
+      },
+    });
+
+    render(<WorkoutsTab />);
+
+    await screen.findByText('Next best move');
+    expect(screen.getByText('Logged Moves')).toBeInTheDocument();
+    expect(screen.queryByText('Total Sets')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /ask coach next/i }));
+
+    const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const url = new URL(route, 'https://app.local');
+    const prompt = url.searchParams.get('teachPrompt') || '';
+
+    expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(prompt).toContain('Current workout snapshot');
+    expect(prompt).toContain('3 logged exercise touches');
+    expect(prompt).toContain('Most active: Chest');
+    expect(prompt).toContain('Top movement: Barbell Bench Press');
+    expect(prompt).toContain('recommend the next workout to log');
+  });
 });
 
 describe('WorkoutsTabTransformers', () => {

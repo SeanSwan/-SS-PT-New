@@ -28,6 +28,7 @@ import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 import { AdminDashboardMetric, AdminQuickAction, SystemHealthMetric } from './AdminOverview.types';
 import { mapChangeType, metricUnavailable, readSettledData, safeTrend } from './AdminOverviewData';
+import { ADMIN_OVERVIEW_ASSISTANT_PROMPTS } from './AdminOverviewAssistantPrompts.config';
 import { buildAdminOverviewQuickActions } from './AdminOverviewQuickActions.config';
 import {
   BentoFull,
@@ -199,12 +200,16 @@ const AdminOverviewPanel: React.FC = () => {
 
   return (
     <BentoWrapper>
+      {/* Row 0: First-click operator launchpad */}
+      <BentoFull><AdminQuickActions actions={quickActions} /></BentoFull>
+
       {/* ── Row 0: AI Terminal (full width) ── */}
       <BentoFull>
         <AITerminalPanel
           context="data_management"
           label="Admin Assistant"
           emptyHint="I'm your Admin Assistant. Ask about client analytics, revenue insights, system health, or any business operations."
+          quickPrompts={ADMIN_OVERVIEW_ASSISTANT_PROMPTS}
           defaultOpen={false}
         />
       </BentoFull>
@@ -253,7 +258,6 @@ const AdminOverviewPanel: React.FC = () => {
       <BentoHalf><SessionTrackingWidget /></BentoHalf>
 
       {/* ── Row 6: Quick Actions + Activity Feed + Gamification (3-col) ── */}
-      <BentoThird><AdminQuickActions actions={quickActions} /></BentoThird>
       <BentoThird><RecentActivityFeed /></BentoThird>
       <BentoThird><GamificationSummaryWidget /></BentoThird>
 

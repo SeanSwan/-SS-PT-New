@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useClientProgressCharts } from '../../../hooks/analytics/useClientProgressCharts';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
-import { getLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
+import { getPersonalLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
 import {
   buildProgressProofSocialDraft,
   buildProgressProofSummary,
@@ -50,7 +50,7 @@ interface InlineMilestoneShareProps {
 
 const InlineMilestoneShare: React.FC<InlineMilestoneShareProps> = ({ onDismiss }) => {
   const navigate = useNavigate();
-  const { user, authAxios } = useAuth();
+  const { authAxios } = useAuth();
   const { profile } = useGamificationData();
   const {
     isLoading: proofLoading,
@@ -130,7 +130,7 @@ const InlineMilestoneShare: React.FC<InlineMilestoneShareProps> = ({ onDismiss }
         <StatusLine>
           No fresh milestone yet - your next logged workout gets you closer.
         </StatusLine>
-        <JoinButton onClick={() => navigate(getLogWorkoutDashboardPath(user?.role))}>
+        <JoinButton onClick={() => navigate(getPersonalLogWorkoutDashboardPath())}>
           Log a workout
         </JoinButton>
       </FinderPanel>

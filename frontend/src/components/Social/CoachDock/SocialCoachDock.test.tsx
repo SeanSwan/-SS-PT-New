@@ -132,14 +132,14 @@ describe('SocialCoachDock — chip wiring', () => {
     expect(screen.queryByText(/no open challenges/i)).toBeNull();
   });
 
-  it('routes the role-aware chips through the trainer dashboard for trainers', async () => {
+  it('routes trainer quick-log to their own personal logger', async () => {
     mockUseAuth.mockReturnValue({ user: { role: 'trainer', firstName: 'Sean' } });
     const user = userEvent.setup();
     render(<SocialCoachDock />);
 
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
   });
 
   it('share-a-milestone expands the inline share instead of navigating (D2c)', async () => {
@@ -190,10 +190,10 @@ describe('SocialCoachDock — chip wiring', () => {
 });
 
 describe('SocialCoachDock — D2a source contracts', () => {
-  it('reuses the shared role-routed dashboard path helper for quick-log', () => {
+  it('reuses the shared personal dashboard path helper for quick-log', () => {
     // getSwanCoachDashboardPath left the dock in D2c: the share chip now runs
     // inline instead of deep-linking to the Coach page (D1 page entries keep it).
-    expect(DOCK_SOURCE).toContain('getLogWorkoutDashboardPath');
+    expect(DOCK_SOURCE).toContain('getPersonalLogWorkoutDashboardPath');
     // No import or call of the Coach-page helper remains (prose mentions OK).
     expect(DOCK_SOURCE).not.toMatch(/getSwanCoachDashboardPath[,(]/);
   });

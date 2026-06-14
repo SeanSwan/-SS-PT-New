@@ -23,9 +23,9 @@ const actorStyles = {
 
 export const LogEntry = styled.article<{ $actor: LogActor }>`
   ${({ $actor }) => actorStyles[$actor]}
-  border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+  border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
   border-radius: 16px;
-  box-shadow: 0 16px 42px var(--coach-shadow-soft, rgba(0, 0, 0, 0.2));
+  box-shadow: 0 16px 42px var(--coach-shadow-soft, color-mix(in srgb, var(--coach-deep, #030712) 58%, transparent));
   display: grid;
   gap: 10px;
   padding: clamp(12px, 1.6vw, 16px);
@@ -55,9 +55,10 @@ export const LogBody = styled.div`
 
 export const StyleSwitch = styled.div`
   background: color-mix(in srgb, var(--coach-bg, #030712) 56%, transparent);
-  border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+  border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
   border-radius: 14px;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
   justify-self: start;
   max-width: 100%;
@@ -69,6 +70,7 @@ export const StyleSwitch = styled.div`
     color: var(--coach-muted, #91a3bd);
     font-size: 13px;
     font-weight: 780;
+    flex: 1 1 120px;
     min-height: 44px;
     padding: 0 14px;
   }
@@ -87,7 +89,7 @@ export const BulletList = styled.ul`
   padding: 0;
   li {
     background: color-mix(in srgb, var(--coach-text, #e0ecf4) 5%, transparent);
-    border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+    border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
     border-radius: 12px;
     padding: 10px 12px;
   }
@@ -128,7 +130,7 @@ export const StepList = styled.ol`
   li {
     align-items: start;
     background: color-mix(in srgb, var(--coach-soft, #102040) 70%, transparent);
-    border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+    border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
     border-radius: 14px;
     display: grid;
     gap: 10px;
@@ -151,7 +153,7 @@ export const StepList = styled.ol`
 `;
 
 export const PacketDetails = styled.details`
-  border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+  border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
   border-radius: 14px;
   overflow: hidden;
   summary {
@@ -166,7 +168,7 @@ export const PacketDetails = styled.details`
   }
   pre {
     background: var(--coach-deep, #030712);
-    border-top: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+    border-top: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
     color: var(--coach-text-soft, #dbeafe);
     margin: 0;
     max-height: 260px;
@@ -184,7 +186,7 @@ export const AttachmentRow = styled.div`
   justify-content: flex-start;
   min-width: 0;
   .attachment {
-    border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+    border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
     border-radius: 999px;
     color: var(--coach-text-soft, #dbeafe);
     font-family: 'Fira Code', monospace;

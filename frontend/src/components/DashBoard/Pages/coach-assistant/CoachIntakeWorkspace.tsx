@@ -9,12 +9,7 @@
  */
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  AlertTriangle,
-  Clock3,
-  GitBranch,
-  ShieldCheck,
-} from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import type { CoachIntakeQueueState } from '../../../../hooks/useCoachIntakeQueue';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
@@ -25,6 +20,7 @@ import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import CoachIntakeQueueEmptyState from './CoachIntakeQueueEmptyState';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
+import CoachIntakeTeachMe from './CoachIntakeTeachMe';
 import CoachIntakeWorkspaceHeader from './CoachIntakeWorkspaceHeader';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
@@ -39,7 +35,6 @@ import {
   Stat,
   StatGrid,
 } from './CoachIntakeWorkspace.styles';
-import { Helper, HelperRail } from './CoachIntakeWorkspaceHelper.styles';
 import {
   activeAudioPrompt,
   activeCoachActionPrompt,
@@ -200,6 +195,8 @@ export function CoachIntakeWorkspace({
         onRefresh={refresh}
       />
 
+      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
+
       <CoachIntakeHealthStrip
         health={queue.health}
         retention={queue.retention}
@@ -247,14 +244,7 @@ export function CoachIntakeWorkspace({
       ) : null}
 
       <Grid>
-        <StatGrid aria-label="Coach intake summary">
-          <Stat><dt>Actionable</dt><dd>{summary.actionable}</dd></Stat>
-          <Stat><dt>Ready</dt><dd>{summary.readyReview}</dd></Stat>
-          <Stat><dt>Needs client</dt><dd>{summary.needsClient}</dd></Stat>
-          <Stat><dt>Failed</dt><dd>{summary.failed}</dd></Stat>
-        </StatGrid>
-
-        <ItemList aria-live="polite">
+        <ItemList aria-label="Coach intake work queue" aria-live="polite">
           <CoachIntakeQueueScopeTabs
             activeScope={queue.scope}
             summary={summary}
@@ -283,13 +273,14 @@ export function CoachIntakeWorkspace({
             );
           })}
         </ItemList>
-      </Grid>
 
-      <HelperRail>
-        <Helper><Clock3 size={16} aria-hidden="true" /> Clips stay ordered by recording time first, upload order second.</Helper>
-        <Helper><GitBranch size={16} aria-hidden="true" /> Coach commands can inspect pieces before the final merge decision.</Helper>
-        <Helper><ShieldCheck size={16} aria-hidden="true" /> Client, date, duplicate, and final log writes stay approval-gated.</Helper>
-      </HelperRail>
+        <StatGrid aria-label="Coach intake summary">
+          <Stat><dt>Actionable</dt><dd>{summary.actionable}</dd></Stat>
+          <Stat><dt>Ready</dt><dd>{summary.readyReview}</dd></Stat>
+          <Stat><dt>Needs client</dt><dd>{summary.needsClient}</dd></Stat>
+          <Stat><dt>Failed</dt><dd>{summary.failed}</dd></Stat>
+        </StatGrid>
+      </Grid>
     </Panel>
   );
 }

@@ -7,7 +7,7 @@
  *
  * WHAT THIS FILE DOES: Renders the collapsed Coach strip (avatar + greeting +
  * four 44px action chips) at the top of the /social feed. Log-a-workout
- * deep-links to the role-routed logger; share-a-milestone (D2c),
+ * deep-links to the personal logger; share-a-milestone (D2c),
  * find-a-challenge (D2b), and cheer-a-friend (cheer v2, feed-anchored)
  * expand mutually-exclusive inline panels — all lazily mounted so the feed
  * never pays their data fetches unprompted.
@@ -38,7 +38,7 @@ import React, { useState } from 'react';
 import { Sparkles, Share2, Trophy, Dumbbell, ThumbsUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { getLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
+import { getPersonalLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
 import InlineChallengeFinder from './InlineChallengeFinder';
 import InlineMilestoneShare from './InlineMilestoneShare';
 import InlineCheerPicker from './InlineCheerPicker';
@@ -59,7 +59,7 @@ const NAV_CHIPS = [
   {
     label: 'Log a workout',
     Icon: Dumbbell,
-    getPath: (role?: string | null) => getLogWorkoutDashboardPath(role),
+    getPath: () => getPersonalLogWorkoutDashboardPath(),
   },
 ] as const;
 
@@ -118,7 +118,7 @@ const SocialCoachDock: React.FC = () => {
           {NAV_CHIPS.map(({ label, Icon, getPath }) => (
             <ActionChip
               key={label}
-              onClick={() => navigate(getPath(user?.role))}
+              onClick={() => navigate(getPath())}
               aria-label={label}
             >
               <Icon size={15} />

@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
 import {
+  CLIENT_OVERVIEW_COACH_PROMPT,
+  CLIENT_OVERVIEW_COACH_PATH,
   QUICK_ACTIONS,
+  buildClientOverviewCoachPath,
   canBookSwanStudiosSessions,
   quickActionsForClientSource,
 } from './ClientObservatoryData';
@@ -16,18 +19,51 @@ describe('ClientObservatoryFeed XP receipt', () => {
     expect(QUICK_ACTIONS.map((action) => action.label)).toEqual([
       'Log Workout',
       'Progress',
+      'Ask Coach',
       'Book Session',
     ]);
+    expect(QUICK_ACTIONS.find((action) => action.label === 'Ask Coach')?.path).toBe(
+      CLIENT_OVERVIEW_COACH_PATH
+    );
+    const coachUrl = new URL(CLIENT_OVERVIEW_COACH_PATH, 'https://app.local');
+    expect(coachUrl.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(coachUrl.searchParams.get('teachPrompt')).toBe(CLIENT_OVERVIEW_COACH_PROMPT);
     expect(quickActionsForClientSource('move_fitness').map((action) => action.label)).toEqual([
       'Log Workout',
       'Progress',
+      'Ask Coach',
     ]);
     expect(quickActionsForClientSource(' Move Fitness ').map((action) => action.label)).toEqual([
       'Log Workout',
       'Progress',
+      'Ask Coach',
     ]);
     expect(canBookSwanStudiosSessions('move-fitness')).toBe(false);
     expect(canBookSwanStudiosSessions(' External ')).toBe(false);
+  });
+
+  it('builds a compact client overview Coach handoff without profile identifiers', () => {
+    const path = buildClientOverviewCoachPath({
+      level: 7,
+      points: 12840,
+      progress: 62,
+      streakDays: 5,
+      canBookSessions: false,
+      tierLabel: 'Obsidian Warrior',
+    });
+
+    const coachUrl = new URL(path, 'https://app.local');
+    const prompt = coachUrl.searchParams.get('teachPrompt') || '';
+
+    expect(coachUrl.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(prompt).toContain('level 7');
+    expect(prompt).toContain('5d streak');
+    expect(prompt).toContain('62%');
+    expect(prompt).toContain('12.8K XP');
+    expect(prompt).toContain('book through your trainer');
+    expect(prompt).toContain('one safest next action');
+    expect(prompt).not.toMatch(/sean|@|client|user|id|email|phone/i);
+    expect(prompt.length).toBeLessThan(320);
   });
 
   it('shows the point award returned by Quick Post', () => {

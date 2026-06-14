@@ -24,10 +24,15 @@ import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import DailyHealthLoop from './DailyHealthLoop';
+import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
 import { DockSkeleton } from './HomeTabActions.styles';
-import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
+import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
+import {
+  USER_HOME_TRAINING_PROMPT,
+  buildUserDashboardTeachCoachRoute,
+} from '../UserDashboardTeachCoachRoute';
 import HomeTabVisionCenter from './HomeTabVisionCenter';
 import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
 import HomeTabVisionRightRail from './HomeTabVisionRightRail';
@@ -110,7 +115,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
   const streakDays = gamProfile?.data?.streakDays ?? 0;
   const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
-  const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
+  const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
+  const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
   const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
@@ -159,6 +165,13 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
   return (
     <CreatorPage data-testid="creator-observatory-home">
+      <HomeTrainingCommandStrip
+        coachPath={homeTrainingCoachPath}
+        logWorkoutPath={logWorkoutPath}
+        onNavigate={navigate}
+        onProgress={() => onTabChange('progress')}
+      />
+
       <CreatorShell>
         <HomeTabVisionLeftRail
           logoSrc={brandLogo}

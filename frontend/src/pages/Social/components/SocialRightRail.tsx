@@ -28,8 +28,7 @@ import { useNavigate } from 'react-router-dom';
 import { useActivityTicker, type ActivityEvent } from '../../../hooks/social/useActivityTicker';
 import { useChallenges } from '../../../hooks/useChallenges';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
-import { useAuth } from '../../../context/AuthContext';
-import { getLogWorkoutDashboardPath } from '../../../components/UserDashboard/components/swanCoachDashboardRoute';
+import { getPersonalLogWorkoutDashboardPath } from '../../../components/UserDashboard/components/swanCoachDashboardRoute';
 import {
   LiveDot,
   NbaButton,
@@ -61,7 +60,6 @@ const activityText = (e: ActivityEvent): string => {
 
 const SocialRightRail: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { events } = useActivityTicker();
   const { challenges } = useChallenges();
   const { leaderboard, profile } = useGamificationData();
@@ -182,7 +180,7 @@ const SocialRightRail: React.FC = () => {
           <RailTitle>Next Best Action</RailTitle>
         </RailHeader>
         <NbaText>{nba}</NbaText>
-        <NbaButton onClick={() => navigate(getLogWorkoutDashboardPath(user?.role))}>
+        <NbaButton onClick={() => navigate(getPersonalLogWorkoutDashboardPath())}>
           Log a workout
         </NbaButton>
       </RailCard>

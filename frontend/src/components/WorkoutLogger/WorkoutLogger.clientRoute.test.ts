@@ -56,6 +56,10 @@ const EXERCISE_ROUTES_SOURCE = readFileSync(
   resolve(__dirname, '../../../../backend/routes/exerciseRoutes.mjs'),
   'utf8',
 );
+const UNIVERSAL_DASHBOARD_SOURCE = readFileSync(
+  resolve(__dirname, '../DashBoard/UniversalDashboardLayout.tsx'),
+  'utf8',
+);
 
 function stripComments(src: string): string {
   return src
@@ -91,6 +95,10 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/const workoutDateValue = scheduledSessionDate/);
     expect(SOURCE).toMatch(/date: workoutDateValue/);
     expect(SOURCE).toMatch(/workoutDate=\{workoutDateValue\}/);
+  });
+
+  it('declares forceSelfMode for admin/owner personal workout logging', () => {
+    expect(LOCAL_TYPES).toMatch(/forceSelfMode\?\s*:\s*boolean\s*;/);
   });
 
   it('mounts the schedule-origin billing banner from the shared logger surface', () => {
@@ -183,12 +191,13 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SUBMIT_RECEIPT_SOURCE).toMatch(/Workout logged successfully! Progress updated\./);
   });
 
-  it('resolves an effectiveClientId from prop OR authenticated client session', () => {
+  it('resolves an effectiveClientId from prop OR authenticated self-mode session', () => {
     const declIdx = SOURCE.indexOf('effectiveClientId');
     expect(declIdx).toBeGreaterThan(-1);
+    expect(SOURCE).toMatch(/const\s+allowSelfMode\s*=\s*user\?\.role\s*===\s*['"]client['"]\s*\|\|\s*forceSelfMode/);
     const body = SOURCE.slice(declIdx, declIdx + 500);
     expect(body).toMatch(/typeof\s+clientId\s*===\s*['"]number['"]/);
-    expect(body).toMatch(/user\?\.role\s*===\s*['"]client['"]/);
+    expect(body).toMatch(/allowSelfMode\s*\?\s*userNumericId\s*:\s*undefined/);
   });
 
   it('coerces user.id to a numeric id (AuthContext types it as string)', () => {
@@ -201,13 +210,29 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/Number\.isFinite/);
   });
 
-  it('derives isClientSelfMode only when the authenticated client matches effectiveClientId', () => {
+  it('derives isClientSelfMode for authenticated client self-route or forced owner self-route', () => {
     // Accepts either the raw `user.id` or the coerced `userNumericId`
     // since Codex round 2 introduced the numeric coercion helper. The
     // invariant is that self-mode requires role === 'client' AND the
     // effective id equals the (possibly-coerced) authenticated user id.
-    expect(SOURCE).toMatch(
-      /isClientSelfMode[\s\S]*?user\?\.role\s*===\s*['"]client['"][\s\S]*?effectiveClientId\s*===\s*(?:user\.id|userNumericId)/,
+    const allowSelfModeIdx = SOURCE.indexOf('const allowSelfMode');
+    const isSelfModeIdx = SOURCE.indexOf('const isClientSelfMode');
+    expect(allowSelfModeIdx).toBeGreaterThan(-1);
+    expect(isSelfModeIdx).toBeGreaterThan(allowSelfModeIdx);
+    const slice = SOURCE.slice(allowSelfModeIdx, isSelfModeIdx + 250);
+    expect(slice).toMatch(/user\?\.role\s*===\s*['"]client['"]\s*\|\|\s*forceSelfMode/);
+    expect(slice).toMatch(/isClientSelfMode[\s\S]*?allowSelfMode/);
+    expect(slice).toMatch(/effectiveClientId\s*===\s*userNumericId/);
+  });
+});
+
+describe('Phase 16.2 - admin owner personal logger route', () => {
+  it('mounts AdminPersonalWorkoutLogger on /dashboard/admin/log-my-workout', () => {
+    expect(UNIVERSAL_DASHBOARD_SOURCE).toMatch(
+      /const\s+AdminPersonalWorkoutLogger\s*=\s*React\.lazy\(\(\)\s*=>\s*import\('\.\.\/WorkoutLogger\/AdminPersonalWorkoutLogger'\)\)/,
+    );
+    expect(UNIVERSAL_DASHBOARD_SOURCE).toMatch(
+      /path:\s*['"]\/log-my-workout['"][\s\S]*?component:\s*AdminPersonalWorkoutLogger/,
     );
   });
 });

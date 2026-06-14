@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
+  getNextActionableTrainerSession,
   getSessionClientId,
   getSessionEndDate,
   getSessionStartDate,
@@ -93,5 +94,58 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('sourcePath')).toBe('/dashboard/trainer/schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
+  });
+
+  it('selects the next upcoming actionable session instead of completed or unordered rows', () => {
+    const now = new Date('2026-05-31T15:00:00.000Z');
+    const next = getNextActionableTrainerSession([
+      { ...apiSession, id: 99, sessionDate: '2026-05-31T18:00:00.000Z', status: 'scheduled' },
+      { ...apiSession, id: 77, sessionDate: '2026-05-31T14:00:00.000Z', status: 'scheduled' },
+      { ...apiSession, id: 66, sessionDate: '2026-05-31T16:00:00.000Z', status: 'completed' },
+      { ...apiSession, id: 55, sessionDate: '2026-05-31T15:30:00.000Z', status: 'scheduled' },
+      { ...apiSession, id: 'bad-id', sessionDate: '2026-05-31T15:05:00.000Z', status: 'scheduled' },
+    ], now);
+
+    expect(next?.id).toBe(55);
+  });
+
+  it('falls back to the most recent unlogged past session when no future session remains', () => {
+    const now = new Date('2026-05-31T20:00:00.000Z');
+    const next = getNextActionableTrainerSession([
+      { ...apiSession, id: 44, sessionDate: '2026-05-31T10:00:00.000Z', status: 'cancelled' },
+      { ...apiSession, id: 45, sessionDate: '2026-05-31T12:00:00.000Z', status: 'scheduled' },
+      { ...apiSession, id: 46, sessionDate: '2026-05-31T18:00:00.000Z', status: 'scheduled' },
+    ], now);
+
+    expect(next?.id).toBe(46);
+  });
+
+  it('does not let dateless actionable sessions hijack the next trainer CTA', () => {
+    const now = new Date('2026-05-31T15:00:00.000Z');
+    const next = getNextActionableTrainerSession([
+      { ...apiSession, id: 100, sessionDate: undefined, status: 'scheduled' },
+      { ...apiSession, id: 55, sessionDate: '2026-05-31T15:30:00.000Z', status: 'scheduled' },
+    ], now);
+
+    expect(next?.id).toBe(55);
+  });
+
+  it('falls back to a valid past session instead of a dateless route-only row', () => {
+    const now = new Date('2026-05-31T20:00:00.000Z');
+    const next = getNextActionableTrainerSession([
+      { ...apiSession, id: 100, sessionDate: undefined, status: 'scheduled' },
+      { ...apiSession, id: 46, sessionDate: '2026-05-31T18:00:00.000Z', status: 'scheduled' },
+    ], now);
+
+    expect(next?.id).toBe(46);
+  });
+
+  it('returns no trainer CTA when every actionable session lacks a usable time', () => {
+    const next = getNextActionableTrainerSession([
+      { ...apiSession, id: 100, sessionDate: undefined, startTime: undefined, status: 'scheduled' },
+      { ...apiSession, id: 101, sessionDate: 'not-a-date', startTime: 'bad-time', status: 'scheduled' },
+    ], new Date('2026-05-31T15:00:00.000Z'));
+
+    expect(next).toBeNull();
   });
 });

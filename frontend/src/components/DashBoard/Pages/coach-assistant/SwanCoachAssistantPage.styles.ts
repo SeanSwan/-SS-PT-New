@@ -10,21 +10,18 @@ export const PageShell = styled.div`
   overflow: hidden;
 
   @media (max-width: 1024px) {
-    height: calc(100dvh - 188px);
-    min-height: calc(100dvh - 188px);
-    max-height: calc(100dvh - 188px);
+    --coach-dashboard-chrome-offset: clamp(144px, 18dvh, 188px);
+    height: min(100%, calc(100dvh - var(--coach-dashboard-chrome-offset)));
+    min-height: 0;
+    max-height: calc(100dvh - var(--coach-dashboard-chrome-offset));
   }
 
   @media (max-width: 430px) {
-    height: calc(100dvh - 180px);
-    min-height: calc(100dvh - 180px);
-    max-height: calc(100dvh - 180px);
+    --coach-dashboard-chrome-offset: clamp(144px, 20dvh, 180px);
   }
 
   @media (max-width: 375px) {
-    height: calc(100dvh - 172px);
-    min-height: calc(100dvh - 172px);
-    max-height: calc(100dvh - 172px);
+    --coach-dashboard-chrome-offset: clamp(136px, 21dvh, 172px);
   }
 `;
 

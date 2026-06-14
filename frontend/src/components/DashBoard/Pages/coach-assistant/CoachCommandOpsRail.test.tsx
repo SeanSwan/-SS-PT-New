@@ -9,7 +9,7 @@ import {
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
-  return screen.getByLabelText('Coach operations rail');
+  return screen.getByLabelText('Coach operations command surface');
 };
 
 describe('CoachCommandOpsRail workout command panel', () => {
@@ -20,7 +20,9 @@ describe('CoachCommandOpsRail workout command panel', () => {
 
     const opsRail = openOpsRail();
     expect(within(opsRail).getByRole('heading', { name: /Workout command/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/Client #42/i)).toBeInTheDocument();
+    expect(within(opsRail).getByText(/route workout actions for Client #42/i)).toBeInTheDocument();
+    expect(within(opsRail).getByRole('button', { name: /review next intake/i })).toBeInTheDocument();
+    expect(within(opsRail).getByText('Client #42')).toBeInTheDocument();
     expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
@@ -36,7 +38,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     let opsRail = openOpsRail();
-    fireEvent.click(within(opsRail).getByRole('button', { name: /stage workout log/i }));
+    fireEvent.click(within(opsRail).getByRole('button', { name: /draft workout log prompt/i }));
     await waitFor(() => {
       expect((composerInput() as HTMLInputElement).value).toContain('Log a workout for the selected client');
     });
@@ -50,13 +52,35 @@ describe('CoachCommandOpsRail workout command panel', () => {
     clickSpy.mockRestore();
   });
 
-  it('keeps Logger and Planner navigation locked when no route client is selected', () => {
+  it('offers self logging and a Client Hub picker when no route client is loaded', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
     const opsRail = openOpsRail();
     expect(within(opsRail).getByRole('heading', { name: /Workout command/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/Select a client route/i)).toBeInTheDocument();
-    expect(within(opsRail).queryByRole('link', { name: /open logger/i })).not.toBeInTheDocument();
+    expect(within(opsRail).getByText(/open your own logger/i)).toBeInTheDocument();
+    expect(within(opsRail).queryByText(/selected client's workout/i)).not.toBeInTheDocument();
+    expect(within(opsRail).getByText(/My workout log/i)).toBeInTheDocument();
+    expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/log-my-workout?loadPlan=today',
+    );
+    expect(within(opsRail).getByRole('link', { name: /pick a client for workout logging/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?intent=log_workout',
+    );
     expect(within(opsRail).queryByRole('link', { name: /open planner/i })).not.toBeInTheDocument();
+  });
+
+  it('shows an explicit drawer header close control that collapses Ops', () => {
+    renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
+
+    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
+    const opsRail = openOpsRail();
+    expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(opsRail).getByText('Client #42')).toBeInTheDocument();
+
+    fireEvent.click(within(opsRail).getByRole('button', { name: /close coach operations/i }));
+
+    expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 });

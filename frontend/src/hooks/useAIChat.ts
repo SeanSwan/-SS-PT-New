@@ -55,6 +55,7 @@ interface ConversationSummary {
   messageCount: number;
   lastMessageAt: string | null;
   createdAt: string;
+  targetUserId?: number | string | null;
 }
 
 type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
@@ -64,6 +65,7 @@ interface AIRequestContext {
   scheduledSessionId?: number | string | null;
   scheduledSessionDate?: string | null;
   scheduledSessionCredits?: number | string | null;
+  workoutDate?: string | null;
 }
 
 type FrontendAction = { event?: string; payload?: unknown };
@@ -103,6 +105,11 @@ function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContex
   const scheduledSessionCredits = Number(raw?.scheduledSessionCredits);
   if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
     safe.scheduledSessionCredits = scheduledSessionCredits;
+  }
+
+  const workoutDate = String(raw?.workoutDate ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(workoutDate)) {
+    safe.workoutDate = workoutDate;
   }
 
   return Object.keys(safe).length ? safe : null;

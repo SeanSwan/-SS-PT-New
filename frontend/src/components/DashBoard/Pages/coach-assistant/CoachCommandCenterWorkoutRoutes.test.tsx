@@ -1,19 +1,23 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
+  setCoachCommandCenterConversations,
 } from './CoachCommandCenterPage.test.harness';
 
 describe('CoachCommandCenterPage workout route actions', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('hides workout surface shortcuts until a route client is loaded', () => {
+  it('offers Sean/admin a personal logger when no route client is loaded', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
-    expect(screen.queryByRole('link', { name: /open workout logger/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/log-my-workout?loadPlan=today',
+    );
     expect(screen.queryByRole('link', { name: /open workout planner/i })).not.toBeInTheDocument();
   });
 
@@ -50,6 +54,70 @@ describe('CoachCommandCenterPage workout route actions', () => {
     expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
+    );
+  });
+
+  it('offers a logger draft handoff for generated workout answers to the admin personal logger', async () => {
+    const user = userEvent.setup();
+    sendMessageWithConversationMock.mockResolvedValueOnce({
+      role: 'assistant',
+      content: [
+        'Workout for today:',
+        '- Dumbbell bench press: 3 sets x 8 reps',
+        '- Seated row: 3 sets x 10 reps',
+      ].join('\n'),
+      timestamp: '2026-06-14T07:40:00.000Z',
+    });
+
+    renderPage('/dashboard/admin/coach-assistant');
+
+    await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write my workout');
+    await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
+
+    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/log-my-workout?loadPlan=today',
+    );
+  });
+
+  it('offers the logger draft handoff for generated workout answers on an active thread target', async () => {
+    const user = userEvent.setup();
+    sendMessageWithConversationMock.mockResolvedValueOnce({
+      role: 'assistant',
+      content: [
+        'Workout for today:',
+        '- Trap bar deadlift: 4 sets x 5 reps',
+        '- Cable row: 3 sets x 10 reps',
+      ].join('\n'),
+      timestamp: '2026-06-14T07:45:00.000Z',
+    });
+    setCoachCommandCenterConversations([
+      {
+        id: 201,
+        title: 'Ava Stone weekly training',
+        context: 'coach_assistant',
+        status: 'active',
+        messageCount: 6,
+        lastMessageAt: '2026-06-14T10:00:00.000Z',
+        createdAt: '2026-06-13T10:00:00.000Z',
+        targetUserId: 424242,
+      },
+    ]);
+
+    renderPage('/dashboard/admin/coach-assistant');
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Ava Stone weekly training/i })).toHaveAttribute(
+        'aria-current',
+        'true',
+      );
+    });
+    await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write today workout');
+    await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
+
+    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
     );
   });
 });

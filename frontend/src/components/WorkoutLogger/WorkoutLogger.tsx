@@ -18,7 +18,6 @@ import {
 } from '../../services/nasmApiService';
 import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
-import AITerminalPanel from '../Shared/AITerminalPanel';
 import {
   APPLY_WORKOUT_EVENT,
   PENDING_WORKOUT_KEY,
@@ -60,6 +59,7 @@ import {
   RestTimerBadge,
 } from './WorkoutLoggerStatus.styles';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
+import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
@@ -130,6 +130,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   clientId,
   onComplete,
   onCancel,
+  forceSelfMode = false,
   initialData = [],
   loadTodayPlanSignal = 0,
   scheduledSessionCreditHint = null,
@@ -147,12 +148,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // Self-mode resolves the logged-in client route without emitting
   // `/api/workout-forms/client/undefined/info`.
   const userNumericId = coerceToNumericId(user?.id);
+  const allowSelfMode = user?.role === 'client' || forceSelfMode;
   const effectiveClientId: number | undefined =
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId
-      : (user?.role === 'client' ? userNumericId : undefined);
+      : (allowSelfMode ? userNumericId : undefined);
   const isClientSelfMode: boolean =
-    user?.role === 'client' &&
+    allowSelfMode &&
     typeof effectiveClientId === 'number' &&
     effectiveClientId === userNumericId;
   const workoutDateValue = scheduledSessionDate
@@ -946,12 +948,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        {/* AI Assistant Panel */}
-        <AITerminalPanel
-          context="workout_generation"
+        <WorkoutLoggerCoachTerminal
           clientId={effectiveClientId}
           equipmentProfileId={equipmentProfileId}
-          placeholder="Ask Swan Coach to suggest exercises for this client..."
+          workoutDate={workoutDateValue}
+          scheduledSessionId={scheduledSessionId}
+          scheduledSessionDate={scheduledSessionDate}
+          scheduledSessionCreditHint={scheduledSessionCreditHint}
+          exerciseCount={exercises.length}
+          selfMode={isClientSelfMode}
         />
 
         {/* Header */}

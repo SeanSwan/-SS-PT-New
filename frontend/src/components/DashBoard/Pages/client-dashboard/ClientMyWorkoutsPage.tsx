@@ -44,21 +44,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   Dumbbell, Calendar, Clock, Flame, TrendingUp,
-  ChevronDown, ChevronUp, Weight, Zap
+  ChevronDown, ChevronUp, Weight, Zap, MessageCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
+import ClientMyWorkoutsHeader from './ClientMyWorkoutsHeader';
+import ClientMyWorkoutsNextMove from './ClientMyWorkoutsNextMove';
 import ClientWorkoutPlanVaultPanel from './ClientWorkoutPlanVaultPanel';
 import ClientMyWorkoutsPagination from './ClientMyWorkoutsPagination';
 import {
-  PageContainer, Header, Title, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
+  PageContainer, HeaderActions, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
   WorkoutCard, WorkoutHeader, WorkoutInfo, WorkoutDate, WorkoutTitle, WorkoutMeta,
   MetaItem, ExpandBtn, WorkoutBody, ExerciseBlock, ExerciseName, SetTable, SetTableHead,
   SetTableRow, SetTh, SetTd, SetBadge, WorkoutNotes, NoSetsText, EmptyState, EmptyTitle,
   EmptyText, ErrorCard, RetryBtn, ShimmerCard,
   AccentIconSlot, StatIconSlot,
 } from './ClientMyWorkoutsStyles';
-import { CLIENT_WORKOUTS_PAGE_LIMIT, groupWorkoutLogsByExercise } from './ClientMyWorkoutsPage.logic';
+import { buildClientWorkoutsCoachPath, CLIENT_WORKOUTS_PAGE_LIMIT, groupWorkoutLogsByExercise } from './ClientMyWorkoutsPage.logic';
 import type { WorkoutSession } from './ClientMyWorkoutsPage.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -89,6 +91,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
     limit: CLIENT_WORKOUTS_PAGE_LIMIT,
     page,
   });
+  const coachPath = useMemo(() => buildClientWorkoutsCoachPath({ workouts, page }), [page, workouts]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -109,14 +112,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
     return { totalWorkouts: total, thisWeek: week, totalVolume: volume };
   }, [workouts]);
 
-  const pageHeader = (
-    <Header>
-      <Title><AccentIconSlot><Dumbbell size={22} /></AccentIconSlot> My Workouts</Title>
-      <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
-        <Dumbbell size={16} /> Log Workout
-      </LogBtn>
-    </Header>
-  );
+  const pageHeader = <ClientMyWorkoutsHeader onNavigate={navigate} coachPath={coachPath} />;
 
   if (isLoading) {
     return (
@@ -160,9 +156,14 @@ const ClientMyWorkoutsPage: React.FC = () => {
                 : 'Complete your first training session to see your workout history with detailed set breakdowns.'}
             </EmptyText>
             {page === 1 && (
-              <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
-                <Dumbbell size={16} /> Log Your First Workout
-              </LogBtn>
+              <HeaderActions aria-label="First workout actions">
+                <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
+                  <Dumbbell size={16} /> Log Your First Workout
+                </LogBtn>
+                <LogBtn onClick={() => navigate(coachPath)} aria-label="Ask Coach what to log first">
+                  <MessageCircle size={16} /> Ask Coach
+                </LogBtn>
+              </HeaderActions>
             )}
           </EmptyState>
           {page > 1 && (
@@ -199,6 +200,8 @@ const ClientMyWorkoutsPage: React.FC = () => {
               <StatLabel>Page Volume (lbs)</StatLabel>
             </StatCard>
           </StatsRow>
+
+          <ClientMyWorkoutsNextMove coachPath={coachPath} onNavigate={navigate} />
 
           {workouts.map((workout: WorkoutSession) => {
             const isExpanded = expandedIds.has(workout.id);

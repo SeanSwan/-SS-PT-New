@@ -26,4 +26,20 @@ describe('TeachMeToggle visibility behavior', () => {
 
     expect(screen.getByText(/closed guidance should stay out/i)).toBeVisible();
   });
+
+  it('can show a specific visible label without changing the accessibility name', () => {
+    render(
+      <TeachMeToggle
+        sectionId="specific-label-fixture"
+        title="Admin command center"
+        buttonLabel="Teach Me: Admin command center"
+        defaultOpen={false}
+        content={<p>Specific dashboard guidance.</p>}
+      />,
+    );
+
+    expect(screen.getByText('Teach Me: Admin command center')).toBeVisible();
+    expect(screen.getByRole('button', { name: /teach me: admin command center/i }))
+      .toHaveAttribute('aria-expanded', 'false');
+  });
 });

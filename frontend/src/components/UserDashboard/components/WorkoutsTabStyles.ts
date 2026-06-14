@@ -26,6 +26,85 @@ export const Header = styled.div`
   gap: 8px;
 `;
 
+export const HeaderActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+
+  @media (max-width: 540px) {
+    width: 100%;
+
+    > button {
+      flex: 1 1 150px;
+      justify-content: center;
+    }
+  }
+`;
+
+export const NextMovePanel = styled.section`
+  ${visionCardCss}
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: clamp(0.9rem, 1.4vw, 1.2rem);
+  border-color: var(--accent-primary-soft, rgba(96, 192, 240, 0.24));
+  background:
+    linear-gradient(135deg, var(--surface-primary, rgba(0, 32, 96, 0.86)), var(--surface-secondary, rgba(10, 10, 15, 0.72))),
+    radial-gradient(circle at 15% 15%, var(--accent-primary-faint, rgba(96, 192, 240, 0.16)), transparent 38%);
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const NextMoveText = styled.div`
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+export const NextMoveEyebrow = styled.span`
+  color: var(--accent-gold, #C6A84B);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+`;
+
+export const NextMoveTitle = styled.h4`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(1rem, 1.2vw, 1.15rem);
+  font-weight: 800;
+`;
+
+export const NextMoveCopy = styled.p`
+  margin: 0;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.45;
+`;
+
+export const NextMoveActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+
+  @media (max-width: 520px) {
+    > button {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+  }
+`;
+
 export const SectionTitle = styled.h3`
   margin: 0;
   display: flex;
@@ -40,11 +119,39 @@ export const SectionTitle = styled.h3`
 export const LogButton = styled.button`
   ${visionAccentButtonCss}
   min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
   cursor: pointer;
+`;
+
+export const CoachButton = styled.button`
+  ${visionControlCss}
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  cursor: pointer;
+`;
+
+export const EmptyActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+
+  @media (max-width: 520px) {
+    width: 100%;
+
+    > button {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+  }
 `;
 
 export const StatsRow = styled.div`

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
@@ -85,6 +85,98 @@ describe('TrainerHomeTab today session logging', () => {
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
     expect(url.searchParams.get('loadPlan')).toBe('today');
+  });
+
+  it('surfaces the next actionable session as one-tap Coach and Log actions', async () => {
+    const sessions: TrainerSession[] = [
+      {
+        id: 91,
+        sessionDate: '2099-05-31T19:00:00.000Z',
+        duration: 45,
+        userId: 51,
+        client: { id: 51, firstName: 'Grace', lastName: 'Hopper' },
+        status: 'scheduled',
+      },
+      {
+        id: 88,
+        sessionDate: '2099-05-31T16:00:00.000Z',
+        duration: 45,
+        userId: 42,
+        client: { id: 42, firstName: 'Ada', lastName: 'Lovelace' },
+        sessionType: { creditsRequired: 2 },
+        status: 'scheduled',
+      },
+    ];
+
+    mockedUseTrainerTodaySessions.mockReturnValue({
+      sessions,
+      loading: false,
+      error: null,
+      stats: {
+        clientsToday: 2,
+        sessionsToday: 2,
+        hoursLogged: 1.5,
+        completionRate: 0,
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<TrainerHomeTab />);
+
+    const nextAction = screen.getByRole('region', { name: /next trainer action/i });
+    expect(within(nextAction).getByText('Next client')).toBeInTheDocument();
+    expect(within(nextAction).getByRole('heading', { name: 'Ada Lovelace' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /coach next session for ada lovelace/i }));
+    let route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    let url = new URL(route, 'https://sswanstudios.test');
+    expect(url.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(url.searchParams.get('clientId')).toBe('42');
+    expect(url.searchParams.get('sessionId')).toBe('88');
+
+    await user.click(screen.getByRole('button', { name: /log next session for ada lovelace/i }));
+    route = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    url = new URL(route, 'https://sswanstudios.test');
+    expect(url.pathname).toBe('/dashboard/trainer/log-workout');
+    expect(url.searchParams.get('clientId')).toBe('42');
+    expect(url.searchParams.get('loadPlan')).toBe('today');
+
+    await user.click(screen.getByRole('button', { name: /open full trainer schedule/i }));
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/schedule');
+  });
+
+  it('keeps a low-click trainer plan card visible when no session is actionable', async () => {
+    mockedUseTrainerTodaySessions.mockReturnValue({
+      sessions: [],
+      loading: false,
+      error: null,
+      stats: {
+        clientsToday: 0,
+        sessionsToday: 0,
+        hoursLogged: 0,
+        completionRate: 0,
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<TrainerHomeTab />);
+
+    const nextAction = screen.getByRole('region', { name: /next trainer action/i });
+    expect(within(nextAction).getByText('Build the day')).toBeInTheDocument();
+    expect(within(nextAction).getByRole('heading', { name: /start with the next client move/i })).toBeInTheDocument();
+
+    await user.click(within(nextAction).getByRole('button', { name: /plan trainer day in schedule/i }));
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/schedule');
+
+    await user.click(within(nextAction).getByRole('button', { name: /ask coach for trainer day triage/i }));
+    const coachRoute = mockNavigate.mock.calls.at(-1)?.[0] as string;
+    const coachUrl = new URL(coachRoute, 'https://sswanstudios.test');
+    expect(coachUrl.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(coachUrl.searchParams.get('teachPrompt')).toMatch(/trainer Home/i);
+    expect(coachUrl.searchParams.get('teachPrompt')).toContain('0 sessions today');
+
+    await user.click(within(nextAction).getByRole('button', { name: /open trainer client roster/i }));
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/clients');
   });
 
   it('routes a scheduled client session into Swan Coach with booked-session dictation context', async () => {

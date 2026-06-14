@@ -7,6 +7,27 @@ import AdminQuickActions from './AdminQuickActions';
 
 const actions = [
   {
+    id: 'coach-client-intake',
+    title: 'Onboard Client',
+    description: 'Start Swan Coach intake',
+    icon: <BarChart3 size={20} />,
+    action: vi.fn(),
+  },
+  {
+    id: 'log-client-workout',
+    title: 'Log Client',
+    description: 'Choose client, log today',
+    icon: <BarChart3 size={20} />,
+    action: vi.fn(),
+  },
+  {
+    id: 'my-workout',
+    title: 'My Workout',
+    description: 'Log my workout',
+    icon: <BarChart3 size={20} />,
+    action: vi.fn(),
+  },
+  {
     id: 'analytics',
     title: 'Analytics',
     description: 'Analytics & insights',
@@ -23,16 +44,47 @@ const renderActions = () => render(
 
 describe('AdminQuickActions interaction contract', () => {
   beforeEach(() => {
-    actions[0].action.mockReset();
+    actions.forEach(action => action.action.mockReset());
   });
 
   it('renders quick actions as real buttons with useful accessible names', () => {
     renderActions();
 
+    const primary = screen.getByRole('button', { name: /Primary admin action: Onboard Client/i });
     const action = screen.getByRole('button', { name: /Analytics.*Analytics & insights/i });
 
+    expect(primary.tagName).toBe('BUTTON');
+    expect(primary).toHaveAttribute('type', 'button');
     expect(action.tagName).toBe('BUTTON');
     expect(action).toHaveAttribute('type', 'button');
+  });
+
+  it('promotes client intake, client logging, and admin self logging before operations', () => {
+    renderActions();
+
+    expect(screen.getByText('First Moves')).toBeInTheDocument();
+    expect(screen.getByText('Start here')).toBeInTheDocument();
+    expect(screen.getAllByText('Daily control')).toHaveLength(2);
+    expect(screen.getByText('Operations')).toBeInTheDocument();
+    expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
+      'Start hereOnboard ClientStart Swan Coach intake',
+      'Daily controlLog ClientChoose client, log today',
+      'Daily controlMy WorkoutLog my workout',
+      'AnalyticsAnalytics & insights',
+    ]);
+  });
+
+  it('keeps only one primary start-here action on the admin first screen', () => {
+    renderActions();
+
+    expect(screen.getAllByText('Start here')).toHaveLength(1);
+    expect(screen.getAllByText('Daily control')).toHaveLength(2);
+    expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
+      'Start hereOnboard ClientStart Swan Coach intake',
+      'Daily controlLog ClientChoose client, log today',
+      'Daily controlMy WorkoutLog my workout',
+      'AnalyticsAnalytics & insights',
+    ]);
   });
 
   it('invokes the action from the button click path', () => {
@@ -40,6 +92,6 @@ describe('AdminQuickActions interaction contract', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Analytics/i }));
 
-    expect(actions[0].action).toHaveBeenCalledTimes(1);
+    expect(actions[3].action).toHaveBeenCalledTimes(1);
   });
 });

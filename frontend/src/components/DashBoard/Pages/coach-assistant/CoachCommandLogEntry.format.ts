@@ -2,6 +2,24 @@ import type { FormattedLogBody, LogStyleVariant, LogStyleVariantKey } from './Co
 
 const STEP_PATTERN = /(?:^|\s)(\d+)\.\s+\*\*([^*]+?)\*\*:?\s*/g;
 const BULLET_PATTERN = /^\s*[-*]\s+(.+?)\s*$/;
+const NUMBERED_WORKOUT_PATTERN = /^\s*\d+[\.)]\s+(.+?)\s*$/;
+const NUMBERED_BOLD_STEP_PATTERN = /^\s*\d+\.\s+\*\*/;
+const WORKOUT_DETAIL_PATTERN =
+  /\b(?:sets?|reps?|rounds?|rpe|rir|rest|tempo|sec(?:onds?)?|min(?:utes?)?|lbs?|kg|warm-?up|cool-?down)\b|\d+\s*x\s*\d+/i;
+const SCIENCE_LABELS = new Set([
+  'science',
+  'the science',
+  'scientific explanation',
+  'the scientific explanation',
+]);
+const KEEP_100_LABELS = new Set([
+  'keep it 100',
+  'keeping it 100',
+  'keep it 100 percent',
+  'keeping it 100 percent',
+  'keep it one hundred',
+  'keeping it one hundred',
+]);
 
 function normalizeCopy(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
@@ -10,6 +28,12 @@ function normalizeCopy(value: string): string {
 function splitParagraphs(value: string): string[] {
   const normalized = normalizeCopy(value);
   if (!normalized) return [];
+
+  const lineBreaks = value
+    .split(/\r?\n/)
+    .map((part) => normalizeCopy(part))
+    .filter(Boolean);
+  if (lineBreaks.length > 1) return lineBreaks;
 
   const explicitBreaks = value
     .split(/\n{2,}/)
@@ -36,17 +60,46 @@ function splitParagraphs(value: string): string[] {
   return paragraphs;
 }
 
-function markerKey(line: string): LogStyleVariantKey | null {
-  const plain = line
+function normalizeMarkerLabel(value: string): string {
+  return value
     .replace(/[*_#:`]/g, '')
     .replace(/[^a-zA-Z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+}
 
-  if (plain === 'the science') return 'science';
-  if (plain === 'keeping it 100' || plain === 'keep it 100') return 'keep100';
+function markerKey(label: string): LogStyleVariantKey | null {
+  const plain = normalizeMarkerLabel(label);
+
+  if (SCIENCE_LABELS.has(plain)) return 'science';
+  if (KEEP_100_LABELS.has(plain)) return 'keep100';
   return null;
+}
+
+function parseStyleMarker(line: string): { key: LogStyleVariantKey; copy: string } | null {
+  let candidate = line.trim();
+  if (!candidate) return null;
+
+  candidate = candidate
+    .replace(/^\s*(?:#{1,6}|[-*>])\s*/, '')
+    .replace(/^[^A-Za-z0-9*]+/, '')
+    .trim();
+
+  const strongMatch = candidate.match(/^\*\*([^*]+?)\*\*\s*(?::|[-–—])?\s*(.*)$/);
+  if (strongMatch?.[1]) {
+    const key = markerKey(strongMatch[1]);
+    if (key) return { key, copy: strongMatch[2]?.trim() || '' };
+  }
+
+  const labelMatch = candidate.match(/^(.{1,60}?)(?::|[-–—])\s*(.+)$/);
+  if (labelMatch?.[1]) {
+    const key = markerKey(labelMatch[1]);
+    if (key) return { key, copy: labelMatch[2]?.trim() || '' };
+  }
+
+  const exactKey = markerKey(candidate);
+  return exactKey ? { key: exactKey, copy: '' } : null;
 }
 
 function splitStyleVariants(body: string): LogStyleVariant[] | null {
@@ -54,9 +107,10 @@ function splitStyleVariants(body: string): LogStyleVariant[] | null {
   let activeKey: LogStyleVariantKey | null = null;
 
   body.split(/\r?\n/).forEach((line) => {
-    const key = markerKey(line);
-    if (key) {
-      activeKey = key;
+    const marker = parseStyleMarker(line);
+    if (marker) {
+      activeKey = marker.key;
+      if (marker.copy) sections[marker.key].push(marker.copy);
       return;
     }
     if (!activeKey || /^\s*-{3,}\s*$/.test(line)) return;
@@ -81,6 +135,15 @@ function extractBullets(body: string): { readableBody: string; bullets: string[]
     const match = line.match(BULLET_PATTERN);
     if (match?.[1]) {
       bullets.push(normalizeCopy(match[1]));
+      return;
+    }
+    const numberedWorkout = line.match(NUMBERED_WORKOUT_PATTERN);
+    if (
+      numberedWorkout?.[1]
+      && WORKOUT_DETAIL_PATTERN.test(numberedWorkout[1])
+      && !NUMBERED_BOLD_STEP_PATTERN.test(line)
+    ) {
+      bullets.push(normalizeCopy(numberedWorkout[1]));
       return;
     }
     bodyLines.push(line);

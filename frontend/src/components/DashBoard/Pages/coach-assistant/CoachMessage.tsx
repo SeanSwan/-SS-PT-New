@@ -18,6 +18,10 @@ import ProviderBadge from './ProviderBadge';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import CoachActionProposalCard from './CoachActionProposalCard';
 import { CoachMessageTranscriptCards } from './CoachMessageTranscriptCards';
+import CoachMessageLoggerHandoff from './CoachMessageLoggerHandoff';
+import CoachMessageResponseVariants, {
+  getInitialCoachResponseVariantText,
+} from './CoachMessageResponseVariants';
 import type { CoachMessageData } from './SwanCoachTypes';
 import {
   ActionCard,
@@ -61,6 +65,7 @@ interface CoachMessageProps {
   onAudioIntakeReviewNext?: () => void;
   audioIntakeReviewNextPending?: boolean;
   onTranscriptDateChange?: (messageId: string, nextDate: string) => void;
+  workoutLoggerRoute?: string | null;
 }
 
 const CoachMessageComponent: React.FC<CoachMessageProps> = ({
@@ -73,9 +78,14 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   onAudioIntakeReviewNext,
   audioIntakeReviewNextPending,
   onTranscriptDateChange,
+  workoutLoggerRoute,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const [localApplying, setLocalApplying] = useState(false);
+  const [visibleResponseText, setVisibleResponseText] = useState<string | null>(
+    () => getInitialCoachResponseVariantText(message.content),
+  );
+  const actionText = visibleResponseText || message.content;
 
   const handleTranscriptConfirm = useCallback(async () => {
     if (!onConfirmTranscript || localApplying) return;
@@ -100,17 +110,17 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(actionText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard API may fail in insecure contexts.
     }
-  }, [message.content]);
+  }, [actionText]);
 
   const handleReadAloud = useCallback(() => {
-    onReadAloud?.(message.content);
-  }, [message.content, onReadAloud]);
+    onReadAloud?.(actionText);
+  }, [actionText, onReadAloud]);
 
   const timeStr = new Date(message.timestamp).toLocaleTimeString([], {
     hour: 'numeric',
@@ -139,7 +149,15 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
   return (
     <MessageBubbleAI>
-      <MarkdownRenderer content={message.content} />
+      <CoachMessageResponseVariants
+        content={message.content}
+        fallback={<MarkdownRenderer content={message.content} />}
+        onVisibleTextChange={setVisibleResponseText}
+      />
+      <CoachMessageLoggerHandoff
+        text={actionText}
+        workoutLoggerRoute={workoutLoggerRoute}
+      />
 
       {coachActionProposals?.map((proposal) => (
         <CoachActionProposalCard key={proposal.id} proposal={proposal} />

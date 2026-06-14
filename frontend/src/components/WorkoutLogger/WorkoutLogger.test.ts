@@ -75,4 +75,15 @@ describe('WorkoutLogger initialization order', () => {
       expect(match.index).toBeGreaterThan(executeIdx);
     }
   });
+
+  it('mounts the context-aware Coach command strip instead of a raw terminal', () => {
+    expect(source).toContain("import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal'");
+    expect(source).not.toContain("import AITerminalPanel from '../Shared/AITerminalPanel'");
+    expect(source).toMatch(/<WorkoutLoggerCoachTerminal[\s\S]*clientId=\{effectiveClientId\}/);
+    expect(source).toMatch(/workoutDate=\{workoutDateValue\}/);
+    expect(source).toMatch(/selfMode=\{isClientSelfMode\}/);
+    expect(source).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
+    expect(source).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
+    expect(source).toMatch(/exerciseCount=\{exercises\.length\}/);
+  });
 });

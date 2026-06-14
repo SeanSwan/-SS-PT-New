@@ -1,3 +1,5 @@
+import type { AIRequestContext } from '../../hooks/useAIChat';
+
 export const AI_CONTEXTS = [
   'coach_assistant',
   'general',
@@ -16,13 +18,24 @@ export const AI_CONTEXTS = [
 
 export type AIContext = (typeof AI_CONTEXTS)[number];
 
+export interface AITerminalQuickPrompt {
+  label: string;
+  prompt: string;
+  description?: string;
+  sendImmediately?: boolean;
+}
+
 export interface AITerminalPanelProps {
   context?: AIContext;
   clientId?: number;
   equipmentProfileId?: number | null;
+  requestContext?: AIRequestContext | null;
   placeholder?: string;
   label?: string;
   emptyHint?: string;
+  initialPrompt?: string;
+  initialPromptSendImmediately?: boolean;
+  quickPrompts?: AITerminalQuickPrompt[];
   compact?: boolean;
   defaultOpen?: boolean;
   onExerciseSelected?: (exercise: unknown) => void;

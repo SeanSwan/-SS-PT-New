@@ -3,7 +3,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   ContentGrid,
   ContentWrapper,
@@ -12,6 +12,7 @@ import {
   NoiseOverlay,
   ProfileContainer,
 } from './styles/DashboardV3Styles';
+import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
 import ObservatoryShell from './components/ObservatoryShell';
 import ObservatoryCoverHero from './components/ObservatoryCoverHero';
 import { OBSERVATORY_NAV_ITEMS } from './components/ObservatoryShellAdapter';
@@ -24,6 +25,7 @@ import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
+import { buildUserDashboardTeachCoachRoute } from './UserDashboardTeachCoachRoute';
 import { USER_DASHBOARD_TAB_IDS, type TabId } from './types/UserDashboardTypes';
 
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
@@ -31,6 +33,7 @@ const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 const UserDashboardV3: React.FC = () => {
   const dashboard = useUserDashboardV3Controller();
   const navigate = useNavigate();
+  const location = useLocation();
   const { tab: urlTab } = useParams<{ tab?: string }>();
 
   // Workstream N: tabs are URL-driven (/user-dashboard/:tab) so old /social
@@ -52,6 +55,10 @@ const UserDashboardV3: React.FC = () => {
     navigate(tab === 'home' ? '/user-dashboard' : `/user-dashboard/${tab}`);
     resetUserDashboardTabScroll();
   }, [navigate]);
+  const handleTeachMeCoachPrompt = React.useCallback((prompt: string) => {
+    navigate(buildUserDashboardTeachCoachRoute(prompt));
+  }, [navigate]);
+  const teachMePathname = `${location.pathname}#${dashboard.activeTab}`;
 
   if (dashboard.isLoading && !dashboard.profile) {
     return <UserDashboardLoadingState />;
@@ -100,6 +107,12 @@ const UserDashboardV3: React.FC = () => {
                 activeTab={dashboard.activeTab}
                 onTabChange={handleTabChange}
               />
+              <DashboardTeachMeGuide
+                role="user"
+                pathname={teachMePathname}
+                onAskCoach={handleTeachMeCoachPrompt}
+                onNavigate={navigate}
+              />
               <UserDashboardTabsV3
                 activeTab={dashboard.activeTab}
                 onTabChange={handleTabChange}
@@ -129,6 +142,12 @@ const UserDashboardV3: React.FC = () => {
                 <UserDashboardTabBarV3
                   activeTab={dashboard.activeTab}
                   onTabChange={handleTabChange}
+                />
+                <DashboardTeachMeGuide
+                  role="user"
+                  pathname={teachMePathname}
+                  onAskCoach={handleTeachMeCoachPrompt}
+                  onNavigate={navigate}
                 />
 
                 <ContentGrid>

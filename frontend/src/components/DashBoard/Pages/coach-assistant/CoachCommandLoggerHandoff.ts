@@ -21,7 +21,11 @@ function logBodyToParseText(body: FormattedLogBody): string {
 export function buildCoachWorkoutLoggerHandoff(
   body: FormattedLogBody,
 ): CoachWorkoutLoggerHandoff | null {
-  const exercises = parseAIWorkoutPlan(logBodyToParseText(body));
+  return buildCoachWorkoutLoggerHandoffFromText(logBodyToParseText(body));
+}
+
+export function buildCoachWorkoutLoggerHandoffFromText(text: string): CoachWorkoutLoggerHandoff | null {
+  const exercises = parseAIWorkoutPlan(text);
   if (!exercises?.length) return null;
 
   return {

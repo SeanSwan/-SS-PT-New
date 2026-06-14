@@ -27,6 +27,25 @@ export const Header = styled.div`
   gap: 1rem;
 `;
 
+export const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+
+    > button {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+`;
+
 export const Title = styled.h2`
   display: flex;
   align-items: center;

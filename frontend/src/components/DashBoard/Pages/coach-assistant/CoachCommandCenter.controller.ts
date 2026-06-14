@@ -100,6 +100,11 @@ export function useCoachCommandCenterController() {
     () => parseRouteClientId(searchParams.get('clientId')),
     [searchKey],
   );
+  const activeThreadClientId = useMemo(
+    () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
+    [activeThread?.targetUserId],
+  );
+  const effectiveClientId = routeClientId || activeThreadClientId;
   const routeIntent = searchParams.get('intent');
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
@@ -113,6 +118,7 @@ export function useCoachCommandCenterController() {
   );
   const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, routeSource);
   const routeClientLabel = buildRouteClientLabel(routeClientId);
+  const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const scheduledSessionContext = useMemo(
     () => getScheduledSessionRouteContextFromSearchParams(searchParams),
     [searchKey],
@@ -134,8 +140,8 @@ export function useCoachCommandCenterController() {
     [routeIntent, scheduledSessionContext],
   );
   const clientContextTiles = useMemo(
-    () => buildClientContextTiles(Boolean(routeClientId), Boolean(activeThread)),
-    [activeThread, routeClientId],
+    () => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)),
+    [activeThread, effectiveClientId],
   );
 
   const rawMergeRequestId = searchParams.get('mergeRequestId');
@@ -149,7 +155,7 @@ export function useCoachCommandCenterController() {
   );
   const initialReviewMergeRequestId = pickInitialReviewMergeRequestId(directMergeRequestId, reviewNextMergeRequestId);
   const summary = useMemo(() => buildQueueSummary(coachQueue.summary), [coachQueue.summary]);
-  const selectedClientLabel = buildSelectedClientLabel(routeClientLabel, activeThreadTitle, Boolean(activeThread));
+  const selectedClientLabel = buildSelectedClientLabel(effectiveClientLabel, activeThreadTitle, Boolean(activeThread));
   const statusMetrics = useMemo(
     () => buildStatusMetrics(
       summary,
@@ -194,8 +200,8 @@ export function useCoachCommandCenterController() {
     plaudReviewRef,
     quickClientName,
     quickClientSource,
-    routeClientId,
-    routeClientLabel,
+    routeClientId: effectiveClientId,
+    routeClientLabel: effectiveClientLabel,
     routeCommandContext: commandRouteContext,
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
@@ -265,7 +271,7 @@ export function useCoachCommandCenterController() {
     quickClientMessage,
     quickClientName,
     quickClientSource,
-    routeClientId,
+    routeClientId: effectiveClientId,
     resetLogs: actions.resetLogs,
     rightRailItems,
     rightRailRef,

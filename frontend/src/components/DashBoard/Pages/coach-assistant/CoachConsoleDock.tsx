@@ -23,6 +23,8 @@ type CoachConsoleDockProps = {
   voiceActive: boolean;
   voiceSupported: boolean;
   workoutLoggerRoute?: string | null;
+  workoutLoggerLabel?: string;
+  workoutLoggerAriaLabel?: string;
   workoutPlannerRoute?: string | null;
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
@@ -46,6 +48,8 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   voiceActive,
   voiceSupported,
   workoutLoggerRoute,
+  workoutLoggerLabel = 'Logger',
+  workoutLoggerAriaLabel = 'Open workout logger',
   workoutPlannerRoute,
   workflowReturnLabel,
   workflowReturnTo,
@@ -76,9 +80,9 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     {(workoutLoggerRoute || workoutPlannerRoute) ? (
       <div className="workout-route-actions" role="group" aria-label="Workout surfaces">
         {workoutLoggerRoute ? (
-          <Link className="workout-route-link" to={workoutLoggerRoute} aria-label="Open workout logger">
+          <Link className="workout-route-link" to={workoutLoggerRoute} aria-label={workoutLoggerAriaLabel}>
             <Dumbbell size={16} aria-hidden="true" />
-            <span>Logger</span>
+            <span>{workoutLoggerLabel}</span>
           </Link>
         ) : null}
         {workoutPlannerRoute ? (

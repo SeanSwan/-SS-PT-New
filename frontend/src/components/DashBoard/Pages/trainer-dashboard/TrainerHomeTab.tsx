@@ -28,21 +28,34 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, BarChart3, Brain, Eye } from 'lucide-react';
+import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, Brain } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
   getClientName,
+  getNextActionableTrainerSession,
   getSessionStartDate,
   useTrainerTodaySessions,
 } from '../../../../hooks/useTrainerTodaySessions';
 import SwanCoachDockTrainer from './SwanCoachDockTrainer';
+import TrainerHomeNextActionCard from './TrainerHomeNextActionCard';
+import {
+  buildTrainerHomeCoachPath,
+  TRAINER_HOME_QUICK_ACTIONS,
+} from './TrainerHomeQuickActions.config';
 import {
   ActionCard,
+  ActionDetail,
   ActionIcon,
   ActionLabel,
+  ActionOverline,
+  ActionText,
+  QuickGrid,
+  SectionHeading,
+} from './TrainerHomeQuickActions.styles';
+import {
   BookBtn,
   EmptyState,
   KpiCard,
@@ -50,8 +63,6 @@ import {
   KpiStrip,
   KpiValue,
   PageWrap,
-  QuickGrid,
-  SectionHeading,
   SessionsCard,
   SessionsHeading,
   SessionClient,
@@ -75,13 +86,6 @@ const KPI_COLORS = [
 
 const MAX_TRAINER_HOME_SESSIONS = 5;
 
-export const TRAINER_HOME_QUICK_ACTIONS = [
-  { label: 'Log Workout',     Icon: Dumbbell,  path: '/dashboard/trainer/clients?intent=log_workout', tone: 'var(--accent-primary, #60C0F0)',   i: 0 },
-  { label: 'View Clients',    Icon: Eye,       path: '/dashboard/trainer/clients',         tone: 'var(--accent-secondary, #8B5CF6)', i: 1 },
-  { label: 'Client Progress', Icon: BarChart3, path: '/dashboard/trainer/client-progress', tone: 'var(--accent-gold, #C6A84B)',      i: 2 },
-  { label: 'Swan Coach',      Icon: Brain,     path: '/dashboard/trainer/coach-assistant', tone: 'var(--swan-lavender, #4070C0)',    i: 3 },
-] as const;
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const TrainerHomeTab: React.FC = () => {
@@ -94,6 +98,16 @@ const TrainerHomeTab: React.FC = () => {
   const level = profile.data?.level ?? 1;
   const visibleSessions = sessions.slice(0, MAX_TRAINER_HOME_SESSIONS);
   const hiddenSessionCount = Math.max(0, sessions.length - visibleSessions.length);
+  const nextActionableSession = React.useMemo(
+    () => getNextActionableTrainerSession(sessions),
+    [sessions],
+  );
+  const trainerHomeCoachPath = React.useMemo(() => buildTrainerHomeCoachPath({
+    sessionsToday: stats.sessionsToday,
+    clientsToday: stats.clientsToday,
+    completionRate: stats.completionRate,
+    hasNextActionableSession: Boolean(nextActionableSession),
+  }), [nextActionableSession, stats.clientsToday, stats.completionRate, stats.sessionsToday]);
 
   const kpiData = [
     { value: loading ? '—' : stats.clientsToday,               label: 'Clients Today', Icon: Users,        color: KPI_COLORS[0] },
@@ -110,6 +124,13 @@ const TrainerHomeTab: React.FC = () => {
         sessionCount={stats.sessionsToday}
         level={level}
         loading={loading}
+        coachPath={trainerHomeCoachPath}
+        onNavigate={navigate}
+      />
+
+      <TrainerHomeNextActionCard
+        session={nextActionableSession}
+        coachPath={trainerHomeCoachPath}
         onNavigate={navigate}
       />
 
@@ -215,18 +236,27 @@ const TrainerHomeTab: React.FC = () => {
       {/* ── Quick Actions ────────────────────────────────── */}
       <SectionHeading>Quick Actions</SectionHeading>
       <QuickGrid>
-        {TRAINER_HOME_QUICK_ACTIONS.map(({ label, Icon, path, tone, i }) => (
-          <ActionCard
-            key={path}
-            $tone={tone}
-            style={{ '--i': i } as React.CSSProperties}
-            onClick={() => navigate(path)}
-            aria-label={label}
-          >
-            <ActionIcon $tone={tone} aria-hidden="true"><Icon size={18} /></ActionIcon>
-            <ActionLabel>{label}</ActionLabel>
-          </ActionCard>
-        ))}
+        {TRAINER_HOME_QUICK_ACTIONS.map(({ label, detail, overline, primary, Icon, path, tone, i }) => {
+          const actionPath = label === 'Ask Coach' ? trainerHomeCoachPath : path;
+
+          return (
+            <ActionCard
+              key={label}
+              $tone={tone}
+              $primary={primary}
+              style={{ '--i': i } as React.CSSProperties}
+              onClick={() => navigate(actionPath)}
+              aria-label={primary ? `Primary trainer action: ${label}` : label}
+            >
+              <ActionIcon $tone={tone} $primary={primary} aria-hidden="true"><Icon size={18} /></ActionIcon>
+              <ActionText>
+                {overline && <ActionOverline>{overline}</ActionOverline>}
+                <ActionLabel $primary={primary}>{label}</ActionLabel>
+                <ActionDetail>{detail}</ActionDetail>
+              </ActionText>
+            </ActionCard>
+          );
+        })}
       </QuickGrid>
     </PageWrap>
   );

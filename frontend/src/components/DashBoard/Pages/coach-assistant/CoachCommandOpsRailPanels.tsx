@@ -6,7 +6,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
-  ClipboardList,
+  ArrowRight,
+  CalendarCheck,
   Dumbbell,
   FileAudio,
   FileCheck2,
@@ -18,9 +19,12 @@ import {
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import type { QueueHealthRow } from './CoachCommandCenter.types';
 
+const CLIENT_PICKER_ROUTE = '/dashboard/admin/client-management?intent=log_workout';
+
 type WorkoutCommandPanelProps = {
   selectedClientLabel: string;
   workoutLoggerRoute: string | null;
+  workoutLoggerScopeLabel: string | null;
   workoutPlannerRoute: string | null;
   onOpenIntake: () => void;
   onOpenPlaud: () => void;
@@ -53,73 +57,58 @@ function QuickClientNote({ message, tone }: { message: string | null; tone: 'suc
   return <p className={`quick-client-note ${tone}`}>{message}</p>;
 }
 
-function DisabledWorkoutAction({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <span className="workout-command-card is-disabled" aria-disabled="true">
-      <span className="workout-command-icon">{icon}</span>
-      <span>
-        <strong>{label}</strong>
-        <small>Client route needed</small>
-      </span>
-    </span>
-  );
-}
-
 export function WorkoutCommandPanel({
   selectedClientLabel,
   workoutLoggerRoute,
+  workoutLoggerScopeLabel,
   workoutPlannerRoute,
   onOpenIntake,
   onOpenPlaud,
   onStageWorkoutLog,
 }: WorkoutCommandPanelProps) {
-  const hasRouteClient = Boolean(workoutLoggerRoute && workoutPlannerRoute);
+  const hasLoggerRoute = Boolean(workoutLoggerRoute);
+  const scopeLabel = hasLoggerRoute ? (workoutLoggerScopeLabel || selectedClientLabel) : 'Select a client route';
 
   return (
     <section className="panel workout-command-panel">
       <div className="section-title-row">
         <div>
           <h2 className="panel-title">Workout command</h2>
-          <p className="panel-subtitle">Client-scoped training operations.</p>
+          <p className="panel-subtitle">The fastest route from Coach talk to training action.</p>
         </div>
         <Dumbbell size={19} aria-hidden="true" />
       </div>
 
-      <div className={`workout-command-scope ${hasRouteClient ? 'is-ready' : ''}`}>
+      <div className={`workout-command-scope ${hasLoggerRoute ? 'is-ready' : ''}`}>
         <span className="workout-command-scope-kicker">Active scope</span>
-        <strong>{hasRouteClient ? selectedClientLabel : 'Select a client route'}</strong>
+        <strong>{scopeLabel}</strong>
       </div>
 
-      <div className="workout-command-grid" aria-label="Workout command actions">
-        {workoutLoggerRoute ? (
-          <Link className="workout-command-card" to={workoutLoggerRoute} aria-label="Open Logger">
-            <span className="workout-command-icon"><ClipboardList size={18} aria-hidden="true" /></span>
-            <span>
-              <strong>Logger</strong>
-              <small>Today log</small>
-            </span>
-          </Link>
-        ) : (
-          <DisabledWorkoutAction icon={<ClipboardList size={18} aria-hidden="true" />} label="Logger" />
-        )}
+      <div className="workout-command-primary-grid" aria-label="Priority coach actions">
+        <button
+          type="button"
+          className="workout-command-card mission full"
+          onClick={onOpenIntake}
+          aria-label="Review next intake"
+        >
+          <span className="workout-command-icon"><Inbox size={18} aria-hidden="true" /></span>
+          <span>
+            <strong>Review next</strong>
+            <small>Open intake queue</small>
+          </span>
+          <ArrowRight size={17} aria-hidden="true" />
+        </button>
 
-        {workoutPlannerRoute ? (
-          <Link className="workout-command-card" to={workoutPlannerRoute} aria-label="Open Planner">
-            <span className="workout-command-icon"><Dumbbell size={18} aria-hidden="true" /></span>
-            <span>
-              <strong>Planner</strong>
-              <small>Build plan</small>
-            </span>
-          </Link>
-        ) : (
-          <DisabledWorkoutAction icon={<Dumbbell size={18} aria-hidden="true" />} label="Planner" />
-        )}
-
-        <button type="button" className="workout-command-card" onClick={onStageWorkoutLog} aria-label="Stage workout log">
+        <button
+          type="button"
+          className="workout-command-card"
+          onClick={onStageWorkoutLog}
+          aria-label="Draft workout log prompt"
+        >
           <span className="workout-command-icon"><MessageSquareText size={18} aria-hidden="true" /></span>
           <span>
             <strong>Draft log</strong>
-            <small>Stage prompt</small>
+            <small>Stage prompt only</small>
           </span>
         </button>
 
@@ -130,14 +119,43 @@ export function WorkoutCommandPanel({
             <small>Import audio</small>
           </span>
         </button>
+      </div>
 
-        <button type="button" className="workout-command-card full" onClick={onOpenIntake} aria-label="Open intake workspace">
-          <span className="workout-command-icon"><Inbox size={18} aria-hidden="true" /></span>
-          <span>
-            <strong>Review intake</strong>
-            <small>Drafts and holds</small>
-          </span>
-        </button>
+      <div className="workout-command-route-grid" aria-label="Selected client workout routes">
+        {workoutLoggerRoute ? (
+          <Link className="workout-command-card route" to={workoutLoggerRoute} aria-label="Open Logger">
+            <span className="workout-command-icon"><CalendarCheck size={18} aria-hidden="true" /></span>
+            <span>
+              <strong>Open log</strong>
+              <small>{workoutPlannerRoute ? 'Selected client' : 'Your account'}</small>
+            </span>
+          </Link>
+        ) : null}
+
+        {workoutPlannerRoute ? (
+          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open Planner">
+            <span className="workout-command-icon"><Dumbbell size={18} aria-hidden="true" /></span>
+            <span>
+              <strong>Open builder</strong>
+              <small>Create plan</small>
+            </span>
+          </Link>
+        ) : null}
+
+        {!workoutPlannerRoute ? (
+          <Link
+            className="workout-command-card route full"
+            to={CLIENT_PICKER_ROUTE}
+            aria-label="Pick a client for workout logging"
+          >
+            <span className="workout-command-icon"><UserPlus size={18} aria-hidden="true" /></span>
+            <span>
+              <strong>Pick client</strong>
+              <small>Open Client Hub, then log or build</small>
+            </span>
+            <ArrowRight size={17} aria-hidden="true" />
+          </Link>
+        ) : null}
       </div>
     </section>
   );

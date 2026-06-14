@@ -310,11 +310,10 @@ describe('Phase 9.1 — selected-client hydration fix', () => {
     // which stranded pages navigated-into after clients were pre-loaded.
     // The fix: also flip the ref when `clientList.length > 0` because
     // that's implicit confirmation that a fetch cycle completed.
+    expect(CLIENT_SELECTION_SOURCE).toMatch(/function\s+clientListReady\(/);
+    expect(CLIENT_SELECTION_SOURCE).toMatch(/if\s*\(clientCount\s*>\s*0\)\s*fetchStartedRef\.current\s*=\s*true/);
     expect(CLIENT_SELECTION_SOURCE).toMatch(
-      /!clientListFetchStartedRef\.current\s*&&\s*clientList\.length\s*>\s*0/,
-    );
-    expect(CLIENT_SELECTION_SOURCE).toMatch(
-      /clientListFetchStartedRef\.current\s*=\s*true/,
+      /clientListReady\(fetchStartedRef,\s*loadingClients,\s*clientCount\)/,
     );
   });
 
@@ -323,9 +322,8 @@ describe('Phase 9.1 — selected-client hydration fix', () => {
     // is empty AND no fetch has been observed. Otherwise the URL-param
     // branch would incorrectly clear selectedClient on a legitimate
     // clientId that hasn't loaded yet.
-    expect(CLIENT_SELECTION_SOURCE).toMatch(
-      /if\s*\(!clientListFetchStartedRef\.current\)\s*return;/,
-    );
+    expect(CLIENT_SELECTION_SOURCE).toMatch(/return\s+fetchStartedRef\.current;/);
+    expect(CLIENT_SELECTION_SOURCE).toMatch(/if\s*\(!selectionReady\([^)]*\)\)\s*return;/);
   });
 });
 

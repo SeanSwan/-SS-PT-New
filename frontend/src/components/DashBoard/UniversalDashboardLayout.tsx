@@ -31,6 +31,7 @@ import { X } from 'lucide-react';
 // Phase 18.A (2026-04-20): persistent view-as banner shown when admin is
 // viewing a non-admin dashboard (trainer or client).
 import ViewAsBanner from './components/ViewAsBanner';
+import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
 import { useAuth } from '../../context/AuthContext';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
@@ -91,6 +92,7 @@ const ClientTrainerAssignments = React.lazy(() => import('../Admin/ClientTrainer
 const TrainerPermissionsManager = React.lazy(() => import('../Admin/TrainerPermissionsManager'));
 const SessionAllocationManager = React.lazy(() => import('../Admin/SessionAllocationManager'));
 const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLogger'));
+const AdminPersonalWorkoutLogger = React.lazy(() => import('../WorkoutLogger/AdminPersonalWorkoutLogger'));
 const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
 const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
 const MyClientsView = React.lazy(() => import('../TrainerDashboard/ClientManagement'));
@@ -637,6 +639,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
 
       // 💪 WORKOUT LOGGING (admin can log workouts too)
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
+      { path: '/log-my-workout', component: AdminPersonalWorkoutLogger, title: 'Log My Workout', description: 'Owner personal workout logger' },
       { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
 
       // 🏋️ NASM WORKOUT PLANNER — AI-powered workout builder with Teach Mode
@@ -736,6 +739,8 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [omniTerminalOpen, setOmniTerminalOpen] = useState(false);
+  const [omniTerminalInitialPrompt, setOmniTerminalInitialPrompt] = useState('');
+  const [omniTerminalSendInitialPrompt, setOmniTerminalSendInitialPrompt] = useState(false);
   const mainContentRef = useRef<HTMLElement | null>(null);
 
   // Redux state
@@ -912,6 +917,20 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
     !canBookSwanStudiosSessions && roleConfig.defaultPath === '/schedule'
       ? '/overview'
       : roleConfig.defaultPath;
+  const handleTeachMeCoachPrompt = useCallback((prompt: string) => {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt) return;
+
+    if (activeRole === 'client') {
+      const params = new URLSearchParams({ teachPrompt: trimmedPrompt });
+      navigate(`/dashboard/client/coach-assistant?${params.toString()}`);
+      return;
+    }
+
+    setOmniTerminalInitialPrompt(prompt);
+    setOmniTerminalSendInitialPrompt(true);
+    setOmniTerminalOpen(true);
+  }, [activeRole, navigate]);
 
   if (isLoading) {
     return (
@@ -974,6 +993,12 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
             {userRole === 'admin' && (activeRole === 'trainer' || activeRole === 'client') && (
               <ViewAsBanner activeRole={activeRole} />
             )}
+            <DashboardTeachMeGuide
+              role={activeRole}
+              pathname={location.pathname}
+              onNavigate={navigate}
+              onAskCoach={handleTeachMeCoachPrompt}
+            />
             <AnimatePresence mode="wait">
               <Suspense fallback={<LoadingState />}>
                 <Routes>
@@ -1017,7 +1042,12 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           <Suspense fallback={null}>
             <OmniTerminal
               isOpen={omniTerminalOpen}
-              onClose={() => setOmniTerminalOpen(false)}
+              onClose={() => {
+                setOmniTerminalOpen(false);
+                setOmniTerminalSendInitialPrompt(false);
+              }}
+              initialPrompt={omniTerminalInitialPrompt}
+              initialPromptSendImmediately={omniTerminalSendInitialPrompt}
             />
           </Suspense>
         )}
@@ -1025,7 +1055,10 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
         {/* OmniTerminal trigger FAB */}
         {(activeRole === 'admin' || activeRole === 'trainer') && !omniTerminalOpen && (
           <OmniTerminalFAB
-            onClick={() => setOmniTerminalOpen(true)}
+            onClick={() => {
+              setOmniTerminalSendInitialPrompt(false);
+              setOmniTerminalOpen(true);
+            }}
             aria-label="Open SwanStudios Assistant"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

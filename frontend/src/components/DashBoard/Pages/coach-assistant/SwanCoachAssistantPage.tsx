@@ -54,7 +54,9 @@ import { useSwanCoachSendRouting } from './hooks/useSwanCoachSendRouting';
 import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { useSwanCoachAudioIntakeNavigation } from './hooks/useSwanCoachAudioIntakeNavigation';
 import { useSwanCoachConversationActions } from './hooks/useSwanCoachConversationActions';
+import { useSwanCoachRoutePrompt } from './hooks/useSwanCoachRoutePrompt';
 import { buildCoachRouteContext } from './CoachRouteContext';
+import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 import {
   CoachHeader,
   CoachTitle,
@@ -89,6 +91,14 @@ const SwanCoachAssistantPage: React.FC = () => {
     () => buildCoachRouteContext(location.pathname, location.search),
     [location.pathname, location.search],
   );
+  const workoutLoggerRoute = useMemo(
+    () => buildSwanCoachWorkoutLoggerRoute({
+      userRole,
+      selectedClientId: selectedClient?.id ?? null,
+      searchParams,
+    }),
+    [userRole, selectedClient?.id, searchParams],
+  );
   const coach = useCoachAssistant({
     chat,
     targetClientId: selectedClient?.id ?? null,
@@ -105,6 +115,7 @@ const SwanCoachAssistantPage: React.FC = () => {
     tts,
     voiceOverlayOpen,
   } = useSwanCoachVoiceControls({ coach });
+  useSwanCoachRoutePrompt({ searchParams, routeState: location.state, injectInputText });
   const teachMode = useCoachTeachMode();
   const attachments = useFileAttachment();
   const {
@@ -152,7 +163,6 @@ const SwanCoachAssistantPage: React.FC = () => {
     coachIntakeQueue,
     selectedClient,
   });
-  // B1a: role-aware next-action chips after each Coach reply
   const suggestionChips = useCoachSuggestionChips({
     userRole,
     messages: coach.messages,
@@ -160,7 +170,6 @@ const SwanCoachAssistantPage: React.FC = () => {
     selectedClientFirstName: selectedClient?.firstName ?? null,
   });
 
-  // Load conversation list on mount
   useEffect(() => {
     chat.listConversations();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -169,15 +178,10 @@ const SwanCoachAssistantPage: React.FC = () => {
     conversations: chat.conversations,
   });
 
-  // Lock background scroll when sidebar overlay is open (iOS fix)
   useScrollLock(sidebar.isOpen);
 
-  // ── Load a conversation from sidebar ──
-  // ── New chat from sidebar ──
-  // ── Neural Link: set macro_logging context for next conversation ──
   return (
     <PageShell>
-      {/* Conversation History Sidebar */}
       <ConversationSidebar
         isOpen={sidebar.isOpen}
         conversations={chat.conversations}
@@ -192,9 +196,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         onRenameConversation={chat.renameConversation}
       />
 
-      {/* Main Chat Panel */}
       <MainPanel>
-        {/* Header */}
         <CoachHeader>
           <SidebarToggle type="button" onClick={sidebar.toggle} aria-label="Toggle conversation history">
             <PanelLeftOpen size={20} />
@@ -225,7 +227,6 @@ const SwanCoachAssistantPage: React.FC = () => {
           />
         )}
 
-        {/* Capability Taxonomy (informational) */}
         <ContextChipBar userRole={userRole} />
 
         <CoachIntakeWorkspace
@@ -261,6 +262,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           suggestionChips={suggestionChips.chips}
           suggestionChipsVisible={suggestionChips.visible}
           transcriptProcessing={transcriptProcessing}
+          workoutLoggerRoute={workoutLoggerRoute}
         />
 
         <SwanCoachComposerPanel
@@ -279,12 +281,10 @@ const SwanCoachAssistantPage: React.FC = () => {
         />
       </MainPanel>
 
-      {/* Teach Mode Panel — right-side exercise encyclopedia */}
       <Suspense fallback={null}>
         <CoachTeachModePanel teachMode={teachMode} />
       </Suspense>
 
-      {/* Voice Recording Overlay */}
       <VoiceRecordingOverlay
         isOpen={voiceOverlayOpen}
         onClose={handleCloseVoiceOverlay}

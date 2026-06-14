@@ -54,6 +54,7 @@ export const DossierHeader = styled.div`
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
+  flex-wrap: wrap;
 `;
 
 export const DossierMeta = styled.span`
@@ -194,9 +195,19 @@ export const TargetActions = styled.div`
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
+
+  > * {
+    flex: 1 1 160px;
+    min-width: min(100%, 150px);
+  }
 
   @media (max-width: 1540px) {
     justify-content: flex-start;
+  }
+
+  @media (max-width: 720px) {
+    width: 100%;
   }
 `;
 
@@ -212,6 +223,10 @@ export const TargetNotice = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 11px;
   font-weight: 700;
+  justify-content: center;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
 `;
 
 export const PreparedDraftPanel = styled.section`

@@ -1,7 +1,8 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { BarChart3, ClipboardList, Dumbbell, Mail, UserCheck, UserPlus, Users } from 'lucide-react';
+import { BarChart3, ClipboardList, Dumbbell, Mail, UserCheck, UserPlus, UserRound, Users } from 'lucide-react';
 import { buildClientCoachOnboardingRoute } from '../../../workspaces/clients-team/clientDailyTrainingRoutes';
+import { ADMIN_PERSONAL_WORKOUT_LOGGER_ROUTE } from '../../coach-assistant/SwanCoachWorkoutLoggerRoute';
 import { AdminQuickAction } from './AdminOverview.types';
 
 export const buildAdminOverviewQuickActions = (
@@ -15,18 +16,25 @@ export const buildAdminOverviewQuickActions = (
     action: () => navigate(buildClientCoachOnboardingRoute()),
   },
   {
+    id: 'log-client-workout',
+    title: 'Log Client',
+    description: 'Choose client, log today',
+    icon: <Dumbbell size={20} />,
+    action: () => navigate('/dashboard/admin/client-management?intent=log_workout'),
+  },
+  {
+    id: 'my-workout',
+    title: 'My Workout',
+    description: 'Log my workout',
+    icon: <UserRound size={20} />,
+    action: () => navigate(ADMIN_PERSONAL_WORKOUT_LOGGER_ROUTE),
+  },
+  {
     id: 'client-activation-queue',
     title: 'Activation Queue',
     description: 'Finish paid-client setup',
     icon: <UserCheck size={20} />,
     action: () => navigate('/dashboard/admin/client-management'),
-  },
-  {
-    id: 'log-client-workout',
-    title: 'Log Workout',
-    description: 'Choose client, log today',
-    icon: <Dumbbell size={20} />,
-    action: () => navigate('/dashboard/admin/client-management?intent=log_workout'),
   },
   {
     id: 'view-reports',

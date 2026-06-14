@@ -23,7 +23,7 @@ const WorkoutsTabSummary: React.FC<WorkoutsTabSummaryProps> = ({ stats, streak }
     <StatCard>
       <StatIcon><TrendingUp size={18} /></StatIcon>
       <StatValue>{stats.totalExercises.toLocaleString()}</StatValue>
-      <StatLabel>Total Sets</StatLabel>
+      <StatLabel>Logged Moves</StatLabel>
     </StatCard>
     <StatCard>
       <StatIcon><Flame size={18} /></StatIcon>

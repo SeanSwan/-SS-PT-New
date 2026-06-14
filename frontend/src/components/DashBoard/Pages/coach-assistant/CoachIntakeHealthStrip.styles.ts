@@ -7,7 +7,7 @@ import styled from 'styled-components';
 
 export const HealthStrip = styled.section<{ $tone: 'healthy' | 'attention' | 'degraded' | 'unavailable' }>`
   display: grid;
-  grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.2fr) minmax(180px, 0.9fr) minmax(190px, 0.9fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 8px;
   align-items: stretch;
   margin: 0 0 12px;
@@ -65,6 +65,7 @@ export const HealthStatRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 `;
 
 export const HealthPill = styled.span<{ $tone?: 'cyan' | 'gold' | 'red' }>`
@@ -85,7 +86,11 @@ export const HealthPill = styled.span<{ $tone?: 'cyan' | 'gold' | 'red' }>`
   }};
   font-family: 'Fira Code', monospace;
   font-size: 10px;
-  white-space: nowrap;
+  justify-content: center;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 `;
 
 export const HealthScopeButton = styled.button<{ $tone?: 'cyan' | 'gold' | 'red' }>`
@@ -107,7 +112,11 @@ export const HealthScopeButton = styled.button<{ $tone?: 'cyan' | 'gold' | 'red'
   }};
   font-family: 'Fira Code', monospace;
   font-size: 10px;
-  white-space: nowrap;
+  justify-content: center;
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   cursor: pointer;
 
   &:hover,
@@ -132,6 +141,8 @@ export const HealthActionButton = styled.button`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 11px;
+  max-width: 100%;
+  white-space: normal;
   cursor: pointer;
 
   &:hover,
