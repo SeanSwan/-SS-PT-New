@@ -9,16 +9,19 @@
  */
 
 import React, { useState } from 'react';
-import { Download, ListTree } from 'lucide-react';
+import { Download, ListTree, Share2 } from 'lucide-react';
 import {
   downloadChartPng,
   downloadCsvFile,
+  PROGRESS_CHART_RANGE_LABELS,
   PROGRESS_CHART_TIME_RANGES,
   type ProgressChartCsvRow,
   type ProgressChartDrilldownRow,
   type ProgressChartPulse,
   type ProgressChartTimeRange,
 } from './progressChartActions';
+import ProgressChartStudio from './ProgressChartStudio';
+import { buildProgressShareCard } from './progressShareCard';
 import {
   ActionRow,
   ActionShell,
@@ -46,6 +49,7 @@ interface ProgressChartLegendItem {
 
 interface ProgressChartActionBarProps {
   chartId: string;
+  chartTitle: string;
   csvRows: ProgressChartCsvRow[];
   drilldownRows: ProgressChartDrilldownRow[];
   filename: string;
@@ -83,6 +87,7 @@ const ExportButtons: React.FC<{
   isOpen: boolean;
   hasRows: boolean;
   onCsvExport: () => void;
+  onOpenStudio: () => void;
   onPngExport: () => void;
   onToggleDetails: () => void;
 }> = ({
@@ -91,6 +96,7 @@ const ExportButtons: React.FC<{
   isOpen,
   hasRows,
   onCsvExport,
+  onOpenStudio,
   onPngExport,
   onToggleDetails,
 }) => (
@@ -102,6 +108,10 @@ const ExportButtons: React.FC<{
     <IconActionButton type="button" disabled={!canExportPng} onClick={onPngExport}>
       <Download size={14} aria-hidden="true" />
       PNG
+    </IconActionButton>
+    <IconActionButton type="button" onClick={onOpenStudio}>
+      <Share2 size={14} aria-hidden="true" />
+      Share
     </IconActionButton>
     <IconActionButton
       type="button"
@@ -176,6 +186,7 @@ const DrilldownRows: React.FC<{
 
 const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   chartId,
+  chartTitle,
   csvRows,
   drilldownRows,
   filename,
@@ -187,18 +198,30 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
   onToggleLegend,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
   const hasRows = drilldownRows.length > 0;
   const panelId = `${chartId}-drilldown`;
+  const shareCard = buildProgressShareCard({
+    chartTitle,
+    csvRows,
+    pulse,
+    rangeLabel: PROGRESS_CHART_RANGE_LABELS[range],
+    summary,
+  });
 
   const handleExport = () => {
     const exported = downloadCsvFile(filename, csvRows);
     setExportStatus(exported ? 'CSV export started.' : 'No verified chart rows to export.');
   };
 
-  const handlePngExport = async () => {
+  const exportPng = async () => {
     const pngName = filename.replace(/\.csv$/i, '.png');
-    const exported = await downloadChartPng(chartId, pngName);
+    return downloadChartPng(chartId, pngName);
+  };
+
+  const handlePngExport = async () => {
+    const exported = await exportPng();
     setExportStatus(exported ? 'PNG export started.' : 'No rendered chart is available to export.');
   };
 
@@ -212,6 +235,7 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
           isOpen={isOpen}
           hasRows={hasRows}
           onCsvExport={handleExport}
+          onOpenStudio={() => setIsStudioOpen(true)}
           onPngExport={handlePngExport}
           onToggleDetails={() => setIsOpen((current) => !current)}
         />
@@ -222,6 +246,13 @@ const ProgressChartActionBar: React.FC<ProgressChartActionBarProps> = ({
       <SummaryText>{summary}</SummaryText>
       {exportStatus && <SummaryText role="status">{exportStatus}</SummaryText>}
       <DrilldownRows isOpen={isOpen} panelId={panelId} rows={drilldownRows} />
+      <ProgressChartStudio
+        card={shareCard}
+        chartId={chartId}
+        filename={filename.replace(/\.csv$/i, '-proof-card.png')}
+        isOpen={isStudioOpen}
+        onClose={() => setIsStudioOpen(false)}
+      />
     </ActionShell>
   );
 };

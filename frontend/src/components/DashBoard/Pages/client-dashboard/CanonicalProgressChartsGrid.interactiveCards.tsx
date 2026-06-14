@@ -92,6 +92,37 @@ const visibleChartPoints = (enabled: boolean, points: ChartPoint[]) => (
   enabled ? points : []
 );
 
+const isSeriesId = (id: string): id is SeriesId => id === 'sets' || id === 'reps';
+
+const buildSetsRepsSummary = (hasData: boolean) => (
+  hasData
+    ? 'Toggle sets and reps to isolate the work signal behind this trend.'
+    : 'No verified set or rep rows are available yet.'
+);
+
+const visiblePulse = (
+  hasVisibleSeries: boolean,
+  pulse: ReturnType<typeof buildProgressChartPulse>,
+) => (
+  hasVisibleSeries ? pulse : undefined
+);
+
+const hasAnyVisibleSeries = (visibleSeries: Record<SeriesId, boolean>) => (
+  Boolean(visibleSeries.sets || visibleSeries.reps)
+);
+
+const hasAnySetsRepsData = (sets: ChartPoint[], reps: ChartPoint[]) => (
+  Boolean(sets.length || reps.length)
+);
+
+const toggleVisibleSeries = (
+  setVisibleSeries: React.Dispatch<React.SetStateAction<Record<SeriesId, boolean>>>,
+  id: string,
+) => {
+  if (!isSeriesId(id)) return;
+  setVisibleSeries((current) => ({ ...current, [id]: !current[id] }));
+};
+
 const SetsRepsChartBody: React.FC<{
   hasData: boolean;
   hasVisibleSeries: boolean;
@@ -166,6 +197,7 @@ export const WeeklyVolumeCard: React.FC<{
       </CardHeader>
       <ProgressChartActionBar
         chartId="weekly-volume"
+        chartTitle="Weekly Training Volume"
         csvRows={visibleData.map((row) => ({
           week: row.x,
           volume_lbs: Math.round(row.y),
@@ -216,14 +248,12 @@ export const SetsRepsTrendCard: React.FC<{
     const source = selectSetsRepsPulseSource(pulseSets, pulseReps);
     return buildProgressChartPulse(source.points, { label: source.label, unit: source.unit });
   }, [pulseReps, pulseSets]);
-  const hasVisibleSeries = visibleSeries.sets || visibleSeries.reps;
-  const hasData = visibleSets.length > 0 || visibleReps.length > 0;
+  const hasVisibleSeries = hasAnyVisibleSeries(visibleSeries);
+  const hasData = hasAnySetsRepsData(visibleSets, visibleReps);
   const csvRows = useMemo(() => buildSetsRepsRows(visibleSets, visibleReps), [visibleReps, visibleSets]);
+  const summary = buildSetsRepsSummary(hasData);
 
-  const toggleSeries = (id: string) => {
-    if (id !== 'sets' && id !== 'reps') return;
-    setVisibleSeries((current) => ({ ...current, [id]: !current[id] }));
-  };
+  const toggleSeries = (id: string) => toggleVisibleSeries(setVisibleSeries, id);
 
   return (
     <ChartCard data-testid="chart-card-setsRepsTrend">
@@ -234,12 +264,13 @@ export const SetsRepsTrendCard: React.FC<{
       </CardHeader>
       <ProgressChartActionBar
         chartId="sets-reps-trend"
+        chartTitle="Total Sets & Reps"
         csvRows={csvRows}
         drilldownRows={buildSetsRepsDrilldownRows(csvRows)}
         filename="swan-sets-reps-trend.csv"
-        pulse={hasVisibleSeries ? pulse : undefined}
+        pulse={visiblePulse(hasVisibleSeries, pulse)}
         range={range}
-        summary={hasData ? 'Toggle sets and reps to isolate the work signal behind this trend.' : 'No verified set or rep rows are available yet.'}
+        summary={summary}
         legendItems={buildSetsRepsLegendItems(visibleSeries)}
         onRangeChange={setRange}
         onToggleLegend={toggleSeries}

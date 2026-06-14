@@ -1,4 +1,5 @@
 import type { ChartPoint } from '../../../hooks/analytics/useClientProgressCharts';
+import { downloadBlob } from './progressFileDownload';
 
 export const PROGRESS_CHART_TIME_RANGES = [
   { id: 'recent', label: 'Recent', pointLimit: 6 },
@@ -49,17 +50,6 @@ function toCsv(rows: ProgressChartCsvRow[]): string {
   const body = rows.map((row) => headers.map((header) => csvEscape(row[header])).join(','));
   return [headers.join(','), ...body].join('\n');
 }
-
-const downloadBlob = (filename: string, blob: Blob): boolean => {
-  if (typeof document === 'undefined' || typeof URL === 'undefined') return false;
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-  return true;
-};
 
 export function downloadCsvFile(filename: string, rows: ProgressChartCsvRow[]): boolean {
   const csv = toCsv(rows);

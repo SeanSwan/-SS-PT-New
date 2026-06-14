@@ -14,9 +14,17 @@ describe('Canonical progress interactive cards', () => {
     expect(screen.getByText('+100% vs prior')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Recent' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'CSV' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Share' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Details' }));
     expect(screen.getByText('2 logged workouts in this point.')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Share' }));
+    expect(screen.getByRole('dialog', { name: /weekly training volume share card/i })).toBeTruthy();
+    expect(screen.getByText('Shareable proof card')).toBeTruthy();
+    expect(screen.getByText('Copy Caption')).toBeTruthy();
+    expect((screen.getByLabelText('Progress proof caption') as HTMLTextAreaElement).value)
+      .toContain('Volume Pulse: +100% vs prior');
   });
 
   it('renders sets/reps legend toggles that can isolate a series', () => {
