@@ -33,7 +33,7 @@ const fulfillmentItem = {
   orderDate: '2026-06-13T12:00:00.000Z',
   customer: { id: 11, name: 'Buyer One', email: 'buyer@example.com' },
   product: { id: 20, name: 'Recovery Drink', itemType: 'physical_product' },
-  variant: { id: 7, label: '16oz', sku: 'DRINK-16', stockQuantity: 10 },
+  variant: { id: 7, label: '16oz', sku: 'DRINK-16', stockQuantity: 1 },
   quantity: 2,
   price: 6.5,
   subtotal: 13,
@@ -83,7 +83,8 @@ describe('AdminFulfillmentQueue', () => {
     expect(screen.getByText('Recovery Drink')).toBeInTheDocument();
     expect(screen.getByText(/16oz/)).toBeInTheDocument();
     expect(screen.getByText(/DRINK-16/)).toBeInTheDocument();
-    expect(screen.getByText(/Stock: 10/)).toBeInTheDocument();
+    expect(screen.getByText(/Stock: 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Low inventory/)).toBeInTheDocument();
     expect(screen.getByText(/Local delivery/)).toBeInTheDocument();
     expect(screen.getByText(/100 Main St/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mark fulfilled/i })).toBeInTheDocument();

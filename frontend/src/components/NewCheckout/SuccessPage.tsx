@@ -28,12 +28,13 @@ import api from '../../services/api.service';
 import { buildOrderDataFromActivationStatus, fetchCheckoutActivationStatus, getActivationCta } from './checkoutActivation';
 import type { CheckoutActivationStatus, CheckoutSuccessOrderData } from './checkoutActivation';
 import { downloadCheckoutReceipt } from './checkoutReceipt';
-import { CheckCircle, Star, Trophy, Calendar, DollarSign, Package, Users, ArrowRight, Home, Download, Mail } from 'lucide-react';
+import { CheckCircle, Star, Trophy, Calendar, Package, ArrowRight, Home, Download } from 'lucide-react';
 import { logger } from '@/utils/logger';
-import { ActionGrid, CardTitle, DetailGrid, DetailIcon, DetailItem, DetailLabel, DetailValue, OrderDetailsCard } from './SuccessPage.styles';
+import { ActionGrid } from './SuccessPage.styles';
 import { SessionsCount, SessionsDescription, SessionsHighlight, SessionsTitle, SuccessContainer } from './SuccessPage.styles';
 import { SuccessContent, SuccessHeader, SuccessIcon, SuccessSubtitle, SuccessTitle } from './SuccessPage.styles';
 import { SuccessPageErrorState, SuccessPageLoadingState } from './SuccessPage.stateViews';
+import SuccessPageOrderDetails from './SuccessPageOrderDetails';
 
 const SuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -228,50 +229,12 @@ const SuccessPage: React.FC = () => {
         )}
 
         {orderData && (
-          <OrderDetailsCard
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <CardTitle>
-              <Package size={20} />
-              Order Details
-            </CardTitle>
-            
-            <DetailGrid>
-              <DetailItem>
-                <DetailIcon>
-                  <DollarSign size={20} />
-                </DetailIcon>
-                <DetailLabel>Amount Paid</DetailLabel>
-                <DetailValue>${orderData.amount.toFixed(2)}</DetailValue>
-              </DetailItem>
-              
-              <DetailItem>
-                <DetailIcon>
-                  <Users size={20} />
-                </DetailIcon>
-                <DetailLabel>Customer</DetailLabel>
-                <DetailValue>{customerDisplayName}</DetailValue>
-              </DetailItem>
-              
-              <DetailItem>
-                <DetailIcon>
-                  <Mail size={20} />
-                </DetailIcon>
-                <DetailLabel>Email</DetailLabel>
-                <DetailValue>{customerEmailDisplay}</DetailValue>
-              </DetailItem>
-              
-              <DetailItem>
-                <DetailIcon>
-                  <Calendar size={20} />
-                </DetailIcon>
-                <DetailLabel>Date</DetailLabel>
-                <DetailValue>{orderDateDisplay}</DetailValue>
-              </DetailItem>
-            </DetailGrid>
-          </OrderDetailsCard>
+          <SuccessPageOrderDetails
+            orderData={orderData}
+            customerDisplayName={customerDisplayName}
+            customerEmailDisplay={customerEmailDisplay}
+            orderDateDisplay={orderDateDisplay}
+          />
         )}
 
         <ActionGrid>

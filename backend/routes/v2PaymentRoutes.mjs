@@ -66,6 +66,7 @@ import {
   normalizeCheckoutFulfillmentIntent,
   validateCheckoutFulfillmentIntent,
 } from '../services/checkoutFulfillmentIntentService.mjs';
+import { getCheckoutReceiptSummary } from '../services/checkoutReceiptSummaryService.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
@@ -625,6 +626,7 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
 
     // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
     const result = await grantSessionsForCart(cart.id, userId, 'verify-session');
+    const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });
 
     if (result.alreadyProcessed) {
       return res.status(200).json({
@@ -636,7 +638,8 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
           sessionsAdded: 0,
           alreadyProcessed: true,
           customerEmail: session.customer_details?.email,
-          orderDate: new Date().toISOString()
+          orderDate: new Date().toISOString(),
+          ...receiptSummary,
         }
       });
     }
@@ -649,7 +652,8 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
         amount: session.amount_total / 100,
         sessionsAdded: result.sessionsAdded,
         customerEmail: session.customer_details?.email,
-        orderDate: new Date().toISOString()
+        orderDate: new Date().toISOString(),
+        ...receiptSummary,
       }
     });
 

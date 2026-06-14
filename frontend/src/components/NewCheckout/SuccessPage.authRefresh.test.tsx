@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SuccessPage from './SuccessPage';
 
@@ -93,6 +93,23 @@ describe('SuccessPage auth refresh', () => {
           customerEmail: 'client@example.com',
           orderDate: '2026-05-22T12:00:00.000Z',
           items: [],
+          fulfillment: {
+            required: true,
+            mode: 'pickup',
+            status: 'pending_fulfillment',
+            details: {
+              pickupWindow: 'Tuesday 4 PM',
+              notes: 'Bring order email',
+            },
+            items: [{
+              orderItemId: 71,
+              productName: 'Recovery Drink',
+              variantLabel: '16oz',
+              sku: 'DRINK-16',
+              quantity: 2,
+              fulfillmentStatus: 'pending_fulfillment',
+            }],
+          },
         },
       },
     });
@@ -133,5 +150,15 @@ describe('SuccessPage auth refresh', () => {
     expect(mocks.api.get).toHaveBeenCalledWith('/api/v2/payments/activation-status', {
       params: { sessionId: 'cs_test_auth_refresh' },
     });
+  });
+
+  it('renders physical-product fulfillment details on the checkout success page', async () => {
+    render(<SuccessPage />);
+
+    expect(await screen.findByText('Product Fulfillment')).toBeInTheDocument();
+    expect(screen.getByText(/Pickup/)).toBeInTheDocument();
+    expect(screen.getByText(/Tuesday 4 PM/)).toBeInTheDocument();
+    expect(screen.getByText(/Recovery Drink/)).toBeInTheDocument();
+    expect(screen.getByText(/DRINK-16/)).toBeInTheDocument();
   });
 });

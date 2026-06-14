@@ -42,6 +42,35 @@ export interface CheckoutActivationStatus {
   } | null;
 }
 
+export interface CheckoutFulfillmentDetails {
+  recipientName?: string;
+  phone?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  pickupWindow?: string;
+  notes?: string;
+}
+
+export interface CheckoutFulfillmentItem {
+  orderItemId: number;
+  productName: string;
+  variantLabel?: string | null;
+  sku?: string | null;
+  quantity: number;
+  fulfillmentStatus: string;
+  fulfilledAt?: string | null;
+}
+
+export interface CheckoutFulfillmentSummary {
+  required: boolean;
+  mode: string;
+  status: string;
+  details: CheckoutFulfillmentDetails;
+  items: CheckoutFulfillmentItem[];
+}
+
 export interface ActivationCta {
   label: string;
   route: string;
@@ -55,6 +84,9 @@ export interface CheckoutSuccessOrderData {
   customerName?: string;
   customerEmail?: string;
   orderDate: string;
+  orderId?: number | null;
+  orderNumber?: string | null;
+  fulfillment?: CheckoutFulfillmentSummary;
   items: unknown[];
 }
 

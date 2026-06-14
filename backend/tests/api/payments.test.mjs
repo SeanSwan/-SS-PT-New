@@ -141,6 +141,8 @@ describe('Payment Flow API', () => {
       expect(source).toContain('const normalizedFulfillmentIntent = normalizeCheckoutFulfillmentIntent(fulfillmentIntent, cart.cartItems);');
       expect(source).toContain('const fulfillmentValidationError = validateCheckoutFulfillmentIntent(normalizedFulfillmentIntent);');
       expect(source).toContain("code: FULFILLMENT_DETAILS_REQUIRED_CODE");
+      expect(source).toContain('const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });');
+      expect(source).toContain('...receiptSummary');
       expect(source).toContain('fulfillmentIntent: normalizedFulfillmentIntent.mode');
       expect(source).toContain('physicalProductCount: normalizedFulfillmentIntent.itemCount.toString()');
       expect(source).not.toContain('...(metadata || {})');
