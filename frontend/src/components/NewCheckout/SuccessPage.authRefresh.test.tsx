@@ -47,6 +47,7 @@ vi.mock('@/utils/logger', () => ({
   logger: {
     log: vi.fn(),
     warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -160,5 +161,33 @@ describe('SuccessPage auth refresh', () => {
     expect(screen.getByText(/Tuesday 4 PM/)).toBeInTheDocument();
     expect(screen.getByText(/Recovery Drink/)).toBeInTheDocument();
     expect(screen.getByText(/DRINK-16/)).toBeInTheDocument();
+  });
+
+  it('renders a paid inventory-review state when fulfillment stock changes after payment', async () => {
+    mocks.api.post.mockRejectedValueOnce({
+      message: 'Request failed with status code 409',
+      response: {
+        data: {
+          message: 'Payment verified, but product inventory changed before fulfillment. SwanStudios will review this order.',
+          error: {
+            code: 'CHECKOUT_INVENTORY_UNAVAILABLE',
+            details: 'Product inventory changed before fulfillment could complete.',
+            requiresSupportReview: true,
+          },
+        },
+      },
+    });
+    mocks.api.get.mockRejectedValueOnce(new Error('Activation status unavailable'));
+
+    render(<SuccessPage />);
+
+    expect(await screen.findByText('Payment Confirmed')).toBeInTheDocument();
+    expect(screen.getByText(/inventory changed before fulfillment/i)).toBeInTheDocument();
+    expect(screen.getByText(/team is reviewing your order/i)).toBeInTheDocument();
+    expect(mocks.clearCart).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshUser).toHaveBeenCalledTimes(1);
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Payment Confirmed',
+    }));
   });
 });

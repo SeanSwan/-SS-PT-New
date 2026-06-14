@@ -33,7 +33,7 @@ import { logger } from '@/utils/logger';
 import { ActionGrid } from './SuccessPage.styles';
 import { SessionsCount, SessionsDescription, SessionsHighlight, SessionsTitle, SuccessContainer } from './SuccessPage.styles';
 import { SuccessContent, SuccessHeader, SuccessIcon, SuccessSubtitle, SuccessTitle } from './SuccessPage.styles';
-import { SuccessPageErrorState, SuccessPageLoadingState } from './SuccessPage.stateViews';
+import { SuccessPageErrorState, SuccessPageInventoryReviewState, SuccessPageLoadingState } from './SuccessPage.stateViews';
 import SuccessPageOrderDetails from './SuccessPageOrderDetails';
 
 const SuccessPage: React.FC = () => {
@@ -45,6 +45,7 @@ const SuccessPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supportReviewMessage, setSupportReviewMessage] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<CheckoutSuccessOrderData | null>(null);
   const [activationStatus, setActivationStatus] = useState<CheckoutActivationStatus | null>(null);
 
@@ -71,6 +72,7 @@ const SuccessPage: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
+      setSupportReviewMessage(null);
 
       logger.log('[Success Page] Verifying Stripe session:', sessionId);
 
@@ -115,6 +117,20 @@ const SuccessPage: React.FC = () => {
 
     } catch (error: any) {
       logger.error('[Success Page] Verification failed:', error.message);
+      const responseError = error.response?.data?.error;
+
+      if (responseError?.requiresSupportReview) {
+        const message = error.response?.data?.message || responseError.details || 'Payment confirmed. Inventory changed before fulfillment could complete.';
+        setSupportReviewMessage(message);
+        clearCart();
+        await refreshCheckoutUser();
+        toast({
+          title: "Payment Confirmed",
+          description: "Our team is reviewing your order and will follow up with the next step.",
+          duration: 5000,
+        });
+        return;
+      }
 
       try {
         const status = await fetchCheckoutActivationStatus(api, sessionId || '');
@@ -179,6 +195,10 @@ const SuccessPage: React.FC = () => {
 
   if (error) {
     return <SuccessPageErrorState error={error} onGoHome={handleGoToHome} />;
+  }
+
+  if (supportReviewMessage) {
+    return <SuccessPageInventoryReviewState message={supportReviewMessage} onGoHome={handleGoToHome} />;
   }
 
   const primaryCta = getActivationCta(activationStatus);

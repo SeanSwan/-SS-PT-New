@@ -64,3 +64,33 @@ export const SuccessPageErrorState: React.FC<{
     </ErrorCard>
   </SuccessContainer>
 );
+
+export const SuccessPageInventoryReviewState: React.FC<{
+  message: string;
+  onGoHome: () => void;
+}> = ({ message, onGoHome }) => (
+  <SuccessContainer
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    <LoadingCard
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <StateIcon $tone="loading">
+        <AlertTriangle size={48} aria-hidden="true" />
+      </StateIcon>
+      <StateTitle $tone="loading">Payment Confirmed</StateTitle>
+      <StateText>{message}</StateText>
+      <StateText>Our team is reviewing your order and will follow up with the next step.</StateText>
+      <StateAction>
+        <GlowButton variant="primary" size="medium" onClick={onGoHome}>
+          <Home size={16} aria-hidden="true" />
+          Return Home
+        </GlowButton>
+      </StateAction>
+    </LoadingCard>
+  </SuccessContainer>
+);

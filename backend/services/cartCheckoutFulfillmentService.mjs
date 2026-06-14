@@ -16,6 +16,17 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 
 const CART_FULFILLMENT_KEY_PREFIX = 'cart-fulfillment';
 
+export class CheckoutInventoryError extends Error {
+  constructor({ itemName, requestedQuantity, availableStock }) {
+    super(`Insufficient stock for ${itemName}`);
+    this.name = 'CheckoutInventoryError';
+    this.code = 'CHECKOUT_INVENTORY_UNAVAILABLE';
+    this.requestedQuantity = requestedQuantity;
+    this.availableStock = availableStock;
+    this.itemName = itemName;
+  }
+}
+
 function toFiniteMoney(value, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? Number(number.toFixed(2)) : fallback;
@@ -104,15 +115,52 @@ function orderNotes({ cart, grantedBy, sessionsToAdd, productItemsFulfilled }) {
 }
 
 function getInventoryTarget(cartItem) {
-  if (cartItem?.productVariant?.decrement && Number.isFinite(Number(cartItem.productVariant.stockQuantity))) {
+  if (cartItem?.productVariant?.decrement && trackedStock(cartItem.productVariant.stockQuantity) !== null) {
     return cartItem.productVariant;
   }
 
-  if (cartItem?.storefrontItem?.decrement && Number.isFinite(Number(cartItem.storefrontItem.stockQuantity))) {
+  if (cartItem?.storefrontItem?.decrement && trackedStock(cartItem.storefrontItem.stockQuantity) !== null) {
     return cartItem.storefrontItem;
   }
 
   return null;
+}
+
+function trackedStock(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+async function lockInventoryTarget(inventoryTarget, transaction) {
+  if (!inventoryTarget || typeof inventoryTarget.reload !== 'function') {
+    return inventoryTarget;
+  }
+
+  const lockedTarget = await inventoryTarget.reload({
+    transaction,
+    lock: transaction?.LOCK?.UPDATE,
+  });
+
+  return lockedTarget || inventoryTarget;
+}
+
+async function decrementTrackedInventory({ cartItem, quantity, transaction }) {
+  const inventoryTarget = await lockInventoryTarget(getInventoryTarget(cartItem), transaction);
+  if (!inventoryTarget) return;
+
+  const availableStock = trackedStock(inventoryTarget.stockQuantity);
+  if (availableStock === null) return;
+
+  if (availableStock < quantity) {
+    throw new CheckoutInventoryError({
+      itemName: cartItemName(cartItem),
+      requestedQuantity: quantity,
+      availableStock,
+    });
+  }
+
+  await inventoryTarget.decrement('stockQuantity', { by: quantity, transaction });
 }
 
 export async function loadOptionalFulfillmentModels() {
@@ -144,10 +192,8 @@ async function decrementPhysicalInventory(cartItems, transaction) {
 
     productItemsFulfilled += 1;
     const quantity = cartItemQuantity(cartItem);
-    const inventoryTarget = getInventoryTarget(cartItem);
-
-    if (quantity > 0 && inventoryTarget) {
-      await inventoryTarget.decrement('stockQuantity', { by: quantity, transaction });
+    if (quantity > 0) {
+      await decrementTrackedInventory({ cartItem, quantity, transaction });
     }
   }
 

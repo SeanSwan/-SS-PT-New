@@ -19,7 +19,11 @@ const { leadFindOrCreate, leadActivityCreate } = vi.hoisted(() => ({
 vi.mock('../models/Lead.mjs', () => ({ default: { findOrCreate: leadFindOrCreate } }));
 vi.mock('../models/LeadActivity.mjs', () => ({ default: { create: leadActivityCreate } }));
 
-const { captureLeadFromContact, captureLeadFromSignup } = await import('../services/leadCaptureService.mjs');
+const {
+  captureLeadFromCheckout,
+  captureLeadFromContact,
+  captureLeadFromSignup,
+} = await import('../services/leadCaptureService.mjs');
 
 describe('captureLeadFromContact (Tier 0.2a)', () => {
   beforeEach(() => {
@@ -143,5 +147,103 @@ describe('captureLeadFromSignup (Tier 0.2b)', () => {
     const res = await captureLeadFromSignup({ user: { id: 7, firstName: 'E', email: '' }, clientSource: 'swanstudios', role: 'client' });
     expect(leadFindOrCreate).not.toHaveBeenCalled();
     expect(res.skipped).toBe('no_email');
+  });
+});
+
+describe('captureLeadFromCheckout (Tier 0.4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leadFindOrCreate.mockResolvedValue([{ id: 12, score: 50, status: 'new', tags: ['signup'], update: vi.fn() }, false]);
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it('marks an existing lead as converted when checkout verifies payment', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{
+      id: 12,
+      score: 50,
+      status: 'new',
+      tags: ['signup'],
+      update,
+    }, false]);
+
+    const res = await captureLeadFromCheckout({
+      cart: { id: 77, customerInfo: JSON.stringify({ name: 'Ava Stone', email: 'ava@example.com', phone: '555-0100' }) },
+      user: { id: 42 },
+      session: { id: 'cs_paid_123', amount_total: 175000, customer_details: { email: 'ava@example.com' } },
+      sessionsAdded: 10,
+    });
+
+    expect(leadFindOrCreate.mock.calls[0][0].where).toEqual({ email: 'ava@example.com' });
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'converted',
+      convertedUserId: 42,
+      score: 100,
+      phone: '555-0100',
+      tags: ['signup', 'checkout', 'converted'],
+    }));
+    expect(leadActivityCreate.mock.calls[0][0]).toMatchObject({
+      leadId: 12,
+      type: 'status_change',
+      title: 'Lead converted from checkout',
+      metadata: {
+        source: 'genesis_checkout',
+        userId: 42,
+        cartId: 77,
+        sessionId: 'cs_paid_123',
+        sessionsAdded: 10,
+        from: 'new',
+        to: 'converted',
+      },
+    });
+    expect(res).toEqual({ leadId: 12, created: false, converted: true });
+  });
+
+  it('creates a converted lead when checkout is the first attributed touch', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 15, status: 'converted', update: vi.fn() }, true]);
+
+    const res = await captureLeadFromCheckout({
+      cart: { id: 88 },
+      user: { id: 99, firstName: 'New', lastName: 'Buyer', email: 'new@example.com', phone: '555-0200' },
+      session: { id: 'cs_paid_456', amount_total: 420000, customer_details: {} },
+      sessionsAdded: 24,
+    });
+
+    const defaults = leadFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults).toMatchObject({
+      firstName: 'New',
+      lastName: 'Buyer',
+      email: 'new@example.com',
+      phone: '555-0200',
+      source: 'website',
+      sourceDetail: 'Checkout purchase',
+      status: 'converted',
+      score: 100,
+      convertedUserId: 99,
+      tags: ['checkout', 'converted'],
+    });
+    expect(leadActivityCreate.mock.calls[0][0].title).toBe('Lead converted from checkout');
+    expect(res).toEqual({ leadId: 15, created: true, converted: true });
+  });
+
+  it('does not duplicate conversion activity for an already-converted lead', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{
+      id: 21,
+      status: 'converted',
+      convertedUserId: 42,
+      convertedAt: new Date('2026-06-01T00:00:00.000Z'),
+      update,
+    }, false]);
+
+    const res = await captureLeadFromCheckout({
+      cart: { id: 77, customerInfo: JSON.stringify({ email: 'ava@example.com' }) },
+      user: { id: 42 },
+      session: { id: 'cs_paid_123', customer_details: { email: 'ava@example.com' } },
+    });
+
+    expect(update).not.toHaveBeenCalled();
+    expect(leadActivityCreate).not.toHaveBeenCalled();
+    expect(res).toEqual({ leadId: 21, created: false, alreadyConverted: true });
   });
 });

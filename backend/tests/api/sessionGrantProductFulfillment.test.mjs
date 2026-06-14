@@ -69,6 +69,9 @@ function makeUser() {
 
 function makeMixedCart() {
   const variantDecrement = vi.fn().mockResolvedValue(true);
+  const variantReload = vi.fn(function reloadVariant() {
+    return Promise.resolve(this);
+  });
 
   return {
     id: 700,
@@ -129,12 +132,14 @@ function makeMixedCart() {
           label: '16oz',
           sku: 'DRINK-16',
           stockQuantity: 12,
+          reload: variantReload,
           decrement: variantDecrement,
         },
       },
     ],
     update: vi.fn().mockResolvedValue(true),
     variantDecrement,
+    variantReload,
   };
 }
 
@@ -202,6 +207,10 @@ describe('SessionGrantService product fulfillment', () => {
       ]),
       { transaction: mocks.transaction },
     );
+    expect(cart.variantReload).toHaveBeenCalledWith({
+      transaction: mocks.transaction,
+      lock: mocks.transaction.LOCK.UPDATE,
+    });
     expect(cart.variantDecrement).toHaveBeenCalledWith('stockQuantity', {
       by: 2,
       transaction: mocks.transaction,
@@ -223,5 +232,44 @@ describe('SessionGrantService product fulfillment', () => {
     expect(mocks.orderModel.create).not.toHaveBeenCalled();
     expect(mocks.orderItemModel.bulkCreate).not.toHaveBeenCalled();
     expect(cart.variantDecrement).not.toHaveBeenCalled();
+  });
+
+  it('rolls back instead of decrementing tracked variant stock below zero', async () => {
+    const cart = makeMixedCart();
+    cart.cartItems[1].quantity = 13;
+    mocks.shoppingCart.findOne.mockResolvedValue(cart);
+    mocks.userModel.findByPk.mockResolvedValue(makeUser());
+
+    await expect(grantSessionsForCart(cart.id, cart.userId, 'verify-session'))
+      .rejects.toThrow('Insufficient stock');
+
+    expect(cart.variantDecrement).not.toHaveBeenCalled();
+    expect(cart.update).not.toHaveBeenCalled();
+    expect(mocks.transaction.commit).not.toHaveBeenCalled();
+    expect(mocks.transaction.rollback).toHaveBeenCalled();
+  });
+
+  it('does not decrement untracked physical-product inventory', async () => {
+    const cart = makeMixedCart();
+    cart.cartItems[1].productVariant.stockQuantity = null;
+    mocks.shoppingCart.findOne.mockResolvedValue(cart);
+    mocks.userModel.findByPk.mockResolvedValue(makeUser());
+
+    const result = await grantSessionsForCart(cart.id, cart.userId, 'verify-session');
+
+    expect(result).toMatchObject({
+      granted: true,
+      alreadyProcessed: false,
+      productItemsFulfilled: 1,
+    });
+    expect(cart.variantDecrement).not.toHaveBeenCalled();
+    expect(cart.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        paymentStatus: 'paid',
+        sessionsGranted: true,
+      }),
+      { transaction: mocks.transaction },
+    );
   });
 });

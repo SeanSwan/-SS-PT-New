@@ -146,3 +146,25 @@ The on/off switch existed but was **buried in the Edit dialog** (open → flip �
 - AGI supplement partnership: fulfillment API/process + product list (needed for Phase 3).
 - Merch line: SKUs, sizes/colors, shipping origin + rate model (needed for Phase 1/2).
 - Stripe Tax: enable + CA registration in Stripe dashboard (before Phase 2).
+
+## Money-path verification & go-live gates (2026-06-13)
+
+The customer purchase path for physical products + variants is **code-complete** (built in the shared tree; recon-verified end to end) and **server-authoritative**:
+- Store renders products + variant picker (`ProductCard`/`ProductVariantPicker`); API returns variants.
+- Cart (`cartRoutes.resolveCartItemSnapshot`): price resolved server-side `firstMoney(variant?.price, totalCost, price)`; variant must belong to the item; physical products require a variant; stock checked at add-time; inactive variant blocked.
+- Checkout (`v2PaymentRoutes`): amount summed from locked DB records; **packages grant sessions, physical products grant 0** (`SessionGrantService`); Order/OrderItem + inventory decrement + fulfillment-intent capture wired.
+
+**Money-path safety tests added** (lock these invariants against regression):
+- `backend/tests/api/sessionGrantSeparation.contract.test.mjs` — BEHAVIORAL: a physical product never grants training sessions; packages do; mixed-cart math correct (5 tests).
+- `backend/tests/api/moneyPathInvariants.contract.test.mjs` — server-authoritative price, variant ownership, variant-required, stock-at-add, inactive-variant block; tax only on taxable physical products, never packages; documents the hardcoded-rate gap (8 tests).
+
+**Verified residual risks / fixed follow-up (2026-06-14):**
+1. **CRITICAL — tax is still a hardcoded flat 8%** (`PRODUCT_TAX_RATE`, `automatic_tax` disabled). CA is 7.25-10.25% by district -> switch to **Stripe Tax** (`automatic_tax: { enabled: true }`, remove manual calc) only after Sean enables Stripe Tax + CA nexus in Stripe.
+2. **FIXED IN CODE — fulfillment-address guard:** physical-product carts now require delivery details or explicit pickup mode before Stripe checkout session creation.
+3. **FIXED IN CODE — checkout-time stock re-check:** checkout creation now rejects stale carts with understocked or inactive physical-product items, and paid verification now routes post-payment stock drift into support-review handling instead of silently overselling.
+
+**Go-live gates to actually SELL products (ops, mostly Sean):**
+1. **Stripe Tax**: enable in Stripe dashboard + register CA nexus (then flip the code flag). *Blocks compliant tax on goods.*
+2. **Health permit** for the "Buddy Fat Skin" drink (CA county + commercial kitchen) — drink stays `isActive:false` until cleared.
+3. **A real product row** must exist + be `isActive:true` with active variants for the store section to appear (seed: `backend/seed-buddy-fat-skin-drink.mjs`, currently inactive).
+4. Fulfillment-address guard + checkout-time stock re-check are now code-level gates; still run a live safe test order before activating real products.

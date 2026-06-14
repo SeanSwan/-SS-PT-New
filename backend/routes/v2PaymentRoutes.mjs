@@ -61,12 +61,17 @@ import {
   isSessionPackageCheckoutSession,
   SessionPackageFulfillmentError,
 } from '../services/sessionPackageCheckoutFulfillmentService.mjs';
+import { CheckoutInventoryError } from '../services/cartCheckoutFulfillmentService.mjs';
 import {
   FULFILLMENT_DETAILS_REQUIRED_CODE,
   normalizeCheckoutFulfillmentIntent,
   validateCheckoutFulfillmentIntent,
 } from '../services/checkoutFulfillmentIntentService.mjs';
+import {
+  validateCheckoutStockAvailability,
+} from '../services/checkoutStockAvailabilityService.mjs';
 import { getCheckoutReceiptSummary } from '../services/checkoutReceiptSummaryService.mjs';
+import { captureLeadFromCheckout } from '../services/leadCaptureService.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
@@ -185,6 +190,25 @@ const checkStripeAvailability = (req, res, next) => {
   }
   next();
 };
+
+async function captureVerifiedCheckoutLead({ user, session, cart = null, sessionsAdded = 0 }) {
+  const leadCaptureResult = await captureLeadFromCheckout({
+    user,
+    session,
+    cart,
+    sessionsAdded,
+  });
+
+  if (leadCaptureResult.error) {
+    logger.warn('[v2 Payment] Checkout lead capture failed', {
+      userId: user?.id,
+      hasSessionId: true,
+      error: leadCaptureResult.error,
+    });
+  }
+
+  return leadCaptureResult;
+}
 
 /**
  * POST /api/v2/payments/create-checkout-session
@@ -320,6 +344,21 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         error: {
           code: FULFILLMENT_DETAILS_REQUIRED_CODE,
           details: fulfillmentValidationError
+        }
+      });
+    }
+
+    const stockValidationError = validateCheckoutStockAvailability(cart.cartItems);
+    if (stockValidationError) {
+      return res.status(stockValidationError.status).json({
+        success: false,
+        message: stockValidationError.message,
+        error: {
+          code: stockValidationError.code,
+          details: stockValidationError.message,
+          itemName: stockValidationError.itemName,
+          requestedQuantity: stockValidationError.requestedQuantity,
+          availableStock: stockValidationError.availableStock
         }
       });
     }
@@ -590,6 +629,11 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       }
 
       const result = await fulfillSessionPackageCheckoutSession(session);
+      await captureVerifiedCheckoutLead({
+        user: req.user,
+        session,
+        sessionsAdded: result.sessionsAdded,
+      });
 
       return res.status(200).json({
         success: true,
@@ -627,6 +671,12 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
     const result = await grantSessionsForCart(cart.id, userId, 'verify-session');
     const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });
+    await captureVerifiedCheckoutLead({
+      cart,
+      user: req.user,
+      session,
+      sessionsAdded: result.sessionsAdded,
+    });
 
     if (result.alreadyProcessed) {
       return res.status(200).json({
@@ -672,6 +722,29 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
         error: {
           code: error.code,
           details: 'Session package checkout could not be fulfilled',
+        }
+      });
+    }
+
+    if (error instanceof CheckoutInventoryError) {
+      logger.error('[v2 Payment] Paid checkout inventory conflict', {
+        userId: req.user?.id,
+        errorCode: error.code,
+        itemName: error.itemName,
+        requestedQuantity: error.requestedQuantity,
+        availableStock: error.availableStock,
+      });
+
+      return res.status(409).json({
+        success: false,
+        message: 'Payment verified, but product inventory changed before fulfillment. SwanStudios will review this order.',
+        error: {
+          code: 'CHECKOUT_INVENTORY_UNAVAILABLE',
+          details: 'Product inventory changed before fulfillment could complete.',
+          itemName: error.itemName,
+          requestedQuantity: error.requestedQuantity,
+          availableStock: error.availableStock,
+          requiresSupportReview: true,
         }
       });
     }

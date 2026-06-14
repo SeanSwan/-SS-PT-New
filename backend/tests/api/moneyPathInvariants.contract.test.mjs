@@ -9,7 +9,7 @@ import { resolve } from 'path';
  * so a buyer can never be mischarged and a tax-free service is never taxed:
  *  1. Cart price is resolved SERVER-SIDE from the DB item/variant (never trusted
  *     from the client), the variant must belong to the item, a physical product
- *     requires a variant, and stock is checked at add-time.
+ *     requires a variant, and stock is checked at add-time AND checkout-time.
  *  2. Sales tax applies ONLY to taxable PHYSICAL products — never to training
  *     packages (CA service exemption).
  * Assertions use tolerant regex so routine reformatting doesn't break them; a
@@ -20,6 +20,7 @@ const root = process.cwd();
 const read = (p) => readFileSync(resolve(root, p), 'utf8');
 const cart = read('routes/cartRoutes.mjs');
 const pay = read('routes/v2PaymentRoutes.mjs');
+const checkoutStock = read('services/checkoutStockAvailabilityService.mjs');
 
 describe('money-path: cart price authority + variant safety', () => {
   it('resolves the line price server-side from the variant/item (not the client body)', () => {
@@ -39,6 +40,12 @@ describe('money-path: cart price authority + variant safety', () => {
   it('enforces stock at add-time (no overselling)', () => {
     expect(cart).toMatch(/quantity\s*>\s*availableStock/);
     expect(cart).toMatch(/exceeds available stock/i);
+  });
+
+  it('re-checks physical-product stock at checkout-time (no stale-cart overselling)', () => {
+    expect(pay).toMatch(/validateCheckoutStockAvailability\(cart\.cartItems\)/);
+    expect(pay).toMatch(/stockValidationError\.code/);
+    expect(checkoutStock).toMatch(/CHECKOUT_STOCK_UNAVAILABLE_CODE/);
   });
 
   it('blocks an inactive variant', () => {
