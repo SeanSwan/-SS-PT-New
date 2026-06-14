@@ -159,6 +159,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
       { label: 'Book My Session', to: '/dashboard/client/schedule' },
       { label: 'Messages', to: '/dashboard/client/messages' },
     ],
+    primaryPrompt: 'teach me the client training loop workflow',
   }),
   user: (path) => ({
     eyebrow: 'Teach the personal hub',

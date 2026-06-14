@@ -87,4 +87,21 @@ describe('DashboardTeachMeGuide', () => {
 
     expect(onAskCoach).toHaveBeenCalledWith('teach me the client progress workflow');
   });
+
+  it('can hand the base client training loop to Coach when Coach is available', () => {
+    const onAskCoach = vi.fn();
+
+    render(
+      <DashboardTeachMeGuide
+        role="client"
+        pathname="/dashboard/client/log-workout"
+        onAskCoach={onAskCoach}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /teach me: client training loop/i }));
+    fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
+
+    expect(onAskCoach).toHaveBeenCalledWith('teach me the client training loop workflow');
+  });
 });

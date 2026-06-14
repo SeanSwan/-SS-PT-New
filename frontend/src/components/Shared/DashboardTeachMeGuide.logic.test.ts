@@ -80,6 +80,7 @@ describe('getDashboardTeachMeGuide', () => {
     expect(guide.steps.join(' ')).toMatch(/Log Workout/i);
     expect(guide.steps.join(' ')).toMatch(/Progress/i);
     expect(guide.steps.join(' ')).toMatch(/Book My Session/i);
+    expect(guide.primaryPrompt).toMatch(/client training loop workflow/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout' }),
