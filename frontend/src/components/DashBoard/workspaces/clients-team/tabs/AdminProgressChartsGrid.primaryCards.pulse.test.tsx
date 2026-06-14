@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import { AdminProgressPrimaryCards } from './AdminProgressChartsGrid.primaryCards';
@@ -46,6 +46,11 @@ describe('AdminProgressPrimaryCards pulse summaries', () => {
     expect(screen.getByText('+50% vs prior')).toBeTruthy();
     expect(screen.getByText('Rep Pulse')).toBeTruthy();
     expect(screen.getByText('+20% vs prior')).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /share proof/i })[0]);
+    expect(screen.getByRole('dialog', { name: /workout frequency share card/i })).toBeTruthy();
+    expect((screen.getByLabelText('Progress proof caption') as HTMLTextAreaElement).value)
+      .toContain('Frequency Pulse: +200% vs prior');
   });
 
   it('keeps empty admin cards honest instead of fabricating pulse momentum', () => {
@@ -54,5 +59,6 @@ describe('AdminProgressPrimaryCards pulse summaries', () => {
     expect(screen.getByText('No completed workouts yet')).toBeTruthy();
     expect(screen.getByText('No sets or reps logged yet')).toBeTruthy();
     expect(screen.queryByText(/Pulse/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /share proof/i })).toBeNull();
   });
 });

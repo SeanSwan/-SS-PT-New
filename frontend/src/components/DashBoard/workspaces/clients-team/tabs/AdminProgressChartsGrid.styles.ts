@@ -127,6 +127,29 @@ export const AdminPulseDetail = styled.span`
   overflow-wrap: anywhere;
 `;
 
+export const AdminShareButton = styled.button`
+  min-height: 44px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0 0.78rem;
+  border: 1px solid var(--border-accent, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
+  border-radius: 8px;
+  background: var(--accent-primary-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
 export const Empty = styled.div`
   text-align: center;
   padding: 1rem 0.5rem;

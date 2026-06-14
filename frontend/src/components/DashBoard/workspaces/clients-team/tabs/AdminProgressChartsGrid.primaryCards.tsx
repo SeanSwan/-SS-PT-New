@@ -24,6 +24,10 @@ import {
   isProgressChartVisible,
   type ProgressChartLensId,
 } from '../../../progress-proof/progressChartLens';
+import AdminProgressProofShare, {
+  buildSetsRepsShareRows,
+  chartRowsForPoints,
+} from './AdminProgressChartsGrid.share';
 import { CHART_COLORS, victoryTheme } from '../../../../Charts/chartTheme';
 import {
   durationLineProps,
@@ -72,6 +76,10 @@ const AdminProgressPulse: React.FC<{ pulse: ProgressChartPulse }> = ({ pulse }) 
   </AdminPulseStrip>
 );
 
+const summaryForRows = (title: string, rowCount: number) => (
+  `Showing ${rowCount} verified ${title} point${rowCount === 1 ? '' : 's'} for this client.`
+);
+
 export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts, activeLensId }) => {
   const workoutPulse = buildProgressChartPulse(charts.workoutFrequency, {
     label: 'Frequency Pulse',
@@ -87,6 +95,9 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
     unit: setsRepsSource.unit,
   });
   const hasSetsRepsData = charts.setsRepsTrend.sets.length > 0 || charts.setsRepsTrend.reps.length > 0;
+  const workoutRows = chartRowsForPoints(charts.workoutFrequency, 'period', 'workouts');
+  const volumeRows = chartRowsForPoints(charts.weeklyVolume, 'week', 'volume_lbs');
+  const setsRepsRows = buildSetsRepsShareRows(charts.setsRepsTrend.sets, charts.setsRepsTrend.reps);
 
   return (
     <>
@@ -99,6 +110,14 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         {charts.workoutFrequency.length === 0 ? <Empty>No completed workouts yet</Empty> : (
           <ChartStack>
             <AdminProgressPulse pulse={workoutPulse} />
+            <AdminProgressProofShare
+              chartId="admin-workout-frequency"
+              csvRows={workoutRows}
+              filename="swan-client-workout-frequency-proof.png"
+              pulse={workoutPulse}
+              summary={summaryForRows('workout frequency', workoutRows.length)}
+              title="Workout Frequency"
+            />
             <VictoryChart
               theme={victoryTheme}
               height={180}
@@ -147,6 +166,14 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         {charts.weeklyVolume.length === 0 ? <Empty>No logged lifts yet</Empty> : (
           <ChartStack>
             <AdminProgressPulse pulse={volumePulse} />
+            <AdminProgressProofShare
+              chartId="admin-weekly-volume"
+              csvRows={volumeRows}
+              filename="swan-client-weekly-volume-proof.png"
+              pulse={volumePulse}
+              summary={summaryForRows('weekly volume', volumeRows.length)}
+              title="Weekly Volume"
+            />
             <VictoryChart
               theme={victoryTheme}
               height={180}
@@ -176,6 +203,14 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         {!hasSetsRepsData ? <Empty>No sets or reps logged yet</Empty> : (
           <ChartStack>
             <AdminProgressPulse pulse={setsRepsPulse} />
+            <AdminProgressProofShare
+              chartId="admin-sets-reps"
+              csvRows={setsRepsRows}
+              filename="swan-client-sets-reps-proof.png"
+              pulse={setsRepsPulse}
+              summary={summaryForRows('sets and reps', setsRepsRows.length)}
+              title="Sets & Reps Trend"
+            />
             <VictoryChart
               theme={victoryTheme}
               height={180}
