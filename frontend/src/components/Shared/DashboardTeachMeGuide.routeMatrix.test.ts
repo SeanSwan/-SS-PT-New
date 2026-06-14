@@ -171,6 +171,30 @@ describe('DashboardTeachMeGuide route matrix', () => {
     });
   });
 
+  it('teaches trainer nutrition and client workout logging with direct first clicks', () => {
+    const trainerNutrition = getDashboardTeachMeGuide({
+      role: 'trainer',
+      pathname: '/dashboard/trainer/meal-planner',
+    });
+
+    expect(trainerNutrition.primaryAction).toEqual({
+      label: 'Open Nutrition',
+      to: '/dashboard/trainer/meal-planner',
+    });
+    expect(trainerNutrition.primaryPrompt).toContain('nutrition');
+
+    const clientLog = getDashboardTeachMeGuide({
+      role: 'client',
+      pathname: '/dashboard/client/log-workout',
+    });
+
+    expect(clientLog.primaryAction).toEqual({
+      label: "Log Today's Workout",
+      to: '/dashboard/client/log-workout?loadPlan=today',
+    });
+    expect(clientLog.primaryPrompt).toContain('workout logging');
+  });
+
   it('teaches client booking, progress, and social routes as distinct jobs', () => {
     expect(getDashboardTeachMeGuide({
       role: 'client',

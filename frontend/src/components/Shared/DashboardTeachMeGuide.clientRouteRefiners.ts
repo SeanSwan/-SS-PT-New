@@ -33,6 +33,25 @@ const clientProgressProof = (base: DashboardTeachMeGuideCopy) => applyPatch(base
   primaryPrompt: 'teach me the client progress workflow',
 });
 
+const clientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Client workout logging',
+  summary: 'Use Log Workout first so Coach, charts, and progress proof all work from the real session.',
+  focus: 'Load today, enter what you actually completed, save notes and pain signals, then review progress.',
+  primaryAction: { label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' },
+  fastPath: [
+    "Open today's workout.",
+    'Enter sets, reps, load, notes, and pain signals.',
+    'Save before checking progress or community.',
+  ],
+  actions: [
+    { label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' },
+    { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
+    { label: 'My Workouts', to: '/dashboard/client/workouts' },
+    { label: 'Progress', to: '/dashboard/client/progress' },
+  ],
+  primaryPrompt: 'teach me the client workout logging workflow',
+});
+
 const clientWorkoutHistory = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Client workout history',
   summary: 'Use workout history to understand what was saved, spot missing logs, and feed the next Coach question.',
@@ -173,6 +192,7 @@ export const refineClientGuide = (
 ): DashboardTeachMeGuideCopy => {
   if (includesAny(path, ['schedule'])) return clientBookingFlow(base);
   if (includesAny(path, ['progress', 'rewards'])) return clientProgressProof(base);
+  if (includesAny(path, ['log-workout'])) return clientWorkoutLogging(base);
   if (includesAny(path, ['workouts'])) return clientWorkoutHistory(base);
   if (includesAny(path, ['live'])) return clientLiveFlow(base);
   if (includesAny(path, ['creators'])) return clientCreatorFlow(base);

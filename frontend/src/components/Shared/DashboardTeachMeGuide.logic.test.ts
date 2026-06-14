@@ -61,30 +61,27 @@ describe('getDashboardTeachMeGuide', () => {
     ]));
   });
 
-  it('teaches clients the workout loop before secondary surfaces', () => {
+  it('teaches clients direct workout logging before secondary surfaces', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'client',
       pathname: '/dashboard/client/log-workout',
     });
 
-    expect(guide.title).toBe('Client training loop');
+    expect(guide.title).toBe('Client workout logging');
     expect(guide.primaryAction).toEqual({
-      label: 'Log Workout',
-      to: '/dashboard/client/log-workout',
+      label: "Log Today's Workout",
+      to: '/dashboard/client/log-workout?loadPlan=today',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Log today's workout/i),
-      expect.stringMatching(/Check progress/i),
-      expect.stringMatching(/Book or message/i),
+      expect.stringMatching(/Open today's workout/i),
+      expect.stringMatching(/sets, reps, load/i),
+      expect.stringMatching(/Save before checking progress/i),
     ]);
-    expect(guide.steps.join(' ')).toMatch(/Log Workout/i);
-    expect(guide.steps.join(' ')).toMatch(/Progress/i);
-    expect(guide.steps.join(' ')).toMatch(/Book My Session/i);
-    expect(guide.primaryPrompt).toMatch(/client training loop workflow/i);
+    expect(guide.primaryPrompt).toMatch(/client workout logging workflow/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
-      expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout' }),
-      expect.objectContaining({ label: 'Book My Session', to: '/dashboard/client/schedule' }),
+      expect.objectContaining({ label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' }),
+      expect.objectContaining({ label: 'My Workouts', to: '/dashboard/client/workouts' }),
     ]));
   });
 

@@ -77,6 +77,25 @@ const trainerBuilderFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base,
   primaryPrompt: 'teach me the trainer workout builder workflow',
 });
 
+const trainerNutritionFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Trainer nutrition support',
+  summary: 'Use Nutrition when food context affects client energy, recovery, and plan adherence.',
+  focus: 'Connect nutrition notes to the client goal, recent training proof, and the next coaching action.',
+  primaryAction: { label: 'Open Nutrition', to: '/dashboard/trainer/meal-planner' },
+  fastPath: [
+    'Pick the client context.',
+    'Review meal or macro signals.',
+    'Tie the note back to training.',
+  ],
+  actions: [
+    { label: 'Nutrition', to: '/dashboard/trainer/meal-planner' },
+    { label: 'My Clients', to: '/dashboard/trainer/clients' },
+    { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
+    { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
+  ],
+  primaryPrompt: 'teach me the trainer nutrition workflow',
+});
+
 const trainerAssessmentFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer assessment loop',
   summary: 'Use assessment routes to capture form, pain, and movement signals before changing training load or exercise selection.',
@@ -148,6 +167,7 @@ export const refineTrainerGuide = (
   if (includesAny(path, ['workout-forge', 'workout-planner', 'bootcamp', 'equipment'])) {
     return trainerBuilderFlow(base);
   }
+  if (includesAny(path, ['meal-planner', 'nutrition'])) return trainerNutritionFlow(base);
   if (includesAny(path, ['assessments', 'body-map', 'video-call', 'videos'])) {
     return trainerAssessmentFlow(base);
   }
