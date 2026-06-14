@@ -120,6 +120,10 @@ router.post("/", async (req, res) => {
       console.log('⚠️ Admin notification failed (non-critical):', notifErr.message);
     }
 
+    // === CRM LEAD CAPTURE (non-critical, never breaks submission) ===
+    // Closes the funnel hole: a contact submission now enters the Lead pipeline.
+    await tryCreateLeadFromContact(newContact, contactData, consultationType);
+
     // 2. SMART EXTERNAL SERVICES: Try to send notifications (but don't fail if they don't work)
     const notificationResults = {
       email: { success: false, error: null, attempted: false },
@@ -362,6 +366,77 @@ ${formData.priority === 'urgent' ? 'RESPOND NOW!' : formData.priority === 'high'
       code: smsError.code,
       message: smsError.message
     });
+  }
+}
+
+// === CRM LEAD CAPTURE FUNCTION ===
+// Best-effort, fully non-blocking (mirrors the email/SMS pattern). A failure here
+// must NEVER fail the contact submission — the Contact row is already saved.
+// Dedupes by email so repeat submissions bump engagement instead of duplicating.
+const CONTACT_FORM_LEAD_SCORE = 30;     // warm — they actively typed a message
+const CONTACT_FORM_REPEAT_BONUS = 15;   // repeat contact = higher intent
+
+async function tryCreateLeadFromContact(contact, formData, consultationType) {
+  try {
+    const email = (formData.email || '').trim().toLowerCase();
+    if (!email) return; // can't dedupe/attribute a lead without an email
+
+    const { default: Lead } = await import('../models/Lead.mjs');
+    const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
+
+    const fullName = (formData.name || '').trim();
+    const [firstToken, ...rest] = fullName.split(/\s+/).filter(Boolean);
+    const firstName = firstToken || 'Unknown'; // first_name is NOT NULL in the model
+    const lastName = rest.length ? rest.join(' ') : null;
+
+    const sourceDetail = consultationType
+      ? `Contact form — ${consultationType.replace(/-/g, ' ')}`
+      : 'Contact form';
+
+    const [lead, created] = await Lead.findOrCreate({
+      where: { email },
+      defaults: {
+        firstName,
+        lastName,
+        email,
+        source: 'website',
+        sourceDetail,
+        status: 'new',
+        score: CONTACT_FORM_LEAD_SCORE,
+        notes: formData.message,
+        tags: ['contact-form'],
+      },
+    });
+
+    if (created) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Lead captured from contact form',
+        description: `New website contact via ${sourceDetail}`,
+        metadata: { source: 'website', sourceDetail, contactId: contact.id },
+      });
+      console.log(`✅ CRM lead captured from contact form (lead ${lead.id})`);
+    } else {
+      // Repeat submission — bump engagement, do NOT create a duplicate lead
+      await lead.update({
+        lastContactedAt: new Date(),
+        contactCount: (lead.contactCount || 0) + 1,
+        score: Math.min(100, (lead.score || 0) + CONTACT_FORM_REPEAT_BONUS),
+      });
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Repeat contact-form submission',
+        description: `Existing lead submitted the contact form again via ${sourceDetail}`,
+        metadata: { source: 'website', sourceDetail, contactId: contact.id },
+      });
+      console.log(`✅ CRM lead engagement bumped from contact form (lead ${lead.id})`);
+    }
+  } catch (leadErr) {
+    console.log('⚠️ CRM lead capture failed (non-critical):', leadErr.message);
   }
 }
 

@@ -230,6 +230,7 @@ import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { getClientIp } from '../services/geoIpService.mjs';
 import { createNotification, createAdminNotification } from './notificationController.mjs';
+import { captureLeadFromSignup } from '../services/leadCaptureService.mjs';
 import {
   getPasswordResetSecret,
   hashPasswordResetToken,
@@ -653,6 +654,14 @@ export const register = async (req, res) => {
       });
     } catch (notifErr) {
       logger.warn(`Registration notification failed for user ${user.id}: ${notifErr.message}`);
+    }
+
+    // --- Best-effort: capture a CRM lead from this signup (skips Move Fitness + staff roles) ---
+    // Closes the funnel hole — new accounts now enter the lead pipeline for follow-up to PAID.
+    try {
+      await captureLeadFromSignup({ user, clientSource: resolvedClientSource, role });
+    } catch (leadErr) {
+      logger.warn(`Lead capture from signup failed for user ${user.id}: ${leadErr.message}`);
     }
 
     // Return user data and token

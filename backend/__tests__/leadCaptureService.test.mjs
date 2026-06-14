@@ -1,0 +1,88 @@
+/**
+ * leadCaptureService — captureLeadFromSignup (Tier 0.2b)
+ * =====================================================
+ * A public signup (non-Move-Fitness, non-admin/trainer) becomes an attributed
+ * CRM Lead linked to the new user account. Business rules under test:
+ *  - Move Fitness signups are FREE value-add clients (no-poach) → never a sales lead
+ *  - admin/trainer roles are not sales prospects → skipped
+ *  - dedupe by email (compose with the contact-form lead)
+ *  - fully non-blocking (returns an error object, never throws)
+ * Models are vi.mock'd — no real DB writes.
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { leadFindOrCreate, leadActivityCreate } = vi.hoisted(() => ({
+  leadFindOrCreate: vi.fn(),
+  leadActivityCreate: vi.fn(),
+}));
+
+vi.mock('../models/Lead.mjs', () => ({ default: { findOrCreate: leadFindOrCreate } }));
+vi.mock('../models/LeadActivity.mjs', () => ({ default: { create: leadActivityCreate } }));
+
+const { captureLeadFromSignup } = await import('../services/leadCaptureService.mjs');
+
+describe('captureLeadFromSignup (Tier 0.2b)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leadFindOrCreate.mockResolvedValue([{ id: 7, score: 0, update: vi.fn() }, true]);
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it('creates a website lead for a swanstudios client signup, linked to the user', async () => {
+    const res = await captureLeadFromSignup({
+      user: { id: 42, firstName: 'Ava', lastName: 'Stone', email: 'Ava@Example.com' },
+      clientSource: 'swanstudios',
+      role: 'client',
+    });
+    expect(leadFindOrCreate).toHaveBeenCalledTimes(1);
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.where).toEqual({ email: 'ava@example.com' });
+    expect(call.defaults.source).toBe('website');
+    expect(call.defaults.firstName).toBe('Ava');
+    expect(call.defaults.score).toBe(50);
+    expect(call.defaults.tags).toContain('signup');
+    // Lead has no metadata column (rule 58): user link lives in notes + the activity.
+    expect(call.defaults.metadata).toBeUndefined();
+    expect(call.defaults.notes).toContain('42');
+    expect(leadActivityCreate).toHaveBeenCalledTimes(1);
+    expect(leadActivityCreate.mock.calls[0][0].metadata.userId).toBe(42); // structured link on the activity
+    expect(res.created).toBe(true);
+  });
+
+  it('maps an external source to the referral lead source', async () => {
+    await captureLeadFromSignup({ user: { id: 1, firstName: 'B', email: 'b@x.com' }, clientSource: 'external', role: 'client' });
+    expect(leadFindOrCreate.mock.calls[0][0].defaults.source).toBe('referral');
+  });
+
+  it('SKIPS Move Fitness signups (free, no-poach)', async () => {
+    const res = await captureLeadFromSignup({ user: { id: 2, firstName: 'M', email: 'm@x.com' }, clientSource: 'move_fitness', role: 'client' });
+    expect(leadFindOrCreate).not.toHaveBeenCalled();
+    expect(res.skipped).toBe('move_fitness');
+  });
+
+  it('SKIPS admin and trainer roles (not sales prospects)', async () => {
+    await captureLeadFromSignup({ user: { id: 3, firstName: 'T', email: 't@x.com' }, clientSource: 'swanstudios', role: 'trainer' });
+    await captureLeadFromSignup({ user: { id: 4, firstName: 'A', email: 'a@x.com' }, clientSource: 'swanstudios', role: 'admin' });
+    expect(leadFindOrCreate).not.toHaveBeenCalled();
+  });
+
+  it('dedupes by email and bumps an existing lead instead of duplicating', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 30, update }, false]);
+    const res = await captureLeadFromSignup({ user: { id: 5, firstName: 'C', email: 'c@x.com' }, clientSource: 'swanstudios', role: 'client' });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(res.created).toBe(false);
+  });
+
+  it('is non-blocking: returns an error object instead of throwing', async () => {
+    leadFindOrCreate.mockRejectedValue(new Error('db down'));
+    const res = await captureLeadFromSignup({ user: { id: 6, firstName: 'D', email: 'd@x.com' }, clientSource: 'swanstudios', role: 'client' });
+    expect(res.error).toBeTruthy();
+  });
+
+  it('skips when there is no email to attribute/dedupe on', async () => {
+    const res = await captureLeadFromSignup({ user: { id: 7, firstName: 'E', email: '' }, clientSource: 'swanstudios', role: 'client' });
+    expect(leadFindOrCreate).not.toHaveBeenCalled();
+    expect(res.skipped).toBe('no_email');
+  });
+});
