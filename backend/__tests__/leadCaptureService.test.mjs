@@ -22,8 +22,61 @@ vi.mock('../models/LeadActivity.mjs', () => ({ default: { create: leadActivityCr
 const {
   captureLeadFromCheckout,
   captureLeadFromContact,
+  captureLeadFromNewsletter,
   captureLeadFromSignup,
 } = await import('../services/leadCaptureService.mjs');
+
+describe('captureLeadFromNewsletter (Tier 1.3)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 0, tags: [], update: vi.fn() }, true]);
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it('creates a website lead from a confirmed subscriber (score 25, newsletter tag, normalized email)', async () => {
+    const res = await captureLeadFromNewsletter({ email: 'Sub@Example.com', firstName: 'Sam' });
+    expect(leadFindOrCreate).toHaveBeenCalledTimes(1);
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.where).toEqual({ email: 'sub@example.com' });
+    expect(call.defaults).toMatchObject({
+      firstName: 'Sam',
+      source: 'website',
+      sourceDetail: 'Newsletter (confirmed opt-in)',
+      status: 'new',
+      score: 25,
+      tags: ['newsletter'],
+    });
+    expect(res).toEqual({ leadId: 9, created: true });
+  });
+
+  it('falls back to a non-null firstName when the subscriber has no name', async () => {
+    await captureLeadFromNewsletter({ email: 'noname@example.com' });
+    expect(leadFindOrCreate.mock.calls[0][0].defaults.firstName).toBe('Subscriber');
+  });
+
+  it('tags an existing lead WITHOUT downgrading its score (dedupe by email)', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 90, tags: ['contact-form'], update }, false]);
+    const res = await captureLeadFromNewsletter({ email: 'hot@example.com' });
+    expect(update).toHaveBeenCalledTimes(1);
+    const upd = update.mock.calls[0][0];
+    expect(upd.tags).toEqual(expect.arrayContaining(['contact-form', 'newsletter']));
+    expect(upd).not.toHaveProperty('score'); // never lowers a hotter lead
+    expect(res.created).toBe(false);
+  });
+
+  it('skips when there is no email', async () => {
+    const res = await captureLeadFromNewsletter({ email: '' });
+    expect(leadFindOrCreate).not.toHaveBeenCalled();
+    expect(res.skipped).toBe('no_email');
+  });
+
+  it('is non-blocking: returns an error object instead of throwing', async () => {
+    leadFindOrCreate.mockRejectedValue(new Error('db down'));
+    const res = await captureLeadFromNewsletter({ email: 'x@example.com' });
+    expect(res.error).toBeTruthy();
+  });
+});
 
 describe('captureLeadFromContact (Tier 0.2a)', () => {
   beforeEach(() => {

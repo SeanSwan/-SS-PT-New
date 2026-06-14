@@ -11,6 +11,7 @@ import express from 'express';
 import { rateLimiter } from '../middleware/authMiddleware.mjs';
 import { subscribe, confirm, unsubscribe } from '../services/newsletterService.mjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
+import { captureLeadFromNewsletter } from '../services/leadCaptureService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -18,11 +19,25 @@ const router = express.Router();
 const SITE_URL = process.env.FRONTEND_URL || 'https://sswanstudios.com';
 const API_URL = process.env.API_BASE_URL || SITE_URL;
 
-const page = (heading, message) => `<!doctype html>
+const page = (heading, message, cta = null) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${heading} · SwanStudios</title></head>
 <body style="margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#0A0A0F;color:#E0ECF4;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px">
-<div style="max-width:480px"><h1 style="color:#60C0F0;margin:0 0 12px">${heading}</h1><p style="opacity:.85;line-height:1.6">${message}</p><p style="margin-top:24px"><a href="${SITE_URL}" style="color:#C6A84B;text-decoration:none;font-weight:600">Return to SwanStudios →</a></p></div>
+<div style="max-width:480px"><h1 style="color:#60C0F0;margin:0 0 12px">${heading}</h1><p style="opacity:.85;line-height:1.6">${message}</p>${cta ? `<p style="margin:24px 0 8px"><a href="${cta.url}" style="display:inline-block;background:linear-gradient(135deg,#60C0F0,#002060);color:#fff;padding:14px 30px;border-radius:10px;text-decoration:none;font-weight:700">${cta.label}</a></p>` : ''}<p style="margin-top:${cta ? '8px' : '24px'}"><a href="${SITE_URL}" style="color:#C6A84B;text-decoration:none;font-weight:600">Return to SwanStudios →</a></p></div>
 </body></html>`;
+
+// 1:1 welcome email on confirm — first value-delivery + one booking CTA. Includes
+// a one-click unsubscribe link (good practice for any list email).
+async function sendWelcomeEmail(subscriber) {
+  const bookUrl = `${SITE_URL}/contact`;
+  const unsubUrl = `${API_URL}/api/newsletter/unsubscribe/${subscriber.unsubscribeToken}`;
+  const hi = subscriber.firstName ? `Hi ${subscriber.firstName}, ` : 'Hi, ';
+  await sendGridEmail({
+    to: subscriber.email,
+    subject: 'Welcome to SwanStudios 🦢',
+    text: `${hi}you're confirmed! Get coaching tips and updates from SwanStudios. Ready to start? Book a free assessment: ${bookUrl}\n\nUnsubscribe anytime: ${unsubUrl}`,
+    html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a"><h2 style="color:#002060">Welcome to SwanStudios 🦢</h2><p>${hi}you're confirmed. You'll get coaching tips, programming insights, and member updates — no spam.</p><p style="margin:24px 0"><a href="${bookUrl}" style="display:inline-block;background:#002060;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Book your free assessment</a></p><p style="color:#888;font-size:12px;margin-top:28px">You're receiving this because you confirmed your SwanStudios subscription. <a href="${unsubUrl}" style="color:#888">Unsubscribe</a>.</p></div>`,
+  });
+}
 
 // Public subscribe — rate-limited; `website` is a honeypot field that traps bots.
 router.post('/subscribe', rateLimiter({ windowMs: 60 * 60 * 1000, max: 20 }), async (req, res) => {
@@ -73,7 +88,26 @@ router.get('/confirm/:token', async (req, res) => {
     if (!result.ok) {
       return res.status(400).send(page('Link expired', 'This confirmation link is invalid or has already been used. Try subscribing again.'));
     }
-    return res.status(200).send(page("You're in! 🦢", 'Your subscription is confirmed. Welcome to SwanStudios.'));
+    // Newly confirmed -> enter the CRM pipeline + send a welcome email. Both are
+    // best-effort and MUST NOT block/break the confirmation page.
+    if (result.action === 'confirmed' && result.subscriber) {
+      const leadResult = await captureLeadFromNewsletter({
+        email: result.subscriber.email,
+        firstName: result.subscriber.firstName,
+        lastName: result.subscriber.lastName,
+      });
+      if (leadResult?.error) logger.warn(`[Newsletter] lead capture on confirm failed: ${leadResult.error}`);
+      try {
+        await sendWelcomeEmail(result.subscriber);
+      } catch (mailErr) {
+        logger.warn(`[Newsletter] welcome email failed: ${mailErr.message}`);
+      }
+    }
+    return res.status(200).send(page(
+      "You're in! 🦢",
+      'Your subscription is confirmed. Welcome to SwanStudios — your first tips are on the way.',
+      { label: 'Book your free assessment', url: `${SITE_URL}/contact` },
+    ));
   } catch (err) {
     logger.error(`[Newsletter] confirm error: ${err.message}`);
     return res.status(500).send(page('Something went wrong', 'Please try the link again shortly.'));

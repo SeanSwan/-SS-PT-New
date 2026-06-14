@@ -23,6 +23,8 @@ const SIGNUP_LEAD_SCORE = 50;           // creating an account = strong intent
 const CHECKOUT_CONVERSION_SCORE = 100;  // paid checkout = converted
 const NON_SALES_ROLES = new Set(['admin', 'trainer']);
 const CHECKOUT_CONVERSION_TAGS = ['checkout', 'converted'];
+const NEWSLETTER_LEAD_SCORE = 25;       // confirmed double-opt-in subscriber: warm, content-interested
+const NEWSLETTER_TAG = 'newsletter';
 /**
  * Map a clientSource string to the Lead.source ENUM
  * (gallery | walk_in | website | referral | social_media | other).
@@ -297,4 +299,67 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
   }
 }
 
-export default { captureLeadFromCheckout, captureLeadFromContact, captureLeadFromSignup };
+/**
+ * Capture a confirmed newsletter subscriber into the CRM Lead pipeline.
+ * A confirmed double-opt-in subscriber is a free, consented prospect worth
+ * nurturing. Best-effort + non-blocking; dedupes by email — an existing hotter
+ * lead is only tagged + light-touched, never downgraded.
+ *
+ * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
+ */
+export async function captureLeadFromNewsletter({ email, firstName = null, lastName = null } = {}) {
+  try {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return { skipped: 'no_email' };
+
+    const { default: Lead } = await import('../models/Lead.mjs');
+    const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
+
+    const [lead, created] = await Lead.findOrCreate({
+      where: { email: normalized },
+      defaults: {
+        firstName: firstName || 'Subscriber', // first_name is NOT NULL
+        lastName: lastName || null,
+        email: normalized,
+        source: 'website',
+        sourceDetail: 'Newsletter (confirmed opt-in)',
+        status: 'new',
+        score: NEWSLETTER_LEAD_SCORE,
+        tags: [NEWSLETTER_TAG],
+        notes: 'Confirmed newsletter subscriber (double opt-in).',
+      },
+    });
+
+    if (created) {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Lead captured from newsletter confirmation',
+        description: 'Confirmed double-opt-in newsletter subscriber',
+        metadata: { source: 'newsletter' },
+      });
+    } else {
+      // Existing lead also confirmed the newsletter — tag + light touch; NEVER
+      // downgrade a hotter lead's score (no score write here).
+      await lead.update({
+        tags: mergeLeadTags(lead.tags, [NEWSLETTER_TAG]),
+        lastContactedAt: new Date(),
+      });
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        performedByAI: false,
+        title: 'Existing lead confirmed newsletter',
+        description: 'Lead also confirmed a double-opt-in newsletter subscription',
+        metadata: { source: 'newsletter' },
+      });
+    }
+
+    return { leadId: lead.id, created };
+  } catch (err) {
+    return { error: err?.message || 'newsletter lead capture failed' };
+  }
+}
+
+export default { captureLeadFromCheckout, captureLeadFromContact, captureLeadFromNewsletter, captureLeadFromSignup };

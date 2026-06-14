@@ -8,11 +8,12 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { subscribe, confirm, unsubscribe, sendGridEmail } = vi.hoisted(() => ({
-  subscribe: vi.fn(), confirm: vi.fn(), unsubscribe: vi.fn(), sendGridEmail: vi.fn(),
+const { subscribe, confirm, unsubscribe, sendGridEmail, captureLeadFromNewsletter } = vi.hoisted(() => ({
+  subscribe: vi.fn(), confirm: vi.fn(), unsubscribe: vi.fn(), sendGridEmail: vi.fn(), captureLeadFromNewsletter: vi.fn(),
 }));
 vi.mock('../services/newsletterService.mjs', () => ({ subscribe, confirm, unsubscribe }));
 vi.mock('../services/sendgridService.mjs', () => ({ sendGridEmail }));
+vi.mock('../services/leadCaptureService.mjs', () => ({ captureLeadFromNewsletter }));
 vi.mock('../middleware/authMiddleware.mjs', () => ({ rateLimiter: () => (_req, _res, next) => next() }));
 vi.mock('../utils/logger.mjs', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
@@ -25,9 +26,10 @@ describe('newsletterRoutes (Tier 1.1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     subscribe.mockResolvedValue({ ok: true, action: 'created_pending', subscriber: { email: 'a@b.com' }, confirmToken: 'ctok' });
-    confirm.mockResolvedValue({ ok: true, action: 'confirmed' });
+    confirm.mockResolvedValue({ ok: true, action: 'confirmed', subscriber: { email: 'a@b.com', firstName: 'Ann', unsubscribeToken: 'utok' } });
     unsubscribe.mockResolvedValue({ ok: true, action: 'unsubscribed' });
     sendGridEmail.mockResolvedValue({ success: true });
+    captureLeadFromNewsletter.mockResolvedValue({ leadId: 1, created: true });
   });
 
   it('subscribe: creates pending, sends confirm email with token URL, generic 200', async () => {
@@ -69,17 +71,33 @@ describe('newsletterRoutes (Tier 1.1)', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('confirm: valid token -> 200 HTML confirmation', async () => {
+  it('confirm: valid token -> 200, creates CRM lead + sends welcome email (w/ unsubscribe) + booking CTA', async () => {
     const res = await request(app).get('/api/newsletter/confirm/ctok');
     expect(res.status).toBe(200);
     expect(res.text).toContain("You're in");
+    expect(res.text).toContain('Book your free assessment'); // next-action CTA on the confirm page
     expect(confirm).toHaveBeenCalledWith('ctok');
+    expect(captureLeadFromNewsletter).toHaveBeenCalledTimes(1);
+    expect(captureLeadFromNewsletter.mock.calls[0][0]).toMatchObject({ email: 'a@b.com' });
+    expect(sendGridEmail).toHaveBeenCalledTimes(1); // welcome email
+    const mail = sendGridEmail.mock.calls[0][0];
+    expect(mail.subject).toContain('Welcome');
+    expect(mail.html).toContain('/api/newsletter/unsubscribe/utok'); // one-click unsubscribe in welcome
   });
 
-  it('confirm: invalid token -> 400', async () => {
+  it('confirm: still 200 if the welcome email send fails (non-blocking)', async () => {
+    sendGridEmail.mockRejectedValue(new Error('sg down'));
+    const res = await request(app).get('/api/newsletter/confirm/ctok');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("You're in");
+  });
+
+  it('confirm: invalid token -> 400, no lead capture, no welcome email', async () => {
     confirm.mockResolvedValue({ ok: false, error: 'invalid_token' });
     const res = await request(app).get('/api/newsletter/confirm/bad');
     expect(res.status).toBe(400);
+    expect(captureLeadFromNewsletter).not.toHaveBeenCalled();
+    expect(sendGridEmail).not.toHaveBeenCalled();
   });
 
   it('unsubscribe: valid token -> 200 HTML', async () => {
