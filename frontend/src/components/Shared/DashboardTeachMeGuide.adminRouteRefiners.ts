@@ -59,6 +59,66 @@ const adminWorkoutSystems = (base: DashboardTeachMeGuideCopy) => applyPatch(base
   primaryPrompt: 'teach me the admin workout builder workflow',
 });
 
+const adminSelfWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach owner training',
+  title: 'Admin self workout logging',
+  summary: 'Use this route when Sean needs to train like a client while staying inside the admin shell.',
+  focus: 'Log your own workout as the owner without switching mental contexts: load today, save the work, then review what changed.',
+  primaryAction: { label: 'Log My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
+  fastPath: [
+    "Open today's workout.",
+    'Enter sets, reps, load, and notes.',
+    'Save before switching back to admin work.',
+  ],
+  actions: [
+    { label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
+    { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
+  ],
+  primaryPrompt: 'teach me the admin self workout logging workflow',
+});
+
+const adminClientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach client logging',
+  title: 'Admin client workout logging',
+  summary: 'Use this route when the admin is logging work performed by a client.',
+  focus: 'Pick the client, log the actual performed work, then keep the saved result connected to plans and progress.',
+  primaryAction: { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+  fastPath: [
+    'Choose the client.',
+    'Log performed sets, reps, load, and notes.',
+    'Save and review progress before leaving.',
+  ],
+  actions: [
+    { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+    { label: 'Client Hub Logger', to: '/dashboard/admin/client-management?tab=training&trainingSection=logger&loadPlan=today' },
+    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
+  ],
+  primaryPrompt: 'teach me the admin client workout logging workflow',
+});
+
+const adminClientProgressTracking = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach progress proof',
+  title: 'Admin client progress proof',
+  summary: 'Use progress tracking to decide the next training action from saved workout truth.',
+  focus: 'Review real logged progress, identify stale or missing proof, then log, adjust the plan, or message the client.',
+  primaryAction: { label: 'Review Client Progress', to: '/dashboard/admin/client-progress-tracking' },
+  fastPath: [
+    'Pick the client trend.',
+    'Check the latest saved workout proof.',
+    'Log, adjust, or message next.',
+  ],
+  actions: [
+    { label: 'Review Client Progress', to: '/dashboard/admin/client-progress-tracking' },
+    { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
+    { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+    { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
+  ],
+  primaryPrompt: 'teach me the admin client progress workflow',
+});
+
 const adminScheduleControl = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   eyebrow: 'Teach the schedule loop',
   title: 'Admin schedule control',
@@ -186,6 +246,15 @@ export const refineAdminGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (includesAny(path, ['log-my-workout'])) {
+    return adminSelfWorkoutLogging(base);
+  }
+  if (includesAny(path, ['log-workout'])) {
+    return adminClientWorkoutLogging(base);
+  }
+  if (includesAny(path, ['client-progress-tracking'])) {
+    return adminClientProgressTracking(base);
+  }
   if (includesAny(path, ['pending-orders', 'revenue', 'admin-packages'])) {
     return adminMoneyPath(base);
   }

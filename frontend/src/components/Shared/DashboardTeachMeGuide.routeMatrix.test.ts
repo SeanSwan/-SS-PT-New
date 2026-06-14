@@ -73,6 +73,45 @@ describe('DashboardTeachMeGuide route matrix', () => {
     ]));
   });
 
+  it('teaches admin self-workout, client logging, and client progress routes as distinct jobs', () => {
+    const selfLog = getDashboardTeachMeGuide({
+      role: 'admin',
+      pathname: '/dashboard/admin/log-my-workout',
+    });
+
+    expect(selfLog.primaryAction).toEqual({
+      label: 'Log My Workout',
+      to: '/dashboard/admin/log-my-workout?loadPlan=today',
+    });
+    expect(selfLog.primaryPrompt).toContain('self workout logging');
+    expect(selfLog.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' }),
+      expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' }),
+    ]));
+
+    const clientLog = getDashboardTeachMeGuide({
+      role: 'admin',
+      pathname: '/dashboard/admin/log-workout',
+    });
+
+    expect(clientLog.primaryAction).toEqual({
+      label: 'Log Client Workout',
+      to: '/dashboard/admin/log-workout?loadPlan=today',
+    });
+    expect(clientLog.primaryPrompt).toContain('client workout logging');
+
+    const progress = getDashboardTeachMeGuide({
+      role: 'admin',
+      pathname: '/dashboard/admin/client-progress-tracking',
+    });
+
+    expect(progress.primaryAction).toEqual({
+      label: 'Review Client Progress',
+      to: '/dashboard/admin/client-progress-tracking',
+    });
+    expect(progress.primaryPrompt).toContain('client progress');
+  });
+
   it('teaches trainer progress and logging screens with their own first click', () => {
     expect(getDashboardTeachMeGuide({
       role: 'trainer',
