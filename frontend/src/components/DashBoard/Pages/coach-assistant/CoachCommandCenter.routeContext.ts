@@ -72,6 +72,7 @@ export function normalizeCommandCenterReturnTo(rawReturnTo: string | null): stri
 }
 
 const RETURN_LABELS: Record<string, string> = {
+  'admin-overview': 'Back to Admin Overview',
   'clients-team': 'Back to Client Hub',
   'master-schedule': 'Back to Schedule',
 };
@@ -115,6 +116,18 @@ function onboardingRouteContext(routeClientLabel: string | null): RouteContextCo
   };
 }
 
+function adminDailyCommandRouteContext(): RouteContextCopy {
+  return {
+    prompt: prompt([
+      'Admin daily command triage.',
+      'Help me choose the next owner/admin move across client logging, my workout, onboarding, intake review, PLAUD review, schedule gaps, session credits, and money-path blockers.',
+      'Keep it low-click: tell me the next one or two actions and where to go.',
+      'Keep all workout, client, intake, and money-path writes review-gated; do not claim anything was saved until I approve it.',
+    ]),
+    status: 'Admin daily command context loaded',
+  };
+}
+
 function scheduledSessionCopy(scheduledSession: CoachScheduledSessionRouteContext | null): string {
   if (!scheduledSession) return '';
   const dateCopy = scheduledSession.scheduledSessionDate ? ` on ${scheduledSession.scheduledSessionDate}` : '';
@@ -143,6 +156,7 @@ function historicalImportRouteContext(routeClientLabel: string | null): RouteCon
 }
 
 const ROUTE_CONTEXT_BUILDERS: Record<string, RouteContextBuilder> = {
+  admin_daily_command: () => adminDailyCommandRouteContext(),
   client_onboarding: (routeClientLabel) => onboardingRouteContext(routeClientLabel),
   historical_import: (routeClientLabel) => historicalImportRouteContext(routeClientLabel),
   log_workout: logWorkoutRouteContext,

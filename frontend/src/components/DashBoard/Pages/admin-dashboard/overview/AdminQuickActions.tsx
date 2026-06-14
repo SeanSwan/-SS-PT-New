@@ -10,13 +10,15 @@ interface AdminQuickActionsProps {
 }
 
 const PRIMARY_ACTION_IDS = new Set([
+  'coach-command',
   'coach-client-intake',
   'log-client-workout',
   'my-workout',
 ]);
 
-const HERO_ACTION_ID = 'coach-client-intake';
-const DAILY_ACTION_IDS = new Set(['log-client-workout', 'my-workout']);
+const HERO_ACTION_ID = 'coach-command';
+const DAILY_ACTION_ORDER = ['log-client-workout', 'my-workout', 'coach-client-intake'];
+const DAILY_ACTION_IDS = new Set(DAILY_ACTION_ORDER);
 
 const QuickActionsWrapper = styled(CommandCard)`
   padding: 2rem;
@@ -64,10 +66,11 @@ const PriorityActionGrid = styled.div`
 
 const DailyActionGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 
+  @media (max-width: 860px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 640px) { grid-template-columns: 1fr; }
 `;
 
@@ -159,7 +162,9 @@ const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
   const theme = useTheme() as any;
   const accent = theme?.colors?.accent || 'var(--accent-primary, #60C0F0)';
   const heroAction = actions.find(action => action.id === HERO_ACTION_ID);
-  const dailyActions = actions.filter(action => DAILY_ACTION_IDS.has(action.id));
+  const dailyActions = DAILY_ACTION_ORDER
+    .map((id) => actions.find(action => action.id === id))
+    .filter((action): action is AdminQuickAction => Boolean(action));
   const secondaryActions = actions.filter(action => !PRIMARY_ACTION_IDS.has(action.id));
 
   const renderAction = (action: AdminQuickAction, tier: 'hero' | 'daily' | 'operation' = 'operation') => {

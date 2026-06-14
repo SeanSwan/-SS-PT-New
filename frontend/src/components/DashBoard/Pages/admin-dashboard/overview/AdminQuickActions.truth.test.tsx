@@ -7,6 +7,13 @@ import AdminQuickActions from './AdminQuickActions';
 
 const actions = [
   {
+    id: 'coach-command',
+    title: 'Coach Command',
+    description: 'Ask what to do next',
+    icon: <BarChart3 size={20} />,
+    action: vi.fn(),
+  },
+  {
     id: 'coach-client-intake',
     title: 'Onboard Client',
     description: 'Start Swan Coach intake',
@@ -50,7 +57,7 @@ describe('AdminQuickActions interaction contract', () => {
   it('renders quick actions as real buttons with useful accessible names', () => {
     renderActions();
 
-    const primary = screen.getByRole('button', { name: /Primary admin action: Onboard Client/i });
+    const primary = screen.getByRole('button', { name: /Primary admin action: Coach Command/i });
     const action = screen.getByRole('button', { name: /Analytics.*Analytics & insights/i });
 
     expect(primary.tagName).toBe('BUTTON');
@@ -64,12 +71,13 @@ describe('AdminQuickActions interaction contract', () => {
 
     expect(screen.getByText('First Moves')).toBeInTheDocument();
     expect(screen.getByText('Start here')).toBeInTheDocument();
-    expect(screen.getAllByText('Daily control')).toHaveLength(2);
+    expect(screen.getAllByText('Daily control')).toHaveLength(3);
     expect(screen.getByText('Operations')).toBeInTheDocument();
     expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
-      'Start hereOnboard ClientStart Swan Coach intake',
+      'Start hereCoach CommandAsk what to do next',
       'Daily controlLog ClientChoose client, log today',
       'Daily controlMy WorkoutLog my workout',
+      'Daily controlOnboard ClientStart Swan Coach intake',
       'AnalyticsAnalytics & insights',
     ]);
   });
@@ -78,11 +86,12 @@ describe('AdminQuickActions interaction contract', () => {
     renderActions();
 
     expect(screen.getAllByText('Start here')).toHaveLength(1);
-    expect(screen.getAllByText('Daily control')).toHaveLength(2);
+    expect(screen.getAllByText('Daily control')).toHaveLength(3);
     expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
-      'Start hereOnboard ClientStart Swan Coach intake',
+      'Start hereCoach CommandAsk what to do next',
       'Daily controlLog ClientChoose client, log today',
       'Daily controlMy WorkoutLog my workout',
+      'Daily controlOnboard ClientStart Swan Coach intake',
       'AnalyticsAnalytics & insights',
     ]);
   });
@@ -92,6 +101,6 @@ describe('AdminQuickActions interaction contract', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Analytics/i }));
 
-    expect(actions[3].action).toHaveBeenCalledTimes(1);
+    expect(actions[4].action).toHaveBeenCalledTimes(1);
   });
 });

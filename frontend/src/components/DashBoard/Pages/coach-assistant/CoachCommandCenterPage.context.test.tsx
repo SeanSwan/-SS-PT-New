@@ -192,6 +192,23 @@ describe('CoachCommandCenterPage route context', () => {
     });
   });
 
+  it('hydrates admin overview command triage without requiring a selected client', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?intent=admin_daily_command&source=admin-overview&returnTo=%2Fdashboard%2Fadmin%2Foverview',
+    );
+
+    const composer = composerInput();
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('Admin daily command triage');
+    });
+
+    expect((composer as HTMLTextAreaElement).value).toContain('client logging');
+    expect((composer as HTMLTextAreaElement).value).toContain('review-gated');
+    expect(screen.getAllByText(/Admin daily command context loaded/i).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('link', { name: /back to admin overview/i }))
+      .toHaveAttribute('href', '/dashboard/admin/overview');
+  });
+
   it('does not show static workout or nutrition proof when selected-client data has not been loaded', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team');
 

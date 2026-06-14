@@ -20,6 +20,22 @@ describe('AdminOverviewQuickActions config', () => {
     );
   });
 
+  it('routes the admin hero action into Swan Coach command triage', () => {
+    const navigate = vi.fn();
+    const actions = buildAdminOverviewQuickActions(navigate as any);
+    const heroAction = actions[0];
+
+    expect(heroAction.id).toBe('coach-command');
+    heroAction.action();
+
+    const [route] = navigate.mock.calls[0];
+    const url = new URL(route, 'https://sswanstudios.com');
+    expect(url.pathname).toBe('/dashboard/admin/coach-assistant');
+    expect(url.searchParams.get('intent')).toBe('admin_daily_command');
+    expect(url.searchParams.get('source')).toBe('admin-overview');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/admin/overview');
+  });
+
   it('routes Log Workout to the canonical client hub with a logging intent', () => {
     const navigate = vi.fn();
     const actions = buildAdminOverviewQuickActions(navigate as any);
@@ -45,10 +61,11 @@ describe('AdminOverviewQuickActions config', () => {
     const navigate = vi.fn();
     const actions = buildAdminOverviewQuickActions(navigate as any);
 
-    expect(actions.slice(0, 4).map(action => action.id)).toEqual([
-      'coach-client-intake',
+    expect(actions.slice(0, 5).map(action => action.id)).toEqual([
+      'coach-command',
       'log-client-workout',
       'my-workout',
+      'coach-client-intake',
       'client-activation-queue',
     ]);
 
