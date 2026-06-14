@@ -216,6 +216,7 @@ export async function createCoachActionProposalsFromAiResponse({
   user,
   conversation,
   sourceMessageId = null,
+  routeContext = null,
   sequelizeOverride = null,
 }) {
   const db = sequelizeOverride || sequelize;
@@ -235,6 +236,7 @@ export async function createCoachActionProposalsFromAiResponse({
     const classified = classifyActionBlock(block, conversation, {
       proposalTypes: COACH_PROPOSAL_TYPE,
       schemaVersion: SCHEMA_VERSION,
+      routeContext,
     });
     if (!classified) continue;
     const summary = summarizeProposal(classified.type, classified.payload, conversation);

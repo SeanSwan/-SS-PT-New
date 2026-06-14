@@ -27,6 +27,15 @@ describe('AI chat selected equipment profile request context', () => {
     expect(routeSource).toMatch(/systemPrompt\s*\+=\s*buildSelectedScheduledSessionPromptBlock/);
   });
 
+  it('validates workout-date request context and forwards it to proposal parsing', () => {
+    expect(routeSource).toContain('hasWorkoutDateRequest');
+    expect(routeSource).toContain('VALID_WORKOUT_DATE_REQUIRED');
+    expect(routeSource).toContain('buildSelectedWorkoutDatePromptBlock');
+    expect(routeSource).toContain('buildCoachProposalRouteContext');
+    expect(routeSource).toMatch(/systemPrompt\s*\+=\s*buildSelectedWorkoutDatePromptBlock/);
+    expect(routeSource).toMatch(/routeContext:\s*coachProposalRouteContext/);
+  });
+
   it('prints equipment profile IDs in enrichment blocks so selected IDs are actionable', () => {
     expect(serviceSource).toMatch(/SELECT\s+ep\.id,\s+ep\.name,\s+ep\."locationType",\s+ep\.description/);
     expect(serviceSource).toContain('`#${e.id} ${e.name}');

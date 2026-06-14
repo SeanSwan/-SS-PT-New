@@ -330,6 +330,48 @@ describe('coachActionProposalService', () => {
     });
   });
 
+  it('defaults missing workout-log date and scheduled session id from safe route context', () => {
+    const classified = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'workout_log',
+      payload: {
+        clientId: 42,
+        exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+      routeContext: {
+        workoutDate: '2026-06-14',
+        scheduledSessionId: '777',
+      },
+    });
+
+    expect(classified?.type).toBe(COACH_PROPOSAL_TYPE.WORKOUT_LOG);
+    expect(classified?.payload).toMatchObject({
+      clientId: 42,
+      date: '2026-06-14',
+      scheduledSessionId: '777',
+    });
+  });
+
+  it('does not create date-less workout-log proposals from malformed route context', () => {
+    const classified = classifyActionBlock({
+      action: 'import_workout_log',
+      clientId: 42,
+      exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+      routeContext: {
+        workoutDate: 'tomorrow after lunch',
+      },
+    });
+
+    expect(classified).toBeNull();
+  });
+
   it('rejects malformed scheduled-session ids in workout-log proposals', () => {
     const classified = classifyActionBlock({
       action: 'coach_action_proposal',

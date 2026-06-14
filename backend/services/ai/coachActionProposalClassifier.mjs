@@ -29,6 +29,7 @@ const ScheduledSessionIdSchema = z.union([
   z.number().int().positive(),
   z.string().regex(/^[1-9]\d*$/),
 ]);
+const ROUTE_CONTEXT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REQUIRED_ONBOARDING_FIELDS = ['firstName', 'lastName', 'clientSource'];
 const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -200,6 +201,29 @@ function proposalMeta(block, schemaVersion) {
   return intakeId ? { ...meta, intakeId } : meta;
 }
 
+function safeRouteDate(routeContext) {
+  const scheduledSessionDate = String(routeContext?.scheduledSessionDate || '').trim();
+  if (ROUTE_CONTEXT_DATE_PATTERN.test(scheduledSessionDate)) return scheduledSessionDate;
+  const workoutDate = String(routeContext?.workoutDate || '').trim();
+  return ROUTE_CONTEXT_DATE_PATTERN.test(workoutDate) ? workoutDate : null;
+}
+
+function safeRouteScheduledSessionId(routeContext) {
+  const scheduledSessionId = String(routeContext?.scheduledSessionId || '').trim();
+  return /^[1-9]\d*$/.test(scheduledSessionId) ? scheduledSessionId : null;
+}
+
+function withWorkoutRouteDefaults(payload, routeContext) {
+  const defaults = {};
+  const date = safeRouteDate(routeContext);
+  if (date && !payload.date) defaults.date = date;
+  const scheduledSessionId = safeRouteScheduledSessionId(routeContext);
+  if (scheduledSessionId && payload.scheduledSessionId == null) {
+    defaults.scheduledSessionId = scheduledSessionId;
+  }
+  return Object.keys(defaults).length ? { ...payload, ...defaults } : payload;
+}
+
 export function parseJsonActionBlocks(content) {
   const blocks = [];
   const regex = /```json\s*([\s\S]*?)\s*```/g;
@@ -228,13 +252,16 @@ export function parseSafeFrontendDispatch(block) {
     : null;
 }
 
-export function classifyActionBlock(block, conversation, { proposalTypes, schemaVersion }) {
+export function classifyActionBlock(block, conversation, { proposalTypes, schemaVersion, routeContext = null }) {
   if (block.action === 'coach_action_proposal') {
     const parsed = safeParseAction(StructuredCoachProposalSchema, block);
     if (!parsed) return null;
     const meta = proposalMeta(parsed, schemaVersion);
     if (parsed.proposal_type === proposalTypes.WORKOUT_LOG) {
-      const payload = safeParseAction(WorkoutLogActionSchema, { action: 'import_workout_log', ...parsed.payload });
+      const payload = safeParseAction(
+        WorkoutLogActionSchema,
+        withWorkoutRouteDefaults({ action: 'import_workout_log', ...parsed.payload }, routeContext),
+      );
       return payload ? { type: proposalTypes.WORKOUT_LOG, payload: { ...payload, proposalMeta: meta } } : null;
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_ONBOARDING) {
@@ -266,7 +293,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
     return payload ? classifyClientOnboardingPayload(payload, proposalTypes) : null;
   }
   if (block.action === 'import_workout_log') {
-    const payload = safeParseAction(WorkoutLogActionSchema, block);
+    const payload = safeParseAction(WorkoutLogActionSchema, withWorkoutRouteDefaults(block, routeContext));
     return payload ? { type: proposalTypes.WORKOUT_LOG, payload } : null;
   }
   if (block.action === 'update_client_data') {

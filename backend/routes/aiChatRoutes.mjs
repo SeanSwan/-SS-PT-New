@@ -67,6 +67,7 @@ import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
 import { purgeCoachIntakeRawArtifacts } from '../services/coachIntakeRetentionPurgeService.mjs';
 import { createCoachActionProposalsFromAiResponse } from '../services/ai/coachActionProposalService.mjs';
+import { buildSwanCoachCoveragePromptBlockFromModels } from '../services/contentStudioCoverageService.mjs';
 
 // Phase 2 Slice 2.1 (2026-05-03): chart/KPI truthfulness guard.
 // Legacy direct workout import writes stay removed from aiChatRoutes; workout
@@ -97,7 +98,13 @@ const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
   'workout_generation',
   'workout_suggestions',
 ]);
-const AI_CHAT_SCHEDULE_CONTEXTS = new Set(['coach_assistant']);
+const AI_CHAT_SCHEDULE_CONTEXTS = new Set(['coach_assistant', 'workout_generation']);
+const AI_CHAT_WORKOUT_DATE_CONTEXTS = new Set([
+  'coach_assistant',
+  'workout_generation',
+  'workout_suggestions',
+]);
+const AI_CHAT_COVERAGE_CONTEXTS = new Set(['coach_assistant', 'workout_generation']);
 
 function parseOptionalPositiveInteger(value) {
   if (value === undefined || value === null || value === '') return null;
@@ -117,6 +124,13 @@ function hasScheduledSessionRequest(raw) {
     && typeof raw === 'object'
     && !Array.isArray(raw)
     && Object.prototype.hasOwnProperty.call(raw, 'scheduledSessionId');
+}
+
+function hasWorkoutDateRequest(raw) {
+  return raw
+    && typeof raw === 'object'
+    && !Array.isArray(raw)
+    && Object.prototype.hasOwnProperty.call(raw, 'workoutDate');
 }
 
 function parseOptionalIsoDate(value) {
@@ -150,6 +164,34 @@ function buildSelectedScheduledSessionPromptBlock({
   const dateLine = scheduledSessionDate ? `\nSession date: ${scheduledSessionDate}` : '';
   const creditLine = scheduledSessionCredits ? `\nCredit hint: ${scheduledSessionCredits}` : '';
   return `\n--- SELECTED BOOKED SESSION ---\nScheduled Session ID: ${scheduledSessionId}${dateLine}${creditLine}\nInstruction: when preparing a workout_log proposal for this booked session, include "scheduledSessionId": "${scheduledSessionId}". Do not invent or change scheduled session ids. Final approval will verify ownership, attendance status, and session deduction server-side.\n--- END SELECTED BOOKED SESSION ---`;
+}
+
+function buildSelectedWorkoutDatePromptBlock({
+  context,
+  workoutDate,
+}) {
+  if (!workoutDate || !AI_CHAT_WORKOUT_DATE_CONTEXTS.has(context)) return '';
+  return `\n--- SELECTED WORKOUT DATE ---\nWorkout date: ${workoutDate}\nInstruction: when preparing a workout_log proposal from this logger session, use "date": "${workoutDate}". Do not invent or change workout dates.\n--- END SELECTED WORKOUT DATE ---`;
+}
+
+function buildCoachProposalRouteContext({
+  scheduledSessionId,
+  scheduledSessionDate,
+  scheduledSessionCredits,
+  workoutDate,
+}) {
+  const routeContext = {};
+  if (workoutDate) routeContext.workoutDate = workoutDate;
+  if (scheduledSessionId) routeContext.scheduledSessionId = String(scheduledSessionId);
+  if (scheduledSessionDate) routeContext.scheduledSessionDate = scheduledSessionDate;
+  if (scheduledSessionCredits) routeContext.scheduledSessionCredits = scheduledSessionCredits;
+  if (Object.keys(routeContext).length === 0) return null;
+  return {
+    source: 'workout-logger',
+    intent: 'log_workout',
+    surface: 'workout-logger-coach-terminal',
+    ...routeContext,
+  };
 }
 
 async function buildSelectedEquipmentProfilePromptBlock({
@@ -340,7 +382,7 @@ router.get('/conversations', async (req, res) => {
         userId: req.user.id,
         status: resolvedStatus,
       },
-      attributes: ['id', 'title', 'context', 'status', 'messageCount', 'lastMessageAt', 'createdAt'],
+      attributes: ['id', 'title', 'context', 'status', 'messageCount', 'lastMessageAt', 'createdAt', 'targetUserId'],
       order: [['lastMessageAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']],
       limit: Math.min(Number(limit) || 20, 50),
       offset: Number(offset) || 0,
@@ -475,6 +517,23 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         error: 'Valid scheduled session credits are required',
       });
     }
+    const hasWorkoutDateContext = hasWorkoutDateRequest(requestContext);
+    const selectedWorkoutDate = hasWorkoutDateContext
+      ? parseOptionalIsoDate(requestContext.workoutDate)
+      : null;
+    if (hasWorkoutDateContext && !selectedWorkoutDate) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_WORKOUT_DATE_REQUIRED',
+        error: 'Valid workout date is required',
+      });
+    }
+    const coachProposalRouteContext = buildCoachProposalRouteContext({
+      scheduledSessionId: selectedScheduledSessionId,
+      scheduledSessionDate: selectedScheduledSessionDate,
+      scheduledSessionCredits: selectedScheduledSessionCredits,
+      workoutDate: selectedWorkoutDate,
+    });
 
     const conversation = await AiConversation.findOne({
       where: {
@@ -606,6 +665,16 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
       systemPrompt += buildCoachIntakeContextPromptBlock(coachIntakeContext);
     }
+    if (isAdminOrTrainer && AI_CHAT_COVERAGE_CONTEXTS.has(conversation.context)) {
+      try {
+        systemPrompt += await buildSwanCoachCoveragePromptBlockFromModels();
+      } catch (err) {
+        logger.warn('[AIChatRoutes] Content Studio coverage context unavailable', {
+          userId: req.user.id,
+          error: err.message,
+        });
+      }
+    }
     // Only enrich with client data if a client is actually selected
     if (enrichUserId) {
       const userDataContext = await enrichWithUserData(
@@ -627,6 +696,10 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       scheduledSessionId: selectedScheduledSessionId,
       scheduledSessionDate: selectedScheduledSessionDate,
       scheduledSessionCredits: selectedScheduledSessionCredits,
+    });
+    systemPrompt += buildSelectedWorkoutDatePromptBlock({
+      context: conversation.context,
+      workoutDate: selectedWorkoutDate,
     });
     // Use sanitized message (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
@@ -688,6 +761,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
           user: req.user,
           conversation,
           sourceMessageId: assistantMsg.timestamp,
+          routeContext: coachProposalRouteContext,
           sequelizeOverride: sequelize,
         });
       } catch (proposalErr) {
