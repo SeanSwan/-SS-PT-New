@@ -222,4 +222,35 @@ describe('DashboardTeachMeGuide route matrix', () => {
       to: '/user-dashboard/nutrition',
     });
   });
+
+  it('gives every routable user tab a tab-specific Coach prompt and action rail', () => {
+    const userTabs = [
+      ['reels', 'Open Reels'],
+      ['friends', 'Open Friends'],
+      ['challenges', 'Open Challenges'],
+      ['notifications', 'Open Notifications'],
+      ['creative', 'Open Studio'],
+      ['photos', 'Open Photos'],
+      ['about', 'Open About'],
+      ['activity', 'Review Activity'],
+      ['nutrition', 'Open Nutrition'],
+      ['progress', 'Review Progress'],
+      ['profile', 'Open Profile'],
+    ] as const;
+
+    userTabs.forEach(([tab, label]) => {
+      const guide = getDashboardTeachMeGuide({
+        role: 'user',
+        pathname: `/user-dashboard/${tab}#${tab}`,
+      });
+
+      expect(guide.primaryAction.label).toBe(label);
+      expect(guide.actions).toEqual(expect.arrayContaining([
+        expect.objectContaining(guide.primaryAction),
+        expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
+      ]));
+      expect(guide.primaryPrompt).toContain(tab === 'creative' ? 'studio' : tab);
+      expect(guide.primaryPrompt).not.toBe('teach me the user dashboard training workflow');
+    });
+  });
 });
