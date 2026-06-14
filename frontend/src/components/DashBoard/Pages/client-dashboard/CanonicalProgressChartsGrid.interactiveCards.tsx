@@ -22,6 +22,7 @@ import {
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import ProgressChartActionBar from '../../progress-proof/ProgressChartActionBar';
 import {
+  buildProgressChartPulse,
   PROGRESS_CHART_RANGE_LABELS,
   sliceChartPointsByRange,
   type ProgressChartTimeRange,
@@ -44,6 +45,7 @@ import {
 } from './CanonicalProgressChartsGrid.styles';
 
 type SeriesId = 'sets' | 'reps';
+type SetsRepsCsvRow = { point: string; sets?: number; reps?: number };
 
 const formatWhole = (value: number) => Math.round(value).toLocaleString();
 
@@ -53,11 +55,100 @@ const summarizeTopPoint = (points: ChartPoint[], unit: string) => {
   return `Showing ${points.length} verified points. Highest: ${top.x} at ${formatWhole(top.y)} ${unit}.`;
 };
 
+const buildSetsRepsRows = (sets: ChartPoint[], reps: ChartPoint[]): SetsRepsCsvRow[] => {
+  const byPoint = new Map<string, SetsRepsCsvRow>();
+  sets.forEach((row) => byPoint.set(row.x, { ...(byPoint.get(row.x) || { point: row.x }), sets: row.y }));
+  reps.forEach((row) => byPoint.set(row.x, { ...(byPoint.get(row.x) || { point: row.x }), reps: row.y }));
+  return Array.from(byPoint.values());
+};
+
+const selectSetsRepsPulseSource = (sets: ChartPoint[], reps: ChartPoint[]) => (
+  reps.length > 0
+    ? { label: 'Rep Pulse', points: reps, unit: 'reps' }
+    : { label: 'Set Pulse', points: sets, unit: 'sets' }
+);
+
+const buildSetsRepsDrilldownRows = (rows: SetsRepsCsvRow[]) => rows.map((row) => ({
+  id: row.point,
+  label: row.point,
+  value: `${row.sets ?? 0} sets / ${row.reps ?? 0} reps`,
+}));
+
+const buildSetsRepsLegendItems = (visibleSeries: Record<SeriesId, boolean>) => [
+  { id: 'sets', label: 'Sets', color: CHART_COLORS.arcticCyan, active: visibleSeries.sets },
+  { id: 'reps', label: 'Reps', color: CHART_COLORS.gildedFern, active: visibleSeries.reps },
+];
+
+const buildVictoryLegendData = (visibleSeries: Record<SeriesId, boolean>) => (
+  [
+    { enabled: visibleSeries.sets, name: 'Sets', symbol: { fill: CHART_COLORS.arcticCyan } },
+    { enabled: visibleSeries.reps, name: 'Reps', symbol: { fill: CHART_COLORS.gildedFern } },
+  ]
+    .filter((item) => item.enabled)
+    .map(({ name, symbol }) => ({ name, symbol }))
+);
+
+const visibleChartPoints = (enabled: boolean, points: ChartPoint[]) => (
+  enabled ? points : []
+);
+
+const SetsRepsChartBody: React.FC<{
+  hasData: boolean;
+  hasVisibleSeries: boolean;
+  visibleReps: ChartPoint[];
+  visibleSeries: Record<SeriesId, boolean>;
+  visibleSets: ChartPoint[];
+}> = ({ hasData, hasVisibleSeries, visibleReps, visibleSeries, visibleSets }) => {
+  if (!hasData) return <EmptyCard label="No sets or reps logged yet" />;
+  if (!hasVisibleSeries) return <EmptyCard label="All series hidden" hint="Turn Sets or Reps back on to view the chart." />;
+
+  const setsData = visibleChartPoints(visibleSeries.sets, visibleSets);
+  const repsData = visibleChartPoints(visibleSeries.reps, visibleReps);
+
+  return (
+    <VictoryChart
+      theme={victoryTheme as any}
+      height={200}
+      padding={{ top: 24, bottom: 40, left: 50, right: 12 }}
+      containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+    >
+      <VictoryLegend
+        x={50}
+        y={0}
+        orientation="horizontal"
+        gutter={16}
+        {...setsRepsLegendProps}
+        data={buildVictoryLegendData(visibleSeries)}
+      />
+      <VictoryAxis />
+      <VictoryAxis dependentAxis />
+      <VictoryGroup offset={8}>
+        <VictoryBar
+          data={setsData}
+          {...setsBarProps}
+          labels={({ datum }) => `Sets ${datum.x}: ${datum.y}`}
+          labelComponent={<VictoryTooltip renderInPortal={false} />}
+        />
+        <VictoryBar
+          data={repsData}
+          {...repsBarProps}
+          labels={({ datum }) => `Reps ${datum.x}: ${datum.y}`}
+          labelComponent={<VictoryTooltip renderInPortal={false} />}
+        />
+      </VictoryGroup>
+    </VictoryChart>
+  );
+};
+
 export const WeeklyVolumeCard: React.FC<{
   data: CanonicalProgressCharts['weeklyVolume'];
 }> = ({ data }) => {
   const [range, setRange] = useState<ProgressChartTimeRange>('quarter');
   const visibleData = useMemo(() => sliceChartPointsByRange(data, range), [data, range]);
+  const pulse = useMemo(() => buildProgressChartPulse(visibleData, {
+    label: 'Volume Pulse',
+    unit: 'lbs',
+  }), [visibleData]);
   const summary = summarizeTopPoint(visibleData, 'lbs');
   const rows = visibleData.map((row) => ({
     id: row.x,
@@ -82,6 +173,7 @@ export const WeeklyVolumeCard: React.FC<{
         }))}
         drilldownRows={rows}
         filename="swan-weekly-volume.csv"
+        pulse={pulse}
         range={range}
         summary={summary}
         onRangeChange={setRange}
@@ -118,15 +210,13 @@ export const SetsRepsTrendCard: React.FC<{
   const [visibleSeries, setVisibleSeries] = useState<Record<SeriesId, boolean>>({ sets: true, reps: true });
   const visibleSets = useMemo(() => sliceChartPointsByRange(bundle.sets, range), [bundle.sets, range]);
   const visibleReps = useMemo(() => sliceChartPointsByRange(bundle.reps, range), [bundle.reps, range]);
+  const pulse = useMemo(() => {
+    const source = selectSetsRepsPulseSource(visibleSets, visibleReps);
+    return buildProgressChartPulse(source.points, { label: source.label, unit: source.unit });
+  }, [visibleReps, visibleSets]);
   const hasVisibleSeries = visibleSeries.sets || visibleSeries.reps;
   const hasData = visibleSets.length > 0 || visibleReps.length > 0;
-
-  const csvRows = useMemo(() => {
-    const byPoint = new Map<string, { point: string; sets?: number; reps?: number }>();
-    visibleSets.forEach((row) => byPoint.set(row.x, { ...(byPoint.get(row.x) || { point: row.x }), sets: row.y }));
-    visibleReps.forEach((row) => byPoint.set(row.x, { ...(byPoint.get(row.x) || { point: row.x }), reps: row.y }));
-    return Array.from(byPoint.values());
-  }, [visibleReps, visibleSets]);
+  const csvRows = useMemo(() => buildSetsRepsRows(visibleSets, visibleReps), [visibleReps, visibleSets]);
 
   const toggleSeries = (id: string) => {
     if (id !== 'sets' && id !== 'reps') return;
@@ -143,66 +233,23 @@ export const SetsRepsTrendCard: React.FC<{
       <ProgressChartActionBar
         chartId="sets-reps-trend"
         csvRows={csvRows}
-        drilldownRows={csvRows.map((row) => ({
-          id: row.point,
-          label: row.point,
-          value: `${row.sets ?? 0} sets / ${row.reps ?? 0} reps`,
-        }))}
+        drilldownRows={buildSetsRepsDrilldownRows(csvRows)}
         filename="swan-sets-reps-trend.csv"
+        pulse={pulse}
         range={range}
         summary={hasData ? 'Toggle sets and reps to isolate the work signal behind this trend.' : 'No verified set or rep rows are available yet.'}
-        legendItems={[
-          { id: 'sets', label: 'Sets', color: CHART_COLORS.arcticCyan, active: visibleSeries.sets },
-          { id: 'reps', label: 'Reps', color: CHART_COLORS.gildedFern, active: visibleSeries.reps },
-        ]}
+        legendItems={buildSetsRepsLegendItems(visibleSeries)}
         onRangeChange={setRange}
         onToggleLegend={toggleSeries}
       />
       <ChartBody data-chart-export="sets-reps-trend">
-        {!hasData ? (
-          <EmptyCard label="No sets or reps logged yet" />
-        ) : !hasVisibleSeries ? (
-          <EmptyCard label="All series hidden" hint="Turn Sets or Reps back on to view the chart." />
-        ) : (
-          <VictoryChart
-            theme={victoryTheme as any}
-            height={200}
-            padding={{ top: 24, bottom: 40, left: 50, right: 12 }}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryLegend
-              x={50}
-              y={0}
-              orientation="horizontal"
-              gutter={16}
-              {...setsRepsLegendProps}
-              data={[
-                visibleSeries.sets && { name: 'Sets', symbol: { fill: CHART_COLORS.arcticCyan } },
-                visibleSeries.reps && { name: 'Reps', symbol: { fill: CHART_COLORS.gildedFern } },
-              ].filter(Boolean) as any}
-            />
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryGroup offset={8}>
-              {visibleSeries.sets && (
-                <VictoryBar
-                  data={visibleSets}
-                  {...setsBarProps}
-                  labels={({ datum }) => `Sets ${datum.x}: ${datum.y}`}
-                  labelComponent={<VictoryTooltip renderInPortal={false} />}
-                />
-              )}
-              {visibleSeries.reps && (
-                <VictoryBar
-                  data={visibleReps}
-                  {...repsBarProps}
-                  labels={({ datum }) => `Reps ${datum.x}: ${datum.y}`}
-                  labelComponent={<VictoryTooltip renderInPortal={false} />}
-                />
-              )}
-            </VictoryGroup>
-          </VictoryChart>
-        )}
+        <SetsRepsChartBody
+          hasData={hasData}
+          hasVisibleSeries={hasVisibleSeries}
+          visibleReps={visibleReps}
+          visibleSeries={visibleSeries}
+          visibleSets={visibleSets}
+        />
       </ChartBody>
     </ChartCard>
   );
