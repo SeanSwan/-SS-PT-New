@@ -44,11 +44,23 @@ describe('Coach intake responsive contract', () => {
 
   it('keeps the work queue before summary stats in the teachable flow', () => {
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
-    const summaryIndex = workspace.indexOf('<StatGrid aria-label="Coach intake summary"');
+    const summaryIndex = workspace.indexOf('<CoachIntakeSummaryStats summary={summary} />');
 
     expect(queueIndex).toBeGreaterThan(-1);
     expect(summaryIndex).toBeGreaterThan(-1);
     expect(queueIndex).toBeLessThan(summaryIndex);
+  });
+
+  it('adds a quick snapshot before the teach guide and work queue', () => {
+    const snapshotIndex = workspace.indexOf('<CoachIntakeSummaryStats summary={summary} label="Coach intake quick snapshot" />');
+    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />');
+    const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
+
+    expect(snapshotIndex).toBeGreaterThan(-1);
+    expect(teachIndex).toBeGreaterThan(-1);
+    expect(queueIndex).toBeGreaterThan(-1);
+    expect(snapshotIndex).toBeLessThan(teachIndex);
+    expect(snapshotIndex).toBeLessThan(queueIndex);
   });
 
   it('puts the Hive Mind intake guide before the active dossier and queue', () => {

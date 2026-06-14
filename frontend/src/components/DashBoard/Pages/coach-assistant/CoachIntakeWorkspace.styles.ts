@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { Stat, StatGrid } from './CoachIntakeWorkspaceQueue.styles';
 
 export const Panel = styled.section`
   width: min(100%, 1240px);
@@ -148,6 +149,30 @@ export const FirstMoveActions = styled.div`
 
   @media (max-width: 520px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+export const IntakeSnapshot = styled.div`
+  margin: 10px 0 12px;
+  min-width: 0;
+
+  ${StatGrid} {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  ${Stat} {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+
+  ${Stat} dd {
+    font-size: 21px;
+  }
+
+  @media (max-width: 640px) {
+    ${StatGrid} {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 `;
 

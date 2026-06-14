@@ -70,7 +70,8 @@ describe('CoachIntakeWorkspace', () => {
     );
 
     expect(screen.getByText(/Voice intake command center/i)).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Coach intake quick snapshot')).getByText('Actionable').closest('div'))
+      .toHaveTextContent('2');
     expect(screen.getAllByText(/Audio upload/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Audio puzzle/i)).toBeInTheDocument();
     expect(screen.getByText(/3 pieces/i)).toBeInTheDocument();

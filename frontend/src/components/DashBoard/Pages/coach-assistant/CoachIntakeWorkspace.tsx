@@ -23,17 +23,17 @@ import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
 import CoachIntakeTeachMe from './CoachIntakeTeachMe';
 import CoachIntakeWorkspaceHeader from './CoachIntakeWorkspaceHeader';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
+import CoachIntakeSummaryStats from './CoachIntakeSummaryStats';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import { useCoachIntakeScopeUrlSync } from './hooks/useCoachIntakeScopeUrlSync';
 import {
   Grid,
+  IntakeSnapshot,
   ItemCard,
   ItemList,
   ItemTitle,
   Panel,
   SourceChip,
-  Stat,
-  StatGrid,
 } from './CoachIntakeWorkspace.styles';
 import {
   activeAudioPrompt,
@@ -195,6 +195,10 @@ export function CoachIntakeWorkspace({
         onRefresh={refresh}
       />
 
+      <IntakeSnapshot>
+        <CoachIntakeSummaryStats summary={summary} label="Coach intake quick snapshot" />
+      </IntakeSnapshot>
+
       <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
 
       <CoachIntakeHealthStrip
@@ -274,12 +278,7 @@ export function CoachIntakeWorkspace({
           })}
         </ItemList>
 
-        <StatGrid aria-label="Coach intake summary">
-          <Stat><dt>Actionable</dt><dd>{summary.actionable}</dd></Stat>
-          <Stat><dt>Ready</dt><dd>{summary.readyReview}</dd></Stat>
-          <Stat><dt>Needs client</dt><dd>{summary.needsClient}</dd></Stat>
-          <Stat><dt>Failed</dt><dd>{summary.failed}</dd></Stat>
-        </StatGrid>
+        <CoachIntakeSummaryStats summary={summary} />
       </Grid>
     </Panel>
   );
