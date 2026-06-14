@@ -16,6 +16,7 @@ const coachCommandCenterMocks = vi.hoisted(() => ({
   executeCommandMock: vi.fn(),
   confirmCommandMock: vi.fn(),
   cancelCommandMock: vi.fn(),
+  useAuthMock: vi.fn(),
 }));
 
 export const {
@@ -31,6 +32,7 @@ export const {
   executeCommandMock,
   confirmCommandMock,
   cancelCommandMock,
+  useAuthMock,
 } = coachCommandCenterMocks;
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
@@ -40,6 +42,11 @@ vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
 
 vi.mock('../../../../hooks/useAIChat', () => ({
   useAIChat: coachCommandCenterMocks.useAIChatMock,
+}));
+
+vi.mock('../../../../hooks/useAuth', () => ({
+  default: coachCommandCenterMocks.useAuthMock,
+  useAuth: coachCommandCenterMocks.useAuthMock,
 }));
 
 vi.mock('../../../../hooks/useCoachCommand', () => ({
@@ -104,7 +111,17 @@ export const unifiedSummary = {
   failedDrafts: 0,
 };
 
-export function renderPage(route = '/dashboard/admin/coach-assistant') {
+type CoachCommandTestRole = 'admin' | 'trainer' | 'client';
+
+export function setCoachCommandCenterRole(role: CoachCommandTestRole) {
+  useAuthMock.mockReturnValue({
+    user: { id: 1, role },
+    isAuthenticated: true,
+  });
+}
+
+export function renderPage(route = '/dashboard/admin/coach-assistant', role: CoachCommandTestRole = 'admin') {
+  setCoachCommandCenterRole(role);
   return render(
     <MemoryRouter initialEntries={[route]}>
       <CoachCommandCenterPage />
@@ -152,6 +169,7 @@ export function resetCoachCommandCenterMocks() {
   confirmCommandMock.mockReset();
   cancelCommandMock.mockReset();
   createQuickCoachCommandClientMock.mockReset();
+  useAuthMock.mockReset();
 
   listConversationsMock.mockResolvedValue([]);
   loadConversationMock.mockResolvedValue(null);
@@ -196,6 +214,7 @@ export function resetCoachCommandCenterMocks() {
     newChat: newChatMock,
     clearError: vi.fn(),
   });
+  setCoachCommandCenterRole('admin');
   useCoachIntakeQueueMock.mockReturnValue({
     items: [
       {

@@ -75,6 +75,7 @@ const RETURN_LABELS: Record<string, string> = {
   'admin-overview': 'Back to Admin Overview',
   'clients-team': 'Back to Client Hub',
   'master-schedule': 'Back to Schedule',
+  'trainer-overview': 'Back to Trainer Home',
 };
 
 function commandCenterReturnLabel(source: string | null): string {
@@ -128,6 +129,18 @@ function adminDailyCommandRouteContext(): RouteContextCopy {
   };
 }
 
+function trainerDailyCommandRouteContext(): RouteContextCopy {
+  return {
+    prompt: prompt([
+      'Trainer daily command triage.',
+      'Help me pick the next client action, dictate a workout, adjust a plan, or open the right logger without extra navigation.',
+      'Keep the answer low-click and floor-ready.',
+      'Keep every workout, client, and intake write review-gated until I approve it.',
+    ]),
+    status: 'Trainer day command context loaded',
+  };
+}
+
 function scheduledSessionCopy(scheduledSession: CoachScheduledSessionRouteContext | null): string {
   if (!scheduledSession) return '';
   const dateCopy = scheduledSession.scheduledSessionDate ? ` on ${scheduledSession.scheduledSessionDate}` : '';
@@ -157,6 +170,7 @@ function historicalImportRouteContext(routeClientLabel: string | null): RouteCon
 
 const ROUTE_CONTEXT_BUILDERS: Record<string, RouteContextBuilder> = {
   admin_daily_command: () => adminDailyCommandRouteContext(),
+  trainer_daily_command: () => trainerDailyCommandRouteContext(),
   client_onboarding: (routeClientLabel) => onboardingRouteContext(routeClientLabel),
   historical_import: (routeClientLabel) => historicalImportRouteContext(routeClientLabel),
   log_workout: logWorkoutRouteContext,

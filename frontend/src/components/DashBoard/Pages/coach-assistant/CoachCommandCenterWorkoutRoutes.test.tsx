@@ -34,6 +34,34 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
   });
 
+  it('routes trainer command clients to trainer logger and planner surfaces', () => {
+    renderPage(
+      '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=trainer-overview&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
+      'trainer',
+    );
+
+    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
+    );
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Foverview',
+    );
+  });
+
+  it('preserves a safe trainer return route in the planner handoff', () => {
+    renderPage(
+      '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=master-schedule&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
+      'trainer',
+    );
+
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
+    );
+  });
+
   it('offers a logger draft handoff for generated workout answers on a selected-client route', async () => {
     const user = userEvent.setup();
     sendMessageWithConversationMock.mockResolvedValueOnce({

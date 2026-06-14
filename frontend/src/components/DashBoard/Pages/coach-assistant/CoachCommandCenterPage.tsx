@@ -15,6 +15,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { useAuth } from '../../../../hooks/useAuth';
 import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
@@ -40,6 +41,21 @@ const QUICK_INTENTS: CoachQuickIntent[] = [
 ];
 
 const RECENT_CLIENT_LIMIT = 12;
+type CoachCommandRole = 'admin' | 'trainer' | 'client';
+
+function normalizeCoachCommandRole(role: unknown): CoachCommandRole {
+  return role === 'trainer' || role === 'client' ? role : 'admin';
+}
+
+function trainerWorkoutPlannerRoute(clientId: number | null, returnTo: string | null): string | null {
+  if (!clientId) return null;
+  const params = new URLSearchParams({
+    clientId: String(clientId),
+    source: 'swan-coach',
+    returnTo: returnTo || '/dashboard/trainer/overview',
+  });
+  return `/dashboard/trainer/workout-planner?${params.toString()}`;
+}
 
 function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
   if (
@@ -52,8 +68,10 @@ function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
 }
 
 const CoachCommandCenterPage: React.FC = () => {
+  const { user: authUser } = useAuth();
   const commandCenter = useCoachCommandCenterController();
   const [searchParams] = useSearchParams();
+  const userRole = normalizeCoachCommandRole(authUser?.role);
   const routeForcedTab = tabFromRoute(searchParams);
   const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
@@ -85,15 +103,20 @@ const CoachCommandCenterPage: React.FC = () => {
   const plaudCount = commandCenter.summary.readyReview;
   const workoutLoggerRoute = useMemo(
     () => buildSwanCoachWorkoutLoggerRoute({
-      userRole: 'admin',
+      userRole,
       selectedClientId: commandCenter.routeClientId,
       searchParams,
     }),
-    [commandCenter.routeClientId, searchParams],
+    [commandCenter.routeClientId, searchParams, userRole],
   );
   const workoutPlannerRoute = useMemo(
-    () => (commandCenter.routeClientId ? buildClientWorkoutPlannerRoute(commandCenter.routeClientId) : null),
-    [commandCenter.routeClientId],
+    () => {
+      if (!commandCenter.routeClientId) return null;
+      return userRole === 'trainer'
+        ? trainerWorkoutPlannerRoute(commandCenter.routeClientId, commandCenter.workflowReturnTo)
+        : buildClientWorkoutPlannerRoute(commandCenter.routeClientId);
+    },
+    [commandCenter.routeClientId, commandCenter.workflowReturnTo, userRole],
   );
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? commandCenter.selectedClientLabel : 'My workout log';
   const workoutLoggerLabel = commandCenter.routeClientId ? 'Logger' : 'My Logger';
@@ -162,7 +185,7 @@ const CoachCommandCenterPage: React.FC = () => {
           {activeTab === 'intake' ? (
             <div className="tab-scroll">
               <CoachIntakeWorkspace
-                userRole="admin"
+                userRole={userRole}
                 selectedClientName={commandCenter.selectedClientLabel}
                 onCommandPrompt={commandCenter.handleWorkflowSelect}
                 queue={commandCenter.coachQueue}

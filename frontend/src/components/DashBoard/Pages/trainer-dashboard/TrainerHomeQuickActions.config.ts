@@ -3,6 +3,9 @@ import { BarChart3, Brain, Dumbbell, Eye } from 'lucide-react';
 
 export const TRAINER_HOME_COACH_PROMPT =
   "Teach me my trainer Home. Help me pick the next client, log today's sessions, review progress proof, and decide the safest next coaching move.";
+export const TRAINER_HOME_COMMAND_INTENT = 'trainer_daily_command';
+export const TRAINER_HOME_COMMAND_SOURCE = 'trainer-overview';
+export const TRAINER_HOME_RETURN_TO = '/dashboard/trainer/overview';
 
 export interface TrainerHomeCoachSnapshot {
   sessionsToday?: number;
@@ -28,7 +31,12 @@ export const buildTrainerHomeCoachPrompt = (snapshot?: TrainerHomeCoachSnapshot)
 };
 
 export const buildTrainerHomeCoachPath = (snapshot?: TrainerHomeCoachSnapshot): string =>
-  `/dashboard/trainer/coach-assistant?${new URLSearchParams({ teachPrompt: buildTrainerHomeCoachPrompt(snapshot) }).toString()}`;
+  `/dashboard/trainer/coach-assistant?${new URLSearchParams({
+    intent: TRAINER_HOME_COMMAND_INTENT,
+    source: TRAINER_HOME_COMMAND_SOURCE,
+    returnTo: TRAINER_HOME_RETURN_TO,
+    teachPrompt: buildTrainerHomeCoachPrompt(snapshot),
+  }).toString()}`;
 
 export const TRAINER_HOME_COACH_PATH = buildTrainerHomeCoachPath();
 
@@ -46,11 +54,11 @@ export interface TrainerHomeQuickAction {
 export const TRAINER_HOME_QUICK_ACTIONS: readonly TrainerHomeQuickAction[] = [
   {
     label: 'Log Workout',
-    detail: 'Pick a client and save today.',
+    detail: 'Dictate, pick client, send to logger.',
     overline: 'Start here',
     primary: true,
     Icon: Dumbbell,
-    path: '/dashboard/trainer/clients?intent=log_workout',
+    path: TRAINER_HOME_COACH_PATH,
     tone: 'var(--accent-primary, #60C0F0)',
     i: 0,
   },

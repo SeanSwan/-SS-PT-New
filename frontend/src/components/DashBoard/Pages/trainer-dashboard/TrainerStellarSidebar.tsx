@@ -44,6 +44,7 @@ import {
   SidebarFooter,
   FooterVersion,
 } from './TrainerStellarSidebar.styles';
+import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -85,7 +86,7 @@ export const trainerNavConfig = [
     section: 'STUDIO',
     items: [
       { label: 'Training Videos', path: '/dashboard/trainer/videos', icon: Video },
-      { label: 'Swan Coach', path: '/dashboard/trainer/coach-assistant', icon: Brain },
+      { label: 'Swan Coach', path: TRAINER_HOME_COACH_PATH, icon: Brain },
       { label: 'My Home', path: '/dashboard/trainer/my-home', icon: Home },
     ],
   },

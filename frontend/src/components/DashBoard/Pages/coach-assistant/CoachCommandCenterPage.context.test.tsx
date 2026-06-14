@@ -209,6 +209,28 @@ describe('CoachCommandCenterPage route context', () => {
       .toHaveAttribute('href', '/dashboard/admin/overview');
   });
 
+  it('hydrates the trainer Home command prompt and return route', async () => {
+    const trainerPrompt = [
+      'Teach me my trainer Home.',
+      'Current trainer-day snapshot: 4 sessions today; 3 clients today; 25% complete; next booked client needs action.',
+      'Keep the answer low-click.',
+    ].join(' ');
+
+    renderPage(
+      `/dashboard/trainer/coach-assistant?intent=trainer_daily_command&source=trainer-overview&returnTo=%2Fdashboard%2Ftrainer%2Foverview&teachPrompt=${encodeURIComponent(trainerPrompt)}`,
+      'trainer',
+    );
+
+    const composer = composerInput();
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toBe(trainerPrompt);
+    });
+
+    expect(screen.getAllByText(/Trainer day command context loaded/i).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('link', { name: /back to trainer home/i }))
+      .toHaveAttribute('href', '/dashboard/trainer/overview');
+  });
+
   it('does not show static workout or nutrition proof when selected-client data has not been loaded', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team');
 

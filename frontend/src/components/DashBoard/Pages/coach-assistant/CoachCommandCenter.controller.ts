@@ -119,13 +119,16 @@ export function useCoachCommandCenterController() {
   const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, routeSource);
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
+  const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
   const scheduledSessionContext = useMemo(
     () => getScheduledSessionRouteContextFromSearchParams(searchParams),
     [searchKey],
   );
   const routeContext = useMemo(
-    () => buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
-    [routeClientLabel, routeIntent, scheduledSessionContext],
+    () => routeTeachPrompt
+      ? { prompt: routeTeachPrompt, status: routeIntent === 'trainer_daily_command' ? 'Trainer day command context loaded' : 'Coach route prompt loaded' }
+      : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
+    [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );
   const storedRouteDraft = useMemo(
     () => readHistoricalImportRouteDraft(routeIntent, routeDraftKey),

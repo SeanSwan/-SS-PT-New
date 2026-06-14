@@ -9,7 +9,7 @@ vi.mock('../../../Shared/AICommandBar', () => ({
 }));
 
 describe('SwanCoachDockTrainer workout-first actions', () => {
-  it('labels the primary logger route as Log Workout', async () => {
+  it('routes the primary Log Workout chip through Coach Command', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
 
@@ -25,7 +25,7 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     await user.click(screen.getByRole('button', { name: /^log workout$/i }));
 
     expect(screen.queryByRole('button', { name: /^log session$/i })).toBeNull();
-    expect(onNavigate).toHaveBeenCalledWith('/dashboard/trainer/clients?intent=log_workout');
+    expect(onNavigate).toHaveBeenCalledWith(TRAINER_HOME_COACH_PATH);
   });
 
   it('offers a top-dock Ask Coach route with the staged trainer-day prompt', async () => {
@@ -62,6 +62,26 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /^ask coach$/i }));
+
+    expect(onNavigate).toHaveBeenCalledWith(coachPath);
+  });
+
+  it('uses the live trainer-day Coach path for Log Workout too', async () => {
+    const user = userEvent.setup();
+    const onNavigate = vi.fn();
+    const coachPath = '/dashboard/trainer/coach-assistant?intent=trainer_daily_command&teachPrompt=live-day';
+
+    render(
+      <SwanCoachDockTrainer
+        trainerName="Coach"
+        sessionCount={2}
+        level={4}
+        coachPath={coachPath}
+        onNavigate={onNavigate}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /^log workout$/i }));
 
     expect(onNavigate).toHaveBeenCalledWith(coachPath);
   });

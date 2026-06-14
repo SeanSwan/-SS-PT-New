@@ -692,7 +692,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/sprint-planner', component: SprintPlannerPage, title: 'Sprint Planner', description: '3-month bootcamp sprint planning + calendar' },
       { path: '/video-call', component: VideoCallPage, title: 'Video Assessment', description: 'Remote movement screens, postural analysis via video' },
       { path: '/my-home', component: AvatarHomePage, title: 'My Home', description: '3D avatar home — unlocks at Level 10' },
-      { path: '/coach-assistant', component: SwanCoachAssistantPage, title: 'Coach Assistant', description: 'Swan Studios Coach Assistant' },
+      { path: '/coach-assistant', component: CoachCommandCenterPage, title: 'Coach Command Center', description: 'Review-gated trainer command bridge' },
       { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events' }
     ],
     defaultPath: '/overview'

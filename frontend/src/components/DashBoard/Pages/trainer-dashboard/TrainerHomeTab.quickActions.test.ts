@@ -23,7 +23,7 @@ describe('TrainerHomeTab quick-action priority', () => {
     ]);
 
     expect(TRAINER_HOME_QUICK_ACTIONS.map(action => action.path)).toEqual([
-      '/dashboard/trainer/clients?intent=log_workout',
+      TRAINER_HOME_COACH_PATH,
       TRAINER_HOME_COACH_PATH,
       '/dashboard/trainer/clients',
       '/dashboard/trainer/client-progress',
@@ -31,13 +31,16 @@ describe('TrainerHomeTab quick-action priority', () => {
 
     const coachUrl = new URL(TRAINER_HOME_COACH_PATH, 'https://sswanstudios.test');
     expect(coachUrl.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(coachUrl.searchParams.get('intent')).toBe('trainer_daily_command');
+    expect(coachUrl.searchParams.get('source')).toBe('trainer-overview');
+    expect(coachUrl.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
     expect(coachUrl.searchParams.get('teachPrompt')).toBe(TRAINER_HOME_COACH_PROMPT);
 
     expect(TRAINER_HOME_QUICK_ACTIONS[0]).toMatchObject({
       label: 'Log Workout',
       primary: true,
       overline: 'Start here',
-      detail: 'Pick a client and save today.',
+      detail: 'Dictate, pick client, send to logger.',
     });
     expect(TRAINER_HOME_QUICK_ACTIONS.slice(1).map(action => Boolean(action.primary))).toEqual([
       false,
@@ -66,6 +69,8 @@ describe('TrainerHomeTab quick-action priority', () => {
     const prompt = url.searchParams.get('teachPrompt') || '';
 
     expect(url.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(url.searchParams.get('intent')).toBe('trainer_daily_command');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
     expect(prompt).toContain('3 sessions today');
     expect(prompt).toContain('2 clients today');
     expect(prompt).toContain('67% complete');
