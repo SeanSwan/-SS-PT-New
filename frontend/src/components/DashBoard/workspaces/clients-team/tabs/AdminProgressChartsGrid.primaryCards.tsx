@@ -17,6 +17,10 @@ import {
 } from 'victory';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import {
+  buildProgressChartPulse,
+  type ProgressChartPulse,
+} from '../../../progress-proof/progressChartActions';
+import {
   isProgressChartVisible,
   type ProgressChartLensId,
 } from '../../../progress-proof/progressChartLens';
@@ -33,10 +37,15 @@ import {
   AttendanceMeta,
   AttendancePercent,
   AttendanceSummary,
+  AdminPulseDetail,
+  AdminPulseLabel,
+  AdminPulseStrip,
+  AdminPulseValue,
   Card,
   CardBody,
   CardHeader,
   CardTitle,
+  ChartStack,
   Empty,
 } from './AdminProgressChartsGrid.styles';
 
@@ -49,8 +58,38 @@ const compactPadding = { top: 12, bottom: 36, left: 36, right: 8 };
 const volumePadding = { top: 12, bottom: 36, left: 48, right: 8 };
 const groupedPadding = { top: 20, bottom: 36, left: 44, right: 8 };
 
-export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts, activeLensId }) => (
-  <>
+const selectSetsRepsPulseSource = (bundle: CanonicalProgressCharts['setsRepsTrend']) => (
+  bundle.reps.length > 0
+    ? { label: 'Rep Pulse', points: bundle.reps, unit: 'reps' }
+    : { label: 'Set Pulse', points: bundle.sets, unit: 'sets' }
+);
+
+const AdminProgressPulse: React.FC<{ pulse: ProgressChartPulse }> = ({ pulse }) => (
+  <AdminPulseStrip $tone={pulse.tone} aria-label={`${pulse.label}: ${pulse.value}`}>
+    <AdminPulseLabel>{pulse.label}</AdminPulseLabel>
+    <AdminPulseValue>{pulse.value}</AdminPulseValue>
+    <AdminPulseDetail>{pulse.detail}</AdminPulseDetail>
+  </AdminPulseStrip>
+);
+
+export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts, activeLensId }) => {
+  const workoutPulse = buildProgressChartPulse(charts.workoutFrequency, {
+    label: 'Frequency Pulse',
+    unit: 'workouts',
+  });
+  const volumePulse = buildProgressChartPulse(charts.weeklyVolume, {
+    label: 'Volume Pulse',
+    unit: 'lbs',
+  });
+  const setsRepsSource = selectSetsRepsPulseSource(charts.setsRepsTrend);
+  const setsRepsPulse = buildProgressChartPulse(setsRepsSource.points, {
+    label: setsRepsSource.label,
+    unit: setsRepsSource.unit,
+  });
+  const hasSetsRepsData = charts.setsRepsTrend.sets.length > 0 || charts.setsRepsTrend.reps.length > 0;
+
+  return (
+    <>
     {isProgressChartVisible(activeLensId, 'workoutFrequency') && <Card data-testid="admin-chart-workoutFrequency">
       <CardHeader>
         <Calendar size={14} color={CHART_COLORS.iceWing} />
@@ -58,22 +97,25 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
       </CardHeader>
       <CardBody>
         {charts.workoutFrequency.length === 0 ? <Empty>No completed workouts yet</Empty> : (
-          <VictoryChart
-            theme={victoryTheme}
-            height={180}
-            padding={compactPadding}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryBar
-              data={charts.workoutFrequency}
-              {...workoutFrequencyBarProps}
-              cornerRadius={{ top: 3 }}
-              labels={({ datum }) => `${datum.x}: ${datum.y}`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryChart>
+          <ChartStack>
+            <AdminProgressPulse pulse={workoutPulse} />
+            <VictoryChart
+              theme={victoryTheme}
+              height={180}
+              padding={compactPadding}
+              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryBar
+                data={charts.workoutFrequency}
+                {...workoutFrequencyBarProps}
+                cornerRadius={{ top: 3 }}
+                labels={({ datum }) => `${datum.x}: ${datum.y}`}
+                labelComponent={<VictoryTooltip renderInPortal={false} />}
+              />
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -103,21 +145,24 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
       </CardHeader>
       <CardBody>
         {charts.weeklyVolume.length === 0 ? <Empty>No logged lifts yet</Empty> : (
-          <VictoryChart
-            theme={victoryTheme}
-            height={180}
-            padding={volumePadding}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryArea
-              data={charts.weeklyVolume}
-              {...weeklyVolumeAreaProps}
-              labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryChart>
+          <ChartStack>
+            <AdminProgressPulse pulse={volumePulse} />
+            <VictoryChart
+              theme={victoryTheme}
+              height={180}
+              padding={volumePadding}
+              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryArea
+                data={charts.weeklyVolume}
+                {...weeklyVolumeAreaProps}
+                labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`}
+                labelComponent={<VictoryTooltip renderInPortal={false} />}
+              />
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -128,20 +173,23 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Sets & Reps Trend</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.setsRepsTrend.sets.length === 0 ? <Empty>No sets logged yet</Empty> : (
-          <VictoryChart
-            theme={victoryTheme}
-            height={180}
-            padding={groupedPadding}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryGroup offset={8}>
-              <VictoryBar data={charts.setsRepsTrend.sets} {...setsBarProps} />
-              <VictoryBar data={charts.setsRepsTrend.reps} {...repsBarProps} />
-            </VictoryGroup>
-          </VictoryChart>
+        {!hasSetsRepsData ? <Empty>No sets or reps logged yet</Empty> : (
+          <ChartStack>
+            <AdminProgressPulse pulse={setsRepsPulse} />
+            <VictoryChart
+              theme={victoryTheme}
+              height={180}
+              padding={groupedPadding}
+              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryGroup offset={8}>
+                <VictoryBar data={charts.setsRepsTrend.sets} {...setsBarProps} />
+                <VictoryBar data={charts.setsRepsTrend.reps} {...repsBarProps} />
+              </VictoryGroup>
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -187,5 +235,6 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         )}
       </CardBody>
     </Card>}
-  </>
-);
+    </>
+  );
+};
