@@ -132,6 +132,7 @@ describe('admin fulfillment queue service', () => {
       itemType: 'physical_product',
       fulfillmentStatus: 'pending_fulfillment',
       metadata: { itemKind: 'physical_product', fulfillmentStatus: 'pending_fulfillment' },
+      order: { id: 900, status: 'completed', completedAt: '2026-06-13T12:05:00.000Z' },
       update,
     });
 
@@ -142,6 +143,13 @@ describe('admin fulfillment queue service', () => {
     });
 
     expect(result).toMatchObject({ orderItemId: 71, fulfillmentStatus: 'fulfilled' });
+    expect(mocks.orderItemModel.findByPk).toHaveBeenCalledWith(71, expect.objectContaining({
+      include: [expect.objectContaining({
+        model: mocks.orderModel,
+        as: 'order',
+        attributes: ['id', 'status', 'completedAt'],
+      })],
+    }));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       fulfillmentStatus: 'fulfilled',
       fulfilledBy: 5,
@@ -151,5 +159,28 @@ describe('admin fulfillment queue service', () => {
         fulfilledBy: 5,
       }),
     }));
+  });
+
+  it('refuses to fulfill physical product items whose parent order is not completed', async () => {
+    const update = vi.fn();
+    mocks.orderItemModel.findByPk.mockResolvedValue({
+      id: 72,
+      itemType: 'physical_product',
+      fulfillmentStatus: 'pending_fulfillment',
+      metadata: { itemKind: 'physical_product', fulfillmentStatus: 'pending_fulfillment' },
+      order: { id: 901, status: 'pending', completedAt: null },
+      update,
+    });
+
+    await expect(completeFulfillmentItem({
+      orderItemId: 72,
+      adminId: 5,
+      notes: 'Do not ship yet',
+    })).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Only completed paid orders can be fulfilled',
+    });
+
+    expect(update).not.toHaveBeenCalled();
   });
 });

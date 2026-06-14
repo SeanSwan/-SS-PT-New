@@ -20,20 +20,47 @@ function toPlain(record) {
   return typeof record?.toJSON === 'function' ? record.toJSON() : record;
 }
 
-function asObject(value) {
-  if (!value) return {};
-  if (typeof value === 'object') return value;
+function isObjectRecord(value) {
+  return value !== null && typeof value === 'object';
+}
+
+function objectOrEmpty(value) {
+  return isObjectRecord(value) ? value : {};
+}
+
+function parseJsonObject(value) {
   try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return objectOrEmpty(JSON.parse(value));
   } catch {
     return {};
   }
 }
 
+function asObject(value) {
+  if (isObjectRecord(value)) return value;
+  return typeof value === 'string' ? parseJsonObject(value) : {};
+}
+
 function safeString(value, max = 240) {
   if (value === null || value === undefined) return '';
   return String(value).trim().slice(0, max);
+}
+
+function isPresent(value) {
+  return value !== null && value !== undefined && value !== '';
+}
+
+function isPhysicalKind(value) {
+  return value === 'physical_product';
+}
+
+function firstPresent(values, fallback = null) {
+  const found = values.find(isPresent);
+  return found === undefined ? fallback : found;
+}
+
+function firstText(values, max = 240) {
+  return safeString(firstPresent(values, ''), max);
 }
 
 function toNumber(value, fallback = 0) {
@@ -42,17 +69,38 @@ function toNumber(value, fallback = 0) {
 }
 
 function isPhysicalOrderItem(item) {
-  const metadata = asObject(item?.metadata);
-  return item?.itemType === 'physical_product'
-    || metadata.itemKind === 'physical_product'
-    || item?.storefrontItem?.itemKind === 'physical_product'
-    || Boolean(item?.productVariantId);
+  const record = objectOrEmpty(item);
+  const metadata = asObject(record.metadata);
+  const storefrontItem = objectOrEmpty(record.storefrontItem);
+  const kindSignals = [record.itemType, metadata.itemKind, storefrontItem.itemKind];
+  return kindSignals.some(isPhysicalKind) || Boolean(record.productVariantId);
 }
 
 function itemStatus(item) {
   const metadata = asObject(item?.metadata);
-  const status = item?.fulfillmentStatus || metadata.fulfillmentStatus;
+  const status = firstPresent([item?.fulfillmentStatus, metadata.fulfillmentStatus]);
   return FULFILLMENT_STATUSES.has(status) ? status : 'pending_fulfillment';
+}
+
+function fulfillmentError(message, statusCode) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function assertFound(item) {
+  if (item) return;
+  throw fulfillmentError('Fulfillment item not found', 404);
+}
+
+function assertPhysicalItem(item) {
+  if (isPhysicalOrderItem(item)) return;
+  throw fulfillmentError('Only physical product items require fulfillment', 409);
+}
+
+function assertCompletedOrder(item) {
+  if (item?.order?.status === 'completed') return;
+  throw fulfillmentError('Only completed paid orders can be fulfilled', 409);
 }
 
 function orderFulfillmentIntent(order) {
@@ -60,13 +108,30 @@ function orderFulfillmentIntent(order) {
   return asObject(shippingAddress.fulfillmentIntent);
 }
 
+function userFullName(user) {
+  return [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+}
+
 function customerFromOrder(order) {
-  const user = order?.user || {};
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  const record = objectOrEmpty(order);
+  const user = objectOrEmpty(record.user);
   return {
-    id: user.id || order?.userId || null,
-    name: fullName || order?.billingName || 'Unknown customer',
-    email: user.email || order?.billingEmail || null,
+    id: firstPresent([user.id, record.userId]),
+    name: firstText([userFullName(user), record.billingName, 'Unknown customer'], 120),
+    email: firstPresent([user.email, record.billingEmail]),
+  };
+}
+
+function fulfillmentDetailPayload(order, details) {
+  return {
+    recipientName: firstText([details.recipientName, order?.billingName], 120),
+    phone: safeString(details.phone, 40),
+    streetAddress: safeString(details.streetAddress, 160),
+    city: safeString(details.city, 80),
+    state: safeString(details.state, 40),
+    postalCode: safeString(details.postalCode, 24),
+    pickupWindow: safeString(details.pickupWindow, 120),
+    notes: safeString(details.notes, 240),
   };
 }
 
@@ -75,49 +140,48 @@ function fulfillmentDetails(order, item) {
   const intent = orderFulfillmentIntent(order);
   const details = asObject(intent.details);
   return {
-    mode: intent.mode || metadata.fulfillmentType || 'local_delivery_or_pickup',
-    type: metadata.fulfillmentType || item?.storefrontItem?.fulfillmentType || 'local_delivery',
-    details: {
-      recipientName: safeString(details.recipientName || order?.billingName, 120),
-      phone: safeString(details.phone, 40),
-      streetAddress: safeString(details.streetAddress, 160),
-      city: safeString(details.city, 80),
-      state: safeString(details.state, 40),
-      postalCode: safeString(details.postalCode, 24),
-      pickupWindow: safeString(details.pickupWindow, 120),
-      notes: safeString(details.notes, 240),
-    },
+    mode: firstPresent([intent.mode, metadata.fulfillmentType], 'local_delivery_or_pickup'),
+    type: firstPresent([metadata.fulfillmentType, item?.storefrontItem?.fulfillmentType], 'local_delivery'),
+    details: fulfillmentDetailPayload(order, details),
+  };
+}
+
+function productSnapshot(item, metadata, storefrontItem) {
+  return {
+    id: firstPresent([item.storefrontItemId, storefrontItem.id]),
+    name: firstText([storefrontItem.name, item.name, 'Physical product'], 160),
+    itemType: firstPresent([item.itemType, metadata.itemKind, storefrontItem.itemKind], 'physical_product'),
+  };
+}
+
+function variantSnapshot(item, metadata, storefrontItem, variant) {
+  return {
+    id: firstPresent([item.productVariantId, variant.id]),
+    label: firstPresent([variant.label, metadata.productVariantLabel]),
+    sku: firstPresent([variant.sku, metadata.productVariantSku, storefrontItem.sku]),
+    stockQuantity: firstPresent([variant.stockQuantity, storefrontItem.stockQuantity]),
   };
 }
 
 function queueItem(order, item) {
   const metadata = asObject(item?.metadata);
-  const storefrontItem = item?.storefrontItem || {};
-  const variant = item?.productVariant || {};
+  const storefrontItem = objectOrEmpty(item?.storefrontItem);
+  const variant = objectOrEmpty(item?.productVariant);
   return {
     orderId: order.id,
-    orderNumber: order.orderNumber || `Order #${order.id}`,
-    orderDate: order.completedAt || order.createdAt || null,
+    orderNumber: firstText([order.orderNumber, `Order #${order.id}`], 80),
+    orderDate: firstPresent([order.completedAt, order.createdAt]),
     orderItemId: item.id,
     customer: customerFromOrder(order),
-    product: {
-      id: item.storefrontItemId || storefrontItem.id || null,
-      name: storefrontItem.name || item.name || 'Physical product',
-      itemType: item.itemType || metadata.itemKind || storefrontItem.itemKind || 'physical_product',
-    },
-    variant: {
-      id: item.productVariantId || variant.id || null,
-      label: variant.label || metadata.productVariantLabel || null,
-      sku: variant.sku || metadata.productVariantSku || storefrontItem.sku || null,
-      stockQuantity: variant.stockQuantity ?? storefrontItem.stockQuantity ?? null,
-    },
+    product: productSnapshot(item, metadata, storefrontItem),
+    variant: variantSnapshot(item, metadata, storefrontItem, variant),
     quantity: toNumber(item.quantity, 1),
     price: toNumber(item.price),
     subtotal: toNumber(item.subtotal),
     fulfillmentStatus: itemStatus(item),
-    fulfilledAt: item.fulfilledAt || null,
-    fulfilledBy: item.fulfilledBy || null,
-    fulfillmentNotes: item.fulfillmentNotes || metadata.fulfillmentNotes || null,
+    fulfilledAt: firstPresent([item.fulfilledAt]),
+    fulfilledBy: firstPresent([item.fulfilledBy]),
+    fulfillmentNotes: firstPresent([item.fulfillmentNotes, metadata.fulfillmentNotes]),
     fulfillment: fulfillmentDetails(order, item),
   };
 }
@@ -178,48 +242,59 @@ export async function getAdminFulfillmentQueue({ status = 'pending_fulfillment',
   };
 }
 
-export async function completeFulfillmentItem({ orderItemId, adminId, notes = '' } = {}) {
-  const OrderItem = getOrderItem();
-  const item = await OrderItem.findByPk(orderItemId);
-  const plainItem = toPlain(item);
+function orderInclude(Order) {
+  return [{ model: Order, as: 'order', attributes: ['id', 'status', 'completedAt'] }];
+}
 
-  if (!item) {
-    const error = new Error('Fulfillment item not found');
-    error.statusCode = 404;
-    throw error;
-  }
+async function findFulfillmentItem(OrderItem, Order, orderItemId) {
+  return OrderItem.findByPk(orderItemId, { include: orderInclude(Order) });
+}
 
-  if (!isPhysicalOrderItem(plainItem)) {
-    const error = new Error('Only physical product items require fulfillment');
-    error.statusCode = 409;
-    throw error;
-  }
-
-  if (itemStatus(plainItem) === 'fulfilled') {
-    return { orderItemId: plainItem.id, fulfillmentStatus: 'fulfilled', alreadyFulfilled: true };
-  }
-
-  const fulfilledAt = new Date();
-  const metadata = {
-    ...asObject(plainItem.metadata),
-    fulfillmentStatus: 'fulfilled',
-    fulfilledAt: fulfilledAt.toISOString(),
-    fulfilledBy: adminId || null,
-    fulfillmentNotes: safeString(notes, 240) || null,
-  };
-
-  await item.update({
+function fulfilledUpdatePayload(plainItem, { adminId, fulfilledAt, notes }) {
+  const fulfillmentNotes = safeString(notes, 240) || null;
+  const fulfilledBy = adminId || null;
+  return {
     fulfillmentStatus: 'fulfilled',
     fulfilledAt,
-    fulfilledBy: adminId || null,
-    fulfillmentNotes: safeString(notes, 240) || null,
-    metadata,
-  });
+    fulfilledBy,
+    fulfillmentNotes,
+    metadata: {
+      ...asObject(plainItem.metadata),
+      fulfillmentStatus: 'fulfilled',
+      fulfilledAt: fulfilledAt.toISOString(),
+      fulfilledBy,
+      fulfillmentNotes,
+    },
+  };
+}
 
+function fulfilledResult(plainItem, fulfilledAt) {
   return {
     orderItemId: plainItem.id,
     fulfillmentStatus: 'fulfilled',
     fulfilledAt: fulfilledAt.toISOString(),
     alreadyFulfilled: false,
   };
+}
+
+export async function completeFulfillmentItem({ orderItemId, adminId, notes = '' } = {}) {
+  const Order = getOrder();
+  const OrderItem = getOrderItem();
+  const item = await findFulfillmentItem(OrderItem, Order, orderItemId);
+
+  assertFound(item);
+
+  const plainItem = toPlain(item);
+
+  assertPhysicalItem(plainItem);
+  assertCompletedOrder(plainItem);
+
+  if (itemStatus(plainItem) === 'fulfilled') {
+    return { orderItemId: plainItem.id, fulfillmentStatus: 'fulfilled', alreadyFulfilled: true };
+  }
+
+  const fulfilledAt = new Date();
+  await item.update(fulfilledUpdatePayload(plainItem, { adminId, fulfilledAt, notes }));
+
+  return fulfilledResult(plainItem, fulfilledAt);
 }
