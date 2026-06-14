@@ -39,7 +39,7 @@ export const coachCommandDockStyles = css`
     font-size: 13px;
     font-weight: 700;
     gap: 6px;
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 12px;
   }
   .transcript-stream {

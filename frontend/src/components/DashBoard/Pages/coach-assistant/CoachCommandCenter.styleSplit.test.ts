@@ -9,6 +9,7 @@ const STYLE_FILES = [
   'CoachCommandCenter.foundationStyles.ts',
   'CoachCommandCenter.workspaceStyles.ts',
   'CoachCommandCenter.composerStyles.ts',
+  'CoachCommandCenter.bridgeDockStyles.ts',
   'CoachCommandCenter.responsiveStyles.ts',
 ];
 
@@ -42,5 +43,11 @@ describe('CoachCommandCenter style split', () => {
       expect(source).toContain("import { css } from 'styled-components';");
       expect(source).toMatch(/export const \w+ = css`/);
     });
+  });
+
+  it('keeps transcript controls at the 44px touch target minimum', () => {
+    const dockSource = readStyleFile('CoachCommandCenter.bridgeDockStyles.ts');
+
+    expect(dockSource).toMatch(/\.transcript-reset[\s\S]*?min-height:\s*44px/);
   });
 });
