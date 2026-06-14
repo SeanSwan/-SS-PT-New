@@ -20,6 +20,10 @@ type CoachClientBarProps = {
   selectedClientLabel: string;
   recentClients: RecentCoachClient[];
   opsOpen: boolean;
+  showOps?: boolean;
+  contextLabel?: string;
+  newConversationLabel?: string;
+  recentLabel?: string;
   onSelectClient: (id: number) => void;
   onNewConversation: () => void;
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -29,6 +33,10 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   selectedClientLabel,
   recentClients,
   opsOpen,
+  showOps = true,
+  contextLabel = 'Now coaching',
+  newConversationLabel = 'New client / conversation',
+  recentLabel = 'Recent client conversations',
   onSelectClient,
   onNewConversation,
   onOpenOps,
@@ -36,29 +44,31 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   <header className="client-bar glass">
     <div className="client-bar-top">
       <span className="coach-wordmark">Swan Coach</span>
-      <button
-        type="button"
-        className="ops-button"
-        onClick={onOpenOps}
-        aria-haspopup="dialog"
-        aria-expanded={opsOpen}
-      >
-        <Settings2 size={18} aria-hidden="true" />
-        <span>Ops</span>
-      </button>
+      {showOps ? (
+        <button
+          type="button"
+          className="ops-button"
+          onClick={onOpenOps}
+          aria-haspopup="dialog"
+          aria-expanded={opsOpen}
+        >
+          <Settings2 size={18} aria-hidden="true" />
+          <span>Ops</span>
+        </button>
+      ) : null}
     </div>
 
     <div className="now-coaching">
-      <span className="now-label">Now coaching</span>
+      <span className="now-label">{contextLabel}</span>
       <strong className="client-name">{selectedClientLabel}</strong>
     </div>
 
     <button type="button" className="new-client-button" onClick={onNewConversation}>
       <Plus size={18} aria-hidden="true" />
-      <span>New client / conversation</span>
+      <span>{newConversationLabel}</span>
     </button>
 
-    <div className="recent-rail" role="group" aria-label="Recent client conversations">
+    <div className="recent-rail" role="group" aria-label={recentLabel}>
       {recentClients.length ? (
         recentClients.map((client) => (
           <button

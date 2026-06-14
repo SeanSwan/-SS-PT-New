@@ -25,27 +25,26 @@ import CoachClientBar, { type RecentCoachClient } from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsRail from './CoachCommandOpsRail';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
-import CoachConsoleDock, { type CoachQuickIntent } from './CoachConsoleDock';
+import CoachConsoleDock from './CoachConsoleDock';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
 import {
   buildClientWorkoutPlannerRoute,
 } from '../../workspaces/clients-team/clientDailyTrainingRoutes';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
-
-const QUICK_INTENTS: CoachQuickIntent[] = [
-  { label: 'Log workout', prompt: 'Log a workout for the selected client: ' },
-  { label: 'Onboard client', prompt: 'Onboard a new client: ' },
-  { label: 'Update log', prompt: 'Update the workout log for the selected client: ' },
-  { label: 'Recall', prompt: 'Summarize what we covered for the selected client last session.' },
-];
+import {
+  CLIENT_NEXT_ACTION_LABEL,
+  CLIENT_NEXT_ACTION_PROMPT,
+  CLIENT_WORKOUTS_ROUTE,
+  coachTabsForRole,
+  coerceCoachTabForRole,
+  isClientCoachRole,
+  normalizeCoachCommandRole,
+  quickIntentsForRole,
+  routeForcedTabForRole,
+} from './CoachCommandCenter.roleConfig';
 
 const RECENT_CLIENT_LIMIT = 12;
-type CoachCommandRole = 'admin' | 'trainer' | 'client';
-
-function normalizeCoachCommandRole(role: unknown): CoachCommandRole {
-  return role === 'trainer' || role === 'client' ? role : 'admin';
-}
 
 function trainerWorkoutPlannerRoute(clientId: number | null, returnTo: string | null): string | null {
   if (!clientId) return null;
@@ -57,22 +56,13 @@ function trainerWorkoutPlannerRoute(clientId: number | null, returnTo: string | 
   return `/dashboard/trainer/workout-planner?${params.toString()}`;
 }
 
-function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
-  if (
-    searchParams.get('workspace') === 'plaud' ||
-    searchParams.get('mergeRequestId') ||
-    searchParams.get('review') === 'next'
-  ) return 'plaud';
-  if (searchParams.get('intake') || searchParams.get('proposal')) return 'intake';
-  return null;
-}
-
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
-  const commandCenter = useCoachCommandCenterController();
-  const [searchParams] = useSearchParams();
   const userRole = normalizeCoachCommandRole(authUser?.role);
-  const routeForcedTab = tabFromRoute(searchParams);
+  const commandCenter = useCoachCommandCenterController({ userRole });
+  const [searchParams] = useSearchParams();
+  const isClientMode = isClientCoachRole(userRole);
+  const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
   const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const handledPlaudUploadRequestRef = useRef(0);
@@ -98,9 +88,12 @@ const CoachCommandCenterPage: React.FC = () => {
   );
 
   const nextActionLabel =
-    commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
-  const intakeCount = commandCenter.summary.actionable;
-  const plaudCount = commandCenter.summary.readyReview;
+    isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
+  const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
+  const plaudCount = isClientMode ? 0 : commandCenter.summary.readyReview;
+  const availableTabs = coachTabsForRole(userRole);
+  const selectedDisplayLabel = isClientMode ? 'My training' : commandCenter.selectedClientLabel;
+  const quickIntents = quickIntentsForRole(userRole);
   const workoutLoggerRoute = useMemo(
     () => buildSwanCoachWorkoutLoggerRoute({
       userRole,
@@ -111,15 +104,16 @@ const CoachCommandCenterPage: React.FC = () => {
   );
   const workoutPlannerRoute = useMemo(
     () => {
+      if (isClientMode) return CLIENT_WORKOUTS_ROUTE;
       if (!commandCenter.routeClientId) return null;
       return userRole === 'trainer'
         ? trainerWorkoutPlannerRoute(commandCenter.routeClientId, commandCenter.workflowReturnTo)
         : buildClientWorkoutPlannerRoute(commandCenter.routeClientId);
     },
-    [commandCenter.routeClientId, commandCenter.workflowReturnTo, userRole],
+    [commandCenter.routeClientId, commandCenter.workflowReturnTo, isClientMode, userRole],
   );
-  const workoutLoggerScopeLabel = commandCenter.routeClientId ? commandCenter.selectedClientLabel : 'My workout log';
-  const workoutLoggerLabel = commandCenter.routeClientId ? 'Logger' : 'My Logger';
+  const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
+  const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';
 
   const handleSelectClient = (id: number) => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);
@@ -128,7 +122,8 @@ const CoachCommandCenterPage: React.FC = () => {
 
   useEffect(() => {
     if (routeForcedTab) setActiveTab(routeForcedTab);
-  }, [routeForcedTab]);
+    else setActiveTab((current) => coerceCoachTabForRole(current, userRole));
+  }, [routeForcedTab, userRole]);
 
   useEffect(() => {
     if (
@@ -147,18 +142,24 @@ const CoachCommandCenterPage: React.FC = () => {
 
   return (
     <CommandBridgeShell ref={commandCenter.shellRef}>
-      <button
-        type="button"
-        className={`drawer-scrim ${commandCenter.drawer ? 'is-open' : ''}`}
-        aria-label="Close operator tools"
-        onClick={() => commandCenter.closeDrawer()}
-      />
-
       <div className="bridge-shell">
+        {isClientMode ? null : (
+          <button
+            type="button"
+            className={`drawer-scrim ${commandCenter.drawer ? 'is-open' : ''}`}
+            aria-label="Close operator tools"
+            onClick={() => commandCenter.closeDrawer()}
+          />
+        )}
+
         <CoachClientBar
-          selectedClientLabel={commandCenter.selectedClientLabel}
+          selectedClientLabel={selectedDisplayLabel}
           recentClients={recentClients}
           opsOpen={commandCenter.drawer === 'right'}
+          showOps={!isClientMode}
+          contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
+          newConversationLabel={isClientMode ? 'New coach chat' : 'New client / conversation'}
+          recentLabel={isClientMode ? 'Recent coach chats' : 'Recent client conversations'}
           onSelectClient={handleSelectClient}
           onNewConversation={commandCenter.handleNewThread}
           onOpenOps={(event) => commandCenter.openDrawer('right', event)}
@@ -166,7 +167,8 @@ const CoachCommandCenterPage: React.FC = () => {
 
         <CoachCommandTabBar
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => setActiveTab(coerceCoachTabForRole(tab, userRole))}
+          tabs={availableTabs}
           intakeCount={intakeCount}
           plaudCount={plaudCount}
         />
@@ -182,11 +184,11 @@ const CoachCommandCenterPage: React.FC = () => {
             />
           ) : null}
 
-          {activeTab === 'intake' ? (
+          {!isClientMode && activeTab === 'intake' ? (
             <div className="tab-scroll">
               <CoachIntakeWorkspace
                 userRole={userRole}
-                selectedClientName={commandCenter.selectedClientLabel}
+                selectedClientName={selectedDisplayLabel}
                 onCommandPrompt={commandCenter.handleWorkflowSelect}
                 queue={commandCenter.coachQueue}
                 activeIntakeId={commandCenter.activeIntakeId}
@@ -194,7 +196,7 @@ const CoachCommandCenterPage: React.FC = () => {
             </div>
           ) : null}
 
-          {activeTab === 'plaud' ? (
+          {!isClientMode && activeTab === 'plaud' ? (
             <div className="tab-scroll">
               <article
                 className="panel plaud-review-panel"
@@ -218,7 +220,7 @@ const CoachCommandCenterPage: React.FC = () => {
                 coachThreads={commandCenter.coachThreads}
                 drawer={null}
                 railRef={commandCenter.leftRailRef}
-                selectedClientLabel={commandCenter.selectedClientLabel}
+                selectedClientLabel={selectedDisplayLabel}
                 threadSearch={commandCenter.threadSearch}
                 onNewThread={commandCenter.handleNewThread}
                 onThreadSearchChange={commandCenter.setThreadSearch}
@@ -234,7 +236,7 @@ const CoachCommandCenterPage: React.FC = () => {
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
             nextActionLabel={nextActionLabel}
-            quickIntents={QUICK_INTENTS}
+            quickIntents={quickIntents}
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceSupported={commandCenter.voiceSupported}
@@ -242,10 +244,12 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
+            workoutPlannerLabel={isClientMode ? 'My Workouts' : 'Planner'}
+            showPlaudAction={!isClientMode}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
             onCommandTextChange={commandCenter.setCommandText}
-            onStageNextAction={() => commandCenter.handleWorkflowSelect(nextActionLabel)}
+            onStageNextAction={() => commandCenter.handleWorkflowSelect(isClientMode ? CLIENT_NEXT_ACTION_PROMPT : nextActionLabel)}
             onQuickIntent={commandCenter.handleWorkflowSelect}
             onAttach={commandCenter.handleAttach}
             onStartPlaudUpload={handleStartPlaudUpload}
@@ -255,30 +259,32 @@ const CoachCommandCenterPage: React.FC = () => {
           />
         ) : null}
 
-        <CoachCommandOpsRail
-          drawer={commandCenter.drawer}
-          quickClientBusy={commandCenter.quickClientBusy}
-          quickClientError={commandCenter.quickClientError}
-          quickClientMessage={commandCenter.quickClientMessage}
-          quickClientName={commandCenter.quickClientName}
-          quickClientSource={commandCenter.quickClientSource}
-          queueHealthRows={commandCenter.queueHealthRows}
-          railRef={commandCenter.rightRailRef}
-          rightRailItems={commandCenter.rightRailItems}
-          selectedClientLabel={commandCenter.selectedClientLabel}
-          teachMode={commandCenter.teachMode}
-          workoutLoggerRoute={workoutLoggerRoute}
-          workoutLoggerScopeLabel={workoutLoggerScopeLabel}
-          workoutPlannerRoute={workoutPlannerRoute}
-          onClose={commandCenter.closeDrawer}
-          onOpenIntake={() => setActiveTab('intake')}
-          onOpenPlaud={handleStartPlaudUpload}
-          onQuickClientNameChange={commandCenter.setQuickClientName}
-          onQuickClientSourceChange={commandCenter.setQuickClientSource}
-          onQuickClientSubmit={commandCenter.handleQuickClientSubmit}
-          onStageWorkoutLog={() => commandCenter.handleWorkflowSelect('Log a workout for the selected client: ')}
-          onTeachModeToggle={commandCenter.toggleTeachMode}
-        />
+        {!isClientMode ? (
+          <CoachCommandOpsRail
+            drawer={commandCenter.drawer}
+            quickClientBusy={commandCenter.quickClientBusy}
+            quickClientError={commandCenter.quickClientError}
+            quickClientMessage={commandCenter.quickClientMessage}
+            quickClientName={commandCenter.quickClientName}
+            quickClientSource={commandCenter.quickClientSource}
+            queueHealthRows={commandCenter.queueHealthRows}
+            railRef={commandCenter.rightRailRef}
+            rightRailItems={commandCenter.rightRailItems}
+            selectedClientLabel={selectedDisplayLabel}
+            teachMode={commandCenter.teachMode}
+            workoutLoggerRoute={workoutLoggerRoute}
+            workoutLoggerScopeLabel={workoutLoggerScopeLabel}
+            workoutPlannerRoute={workoutPlannerRoute}
+            onClose={commandCenter.closeDrawer}
+            onOpenIntake={() => setActiveTab('intake')}
+            onOpenPlaud={handleStartPlaudUpload}
+            onQuickClientNameChange={commandCenter.setQuickClientName}
+            onQuickClientSourceChange={commandCenter.setQuickClientSource}
+            onQuickClientSubmit={commandCenter.handleQuickClientSubmit}
+            onStageWorkoutLog={() => commandCenter.handleWorkflowSelect('Log a workout for the selected client: ')}
+            onTeachModeToggle={commandCenter.toggleTeachMode}
+          />
+        ) : null}
       </div>
     </CommandBridgeShell>
   );

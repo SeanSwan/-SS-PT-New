@@ -14,13 +14,13 @@ const readDashboardFile = (fileName: string) =>
 describe('CoachIntakeRetentionCandidates identity contract', () => {
   it('stays wired into the canonical Coach intake retention surface', () => {
     const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
-    const pageSource = readCoachFile('SwanCoachAssistantPage.tsx');
+    const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const workspaceSource = readCoachFile('CoachIntakeWorkspace.tsx');
     const healthStripSource = readCoachFile('CoachIntakeHealthStrip.tsx');
     const serviceSource = readFileSync(resolve(__dirname, '../../../../services/coachIntakeService.ts'), 'utf8');
 
-    expect(layoutSource).toContain("const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: SwanCoachAssistantPage");
+    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain('<CoachIntakeWorkspace');
     expect(workspaceSource).toContain('retention={queue.retention}');
     expect(healthStripSource).toContain('<CoachIntakeRetentionCandidates retention={retention} />');

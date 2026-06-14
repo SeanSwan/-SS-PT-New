@@ -14,20 +14,24 @@ const readDashboardFile = (fileName: string) =>
 describe('CoachAudioInspectionResultCard identity contract', () => {
   it('stays wired into the canonical Swan Coach command-result route chain', () => {
     const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
-    const pageSource = readCoachFile('SwanCoachAssistantPage.tsx');
+    const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const hookSource = readCoachFile('hooks/useCoachAssistant.ts');
     const commandHookSource = readFileSync(
       resolve(__dirname, '../../../../hooks/useCoachCommand.ts'),
       'utf8',
     );
     const messageSource = readCoachFile('CoachMessage.tsx');
+    const transcriptSource = readCoachFile('CoachChatTranscript.tsx');
+    const logEntrySource = readCoachFile('CoachCommandLogEntry.tsx');
     const resultSource = readCoachFile('CoachExecutionResultCard.tsx');
     const routeSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/aiCommandRoutes.mjs'), 'utf8');
     const coreRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
 
-    expect(layoutSource).toContain("const SwanCoachAssistantPage = React.lazy(() => import('./Pages/coach-assistant/SwanCoachAssistantPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: SwanCoachAssistantPage");
-    expect(pageSource).toContain('<SwanCoachMessagesPanel');
+    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(pageSource).toContain('<CoachChatTranscript');
+    expect(transcriptSource).toContain('<CoachCommandLogEntry');
+    expect(logEntrySource).toContain('<ExecutionResultCard');
     expect(hookSource).toContain('useCoachCommand()');
     expect(commandHookSource).toContain("apiService.post('/api/ai-command/execute'");
     expect(coreRoutesSource).toContain("app.use('/api/ai-command', aiCommandRoutes)");

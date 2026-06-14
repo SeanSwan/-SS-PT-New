@@ -21,11 +21,11 @@ const backendMountSource = read('../../../../../backend/core/routes.mjs');
 const exerciseRoutesSource = read('../../../../../backend/routes/exerciseRoutes.mjs');
 
 describe('useExerciseTeachData auth pipeline', () => {
-  it('is consumed by active workout planner and coach assistant teach-mode surfaces', () => {
+  it('is consumed by active workout planner and legacy coach teach-mode surfaces', () => {
     expect(layoutSource).toMatch(/const WorkoutPlannerPage = React\.lazy\(\(\) => import\('\.\/Pages\/admin-workout-planner\/WorkoutPlannerPage'\)\)/);
-    expect(layoutSource).toMatch(/const SwanCoachAssistantPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/SwanCoachAssistantPage'\)\)/);
+    expect(layoutSource).toMatch(/const CoachCommandCenterPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/CoachCommandCenterPage'\)\)/);
     expect(layoutSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
-    expect(layoutSource).toMatch(/path: '\/coach-assistant', component: SwanCoachAssistantPage/);
+    expect(layoutSource).toMatch(/path: '\/coach-assistant', component: CoachCommandCenterPage/);
     expect(workoutPlannerSource).toMatch(/teachModeProps:\s*\{\s*exercise:\s*selectedExercise,\s*phaseNumber,\s*onPhaseChange:\s*setPhaseNumber\s*\}/);
     expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);
     expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar \{\.\.\.teachModeProps\} onClose=\{onTeachModeToggle\} \/>/);

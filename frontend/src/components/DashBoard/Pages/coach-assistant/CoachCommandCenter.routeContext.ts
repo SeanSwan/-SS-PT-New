@@ -76,6 +76,7 @@ const RETURN_LABELS: Record<string, string> = {
   'clients-team': 'Back to Client Hub',
   'master-schedule': 'Back to Schedule',
   'trainer-overview': 'Back to Trainer Home',
+  'client-dashboard': 'Back to Client Dashboard',
 };
 
 function commandCenterReturnLabel(source: string | null): string {

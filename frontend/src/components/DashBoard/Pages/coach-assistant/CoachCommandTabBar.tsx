@@ -14,6 +14,7 @@ export type CoachTab = 'chat' | 'intake' | 'plaud' | 'history';
 type CoachCommandTabBarProps = {
   activeTab: CoachTab;
   onTabChange: (tab: CoachTab) => void;
+  tabs?: CoachTab[];
   intakeCount?: number;
   plaudCount?: number;
 };
@@ -34,11 +35,12 @@ function tabBadge(tab: CoachTab, intakeCount?: number, plaudCount?: number): str
 const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
   activeTab,
   onTabChange,
+  tabs,
   intakeCount,
   plaudCount,
 }) => (
   <nav className="tab-bar" aria-label="Swan Coach sections">
-    {TABS.map(({ id, label, Icon }) => {
+    {TABS.filter((tab) => !tabs || tabs.includes(tab.id)).map(({ id, label, Icon }) => {
       const badge = tabBadge(id, intakeCount, plaudCount);
       return (
         <button

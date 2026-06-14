@@ -22,6 +22,8 @@ describe('CoachCommandCenter actions command errors', () => {
         sendMessageWithConversation,
       },
       coachQueue: { refresh: vi.fn() },
+      clientFacing: false,
+      commandLaneEnabled: true,
       cancelCommand: vi.fn(),
       commandText: 'List active clients',
       commandTextRef: { current: null },

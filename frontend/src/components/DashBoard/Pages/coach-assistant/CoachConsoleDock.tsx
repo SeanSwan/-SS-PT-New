@@ -26,6 +26,9 @@ type CoachConsoleDockProps = {
   workoutLoggerLabel?: string;
   workoutLoggerAriaLabel?: string;
   workoutPlannerRoute?: string | null;
+  workoutPlannerLabel?: string;
+  workoutPlannerAriaLabel?: string;
+  showPlaudAction?: boolean;
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
   onCommandTextChange: (value: string) => void;
@@ -51,6 +54,9 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   workoutLoggerLabel = 'Logger',
   workoutLoggerAriaLabel = 'Open workout logger',
   workoutPlannerRoute,
+  workoutPlannerLabel = 'Planner',
+  workoutPlannerAriaLabel = 'Open workout planner',
+  showPlaudAction = true,
   workflowReturnLabel,
   workflowReturnTo,
   onCommandTextChange,
@@ -86,9 +92,9 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           </Link>
         ) : null}
         {workoutPlannerRoute ? (
-          <Link className="workout-route-link" to={workoutPlannerRoute} aria-label="Open workout planner">
+          <Link className="workout-route-link" to={workoutPlannerRoute} aria-label={workoutPlannerAriaLabel}>
             <ClipboardList size={16} aria-hidden="true" />
-            <span>Planner</span>
+            <span>{workoutPlannerLabel}</span>
           </Link>
         ) : null}
       </div>
@@ -123,10 +129,12 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
             <Paperclip size={18} aria-hidden="true" />
             <span className="dock-action-label">Attach</span>
           </button>
-          <button type="button" className="dock-action" onClick={onStartPlaudUpload} aria-label="Import PLAUD">
-            <FileAudio size={18} aria-hidden="true" />
-            <span className="dock-action-label">PLAUD</span>
-          </button>
+          {showPlaudAction ? (
+            <button type="button" className="dock-action" onClick={onStartPlaudUpload} aria-label="Import PLAUD">
+              <FileAudio size={18} aria-hidden="true" />
+              <span className="dock-action-label">PLAUD</span>
+            </button>
+          ) : null}
           <button type="button" className="dock-action" onClick={onReadback}>
             <Volume2 size={18} aria-hidden="true" />
             <span className="dock-action-label">Readback</span>

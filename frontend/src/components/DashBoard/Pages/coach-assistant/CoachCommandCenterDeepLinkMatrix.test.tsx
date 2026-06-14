@@ -63,4 +63,12 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
       expectMountedWorkspace(tab, activeIntakeId, mergeLabel);
     },
   );
+
+  it('keeps client deep links on Chat when an operator-only tab hint is present', () => {
+    renderPage('/dashboard/client/coach-assistant?workspace=plaud&review=next', 'client');
+
+    expect(screen.getByRole('button', { name: /^Chat$/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /^PLAUD/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
+  });
 });

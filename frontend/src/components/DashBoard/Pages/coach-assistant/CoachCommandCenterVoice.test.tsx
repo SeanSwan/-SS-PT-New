@@ -29,6 +29,10 @@ vi.mock('../../../../hooks/useAIChat', () => ({
   useAIChat: useAIChatMock,
 }));
 
+vi.mock('../../../../hooks/useAuth', () => ({
+  useAuth: () => ({ user: { role: 'admin' } }),
+}));
+
 vi.mock('../../../../hooks/useCoachCommand', () => ({
   useCoachCommand: () => ({
     cancelCommand: cancelCommandMock,

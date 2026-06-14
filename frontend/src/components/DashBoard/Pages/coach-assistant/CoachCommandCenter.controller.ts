@@ -1,5 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { SetStateAction } from 'react';
+import { type SetStateAction, useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
@@ -46,6 +45,7 @@ import {
   parseRouteClientId,
   readHistoricalImportRouteDraft,
 } from './CoachCommandCenter.routeContext';
+import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
 import type { DrawerSide } from './CoachCommandCenter.types';
 
@@ -58,11 +58,14 @@ function capturedVoiceText(current: string, captured: string): string {
   return current.trim() ? current : captured;
 }
 
-export function useCoachCommandCenterController() {
+export function useCoachCommandCenterController({
+  userRole = 'admin',
+}: { userRole?: CoachCommandRole } = {}) {
   const [searchParams] = useSearchParams();
   const chat = useAIChat();
   const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
-  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12 });
+  const operatorEnabled = userRole !== 'client';
+  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
@@ -96,10 +99,7 @@ export function useCoachCommandCenterController() {
   );
   const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
-  const routeClientId = useMemo(
-    () => parseRouteClientId(searchParams.get('clientId')),
-    [searchKey],
-  );
+  const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchKey]);
   const activeThreadClientId = useMemo(
     () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
     [activeThread?.targetUserId],
@@ -113,39 +113,26 @@ export function useCoachCommandCenterController() {
     [activeThreadId, coachThreads, routeClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
-    () => normalizeCommandCenterReturnTo(searchParams.get('returnTo')),
+    () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath')),
     [searchKey],
   );
-  const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, routeSource);
+  const workflowReturnSource = routeSource
+    || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
+  const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, workflowReturnSource);
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
-  const scheduledSessionContext = useMemo(
-    () => getScheduledSessionRouteContextFromSearchParams(searchParams),
-    [searchKey],
-  );
+  const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
     () => routeTeachPrompt
       ? { prompt: routeTeachPrompt, status: routeIntent === 'trainer_daily_command' ? 'Trainer day command context loaded' : 'Coach route prompt loaded' }
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );
-  const storedRouteDraft = useMemo(
-    () => readHistoricalImportRouteDraft(routeIntent, routeDraftKey),
-    [routeDraftKey, routeIntent, searchKey],
-  );
-  const effectiveRouteContext = useMemo(
-    () => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel),
-    [routeClientLabel, routeContext, storedRouteDraft],
-  );
-  const commandRouteContext = useMemo(
-    () => buildCommandRouteContext(routeIntent, scheduledSessionContext),
-    [routeIntent, scheduledSessionContext],
-  );
-  const clientContextTiles = useMemo(
-    () => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)),
-    [activeThread, effectiveClientId],
-  );
+  const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent, searchKey]);
+  const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
+  const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
+  const clientContextTiles = useMemo(() => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)), [activeThread, effectiveClientId]);
 
   const rawMergeRequestId = searchParams.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
@@ -195,6 +182,8 @@ export function useCoachCommandCenterController() {
     cancelCommand,
     chat,
     coachQueue,
+    clientFacing: userRole === 'client',
+    commandLaneEnabled: operatorEnabled,
     commandText,
     commandTextRef,
     confirmCommand,

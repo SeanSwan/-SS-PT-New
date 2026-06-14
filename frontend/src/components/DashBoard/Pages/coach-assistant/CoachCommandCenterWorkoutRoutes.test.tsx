@@ -50,6 +50,43 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
   });
 
+  it('routes client command actions to self logging and workout history', () => {
+    renderPage('/dashboard/client/coach-assistant?teachPrompt=Teach%20me%20today', 'client');
+
+    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/client/log-workout?loadPlan=today',
+    );
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/client/workouts',
+    );
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveTextContent('My Workouts');
+  });
+
+  it('offers a client logger draft handoff for generated workout answers', async () => {
+    const user = userEvent.setup();
+    sendMessageWithConversationMock.mockResolvedValueOnce({
+      role: 'assistant',
+      content: [
+        'Workout for today:',
+        '- Bodyweight squat: 3 sets x 10 reps',
+        '- Incline push-up: 3 sets x 8 reps',
+      ].join('\n'),
+      timestamp: '2026-06-14T08:00:00.000Z',
+    });
+
+    renderPage('/dashboard/client/coach-assistant', 'client');
+
+    await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write my workout');
+    await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
+
+    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/client/log-workout?loadPlan=today',
+    );
+  });
+
   it('preserves a safe trainer return route in the planner handoff', () => {
     renderPage(
       '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=master-schedule&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',

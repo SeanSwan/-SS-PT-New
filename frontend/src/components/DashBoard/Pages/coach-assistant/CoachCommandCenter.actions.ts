@@ -1,9 +1,6 @@
 import type { Dispatch, FormEvent, MouseEvent, MutableRefObject, RefObject, SetStateAction } from 'react';
 import type { ConversationSummary, useAIChat } from '../../../../hooks/useAIChat';
-import {
-  createQuickCoachCommandClient,
-  type CoachCommandClientSource,
-} from '../../../../services/coachCommandClientService';
+import { createQuickCoachCommandClient, type CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import {
   commandCancelledBody,
   commandLaneErrorBody,
@@ -23,10 +20,7 @@ import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachCommandRouteContext, CoachScheduledSessionRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
-type CoachCommandChat = Pick<
-  ReturnType<typeof useAIChat>,
-  'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'
->;
+type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 
 type CoachCommandQueue = { refresh: () => unknown };
 
@@ -35,6 +29,8 @@ type CoachCommandActionProps = {
   activeThreadTitle: string;
   chat: CoachCommandChat;
   coachQueue: CoachCommandQueue;
+  clientFacing: boolean;
+  commandLaneEnabled: boolean;
   cancelCommand: CancelCoachCommand;
   commandText: string;
   commandTextRef: RefObject<HTMLTextAreaElement>;
@@ -114,7 +110,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.chat.newChat();
     props.setActiveThreadId(null);
     closeDrawer(false);
-    focusComposer('Start a new review-gated coach thread for the selected client.', 'New Coach Thread ready');
+    const prompt = props.clientFacing ? 'Start a new coach chat for my training today.' : 'Start a new review-gated coach thread for the selected client.';
+    focusComposer(prompt, props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
   };
 
   const handleQuickClientSubmit = async (event: FormEvent) => {
@@ -160,7 +157,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const trimmed = props.commandText.trim();
     if (!trimmed) return;
 
-    addLog({ actor: 'operator', label: 'operator command', body: trimmed });
+    addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
     props.setSelectedStatus('Sending command to Swan Coach');
     const commandTitle = props.activeThread
@@ -172,7 +169,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         : props.routeClientLabel
           ? `${props.routeClientLabel} daily workout log`
           : trimmed.slice(0, 60);
-    if (shouldRouteToCommandLane(trimmed)) {
+    if (props.commandLaneEnabled && shouldRouteToCommandLane(trimmed)) {
       const commandResult = await props.executeCommand(trimmed, {
         selectedClientId: props.routeClientId,
         routeContext: props.routeCommandContext,
@@ -211,13 +208,13 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     }
     addLog({
       actor: 'coach',
-      label: 'prepared draft',
+      label: props.clientFacing ? 'coach response' : 'prepared draft',
       body: response && typeof response === 'object' && 'content' in response
         ? String(response.content)
         : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.',
-      attachments: ['draft_review_packet.md', 'approval gate remains locked'],
+      attachments: props.clientFacing ? ['review before logging'] : ['draft_review_packet.md', 'approval gate remains locked'],
     });
-    props.setSelectedStatus('Prepared draft awaiting operator approval');
+    props.setSelectedStatus(props.clientFacing ? 'Swan Coach response ready' : 'Prepared draft awaiting operator approval');
     void props.chat.listConversations('active', true);
   };
 
