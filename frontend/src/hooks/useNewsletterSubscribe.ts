@@ -7,10 +7,13 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
+// Same-origin (relative) in prod/staging/preview; only local dev hits :5000.
+// Avoids the old bug where any non-sswanstudios host (Render preview) fell through
+// to localhost and the form silently failed.
 const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.origin.includes('sswanstudios.com')
-    ? 'https://sswanstudios.com'
-    : 'http://localhost:5000';
+  typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
+    ? 'http://localhost:5000'
+    : '';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

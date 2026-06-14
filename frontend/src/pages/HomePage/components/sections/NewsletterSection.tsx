@@ -4,7 +4,7 @@
  * Swan palette (token-with-fallback, rule 6), 44px targets, honeypot, reduced-
  * motion safe. Dark-first. Mounted in HomePage.V4 before the final CTA.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Send, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -133,16 +133,57 @@ const Success = styled.div`
   font-family: var(--font-body, 'Sora', sans-serif);
 `;
 
+const SuccessActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+`;
+
+const CtaLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.7rem 1.5rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--swan-sapphire, #002060));
+  color: var(--text-on-accent, #0A0A0F);
+  font-family: var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  font-weight: 700;
+  text-decoration: none;
+  transition: box-shadow 0.2s ease;
+  &:hover { box-shadow: 0 8px 24px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 33%, transparent); }
+`;
+
+const ResendButton = styled.button`
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary, #7E97B0);
+  font-family: var(--font-body, 'Sora', sans-serif);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  &:disabled { opacity: 0.6; cursor: progress; }
+  &:hover:not(:disabled) { color: var(--accent-primary, #60C0F0); }
+`;
+
 const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
   const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
+  const [submittedOnce, setSubmittedOnce] = useState(false);
   const { status, message, subscribe } = useNewsletterSubscribe('homepage');
   const animate = tier !== 'essential';
 
+  // Stay on the success screen across a resend (status briefly flips to 'loading').
+  useEffect(() => { if (status === 'success') setSubmittedOnce(true); }, [status]);
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    subscribe({ email, firstName, website });
+    subscribe({ email, website });
   };
 
   return (
@@ -155,10 +196,16 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
         transition={{ duration: 0.5 }}
       >
         <Heading id="newsletter-heading">Train smarter — straight to your inbox</Heading>
-        {status === 'success' ? (
+        {submittedOnce ? (
           <Success role="status">
             <CheckCircle2 size={40} aria-hidden color="var(--accent-primary, #60C0F0)" />
-            <p style={{ margin: 0, fontSize: '1.05rem' }}>{message}</p>
+            <p style={{ margin: 0, fontSize: '1.05rem' }}>{message || 'Almost there — check your email to confirm your subscription.'}</p>
+            <SuccessActions>
+              <CtaLink href="/contact">Book your free assessment</CtaLink>
+              <ResendButton type="button" onClick={() => subscribe({ email })} disabled={status === 'loading'}>
+                {status === 'loading' ? 'Resending…' : "Didn't get it? Resend"}
+              </ResendButton>
+            </SuccessActions>
           </Success>
         ) : (
           <>
@@ -174,13 +221,6 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
                 aria-hidden="true"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-              />
-              <Field
-                type="text"
-                placeholder="First name (optional)"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                aria-label="First name"
               />
               <Field
                 type="email"

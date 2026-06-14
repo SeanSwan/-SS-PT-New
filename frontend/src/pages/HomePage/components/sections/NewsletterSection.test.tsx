@@ -28,6 +28,20 @@ describe('NewsletterSection (Tier 1.2 homepage)', () => {
     expect(url).toContain('/api/newsletter/subscribe');
     expect(body).toMatchObject({ email: 'jane@example.com', source: 'homepage' });
     await screen.findByText(/check your email to confirm/i);
+    // Conversion: success state offers a booking CTA + a resend affordance
+    expect(screen.getByText(/Book your free assessment/i).getAttribute('href')).toBe('/contact');
+    expect(screen.getByRole('button', { name: /resend/i })).toBeTruthy();
+  });
+
+  it('resend on the success screen re-POSTs and stays on the success screen', async () => {
+    (axios.post as any).mockResolvedValue({ data: { success: true, message: 'Almost there — check your email to confirm your subscription.' } });
+    render(<NewsletterSection tier="essential" />);
+    fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'jane@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /subscribe/i }));
+    await screen.findByText(/Book your free assessment/i);
+    fireEvent.click(screen.getByRole('button', { name: /resend/i }));
+    await waitFor(() => expect(axios.post).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/Book your free assessment/i)).toBeTruthy(); // still on success screen
   });
 
   it('rejects an invalid email client-side without POSTing', async () => {
