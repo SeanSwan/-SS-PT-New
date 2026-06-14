@@ -1,25 +1,32 @@
 /**
  * FILE: LeadPipelinePanel.tsx
- * BLUEPRINT: Revenue-focused lead queue for the Marketing command center.
- * DATA: Uses /api/leads and /api/leads/stats with existing admin/trainer RBAC.
+ * BLUEPRINT: Revenue-focused, ACTIONABLE lead queue for the Marketing command center.
+ * DATA: /api/leads, /api/leads/stats, PUT /api/leads/:id. Admin/trainer RBAC.
+ * B1: work a lead WITHOUT leaving the panel — change status, set a follow-up date,
+ * email or call in one click. Optimistic updates with revert-on-error. Styles live
+ * in LeadPipelinePanel.styles.ts (rule 4).
  */
-
 import React, { useCallback, useEffect, useState } from 'react';
-import styled from 'styled-components';
-import { RefreshCw, Target, Users } from 'lucide-react';
+import { RefreshCw, Target, Users, Mail, Phone } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
   DataTable, EmptyState, ActionButton,
 } from './marketing.styles';
+import {
+  Stack, StatsGrid, StatValue, StatLabel, TableScroll, ContactBlock, ContactName,
+  ContactMeta, ScoreText, ErrorText, StatusSelect, RowActions, IconLink, FollowupInput, RowError,
+} from './LeadPipelinePanel.styles';
+import type { LeadStatus } from './LeadPipelinePanel.styles';
 
-type LeadStatus = 'new' | 'contacted' | 'qualified' | 'scheduled' | 'converted' | 'lost';
+const STATUS_OPTIONS: LeadStatus[] = ['new', 'contacted', 'qualified', 'scheduled', 'converted', 'lost'];
 
 interface LeadRecord {
   id: number | string;
   firstName?: string;
   lastName?: string;
   email?: string;
+  phone?: string;
   source?: string;
   status?: LeadStatus;
   score?: number;
@@ -28,138 +35,20 @@ interface LeadRecord {
   createdAt?: string;
 }
 
-interface LeadStats {
-  total: number;
-  new: number;
-  hotLeads: number;
-  needsFollowUp: number;
-  conversionRate: number;
-}
-
-const DEFAULT_STATS: LeadStats = {
-  total: 0, new: 0, hotLeads: 0, needsFollowUp: 0, conversionRate: 0,
-};
-
-const Stack = styled.div`
-  display: grid;
-  gap: 20px;
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-
-  @media (max-width: 860px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const StatValue = styled.div<{ $tone?: 'gold' | 'purple' }>`
-  font-family: 'Fira Code', monospace;
-  font-size: 28px;
-  font-weight: 800;
-  color: ${({ $tone }) =>
-    $tone === 'gold'
-      ? 'var(--accent-gold, #C6A84B)'
-      : $tone === 'purple'
-        ? 'var(--accent-secondary, #8B5CF6)'
-        : 'var(--accent-primary, #60C0F0)'};
-`;
-
-const StatLabel = styled.div`
-  margin-top: 4px;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
-`;
-
-const TableScroll = styled.div`
-  overflow-x: auto;
-`;
-
-const ContactBlock = styled.div`
-  display: grid;
-  gap: 3px;
-`;
-
-const ContactName = styled.span`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const ContactMeta = styled.span`
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.74));
-`;
-
-const StatusBadge = styled.span<{ $status: LeadStatus }>`
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: color-mix(
-    in srgb,
-    ${({ $status }) =>
-      $status === 'converted'
-        ? 'var(--success, #10B981)'
-        : $status === 'lost'
-          ? 'var(--danger, #EF4444)'
-          : $status === 'scheduled'
-            ? 'var(--accent-secondary, #8B5CF6)'
-            : $status === 'qualified'
-              ? 'var(--accent-gold, #C6A84B)'
-              : 'var(--accent-primary, #60C0F0)'} 14%,
-    transparent
-  );
-  color: ${({ $status }) =>
-    $status === 'converted'
-      ? 'var(--success, #10B981)'
-      : $status === 'lost'
-        ? 'var(--danger, #EF4444)'
-        : $status === 'scheduled'
-          ? 'var(--accent-secondary, #8B5CF6)'
-          : $status === 'qualified'
-            ? 'var(--accent-gold, #C6A84B)'
-            : 'var(--accent-primary, #60C0F0)'};
-`;
-
-const ScoreText = styled.span<{ $hot: boolean }>`
-  font-family: 'Fira Code', monospace;
-  font-weight: 800;
-  color: ${({ $hot }) => $hot ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)'};
-`;
-
-const ErrorText = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: var(--accent-gold, #C6A84B);
-`;
+interface LeadStats { total: number; new: number; hotLeads: number; needsFollowUp: number; conversionRate: number; }
+const DEFAULT_STATS: LeadStats = { total: 0, new: 0, hotLeads: 0, needsFollowUp: 0, conversionRate: 0 };
 
 const formatSource = (source?: string) =>
-  source ? source.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : 'Unknown';
+  source ? source.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Unknown';
 
-const getLeadName = (lead: LeadRecord) => {
-  const name = [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim();
-  return name || `Lead #${lead.id}`;
-};
+const getLeadName = (lead: LeadRecord) =>
+  [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim() || `Lead #${lead.id}`;
 
-const formatDate = (value?: string | null) => {
-  if (!value) return 'No follow-up';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Invalid date';
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date);
+// <input type="date"> wants YYYY-MM-DD
+const toDateInput = (value?: string | null) => {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 };
 
 const LeadPipelinePanel: React.FC = () => {
@@ -168,6 +57,8 @@ const LeadPipelinePanel: React.FC = () => {
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<LeadRecord['id'] | null>(null);
+  const [rowError, setRowError] = useState<{ id: LeadRecord['id']; msg: string } | null>(null);
 
   const fetchLeadData = useCallback(async () => {
     setLoading(true);
@@ -186,40 +77,39 @@ const LeadPipelinePanel: React.FC = () => {
     }
   }, [authAxios]);
 
-  useEffect(() => {
-    fetchLeadData();
-  }, [fetchLeadData]);
+  useEffect(() => { fetchLeadData(); }, [fetchLeadData]);
+
+  const updateLead = useCallback(async (id: LeadRecord['id'], patch: Partial<LeadRecord>) => {
+    setSavingId(id);
+    setRowError(null);
+    const before = leads;
+    setLeads((cur) => cur.map((l) => (l.id === id ? { ...l, ...patch } : l))); // optimistic
+    try {
+      await authAxios.put(`/api/leads/${id}`, patch);
+    } catch {
+      setLeads(before); // revert on failure
+      setRowError({ id, msg: 'Could not save — try again.' });
+    } finally {
+      setSavingId(null);
+    }
+  }, [leads, authAxios]);
 
   return (
     <Stack>
       <StatsGrid>
-        <MarketingCard>
-          <StatValue>{stats.total}</StatValue>
-          <StatLabel>Total leads</StatLabel>
-        </MarketingCard>
-        <MarketingCard>
-          <StatValue>{stats.new}</StatValue>
-          <StatLabel>New leads</StatLabel>
-        </MarketingCard>
-        <MarketingCard>
-          <StatValue $tone="gold">{stats.hotLeads}</StatValue>
-          <StatLabel>Hot leads</StatLabel>
-        </MarketingCard>
-        <MarketingCard>
-          <StatValue $tone="purple">{stats.needsFollowUp}</StatValue>
-          <StatLabel>Follow-ups due</StatLabel>
-        </MarketingCard>
+        <MarketingCard><StatValue>{stats.total}</StatValue><StatLabel>Total leads</StatLabel></MarketingCard>
+        <MarketingCard><StatValue>{stats.new}</StatValue><StatLabel>New leads</StatLabel></MarketingCard>
+        <MarketingCard><StatValue $tone="gold">{stats.hotLeads}</StatValue><StatLabel>Hot leads</StatLabel></MarketingCard>
+        <MarketingCard><StatValue $tone="purple">{stats.needsFollowUp}</StatValue><StatLabel>Follow-ups due</StatLabel></MarketingCard>
       </StatsGrid>
 
       <MarketingCard>
         <CardHeader>
           <HeaderLeft>
-            <IconWrap>
-              <Target size={18} />
-            </IconWrap>
+            <IconWrap><Target size={18} /></IconWrap>
             <div>
               <CardTitle>Lead Pipeline</CardTitle>
-              <CardSubtitle>Newest revenue opportunities from website, social, referrals, and gallery flows</CardSubtitle>
+              <CardSubtitle>Work your leads here — change status, set a follow-up, email or call in one click</CardSubtitle>
             </div>
           </HeaderLeft>
           <ActionButton type="button" $variant="secondary" onClick={fetchLeadData} disabled={loading}>
@@ -231,43 +121,61 @@ const LeadPipelinePanel: React.FC = () => {
         {error ? (
           <ErrorText>{error}</ErrorText>
         ) : loading && leads.length === 0 ? (
-          <EmptyState>
-            <RefreshCw size={28} />
-            Loading leads...
-          </EmptyState>
+          <EmptyState><RefreshCw size={28} />Loading leads...</EmptyState>
         ) : leads.length === 0 ? (
-          <EmptyState>
-            <Users size={28} />
-            No leads found for the current filters.
-          </EmptyState>
+          <EmptyState><Users size={28} />No leads found for the current filters.</EmptyState>
         ) : (
           <TableScroll>
             <DataTable>
               <thead>
-                <tr>
-                  <th>Contact</th>
-                  <th>Source</th>
-                  <th>Status</th>
-                  <th>Score</th>
-                  <th>Next follow-up</th>
-                </tr>
+                <tr><th>Contact</th><th>Source</th><th>Status</th><th>Score</th><th>Next follow-up</th><th>Reach out</th></tr>
               </thead>
               <tbody>
                 {leads.map((lead) => {
                   const status = lead.status || 'new';
                   const score = lead.score || 0;
+                  const saving = savingId === lead.id;
                   return (
                     <tr key={lead.id}>
                       <td>
                         <ContactBlock>
                           <ContactName>{getLeadName(lead)}</ContactName>
                           <ContactMeta>{lead.email || 'No email on file'}</ContactMeta>
+                          {rowError?.id === lead.id && <RowError role="alert">{rowError.msg}</RowError>}
                         </ContactBlock>
                       </td>
                       <td>{formatSource(lead.source)}</td>
-                      <td><StatusBadge $status={status}>{status.replace(/_/g, ' ')}</StatusBadge></td>
+                      <td>
+                        <StatusSelect
+                          $status={status}
+                          value={status}
+                          disabled={saving}
+                          aria-label={`Status for ${getLeadName(lead)}`}
+                          onChange={(e) => updateLead(lead.id, { status: e.target.value as LeadStatus })}
+                        >
+                          {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </StatusSelect>
+                      </td>
                       <td><ScoreText $hot={score >= 70}>{score}</ScoreText></td>
-                      <td>{formatDate(lead.nextFollowUpAt)}</td>
+                      <td>
+                        <FollowupInput
+                          type="date"
+                          value={toDateInput(lead.nextFollowUpAt)}
+                          disabled={saving}
+                          aria-label={`Set follow-up date for ${getLeadName(lead)}`}
+                          onChange={(e) => updateLead(lead.id, { nextFollowUpAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                        />
+                      </td>
+                      <td>
+                        <RowActions>
+                          <IconLink href={lead.email ? `mailto:${lead.email}` : undefined} aria-disabled={!lead.email} aria-label={`Email ${getLeadName(lead)}`} title="Email">
+                            <Mail size={16} />
+                          </IconLink>
+                          <IconLink href={lead.phone ? `tel:${lead.phone}` : undefined} aria-disabled={!lead.phone} aria-label={`Call ${getLeadName(lead)}`} title="Call">
+                            <Phone size={16} />
+                          </IconLink>
+                        </RowActions>
+                      </td>
                     </tr>
                   );
                 })}
