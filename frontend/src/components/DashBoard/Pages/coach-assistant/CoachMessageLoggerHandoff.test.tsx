@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CoachMessage } from './CoachMessage';
 import type { CoachMessageData } from './SwanCoachTypes';
-import { PENDING_WORKOUT_KEY } from '../../../../utils/parseAIWorkoutPlan';
+import { PENDING_WORKOUT_QUEUE_KEY } from '../../../../utils/parseAIWorkoutPlan';
 
 function assistantMessage(content: string): CoachMessageData {
   return {
@@ -18,6 +18,7 @@ function assistantMessage(content: string): CoachMessageData {
 
 describe('CoachMessage logger handoff', () => {
   afterEach(() => {
+    sessionStorage.clear();
     vi.restoreAllMocks();
   });
 
@@ -43,14 +44,47 @@ describe('CoachMessage logger handoff', () => {
 
     await user.click(sendLink);
 
-    const stored = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_KEY) || '{}');
-    expect(stored).toMatchObject({
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({
       source: 'ai-chat',
       exercises: [
         { exerciseName: 'Goblet squat', sets: 3, reps: 10 },
         { exerciseName: 'Push-up', sets: 3, reps: 8 },
       ],
     });
+  });
+
+  it('queues multiple generated chat workouts instead of erasing the first one', async () => {
+    const user = userEvent.setup();
+    sessionStorage.clear();
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage('- Goblet squat: 3 sets x 10 reps')}
+          workoutLoggerRoute="/dashboard/client/log-workout?loadPlan=today"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('link', { name: /send 1 exercise to logger/i }));
+
+    rerender(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage('- Push-up: 4 sets x 8 reps')}
+          workoutLoggerRoute="/dashboard/client/log-workout?loadPlan=today"
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('link', { name: /send 1 exercise to logger/i }));
+
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued.map((plan: { exercises: { exerciseName: string }[] }) => (
+      plan.exercises[0]?.exerciseName
+    ))).toEqual(['Goblet squat', 'Push-up']);
   });
 
   it('does not show a logger action when Coach has no route client or workout draft', () => {
@@ -90,8 +124,8 @@ describe('CoachMessage logger handoff', () => {
     await user.click(screen.getByRole('button', { name: 'Keep It 100' }));
     await user.click(screen.getByRole('link', { name: /send 2 exercises to logger/i }));
 
-    const stored = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_KEY) || '{}');
-    expect(stored.exercises).toEqual([
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued[0].exercises).toEqual([
       expect.objectContaining({ exerciseName: 'Goblet squat' }),
       expect.objectContaining({ exerciseName: 'Push-up' }),
     ]);
@@ -118,9 +152,8 @@ describe('CoachMessage logger handoff', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/could not stage this workout/i);
     expect(setItem).toHaveBeenCalledWith(
-      PENDING_WORKOUT_KEY,
+      PENDING_WORKOUT_QUEUE_KEY,
       expect.stringContaining('Goblet squat'),
     );
-
   });
 });

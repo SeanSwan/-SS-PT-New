@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import CoachCommandLogEntry, { formatCommandLogBody } from './CoachCommandLogEntry';
 import type { CommandLogEntry } from './CoachCommandCenter.data';
-import { PENDING_WORKOUT_KEY } from '../../../../utils/parseAIWorkoutPlan';
+import { PENDING_WORKOUT_QUEUE_KEY } from '../../../../utils/parseAIWorkoutPlan';
 
 const baseEntry: CommandLogEntry = {
   id: 'entry-1',
@@ -145,8 +145,9 @@ describe('CoachCommandLogEntry', () => {
 
     await user.click(sendLink);
 
-    const stored = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_KEY) || '{}');
-    expect(stored).toMatchObject({
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued).toHaveLength(1);
+    expect(queued[0]).toMatchObject({
       source: 'ai-chat',
       exercises: [
         { exerciseName: 'Goblet squat', sets: 3, reps: 10 },

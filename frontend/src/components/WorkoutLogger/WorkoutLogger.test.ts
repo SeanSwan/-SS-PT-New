@@ -86,4 +86,10 @@ describe('WorkoutLogger initialization order', () => {
     expect(source).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
     expect(source).toMatch(/exerciseCount=\{exercises\.length\}/);
   });
+
+  it('drains queued AI workout plans on mount instead of one overwritten pending plan', () => {
+    expect(source).toContain('drainPendingWorkoutPlans');
+    expect(source).toMatch(/pendingPlans\.flatMap\(\(plan\)\s*=>\s*plan\.exercises/);
+    expect(source).toMatch(/Loaded \$\{converted\.length\} exercises from \$\{planLabel\}/);
+  });
 });

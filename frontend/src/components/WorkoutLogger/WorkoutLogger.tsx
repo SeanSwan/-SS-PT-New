@@ -20,7 +20,7 @@ import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import {
   APPLY_WORKOUT_EVENT,
-  PENDING_WORKOUT_KEY,
+  drainPendingWorkoutPlans,
   type WorkoutPlanTransfer,
   type WorkoutExerciseTransfer,
 } from '../../utils/parseAIWorkoutPlan';
@@ -358,11 +358,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
-      if (detail?.exercises?.length) {
-        const converted = convertAIExercises(detail.exercises);
+      const pendingPlans = drainPendingWorkoutPlans();
+      const plans = pendingPlans.length ? pendingPlans : (detail?.exercises?.length ? [detail] : []);
+      const pendingExercises = plans.flatMap((plan) => plan.exercises ?? []);
+      if (pendingExercises.length) {
+        const converted = convertAIExercises(pendingExercises);
+        const planLabel = plans.length === 1 ? 'AI plan' : `${plans.length} AI plans`;
         setExercises(prev => [...prev, ...converted]);
-        toast.success(`Applied ${converted.length} exercises from AI plan`);
-        try { sessionStorage.removeItem(PENDING_WORKOUT_KEY); } catch { /* ignore */ }
+        toast.success(`Applied ${converted.length} exercises from ${planLabel}`);
       }
     };
     window.addEventListener(APPLY_WORKOUT_EVENT, handler);
@@ -504,18 +507,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [loadPhaseTemplate, currentOPTPhase, createWorkoutLoggerLocalId]);
 
   useEffect(() => {
-    try {
-      const pending = sessionStorage.getItem(PENDING_WORKOUT_KEY);
-      if (pending) {
-        const plan: WorkoutPlanTransfer = JSON.parse(pending);
-        if (plan.exercises?.length) {
-          const converted = convertAIExercises(plan.exercises);
-          setExercises(prev => [...prev, ...converted]);
-          toast.success(`Loaded ${converted.length} exercises from AI plan`);
-          sessionStorage.removeItem(PENDING_WORKOUT_KEY);
-        }
-      }
-    } catch { /* ignore parse errors */ }
+    const pendingPlans = drainPendingWorkoutPlans();
+    const pendingExercises = pendingPlans.flatMap((plan) => plan.exercises ?? []);
+    if (pendingExercises.length) {
+      const converted = convertAIExercises(pendingExercises);
+      const planLabel = pendingPlans.length === 1 ? 'AI plan' : `${pendingPlans.length} AI plans`;
+      setExercises(prev => [...prev, ...converted]);
+      toast.success(`Loaded ${converted.length} exercises from ${planLabel}`);
+    }
   }, [convertAIExercises]);
 
   const executeLoadClientData = useCallback(async () => {

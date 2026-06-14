@@ -1,7 +1,7 @@
 import type { FormattedLogBody } from './CoachCommandLogEntry.types';
 import {
+  appendPendingWorkoutPlan,
   parseAIWorkoutPlan,
-  PENDING_WORKOUT_KEY,
   type WorkoutPlanTransfer,
 } from '../../../../utils/parseAIWorkoutPlan';
 
@@ -35,10 +35,5 @@ export function buildCoachWorkoutLoggerHandoffFromText(text: string): CoachWorko
 }
 
 export function storeCoachWorkoutLoggerHandoff(payload: WorkoutPlanTransfer): boolean {
-  try {
-    sessionStorage.setItem(PENDING_WORKOUT_KEY, JSON.stringify(payload));
-    return true;
-  } catch {
-    return false;
-  }
+  return appendPendingWorkoutPlan(payload);
 }

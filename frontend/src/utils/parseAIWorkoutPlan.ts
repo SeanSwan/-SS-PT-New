@@ -29,6 +29,95 @@ export interface WorkoutPlanTransfer {
 export const APPLY_WORKOUT_EVENT = 'applyWorkoutToLogger';
 export const NAVIGATE_TO_LOGGER_EVENT = 'navigateToWorkoutLogger';
 export const PENDING_WORKOUT_KEY = 'pendingAIWorkoutPlan';
+export const PENDING_WORKOUT_QUEUE_KEY = 'pendingAIWorkoutPlanQueue';
+const MAX_PENDING_WORKOUT_PLANS = 12;
+
+type WorkoutStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+function getWorkoutStorage(): WorkoutStorage | null {
+  return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+}
+
+function normalizePlanTransfer(raw: unknown): WorkoutPlanTransfer | null {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const plan = raw as Partial<WorkoutPlanTransfer>;
+  if (!Array.isArray(plan.exercises) || plan.exercises.length === 0) return null;
+
+  const exercises = plan.exercises.filter((exercise): exercise is WorkoutExerciseTransfer => {
+    if (!exercise || typeof exercise !== 'object') return false;
+    const candidate = exercise as Partial<WorkoutExerciseTransfer>;
+    return typeof candidate.exerciseName === 'string'
+      && candidate.exerciseName.trim().length > 0
+      && Number.isFinite(Number(candidate.sets))
+      && Number.isFinite(Number(candidate.reps));
+  });
+
+  if (exercises.length === 0) return null;
+
+  return {
+    source: plan.source === 'ai-copilot' ? 'ai-copilot' : 'ai-chat',
+    exercises,
+  };
+}
+
+function parseStoredPlans(raw: string | null): WorkoutPlanTransfer[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    const candidates = Array.isArray(parsed) ? parsed : [parsed];
+    return candidates
+      .map(normalizePlanTransfer)
+      .filter((plan): plan is WorkoutPlanTransfer => Boolean(plan));
+  } catch {
+    return [];
+  }
+}
+
+export function appendPendingWorkoutPlan(
+  payload: WorkoutPlanTransfer,
+  storage: WorkoutStorage | null = getWorkoutStorage(),
+): boolean {
+  if (!storage) return false;
+
+  const normalizedPayload = normalizePlanTransfer(payload);
+  if (!normalizedPayload) return false;
+
+  try {
+    const legacyPlans = parseStoredPlans(storage.getItem(PENDING_WORKOUT_KEY));
+    const queuedPlans = parseStoredPlans(storage.getItem(PENDING_WORKOUT_QUEUE_KEY));
+    const nextPlans = [
+      ...legacyPlans,
+      ...queuedPlans,
+      normalizedPayload,
+    ].slice(-MAX_PENDING_WORKOUT_PLANS);
+
+    storage.setItem(PENDING_WORKOUT_QUEUE_KEY, JSON.stringify(nextPlans));
+    storage.removeItem(PENDING_WORKOUT_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function drainPendingWorkoutPlans(
+  storage: WorkoutStorage | null = getWorkoutStorage(),
+): WorkoutPlanTransfer[] {
+  if (!storage) return [];
+
+  const plans = [
+    ...parseStoredPlans(storage.getItem(PENDING_WORKOUT_KEY)),
+    ...parseStoredPlans(storage.getItem(PENDING_WORKOUT_QUEUE_KEY)),
+  ];
+
+  try {
+    storage.removeItem(PENDING_WORKOUT_KEY);
+    storage.removeItem(PENDING_WORKOUT_QUEUE_KEY);
+  } catch { /* ignore */ }
+
+  return plans;
+}
 
 // ── Parser ──
 
@@ -117,8 +206,10 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
       if (tempoMatch) exercise.tempo = tempoMatch[1];
 
       // Extract rest: "60s rest" or "rest 90s" or "90 sec rest"
-      const restMatch = trimmed.match(/(?:rest\s+)?(\d+)\s*(?:s|sec|seconds?)\s*(?:rest)?/i);
-      if (restMatch) exercise.restTime = parseInt(restMatch[1]);
+      const restMatch = trimmed.match(
+        /(?:\brest\s*:?\s*(\d+)\s*(?:s|sec|secs|seconds?)\b|\b(\d+)\s*(?:s|sec|secs|seconds?)\b\s*rest\b)/i
+      );
+      if (restMatch) exercise.restTime = parseInt(restMatch[1] || restMatch[2]);
 
       results.push(exercise);
       continue;
@@ -148,9 +239,7 @@ export function dispatchApplyToLogger(exercises: WorkoutExerciseTransfer[]): voi
   const payload: WorkoutPlanTransfer = { exercises, source: 'ai-chat' };
 
   // Always store in sessionStorage as fallback (Logger may not be mounted yet)
-  try {
-    sessionStorage.setItem(PENDING_WORKOUT_KEY, JSON.stringify(payload));
-  } catch { /* ignore */ }
+  appendPendingWorkoutPlan(payload);
 
   // Dispatch event for immediate pickup if Logger is mounted
   window.dispatchEvent(new CustomEvent(APPLY_WORKOUT_EVENT, { detail: payload }));
