@@ -7,10 +7,12 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
   AttachmentRow,
   BulletList,
+  LoggerHandoffRow,
   LogBody,
   LogEntry,
   LogMeta,
@@ -24,6 +26,10 @@ import type {
   LogStyleVariantKey,
 } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
+import {
+  buildCoachWorkoutLoggerHandoff,
+  storeCoachWorkoutLoggerHandoff,
+} from './CoachCommandLoggerHandoff';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
@@ -71,10 +77,20 @@ function FormattedLogContent({ formatted }: { formatted: FormattedLogBody }) {
   );
 }
 
-function CoachCommandLogEntry({ entry, onCancelCommand, onConfirmCommand }: CoachCommandLogEntryProps) {
+function CoachCommandLogEntry({
+  entry,
+  onCancelCommand,
+  onConfirmCommand,
+  workoutLoggerRoute,
+}: CoachCommandLogEntryProps) {
   const formatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
   const selectedVariant = formatted.variants?.find((variant) => variant.key === activeVariant) || formatted.variants?.[0];
+  const visibleBody = selectedVariant?.body || formatted;
+  const loggerRoute = workoutLoggerRoute || null;
+  const loggerHandoff = entry.actor === 'coach' && loggerRoute
+    ? buildCoachWorkoutLoggerHandoff(visibleBody)
+    : null;
   const confirmation = entry.commandConfirmation;
 
   return (
@@ -100,7 +116,20 @@ function CoachCommandLogEntry({ entry, onCancelCommand, onConfirmCommand }: Coac
           </StyleSwitch>
         ) : null}
 
-        <FormattedLogContent formatted={selectedVariant?.body || formatted} />
+        <FormattedLogContent formatted={visibleBody} />
+
+        {loggerHandoff && loggerRoute ? (
+          <LoggerHandoffRow>
+            <Link
+              to={loggerRoute}
+              aria-label={`Send ${loggerHandoff.exerciseCount} exercises to Logger`}
+              onClick={() => storeCoachWorkoutLoggerHandoff(loggerHandoff.payload)}
+            >
+              Send to Logger
+            </Link>
+            <span>{loggerHandoff.exerciseCount} exercise{loggerHandoff.exerciseCount === 1 ? '' : 's'} staged for review</span>
+          </LoggerHandoffRow>
+        ) : null}
 
         {formatted.structuredPacket ? (
           <PacketDetails>

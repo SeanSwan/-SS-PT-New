@@ -93,6 +93,32 @@ export const BulletList = styled.ul`
   }
 `;
 
+export const LoggerHandoffRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-start;
+  a {
+    align-items: center;
+    background: color-mix(in srgb, var(--coach-cyan, #60c0f0) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 34%, transparent);
+    border-radius: 12px;
+    color: var(--coach-text, #e0ecf4);
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 820;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    text-decoration: none;
+  }
+  span {
+    color: var(--coach-muted, #91a3bd);
+    font-size: 12px;
+  }
+`;
+
 export const StepList = styled.ol`
   display: grid;
   gap: 10px;

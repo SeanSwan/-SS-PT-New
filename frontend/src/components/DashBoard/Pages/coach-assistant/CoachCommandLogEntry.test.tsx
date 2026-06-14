@@ -1,9 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
 import CoachCommandLogEntry, { formatCommandLogBody } from './CoachCommandLogEntry';
 import type { CommandLogEntry } from './CoachCommandCenter.data';
+import { PENDING_WORKOUT_KEY } from '../../../../utils/parseAIWorkoutPlan';
 
 const baseEntry: CommandLogEntry = {
   id: 'entry-1',
@@ -72,5 +74,43 @@ describe('CoachCommandLogEntry', () => {
     const list = screen.getByRole('list', { name: 'Workout details' });
     expect(within(list).getByText('Goblet squat: 3 sets x 10 reps')).toBeInTheDocument();
     expect(within(list).getByText('Push-up: 3 sets x 8 reps')).toBeInTheDocument();
+  });
+
+  it('stores a Coach workout draft and routes to the selected client logger for review', async () => {
+    const user = userEvent.setup();
+    sessionStorage.clear();
+
+    render(
+      <MemoryRouter>
+        <CoachCommandLogEntry
+          entry={{
+            ...baseEntry,
+            body: [
+              'Workout for today:',
+              '- Goblet squat: 3 sets x 10 reps',
+              '- Push-up: 3 sets x 8 reps',
+            ].join('\n'),
+          }}
+          workoutLoggerRoute="/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today"
+        />
+      </MemoryRouter>
+    );
+
+    const sendLink = screen.getByRole('link', { name: /send 2 exercises to logger/i });
+    expect(sendLink).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today'
+    );
+
+    await user.click(sendLink);
+
+    const stored = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_KEY) || '{}');
+    expect(stored).toMatchObject({
+      source: 'ai-chat',
+      exercises: [
+        { exerciseName: 'Goblet squat', sets: 3, reps: 10 },
+        { exerciseName: 'Push-up', sets: 3, reps: 8 },
+      ],
+    });
   });
 });

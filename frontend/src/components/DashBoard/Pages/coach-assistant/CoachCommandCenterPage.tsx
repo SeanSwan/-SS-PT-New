@@ -149,6 +149,7 @@ const CoachCommandCenterPage: React.FC = () => {
               onCancelCommand={commandCenter.handleCancelCommand}
               onConfirmCommand={commandCenter.handleConfirmCommand}
               onReset={commandCenter.resetLogs}
+              workoutLoggerRoute={workoutLoggerRoute}
             />
           ) : null}
 
