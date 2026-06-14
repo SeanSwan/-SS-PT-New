@@ -16,14 +16,16 @@ export const HARDCORE_METHODS = [
   'density',
 ];
 
-const VULNERABLE_MUSCLES = new Set([
-  'biceps',
+const VULNERABLE_MUSCLE_KEYWORDS = [
+  'bicep',
+  'calf',
   'calves',
-  'shoulders',
-  'deltoids',
-  'rotator_cuff',
+  'deltoid',
+  'gastrocnemius',
   'rotator cuff',
-]);
+  'shoulder',
+  'soleus',
+];
 
 const METHOD_COPY = {
   standard: 'Hardcore standard: strict tempo, clean overload, and no forced reps once form slips.',
@@ -74,21 +76,43 @@ export function trainingStyleRecommendationDetail(style) {
   };
 }
 
-const lowerValues = (values = []) => values
-  .filter(Boolean)
-  .map((value) => String(value).toLowerCase());
+const normalizeSafetyLabel = (value) => String(value || '')
+  .toLowerCase()
+  .replace(/[_-]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
-const painWarningRegions = (painWarnings = []) => new Set(
-  painWarnings.map((entry) => String(entry?.bodyRegion || '').toLowerCase()).filter(Boolean),
+const arrayValues = (values) => (Array.isArray(values) ? values : []);
+
+const normalizedValues = (values = []) => arrayValues(values)
+  .filter(Boolean)
+  .map(normalizeSafetyLabel)
+  .filter(Boolean);
+
+const isVulnerableMuscle = (muscle) => VULNERABLE_MUSCLE_KEYWORDS
+  .some((keyword) => muscle.includes(keyword));
+
+const painWarningTargets = (painWarnings = []) => new Set(
+  painWarnings.flatMap((entry) => [
+    entry?.bodyRegion,
+    ...arrayValues(entry?.muscles),
+  ]).map(normalizeSafetyLabel).filter(Boolean),
 );
 
-function isVulnerableExercise(exercise, painWarnings = []) {
-  const muscles = lowerValues(exercise.muscles);
-  if (muscles.some((muscle) => VULNERABLE_MUSCLES.has(muscle))) return true;
+const matchesPainWarningTarget = (label, warningTargets) => {
+  if (!label) return false;
+  if (warningTargets.has(label)) return true;
+  return Array.from(warningTargets).some((target) => label.includes(target) || target.includes(label));
+};
 
-  const warningRegions = painWarningRegions(painWarnings);
-  return muscles.some((muscle) => warningRegions.has(muscle))
-    || warningRegions.has(String(exercise.category || '').toLowerCase());
+function isVulnerableExercise(exercise, painWarnings = []) {
+  const muscles = normalizedValues(exercise.muscles);
+  if (muscles.some(isVulnerableMuscle)) return true;
+
+  const warningTargets = painWarningTargets(painWarnings);
+  const category = normalizeSafetyLabel(exercise.category);
+  return muscles.some((muscle) => matchesPainWarningTarget(muscle, warningTargets))
+    || matchesPainWarningTarget(category, warningTargets);
 }
 
 const appendNote = (note, addition) => {

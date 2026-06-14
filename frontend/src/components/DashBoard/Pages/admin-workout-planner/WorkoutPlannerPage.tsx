@@ -22,7 +22,6 @@ import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import { parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
-
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
 
 // ─────────────────────────────────────────────────────────────
