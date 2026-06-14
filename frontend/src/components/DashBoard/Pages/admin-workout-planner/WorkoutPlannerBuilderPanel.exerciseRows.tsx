@@ -34,6 +34,7 @@ import {
   SkeletonTextStack,
   TempoInput,
 } from './WorkoutPlannerPage.styles';
+import { formatWorkoutPlannerExerciseName } from './workoutPlannerExerciseDisplay';
 
 const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
   [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
@@ -75,59 +76,63 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
   onSelectExercise,
   onUpdateExercise,
   onRemoveExercise,
-}) => (
-  <BuilderRow key={planExercise.id}>
-    <BuilderRowNumber>{index + 1}</BuilderRowNumber>
-    <BuilderRowInfo>
-      <ClickableExerciseName onClick={() => onSelectExercise(planExercise.exerciseSlim)}>
-        {planExercise.exerciseSlim.name}
-      </ClickableExerciseName>
-      <ExerciseMeta>{exerciseMeta(planExercise)}</ExerciseMeta>
-    </BuilderRowInfo>
-    <BuilderParamGroup>
-      <ParamField>
-        <ParamLabel>Sets</ParamLabel>
-        <MiniInput
-          type="number"
-          value={planExercise.sets}
-          onChange={event => onUpdateExercise(planExercise.id, 'sets', parseInt(event.target.value, 10) || 1)}
-          min={1}
-          max={10}
-        />
-      </ParamField>
-      <ParamField>
-        <ParamLabel>Reps</ParamLabel>
-        <RepsInput
-          value={planExercise.reps}
-          onChange={event => onUpdateExercise(planExercise.id, 'reps', event.target.value)}
-        />
-      </ParamField>
-      <ParamField>
-        <ParamLabel>Tempo</ParamLabel>
-        <TempoInput
-          value={planExercise.tempo}
-          onChange={event => onUpdateExercise(planExercise.id, 'tempo', event.target.value)}
-        />
-      </ParamField>
-      <ParamField>
-        <ParamLabel>Rest(s)</ParamLabel>
-        <MiniInput
-          type="number"
-          value={planExercise.restSeconds}
-          onChange={event => onUpdateExercise(planExercise.id, 'restSeconds', parseInt(event.target.value, 10) || 0)}
-          min={0}
-          max={600}
-        />
-      </ParamField>
-    </BuilderParamGroup>
-    <RemoveBtn
-      onClick={() => onRemoveExercise(planExercise.id)}
-      aria-label={`Remove ${planExercise.exerciseSlim.name}`}
-    >
-      <X size={14} />
-    </RemoveBtn>
-  </BuilderRow>
-);
+}) => {
+  const exerciseDisplayName = formatWorkoutPlannerExerciseName(planExercise.exerciseSlim.name);
+
+  return (
+    <BuilderRow key={planExercise.id}>
+      <BuilderRowNumber>{index + 1}</BuilderRowNumber>
+      <BuilderRowInfo>
+        <ClickableExerciseName onClick={() => onSelectExercise(planExercise.exerciseSlim)}>
+          {exerciseDisplayName}
+        </ClickableExerciseName>
+        <ExerciseMeta>{exerciseMeta(planExercise)}</ExerciseMeta>
+      </BuilderRowInfo>
+      <BuilderParamGroup>
+        <ParamField>
+          <ParamLabel>Sets</ParamLabel>
+          <MiniInput
+            type="number"
+            value={planExercise.sets}
+            onChange={event => onUpdateExercise(planExercise.id, 'sets', parseInt(event.target.value, 10) || 1)}
+            min={1}
+            max={10}
+          />
+        </ParamField>
+        <ParamField>
+          <ParamLabel>Reps</ParamLabel>
+          <RepsInput
+            value={planExercise.reps}
+            onChange={event => onUpdateExercise(planExercise.id, 'reps', event.target.value)}
+          />
+        </ParamField>
+        <ParamField>
+          <ParamLabel>Tempo</ParamLabel>
+          <TempoInput
+            value={planExercise.tempo}
+            onChange={event => onUpdateExercise(planExercise.id, 'tempo', event.target.value)}
+          />
+        </ParamField>
+        <ParamField>
+          <ParamLabel>Rest(s)</ParamLabel>
+          <MiniInput
+            type="number"
+            value={planExercise.restSeconds}
+            onChange={event => onUpdateExercise(planExercise.id, 'restSeconds', parseInt(event.target.value, 10) || 0)}
+            min={0}
+            max={600}
+          />
+        </ParamField>
+      </BuilderParamGroup>
+      <RemoveBtn
+        onClick={() => onRemoveExercise(planExercise.id)}
+        aria-label={`Remove ${exerciseDisplayName}`}
+      >
+        <X size={14} />
+      </RemoveBtn>
+    </BuilderRow>
+  );
+};
 
 interface BuilderWorkoutContentProps {
   generating: boolean;

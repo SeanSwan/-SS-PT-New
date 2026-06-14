@@ -10,9 +10,11 @@ import { logApiError } from '../../../../utils/logApiError';
 import type { WorkoutPlannerBuilderExplanation } from './WorkoutPlannerBuilderPanel';
 import type {
   GeneratedPlan,
+  HardcoreTrainingMethod,
   PlanDuration,
   PlanExercise,
   PlanGoal,
+  TrainingIntensityMode,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
 import {
@@ -44,6 +46,8 @@ interface WorkoutPlannerGenerationActionsInput {
   planDuration: PlanDuration;
   sessionsPerWeek: number;
   selectedEquipmentProfileId: number | null;
+  trainingIntensityMode: TrainingIntensityMode;
+  hardcoreMethod: HardcoreTrainingMethod;
   setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setPhaseNumber: Dispatch<SetStateAction<number>>;
@@ -183,6 +187,8 @@ export const useWorkoutPlannerGenerationActions = ({
   planDuration,
   sessionsPerWeek,
   selectedEquipmentProfileId,
+  trainingIntensityMode,
+  hardcoreMethod,
   setPlanExercises,
   setGeneratedPlan,
   setPhaseNumber,
@@ -217,6 +223,8 @@ export const useWorkoutPlannerGenerationActions = ({
         goal,
         phaseNumber,
         selectedEquipmentProfileId,
+        trainingIntensityMode,
+        hardcoreMethod,
       }));
       const workout = verifiedGeneratedWorkout(res.data, setStatusMsg);
       if (workout) {
@@ -237,7 +245,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg]);
+  }, [authAxios, category, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
@@ -255,6 +263,8 @@ export const useWorkoutPlannerGenerationActions = ({
         planDuration,
         sessionsPerWeek,
         selectedEquipmentProfileId,
+        trainingIntensityMode,
+        hardcoreMethod,
       }));
       applyVerifiedGeneratedPlan({
         data: res.data,
@@ -268,7 +278,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, goal, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg]);
+  }, [authAxios, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   return {
     generating,

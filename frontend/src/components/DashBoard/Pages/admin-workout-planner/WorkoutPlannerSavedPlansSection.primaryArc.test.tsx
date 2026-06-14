@@ -48,6 +48,13 @@ const props = {
 };
 
 describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
+  it('numbers saved plan cards in list order', () => {
+    render(<WorkoutPlannerSavedPlansSection {...props} />);
+
+    expect(screen.getByTestId('saved-plan-number-plan-6m')).toHaveTextContent('Plan 1');
+    expect(screen.getByTestId('saved-plan-number-plan-9m')).toHaveTextContent('Plan 2');
+  });
+
   it('lets trainers choose the primary training arc from the saved-plan section header', () => {
     const onSetPrimary = vi.fn();
     render(<WorkoutPlannerSavedPlansSection {...props} onSetPrimary={onSetPrimary} />);

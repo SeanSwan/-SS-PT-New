@@ -9,6 +9,7 @@ import {
   ExerciseName,
   MetaTag,
 } from './WorkoutPlannerStyles';
+import { formatWorkoutPlannerExerciseName } from './workoutPlannerExerciseDisplay';
 
 const RowContent = styled.div`
   flex: 1;
@@ -45,6 +46,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
 }) => {
   const handleAdd = () => onAdd(exercise);
   const handleSelect = () => onSelect(exercise);
+  const exerciseDisplayName = formatWorkoutPlannerExerciseName(exercise.name);
 
   return (
     <div style={style}>
@@ -62,7 +64,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
         }}
       >
         <RowContent>
-          <ExerciseName>{exercise.name}</ExerciseName>
+          <ExerciseName>{exerciseDisplayName}</ExerciseName>
           <ExerciseMeta>
             <MetaTag>{exercise.bodyPartCategory}</MetaTag>
             <MetaTag>{exercise.exerciseType}</MetaTag>
@@ -78,7 +80,7 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
             e.stopPropagation();
             handleAdd();
           }}
-          aria-label={`Add ${exercise.name}`}
+          aria-label={`Add ${exerciseDisplayName}`}
         >
           <Plus size={18} />
         </ExerciseAddBtn>

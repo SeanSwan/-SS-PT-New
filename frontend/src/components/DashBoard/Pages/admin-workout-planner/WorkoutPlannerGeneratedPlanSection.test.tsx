@@ -44,7 +44,7 @@ const oneWeekGeneratedPlan: GeneratedPlan = {
       focus: 'full body',
       exercises: [{
         exerciseId: 'trial-ex-1',
-        exerciseName: 'Trial Squat',
+        exerciseName: 'NASM Trial Squat',
         sets: 3,
         targetReps: '10',
         restSeconds: 60,
@@ -75,6 +75,26 @@ describe('WorkoutPlannerGeneratedPlanSection', () => {
     expect(screen.getByText(/Trial Squat - 3 x 10/i)).toBeInTheDocument();
     expect(screen.getByText(/Review the detailed schedule before saving or assigning/i)).toBeInTheDocument();
     expect(screen.queryByText(/Click exercises in the Rolodex/i)).not.toBeInTheDocument();
+  });
+
+  it('uses Swan Coach wording for generated plan recommendations', () => {
+    cleanup();
+    render(
+      <WorkoutPlannerGeneratedPlanSection
+        generatedPlan={{
+          ...oneWeekGeneratedPlan,
+          recommendations: ['Progress load only when form quality stays stable.'],
+        }}
+        selectedMesoDay={1}
+        phaseNumber={2}
+        selectedClient={null}
+        onSelectedMesoDayChange={vi.fn()}
+        onPhaseNumberChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Swan Coach Recommendations')).toBeInTheDocument();
+    expect(screen.queryByText('AI Recommendations')).not.toBeInTheDocument();
   });
 
   it('surfaces coach review guardrails before a weak generated plan is saved', () => {

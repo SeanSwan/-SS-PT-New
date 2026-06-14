@@ -18,6 +18,8 @@ import {
   CardTitle,
   HorizonBadge,
   PlanArcRow,
+  PlanNumberBadge,
+  PlanTitleGroup,
   PrimaryArcBadge,
   RenameInput,
   StatusBadge,
@@ -46,6 +48,7 @@ export interface SavedPlanSummary {
 
 interface SavedPlanCardProps {
   plan: SavedPlanSummary;
+  ordinal?: number;
   loaded: boolean;
   archiveBlocked: boolean;
   onLoad: (planId: string, planName: string) => void;
@@ -60,6 +63,7 @@ interface SavedPlanCardProps {
 
 const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
   plan,
+  ordinal,
   loaded,
   archiveBlocked,
   onLoad,
@@ -75,6 +79,9 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
   const [renameValue, setRenameValue] = useState(plan.name);
   const isCurrent = isWorkoutPlanActiveStatus(plan.status);
   const normalizedStatus = String(plan.status || '').trim().toLowerCase();
+  const cardLoadLabel = ordinal
+    ? `Load plan ${ordinal}: ${plan.name}`
+    : `Load plan: ${plan.name}`;
 
   const handleCardClick = useCallback(() => {
     if (renaming) return;
@@ -147,25 +154,32 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
       $isCurrent={isCurrent}
       role="button"
       tabIndex={0}
-      aria-label={`Load plan: ${plan.name}`}
+      aria-label={cardLoadLabel}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
       data-testid={`saved-plan-card-${plan.id}`}
     >
       <CardHeader>
-        {renaming ? (
-          <RenameInput
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onClick={stopProp}
-            onKeyDown={handleRenameKeyDown}
-            autoFocus
-            aria-label="Rename plan"
-            data-testid={`rename-input-${plan.id}`}
-          />
-        ) : (
-          <CardTitle title={plan.name}>{plan.name}</CardTitle>
-        )}
+        <PlanTitleGroup>
+          {ordinal && (
+            <PlanNumberBadge data-testid={`saved-plan-number-${plan.id}`}>
+              Plan {ordinal}
+            </PlanNumberBadge>
+          )}
+          {renaming ? (
+            <RenameInput
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onClick={stopProp}
+              onKeyDown={handleRenameKeyDown}
+              autoFocus
+              aria-label="Rename plan"
+              data-testid={`rename-input-${plan.id}`}
+            />
+          ) : (
+            <CardTitle title={plan.name}>{plan.name}</CardTitle>
+          )}
+        </PlanTitleGroup>
         <StatusBadge
           $status={normalizedStatus}
           data-testid={isCurrent ? 'current-badge' : `status-badge-${normalizedStatus}`}

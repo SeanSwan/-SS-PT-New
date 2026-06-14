@@ -28,6 +28,7 @@ import {
   TabRow,
   Title,
 } from './LongHorizonScheduleView.styles';
+import { formatWorkoutPlannerExerciseName } from './workoutPlannerExerciseDisplay';
 
 interface ScheduleHeaderProps {
   selectedMonth: number;
@@ -66,8 +67,8 @@ interface DayDetailProps {
 }
 
 const exerciseName = (ex: GeneratedPlanWeekDay['exercises'][number]): string => {
-  if (ex.exerciseName) return ex.exerciseName;
-  if (ex.name) return ex.name;
+  if (ex.exerciseName) return formatWorkoutPlannerExerciseName(ex.exerciseName);
+  if (ex.name) return formatWorkoutPlannerExerciseName(ex.name);
   return 'Unknown Exercise';
 };
 

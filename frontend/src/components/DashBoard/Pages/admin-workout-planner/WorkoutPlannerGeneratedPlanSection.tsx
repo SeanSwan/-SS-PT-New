@@ -10,6 +10,7 @@ import LongHorizonScheduleView from './LongHorizonScheduleView';
 import type { GeneratedPlan, PlannerClient } from './WorkoutPlannerTypes';
 import { workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
 import { getGeneratedPlanQualityWarnings } from './workoutPlannerQualityWarnings';
+import { withDisplayExerciseNamesForExport } from './workoutPlannerExerciseDisplay';
 import {
   DeloadBadge,
   ExportPdfBtn,
@@ -77,7 +78,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
           onClick={async () => {
             const { exportPopulatedPlanPDF } = await import('../../../../services/pdfExportService');
             exportPopulatedPlanPDF(
-              generatedPlan as unknown as Parameters<typeof exportPopulatedPlanPDF>[0],
+              withDisplayExerciseNamesForExport(generatedPlan) as unknown as Parameters<typeof exportPopulatedPlanPDF>[0],
               selectedClient
                 ? `${selectedClient.firstName} ${selectedClient.lastName}`
                 : undefined,
@@ -192,7 +193,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
 
       {generatedPlan.recommendations.length > 0 && (
         <>
-          <PlanLabelBlock $top>AI Recommendations</PlanLabelBlock>
+          <PlanLabelBlock $top>Swan Coach Recommendations</PlanLabelBlock>
           <RecommendationList>
             {generatedPlan.recommendations.map((recommendation, index) => {
               const detail = generatedPlan.recommendationDetails?.[index];

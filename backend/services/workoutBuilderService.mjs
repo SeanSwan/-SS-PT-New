@@ -42,6 +42,12 @@ import {
   buildGoalPhaseSequence,
   getGoalOptBias,
 } from './workoutBuilderGoalConfig.mjs';
+import {
+  applyTrainingStyleToExercises,
+  normalizeTrainingStyle,
+  trainingStyleExplanation,
+  trainingStyleRecommendationDetail,
+} from './workoutBuilderTrainingStyle.mjs';
 import { buildSwanCoachPlanningFingerprint } from './swanCoachPlanningContextService.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
@@ -419,6 +425,8 @@ export async function generateWorkout(options) {
     rotationPattern = 'standard',
     primaryGoal: rawPrimaryGoal,
     nasmPhase: phaseOverride,
+    trainingIntensityMode,
+    hardcoreMethod,
   } = options;
 
   if (!clientId) throw new Error('clientId is required');
@@ -429,6 +437,7 @@ export async function generateWorkout(options) {
   // Phase override (1-5) takes precedence over the client baseline; otherwise
   // we fall back to whatever phase the context indicates.
   const primaryGoal = normalizeGoal(rawPrimaryGoal);
+  const trainingStyle = normalizeTrainingStyle({ trainingIntensityMode, hardcoreMethod });
 
   // Step 1: Get client context (parallel subsystem queries)
   let context;
@@ -620,6 +629,11 @@ export async function generateWorkout(options) {
       }
     }
   }
+  const styledWorkoutExercises = applyTrainingStyleToExercises(
+    workoutExercises,
+    trainingStyle,
+    context.pain?.warnings,
+  );
 
   const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
   const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
@@ -687,6 +701,9 @@ export async function generateWorkout(options) {
     type: 'selected_goal',
     message: `Trainer-selected goal: ${goalLabel}. Exercise selection and OPT targets biased toward ${goalBias.exerciseBias.join(' > ')}.`,
   });
+  if (trainingStyle.mode === 'hardcore') {
+    explanations.push(trainingStyleExplanation(trainingStyle));
+  }
 
   if (context.goals?.primaryGoal && context.goals.primaryGoal !== primaryGoal) {
     explanations.push({
@@ -731,6 +748,7 @@ export async function generateWorkout(options) {
     `NASM OPT Phase ${nasmPhase}: ${phaseParams.name}. Focus: ${phaseParams.focus}.`,
     `Set bias: ${goalBias.setBias}, rep bias: ${goalBias.repBias}, rest bias: ${goalBias.restBias}, intensity bias: ${goalBias.intensityBias}.`,
     `Exercise selection priority: ${goalBias.exerciseBias.join(' > ')}.`,
+    `Training style: ${trainingStyle.label}. ${trainingStyle.cue}`,
   ];
 
   return {
@@ -745,6 +763,7 @@ export async function generateWorkout(options) {
     swanCoachPlanning,
     nasmPhase,
     primaryGoal,
+    trainingStyle,
     goalBias,
     rationale,
     phaseParams: {
@@ -758,7 +777,7 @@ export async function generateWorkout(options) {
     },
 
     warmup,
-    exercises: workoutExercises,
+    exercises: styledWorkoutExercises,
     swapSuggestions,
     cooldown,
 
@@ -819,6 +838,8 @@ export async function generatePlan(options) {
     // L1 (2026-05-01) — for tests: inject a controlled exercise registry to
     // make rotation + filtering assertions deterministic. Production callers
     // omit this; getExerciseRegistryFromDB() is used.
+    trainingIntensityMode,
+    hardcoreMethod,
     registryOverride = null,
   } = options;
 
@@ -833,6 +854,7 @@ export async function generatePlan(options) {
   // - Trainer phase override beats client baseline; absent override falls
   //   back to context phase.
   const primaryGoal = normalizeGoal(rawPrimaryGoal);
+  const trainingStyle = normalizeTrainingStyle({ trainingIntensityMode, hardcoreMethod });
   const startingPhase = resolveStartingPhase({
     startingPhaseOverride,
     contextPhase: context.constraints.nasmPhase || 1,
@@ -921,6 +943,7 @@ export async function generatePlan(options) {
     }.`,
     `Mesocycle phase sequence (${mesocycleCount} blocks of 4 weeks): ${phaseSequenceSummary}.`,
     `Plan length: ${durationWeeks} weeks at ${sessionsPerWeek} sessions/week.`,
+    `Training style: ${trainingStyle.label}. ${trainingStyle.cue}`,
   ];
 
   // ── L1 (2026-05-01): per-day populator ───────────────────────────────
@@ -1015,7 +1038,7 @@ export async function generatePlan(options) {
       const recentSet = new Set(recentExerciseKeys.slice(-7));
       const rotationFallbackForThisDay = (eligiblePoolSize < 7) && selected.some((ex) => recentSet.has(ex.key));
 
-      const exercises = selected.map((ex, i) => {
+      const baseExercises = selected.map((ex, i) => {
         const opt = applyOPTParams(ex, phase, goalBias);
         // Recovery override skips chooseBiasedSet/formatBiasedRange — it
         // prescribes duration-based mobility/SMR holds, not load-based sets.
@@ -1042,6 +1065,11 @@ export async function generatePlan(options) {
           ...(rotationFallbackForThisDay ? { rotationFallback: true } : {}),
         };
       });
+      const exercises = applyTrainingStyleToExercises(
+        baseExercises,
+        trainingStyle,
+        context.pain?.warnings,
+      );
 
       // Update sliding window with this day's exercises.
       for (const ex of selected) {
@@ -1140,6 +1168,9 @@ export async function generatePlan(options) {
         sourceCitation: 'context.nutrition.dailyCalories',
       });
     }
+    if (trainingStyle.mode === 'hardcore') {
+      details.push(trainingStyleRecommendationDetail(trainingStyle));
+    }
     return details;
   };
   const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
@@ -1157,6 +1188,7 @@ export async function generatePlan(options) {
     generatedAt: new Date().toISOString(),
     planningSystem: 'swan_coach_planning',
     swanCoachPlanning,
+    trainingStyle,
 
     planSummary: {
       durationWeeks,
@@ -1165,6 +1197,7 @@ export async function generatePlan(options) {
       primaryGoal,
       startingPhase,
       equipmentProfileId,
+      trainingStyle,
     },
 
     rationale,
@@ -1206,6 +1239,9 @@ export async function generatePlan(options) {
         : null,
       context.nutrition?.dailyCalories
         ? `Nutrition plan: ${context.nutrition.dailyCalories} kcal/day (${context.nutrition.proteinGrams}g protein) — adjust volume for recovery capacity`
+        : null,
+      trainingStyle.mode === 'hardcore'
+        ? `${trainingStyle.label}: ${trainingStyle.cue}`
         : null,
     ].filter(Boolean),
 

@@ -61,8 +61,9 @@ beforeEach(() => {
 describe('SavedPlanCard — basic render', () => {
   it('renders plan name and goal', () => {
     const h = handlers();
-    render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
+    render(<SavedPlanCard plan={draftPlan} ordinal={3} loaded={false} archiveBlocked={false} {...h} />);
     expect(screen.getByText('Phase 1 Plan')).toBeInTheDocument();
+    expect(screen.getByTestId('saved-plan-number-p-50')).toHaveTextContent('Plan 3');
     expect(screen.getByText(/general fitness/i)).toBeInTheDocument();
   });
 
@@ -124,7 +125,8 @@ describe('SavedPlanCard — basic render', () => {
 describe('SavedPlanCard — card-body Load', () => {
   it('clicking the card body calls onLoad with plan id and name', () => {
     const h = handlers();
-    render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
+    render(<SavedPlanCard plan={draftPlan} ordinal={1} loaded={false} archiveBlocked={false} {...h} />);
+    expect(screen.getByRole('button', { name: /load plan 1: phase 1 plan/i })).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('saved-plan-card-p-50'));
     expect(h.onLoad).toHaveBeenCalledTimes(1);
     expect(h.onLoad).toHaveBeenCalledWith('p-50', 'Phase 1 Plan');

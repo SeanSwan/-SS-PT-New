@@ -9,7 +9,6 @@ import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
 import WorkoutPlannerConfirmDialog from './WorkoutPlannerConfirmDialog';
-import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip from './WorkoutPlannerStatusAssistantStrip';
@@ -20,22 +19,23 @@ type StatusProps = React.ComponentProps<typeof WorkoutPlannerStatusAssistantStri
 type RolodexProps = React.ComponentProps<typeof WorkoutPlannerRolodexPanel>;
 type BuilderProps = React.ComponentProps<typeof WorkoutPlannerBuilderPanel>;
 type TeachModeProps = React.ComponentProps<typeof TeachModeSidebar>;
-type GeneratedPlanProps = React.ComponentProps<typeof WorkoutPlannerGeneratedPlanSection>;
 type SavedPlansProps = React.ComponentProps<typeof WorkoutPlannerSavedPlansSection>;
 type ConfirmDialogProps = React.ComponentProps<typeof WorkoutPlannerConfirmDialog>;
 
 type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
-  GeneratedPlanProps & SavedPlansProps & ConfirmDialogProps & {
+  SavedPlansProps & ConfirmDialogProps & {
     teachModeProps: TeachModeProps;
   };
 
 const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
   phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
+  trainingIntensityMode, hardcoreMethod,
   equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
   clientGenBlocked, clientSelfGenStatus, isViewerClient, onReturnToClientHub, onTeachModeToggle,
   onClientSelectionChange, onPhaseNumberChange, onCategoryChange, onGoalChange, onPlanDurationChange,
-  onEquipmentProfileChange, onSessionsPerWeekChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
+  onEquipmentProfileChange, onSessionsPerWeekChange, onTrainingIntensityModeChange,
+  onHardcoreMethodChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
   hasPlanExercises, onDismissStatus, filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
   filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer,
   onSearchQueryChange, onFilterCategoryChange, onSourceFilterChange, onExerciseTypeFilterChange,
@@ -60,6 +60,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       goal={goal}
       planDuration={planDuration}
       sessionsPerWeek={sessionsPerWeek}
+      trainingIntensityMode={trainingIntensityMode}
+      hardcoreMethod={hardcoreMethod}
       equipmentProfiles={equipmentProfiles}
       equipmentProfilesLoading={equipmentProfilesLoading}
       selectedEquipmentProfileId={selectedEquipmentProfileId}
@@ -77,6 +79,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       onEquipmentProfileChange={onEquipmentProfileChange}
       onPlanDurationChange={onPlanDurationChange}
       onSessionsPerWeekChange={onSessionsPerWeekChange}
+      onTrainingIntensityModeChange={onTrainingIntensityModeChange}
+      onHardcoreMethodChange={onHardcoreMethodChange}
       onGenerateSingle={onGenerateSingle}
       onGeneratePlan={onGeneratePlan}
     />
@@ -123,6 +127,10 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         phase={phase}
         explanations={explanations}
         showExplanations={showExplanations}
+        generatedPlan={generatedPlan}
+        selectedMesoDay={selectedMesoDay}
+        phaseNumber={phaseNumber}
+        selectedClient={selectedClient}
         onSaveDraft={onSaveDraft}
         onSaveAndActivate={onSaveAndActivate}
         onUpdateLoaded={onUpdateLoaded}
@@ -133,18 +141,12 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onRemoveExercise={onRemoveExercise}
         onBrowseAddExercise={onBrowseAddExercise}
         onToggleExplanations={onToggleExplanations}
+        onSelectedMesoDayChange={onSelectedMesoDayChange}
+        onPhaseNumberChange={onPhaseNumberChange}
       />
       {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
     </ThreePanel>
 
-    <WorkoutPlannerGeneratedPlanSection
-      generatedPlan={generatedPlan}
-      selectedMesoDay={selectedMesoDay}
-      phaseNumber={phaseNumber}
-      selectedClient={selectedClient}
-      onSelectedMesoDayChange={onSelectedMesoDayChange}
-      onPhaseNumberChange={onPhaseNumberChange}
-    />
     <WorkoutPlannerSavedPlansSection
       selectedClientId={selectedClientId}
       savedPlans={savedPlans}

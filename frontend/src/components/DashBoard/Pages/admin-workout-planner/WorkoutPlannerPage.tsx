@@ -16,6 +16,7 @@ import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGeneratio
 import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
@@ -52,6 +53,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const phase = useMemo(() => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1], [phaseNumber]);
+  const { trainingIntensityMode, hardcoreMethod, setHardcoreMethod, handleTrainingIntensityModeChange } = useWorkoutPlannerTrainingStyleState();
 
   const {
     selectedExercise,
@@ -127,6 +129,8 @@ const WorkoutPlannerPage: React.FC = () => {
     planDuration,
     sessionsPerWeek,
     selectedEquipmentProfileId,
+    trainingIntensityMode,
+    hardcoreMethod,
     setPlanExercises,
     setGeneratedPlan,
     setPhaseNumber,
@@ -263,10 +267,9 @@ const WorkoutPlannerPage: React.FC = () => {
   });
 
   return <WorkoutPlannerPageLayout {...{
-    plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
-    phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
-    equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
-    clientGenBlocked, clientSelfGenStatus, isViewerClient, statusMsg, degradedIntelligence,
+    plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient, phaseNumber, category,
+    goal, planDuration, sessionsPerWeek, equipmentProfiles, trainingIntensityMode, hardcoreMethod, equipmentProfilesLoading,
+    selectedEquipmentProfileId, generating, generatingPlan, clientGenBlocked, clientSelfGenStatus, isViewerClient, statusMsg, degradedIntelligence,
     filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery, filterCategory, sourceFilter,
     exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer, saving, planExercises,
     hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
@@ -275,8 +278,8 @@ const WorkoutPlannerPage: React.FC = () => {
     onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
     onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
-    onPlanDurationChange: handlePlanDurationChange,
-    onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestSwanCoachWorkoutForSelectedClient,
+    onPlanDurationChange: handlePlanDurationChange, onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestSwanCoachWorkoutForSelectedClient,
+    onTrainingIntensityModeChange: handleTrainingIntensityModeChange, onHardcoreMethodChange: setHardcoreMethod,
     onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan,
     onDismissStatus: () => setStatusMsg(null), onSearchQueryChange: setSearchQuery,
     onFilterCategoryChange: setFilterCategory, onSourceFilterChange: setSourceFilter,
@@ -289,10 +292,8 @@ const WorkoutPlannerPage: React.FC = () => {
     onToggleExplanations: handleToggleExplanations, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
     onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onSetPrimary: handlePlanSetPrimary,
-    pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening, onViewPdf: handlePlanPdfView,
-    onUpdatePdf: handlePlanPdfUpdate, onSavePdf: handlePlanPdfSave,
-    onUploadPdf: handlePlanPdfUpload,
-    onClosePdfDialog: closePlanPdfDialog, onClose: closeConfirmDialog,
+    pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening, onViewPdf: handlePlanPdfView, onUpdatePdf: handlePlanPdfUpdate,
+    onSavePdf: handlePlanPdfSave, onUploadPdf: handlePlanPdfUpload, onClosePdfDialog: closePlanPdfDialog, onClose: closeConfirmDialog,
   }} />;
 };
 

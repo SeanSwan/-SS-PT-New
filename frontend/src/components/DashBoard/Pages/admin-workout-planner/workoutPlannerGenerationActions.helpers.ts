@@ -7,9 +7,11 @@
 import type {
   GeneratedPlan,
   GeneratedWorkout,
+  HardcoreTrainingMethod,
   PlanDuration,
   PlanExercise,
   PlanGoal,
+  TrainingIntensityMode,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
@@ -36,6 +38,8 @@ interface WorkoutGenerationRequestInput {
   goal: PlanGoal;
   phaseNumber: number;
   selectedEquipmentProfileId: number | null;
+  trainingIntensityMode: TrainingIntensityMode;
+  hardcoreMethod: HardcoreTrainingMethod;
 }
 
 interface PlanGenerationRequestInput {
@@ -45,6 +49,8 @@ interface PlanGenerationRequestInput {
   planDuration: PlanDuration;
   sessionsPerWeek: number;
   selectedEquipmentProfileId: number | null;
+  trainingIntensityMode: TrainingIntensityMode;
+  hardcoreMethod: HardcoreTrainingMethod;
 }
 
 type GeneratedExercise = GeneratedWorkout['exercises'][number];
@@ -101,6 +107,8 @@ export const buildWorkoutGenerationRequest = ({
   goal,
   phaseNumber,
   selectedEquipmentProfileId,
+  trainingIntensityMode,
+  hardcoreMethod,
 }: WorkoutGenerationRequestInput) => ({
   clientId: selectedClientId,
   category,
@@ -108,6 +116,8 @@ export const buildWorkoutGenerationRequest = ({
   rotationPattern: 'standard',
   primaryGoal: goal,
   nasmPhase: phaseNumber,
+  trainingIntensityMode,
+  hardcoreMethod,
   ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
 });
 
@@ -118,12 +128,16 @@ export const buildPlanGenerationRequest = ({
   planDuration,
   sessionsPerWeek,
   selectedEquipmentProfileId,
+  trainingIntensityMode,
+  hardcoreMethod,
 }: PlanGenerationRequestInput) => ({
   clientId: selectedClientId,
   durationWeeks: Number(planDuration),
   sessionsPerWeek,
   primaryGoal: goal,
   startingPhaseOverride: phaseNumber,
+  trainingIntensityMode,
+  hardcoreMethod,
   ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
 });
 
@@ -180,8 +194,14 @@ const generatedExerciseMuscles = (exercise: GeneratedExercise) => (
 );
 
 const generatedExerciseNotes = (exercise: GeneratedExercise) => {
-  if (!exercise.recommendedWeightMin) return '';
-  return `Recommended: ${exercise.recommendedWeightMin}-${exercise.recommendedWeightMax} lbs (based on ${exercise.basedOn1RM} lb 1RM)`;
+  const notes = [
+    exercise.recommendedWeightMin
+      ? `Recommended: ${exercise.recommendedWeightMin}-${exercise.recommendedWeightMax} lbs (based on ${exercise.basedOn1RM} lb 1RM)`
+      : null,
+    exercise.coachingCue || null,
+    exercise.trainingStyleGuardrail || null,
+  ];
+  return notes.filter(Boolean).join(' ');
 };
 
 const generatedExerciseSlim = (exercise: GeneratedExercise) => ({

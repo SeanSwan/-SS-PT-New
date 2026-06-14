@@ -8,6 +8,7 @@ import { Zap } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
+import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import { PanelBody, PanelHeader, PanelTitle } from './WorkoutPlannerStyles';
 import { DegradedPanel } from './WorkoutPlannerPage.styles';
@@ -22,7 +23,9 @@ import {
 
 export type { WorkoutPlannerBuilderExplanation } from './WorkoutPlannerBuilderPanel.sections';
 
-interface WorkoutPlannerBuilderPanelProps {
+type GeneratedPlanSectionProps = React.ComponentProps<typeof WorkoutPlannerGeneratedPlanSection>;
+
+interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   degradedIntelligence: boolean;
   saving: boolean;
   planExercises: PlanExercise[];
@@ -58,6 +61,10 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   phase,
   explanations,
   showExplanations,
+  generatedPlan,
+  selectedMesoDay,
+  phaseNumber,
+  selectedClient,
   onSaveDraft,
   onSaveAndActivate,
   onUpdateLoaded,
@@ -68,6 +75,8 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onRemoveExercise,
   onBrowseAddExercise,
   onToggleExplanations,
+  onSelectedMesoDayChange,
+  onPhaseNumberChange,
 }) => {
   const hasExercises = planExercises.length > 0 || hasGeneratedHorizonPlan;
   const loadedPlan = loadedPlanId
@@ -95,17 +104,30 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
 
       <PanelBody>
         <BuilderPhaseSummary phase={phase} />
-        <BuilderWorkoutContent
-          generating={generating}
-          planExercises={planExercises}
-          onSelectExercise={onSelectExercise}
-          onUpdateExercise={onUpdateExercise}
-          onRemoveExercise={onRemoveExercise}
-        />
-        <BuilderAddExerciseAction
-          planExercises={planExercises}
-          onBrowseAddExercise={onBrowseAddExercise}
-        />
+        {generatedPlan ? (
+          <WorkoutPlannerGeneratedPlanSection
+            generatedPlan={generatedPlan}
+            selectedMesoDay={selectedMesoDay}
+            phaseNumber={phaseNumber}
+            selectedClient={selectedClient}
+            onSelectedMesoDayChange={onSelectedMesoDayChange}
+            onPhaseNumberChange={onPhaseNumberChange}
+          />
+        ) : (
+          <>
+            <BuilderWorkoutContent
+              generating={generating}
+              planExercises={planExercises}
+              onSelectExercise={onSelectExercise}
+              onUpdateExercise={onUpdateExercise}
+              onRemoveExercise={onRemoveExercise}
+            />
+            <BuilderAddExerciseAction
+              planExercises={planExercises}
+              onBrowseAddExercise={onBrowseAddExercise}
+            />
+          </>
+        )}
         <BuilderExplanationsPanel
           explanations={explanations}
           showExplanations={showExplanations}

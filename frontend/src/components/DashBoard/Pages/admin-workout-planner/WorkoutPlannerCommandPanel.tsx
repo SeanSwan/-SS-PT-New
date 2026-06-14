@@ -6,12 +6,15 @@
 
 import React from 'react';
 import type {
+  HardcoreTrainingMethod,
   PlanDuration,
   PlannerEquipmentProfile,
   PlanGoal,
   PlannerClient,
+  TrainingIntensityMode,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import WorkoutPlannerTrainingStyleSection from './WorkoutPlannerTrainingStyleSection';
 import {
   WorkoutPlannerControlsSection,
   WorkoutPlannerHeaderSection,
@@ -31,6 +34,8 @@ interface WorkoutPlannerCommandPanelProps {
   goal: PlanGoal;
   planDuration: PlanDuration;
   sessionsPerWeek: number;
+  trainingIntensityMode: TrainingIntensityMode;
+  hardcoreMethod: HardcoreTrainingMethod;
   equipmentProfiles: PlannerEquipmentProfile[];
   equipmentProfilesLoading: boolean;
   selectedEquipmentProfileId: number | null;
@@ -48,6 +53,8 @@ interface WorkoutPlannerCommandPanelProps {
   onEquipmentProfileChange: (rawProfileId: string) => void;
   onPlanDurationChange: (duration: PlanDuration) => void;
   onSessionsPerWeekChange: (sessionsPerWeek: number) => void;
+  onTrainingIntensityModeChange: (mode: TrainingIntensityMode) => void;
+  onHardcoreMethodChange: (method: HardcoreTrainingMethod) => void;
   onGenerateSingle: () => void;
   onGeneratePlan: () => void;
 }
@@ -64,6 +71,8 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   goal,
   planDuration,
   sessionsPerWeek,
+  trainingIntensityMode,
+  hardcoreMethod,
   equipmentProfiles,
   equipmentProfilesLoading,
   selectedEquipmentProfileId,
@@ -81,6 +90,8 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   onEquipmentProfileChange,
   onPlanDurationChange,
   onSessionsPerWeekChange,
+  onTrainingIntensityModeChange,
+  onHardcoreMethodChange,
   onGenerateSingle,
   onGeneratePlan,
 }) => (
@@ -124,6 +135,12 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
       sessionsPerWeek={sessionsPerWeek}
       onPlanDurationChange={onPlanDurationChange}
       onSessionsPerWeekChange={onSessionsPerWeekChange}
+    />
+    <WorkoutPlannerTrainingStyleSection
+      trainingIntensityMode={trainingIntensityMode}
+      hardcoreMethod={hardcoreMethod}
+      onTrainingIntensityModeChange={onTrainingIntensityModeChange}
+      onHardcoreMethodChange={onHardcoreMethodChange}
     />
   </>
 );

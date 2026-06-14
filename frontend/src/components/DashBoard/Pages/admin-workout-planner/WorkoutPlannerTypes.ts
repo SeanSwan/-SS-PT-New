@@ -58,6 +58,7 @@ export interface GeneratedWorkout {
   swanCoachPlanning?: SwanCoachPlanningFingerprint;
   sessionType: 'build' | 'switch';
   category: string;
+  trainingStyle?: TrainingStyleMetadata;
   nasmPhase: number;
   phaseParams: { name: string; focus: string; intensity: string; tempo: string };
   warmup: { name: string; duration?: string; sets?: number; reps?: number; type: string; reason?: string }[];
@@ -75,6 +76,9 @@ export interface GeneratedWorkout {
     recommendedWeightMin?: number;
     recommendedWeightMax?: number;
     basedOn1RM?: number;
+    intensityMethod?: HardcoreTrainingMethod;
+    coachingCue?: string;
+    trainingStyleGuardrail?: string;
   }[];
   swapSuggestions: { original: string; replacements: string[] }[];
   cooldown: { name: string; duration?: string; sets?: number; reps?: number }[];
@@ -136,6 +140,7 @@ export interface GeneratedPlan {
   clientName: string;
   planningSystem?: 'swan_coach_planning';
   swanCoachPlanning?: SwanCoachPlanningFingerprint;
+  trainingStyle?: TrainingStyleMetadata;
   planSummary: {
     durationWeeks: number;
     sessionsPerWeek: number;
@@ -143,6 +148,7 @@ export interface GeneratedPlan {
     primaryGoal: string;
     startingPhase: number;
     equipmentProfileId?: number | null;
+    trainingStyle?: TrainingStyleMetadata;
   };
   mesocycles: {
     mesocycle: number;
@@ -203,6 +209,16 @@ export interface PlannerEquipmentProfile {
 export type PlanDuration = 'single' | '1' | '4' | '12' | '26' | '39' | '52';
 export type PlanGoal = 'general_fitness' | 'hypertrophy' | 'strength' | 'fat_loss' | 'athletic_performance' | 'golf_performance';
 export type WorkoutCategory = 'full_body' | 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core';
+export type TrainingIntensityMode = 'base' | 'hardcore';
+export type HardcoreTrainingMethod = 'standard' | 'pyramid' | 'superset' | 'mixed' | 'ladder' | 'descending' | 'contrast' | 'density';
+
+export interface TrainingStyleMetadata {
+  mode: TrainingIntensityMode;
+  method: HardcoreTrainingMethod;
+  label: string;
+  cue: string;
+  safeguards?: string[];
+}
 
 export const PLAN_DURATIONS: { value: PlanDuration; label: string; description: string }[] = [
   { value: 'single', label: '1 Day', description: 'One workout' },
@@ -231,4 +247,20 @@ export const WORKOUT_CATEGORIES: { value: WorkoutCategory; label: string }[] = [
   { value: 'arms', label: 'Arms' },
   { value: 'legs', label: 'Legs' },
   { value: 'core', label: 'Core' },
+];
+
+export const TRAINING_INTENSITY_OPTIONS: { value: TrainingIntensityMode; label: string }[] = [
+  { value: 'base', label: 'Base NASM' },
+  { value: 'hardcore', label: 'Hardcore Sean Style' },
+];
+
+export const HARDCORE_TRAINING_METHODS: { value: HardcoreTrainingMethod; label: string }[] = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'pyramid', label: 'Pyramid' },
+  { value: 'superset', label: 'Superset' },
+  { value: 'mixed', label: 'Mixed' },
+  { value: 'ladder', label: 'Ladder' },
+  { value: 'descending', label: 'Descending' },
+  { value: 'contrast', label: 'Contrast' },
+  { value: 'density', label: 'Density' },
 ];

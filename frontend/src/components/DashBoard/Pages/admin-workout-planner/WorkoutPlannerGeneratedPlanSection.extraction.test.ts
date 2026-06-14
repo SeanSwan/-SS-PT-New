@@ -7,13 +7,15 @@ const read = (fileName: string) =>
 
 const pageSource = read('WorkoutPlannerPage.tsx');
 const layoutSource = read('WorkoutPlannerPageLayout.tsx');
+const builderSource = read('WorkoutPlannerBuilderPanel.tsx');
 const sectionPath = resolve(__dirname, 'WorkoutPlannerGeneratedPlanSection.tsx');
 const sectionSource = existsSync(sectionPath) ? readFileSync(sectionPath, 'utf8') : '';
 
 describe('WorkoutPlanner generated plan section extraction', () => {
   it('keeps generated horizon rendering and PDF export outside the planner page shell', () => {
     expect(pageSource).toContain("from './WorkoutPlannerPageLayout'");
-    expect(layoutSource).toContain("from './WorkoutPlannerGeneratedPlanSection'");
+    expect(layoutSource).not.toContain("from './WorkoutPlannerGeneratedPlanSection'");
+    expect(builderSource).toContain("from './WorkoutPlannerGeneratedPlanSection'");
     expect(pageSource).not.toContain('exportPopulatedPlanPDF');
     expect(pageSource).not.toContain('<LongHorizonScheduleView');
     expect(sectionSource).toContain('exportPopulatedPlanPDF');

@@ -58,6 +58,19 @@ beforeEach(() => {
 });
 
 describe('POST /api/workout-builder/generate - field validation', () => {
+  it('passes valid training style fields through to single-workout generation', async () => {
+    await request(app).post('/api/workout-builder/generate').send({
+      clientId: 1,
+      category: 'full_body',
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'density',
+    });
+
+    const args = generateWorkout.mock.calls[0][0];
+    expect(args.trainingIntensityMode).toBe('hardcore');
+    expect(args.hardcoreMethod).toBe('density');
+  });
+
   it('passes valid primaryGoal + nasmPhase through to the service', async () => {
     await request(app).post('/api/workout-builder/generate').send({
       clientId: 1, category: 'full_body',
@@ -130,6 +143,20 @@ describe('POST /api/workout-builder/generate - field validation', () => {
 });
 
 describe('POST /api/workout-builder/plan - field validation', () => {
+  it('normalizes invalid training style fields before long-plan generation', async () => {
+    await request(app).post('/api/workout-builder/plan').send({
+      clientId: 1,
+      durationWeeks: 12,
+      primaryGoal: 'hypertrophy',
+      trainingIntensityMode: 'extreme',
+      hardcoreMethod: 'reckless',
+    });
+
+    const args = generatePlan.mock.calls[0][0];
+    expect(args.trainingIntensityMode).toBe('base');
+    expect(args.hardcoreMethod).toBe('standard');
+  });
+
   it('passes valid startingPhaseOverride through to the service', async () => {
     await request(app).post('/api/workout-builder/plan').send({
       clientId: 1, durationWeeks: 12, primaryGoal: 'hypertrophy',

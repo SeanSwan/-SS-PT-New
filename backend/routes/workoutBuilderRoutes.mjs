@@ -12,6 +12,7 @@ import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
+import { normalizeTrainingStyle } from '../services/workoutBuilderTrainingStyle.mjs';
 import { getCorrectiveExercisesForCompensations } from '../services/ai/correctiveExerciseService.mjs';
 import { getExercise } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
@@ -161,7 +162,7 @@ router.post('/generate', async (req, res) => {
   try {
     const {
       clientId, category, equipmentProfileId, exerciseCount, rotationPattern,
-      primaryGoal, nasmPhase,
+      primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -184,6 +185,7 @@ router.post('/generate', async (req, res) => {
     // back to general_fitness / client baseline.
     const safeGoal = ALLOWED_GOALS.includes(primaryGoal) ? primaryGoal : undefined;
     const safePhase = parseOptionalPhase(nasmPhase);
+    const safeTrainingStyle = normalizeTrainingStyle({ trainingIntensityMode, hardcoreMethod });
 
     const workout = await generateWorkout({
       clientId: parsedClientId,
@@ -194,6 +196,8 @@ router.post('/generate', async (req, res) => {
       rotationPattern: safePattern,
       primaryGoal: safeGoal,
       nasmPhase: safePhase,
+      trainingIntensityMode: safeTrainingStyle.mode,
+      hardcoreMethod: safeTrainingStyle.method,
     });
 
     return res.json({ success: true, workout });
@@ -218,7 +222,7 @@ router.post('/plan', async (req, res) => {
   try {
     const {
       clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
-      startingPhaseOverride,
+      startingPhaseOverride, trainingIntensityMode, hardcoreMethod,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -237,6 +241,7 @@ router.post('/plan', async (req, res) => {
     // Phase A: optional trainer phase override. Drop silently if out of range
     // so the service falls back to client baseline.
     const safeOverride = parseOptionalPhase(startingPhaseOverride);
+    const safeTrainingStyle = normalizeTrainingStyle({ trainingIntensityMode, hardcoreMethod });
 
     const plan = await generatePlan({
       clientId: parsedClientId,
@@ -246,6 +251,8 @@ router.post('/plan', async (req, res) => {
       primaryGoal: safeGoal,
       startingPhaseOverride: safeOverride,
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
+      trainingIntensityMode: safeTrainingStyle.mode,
+      hardcoreMethod: safeTrainingStyle.method,
     });
 
     return res.json({ success: true, plan });

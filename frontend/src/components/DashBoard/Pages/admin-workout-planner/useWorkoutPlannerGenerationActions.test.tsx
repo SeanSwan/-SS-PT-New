@@ -61,6 +61,8 @@ const renderGenerationHook = (overrides: Record<string, unknown> = {}) => {
     phaseNumber: 2,
     planDuration: '4',
     sessionsPerWeek: 3,
+    trainingIntensityMode: 'base',
+    hardcoreMethod: 'standard',
     selectedEquipmentProfileId: null,
     ...setters,
     ...overrides,
@@ -186,6 +188,63 @@ describe('useWorkoutPlannerGenerationActions', () => {
       clientId: 91,
       durationWeeks: 26,
       equipmentProfileId: 77,
+    }));
+  });
+
+  it('sends selected Base vs Hardcore controls to long-horizon generation', async () => {
+    const { hook, authAxios } = renderGenerationHook({
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'density',
+    });
+
+    await act(async () => {
+      await hook.result.current.handleGeneratePlan(91);
+    });
+
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-builder/plan', expect.objectContaining({
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'density',
+    }));
+  });
+
+  it('sends selected Base vs Hardcore controls to single-workout generation', async () => {
+    const authAxios = {
+      post: vi.fn().mockResolvedValue({
+        data: {
+          success: true,
+          workout: {
+            clientId: 91,
+            trainerId: 7,
+            clientName: 'Client 91',
+            planningSystem: 'swan_coach_planning',
+            swanCoachPlanning: { createdBy: 'swan_coach_planning' },
+            sessionType: 'build',
+            category: 'full_body',
+            nasmPhase: 2,
+            phaseParams: { name: 'Strength', focus: 'Base', intensity: '70%', tempo: '2-0-2' },
+            warmup: [],
+            exercises: [],
+            swapSuggestions: [],
+            cooldown: [],
+            explanations: [],
+          },
+        },
+      }),
+    };
+    const { hook } = renderGenerationHook({
+      authAxios,
+      planDuration: 'single',
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'superset',
+    });
+
+    await act(async () => {
+      await hook.result.current.handleSwanCoachWorkoutGenerate(91);
+    });
+
+    expect(authAxios.post).toHaveBeenCalledWith('/api/workout-builder/generate', expect.objectContaining({
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'superset',
     }));
   });
 });

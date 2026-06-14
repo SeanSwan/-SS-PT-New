@@ -124,10 +124,11 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
               </SmallSelect>
             </PlanModeBar>
             <MesocycleGrid>
-              {savedPlans.map(plan => (
+              {savedPlans.map((plan, index) => (
                 <SavedPlanCard
                   key={plan.id}
                   plan={plan}
+                  ordinal={index + 1}
                   loaded={loadedPlanId === plan.id}
                   archiveBlocked={archiveBlockedFor(plan.status)}
                   onLoad={onLoad}

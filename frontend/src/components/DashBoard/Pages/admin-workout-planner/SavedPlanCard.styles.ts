@@ -57,6 +57,29 @@ export const CardHeader = styled.div`
   gap: 8px;
 `;
 
+export const PlanTitleGroup = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const PlanNumberBadge = styled.span`
+  ${swanPill}
+  flex: 0 0 auto;
+  min-height: 28px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  font: 700 0.65rem/1 'Sora', sans-serif;
+  white-space: nowrap;
+`;
+
 export const CardTitle = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
