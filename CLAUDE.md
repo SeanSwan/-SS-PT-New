@@ -6,6 +6,8 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 - **Theme:** Enchanted Apex: Crystalline Swan (dark-first, frozen enchanted forest + deep-ocean luxury vault)
 - **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use
 
+- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Claude and Codex code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** — read the other agent's lane in `.ai-workflow/coordination/` first (read-before-edit), claim your files in your own lane, and never `git add -A` while the other has files locked. A fresh session re-enters cheaply by reading the two tiny lane files + `review-queue.md`. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
+
 - **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
 ## Four-C Router (second brain — where everything lives)
@@ -514,6 +516,16 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Why:** Sean's words 2026-06-11 — "I want every prompt I give to be the best that it could possibly be," with the AI telling SIMPLE apart from "an idea I'm trying to bring into reality," enhancing silently for least clicks / least tokens. Full procedure: `.claude/skills/prompt-watcher/SKILL.md`.
 
+67. **Live Pair-Coding Coordination (MANDATORY while Claude + Codex run in parallel)** — Established 2026-06-13 by Sean. Claude and Codex code the SAME working tree at the same time; without a live channel they collide (a commit once swept in 63 of the other agent's WIP files). The fix is a **Live Coordination Ledger** of gitignored, same-machine files at `.ai-workflow/coordination/` — both agents share Sean's filesystem, so they see each other instantly with zero git churn. (Gitignored on purpose: a committed "editing now" file would itself cause merge conflicts.) This is the real-time, 2-agent layer on top of the cross-session continuity bridge (`.ai-workflow/continuity/`) and the per-phase debate files; it does not replace them.
+    - **Session start:** read `claude.lane.md` + `codex.lane.md` + `review-queue.md`; run `node scripts/coordination-prune.mjs`.
+    - **R1 read-before-edit:** before editing ANY file, read the other agent's lane; if your target is in their **🔒 EDITING NOW**, don't edit it — pick another, queue a review request, or ask Sean.
+    - **R2/R3 claim/release:** overwrite your OWN `*.lane.md` (status, 🔒 EDITING NOW, timestamp) when you start a slice; clear it when done. Never write the other agent's lane file.
+    - **R5 staleness:** a lane `Updated:` > 30 min old + still `in-progress` may be abandoned — flag to Sean, don't silently seize.
+    - **R6 commit safety:** no `git add -A` while the other agent has any file locked; stage explicit paths; Codex coordinates commit timing on shared slices.
+    - **R7 mutual hostile review (Sean's #1 ask):** finishing a substantial slice → append a request to `review-queue.md`; the other agent runs a hostile review (rule 17 + rule 41 + the HANDOFF-PROTOCOL Business-Logic Audit) and writes back APPROVE/REVISE/REJECT + findings.
+    - **R8 lanes:** keep a standing "owned area" in your lane file; current split — Codex = storefront purchase path + Coach + Social; Claude = admin product/catalog UI + money-path safety tests + cross-cutting infra; shared = `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, the coordination dir.
+    - **Retention:** lane files overwrite in place (no growth); `review-queue.md`/`activity.log.md` pruned to 30 days / 256 KB by `scripts/coordination-prune.mjs` (gitignored+local → no history loss). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`. **Why:** Sean 2026-06-13 — tight real-time Claude↔Codex communication to avoid collisions, build faster, and catch each other's work via mutual hostile review, for the ~month until Fable 5 returns.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -649,6 +661,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - Don't reload reference docs already in context
 - Compact at 60% context capacity, not 95%
 - Start fresh (/clear) between unrelated tasks
+- **Fresh sessions are encouraged to save tokens** (long threads cost more per turn). With two agents (Rule 67), a fresh session re-enters CHEAPLY: read the tiny `.ai-workflow/coordination/*.lane.md` + `review-queue.md` + `rolling-last-done.md` — not the full debate/handoff history. Offer a continuity closeout (`"log this and close"`) before Sean restarts meaningful work so the new session is cheap + lossless.
 - Be surgical with file references — specify exact file/function, don't say "find the bug"
 - Batch multi-step instructions into single messages
 
@@ -677,6 +690,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
       The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script reads gitignored `scripts/continuity-config.local.json` when present, otherwise the tracked template, and hard-fails if placeholders remain in the loaded config.
     - **Closeouts are explicit-trigger-only.** Do not auto-append — the discipline is that Sean decides when a session is meaningful enough to log.
     - Full spec + review chain: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`. Directory README: `.ai-workflow/continuity/README.md`.
+11. **Live Pair-Coding Coordination Ledger (Rule 67, added 2026-06-13 — while Claude + Codex run in parallel):** at session start, also read `.ai-workflow/coordination/claude.lane.md` + `codex.lane.md` (what the other agent is editing right now) + `review-queue.md` (open review requests for me), then run `node scripts/coordination-prune.mjs`. Before editing ANY file, re-check the other agent's lane (read-before-edit). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 ## Reference Docs (Read ONLY when needed for current task)
 | Topic | File | When to Read |
@@ -720,6 +734,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | QA Pipeline | `docs/ai-workflow/references/QA-PIPELINE.md` | **MANDATORY** — defines the three-layer review/verification pipeline (Tier-A deterministic tooling, Tier-B AI cross-review, Tier-C AI Village). Read before invoking Tier-C, before designing a Tier-B review checklist, or when uncertain which tier a change requires. Encodes rules 50–52. |
 | Reviewer Discipline | `docs/ai-workflow/references/REVIEWER-DISCIPLINE.md` | **MANDATORY** when writing a review (Tier-B), responding to a user-relayed claim ("the other AI said X is broken"), or before any non-trivial factual/causal claim leaves your output. Six anti-sycophancy doctrines. Encodes rules 50–52. |
 | Workflow Paths | `docs/ai-workflow/references/WORKFLOW-PATHS.md` | Choosing how to run a change end-to-end (Fast / Standard / Deploy execution shape). **Orthogonal** to QA tier — see QA-PIPELINE.md for the review/verification layers. |
+| AI Pair-Coding Protocol | `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md` | **MANDATORY (Rule 67)** while Claude + Codex run in parallel. Live Coordination Ledger (`.ai-workflow/coordination/`): read-before-edit, lane claims, commit safety, mutual hostile review. Read at session start with the continuity bridge. |
 | ESLint Setup | `docs/ai-workflow/references/ESLINT-SETUP.md` | Tier-A linter install/config (deferred install slice). |
 | Claude Permission Syntax | `docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md` | `.claude/settings.json` permission patterns — read when editing allow/deny rules. |
 | Karpathy Wiki Operations | `docs/ai-workflow/references/KARPATHY-WIKI-OPERATIONS.md` | Hermes Wiki Bridge runtime ops, ingest, redaction posture. |

@@ -446,10 +446,16 @@ bearer-token.*
 # git cannot re-include paths inside an opaque-ignored parent, so the parent must be `/*` style.
 .ai-workflow/*
 !.ai-workflow/continuity/
+!.ai-workflow/coordination/
 .ai-workflow/audit/**
 # Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
 .ai-workflow/continuity/*
 !.ai-workflow/continuity/README.md
+# Live pair-coding coordination ledger (2026-06-13): README tracked, live lane/queue
+# files gitignored — they are same-machine real-time scratch, not git history, so they
+# carry zero commit churn and can never cause a merge conflict between Claude & Codex.
+.ai-workflow/coordination/*
+!.ai-workflow/coordination/README.md
 scripts/continuity-config.local.json
 SOUL.archive/
 SOUL.archive/**

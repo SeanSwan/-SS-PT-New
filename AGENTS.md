@@ -31,6 +31,13 @@ At session start, after loading normal Codex instructions and before exploring t
 
 5. If `scripts/continuity-config.json` still contains `<TODO_FILL_BEFORE_USE...>` placeholders, the append script must fail closed. Do not bypass that failure; ask Sean for the missing Tailscale/Pi values.
 
+6. **Live Pair-Coding Coordination Ledger (Rule 67, 2026-06-13 — MANDATORY while Claude + Codex run in parallel).** Claude and Codex share this working tree in real time. At session start ALSO read `.ai-workflow/coordination/claude.lane.md` (what Claude is editing right now), `.ai-workflow/coordination/codex.lane.md` (yours — overwrite it when you claim/finish a slice), and `.ai-workflow/coordination/review-queue.md` (open hostile-review requests for you), then run `node scripts/coordination-prune.mjs`. Then, **for the whole session:**
+   - **Read-before-edit:** before editing ANY file, re-read `claude.lane.md`; if your target file is in Claude's **🔒 EDITING NOW**, do NOT edit it — pick another file, queue a review request, or ask Sean.
+   - **Claim/release:** overwrite `codex.lane.md` (status, 🔒 EDITING NOW exact files, ISO `Updated:` stamp) when you start a slice; clear it when done. Never write `claude.lane.md`.
+   - **Commit safety:** no `git add -A` while Claude has any file locked; stage explicit paths. You coordinate commit timing on shared slices.
+   - **Mutual hostile review (Sean's #1 ask):** when you finish a substantial slice, append a review request to `review-queue.md`; when Claude requests a review of its work, pick it up and write back APPROVE/REVISE/REJECT + findings (rule 17 + rule 41 + the HANDOFF-PROTOCOL Business-Logic Audit).
+   - **Lanes:** Codex owns the storefront purchase path + Coach Command Center + Social; Claude owns admin product/catalog UI + money-path safety tests + cross-cutting infra; `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, and the coordination dir are SHARED — coordinate. Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
+
 Full spec: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`.
 
 --- project-doc mirror from CLAUDE.md ---
@@ -41,6 +48,8 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 - **Stack:** React 18 + TypeScript + styled-components (frontend), Node.js + Express + Sequelize + PostgreSQL (backend)
 - **Theme:** Enchanted Apex: Crystalline Swan (dark-first, frozen enchanted forest + deep-ocean luxury vault)
 - **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) â€” do NOT use
+
+- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Codex and Claude code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** / Codex Startup step 6 — read the other agent's lane in `.ai-workflow/coordination/` first (read `claude.lane.md`), claim your files in `codex.lane.md`, and never `git add -A` while the other has files locked. A fresh session re-enters cheaply by reading the two tiny lane files + `review-queue.md`. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 - **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode â€” see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
