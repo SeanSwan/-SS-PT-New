@@ -33,11 +33,14 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
 
   it('keeps the command-log renderer split into capped renderer, style, and type modules', () => {
     const rendererSource = readCoachFile('CoachCommandLogEntry.tsx');
+    const formatterSource = readCoachFile('CoachCommandLogEntry.format.ts');
     const stylesSource = readCoachFile('CoachCommandLogEntry.styles.ts');
     const typesSource = readCoachFile('CoachCommandLogEntry.types.ts');
 
     expect(rendererSource).toContain("from './CoachCommandLogEntry.styles'");
     expect(rendererSource).toContain("from './CoachCommandLogEntry.types'");
+    expect(rendererSource).toContain("from './CoachCommandLogEntry.format'");
+    expect(formatterSource).toContain('export function formatCommandLogBody');
     expect(rendererSource).not.toContain("styled.");
     expect(rendererSource).not.toContain("styled.article");
 
@@ -48,6 +51,7 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
 
     [
       ['CoachCommandLogEntry.tsx', rendererSource],
+      ['CoachCommandLogEntry.format.ts', formatterSource],
       ['CoachCommandLogEntry.styles.ts', stylesSource],
       ['CoachCommandLogEntry.types.ts', typesSource],
     ].forEach(([fileName, source]) => {

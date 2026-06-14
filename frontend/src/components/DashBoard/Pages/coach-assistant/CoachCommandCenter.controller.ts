@@ -265,6 +265,7 @@ export function useCoachCommandCenterController() {
     quickClientMessage,
     quickClientName,
     quickClientSource,
+    routeClientId,
     resetLogs: actions.resetLogs,
     rightRailItems,
     rightRailRef,

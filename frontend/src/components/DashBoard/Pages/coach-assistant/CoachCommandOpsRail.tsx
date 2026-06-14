@@ -6,6 +6,7 @@ import {
   OperatorControlsPanel,
   QueueSnapshotPanel,
   QuickClientPanel,
+  WorkoutCommandPanel,
 } from './CoachCommandOpsRailPanels';
 
 type CoachCommandOpsRailProps = {
@@ -18,10 +19,16 @@ type CoachCommandOpsRailProps = {
   queueHealthRows: QueueHealthRow[];
   railRef: React.RefObject<HTMLElement>;
   rightRailItems: string[];
+  selectedClientLabel: string;
   teachMode: boolean;
+  workoutLoggerRoute: string | null;
+  workoutPlannerRoute: string | null;
+  onOpenIntake: () => void;
+  onOpenPlaud: () => void;
   onQuickClientNameChange: (value: string) => void;
   onQuickClientSourceChange: (value: CoachCommandClientSource) => void;
   onQuickClientSubmit: (event: React.FormEvent) => void;
+  onStageWorkoutLog: () => void;
   onTeachModeToggle: () => void;
 };
 
@@ -35,10 +42,16 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
   queueHealthRows,
   railRef,
   rightRailItems,
+  selectedClientLabel,
   teachMode,
+  workoutLoggerRoute,
+  workoutPlannerRoute,
+  onOpenIntake,
+  onOpenPlaud,
   onQuickClientNameChange,
   onQuickClientSourceChange,
   onQuickClientSubmit,
+  onStageWorkoutLog,
   onTeachModeToggle,
 }) => (
   <aside
@@ -48,6 +61,14 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
     data-drawer="right"
     aria-label="Coach operations rail"
   >
+    <WorkoutCommandPanel
+      selectedClientLabel={selectedClientLabel}
+      workoutLoggerRoute={workoutLoggerRoute}
+      workoutPlannerRoute={workoutPlannerRoute}
+      onOpenIntake={onOpenIntake}
+      onOpenPlaud={onOpenPlaud}
+      onStageWorkoutLog={onStageWorkoutLog}
+    />
     <OperatorControlsPanel teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
     <QuickClientPanel
       quickClientBusy={quickClientBusy}

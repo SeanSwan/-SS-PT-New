@@ -46,9 +46,13 @@ export function useCoachCommandCenterDrawerEffects({
     [leftRail, rightRail].forEach((rail) => {
       if (!rail) return;
       const isMobile = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 860px)').matches;
+      const railSide = rail.dataset.drawer as DrawerSide | undefined;
+      const isActiveDrawer = drawer === railSide;
+      const isClosedRightDrawer = railSide === 'right' && !isActiveDrawer;
       rail.setAttribute('role', 'dialog');
-      rail.setAttribute('aria-modal', drawer ? 'true' : 'false');
-      rail.inert = drawer ? rail.dataset.drawer !== drawer : isMobile;
+      rail.setAttribute('aria-modal', isActiveDrawer ? 'true' : 'false');
+      rail.setAttribute('aria-hidden', isClosedRightDrawer ? 'true' : 'false');
+      rail.inert = isClosedRightDrawer || (drawer ? !isActiveDrawer : isMobile);
     });
 
     if (main) {

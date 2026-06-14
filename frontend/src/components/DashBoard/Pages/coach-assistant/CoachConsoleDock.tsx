@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUp, FileAudio, Mic, Paperclip, Volume2 } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ClipboardList, Dumbbell, FileAudio, Mic, Paperclip, Volume2 } from 'lucide-react';
 
 export type CoachQuickIntent = { label: string; prompt: string };
 
@@ -22,6 +22,8 @@ type CoachConsoleDockProps = {
   selectedStatus: string;
   voiceActive: boolean;
   voiceSupported: boolean;
+  workoutLoggerRoute?: string | null;
+  workoutPlannerRoute?: string | null;
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
   onCommandTextChange: (value: string) => void;
@@ -43,6 +45,8 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   selectedStatus,
   voiceActive,
   voiceSupported,
+  workoutLoggerRoute,
+  workoutPlannerRoute,
   workflowReturnLabel,
   workflowReturnTo,
   onCommandTextChange,
@@ -67,6 +71,23 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
         <span aria-hidden="true">▸</span>
         <span className="next-action-text">Next: {nextActionLabel}</span>
       </button>
+    ) : null}
+
+    {(workoutLoggerRoute || workoutPlannerRoute) ? (
+      <div className="workout-route-actions" role="group" aria-label="Workout surfaces">
+        {workoutLoggerRoute ? (
+          <Link className="workout-route-link" to={workoutLoggerRoute} aria-label="Open workout logger">
+            <Dumbbell size={16} aria-hidden="true" />
+            <span>Logger</span>
+          </Link>
+        ) : null}
+        {workoutPlannerRoute ? (
+          <Link className="workout-route-link" to={workoutPlannerRoute} aria-label="Open workout planner">
+            <ClipboardList size={16} aria-hidden="true" />
+            <span>Planner</span>
+          </Link>
+        ) : null}
+      </div>
     ) : null}
 
     <div className="quick-intents" role="group" aria-label="Quick coach actions">

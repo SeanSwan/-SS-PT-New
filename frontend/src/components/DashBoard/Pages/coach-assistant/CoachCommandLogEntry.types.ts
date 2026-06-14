@@ -8,9 +8,19 @@ export type LogStep = {
   body: string;
 };
 
+export type LogStyleVariantKey = 'science' | 'keep100';
+
+export type LogStyleVariant = {
+  key: LogStyleVariantKey;
+  label: string;
+  body: FormattedLogBody;
+};
+
 export type FormattedLogBody = {
   leadParagraphs: string[];
   steps: LogStep[];
+  bullets: string[];
+  variants?: LogStyleVariant[];
   structuredPacket?: string;
 };
 

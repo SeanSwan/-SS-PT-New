@@ -27,6 +27,10 @@ import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachConsoleDock, { type CoachQuickIntent } from './CoachConsoleDock';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
+import {
+  buildClientWorkoutLoggerRoute,
+  buildClientWorkoutPlannerRoute,
+} from '../../workspaces/clients-team/clientDailyTrainingRoutes';
 
 const QUICK_INTENTS: CoachQuickIntent[] = [
   { label: 'Log workout', prompt: 'Log a workout for the selected client: ' },
@@ -79,6 +83,14 @@ const CoachCommandCenterPage: React.FC = () => {
     commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = commandCenter.summary.actionable;
   const plaudCount = commandCenter.summary.readyReview;
+  const workoutLoggerRoute = useMemo(
+    () => (commandCenter.routeClientId ? buildClientWorkoutLoggerRoute(commandCenter.routeClientId) : null),
+    [commandCenter.routeClientId],
+  );
+  const workoutPlannerRoute = useMemo(
+    () => (commandCenter.routeClientId ? buildClientWorkoutPlannerRoute(commandCenter.routeClientId) : null),
+    [commandCenter.routeClientId],
+  );
 
   const handleSelectClient = (id: number) => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);
@@ -196,6 +208,8 @@ const CoachCommandCenterPage: React.FC = () => {
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceSupported={commandCenter.voiceSupported}
+            workoutLoggerRoute={workoutLoggerRoute}
+            workoutPlannerRoute={workoutPlannerRoute}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
             onCommandTextChange={commandCenter.setCommandText}
@@ -219,10 +233,16 @@ const CoachCommandCenterPage: React.FC = () => {
           queueHealthRows={commandCenter.queueHealthRows}
           railRef={commandCenter.rightRailRef}
           rightRailItems={commandCenter.rightRailItems}
+          selectedClientLabel={commandCenter.selectedClientLabel}
           teachMode={commandCenter.teachMode}
+          workoutLoggerRoute={workoutLoggerRoute}
+          workoutPlannerRoute={workoutPlannerRoute}
+          onOpenIntake={() => setActiveTab('intake')}
+          onOpenPlaud={handleStartPlaudUpload}
           onQuickClientNameChange={commandCenter.setQuickClientName}
           onQuickClientSourceChange={commandCenter.setQuickClientSource}
           onQuickClientSubmit={commandCenter.handleQuickClientSubmit}
+          onStageWorkoutLog={() => commandCenter.handleWorkflowSelect('Log a workout for the selected client: ')}
           onTeachModeToggle={commandCenter.toggleTeachMode}
         />
       </div>

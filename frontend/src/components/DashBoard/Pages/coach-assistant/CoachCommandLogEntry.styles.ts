@@ -53,6 +53,46 @@ export const LogBody = styled.div`
   strong { color: var(--coach-text, #e0ecf4); font-weight: 820; }
 `;
 
+export const StyleSwitch = styled.div`
+  background: color-mix(in srgb, var(--coach-bg, #030712) 56%, transparent);
+  border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+  border-radius: 14px;
+  display: inline-flex;
+  gap: 6px;
+  justify-self: start;
+  max-width: 100%;
+  padding: 5px;
+  button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: var(--coach-muted, #91a3bd);
+    font-size: 13px;
+    font-weight: 780;
+    min-height: 44px;
+    padding: 0 14px;
+  }
+  button[aria-pressed='true'] {
+    background: color-mix(in srgb, var(--coach-cyan, #60c0f0) 16%, transparent);
+    border-color: color-mix(in srgb, var(--coach-cyan, #60c0f0) 34%, transparent);
+    color: var(--coach-text, #e0ecf4);
+  }
+`;
+
+export const BulletList = styled.ul`
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  li {
+    background: color-mix(in srgb, var(--coach-text, #e0ecf4) 5%, transparent);
+    border: 1px solid var(--coach-line, rgba(96, 192, 240, 0.18));
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+`;
+
 export const StepList = styled.ol`
   display: grid;
   gap: 10px;

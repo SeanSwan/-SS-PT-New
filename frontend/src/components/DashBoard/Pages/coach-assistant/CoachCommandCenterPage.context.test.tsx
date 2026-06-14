@@ -12,6 +12,10 @@ import {
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
+const openOpsRail = () => {
+  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
+  return screen.getByLabelText('Coach operations rail');
+};
 
 describe('CoachCommandCenterPage route context', () => {
   beforeEach(resetCoachCommandCenterMocks);
@@ -232,7 +236,7 @@ describe('CoachCommandCenterPage route context', () => {
   it('shows real queue counts in the operations rail instead of static prototype values', () => {
     renderPage();
 
-    const operationsRail = screen.getByLabelText('Coach operations rail');
+    const operationsRail = openOpsRail();
     expect(within(operationsRail).getByRole('heading', { name: /Operator controls/i })).toBeInTheDocument();
     expect(within(operationsRail).getByRole('heading', { name: /Queue snapshot/i })).toBeInTheDocument();
     expect(within(operationsRail).queryByText(/Use Nutrition Context/i)).not.toBeInTheDocument();
@@ -245,11 +249,12 @@ describe('CoachCommandCenterPage route context', () => {
 
   it('creates a minimal client stub from the operator drawer and stages the dock for approved follow-up', async () => {
     renderPage();
+    const operationsRail = openOpsRail();
 
-    expect(within(screen.getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
-    fireEvent.change(screen.getByLabelText('Client source'), { target: { value: 'external' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create stub client/i }));
+    expect(within(within(operationsRail).getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();
+    fireEvent.change(within(operationsRail).getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
+    fireEvent.change(within(operationsRail).getByLabelText('Client source'), { target: { value: 'external' } });
+    fireEvent.click(within(operationsRail).getByRole('button', { name: /Create stub client/i }));
 
     await waitFor(() => {
       expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({

@@ -65,12 +65,62 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
-  it('opens the intake tab for direct active-intake review links', () => {
-    renderPage('/dashboard/admin/coach-assistant?intake=clip-111');
+  it.each([
+    {
+      label: 'no route hint',
+      route: '/dashboard/admin/coach-assistant',
+      tab: 'chat',
+    },
+    {
+      label: 'direct intake review',
+      route: '/dashboard/admin/coach-assistant?intake=clip-111',
+      tab: 'intake',
+      activeIntakeId: 'clip-111',
+    },
+    {
+      label: 'prepared draft review',
+      route: '/dashboard/admin/coach-assistant?proposal=proposal-123',
+      tab: 'intake',
+      activeIntakeId: 'none',
+    },
+    {
+      label: 'PLAUD workspace',
+      route: '/dashboard/admin/coach-assistant?workspace=plaud',
+      tab: 'plaud',
+    },
+    {
+      label: 'direct merge review',
+      route: '/dashboard/admin/coach-assistant?mergeRequestId=11111111-2222-3333-4444-555555555555',
+      tab: 'plaud',
+      mergeLabel: '11111111-2222-3333-4444-555555555555',
+    },
+    {
+      label: 'review next PLAUD merge',
+      route: '/dashboard/admin/coach-assistant?workspace=plaud&review=next',
+      tab: 'plaud',
+      mergeLabel: '11111111-2222-3333-4444-555555555555',
+    },
+  ])('routes $label deep link to the $tab tab', ({ route, tab, activeIntakeId, mergeLabel }) => {
+    renderPage(route);
 
-    expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
-    expect(screen.getByText('Active intake clip-111')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
+    if (tab === 'intake') {
+      expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
+    }
+    if (tab === 'plaud') {
+      expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
+      expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
+    }
+    if (tab === 'chat') {
+      expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeInTheDocument();
+      expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
+    }
+
+    if (activeIntakeId) expect(screen.getByText(`Active intake ${activeIntakeId}`)).toBeInTheDocument();
+    if (mergeLabel) expect(screen.getByText(mergeLabel)).toBeInTheDocument();
   });
 
   it('formats long coach responses into readable steps and keeps structured packets collapsed', async () => {

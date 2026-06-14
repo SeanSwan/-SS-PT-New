@@ -106,6 +106,27 @@ export const coachCommandDockStyles = css`
     scrollbar-width: none;
   }
   .quick-intents::-webkit-scrollbar { display: none; }
+  .workout-route-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .workout-route-link {
+    align-items: center;
+    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 28%, var(--coach-line));
+    border-radius: 12px;
+    color: var(--coach-text);
+    display: inline-flex;
+    flex: 1 1 144px;
+    font-size: 14px;
+    font-weight: 760;
+    gap: 8px;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 14px;
+    text-decoration: none;
+  }
   .quick-intent {
     background: var(--coach-soft);
     border: 1px solid var(--coach-line);
