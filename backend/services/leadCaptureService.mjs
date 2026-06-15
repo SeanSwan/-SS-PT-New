@@ -13,61 +13,29 @@
  *  - Dedupe by lowercased email so multiple touchpoints (contact form, signup,
  *    gallery) converge on ONE lead instead of duplicating.
  *
+ * Module layout (rule 4 — keep each file <300 lines):
+ *  - leadCaptureShared.mjs   — shared constants + pure helpers.
+ *  - leadCaptureCheckout.mjs — paid-checkout conversion (re-exported below).
+ *  - this file                — contact / signup / newsletter touchpoints + barrel.
+ * Public API is unchanged: import captureLeadFrom{Contact,Signup,Checkout,Newsletter}
+ * from this module exactly as before.
+ *
  * Models are imported dynamically to avoid circular imports and to keep this
  * module unit-testable with vi.mock.
  */
 
-const CONTACT_FORM_LEAD_SCORE = 30;     // warm: they actively typed a message
-const CONTACT_FORM_REPEAT_BONUS = 15;   // repeat contact = higher intent
-const SIGNUP_LEAD_SCORE = 50;           // creating an account = strong intent
-const CHECKOUT_CONVERSION_SCORE = 100;  // paid checkout = converted
-const NON_SALES_ROLES = new Set(['admin', 'trainer']);
-const CHECKOUT_CONVERSION_TAGS = ['checkout', 'converted'];
-const NEWSLETTER_LEAD_SCORE = 25;       // confirmed double-opt-in subscriber: warm, content-interested
-const NEWSLETTER_TAG = 'newsletter';
-/**
- * Map a clientSource string to the Lead.source ENUM
- * (gallery | walk_in | website | referral | social_media | other).
- */
-const mapClientSourceToLeadSource = (clientSource) => {
-  switch (clientSource) {
-    case 'external':
-      return 'referral';
-    case 'social_media':
-      return 'social_media';
-    default:
-      return 'website';
-  }
-};
-
-const splitLeadName = (name) => {
-  const [firstToken, ...rest] = String(name || '').trim().split(/\s+/).filter(Boolean);
-  return {
-    firstName: firstToken || 'Unknown',
-    lastName: rest.length ? rest.join(' ') : null,
-  };
-};
-
-const firstString = (...values) => (
-  values.map((value) => String(value || '').trim()).find(Boolean) || ''
-);
-
-const parseCartCustomerInfo = (cart) => {
-  if (!cart?.customerInfo) return {};
-  if (typeof cart.customerInfo === 'object') return cart.customerInfo;
-  try {
-    return JSON.parse(cart.customerInfo);
-  } catch {
-    return {};
-  }
-};
-
-const mergeLeadTags = (currentTags = [], tagsToAdd = []) => (
-  [...new Set([
-    ...(Array.isArray(currentTags) ? currentTags : []),
-    ...tagsToAdd,
-  ])]
-);
+import {
+  CONTACT_FORM_LEAD_SCORE,
+  CONTACT_FORM_REPEAT_BONUS,
+  SIGNUP_LEAD_SCORE,
+  NON_SALES_ROLES,
+  NEWSLETTER_LEAD_SCORE,
+  NEWSLETTER_TAG,
+  mapClientSourceToLeadSource,
+  splitLeadName,
+  mergeLeadTags,
+} from './leadCaptureShared.mjs';
+import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
 /**
  * Capture a CRM lead from a successful public contact-form submission.
@@ -208,98 +176,6 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
 }
 
 /**
- * Capture a paid checkout conversion into the CRM Lead pipeline.
- * This remains best-effort and idempotent so payment fulfillment cannot be
- * blocked by CRM writes or repeated success-page verification.
- *
- * @returns {Promise<{leadId?:number, created?:boolean, converted?:boolean, alreadyConverted?:boolean, skipped?:string, error?:string}>}
- */
-export async function captureLeadFromCheckout({ cart, user, session, sessionsAdded = 0 } = {}) {
-  try {
-    const customerInfo = parseCartCustomerInfo(cart);
-    const customerDetails = session?.customer_details || {};
-    const email = firstString(customerDetails.email, customerInfo.email, user?.email).toLowerCase();
-    if (!email) return { skipped: 'no_email' };
-
-    const userId = Number.isInteger(Number(user?.id)) ? Number(user.id) : null;
-    const customerName = firstString(
-      customerDetails.name,
-      customerInfo.name,
-      `${user?.firstName || ''} ${user?.lastName || ''}`,
-    );
-    const { firstName, lastName } = splitLeadName(customerName);
-    const phone = firstString(customerDetails.phone, customerInfo.phone, user?.phone);
-    const now = new Date();
-    const amountCents = Number.isFinite(Number(session?.amount_total)) ? Number(session.amount_total) : 0;
-    const safeSessionsAdded = Number.isFinite(Number(sessionsAdded)) ? Number(sessionsAdded) : 0;
-    const metadata = {
-      source: 'genesis_checkout',
-      ...(userId ? { userId } : {}),
-      ...(cart?.id ? { cartId: cart.id } : {}),
-      ...(session?.id ? { sessionId: session.id } : {}),
-      sessionsAdded: safeSessionsAdded,
-      amountCents,
-    };
-
-    const { default: Lead } = await import('../models/Lead.mjs');
-    const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
-
-    const [lead, created] = await Lead.findOrCreate({
-      where: { email },
-      defaults: {
-        firstName,
-        lastName,
-        email,
-        ...(phone ? { phone } : {}),
-        source: 'website',
-        sourceDetail: 'Checkout purchase',
-        status: 'converted',
-        score: CHECKOUT_CONVERSION_SCORE,
-        ...(userId ? { convertedUserId: userId } : {}),
-        convertedAt: now,
-        tags: CHECKOUT_CONVERSION_TAGS,
-        notes: userId
-          ? `Paid checkout converted user #${userId}.`
-          : 'Paid checkout converted an attributed buyer.',
-      },
-    });
-
-    if (!created && lead.status === 'converted' && Number(lead.convertedUserId) === userId) {
-      return { leadId: lead.id, created: false, alreadyConverted: true };
-    }
-
-    const previousStatus = created ? null : (lead.status || null);
-    if (!created) {
-      await lead.update({
-        status: 'converted',
-        score: CHECKOUT_CONVERSION_SCORE,
-        ...(userId ? { convertedUserId: userId } : {}),
-        convertedAt: lead.convertedAt || now,
-        ...(phone ? { phone } : {}),
-        tags: mergeLeadTags(lead.tags, CHECKOUT_CONVERSION_TAGS),
-      });
-    }
-
-    await LeadActivity.create({
-      leadId: lead.id,
-      type: 'status_change',
-      performedByAI: false,
-      title: 'Lead converted from checkout',
-      description: 'Paid checkout verified and CRM conversion recorded.',
-      metadata: {
-        ...metadata,
-        from: previousStatus,
-        to: 'converted',
-      },
-    });
-
-    return { leadId: lead.id, created, converted: true };
-  } catch (err) {
-    return { error: err?.message || 'lead capture failed' };
-  }
-}
-
-/**
  * Capture a confirmed newsletter subscriber into the CRM Lead pipeline.
  * A confirmed double-opt-in subscriber is a free, consented prospect worth
  * nurturing. Best-effort + non-blocking; dedupes by email — an existing hotter
@@ -361,5 +237,8 @@ export async function captureLeadFromNewsletter({ email, firstName = null, lastN
     return { error: err?.message || 'newsletter lead capture failed' };
   }
 }
+
+// Paid-checkout conversion lives in its own module (rule 4); re-export to keep the API.
+export { captureLeadFromCheckout };
 
 export default { captureLeadFromCheckout, captureLeadFromContact, captureLeadFromNewsletter, captureLeadFromSignup };
