@@ -11,6 +11,10 @@ import {
 } from './DashboardTeachMeGuide.adminCareRefiners';
 import { adminEngagementSystems } from './DashboardTeachMeGuide.adminEngagementRefiners';
 import { adminScheduleControl } from './DashboardTeachMeGuide.adminScheduleRefiners';
+import {
+  adminSelfWorkoutPlanning,
+  isAdminSelfPlannerRoute,
+} from './DashboardTeachMeGuide.adminSelfPlannerRefiner';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
 const adminMoneyPath = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -79,7 +83,7 @@ const adminSelfWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(
   actions: [
     { label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: 'My Planner', to: '/dashboard/admin/workout-planner?self=1' },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
   ],
   primaryPrompt: 'teach me the admin self workout logging workflow',
@@ -242,6 +246,9 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['pending-orders', 'revenue', 'admin-packages'])) {
     return adminMoneyPath(base);
+  }
+  if (isAdminSelfPlannerRoute(path)) {
+    return adminSelfWorkoutPlanning(base);
   }
   if (includesAny(path, ['workout-planner', 'workouts', 'bootcamp', 'equipment'])) {
     return adminWorkoutSystems(base);

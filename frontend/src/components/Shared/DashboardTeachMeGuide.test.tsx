@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardTeachMeGuide from './DashboardTeachMeGuide';
 
@@ -118,6 +119,22 @@ describe('DashboardTeachMeGuide', () => {
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
 
     expect(onAskCoach).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses router search so admin self planner routes teach the owner workflow', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/workout-planner?self=1&source=swan-coach']}>
+        <DashboardTeachMeGuide
+          role="admin"
+          pathname="/dashboard/admin/workout-planner"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: /teach me: admin self workout planning/i }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^start now: plan my workout$/i }))
+      .toHaveAttribute('href', '/dashboard/admin/workout-planner?self=1');
   });
 
   it('can hand the client workout logging flow to Coach when Coach is available', () => {

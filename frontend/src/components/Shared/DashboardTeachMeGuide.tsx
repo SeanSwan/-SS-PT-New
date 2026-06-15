@@ -7,6 +7,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { ArrowRight, Compass, MessageCircle, Route, ShieldCheck } from 'lucide-react';
+import { useInRouterContext, useLocation } from 'react-router-dom';
 import TeachMeToggle from './TeachMeToggle';
 import {
   type DashboardTeachMeRole,
@@ -45,8 +46,13 @@ import {
 interface DashboardTeachMeGuideProps {
   role: DashboardTeachMeRole | string;
   pathname: string;
+  search?: string;
   onAskCoach?: (prompt: string) => void;
   onNavigate?: (to: string) => void;
+}
+
+interface DashboardTeachMeGuideContentProps extends DashboardTeachMeGuideProps {
+  effectiveSearch: string;
 }
 
 const sectionIdFor = (role: DashboardTeachMeRole, pathname: string) => {
@@ -59,16 +65,17 @@ const sectionIdFor = (role: DashboardTeachMeRole, pathname: string) => {
   return `dashboard-teachme-${role}-${routeKey}`;
 };
 
-const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
+const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> = ({
   role,
   pathname,
+  effectiveSearch,
   onAskCoach,
   onNavigate,
 }) => {
   const normalizedRole = normalizeDashboardTeachMeRole(role);
   const guide = useMemo(
-    () => getDashboardTeachMeGuide({ role: normalizedRole, pathname }),
-    [normalizedRole, pathname],
+    () => getDashboardTeachMeGuide({ role: normalizedRole, pathname, search: effectiveSearch }),
+    [normalizedRole, pathname, effectiveSearch],
   );
   const secondaryActions = useMemo(
     () => guide.actions.filter((action) => action.to !== guide.primaryAction.to),
@@ -199,7 +206,7 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
         </QuickActionGroup>
       </GuideQuickStrip>
       <TeachMeToggle
-        sectionId={sectionIdFor(normalizedRole, pathname)}
+        sectionId={sectionIdFor(normalizedRole, `${pathname}${effectiveSearch}`)}
         title={guide.title}
         buttonLabel="Open guide"
         ariaLabel={`Teach Me: ${guide.title} | First move: ${guide.primaryAction.label}`}
@@ -213,6 +220,21 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
       />
     </GuideShell>
   );
+};
+
+const DashboardTeachMeGuideWithRouterSearch: React.FC<DashboardTeachMeGuideProps> = (props) => {
+  const { search } = useLocation();
+  return <DashboardTeachMeGuideContent {...props} effectiveSearch={search} />;
+};
+
+const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = (props) => {
+  const isInRouter = useInRouterContext();
+
+  if (props.search === undefined && isInRouter) {
+    return <DashboardTeachMeGuideWithRouterSearch {...props} />;
+  }
+
+  return <DashboardTeachMeGuideContent {...props} effectiveSearch={props.search ?? ''} />;
 };
 
 export default memo(DashboardTeachMeGuide);

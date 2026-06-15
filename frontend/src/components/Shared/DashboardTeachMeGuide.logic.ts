@@ -5,6 +5,7 @@ export type DashboardTeachMeRole = 'admin' | 'trainer' | 'client' | 'user';
 export interface DashboardTeachMeGuideInput {
   role: DashboardTeachMeRole;
   pathname: string;
+  search?: string;
 }
 
 export interface DashboardTeachMeGuideCopy {
@@ -193,6 +194,6 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
 export const getDashboardTeachMeGuide = (
   input: DashboardTeachMeGuideInput,
 ): DashboardTeachMeGuideCopy => {
-  const path = normalizedPath(input.pathname);
+  const path = normalizedPath(`${input.pathname}${input.search ?? ''}`);
   return refineDashboardTeachMeGuide(input.role, path, guides[input.role](path));
 };
