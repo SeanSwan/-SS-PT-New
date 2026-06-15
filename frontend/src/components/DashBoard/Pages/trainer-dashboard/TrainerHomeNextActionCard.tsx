@@ -6,11 +6,12 @@
  */
 
 import React from 'react';
-import { Brain, CalendarDays, Dumbbell, Users } from 'lucide-react';
+import { Brain, CalendarDays, ClipboardList, Dumbbell, Users } from 'lucide-react';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
+  buildTrainerSessionPlannerRoute,
   getClientName,
   getSessionStartDate,
 } from '../../../../hooks/useTrainerTodaySessions';
@@ -91,8 +92,9 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
   const clientName = getClientName(session);
   const coachRoute = buildTrainerSessionCoachRoute(session);
   const logRoute = buildTrainerSessionLogRoute(session);
+  const plannerRoute = buildTrainerSessionPlannerRoute(session);
 
-  if (!coachRoute && !logRoute) return null;
+  if (!coachRoute && !logRoute && !plannerRoute) return null;
 
   return (
     <NextActionCard aria-label="Next trainer action" role="region">
@@ -100,7 +102,7 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
         <NextActionKicker>Next client</NextActionKicker>
         <NextActionTitle>{clientName}</NextActionTitle>
         <NextActionMeta>
-          {formatSessionTime(session)} - start with Coach dictation or log the plan now.
+          {formatSessionTime(session)} - coach it, plan it, or log it from here.
         </NextActionMeta>
       </NextActionCopy>
 
@@ -114,6 +116,16 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
           >
             <Brain size={16} aria-hidden="true" />
             Coach
+          </NextActionButton>
+        )}
+        {plannerRoute && (
+          <NextActionButton
+            type="button"
+            onClick={() => onNavigate(plannerRoute)}
+            aria-label={`Plan next session for ${clientName}`}
+          >
+            <ClipboardList size={16} aria-hidden="true" />
+            Plan
           </NextActionButton>
         )}
         {logRoute && (

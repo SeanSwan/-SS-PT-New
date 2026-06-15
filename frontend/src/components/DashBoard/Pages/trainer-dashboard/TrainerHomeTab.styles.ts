@@ -77,6 +77,11 @@ export const SessionRow = styled.div`
   border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
 
   &:last-child { border-bottom: none; }
+
+  @media (max-width: 560px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
 `;
 
 export const SessionClient = styled.span`
@@ -119,6 +124,24 @@ export const SessionActions = styled.div`
   justify-content: flex-end;
   gap: 0.5rem;
   flex-wrap: wrap;
+
+  @media (max-width: 560px) {
+    justify-content: flex-start;
+  }
+
+  @media (max-width: 430px) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    > span {
+      grid-column: 1 / -1;
+      justify-self: flex-start;
+    }
+
+    > button {
+      width: 100%;
+    }
+  }
 `;
 
 export const SessionLogButton = styled.button`

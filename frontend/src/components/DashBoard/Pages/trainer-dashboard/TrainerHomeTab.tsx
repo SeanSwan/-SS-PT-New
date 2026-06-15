@@ -28,12 +28,13 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, Brain } from 'lucide-react';
+import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, Brain, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
+  buildTrainerSessionPlannerRoute,
   getClientName,
   getNextActionableTrainerSession,
   getSessionStartDate,
@@ -171,8 +172,10 @@ const TrainerHomeTab: React.FC = () => {
               const startDate = getSessionStartDate(s);
               const coachRoute = buildTrainerSessionCoachRoute(s);
               const logRoute = buildTrainerSessionLogRoute(s);
+              const plannerRoute = buildTrainerSessionPlannerRoute(s);
               const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
               const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
+              const canPlan = Boolean(plannerRoute && s.status !== 'completed' && s.status !== 'cancelled');
 
               return (
                 <SessionRow key={s.id}>
@@ -196,6 +199,18 @@ const TrainerHomeTab: React.FC = () => {
                       >
                         <Brain size={14} aria-hidden="true" />
                         Coach
+                      </SessionLogButton>
+                    )}
+                    {canPlan && (
+                      <SessionLogButton
+                        type="button"
+                        onClick={() => {
+                          if (plannerRoute) navigate(plannerRoute);
+                        }}
+                        aria-label={`Plan workout for ${getClientName(s)}`}
+                      >
+                        <ClipboardList size={14} aria-hidden="true" />
+                        Plan
                       </SessionLogButton>
                     )}
                     {canLog && (

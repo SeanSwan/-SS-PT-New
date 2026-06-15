@@ -159,6 +159,28 @@ export function buildTrainerSessionCoachRoute(
   return `/dashboard/trainer/coach-assistant?${params.toString()}`;
 }
 
+export function buildTrainerSessionPlannerRoute(
+  session: TrainerSession,
+  returnTo = '/dashboard/trainer/overview',
+): string | null {
+  const clientId = getSessionClientId(session);
+  if (!clientId) return null;
+
+  const params = new URLSearchParams({
+    clientId,
+    source: 'trainer-overview',
+    returnTo,
+  });
+
+  const sessionId = parsePositiveId(session.id);
+  if (sessionId) params.set('sessionId', sessionId);
+
+  const start = getSessionStartDate(session);
+  if (start) params.set('sessionDate', start.toISOString());
+
+  return `/dashboard/trainer/workout-planner?${params.toString()}`;
+}
+
 const isClosedTrainerSession = (session: TrainerSession): boolean =>
   session.status === 'completed' || session.status === 'cancelled';
 
