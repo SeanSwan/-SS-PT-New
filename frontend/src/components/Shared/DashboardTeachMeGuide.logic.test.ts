@@ -35,28 +35,27 @@ describe('getDashboardTeachMeGuide', () => {
     ]));
   });
 
-  it('teaches trainers to move from today sessions to logging and progress review', () => {
+  it('teaches trainers to work the next-session command from Home', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/overview',
     });
 
-    expect(guide.title).toBe('Trainer floor flow');
+    expect(guide.title).toBe('Trainer today command');
     expect(guide.primaryAction).toEqual({
-      label: "Log Today's Client",
-      to: '/dashboard/trainer/clients?intent=log_workout',
+      label: 'Today Command',
+      to: '/dashboard/trainer/overview',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Open Today sessions/i),
-      expect.stringMatching(/Log the active client/i),
-      expect.stringMatching(/Check progress/i),
+      expect.stringMatching(/next client card/i),
+      expect.stringMatching(/Coach, Plan, or Log/i),
+      expect.stringMatching(/progress or schedule/i),
     ]);
-    expect(guide.steps.join(' ')).toMatch(/Today.*sessions/i);
-    expect(guide.steps.join(' ')).toMatch(/Log.*workout/i);
-    expect(guide.steps.join(' ')).toMatch(/progress/i);
+    expect(guide.focus).toMatch(/next client card/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' }),
-      expect.objectContaining({ label: 'Today Sessions', to: '/dashboard/trainer/overview' }),
+      expect.objectContaining({ label: 'Today Command', to: '/dashboard/trainer/overview' }),
+      expect.objectContaining({ label: 'Plan Next Workout', to: '/dashboard/trainer/workout-planner' }),
       expect.objectContaining({ label: 'Log Workout', to: '/dashboard/trainer/clients?intent=log_workout' }),
     ]));
   });

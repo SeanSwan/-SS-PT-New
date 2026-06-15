@@ -7,6 +7,27 @@
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
+const trainerTodayCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Trainer today command',
+  summary: 'Use Home as the trainer floor launcher: today sessions, next client, Coach, Plan, Log, progress, and schedule stay together.',
+  focus: 'Start with the next client card so the trainer chooses Coach, Plan, or Log in seconds instead of hunting through tabs.',
+  primaryAction: { label: 'Today Command', to: '/dashboard/trainer/overview' },
+  fastPath: [
+    'Read the next client card.',
+    'Tap Coach, Plan, or Log.',
+    'Review progress or schedule the follow-up.',
+  ],
+  actions: [
+    { label: 'Today Command', to: '/dashboard/trainer/overview' },
+    { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
+    { label: 'Plan Next Workout', to: '/dashboard/trainer/workout-planner' },
+    { label: 'Log Workout', to: '/dashboard/trainer/clients?intent=log_workout' },
+    { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
+    { label: 'Schedule', to: '/dashboard/trainer/schedule' },
+  ],
+  primaryPrompt: 'teach me the trainer overview workflow for using the next client Coach Plan Log command',
+});
+
 const trainerProgressReview = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer progress review',
   summary: 'Use progress review to decide whether the client needs logging cleanup, plan adjustment, scheduling, or follow-up.',
@@ -161,6 +182,7 @@ export const refineTrainerGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (includesAny(path, ['overview'])) return trainerTodayCommand(base);
   if (includesAny(path, ['client-progress', 'progress'])) return trainerProgressReview(base);
   if (includesAny(path, ['log-workout'])) return trainerWorkoutLogging(base);
   if (includesAny(path, ['clients'])) return trainerClientCommand(base);
