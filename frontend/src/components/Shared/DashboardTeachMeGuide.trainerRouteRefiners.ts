@@ -155,15 +155,25 @@ const trainerCommunicationFlow = (base: DashboardTeachMeGuideCopy) => applyPatch
   primaryPrompt: 'teach me the trainer communication workflow',
 });
 
+const trainerBroadcastTitle = (path: string): string => {
+  if (includesAny(path, ['my-home'])) return 'Trainer achievement space';
+  if (includesAny(path, ['virtual-olympics'])) return 'Trainer competition flow';
+  if (includesAny(path, ['creators'])) return 'Trainer creator flow';
+  return 'Trainer live flow';
+};
+
+const trainerBroadcastPrimaryAction = (path: string) => {
+  if (includesAny(path, ['creators'])) return { label: 'Open Creators', to: '/dashboard/trainer/creators' };
+  if (includesAny(path, ['virtual-olympics'])) return { label: 'Open Virtual Olympics', to: '/dashboard/trainer/virtual-olympics' };
+  if (includesAny(path, ['my-home'])) return { label: 'Open My Home', to: '/dashboard/trainer/my-home' };
+  return { label: 'Open Live Streams', to: '/dashboard/trainer/live' };
+};
+
 const trainerBroadcastFlow = (path: string, base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  title: includesAny(path, ['creators']) ? 'Trainer creator flow' : 'Trainer live flow',
+  title: trainerBroadcastTitle(path),
   summary: 'Use broadcast and creator routes only after the training action is clear so content supports coaching instead of distracting from it.',
   focus: 'Connect the stream, creator task, or competition moment back to clients, programming, and follow-up.',
-  primaryAction: includesAny(path, ['creators'])
-    ? { label: 'Open Creators', to: '/dashboard/trainer/creators' }
-    : includesAny(path, ['virtual-olympics'])
-      ? { label: 'Open Virtual Olympics', to: '/dashboard/trainer/virtual-olympics' }
-      : { label: 'Open Live Streams', to: '/dashboard/trainer/live' },
+  primaryAction: trainerBroadcastPrimaryAction(path),
   fastPath: [
     'Confirm the client or group purpose.',
     'Run the stream or content task.',
@@ -173,9 +183,12 @@ const trainerBroadcastFlow = (path: string, base: DashboardTeachMeGuideCopy) => 
     { label: 'Live Streams', to: '/dashboard/trainer/live' },
     { label: 'Creators', to: '/dashboard/trainer/creators' },
     { label: 'Virtual Olympics', to: '/dashboard/trainer/virtual-olympics' },
+    { label: 'My Home', to: '/dashboard/trainer/my-home' },
     { label: 'Log Workout', to: '/dashboard/trainer/clients?intent=log_workout' },
   ],
-  primaryPrompt: 'teach me the trainer live and creator workflow',
+  primaryPrompt: includesAny(path, ['my-home'])
+    ? 'teach me the trainer achievement workflow'
+    : 'teach me the trainer live and creator workflow',
 });
 
 export const refineTrainerGuide = (
@@ -193,7 +206,7 @@ export const refineTrainerGuide = (
   if (includesAny(path, ['assessments', 'body-map', 'video-call', 'videos'])) {
     return trainerAssessmentFlow(base);
   }
-  if (includesAny(path, ['live', 'creators', 'virtual-olympics'])) {
+  if (includesAny(path, ['live', 'creators', 'virtual-olympics', 'my-home'])) {
     return trainerBroadcastFlow(path, base);
   }
   if (includesAny(path, ['coach-assistant', 'messages', 'plaud'])) return trainerCommunicationFlow(base);

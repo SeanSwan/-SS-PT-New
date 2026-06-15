@@ -9,6 +9,7 @@ import {
   adminClientCareLoop,
   adminTrustAndAccess,
 } from './DashboardTeachMeGuide.adminCareRefiners';
+import { adminEngagementSystems } from './DashboardTeachMeGuide.adminEngagementRefiners';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
 const adminMoneyPath = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -227,6 +228,9 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['workout-planner', 'workouts', 'bootcamp', 'equipment'])) {
     return adminWorkoutSystems(base);
+  }
+  if (includesAny(path, ['gamification', 'virtual-olympics', 'my-home', 'sprint-planner'])) {
+    return adminEngagementSystems(path, base);
   }
   if (includesAny(path, ['admin-sessions', 'master-schedule', 'session-allocation'])) {
     return adminScheduleControl(base);

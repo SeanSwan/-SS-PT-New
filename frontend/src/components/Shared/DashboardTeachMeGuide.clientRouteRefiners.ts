@@ -71,6 +71,25 @@ const clientRewardsFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, 
   primaryPrompt: 'teach me the client rewards workflow',
 });
 
+const clientAchievementHome = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Client achievement home',
+  summary: 'Use My Home as an unlocked proof space that points back to real training, rewards, and progress.',
+  focus: 'Keep the unlock meaningful: check what earned it, then log, review progress, or share a real milestone.',
+  primaryAction: { label: 'Open My Home', to: '/dashboard/client/my-home' },
+  fastPath: [
+    'Open the achievement space.',
+    'Check the reward or unlock.',
+    'Return to progress or logging.',
+  ],
+  actions: [
+    { label: 'My Home', to: '/dashboard/client/my-home' },
+    { label: 'Rewards', to: '/dashboard/client/rewards' },
+    { label: 'Progress', to: '/dashboard/client/progress' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
+  ],
+  primaryPrompt: 'teach me the client achievement home workflow',
+});
+
 const clientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Client workout logging',
   summary: 'Use Log Workout first so Coach, charts, and progress proof all work from the real session.',
@@ -230,6 +249,7 @@ export const refineClientGuide = (
 ): DashboardTeachMeGuideCopy => {
   if (includesAny(path, ['onboarding'])) return clientOnboardingFlow(base);
   if (includesAny(path, ['schedule'])) return clientBookingFlow(base);
+  if (includesAny(path, ['my-home'])) return clientAchievementHome(base);
   if (includesAny(path, ['rewards'])) return clientRewardsFlow(base);
   if (includesAny(path, ['progress'])) return clientProgressProof(base);
   if (includesAny(path, ['log-workout'])) return clientWorkoutLogging(base);
