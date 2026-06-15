@@ -150,17 +150,24 @@ const LoadingFallback = styled.div`
 
 const MarketingWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [leadsFilter, setLeadsFilter] = useState<'all' | 'hot' | 'followups'>('all');
+
+  // Deep-link from the Overview straight into a filtered Leads view.
+  const openLeads = (filter: 'hot' | 'followups') => {
+    setLeadsFilter(filter);
+    setActiveTab('leads');
+  };
 
   const renderActivePanel = () => {
     switch (activeTab) {
       case 'overview':
-        return <MarketingCommandOverview onSelectTab={(tab) => setActiveTab(tab)} />;
+        return <MarketingCommandOverview onSelectTab={(tab) => setActiveTab(tab)} onOpenLeads={openLeads} />;
       case 'queue':
         return <SocialPostGenerator />;
       case 'calendar':
         return <MarketingCalendar />;
       case 'leads':
-        return <LeadPipelinePanel />;
+        return <LeadPipelinePanel filter={leadsFilter} />;
       case 'analytics':
         return <SocialAnalyticsDashboard />;
       default:
@@ -185,7 +192,7 @@ const MarketingWorkspace: React.FC = () => {
             role="tab"
             aria-selected={activeTab === tab.id}
             $active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => { if (tab.id === 'leads') setLeadsFilter('all'); setActiveTab(tab.id); }}
           >
             {tab.icon}
             {tab.label}

@@ -71,4 +71,34 @@ describe('LeadPipelinePanel — actionable (B1)', () => {
     await screen.findByRole('alert');
     expect(select.value).toBe('new'); // reverted from optimistic 'lost'
   });
+
+  it('filter="hot" shows only score>=70 leads + a clear chip', async () => {
+    authGet.mockImplementation((url: string) =>
+      url.includes('/stats')
+        ? Promise.resolve({ data: { stats: { total: 2, hotLeads: 1, needsFollowUp: 0 } } })
+        : Promise.resolve({ data: { leads: [
+            { id: 7, firstName: 'Ava', lastName: 'Stone', email: 'ava@x.com', status: 'new', score: 30 },
+            { id: 8, firstName: 'Hot', lastName: 'Lead', email: 'hot@x.com', status: 'qualified', score: 85 },
+          ] } })
+    );
+    render(<LeadPipelinePanel filter="hot" />);
+    await screen.findByText('Hot Lead');
+    expect(screen.queryByText('Ava Stone')).toBeNull(); // cold lead filtered out
+    expect(screen.getByRole('button', { name: /Filtered by Hot leads/i })).toBeTruthy();
+  });
+
+  it('clicking the filter chip clears the filter and shows all leads', async () => {
+    authGet.mockImplementation((url: string) =>
+      url.includes('/stats')
+        ? Promise.resolve({ data: { stats: {} } })
+        : Promise.resolve({ data: { leads: [
+            { id: 7, firstName: 'Ava', lastName: 'Stone', email: 'ava@x.com', status: 'new', score: 30 },
+            { id: 8, firstName: 'Hot', lastName: 'Lead', email: 'hot@x.com', status: 'qualified', score: 85 },
+          ] } })
+    );
+    render(<LeadPipelinePanel filter="hot" />);
+    await screen.findByText('Hot Lead');
+    fireEvent.click(screen.getByRole('button', { name: /Filtered by Hot leads/i }));
+    await screen.findByText('Ava Stone'); // cold lead now visible after clearing
+  });
 });

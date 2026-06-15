@@ -141,6 +141,33 @@ export const FollowupInput = styled.input`
   &:disabled { opacity: 0.6; cursor: progress; }
 `;
 
+export const FilterBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+`;
+
+/** The active-filter chip IS the clear control (click to clear) — keeps a single 44px target. */
+export const FilterChip = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
+  transition: background 0.15s ease;
+
+  &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent); }
+`;
+
 export const RowError = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 11px;

@@ -22,6 +22,8 @@ type CommandTarget = 'queue' | 'calendar' | 'leads' | 'analytics';
 
 interface MarketingCommandOverviewProps {
   onSelectTab: (tab: CommandTarget) => void;
+  /** Deep-link straight to a filtered Leads view ("hot" / "followups"). */
+  onOpenLeads?: (filter: 'hot' | 'followups') => void;
 }
 
 interface LeadStats {
@@ -42,7 +44,7 @@ const DEFAULT_STATS: LeadStats = {
   converted: 0, lost: 0, conversionRate: 0, needsFollowUp: 0, hotLeads: 0,
 };
 
-const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onSelectTab }) => {
+const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onSelectTab, onOpenLeads }) => {
   const { authAxios } = useAuth();
   const [stats, setStats] = useState<LeadStats>(DEFAULT_STATS);
   const [status, setStatus] = useState<'loading' | 'ready' | 'offline'>('loading');
@@ -95,7 +97,10 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
                   <SignalTitle>{item.title}</SignalTitle>
                   <SignalMeta>{item.meta}</SignalMeta>
                 </div>
-                <CommandButton type="button" onClick={() => onSelectTab(item.tab)}>
+                <CommandButton
+                  type="button"
+                  onClick={() => (item.tab === 'leads' && onOpenLeads ? onOpenLeads('hot') : onSelectTab(item.tab))}
+                >
                   Open <ArrowRight size={14} />
                 </CommandButton>
               </SignalRow>
@@ -125,13 +130,27 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
               <MetricValue>{stats.total}</MetricValue>
               <MetricLabel>Total leads</MetricLabel>
             </MetricBlock>
-            <MetricBlock>
+            <MetricBlock
+              role="button"
+              tabIndex={0}
+              style={{ cursor: 'pointer' }}
+              aria-label={`${stats.hotLeads} hot leads — open filtered list`}
+              onClick={() => onOpenLeads?.('hot')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('hot'); } }}
+            >
               <MetricValue $tone="purple">{stats.hotLeads}</MetricValue>
-              <MetricLabel>Hot leads</MetricLabel>
+              <MetricLabel>Hot leads ›</MetricLabel>
             </MetricBlock>
-            <MetricBlock>
+            <MetricBlock
+              role="button"
+              tabIndex={0}
+              style={{ cursor: 'pointer' }}
+              aria-label={`${stats.needsFollowUp} follow-ups due — open filtered list`}
+              onClick={() => onOpenLeads?.('followups')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('followups'); } }}
+            >
               <MetricValue $tone="gold">{stats.needsFollowUp}</MetricValue>
-              <MetricLabel>Follow-ups due</MetricLabel>
+              <MetricLabel>Follow-ups due ›</MetricLabel>
             </MetricBlock>
             <MetricBlock>
               <MetricValue>{stats.conversionRate}%</MetricValue>

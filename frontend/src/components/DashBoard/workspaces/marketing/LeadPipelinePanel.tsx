@@ -6,8 +6,8 @@
  * email or call in one click. Optimistic updates with revert-on-error. Styles live
  * in LeadPipelinePanel.styles.ts (rule 4).
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, Target, Users, Mail, Phone } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCw, Target, Users, Mail, Phone, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   MarketingCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
@@ -16,8 +16,12 @@ import {
 import {
   Stack, StatsGrid, StatValue, StatLabel, TableScroll, ContactBlock, ContactName,
   ContactMeta, ScoreText, ErrorText, StatusSelect, RowActions, IconLink, FollowupInput, RowError,
+  FilterBar, FilterChip,
 } from './LeadPipelinePanel.styles';
 import type { LeadStatus } from './LeadPipelinePanel.styles';
+
+export type LeadFilter = 'all' | 'hot' | 'followups';
+const FILTER_LABEL: Record<LeadFilter, string> = { all: 'All leads', hot: 'Hot leads', followups: 'Follow-ups due' };
 
 const STATUS_OPTIONS: LeadStatus[] = ['new', 'contacted', 'qualified', 'scheduled', 'converted', 'lost'];
 
@@ -51,7 +55,12 @@ const toDateInput = (value?: string | null) => {
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 };
 
-const LeadPipelinePanel: React.FC = () => {
+interface LeadPipelinePanelProps {
+  /** Deep-link filter from the Overview ("hot" / "followups"). */
+  filter?: LeadFilter;
+}
+
+const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' }) => {
   const { authAxios } = useAuth();
   const [stats, setStats] = useState<LeadStats>(DEFAULT_STATS);
   const [leads, setLeads] = useState<LeadRecord[]>([]);
@@ -59,6 +68,10 @@ const LeadPipelinePanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<LeadRecord['id'] | null>(null);
   const [rowError, setRowError] = useState<{ id: LeadRecord['id']; msg: string } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<LeadFilter>(filter);
+
+  // Adopt the deep-link filter when the operator clicks a metric on the Overview.
+  useEffect(() => { setActiveFilter(filter); }, [filter]);
 
   const fetchLeadData = useCallback(async () => {
     setLoading(true);
@@ -66,7 +79,7 @@ const LeadPipelinePanel: React.FC = () => {
     try {
       const [statsRes, leadsRes] = await Promise.all([
         authAxios.get('/api/leads/stats'),
-        authAxios.get('/api/leads?limit=8&sortBy=createdAt&sortOrder=DESC'),
+        authAxios.get('/api/leads?limit=25&sortBy=createdAt&sortOrder=DESC'),
       ]);
       setStats({ ...DEFAULT_STATS, ...(statsRes.data?.stats || {}) });
       setLeads(Array.isArray(leadsRes.data?.leads) ? leadsRes.data.leads : []);
@@ -94,6 +107,19 @@ const LeadPipelinePanel: React.FC = () => {
     }
   }, [leads, authAxios]);
 
+  // Deep-link filters apply client-side over the fetched page (no backend change).
+  const visibleLeads = useMemo(() => {
+    const now = Date.now();
+    return leads.filter((l) => {
+      if (activeFilter === 'hot') return (l.score || 0) >= 70;
+      if (activeFilter === 'followups') {
+        const due = l.nextFollowUpAt ? new Date(l.nextFollowUpAt).getTime() <= now : false;
+        return due && l.status !== 'converted' && l.status !== 'lost';
+      }
+      return true;
+    });
+  }, [leads, activeFilter]);
+
   return (
     <Stack>
       <StatsGrid>
@@ -118,12 +144,30 @@ const LeadPipelinePanel: React.FC = () => {
           </ActionButton>
         </CardHeader>
 
+        {activeFilter !== 'all' && (
+          <FilterBar>
+            <FilterChip
+              type="button"
+              onClick={() => setActiveFilter('all')}
+              aria-label={`Filtered by ${FILTER_LABEL[activeFilter]} — tap to clear`}
+            >
+              {FILTER_LABEL[activeFilter]} <X size={14} aria-hidden />
+            </FilterChip>
+          </FilterBar>
+        )}
+
         {error ? (
           <ErrorText>{error}</ErrorText>
         ) : loading && leads.length === 0 ? (
           <EmptyState><RefreshCw size={28} />Loading leads...</EmptyState>
         ) : leads.length === 0 ? (
-          <EmptyState><Users size={28} />No leads found for the current filters.</EmptyState>
+          <EmptyState><Users size={28} />No leads yet — they'll appear here as they come in.</EmptyState>
+        ) : visibleLeads.length === 0 ? (
+          <EmptyState>
+            <Users size={28} />
+            No {FILTER_LABEL[activeFilter].toLowerCase()} right now.
+            <FilterChip type="button" onClick={() => setActiveFilter('all')} style={{ marginTop: 12 }}>Show all leads</FilterChip>
+          </EmptyState>
         ) : (
           <TableScroll>
             <DataTable>
@@ -131,7 +175,7 @@ const LeadPipelinePanel: React.FC = () => {
                 <tr><th>Contact</th><th>Source</th><th>Status</th><th>Score</th><th>Next follow-up</th><th>Reach out</th></tr>
               </thead>
               <tbody>
-                {leads.map((lead) => {
+                {visibleLeads.map((lead) => {
                   const status = lead.status || 'new';
                   const score = lead.score || 0;
                   const saving = savingId === lead.id;
