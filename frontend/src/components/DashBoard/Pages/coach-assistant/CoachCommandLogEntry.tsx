@@ -7,11 +7,9 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
   AttachmentRow,
-  LoggerHandoffRow,
   LogBody,
   LogEntry,
   LogMeta,
@@ -21,10 +19,8 @@ import {
 import type { CoachCommandLogEntryProps, LogStyleVariantKey } from './CoachCommandLogEntry.types';
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { CoachFormattedLogContent } from './CoachFormattedLogContent';
-import {
-  buildCoachWorkoutLoggerHandoff,
-  storeCoachWorkoutLoggerHandoff,
-} from './CoachCommandLoggerHandoff';
+import { buildCoachWorkoutLoggerHandoff } from './CoachCommandLoggerHandoff';
+import CoachWorkoutLoggerReviewCard from './CoachWorkoutLoggerReviewCard';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
@@ -33,6 +29,7 @@ function CoachCommandLogEntry({
   onCancelCommand,
   onConfirmCommand,
   workoutLoggerRoute,
+  workoutLoggerScopeLabel,
 }: CoachCommandLogEntryProps) {
   const formatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
@@ -70,16 +67,11 @@ function CoachCommandLogEntry({
         <CoachFormattedLogContent formatted={visibleBody} />
 
         {loggerHandoff && loggerRoute ? (
-          <LoggerHandoffRow>
-            <Link
-              to={loggerRoute}
-              aria-label={`Send ${loggerHandoff.exerciseCount} exercises to Logger`}
-              onClick={() => storeCoachWorkoutLoggerHandoff(loggerHandoff.payload)}
-            >
-              Send to Logger
-            </Link>
-            <span>{loggerHandoff.exerciseCount} exercise{loggerHandoff.exerciseCount === 1 ? '' : 's'} staged for review</span>
-          </LoggerHandoffRow>
+          <CoachWorkoutLoggerReviewCard
+            handoff={loggerHandoff}
+            workoutLoggerRoute={loggerRoute}
+            workoutLoggerScopeLabel={workoutLoggerScopeLabel}
+          />
         ) : null}
 
         {formatted.structuredPacket ? (

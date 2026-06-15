@@ -19,8 +19,8 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     const opsRail = openOpsRail();
-    expect(within(opsRail).getByRole('heading', { name: /Workout command/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/route workout actions for Client #42/i)).toBeInTheDocument();
+    expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
+    expect(within(opsRail).getByText(/one tap to log, build, review, or import/i)).toBeInTheDocument();
     expect(within(opsRail).getByRole('button', { name: /review next intake/i })).toBeInTheDocument();
     expect(within(opsRail).getByText('Client #42')).toBeInTheDocument();
     expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
@@ -38,7 +38,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     let opsRail = openOpsRail();
-    fireEvent.click(within(opsRail).getByRole('button', { name: /draft workout log prompt/i }));
+    fireEvent.click(within(opsRail).getByRole('button', { name: /draft in chat/i }));
     await waitFor(() => {
       expect((composerInput() as HTMLInputElement).value).toContain('Log a workout for the selected client');
     });
@@ -56,8 +56,8 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
     const opsRail = openOpsRail();
-    expect(within(opsRail).getByRole('heading', { name: /Workout command/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/open your own logger/i)).toBeInTheDocument();
+    expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
+    expect(within(opsRail).getByText(/use your admin self log/i)).toBeInTheDocument();
     expect(within(opsRail).queryByText(/selected client's workout/i)).not.toBeInTheDocument();
     expect(within(opsRail).getByText(/My workout log/i)).toBeInTheDocument();
     expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(

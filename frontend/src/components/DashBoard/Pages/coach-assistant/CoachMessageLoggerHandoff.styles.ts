@@ -56,6 +56,39 @@ export const CoachLoggerHandoffCard = styled.div`
     padding: 0;
   }
 
+  .handoff-context {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .handoff-context > span {
+    background: color-mix(in srgb, var(--coach-bg, #030712) 46%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-line, #60c0f0) 18%, transparent);
+    border-radius: 10px;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 8px 9px;
+  }
+
+  .handoff-context small {
+    color: var(--coach-muted, #91a3bd);
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .handoff-context strong {
+    color: var(--coach-text, #e0ecf4);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .handoff-preview li {
     align-items: center;
     background: color-mix(in srgb, var(--coach-bg, #030712) 44%, transparent);
@@ -115,6 +148,14 @@ export const CoachLoggerHandoffCard = styled.div`
   }
 
   @media (max-width: 520px) {
+    .handoff-context {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .handoff-context strong {
+      white-space: normal;
+    }
+
     .handoff-preview li {
       align-items: start;
       grid-template-columns: minmax(0, 1fr);

@@ -29,4 +29,5 @@ export type CoachCommandLogEntryProps = {
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
   workoutLoggerRoute?: string | null;
+  workoutLoggerScopeLabel?: string | null;
 };

@@ -81,7 +81,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write my workout');
     await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
 
-    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /review 2 exercises in logger/i })).toHaveAttribute(
       'href',
       '/dashboard/client/log-workout?loadPlan=today',
     );
@@ -116,7 +116,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write today workout');
     await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
 
-    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /review 2 exercises in logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
@@ -139,7 +139,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write my workout');
     await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
 
-    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /review 2 exercises in logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
     );
@@ -180,7 +180,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write today workout');
     await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
 
-    expect(await screen.findByRole('link', { name: /send 2 exercises to logger/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /review 2 exercises in logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
     );

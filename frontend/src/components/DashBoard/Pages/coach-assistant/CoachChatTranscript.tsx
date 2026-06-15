@@ -19,6 +19,7 @@ type CoachChatTranscriptProps = {
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
   onReset: () => void;
   workoutLoggerRoute?: string | null;
+  workoutLoggerScopeLabel?: string | null;
 };
 
 const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
@@ -27,6 +28,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
   onConfirmCommand,
   onReset,
   workoutLoggerRoute,
+  workoutLoggerScopeLabel,
 }) => {
   const streamRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +59,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
               onCancelCommand={onCancelCommand}
               onConfirmCommand={onConfirmCommand}
               workoutLoggerRoute={workoutLoggerRoute}
+              workoutLoggerScopeLabel={workoutLoggerScopeLabel}
             />
           ))
         ) : (

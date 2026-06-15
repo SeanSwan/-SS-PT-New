@@ -182,6 +182,7 @@ const CoachCommandCenterPage: React.FC = () => {
               onConfirmCommand={commandCenter.handleConfirmCommand}
               onReset={commandCenter.resetLogs}
               workoutLoggerRoute={workoutLoggerRoute}
+              workoutLoggerScopeLabel={workoutLoggerScopeLabel}
             />
           ) : null}
 

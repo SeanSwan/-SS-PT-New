@@ -86,6 +86,7 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   const scopeLabel = workoutLoggerRoute ? (workoutLoggerScopeLabel || selectedClientLabel) : 'No client locked';
   const primaryCopy = primaryActionCopy(scopeLabel, Boolean(workoutLoggerRoute));
   const primaryHref = workoutLoggerRoute || clientPickerRoute;
+  const showClientPicker = Boolean(workoutLoggerRoute) && scopeLabel === 'My workout log';
 
   return (
     <section className="panel workout-command-panel">
@@ -120,6 +121,12 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         {workoutPlannerRoute ? (
           <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open workout builder - Open Planner">
             <ActionBody icon={<ClipboardList size={18} aria-hidden="true" />} title="Open builder" note="Create plan" />
+          </Link>
+        ) : null}
+
+        {showClientPicker ? (
+          <Link className="workout-command-card route" to={clientPickerRoute} aria-label="Pick a client for workout logging">
+            <ActionBody icon={<UserPlus size={18} aria-hidden="true" />} title="Pick client" note="Log for someone else" />
           </Link>
         ) : null}
 

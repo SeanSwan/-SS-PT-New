@@ -39,19 +39,21 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    const sendLink = screen.getByRole('link', { name: /send 2 exercises to logger/i });
-    expect(sendLink).toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
-    expect(sendLink).toHaveTextContent(/review in logger/i);
+    const reviewLink = screen.getByRole('link', { name: /review 2 exercises in logger/i });
+    expect(reviewLink).toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
+    expect(reviewLink).toHaveTextContent(/review in logger/i);
 
     expect(screen.getByText('Workout ready for review')).toBeInTheDocument();
-    expect(screen.getByText(/review only - nothing logs until you save it/i)).toBeInTheDocument();
+    expect(screen.getByText(/nothing logs until you save it/i)).toBeInTheDocument();
+    expect(screen.getByText('Active logger')).toBeInTheDocument();
+    expect(screen.getByText('Today')).toBeInTheDocument();
     const preview = within(screen.getByLabelText('Parsed workout preview'));
     expect(preview.getByText('Goblet squat')).toBeInTheDocument();
     expect(preview.getByText('3 x 10')).toBeInTheDocument();
     expect(preview.getByText('Push-up')).toBeInTheDocument();
     expect(preview.getByText('3 x 8')).toBeInTheDocument();
 
-    await user.click(sendLink);
+    await user.click(reviewLink);
 
     const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
     expect(queued).toHaveLength(1);
@@ -77,7 +79,7 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('link', { name: /send 1 exercise to logger/i }));
+    await user.click(screen.getByRole('link', { name: /review 1 exercise in logger/i }));
 
     rerender(
       <MemoryRouter>
@@ -88,7 +90,7 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('link', { name: /send 1 exercise to logger/i }));
+    await user.click(screen.getByRole('link', { name: /review 1 exercise in logger/i }));
 
     const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
     expect(queued.map((plan: { exercises: { exerciseName: string }[] }) => (
@@ -129,7 +131,7 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('link', { name: /send .* logger/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /review .* logger/i })).not.toBeInTheDocument();
   });
 
   it('stages only the visible answer style when a dual-mode workout answer is switched', async () => {
@@ -151,10 +153,10 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('link', { name: /send .* logger/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /review .* logger/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Keep It 100' }));
-    await user.click(screen.getByRole('link', { name: /send 2 exercises to logger/i }));
+    await user.click(screen.getByRole('link', { name: /review 2 exercises in logger/i }));
 
     const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
     expect(queued[0].exercises).toEqual([
@@ -180,7 +182,7 @@ describe('CoachMessage logger handoff', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('link', { name: /send 1 exercise to logger/i }));
+    await user.click(screen.getByRole('link', { name: /review 1 exercise in logger/i }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(/could not stage this workout/i);
     expect(setItem).toHaveBeenCalledWith(
