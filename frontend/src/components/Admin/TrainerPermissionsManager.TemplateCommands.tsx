@@ -43,11 +43,9 @@ const getElevatedCriticalLabels = (templateKey: string): string[] => {
   const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
   if (!template) return [];
 
-  const labels = template.permissions
+  return template.permissions
     .map((permissionType) => criticalPermissionLabels.get(permissionType))
     .filter(Boolean) as string[];
-
-  return labels.length > 1 ? labels : [];
 };
 
 export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = ({

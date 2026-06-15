@@ -157,6 +157,7 @@ describe('TrainerPermissionsManager active admin contract', () => {
     }), {
       target: { value: 'new_trainer' },
     });
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply selected broader permission template to selected trainers/i,
     }));
@@ -168,13 +169,14 @@ describe('TrainerPermissionsManager active admin contract', () => {
     expect(mockToast.error).toHaveBeenCalledWith('Failed to apply template');
   });
 
-  it('applies the New Trainer template from a one-click header command', async () => {
+  it('applies the New Trainer template from a guarded header command', async () => {
     render(<TrainerPermissionsManager />);
 
     expect(await screen.findByText('Rowan Vale')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', {
       name: /select rowan vale for bulk operations/i,
     }));
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply new trainer starter template to selected trainers/i,
     }));
@@ -238,6 +240,7 @@ describe('TrainerPermissionsManager active admin contract', () => {
     }), {
       target: { value: 'new_trainer' },
     });
+    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply selected broader permission template to selected trainers/i,
     }));

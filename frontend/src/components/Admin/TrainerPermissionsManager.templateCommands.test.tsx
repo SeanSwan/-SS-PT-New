@@ -85,6 +85,35 @@ describe('TrainerPermissionsManager template command strip', () => {
     expect(applyTemplate).toHaveBeenCalledWith('session_manager', [101, 102]);
   });
 
+  it('blocks the New Trainer critical template when confirmation is cancelled', () => {
+    const applyTemplate = vi.fn();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(
+      <TrainerPermissionsHeader
+        applyTemplate={applyTemplate}
+        bulkProcessing={false}
+        handleExportReport={vi.fn()}
+        loadData={vi.fn()}
+        permissionRequests={[]}
+        selectedTemplate=""
+        selectedTrainers={new Set([101])}
+        setSelectedTemplate={vi.fn()}
+        setShowRequests={vi.fn()}
+        showRequests={false}
+        stats={baseStats}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', {
+      name: /apply new trainer starter template to selected trainers/i,
+    }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('New Trainer'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Edit Client Workouts'));
+    expect(applyTemplate).not.toHaveBeenCalled();
+  });
+
   it('requires confirmation before applying elevated broader templates', () => {
     const applyTemplate = vi.fn();
     const setSelectedTemplate = vi.fn();
