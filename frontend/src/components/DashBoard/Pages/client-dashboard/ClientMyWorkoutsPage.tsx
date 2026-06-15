@@ -157,7 +157,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
             </EmptyText>
             {page === 1 && (
               <HeaderActions aria-label="First workout actions">
-                <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
+                <LogBtn onClick={() => navigate('/dashboard/client/log-workout?loadPlan=today')}>
                   <Dumbbell size={16} /> Log Your First Workout
                 </LogBtn>
                 <LogBtn onClick={() => navigate(coachPath)} aria-label="Ask Coach what to log first">

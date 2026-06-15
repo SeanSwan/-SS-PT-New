@@ -60,7 +60,7 @@ const ClientMyWorkoutsNextMove: React.FC<ClientMyWorkoutsNextMoveProps> = ({ coa
       <p>Review the latest page, log today if you trained, or ask Coach what to adjust.</p>
     </Copy>
     <HeaderActions aria-label="Workout next actions">
-      <LogBtn type="button" onClick={() => onNavigate('/dashboard/client/log-workout')}>
+      <LogBtn type="button" onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}>
         <Dumbbell size={16} /> Log Today's Workout
       </LogBtn>
       <LogBtn type="button" onClick={() => onNavigate(coachPath)} aria-label="Ask Coach Next">

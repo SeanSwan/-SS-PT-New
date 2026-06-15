@@ -21,7 +21,7 @@ const ClientMyWorkoutsHeader: React.FC<ClientMyWorkoutsHeaderProps> = ({ onNavig
   <Header>
     <Title><AccentIconSlot><Dumbbell size={22} /></AccentIconSlot> My Workouts</Title>
     <HeaderActions>
-      <LogBtn type="button" onClick={() => onNavigate('/dashboard/client/log-workout')}>
+      <LogBtn type="button" onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}>
         <Dumbbell size={16} /> Log Workout
       </LogBtn>
       <LogBtn type="button" onClick={() => onNavigate(coachPath)} aria-label="Ask Coach about my workouts">

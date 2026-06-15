@@ -176,9 +176,8 @@ describe('ClientMyWorkoutsPage — empty-page trap regression', () => {
 
 // =========================================================================
 // Canonical-surface-audit 2026-04-13 review findings:
-//   - Log Workout CTAs must route to /dashboard/client/log-workout (the
-//     canonical client route per UniversalDashboardLayout.tsx), not the
-//     legacy /dashboard/workouts/logger.
+//   - Log Workout CTAs must route to the today-loaded canonical client
+//     logger, not the legacy /dashboard/workouts/logger.
 //   - Stat cards are computed from the current page slice only, so labels
 //     must be explicitly page-scoped to avoid misleading-data-truth
 //     regressions when pagination lands on later pages.
@@ -189,7 +188,7 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     mockNavigate.mockReset();
   });
 
-  it('Header "Log Workout" CTA navigates to /dashboard/client/log-workout', async () => {
+  it('Header "Log Workout" CTA navigates to the today-loaded client logger', async () => {
     const user = userEvent.setup();
     mockUseWorkoutSessions.mockReturnValue({
       data: FULL_PAGE,
@@ -204,7 +203,7 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     const headerBtn = screen.getByRole('button', { name: /^\s*log workout\s*$/i });
     await user.click(headerBtn);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
     // Explicit negative assertion against the legacy route
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/workouts/logger');
   });
@@ -229,7 +228,7 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     expect(url.searchParams.get('teachPrompt')).toMatch(/workout history/i);
   });
 
-  it('first-time empty state "Log Your First Workout" CTA navigates to /dashboard/client/log-workout', async () => {
+  it('first-time empty state "Log Your First Workout" CTA navigates to the today-loaded logger', async () => {
     const user = userEvent.setup();
     mockUseWorkoutSessions.mockReturnValue({
       data: [],
@@ -243,7 +242,7 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     const emptyStateBtn = screen.getByRole('button', { name: /log your first workout/i });
     await user.click(emptyStateBtn);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/workouts/logger');
   });
 

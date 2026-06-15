@@ -49,4 +49,20 @@ describe('DashboardTeachMeGuide log-today actions', () => {
       to: todayLoggerPath,
     });
   });
+
+  it.each([
+    '/dashboard/client/community',
+    '/dashboard/client/live',
+    '/dashboard/client/creators',
+    '/dashboard/client/virtual-olympics',
+  ])('routes client action rails from %s to today-loaded logging', (pathname) => {
+    const guide = getDashboardTeachMeGuide({
+      role: 'client',
+      pathname,
+    });
+
+    expect(guide.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Log Workout', to: todayLoggerPath }),
+    ]));
+  });
 });

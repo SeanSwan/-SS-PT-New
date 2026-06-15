@@ -135,7 +135,7 @@ const clientCommunityFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base
   actions: [
     { label: 'Community', to: '/dashboard/client/community' },
     { label: 'Progress', to: '/dashboard/client/progress' },
-    { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     { label: 'Messages', to: '/dashboard/client/messages' },
   ],
   primaryPrompt: 'teach me the client community workflow',
@@ -153,7 +153,7 @@ const clientLiveFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   ],
   actions: [
     { label: 'Live Streams', to: '/dashboard/client/live' },
-    { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
     { label: 'Progress', to: '/dashboard/client/progress' },
   ],
@@ -174,7 +174,7 @@ const clientCreatorFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, 
     { label: 'Creators', to: '/dashboard/client/creators' },
     { label: 'Community', to: '/dashboard/client/community' },
     { label: 'Progress', to: '/dashboard/client/progress' },
-    { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
   ],
   primaryPrompt: 'teach me the client creator workflow',
 });
@@ -192,7 +192,7 @@ const clientCompetitionFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   actions: [
     { label: 'Virtual Olympics', to: '/dashboard/client/virtual-olympics' },
     { label: 'Progress', to: '/dashboard/client/progress' },
-    { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     { label: 'Community', to: '/dashboard/client/community' },
   ],
   primaryPrompt: 'teach me the client competition workflow',
