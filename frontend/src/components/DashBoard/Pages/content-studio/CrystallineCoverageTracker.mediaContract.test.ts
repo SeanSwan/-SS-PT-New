@@ -32,5 +32,6 @@ describe('CrystallineCoverageTracker media contract', () => {
 
   it('keeps selected exercise detail backgrounds token-backed', () => {
     expect(detailSource).not.toMatch(/background:\s*rgba\(/);
+    expect(detailSource).not.toMatch(/var\([^;]*rgba\(/);
   });
 });

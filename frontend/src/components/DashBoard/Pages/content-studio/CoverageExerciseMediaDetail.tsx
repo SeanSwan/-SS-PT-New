@@ -42,7 +42,10 @@ const DetailShell = styled.aside`
   margin-top: 18px;
   padding: 14px;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
+  border: 1px solid var(
+    --border-soft,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)
+  );
   background: linear-gradient(135deg, var(--bg-elevated, #141419), var(--bg-secondary, #1A1A24));
 
   @media (max-width: 720px) {
@@ -57,8 +60,14 @@ const PreviewFrame = styled.div`
   aspect-ratio: 16 / 10;
   min-height: 72px;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
-  background: var(--coverage-preview-surface, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(
+    --border-soft,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)
+  );
+  background: var(
+    --coverage-preview-surface,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)
+  );
   display: grid;
   place-items: center;
   color: var(--accent-primary, #60C0F0);
@@ -79,7 +88,10 @@ const VideoBadge = styled.span`
   gap: 4px;
   padding: 4px 7px;
   border-radius: 999px;
-  background: var(--coverage-video-badge-bg, rgba(10, 10, 15, 0.76));
+  background: var(
+    --coverage-video-badge-bg,
+    color-mix(in srgb, var(--bg-base, #0A0A0F) 76%, transparent)
+  );
   border: 1px solid var(--accent-primary, #60C0F0);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
@@ -100,7 +112,10 @@ const ExerciseName = styled.h3`
 
 const MetaLine = styled.p`
   margin: 0;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  color: var(
+    --text-secondary,
+    color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent)
+  );
   font-family: 'Sora', sans-serif;
   font-size: 0.82rem;
   line-height: 1.5;
@@ -124,7 +139,10 @@ const OpenLink = styled.a`
   padding: 0 16px;
   border-radius: 8px;
   border: 1px solid var(--accent-primary, #60C0F0);
-  background: var(--coverage-action-bg, rgba(96, 192, 240, 0.12));
+  background: var(
+    --coverage-action-bg,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)
+  );
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 0.86rem;
@@ -133,7 +151,10 @@ const OpenLink = styled.a`
   white-space: nowrap;
 
   &:hover {
-    background: var(--coverage-action-bg-hover, rgba(96, 192, 240, 0.18));
+    background: var(
+      --coverage-action-bg-hover,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)
+    );
   }
 
   &:focus-visible {
