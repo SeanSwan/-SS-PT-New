@@ -118,11 +118,11 @@ describe('getDashboardTeachMeGuide', () => {
 
     expect(guide.primaryAction).toEqual({
       label: 'Log Workout',
-      to: '/dashboard/client/log-workout',
+      to: '/dashboard/client/log-workout?loadPlan=today',
     });
     expect(guide.primaryPrompt).toMatch(/user dashboard training workflow/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout' }),
+      expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' }),
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       expect.objectContaining({ label: 'Progress', to: '/user-dashboard/progress' }),
     ]));

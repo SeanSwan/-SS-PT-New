@@ -91,7 +91,7 @@ describe('DashboardTeachMeGuide', () => {
     expect(within(expandedFastPath).getByText(/Read the current trend/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /log workout/i })).toHaveAttribute(
       'href',
-      '/dashboard/client/log-workout',
+      '/dashboard/client/log-workout?loadPlan=today',
     );
     expect(screen.getByRole('link', { name: /ask coach/i })).toHaveAttribute(
       'href',

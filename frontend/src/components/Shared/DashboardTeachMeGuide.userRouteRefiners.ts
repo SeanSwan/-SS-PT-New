@@ -10,7 +10,7 @@ import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.s
 type GuideAction = DashboardTeachMeGuideCopy['actions'][number];
 
 const askCoach: GuideAction = { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' };
-const logWorkout: GuideAction = { label: 'Log Workout', to: '/dashboard/client/log-workout' };
+const logWorkout: GuideAction = { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' };
 const progress: GuideAction = { label: 'Progress', to: '/user-dashboard/progress' };
 const home: GuideAction = { label: 'Home', to: '/user-dashboard' };
 

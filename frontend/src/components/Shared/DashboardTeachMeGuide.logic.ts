@@ -140,7 +140,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
     title: 'Client training loop',
     summary: 'The client dashboard should keep training first: log work, review progress, book the next session, and keep signals clear.',
     focus: clientFocus(path),
-    primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     fastPath: [
       "Log today's workout.",
       'Check progress from the saved work.',
@@ -153,7 +153,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
       'Report pain, fatigue, and questions where the coach can review them before the next plan change.',
     ],
     actions: [
-      { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+      { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
       { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
       { label: 'Progress', to: '/dashboard/client/progress' },
       { label: 'Book My Session', to: '/dashboard/client/schedule' },
@@ -166,7 +166,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
     title: 'User dashboard tour',
     summary: 'Use the public dashboard as the personal proof hub: Home, training proof, Studio, community, and profile all stay connected.',
     focus: userFocus(path),
-    primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+    primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     fastPath: [
       'Start on Home for the daily snapshot.',
       'Open Progress before changing anything.',
@@ -180,7 +180,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
     ],
     actions: [
       { label: 'Home', to: '/user-dashboard' },
-      { label: 'Log Workout', to: '/dashboard/client/log-workout' },
+      { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
       { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
       { label: 'Progress', to: '/user-dashboard/progress' },
       { label: 'Studio', to: '/user-dashboard/creative' },
