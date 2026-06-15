@@ -7,6 +7,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -117,11 +118,16 @@ router.get('/stats', async (req, res) => {
       where: { ...where, score: { [Op.gte]: 70 }, status: { [Op.notIn]: ['converted', 'lost'] } },
     });
 
+    // Acquisition-channel breakdown (which channel produces leads). Capped fetch —
+    // fine at early-stage volume; move to a JSONB SQL aggregation past the cap.
+    const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source'], limit: 5000 });
+    const byChannel = aggregateLeadChannels(channelRows);
+
     return res.json({
       success: true,
       stats: {
         total, new: newLeads, contacted, qualified, scheduled, converted, lost,
-        conversionRate, needsFollowUp, hotLeads,
+        conversionRate, needsFollowUp, hotLeads, byChannel,
       },
     });
   } catch (err) {

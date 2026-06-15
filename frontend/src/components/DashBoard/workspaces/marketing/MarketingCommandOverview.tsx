@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  ArrowRight, BarChart3, CalendarDays, CheckCircle2, Megaphone, Send, Users,
+  ArrowRight, BarChart3, CalendarDays, CheckCircle2, Megaphone, Send, TrendingUp, Users,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
@@ -16,6 +16,7 @@ import {
   BoundaryCopy, BoundaryGrid, BoundaryItem, BoundaryTitle, CommandButton,
   MetricBlock, MetricGrid, MetricLabel, MetricValue, OverviewGrid,
   SignalIcon, SignalList, SignalMeta, SignalRow, SignalTitle, Stack, StatusLine,
+  ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty,
 } from './MarketingCommandOverview.styles';
 
 type CommandTarget = 'queue' | 'calendar' | 'leads' | 'analytics';
@@ -24,6 +25,11 @@ interface MarketingCommandOverviewProps {
   onSelectTab: (tab: CommandTarget) => void;
   /** Deep-link straight to a filtered Leads view ("hot" / "followups"). */
   onOpenLeads?: (filter: 'hot' | 'followups') => void;
+}
+
+interface ChannelStat {
+  channel: string;
+  count: number;
 }
 
 interface LeadStats {
@@ -37,11 +43,12 @@ interface LeadStats {
   conversionRate: number;
   needsFollowUp: number;
   hotLeads: number;
+  byChannel: ChannelStat[];
 }
 
 const DEFAULT_STATS: LeadStats = {
   total: 0, new: 0, contacted: 0, qualified: 0, scheduled: 0,
-  converted: 0, lost: 0, conversionRate: 0, needsFollowUp: 0, hotLeads: 0,
+  converted: 0, lost: 0, conversionRate: 0, needsFollowUp: 0, hotLeads: 0, byChannel: [],
 };
 
 const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onSelectTab, onOpenLeads }) => {
@@ -72,6 +79,8 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
     { tab: 'leads' as const, icon: <Users size={19} />, title: 'Work hot leads first', meta: `${stats.hotLeads} hot, ${stats.needsFollowUp} due for follow-up.` },
     { tab: 'analytics' as const, icon: <BarChart3 size={19} />, title: 'Read what is converting', meta: 'Use channel performance to decide what gets repeated.' },
   ];
+
+  const topChannelCount = stats.byChannel[0]?.count || 0; // list is sorted desc
 
   return (
     <Stack>
@@ -159,6 +168,35 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
           </MetricGrid>
         </MarketingCard>
       </OverviewGrid>
+
+      <MarketingCard>
+        <CardHeader>
+          <HeaderLeft>
+            <IconWrap>
+              <TrendingUp size={18} />
+            </IconWrap>
+            <div>
+              <CardTitle>Leads by Channel</CardTitle>
+              <CardSubtitle>Which channel is actually producing leads — invest where it works</CardSubtitle>
+            </div>
+          </HeaderLeft>
+        </CardHeader>
+        {stats.byChannel.length === 0 ? (
+          <ChannelEmpty>Channels appear here as attributed leads come in — tag your links with utm_source (e.g. ?utm_source=youtube).</ChannelEmpty>
+        ) : (
+          <ChannelList>
+            {stats.byChannel.map((c) => (
+              <ChannelRow key={c.channel}>
+                <ChannelName>{c.channel}</ChannelName>
+                <ChannelTrack>
+                  <ChannelFill $pct={topChannelCount ? (c.count / topChannelCount) * 100 : 0} />
+                </ChannelTrack>
+                <ChannelCount>{c.count}</ChannelCount>
+              </ChannelRow>
+            ))}
+          </ChannelList>
+        )}
+      </MarketingCard>
 
       <MarketingCard>
         <CardHeader>

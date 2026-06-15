@@ -111,3 +111,25 @@ export const deriveChannel = ({ utmSource, utmMedium, referrer } = {}) => {
   if (leadSource === 'website' && medium === 'referral') leadSource = 'referral';
   return { channel, leadSource };
 };
+
+// Friendly label for leads that have no 'channel:' tag yet (pre-attribution / non-form).
+const CHANNEL_SOURCE_LABEL = { website: 'direct', social_media: 'social', referral: 'referral', gallery: 'gallery', walk_in: 'walk-in', other: 'other' };
+
+/**
+ * Roll lead rows ({ tags, source }) into a sorted top-N channel breakdown for the
+ * Marketing Command Center. The 'channel:<x>' tag wins; else bucket by source enum.
+ * @returns {{channel:string, count:number}[]}
+ */
+export const aggregateLeadChannels = (rows = [], topN = 8) => {
+  const counts = {};
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    const tags = Array.isArray(row?.tags) ? row.tags : [];
+    const tag = tags.find((t) => typeof t === 'string' && t.startsWith('channel:'));
+    const channel = tag ? tag.slice(8) : (CHANNEL_SOURCE_LABEL[row?.source] || row?.source || 'direct');
+    counts[channel] = (counts[channel] || 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([channel, count]) => ({ channel, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, topN);
+};

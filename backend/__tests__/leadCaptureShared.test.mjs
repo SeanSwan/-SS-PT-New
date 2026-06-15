@@ -5,7 +5,7 @@
  * non-PII marketing signals (rule 8).
  */
 import { describe, expect, it } from 'vitest';
-import { deriveChannel, channelToLeadSource, channelTags } from '../services/leadCaptureShared.mjs';
+import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
 
 describe('deriveChannel', () => {
   it('reads utm_source and normalizes case + aliases', () => {
@@ -56,5 +56,36 @@ describe('channelTags', () => {
     expect(channelTags('website')).toEqual([]);
     expect(channelTags('')).toEqual([]);
     expect(channelTags(null)).toEqual([]);
+  });
+});
+
+describe('aggregateLeadChannels', () => {
+  it('counts by channel tag and sorts desc', () => {
+    const rows = [
+      { tags: ['newsletter', 'channel:youtube'], source: 'social_media' },
+      { tags: ['channel:youtube'], source: 'social_media' },
+      { tags: ['channel:tiktok'], source: 'social_media' },
+    ];
+    expect(aggregateLeadChannels(rows)).toEqual([
+      { channel: 'youtube', count: 2 },
+      { channel: 'tiktok', count: 1 },
+    ]);
+  });
+
+  it('buckets untagged leads by their source enum (friendly labels)', () => {
+    const rows = [
+      { tags: [], source: 'website' },     // -> direct
+      { tags: null, source: 'referral' },  // -> referral
+      { tags: ['signup'], source: 'social_media' }, // -> social
+    ];
+    const out = aggregateLeadChannels(rows);
+    expect(out.map((c) => c.channel).sort()).toEqual(['direct', 'referral', 'social']);
+  });
+
+  it('respects the topN cap and tolerates empty/garbage input', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => ({ tags: [`channel:c${i}`], source: 'website' }));
+    expect(aggregateLeadChannels(rows, 3)).toHaveLength(3);
+    expect(aggregateLeadChannels()).toEqual([]);
+    expect(aggregateLeadChannels(null)).toEqual([]);
   });
 });

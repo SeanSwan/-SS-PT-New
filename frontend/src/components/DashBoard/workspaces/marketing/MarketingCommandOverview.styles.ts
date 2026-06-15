@@ -181,3 +181,62 @@ export const StatusLine = styled.div`
   font-size: 11px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.78));
 `;
+
+// --- Leads-by-channel rollup -------------------------------------------------
+export const ChannelList = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+`;
+
+export const ChannelRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(80px, 1fr) 2fr auto;
+  }
+`;
+
+export const ChannelName = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--text-primary, #E0ECF4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+export const ChannelTrack = styled.div`
+  height: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  overflow: hidden;
+`;
+
+export const ChannelFill = styled.div<{ $pct: number }>`
+  height: 100%;
+  border-radius: 999px;
+  width: ${({ $pct }) => Math.max(4, Math.min(100, $pct))}%;
+  background: linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
+`;
+
+export const ChannelCount = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent-primary, #60C0F0);
+  min-width: 28px;
+  text-align: right;
+`;
+
+export const ChannelEmpty = styled.p`
+  margin: 4px 0 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+`;
