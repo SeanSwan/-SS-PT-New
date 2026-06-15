@@ -185,6 +185,26 @@ const adminPeopleOnboarding = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   primaryPrompt: 'teach me the admin people setup workflow',
 });
 
+const adminTrainerEnablement = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach trainer enablement',
+  title: 'Admin trainer enablement',
+  summary: 'Use trainer permissions to make a trainer ready to work: account, access, assignments, and schedule context all line up.',
+  focus: 'A trainer is not onboarded until they can see the right clients, use the right tools, and act without asking Sean for every click.',
+  primaryAction: { label: 'Review Trainer Permissions', to: '/dashboard/admin/trainer-permissions' },
+  fastPath: [
+    'Confirm the trainer account.',
+    'Set the permission scope.',
+    'Connect assignments and schedule context.',
+  ],
+  actions: [
+    { label: 'Trainer Permissions', to: '/dashboard/admin/trainer-permissions' },
+    { label: 'Trainer Profiles', to: '/dashboard/admin/trainer-management' },
+    { label: 'Client Assignments', to: '/dashboard/admin/client-trainer-assignments' },
+    { label: 'Feature Access', to: '/dashboard/admin/feature-access' },
+  ],
+  primaryPrompt: 'teach me the admin trainer enablement workflow',
+});
+
 const adminClientCarePrimaryAction = (path: string) => {
   if (includesAny(path, ['meal-planner', 'nutrition'])) {
     return { label: 'Open Nutrition', to: '/dashboard/admin/meal-planner' };
@@ -266,6 +286,9 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['marketing', 'content', 'badge-creator', 'automation'])) {
     return adminGrowthLoop(base);
+  }
+  if (includesAny(path, ['trainer-permissions'])) {
+    return adminTrainerEnablement(base);
   }
   if (includesAny(path, ['user-management', 'trainer-management', 'onboarding', 'client-trainer-assignments'])) {
     return adminPeopleOnboarding(base);
