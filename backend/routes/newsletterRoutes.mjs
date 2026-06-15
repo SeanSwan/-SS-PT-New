@@ -12,6 +12,7 @@ import { rateLimiter } from '../middleware/authMiddleware.mjs';
 import { subscribe, confirm, unsubscribe } from '../services/newsletterService.mjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
 import { captureLeadFromNewsletter } from '../services/leadCaptureService.mjs';
+import { deriveChannel } from '../services/leadCaptureShared.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -42,17 +43,21 @@ async function sendWelcomeEmail(subscriber) {
 // Public subscribe — rate-limited; `website` is a honeypot field that traps bots.
 router.post('/subscribe', rateLimiter({ windowMs: 60 * 60 * 1000, max: 20 }), async (req, res) => {
   try {
-    const { email, firstName, lastName, source, website } = req.body || {};
+    const { email, firstName, lastName, source, website, utmSource, utmMedium, utmCampaign, referrer } = req.body || {};
     if (website) {
       return res.status(200).json({ success: true, message: 'Almost there — check your email to confirm your subscription.' });
     }
+
+    // Attribute the acquisition channel (YouTube / TikTok / IG / search / referral / direct)
+    // from utm params + referrer so we can see which channel drives subscribers/leads.
+    const { channel } = deriveChannel({ utmSource, utmMedium, referrer });
 
     const result = await subscribe({
       email,
       firstName: firstName || null,
       lastName: lastName || null,
-      source: source || 'website',
-      consentSource: 'newsletter signup form',
+      source: channel, // acquisition channel; the form location lives in consentSource
+      consentSource: `newsletter ${source || 'form'}${channel !== 'direct' ? ' · ' + channel : ''}${utmCampaign ? ' / ' + String(utmCampaign).slice(0, 40) : ''}`,
       consentIp: req.ip,
     });
 
@@ -95,6 +100,7 @@ router.get('/confirm/:token', async (req, res) => {
         email: result.subscriber.email,
         firstName: result.subscriber.firstName,
         lastName: result.subscriber.lastName,
+        channel: result.subscriber.source, // acquisition channel captured at subscribe time
       });
       if (leadResult?.error) logger.warn(`[Newsletter] lead capture on confirm failed: ${leadResult.error}`);
       try {

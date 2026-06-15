@@ -43,6 +43,22 @@ export const StatValue = styled.div<{ $tone?: 'gold' | 'purple' }>`
         : 'var(--accent-primary, #60C0F0)'};
 `;
 
+// Acquisition channel badge (YouTube / TikTok / IG / referral / …) under the source.
+export const ChannelTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+`;
+
 export const StatLabel = styled.div`
   margin-top: 4px;
   font-family: 'Sora', sans-serif;

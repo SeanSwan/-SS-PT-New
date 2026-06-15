@@ -16,7 +16,7 @@ import {
 import {
   Stack, StatsGrid, StatValue, StatLabel, TableScroll, ContactBlock, ContactName,
   ContactMeta, ScoreText, ErrorText, StatusSelect, RowActions, IconLink, FollowupInput, RowError,
-  FilterBar, FilterChip,
+  FilterBar, FilterChip, ChannelTag,
 } from './LeadPipelinePanel.styles';
 import type { LeadStatus } from './LeadPipelinePanel.styles';
 
@@ -35,6 +35,7 @@ interface LeadRecord {
   status?: LeadStatus;
   score?: number;
   goals?: string;
+  tags?: string[];
   nextFollowUpAt?: string | null;
   createdAt?: string;
 }
@@ -47,6 +48,12 @@ const formatSource = (source?: string) =>
 
 const getLeadName = (lead: LeadRecord) =>
   [lead.firstName, lead.lastName].filter(Boolean).join(' ').trim() || `Lead #${lead.id}`;
+
+// Acquisition channel rides on the lead's tags as 'channel:<x>' (set at capture).
+const getChannel = (lead: LeadRecord): string | null => {
+  const tag = (lead.tags || []).find((t) => typeof t === 'string' && t.startsWith('channel:'));
+  return tag ? tag.slice('channel:'.length) : null;
+};
 
 // <input type="date"> wants YYYY-MM-DD
 const toDateInput = (value?: string | null) => {
@@ -179,6 +186,7 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
                   const status = lead.status || 'new';
                   const score = lead.score || 0;
                   const saving = savingId === lead.id;
+                  const channel = getChannel(lead);
                   return (
                     <tr key={lead.id}>
                       <td>
@@ -188,7 +196,10 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
                           {rowError?.id === lead.id && <RowError role="alert">{rowError.msg}</RowError>}
                         </ContactBlock>
                       </td>
-                      <td>{formatSource(lead.source)}</td>
+                      <td>
+                        {formatSource(lead.source)}
+                        {channel ? <ChannelTag>via {channel}</ChannelTag> : null}
+                      </td>
                       <td>
                         <StatusSelect
                           $status={status}

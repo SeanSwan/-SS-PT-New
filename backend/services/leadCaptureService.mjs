@@ -34,6 +34,8 @@ import {
   mapClientSourceToLeadSource,
   splitLeadName,
   mergeLeadTags,
+  channelToLeadSource,
+  channelTags,
 } from './leadCaptureShared.mjs';
 import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
@@ -183,10 +185,15 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
  *
  * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
  */
-export async function captureLeadFromNewsletter({ email, firstName = null, lastName = null } = {}) {
+export async function captureLeadFromNewsletter({ email, firstName = null, lastName = null, channel = null } = {}) {
   try {
     const normalized = String(email || '').trim().toLowerCase();
     if (!normalized) return { skipped: 'no_email' };
+
+    // Treat the legacy 'website' default + null as "no specific channel" (direct).
+    const ch = channel && channel !== 'website' ? channel : 'direct';
+    const leadSource = channelToLeadSource(ch);
+    const newsletterTags = [NEWSLETTER_TAG, ...channelTags(ch)];
 
     const { default: Lead } = await import('../models/Lead.mjs');
     const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
@@ -197,11 +204,13 @@ export async function captureLeadFromNewsletter({ email, firstName = null, lastN
         firstName: firstName || 'Subscriber', // first_name is NOT NULL
         lastName: lastName || null,
         email: normalized,
-        source: 'website',
-        sourceDetail: 'Newsletter (confirmed opt-in)',
+        source: leadSource,
+        sourceDetail: ch === 'direct'
+          ? 'Newsletter (confirmed opt-in)'
+          : `Newsletter (confirmed opt-in) · via ${ch}`,
         status: 'new',
         score: NEWSLETTER_LEAD_SCORE,
-        tags: [NEWSLETTER_TAG],
+        tags: newsletterTags,
         notes: 'Confirmed newsletter subscriber (double opt-in).',
       },
     });
@@ -213,13 +222,13 @@ export async function captureLeadFromNewsletter({ email, firstName = null, lastN
         performedByAI: false,
         title: 'Lead captured from newsletter confirmation',
         description: 'Confirmed double-opt-in newsletter subscriber',
-        metadata: { source: 'newsletter' },
+        metadata: { source: 'newsletter', channel: ch },
       });
     } else {
-      // Existing lead also confirmed the newsletter — tag + light touch; NEVER
-      // downgrade a hotter lead's score (no score write here).
+      // Existing lead also confirmed the newsletter — tag (+ channel) + light touch;
+      // NEVER downgrade a hotter lead's score, and don't overwrite its original source.
       await lead.update({
-        tags: mergeLeadTags(lead.tags, [NEWSLETTER_TAG]),
+        tags: mergeLeadTags(lead.tags, newsletterTags),
         lastContactedAt: new Date(),
       });
       await LeadActivity.create({
@@ -228,7 +237,7 @@ export async function captureLeadFromNewsletter({ email, firstName = null, lastN
         performedByAI: false,
         title: 'Existing lead confirmed newsletter',
         description: 'Lead also confirmed a double-opt-in newsletter subscription',
-        metadata: { source: 'newsletter' },
+        metadata: { source: 'newsletter', channel: ch },
       });
     }
 

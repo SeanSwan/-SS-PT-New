@@ -76,6 +76,34 @@ describe('captureLeadFromNewsletter (Tier 1.3)', () => {
     const res = await captureLeadFromNewsletter({ email: 'x@example.com' });
     expect(res.error).toBeTruthy();
   });
+
+  it('attributes a social acquisition channel -> social_media source + channel tag + activity metadata', async () => {
+    const res = await captureLeadFromNewsletter({ email: 'fan@example.com', channel: 'youtube' });
+    const defaults = leadFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults.source).toBe('social_media');
+    expect(defaults.sourceDetail).toBe('Newsletter (confirmed opt-in) · via youtube');
+    expect(defaults.tags).toEqual(expect.arrayContaining(['newsletter', 'channel:youtube']));
+    expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('youtube');
+    expect(res.created).toBe(true);
+  });
+
+  it('treats the legacy "website" channel as direct (website source, no channel tag)', async () => {
+    await captureLeadFromNewsletter({ email: 'direct@example.com', channel: 'website' });
+    const defaults = leadFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults.source).toBe('website');
+    expect(defaults.sourceDetail).toBe('Newsletter (confirmed opt-in)');
+    expect(defaults.tags).toEqual(['newsletter']);
+    expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('direct');
+  });
+
+  it('adds the channel tag to an existing lead WITHOUT overwriting its source', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 90, tags: ['contact-form'], update }, false]);
+    await captureLeadFromNewsletter({ email: 'hot@example.com', channel: 'tiktok' });
+    const upd = update.mock.calls[0][0];
+    expect(upd.tags).toEqual(expect.arrayContaining(['contact-form', 'newsletter', 'channel:tiktok']));
+    expect(upd).not.toHaveProperty('source'); // never overwrite an existing lead's source/score
+  });
 });
 
 describe('captureLeadFromContact (Tier 0.2a)', () => {
