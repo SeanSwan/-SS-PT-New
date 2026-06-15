@@ -28,10 +28,8 @@ import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachConsoleDock from './CoachConsoleDock';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
-import {
-  buildClientWorkoutPlannerRoute,
-} from '../../workspaces/clients-team/clientDailyTrainingRoutes';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
+import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
 import {
   CLIENT_NEXT_ACTION_LABEL,
   CLIENT_NEXT_ACTION_PROMPT,
@@ -45,16 +43,6 @@ import {
 } from './CoachCommandCenter.roleConfig';
 
 const RECENT_CLIENT_LIMIT = 12;
-
-function trainerWorkoutPlannerRoute(clientId: number | null, returnTo: string | null): string | null {
-  if (!clientId) return null;
-  const params = new URLSearchParams({
-    clientId: String(clientId),
-    source: 'swan-coach',
-    returnTo: returnTo || '/dashboard/trainer/overview',
-  });
-  return `/dashboard/trainer/workout-planner?${params.toString()}`;
-}
 
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
@@ -105,10 +93,11 @@ const CoachCommandCenterPage: React.FC = () => {
   const workoutPlannerRoute = useMemo(
     () => {
       if (isClientMode) return CLIENT_WORKOUTS_ROUTE;
-      if (!commandCenter.routeClientId) return null;
-      return userRole === 'trainer'
-        ? trainerWorkoutPlannerRoute(commandCenter.routeClientId, commandCenter.workflowReturnTo)
-        : buildClientWorkoutPlannerRoute(commandCenter.routeClientId);
+      return buildSwanCoachWorkoutPlannerRoute({
+        userRole,
+        selectedClientId: commandCenter.routeClientId,
+        workflowReturnTo: commandCenter.workflowReturnTo,
+      });
     },
     [commandCenter.routeClientId, commandCenter.workflowReturnTo, isClientMode, userRole],
   );
@@ -246,7 +235,7 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
-            workoutPlannerLabel={isClientMode ? 'My Workouts' : 'Planner'}
+            workoutPlannerLabel={isClientMode ? 'My Workouts' : commandCenter.routeClientId ? 'Planner' : 'My Planner'}
             showPlaudAction={!isClientMode}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}

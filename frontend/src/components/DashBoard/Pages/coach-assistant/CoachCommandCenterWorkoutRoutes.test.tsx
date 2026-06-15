@@ -11,14 +11,18 @@ import {
 describe('CoachCommandCenterPage workout route actions', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('offers Sean/admin a personal logger when no route client is loaded', () => {
+  it('offers Sean/admin personal Logger and Planner when no route client is loaded', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
     expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
     );
-    expect(screen.queryByRole('link', { name: /open workout planner/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
+    );
+    expect(screen.getByRole('link', { name: /open workout planner/i })).toHaveTextContent('My Planner');
   });
 
   it('links route clients to the canonical client training logger and planner surfaces', () => {

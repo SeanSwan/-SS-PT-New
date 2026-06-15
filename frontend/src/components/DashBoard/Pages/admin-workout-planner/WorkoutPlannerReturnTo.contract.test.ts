@@ -34,7 +34,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
   it('uses strict client identity helpers after the deep-link parser', () => {
     expect(source).toContain("from './WorkoutPlannerClientIdentity'");
     expect(clientStateHookSource).toContain('parseWorkoutPlannerClientId(user?.id)');
-    expect(clientStateHookSource).toContain('pickWorkoutPlannerClientId(clients, requestedClientId)');
+    expect(clientStateHookSource).toContain('pickWorkoutPlannerClientId(clients, requestedOrSelfClientId)');
     expect(loadPlanHydrationSource).toContain('resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)');
     expect(loadPlanHookSource).toContain('Unable to load generated plan because it is missing a valid client id.');
     expect(source).not.toContain('Number(user?.id) === Number(selectedClientId)');

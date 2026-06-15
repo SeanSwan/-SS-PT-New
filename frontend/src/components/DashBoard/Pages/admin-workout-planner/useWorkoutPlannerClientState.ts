@@ -27,16 +27,26 @@ interface WorkoutPlannerClientStateInput {
   authAxios: PlannerAuthClient;
   user: User | null;
   requestedClientId: number | null;
+  selfClient: PlannerClient | null;
   setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   clearExplanations: () => void;
   resetLoadedPlanState: () => void;
 }
 
+const addSelfClient = (
+  clients: PlannerClient[],
+  selfClient: PlannerClient | null,
+): PlannerClient[] => {
+  if (!selfClient) return clients;
+  return [selfClient, ...clients.filter(client => client.id !== selfClient.id)];
+};
+
 export const useWorkoutPlannerClientState = ({
   authAxios,
   user,
   requestedClientId,
+  selfClient,
   setPlanExercises,
   setGeneratedPlan,
   clearExplanations,
@@ -62,6 +72,8 @@ export const useWorkoutPlannerClientState = ({
     && !selectedClient?.canGenerateWorkoutPlans;
 
   useEffect(() => {
+    const requestedOrSelfClientId = requestedClientId ?? selfClient?.id ?? null;
+
     const fetchClients = async () => {
       try {
         if (user?.role === 'trainer' && user.id) {
@@ -69,25 +81,26 @@ export const useWorkoutPlannerClientState = ({
           const assignments = res.data?.assignments || res.data?.data?.assignments || [];
           const assignmentClients = (Array.isArray(assignments) ? assignments : [])
             .map((assignment: TrainerAssignmentResponse) => assignment.client || assignment.Client);
-          const clients = normalizeWorkoutPlannerClients(assignmentClients);
+          const clients = addSelfClient(normalizeWorkoutPlannerClients(assignmentClients), selfClient);
           setClients(clients);
-          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
+          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedOrSelfClientId));
         } else {
           const res = await authAxios.get('/api/auth/clients');
-          if (res.data?.success && Array.isArray(res.data.clients)) {
-            const clients = normalizeWorkoutPlannerClients(res.data.clients);
-            setClients(clients);
-            setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
-          }
+          const clientPayload = res.data?.success && Array.isArray(res.data.clients) ? res.data.clients : [];
+          const clients = addSelfClient(normalizeWorkoutPlannerClients(clientPayload), selfClient);
+          setClients(clients);
+          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedOrSelfClientId));
         }
       } catch {
-        setClients([]);
+        const fallbackClients = addSelfClient([], selfClient);
+        setClients(fallbackClients);
+        setSelectedClientId(pickWorkoutPlannerClientId(fallbackClients, requestedOrSelfClientId));
       } finally {
         setClientsLoading(false);
       }
     };
     fetchClients();
-  }, [authAxios, requestedClientId, user?.role, user?.id]);
+  }, [authAxios, requestedClientId, selfClient, user?.role, user?.id]);
 
   const handleClientSelectionChange = useCallback((rawClientId: string) => {
     const nextClientId = parseWorkoutPlannerClientId(rawClientId);

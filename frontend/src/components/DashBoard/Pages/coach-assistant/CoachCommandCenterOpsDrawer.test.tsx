@@ -72,6 +72,10 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     expect(within(operationsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
     expect(within(operationsRail).getAllByText('My workout log').length).toBeGreaterThan(0);
     expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
+    expect(within(priorityActions).getByRole('link', { name: /Open workout builder/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
+    );
   });
 
   it('makes selected-client workout logging and building one-tap ops actions', () => {

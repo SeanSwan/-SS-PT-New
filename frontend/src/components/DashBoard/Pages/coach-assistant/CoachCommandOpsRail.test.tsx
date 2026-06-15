@@ -68,11 +68,14 @@ describe('CoachCommandOpsRail workout command panel', () => {
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
     );
+    expect(within(opsRail).getByRole('link', { name: /open planner/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
+    );
     expect(within(opsRail).getByRole('link', { name: /pick a client for workout logging/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?intent=log_workout',
     );
-    expect(within(opsRail).queryByRole('link', { name: /open planner/i })).not.toBeInTheDocument();
   });
 
   it('shows an explicit drawer header close control that collapses Ops', () => {

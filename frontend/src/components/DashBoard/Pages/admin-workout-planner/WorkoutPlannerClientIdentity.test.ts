@@ -3,6 +3,7 @@ import {
   normalizeWorkoutPlannerClients,
   parseWorkoutPlannerClientId,
   pickWorkoutPlannerClientId,
+  buildWorkoutPlannerSelfClient,
   resolveWorkoutPlannerPlanClientId,
 } from './WorkoutPlannerClientIdentity';
 
@@ -38,6 +39,25 @@ describe('WorkoutPlannerClientIdentity', () => {
     expect(pickWorkoutPlannerClientId(clients, 155)).toBe(155);
     expect(pickWorkoutPlannerClientId(clients, 404)).toBe(91);
     expect(pickWorkoutPlannerClientId([], 155)).toBeNull();
+  });
+
+  it('builds a planner-safe admin self target without accepting trainer/client spoofing', () => {
+    expect(buildWorkoutPlannerSelfClient({
+      id: '7',
+      role: 'admin',
+      firstName: 'Owner',
+      lastName: 'Self',
+      username: 'owner',
+    }, true)).toEqual({
+      id: 7,
+      firstName: 'Owner',
+      lastName: 'Self',
+      username: 'owner',
+      clientSource: 'swanstudios',
+      canGenerateWorkoutPlans: true,
+    });
+    expect(buildWorkoutPlannerSelfClient({ id: 8, role: 'trainer' }, true)).toBeNull();
+    expect(buildWorkoutPlannerSelfClient({ id: 9, role: 'admin' }, false)).toBeNull();
   });
 
   it('resolves saved generated-plan client ids without ever falling back to zero', () => {

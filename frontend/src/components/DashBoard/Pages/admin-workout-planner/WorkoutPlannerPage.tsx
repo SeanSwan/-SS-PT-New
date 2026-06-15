@@ -21,11 +21,9 @@ import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanAct
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
-import { parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
+import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
-
 // ─────────────────────────────────────────────────────────────
-// SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
@@ -34,11 +32,12 @@ const WorkoutPlannerPage: React.FC = () => {
   const [confirmRequest, setConfirmRequest] = useState<WorkoutPlannerConfirmRequest | null>(null);
   const closeConfirmDialog = useCallback(() => setConfirmRequest(null), []);
 
-  const requestedClientId = useMemo(() => parseWorkoutPlannerClientId(searchParams.get('clientId')), [searchParams]);
+  const routeRequestedClientId = useMemo(() => parseWorkoutPlannerClientId(searchParams.get('clientId')), [searchParams]);
+  const selfPlannerClient = useMemo(() => buildWorkoutPlannerSelfClient(user, searchParams.get('self') === '1' && !routeRequestedClientId), [routeRequestedClientId, searchParams, user]);
+  const requestedClientId = selfPlannerClient?.id ?? routeRequestedClientId;
   const plannerReturnTo = useMemo(() => {
     const rawReturnTo = searchParams.get('returnTo');
-    if (!rawReturnTo || !rawReturnTo.startsWith('/dashboard/') || /[\r\n\t\\]/.test(rawReturnTo)) return null;
-    return rawReturnTo;
+    return rawReturnTo && rawReturnTo.startsWith('/dashboard/') && !/[\r\n\t\\]/.test(rawReturnTo) ? rawReturnTo : null;
   }, [searchParams]);
 
   const [phaseNumber, setPhaseNumber] = useState(2);
@@ -150,6 +149,7 @@ const WorkoutPlannerPage: React.FC = () => {
     authAxios,
     user,
     requestedClientId,
+    selfClient: selfPlannerClient,
     setPlanExercises,
     setGeneratedPlan,
     clearExplanations,

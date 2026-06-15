@@ -1,5 +1,13 @@
 import type { PlannerClient } from './WorkoutPlannerTypes';
 
+type WorkoutPlannerSelfUser = {
+  id?: unknown;
+  role?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
+  username?: unknown;
+};
+
 export const parseWorkoutPlannerClientId = (value: unknown): number | null => {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -12,6 +20,33 @@ export const parseWorkoutPlannerClientId = (value: unknown): number | null => {
 
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const cleanPlannerClientText = (value: unknown, fallback: string): string => {
+  const cleaned = String(value ?? '')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned || fallback;
+};
+
+export const buildWorkoutPlannerSelfClient = (
+  user: WorkoutPlannerSelfUser | null | undefined,
+  selfMode: boolean,
+): PlannerClient | null => {
+  if (!selfMode || user?.role !== 'admin') return null;
+
+  const id = parseWorkoutPlannerClientId(user.id);
+  if (!id) return null;
+
+  return {
+    id,
+    firstName: cleanPlannerClientText(user.firstName, 'My'),
+    lastName: cleanPlannerClientText(user.lastName, 'Account'),
+    username: cleanPlannerClientText(user.username, 'self'),
+    clientSource: 'swanstudios',
+    canGenerateWorkoutPlans: true,
+  };
 };
 
 export const normalizeWorkoutPlannerClients = (clients: unknown): PlannerClient[] => {
