@@ -39,6 +39,7 @@ import {
   buildEffectiveRouteContext,
   buildRouteContext,
   buildRouteClientLabel,
+  buildThreadSelectionSearchParams,
   buildWorkflowReturnLabel,
   getScheduledSessionRouteContextFromSearchParams,
   normalizeCommandCenterReturnTo,
@@ -61,7 +62,7 @@ function capturedVoiceText(current: string, captured: string): string {
 export function useCoachCommandCenterController({
   userRole = 'admin',
 }: { userRole?: CoachCommandRole } = {}) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat();
   const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
   const operatorEnabled = userRole !== 'client';
@@ -205,6 +206,7 @@ export function useCoachCommandCenterController({
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
     routeRequestContext: scheduledSessionContext,
+    onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId), { replace: true }),
     setActiveThreadId,
     setCommandText,
     setDrawer,

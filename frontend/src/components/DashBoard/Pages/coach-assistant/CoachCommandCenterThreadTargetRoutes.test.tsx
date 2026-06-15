@@ -65,4 +65,60 @@ describe('CoachCommandCenter selected thread target routes', () => {
       );
     });
   });
+
+  it('rebases stale routed client context when a recent thread is selected', async () => {
+    setCoachCommandCenterConversations([
+      {
+        id: 201,
+        title: 'Ava Stone weekly training',
+        context: 'coach_assistant',
+        status: 'active',
+        messageCount: 6,
+        lastMessageAt: '2026-06-14T10:00:00.000Z',
+        createdAt: '2026-06-13T10:00:00.000Z',
+        targetUserId: 424242,
+      },
+      {
+        id: 202,
+        title: 'Client 42 routed handoff',
+        context: 'coach_assistant',
+        status: 'active',
+        messageCount: 2,
+        lastMessageAt: '2026-06-14T09:00:00.000Z',
+        createdAt: '2026-06-13T09:00:00.000Z',
+        targetUserId: 42,
+      },
+    ]);
+
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42&teachPrompt=Old%20client%20prompt',
+    );
+
+    expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Ava Stone weekly training/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
+        'href',
+        '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
+      );
+    });
+
+    fireEvent.change(composerInput(), { target: { value: 'Write a deload.' } });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan coach/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        'Write a deload.',
+        'coach_assistant',
+        'Ava Stone weekly training',
+        424242,
+        'both',
+      );
+    });
+  });
 });

@@ -47,6 +47,7 @@ type CoachCommandActionProps = {
   routeIntent: string | null;
   routeContextPrompt: string | null;
   routeRequestContext: CoachScheduledSessionRouteContext | null;
+  onThreadSelectRoute: (thread: ConversationSummary) => void;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
   setCommandText: Dispatch<SetStateAction<string>>;
   setDrawer: Dispatch<SetStateAction<DrawerSide | null>>;
@@ -79,6 +80,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   const handleThreadSelect = (thread: ConversationSummary) => {
     const title = getConversationTitle(thread);
     const status = `${title} - thread loaded`;
+    props.onThreadSelectRoute(thread);
     props.setActiveThreadId(thread.id);
     props.setSelectedStatus(status);
     closeDrawer(false);

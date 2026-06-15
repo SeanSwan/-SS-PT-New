@@ -98,6 +98,31 @@ export function buildRouteClientLabel(routeClientId: number | null): string | nu
   return routeClientId ? `Client #${routeClientId}` : null;
 }
 
+const THREAD_SELECTION_STALE_KEYS = [
+  'intent',
+  'source',
+  'returnTo',
+  'sourcePath',
+  'teachPrompt',
+  'sessionId',
+  'sessionDate',
+  'sessionCredits',
+  'workoutDate',
+  'draftKey',
+];
+
+export function buildThreadSelectionSearchParams(
+  currentParams: URLSearchParams,
+  rawTargetUserId: number | string | null | undefined,
+): URLSearchParams {
+  const nextParams = new URLSearchParams(currentParams);
+  THREAD_SELECTION_STALE_KEYS.forEach((key) => nextParams.delete(key));
+  const threadClientId = parseRouteClientId(rawTargetUserId == null ? null : String(rawTargetUserId));
+  if (threadClientId) nextParams.set('clientId', String(threadClientId));
+  else nextParams.delete('clientId');
+  return nextParams;
+}
+
 export type RouteContextCopy = { prompt: string | null; status: string | null };
 type RouteContextBuilder = (
   routeClientLabel: string | null,

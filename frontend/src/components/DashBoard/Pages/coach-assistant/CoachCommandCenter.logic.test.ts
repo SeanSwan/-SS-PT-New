@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildRouteContext,
+  buildThreadSelectionSearchParams,
   buildWorkflowReturnLabel,
   getScheduledSessionRouteContextFromSearchParams,
   normalizeCommandCenterReturnTo,
@@ -58,6 +59,43 @@ describe('CoachCommandCenter route workout context parsing', () => {
       scheduledSessionDate: '2026-06-15',
       scheduledSessionCredits: 0,
     });
+  });
+});
+
+describe('CoachCommandCenter thread selection route binding', () => {
+  it('moves the route client to the selected thread and strips stale handoff context', () => {
+    const params = new URLSearchParams({
+      clientId: '42',
+      intent: 'log_workout',
+      source: 'clients-team',
+      returnTo: '/dashboard/admin/client-management?clientId=42',
+      teachPrompt: 'Old client prompt',
+      sessionId: '314',
+      sessionDate: '2026-06-15',
+      sessionCredits: '0',
+      workoutDate: '2026-06-15',
+      workspace: 'plaud',
+    });
+
+    const next = buildThreadSelectionSearchParams(params, 424242);
+
+    expect(next.get('clientId')).toBe('424242');
+    expect(next.get('intent')).toBeNull();
+    expect(next.get('source')).toBeNull();
+    expect(next.get('returnTo')).toBeNull();
+    expect(next.get('teachPrompt')).toBeNull();
+    expect(next.get('sessionId')).toBeNull();
+    expect(next.get('sessionDate')).toBeNull();
+    expect(next.get('sessionCredits')).toBeNull();
+    expect(next.get('workoutDate')).toBeNull();
+    expect(next.get('workspace')).toBe('plaud');
+  });
+
+  it('clears route client context when the selected thread has no safe target client', () => {
+    const next = buildThreadSelectionSearchParams(new URLSearchParams('clientId=42&intent=log_workout'), null);
+
+    expect(next.get('clientId')).toBeNull();
+    expect(next.get('intent')).toBeNull();
   });
 });
 
