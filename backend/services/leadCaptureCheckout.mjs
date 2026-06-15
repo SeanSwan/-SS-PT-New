@@ -6,6 +6,8 @@
 import {
   CHECKOUT_CONVERSION_SCORE,
   CHECKOUT_CONVERSION_TAGS,
+  channelTags,
+  deriveChannel,
   firstString,
   parseCartCustomerInfo,
   splitLeadName,
@@ -19,6 +21,14 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
   try {
     const customerInfo = parseCartCustomerInfo(cart);
     const customerDetails = session?.customer_details || {};
+    const attribution = customerInfo.acquisitionAttribution || {};
+    const { channel, leadSource } = deriveChannel({
+      utmSource: attribution.channel || attribution.utmSource,
+      utmMedium: attribution.utmMedium,
+      referrer: attribution.referrer,
+    });
+    const sourceDetail = channel !== 'direct' ? `Checkout purchase · via ${channel}` : 'Checkout purchase';
+    const checkoutTags = mergeLeadTags(CHECKOUT_CONVERSION_TAGS, channelTags(channel));
     const email = firstString(customerDetails.email, customerInfo.email, user?.email).toLowerCase();
     if (!email) return { skipped: 'no_email' };
 
@@ -38,6 +48,7 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
       ...(userId ? { userId } : {}),
       ...(cart?.id ? { cartId: cart.id } : {}),
       ...(session?.id ? { sessionId: session.id } : {}),
+      channel,
       sessionsAdded: safeSessionsAdded,
       amountCents,
     };
@@ -52,13 +63,13 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
         lastName,
         email,
         ...(phone ? { phone } : {}),
-        source: 'website',
-        sourceDetail: 'Checkout purchase',
+        source: leadSource,
+        sourceDetail,
         status: 'converted',
         score: CHECKOUT_CONVERSION_SCORE,
         ...(userId ? { convertedUserId: userId } : {}),
         convertedAt: now,
-        tags: CHECKOUT_CONVERSION_TAGS,
+        tags: checkoutTags,
         notes: userId
           ? `Paid checkout converted user #${userId}.`
           : 'Paid checkout converted an attributed buyer.',
@@ -77,7 +88,7 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
         ...(userId ? { convertedUserId: userId } : {}),
         convertedAt: lead.convertedAt || now,
         ...(phone ? { phone } : {}),
-        tags: mergeLeadTags(lead.tags, CHECKOUT_CONVERSION_TAGS),
+        tags: mergeLeadTags(lead.tags, checkoutTags),
       });
     }
 

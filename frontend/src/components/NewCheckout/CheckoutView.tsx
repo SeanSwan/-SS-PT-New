@@ -24,6 +24,7 @@ import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
 import api from '../../services/api.service';
 import { logger } from '@/utils/logger';
+import { readAcquisitionParams } from '../../utils/acquisitionAttribution';
 import { AuthRequiredCheckout, CheckoutReadyView } from './CheckoutView.sections';
 import type { CheckoutState } from './CheckoutView.types';
 import type { CheckoutFulfillmentDetails } from './CheckoutView.logic';
@@ -172,6 +173,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
           cartId: cart.id,
           sessionCount,
           source: 'swan_checkout',
+          ...readAcquisitionParams(),
         },
       });
 

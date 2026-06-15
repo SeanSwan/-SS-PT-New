@@ -17,6 +17,8 @@ import {
 import axios from "axios";
 
 import { VIDEO } from "../../config/videoAssets";
+import { readAcquisitionParams } from "../../utils/acquisitionAttribution";
+import { resolveContactApiBase } from "./contactApiBase";
 const swanVideo = VIDEO.swan;
 
 /**
@@ -958,9 +960,7 @@ const EnhancedContactPage = () => {
     }
     
     try {
-      const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
-        ? 'https://sswanstudios.com'
-        : 'http://localhost:5000';
+      const API_BASE_URL = resolveContactApiBase(window.location.hostname);
 
       const submitUrl = `${API_BASE_URL}/api/contact`;
       
@@ -969,7 +969,8 @@ const EnhancedContactPage = () => {
         email, 
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
-        priority: 'normal'
+        priority: 'normal',
+        ...readAcquisitionParams()
       });
       
       // Show success

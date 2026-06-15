@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { readAcquisitionParams } from '../../utils/acquisitionAttribution';
 import { MapPin, Mail, Phone, Clock, Facebook, Instagram, Youtube, ChevronDown, CheckCircle, AlertCircle, X } from 'lucide-react';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
@@ -9,6 +10,7 @@ import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
 import { VIDEO } from '../../config/videoAssets';
+import { resolveContactApiBase } from './contactApiBase';
 
 /* ================================================================
  * ContactV2 — Cinematic, Theme-Aware Contact Page
@@ -568,9 +570,7 @@ const ContactV2: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
-        ? 'https://sswanstudios.com'
-        : 'http://localhost:5000';
+      const API_BASE_URL = resolveContactApiBase(window.location.hostname);
 
       await axios.post(`${API_BASE_URL}/api/contact`, {
         name,
@@ -578,6 +578,7 @@ const ContactV2: React.FC = () => {
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
         priority: 'normal',
+        ...readAcquisitionParams(),
       });
 
       setSuccess(true);

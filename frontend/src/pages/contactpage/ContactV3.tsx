@@ -9,6 +9,7 @@ import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 import logoImg from '../../assets/Logo.png';
+import { resolveContactApiBase } from './contactApiBase';
 
 /* ================================================================
  * ContactV3 — Cinematic Upgrade of ContactV2
@@ -876,13 +877,8 @@ const ContactV3: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Same-origin (relative) in prod/staging/preview; only local dev hits :5000.
-      // The old origin.includes('sswanstudios.com') check silently routed Render
-      // preview/staging form posts to localhost (matches useNewsletterSubscribe).
-      const API_BASE_URL =
-        /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
-          ? 'http://localhost:5000'
-          : '';
+      // Same-origin in prod/staging/preview; only local dev hits :5000.
+      const API_BASE_URL = resolveContactApiBase(window.location.hostname);
 
       await axios.post(`${API_BASE_URL}/api/contact`, {
         name,

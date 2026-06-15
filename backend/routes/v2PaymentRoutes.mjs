@@ -72,6 +72,7 @@ import {
 } from '../services/checkoutStockAvailabilityService.mjs';
 import { getCheckoutReceiptSummary } from '../services/checkoutReceiptSummaryService.mjs';
 import { captureLeadFromCheckout } from '../services/leadCaptureService.mjs';
+import { deriveChannel } from '../services/leadCaptureShared.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
@@ -231,6 +232,11 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
   try {
     const userId = req.user.id;
     const { cartId, customerInfo, fulfillmentIntent } = req.body;
+    const checkoutAttribution = deriveChannel({
+      utmSource: req.body?.utmSource || req.body?.metadata?.utmSource,
+      utmMedium: req.body?.utmMedium || req.body?.metadata?.utmMedium,
+      referrer: req.body?.referrer || req.body?.metadata?.referrer,
+    });
     const normalizedCartId = Number(cartId);
 
     if (!Number.isInteger(normalizedCartId) || normalizedCartId <= 0) {
@@ -469,6 +475,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         totalSessions: totalSessions.toString(),
         fulfillmentIntent: normalizedFulfillmentIntent.mode,
         physicalProductCount: normalizedFulfillmentIntent.itemCount.toString(),
+        acquisitionChannel: checkoutAttribution.channel,
         source: 'genesis_checkout'
       },
       customer_update: {
@@ -498,6 +505,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         email: customerInfo?.email || user.email,
         phone: customerInfo?.phone || user.phone,
         fulfillmentIntent: normalizedFulfillmentIntent,
+        acquisitionAttribution: { channel: checkoutAttribution.channel },
         stripeCustomerId: stripeCustomer.id
       }),
       lastCheckoutAttempt: new Date()

@@ -12,7 +12,13 @@ describe('checkout Lead capture route contract', () => {
     const source = readRoute();
 
     expect(source).toContain("import { captureLeadFromCheckout } from '../services/leadCaptureService.mjs';");
+    expect(source).toContain("import { deriveChannel } from '../services/leadCaptureShared.mjs';");
     expect(source).toContain('async function captureVerifiedCheckoutLead');
+    expect(source).toContain('const checkoutAttribution = deriveChannel({');
+    expect(source).toContain('utmSource: req.body?.utmSource || req.body?.metadata?.utmSource');
+    expect(source).toContain('utmMedium: req.body?.utmMedium || req.body?.metadata?.utmMedium');
+    expect(source).toContain('referrer: req.body?.referrer || req.body?.metadata?.referrer');
+    expect(source).toContain('acquisitionAttribution: { channel: checkoutAttribution.channel }');
     expect(source).toMatch(/const leadCaptureResult = await captureLeadFromCheckout\(\{[\s\S]*user,[\s\S]*session,[\s\S]*cart,[\s\S]*sessionsAdded,[\s\S]*\}\);/);
     expect(source).toMatch(/const result = await fulfillSessionPackageCheckoutSession\(session\);[\s\S]*await captureVerifiedCheckoutLead\(\{[\s\S]*user: req\.user,[\s\S]*session,[\s\S]*sessionsAdded: result\.sessionsAdded,[\s\S]*\}\);/);
     expect(source).toMatch(/const result = await grantSessionsForCart\(cart\.id, userId, 'verify-session'\);[\s\S]*await captureVerifiedCheckoutLead\(\{[\s\S]*cart,[\s\S]*user: req\.user,[\s\S]*session,[\s\S]*sessionsAdded: result\.sessionsAdded,[\s\S]*\}\);/);

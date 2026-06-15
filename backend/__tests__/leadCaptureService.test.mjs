@@ -313,7 +313,7 @@ describe('captureLeadFromCheckout (Tier 0.4)', () => {
     leadFindOrCreate.mockResolvedValue([{ id: 15, status: 'converted', update: vi.fn() }, true]);
 
     const res = await captureLeadFromCheckout({
-      cart: { id: 88 },
+      cart: { id: 88, customerInfo: JSON.stringify({ acquisitionAttribution: { channel: 'youtube' } }) },
       user: { id: 99, firstName: 'New', lastName: 'Buyer', email: 'new@example.com', phone: '555-0200' },
       session: { id: 'cs_paid_456', amount_total: 420000, customer_details: {} },
       sessionsAdded: 24,
@@ -325,14 +325,15 @@ describe('captureLeadFromCheckout (Tier 0.4)', () => {
       lastName: 'Buyer',
       email: 'new@example.com',
       phone: '555-0200',
-      source: 'website',
-      sourceDetail: 'Checkout purchase',
+      source: 'social_media',
+      sourceDetail: 'Checkout purchase · via youtube',
       status: 'converted',
       score: 100,
       convertedUserId: 99,
-      tags: ['checkout', 'converted'],
+      tags: ['checkout', 'converted', 'channel:youtube'],
     });
     expect(leadActivityCreate.mock.calls[0][0].title).toBe('Lead converted from checkout');
+    expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('youtube');
     expect(res).toEqual({ leadId: 15, created: true, converted: true });
   });
 
