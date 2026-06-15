@@ -46,13 +46,6 @@ type ActionBodyProps = {
   showArrow?: boolean;
 };
 
-type MissionStep = {
-  state: string;
-  title: string;
-  note: string;
-  ready: boolean;
-};
-
 function ActionBody({ icon, title, note, showArrow = false }: ActionBodyProps) {
   return (
     <>
@@ -80,37 +73,6 @@ function primaryActionCopy(scopeLabel: string, hasLoggerRoute: boolean) {
     : { label: 'Log workout now', title: 'Log workout', note: 'Open selected client Logger' };
 }
 
-function buildMissionSteps({
-  hasLoggerRoute,
-  scopeLabel,
-  workoutPlannerRoute,
-}: {
-  hasLoggerRoute: boolean;
-  scopeLabel: string;
-  workoutPlannerRoute: string | null;
-}): MissionStep[] {
-  return [
-    {
-      state: hasLoggerRoute ? 'Scope locked' : 'Scope missing',
-      title: hasLoggerRoute ? scopeLabel : 'Pick client first',
-      note: hasLoggerRoute ? 'Coach, Builder, and Logger point here' : 'Choose who this workout is for',
-      ready: hasLoggerRoute,
-    },
-    {
-      state: workoutPlannerRoute ? 'Builder ready' : 'Logger ready',
-      title: workoutPlannerRoute ? 'Build or log' : 'Log from Coach',
-      note: workoutPlannerRoute ? 'Plan and Logger are one tap' : 'Use the direct Logger handoff',
-      ready: true,
-    },
-    {
-      state: 'Review gate',
-      title: 'No silent writes',
-      note: 'Save only in Logger or approval review',
-      ready: true,
-    },
-  ];
-}
-
 const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   clientPickerRoute,
   selectedClientLabel,
@@ -124,9 +86,14 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   const scopeLabel = workoutLoggerRoute ? (workoutLoggerScopeLabel || selectedClientLabel) : 'No client locked';
   const hasLoggerRoute = Boolean(workoutLoggerRoute);
   const primaryCopy = primaryActionCopy(scopeLabel, hasLoggerRoute);
-  const missionSteps = buildMissionSteps({ hasLoggerRoute, scopeLabel, workoutPlannerRoute });
   const primaryHref = workoutLoggerRoute || clientPickerRoute;
   const showClientPicker = hasLoggerRoute && scopeLabel === 'My workout log';
+  const targetNote = hasLoggerRoute
+    ? workoutPlannerRoute
+      ? 'Coach, Builder, and Logger point here.'
+      : 'Coach and Logger point here.'
+    : 'Pick a client so workout actions route correctly.';
+  const safetyNote = hasLoggerRoute ? 'Save happens in Logger.' : 'No workout writes until a target is chosen.';
 
   return (
     <section className="panel workout-command-panel">
@@ -144,23 +111,18 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         <small>{hasLoggerRoute ? primaryCopy.note : 'Lock the client first so every action routes correctly.'}</small>
       </div>
 
-      <ol className="workout-command-steps" aria-label="Coach Ops mission checklist">
-        {missionSteps.map((step, index) => (
-          <li className={`workout-command-step ${step.ready ? 'is-ready' : 'needs-action'}`} key={`${step.state}-${step.title}`}>
-            <span className="workout-command-step-index">{index + 1}</span>
-            <span>
-              <span className="workout-command-step-state">{step.state}</span>
-              <strong>{step.title}</strong>
-              <small>{step.note}</small>
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      <div className={`workout-command-scope ${workoutLoggerRoute ? 'is-ready' : ''}`}>
-        <span className="workout-command-scope-kicker">Active scope</span>
-        <strong>{scopeLabel}</strong>
-        <small>Nothing logs until you save in Logger.</small>
+      <div className={`workout-command-brief ${hasLoggerRoute ? 'is-ready' : 'needs-target'}`} aria-label="Coach Ops target and safety">
+        <span className="workout-command-brief-item">
+          <small>Target</small>
+          <strong>{scopeLabel}</strong>
+          <span>{targetNote}</span>
+        </span>
+        <span className="workout-command-brief-divider" aria-hidden="true" />
+        <span className="workout-command-brief-item safety">
+          <small>Safety</small>
+          <strong>{hasLoggerRoute ? 'Review-gated' : 'Choose first'}</strong>
+          <span>{safetyNote}</span>
+        </span>
       </div>
 
       <div className="workout-command-primary-grid" aria-label="Priority coach actions">

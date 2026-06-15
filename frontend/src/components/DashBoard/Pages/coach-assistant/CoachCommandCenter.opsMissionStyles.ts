@@ -23,7 +23,7 @@ export const coachCommandOpsMissionStyles = css`
   }
 
   .workout-command-next-kicker,
-  .workout-command-step-state {
+  .workout-command-brief-item small {
     color: var(--coach-muted);
     font-family: 'Fira Code', monospace;
     font-size: 11px;
@@ -31,72 +31,71 @@ export const coachCommandOpsMissionStyles = css`
     text-transform: uppercase;
   }
 
-  .workout-command-next strong {
+  .workout-command-next strong,
+  .workout-command-brief-item strong {
     color: var(--coach-text);
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .workout-command-next strong {
     font-size: 20px;
     line-height: 1.08;
   }
 
   .workout-command-next small,
-  .workout-command-step small {
+  .workout-command-brief-item span {
     color: var(--coach-muted);
     font-size: 12px;
     line-height: 1.34;
   }
 
-  .workout-command-steps {
+  .workout-command-brief {
+    align-items: stretch;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-sapphire) 22%, transparent), transparent 74%),
+      color-mix(in srgb, var(--coach-soft) 78%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 28%, var(--coach-line));
+    border-radius: 16px;
     display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    list-style: none;
-    margin: 0;
-    padding: 0;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    padding: 12px;
   }
 
-  .workout-command-step {
-    background: color-mix(in srgb, var(--coach-soft) 78%, transparent);
-    border: 1px solid var(--coach-line);
-    border-radius: 14px;
-    display: flex;
-    gap: 9px;
-    min-width: 0;
-    padding: 10px;
-  }
-
-  .workout-command-step.is-ready {
-    border-color: color-mix(in srgb, var(--coach-cyan) 24%, var(--coach-line));
-  }
-
-  .workout-command-step.needs-action {
+  .workout-command-brief.needs-target {
     border-color: color-mix(in srgb, var(--coach-gold) 38%, var(--coach-line));
   }
 
-  .workout-command-step-index {
-    align-items: center;
-    background: color-mix(in srgb, var(--coach-cyan) 16%, transparent);
-    border: 1px solid color-mix(in srgb, var(--coach-cyan) 24%, transparent);
-    border-radius: 999px;
-    color: var(--coach-cyan);
-    display: inline-flex;
-    flex: 0 0 auto;
-    font-family: 'Fira Code', monospace;
-    font-size: 12px;
-    height: 28px;
-    justify-content: center;
-    width: 28px;
+  .workout-command-brief-item {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
   }
 
-  .workout-command-step strong {
-    color: var(--coach-text);
-    display: block;
+  .workout-command-brief-item strong {
     font-size: 13px;
     line-height: 1.18;
-    overflow-wrap: anywhere;
+  }
+
+  .workout-command-brief-item.safety strong {
+    color: var(--coach-cyan);
+  }
+
+  .workout-command-brief-divider {
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--coach-cyan) 36%, transparent), transparent);
+    width: 1px;
   }
 
   @media (max-width: 520px) {
-    .workout-command-steps {
+    .workout-command-brief {
       grid-template-columns: 1fr;
+    }
+
+    .workout-command-brief-divider {
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--coach-cyan) 30%, transparent), transparent);
+      height: 1px;
+      width: 100%;
     }
   }
 `;

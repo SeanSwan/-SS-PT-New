@@ -22,7 +22,10 @@ describe('CoachCommandOpsRail workout command panel', () => {
     expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
     expect(within(opsRail).getByText(/one tap to log, build, review, or import/i)).toBeInTheDocument();
     expect(within(opsRail).getByRole('button', { name: /review next intake/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText('Client #42')).toBeInTheDocument();
+    expect(within(opsRail).queryByLabelText('Coach Ops mission checklist')).not.toBeInTheDocument();
+    expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/Client #42/);
+    expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/Save happens in Logger/i);
+    expect(within(opsRail).getAllByText('Client #42').length).toBeGreaterThan(0);
     expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
@@ -57,9 +60,10 @@ describe('CoachCommandOpsRail workout command panel', () => {
 
     const opsRail = openOpsRail();
     expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/use your admin self log/i)).toBeInTheDocument();
+    expect(within(opsRail).getAllByText(/use your admin self log/i).length).toBeGreaterThan(0);
     expect(within(opsRail).queryByText(/selected client's workout/i)).not.toBeInTheDocument();
-    expect(within(opsRail).getByText(/My workout log/i)).toBeInTheDocument();
+    expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/My workout log/);
+    expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/Save happens in Logger/i);
     expect(within(opsRail).getByRole('link', { name: /open logger/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/log-my-workout?loadPlan=today',
@@ -77,7 +81,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
     const opsRail = openOpsRail();
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
-    expect(within(opsRail).getByText('Client #42')).toBeInTheDocument();
+    expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent('Client #42');
 
     fireEvent.click(within(opsRail).getByRole('button', { name: /close coach operations/i }));
 

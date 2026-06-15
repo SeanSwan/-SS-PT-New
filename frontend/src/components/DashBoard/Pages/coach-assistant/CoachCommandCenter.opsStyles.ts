@@ -92,45 +92,10 @@ export const coachCommandOpsStyles = css`
     border-color: color-mix(in srgb, var(--coach-cyan) 34%, var(--coach-line));
   }
 
-  .workout-command-scope {
-    background: color-mix(in srgb, var(--coach-surface) 82%, transparent);
-    border: 1px solid var(--coach-line);
-    border-radius: 14px;
-    display: grid;
-    gap: 3px;
-    min-height: 56px;
-    padding: 10px 12px;
-  }
-
-  .workout-command-scope.is-ready {
-    border-color: color-mix(in srgb, var(--coach-cyan) 38%, var(--coach-line));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--coach-cyan) 12%, transparent);
-  }
-
-  .workout-command-scope-kicker {
-    color: var(--coach-muted);
-    font-family: 'Fira Code', monospace;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .workout-command-scope strong {
-    color: var(--coach-text);
-    font-size: 14px;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-
-  .workout-command-primary-grid,
-  .workout-command-route-grid {
+  .workout-command-primary-grid {
     display: grid;
     gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .workout-command-route-grid {
-    padding-top: 2px;
   }
 
   .workout-command-card {
@@ -223,8 +188,7 @@ export const coachCommandOpsStyles = css`
   }
 
   @media (max-width: 420px) {
-    .workout-command-primary-grid,
-    .workout-command-route-grid {
+    .workout-command-primary-grid {
       grid-template-columns: 1fr;
     }
 
