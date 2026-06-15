@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { readAcquisitionParams } from '../../utils/acquisitionAttribution';
 import { MapPin, Mail, Phone, Clock, Facebook, Instagram, Youtube, ChevronDown, CheckCircle, AlertCircle, X } from 'lucide-react';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
@@ -885,6 +886,7 @@ const ContactV3: React.FC = () => {
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
         priority: 'normal',
+        ...readAcquisitionParams(), // attribute which channel sent this contact (rule 8 non-PII)
       });
 
       setSuccess(true);

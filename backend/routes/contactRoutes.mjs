@@ -127,6 +127,12 @@ router.post("/", async (req, res) => {
       contact: newContact,
       formData: contactData,
       consultationType,
+      attribution: {
+        utmSource: req.body?.utmSource,
+        utmMedium: req.body?.utmMedium,
+        utmCampaign: req.body?.utmCampaign,
+        referrer: req.body?.referrer,
+      },
     });
     if (leadCaptureResult?.error) {
       console.log('CRM lead capture failed (non-critical):', leadCaptureResult.error);

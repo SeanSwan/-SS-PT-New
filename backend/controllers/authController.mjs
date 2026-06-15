@@ -659,7 +659,17 @@ export const register = async (req, res) => {
     // --- Best-effort: capture a CRM lead from this signup (skips Move Fitness + staff roles) ---
     // Closes the funnel hole — new accounts now enter the lead pipeline for follow-up to PAID.
     try {
-      await captureLeadFromSignup({ user, clientSource: resolvedClientSource, role });
+      await captureLeadFromSignup({
+        user,
+        clientSource: resolvedClientSource,
+        role,
+        attribution: {
+          utmSource: req.body?.utmSource,
+          utmMedium: req.body?.utmMedium,
+          utmCampaign: req.body?.utmCampaign,
+          referrer: req.body?.referrer,
+        },
+      });
     } catch (leadErr) {
       logger.warn(`Lead capture from signup failed for user ${user.id}: ${leadErr.message}`);
     }

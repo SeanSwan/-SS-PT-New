@@ -163,6 +163,20 @@ describe('captureLeadFromContact (Tier 0.2a)', () => {
 
     expect(res.error).toBe('db down');
   });
+
+  it('attributes the acquisition channel from utm (youtube -> social_media + channel tag)', async () => {
+    const res = await captureLeadFromContact({
+      contact: { id: 200 },
+      formData: { name: 'Lee Fan', email: 'lee@example.com', message: 'saw your video' },
+      attribution: { utmSource: 'youtube' },
+    });
+    const defaults = leadFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults.source).toBe('social_media');
+    expect(defaults.sourceDetail).toContain('· via youtube');
+    expect(defaults.tags).toEqual(expect.arrayContaining(['contact-form', 'channel:youtube']));
+    expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('youtube');
+    expect(res.created).toBe(true);
+  });
 });
 
 describe('captureLeadFromSignup (Tier 0.2b)', () => {
@@ -228,6 +242,21 @@ describe('captureLeadFromSignup (Tier 0.2b)', () => {
     const res = await captureLeadFromSignup({ user: { id: 7, firstName: 'E', email: '' }, clientSource: 'swanstudios', role: 'client' });
     expect(leadFindOrCreate).not.toHaveBeenCalled();
     expect(res.skipped).toBe('no_email');
+  });
+
+  it('tags the utm channel WITHOUT overriding the authoritative clientSource lead source', async () => {
+    const res = await captureLeadFromSignup({
+      user: { id: 50, firstName: 'Ria', email: 'ria@x.com' },
+      clientSource: 'swanstudios',
+      role: 'client',
+      attribution: { utmSource: 'tiktok' },
+    });
+    const defaults = leadFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults.source).toBe('website'); // clientSource swanstudios -> website stays authoritative
+    expect(defaults.tags).toEqual(expect.arrayContaining(['signup', 'channel:tiktok']));
+    expect(defaults.sourceDetail).toContain('· via tiktok');
+    expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('tiktok');
+    expect(res.created).toBe(true);
   });
 });
 

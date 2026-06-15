@@ -36,6 +36,7 @@ import {
   mergeLeadTags,
   channelToLeadSource,
   channelTags,
+  deriveChannel,
 } from './leadCaptureShared.mjs';
 import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
@@ -45,7 +46,7 @@ import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
  *
  * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
  */
-export async function captureLeadFromContact({ contact, formData, consultationType } = {}) {
+export async function captureLeadFromContact({ contact, formData, consultationType, attribution = null } = {}) {
   try {
     const email = String(formData?.email || '').trim().toLowerCase();
     if (!email) return { skipped: 'no_email' };
@@ -54,9 +55,12 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
     const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
 
     const { firstName, lastName } = splitLeadName(formData?.name);
-    const sourceDetail = consultationType
+    const { channel } = deriveChannel(attribution || {});
+    const baseDetail = consultationType
       ? `Contact form — ${String(consultationType).replace(/-/g, ' ')}`
       : 'Contact form';
+    const sourceDetail = channel !== 'direct' ? `${baseDetail} · via ${channel}` : baseDetail;
+    const contactTags = ['contact-form', ...channelTags(channel)];
 
     const [lead, created] = await Lead.findOrCreate({
       where: { email },
@@ -64,12 +68,12 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         firstName,
         lastName,
         email,
-        source: 'website',
+        source: channelToLeadSource(channel),
         sourceDetail,
         status: 'new',
         score: CONTACT_FORM_LEAD_SCORE,
         notes: formData?.message || null,
-        tags: ['contact-form'],
+        tags: contactTags,
       },
     });
 
@@ -80,13 +84,14 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         performedByAI: false,
         title: 'Lead captured from contact form',
         description: `New website contact via ${sourceDetail}`,
-        metadata: { source: 'website', sourceDetail, contactId: contact?.id },
+        metadata: { source: 'website', sourceDetail, channel, contactId: contact?.id },
       });
     } else {
       await lead.update({
         lastContactedAt: new Date(),
         contactCount: (lead.contactCount || 0) + 1,
         score: Math.min(100, (lead.score || 0) + CONTACT_FORM_REPEAT_BONUS),
+        tags: mergeLeadTags(lead.tags, contactTags),
       });
       await LeadActivity.create({
         leadId: lead.id,
@@ -94,7 +99,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         performedByAI: false,
         title: 'Repeat contact-form submission',
         description: `Existing lead submitted the contact form again via ${sourceDetail}`,
-        metadata: { source: 'website', sourceDetail, contactId: contact?.id },
+        metadata: { source: 'website', sourceDetail, channel, contactId: contact?.id },
       });
     }
 
@@ -110,7 +115,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
  *
  * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
  */
-export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
+export async function captureLeadFromSignup({ user, clientSource, role, attribution = null } = {}) {
   try {
     // No-poach: Move Fitness clients onboard free and are never a sales target.
     if (clientSource === 'move_fitness') return { skipped: 'move_fitness' };
@@ -123,8 +128,12 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
     const { default: Lead } = await import('../models/Lead.mjs');
     const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
 
+    // clientSource is the authoritative signup source; the utm channel only adds a tag/detail.
     const source = mapClientSourceToLeadSource(clientSource);
-    const sourceDetail = `Signup — ${clientSource || 'swanstudios'}`;
+    const { channel } = deriveChannel(attribution || {});
+    const baseDetail = `Signup — ${clientSource || 'swanstudios'}`;
+    const sourceDetail = channel !== 'direct' ? `${baseDetail} · via ${channel}` : baseDetail;
+    const signupTags = ['signup', ...channelTags(channel)];
 
     const [lead, created] = await Lead.findOrCreate({
       where: { email },
@@ -136,7 +145,7 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
         sourceDetail,
         status: 'new',
         score: SIGNUP_LEAD_SCORE,
-        tags: ['signup'],
+        tags: signupTags,
         // Link to the account in `notes` (Lead has no metadata column — rule 58).
         // The structured userId link lives on the LeadActivity below (which DOES
         // have a metadata column). convertedUserId stays null until they actually
@@ -152,13 +161,14 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
         performedByAI: false,
         title: 'Lead captured from signup',
         description: `New account (user ${user.id}) created via ${clientSource || 'swanstudios'}`,
-        metadata: { source, userId: user.id, clientSource },
+        metadata: { source, userId: user.id, clientSource, channel },
       });
     } else {
       // Existing lead (e.g. contacted first, now signed up) — strengthen, don't duplicate.
       await lead.update({
         score: Math.max(lead.score || 0, SIGNUP_LEAD_SCORE),
         lastContactedAt: new Date(),
+        tags: mergeLeadTags(lead.tags, signupTags),
       });
       await LeadActivity.create({
         leadId: lead.id,
@@ -166,7 +176,7 @@ export async function captureLeadFromSignup({ user, clientSource, role } = {}) {
         performedByAI: false,
         title: 'Existing lead created an account',
         description: `Lead signed up (user ${user.id}) via ${clientSource || 'swanstudios'}`,
-        metadata: { userId: user.id, clientSource },
+        metadata: { userId: user.id, clientSource, channel },
       });
     }
 

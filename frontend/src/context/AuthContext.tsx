@@ -9,6 +9,7 @@ import sessionService from '../services/session-service';
 import { useBackendConnection } from '../hooks/useBackendConnection';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
+import { readAcquisitionParams } from '../utils/acquisitionAttribution';
 import { logger } from '@/utils/logger';
 
 // PRODUCTION-ONLY AuthContext - NO DEVELOPMENT BYPASSES
@@ -403,7 +404,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     setError(null);
     
     try {
-      const response = await apiService.post('/api/auth/register', data);
+      // Attribute the acquisition channel for this signup (rule 8 non-PII utm/referrer).
+      const response = await apiService.post('/api/auth/register', { ...data, ...readAcquisitionParams() });
       
       if (response.data?.user && response.data?.token) {
         const { user: userData, token } = response.data;

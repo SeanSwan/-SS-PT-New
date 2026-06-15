@@ -6,6 +6,7 @@
  */
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { readAcquisitionParams } from '../utils/acquisitionAttribution';
 
 // Same-origin (relative) in prod/staging/preview; only local dev hits :5000.
 // Avoids the old bug where any non-sswanstudios host (Render preview) fell through
@@ -16,25 +17,6 @@ const API_BASE_URL =
     : '';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Read non-PII acquisition signals (utm_* + cross-site referrer) so each subscriber
-// records WHICH channel sent them (YouTube/TikTok/IG/search/referral). Same-origin
-// referrers are dropped; nothing here identifies a person (rule 8 safe).
-function readAttribution(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const out: Record<string, string> = {};
-  try {
-    const p = new URLSearchParams(window.location.search);
-    const s = p.get('utm_source'); if (s) out.utmSource = s;
-    const m = p.get('utm_medium'); if (m) out.utmMedium = m;
-    const c = p.get('utm_campaign'); if (c) out.utmCampaign = c;
-  } catch { /* ignore */ }
-  try {
-    const ref = document.referrer || '';
-    if (ref && !ref.includes(window.location.host)) out.referrer = ref;
-  } catch { /* ignore */ }
-  return out;
-}
 
 export type NewsletterStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -71,7 +53,7 @@ export function useNewsletterSubscribe(source: string = 'website') {
           email: trimmed,
           firstName: firstName?.trim() || undefined,
           source,
-          ...readAttribution(),
+          ...readAcquisitionParams(),
         });
         setStatus('success');
         setMessage(res?.data?.message || 'Almost there — check your email to confirm your subscription.');
