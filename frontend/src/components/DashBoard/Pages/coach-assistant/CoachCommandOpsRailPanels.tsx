@@ -76,8 +76,8 @@ export function QuickClientPanel({
     <section className="panel">
       <div className="section-title-row">
         <div>
-          <h2 className="panel-title">Quick client capture</h2>
-          <p className="panel-subtitle">Name-only client stub for staged PLAUD and workout review.</p>
+          <h2 className="panel-title">Add client fast</h2>
+          <p className="panel-subtitle">Name-only client record for staged PLAUD and workout review.</p>
         </div>
         <UserPlus size={19} aria-hidden="true" />
       </div>
@@ -106,7 +106,7 @@ export function QuickClientPanel({
         </label>
         <button type="submit" className="primary-button quick-client-submit" disabled={quickClientBusy}>
           <UserPlus size={16} aria-hidden="true" />
-          {quickClientBusy ? 'Creating stub...' : 'Create stub client'}
+          {quickClientBusy ? 'Adding client...' : 'Add client'}
         </button>
         <QuickClientNote message={quickClientMessage} tone="success" />
         <QuickClientNote message={quickClientError} tone="error" />

@@ -100,21 +100,23 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     );
   });
 
-  it('creates a minimal client stub from the operator drawer and stages the dock for approved follow-up', async () => {
+  it('adds a client from the operator drawer with human-facing copy and stages approved follow-up', async () => {
     renderPage();
     const operationsRail = openOpsRail();
 
+    expect(within(operationsRail).getByRole('heading', { name: /Add client fast/i })).toBeInTheDocument();
+    expect(within(operationsRail).queryByText(/stub/i)).not.toBeInTheDocument();
     expect(within(within(operationsRail).getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();
     fireEvent.change(within(operationsRail).getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
     fireEvent.change(within(operationsRail).getByLabelText('Client source'), { target: { value: 'external' } });
-    fireEvent.click(within(operationsRail).getByRole('button', { name: /Create stub client/i }));
+    fireEvent.click(within(operationsRail).getByRole('button', { name: /Add client/i }));
 
     await waitFor(() => {
       expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({ fullName: 'Ava Stone', clientSource: 'external' });
     });
 
     expect(composerInput()).toHaveValue('Continue Ava Stone with review-gated context.');
-    expect(screen.getAllByText(/Ava Stone - client stub ready/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Ava Stone - client ready/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
   });
 });

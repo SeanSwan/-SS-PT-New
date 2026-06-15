@@ -132,23 +132,23 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     try {
       const result = await createQuickCoachCommandClient({ fullName, clientSource: props.quickClientSource });
       const createdName = [result.client.firstName, result.client.lastName].filter(Boolean).join(' ') || fullName;
-      const status = `${createdName} - client stub ready`;
+      const status = `${createdName} - client ready`;
       props.setQuickClientName('');
-      props.setQuickClientMessage(`${createdName} created as a minimal client stub. No workout log was written.`);
+      props.setQuickClientMessage(`${createdName} is ready for review-gated follow-up. No workout log was written.`);
       addLog({
         actor: 'system',
-        label: 'client stub created',
+        label: 'client added',
         body: `${createdName} is ready for staged PLAUD/workout review. No workout log was written and final writes still require operator approval.`,
-        attachments: result.claimUrl ? ['claim link ready'] : ['client profile stub ready'],
+        attachments: result.claimUrl ? ['claim link ready'] : ['client profile ready'],
       });
       focusComposer(`Continue ${createdName} with review-gated context.`, status);
       void props.coachQueue.refresh();
     } catch (error: any) {
-      props.setQuickClientError(error?.message || 'Client stub could not be created.');
+      props.setQuickClientError(error?.message || 'Client could not be added.');
       addLog({
         actor: 'system',
-        label: 'client stub failed',
-        body: 'Quick client capture failed. No client or workout write was completed from the command rail.',
+        label: 'client add failed',
+        body: 'Quick client add failed. No client or workout write was completed from the command rail.',
       });
     } finally {
       props.setQuickClientBusy(false);
