@@ -265,13 +265,22 @@ export const refineClientGuide = (
   if (includesAny(path, ['body-map', 'profile', 'ai-consent'])) return clientSafetyProfileFlow(base);
   if (includesAny(path, ['coach-assistant'])) {
     return applyPatch(base, {
+      title: 'Client Coach terminal',
+      summary: 'Use Coach to review training questions, workout drafts, pain context, and next steps before logging or booking.',
+      focus: 'Ask for the smallest next action, read the answer, then move into Logger, Progress, or Booking only when action is needed.',
       primaryAction: { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
       fastPath: [
         'Ask the question clearly.',
         'Review the staged answer.',
-        'Log or book if action is needed.',
+        'Log today, check progress, or book if action is needed.',
       ],
-      primaryPrompt: 'teach me how to use Swan Coach as a client',
+      actions: [
+        { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
+        { label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' },
+        { label: 'Progress', to: '/dashboard/client/progress' },
+        { label: 'Book My Session', to: '/dashboard/client/schedule' },
+      ],
+      primaryPrompt: 'teach me the client Coach terminal workflow for workout review and next action',
     });
   }
   return base;

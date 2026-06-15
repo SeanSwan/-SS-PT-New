@@ -13,7 +13,7 @@ describe('DashboardTeachMeGuide', () => {
     window.localStorage.clear();
   });
 
-  it('renders a closed-by-default route guide and can ask Coach when available', () => {
+  it('renders the admin Coach terminal guide and can hand the workflow to Coach', () => {
     const onAskCoach = vi.fn();
     const onNavigate = vi.fn();
 
@@ -26,41 +26,41 @@ describe('DashboardTeachMeGuide', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /teach me: admin command center/i }))
+    expect(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }))
       .toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /teach me: admin command center.*first move: log client workout/i }))
+    expect(screen.getByRole('button', { name: /teach me: admin coach command terminal.*first move: open coach/i }))
       .toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /^start now: log client workout$/i }))
+    expect(screen.getByRole('button', { name: /^start now: open coach$/i }))
       .toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^ask swan coach: admin command center$/i }))
+    expect(screen.getByRole('button', { name: /^ask swan coach: admin coach command terminal$/i }))
       .toBeInTheDocument();
     expect(screen.getByText('Open guide')).toBeInTheDocument();
-    const visibleFastPath = screen.getByRole('list', { name: /admin command center visible fast path/i });
-    expect(visibleFastPath).toHaveTextContent(/Pick the client or Coach thread/i);
-    expect(visibleFastPath).toHaveTextContent(/Open the Training tab/i);
-    expect(visibleFastPath).toHaveTextContent(/Review, then save/i);
+    const visibleFastPath = screen.getByRole('list', { name: /admin coach command terminal visible fast path/i });
+    expect(visibleFastPath).toHaveTextContent(/Confirm the client scope or owner self context/i);
+    expect(visibleFastPath).toHaveTextContent(/Ask Coach for the specific draft/i);
+    expect(visibleFastPath).toHaveTextContent(/Review the staged action/i);
     expect(screen.queryByText(/Start with Coach or Client Hub/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^start now: log client workout$/i }));
-    expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?intent=log_workout');
+    fireEvent.click(screen.getByRole('button', { name: /^start now: open coach$/i }));
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/coach-assistant');
 
-    fireEvent.click(screen.getByRole('button', { name: /^ask swan coach: admin command center$/i }));
-    expect(onAskCoach).toHaveBeenCalledWith('teach me the admin dashboard workflow');
+    fireEvent.click(screen.getByRole('button', { name: /^ask swan coach: admin coach command terminal$/i }));
+    expect(onAskCoach).toHaveBeenCalledWith('teach me the admin Coach command terminal workflow for client and owner workout actions');
 
-    fireEvent.click(screen.getByRole('button', { name: /teach me: admin command center/i }));
+    fireEvent.click(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }));
 
-    expect(screen.getByRole('button', { name: /^first move: log client workout$/i })).toBeInTheDocument();
-    const expandedFastPath = screen.getByRole('list', { name: /^Admin command center fast path$/i });
-    expect(within(expandedFastPath).getByText(/Pick the client or Coach thread/i)).toBeInTheDocument();
-    expect(within(expandedFastPath).getByText(/Open the Training tab/i)).toBeInTheDocument();
-    expect(within(expandedFastPath).getByText(/Review, then save/i)).toBeInTheDocument();
-    expect(screen.getByText(/Start with Coach or Client Hub/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^first move: open coach$/i })).toBeInTheDocument();
+    const expandedFastPath = screen.getByRole('list', { name: /^Admin Coach command terminal fast path$/i });
+    expect(within(expandedFastPath).getByText(/Confirm the client scope or owner self context/i)).toBeInTheDocument();
+    expect(within(expandedFastPath).getByText(/Ask Coach for the specific draft/i)).toBeInTheDocument();
+    expect(within(expandedFastPath).getByText(/Review the staged action/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use Coach as the review-gated terminal/i)).toBeInTheDocument();
     expect(screen.getByText(/Keep final writes approval-gated/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
     expect(onAskCoach).toHaveBeenCalledTimes(2);
 
-    fireEvent.click(screen.getByRole('button', { name: /^first move: log client workout$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^first move: open coach$/i }));
     expect(onNavigate).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole('button', { name: /client hub training/i }));

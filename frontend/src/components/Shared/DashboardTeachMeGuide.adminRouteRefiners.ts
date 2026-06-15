@@ -124,6 +124,26 @@ const adminClientProgressTracking = (base: DashboardTeachMeGuideCopy) => applyPa
   primaryPrompt: 'teach me the admin client progress workflow',
 });
 
+const adminCoachCommandTerminal = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach the Coach terminal',
+  title: 'Admin Coach command terminal',
+  summary: 'Use Coach as the review-gated terminal for intake, client workout drafts, owner self-logging help, and PLAUD handoff.',
+  focus: 'Select the right client or self context first, ask for the exact action, then review the staged result before any save.',
+  primaryAction: { label: 'Open Coach', to: '/dashboard/admin/coach-assistant' },
+  fastPath: [
+    'Confirm the client scope or owner self context.',
+    'Ask Coach for the specific draft, intake, or logging help.',
+    'Review the staged action before saving in Logger, Planner, or Intake.',
+  ],
+  actions: [
+    { label: 'Open Coach', to: '/dashboard/admin/coach-assistant' },
+    { label: 'PLAUD Intake', to: '/dashboard/admin/coach-assistant?workspace=plaud' },
+    { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
+    { label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
+  ],
+  primaryPrompt: 'teach me the admin Coach command terminal workflow for client and owner workout actions',
+});
+
 const adminScheduleControl = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   eyebrow: 'Teach the schedule loop',
   title: 'Admin schedule control',
@@ -214,6 +234,9 @@ export const refineAdminGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (includesAny(path, ['coach-assistant', 'plaud', 'intake'])) {
+    return adminCoachCommandTerminal(base);
+  }
   if (includesAny(path, ['log-my-workout'])) {
     return adminSelfWorkoutLogging(base);
   }
