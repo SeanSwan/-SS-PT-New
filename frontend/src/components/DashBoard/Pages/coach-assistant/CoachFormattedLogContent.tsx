@@ -2,6 +2,9 @@ import React from 'react';
 import { BulletList, StepList } from './CoachCommandLogEntry.styles';
 import type { FormattedLogBody } from './CoachCommandLogEntry.types';
 
+const WORKOUT_DETAIL_COPY_PATTERN =
+  /\b(?:sets?|reps?|rounds?|rpe|rir|rest|tempo|sec(?:onds?)?|min(?:utes?)?|lbs?|kg|warm-?up|cool-?down)\b|\d+\s*x\s*\d+/i;
+
 export function formattedLogBodyToPlainText(formatted: FormattedLogBody): string {
   const lines = [
     ...formatted.leadParagraphs,
@@ -24,6 +27,28 @@ function renderInlineCopy(value: string): React.ReactNode[] {
   });
 }
 
+function splitWorkoutBullet(value: string): { name: string; detail: string } | null {
+  const match = value.match(/^(.{2,80}?)(?:\s*[:\-]\s+)(.+)$/);
+  const name = match?.[1]?.trim();
+  const detail = match?.[2]?.trim();
+
+  if (!name || !detail || !WORKOUT_DETAIL_COPY_PATTERN.test(detail)) return null;
+  return { name, detail };
+}
+
+function renderWorkoutBullet(bullet: string): React.ReactNode {
+  const split = splitWorkoutBullet(bullet);
+
+  if (!split) return renderInlineCopy(bullet);
+
+  return (
+    <>
+      <span className="exercise-name">{renderInlineCopy(split.name)}</span>
+      <span className="exercise-detail">{renderInlineCopy(split.detail)}</span>
+    </>
+  );
+}
+
 export function CoachFormattedLogContent({ formatted }: { formatted: FormattedLogBody }) {
   return (
     <>
@@ -34,7 +59,7 @@ export function CoachFormattedLogContent({ formatted }: { formatted: FormattedLo
       {formatted.bullets.length ? (
         <BulletList aria-label="Workout details">
           {formatted.bullets.map((bullet) => (
-            <li key={bullet}>{renderInlineCopy(bullet)}</li>
+            <li key={bullet}>{renderWorkoutBullet(bullet)}</li>
           ))}
         </BulletList>
       ) : null}

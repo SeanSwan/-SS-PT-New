@@ -91,7 +91,17 @@ export const BulletList = styled.ul`
     background: color-mix(in srgb, var(--coach-text, #e0ecf4) 5%, transparent);
     border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
     border-radius: 12px;
+    display: grid;
+    gap: 4px;
     padding: 10px 12px;
+  }
+  .exercise-name {
+    color: var(--coach-text, #e0ecf4);
+    font-weight: 820;
+  }
+  .exercise-detail {
+    color: var(--coach-text-soft, #dbeafe);
+    line-height: 1.45;
   }
 `;
 

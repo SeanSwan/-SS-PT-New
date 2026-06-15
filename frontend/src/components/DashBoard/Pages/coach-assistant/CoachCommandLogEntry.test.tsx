@@ -118,8 +118,12 @@ describe('CoachCommandLogEntry', () => {
     }} />);
 
     const list = screen.getByRole('list', { name: 'Workout details' });
-    expect(within(list).getByText('Goblet squat: 3 sets x 10 reps')).toBeInTheDocument();
-    expect(within(list).getByText('Push-up: 3 sets x 8 reps')).toBeInTheDocument();
+    const rows = within(list).getAllByRole('listitem');
+
+    expect(rows[0]?.querySelector('.exercise-name')).toHaveTextContent('Goblet squat');
+    expect(rows[0]?.querySelector('.exercise-detail')).toHaveTextContent('3 sets x 10 reps');
+    expect(rows[1]?.querySelector('.exercise-name')).toHaveTextContent('Push-up');
+    expect(rows[1]?.querySelector('.exercise-detail')).toHaveTextContent('3 sets x 8 reps');
   });
 
   it('stores a Coach workout draft and routes to the selected client logger for review', async () => {
