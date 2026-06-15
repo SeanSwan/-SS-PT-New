@@ -6,7 +6,7 @@ import {
   TemplateSelectionCount,
   TemplateSelector
 } from './TrainerPermissionsManager.styles';
-import { PERMISSION_TEMPLATES } from './TrainerPermissionsManager.logic';
+import { PERMISSION_TEMPLATES, PERMISSION_TYPES } from './TrainerPermissionsManager.logic';
 
 interface TrainerTemplateCommandsProps {
   applyTemplate: (templateKey: string, trainerIds: number[]) => void;
@@ -33,6 +33,23 @@ const QUICK_TEMPLATE_COMMANDS = [
   }
 ];
 
+const criticalPermissionLabels = new Map(
+  PERMISSION_TYPES
+    .filter((permission) => permission.critical)
+    .map((permission) => [permission.key, permission.label])
+);
+
+const getElevatedCriticalLabels = (templateKey: string): string[] => {
+  const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
+  if (!template) return [];
+
+  const labels = template.permissions
+    .map((permissionType) => criticalPermissionLabels.get(permissionType))
+    .filter(Boolean) as string[];
+
+  return labels.length > 1 ? labels : [];
+};
+
 export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = ({
   applyTemplate,
   bulkProcessing,
@@ -42,6 +59,21 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
 }) => {
   const selectedTrainerIds = Array.from(selectedTrainers);
   const isTemplateLocked = selectedTrainerIds.length === 0 || bulkProcessing;
+  const applyWithConfirmation = (templateKey: string) => {
+    if (!templateKey || selectedTrainerIds.length === 0) return;
+    const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
+    if (!template) return;
+
+    const criticalLabels = getElevatedCriticalLabels(templateKey);
+    if (criticalLabels.length > 0) {
+      const confirmed = window.confirm(
+        `${template.name} grants ${criticalLabels.join(' and ')} to ${selectedTrainerIds.length} selected trainer(s). Continue?`
+      );
+      if (!confirmed) return;
+    }
+
+    applyTemplate(templateKey, selectedTrainerIds);
+  };
 
   return (
     <TemplateCommandStrip aria-label="Trainer permission template commands">
@@ -53,7 +85,7 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
           <Button
             key={command.key}
             variant={command.variant}
-            onClick={() => applyTemplate(command.key, selectedTrainerIds)}
+            onClick={() => applyWithConfirmation(command.key)}
             disabled={isTemplateLocked}
             aria-label={command.ariaLabel}
             title={command.ariaLabel}
@@ -80,11 +112,7 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
 
       <Button
         variant="secondary"
-        onClick={() => {
-          if (selectedTemplate && selectedTrainerIds.length > 0) {
-            applyTemplate(selectedTemplate, selectedTrainerIds);
-          }
-        }}
+        onClick={() => applyWithConfirmation(selectedTemplate)}
         disabled={!selectedTemplate || isTemplateLocked}
         aria-label="Apply selected broader permission template to selected trainers"
       >
