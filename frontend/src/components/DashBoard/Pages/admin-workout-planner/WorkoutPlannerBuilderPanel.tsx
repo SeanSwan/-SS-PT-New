@@ -65,6 +65,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   selectedMesoDay,
   phaseNumber,
   selectedClient,
+  coachReviewRoute,
   onSaveDraft,
   onSaveAndActivate,
   onUpdateLoaded,
@@ -110,6 +111,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
             selectedMesoDay={selectedMesoDay}
             phaseNumber={phaseNumber}
             selectedClient={selectedClient}
+            coachReviewRoute={coachReviewRoute}
             onSelectedMesoDayChange={onSelectedMesoDayChange}
             onPhaseNumberChange={onPhaseNumberChange}
           />

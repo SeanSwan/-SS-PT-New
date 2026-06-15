@@ -81,6 +81,9 @@ const RETURN_LABELS: Record<string, string> = {
   'admin-workout-logger': 'Back to Workout Logger',
   'trainer-workout-logger': 'Back to Workout Logger',
   'client-workout-logger': 'Back to Workout Logger',
+  'admin-workout-planner': 'Back to Workout Planner',
+  'trainer-workout-planner': 'Back to Workout Planner',
+  'client-workout-planner': 'Back to Workout Planner',
 };
 
 function commandCenterReturnLabel(source: string | null): string {
@@ -185,6 +188,19 @@ function selfWorkoutRouteContext(
   };
 }
 
+function planReviewRouteContext(routeClientLabel: string | null): RouteContextCopy {
+  return {
+    prompt: prompt([
+      'Workout planner review.',
+      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this planner route.',
+      'Review the selected day before it is saved, assigned, or logged.',
+      'Name safety issues, missing warmup/cooldown detail, pain-risk edits, and the simplest logger-ready version.',
+      'Do not claim the workout was logged until it is saved in the Workout Logger.',
+    ]),
+    status: 'Workout planner review context loaded',
+  };
+}
+
 function historicalImportRouteContext(routeClientLabel: string | null): RouteContextCopy {
   if (!routeClientLabel) return EMPTY_ROUTE_CONTEXT;
   return {
@@ -200,6 +216,7 @@ const ROUTE_CONTEXT_BUILDERS: Record<string, RouteContextBuilder> = {
   historical_import: (routeClientLabel) => historicalImportRouteContext(routeClientLabel),
   log_self_workout: selfWorkoutRouteContext,
   log_workout: logWorkoutRouteContext,
+  plan_review: (routeClientLabel) => planReviewRouteContext(routeClientLabel),
 };
 
 export function buildRouteContext(

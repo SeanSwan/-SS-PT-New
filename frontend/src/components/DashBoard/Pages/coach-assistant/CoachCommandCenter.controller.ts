@@ -125,7 +125,14 @@ export function useCoachCommandCenterController({
   const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
     () => routeTeachPrompt
-      ? { prompt: routeTeachPrompt, status: routeIntent === 'trainer_daily_command' ? 'Trainer day command context loaded' : 'Coach route prompt loaded' }
+      ? {
+        prompt: routeTeachPrompt,
+        status: routeIntent === 'trainer_daily_command'
+          ? 'Trainer day command context loaded'
+          : routeIntent === 'plan_review'
+            ? 'Workout planner review context loaded'
+            : 'Coach route prompt loaded',
+      }
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );

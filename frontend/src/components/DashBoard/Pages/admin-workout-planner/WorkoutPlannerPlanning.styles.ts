@@ -68,6 +68,7 @@ export const MesocycleSectionTitle = styled.h3`
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 `;
 
 export const MesocycleGrid = styled.div`

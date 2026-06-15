@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ClipboardList, Star } from 'lucide-react';
+import { ClipboardList, Dumbbell, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
@@ -19,6 +19,7 @@ import {
   SkeletonBlock,
 } from './WorkoutPlannerStyles';
 import {
+  PlannerHandoffLink,
   SavedPlansCount,
   SavedPlansEmpty,
   SavedPlansLoading,
@@ -47,6 +48,7 @@ interface WorkoutPlannerSavedPlansSectionProps {
   onSavePdf: (planId: string, pdfUrl: string, fileName: string) => void;
   onUploadPdf: (planId: string, file: File) => void;
   onClosePdfDialog: () => void;
+  activePlanLoggerRoute?: string | null;
 }
 
 const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionProps> = ({
@@ -70,6 +72,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   onSavePdf,
   onUploadPdf,
   onClosePdfDialog,
+  activePlanLoggerRoute,
 }) => {
   if (!selectedClientId) return null;
 
@@ -122,6 +125,16 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                   </option>
                 ))}
               </SmallSelect>
+              {activePlanLoggerRoute && (
+                <PlannerHandoffLink
+                  href={activePlanLoggerRoute}
+                  aria-label="Open Workout Logger for the current plan"
+                  $variant="primary"
+                >
+                  <Dumbbell size={14} />
+                  Log Current Plan
+                </PlannerHandoffLink>
+              )}
             </PlanModeBar>
             <MesocycleGrid>
               {savedPlans.map((plan, index) => (

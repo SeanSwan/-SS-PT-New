@@ -121,4 +121,22 @@ describe('WorkoutPlannerGeneratedPlanSection', () => {
     expect(screen.getByText('Cooldown/recovery cue missing')).toBeInTheDocument();
     expect(screen.getByText('Rationale missing')).toBeInTheDocument();
   });
+
+  it('offers a one-click Coach review handoff for the selected generated day', () => {
+    cleanup();
+    render(
+      <WorkoutPlannerGeneratedPlanSection
+        generatedPlan={oneWeekGeneratedPlan}
+        selectedMesoDay={1}
+        phaseNumber={2}
+        selectedClient={null}
+        coachReviewRoute="/dashboard/admin/coach-assistant?intent=plan_review"
+        onSelectedMesoDayChange={vi.fn()}
+        onPhaseNumberChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /review generated day 1 in coach/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intent=plan_review');
+  });
 });

@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import TeachModeSidebar from './TeachModeSidebar';
 import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
@@ -13,6 +14,10 @@ import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip from './WorkoutPlannerStatusAssistantStrip';
 import { Page, ThreePanel } from './WorkoutPlannerStyles';
+import {
+  buildWorkoutPlannerCoachReviewRoute,
+  buildWorkoutPlannerLoggerRoute,
+} from './workoutPlannerHandoffRoutes';
 
 type CommandProps = React.ComponentProps<typeof WorkoutPlannerCommandPanel>;
 type StatusProps = React.ComponentProps<typeof WorkoutPlannerStatusAssistantStrip>;
@@ -46,131 +51,149 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   generatedPlan, selectedMesoDay, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
   pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
-}) => (
-  <Page>
-    <WorkoutPlannerCommandPanel
-      plannerReturnTo={plannerReturnTo}
-      teachModeOpen={teachModeOpen}
-      clients={clients}
-      clientsLoading={clientsLoading}
-      selectedClientId={selectedClientId}
-      selectedClient={selectedClient}
-      phaseNumber={phaseNumber}
-      category={category}
-      goal={goal}
-      planDuration={planDuration}
-      sessionsPerWeek={sessionsPerWeek}
-      trainingIntensityMode={trainingIntensityMode}
-      hardcoreMethod={hardcoreMethod}
-      equipmentProfiles={equipmentProfiles}
-      equipmentProfilesLoading={equipmentProfilesLoading}
-      selectedEquipmentProfileId={selectedEquipmentProfileId}
-      generating={generating}
-      generatingPlan={generatingPlan}
-      clientGenBlocked={clientGenBlocked}
-      clientSelfGenStatus={clientSelfGenStatus}
-      isViewerClient={isViewerClient}
-      onReturnToClientHub={onReturnToClientHub}
-      onTeachModeToggle={onTeachModeToggle}
-      onClientSelectionChange={onClientSelectionChange}
-      onPhaseNumberChange={onPhaseNumberChange}
-      onCategoryChange={onCategoryChange}
-      onGoalChange={onGoalChange}
-      onEquipmentProfileChange={onEquipmentProfileChange}
-      onPlanDurationChange={onPlanDurationChange}
-      onSessionsPerWeekChange={onSessionsPerWeekChange}
-      onTrainingIntensityModeChange={onTrainingIntensityModeChange}
-      onHardcoreMethodChange={onHardcoreMethodChange}
-      onGenerateSingle={onGenerateSingle}
-      onGeneratePlan={onGeneratePlan}
-    />
+}) => {
+  const location = useLocation();
+  const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
+    pathname: location.pathname,
+    search: location.search,
+    selectedClientId,
+    selectedMesoDay,
+    generatedPlan,
+  }), [generatedPlan, location.pathname, location.search, selectedClientId, selectedMesoDay]);
+  const activePlanLoggerRoute = React.useMemo(() => buildWorkoutPlannerLoggerRoute({
+    pathname: location.pathname,
+    search: location.search,
+    selectedClientId,
+  }), [location.pathname, location.search, selectedClientId]);
 
-    <WorkoutPlannerStatusAssistantStrip
-      statusMsg={statusMsg}
-      plannerReturnTo={plannerReturnTo}
-      selectedClientId={selectedClientId}
-      degradedIntelligence={degradedIntelligence}
-      hasPlanExercises={hasPlanExercises}
-      onReturnToClientHub={onReturnToClientHub}
-      onDismissStatus={onDismissStatus}
-    />
-
-    <ThreePanel $teachModeOpen={teachModeOpen}>
-      <WorkoutPlannerRolodexPanel
-        filteredExerciseCount={filteredExerciseCount}
-        activeFilterCount={activeFilterCount}
-        exercisesLoading={exercisesLoading}
-        searchQuery={searchQuery}
-        filterCategory={filterCategory}
-        sourceFilter={sourceFilter}
-        exerciseTypeFilter={exerciseTypeFilter}
-        equipmentFilter={equipmentFilter}
-        impactFilter={impactFilter}
-        exerciseRowRenderer={exerciseRowRenderer}
-        onSearchQueryChange={onSearchQueryChange}
-        onFilterCategoryChange={onFilterCategoryChange}
-        onSourceFilterChange={onSourceFilterChange}
-        onExerciseTypeFilterChange={onExerciseTypeFilterChange}
-        onEquipmentFilterChange={onEquipmentFilterChange}
-        onImpactFilterChange={onImpactFilterChange}
-        onClearFilters={onClearFilters}
-      />
-      <WorkoutPlannerBuilderPanel
-        degradedIntelligence={degradedIntelligence}
-        saving={saving}
-        planExercises={planExercises}
-        hasGeneratedHorizonPlan={hasGeneratedHorizonPlan}
-        loadedPlanId={loadedPlanId}
-        savedPlans={savedPlans}
-        isDirty={isDirty}
-        generating={generating}
-        phase={phase}
-        explanations={explanations}
-        showExplanations={showExplanations}
-        generatedPlan={generatedPlan}
-        selectedMesoDay={selectedMesoDay}
-        phaseNumber={phaseNumber}
+  return (
+    <Page>
+      <WorkoutPlannerCommandPanel
+        plannerReturnTo={plannerReturnTo}
+        teachModeOpen={teachModeOpen}
+        clients={clients}
+        clientsLoading={clientsLoading}
+        selectedClientId={selectedClientId}
         selectedClient={selectedClient}
-        onSaveDraft={onSaveDraft}
-        onSaveAndActivate={onSaveAndActivate}
-        onUpdateLoaded={onUpdateLoaded}
-        onUpdateAndActivate={onUpdateAndActivate}
-        onDuplicateLoadedPlan={onDuplicateLoadedPlan}
-        onSelectExercise={onSelectExercise}
-        onUpdateExercise={onUpdateExercise}
-        onRemoveExercise={onRemoveExercise}
-        onBrowseAddExercise={onBrowseAddExercise}
-        onToggleExplanations={onToggleExplanations}
-        onSelectedMesoDayChange={onSelectedMesoDayChange}
+        phaseNumber={phaseNumber}
+        category={category}
+        goal={goal}
+        planDuration={planDuration}
+        sessionsPerWeek={sessionsPerWeek}
+        trainingIntensityMode={trainingIntensityMode}
+        hardcoreMethod={hardcoreMethod}
+        equipmentProfiles={equipmentProfiles}
+        equipmentProfilesLoading={equipmentProfilesLoading}
+        selectedEquipmentProfileId={selectedEquipmentProfileId}
+        generating={generating}
+        generatingPlan={generatingPlan}
+        clientGenBlocked={clientGenBlocked}
+        clientSelfGenStatus={clientSelfGenStatus}
+        isViewerClient={isViewerClient}
+        onReturnToClientHub={onReturnToClientHub}
+        onTeachModeToggle={onTeachModeToggle}
+        onClientSelectionChange={onClientSelectionChange}
         onPhaseNumberChange={onPhaseNumberChange}
+        onCategoryChange={onCategoryChange}
+        onGoalChange={onGoalChange}
+        onEquipmentProfileChange={onEquipmentProfileChange}
+        onPlanDurationChange={onPlanDurationChange}
+        onSessionsPerWeekChange={onSessionsPerWeekChange}
+        onTrainingIntensityModeChange={onTrainingIntensityModeChange}
+        onHardcoreMethodChange={onHardcoreMethodChange}
+        onGenerateSingle={onGenerateSingle}
+        onGeneratePlan={onGeneratePlan}
       />
-      {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
-    </ThreePanel>
 
-    <WorkoutPlannerSavedPlansSection
-      selectedClientId={selectedClientId}
-      savedPlans={savedPlans}
-      savedPlansLoading={savedPlansLoading}
-      loadedPlanId={loadedPlanId}
-      archiveBlockedFor={archiveBlockedFor}
-      onLoad={onLoad}
-      onActivate={onActivate}
-      onRename={onRename}
-      onDuplicate={onDuplicate}
-      onArchive={onArchive}
-      onSetPrimary={onSetPrimary}
-      pdfDialogPlan={pdfDialogPlan}
-      pdfDialogMode={pdfDialogMode}
-      pdfSaving={pdfSaving}
-      pdfOpening={pdfOpening}
-      onViewPdf={onViewPdf}
-      onUpdatePdf={onUpdatePdf}
-      onSavePdf={onSavePdf}
-      onUploadPdf={onUploadPdf}
-      onClosePdfDialog={onClosePdfDialog}
-    />
-    <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
-  </Page>
-);
+      <WorkoutPlannerStatusAssistantStrip
+        statusMsg={statusMsg}
+        plannerReturnTo={plannerReturnTo}
+        selectedClientId={selectedClientId}
+        degradedIntelligence={degradedIntelligence}
+        hasPlanExercises={hasPlanExercises}
+        onReturnToClientHub={onReturnToClientHub}
+        onDismissStatus={onDismissStatus}
+      />
+
+      <ThreePanel $teachModeOpen={teachModeOpen}>
+        <WorkoutPlannerRolodexPanel
+          filteredExerciseCount={filteredExerciseCount}
+          activeFilterCount={activeFilterCount}
+          exercisesLoading={exercisesLoading}
+          searchQuery={searchQuery}
+          filterCategory={filterCategory}
+          sourceFilter={sourceFilter}
+          exerciseTypeFilter={exerciseTypeFilter}
+          equipmentFilter={equipmentFilter}
+          impactFilter={impactFilter}
+          exerciseRowRenderer={exerciseRowRenderer}
+          onSearchQueryChange={onSearchQueryChange}
+          onFilterCategoryChange={onFilterCategoryChange}
+          onSourceFilterChange={onSourceFilterChange}
+          onExerciseTypeFilterChange={onExerciseTypeFilterChange}
+          onEquipmentFilterChange={onEquipmentFilterChange}
+          onImpactFilterChange={onImpactFilterChange}
+          onClearFilters={onClearFilters}
+        />
+        <WorkoutPlannerBuilderPanel
+          degradedIntelligence={degradedIntelligence}
+          saving={saving}
+          planExercises={planExercises}
+          hasGeneratedHorizonPlan={hasGeneratedHorizonPlan}
+          loadedPlanId={loadedPlanId}
+          savedPlans={savedPlans}
+          isDirty={isDirty}
+          generating={generating}
+          phase={phase}
+          explanations={explanations}
+          showExplanations={showExplanations}
+          generatedPlan={generatedPlan}
+          coachReviewRoute={generatedPlanCoachReviewRoute}
+          selectedMesoDay={selectedMesoDay}
+          phaseNumber={phaseNumber}
+          selectedClient={selectedClient}
+          onSaveDraft={onSaveDraft}
+          onSaveAndActivate={onSaveAndActivate}
+          onUpdateLoaded={onUpdateLoaded}
+          onUpdateAndActivate={onUpdateAndActivate}
+          onDuplicateLoadedPlan={onDuplicateLoadedPlan}
+          onSelectExercise={onSelectExercise}
+          onUpdateExercise={onUpdateExercise}
+          onRemoveExercise={onRemoveExercise}
+          onBrowseAddExercise={onBrowseAddExercise}
+          onToggleExplanations={onToggleExplanations}
+          onSelectedMesoDayChange={onSelectedMesoDayChange}
+          onPhaseNumberChange={onPhaseNumberChange}
+        />
+        {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
+      </ThreePanel>
+
+      <WorkoutPlannerSavedPlansSection
+        selectedClientId={selectedClientId}
+        savedPlans={savedPlans}
+        savedPlansLoading={savedPlansLoading}
+        loadedPlanId={loadedPlanId}
+        archiveBlockedFor={archiveBlockedFor}
+        onLoad={onLoad}
+        onActivate={onActivate}
+        onRename={onRename}
+        onDuplicate={onDuplicate}
+        onArchive={onArchive}
+        onSetPrimary={onSetPrimary}
+        pdfDialogPlan={pdfDialogPlan}
+        pdfDialogMode={pdfDialogMode}
+        pdfSaving={pdfSaving}
+        pdfOpening={pdfOpening}
+        onViewPdf={onViewPdf}
+        onUpdatePdf={onUpdatePdf}
+        onSavePdf={onSavePdf}
+        onUploadPdf={onUploadPdf}
+        onClosePdfDialog={onClosePdfDialog}
+        activePlanLoggerRoute={activePlanLoggerRoute}
+      />
+      <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
+    </Page>
+  );
+};
 
 export default WorkoutPlannerPageLayout;

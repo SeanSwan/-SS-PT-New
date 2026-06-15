@@ -163,3 +163,48 @@ export const SavedPlansLoading = styled.div`
 export const SavedPlansEmpty = styled(EmptyMessage)`
   padding: 16px;
 `;
+
+export const PlannerHandoffActions = styled.div`
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+export const PlannerHandoffLink = styled.a<{ $variant?: 'primary' }>`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid ${({ $variant }) =>
+    $variant === 'primary'
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 42%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent)'};
+  background: ${({ $variant }) =>
+    $variant === 'primary'
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, var(--bg-elevated, #141419))'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419))'};
+  color: ${({ $variant }) =>
+    $variant === 'primary'
+      ? 'var(--accent-gold, #C6A84B)'
+      : 'var(--accent-primary, #60C0F0)'};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--text-primary, #E0ECF4);
+    border-color: var(--accent-primary, #60C0F0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;

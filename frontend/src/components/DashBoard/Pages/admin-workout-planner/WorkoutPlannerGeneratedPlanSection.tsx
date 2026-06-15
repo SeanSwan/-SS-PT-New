@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { AlertTriangle, Calendar, Download } from 'lucide-react';
+import { AlertTriangle, Calendar, Download, MessageSquareText } from 'lucide-react';
 import LongHorizonScheduleView from './LongHorizonScheduleView';
 import type { GeneratedPlan, PlannerClient } from './WorkoutPlannerTypes';
 import { workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
@@ -37,6 +37,8 @@ import {
   ActiveScheduleDayNumber,
   ClickableMesocycleCard,
   PlanLabelBlock,
+  PlannerHandoffActions,
+  PlannerHandoffLink,
   RecommendationSource,
 } from './WorkoutPlannerPage.styles';
 
@@ -45,6 +47,7 @@ interface WorkoutPlannerGeneratedPlanSectionProps {
   selectedMesoDay: number;
   phaseNumber: number;
   selectedClient: PlannerClient | null;
+  coachReviewRoute?: string | null;
   onSelectedMesoDayChange: (dayNumber: number) => void;
   onPhaseNumberChange: (phaseNumber: number) => void;
 }
@@ -54,6 +57,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
   selectedMesoDay,
   phaseNumber,
   selectedClient,
+  coachReviewRoute,
   onSelectedMesoDayChange,
   onPhaseNumberChange,
 }) => {
@@ -90,6 +94,18 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
           <Download size={14} />
           Download PDF Preview
         </ExportPdfBtn>
+        {coachReviewRoute && (
+          <PlannerHandoffActions>
+            <PlannerHandoffLink
+              href={coachReviewRoute}
+              aria-label={`Review generated day ${selectedMesoDay} in Coach`}
+              $variant="primary"
+            >
+              <MessageSquareText size={14} />
+              Coach Review
+            </PlannerHandoffLink>
+          </PlannerHandoffActions>
+        )}
       </MesocycleSectionTitle>
 
       {qualityWarnings.length > 0 && (

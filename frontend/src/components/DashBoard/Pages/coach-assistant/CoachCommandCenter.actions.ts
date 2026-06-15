@@ -17,6 +17,7 @@ import {
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
+import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachCommandRouteContext, CoachScheduledSessionRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
@@ -160,15 +161,13 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
     props.setSelectedStatus('Sending command to Swan Coach');
-    const commandTitle = props.activeThread
-      ? props.activeThreadTitle
-      : props.routeIntent === 'client_onboarding'
-        ? props.routeClientLabel
-          ? `${props.routeClientLabel} onboarding`
-          : 'New client onboarding'
-        : props.routeClientLabel
-          ? `${props.routeClientLabel} daily workout log`
-          : trimmed.slice(0, 60);
+    const commandTitle = buildCoachCommandTitle({
+      activeThreadTitle: props.activeThreadTitle,
+      commandText: trimmed,
+      hasActiveThread: Boolean(props.activeThread),
+      routeClientLabel: props.routeClientLabel,
+      routeIntent: props.routeIntent,
+    });
     if (props.commandLaneEnabled && shouldRouteToCommandLane(trimmed)) {
       const commandResult = await props.executeCommand(trimmed, {
         selectedClientId: props.routeClientId,

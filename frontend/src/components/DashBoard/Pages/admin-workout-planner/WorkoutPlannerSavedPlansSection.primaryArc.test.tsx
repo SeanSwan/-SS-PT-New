@@ -90,4 +90,16 @@ describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
 
     expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-9m');
   });
+
+  it('offers a direct logger link for the current selected-client plan', () => {
+    render(
+      <WorkoutPlannerSavedPlansSection
+        {...props}
+        activePlanLoggerRoute="/dashboard/trainer/log-workout?clientId=42&source=workout-planner&loadPlan=today"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /open workout logger for the current plan/i }))
+      .toHaveAttribute('href', '/dashboard/trainer/log-workout?clientId=42&source=workout-planner&loadPlan=today');
+  });
 });
