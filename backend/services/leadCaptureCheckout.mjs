@@ -65,7 +65,7 @@ export async function captureLeadFromCheckout({ cart, user, session, sessionsAdd
       },
     });
 
-    if (!created && lead.status === 'converted' && Number(lead.convertedUserId) === userId) {
+    if (!created && lead.status === 'converted' && (!userId || Number(lead.convertedUserId) === userId)) {
       return { leadId: lead.id, created: false, alreadyConverted: true };
     }
 
