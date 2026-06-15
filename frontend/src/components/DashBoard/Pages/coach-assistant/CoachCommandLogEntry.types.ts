@@ -16,10 +16,16 @@ export type LogStyleVariant = {
   body: FormattedLogBody;
 };
 
+export type LogWorkoutSection = {
+  title: string;
+  bullets: string[];
+};
+
 export type FormattedLogBody = {
   leadParagraphs: string[];
   steps: LogStep[];
   bullets: string[];
+  sections?: LogWorkoutSection[];
   variants?: LogStyleVariant[];
   structuredPacket?: string;
 };

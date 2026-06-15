@@ -105,6 +105,28 @@ export const BulletList = styled.ul`
   }
 `;
 
+export const WorkoutSectionList = styled.div`
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  section {
+    background: color-mix(in srgb, var(--coach-soft, #102040) 58%, transparent);
+    border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
+    border-radius: 14px;
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+  }
+  h3 {
+    color: var(--coach-text, #e0ecf4);
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    letter-spacing: 0;
+    margin: 0;
+    text-transform: uppercase;
+  }
+`;
+
 export const StepList = styled.ol`
   display: grid;
   gap: 10px;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BulletList, StepList } from './CoachCommandLogEntry.styles';
+import { BulletList, StepList, WorkoutSectionList } from './CoachCommandLogEntry.styles';
 import type { FormattedLogBody } from './CoachCommandLogEntry.types';
 
 const WORKOUT_DETAIL_COPY_PATTERN =
@@ -8,6 +8,10 @@ const WORKOUT_DETAIL_COPY_PATTERN =
 export function formattedLogBodyToPlainText(formatted: FormattedLogBody): string {
   const lines = [
     ...formatted.leadParagraphs,
+    ...(formatted.sections || []).flatMap((section) => [
+      `${section.title}:`,
+      ...section.bullets.map((bullet) => `- ${bullet}`),
+    ]),
     ...formatted.bullets.map((bullet) => `- ${bullet}`),
     ...formatted.steps.map((step) => `${step.number}. ${step.title}: ${step.body}`),
   ];
@@ -55,6 +59,21 @@ export function CoachFormattedLogContent({ formatted }: { formatted: FormattedLo
       {formatted.leadParagraphs.map((paragraph, index) => (
         <p key={`lead-${index}`}>{renderInlineCopy(paragraph)}</p>
       ))}
+
+      {formatted.sections?.length ? (
+        <WorkoutSectionList aria-label="Workout sections">
+          {formatted.sections.map((section) => (
+            <section aria-label={`${section.title} workout block`} key={section.title}>
+              <h3>{section.title}</h3>
+              <BulletList aria-label={`${section.title} workout details`}>
+                {section.bullets.map((bullet) => (
+                  <li key={bullet}>{renderWorkoutBullet(bullet)}</li>
+                ))}
+              </BulletList>
+            </section>
+          ))}
+        </WorkoutSectionList>
+      ) : null}
 
       {formatted.bullets.length ? (
         <BulletList aria-label="Workout details">

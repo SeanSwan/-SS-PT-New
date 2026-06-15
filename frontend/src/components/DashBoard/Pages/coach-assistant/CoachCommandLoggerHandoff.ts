@@ -13,6 +13,10 @@ export type CoachWorkoutLoggerHandoff = {
 function logBodyToParseText(body: FormattedLogBody): string {
   return [
     ...body.leadParagraphs,
+    ...(body.sections || []).flatMap((section) => [
+      `${section.title}:`,
+      ...section.bullets.map((bullet) => `- ${bullet}`),
+    ]),
     ...body.bullets.map((bullet) => `- ${bullet}`),
     ...body.steps.map((step) => `${step.number}. ${step.title}: ${step.body}`),
   ].filter(Boolean).join('\n');

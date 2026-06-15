@@ -1,4 +1,10 @@
-import type { FormattedLogBody, LogStyleVariant, LogStyleVariantKey } from './CoachCommandLogEntry.types';
+import type {
+  FormattedLogBody,
+  LogStyleVariant,
+  LogStyleVariantKey,
+  LogWorkoutSection,
+} from './CoachCommandLogEntry.types';
+import { parseWorkoutSectionHeading } from './CoachCommandLogEntry.sections';
 
 const STEP_PATTERN = /(?:^|\s)(\d+)\.\s+\*\*([^*]+?)\*\*:?\s*/g;
 const BULLET_PATTERN = /^\s*[-*]\s+(.+?)\s*$/;
@@ -127,14 +133,48 @@ function splitStyleVariants(body: string): LogStyleVariant[] | null {
   ];
 }
 
-function extractBullets(body: string): { readableBody: string; bullets: string[] } {
+function extractBullets(body: string): {
+  readableBody: string;
+  bullets: string[];
+  sections: LogWorkoutSection[];
+} {
   const bullets: string[] = [];
+  const sections: LogWorkoutSection[] = [];
   const bodyLines: string[] = [];
+  let pendingSectionTitle: string | null = null;
+  let activeSection: LogWorkoutSection | null = null;
+
+  const flushPendingSectionTitle = () => {
+    if (!pendingSectionTitle) return;
+    bodyLines.push(`${pendingSectionTitle}:`);
+    pendingSectionTitle = null;
+  };
+
+  const pushBullet = (bullet: string) => {
+    if (pendingSectionTitle) {
+      activeSection = { title: pendingSectionTitle, bullets: [] };
+      sections.push(activeSection);
+      pendingSectionTitle = null;
+    }
+    if (activeSection) {
+      activeSection.bullets.push(bullet);
+      return;
+    }
+    bullets.push(bullet);
+  };
 
   body.split(/\r?\n/).forEach((line) => {
+    const sectionTitle = parseWorkoutSectionHeading(line, WORKOUT_DETAIL_PATTERN);
+    if (sectionTitle) {
+      flushPendingSectionTitle();
+      pendingSectionTitle = sectionTitle;
+      activeSection = null;
+      return;
+    }
+
     const match = line.match(BULLET_PATTERN);
     if (match?.[1]) {
-      bullets.push(normalizeCopy(match[1]));
+      pushBullet(normalizeCopy(match[1]));
       return;
     }
     const numberedWorkout = line.match(NUMBERED_WORKOUT_PATTERN);
@@ -143,13 +183,19 @@ function extractBullets(body: string): { readableBody: string; bullets: string[]
       && WORKOUT_DETAIL_PATTERN.test(numberedWorkout[1])
       && !NUMBERED_BOLD_STEP_PATTERN.test(line)
     ) {
-      bullets.push(normalizeCopy(numberedWorkout[1]));
+      pushBullet(normalizeCopy(numberedWorkout[1]));
       return;
     }
+
+    if (!normalizeCopy(line)) return;
+    flushPendingSectionTitle();
+    activeSection = null;
     bodyLines.push(line);
   });
 
-  return { readableBody: bodyLines.join('\n'), bullets };
+  flushPendingSectionTitle();
+
+  return { readableBody: bodyLines.join('\n'), bullets, sections };
 }
 
 function extractStructuredPacket(body: string): { readableBody: string; structuredPacket?: string } {
@@ -182,6 +228,7 @@ function formatPlainCommandLogBody(body: string): FormattedLogBody {
       leadParagraphs: splitParagraphs(readableBody),
       steps: [],
       bullets: bulletResult.bullets,
+      sections: bulletResult.sections,
     };
   }
 
@@ -191,6 +238,7 @@ function formatPlainCommandLogBody(body: string): FormattedLogBody {
       leadParagraphs: splitParagraphs(readableBody),
       steps: [],
       bullets: bulletResult.bullets,
+      sections: bulletResult.sections,
     };
   }
 
@@ -211,6 +259,7 @@ function formatPlainCommandLogBody(body: string): FormattedLogBody {
     leadParagraphs,
     steps,
     bullets: bulletResult.bullets,
+    sections: bulletResult.sections,
   };
 }
 
@@ -222,6 +271,7 @@ export function formatCommandLogBody(body: string): FormattedLogBody {
       leadParagraphs: [],
       steps: [],
       bullets: [],
+      sections: [],
       variants,
       structuredPacket,
     };
