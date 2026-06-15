@@ -125,6 +125,12 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
 
   return (
   <RightRail aria-label="Creator observatory widgets">
+    <HomeTabNextBestAction
+      streakAtRisk={streakAtRisk}
+      streakDays={streakDays}
+      onLogWorkout={onLogWorkout}
+    />
+
     <Panel>
       <RailHeader>
         <Eyebrow>Live Activity</Eyebrow>
@@ -279,13 +285,6 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
       )}
     </Panel>
 
-    {/* O3: streak rescue lives in the NBA panel — urgent when the real
-        streak has no logged session today and evening has started. */}
-    <HomeTabNextBestAction
-      streakAtRisk={streakAtRisk}
-      streakDays={streakDays}
-      onLogWorkout={onLogWorkout}
-    />
   </RightRail>
   );
 };
