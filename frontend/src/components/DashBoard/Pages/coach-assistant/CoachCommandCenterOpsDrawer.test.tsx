@@ -60,10 +60,17 @@ describe('CoachCommandCenterPage Ops drawer', () => {
 
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
+    const checklist = within(operationsRail).getByLabelText('Coach Ops mission checklist');
+    const recommendedMove = within(operationsRail).getByLabelText('Recommended Coach Ops move');
     const logNow = within(priorityActions).getByRole('link', { name: /Log my workout now/i });
 
+    expect(within(operationsRail).getByText(/Do this next/i)).toBeInTheDocument();
+    expect(within(recommendedMove).getByText(/Log my workout/i)).toBeInTheDocument();
+    expect(within(checklist).getByText(/Scope locked/i)).toBeInTheDocument();
+    expect(within(checklist).getByText(/My workout log/i)).toBeInTheDocument();
+    expect(within(checklist).getByText(/Review gate/i)).toBeInTheDocument();
     expect(within(operationsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
-    expect(within(operationsRail).getByText('My workout log')).toBeInTheDocument();
+    expect(within(operationsRail).getAllByText('My workout log').length).toBeGreaterThan(0);
     expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
     expect(within(operationsRail).getByText(/Nothing logs until you save in Logger/i)).toBeInTheDocument();
   });
@@ -93,7 +100,10 @@ describe('CoachCommandCenterPage Ops drawer', () => {
 
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
+    const checklist = within(operationsRail).getByLabelText('Coach Ops mission checklist');
 
+    expect(within(checklist).getByText(/Scope missing/i)).toBeInTheDocument();
+    expect(within(checklist).getByText(/Pick client first/i)).toBeInTheDocument();
     expect(within(priorityActions).getByRole('link', { name: /Pick client first/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/clients',

@@ -18,6 +18,7 @@ import styled, { css } from 'styled-components';
 
 import { coachCommandDockStyles } from './CoachCommandCenter.bridgeDockStyles';
 import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationStyles';
+import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
 import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 
@@ -237,4 +238,5 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandBridgeStyles}
   ${coachCommandDockStyles}
   ${coachCommandOpsStyles}
+  ${coachCommandOpsMissionStyles}
 `;

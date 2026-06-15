@@ -10,6 +10,8 @@ const STYLE_FILES = [
   'CoachCommandCenter.workspaceStyles.ts',
   'CoachCommandCenter.composerStyles.ts',
   'CoachCommandCenter.bridgeDockStyles.ts',
+  'CoachCommandCenter.opsStyles.ts',
+  'CoachCommandCenter.opsMissionStyles.ts',
   'CoachCommandCenter.responsiveStyles.ts',
 ];
 
