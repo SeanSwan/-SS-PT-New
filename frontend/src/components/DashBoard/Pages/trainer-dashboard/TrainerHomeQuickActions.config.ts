@@ -6,6 +6,7 @@ export const TRAINER_HOME_COACH_PROMPT =
 export const TRAINER_HOME_COMMAND_INTENT = 'trainer_daily_command';
 export const TRAINER_HOME_COMMAND_SOURCE = 'trainer-overview';
 export const TRAINER_HOME_RETURN_TO = '/dashboard/trainer/overview';
+export const TRAINER_HOME_LOG_WORKOUT_PATH = '/dashboard/trainer/clients?intent=log_workout';
 
 export interface TrainerHomeCoachSnapshot {
   sessionsToday?: number;
@@ -54,11 +55,11 @@ export interface TrainerHomeQuickAction {
 export const TRAINER_HOME_QUICK_ACTIONS: readonly TrainerHomeQuickAction[] = [
   {
     label: 'Log Workout',
-    detail: 'Dictate, pick client, send to logger.',
+    detail: 'Pick client, open logger.',
     overline: 'Start here',
     primary: true,
     Icon: Dumbbell,
-    path: TRAINER_HOME_COACH_PATH,
+    path: TRAINER_HOME_LOG_WORKOUT_PATH,
     tone: 'var(--accent-primary, #60C0F0)',
     i: 0,
   },

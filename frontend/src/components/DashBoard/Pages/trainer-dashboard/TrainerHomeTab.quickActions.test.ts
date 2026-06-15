@@ -23,7 +23,7 @@ describe('TrainerHomeTab quick-action priority', () => {
     ]);
 
     expect(TRAINER_HOME_QUICK_ACTIONS.map(action => action.path)).toEqual([
-      TRAINER_HOME_COACH_PATH,
+      '/dashboard/trainer/clients?intent=log_workout',
       TRAINER_HOME_COACH_PATH,
       '/dashboard/trainer/clients',
       '/dashboard/trainer/client-progress',
@@ -40,7 +40,7 @@ describe('TrainerHomeTab quick-action priority', () => {
       label: 'Log Workout',
       primary: true,
       overline: 'Start here',
-      detail: 'Dictate, pick client, send to logger.',
+      detail: 'Pick client, open logger.',
     });
     expect(TRAINER_HOME_QUICK_ACTIONS.slice(1).map(action => Boolean(action.primary))).toEqual([
       false,

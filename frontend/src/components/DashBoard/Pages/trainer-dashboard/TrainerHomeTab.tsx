@@ -252,7 +252,7 @@ const TrainerHomeTab: React.FC = () => {
       <SectionHeading>Quick Actions</SectionHeading>
       <QuickGrid>
         {TRAINER_HOME_QUICK_ACTIONS.map(({ label, detail, overline, primary, Icon, path, tone, i }) => {
-          const actionPath = (label === 'Ask Coach' || label === 'Log Workout') ? trainerHomeCoachPath : path;
+          const actionPath = label === 'Ask Coach' ? trainerHomeCoachPath : path;
 
           return (
             <ActionCard
