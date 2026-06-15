@@ -23,54 +23,6 @@ export const GuideContent = styled.div`
   gap: 12px;
 `;
 
-export const GuideQuickStrip = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 8px;
-  padding: 10px;
-  border: 1px solid var(--dashboard-teach-quick-border, rgba(96, 192, 240, 0.2));
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg,
-      var(--dashboard-teach-quick-bg, rgba(96, 192, 240, 0.08)),
-      var(--dashboard-teach-quick-bg-2, rgba(139, 92, 246, 0.08)));
-
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
-  }
-`;
-export const QuickIntro = styled.div`
-  min-width: 0;
-`;
-export const QuickEyebrow = styled.span`
-  display: block;
-  color: var(--accent-primary, #60C0F0);
-  font: 800 10px/1.2 'Sora', sans-serif;
-  text-transform: uppercase;
-`;
-export const QuickTitle = styled.strong`
-  display: block;
-  margin-top: 3px;
-  color: var(--text-primary, #E0ECF4);
-  font: 800 14px/1.25 'Plus Jakarta Sans', sans-serif;
-  overflow-wrap: anywhere;
-`;
-export const QuickActionGroup = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-
-  @media (max-width: 720px) {
-    justify-content: stretch;
-
-    > * {
-      flex: 1 1 180px;
-    }
-  }
-`;
 export const GuideKicker = styled.div`
   display: inline-flex;
   align-items: center;
@@ -211,28 +163,6 @@ export const FirstMoveAnchor = styled.a`
   border-color: var(--accent-primary, #60C0F0);
   background: var(--dashboard-teach-first-action-bg, rgba(96, 192, 240, 0.16));
   font-size: 13px;
-`;
-
-export const QuickPrimaryButton = styled.button`
-  ${actionControlStyles}
-  border-color: var(--accent-primary, #60C0F0);
-  background: var(--dashboard-teach-first-action-bg, rgba(96, 192, 240, 0.16));
-`;
-
-export const QuickPrimaryAnchor = styled.a`
-  ${actionControlStyles}
-  border-color: var(--accent-primary, #60C0F0);
-  background: var(--dashboard-teach-first-action-bg, rgba(96, 192, 240, 0.16));
-`;
-
-export const QuickCoachButton = styled.button`
-  ${actionControlStyles}
-  border-color: var(--accent-secondary, #8B5CF6);
-  background: var(--dashboard-teach-coach-bg, rgba(139, 92, 246, 0.12));
-
-  svg {
-    color: var(--accent-secondary, #8B5CF6);
-  }
 `;
 
 export const FastPathList = styled.ol`

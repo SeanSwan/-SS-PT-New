@@ -26,18 +26,21 @@ import {
   GuardrailNote,
   GuideContent,
   GuideKicker,
-  GuideQuickStrip,
   GuideShell,
   GuideSteps,
   GuideSummary,
+} from './DashboardTeachMeGuide.styles';
+import {
+  GuideQuickStrip,
   QuickActionGroup,
   QuickCoachButton,
   QuickEyebrow,
   QuickIntro,
+  QuickPathPreview,
   QuickPrimaryAnchor,
   QuickPrimaryButton,
   QuickTitle,
-} from './DashboardTeachMeGuide.styles';
+} from './DashboardTeachMeGuide.quickStyles';
 
 interface DashboardTeachMeGuideProps {
   role: DashboardTeachMeRole | string;
@@ -156,6 +159,14 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
           <QuickEyebrow>Teach Me</QuickEyebrow>
           <QuickTitle>{guide.title}</QuickTitle>
         </QuickIntro>
+        <QuickPathPreview aria-label={`${guide.title} visible fast path`}>
+          {guide.fastPath.map((step, index) => (
+            <li key={step}>
+              <span>{index + 1}</span>
+              {step}
+            </li>
+          ))}
+        </QuickPathPreview>
         <QuickActionGroup aria-label={`${guide.title} first move shortcuts`}>
           {onNavigate ? (
             <QuickPrimaryButton
@@ -190,7 +201,8 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
       <TeachMeToggle
         sectionId={sectionIdFor(normalizedRole, pathname)}
         title={guide.title}
-        buttonLabel={`Teach Me: ${guide.title} | First move: ${guide.primaryAction.label}`}
+        buttonLabel="Open guide"
+        ariaLabel={`Teach Me: ${guide.title} | First move: ${guide.primaryAction.label}`}
         content={content}
         defaultOpen={false}
         onAskAI={

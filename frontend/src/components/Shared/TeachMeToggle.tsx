@@ -20,6 +20,7 @@ interface TeachMeToggleProps {
   onAskAI?: () => void;
   defaultOpen?: boolean;
   buttonLabel?: string;
+  ariaLabel?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -201,6 +202,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   onAskAI,
   defaultOpen,
   buttonLabel,
+  ariaLabel,
 }) => {
   const [open, setOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
@@ -221,7 +223,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   const toggle = useCallback(() => setOpen(p => !p), []);
   const close = useCallback(() => setOpen(false), []);
   const resolvedButtonLabel = buttonLabel || 'Teach Me';
-  const resolvedAriaLabel = buttonLabel || `Teach Me: ${title}`;
+  const resolvedAriaLabel = ariaLabel || buttonLabel || `Teach Me: ${title}`;
 
   return (
     <>

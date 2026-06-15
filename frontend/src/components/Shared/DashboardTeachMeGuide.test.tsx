@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardTeachMeGuide from './DashboardTeachMeGuide';
 
@@ -28,6 +28,11 @@ describe('DashboardTeachMeGuide', () => {
       .toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^ask swan coach: admin command center$/i }))
       .toBeInTheDocument();
+    expect(screen.getByText('Open guide')).toBeInTheDocument();
+    const visibleFastPath = screen.getByRole('list', { name: /admin command center visible fast path/i });
+    expect(visibleFastPath).toHaveTextContent(/Pick the client or Coach thread/i);
+    expect(visibleFastPath).toHaveTextContent(/Open the Training tab/i);
+    expect(visibleFastPath).toHaveTextContent(/Review, then save/i);
     expect(screen.queryByText(/Start with Coach or Client Hub/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^start now: log client workout$/i }));
@@ -39,9 +44,10 @@ describe('DashboardTeachMeGuide', () => {
     fireEvent.click(screen.getByRole('button', { name: /teach me: admin command center/i }));
 
     expect(screen.getByRole('button', { name: /^first move: log client workout$/i })).toBeInTheDocument();
-    expect(screen.getByText(/Pick the client or Coach thread/i)).toBeInTheDocument();
-    expect(screen.getByText(/Open the Training tab/i)).toBeInTheDocument();
-    expect(screen.getByText(/Review, then save/i)).toBeInTheDocument();
+    const expandedFastPath = screen.getByRole('list', { name: /^Admin command center fast path$/i });
+    expect(within(expandedFastPath).getByText(/Pick the client or Coach thread/i)).toBeInTheDocument();
+    expect(within(expandedFastPath).getByText(/Open the Training tab/i)).toBeInTheDocument();
+    expect(within(expandedFastPath).getByText(/Review, then save/i)).toBeInTheDocument();
     expect(screen.getByText(/Start with Coach or Client Hub/i)).toBeInTheDocument();
     expect(screen.getByText(/Keep final writes approval-gated/i)).toBeInTheDocument();
 
@@ -75,7 +81,8 @@ describe('DashboardTeachMeGuide', () => {
       'href',
       '/dashboard/client/progress',
     );
-    expect(screen.getByText(/Read the current trend/i)).toBeInTheDocument();
+    const expandedFastPath = screen.getByRole('list', { name: /^Client progress proof fast path$/i });
+    expect(within(expandedFastPath).getByText(/Read the current trend/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /log workout/i })).toHaveAttribute(
       'href',
       '/dashboard/client/log-workout',
