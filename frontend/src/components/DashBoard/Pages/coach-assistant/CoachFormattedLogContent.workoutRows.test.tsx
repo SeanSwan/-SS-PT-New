@@ -53,6 +53,6 @@ describe('CoachFormattedLogContent workout rows', () => {
     expect(within(strength).getByText('Goblet squat')).toBeInTheDocument();
     expect(within(strength).getByText('Cable row')).toBeInTheDocument();
     expect(within(finisher).getByText('Bike sprint')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /review 2 exercises in logger/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /review 4 exercises in logger/i })).toBeInTheDocument();
   });
 });

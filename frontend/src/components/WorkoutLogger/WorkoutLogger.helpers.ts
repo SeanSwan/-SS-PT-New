@@ -140,7 +140,7 @@ export function convertAIWorkoutExercisesToEntries(
         loggerSetId: createLocalId('set'),
         setNumber: index + 1,
         weight: exercise.weight || 0,
-        reps: exercise.reps || 10,
+        reps: Number.isFinite(Number(exercise.reps)) ? Number(exercise.reps) : 10,
         rpe: null,
         tempo: exercise.tempo || '',
         restTime: exercise.restTime || 60,

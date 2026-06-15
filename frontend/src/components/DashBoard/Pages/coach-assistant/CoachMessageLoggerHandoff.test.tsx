@@ -121,6 +121,43 @@ describe('CoachMessage logger handoff', () => {
     expect(screen.getByText('+1 more ready')).toBeInTheDocument();
   });
 
+  it('stages duration and round-based visible workout rows for logger review', async () => {
+    const user = userEvent.setup();
+    sessionStorage.clear();
+
+    render(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage([
+            'Warm-up:',
+            '- Incline walk - 5 minutes',
+            'Strength:',
+            '- Goblet squat: 3 sets x 10 reps',
+            'Finisher:',
+            '- Bike sprint - 6 rounds x 20 sec',
+          ].join('\n'))}
+          workoutLoggerRoute="/dashboard/client/log-workout?loadPlan=today"
+        />
+      </MemoryRouter>,
+    );
+
+    const reviewLink = screen.getByRole('link', { name: /review 3 exercises in logger/i });
+    const preview = within(screen.getByLabelText('Parsed workout preview'));
+    expect(preview.getByText('Incline walk')).toBeInTheDocument();
+    expect(preview.getByText('5 minutes')).toBeInTheDocument();
+    expect(preview.getByText('Bike sprint')).toBeInTheDocument();
+    expect(preview.getByText('6 rounds x 20 sec')).toBeInTheDocument();
+
+    await user.click(reviewLink);
+
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued[0].exercises).toEqual([
+      expect.objectContaining({ exerciseName: 'Incline walk', sets: 1, reps: 0, notes: '5 minutes' }),
+      expect.objectContaining({ exerciseName: 'Goblet squat', sets: 3, reps: 10 }),
+      expect.objectContaining({ exerciseName: 'Bike sprint', sets: 6, reps: 0, notes: '6 rounds x 20 sec' }),
+    ]);
+  });
+
   it('does not show a logger action when Coach has no route client or workout draft', () => {
     render(
       <MemoryRouter>

@@ -20,7 +20,9 @@ function formatExercisePrescription(exercise: {
   sets: number;
   reps: number;
   weight?: number;
+  notes?: string;
 }): string {
+  if (exercise.reps === 0 && exercise.notes?.trim()) return exercise.notes.trim();
   const base = `${exercise.sets} x ${exercise.reps}`;
   return exercise.weight ? `${base} @ ${exercise.weight} lbs` : base;
 }

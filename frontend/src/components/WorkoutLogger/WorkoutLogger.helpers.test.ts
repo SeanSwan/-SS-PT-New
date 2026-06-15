@@ -153,6 +153,30 @@ describe('WorkoutLogger helpers', () => {
     ]);
   });
 
+  it('keeps coach duration rows review-only instead of inventing reps', () => {
+    let nextId = 0;
+    const makeLocalId = (prefix: string) => `${prefix}-${nextId += 1}`;
+
+    const [entry] = convertAIWorkoutExercisesToEntries(
+      [{
+        exerciseName: 'Incline walk',
+        sets: 1,
+        reps: 0,
+        notes: '5 minutes',
+      }],
+      makeLocalId,
+    );
+
+    expect(entry.sets).toEqual([
+      expect.objectContaining({
+        reps: 0,
+        weight: 0,
+        notes: '5 minutes',
+      }),
+    ]);
+    expect(hasIncompleteWorkoutSets([entry])).toBe(true);
+  });
+
   it('detects sets that are not ready for workout save or summary generation', () => {
     expect(hasIncompleteWorkoutSets([])).toBe(false);
     expect(hasIncompleteWorkoutSets([{

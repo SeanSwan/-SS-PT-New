@@ -66,4 +66,50 @@ describe('pending AI workout plan queue', () => {
       restTime: 75,
     });
   });
+
+  it('keeps duration and round-based coach rows as review-only logger entries', () => {
+    const parsed = parseAIWorkoutPlan([
+      'Warm-up:',
+      '- Incline walk - 5 minutes',
+      'Strength:',
+      '- Goblet squat: 3 sets x 10 reps',
+      'Finisher:',
+      '- Bike sprint - 6 rounds x 20 sec',
+    ].join('\n'));
+
+    expect(parsed).toEqual([
+      expect.objectContaining({
+        exerciseName: 'Incline walk',
+        sets: 1,
+        reps: 0,
+        notes: '5 minutes',
+      }),
+      expect.objectContaining({
+        exerciseName: 'Goblet squat',
+        sets: 3,
+        reps: 10,
+      }),
+      expect.objectContaining({
+        exerciseName: 'Bike sprint',
+        sets: 6,
+        reps: 0,
+        notes: '6 rounds x 20 sec',
+      }),
+    ]);
+  });
+
+  it('preserves explicit zero reps from structured review-only JSON rows', () => {
+    const parsed = parseAIWorkoutPlan([
+      '```json',
+      JSON.stringify({ exercises: [{ exerciseName: 'Incline walk', sets: 1, reps: 0, notes: '5 minutes' }] }),
+      '```',
+    ].join('\n'));
+
+    expect(parsed?.[0]).toMatchObject({
+      exerciseName: 'Incline walk',
+      sets: 1,
+      reps: 0,
+      notes: '5 minutes',
+    });
+  });
 });

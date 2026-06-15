@@ -160,13 +160,25 @@ function normalizeExercise(raw: any): WorkoutExerciseTransfer | null {
 
   return {
     exerciseName: name.trim(),
-    sets: parseInt(raw.sets || raw.setScheme) || 3,
-    reps: parseInt(raw.reps || raw.repGoal) || 10,
+    sets: Number.isFinite(Number(raw.sets ?? raw.setScheme)) ? parseInt(raw.sets ?? raw.setScheme) : 3,
+    reps: Number.isFinite(Number(raw.reps ?? raw.repGoal)) ? parseInt(raw.reps ?? raw.repGoal) : 10,
     weight: raw.weight ? parseFloat(raw.weight) : undefined,
     tempo: raw.tempo || undefined,
     restTime: raw.restTime || raw.restPeriod ? parseInt(raw.restTime || raw.restPeriod) : undefined,
     notes: raw.notes || raw.intensityGuideline || undefined,
   };
+}
+
+function cleanExerciseName(value: string): string {
+  return value.trim().replace(/\*\*/g, '').replace(/[.:]+$/, '').trim();
+}
+
+function cleanPrescription(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').replace(/[.;]+$/, '');
+}
+
+function buildReviewOnlyExercise(name: string, sets: number, notes: string): WorkoutExerciseTransfer {
+  return { exerciseName: cleanExerciseName(name), sets, reps: 0, notes: cleanPrescription(notes) };
 }
 
 /**
@@ -182,6 +194,45 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
+    const intervalMatch = trimmed.match(
+      /^(?:\d+[\.\)]\s*|[-â€¢]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-â€”:]\s*(\d+)\s*(?:rounds?|sets?)\s*(?:x|Ã—|of)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
+    );
+
+    if (intervalMatch) {
+      results.push(buildReviewOnlyExercise(
+        intervalMatch[1],
+        parseInt(intervalMatch[2]),
+        `${intervalMatch[2]} ${trimmed.toLowerCase().includes('set') ? 'sets' : 'rounds'} x ${intervalMatch[3]} ${intervalMatch[4]}`,
+      ));
+      continue;
+    }
+
+    const timedSetMatch = trimmed.match(
+      /^(?:\d+[\.\)]\s*|[-â€¢]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-â€”:]\s*(\d+)\s*(?:x|Ã—)\s*(\d+)\s*(s|sec|secs|seconds?|m|min|mins|minutes?)\b/i
+    );
+
+    if (timedSetMatch) {
+      results.push(buildReviewOnlyExercise(
+        timedSetMatch[1],
+        parseInt(timedSetMatch[2]),
+        `${timedSetMatch[2]} x ${timedSetMatch[3]} ${timedSetMatch[4]}`,
+      ));
+      continue;
+    }
+
+    const durationMatch = trimmed.match(
+      /^(?:\d+[\.\)]\s*|[-â€¢]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?\s*[-â€”:]\s*(\d+)\s*(?:m|min|mins|minutes?)\b/i
+    );
+
+    if (durationMatch) {
+      results.push(buildReviewOnlyExercise(
+        durationMatch[1],
+        1,
+        `${durationMatch[2]} minutes`,
+      ));
+      continue;
+    }
+
     // Match patterns like:
     // "1. Exercise Name - 4 sets x 8 reps"
     // "- Exercise Name: 3x10 @ 135lbs"
@@ -192,7 +243,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
 
     if (exerciseMatch) {
       const exercise: WorkoutExerciseTransfer = {
-        exerciseName: exerciseMatch[1].trim().replace(/\*\*/g, ''),
+        exerciseName: cleanExerciseName(exerciseMatch[1]),
         sets: parseInt(exerciseMatch[2]),
         reps: parseInt(exerciseMatch[3]),
       };
@@ -222,7 +273,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
 
     if (simpleMatch) {
       results.push({
-        exerciseName: simpleMatch[1].trim().replace(/\*\*/g, ''),
+        exerciseName: cleanExerciseName(simpleMatch[1]),
         sets: parseInt(simpleMatch[2]),
         reps: parseInt(simpleMatch[3]),
       });
