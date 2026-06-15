@@ -103,7 +103,7 @@ const CoachCommandCenterPage: React.FC = () => {
   );
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
   const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';
-  const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients' : '/dashboard/admin/client-management?intent=log_workout';
+  const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
 
   const handleSelectClient = (id: number) => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);

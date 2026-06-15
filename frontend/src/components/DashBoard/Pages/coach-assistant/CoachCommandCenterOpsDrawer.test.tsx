@@ -98,7 +98,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
   });
 
-  it('routes trainer pick-client launchpad actions to the trainer clients surface', () => {
+  it('routes trainer pick-client launchpad actions straight into log-workout client selection', () => {
     renderPage('/dashboard/trainer/coach-assistant', 'trainer');
 
     const operationsRail = openOpsRail();
@@ -110,7 +110,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     expect(targetSafety).toHaveTextContent(/No workout writes until a target is chosen/i);
     expect(within(priorityActions).getByRole('link', { name: /Pick client first/i })).toHaveAttribute(
       'href',
-      '/dashboard/trainer/clients',
+      '/dashboard/trainer/clients?intent=log_workout',
     );
   });
 
