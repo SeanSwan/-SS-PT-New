@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import GlowButton from '../../ui/buttons/GlowButton';
-import type { StatusFilter } from './MyClientsView.types';
+import type { StatusFilter, TrainerClientIntent } from './MyClientsView.types';
 import {
   FilterButton,
   FilterSection,
@@ -37,6 +37,7 @@ export interface TrainerClientsStatsSummary {
 
 interface TrainerClientsHeaderProps {
   totalClients: number;
+  intent: TrainerClientIntent;
   refreshing: boolean;
   onExportReport: () => void;
   onRefresh: () => void;
@@ -47,6 +48,7 @@ interface TrainerClientsStatsProps {
 }
 
 interface TrainerClientsFiltersProps {
+  intent: TrainerClientIntent;
   searchTerm: string;
   statusFilter: StatusFilter;
   onSearchTermChange: Dispatch<SetStateAction<string>>;
@@ -78,38 +80,50 @@ const STAT_ACCENTS = {
 
 export const TrainerClientsHeader = ({
   totalClients,
+  intent,
   refreshing,
   onExportReport,
   onRefresh,
-}: TrainerClientsHeaderProps) => (
-  <HeaderSection>
-    <HeaderTitle>
-      <Users size={32} style={{ color: 'var(--accent-purple, #8b5cf6)' }} />
-      <div>
-        <h1>My Clients</h1>
-        <div className="client-count">{totalClients} Active Clients</div>
-      </div>
-    </HeaderTitle>
+}: TrainerClientsHeaderProps) => {
+  const isLogWorkoutIntent = intent === 'log_workout';
 
-    <HeaderActions>
-      <GlowButton
-        text="Export Report"
-        theme="cosmic"
-        size="small"
-        leftIcon={<Download size={16} />}
-        onClick={onExportReport}
-      />
-      <GlowButton
-        text="Refresh"
-        theme="purple"
-        size="small"
-        leftIcon={<RefreshCw size={16} />}
-        onClick={onRefresh}
-        disabled={refreshing}
-      />
-    </HeaderActions>
-  </HeaderSection>
-);
+  return (
+    <HeaderSection>
+      <HeaderTitle>
+        <Users size={32} style={{ color: 'var(--accent-purple, #8b5cf6)' }} />
+        <div>
+          <h1>{isLogWorkoutIntent ? 'Pick Client to Log Workout' : 'My Clients'}</h1>
+          <div className="client-count">
+            {totalClients} {isLogWorkoutIntent ? 'Ready to Log' : 'Active Clients'}
+          </div>
+          {isLogWorkoutIntent && (
+            <p className="client-intent-note">
+              Choose the client, then today's logger opens with the assigned plan loaded.
+            </p>
+          )}
+        </div>
+      </HeaderTitle>
+
+      <HeaderActions>
+        <GlowButton
+          text="Export Report"
+          theme="cosmic"
+          size="small"
+          leftIcon={<Download size={16} />}
+          onClick={onExportReport}
+        />
+        <GlowButton
+          text="Refresh"
+          theme="purple"
+          size="small"
+          leftIcon={<RefreshCw size={16} />}
+          onClick={onRefresh}
+          disabled={refreshing}
+        />
+      </HeaderActions>
+    </HeaderSection>
+  );
+};
 
 export const TrainerClientsStats = ({ stats }: TrainerClientsStatsProps) => (
   <StatsRow
@@ -141,40 +155,47 @@ export const TrainerClientsStats = ({ stats }: TrainerClientsStatsProps) => (
 );
 
 export const TrainerClientsFilters = ({
+  intent,
   searchTerm,
   statusFilter,
   onSearchTermChange,
   onStatusFilterChange,
-}: TrainerClientsFiltersProps) => (
-  <FilterSection
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    transition={{ duration: 0.4, delay: 0.2 }}
-  >
-    <SearchContainer>
-      <Search size={18} className="search-icon" />
-      <input
-        type="text"
-        placeholder="Search clients by name or email..."
-        value={searchTerm}
-        onChange={(event) => onSearchTermChange(event.target.value)}
-        className="search-input"
-      />
-    </SearchContainer>
+}: TrainerClientsFiltersProps) => {
+  const placeholder = intent === 'log_workout'
+    ? "Search clients to log today's workout..."
+    : 'Search clients by name or email...';
 
-    {(['all', 'active', 'inactive', 'pending'] as const).map((filter) => (
-      <FilterButton
-        key={filter}
-        active={statusFilter === filter}
-        onClick={() => onStatusFilterChange(filter)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {filter === 'all' ? 'All Clients' : labelForFilter(filter)}
-      </FilterButton>
-    ))}
-  </FilterSection>
-);
+  return (
+    <FilterSection
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
+    >
+      <SearchContainer>
+        <Search size={18} className="search-icon" />
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={(event) => onSearchTermChange(event.target.value)}
+          className="search-input"
+        />
+      </SearchContainer>
+
+      {(['all', 'active', 'inactive', 'pending'] as const).map((filter) => (
+        <FilterButton
+          key={filter}
+          $active={statusFilter === filter}
+          onClick={() => onStatusFilterChange(filter)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {filter === 'all' ? 'All Clients' : labelForFilter(filter)}
+        </FilterButton>
+      ))}
+    </FilterSection>
+  );
+};
 
 const statCardProps = (accent: typeof STAT_ACCENTS[keyof typeof STAT_ACCENTS]) => ({
   $color: accent.color,

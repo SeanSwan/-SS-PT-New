@@ -38,7 +38,7 @@ import {
   NeedsPlanDot,
   NeedsPlanWrapper,
 } from './MyClientsView.cardStyles';
-import type { ClientAssignment } from './MyClientsView.types';
+import type { ClientAssignment, TrainerClientIntent } from './MyClientsView.types';
 import {
   formatTimeAgo,
   getClientSourceLabel,
@@ -60,6 +60,7 @@ import {
 
 interface TrainerClientCardProps {
   assignment: ClientAssignment;
+  intent: TrainerClientIntent;
   index: number;
   onOpenClient: (clientId: string) => void;
   onLogWorkout: (clientId: string) => void;
@@ -112,6 +113,7 @@ const NeedsPlanIndicator = ({ show }: { show: boolean }) => (show ? <NeedsPlanDo
 
 export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardProps>(function TrainerClientCard({
   assignment,
+  intent,
   index,
   onOpenClient,
   onLogWorkout,
@@ -138,6 +140,9 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
   const needsFirstPlan = client.totalSessionsCompleted === 0;
   const fitnessGoal = compactClientFact(client.fitnessGoal);
   const trainingExperience = compactClientFact(client.trainingExperience);
+  const openClientActionLabel = intent === 'log_workout'
+    ? `Log workout for ${clientName}`
+    : `Open ${clientName} client workspace`;
 
   return (
     <ClientCard
@@ -156,7 +161,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
           <ClientName>
             <ClientNameButton
               type="button"
-              aria-label={`Open ${clientName} client workspace`}
+              aria-label={openClientActionLabel}
               onClick={() => onOpenClient(client.id)}
             >
               {clientName}

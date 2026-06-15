@@ -183,6 +183,7 @@ const MyClientsView: React.FC = () => {
     >
       <TrainerClientsHeader
         totalClients={stats.totalClients}
+        intent={trainerClientIntent}
         refreshing={refreshing}
         onExportReport={handleExportReport}
         onRefresh={handleRefresh}
@@ -191,6 +192,7 @@ const MyClientsView: React.FC = () => {
       <TrainerClientsStats stats={stats} />
 
       <TrainerClientsFilters
+        intent={trainerClientIntent}
         searchTerm={searchTerm}
         statusFilter={statusFilter}
         onSearchTermChange={setSearchTerm}
@@ -209,6 +211,7 @@ const MyClientsView: React.FC = () => {
               <TrainerClientCard
                 key={assignment.client.id}
                 assignment={assignment}
+                intent={trainerClientIntent}
                 index={index}
                 onOpenClient={handleOpenClient}
                 onLogWorkout={handleLogWorkout}

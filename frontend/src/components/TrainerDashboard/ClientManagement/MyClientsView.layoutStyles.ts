@@ -77,6 +77,15 @@ export const HeaderTitle = styled.div`
     overflow-wrap: anywhere;
   }
 
+  .client-intent-note {
+    max-width: 34rem;
+    margin: 0.65rem 0 0;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+    font-size: 0.95rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
   @media (max-width: 768px) {
     flex-direction: column;
 
@@ -141,14 +150,14 @@ export const SearchContainer = styled.div`
   }
 `;
 
-export const FilterButton = styled(motion.button)<{ active?: boolean }>`
+export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   background: ${props =>
-    props.active
+    props.$active
       ? 'linear-gradient(135deg, var(--accent-purple-strong, #8B5CF6), var(--accent-purple, #8b5cf6))'
       : 'var(--surface-elevated, rgba(30, 30, 60, 0.6))'
   };
   border: 1px solid ${props =>
-    props.active
+    props.$active
       ? 'transparent'
       : 'var(--border-accent-soft, rgba(139, 92, 246, 0.3))'
   };
@@ -170,7 +179,7 @@ export const FilterButton = styled(motion.button)<{ active?: boolean }>`
 
   &:hover {
     background: ${props =>
-      props.active
+      props.$active
         ? 'linear-gradient(135deg, var(--accent-purple-strong, #8B5CF6), var(--accent-purple, #8b5cf6))'
         : 'var(--surface-hover, rgba(50, 50, 80, 0.4))'
     };
