@@ -136,6 +136,25 @@ const trainerAssessmentFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   primaryPrompt: 'teach me the trainer assessment workflow',
 });
 
+const trainerSprintPlanning = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  title: 'Trainer sprint planning',
+  summary: 'Use Sprint Planner to turn the next training cycle into client work, programming, and follow-up the trainer can execute.',
+  focus: 'Plan from real client progress first, then connect the sprint to workouts, schedule, and Coach follow-up.',
+  primaryAction: { label: 'Open Sprint Planner', to: '/dashboard/trainer/sprint-planner' },
+  fastPath: [
+    'Pick the sprint outcome.',
+    'Connect it to client progress.',
+    'Move the next action into planner, schedule, or Coach.',
+  ],
+  actions: [
+    { label: 'Sprint Planner', to: '/dashboard/trainer/sprint-planner' },
+    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
+    { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
+  ],
+  primaryPrompt: 'teach me the trainer sprint planning workflow',
+});
+
 const trainerCommunicationFlow = (
   path: string,
   base: DashboardTeachMeGuideCopy,
@@ -230,6 +249,7 @@ export const refineTrainerGuide = (
     return trainerBuilderFlow(base);
   }
   if (includesAny(path, ['meal-planner', 'nutrition'])) return trainerNutritionFlow(base);
+  if (includesAny(path, ['sprint-planner'])) return trainerSprintPlanning(base);
   if (includesAny(path, ['assessments', 'body-map', 'video-call', 'videos'])) {
     return trainerAssessmentFlow(base);
   }

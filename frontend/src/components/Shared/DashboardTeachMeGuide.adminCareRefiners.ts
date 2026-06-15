@@ -20,6 +20,9 @@ const adminClientCarePrimaryAction = (path: string) => {
   if (includesAny(path, ['photos'])) {
     return { label: 'Open Photos', to: '/dashboard/admin/photos' };
   }
+  if (includesAny(path, ['notes'])) {
+    return { label: 'Open Notes', to: '/dashboard/admin/notes' };
+  }
   return { label: 'Open Pain Chart', to: '/dashboard/admin/body-map' };
 };
 

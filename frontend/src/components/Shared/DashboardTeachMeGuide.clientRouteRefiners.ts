@@ -5,6 +5,7 @@
  */
 
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
+import { refineClientOverviewGuide } from './DashboardTeachMeGuide.clientOverviewRefiners';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
 const clientBookingFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -247,6 +248,8 @@ export const refineClientGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  const overviewGuide = refineClientOverviewGuide(path, base);
+  if (overviewGuide) return overviewGuide;
   if (includesAny(path, ['onboarding'])) return clientOnboardingFlow(base);
   if (includesAny(path, ['schedule'])) return clientBookingFlow(base);
   if (includesAny(path, ['my-home'])) return clientAchievementHome(base);
