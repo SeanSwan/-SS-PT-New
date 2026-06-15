@@ -150,7 +150,8 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
   }, [navigate, isMobile, onToggleMobile]);
 
   const isActive = useCallback((prefix: string) => {
-    return location.pathname === prefix || location.pathname.startsWith(prefix + '/');
+    const routePath = prefix.split(/[?#]/)[0];
+    return location.pathname === routePath || location.pathname.startsWith(routePath + '/');
   }, [location.pathname]);
 
   const collapsed = isMobile ? false : isCollapsed;

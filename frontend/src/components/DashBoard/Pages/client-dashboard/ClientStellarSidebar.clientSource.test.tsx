@@ -28,4 +28,14 @@ describe('ClientStellarSidebar client source navigation', () => {
 
     expect(screen.getByRole('menuitem', { name: 'Book Session' })).toBeInTheDocument();
   });
+
+  it('marks Log Workout active when the route loads today by query string', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard/client/log-workout?loadPlan=today']}>
+        <ClientStellarSidebar clientSource="swanstudios" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('menuitem', { name: 'Log Workout' })).toHaveAttribute('aria-current', 'page');
+  });
 });
