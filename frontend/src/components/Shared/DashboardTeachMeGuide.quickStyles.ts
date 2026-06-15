@@ -38,6 +38,11 @@ const quickActionControlStyles = css`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
+
+  @media (max-width: 620px) {
+    padding: 7px 8px;
+    font: 800 10px/1.15 'Sora', sans-serif;
+  }
 `;
 
 export const GuideQuickStrip = styled.div`
@@ -56,6 +61,12 @@ export const GuideQuickStrip = styled.div`
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 620px) {
+    gap: 6px;
+    margin-bottom: 6px;
+    padding: 7px;
   }
 `;
 
@@ -115,7 +126,24 @@ export const QuickPathPreview = styled.ol`
   }
 
   @media (max-width: 620px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+
+    li {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      gap: 4px;
+      min-height: 34px;
+      padding: 5px;
+      text-align: center;
+      font: 800 9px/1.15 'Sora', sans-serif;
+    }
+
+    span {
+      width: 18px;
+      height: 18px;
+      font: 900 10px/1 'Sora', sans-serif;
+    }
   }
 `;
 
@@ -131,6 +159,15 @@ export const QuickActionGroup = styled.div`
 
     > * {
       flex: 1 1 180px;
+    }
+  }
+
+  @media (max-width: 620px) {
+    gap: 6px;
+
+    > * {
+      flex: 1 1 calc(50% - 3px);
+      min-width: 0;
     }
   }
 `;

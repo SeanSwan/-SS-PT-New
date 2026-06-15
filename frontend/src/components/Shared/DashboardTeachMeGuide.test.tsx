@@ -1,6 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardTeachMeGuide from './DashboardTeachMeGuide';
+
+function readSource(relativePath: string) {
+  return readFileSync(resolve(process.cwd(), relativePath), 'utf8');
+}
 
 describe('DashboardTeachMeGuide', () => {
   beforeEach(() => {
@@ -129,5 +135,13 @@ describe('DashboardTeachMeGuide', () => {
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
 
     expect(onAskCoach).toHaveBeenCalledWith('teach me the client workout logging workflow');
+  });
+
+  it('keeps the closed phone guide compact enough to preserve the first workout CTA', () => {
+    const quickStyles = readSource('src/components/Shared/DashboardTeachMeGuide.quickStyles.ts');
+
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*min-height: 34px;/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*font: 800 9px\/1.15 'Sora', sans-serif;/);
   });
 });
