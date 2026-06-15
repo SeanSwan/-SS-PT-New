@@ -120,6 +120,29 @@ export const HeaderActions = styled.div`
   display: flex;
   gap: ${permissionTheme.spacing.md};
   flex-wrap: wrap;
+  align-items: center;
+`;
+
+export const TemplateCommandStrip = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${permissionTheme.spacing.sm};
+  padding: ${permissionTheme.spacing.sm};
+  border: 1px solid ${permissionTheme.colors.border};
+  border-radius: ${permissionTheme.borderRadius.md};
+  background: var(--surface-command, rgba(224, 236, 244, 0.06));
+`;
+
+export const TemplateSelectionCount = styled.span`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 ${permissionTheme.spacing.md};
+  border-radius: ${permissionTheme.borderRadius.sm};
+  background: ${permissionTheme.colors.inputBg};
+  color: ${permissionTheme.colors.textSecondary}; font-size: 0.85rem;
+  font-weight: 700;
 `;
 
 export const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'critical' }>`

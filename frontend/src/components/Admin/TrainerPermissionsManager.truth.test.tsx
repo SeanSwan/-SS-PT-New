@@ -153,11 +153,13 @@ describe('TrainerPermissionsManager active admin contract', () => {
       name: /select rowan vale for bulk operations/i,
     }));
     fireEvent.change(screen.getByRole('combobox', {
-      name: /select a permission template/i,
+      name: /select a broader permission template/i,
     }), {
       target: { value: 'new_trainer' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /apply template/i }));
+    fireEvent.click(screen.getByRole('button', {
+      name: /apply selected broader permission template to selected trainers/i,
+    }));
 
     await waitFor(() => {
       expect(mockTrainerPermissionService.grantPermission).toHaveBeenCalled();
@@ -174,7 +176,7 @@ describe('TrainerPermissionsManager active admin contract', () => {
       name: /select rowan vale for bulk operations/i,
     }));
     fireEvent.click(screen.getByRole('button', {
-      name: /apply new trainer template to selected trainers/i,
+      name: /apply new trainer starter template to selected trainers/i,
     }));
 
     await waitFor(() => {
@@ -232,11 +234,13 @@ describe('TrainerPermissionsManager active admin contract', () => {
       name: /select rowan vale for bulk operations/i,
     }));
     fireEvent.change(screen.getByRole('combobox', {
-      name: /select a permission template/i,
+      name: /select a broader permission template/i,
     }), {
       target: { value: 'new_trainer' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /apply template/i }));
+    fireEvent.click(screen.getByRole('button', {
+      name: /apply selected broader permission template to selected trainers/i,
+    }));
 
     await waitFor(() => {
       expect(mockTrainerPermissionService.revokePermission).toHaveBeenCalledWith(
@@ -267,6 +271,7 @@ describe('TrainerPermissionsManager active admin contract', () => {
       'TrainerPermissionsManager.searchStyles.ts',
       'TrainerPermissionsManager.bulkStyles.ts',
       'TrainerPermissionsManager.Header.tsx',
+      'TrainerPermissionsManager.TemplateCommands.tsx',
       'TrainerPermissionsManager.RequestsPanel.tsx',
       'TrainerPermissionsManager.SearchBar.tsx',
       'TrainerPermissionsManager.TrainersGrid.tsx',

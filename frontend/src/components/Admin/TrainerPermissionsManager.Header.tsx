@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   AlertTriangle,
-  Award,
   BarChart3,
   Download,
   MessageSquare,
@@ -19,16 +18,13 @@ import {
   StatLabel,
   StatsGrid,
   StatValue,
-  TemplateSelector,
   TitleSection
 } from './TrainerPermissionsManager.styles';
 import {
   RequestsBadge,
   RequestsButtonWrap
 } from './TrainerPermissionsManager.requestStyles';
-import {
-  PERMISSION_TEMPLATES
-} from './TrainerPermissionsManager.logic';
+import { TrainerTemplateCommands } from './TrainerPermissionsManager.TemplateCommands';
 import type {
   PermissionRequest,
   PermissionStats
@@ -71,42 +67,13 @@ export const TrainerPermissionsHeader: React.FC<TrainerPermissionsHeaderProps> =
         <p>Manage granular permissions for trainer access control</p>
       </TitleSection>
       <HeaderActions>
-        <TemplateSelector
-          value={selectedTemplate}
-          onChange={(event) => setSelectedTemplate(event.target.value)}
-          title="Select a permission template to apply to selected trainers"
-        >
-          <option value="">Select Template</option>
-          {Object.entries(PERMISSION_TEMPLATES).map(([key, template]) => (
-            <option key={key} value={key}>
-              {template.name} ({template.permissions.length} permissions)
-            </option>
-          ))}
-        </TemplateSelector>
-
-        <Button
-          variant="primary"
-          onClick={() => {
-            if (selectedTemplate && selectedTrainers.size > 0) {
-              applyTemplate(selectedTemplate, Array.from(selectedTrainers));
-            }
-          }}
-          disabled={!selectedTemplate || selectedTrainers.size === 0 || bulkProcessing}
-        >
-          <Award size={16} />
-          Apply Template
-        </Button>
-
-        <Button
-          variant="success"
-          onClick={() => applyTemplate('new_trainer', Array.from(selectedTrainers))}
-          disabled={selectedTrainers.size === 0 || bulkProcessing}
-          aria-label="Apply New Trainer template to selected trainers"
-          title="Apply New Trainer template to selected trainers"
-        >
-          <Award size={16} />
-          New Trainer
-        </Button>
+        <TrainerTemplateCommands
+          applyTemplate={applyTemplate}
+          bulkProcessing={bulkProcessing}
+          selectedTemplate={selectedTemplate}
+          selectedTrainers={selectedTrainers}
+          setSelectedTemplate={setSelectedTemplate}
+        />
 
         <RequestsButtonWrap>
           <Button
