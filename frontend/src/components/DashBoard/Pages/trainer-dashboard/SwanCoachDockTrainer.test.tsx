@@ -2,14 +2,17 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import SwanCoachDockTrainer from './SwanCoachDockTrainer';
-import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
+import {
+  TRAINER_HOME_COACH_PATH,
+  TRAINER_HOME_LOG_WORKOUT_PATH,
+} from './TrainerHomeQuickActions.config';
 
 vi.mock('../../../Shared/AICommandBar', () => ({
   AICommandBar: () => <div data-testid="ai-command-bar" />,
 }));
 
 describe('SwanCoachDockTrainer workout-first actions', () => {
-  it('routes the primary Log Workout chip through Coach Command', async () => {
+  it('routes the primary Log Workout chip straight to the client picker', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
 
@@ -25,7 +28,7 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     await user.click(screen.getByRole('button', { name: /^log workout$/i }));
 
     expect(screen.queryByRole('button', { name: /^log session$/i })).toBeNull();
-    expect(onNavigate).toHaveBeenCalledWith(TRAINER_HOME_COACH_PATH);
+    expect(onNavigate).toHaveBeenCalledWith(TRAINER_HOME_LOG_WORKOUT_PATH);
   });
 
   it('offers a top-dock Ask Coach route with the staged trainer-day prompt', async () => {
@@ -66,7 +69,7 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     expect(onNavigate).toHaveBeenCalledWith(coachPath);
   });
 
-  it('uses the live trainer-day Coach path for Log Workout too', async () => {
+  it('keeps Log Workout direct even when the parent provides a live Coach path', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
     const coachPath = '/dashboard/trainer/coach-assistant?intent=trainer_daily_command&teachPrompt=live-day';
@@ -83,6 +86,7 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
 
     await user.click(screen.getByRole('button', { name: /^log workout$/i }));
 
-    expect(onNavigate).toHaveBeenCalledWith(coachPath);
+    expect(onNavigate).toHaveBeenCalledWith(TRAINER_HOME_LOG_WORKOUT_PATH);
+    expect(onNavigate).not.toHaveBeenCalledWith(coachPath);
   });
 });

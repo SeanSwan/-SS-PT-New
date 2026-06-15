@@ -211,7 +211,7 @@ const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
         {CHIPS.map(({ label, path, Icon }) => (
           <Chip
             key={path}
-            onClick={() => onNavigate((label === 'Ask Coach' || label === 'Log Workout') ? coachPath : path)}
+            onClick={() => onNavigate(label === 'Ask Coach' ? coachPath : path)}
             aria-label={label}
           >
             <Icon size={14} aria-hidden="true" />
