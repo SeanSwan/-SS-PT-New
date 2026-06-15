@@ -24,7 +24,7 @@ export const RangeGroup = styled.div`
 `;
 
 export const RangeButton = styled.button<{ $active: boolean }>`
-  min-height: 40px;
+  min-height: 44px;
   min-width: 44px;
   padding: 0 0.65rem;
   border: 0;
