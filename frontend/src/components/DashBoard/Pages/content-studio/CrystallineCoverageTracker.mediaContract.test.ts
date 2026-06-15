@@ -29,4 +29,8 @@ describe('CrystallineCoverageTracker media contract', () => {
     expect(detailSource).toContain('const openVideoUrl = exercise.videoUrl || catalogVideoUrl');
     expect(detailSource).toContain('Open catalog demo');
   });
+
+  it('keeps selected exercise detail backgrounds token-backed', () => {
+    expect(detailSource).not.toMatch(/background:\s*rgba\(/);
+  });
 });

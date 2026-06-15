@@ -58,7 +58,7 @@ const PreviewFrame = styled.div`
   min-height: 72px;
   border-radius: 8px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
-  background: rgba(96, 192, 240, 0.08);
+  background: var(--coverage-preview-surface, rgba(96, 192, 240, 0.08));
   display: grid;
   place-items: center;
   color: var(--accent-primary, #60C0F0);
@@ -79,7 +79,7 @@ const VideoBadge = styled.span`
   gap: 4px;
   padding: 4px 7px;
   border-radius: 999px;
-  background: rgba(10, 10, 15, 0.76);
+  background: var(--coverage-video-badge-bg, rgba(10, 10, 15, 0.76));
   border: 1px solid var(--accent-primary, #60C0F0);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
@@ -124,7 +124,7 @@ const OpenLink = styled.a`
   padding: 0 16px;
   border-radius: 8px;
   border: 1px solid var(--accent-primary, #60C0F0);
-  background: rgba(96, 192, 240, 0.12);
+  background: var(--coverage-action-bg, rgba(96, 192, 240, 0.12));
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 0.86rem;
@@ -133,7 +133,7 @@ const OpenLink = styled.a`
   white-space: nowrap;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.18);
+    background: var(--coverage-action-bg-hover, rgba(96, 192, 240, 0.18));
   }
 
   &:focus-visible {
