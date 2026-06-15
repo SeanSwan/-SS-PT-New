@@ -44,10 +44,10 @@ describe('WorkoutLoggerCoachTerminal', () => {
     expect(screen.getByText('2026-06-15')).toBeInTheDocument();
     expect(screen.getByText('Booked session')).toBeInTheDocument();
     expect(screen.getByText('2 exercises in log')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /build into log/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /finish log/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /adjust safely/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /load phase/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /save-check/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add missing work/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open full coach command center for this workout/i }))
       .toHaveAttribute('href', coachCommandRoute);
 
@@ -65,12 +65,11 @@ describe('WorkoutLoggerCoachTerminal', () => {
     }));
 
     const props = panelPropsMock.mock.calls.at(-1)?.[0];
-    expect(props.initialPrompt).toContain('AI_ADD_EXERCISE');
     expect(props.initialPrompt).toContain('Do not submit or save');
     expect(props.quickPrompts).toHaveLength(4);
     expect(props.quickPrompts).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        label: 'Build into log',
+        label: 'Add missing work',
         sendImmediately: true,
         prompt: expect.stringContaining('AI_ADD_EXERCISE'),
       }),
@@ -78,11 +77,6 @@ describe('WorkoutLoggerCoachTerminal', () => {
         label: 'Load phase',
         sendImmediately: true,
         prompt: expect.stringContaining('AI_LOAD_TEMPLATE'),
-      }),
-      expect.objectContaining({
-        label: 'Save-check',
-        sendImmediately: true,
-        prompt: expect.stringContaining('Do not submit or save'),
       }),
     ]));
   });
@@ -104,6 +98,10 @@ describe('WorkoutLoggerCoachTerminal', () => {
     expect(lastProps.requestContext).toEqual({ workoutDate: '2026-06-14' });
     expect(lastProps.initialPrompt).toContain('selected client on 2026-06-14');
     expect(lastProps.initialPrompt).not.toContain('Client #');
+    expect(lastProps.quickPrompts[0]).toEqual(expect.objectContaining({
+      label: 'Build into log',
+      prompt: expect.stringContaining('AI_ADD_EXERCISE'),
+    }));
   });
 
   it('uses self-logging wording when the signed-in athlete is logging their own workout', () => {
@@ -119,7 +117,7 @@ describe('WorkoutLoggerCoachTerminal', () => {
 
     expect(screen.getByText('1 exercise in log')).toBeInTheDocument();
     const lastProps = panelPropsMock.mock.calls.at(-1)?.[0];
-    expect(lastProps.initialPrompt).toContain('your workout on 2026-06-14');
+    expect(lastProps.initialPrompt).toContain('Do not submit or save');
     expect(lastProps.initialPrompt).not.toContain('selected client');
     expect(lastProps.quickPrompts).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -134,6 +132,29 @@ describe('WorkoutLoggerCoachTerminal', () => {
     for (const quickPrompt of lastProps.quickPrompts) {
       expect(quickPrompt.prompt).not.toMatch(/selected client/i);
     }
+  });
+
+  it('moves save-check first once a workout is already started', () => {
+    render(
+      <WorkoutLoggerCoachTerminal
+        selfMode
+        clientId={9}
+        equipmentProfileId={null}
+        workoutDate="2026-06-14"
+        exerciseCount={3}
+      />,
+    );
+
+    const lastProps = panelPropsMock.mock.calls.at(-1)?.[0];
+    expect(lastProps.quickPrompts[0]).toEqual(expect.objectContaining({
+      label: 'Finish log',
+      description: 'Check gaps before save',
+      prompt: expect.stringContaining('Do not submit or save'),
+    }));
+    expect(lastProps.quickPrompts.at(-1)).toEqual(expect.objectContaining({
+      label: 'Add missing work',
+      prompt: expect.stringContaining('only add exercises that are missing'),
+    }));
   });
 
   it('omits the full command center action until a safe route is available', () => {

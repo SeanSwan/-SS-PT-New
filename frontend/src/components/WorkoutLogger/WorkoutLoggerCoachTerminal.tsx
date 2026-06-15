@@ -44,6 +44,7 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
   const workoutSubject = selfMode ? 'your workout' : 'the selected client';
   const scopedWorkout = selfMode ? `your ${dateLabel} workout` : `this selected client's ${dateLabel} workout`;
   const scopedSession = selfMode ? `your ${dateLabel} session` : `this selected client's ${dateLabel} session`;
+  const hasStartedWorkout = exerciseCount > 0;
   const resolvedCoachCommandRoute = useMemo(() => coachCommandRoute ?? buildWorkoutLoggerCoachRoute({
     userRole: user?.role,
     clientId,
@@ -74,19 +75,34 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
     return Object.keys(contextPayload).length ? contextPayload : null;
   }, [scheduledSessionCreditHint, scheduledSessionDate, scheduledSessionId, workoutDate]);
 
-  const basePrompt = useMemo(() => (
+  const buildPrompt = useMemo(() => (
     `Build a logger-ready NASM workout for ${workoutSubject} on ${dateLabel}. `
     + 'Add exercises into this open Workout Logger with AI_ADD_EXERCISE action blocks. '
     + 'Include sets, reps, tempo, rest, warmup, cooldown, and safety notes. Do not submit or save the workout.'
   ), [dateLabel, workoutSubject]);
 
+  const saveCheckPrompt = useMemo(() => (
+    `Check this ${dateLabel} workout log before saving. Call out missing sets, intensity, session notes, pain flags, and anything that should be reviewed. Do not submit or save the workout.`
+  ), [dateLabel]);
+
+  const addMissingPrompt = useMemo(() => (
+    `Review ${scopedWorkout} and only add exercises that are missing from the open Workout Logger. Keep existing logged exercises intact, use AI_ADD_EXERCISE action blocks only for missing work, and do not submit or save the workout.`
+  ), [scopedWorkout]);
+
+  const initialPrompt = hasStartedWorkout ? saveCheckPrompt : buildPrompt;
+
   const quickPrompts = useMemo<AITerminalQuickPrompt[]>(() => [
-    {
+    ...(hasStartedWorkout ? [{
+      label: 'Finish log',
+      description: 'Check gaps before save',
+      prompt: saveCheckPrompt,
+      sendImmediately: true,
+    }] : [{
       label: 'Build into log',
       description: 'One tap, review before save',
-      prompt: basePrompt,
+      prompt: buildPrompt,
       sendImmediately: true,
-    },
+    }]),
     {
       label: 'Adjust safely',
       description: 'Swaps with exact targets',
@@ -100,12 +116,12 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
       sendImmediately: true,
     },
     {
-      label: 'Save-check',
-      description: 'No silent submit',
-      prompt: `Check this ${dateLabel} workout log before saving. Call out missing sets, intensity, session notes, pain flags, and anything that should be reviewed. Do not submit or save the workout.`,
+      label: hasStartedWorkout ? 'Add missing work' : 'Save-check',
+      description: hasStartedWorkout ? 'No duplicate rebuilds' : 'No silent submit',
+      prompt: hasStartedWorkout ? addMissingPrompt : saveCheckPrompt,
       sendImmediately: true,
     },
-  ], [basePrompt, scopedSession, scopedWorkout]);
+  ], [addMissingPrompt, buildPrompt, hasStartedWorkout, saveCheckPrompt, scopedSession, scopedWorkout]);
 
   return (
     <CommandStrip aria-label="Workout logger Swan Coach command strip">
@@ -148,8 +164,10 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
         requestContext={requestContext}
         label="Workout Logger Coach"
         placeholder="Ask for today's workout, safe swaps, set targets, or save-check notes..."
-        emptyHint="Build the plan, make swaps, and review the log from this workout screen."
-        initialPrompt={basePrompt}
+        emptyHint={hasStartedWorkout
+          ? 'Finish the log, make safe swaps, and check gaps before saving.'
+          : 'Build the plan, make swaps, and review the log from this workout screen.'}
+        initialPrompt={initialPrompt}
         quickPrompts={quickPrompts}
         defaultOpen
       />
