@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useMemo } from 'react';
-import { ArrowRight, Compass, Route, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Compass, MessageCircle, Route, ShieldCheck } from 'lucide-react';
 import TeachMeToggle from './TeachMeToggle';
 import {
   type DashboardTeachMeRole,
@@ -26,9 +26,17 @@ import {
   GuardrailNote,
   GuideContent,
   GuideKicker,
+  GuideQuickStrip,
   GuideShell,
   GuideSteps,
   GuideSummary,
+  QuickActionGroup,
+  QuickCoachButton,
+  QuickEyebrow,
+  QuickIntro,
+  QuickPrimaryAnchor,
+  QuickPrimaryButton,
+  QuickTitle,
 } from './DashboardTeachMeGuide.styles';
 
 interface DashboardTeachMeGuideProps {
@@ -63,6 +71,12 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
     () => guide.actions.filter((action) => action.to !== guide.primaryAction.to),
     [guide],
   );
+  const startNowLabel = `Start now: ${guide.primaryAction.label}`;
+  const coachShortcutLabel = `Ask Swan Coach: ${guide.title}`;
+  const canAskCoach = Boolean(guide.primaryPrompt && onAskCoach);
+  const askCoach = () => {
+    if (guide.primaryPrompt && onAskCoach) onAskCoach(guide.primaryPrompt);
+  };
 
   const content = (
     <GuideContent>
@@ -137,6 +151,42 @@ const DashboardTeachMeGuide: React.FC<DashboardTeachMeGuideProps> = ({
 
   return (
     <GuideShell aria-label={`${guide.title} teach me guide`}>
+      <GuideQuickStrip>
+        <QuickIntro>
+          <QuickEyebrow>Teach Me</QuickEyebrow>
+          <QuickTitle>{guide.title}</QuickTitle>
+        </QuickIntro>
+        <QuickActionGroup aria-label={`${guide.title} first move shortcuts`}>
+          {onNavigate ? (
+            <QuickPrimaryButton
+              type="button"
+              aria-label={startNowLabel}
+              onClick={() => onNavigate(guide.primaryAction.to)}
+            >
+              {startNowLabel}
+              <ArrowRight size={14} aria-hidden="true" />
+            </QuickPrimaryButton>
+          ) : (
+            <QuickPrimaryAnchor
+              href={guide.primaryAction.to}
+              aria-label={startNowLabel}
+            >
+              {startNowLabel}
+              <ArrowRight size={14} aria-hidden="true" />
+            </QuickPrimaryAnchor>
+          )}
+          {canAskCoach && (
+            <QuickCoachButton
+              type="button"
+              aria-label={coachShortcutLabel}
+              onClick={askCoach}
+            >
+              Ask Coach
+              <MessageCircle size={14} aria-hidden="true" />
+            </QuickCoachButton>
+          )}
+        </QuickActionGroup>
+      </GuideQuickStrip>
       <TeachMeToggle
         sectionId={sectionIdFor(normalizedRole, pathname)}
         title={guide.title}

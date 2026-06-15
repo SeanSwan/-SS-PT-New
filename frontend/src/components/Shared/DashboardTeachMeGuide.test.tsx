@@ -24,7 +24,17 @@ describe('DashboardTeachMeGuide', () => {
       .toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: /teach me: admin command center.*first move: log client workout/i }))
       .toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^start now: log client workout$/i }))
+      .toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^ask swan coach: admin command center$/i }))
+      .toBeInTheDocument();
     expect(screen.queryByText(/Start with Coach or Client Hub/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^start now: log client workout$/i }));
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?intent=log_workout');
+
+    fireEvent.click(screen.getByRole('button', { name: /^ask swan coach: admin command center$/i }));
+    expect(onAskCoach).toHaveBeenCalledWith('teach me the admin dashboard workflow');
 
     fireEvent.click(screen.getByRole('button', { name: /teach me: admin command center/i }));
 
@@ -36,10 +46,10 @@ describe('DashboardTeachMeGuide', () => {
     expect(screen.getByText(/Keep final writes approval-gated/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
-    expect(onAskCoach).toHaveBeenCalledWith('teach me the admin dashboard workflow');
+    expect(onAskCoach).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole('button', { name: /^first move: log client workout$/i }));
-    expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?intent=log_workout');
+    expect(onNavigate).toHaveBeenCalledTimes(2);
 
     fireEvent.click(screen.getByRole('button', { name: /client hub training/i }));
     expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?tab=training');
@@ -52,6 +62,12 @@ describe('DashboardTeachMeGuide', () => {
         pathname="/dashboard/client/progress"
       />,
     );
+
+    expect(screen.getByRole('link', { name: /start now: review progress/i })).toHaveAttribute(
+      'href',
+      '/dashboard/client/progress',
+    );
+    expect(screen.queryByRole('button', { name: /^ask swan coach:/i })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /teach me: client progress proof/i }));
 
@@ -82,10 +98,13 @@ describe('DashboardTeachMeGuide', () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole('button', { name: /ask swan coach: client progress proof/i }));
+    expect(onAskCoach).toHaveBeenCalledWith('teach me the client progress workflow');
+
     fireEvent.click(screen.getByRole('button', { name: /teach me: client progress proof/i }));
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
 
-    expect(onAskCoach).toHaveBeenCalledWith('teach me the client progress workflow');
+    expect(onAskCoach).toHaveBeenCalledTimes(2);
   });
 
   it('can hand the client workout logging flow to Coach when Coach is available', () => {
