@@ -190,25 +190,38 @@ const adminGrowthLoop = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   primaryPrompt: 'teach me the admin growth workflow',
 });
 
-const adminPeopleOnboarding = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+const adminPeoplePrimaryAction = (path: string) => {
+  if (includesAny(path, ['trainer-onboarding'])) return { label: 'Add Trainer', to: '/dashboard/admin/trainer-onboarding' };
+  if (includesAny(path, ['client-onboarding'])) return { label: 'Onboard Client', to: '/dashboard/admin/client-onboarding' };
+  if (includesAny(path, ['client-trainer-assignments'])) return { label: 'Assign Clients', to: '/dashboard/admin/client-trainer-assignments' };
+  if (includesAny(path, ['trainer-management'])) return { label: 'Open Trainer Profiles', to: '/dashboard/admin/trainer-management' };
+  if (includesAny(path, ['user-onboarding'])) return { label: 'Add User', to: '/dashboard/admin/user-onboarding' };
+  if (includesAny(path, ['unified-onboarding'])) return { label: 'Open Unified Onboarding', to: '/dashboard/admin/unified-onboarding' };
+  return { label: 'Open User Management', to: '/dashboard/admin/user-management' };
+};
+
+const adminPeopleOnboarding = (path: string, base: DashboardTeachMeGuideCopy) => {
+  const primaryAction = adminPeoplePrimaryAction(path);
+  return applyPatch(base, {
   eyebrow: 'Teach people operations',
   title: 'Admin people setup',
   summary: 'Use people routes to create the right account, collect the right details, and connect clients to the trainer who can act.',
   focus: 'Do not stop at account creation. Finish the assignment, onboarding state, training context, and first next action.',
-  primaryAction: { label: 'Open User Management', to: '/dashboard/admin/user-management' },
+  primaryAction,
   fastPath: [
     'Find or create the person.',
     'Complete role-specific onboarding.',
     'Assign trainer and next action.',
   ],
   actions: [
-    { label: 'Users', to: '/dashboard/admin/user-management' },
+    primaryAction,
     { label: 'Trainers', to: '/dashboard/admin/trainer-management' },
     { label: 'Client Onboarding', to: '/dashboard/admin/client-onboarding' },
     { label: 'Assignments', to: '/dashboard/admin/client-trainer-assignments' },
   ],
   primaryPrompt: 'teach me the admin people setup workflow',
-});
+  });
+};
 
 const adminTrainerEnablement = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   eyebrow: 'Teach trainer enablement',
@@ -265,7 +278,7 @@ export const refineAdminGuide = (
     return adminTrainerEnablement(base);
   }
   if (includesAny(path, ['user-management', 'trainer-management', 'onboarding', 'client-trainer-assignments'])) {
-    return adminPeopleOnboarding(base);
+    return adminPeopleOnboarding(path, base);
   }
   if (includesAny(path, ['body-map', 'meal-planner', 'nutrition', 'messages', 'video-call', 'videos', 'notes', 'photos'])) {
     return adminClientCareLoop(path, base);
