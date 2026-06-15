@@ -203,6 +203,36 @@ describe('CoachCommandCenterPage route context', () => {
       .toHaveAttribute('href', '/dashboard/admin/overview');
   });
 
+  it('hydrates admin self-workout context without a selected client target', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?intent=log_self_workout&source=admin-workout-logger&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday&workoutDate=2026-06-18',
+    );
+
+    const composer = composerInput();
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('My 2026-06-18 workout log');
+    });
+
+    expect((composer as HTMLTextAreaElement).value).not.toContain('selected client');
+    expect(screen.getAllByText(/My 2026-06-18 workout context loaded/i).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('link', { name: /back to workout logger/i }))
+      .toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
+
+    fireEvent.click(sendButton());
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        expect.stringContaining('My 2026-06-18 workout log'),
+        'coach_assistant',
+        expect.stringContaining('My 2026-06-18 workout log'),
+        null,
+        'both',
+        null,
+        { workoutDate: '2026-06-18' },
+      );
+    });
+  });
+
   it('hydrates the trainer Home command prompt and return route', async () => {
     const trainerPrompt = [
       'Teach me my trainer Home.',

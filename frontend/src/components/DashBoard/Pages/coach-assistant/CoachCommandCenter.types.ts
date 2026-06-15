@@ -33,7 +33,8 @@ export type ClientContextTile = {
 };
 
 export type CoachScheduledSessionRouteContext = {
-  scheduledSessionId: string;
+  workoutDate?: string;
+  scheduledSessionId?: string;
   scheduledSessionDate?: string;
   scheduledSessionCredits?: number;
 };

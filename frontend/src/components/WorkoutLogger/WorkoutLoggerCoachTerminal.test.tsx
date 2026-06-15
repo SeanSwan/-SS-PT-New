@@ -24,6 +24,9 @@ describe('WorkoutLoggerCoachTerminal', () => {
   });
 
   it('opens a logger-ready command strip with quick prompts and booked-session context', () => {
+    const coachCommandRoute =
+      '/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42';
+
     render(
       <WorkoutLoggerCoachTerminal
         clientId={42}
@@ -33,6 +36,7 @@ describe('WorkoutLoggerCoachTerminal', () => {
         scheduledSessionDate="2026-06-15"
         scheduledSessionCreditHint={1}
         exerciseCount={2}
+        coachCommandRoute={coachCommandRoute}
       />,
     );
 
@@ -44,6 +48,8 @@ describe('WorkoutLoggerCoachTerminal', () => {
     expect(screen.getByRole('button', { name: /adjust safely/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /load phase/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save-check/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open full coach command center for this workout/i }))
+      .toHaveAttribute('href', coachCommandRoute);
 
     expect(panelPropsMock).toHaveBeenCalledWith(expect.objectContaining({
       context: 'workout_generation',
@@ -128,5 +134,18 @@ describe('WorkoutLoggerCoachTerminal', () => {
     for (const quickPrompt of lastProps.quickPrompts) {
       expect(quickPrompt.prompt).not.toMatch(/selected client/i);
     }
+  });
+
+  it('omits the full command center action until a safe route is available', () => {
+    render(
+      <WorkoutLoggerCoachTerminal
+        clientId={9}
+        equipmentProfileId={null}
+        workoutDate="2026-06-14"
+        exerciseCount={1}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: /open full coach command center/i })).not.toBeInTheDocument();
   });
 });

@@ -26,7 +26,7 @@ function parsePositiveIntegerString(rawValue: string | null): string | null {
 
 function parseScheduledCredits(rawValue: string | null): number | undefined {
   const trimmed = rawValue?.trim();
-  if (!trimmed || !/^[1-9]\d*$/.test(trimmed)) return undefined;
+  if (!trimmed || !/^(0|[1-9]\d*)$/.test(trimmed)) return undefined;
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
@@ -35,15 +35,16 @@ export function getScheduledSessionRouteContextFromSearchParams(
   searchParams: URLSearchParams,
 ): CoachScheduledSessionRouteContext | null {
   const scheduledSessionId = parsePositiveIntegerString(searchParams.get('sessionId'));
-  if (!scheduledSessionId) return null;
-
-  const scheduledSessionDate = normalizeIsoDateOnly(searchParams.get('sessionDate'));
-  const scheduledSessionCredits = parseScheduledCredits(searchParams.get('sessionCredits'));
-  return {
-    scheduledSessionId,
+  const workoutDate = normalizeIsoDateOnly(searchParams.get('workoutDate'));
+  const scheduledSessionDate = scheduledSessionId ? normalizeIsoDateOnly(searchParams.get('sessionDate')) : null;
+  const scheduledSessionCredits = scheduledSessionId ? parseScheduledCredits(searchParams.get('sessionCredits')) : undefined;
+  const context: CoachScheduledSessionRouteContext = {
+    ...(workoutDate ? { workoutDate } : {}),
+    ...(scheduledSessionId ? { scheduledSessionId } : {}),
     ...(scheduledSessionDate ? { scheduledSessionDate } : {}),
-    ...(scheduledSessionCredits ? { scheduledSessionCredits } : {}),
+    ...(scheduledSessionCredits !== undefined ? { scheduledSessionCredits } : {}),
   };
+  return Object.keys(context).length ? context : null;
 }
 
 export function buildCommandRouteContext(
@@ -77,6 +78,9 @@ const RETURN_LABELS: Record<string, string> = {
   'master-schedule': 'Back to Schedule',
   'trainer-overview': 'Back to Trainer Home',
   'client-dashboard': 'Back to Client Dashboard',
+  'admin-workout-logger': 'Back to Workout Logger',
+  'trainer-workout-logger': 'Back to Workout Logger',
+  'client-workout-logger': 'Back to Workout Logger',
 };
 
 function commandCenterReturnLabel(source: string | null): string {
@@ -144,8 +148,12 @@ function trainerDailyCommandRouteContext(): RouteContextCopy {
 
 function scheduledSessionCopy(scheduledSession: CoachScheduledSessionRouteContext | null): string {
   if (!scheduledSession) return '';
+  const workoutDateCopy = scheduledSession.workoutDate ? ` for ${scheduledSession.workoutDate}` : '';
+  if (!scheduledSession.scheduledSessionId) {
+    return workoutDateCopy ? ` This workout is${workoutDateCopy}.` : '';
+  }
   const dateCopy = scheduledSession.scheduledSessionDate ? ` on ${scheduledSession.scheduledSessionDate}` : '';
-  return ` This is booked session #${scheduledSession.scheduledSessionId}${dateCopy}. Include scheduledSessionId ${scheduledSession.scheduledSessionId} in the review-gated workout_log proposal and do not invent any other session id.`;
+  return ` This is booked session #${scheduledSession.scheduledSessionId}${dateCopy || workoutDateCopy}. Include scheduledSessionId ${scheduledSession.scheduledSessionId} in the review-gated workout_log proposal and do not invent any other session id.`;
 }
 
 function logWorkoutRouteContext(
@@ -158,6 +166,22 @@ function logWorkoutRouteContext(
     status: scheduledSession
       ? `${routeClientLabel} booked session #${scheduledSession.scheduledSessionId} log context loaded`
       : `${routeClientLabel} daily log context loaded`,
+  };
+}
+
+function selfWorkoutRouteContext(
+  _routeClientLabel: string | null,
+  scheduledSession: CoachScheduledSessionRouteContext | null,
+): RouteContextCopy {
+  const dateLabel = scheduledSession?.workoutDate || scheduledSession?.scheduledSessionDate || 'today';
+  return {
+    prompt: prompt([
+      `My ${dateLabel} workout log.`,
+      'Help me build, adjust, or review this workout for the Workout Logger.',
+      'Keep it logger-ready with exercises, sets, reps, load targets, tempo, rest, pain notes, and save-check warnings.',
+      'Do not claim the workout was logged until I save it in the Workout Logger.',
+    ]),
+    status: `My ${dateLabel} workout context loaded`,
   };
 }
 
@@ -174,6 +198,7 @@ const ROUTE_CONTEXT_BUILDERS: Record<string, RouteContextBuilder> = {
   trainer_daily_command: () => trainerDailyCommandRouteContext(),
   client_onboarding: (routeClientLabel) => onboardingRouteContext(routeClientLabel),
   historical_import: (routeClientLabel) => historicalImportRouteContext(routeClientLabel),
+  log_self_workout: selfWorkoutRouteContext,
   log_workout: logWorkoutRouteContext,
 };
 
