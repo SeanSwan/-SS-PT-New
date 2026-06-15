@@ -63,15 +63,18 @@ describe('Coach intake responsive contract', () => {
     expect(snapshotIndex).toBeLessThan(queueIndex);
   });
 
-  it('puts the Hive Mind intake guide before the active dossier and queue', () => {
+  it('puts the automatically staged dossier before helper content and the work queue', () => {
     const teachIndex = workspace.indexOf('<CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />');
     const activeTargetIndex = workspace.indexOf('<CoachIntakeWorkspaceActiveTarget');
+    const healthIndex = workspace.indexOf('<CoachIntakeHealthStrip');
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
 
     expect(teachIndex).toBeGreaterThan(-1);
     expect(activeTargetIndex).toBeGreaterThan(-1);
+    expect(healthIndex).toBeGreaterThan(-1);
     expect(queueIndex).toBeGreaterThan(-1);
-    expect(teachIndex).toBeLessThan(activeTargetIndex);
-    expect(teachIndex).toBeLessThan(queueIndex);
+    expect(activeTargetIndex).toBeLessThan(teachIndex);
+    expect(activeTargetIndex).toBeLessThan(healthIndex);
+    expect(activeTargetIndex).toBeLessThan(queueIndex);
   });
 });

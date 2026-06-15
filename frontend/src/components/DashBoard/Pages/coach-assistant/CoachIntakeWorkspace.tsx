@@ -96,7 +96,8 @@ export function CoachIntakeWorkspace({
   const coachWorkspaceHref = `/dashboard/${userRole}/coach-assistant`;
   const orderedItems = React.useMemo(() => orderedQueueItems(items), [items]);
   const nextItem = pickNextItem(orderedItems);
-  const activeItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
+  const routeActiveItem = orderedItems.find((item) => isActiveItem(item, activeIntakeId)) || null;
+  const activeItem = routeActiveItem || (activeIntakeId ? null : nextItem);
   const activeItemKey = activeItem?.id || null;
   const activeReviewTargetId = activeItem ? itemEntityId(activeItem) || activeItem.id : null;
   const activeProposalId = React.useMemo(() => new URLSearchParams(location.search).get('proposal'), [location.search]);
@@ -199,16 +200,6 @@ export function CoachIntakeWorkspace({
         <CoachIntakeSummaryStats summary={summary} label="Coach intake quick snapshot" />
       </IntakeSnapshot>
 
-      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
-
-      <CoachIntakeHealthStrip
-        health={queue.health}
-        retention={queue.retention}
-        retentionPurgePlan={queue.retentionPurgePlan}
-        onCommandPrompt={onCommandPrompt}
-        onScopeChange={handleScopeChange}
-      />
-
       {activeItem && (
         <CoachIntakeWorkspaceActiveTarget
           focusRef={activeDossierRef}
@@ -264,7 +255,7 @@ export function CoachIntakeWorkspace({
           ) : orderedItems.length === 0 ? (
             <CoachIntakeQueueEmptyState scope={queue.scope} />
           ) : orderedItems.map((item) => {
-            const active = isActiveItem(item, activeIntakeId);
+            const active = activeItem?.id === item.id;
             return (
               <CoachIntakeQueueItemCard
                 key={item.id}
@@ -280,6 +271,16 @@ export function CoachIntakeWorkspace({
 
         <CoachIntakeSummaryStats summary={summary} />
       </Grid>
+
+      <CoachIntakeHealthStrip
+        health={queue.health}
+        retention={queue.retention}
+        retentionPurgePlan={queue.retentionPurgePlan}
+        onCommandPrompt={onCommandPrompt}
+        onScopeChange={handleScopeChange}
+      />
+
+      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
     </Panel>
   );
 }
