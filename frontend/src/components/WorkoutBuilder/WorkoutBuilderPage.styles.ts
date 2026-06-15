@@ -98,11 +98,11 @@ export const Select = styled.select`
 export const FormGroup = styled.div`
   margin-bottom: 12px;
 `;
-export const PrimaryButton = styled.button<{ $auto?: boolean }>`
+export const PrimaryButton = styled.button<{ $auto?: boolean; $variant?: 'primary' | 'secondary' }>`
   width: ${({ $auto }) => $auto ? 'auto' : '100%'};
   padding: 10px;
-  background: linear-gradient(135deg, ${CS.gaming} 0%, ${CS.secondary} 100%);
-  border: none;
+  background: ${({ $variant }) => $variant === 'secondary' ? withAlpha(CS.bgDeep, 0.42) : `linear-gradient(135deg, ${CS.gaming} 0%, ${CS.secondary} 100%)`};
+  border: 1px solid ${({ $variant }) => $variant === 'secondary' ? withAlpha(CS.gaming, 0.35) : 'transparent'};
   border-radius: 8px;
   color: ${CS.text};
   font-size: 14px;

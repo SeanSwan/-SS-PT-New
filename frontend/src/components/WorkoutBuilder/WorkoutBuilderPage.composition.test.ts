@@ -92,6 +92,8 @@ describe('WorkoutBuilderPage composition contract', () => {
     expect(controlsSource).toContain('planSave={planSave}');
     expect(resultSource).toContain('Save & Make Current');
     expect(resultSource).toContain('Save Draft');
+    expect(resultSource).toContain('$variant="secondary"');
+    expect(resultSource).toMatch(/Save & Make Current[\s\S]*Save Draft/);
     expect(resultSource).toContain('<ConfigRow>');
     expect(resultSource).toContain('Plan Saved');
     expect(resultSource).toContain('disabled={actionInFlight || alreadySaved}');

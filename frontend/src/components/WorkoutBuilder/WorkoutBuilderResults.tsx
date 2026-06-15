@@ -77,7 +77,7 @@ const WorkoutBuilderPlanSaveAction: React.FC<{ planSave?: WorkoutBuilderPlanSave
         <PrimaryButton $auto onClick={planSave.onSaveAndActivate} disabled={actionInFlight || alreadySaved}>
           {savingActive ? 'Saving Current Plan...' : alreadySaved ? 'Plan Saved' : 'Save & Make Current'}
         </PrimaryButton>
-        <PrimaryButton $auto onClick={planSave.onSaveDraft} disabled={actionInFlight || alreadySaved}>
+        <PrimaryButton $auto $variant="secondary" onClick={planSave.onSaveDraft} disabled={actionInFlight || alreadySaved}>
           {savingDraft ? 'Saving Draft...' : 'Save Draft'}
         </PrimaryButton>
       </ConfigRow>
