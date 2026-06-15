@@ -16,13 +16,14 @@
  */
 
 import React from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, MessageCircle } from 'lucide-react';
 import {
   CardInner,
   MutedText,
   SectionKicker,
   SectionTitle,
 } from './ClientObservatoryShell.styles';
+import { CurrentWorkoutActionStack } from './ClientCurrentWorkoutCard.styles';
 import {
   SmallButton,
   WidgetCard,
@@ -32,6 +33,7 @@ import {
   WidgetRow,
   WidgetValue,
 } from './ClientObservatoryFeed.styles';
+import { buildClientCurrentWorkoutCoachAction } from './ClientCurrentWorkoutCoachAction';
 import { buildClientCurrentWorkoutViewModel } from './ClientCurrentWorkoutCard.viewModel';
 import type { CurrentClientWorkout } from './useCurrentClientWorkout';
 
@@ -53,6 +55,7 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
     error: currentWorkoutError,
     loading: currentWorkoutLoading,
   });
+  const coachAction = buildClientCurrentWorkoutCoachAction(currentWorkout);
 
   return (
     <WidgetCard data-testid="current-workout-card">
@@ -65,13 +68,23 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
             </SectionKicker>
             <SectionTitle>{viewModel.title}</SectionTitle>
           </div>
-          <SmallButton
-            type="button"
-            aria-label={viewModel.action.ariaLabel}
-            onClick={() => onNavigate(viewModel.action.path)}
-          >
-            {viewModel.action.label}
-          </SmallButton>
+          <CurrentWorkoutActionStack>
+            <SmallButton
+              type="button"
+              aria-label={viewModel.action.ariaLabel}
+              onClick={() => onNavigate(viewModel.action.path)}
+            >
+              {viewModel.action.label}
+            </SmallButton>
+            <SmallButton
+              type="button"
+              aria-label={coachAction.ariaLabel}
+              onClick={() => onNavigate(coachAction.path)}
+            >
+              <MessageCircle size={15} aria-hidden="true" />
+              {coachAction.label}
+            </SmallButton>
+          </CurrentWorkoutActionStack>
         </WidgetHeader>
         <WidgetList>
           {viewModel.rows.map((row) => (

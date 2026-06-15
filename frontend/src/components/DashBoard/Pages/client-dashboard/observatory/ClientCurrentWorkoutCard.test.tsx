@@ -82,4 +82,46 @@ describe('ClientCurrentWorkoutCard', () => {
       '/dashboard/client/log-workout?loadPlan=today&assignmentKey=plan-6m%3Aw2%3Ad3%3Ahomework&assignmentType=homework',
     );
   });
+
+  it('offers a context-aware Coach handoff for today assignment without saving it', () => {
+    const onNavigate = vi.fn();
+
+    render(
+      <ClientCurrentWorkoutCard
+        currentWorkout={{
+          title: 'Coach Homework Lower Strength',
+          assignmentKey: 'plan-6m:w2:d3:homework',
+          assignmentType: 'homework',
+          assignmentStatus: 'planned',
+          sessionType: 'solo',
+          isLoggable: true,
+          ctaLabel: 'Log Assignment',
+          weekNumber: 2,
+          dayNumber: 3,
+          exerciseCount: 4,
+          firstExercise: 'Goblet Squat',
+          primaryPlanLabel: '6 Month',
+        }}
+        onNavigate={onNavigate}
+      />,
+    );
+
+    const coachButton = screen.getByRole('button', {
+      name: /ask swan coach about today's assignment/i,
+    });
+    expect(coachButton).toHaveTextContent(/coach this/i);
+
+    fireEvent.click(coachButton);
+
+    const [route] = onNavigate.mock.calls[0];
+    const coachUrl = new URL(route, 'https://app.local');
+    expect(coachUrl.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(coachUrl.searchParams.get('intent')).toBe('log_self_workout');
+    expect(coachUrl.searchParams.get('source')).toBe('client-dashboard');
+    expect(coachUrl.searchParams.get('returnTo')).toBe('/dashboard/client/overview');
+    expect(coachUrl.searchParams.get('teachPrompt')).toContain('Coach Homework Lower Strength');
+    expect(coachUrl.searchParams.get('teachPrompt')).toContain('Week 2');
+    expect(coachUrl.searchParams.get('teachPrompt')).toContain('Goblet Squat');
+    expect(coachUrl.searchParams.get('teachPrompt')).toContain('Do not claim the workout was logged');
+  });
 });

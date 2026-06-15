@@ -70,4 +70,28 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(await screen.findByRole('link', { name: /back to client dashboard/i }))
       .toHaveAttribute('href', '/dashboard/client/community');
   });
+
+  it('hydrates the client current-workout Coach handoff and returns to overview', async () => {
+    const assignmentPrompt = [
+      'Client overview current assignment: Coach Homework Lower Strength.',
+      'Position: 6 Month Primary, Week 2, Day 3.',
+      'Type: homework.',
+      'First exercise: Goblet Squat.',
+      'Do not claim the workout was logged until I save it in the Workout Logger.',
+    ].join(' ');
+
+    renderPage(
+      `/dashboard/client/coach-assistant?intent=log_self_workout&source=client-dashboard&returnTo=%2Fdashboard%2Fclient%2Foverview&teachPrompt=${encodeURIComponent(assignmentPrompt)}`,
+      'client',
+    );
+
+    const composer = composerInput();
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toBe(assignmentPrompt);
+    });
+
+    expect(await screen.findByRole('link', { name: /back to client dashboard/i }))
+      .toHaveAttribute('href', '/dashboard/client/overview');
+    expect(screen.queryByRole('button', { name: /^Ops$/i })).not.toBeInTheDocument();
+  });
 });
