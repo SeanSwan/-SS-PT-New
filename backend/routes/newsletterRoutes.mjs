@@ -51,13 +51,18 @@ router.post('/subscribe', rateLimiter({ windowMs: 60 * 60 * 1000, max: 20 }), as
     // Attribute the acquisition channel (YouTube / TikTok / IG / search / referral / direct)
     // from utm params + referrer so we can see which channel drives subscribers/leads.
     const { channel } = deriveChannel({ utmSource, utmMedium, referrer });
+    // Sanitize the attacker-controllable campaign param before persisting it (it
+    // lands in Subscriber.consentSource). Same allowlist as channel tokens.
+    const cleanCampaign = utmCampaign
+      ? String(utmCampaign).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40)
+      : '';
 
     const result = await subscribe({
       email,
       firstName: firstName || null,
       lastName: lastName || null,
       source: channel, // acquisition channel; the form location lives in consentSource
-      consentSource: `newsletter ${source || 'form'}${channel !== 'direct' ? ' · ' + channel : ''}${utmCampaign ? ' / ' + String(utmCampaign).slice(0, 40) : ''}`,
+      consentSource: `newsletter ${source || 'form'}${channel !== 'direct' ? ' · ' + channel : ''}${cleanCampaign ? ' / ' + cleanCampaign : ''}`,
       consentIp: req.ip,
     });
 

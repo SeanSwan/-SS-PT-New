@@ -102,7 +102,7 @@ export const ErrorText = styled.div`
 /* ── B1: inline lead actions ── */
 
 export const StatusSelect = styled.select<{ $status: LeadStatus }>`
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 8px;
   border-radius: 8px;
   font-family: 'Sora', sans-serif;
@@ -143,7 +143,7 @@ export const IconLink = styled.a`
 `;
 
 export const FollowupInput = styled.input`
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 8px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.3));

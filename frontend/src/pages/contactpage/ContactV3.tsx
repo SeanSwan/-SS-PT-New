@@ -876,9 +876,13 @@ const ContactV3: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
-        ? 'https://sswanstudios.com'
-        : 'http://localhost:5000';
+      // Same-origin (relative) in prod/staging/preview; only local dev hits :5000.
+      // The old origin.includes('sswanstudios.com') check silently routed Render
+      // preview/staging form posts to localhost (matches useNewsletterSubscribe).
+      const API_BASE_URL =
+        /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
+          ? 'http://localhost:5000'
+          : '';
 
       await axios.post(`${API_BASE_URL}/api/contact`, {
         name,

@@ -237,8 +237,13 @@ router.put('/:id', async (req, res) => {
     const allowedFields = [
       'firstName', 'lastName', 'email', 'phone', 'source', 'sourceDetail',
       'status', 'score', 'notes', 'goals', 'tags', 'lastContactedAt',
-      'nextFollowUpAt', 'lostReason', 'assignedTrainerId',
+      'nextFollowUpAt', 'lostReason',
     ];
+    // Only admins may (re)assign a lead's owning trainer. Without this gate a trainer
+    // could set assignedTrainerId to another trainer or null — reassigning/unassigning
+    // leads outside their own scope (data-isolation bypass). The fetch above already
+    // scopes a trainer to their own leads; this stops them mutating ownership.
+    if (req.user.role === 'admin') allowedFields.push('assignedTrainerId');
 
     const updates = {};
     for (const field of allowedFields) {
