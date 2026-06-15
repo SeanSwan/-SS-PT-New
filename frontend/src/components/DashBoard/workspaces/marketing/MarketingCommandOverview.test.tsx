@@ -28,7 +28,7 @@ describe('MarketingCommandOverview — Leads by Channel', () => {
   it('renders the channel breakdown (name + count) from /stats', async () => {
     authGet.mockResolvedValue({ data: { stats: {
       total: 17, hotLeads: 2, needsFollowUp: 1, conversionRate: 12,
-      byChannel: [{ channel: 'youtube', count: 9 }, { channel: 'direct', count: 5 }, { channel: 'tiktok', count: 3 }],
+      byChannel: [{ channel: 'youtube', count: 9, converted: 2 }, { channel: 'direct', count: 5, converted: 0 }, { channel: 'tiktok', count: 3, converted: 1 }],
     } } });
 
     renderOverview();
@@ -38,6 +38,7 @@ describe('MarketingCommandOverview — Leads by Channel', () => {
     expect(screen.getByText('9')).toBeInTheDocument();
     expect(screen.getByText('tiktok')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText(/2 won/)).toBeInTheDocument(); // conversion signal per channel
   });
 
   it('shows an empty-state hint when no channels are attributed yet', async () => {

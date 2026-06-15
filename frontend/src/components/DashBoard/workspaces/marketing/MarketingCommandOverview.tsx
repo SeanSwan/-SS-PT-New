@@ -17,6 +17,7 @@ import {
   MetricBlock, MetricGrid, MetricLabel, MetricValue, OverviewGrid,
   SignalIcon, SignalList, SignalMeta, SignalRow, SignalTitle, Stack, StatusLine,
   ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty,
+  ChannelMeta, ChannelWon,
 } from './MarketingCommandOverview.styles';
 
 type CommandTarget = 'queue' | 'calendar' | 'leads' | 'analytics';
@@ -30,6 +31,7 @@ interface MarketingCommandOverviewProps {
 interface ChannelStat {
   channel: string;
   count: number;
+  converted?: number;
 }
 
 interface LeadStats {
@@ -177,7 +179,7 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
             </IconWrap>
             <div>
               <CardTitle>Leads by Channel</CardTitle>
-              <CardSubtitle>Which channel is actually producing leads — invest where it works</CardSubtitle>
+              <CardSubtitle>Which channel produces leads — and which convert to clients. Invest where it works.</CardSubtitle>
             </div>
           </HeaderLeft>
         </CardHeader>
@@ -191,7 +193,10 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
                 <ChannelTrack>
                   <ChannelFill $pct={topChannelCount ? (c.count / topChannelCount) * 100 : 0} />
                 </ChannelTrack>
-                <ChannelCount>{c.count}</ChannelCount>
+                <ChannelMeta>
+                  <ChannelCount>{c.count}</ChannelCount>
+                  {c.converted ? <ChannelWon>{c.converted} won</ChannelWon> : null}
+                </ChannelMeta>
               </ChannelRow>
             ))}
           </ChannelList>

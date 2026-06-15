@@ -67,9 +67,20 @@ describe('aggregateLeadChannels', () => {
       { tags: ['channel:tiktok'], source: 'social_media' },
     ];
     expect(aggregateLeadChannels(rows)).toEqual([
-      { channel: 'youtube', count: 2 },
-      { channel: 'tiktok', count: 1 },
+      { channel: 'youtube', count: 2, converted: 0 },
+      { channel: 'tiktok', count: 1, converted: 0 },
     ]);
+  });
+
+  it('counts converted leads per channel (which channel produces paying clients)', () => {
+    const rows = [
+      { tags: ['channel:youtube'], status: 'converted' },
+      { tags: ['channel:youtube'], status: 'new' },
+      { tags: ['channel:tiktok'], status: 'converted' },
+    ];
+    const out = aggregateLeadChannels(rows);
+    expect(out.find((c) => c.channel === 'youtube')).toEqual({ channel: 'youtube', count: 2, converted: 1 });
+    expect(out.find((c) => c.channel === 'tiktok').converted).toBe(1);
   });
 
   it('buckets untagged leads by their source enum (friendly labels)', () => {

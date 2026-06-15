@@ -225,13 +225,29 @@ export const ChannelFill = styled.div<{ $pct: number }>`
   background: linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
 `;
 
+export const ChannelMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 36px;
+`;
+
 export const ChannelCount = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 14px;
   font-weight: 800;
   color: var(--accent-primary, #60C0F0);
-  min-width: 28px;
   text-align: right;
+`;
+
+// Converted (paying) count for the channel — the money signal.
+export const ChannelWon = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-gold, #C6A84B);
+  white-space: nowrap;
 `;
 
 export const ChannelEmpty = styled.p`

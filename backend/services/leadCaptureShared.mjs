@@ -116,20 +116,23 @@ export const deriveChannel = ({ utmSource, utmMedium, referrer } = {}) => {
 const CHANNEL_SOURCE_LABEL = { website: 'direct', social_media: 'social', referral: 'referral', gallery: 'gallery', walk_in: 'walk-in', other: 'other' };
 
 /**
- * Roll lead rows ({ tags, source }) into a sorted top-N channel breakdown for the
- * Marketing Command Center. The 'channel:<x>' tag wins; else bucket by source enum.
- * @returns {{channel:string, count:number}[]}
+ * Roll lead rows ({ tags, source, status }) into a sorted top-N channel breakdown
+ * for the Marketing Command Center. The 'channel:<x>' tag wins; else bucket by
+ * source enum. Tracks converted count per channel so the UI can show which channel
+ * produces PAYING clients, not just leads.
+ * @returns {{channel:string, count:number, converted:number}[]}
  */
 export const aggregateLeadChannels = (rows = [], topN = 8) => {
-  const counts = {};
+  const acc = {};
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
     const tag = tags.find((t) => typeof t === 'string' && t.startsWith('channel:'));
     const channel = tag ? tag.slice(8) : (CHANNEL_SOURCE_LABEL[row?.source] || row?.source || 'direct');
-    counts[channel] = (counts[channel] || 0) + 1;
+    if (!acc[channel]) acc[channel] = { channel, count: 0, converted: 0 };
+    acc[channel].count += 1;
+    if (row?.status === 'converted') acc[channel].converted += 1;
   }
-  return Object.entries(counts)
-    .map(([channel, count]) => ({ channel, count }))
+  return Object.values(acc)
     .sort((a, b) => b.count - a.count)
     .slice(0, topN);
 };

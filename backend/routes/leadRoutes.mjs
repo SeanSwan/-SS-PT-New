@@ -120,7 +120,7 @@ router.get('/stats', async (req, res) => {
 
     // Acquisition-channel breakdown (which channel produces leads). Capped fetch —
     // fine at early-stage volume; move to a JSONB SQL aggregation past the cap.
-    const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source'], limit: 5000 });
+    const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source', 'status'], limit: 5000 });
     const byChannel = aggregateLeadChannels(channelRows);
 
     return res.json({
