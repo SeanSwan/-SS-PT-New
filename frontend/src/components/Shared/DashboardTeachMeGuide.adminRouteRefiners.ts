@@ -10,6 +10,7 @@ import {
   adminTrustAndAccess,
 } from './DashboardTeachMeGuide.adminCareRefiners';
 import { adminEngagementSystems } from './DashboardTeachMeGuide.adminEngagementRefiners';
+import { adminScheduleControl } from './DashboardTeachMeGuide.adminScheduleRefiners';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
 const adminMoneyPath = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -144,26 +145,6 @@ const adminCoachCommandTerminal = (base: DashboardTeachMeGuideCopy) => applyPatc
   primaryPrompt: 'teach me the admin Coach command terminal workflow for client and owner workout actions',
 });
 
-const adminScheduleControl = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  eyebrow: 'Teach the schedule loop',
-  title: 'Admin schedule control',
-  summary: 'Use schedule routes to connect booked time, trainer assignment, session credits, and client follow-up.',
-  focus: 'Check the appointment, trainer, client, and credit state together so scheduling does not drift from billing truth.',
-  primaryAction: { label: 'Review Sessions', to: '/dashboard/admin/admin-sessions' },
-  fastPath: [
-    'Find the booked session.',
-    'Confirm trainer, client, and credit state.',
-    'Adjust schedule or allocation.',
-  ],
-  actions: [
-    { label: 'Sessions', to: '/dashboard/admin/admin-sessions' },
-    { label: 'Master Schedule', to: '/dashboard/admin/master-schedule' },
-    { label: 'Session Allocation', to: '/dashboard/admin/session-allocation' },
-    { label: 'Client Hub', to: '/dashboard/admin/client-management' },
-  ],
-  primaryPrompt: 'teach me the admin schedule workflow',
-});
-
 const adminGrowthLoop = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   eyebrow: 'Teach growth operations',
   title: 'Admin growth loop',
@@ -269,7 +250,7 @@ export const refineAdminGuide = (
     return adminEngagementSystems(path, base);
   }
   if (includesAny(path, ['admin-sessions', 'master-schedule', 'session-allocation'])) {
-    return adminScheduleControl(base);
+    return adminScheduleControl(path, base);
   }
   if (includesAny(path, ['marketing', 'content', 'badge-creator', 'automation'])) {
     return adminGrowthLoop(base);
