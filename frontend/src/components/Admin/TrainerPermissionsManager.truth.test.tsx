@@ -166,6 +166,27 @@ describe('TrainerPermissionsManager active admin contract', () => {
     expect(mockToast.error).toHaveBeenCalledWith('Failed to apply template');
   });
 
+  it('applies the New Trainer template from a one-click header command', async () => {
+    render(<TrainerPermissionsManager />);
+
+    expect(await screen.findByText('Rowan Vale')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', {
+      name: /select rowan vale for bulk operations/i,
+    }));
+    fireEvent.click(screen.getByRole('button', {
+      name: /apply new trainer template to selected trainers/i,
+    }));
+
+    await waitFor(() => {
+      expect(mockTrainerPermissionService.grantPermission).toHaveBeenCalledWith({
+        trainerId: 102,
+        permissionType: 'view_progress',
+        notes: 'Applied template: New Trainer',
+      });
+    });
+    expect(mockToast.success).toHaveBeenCalledWith('Template "New Trainer" applied to 1 trainer(s)');
+  });
+
   it('revokes permissions outside the template only after missing grants succeed', async () => {
     mockTrainerPermissionService.getTrainerPermissions.mockImplementation(async (trainerId: number) => {
       if (Number(trainerId) === 101) {

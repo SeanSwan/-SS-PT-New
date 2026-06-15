@@ -97,6 +97,17 @@ export const TrainerPermissionsHeader: React.FC<TrainerPermissionsHeaderProps> =
           Apply Template
         </Button>
 
+        <Button
+          variant="success"
+          onClick={() => applyTemplate('new_trainer', Array.from(selectedTrainers))}
+          disabled={selectedTrainers.size === 0 || bulkProcessing}
+          aria-label="Apply New Trainer template to selected trainers"
+          title="Apply New Trainer template to selected trainers"
+        >
+          <Award size={16} />
+          New Trainer
+        </Button>
+
         <RequestsButtonWrap>
           <Button
             variant={permissionRequests.length > 0 ? 'warning' : 'secondary'}
