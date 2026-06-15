@@ -1,8 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Clock3, GitBranch, ShieldCheck } from 'lucide-react';
 import TeachMeToggle from '../../../Shared/TeachMeToggle';
-import { Helper, HelperRail } from './CoachIntakeWorkspaceHelper.styles';
 
 interface CoachIntakeTeachMeProps {
   onCommandPrompt: (message: string) => void;
@@ -58,11 +56,6 @@ export function CoachIntakeTeachMe({ onCommandPrompt }: CoachIntakeTeachMeProps)
         onAskAI={askCoach}
         defaultOpen={false}
       />
-      <HelperRail>
-        <Helper><Clock3 size={16} aria-hidden="true" /> First click: Review next intake. Do not hunt through filters.</Helper>
-        <Helper><GitBranch size={16} aria-hidden="true" /> Clean client, date, duplicate, and audio order before a draft.</Helper>
-        <Helper><ShieldCheck size={16} aria-hidden="true" /> Approve, reject, or hold from the review panel. No silent writes.</Helper>
-      </HelperRail>
     </Shell>
   );
 }

@@ -27,7 +27,6 @@ import CoachIntakeSummaryStats from './CoachIntakeSummaryStats';
 import { useCoachIntakeAudioOrderConfirmation } from './hooks/useCoachIntakeAudioOrderConfirmation';
 import { useCoachIntakeScopeUrlSync } from './hooks/useCoachIntakeScopeUrlSync';
 import {
-  Grid,
   IntakeSnapshot,
   ItemCard,
   ItemList,
@@ -238,39 +237,35 @@ export function CoachIntakeWorkspace({
         />
       ) : null}
 
-      <Grid>
-        <ItemList aria-label="Coach intake work queue" aria-live="polite">
-          <CoachIntakeQueueScopeTabs
-            activeScope={queue.scope}
-            summary={summary}
-            onScopeChange={handleScopeChange}
-          />
-          {isLoading ? (
-            <ItemCard><ItemTitle><strong>Loading intake queue</strong><span>Checking Coach, PLAUD, and voice work items.</span></ItemTitle></ItemCard>
-          ) : error ? (
-            <ItemCard role="alert">
-              <ItemTitle><strong>Queue unavailable</strong><span>{safeQueueLoadFailure()}</span></ItemTitle>
-              <SourceChip><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
-            </ItemCard>
-          ) : orderedItems.length === 0 ? (
-            <CoachIntakeQueueEmptyState scope={queue.scope} />
-          ) : orderedItems.map((item) => {
-            const active = activeItem?.id === item.id;
-            return (
-              <CoachIntakeQueueItemCard
-                key={item.id}
-                item={item}
-                active={active}
-                coachWorkspaceHref={coachWorkspaceHref}
-                onCommandPrompt={onCommandPrompt}
-                queueScope={queue.scope}
-              />
-            );
-          })}
-        </ItemList>
-
-        <CoachIntakeSummaryStats summary={summary} />
-      </Grid>
+      <ItemList aria-label="Coach intake work queue" aria-live="polite">
+        <CoachIntakeQueueScopeTabs
+          activeScope={queue.scope}
+          summary={summary}
+          onScopeChange={handleScopeChange}
+        />
+        {isLoading ? (
+          <ItemCard><ItemTitle><strong>Loading intake queue</strong><span>Checking Coach, PLAUD, and voice work items.</span></ItemTitle></ItemCard>
+        ) : error ? (
+          <ItemCard role="alert">
+            <ItemTitle><strong>Queue unavailable</strong><span>{safeQueueLoadFailure()}</span></ItemTitle>
+            <SourceChip><AlertTriangle size={12} aria-hidden="true" /> Check</SourceChip>
+          </ItemCard>
+        ) : orderedItems.length === 0 ? (
+          <CoachIntakeQueueEmptyState scope={queue.scope} />
+        ) : orderedItems.map((item) => {
+          const active = activeItem?.id === item.id;
+          return (
+            <CoachIntakeQueueItemCard
+              key={item.id}
+              item={item}
+              active={active}
+              coachWorkspaceHref={coachWorkspaceHref}
+              onCommandPrompt={onCommandPrompt}
+              queueScope={queue.scope}
+            />
+          );
+        })}
+      </ItemList>
 
       <CoachIntakeHealthStrip
         health={queue.health}

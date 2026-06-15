@@ -23,6 +23,7 @@ interface DossierActionRailProps {
   confirmAudioOrderStatus: string | null;
   isConfirmingAudioOrder: boolean;
   item: CoachIntakeItem;
+  nextActionId: string;
   onAskCoach: () => void;
   onConfirmAudioOrder: () => void;
   onInspectAudio: () => void;
@@ -43,24 +44,26 @@ const AudioOrderNotice: React.FC<{ status: string | null }> = ({ status }) => {
 const ConfirmAudioOrderAction: React.FC<{
   busy: boolean;
   onClick: () => void;
+  primary: boolean;
   visible: boolean;
-}> = ({ busy, onClick, visible }) => {
+}> = ({ busy, onClick, primary, visible }) => {
   if (!visible) return null;
   return (
-    <ActionButton type="button" onClick={onClick} disabled={busy} data-coach-active-action="confirm-audio">
+    <ActionButton type="button" onClick={onClick} disabled={busy} $primary={primary} data-coach-active-action="confirm-audio">
       <CheckCircle2 size={16} aria-hidden="true" />
       {busy ? 'Confirming order...' : 'Confirm audio order'}
     </ActionButton>
   );
 };
 
-const ReviewDraftAction: React.FC<{ onClick: () => void; visible: boolean }> = ({
+const ReviewDraftAction: React.FC<{ onClick: () => void; primary: boolean; visible: boolean }> = ({
   onClick,
+  primary,
   visible,
 }) => {
   if (!visible) return null;
   return (
-    <ActionButton type="button" onClick={onClick} $primary data-coach-active-action="review-draft">
+    <ActionButton type="button" onClick={onClick} $primary={primary} data-coach-active-action="review-draft">
       <Eye size={16} aria-hidden="true" />
       Review prepared draft
     </ActionButton>
@@ -70,24 +73,26 @@ const ReviewDraftAction: React.FC<{ onClick: () => void; visible: boolean }> = (
 const PrepareDraftAction: React.FC<{
   item: CoachIntakeItem;
   onClick: () => void;
+  primary: boolean;
   visible: boolean;
-}> = ({ item, onClick, visible }) => {
+}> = ({ item, onClick, primary, visible }) => {
   if (!visible) return null;
   return (
-    <ActionButton type="button" onClick={onClick} data-coach-active-action="prepare-draft">
+    <ActionButton type="button" onClick={onClick} $primary={primary} data-coach-active-action="prepare-draft">
       <ListChecks size={16} aria-hidden="true" />
       {item.latestProposalId ? 'Prepare updated draft review' : 'Prepare draft review'}
     </ActionButton>
   );
 };
 
-const InspectAudioAction: React.FC<{ onClick: () => void; visible: boolean }> = ({
+const InspectAudioAction: React.FC<{ onClick: () => void; primary: boolean; visible: boolean }> = ({
   onClick,
+  primary,
   visible,
 }) => {
   if (!visible) return null;
   return (
-    <ActionButton type="button" onClick={onClick} data-coach-active-action="inspect-audio">
+    <ActionButton type="button" onClick={onClick} $primary={primary} data-coach-active-action="inspect-audio">
       <GitBranch size={16} aria-hidden="true" />
       Inspect intake audio
     </ActionButton>
@@ -99,6 +104,7 @@ export const DossierActionRail: React.FC<DossierActionRailProps> = ({
   confirmAudioOrderStatus,
   isConfirmingAudioOrder,
   item,
+  nextActionId,
   onAskCoach,
   onConfirmAudioOrder,
   onInspectAudio,
@@ -109,34 +115,78 @@ export const DossierActionRail: React.FC<DossierActionRailProps> = ({
   showInspectAudio,
   showPrepareDraftReview,
   showReviewPreparedDraft,
-}) => (
-  <TargetActions>
-    <AudioOrderNotice status={confirmAudioOrderStatus} />
-    <ActionButton type="button" onClick={onAskCoach} data-coach-active-action="ask-coach">
-      <Brain size={16} aria-hidden="true" />
-      {askCoachLabel}
-    </ActionButton>
-    <ConfirmAudioOrderAction
-      busy={isConfirmingAudioOrder}
-      onClick={onConfirmAudioOrder}
-      visible={showConfirmAudioOrder}
-    />
-    <ReviewDraftAction
-      onClick={onReviewPreparedDraft}
-      visible={showReviewPreparedDraft}
-    />
-    <PrepareDraftAction
-      item={item}
-      onClick={onPrepareDraftReview}
-      visible={showPrepareDraftReview}
-    />
-    <InspectAudioAction
-      onClick={onInspectAudio}
-      visible={showInspectAudio}
-    />
-    <WorkspaceLink to={reviewHref} data-coach-active-action="open-target">
-      <ListChecks size={16} aria-hidden="true" />
-      Open target
-    </WorkspaceLink>
-  </TargetActions>
-);
+}) => {
+  const actionNodes = [
+    {
+      id: 'ask-coach',
+      node: (
+        <ActionButton type="button" onClick={onAskCoach} $primary={nextActionId === 'ask-coach'} data-coach-active-action="ask-coach">
+          <Brain size={16} aria-hidden="true" />
+          {askCoachLabel}
+        </ActionButton>
+      ),
+    },
+    {
+      id: 'confirm-audio',
+      node: (
+        <ConfirmAudioOrderAction
+          busy={isConfirmingAudioOrder}
+          onClick={onConfirmAudioOrder}
+          primary={nextActionId === 'confirm-audio'}
+          visible={showConfirmAudioOrder}
+        />
+      ),
+    },
+    {
+      id: 'review-draft',
+      node: (
+        <ReviewDraftAction
+          onClick={onReviewPreparedDraft}
+          primary={nextActionId === 'review-draft'}
+          visible={showReviewPreparedDraft}
+        />
+      ),
+    },
+    {
+      id: 'prepare-draft',
+      node: (
+        <PrepareDraftAction
+          item={item}
+          onClick={onPrepareDraftReview}
+          primary={nextActionId === 'prepare-draft'}
+          visible={showPrepareDraftReview}
+        />
+      ),
+    },
+    {
+      id: 'inspect-audio',
+      node: (
+        <InspectAudioAction
+          onClick={onInspectAudio}
+          primary={nextActionId === 'inspect-audio'}
+          visible={showInspectAudio}
+        />
+      ),
+    },
+    {
+      id: 'open-target',
+      node: (
+        <WorkspaceLink to={reviewHref} $primary={nextActionId === 'open-target'} data-coach-active-action="open-target">
+          <ListChecks size={16} aria-hidden="true" />
+          Open target
+        </WorkspaceLink>
+      ),
+    },
+  ];
+  const order = [nextActionId, 'review-draft', 'confirm-audio', 'prepare-draft', 'ask-coach', 'inspect-audio', 'open-target'];
+  const ranked = [...actionNodes].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+
+  return (
+    <TargetActions>
+      <AudioOrderNotice status={confirmAudioOrderStatus} />
+      {ranked.map((action) => (
+        <React.Fragment key={action.id}>{action.node}</React.Fragment>
+      ))}
+    </TargetActions>
+  );
+};

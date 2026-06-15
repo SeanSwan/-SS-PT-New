@@ -4,17 +4,6 @@
  */
 import styled from 'styled-components';
 
-export const Grid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(360px, 1.36fr) minmax(220px, 0.64fr);
-  gap: 12px;
-  align-items: start;
-
-  @media (max-width: 980px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
 export const StatGrid = styled.dl`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 124px), 1fr));

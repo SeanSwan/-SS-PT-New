@@ -76,6 +76,7 @@ const CoachIntakeActiveDossier: React.FC<CoachIntakeActiveDossierProps> = ({
         confirmAudioOrderStatus={confirmAudioOrderStatus}
         isConfirmingAudioOrder={isConfirmingAudioOrder}
         item={item}
+        nextActionId={next.actionId}
         onAskCoach={onAskCoach}
         onConfirmAudioOrder={onConfirmAudioOrder}
         onInspectAudio={onInspectAudio}

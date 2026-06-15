@@ -42,13 +42,12 @@ describe('Coach intake responsive contract', () => {
     expect(queueTabs).toMatch(/@media \(max-width:\s*380px\)[\s\S]*grid-template-columns:\s*1fr/);
   });
 
-  it('keeps the work queue before summary stats in the teachable flow', () => {
+  it('keeps the work queue as the only post-snapshot triage rail', () => {
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
-    const summaryIndex = workspace.indexOf('<CoachIntakeSummaryStats summary={summary} />');
 
     expect(queueIndex).toBeGreaterThan(-1);
-    expect(summaryIndex).toBeGreaterThan(-1);
-    expect(queueIndex).toBeLessThan(summaryIndex);
+    expect(workspace).not.toMatch(/<Grid>/);
+    expect(workspace).not.toMatch(/<CoachIntakeSummaryStats summary={summary} \/>/);
   });
 
   it('adds a quick snapshot before the teach guide and work queue', () => {

@@ -23,7 +23,7 @@ function makeQueue() {
 }
 
 describe('CoachIntakeWorkspace quick snapshot', () => {
-  it('puts queue pressure near the top without removing the detailed summary', () => {
+  it('puts queue pressure near the top without repeating the same summary later', () => {
     render(
       <MemoryRouter>
         <CoachIntakeWorkspace
@@ -36,14 +36,13 @@ describe('CoachIntakeWorkspace quick snapshot', () => {
     );
 
     const quickSnapshot = screen.getByLabelText('Coach intake quick snapshot');
-    const detailedSummary = screen.getByLabelText('Coach intake summary');
     const workQueue = screen.getByLabelText('Coach intake work queue');
 
     expect(within(quickSnapshot).getByText('Actionable').closest('div')).toHaveTextContent('2');
     expect(within(quickSnapshot).getByText('Ready').closest('div')).toHaveTextContent('3');
     expect(within(quickSnapshot).getByText('Needs client').closest('div')).toHaveTextContent('4');
     expect(within(quickSnapshot).getByText('Failed').closest('div')).toHaveTextContent('1');
-    expect(workQueue.compareDocumentPosition(detailedSummary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByLabelText('Coach intake summary')).toBeNull();
     expect(quickSnapshot.compareDocumentPosition(workQueue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

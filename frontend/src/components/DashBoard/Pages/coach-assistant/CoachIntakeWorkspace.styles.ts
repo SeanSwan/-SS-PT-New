@@ -271,7 +271,6 @@ export const WorkspaceLink = styled(Link)<{ $primary?: boolean }>`
 
 export {
   ChipColumn,
-  Grid,
   ItemCard,
   ItemList,
   ItemTitle,
