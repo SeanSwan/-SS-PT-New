@@ -201,7 +201,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     await user.click(logWorkoutButton);
     await user.click(progressButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/progress');
   });
 

@@ -126,7 +126,7 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
         </div>
 
         <HeroActions>
-          <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/log-workout')}>
+          <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}>
             <Dumbbell size={17} aria-hidden="true" />
             Log Workout
           </PrimaryButton>

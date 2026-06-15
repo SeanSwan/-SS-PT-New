@@ -22,6 +22,9 @@ describe('ClientObservatoryFeed XP receipt', () => {
       'Ask Coach',
       'Book Session',
     ]);
+    expect(QUICK_ACTIONS.find((action) => action.label === 'Log Workout')?.path).toBe(
+      '/dashboard/client/log-workout?loadPlan=today'
+    );
     expect(QUICK_ACTIONS.find((action) => action.label === 'Ask Coach')?.path).toBe(
       CLIENT_OVERVIEW_COACH_PATH
     );

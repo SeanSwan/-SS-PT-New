@@ -133,7 +133,7 @@ export function buildClientOverviewCoachPath(snapshot?: ClientOverviewCoachSnaps
 }
 
 export const QUICK_ACTIONS: QuickAction[] = [
-  { label: 'Log Workout', Icon: Dumbbell, path: '/dashboard/client/log-workout' },
+  { label: 'Log Workout', Icon: Dumbbell, path: '/dashboard/client/log-workout?loadPlan=today' },
   { label: 'Progress', Icon: Flame, path: '/dashboard/client/progress' },
   { label: 'Ask Coach', Icon: MessageCircle, path: CLIENT_OVERVIEW_COACH_PATH },
   { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },

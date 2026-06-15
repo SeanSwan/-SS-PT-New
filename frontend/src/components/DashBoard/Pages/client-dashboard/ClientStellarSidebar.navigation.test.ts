@@ -19,6 +19,12 @@ describe('ClientStellarSidebar navigation priority', () => {
     expect(firstClusterLabels).toEqual(['Home', 'My Progress', 'Log Workout']);
   });
 
+  it('routes primary Log Workout navigation to the today-loaded logger', () => {
+    const logWorkout = clientNavConfig[0].items.find((item) => item.label === 'Log Workout');
+
+    expect(logWorkout?.path).toBe('/dashboard/client/log-workout?loadPlan=today');
+  });
+
   it('keeps workout history directly in the training cluster', () => {
     const trainingLabels = clientNavConfig
       .find((group) => group.section === 'TRAIN')

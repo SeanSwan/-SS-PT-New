@@ -17,7 +17,7 @@ describe('ClientObservatoryHero Coach action', () => {
 
   it('keeps Ask Coach in the primary action pair beside Log Workout', () => {
     const source = readFileSync(sourcePath, 'utf8');
-    const logIndex = source.indexOf("onNavigate('/dashboard/client/log-workout')");
+    const logIndex = source.indexOf("onNavigate('/dashboard/client/log-workout?loadPlan=today')");
     const coachIndex = source.indexOf('onNavigate(coachPath)');
     const progressIndex = source.indexOf("onNavigate('/dashboard/client/progress')");
 
