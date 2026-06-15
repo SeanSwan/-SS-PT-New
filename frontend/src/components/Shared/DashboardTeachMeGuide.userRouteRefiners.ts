@@ -204,6 +204,7 @@ export const refineUserGuide = (
     const primaryAction = { label: 'Open Profile', to: '/user-dashboard/profile' };
     return applyPatch(base, {
       title: 'Profile proof setup',
+      summary: 'Use Profile to keep public identity, proof, and training accountability aligned.',
       focus: 'Use profile changes to support identity and accountability, then return to training proof.',
       primaryAction,
       actions: actionRail(primaryAction, { label: 'Open About', to: '/user-dashboard/about' }),
