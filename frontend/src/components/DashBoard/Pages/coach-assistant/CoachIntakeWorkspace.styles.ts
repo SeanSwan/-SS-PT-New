@@ -143,6 +143,8 @@ export {
   ItemCard,
   ItemList,
   ItemTitle,
+  QueueActions,
+  QueueMetaChips,
   SourceChip,
   Stat,
   StatGrid,

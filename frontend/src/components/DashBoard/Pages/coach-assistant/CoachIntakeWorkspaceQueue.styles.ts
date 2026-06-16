@@ -93,11 +93,9 @@ export const ItemTitle = styled.div`
 `;
 
 export const ChipColumn = styled.div`
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
   min-width: 0;
 
   > * {
@@ -105,7 +103,36 @@ export const ChipColumn = styled.div`
   }
 
   @media (max-width: 860px) {
+    justify-items: stretch;
+  }
+`;
+
+export const QueueMetaChips = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+
+  @media (max-width: 860px) {
     justify-content: flex-start;
+  }
+`;
+
+export const QueueActions = styled.div`
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+  min-width: min(100%, 310px);
+  width: min(100%, 420px);
+
+  > * {
+    min-width: 0;
+  }
+
+  @media (max-width: 860px) {
+    width: 100%;
   }
 `;
 

@@ -9,7 +9,7 @@ import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
 import { safeActionableGate, safeAudioConfidenceLabel, safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
-import { ActionButton, ChipColumn, ItemCard, ItemTitle, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
+import { ActionButton, ChipColumn, ItemCard, ItemTitle, QueueActions, QueueMetaChips, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
 import {
   activeCoachActionPrompt,
@@ -59,20 +59,23 @@ export function CoachIntakeQueueItemCard({
         <span>{itemMeta(item)}</span>
       </ItemTitle>
       <ChipColumn>
-        <SourceChip>{itemSourceLabel(item)}</SourceChip>
-        {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
-        {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
-        {nextActionLabel && onCommandPrompt ? (
-          <ActionButton type="button" onClick={() => onCommandPrompt(activeCoachActionPrompt(item))}>
-            <Brain size={14} aria-hidden="true" />
-            {nextActionLabel}
-          </ActionButton>
-        ) : nextActionLabel ? (
-          <SourceChip $tone="purple">{nextActionLabel}</SourceChip>
-        ) : null}
-        <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${displayTitle}`}>
-          Review
-        </WorkspaceLink>
+        <QueueMetaChips aria-label="Queue item signals">
+          <SourceChip>{itemSourceLabel(item)}</SourceChip>
+          {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
+          {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
+          {nextActionLabel && !onCommandPrompt ? <SourceChip $tone="purple">{nextActionLabel}</SourceChip> : null}
+        </QueueMetaChips>
+        <QueueActions aria-label="Queue item next actions">
+          <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${displayTitle}`} $primary>
+            Review
+          </WorkspaceLink>
+          {nextActionLabel && onCommandPrompt ? (
+            <ActionButton type="button" onClick={() => onCommandPrompt(activeCoachActionPrompt(item))}>
+              <Brain size={14} aria-hidden="true" />
+              {nextActionLabel}
+            </ActionButton>
+          ) : null}
+        </QueueActions>
       </ChipColumn>
       {item.holdReason && holdReasonLabel ? (
         <QueueHoldReasonPreview aria-label="Hold reason preview">
