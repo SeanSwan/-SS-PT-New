@@ -30,6 +30,18 @@ export const EQUIPMENT_OPTIONS = [
   'BOSU Ball',
 ];
 
+export const TRAINER_SESSION_ASSIGNMENT_DEFAULTS = {
+  defaultAssignmentType: 'trainer_session',
+  billingIntent: 'trainer_led_scheduled_flow',
+  shouldDeductSession: false,
+} as const;
+
+export const TRAINER_SESSION_PLAN_METADATA = {
+  assignmentDefault: 'trainer_session',
+  billingIntent: 'trainer_led_scheduled_flow',
+  defaultShouldDeductSession: false,
+} as const;
+
 export type TrainerClient = TrainerClientOption;
 
 export type ManualExercise = {
@@ -42,7 +54,19 @@ export type ManualExercise = {
   equipment: string;
 };
 
+export type SavedTrainerForgePlan = {
+  clientId: number;
+  clientName: string;
+  title: string;
+};
+
 export const buildExerciseId = (index: number) => `manual-exercise-${Date.now()}-${index}`;
+
+export const buildTrainerForgeLoggerPath = (clientId: number) =>
+  `/dashboard/trainer/log-workout?clientId=${clientId}&loadPlan=today&source=workout-forge`;
+
+export const buildTrainerForgePlannerPath = (clientId: number) =>
+  `/dashboard/trainer/workout-planner?clientId=${clientId}&source=workout-forge`;
 
 export const parseTrainerForgeClientId = (value: string | number | null | undefined): number | null => {
   if (typeof value === 'number') {

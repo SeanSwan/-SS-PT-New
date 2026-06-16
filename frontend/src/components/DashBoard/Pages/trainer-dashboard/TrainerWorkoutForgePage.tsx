@@ -12,58 +12,36 @@
  * - WorkoutCopilotPanel for AI generation and approval flow.
  */
 import React, { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Zap, Plus, Sparkles, Save, User, Dumbbell, Target, Trash2 } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import WorkoutCopilotPanel from '../admin-clients/components/WorkoutCopilotPanel';
 import TrainerWorkoutForgeClientSelect from './TrainerWorkoutForgeClientSelect';
+import TrainerWorkoutForgeManualBuilder from './TrainerWorkoutForgeManualBuilder';
+import TrainerWorkoutForgeNextActions from './TrainerWorkoutForgeNextActions';
 import useTrainerForgeClients from './useTrainerForgeClients';
 import {
-  ActionBtn,
-  ButtonRow,
   Card,
-  CardTitle,
-  Chip,
-  ChipRow,
   EmptyState,
-  ExerciseArea,
-  ExerciseGrid,
-  ExerciseRow,
-  FieldRow,
-  HelperCopy,
-  Input,
-  Label,
   PageWrapper,
-  PhaseCard,
-  PhaseDetails,
-  PhaseGrid,
-  PhaseName,
-  PhaseNum,
-  RemoveExerciseBtn,
   Title,
 } from './TrainerWorkoutForgePage.styles';
 import {
-  EQUIPMENT_OPTIONS,
   OPT_PHASES,
   buildExerciseId,
+  buildTrainerForgeLoggerPath,
+  buildTrainerForgePlannerPath,
   parseTrainerForgeClientId,
+  TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
+  TRAINER_SESSION_PLAN_METADATA,
   type ManualExercise,
+  type SavedTrainerForgePlan,
 } from './TrainerWorkoutForgePage.data';
-
-const TRAINER_SESSION_ASSIGNMENT_DEFAULTS = {
-  defaultAssignmentType: 'trainer_session',
-  billingIntent: 'trainer_led_scheduled_flow',
-  shouldDeductSession: false,
-} as const;
-
-const TRAINER_SESSION_PLAN_METADATA = {
-  assignmentDefault: 'trainer_session',
-  billingIntent: 'trainer_led_scheduled_flow',
-  defaultShouldDeductSession: false,
-} as const;
 
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios, user } = useAuth();
+  const navigate = useNavigate();
   const clients = useTrainerForgeClients(authAxios, user);
   const [clientId, setClientId] = useState('');
   const [optPhase, setOptPhase] = useState(1);
@@ -74,6 +52,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
   const [exercises, setExercises] = useState<ManualExercise[]>([]);
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lastSavedPlan, setLastSavedPlan] = useState<SavedTrainerForgePlan | null>(null);
 
   const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
   const selectedClient = useMemo(
@@ -81,6 +60,11 @@ const TrainerWorkoutForgePage: React.FC = () => {
     [clientId, clients],
   );
   const parsedClientId = parseTrainerForgeClientId(clientId);
+
+  const handleClientChange = useCallback((nextClientId: string) => {
+    setClientId(nextClientId);
+    setLastSavedPlan(null);
+  }, []);
 
   const toggleEquipment = useCallback((eq: string) => {
     setEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
@@ -175,6 +159,11 @@ const TrainerWorkoutForgePage: React.FC = () => {
     setSaving(true);
     try {
       await authAxios.post('/api/workout-plans', buildPlanPayload(parsedClientId));
+      setLastSavedPlan({
+        clientId: parsedClientId,
+        clientName: selectedClient.name,
+        title: workoutTitle.trim(),
+      });
       toast.success(`Draft plan saved for ${selectedClient.name}.`);
     } catch {
       toast.error('Unable to save this draft plan. Check the client assignment and try again.');
@@ -182,6 +171,16 @@ const TrainerWorkoutForgePage: React.FC = () => {
       setSaving(false);
     }
   }, [authAxios, buildPlanPayload, exercises, parsedClientId, selectedClient, workoutTitle]);
+
+  const handleLogSavedPlanToday = useCallback(() => {
+    if (!lastSavedPlan) return;
+    navigate(buildTrainerForgeLoggerPath(lastSavedPlan.clientId));
+  }, [lastSavedPlan, navigate]);
+
+  const handleOpenSavedPlanInPlanner = useCallback(() => {
+    if (!lastSavedPlan) return;
+    navigate(buildTrainerForgePlannerPath(lastSavedPlan.clientId));
+  }, [lastSavedPlan, navigate]);
 
   if (!clientId) {
     return (
@@ -192,7 +191,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
             label="Select a Client"
             clientId={clientId}
             clients={clients}
-            onChange={setClientId}
+            onChange={handleClientChange}
           />
         </Card>
         <EmptyState>Select a client to generate a personalized workout plan.</EmptyState>
@@ -209,90 +208,37 @@ const TrainerWorkoutForgePage: React.FC = () => {
           label="Client"
           clientId={clientId}
           clients={clients}
-          onChange={setClientId}
+          onChange={handleClientChange}
         />
       </Card>
 
-      <Card>
-        <CardTitle><Target size={18} /> NASM OPT Phase</CardTitle>
-        <PhaseGrid>
-          {OPT_PHASES.map(p => (
-            <PhaseCard key={p.phase} $active={optPhase === p.phase} onClick={() => setOptPhase(p.phase)}>
-              <PhaseNum>Phase {p.phase}</PhaseNum>
-              <PhaseName>{p.name}</PhaseName>
-            </PhaseCard>
-          ))}
-        </PhaseGrid>
-        <PhaseDetails>
-          <div>Reps: <span>{activePhase.reps}</span></div>
-          <div>Sets: <span>{activePhase.sets}</span></div>
-          <div>Tempo: <span>{activePhase.tempo}</span></div>
-          <div>Rest: <span>{activePhase.rest}</span></div>
-        </PhaseDetails>
-      </Card>
+      <TrainerWorkoutForgeManualBuilder
+        optPhase={optPhase}
+        workoutTitle={workoutTitle}
+        duration={duration}
+        goal={goal}
+        equipment={equipment}
+        exercises={exercises}
+        saving={saving}
+        onOptPhaseChange={setOptPhase}
+        onWorkoutTitleChange={setWorkoutTitle}
+        onDurationChange={setDuration}
+        onGoalChange={setGoal}
+        onToggleEquipment={toggleEquipment}
+        onAddExercise={handleAddExercise}
+        onUpdateExercise={updateExercise}
+        onRemoveExercise={removeExercise}
+        onOpenCopilot={() => setCopilotOpen(true)}
+        onSavePlan={handleSavePlan}
+      />
 
-      <Card>
-        <CardTitle><Dumbbell size={18} /> Workout Template</CardTitle>
-        <Label htmlFor="trainer-forge-title">Title</Label>
-        <Input id="trainer-forge-title" placeholder="e.g. Upper Body Push - Phase 2" value={workoutTitle} onChange={e => setWorkoutTitle(e.target.value)} />
-        <FieldRow>
-          <div>
-            <Label htmlFor="trainer-forge-duration">Duration (min)</Label>
-            <Input id="trainer-forge-duration" type="number" value={duration} onChange={e => setDuration(e.target.value)} />
-          </div>
-          <div>
-            <Label htmlFor="trainer-forge-goal">Goal</Label>
-            <Input id="trainer-forge-goal" placeholder="e.g. Strength endurance" value={goal} onChange={e => setGoal(e.target.value)} />
-          </div>
-        </FieldRow>
-        <Label>Equipment</Label>
-        <ChipRow>
-          {EQUIPMENT_OPTIONS.map(eq => (
-            <Chip key={eq} $active={equipment.includes(eq)} onClick={() => toggleEquipment(eq)}>{eq}</Chip>
-          ))}
-        </ChipRow>
-      </Card>
-
-      <Card>
-        <CardTitle><User size={18} /> Exercises</CardTitle>
-        {exercises.length === 0 ? (
-          <ExerciseArea>No exercises added yet. Add a manual row or use Swan Coach.</ExerciseArea>
-        ) : (
-          <ExerciseGrid>
-            {exercises.map((exercise, index) => (
-              <ExerciseRow key={exercise.id}>
-                <div>
-                  <Label htmlFor={`${exercise.id}-name`}>Exercise {index + 1} Name</Label>
-                  <Input id={`${exercise.id}-name`} value={exercise.name} onChange={e => updateExercise(exercise.id, 'name', e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor={`${exercise.id}-sets`}>Sets</Label>
-                  <Input id={`${exercise.id}-sets`} value={exercise.sets} onChange={e => updateExercise(exercise.id, 'sets', e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor={`${exercise.id}-reps`}>Reps</Label>
-                  <Input id={`${exercise.id}-reps`} value={exercise.reps} onChange={e => updateExercise(exercise.id, 'reps', e.target.value)} />
-                </div>
-                <RemoveExerciseBtn onClick={() => removeExercise(exercise.id)} aria-label={`Remove exercise ${index + 1}`}>
-                  <Trash2 size={16} />
-                </RemoveExerciseBtn>
-              </ExerciseRow>
-            ))}
-          </ExerciseGrid>
-        )}
-        <ButtonRow>
-          <ActionBtn $variant="secondary" onClick={handleAddExercise}>
-            <Plus size={18} /> Add Exercise
-          </ActionBtn>
-          <ActionBtn onClick={() => setCopilotOpen(true)}>
-            <Sparkles size={18} /> Swan Coach Planning
-          </ActionBtn>
-          <ActionBtn $variant="secondary" onClick={handleSavePlan} disabled={saving}>
-            <Save size={18} /> {saving ? 'Saving...' : 'Save Draft Plan'}
-          </ActionBtn>
-        </ButtonRow>
-        <HelperCopy>Manual drafts save as trainer-reviewable plans. Swan Coach opens the existing review workflow.</HelperCopy>
-      </Card>
+      {lastSavedPlan && (
+        <TrainerWorkoutForgeNextActions
+          savedPlan={lastSavedPlan}
+          onLogToday={handleLogSavedPlanToday}
+          onOpenPlanner={handleOpenSavedPlanInPlanner}
+        />
+      )}
 
       {selectedClient && parsedClientId !== null && (
         <WorkoutCopilotPanel
@@ -303,6 +249,11 @@ const TrainerWorkoutForgePage: React.FC = () => {
           autoGenerate
           onSuccess={() => {
             setCopilotOpen(false);
+            setLastSavedPlan({
+              clientId: parsedClientId,
+              clientName: selectedClient.name,
+              title: 'Swan Coach Plan',
+            });
             toast.success(`Swan Coach plan saved for ${selectedClient.name}.`);
           }}
         />
