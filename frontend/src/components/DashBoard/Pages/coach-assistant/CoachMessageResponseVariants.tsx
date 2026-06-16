@@ -33,12 +33,18 @@ function CoachMessageResponseVariants({
   preferredResponseStyle,
 }: CoachMessageResponseVariantsProps) {
   const formatted = useMemo(() => formatCommandLogBody(content), [content]);
+  const preferredVariantKey = getResponseStyleVariantKey(preferredResponseStyle);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>(
-    () => getResponseStyleVariantKey(preferredResponseStyle),
+    () => preferredVariantKey,
   );
   const variants = formatted.variants || [];
   const selectedVariant = variants.find((variant) => variant.key === activeVariant) || variants[0];
   const visibleText = selectedVariant ? formattedLogBodyToPlainText(selectedVariant.body) : null;
+
+  useEffect(() => {
+    if (!variants.some((variant) => variant.key === preferredVariantKey)) return;
+    setActiveVariant(preferredVariantKey);
+  }, [preferredVariantKey, variants]);
 
   useEffect(() => {
     onVisibleTextChange?.(visibleText);
