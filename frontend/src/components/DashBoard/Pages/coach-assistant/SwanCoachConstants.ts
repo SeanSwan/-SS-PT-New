@@ -11,16 +11,16 @@ import type { ResponseStyleOption, ContextChip } from './SwanCoachTypes';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Response Styles
-// PURPOSE: PhD / Balanced (NEW default) / Keep It 100
+// PURPOSE: Science / Balanced (NEW default) / Keep It 100
 // WHY: AI Village consensus — "balanced" fills the gap between
 //      overly technical and oversimplified responses
 // ─────────────────────────────────────────────────────────────
 export const RESPONSE_STYLES: ResponseStyleOption[] = [
   {
     key: 'phd_only',
-    label: 'PhD Mode',
+    label: 'Science',
     emoji: '🎓',
-    description: 'Expert-level NASM technical detail',
+    description: 'Detailed coaching logic with NASM-level context',
   },
   {
     key: 'balanced',

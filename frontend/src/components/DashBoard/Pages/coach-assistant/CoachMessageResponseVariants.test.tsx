@@ -49,6 +49,24 @@ describe('CoachMessage response style variants', () => {
     expect(screen.getByText(/log the session/i)).toBeInTheDocument();
   });
 
+  it('opens dual-mode answers on Keep It 100 when that response style was selected', () => {
+    render(
+      <CoachMessage
+        message={assistantMessage([
+          'Science: Mechanical tension is the adaptation signal.',
+          '',
+          'Keep it 100: Control the weight, finish clean reps, then go up.',
+        ].join('\n'))}
+        preferredResponseStyle="simple_only"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Science' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Keep It 100' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText(/Mechanical tension is the adaptation signal/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Control the weight/i)).toBeInTheDocument();
+  });
+
   it('copies and reads the visible answer variant instead of the hidden full response', async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);

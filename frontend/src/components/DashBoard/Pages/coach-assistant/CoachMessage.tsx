@@ -22,7 +22,7 @@ import CoachMessageLoggerHandoff from './CoachMessageLoggerHandoff';
 import CoachMessageResponseVariants, {
   getInitialCoachResponseVariantText,
 } from './CoachMessageResponseVariants';
-import type { CoachMessageData } from './SwanCoachTypes';
+import type { CoachMessageData, ResponseStyle } from './SwanCoachTypes';
 import {
   ActionCard,
   CardLabel,
@@ -58,6 +58,7 @@ export function getLegacyClientCreateTypeLabel(clientCreate: LegacyClientCreateR
 interface CoachMessageProps {
   message: CoachMessageData;
   onReadAloud?: (text: string) => void;
+  preferredResponseStyle?: ResponseStyle;
   onConfirmCommand?: (operationId: string) => Promise<{ success: boolean; error?: string }>;
   onCancelCommand?: (operationId: string | null) => Promise<void>;
   onConfirmTranscript?: (messageId: string) => Promise<void>;
@@ -71,6 +72,7 @@ interface CoachMessageProps {
 const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   message,
   onReadAloud,
+  preferredResponseStyle,
   onConfirmCommand,
   onCancelCommand,
   onConfirmTranscript,
@@ -83,7 +85,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   const [copied, setCopied] = React.useState(false);
   const [localApplying, setLocalApplying] = useState(false);
   const [visibleResponseText, setVisibleResponseText] = useState<string | null>(
-    () => getInitialCoachResponseVariantText(message.content),
+    () => getInitialCoachResponseVariantText(message.content, preferredResponseStyle),
   );
   const actionText = visibleResponseText || message.content;
 
@@ -153,6 +155,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
         content={message.content}
         fallback={<MarkdownRenderer content={message.content} />}
         onVisibleTextChange={setVisibleResponseText}
+        preferredResponseStyle={preferredResponseStyle}
       />
       <CoachMessageLoggerHandoff
         text={actionText}

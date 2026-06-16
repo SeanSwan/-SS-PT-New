@@ -258,6 +258,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           onReadAloud={handleReadAloud}
           onSend={handleSend}
           onTranscriptDateChange={handleTranscriptDateChange}
+          responseStyle={coach.responseStyle}
           sending={coach.sending}
           suggestionChips={suggestionChips.chips}
           suggestionChipsVisible={suggestionChips.visible}

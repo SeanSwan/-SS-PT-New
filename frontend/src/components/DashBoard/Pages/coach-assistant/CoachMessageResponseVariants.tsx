@@ -3,16 +3,26 @@ import { CoachFormattedLogContent, formattedLogBodyToPlainText } from './CoachFo
 import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { LogBody, PacketDetails, StyleSwitch } from './CoachCommandLogEntry.styles';
 import type { LogStyleVariantKey } from './CoachCommandLogEntry.types';
+import type { ResponseStyle } from './SwanCoachTypes';
 
 type CoachMessageResponseVariantsProps = {
   content: string;
   fallback: React.ReactNode;
   onVisibleTextChange?: (text: string | null) => void;
+  preferredResponseStyle?: ResponseStyle;
 };
 
-export function getInitialCoachResponseVariantText(content: string): string | null {
+export function getResponseStyleVariantKey(style?: ResponseStyle): LogStyleVariantKey {
+  return style === 'simple_only' ? 'keep100' : 'science';
+}
+
+export function getInitialCoachResponseVariantText(
+  content: string,
+  preferredResponseStyle?: ResponseStyle,
+): string | null {
   const formatted = formatCommandLogBody(content);
-  const selectedVariant = formatted.variants?.[0];
+  const preferredKey = getResponseStyleVariantKey(preferredResponseStyle);
+  const selectedVariant = formatted.variants?.find((variant) => variant.key === preferredKey) || formatted.variants?.[0];
   return selectedVariant ? formattedLogBodyToPlainText(selectedVariant.body) : null;
 }
 
@@ -20,9 +30,12 @@ function CoachMessageResponseVariants({
   content,
   fallback,
   onVisibleTextChange,
+  preferredResponseStyle,
 }: CoachMessageResponseVariantsProps) {
   const formatted = useMemo(() => formatCommandLogBody(content), [content]);
-  const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
+  const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>(
+    () => getResponseStyleVariantKey(preferredResponseStyle),
+  );
   const variants = formatted.variants || [];
   const selectedVariant = variants.find((variant) => variant.key === activeVariant) || variants[0];
   const visibleText = selectedVariant ? formattedLogBodyToPlainText(selectedVariant.body) : null;

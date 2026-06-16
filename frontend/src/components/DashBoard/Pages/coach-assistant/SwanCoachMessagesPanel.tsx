@@ -13,7 +13,7 @@ import CoachSuggestionChips from './CoachSuggestionChips';
 import SuggestedPrompts from './SuggestedPrompts';
 import ThinkingIndicator from './ThinkingIndicator';
 import { MessagesArea } from './SwanCoachStyles';
-import type { CoachContext, CoachMessageData } from './SwanCoachTypes';
+import type { CoachContext, CoachMessageData, ResponseStyle } from './SwanCoachTypes';
 import {
   ErrorBannerAction,
   ErrorBannerActions,
@@ -48,6 +48,7 @@ interface SwanCoachMessagesPanelProps {
   onReadAloud: (text: string) => void;
   onSend: SendMessage;
   onTranscriptDateChange: (messageId: string, nextDate: string) => void;
+  responseStyle: ResponseStyle;
   sending: boolean;
   /** B1a: role-aware next-action chips shown after a Coach reply. */
   suggestionChips: string[];
@@ -73,6 +74,7 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
   onReadAloud,
   onSend,
   onTranscriptDateChange,
+  responseStyle,
   sending,
   suggestionChips,
   suggestionChipsVisible,
@@ -93,6 +95,7 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
         key={message.id}
         message={message}
         onReadAloud={message.role === 'assistant' ? onReadAloud : undefined}
+        preferredResponseStyle={responseStyle}
         onConfirmCommand={onConfirmCommand}
         onCancelCommand={onCancelCommand}
         onConfirmTranscript={onConfirmTranscript}
