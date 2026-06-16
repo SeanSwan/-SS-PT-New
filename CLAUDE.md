@@ -640,6 +640,15 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - Output: `AI-Village-Documentation/gemini-consults/latest.md`
 - **IMPORTANT:** Do NOT use Flash 2.5 or any other model's design vision. Gemini 3.1 Pro creates from scratch.
 
+## AI Collaboration — Fusion Tiers (DEFAULT coding mode, added 2026-06-16)
+> How we work by default. The `fusion-router` skill auto-picks the tier at the start of substantial tasks (like `swan-orchestrator`); `ai-village-fusion` runs it. Tiers 0–2 are **$0** (flat-rate Claude/Codex/Gemini subscriptions); Tier 3 spends OpenRouter credits and is spend-gated (Rule 16). This mechanizes the Rule 46 3-Brain loop and makes the free triangle the everyday default — paid is the exception.
+- **Tier 0 — pair-code** (Claude+Codex, Rule 67): trivial/mechanical work — just do it, no fusion.
+- **Tier 1 — duo fusion** (Claude+Codex via the board): a quick 2-way second opinion.
+- **Tier 2 — TRIANGLE fusion (Claude+Codex+Gemini) = DEFAULT WORKHORSE** for every substantial call (architecture, plan review, "is this right", risky refactor, hard bug). Free. Runs `scripts/fusion-triangle.mjs` (shared-folder polling board, Gemini Pro-first chain). **Proceeds with ≥2 if any agent times out — so if the Gemini API is down it degrades to Claude+Codex automatically; no separate "duo fallback" path is needed.**
+- **Tier 3 — paid AI Village** (`scripts/validation-orchestrator.mjs`, ~13 brains + recursive debates + Opus/Fable synthesis judge): must-be-right / high-stakes ONLY (auth, billing, Stripe, multi-tenant scoping, minors' data, legal, irreversible migration, pre-launch hardening). **ALWAYS ask Sean first (Rule 16)**; spend-gated (`SWAN_VILLAGE_MAX_USD` hard cap, pre-run estimate + confirm, per-model `cost-summary.md`). Used least.
+- Synthesis contract (consensus / contradictions / unique insights / blind spots / fused recommendation) is identical across all fusion tiers — only the brains + cost differ. Final Decider chain (Fable→Opus/Claude→Codex) governs the judge in every tier. Privacy: IDs/roles only (Rule 8); the fusion board is gitignored/local-only. Self-tuning is propose-only.
+- Skills: `.claude/skills/fusion-router/SKILL.md` (tier auto-select + permission gate), `.claude/skills/ai-village-fusion/SKILL.md` (runs the four tiers). Retention: `node scripts/fusion-prune.mjs` (90-day).
+
 ## Git Workflow
 - Deploy: Render auto-deploys from `main` branch
 - Commit: `type(scope): description` (e.g., `fix(schedule): enterprise audit P0 fixes`)
