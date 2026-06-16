@@ -11,13 +11,15 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { leadFindOrCreate, leadActivityCreate } = vi.hoisted(() => ({
+const { leadFindOrCreate, leadActivityCreate, triggerSequence } = vi.hoisted(() => ({
   leadFindOrCreate: vi.fn(),
   leadActivityCreate: vi.fn(),
+  triggerSequence: vi.fn(),
 }));
 
 vi.mock('../models/Lead.mjs', () => ({ default: { findOrCreate: leadFindOrCreate } }));
 vi.mock('../models/LeadActivity.mjs', () => ({ default: { create: leadActivityCreate } }));
+vi.mock('../services/automationService.mjs', () => ({ triggerSequence }));
 
 const {
   captureLeadFromCheckout,
@@ -176,6 +178,45 @@ describe('captureLeadFromContact (Tier 0.2a)', () => {
     expect(defaults.tags).toEqual(expect.arrayContaining(['contact-form', 'channel:youtube']));
     expect(leadActivityCreate.mock.calls[0][0].metadata.channel).toBe('youtube');
     expect(res.created).toBe(true);
+  });
+});
+
+describe('lead-nurture enrollment on capture (slice 4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+    triggerSequence.mockResolvedValue({ success: true, created: 0 });
+  });
+
+  it('enrolls a NEW contact lead in the lead_captured sequence', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 5, score: 0, contactCount: 0, update: vi.fn() }, true]);
+    await captureLeadFromContact({ contact: { id: 1 }, formData: { name: 'Jane Doe', email: 'jane@example.com' } });
+    expect(triggerSequence).toHaveBeenCalledWith('lead_captured', null, { leadId: 5, clientName: 'Jane' });
+  });
+
+  it('enrolls a NEW newsletter lead in the lead_captured sequence', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 0, tags: [], update: vi.fn() }, true]);
+    await captureLeadFromNewsletter({ email: 'sub@example.com', firstName: 'Sam' });
+    expect(triggerSequence).toHaveBeenCalledWith('lead_captured', null, { leadId: 9, clientName: 'Sam' });
+  });
+
+  it('does NOT re-enroll an existing (repeat) lead', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 5, score: 90, contactCount: 1, tags: [], update: vi.fn() }, false]);
+    await captureLeadFromContact({ contact: { id: 2 }, formData: { name: 'Jane', email: 'jane@example.com' } });
+    expect(triggerSequence).not.toHaveBeenCalled();
+  });
+
+  it('is non-blocking: a nurture-enrollment failure does NOT break or mask the capture', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 0, tags: [], update: vi.fn() }, true]);
+    triggerSequence.mockRejectedValue(new Error('automation down'));
+    const res = await captureLeadFromNewsletter({ email: 'sub@example.com', firstName: 'Sam' });
+    expect(res).toEqual({ leadId: 9, created: true });
+  });
+
+  it('defaults clientName to "there" when the captured lead has no first name', async () => {
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 0, tags: [], update: vi.fn() }, true]);
+    await captureLeadFromNewsletter({ email: 'noname@example.com' });
+    expect(triggerSequence).toHaveBeenCalledWith('lead_captured', null, { leadId: 9, clientName: 'there' });
   });
 });
 

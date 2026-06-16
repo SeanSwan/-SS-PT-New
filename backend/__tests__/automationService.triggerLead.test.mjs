@@ -6,8 +6,10 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const { seqFindAll, logBulkCreate, userFindByPk, leadFindByPk } = vi.hoisted(() => ({
+const { seqFindAll, seqFindOrCreate, seqCount, logBulkCreate, userFindByPk, leadFindByPk } = vi.hoisted(() => ({
   seqFindAll: vi.fn(),
+  seqFindOrCreate: vi.fn(),
+  seqCount: vi.fn(),
   logBulkCreate: vi.fn(),
   userFindByPk: vi.fn(),
   leadFindByPk: vi.fn(),
@@ -15,7 +17,7 @@ const { seqFindAll, logBulkCreate, userFindByPk, leadFindByPk } = vi.hoisted(() 
 
 vi.mock('../models/index.mjs', () => ({
   getAllModels: () => ({
-    AutomationSequence: { findAll: seqFindAll },
+    AutomationSequence: { findAll: seqFindAll, findOrCreate: seqFindOrCreate, count: seqCount },
     AutomationLog: { bulkCreate: logBulkCreate },
     User: { findByPk: userFindByPk },
   }),
@@ -26,7 +28,7 @@ vi.mock('../services/automationDecisionService.mjs', () => ({ evaluateScheduledM
 vi.mock('../services/nurtureTestSendService.mjs', () => ({ sendNurtureTestMessage: vi.fn() }));
 vi.mock('../utils/logger.mjs', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
-const { triggerSequence } = await import('../services/automationService.mjs');
+const { triggerSequence, ensureDefaultSequences } = await import('../services/automationService.mjs');
 
 const SEQ = { id: 1, steps: [{ dayOffset: 0, templateName: 'welcome', channel: 'sms' }] };
 
@@ -74,5 +76,34 @@ describe('triggerSequence — lead identity', () => {
     const res = await triggerSequence('unknown_event', null, { leadId: 1 });
     expect(res.created).toBe(0);
     expect(logBulkCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe('ensureDefaultSequences (idempotent ensure-by-name)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    seqCount.mockResolvedValue(4);
+  });
+
+  it('ensures each default by name (findOrCreate per entry), creating only the missing', async () => {
+    // first three already exist; only lead_nurture is new
+    seqFindOrCreate.mockImplementation(async ({ where }) => [{ name: where.name }, where.name === 'lead_nurture']);
+    const res = await ensureDefaultSequences();
+    expect(seqFindOrCreate).toHaveBeenCalledTimes(4); // welcome, post-session, client-nurture, lead-nurture
+    expect(res).toMatchObject({ seeded: true, created: 1, count: 4 });
+  });
+
+  it('seeds the lead_nurture sequence OFF (isActive:false, triggerEvent lead_captured)', async () => {
+    seqFindOrCreate.mockResolvedValue([{}, true]);
+    await ensureDefaultSequences();
+    const leadCall = seqFindOrCreate.mock.calls.find((c) => c[0].where.name === 'lead_nurture');
+    expect(leadCall).toBeTruthy();
+    expect(leadCall[0].defaults).toMatchObject({ triggerEvent: 'lead_captured', isActive: false });
+  });
+
+  it('is idempotent: when every default already exists, creates nothing (no disruption)', async () => {
+    seqFindOrCreate.mockResolvedValue([{}, false]);
+    const res = await ensureDefaultSequences();
+    expect(res).toMatchObject({ seeded: false, created: 0 });
   });
 });

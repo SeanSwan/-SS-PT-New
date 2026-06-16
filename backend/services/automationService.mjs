@@ -35,6 +35,21 @@ const DEFAULT_SEQUENCES = [
       { dayOffset: 3, templateName: 'follow_up_day3', channel: 'sms' },
       { dayOffset: 7, templateName: 'follow_up_day7', channel: 'sms' }
     ]
+  },
+  {
+    // Triggered when a prospect Lead is captured (contact form / confirmed newsletter).
+    // Seeded OFF on purpose: nurture delivers via SMS, which only reaches phone-bearing
+    // leads — email-only prospects need an email-channel sender (not yet built). Until
+    // that lands this stays inactive so capture creates NO undeliverable logs. Sean flips
+    // isActive=true (and arms SWAN_AUTOMATION_CRON_ENABLED) when the channel is deliverable.
+    name: 'lead_nurture',
+    triggerEvent: 'lead_captured',
+    isActive: false,
+    steps: [
+      { dayOffset: 0, templateName: 'welcome', channel: 'sms' },
+      { dayOffset: 3, templateName: 'follow_up_day3', channel: 'sms' },
+      { dayOffset: 7, templateName: 'follow_up_day7', channel: 'sms' }
+    ]
   }
 ];
 
@@ -95,14 +110,18 @@ const resolveFrequencyCap = async (log, { AutomationLog }, now) => {
 
 export const ensureDefaultSequences = async () => {
   const { AutomationSequence } = getModels();
-  const count = await AutomationSequence.count();
 
-  if (count > 0) {
-    return { seeded: false, count };
+  // Idempotent ensure-by-name: create any missing default, leave existing rows (and any
+  // manual isActive/steps edits) untouched. Replaces the old all-or-nothing count gate,
+  // which silently skipped NEW defaults once the table had been seeded once.
+  let created = 0;
+  for (const seq of DEFAULT_SEQUENCES) {
+    const [, wasCreated] = await AutomationSequence.findOrCreate({ where: { name: seq.name }, defaults: seq });
+    if (wasCreated) created += 1;
   }
 
-  await AutomationSequence.bulkCreate(DEFAULT_SEQUENCES);
-  return { seeded: true, count: DEFAULT_SEQUENCES.length };
+  const count = await AutomationSequence.count();
+  return { seeded: created > 0, created, count };
 };
 
 export const triggerSequence = async (eventName, userId, data = {}) => {

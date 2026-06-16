@@ -41,6 +41,23 @@ import {
 import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
 /**
+ * Best-effort: enroll a freshly-captured prospect lead in the lead-nurture sequence
+ * so follow-ups can start once the engine is armed. NEVER throws — a nurture-enrollment
+ * failure must not break OR mask the lead capture (nurture is downstream + non-blocking).
+ * No-op until a 'lead_captured' sequence is active (the seeded one ships isActive:false,
+ * and the cron is default-OFF). Dynamic import keeps leadCaptureService free of a hard
+ * automationService dependency and unit-testable.
+ */
+async function enrollNewLeadInNurture(leadId, firstName) {
+  try {
+    const { triggerSequence } = await import('./automationService.mjs');
+    await triggerSequence('lead_captured', null, { leadId, clientName: firstName || 'there' });
+  } catch {
+    // swallow — the lead capture already succeeded.
+  }
+}
+
+/**
  * Capture a CRM lead from a successful public contact-form submission.
  * This is best-effort and returns a status object instead of throwing.
  *
@@ -103,6 +120,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
       });
     }
 
+    if (created) await enrollNewLeadInNurture(lead.id, firstName);
     return { leadId: lead.id, created };
   } catch (err) {
     return { error: err?.message || 'lead capture failed' };
@@ -251,6 +269,7 @@ export async function captureLeadFromNewsletter({ email, firstName = null, lastN
       });
     }
 
+    if (created) await enrollNewLeadInNurture(lead.id, firstName);
     return { leadId: lead.id, created };
   } catch (err) {
     return { error: err?.message || 'newsletter lead capture failed' };
