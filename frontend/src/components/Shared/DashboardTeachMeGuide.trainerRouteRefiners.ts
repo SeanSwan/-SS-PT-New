@@ -6,6 +6,7 @@
 
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
+import { trainerTrainingSystems } from './DashboardTeachMeGuide.trainerTrainingRefiners';
 
 const trainerTodayCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer today command',
@@ -77,25 +78,6 @@ const trainerClientCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(bas
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
   primaryPrompt: 'teach me the trainer client workflow',
-});
-
-const trainerBuilderFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  title: 'Trainer workout build flow',
-  summary: 'Use builder routes to turn the client goal, equipment, pain signals, and schedule into the next usable workout.',
-  focus: 'Build only after the client context is clear; keep the result connected to logging and progress review.',
-  primaryAction: { label: 'Build Client Workout', to: '/dashboard/trainer/workout-forge' },
-  fastPath: [
-    'Confirm client, goal, and constraints.',
-    'Build or adjust the workout.',
-    'Save it where logging can use it.',
-  ],
-  actions: [
-    { label: 'Workout Forge', to: '/dashboard/trainer/workout-forge' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
-    { label: 'Equipment', to: '/dashboard/trainer/equipment' },
-    { label: 'Bootcamp', to: '/dashboard/trainer/bootcamp' },
-  ],
-  primaryPrompt: 'teach me the trainer workout builder workflow',
 });
 
 const trainerNutritionFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -246,7 +228,7 @@ export const refineTrainerGuide = (
   if (includesAny(path, ['log-workout'])) return trainerWorkoutLogging(base);
   if (includesAny(path, ['clients'])) return trainerClientCommand(base);
   if (includesAny(path, ['workout-forge', 'workout-planner', 'bootcamp', 'equipment'])) {
-    return trainerBuilderFlow(base);
+    return trainerTrainingSystems(path, base);
   }
   if (includesAny(path, ['meal-planner', 'nutrition'])) return trainerNutritionFlow(base);
   if (includesAny(path, ['sprint-planner'])) return trainerSprintPlanning(base);
