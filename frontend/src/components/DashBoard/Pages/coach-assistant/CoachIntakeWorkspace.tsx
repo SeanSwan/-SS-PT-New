@@ -237,6 +237,8 @@ export function CoachIntakeWorkspace({
         />
       ) : null}
 
+      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
+
       <ItemList aria-label="Coach intake work queue" aria-live="polite">
         <CoachIntakeQueueScopeTabs
           activeScope={queue.scope}
@@ -274,8 +276,6 @@ export function CoachIntakeWorkspace({
         onCommandPrompt={onCommandPrompt}
         onScopeChange={handleScopeChange}
       />
-
-      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
     </Panel>
   );
 }

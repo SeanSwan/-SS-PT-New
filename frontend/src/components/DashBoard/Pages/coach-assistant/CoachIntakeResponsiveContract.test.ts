@@ -75,6 +75,7 @@ describe('Coach intake responsive contract', () => {
     expect(healthIndex).toBeGreaterThan(-1);
     expect(queueIndex).toBeGreaterThan(-1);
     expect(activeTargetIndex).toBeLessThan(teachIndex);
+    expect(teachIndex).toBeLessThan(queueIndex);
     expect(activeTargetIndex).toBeLessThan(healthIndex);
     expect(activeTargetIndex).toBeLessThan(queueIndex);
   });
