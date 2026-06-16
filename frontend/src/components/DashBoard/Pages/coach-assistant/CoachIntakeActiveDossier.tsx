@@ -6,6 +6,7 @@
 import React from 'react';
 import type { CoachIntakeActiveDossierProps } from './CoachIntakeActiveDossier.types';
 import CoachIntakePlaudClipPlayback from './CoachIntakePlaudClipPlayback';
+import CoachIntakeReviewPath from './CoachIntakeReviewPath';
 import { DossierActionRail } from './CoachIntakeActiveDossier.actions';
 import {
   DossierEyebrow,
@@ -61,6 +62,7 @@ const CoachIntakeActiveDossier: React.FC<CoachIntakeActiveDossierProps> = ({
           nextActionLabel={next.label}
           statusText={statusText}
         />
+        <CoachIntakeReviewPath item={item} />
         <HoldReasonSection
           detail={safeHoldReasonDetail(item)}
           facts={holdReasonFacts(item)}

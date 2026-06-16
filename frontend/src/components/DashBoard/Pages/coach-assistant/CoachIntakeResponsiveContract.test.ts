@@ -9,6 +9,7 @@ const headerStyles = readFileSync(coachPath('CoachIntakeWorkspaceHeader.styles.t
 const queueStyles = readFileSync(coachPath('CoachIntakeWorkspaceQueue.styles.ts'), 'utf8');
 const healthStyles = readFileSync(coachPath('CoachIntakeHealthStrip.styles.ts'), 'utf8');
 const targetStyles = readFileSync(coachPath('CoachIntakeWorkspaceTarget.styles.ts'), 'utf8');
+const reviewPathStyles = readFileSync(coachPath('CoachIntakeReviewPath.styles.ts'), 'utf8');
 const queueTabs = readFileSync(coachPath('CoachIntakeQueueScopeTabs.tsx'), 'utf8');
 const workspace = readFileSync(coachPath('CoachIntakeWorkspace.tsx'), 'utf8');
 
@@ -39,6 +40,9 @@ describe('Coach intake responsive contract', () => {
     expect(targetStyles).toMatch(/>\s*\*\s*{\s*flex:\s*1\s+1\s+160px/);
     expect(targetStyles).toMatch(/width:\s*100%/);
     expect(targetStyles).toMatch(/TargetNotice[\s\S]*white-space:\s*normal/);
+    expect(reviewPathStyles).toMatch(/ReviewPathGrid[\s\S]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(reviewPathStyles).toMatch(/@media \(max-width:\s*900px\)[\s\S]*grid-template-columns:\s*1fr/);
+    expect(reviewPathStyles).toMatch(/overflow-wrap:\s*anywhere/);
 
     expect(queueTabs).toMatch(/PrimaryTabs[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
     expect(queueTabs).toMatch(/MoreFiltersButton[\s\S]*min-height:\s*44px/);
