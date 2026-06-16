@@ -17,6 +17,11 @@ export const coachCommandOpsStyles = css`
     gap: 12px;
     overscroll-behavior: contain;
     width: min(520px, 94vw);
+    z-index: 10050;
+  }
+
+  .drawer-scrim {
+    z-index: 10040;
   }
 
   .ops-rail-header {

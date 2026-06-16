@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -8,6 +10,7 @@ import {
 } from './CoachCommandCenterPage.test.harness';
 
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
+const opsStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.opsStyles.ts'), 'utf8');
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
@@ -16,6 +19,11 @@ const openOpsRail = () => {
 
 describe('CoachCommandCenterPage Ops drawer', () => {
   beforeEach(resetCoachCommandCenterMocks);
+
+  it('keeps the actions drawer above global assistant overlays on mobile', () => {
+    expect(opsStylesSource).toMatch(/\.drawer-scrim\s*\{[\s\S]*z-index:\s*10040;/);
+    expect(opsStylesSource).toMatch(/\.right-rail\s*\{[\s\S]*z-index:\s*10050;/);
+  });
 
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
