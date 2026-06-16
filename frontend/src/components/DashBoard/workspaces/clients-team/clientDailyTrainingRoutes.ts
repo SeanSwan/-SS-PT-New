@@ -52,7 +52,8 @@ export const buildClientCoachDailyRoute = (
   clientId: number | string,
   intent: ClientDailyIntent = 'log_workout'
 ) => {
-  const params = buildClientDailyParams(clientId, { intent });
+  const returnSection: ClientDailyReturnSection = intent === 'plan_next' ? 'plans' : 'logger';
+  const params = buildClientDailyParams(clientId, { intent }, returnSection);
   return params ? `/dashboard/admin/coach-assistant?${params}` : null;
 };
 

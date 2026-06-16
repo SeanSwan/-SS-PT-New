@@ -9,16 +9,23 @@ import {
 
 const CLIENT_ID = 'fixture client/42';
 const VALID_CLIENT_ID = 42;
-const ENCODED_RETURN_TO = '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42';
+const ENCODED_LOGGER_RETURN_TO =
+  '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday';
 const ENCODED_PLANS_RETURN_TO =
   '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans';
 const CLIENT_HUB_LOGGER_ROUTE =
   '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today';
 
 describe('client daily training routes', () => {
-  it('opens Swan Coach with selected-client context and a Client Hub return target', () => {
+  it('opens Swan Coach with selected-client context and an embedded logger return target', () => {
     expect(buildClientCoachDailyRoute(VALID_CLIENT_ID, 'log_workout')).toBe(
-      `/dashboard/admin/coach-assistant?clientId=42&source=clients-team&returnTo=${ENCODED_RETURN_TO}&intent=log_workout`
+      `/dashboard/admin/coach-assistant?clientId=42&source=clients-team&returnTo=${ENCODED_LOGGER_RETURN_TO}&intent=log_workout`
+    );
+  });
+
+  it('opens Swan Coach with plan intent and an embedded plans return target', () => {
+    expect(buildClientCoachDailyRoute(VALID_CLIENT_ID, 'plan_next')).toBe(
+      `/dashboard/admin/coach-assistant?clientId=42&source=clients-team&returnTo=${ENCODED_PLANS_RETURN_TO}&intent=plan_next`
     );
   });
 

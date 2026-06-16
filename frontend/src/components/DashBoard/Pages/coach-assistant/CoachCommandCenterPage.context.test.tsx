@@ -127,11 +127,14 @@ describe('CoachCommandCenterPage route context', () => {
 
   it('offers a one-click return to the selected Client Hub route from Clients & Team', async () => {
     renderPage(
-      '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday',
     );
 
     const returnLink = await screen.findByRole('link', { name: /back to client hub/i });
-    expect(returnLink).toHaveAttribute('href', '/dashboard/admin/client-management?clientId=424242');
+    expect(returnLink).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
+    );
   });
 
   it('hydrates new-client onboarding context from Client Hub', async () => {

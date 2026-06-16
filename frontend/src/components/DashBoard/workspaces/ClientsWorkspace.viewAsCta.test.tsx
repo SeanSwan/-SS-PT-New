@@ -167,7 +167,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     await user.click(dictateBtn);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/coach-assistant?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}&intent=log_workout`
+      `/dashboard/admin/coach-assistant?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday&intent=log_workout`
     );
   });
 
