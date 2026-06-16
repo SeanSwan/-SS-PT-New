@@ -180,6 +180,56 @@ const adminTrainerEnablement = (base: DashboardTeachMeGuideCopy) => applyPatch(b
   primaryPrompt: 'teach me the admin trainer enablement workflow',
 });
 
+const adminImmigrationWorkspace = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach admin special ops',
+  title: 'Admin immigration workspace',
+  summary: 'Use Canada Immigration as a separate admin workspace for immigration study, checklist, timeline, and document tracking.',
+  focus: 'Keep immigration work separate from client training, billing, and session changes. Finish the checklist item, then return to the admin owner screen that needs attention.',
+  primaryAction: { label: 'Open Immigration', to: '/dashboard/admin/immigration' },
+  fastPath: [
+    'Open the immigration workspace.',
+    'Review checklist, timeline, or study task.',
+    'Return to Coach, clients, or schedule only if action is needed.',
+  ],
+  steps: [
+    'Use this route for immigration-specific study and tracking instead of mixing it into client operations.',
+    'Treat document or timeline updates as their own workstream, not as training-session or billing actions.',
+    'Use Coach or Messages only when the next admin action must be drafted or communicated.',
+  ],
+  actions: [
+    { label: 'Immigration', to: '/dashboard/admin/immigration' },
+    { label: 'Open Coach', to: '/dashboard/admin/coach-assistant' },
+    { label: 'Messages', to: '/dashboard/admin/messages' },
+    { label: 'Admin Overview', to: '/dashboard/admin/overview' },
+  ],
+  primaryPrompt: 'teach me the admin immigration workspace workflow',
+});
+
+const adminDesignSystemCheck = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
+  eyebrow: 'Teach design quality',
+  title: 'Admin design system check',
+  summary: 'Use the Style Guide to check SwanStudios tokens, contrast, mobile behavior, and component consistency before shipping a visible surface.',
+  focus: 'This is a quality-control route: inspect the design language, then fix the actual product screen that fails the standard.',
+  primaryAction: { label: 'Open Style Guide', to: '/dashboard/admin/style-guide' },
+  fastPath: [
+    'Check tokens, typography, and contrast.',
+    'Verify mobile and desktop behavior.',
+    'Apply the fix on the real product surface.',
+  ],
+  steps: [
+    'Use the Style Guide to compare buttons, spacing, colors, and responsive patterns against the live dashboard surface.',
+    'Do not treat a pretty component in isolation as done; the mounted admin, trainer, client, or user screen still needs the same polish.',
+    'Move from Style Guide back to the product route that needs the improvement and verify the real workflow.',
+  ],
+  actions: [
+    { label: 'Style Guide', to: '/dashboard/admin/style-guide' },
+    { label: 'Content Studio', to: '/dashboard/admin/content' },
+    { label: 'Security', to: '/dashboard/admin/security' },
+    { label: 'Admin Overview', to: '/dashboard/admin/overview' },
+  ],
+  primaryPrompt: 'teach me the admin design system quality check workflow',
+});
+
 export const refineAdminGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
@@ -231,6 +281,12 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['security', 'feature-access', 'waivers', 'sms-logs'])) {
     return adminTrustAndAccess(base);
+  }
+  if (includesAny(path, ['immigration'])) {
+    return adminImmigrationWorkspace(base);
+  }
+  if (includesAny(path, ['style-guide'])) {
+    return adminDesignSystemCheck(base);
   }
   return base;
 };
