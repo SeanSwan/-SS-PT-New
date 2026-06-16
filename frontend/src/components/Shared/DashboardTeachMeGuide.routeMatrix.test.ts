@@ -95,10 +95,16 @@ describe('DashboardTeachMeGuide route matrix', () => {
     });
 
     expect(clientLog.primaryAction).toEqual({
-      label: 'Log Client Workout',
-      to: '/dashboard/admin/log-workout?loadPlan=today',
+      label: 'Pick Client to Log',
+      to: '/dashboard/admin/client-management?intent=log_workout',
     });
     expect(clientLog.primaryPrompt).toContain('client workout logging');
+    expect(clientLog.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        label: 'Pick Client to Log',
+        to: '/dashboard/admin/client-management?intent=log_workout',
+      }),
+    ]));
 
     const progress = getDashboardTeachMeGuide({
       role: 'admin',

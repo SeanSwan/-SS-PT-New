@@ -72,14 +72,14 @@ const adminClientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatc
   title: 'Admin client workout logging',
   summary: 'Use this route when the admin is logging work performed by a client.',
   focus: 'Pick the client, log the actual performed work, then keep the saved result connected to plans and progress.',
-  primaryAction: { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+  primaryAction: { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
   fastPath: [
     'Choose the client.',
     'Log performed sets, reps, load, and notes.',
     'Save and review progress before leaving.',
   ],
   actions: [
-    { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+    { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
     { label: 'Client Hub Logger', to: '/dashboard/admin/client-management?tab=training&trainingSection=logger&loadPlan=today' },
     { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
@@ -101,7 +101,7 @@ const adminClientProgressTracking = (base: DashboardTeachMeGuideCopy) => applyPa
   actions: [
     { label: 'Review Client Progress', to: '/dashboard/admin/client-progress-tracking' },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
-    { label: 'Log Client Workout', to: '/dashboard/admin/log-workout?loadPlan=today' },
+    { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
   primaryPrompt: 'teach me the admin client progress workflow',
