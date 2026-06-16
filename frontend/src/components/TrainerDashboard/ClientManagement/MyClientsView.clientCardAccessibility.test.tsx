@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TrainerClientCard } from './MyClientsView.clientCard';
@@ -51,22 +51,23 @@ describe('TrainerClientCard accessibility', () => {
     vi.restoreAllMocks();
   });
 
-  it('gives every icon-only action an explicit label and 44px touch target', () => {
+  it('shows a labeled trainer command rail with 44px touch targets', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
 
-    for (const label of [
-      'Log Workout',
-      'Schedule Session',
-      'Message Client',
-      'View Progress',
-      'Workout Intelligence',
-    ]) {
-      const button = screen.getByRole('button', { name: label });
+    const commandRail = screen.getByRole('group', {
+      name: 'Accessible Client trainer commands',
+    });
+    const expectedLabels = ['Log Today', 'Plan', 'Progress', 'Schedule', 'Message'];
 
-      expect(button).toHaveAttribute('aria-label', label);
+    expect(within(commandRail).getAllByRole('button').map((button) => button.textContent)).toEqual(expectedLabels);
+
+    for (const label of expectedLabels) {
+      const button = within(commandRail).getByRole('button', { name: new RegExp(label, 'i') });
+
       expect(button).not.toHaveAttribute('variant');
+      expect(button).toHaveTextContent(label);
       expect(button).toHaveStyle({
         minWidth: '44px',
         minHeight: '44px',
@@ -93,7 +94,7 @@ describe('TrainerClientCard accessibility', () => {
     fireEvent.click(openWorkspaceButton);
     expect(handlers.onOpenClient).toHaveBeenCalledWith('91');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Log Workout' }));
+    fireEvent.click(screen.getByRole('button', { name: /log today/i }));
     expect(handlers.onLogWorkout).toHaveBeenCalledWith('91');
     expect(handlers.onOpenClient).toHaveBeenCalledTimes(1);
   });
@@ -101,7 +102,9 @@ describe('TrainerClientCard accessibility', () => {
   it('keeps the daily trainer actions visible without requiring hover', () => {
     render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
 
-    const actionRail = screen.getByRole('button', { name: 'Log Workout' }).parentElement;
+    const actionRail = screen.getByRole('group', {
+      name: 'Accessible Client trainer commands',
+    });
 
     expect(actionRail).toHaveStyle({
       opacity: '1',

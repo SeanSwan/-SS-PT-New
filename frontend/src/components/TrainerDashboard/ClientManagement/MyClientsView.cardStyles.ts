@@ -195,15 +195,15 @@ export const MetricItem = styled.div`
 `;
 
 export const ClientActions = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 0.55rem;
   margin-top: 1rem;
   opacity: 1;
   transform: none;
 
-  @media (max-width: 768px) {
-    justify-content: flex-start;
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -229,12 +229,26 @@ export const ActionButton = styled(motion.button)<{
       ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, transparent)'
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)'
   )};
-  padding: 0.5rem;
+  width: 100%;
+  padding: 0.58rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: 0 0 auto;
+  }
+
+  span {
+    min-width: 0;
+  }
 `;
 
 export const NeedsPlanWrapper = styled.div`
   position: relative;
-  display: inline-flex;
+  display: block;
+  min-width: 0;
 `;
 
 export const NeedsPlanDot = styled.span`

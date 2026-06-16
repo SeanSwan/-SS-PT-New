@@ -6,26 +6,21 @@
 
 import {
   Award,
-  BarChart3,
   Calendar,
   CalendarClock,
   CheckCircle,
   ClipboardList,
   Dumbbell,
-  Edit,
   Layers,
   Mail,
-  MessageSquare,
   PhoneCall,
-  Sparkles,
   Target,
 } from 'lucide-react';
 import { forwardRef } from 'react';
 
 import { getClientSessionSignal } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
-import { ActionIconButton } from './MyClientsView.actionButton';
+import { TrainerClientActionRail } from './MyClientsView.clientCardActions';
 import {
-  ClientActions,
   ClientAvatar,
   ClientCard,
   ClientDetails,
@@ -35,8 +30,6 @@ import {
   ClientName,
   ClientNameButton,
   MetricItem,
-  NeedsPlanDot,
-  NeedsPlanWrapper,
 } from './MyClientsView.cardStyles';
 import type { ClientAssignment, TrainerClientIntent } from './MyClientsView.types';
 import {
@@ -108,8 +101,6 @@ const PhoneDetail = ({ phone }: { phone?: string | null }) => {
     </div>
   );
 };
-
-const NeedsPlanIndicator = ({ show }: { show: boolean }) => (show ? <NeedsPlanDot /> : null);
 
 export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardProps>(function TrainerClientCard({
   assignment,
@@ -256,41 +247,17 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         <ProofSubtext>{proofSubtext}</ProofSubtext>
       </WorkoutProofPanel>
 
-      <ClientActions className="client-actions" data-swan-card-section="trainer-actions">
-        <ActionIconButton
-          title="Log Workout"
-          variant="primary"
-          onClick={() => onLogWorkout(client.id)}
-          icon={<Edit size={16} />}
-        />
-        <ActionIconButton
-          title="Schedule Session"
-          variant="success"
-          onClick={() => onScheduleSession(client.id)}
-          icon={<Calendar size={16} />}
-        />
-        <ActionIconButton
-          title="Message Client"
-          variant="secondary"
-          onClick={() => onMessageClient(client.id)}
-          icon={<MessageSquare size={16} />}
-        />
-        <ActionIconButton
-          title="View Progress"
-          variant="warning"
-          onClick={() => onViewProgress(client.id)}
-          icon={<BarChart3 size={16} />}
-        />
-        <NeedsPlanWrapper>
-          <ActionIconButton
-            title={copilotTitle}
-            variant="primary"
-            onClick={() => onOpenCopilot(client.id, clientName)}
-            icon={<Sparkles size={16} />}
-          />
-          <NeedsPlanIndicator show={needsFirstPlan} />
-        </NeedsPlanWrapper>
-      </ClientActions>
+      <TrainerClientActionRail
+        clientId={client.id}
+        clientName={clientName}
+        copilotTitle={copilotTitle}
+        needsFirstPlan={needsFirstPlan}
+        onLogWorkout={onLogWorkout}
+        onScheduleSession={onScheduleSession}
+        onMessageClient={onMessageClient}
+        onViewProgress={onViewProgress}
+        onOpenCopilot={onOpenCopilot}
+      />
     </ClientCard>
   );
 });
