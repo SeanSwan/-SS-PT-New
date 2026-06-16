@@ -11,8 +11,9 @@
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const { logFindAll, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
+const { logFindAll, logCount, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
   logFindAll: vi.fn(),
+  logCount: vi.fn(),
   userFindByPk: vi.fn(),
   leadFindByPk: vi.fn(),
   smsTemplated: vi.fn(),
@@ -23,7 +24,7 @@ const { logFindAll, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolv
 vi.mock('../models/index.mjs', () => ({
   getAllModels: () => ({
     AutomationSequence: {},
-    AutomationLog: { findAll: logFindAll },
+    AutomationLog: { findAll: logFindAll, count: logCount },
     User: { findByPk: userFindByPk },
   }),
 }));
@@ -86,6 +87,25 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
     const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } });
     expect(d.action).toBe('send');
   });
+
+  // Rolling per-recipient frequency cap (defer, checked AFTER no_phone).
+  it('DEFER frequency_capped when the recipient hit the rolling cap', () => {
+    const next = new Date('2030-01-02T00:00:00Z');
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } }, new Date(),
+      null, { capped: true, nextAttempt: next });
+    expect(d).toMatchObject({ action: 'defer', reason: 'frequency_capped' });
+    expect(d.nextAttempt).toBe(next);
+  });
+  it('SENDS when under the frequency cap', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } }, new Date(),
+      null, { capped: false });
+    expect(d.action).toBe('send');
+  });
+  it('no_phone beats the frequency cap (a terminal failure wins over a re-try)', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: null, notificationPreferences: { sms: true } }, new Date(),
+      null, { capped: true });
+    expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
+  });
 });
 
 describe('previewScheduledMessages (dry-run)', () => {
@@ -98,6 +118,7 @@ describe('previewScheduledMessages (dry-run)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resolveSuppression.mockResolvedValue(ALLOWED);
+    logCount.mockResolvedValue(0);
     logFindAll.mockResolvedValue(logs);
     userFindByPk.mockImplementation((id) => Promise.resolve(({
       10: { id: 10, phone: '+15550001111', notificationPreferences: { sms: true } },   // send
@@ -134,6 +155,7 @@ describe('previewScheduledMessages (dry-run)', () => {
 describe('previewScheduledMessages (suppression + lead recipients)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    logCount.mockResolvedValue(0);
     userFindByPk.mockImplementation((id) => Promise.resolve(({
       10: { id: 10, phone: '+15550001111', email: 'active@x.com', notificationPreferences: { sms: true } },
       20: { id: 20, phone: '+15550002222', email: 'unsub@x.com', notificationPreferences: { sms: true } },
@@ -180,5 +202,17 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
     const res = await previewScheduledMessages();
     expect(res.summary).toMatchObject({ wouldFail: 1 });
     expect(res.byReason).toMatchObject({ suppression_unverified: 1 });
+  });
+
+  it('DEFERS a frequency-capped recipient and flags frequencyCapped:true', async () => {
+    logCount.mockResolvedValue(3); // at the default cap (SWAN_AUTOMATION_MAX_PER_WINDOW=3)
+    logFindAll.mockResolvedValue([
+      { id: 7, userId: 10, channel: 'sms', templateName: 'welcome' }, // allowed + capped → defer
+    ]);
+    const res = await previewScheduledMessages();
+    expect(res.summary).toMatchObject({ wouldDefer: 1 });
+    expect(res.byReason).toMatchObject({ frequency_capped: 1 });
+    const item = res.items.find((i) => i.id === 7);
+    expect(item).toMatchObject({ action: 'defer', reason: 'frequency_capped', frequencyCapped: true, sentInWindow: 3 });
   });
 });

@@ -75,9 +75,13 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
  *   `{ suppressed, checked }`. `suppressed` → CANCEL; `checked:false` → FAIL CLOSED (consent could
  *   not be verified, so we do NOT send). Omitted/null → suppression not evaluated here (legacy /
  *   unit calls that gate consent elsewhere). The gate runs FIRST so an opt-out always wins.
+ * @param {object|null} frequency - result of `resolveFrequencyCap(...)`:
+ *   `{ capped, nextAttempt }`. `capped` → DEFER (the recipient already hit the rolling
+ *   per-recipient cap; we space the message out, never drop it). Checked LAST, after
+ *   no_phone, so a terminal no-phone failure still wins over a re-try. Omitted/null → no cap.
  * @returns {{action:'send'|'defer'|'cancel'|'fail', reason:string, channel:string, nextAttempt?:Date}}
  */
-export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppression = null) => {
+export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppression = null, frequency = null) => {
   const channel = log?.channel || 'sms';
   if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
 
@@ -93,5 +97,9 @@ export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppr
     return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
   }
   if (!recipient?.phone) return { action: 'fail', reason: 'no_phone', channel };
+  // Rolling per-recipient frequency cap — defer (space out), never drop.
+  if (frequency?.capped) {
+    return { action: 'defer', reason: 'frequency_capped', channel, nextAttempt: frequency.nextAttempt || now };
+  }
   return { action: 'send', reason: 'eligible', channel };
 };

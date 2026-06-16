@@ -69,6 +69,30 @@ const resolveAutomationTarget = async (log, { User }) => {
   return null;
 };
 
+// Rolling per-recipient frequency cap (anti-spam). Conservative defaults — overridable
+// via env. Counts automation messages already SENT to this recipient in the window;
+// at/over the cap the message DEFERS by a cooldown (re-tried next tick, never dropped).
+const FREQ_CAP = Number(process.env.SWAN_AUTOMATION_MAX_PER_WINDOW) || 3;
+const FREQ_WINDOW_DAYS = Number(process.env.SWAN_AUTOMATION_WINDOW_DAYS) || 7;
+const FREQ_COOLDOWN_HOURS = Number(process.env.SWAN_AUTOMATION_COOLDOWN_HOURS) || 24;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const resolveFrequencyCap = async (log, { AutomationLog }, now) => {
+  const base = { capped: false, sentInWindow: 0, cap: FREQ_CAP, windowDays: FREQ_WINDOW_DAYS };
+  const where = { status: 'sent', sentAt: { [Op.gte]: new Date(now.getTime() - FREQ_WINDOW_DAYS * DAY_MS) } };
+  if (log.userId) where.userId = log.userId;
+  else if (log.leadId) where.leadId = log.leadId;
+  else return base; // no resolvable recipient → nothing to cap
+
+  const sentInWindow = await AutomationLog.count({ where });
+  return {
+    ...base,
+    sentInWindow,
+    capped: sentInWindow >= FREQ_CAP,
+    nextAttempt: new Date(now.getTime() + FREQ_COOLDOWN_HOURS * 60 * 60 * 1000),
+  };
+};
+
 export const ensureDefaultSequences = async () => {
   const { AutomationSequence } = getModels();
   const count = await AutomationSequence.count();
@@ -163,7 +187,8 @@ export const processScheduledMessages = async () => {
     try {
       const target = await resolveAutomationTarget(log, { User });
       const suppression = await resolveMarketingSuppression({ email: target?.email });
-      const decision = evaluateScheduledMessage(log, target, now, suppression);
+      const frequency = await resolveFrequencyCap(log, { AutomationLog }, now);
+      const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
 
       if (decision.action === 'cancel') {
         log.status = 'cancelled';
@@ -262,7 +287,8 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   for (const log of pendingLogs) {
     const target = await resolveAutomationTarget(log, { User });
     const suppression = await resolveMarketingSuppression({ email: target?.email });
-    const decision = evaluateScheduledMessage(log, target, now, suppression);
+    const frequency = await resolveFrequencyCap(log, { AutomationLog }, now);
+    const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
     summary[bucketFor[decision.action]] += 1;
     byReason[decision.reason] = (byReason[decision.reason] || 0) + 1;
     items.push({
@@ -276,6 +302,8 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
       reason: decision.reason,
       hasPhone: Boolean(target?.phone),       // PII-safe: presence only, never the number
       suppressed: Boolean(suppression?.suppressed), // PII-safe boolean
+      frequencyCapped: Boolean(frequency?.capped),
+      sentInWindow: frequency?.sentInWindow ?? 0, // count, not PII
     });
   }
 
