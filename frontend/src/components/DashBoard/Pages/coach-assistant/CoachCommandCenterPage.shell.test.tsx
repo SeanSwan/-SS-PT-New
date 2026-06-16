@@ -41,7 +41,7 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByText(/Ready when you are/i)).toBeInTheDocument();
     expect(composerInput()).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Attach$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Import PLAUD/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Import PLAUD$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Readback$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /voice dictation/i })).toBeInTheDocument();
     expect(sendButton()).toBeInTheDocument();
@@ -146,7 +146,7 @@ describe('CoachCommandCenterPage shell', () => {
     renderPage();
 
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Import PLAUD/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Import PLAUD$/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
     await waitFor(() => expect(clickSpy).toHaveBeenCalled());
     clickSpy.mockRestore();

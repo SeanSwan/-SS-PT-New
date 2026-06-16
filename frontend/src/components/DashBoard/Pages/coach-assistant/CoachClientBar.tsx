@@ -8,7 +8,10 @@
  * the trainee's next-best-action fast). Presentation only; handlers come from the page.
  */
 import React from 'react';
-import { Plus, Settings2, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { CalendarCheck, ClipboardList, FileAudio, Inbox, Plus, Settings2, UserPlus, Users, type LucideIcon } from 'lucide-react';
+
+import type { CoachHeaderQuickAction, CoachHeaderQuickActionIcon } from './CoachCommandHeaderActions';
 
 export type RecentCoachClient = {
   id: number;
@@ -19,6 +22,7 @@ export type RecentCoachClient = {
 type CoachClientBarProps = {
   selectedClientLabel: string;
   recentClients: RecentCoachClient[];
+  quickActions?: CoachHeaderQuickAction[];
   opsOpen: boolean;
   showOps?: boolean;
   contextLabel?: string;
@@ -29,9 +33,50 @@ type CoachClientBarProps = {
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
+const QUICK_ACTION_ICONS: Record<CoachHeaderQuickActionIcon, LucideIcon> = {
+  builder: ClipboardList,
+  client: UserPlus,
+  intake: Inbox,
+  log: CalendarCheck,
+  plaud: FileAudio,
+};
+
+function QuickActionContent({ action }: { action: CoachHeaderQuickAction }) {
+  const Icon = QUICK_ACTION_ICONS[action.icon];
+
+  return (
+    <>
+      <Icon size={16} aria-hidden="true" />
+      <span>
+        <strong>{action.label}</strong>
+        <small>{action.detail}</small>
+      </span>
+    </>
+  );
+}
+
+function QuickActionControl({ action }: { action: CoachHeaderQuickAction }) {
+  const className = `client-action-button ${action.tone === 'primary' ? 'is-primary' : ''}`;
+
+  if (action.href) {
+    return (
+      <Link className={className} to={action.href} aria-label={action.ariaLabel}>
+        <QuickActionContent action={action} />
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" className={className} onClick={action.onClick} aria-label={action.ariaLabel}>
+      <QuickActionContent action={action} />
+    </button>
+  );
+}
+
 const CoachClientBar: React.FC<CoachClientBarProps> = ({
   selectedClientLabel,
   recentClients,
+  quickActions = [],
   opsOpen,
   showOps = true,
   contextLabel = 'Now coaching',
@@ -67,6 +112,15 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
       <Plus size={18} aria-hidden="true" />
       <span>{newConversationLabel}</span>
     </button>
+
+    {quickActions.length ? (
+      <div className="client-action-strip" role="group" aria-label="Coach header quick actions">
+        <span className="client-action-scope">{selectedClientLabel}</span>
+        {quickActions.map((action) => (
+          <QuickActionControl action={action} key={action.ariaLabel} />
+        ))}
+      </div>
+    ) : null}
 
     <div className="recent-rail" role="group" aria-label={recentLabel}>
       {recentClients.length ? (

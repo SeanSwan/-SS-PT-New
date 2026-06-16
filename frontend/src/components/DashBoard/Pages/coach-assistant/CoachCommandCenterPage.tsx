@@ -14,10 +14,10 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { useAuth } from '../../../../hooks/useAuth';
 import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
+import { buildCoachHeaderQuickActions } from './CoachCommandHeaderActions';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
 import { getConversationTitle } from './CoachCommandCenter.logic';
 import CoachChatTranscript from './CoachChatTranscript';
@@ -134,6 +134,15 @@ const CoachCommandCenterPage: React.FC = () => {
     setActiveTab('intake');
     commandCenter.closeDrawer(false);
   };
+  const headerQuickActions = buildCoachHeaderQuickActions({
+    clientPickerRoute,
+    isClientMode,
+    onOpenIntake: handleOpenIntakeFromOps,
+    onOpenPlaud: handleStartPlaudUpload,
+    scopeLabel: workoutLoggerScopeLabel,
+    workoutLoggerRoute,
+    workoutPlannerRoute,
+  });
 
   return (
     <CommandBridgeShell ref={commandCenter.shellRef}>
@@ -150,6 +159,7 @@ const CoachCommandCenterPage: React.FC = () => {
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
           recentClients={recentClients}
+          quickActions={headerQuickActions}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}

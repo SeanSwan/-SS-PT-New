@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   executeCommandMock,
@@ -22,7 +22,12 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
     expect(useCoachIntakeQueueMock).toHaveBeenCalledWith({ scope: 'actionable', limit: 12, enabled: false });
     expect(screen.getByText(/Your coach terminal/i)).toBeInTheDocument();
-    expect(screen.getByText(/My training/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/My training/i).length).toBeGreaterThan(0);
+    const headerActions = screen.getByLabelText('Coach header quick actions');
+    expect(within(headerActions).getByRole('link', { name: /Log workout for My workout log/i }))
+      .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
+    expect(within(headerActions).getByRole('link', { name: /Open workouts for My workout log/i }))
+      .toHaveAttribute('href', '/dashboard/client/workouts');
     expect(screen.getByRole('button', { name: /^New coach chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^History$/i })).toBeInTheDocument();
