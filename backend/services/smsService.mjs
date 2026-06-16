@@ -31,6 +31,38 @@ export const listSmsTemplates = () => Object.keys(SMS_TEMPLATES).map((name) => (
   body: SMS_TEMPLATES[name]
 }));
 
+const SAMPLE_PREVIEW_VARIABLES = { clientName: 'Alex', trainerName: 'Coach Sean', time: '9:00 AM', message: 'Keep it up!' };
+
+const extractPlaceholders = (template) => {
+  const found = new Set();
+  const re = /\{([a-zA-Z0-9_]+)\}/g;
+  let match;
+  while ((match = re.exec(template || '')) !== null) found.add(match[1]);
+  return [...found];
+};
+
+/**
+ * Render every SMS template with sample (or provided) variables WITHOUT sending,
+ * so the nurture message copy can be reviewed/approved before outbound automation
+ * is armed. Flags any unresolved {placeholder} so broken copy can't ship + reports
+ * length (SMS segment awareness).
+ */
+export const previewSmsTemplates = (variables = {}) => {
+  const vars = { ...SAMPLE_PREVIEW_VARIABLES, ...variables };
+  return Object.entries(SMS_TEMPLATES).map(([name, template]) => {
+    const placeholders = extractPlaceholders(template);
+    const preview = renderTemplate(template, vars);
+    return {
+      name,
+      template,
+      preview,
+      placeholders,
+      unresolved: placeholders.filter((p) => vars[p] === undefined),
+      length: preview.length,
+    };
+  });
+};
+
 export const sendSmsMessage = async ({ to, body }) => {
   if (!to || !body) {
     return { success: false, error: 'Missing to or body' };
@@ -63,6 +95,7 @@ export const sendTemplatedSMS = async ({ to, templateName, variables = {} }) => 
 
 export default {
   listSmsTemplates,
+  previewSmsTemplates,
   sendSmsMessage,
   sendTemplatedSMS
 };

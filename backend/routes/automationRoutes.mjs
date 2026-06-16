@@ -16,6 +16,7 @@ import {
   processScheduledMessages,
   previewScheduledMessages
 } from '../services/automationService.mjs';
+import { previewSmsTemplates } from '../services/smsService.mjs';
 
 const router = express.Router();
 
@@ -284,6 +285,29 @@ router.get('/preview', protect, adminOnly, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to preview automation messages',
+      error: normalizeError(error)
+    });
+  }
+});
+
+/**
+ * GET /api/automation/templates/preview
+ * Render the nurture SMS templates with sample variables WITHOUT sending — review
+ * the message copy (+ unresolved-placeholder + length warnings) before arming
+ * outbound automation. Optional ?clientName=&trainerName=&time=&message= overrides.
+ */
+router.get('/templates/preview', protect, adminOnly, (req, res) => {
+  try {
+    const overrides = {};
+    for (const key of ['clientName', 'trainerName', 'time', 'message']) {
+      if (typeof req.query[key] === 'string') overrides[key] = req.query[key];
+    }
+    return res.status(200).json({ success: true, data: previewSmsTemplates(overrides) });
+  } catch (error) {
+    logger.error('Error previewing SMS templates:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to preview SMS templates',
       error: normalizeError(error)
     });
   }
