@@ -1,6 +1,6 @@
 /**
  * Quick-strip styles for DashboardTeachMeGuide.
- * Keeps the collapsed Teach Me command surface readable on phone widths.
+ * Keeps the collapsed Teach Me command surface compact on phone widths.
  */
 
 import styled, { css } from 'styled-components';
@@ -126,24 +126,7 @@ export const QuickPathPreview = styled.ol`
   }
 
   @media (max-width: 620px) {
-    grid-template-columns: 1fr;
-    gap: 6px;
-
-    li {
-      grid-template-columns: 24px minmax(0, 1fr);
-      justify-items: start;
-      gap: 8px;
-      min-height: 44px;
-      padding: 8px;
-      text-align: left;
-      font: 800 11px/1.25 'Sora', sans-serif;
-    }
-
-    span {
-      width: 22px;
-      height: 22px;
-      font: 900 11px/1 'Sora', sans-serif;
-    }
+    display: none;
   }
 `;
 
