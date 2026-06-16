@@ -9,21 +9,22 @@ import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.s
 
 const trainerBuilderFlow = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer workout build flow',
-  summary: 'Use Workout Forge to turn the client goal, constraints, pain signals, and schedule into the next usable workout.',
-  focus: 'Build only after the client context is clear; keep the result connected to logging and progress review.',
+  summary: 'Use Workout Forge to build the client workout, save it, then continue through Log Today or Open Planner while the session context is fresh.',
+  focus: 'Pick the client first, build with the real constraints, then use the saved-workout handoff: Log Today for the floor, Open Planner for review.',
   primaryAction: { label: 'Build Client Workout', to: '/dashboard/trainer/workout-forge' },
   fastPath: [
     'Confirm client, goal, and constraints.',
-    'Build or adjust the workout.',
-    'Save it where logging can use it.',
+    'Build manually or with Swan Coach.',
+    'Save, then choose Log Today or Open Planner.',
   ],
   actions: [
     { label: 'Workout Forge', to: '/dashboard/trainer/workout-forge' },
+    { label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' },
     { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
     { label: 'Equipment', to: '/dashboard/trainer/equipment' },
-    { label: 'Bootcamp', to: '/dashboard/trainer/bootcamp' },
+    { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
-  primaryPrompt: 'teach me the trainer workout builder workflow',
+  primaryPrompt: 'teach me the trainer workout builder workflow from Workout Forge to logger and planner handoff',
 });
 
 const trainerWorkoutPlanner = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {

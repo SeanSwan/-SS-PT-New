@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { getDashboardTeachMeGuide } from './DashboardTeachMeGuide.logic';
 
 describe('DashboardTeachMeGuide trainer training routes', () => {
+  it('teaches Workout Forge as a save-to-logger and planner handoff', () => {
+    const guide = getDashboardTeachMeGuide({
+      role: 'trainer',
+      pathname: '/dashboard/trainer/workout-forge',
+    });
+
+    expect(guide.title).toBe('Trainer workout build flow');
+    expect(guide.summary).toMatch(/Log Today|Open Planner/i);
+    expect(guide.focus).toMatch(/Log Today|Open Planner/i);
+    expect(guide.fastPath.join(' ')).toMatch(/Log Today|Open Planner/i);
+    expect(guide.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Workout Forge', to: '/dashboard/trainer/workout-forge' }),
+      expect.objectContaining({ label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' }),
+      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
+    ]));
+    expect(guide.primaryPrompt).toContain('logger');
+  });
+
   it('keeps trainer workout planner, equipment, and bootcamp on the exact tool they opened', () => {
     const planner = getDashboardTeachMeGuide({
       role: 'trainer',
