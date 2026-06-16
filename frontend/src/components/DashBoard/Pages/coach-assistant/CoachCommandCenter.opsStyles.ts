@@ -205,10 +205,12 @@ export const coachCommandOpsStyles = css`
   @media (max-width: 640px) {
     .right-rail {
       border-radius: 22px 22px 0 0;
+      box-sizing: border-box;
       bottom: max(10px, env(safe-area-inset-bottom));
-      height: auto;
+      height: 86vh;
       left: 10px;
-      max-height: min(86dvh, 760px);
+      max-height: 760px;
+      min-height: 320px;
       padding: 12px;
       right: 10px;
       top: auto;

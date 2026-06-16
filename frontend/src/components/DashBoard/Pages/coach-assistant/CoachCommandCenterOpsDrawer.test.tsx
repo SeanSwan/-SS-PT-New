@@ -23,6 +23,8 @@ describe('CoachCommandCenterPage Ops drawer', () => {
   it('keeps the actions drawer above global assistant overlays on mobile', () => {
     expect(opsStylesSource).toMatch(/\.drawer-scrim\s*\{[\s\S]*z-index:\s*10040;/);
     expect(opsStylesSource).toMatch(/\.right-rail\s*\{[\s\S]*z-index:\s*10050;/);
+    expect(opsStylesSource).toMatch(/@media\s*\(max-width:\s*640px\)[\s\S]*\.right-rail\s*\{[\s\S]*height:\s*86vh;/);
+    expect(opsStylesSource).toMatch(/@media\s*\(max-width:\s*640px\)[\s\S]*\.right-rail\s*\{[\s\S]*max-height:\s*760px;/);
   });
 
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
