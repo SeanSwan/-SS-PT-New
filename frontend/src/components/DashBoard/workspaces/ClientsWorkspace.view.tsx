@@ -43,6 +43,7 @@ import {
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
 import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
+import ClientsWorkspaceIntentBanner from './ClientsWorkspaceIntentBanner';
 import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 import ClientLifecycleConfirmDialog, {
   type ClientLifecycleConfirmRequest,
@@ -53,7 +54,7 @@ import { ClientDetailView } from './clients-team';
 import type { MiniCardClient } from './clients-team/ClientMiniCard';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
-import { getClientOnboardingPct, type ClientDetailTab } from './ClientsWorkspace.logic';
+import { getClientOnboardingPct, type ClientDetailTab, type ClientHubIntent } from './ClientsWorkspace.logic';
 import type { ManualClientCreationHandoff } from './clients-team/manualClientCreationHandoff';
 
 type TabRenderer = (clientId: number | string) => React.ReactNode;
@@ -70,6 +71,7 @@ interface ClientsWorkspaceViewProps {
   selectedClient: ClientOption | null;
   detailClient: MiniCardClient | null;
   detailTab: ClientDetailTab;
+  clientHubIntent: ClientHubIntent;
   loading: boolean;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
@@ -255,6 +257,10 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       onSendPasswordReset={props.onSendPasswordReset}
       onManageAssignments={props.onManageAssignments}
       onManualCreateClient={props.onManualCreateClient}
+    />
+    <ClientsWorkspaceIntentBanner
+      intent={props.clientHubIntent}
+      selectedClientId={props.selectedClient?.id ?? null}
     />
     <CreateClientModal
       open={props.manualCreateOpen}

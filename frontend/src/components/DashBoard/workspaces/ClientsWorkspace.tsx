@@ -249,6 +249,7 @@ const ClientsWorkspace: React.FC = () => {
       selectedClient={selectedClient}
       detailClient={detailClient}
       detailTab={detailTab}
+      clientHubIntent={clientHubIntent}
       loading={loading}
       manualCreateOpen={manualCreateOpen}
       manualCreateTrainers={manualCreateTrainers}
