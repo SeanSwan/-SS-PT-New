@@ -97,6 +97,25 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
   return next;
 };
 
+/**
+ * Pure send-decision for one scheduled automation log. NO side effects — shared by
+ * the live sender (processScheduledMessages) AND the dry-run preview so they can
+ * never diverge. Centralizes every suppression rule in one auditable place.
+ * @returns {{action:'send'|'defer'|'cancel'|'fail', reason:string, channel:string, nextAttempt?:Date}}
+ */
+export const evaluateScheduledMessage = (log, user, now = new Date()) => {
+  const channel = log?.channel || 'sms';
+  if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
+
+  const prefs = normalizePreferences(user?.notificationPreferences);
+  if (prefs.sms === false) return { action: 'cancel', reason: 'sms_disabled', channel };
+  if (isWithinQuietHours(prefs.quietHours, now)) {
+    return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
+  }
+  if (!user?.phone) return { action: 'fail', reason: 'no_phone', channel };
+  return { action: 'send', reason: 'eligible', channel };
+};
+
 const getModels = () => {
   const models = getAllModels();
   const { AutomationSequence, AutomationLog, User } = models;
@@ -188,9 +207,9 @@ export const processScheduledMessages = async () => {
   for (const log of pendingLogs) {
     try {
       const user = log.userId ? await User.findByPk(log.userId) : null;
-      const prefs = normalizePreferences(user?.notificationPreferences);
+      const decision = evaluateScheduledMessage(log, user, now);
 
-      if (log.channel === 'sms' && prefs.sms === false) {
+      if (decision.action === 'cancel') {
         log.status = 'cancelled';
         log.error = 'SMS disabled for user';
         await log.save();
@@ -198,24 +217,18 @@ export const processScheduledMessages = async () => {
         continue;
       }
 
-      if (log.channel === 'sms' && isWithinQuietHours(prefs.quietHours, now)) {
-        log.scheduledFor = getNextAllowedTime(prefs.quietHours, now);
+      if (decision.action === 'defer') {
+        log.scheduledFor = decision.nextAttempt;
         await log.save();
         results.push({ id: log.id, status: 'deferred' });
         continue;
       }
 
-      if (log.channel !== 'sms') {
+      if (decision.action === 'fail') {
         log.status = 'failed';
-        log.error = 'Channel not implemented';
-        await log.save();
-        results.push({ id: log.id, status: 'failed' });
-        continue;
-      }
-
-      if (!user?.phone) {
-        log.status = 'failed';
-        log.error = 'User missing phone number';
+        log.error = decision.reason === 'channel_not_implemented'
+          ? 'Channel not implemented'
+          : 'User missing phone number';
         await log.save();
         results.push({ id: log.id, status: 'failed' });
         continue;
@@ -264,6 +277,48 @@ export const processScheduledMessages = async () => {
   return { processed: results.length, results };
 };
 
+/**
+ * Dry-run: what WOULD processScheduledMessages do right now? NO sends, NO DB
+ * mutation — runs the SAME decision logic (evaluateScheduledMessage) so the preview
+ * cannot diverge from reality. PII-safe: reports phone PRESENCE only, never the
+ * number. This is the surface to inspect BEFORE arming SWAN_AUTOMATION_CRON_ENABLED.
+ */
+export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
+  const { AutomationLog, User } = getModels();
+  const now = new Date();
+
+  const pendingLogs = await AutomationLog.findAll({
+    where: {
+      status: 'pending',
+      scheduledFor: { [Op.lte]: now }
+    },
+    limit
+  });
+
+  const summary = { wouldSend: 0, wouldDefer: 0, wouldCancel: 0, wouldFail: 0 };
+  const bucketFor = { send: 'wouldSend', defer: 'wouldDefer', cancel: 'wouldCancel', fail: 'wouldFail' };
+  const byReason = {};
+  const items = [];
+
+  for (const log of pendingLogs) {
+    const user = log.userId ? await User.findByPk(log.userId) : null;
+    const decision = evaluateScheduledMessage(log, user, now);
+    summary[bucketFor[decision.action]] += 1;
+    byReason[decision.reason] = (byReason[decision.reason] || 0) + 1;
+    items.push({
+      id: log.id,
+      userId: log.userId || null,
+      channel: decision.channel,
+      templateName: log.templateName || null,
+      action: decision.action,
+      reason: decision.reason,
+      hasPhone: Boolean(user?.phone), // PII-safe: presence only, never the number
+    });
+  }
+
+  return { dryRun: true, total: pendingLogs.length, summary, byReason, items };
+};
+
 export const cancelSequence = async (userId, sequenceName) => {
   const { AutomationSequence, AutomationLog } = getModels();
 
@@ -289,6 +344,8 @@ export const cancelSequence = async (userId, sequenceName) => {
 export default {
   ensureDefaultSequences,
   triggerSequence,
+  evaluateScheduledMessage,
   processScheduledMessages,
+  previewScheduledMessages,
   cancelSequence
 };

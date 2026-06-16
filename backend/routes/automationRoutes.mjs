@@ -13,7 +13,8 @@ import {
   ensureDefaultSequences,
   triggerSequence,
   cancelSequence,
-  processScheduledMessages
+  processScheduledMessages,
+  previewScheduledMessages
 } from '../services/automationService.mjs';
 
 const router = express.Router();
@@ -262,6 +263,27 @@ router.post('/cancel', protect, adminOnly, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to cancel automation sequence',
+      error: normalizeError(error)
+    });
+  }
+});
+
+/**
+ * GET /api/automation/preview
+ * Dry-run: show what the follow-up engine WOULD do right now (who would be
+ * messaged + per-message suppression reason) WITHOUT sending anything. The safety
+ * surface to inspect before arming SWAN_AUTOMATION_CRON_ENABLED (admin only).
+ */
+router.get('/preview', protect, adminOnly, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 200, 500);
+    const result = await previewScheduledMessages({ limit });
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    logger.error('Error previewing automation messages:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to preview automation messages',
       error: normalizeError(error)
     });
   }
