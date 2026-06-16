@@ -1,11 +1,17 @@
-import React from 'react';
-import { Award, Calendar, Sparkles } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, Award, Calendar, Sparkles } from 'lucide-react';
 import {
   Button,
   TemplateCommandStrip,
   TemplateSelectionCount,
   TemplateSelector
 } from './TrainerPermissionsManager.styles';
+import {
+  TemplateConfirmActions,
+  TemplateConfirmCard,
+  TemplateConfirmMeta,
+  TemplateConfirmTitle
+} from './TrainerPermissionsManager.templateCommandStyles';
 import { PERMISSION_TEMPLATES, PERMISSION_TYPES } from './TrainerPermissionsManager.logic';
 
 interface TrainerTemplateCommandsProps {
@@ -48,6 +54,13 @@ const getElevatedCriticalLabels = (templateKey: string): string[] => {
     .filter(Boolean) as string[];
 };
 
+interface PendingTemplateConfirmation {
+  criticalLabels: string[];
+  key: string;
+  name: string;
+  trainerIds: number[];
+}
+
 export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = ({
   applyTemplate,
   bulkProcessing,
@@ -55,22 +68,38 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
   selectedTrainers,
   setSelectedTemplate
 }) => {
-  const selectedTrainerIds = Array.from(selectedTrainers);
+  const selectedTrainerIds = useMemo(() => Array.from(selectedTrainers), [selectedTrainers]);
+  const selectedTrainerKey = selectedTrainerIds.join(',');
+  const [pendingTemplate, setPendingTemplate] = useState<PendingTemplateConfirmation | null>(null);
   const isTemplateLocked = selectedTrainerIds.length === 0 || bulkProcessing;
-  const applyWithConfirmation = (templateKey: string) => {
+
+  useEffect(() => {
+    setPendingTemplate(null);
+  }, [bulkProcessing, selectedTrainerKey]);
+
+  const requestTemplate = (templateKey: string) => {
     if (!templateKey || selectedTrainerIds.length === 0) return;
     const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
     if (!template) return;
 
     const criticalLabels = getElevatedCriticalLabels(templateKey);
     if (criticalLabels.length > 0) {
-      const confirmed = window.confirm(
-        `${template.name} grants ${criticalLabels.join(' and ')} to ${selectedTrainerIds.length} selected trainer(s). Continue?`
-      );
-      if (!confirmed) return;
+      setPendingTemplate({
+        criticalLabels,
+        key: templateKey,
+        name: template.name,
+        trainerIds: selectedTrainerIds,
+      });
+      return;
     }
 
     applyTemplate(templateKey, selectedTrainerIds);
+  };
+
+  const confirmPendingTemplate = () => {
+    if (!pendingTemplate || bulkProcessing) return;
+    applyTemplate(pendingTemplate.key, pendingTemplate.trainerIds);
+    setPendingTemplate(null);
   };
 
   return (
@@ -83,7 +112,7 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
           <Button
             key={command.key}
             variant={command.variant}
-            onClick={() => applyWithConfirmation(command.key)}
+            onClick={() => requestTemplate(command.key)}
             disabled={isTemplateLocked}
             aria-label={command.ariaLabel}
             title={command.ariaLabel}
@@ -110,13 +139,50 @@ export const TrainerTemplateCommands: React.FC<TrainerTemplateCommandsProps> = (
 
       <Button
         variant="secondary"
-        onClick={() => applyWithConfirmation(selectedTemplate)}
+        onClick={() => requestTemplate(selectedTemplate)}
         disabled={!selectedTemplate || isTemplateLocked}
         aria-label="Apply selected broader permission template to selected trainers"
       >
         <Award size={16} />
         Apply
       </Button>
+
+      {pendingTemplate ? (
+        <TemplateConfirmCard
+          role="alertdialog"
+          aria-label={`Confirm ${pendingTemplate.name} template`}
+          aria-modal="false"
+        >
+          <TemplateConfirmTitle>
+            <AlertTriangle size={16} />
+            Confirm {pendingTemplate.name}
+          </TemplateConfirmTitle>
+          <p>
+            This grants {pendingTemplate.criticalLabels.join(' and ')} to {pendingTemplate.trainerIds.length} selected trainer(s).
+            Review the selection before applying.
+          </p>
+          <TemplateConfirmMeta>Permission write requires confirmation</TemplateConfirmMeta>
+          <TemplateConfirmActions>
+            <Button
+              type="button"
+              variant="warning"
+              onClick={confirmPendingTemplate}
+              disabled={bulkProcessing}
+              aria-label={`Confirm ${pendingTemplate.name} template`}
+            >
+              Confirm
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setPendingTemplate(null)}
+              aria-label="Cancel template confirmation"
+            >
+              Cancel
+            </Button>
+          </TemplateConfirmActions>
+        </TemplateConfirmCard>
+      ) : null}
     </TemplateCommandStrip>
   );
 };

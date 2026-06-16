@@ -20,7 +20,6 @@ describe('TrainerPermissionsManager template command strip', () => {
 
   it('surfaces safe starter template commands with selected trainer context', () => {
     const applyTemplate = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     render(
       <TrainerPermissionsHeader
@@ -53,13 +52,15 @@ describe('TrainerPermissionsManager template command strip', () => {
       name: /apply session manager template to selected trainers/i,
     }));
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Session Manager'));
-    expect(applyTemplate).not.toHaveBeenCalledWith('session_manager', [101, 102]);
+    expect(screen.getByRole('alertdialog', {
+      name: /confirm session manager template/i,
+    })).toBeInTheDocument();
+    expect(applyTemplate).not.toHaveBeenCalled();
   });
 
-  it('applies critical template commands only after explicit confirmation', () => {
+  it('applies critical template commands only after an in-app confirmation click', () => {
     const applyTemplate = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     render(
       <TrainerPermissionsHeader
@@ -81,13 +82,19 @@ describe('TrainerPermissionsManager template command strip', () => {
       name: /apply session manager template to selected trainers/i,
     }));
 
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(applyTemplate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', {
+      name: /confirm session manager template/i,
+    }));
+
     expect(applyTemplate).toHaveBeenCalledWith('session_manager', [101, 102]);
   });
 
-  it('blocks the New Trainer critical template when confirmation is cancelled', () => {
+  it('blocks the New Trainer critical template when in-app confirmation is cancelled', () => {
     const applyTemplate = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     render(
       <TrainerPermissionsHeader
@@ -109,15 +116,24 @@ describe('TrainerPermissionsManager template command strip', () => {
       name: /apply new trainer starter template to selected trainers/i,
     }));
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('New Trainer'));
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Edit Client Workouts'));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', {
+      name: /confirm new trainer template/i,
+    })).toHaveTextContent(/Edit Client Workouts/i);
+
+    fireEvent.click(screen.getByRole('button', {
+      name: /cancel template confirmation/i,
+    }));
+
     expect(applyTemplate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog', {
+      name: /confirm new trainer template/i,
+    })).not.toBeInTheDocument();
   });
 
-  it('requires confirmation before applying elevated broader templates', () => {
+  it('requires in-app confirmation before applying elevated broader templates', () => {
     const applyTemplate = vi.fn();
     const setSelectedTemplate = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     render(
       <TrainerPermissionsHeader
@@ -139,7 +155,9 @@ describe('TrainerPermissionsManager template command strip', () => {
       name: /apply selected broader permission template to selected trainers/i,
     }));
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Senior Trainer'));
+    expect(screen.getByRole('alertdialog', {
+      name: /confirm senior trainer template/i,
+    })).toHaveTextContent(/selected trainer/i);
     expect(applyTemplate).not.toHaveBeenCalled();
   });
 

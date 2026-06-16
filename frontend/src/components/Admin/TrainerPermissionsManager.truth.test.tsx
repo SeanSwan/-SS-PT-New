@@ -40,6 +40,7 @@ const trainerPermissionsManagerSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/Admin/TrainerPermissionsManager.tsx'),
   'utf8',
 );
+const confirmNewTrainerTemplate = () => fireEvent.click(screen.getByRole('button', { name: /confirm new trainer template/i }));
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 const stats = {
@@ -157,10 +158,10 @@ describe('TrainerPermissionsManager active admin contract', () => {
     }), {
       target: { value: 'new_trainer' },
     });
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply selected broader permission template to selected trainers/i,
     }));
+    confirmNewTrainerTemplate();
 
     await waitFor(() => {
       expect(mockTrainerPermissionService.grantPermission).toHaveBeenCalled();
@@ -176,10 +177,10 @@ describe('TrainerPermissionsManager active admin contract', () => {
     fireEvent.click(screen.getByRole('checkbox', {
       name: /select rowan vale for bulk operations/i,
     }));
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply new trainer starter template to selected trainers/i,
     }));
+    confirmNewTrainerTemplate();
 
     await waitFor(() => {
       expect(mockTrainerPermissionService.grantPermission).toHaveBeenCalledWith({
@@ -240,10 +241,10 @@ describe('TrainerPermissionsManager active admin contract', () => {
     }), {
       target: { value: 'new_trainer' },
     });
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(true);
     fireEvent.click(screen.getByRole('button', {
       name: /apply selected broader permission template to selected trainers/i,
     }));
+    confirmNewTrainerTemplate();
 
     await waitFor(() => {
       expect(mockTrainerPermissionService.revokePermission).toHaveBeenCalledWith(
