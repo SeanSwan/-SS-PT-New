@@ -11,13 +11,19 @@ import { trainerTrainingSystems } from './DashboardTeachMeGuide.trainerTrainingR
 
 const trainerTodayCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
   title: 'Trainer today command',
-  summary: 'Use Home as the trainer floor launcher: today sessions, next client, Coach, Plan, Log, progress, and schedule stay together.',
-  focus: 'Start with the next client card so the trainer chooses Coach, Plan, or Log in seconds instead of hunting through tabs.',
+  summary: 'Use Home as the trainer floor launcher: the next client card turns today into Coach -> Log -> Progress.',
+  focus: 'Start with the next client card so the trainer follows Coach -> Log -> Progress in seconds instead of hunting through tabs.',
   primaryAction: { label: 'Today Command', to: '/dashboard/trainer/overview' },
   fastPath: [
-    'Read the next client card.',
-    'Tap Coach, Plan, or Log.',
-    'Review progress or schedule the follow-up.',
+    'Step 1: Coach the next session.',
+    'Step 2: Log the performed workout.',
+    'Step 3: Review Progress for the next move.',
+  ],
+  steps: [
+    'Step 1: Use the next client card to Coach the session before the floor conversation starts.',
+    'Step 2: Log the performed workout while sets, reps, load, and notes are fresh.',
+    'Step 3: Review Progress next so the next plan is based on saved proof.',
+    'Plan and Schedule only when the session needs a change or follow-up slot.',
   ],
   actions: [
     { label: 'Today Command', to: '/dashboard/trainer/overview' },

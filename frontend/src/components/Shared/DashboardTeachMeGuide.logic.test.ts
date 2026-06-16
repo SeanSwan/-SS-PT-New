@@ -36,7 +36,7 @@ describe('getDashboardTeachMeGuide', () => {
     ]));
   });
 
-  it('teaches trainers to work the next-session command from Home', () => {
+  it('teaches trainers to work the ordered Coach Log Progress flow from Home', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/overview',
@@ -48,11 +48,16 @@ describe('getDashboardTeachMeGuide', () => {
       to: '/dashboard/trainer/overview',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/next client card/i),
-      expect.stringMatching(/Coach, Plan, or Log/i),
-      expect.stringMatching(/progress or schedule/i),
+      expect.stringMatching(/Step 1.*Coach/i),
+      expect.stringMatching(/Step 2.*Log/i),
+      expect.stringMatching(/Step 3.*Progress/i),
     ]);
-    expect(guide.focus).toMatch(/next client card/i);
+    expect(guide.focus).toMatch(/Coach -> Log -> Progress/i);
+    expect(guide.steps).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Step 1.*Coach/i),
+      expect.stringMatching(/Step 2.*Log/i),
+      expect.stringMatching(/Step 3.*Progress/i),
+    ]));
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' }),
       expect.objectContaining({ label: 'Today Command', to: '/dashboard/trainer/overview' }),
