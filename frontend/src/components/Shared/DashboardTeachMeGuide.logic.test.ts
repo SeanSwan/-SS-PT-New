@@ -111,21 +111,34 @@ describe('getDashboardTeachMeGuide', () => {
     ]));
   });
 
-  it('teaches the public user home route to start with training, not reopening home', () => {
+  it('teaches the public user home route as the real daily training command', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'user',
-      pathname: '/user-dashboard',
+      pathname: '/user-dashboard#home',
     });
 
+    expect(guide.title).toBe('User home daily command');
     expect(guide.primaryAction).toEqual({
       label: 'Log Workout',
       to: '/dashboard/client/log-workout?loadPlan=today',
     });
-    expect(guide.primaryPrompt).toMatch(/user dashboard training workflow/i);
+    expect(guide.fastPath).toEqual([
+      expect.stringMatching(/training command strip/i),
+      expect.stringMatching(/proof, streak, or Coach/i),
+      expect.stringMatching(/share after the work is logged/i),
+    ]);
+    expect(guide.steps).toEqual(expect.arrayContaining([
+      expect.stringMatching(/HomeTrainingCommandStrip/i),
+      expect.stringMatching(/Daily Health Loop/i),
+      expect.stringMatching(/Swan Coach dock/i),
+      expect.stringMatching(/share proof/i),
+    ]));
+    expect(guide.primaryPrompt).toMatch(/user home daily command workflow/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' }),
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       expect.objectContaining({ label: 'Progress', to: '/user-dashboard/progress' }),
+      expect.objectContaining({ label: 'Studio', to: '/user-dashboard/creative' }),
     ]));
   });
 

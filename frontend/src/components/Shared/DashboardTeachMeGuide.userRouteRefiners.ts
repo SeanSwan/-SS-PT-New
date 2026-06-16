@@ -26,10 +26,36 @@ const actionRail = (primaryAction: GuideAction, ...extras: GuideAction[]): Guide
   });
 };
 
+const isUserHomePath = (path: string): boolean => (
+  path === '/user-dashboard' || path.includes('#home')
+);
+
 export const refineUserGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (isUserHomePath(path)) {
+    return applyPatch(base, {
+      title: 'User home daily command',
+      summary: 'Use Home as the fastest training cockpit: Command Strip, real proof, Daily Health Loop, Coach, and share-after-log stay together.',
+      focus: 'Start from the training command strip. Log first, read proof, use Coach for the smallest next action, then share only after the work is saved.',
+      primaryAction: logWorkout,
+      primaryPrompt: 'teach me the user home daily command workflow',
+      fastPath: [
+        'Use the training command strip.',
+        'Choose proof, streak, or Coach.',
+        'Share after the work is logged.',
+      ],
+      steps: [
+        'Start with HomeTrainingCommandStrip for Log Workout, Coach, and Progress instead of hunting through tabs.',
+        'Read Training Proof and the Daily Health Loop to see whether the story is current or missing a saved workout.',
+        'Use the Swan Coach dock for a quick next-action check, but do not treat Coach text as a logged workout.',
+        'Use Studio or share proof only after the workout is saved and the progress story is truthful.',
+      ],
+      actions: actionRail(logWorkout, { label: 'Studio', to: '/user-dashboard/creative' }),
+    });
+  }
+
   if (includesAny(path, ['photos'])) {
     const primaryAction = { label: 'Open Photos', to: '/user-dashboard/photos' };
     return applyPatch(base, {
