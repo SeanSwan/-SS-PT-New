@@ -68,17 +68,30 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
 
 /**
  * Pure send-decision for one scheduled automation log. NO side effects.
+ * @param {object} recipient - user OR lead-derived target: `{ phone, notificationPreferences }`.
+ *   Leads carry no per-channel prefs (`notificationPreferences:null` → defaults on); they are
+ *   gated by suppression + phone presence instead of by stored preferences.
+ * @param {object|null} suppression - result of `resolveMarketingSuppression({ email })`:
+ *   `{ suppressed, checked }`. `suppressed` → CANCEL; `checked:false` → FAIL CLOSED (consent could
+ *   not be verified, so we do NOT send). Omitted/null → suppression not evaluated here (legacy /
+ *   unit calls that gate consent elsewhere). The gate runs FIRST so an opt-out always wins.
  * @returns {{action:'send'|'defer'|'cancel'|'fail', reason:string, channel:string, nextAttempt?:Date}}
  */
-export const evaluateScheduledMessage = (log, user, now = new Date()) => {
+export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppression = null) => {
   const channel = log?.channel || 'sms';
   if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
 
-  const prefs = normalizePreferences(user?.notificationPreferences);
+  // Marketing consent gate — checked FIRST, fails CLOSED.
+  if (suppression) {
+    if (suppression.suppressed) return { action: 'cancel', reason: suppression.reason || 'marketing_suppressed', channel };
+    if (suppression.checked === false) return { action: 'fail', reason: 'suppression_unverified', channel };
+  }
+
+  const prefs = normalizePreferences(recipient?.notificationPreferences);
   if (prefs.sms === false) return { action: 'cancel', reason: 'sms_disabled', channel };
   if (isWithinQuietHours(prefs.quietHours, now)) {
     return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
   }
-  if (!user?.phone) return { action: 'fail', reason: 'no_phone', channel };
+  if (!recipient?.phone) return { action: 'fail', reason: 'no_phone', channel };
   return { action: 'send', reason: 'eligible', channel };
 };

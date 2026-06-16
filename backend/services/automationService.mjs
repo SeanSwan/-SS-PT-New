@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
 import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
 import { evaluateScheduledMessage } from './automationDecisionService.mjs';
+import { resolveMarketingSuppression } from './marketingSuppressionService.mjs';
 import { sendNurtureTestMessage } from './nurtureTestSendService.mjs';
 
 const DEFAULT_SEQUENCES = [
@@ -44,6 +45,28 @@ const getModels = () => {
     throw new Error('Automation models not initialized');
   }
   return { AutomationSequence, AutomationLog, User };
+};
+
+/**
+ * Resolve the recipient (user OR captured lead) for a scheduled log into a normalized
+ * target `{ kind, phone, email, notificationPreferences }`. Leads carry no per-channel
+ * prefs (null → defaults on); consent for leads is enforced by suppression + phone
+ * presence. Returns null for an orphaned log (recipient row gone) → the evaluator then
+ * fails it on no_phone. One log is user XOR lead (see triggerSequence).
+ */
+const resolveAutomationTarget = async (log, { User }) => {
+  if (log.userId) {
+    const user = await User.findByPk(log.userId);
+    if (!user) return null;
+    return { kind: 'user', phone: user.phone, email: user.email, notificationPreferences: user.notificationPreferences };
+  }
+  if (log.leadId) {
+    const { default: Lead } = await import('../models/Lead.mjs');
+    const lead = await Lead.findByPk(log.leadId);
+    if (!lead) return null;
+    return { kind: 'lead', phone: lead.phone, email: lead.email, notificationPreferences: null };
+  }
+  return null;
 };
 
 export const ensureDefaultSequences = async () => {
@@ -138,12 +161,15 @@ export const processScheduledMessages = async () => {
 
   for (const log of pendingLogs) {
     try {
-      const user = log.userId ? await User.findByPk(log.userId) : null;
-      const decision = evaluateScheduledMessage(log, user, now);
+      const target = await resolveAutomationTarget(log, { User });
+      const suppression = await resolveMarketingSuppression({ email: target?.email });
+      const decision = evaluateScheduledMessage(log, target, now, suppression);
 
       if (decision.action === 'cancel') {
         log.status = 'cancelled';
-        log.error = 'SMS disabled for user';
+        log.error = decision.reason === 'unsubscribed' || decision.reason === 'marketing_suppressed'
+          ? 'Recipient unsubscribed (marketing-suppressed)'
+          : 'SMS disabled for recipient';
         await log.save();
         results.push({ id: log.id, status: 'cancelled' });
         continue;
@@ -158,9 +184,10 @@ export const processScheduledMessages = async () => {
 
       if (decision.action === 'fail') {
         log.status = 'failed';
-        log.error = decision.reason === 'channel_not_implemented'
-          ? 'Channel not implemented'
-          : 'User missing phone number';
+        log.error =
+          decision.reason === 'channel_not_implemented' ? 'Channel not implemented'
+          : decision.reason === 'suppression_unverified' ? 'Suppression status could not be verified'
+          : 'Recipient missing phone number';
         await log.save();
         results.push({ id: log.id, status: 'failed' });
         continue;
@@ -171,7 +198,7 @@ export const processScheduledMessages = async () => {
       let sendResult;
       if (log.templateName) {
         sendResult = await sendTemplatedSMS({
-          to: user.phone,
+          to: target.phone,
           templateName: log.templateName,
           variables
         });
@@ -179,7 +206,7 @@ export const processScheduledMessages = async () => {
           log.message = sendResult.body;
         }
       } else if (log.message) {
-        sendResult = await sendSmsMessage({ to: user.phone, body: log.message });
+        sendResult = await sendSmsMessage({ to: target.phone, body: log.message });
       } else {
         sendResult = { success: false, error: 'No template or message provided' };
       }
@@ -187,12 +214,12 @@ export const processScheduledMessages = async () => {
       if (sendResult.success) {
         log.status = 'sent';
         log.sentAt = new Date();
-        log.recipient = user.phone;
+        log.recipient = target.phone;
         log.error = null;
       } else {
         log.status = 'failed';
         log.error = sendResult.error || 'SMS send failed';
-        log.recipient = user.phone;
+        log.recipient = target.phone;
       }
 
       await log.save();
@@ -233,18 +260,22 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   const items = [];
 
   for (const log of pendingLogs) {
-    const user = log.userId ? await User.findByPk(log.userId) : null;
-    const decision = evaluateScheduledMessage(log, user, now);
+    const target = await resolveAutomationTarget(log, { User });
+    const suppression = await resolveMarketingSuppression({ email: target?.email });
+    const decision = evaluateScheduledMessage(log, target, now, suppression);
     summary[bucketFor[decision.action]] += 1;
     byReason[decision.reason] = (byReason[decision.reason] || 0) + 1;
     items.push({
       id: log.id,
       userId: log.userId || null,
+      leadId: log.leadId || null,
+      recipientKind: target?.kind || 'none',
       channel: decision.channel,
       templateName: log.templateName || null,
       action: decision.action,
       reason: decision.reason,
-      hasPhone: Boolean(user?.phone), // PII-safe: presence only, never the number
+      hasPhone: Boolean(target?.phone),       // PII-safe: presence only, never the number
+      suppressed: Boolean(suppression?.suppressed), // PII-safe boolean
     });
   }
 

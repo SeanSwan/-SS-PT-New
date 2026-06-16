@@ -1,18 +1,23 @@
 /**
  * automationService — nurture dry-run + suppression evaluator.
  * Locks the safety foundation for arming the follow-up engine:
- *  - evaluateScheduledMessage centralizes every send/suppress decision (pure).
+ *  - evaluateScheduledMessage centralizes every send/suppress decision (pure), now
+ *    with a fail-closed marketing-consent gate checked FIRST.
  *  - previewScheduledMessages reports what WOULD happen with NO sends + NO DB
- *    mutation, and is PII-safe (phone presence only, never the number).
- * Models + SMS service are mocked — nothing is sent, nothing is written.
+ *    mutation, and is PII-safe (phone/suppression presence only, never the number).
+ *  - recipients resolve to either a User OR a captured Lead (lead-nurture path).
+ * Models, SMS service, and the suppression lookup are mocked — nothing is sent,
+ * nothing is written, no real Subscriber query runs.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const { logFindAll, userFindByPk, smsTemplated, smsMessage } = vi.hoisted(() => ({
+const { logFindAll, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
   logFindAll: vi.fn(),
   userFindByPk: vi.fn(),
+  leadFindByPk: vi.fn(),
   smsTemplated: vi.fn(),
   smsMessage: vi.fn(),
+  resolveSuppression: vi.fn(),
 }));
 
 vi.mock('../models/index.mjs', () => ({
@@ -22,15 +27,20 @@ vi.mock('../models/index.mjs', () => ({
     User: { findByPk: userFindByPk },
   }),
 }));
+vi.mock('../models/Lead.mjs', () => ({ default: { findByPk: leadFindByPk } }));
 vi.mock('../services/smsService.mjs', () => ({
   sendTemplatedSMS: smsTemplated,
   sendSmsMessage: smsMessage,
+}));
+vi.mock('../services/marketingSuppressionService.mjs', () => ({
+  resolveMarketingSuppression: resolveSuppression,
 }));
 vi.mock('../utils/logger.mjs', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
 const { evaluateScheduledMessage, previewScheduledMessages } = await import('../services/automationService.mjs');
 
 const ALL_DAY_QUIET = { start: '00:00', end: '23:59' };
+const ALLOWED = { suppressed: false, reason: null, checked: true };
 
 describe('evaluateScheduledMessage (suppression decisions)', () => {
   it('SEND for an eligible sms log (sms on, has phone, not quiet hours)', () => {
@@ -55,6 +65,27 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
     expect(d.reason).toBe('quiet_hours');
     expect(d.nextAttempt).toBeInstanceOf(Date);
   });
+
+  // Marketing consent gate (fail-closed, checked FIRST).
+  it('CANCEL when the recipient is marketing-suppressed (opt-out wins)', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } }, new Date(),
+      { suppressed: true, reason: 'unsubscribed', checked: true });
+    expect(d).toMatchObject({ action: 'cancel', reason: 'unsubscribed' });
+  });
+  it('FAIL suppression_unverified (fail CLOSED) when consent could not be verified', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } }, new Date(),
+      { suppressed: false, checked: false });
+    expect(d).toMatchObject({ action: 'fail', reason: 'suppression_unverified' });
+  });
+  it('suppression beats sms_disabled — an opt-out is the strongest signal', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: false } }, new Date(),
+      { suppressed: true, reason: 'unsubscribed', checked: true });
+    expect(d.reason).toBe('unsubscribed'); // not sms_disabled
+  });
+  it('omitted suppression (null) is skipped — legacy/unit calls behave as before', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true } });
+    expect(d.action).toBe('send');
+  });
 });
 
 describe('previewScheduledMessages (dry-run)', () => {
@@ -66,6 +97,7 @@ describe('previewScheduledMessages (dry-run)', () => {
   ];
   beforeEach(() => {
     vi.clearAllMocks();
+    resolveSuppression.mockResolvedValue(ALLOWED);
     logFindAll.mockResolvedValue(logs);
     userFindByPk.mockImplementation((id) => Promise.resolve(({
       10: { id: 10, phone: '+15550001111', notificationPreferences: { sms: true } },   // send
@@ -93,8 +125,60 @@ describe('previewScheduledMessages (dry-run)', () => {
   it('is PII-safe: reports phone presence only, never the number', async () => {
     const res = await previewScheduledMessages();
     const sendItem = res.items.find((i) => i.id === 1);
-    expect(sendItem).toMatchObject({ action: 'send', hasPhone: true, channel: 'sms' });
+    expect(sendItem).toMatchObject({ action: 'send', hasPhone: true, channel: 'sms', recipientKind: 'user' });
     expect(sendItem).not.toHaveProperty('phone');
     expect(JSON.stringify(res)).not.toContain('+1555'); // no raw phone numbers anywhere
+  });
+});
+
+describe('previewScheduledMessages (suppression + lead recipients)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    userFindByPk.mockImplementation((id) => Promise.resolve(({
+      10: { id: 10, phone: '+15550001111', email: 'active@x.com', notificationPreferences: { sms: true } },
+      20: { id: 20, phone: '+15550002222', email: 'unsub@x.com', notificationPreferences: { sms: true } },
+    })[id] || null));
+    leadFindByPk.mockImplementation((id) => Promise.resolve(({
+      777: { id: 777, phone: '+15550007777', email: 'lead@x.com', firstName: 'Lead' },
+    })[id] || null));
+    // unsubscribed email is suppressed; everyone else allowed.
+    resolveSuppression.mockImplementation(async ({ email }) => (
+      email === 'unsub@x.com'
+        ? { suppressed: true, reason: 'unsubscribed', checked: true }
+        : ALLOWED
+    ));
+  });
+
+  it('CANCELS a suppressed (unsubscribed) recipient and flags suppressed:true', async () => {
+    logFindAll.mockResolvedValue([
+      { id: 1, userId: 10, channel: 'sms', templateName: 'welcome' },  // allowed → send
+      { id: 2, userId: 20, channel: 'sms', templateName: 'welcome' },  // unsubscribed → cancel
+    ]);
+    const res = await previewScheduledMessages();
+    expect(res.summary).toMatchObject({ wouldSend: 1, wouldCancel: 1 });
+    expect(res.byReason).toMatchObject({ eligible: 1, unsubscribed: 1 });
+    const cancelled = res.items.find((i) => i.id === 2);
+    expect(cancelled).toMatchObject({ action: 'cancel', reason: 'unsubscribed', suppressed: true });
+  });
+
+  it('resolves a LEAD recipient (no userId) → send with recipientKind:lead', async () => {
+    logFindAll.mockResolvedValue([
+      { id: 9, userId: null, leadId: 777, channel: 'sms', templateName: 'follow_up_day1' },
+    ]);
+    const res = await previewScheduledMessages();
+    expect(leadFindByPk).toHaveBeenCalledWith(777);
+    const item = res.items.find((i) => i.id === 9);
+    expect(item).toMatchObject({ action: 'send', recipientKind: 'lead', leadId: 777, hasPhone: true });
+    expect(JSON.stringify(res)).not.toContain('+1555'); // still PII-safe for leads
+  });
+
+  it('FAILS closed (suppression_unverified) when the consent lookup could not run', async () => {
+    resolveSuppression.mockResolvedValue({ suppressed: false, reason: 'suppression_check_failed', checked: false });
+    logFindAll.mockResolvedValue([
+      { id: 3, userId: 10, channel: 'sms', templateName: 'welcome' },
+    ]);
+    const res = await previewScheduledMessages();
+    expect(res.summary).toMatchObject({ wouldFail: 1 });
+    expect(res.byReason).toMatchObject({ suppression_unverified: 1 });
   });
 });
