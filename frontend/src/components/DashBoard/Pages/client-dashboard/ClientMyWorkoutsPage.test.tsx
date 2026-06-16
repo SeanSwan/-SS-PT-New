@@ -224,6 +224,9 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
     const url = new URL(route, 'https://sswanstudios.test');
     expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('intent')).toBe('log_self_workout');
+    expect(url.searchParams.get('source')).toBe('client-workouts');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/client/workouts');
     expect(url.searchParams.get('teachPrompt')).toMatch(/workouts tab/i);
     expect(url.searchParams.get('teachPrompt')).toMatch(/workout history/i);
   });
@@ -262,6 +265,9 @@ describe('ClientMyWorkoutsPage — CTA routing and page-scoped stat labels', () 
     const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
     const url = new URL(route, 'https://sswanstudios.test');
     expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('intent')).toBe('log_self_workout');
+    expect(url.searchParams.get('source')).toBe('client-workouts');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/client/workouts');
     expect(url.searchParams.get('teachPrompt')).toMatch(/safest next training action/i);
   });
 

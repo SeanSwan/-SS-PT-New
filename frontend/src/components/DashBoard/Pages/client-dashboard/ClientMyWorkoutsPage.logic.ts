@@ -25,6 +25,7 @@ export interface WorkoutSession {
 }
 
 export const CLIENT_WORKOUTS_PAGE_LIMIT = 50;
+export const CLIENT_WORKOUTS_RETURN_TO = '/dashboard/client/workouts';
 export const CLIENT_WORKOUTS_COACH_PROMPT =
   "Teach me my workouts tab from my workout history. Help me decide what to log today and choose one safe next training action.";
 
@@ -71,6 +72,9 @@ export function buildClientWorkoutsCoachPrompt(snapshot?: ClientWorkoutsCoachSna
 
 export function buildClientWorkoutsCoachPath(snapshot?: ClientWorkoutsCoachSnapshot): string {
   return `/dashboard/client/coach-assistant?${new URLSearchParams({
+    intent: 'log_self_workout',
+    source: 'client-workouts',
+    returnTo: CLIENT_WORKOUTS_RETURN_TO,
     teachPrompt: buildClientWorkoutsCoachPrompt(snapshot),
   }).toString()}`;
 }

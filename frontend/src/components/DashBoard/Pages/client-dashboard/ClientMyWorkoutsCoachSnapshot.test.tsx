@@ -72,6 +72,9 @@ describe('ClientMyWorkoutsPage Coach snapshot handoff', () => {
     const prompt = url.searchParams.get('teachPrompt') ?? '';
 
     expect(url.pathname).toBe('/dashboard/client/coach-assistant');
+    expect(url.searchParams.get('intent')).toBe('log_self_workout');
+    expect(url.searchParams.get('source')).toBe('client-workouts');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/client/workouts');
     expect(prompt).toContain('workout history');
     expect(prompt).toContain('2 workouts on this page');
     expect(prompt).toContain('1 in the last 7 days');
