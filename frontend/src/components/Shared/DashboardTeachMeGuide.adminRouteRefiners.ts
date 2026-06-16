@@ -11,6 +11,7 @@ import {
   adminTrustAndAccess,
 } from './DashboardTeachMeGuide.adminCareRefiners';
 import { adminEngagementSystems } from './DashboardTeachMeGuide.adminEngagementRefiners';
+import { adminOverviewTriage } from './DashboardTeachMeGuide.adminOverviewRefiner';
 import { adminScheduleControl } from './DashboardTeachMeGuide.adminScheduleRefiners';
 import {
   adminSelfWorkoutPlanning,
@@ -233,6 +234,9 @@ export const refineAdminGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy => {
+  if (includesAny(path, ['overview'])) {
+    return adminOverviewTriage(base);
+  }
   if (includesAny(path, ['coach-assistant', 'plaud', 'intake'])) {
     return adminCoachCommandTerminal(base);
   }

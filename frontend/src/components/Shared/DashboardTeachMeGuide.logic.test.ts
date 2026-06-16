@@ -5,33 +5,34 @@ import {
 } from './DashboardTeachMeGuide.logic';
 
 describe('getDashboardTeachMeGuide', () => {
-  it('teaches the admin command flow without implying hidden writes', () => {
+  it('teaches the admin overview as first-screen triage without implying hidden writes', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'admin',
       pathname: '/dashboard/admin/overview',
     });
 
-    expect(guide.title).toBe('Admin command center');
+    expect(guide.title).toBe('Admin overview triage');
     expect(guide.steps).toEqual(expect.arrayContaining([
-      expect.stringMatching(/Start with Coach or Client Hub/i),
-      expect.stringMatching(/Training tab/i),
-      expect.stringMatching(/approval-gated/i),
+      expect.stringMatching(/scan the overview widgets/i),
+      expect.stringMatching(/client, session, order, revenue, trainer, or trust/i),
+      expect.stringMatching(/Do not write from overview/i),
     ]));
-    expect(guide.primaryPrompt).toMatch(/teach me the admin dashboard workflow/i);
+    expect(guide.primaryPrompt).toMatch(/admin overview triage workflow/i);
     expect(guide.primaryAction).toEqual({
-      label: 'Log Client Workout',
-      to: '/dashboard/admin/client-management?intent=log_workout',
+      label: 'Open Coach Command',
+      to: '/dashboard/admin/coach-assistant',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Pick the client or Coach thread/i),
-      expect.stringMatching(/Open the Training tab/i),
-      expect.stringMatching(/Review, then save/i),
+      expect.stringMatching(/Scan alerts and proof/i),
+      expect.stringMatching(/Pick the owner route/i),
+      expect.stringMatching(/Finish inside the source screen/i),
     ]);
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Open Coach', to: '/dashboard/admin/coach-assistant' }),
+      expect.objectContaining({ label: 'Open Coach Command', to: '/dashboard/admin/coach-assistant' }),
       expect.objectContaining({ label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' }),
-      expect.objectContaining({ label: 'Log Client Workout', to: '/dashboard/admin/client-management?intent=log_workout' }),
-      expect.objectContaining({ label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' }),
+      expect.objectContaining({ label: 'Orders', to: '/dashboard/admin/pending-orders' }),
+      expect.objectContaining({ label: 'Sessions', to: '/dashboard/admin/admin-sessions' }),
+      expect.objectContaining({ label: 'Revenue', to: '/dashboard/admin/revenue' }),
     ]));
   });
 
