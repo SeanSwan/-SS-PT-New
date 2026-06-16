@@ -34,11 +34,44 @@ function overviewTab(path: string): ClientOverviewTab | null {
   return null;
 }
 
+function isOverviewRoot(path: string): boolean {
+  return path === '/dashboard/client/overview'
+    || path.startsWith('/dashboard/client/overview?')
+    || path.startsWith('/dashboard/client/overview#');
+}
+
 export function refineClientOverviewGuide(
   path: string,
   base: DashboardTeachMeGuideCopy,
 ): DashboardTeachMeGuideCopy | null {
   const tab = overviewTab(path);
+  if (!tab && isOverviewRoot(path)) {
+    return applyPatch(base, {
+      title: 'Client daily command',
+      summary: 'Use client Home as the daily command center: current workout, Coach This, Plan Vault, progress, booking, and social proof stay together.',
+      focus: 'Start with the Current Workout card. Log the assigned work first, ask Coach only for a next-action check, then review progress or book before sharing.',
+      primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
+      fastPath: [
+        'Start with Current Workout.',
+        'Use Coach This or Plan Vault.',
+        'Book or share only after logging.',
+      ],
+      steps: [
+        'Use the Current Workout card to log the assigned workout or review the plan that owns today.',
+        'Tap Coach This when you need an explanation or next-action check, but save the actual workout in Logger.',
+        'Use Training Plan Vault to inspect the plan horizon before assuming today is a free-build workout.',
+        'Do not treat overview as the saved record. Finish logging, progress review, booking, or sharing in the owning screen.',
+      ],
+      actions: [
+        { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
+        { label: 'Coach This', to: '/dashboard/client/coach-assistant' },
+        { label: 'Plan Vault', to: '/dashboard/client/overview' },
+        { label: 'Progress', to: '/dashboard/client/progress' },
+        { label: 'Book Session', to: '/dashboard/client/schedule' },
+      ],
+      primaryPrompt: 'teach me the client overview daily command workflow',
+    });
+  }
   if (!tab) return null;
   const config = tabConfig[tab];
   const to = `/dashboard/client/overview/${tab}`;

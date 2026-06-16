@@ -33,6 +33,36 @@ describe('DashboardTeachMeGuide mounted dashboard coverage', () => {
     ]));
   });
 
+  it('teaches the mounted client overview as a current-workout command surface', () => {
+    const guide = getDashboardTeachMeGuide({
+      role: 'client',
+      pathname: '/dashboard/client/overview',
+    });
+
+    expect(guide.title).toBe('Client daily command');
+    expect(guide.primaryAction).toEqual({
+      label: 'Log Workout',
+      to: '/dashboard/client/log-workout?loadPlan=today',
+    });
+    expect(guide.fastPath).toEqual([
+      expect.stringMatching(/Current Workout/i),
+      expect.stringMatching(/Coach This or Plan Vault/i),
+      expect.stringMatching(/Book or share only after logging/i),
+    ]);
+    expect(guide.steps).toEqual(expect.arrayContaining([
+      expect.stringMatching(/Current Workout card/i),
+      expect.stringMatching(/Coach This/i),
+      expect.stringMatching(/Training Plan Vault/i),
+      expect.stringMatching(/Do not treat overview/i),
+    ]));
+    expect(guide.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Coach This', to: '/dashboard/client/coach-assistant' }),
+      expect.objectContaining({ label: 'Progress', to: '/dashboard/client/progress' }),
+      expect.objectContaining({ label: 'Book Session', to: '/dashboard/client/schedule' }),
+    ]));
+    expect(guide.primaryPrompt).toMatch(/client overview daily command workflow/i);
+  });
+
   it('teaches client overview social tabs as tab-specific proof workflows', () => {
     const expected = [
       ['/dashboard/client/overview/reels', 'Client reels proof', 'Open Reels'],
