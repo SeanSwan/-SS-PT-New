@@ -17,6 +17,7 @@ import {
   adminSelfWorkoutPlanning,
   isAdminSelfPlannerRoute,
 } from './DashboardTeachMeGuide.adminSelfPlannerRefiner';
+import { adminTrainingSystems } from './DashboardTeachMeGuide.adminTrainingRefiners';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
 
 const adminMoneyPath = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -43,32 +44,6 @@ const adminMoneyPath = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
     { label: 'Sessions', to: '/dashboard/admin/admin-sessions' },
   ],
   primaryPrompt: 'teach me the admin money path workflow',
-});
-
-const adminWorkoutSystems = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  eyebrow: 'Teach the training builder',
-  title: 'Admin workout systems',
-  summary: 'Use builder routes to turn client goals, equipment, pain signals, and training phase into a usable plan.',
-  focus: 'Build from client context first: goal, equipment, pain, schedule, then generate or save the plan where the trainer can use it.',
-  primaryAction: { label: 'Open Workout Planner', to: '/dashboard/admin/workout-planner' },
-  fastPath: [
-    'Choose client context.',
-    'Generate or assemble the plan.',
-    'Save it where logging can use it.',
-  ],
-  steps: [
-    'Start in Client Hub when the plan belongs to one client; use Workout Planner when the plan structure is the main task.',
-    'Confirm equipment and pain constraints before accepting generated work.',
-    'Use Bootcamp only for group-class flow; do not mix it with one-client programming unless that is intentional.',
-    'Save the plan before leaving the builder so it can feed future logging and progress proof.',
-  ],
-  actions: [
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
-    { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
-    { label: 'Equipment', to: '/dashboard/admin/equipment' },
-    { label: 'Bootcamp', to: '/dashboard/admin/bootcamp' },
-  ],
-  primaryPrompt: 'teach me the admin workout builder workflow',
 });
 
 const adminSelfWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -259,7 +234,7 @@ export const refineAdminGuide = (
     return adminSelfWorkoutPlanning(base);
   }
   if (includesAny(path, ['workout-planner', 'workouts', 'bootcamp', 'equipment'])) {
-    return adminWorkoutSystems(base);
+    return adminTrainingSystems(path, base);
   }
   if (includesAny(path, ['gamification', 'virtual-olympics', 'my-home', 'sprint-planner'])) {
     return adminEngagementSystems(path, base);
