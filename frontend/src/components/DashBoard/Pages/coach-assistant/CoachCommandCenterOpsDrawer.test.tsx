@@ -10,7 +10,7 @@ import {
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -20,7 +20,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
-    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(opsTrigger);
@@ -94,8 +94,10 @@ describe('CoachCommandCenterPage Ops drawer', () => {
       'href',
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
-    expect(within(priorityActions).getByRole('button', { name: /Review next intake/i })).toBeInTheDocument();
     expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
+    fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));
+    expect(screen.getByRole('button', { name: /^Actions$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 
   it('routes trainer pick-client launchpad actions straight into log-workout client selection', () => {

@@ -130,6 +130,11 @@ const CoachCommandCenterPage: React.FC = () => {
     setPlaudUploadRequest((count) => count + 1);
   };
 
+  const handleOpenIntakeFromOps = () => {
+    setActiveTab('intake');
+    commandCenter.closeDrawer(false);
+  };
+
   return (
     <CommandBridgeShell ref={commandCenter.shellRef}>
       <div className="bridge-shell">
@@ -268,7 +273,7 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerScopeLabel={workoutLoggerScopeLabel}
             workoutPlannerRoute={workoutPlannerRoute}
             onClose={commandCenter.closeDrawer}
-            onOpenIntake={() => setActiveTab('intake')}
+            onOpenIntake={handleOpenIntakeFromOps}
             onOpenPlaud={handleStartPlaudUpload}
             onQuickClientNameChange={commandCenter.setQuickClientName}
             onQuickClientSourceChange={commandCenter.setQuickClientSource}

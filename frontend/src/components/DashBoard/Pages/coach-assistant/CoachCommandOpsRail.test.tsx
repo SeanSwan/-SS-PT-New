@@ -8,7 +8,7 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -81,7 +81,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
   it('shows an explicit drawer header close control that collapses Ops', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
-    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
     const opsRail = openOpsRail();
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent('Client #42');
