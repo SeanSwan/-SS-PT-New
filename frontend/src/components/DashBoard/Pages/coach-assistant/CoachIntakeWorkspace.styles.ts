@@ -29,7 +29,7 @@ export const Header = styled.div`
   margin-bottom: 12px;
   min-width: 0;
 
-  @media (max-width: 720px) {
+  @media (max-width: 1080px) {
     flex-direction: column;
   }
 `;
@@ -84,7 +84,7 @@ export const ActionRow = styled.div`
     grid-column: 1 / -1;
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 1080px) {
     width: 100%;
   }
 `;

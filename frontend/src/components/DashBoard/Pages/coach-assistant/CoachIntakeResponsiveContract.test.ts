@@ -17,6 +17,8 @@ describe('Coach intake responsive contract', () => {
     expect(workspaceStyles).toMatch(/ActionRow[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*170px\),\s*1fr\)\)/);
     expect(workspaceStyles).toMatch(/>\s*:first-child\s*{\s*grid-column:\s*1\s*\/\s*-1/);
     expect(workspaceStyles).toMatch(/>\s*\*\s*{\s*min-width:\s*0/);
+    expect(workspaceStyles).toMatch(/Header[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*flex-direction:\s*column/);
+    expect(workspaceStyles).toMatch(/ActionRow[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*width:\s*100%/);
     expect(workspaceStyles).toMatch(/FirstMovePanel[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.64fr\)/);
     expect(workspaceStyles).toMatch(/FirstMovePanel[\s\S]*@media \(max-width:\s*640px\)[\s\S]*grid-template-columns:\s*1fr/);
     expect(workspaceStyles).toMatch(/FirstMoveActions[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
