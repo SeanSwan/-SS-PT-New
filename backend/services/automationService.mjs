@@ -10,6 +10,7 @@ import { getAllModels } from '../models/index.mjs';
 import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
 import { evaluateScheduledMessage } from './automationDecisionService.mjs';
 import { resolveMarketingSuppression } from './marketingSuppressionService.mjs';
+import { isAutomationArmed } from './automationArmState.mjs';
 import { sendNurtureTestMessage } from './nurtureTestSendService.mjs';
 
 const DEFAULT_SEQUENCES = [
@@ -87,9 +88,16 @@ const resolveAutomationTarget = async (log, { User }) => {
 // Rolling per-recipient frequency cap (anti-spam). Conservative defaults — overridable
 // via env. Counts automation messages already SENT to this recipient in the window;
 // at/over the cap the message DEFERS by a cooldown (re-tried next tick, never dropped).
-const FREQ_CAP = Number(process.env.SWAN_AUTOMATION_MAX_PER_WINDOW) || 3;
-const FREQ_WINDOW_DAYS = Number(process.env.SWAN_AUTOMATION_WINDOW_DAYS) || 7;
-const FREQ_COOLDOWN_HOURS = Number(process.env.SWAN_AUTOMATION_COOLDOWN_HOURS) || 24;
+// Validate-then-fallback (NOT `|| default`): so an explicit 0 is honored as a true halt,
+// and a typo/NaN/negative falls back to the conservative default rather than silently
+// becoming it or passing through unguarded.
+const envNonNegInt = (name, fallback) => {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3);
+const FREQ_WINDOW_DAYS = envNonNegInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
+const FREQ_COOLDOWN_HOURS = envNonNegInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const resolveFrequencyCap = async (log, { AutomationLog }, now) => {
@@ -145,6 +153,11 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
     lead = await Lead.findByPk(leadId);
   }
 
+  // Key the user/lead identity off the RESOLVED user, not the raw param: a userId that
+  // doesn't resolve (e.g. a soft-deleted account) must NOT stamp userId — otherwise the
+  // log would carry BOTH userId and leadId, breaking the user-XOR-lead invariant the
+  // recipient-resolution + frequency-cap layers depend on.
+  const resolvedUserId = user ? user.id : null;
   const recipient = user?.phone || lead?.phone || lead?.email || null;
   const variables = {
     clientName: data.clientName || user?.firstName || lead?.firstName || 'Client',
@@ -165,8 +178,8 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
 
       logs.push({
         sequenceId: sequence.id,
-        userId: userId || null,
-        leadId: user ? null : leadId, // user XOR lead — never both on one log
+        userId: resolvedUserId,
+        leadId: resolvedUserId ? null : leadId, // user XOR lead — keyed off the RESOLVED user
         stepIndex: index,
         channel: step.channel || 'sms',
         status: 'pending',
@@ -188,7 +201,16 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
   return { success: true, created: logs.length };
 };
 
-export const processScheduledMessages = async () => {
+export const processScheduledMessages = async ({ force = false } = {}) => {
+  // Arm gate at the SEND CHOKEPOINT: disarmed => zero delivery, regardless of caller.
+  // The scheduler only starts when armed, but the admin POST /api/automation/process
+  // route calls this directly — without this gate it would flush+send the live pending
+  // queue while the owner believes the engine is disarmed. `force` is a deliberate
+  // in-code owner override; it is intentionally NOT exposed through any HTTP route.
+  if (!isAutomationArmed() && !force) {
+    return { processed: 0, results: [], skipped: 'disarmed' };
+  }
+
   const { AutomationLog, User } = getModels();
   const now = new Date();
 
@@ -270,9 +292,16 @@ export const processScheduledMessages = async () => {
       results.push({ id: log.id, status: log.status });
     } catch (error) {
       logger.error('Error processing automation log:', error);
-      log.status = 'failed';
-      log.error = error.message;
-      await log.save();
+      // Guard the recovery save: if persisting the failure status itself rejects (likely
+      // the SAME DB/connection problem that caused the original error), it must NOT escape
+      // the loop and abandon the rest of the batch — preserve per-log isolation.
+      try {
+        log.status = 'failed';
+        log.error = error.message;
+        await log.save();
+      } catch (saveErr) {
+        logger.error(`Failed to persist failure status for automation log ${log.id}: ${saveErr?.message}`);
+      }
       results.push({ id: log.id, status: 'failed' });
     }
   }

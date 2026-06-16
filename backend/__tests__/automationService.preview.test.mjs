@@ -9,7 +9,7 @@
  * Models, SMS service, and the suppression lookup are mocked — nothing is sent,
  * nothing is written, no real Subscriber query runs.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 const { logFindAll, logCount, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
   logFindAll: vi.fn(),
@@ -38,7 +38,7 @@ vi.mock('../services/marketingSuppressionService.mjs', () => ({
 }));
 vi.mock('../utils/logger.mjs', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
-const { evaluateScheduledMessage, previewScheduledMessages } = await import('../services/automationService.mjs');
+const { evaluateScheduledMessage, previewScheduledMessages, processScheduledMessages } = await import('../services/automationService.mjs');
 
 const ALL_DAY_QUIET = { start: '00:00', end: '23:59' };
 const ALLOWED = { suppressed: false, reason: null, checked: true };
@@ -214,5 +214,52 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
     expect(res.byReason).toMatchObject({ frequency_capped: 1 });
     const item = res.items.find((i) => i.id === 7);
     expect(item).toMatchObject({ action: 'defer', reason: 'frequency_capped', frequencyCapped: true, sentInWindow: 3 });
+  });
+});
+
+describe('processScheduledMessages (arm gate — BLOCKER 1: disarmed = zero delivery)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolveSuppression.mockResolvedValue(ALLOWED);
+    logCount.mockResolvedValue(0);
+    smsTemplated.mockResolvedValue({ success: true, body: 'hi' });
+    delete process.env.SWAN_AUTOMATION_CRON_ENABLED;
+  });
+  afterEach(() => { delete process.env.SWAN_AUTOMATION_CRON_ENABLED; });
+
+  it('is a NO-OP when disarmed (flag unset) — reads no logs, sends nothing', async () => {
+    const res = await processScheduledMessages();
+    expect(res).toMatchObject({ processed: 0, skipped: 'disarmed' });
+    expect(logFindAll).not.toHaveBeenCalled();
+    expect(smsTemplated).not.toHaveBeenCalled();
+  });
+
+  it('is a NO-OP for any value other than the literal "true"', async () => {
+    process.env.SWAN_AUTOMATION_CRON_ENABLED = 'false';
+    expect((await processScheduledMessages()).skipped).toBe('disarmed');
+    process.env.SWAN_AUTOMATION_CRON_ENABLED = 'TRUE';
+    expect((await processScheduledMessages()).skipped).toBe('disarmed');
+    process.env.SWAN_AUTOMATION_CRON_ENABLED = '1';
+    expect((await processScheduledMessages()).skipped).toBe('disarmed');
+  });
+
+  it('processes + SENDS only when ARMED ("true")', async () => {
+    process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
+    logFindAll.mockResolvedValue([
+      { id: 1, userId: 10, channel: 'sms', templateName: 'welcome', payloadJson: {}, save: vi.fn() },
+    ]);
+    userFindByPk.mockResolvedValue({ id: 10, phone: '+15550001111', email: 'a@x.com', notificationPreferences: { sms: true } });
+    const res = await processScheduledMessages();
+    expect(logFindAll).toHaveBeenCalled();
+    expect(smsTemplated).toHaveBeenCalledTimes(1);
+    expect(res.processed).toBe(1);
+  });
+
+  it('honors the in-code force override even when disarmed (NOT exposed via HTTP)', async () => {
+    logFindAll.mockResolvedValue([]); // empty queue → enters but processes nothing
+    const res = await processScheduledMessages({ force: true });
+    expect(logFindAll).toHaveBeenCalled();
+    expect(res.skipped).toBeUndefined();
+    expect(res.processed).toBe(0);
   });
 });

@@ -7,6 +7,7 @@
  */
 import { processScheduledMessages } from './automationService.mjs';
 import { checkClientsForRenewalAlerts } from './renewalAlertService.mjs';
+import { isAutomationArmed } from './automationArmState.mjs';
 import logger from '../utils/logger.mjs';
 
 const DRIP_START_DELAY_MS = 5 * 1000;
@@ -14,9 +15,16 @@ const DRIP_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const RENEWAL_START_DELAY_MS = 30 * 1000;
 const RENEWAL_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
+// Delegates to the shared arm-state so the scheduler gate and the sender gate can
+// never drift apart (the sender enforces the same check at the send chokepoint).
 export function isAutomationCronEnabled(env = process.env) {
-  return env.SWAN_AUTOMATION_CRON_ENABLED === 'true';
+  return isAutomationArmed(env);
 }
+
+// Terminal guard for the detached (fire-and-forget) tick callbacks: runAutomationTick /
+// runRenewalTick are exhaustively self-guarded today, but a future unguarded await must
+// not escape a setInterval/setTimeout callback as a process-killing unhandledRejection.
+const guardTick = (fn) => fn().catch((err) => logger.error(`[AutomationCron] tick rejected: ${err?.message}`));
 
 let dripTickInFlight = false;
 let renewalTickInFlight = false;
@@ -86,18 +94,18 @@ export function startAutomationScheduler() {
   logger.info('[AutomationCron] Starting follow-up engine: SMS drip every 5 min; renewal scan daily');
   automationStartupTimeout = setTimeout(() => {
     automationStartupTimeout = null;
-    runAutomationTick({ includeRenewal: false });
+    guardTick(() => runAutomationTick({ includeRenewal: false }));
   }, DRIP_START_DELAY_MS);
   automationInterval = setInterval(
-    () => runAutomationTick({ includeRenewal: false }),
+    () => guardTick(() => runAutomationTick({ includeRenewal: false })),
     DRIP_CHECK_INTERVAL_MS,
   );
 
   renewalStartupTimeout = setTimeout(() => {
     renewalStartupTimeout = null;
-    runRenewalTick();
+    guardTick(() => runRenewalTick());
   }, RENEWAL_START_DELAY_MS);
-  renewalInterval = setInterval(runRenewalTick, RENEWAL_CHECK_INTERVAL_MS);
+  renewalInterval = setInterval(() => guardTick(() => runRenewalTick()), RENEWAL_CHECK_INTERVAL_MS);
 
   return { started: true };
 }

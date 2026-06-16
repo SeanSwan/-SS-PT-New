@@ -77,6 +77,16 @@ describe('triggerSequence — lead identity', () => {
     expect(res.created).toBe(0);
     expect(logBulkCreate).not.toHaveBeenCalled();
   });
+
+  it('does NOT dual-stamp: a passed userId that does not resolve (soft-deleted) falls through to leadId only', async () => {
+    userFindByPk.mockResolvedValue(null); // truthy userId, but the user row is gone
+    leadFindByPk.mockResolvedValue({ id: 42, firstName: 'Lee', phone: '+15551234567', email: 'lee@example.com' });
+    await triggerSequence('lead_captured', 999, { leadId: 42 }); // userId AND leadId supplied
+    const log = logBulkCreate.mock.calls[0][0][0];
+    expect(log.userId).toBe(null); // unresolved user → NOT stamped (XOR keyed off resolved user)
+    expect(log.leadId).toBe(42);   // falls through to the lead
+    expect(log.recipient).toBe('+15551234567');
+  });
 });
 
 describe('ensureDefaultSequences (idempotent ensure-by-name)', () => {
