@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ClientCurrentWorkoutCard from './ClientCurrentWorkoutCard';
 
@@ -74,13 +74,24 @@ describe('ClientCurrentWorkoutCard', () => {
     expect(card).toHaveTextContent(/week 3/i);
     expect(card).toHaveTextContent(/day 5/i);
     expect(card).toHaveTextContent(/split squat/i);
-    const action = screen.getByRole('button', { name: /log today's assignment/i });
+    const flow = within(card).getByRole('list', { name: /client today training flow/i });
+    const steps = within(flow).getAllByRole('listitem');
+    expect(steps).toHaveLength(3);
+    expect(within(steps[0]).getByText(/step 1/i)).toBeInTheDocument();
+    expect(within(steps[1]).getByText(/step 2/i)).toBeInTheDocument();
+    expect(within(steps[2]).getByText(/step 3/i)).toBeInTheDocument();
+    const action = within(steps[0]).getByRole('button', { name: /log today's assignment/i });
     expect(action).toHaveTextContent(/log assignment/i);
+    expect(within(steps[1]).getByRole('button', { name: /review progress/i }))
+      .toHaveTextContent(/progress/i);
 
     fireEvent.click(action);
     expect(onNavigate).toHaveBeenCalledWith(
       '/dashboard/client/log-workout?loadPlan=today&assignmentKey=plan-6m%3Aw2%3Ad3%3Ahomework&assignmentType=homework',
     );
+
+    fireEvent.click(within(steps[1]).getByRole('button', { name: /review progress/i }));
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/client/progress');
   });
 
   it('offers a context-aware Coach handoff for today assignment without saving it', () => {

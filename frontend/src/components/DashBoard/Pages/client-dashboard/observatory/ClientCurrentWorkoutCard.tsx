@@ -16,14 +16,18 @@
  */
 
 import React from 'react';
-import { ClipboardCheck, MessageCircle } from 'lucide-react';
+import { BarChart3, ClipboardCheck, MessageCircle } from 'lucide-react';
 import {
   CardInner,
   MutedText,
   SectionKicker,
   SectionTitle,
 } from './ClientObservatoryShell.styles';
-import { CurrentWorkoutActionStack } from './ClientCurrentWorkoutCard.styles';
+import {
+  CurrentWorkoutFlow,
+  CurrentWorkoutStep,
+  CurrentWorkoutStepLabel,
+} from './ClientCurrentWorkoutCard.styles';
 import {
   SmallButton,
   WidgetCard,
@@ -43,6 +47,8 @@ interface ClientCurrentWorkoutCardProps {
   currentWorkoutLoading?: boolean;
   onNavigate: (path: string) => void;
 }
+
+const CLIENT_PROGRESS_PATH = '/dashboard/client/progress';
 
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
   currentWorkout,
@@ -68,24 +74,41 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
             </SectionKicker>
             <SectionTitle>{viewModel.title}</SectionTitle>
           </div>
-          <CurrentWorkoutActionStack>
+        </WidgetHeader>
+        <CurrentWorkoutFlow aria-label="Client today training flow">
+          <CurrentWorkoutStep>
+            <CurrentWorkoutStepLabel>Step 1</CurrentWorkoutStepLabel>
             <SmallButton
               type="button"
-              aria-label={viewModel.action.ariaLabel}
+              aria-label={`Step 1: ${viewModel.action.ariaLabel}`}
               onClick={() => onNavigate(viewModel.action.path)}
             >
               {viewModel.action.label}
             </SmallButton>
+          </CurrentWorkoutStep>
+          <CurrentWorkoutStep>
+            <CurrentWorkoutStepLabel>Step 2</CurrentWorkoutStepLabel>
             <SmallButton
               type="button"
-              aria-label={coachAction.ariaLabel}
+              aria-label="Step 2: Review progress"
+              onClick={() => onNavigate(CLIENT_PROGRESS_PATH)}
+            >
+              <BarChart3 size={15} aria-hidden="true" />
+              Progress
+            </SmallButton>
+          </CurrentWorkoutStep>
+          <CurrentWorkoutStep>
+            <CurrentWorkoutStepLabel>Step 3</CurrentWorkoutStepLabel>
+            <SmallButton
+              type="button"
+              aria-label={`Step 3: ${coachAction.ariaLabel}`}
               onClick={() => onNavigate(coachAction.path)}
             >
               <MessageCircle size={15} aria-hidden="true" />
               {coachAction.label}
             </SmallButton>
-          </CurrentWorkoutActionStack>
-        </WidgetHeader>
+          </CurrentWorkoutStep>
+        </CurrentWorkoutFlow>
         <WidgetList>
           {viewModel.rows.map((row) => (
             <WidgetRow key={`${row.label}:${row.value}`}>
