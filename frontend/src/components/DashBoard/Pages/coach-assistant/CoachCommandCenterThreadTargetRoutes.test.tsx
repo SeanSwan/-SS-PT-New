@@ -9,7 +9,7 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 

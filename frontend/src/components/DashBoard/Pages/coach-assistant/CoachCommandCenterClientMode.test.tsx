@@ -31,7 +31,7 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(screen.getByRole('button', { name: /^New coach chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^History$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Actions$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Ops$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Intake/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^PLAUD/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Import PLAUD/i })).not.toBeInTheDocument();
@@ -97,6 +97,6 @@ describe('CoachCommandCenterPage client mode', () => {
 
     expect(await screen.findByRole('link', { name: /back to client dashboard/i }))
       .toHaveAttribute('href', '/dashboard/client/overview');
-    expect(screen.queryByRole('button', { name: /^Actions$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Ops$/i })).not.toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const opsStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.opsStyles.ts'), 'utf8');
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -30,7 +30,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
-    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(opsTrigger);
@@ -79,7 +79,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     expect(within(operationsRail).queryByLabelText('Coach Ops mission checklist')).not.toBeInTheDocument();
     expect(targetSafety).toHaveTextContent(/My workout log/);
     expect(targetSafety).toHaveTextContent(/Save happens in Logger/i);
-    expect(within(operationsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
+    expect(within(operationsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
     expect(within(operationsRail).getAllByText('My workout log').length).toBeGreaterThan(0);
     expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
     expect(within(priorityActions).getByRole('link', { name: /Open workout builder/i })).toHaveAttribute(
@@ -106,7 +106,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     );
     expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
     fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));
-    expect(screen.getByRole('button', { name: /^Actions$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^Ops$/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 

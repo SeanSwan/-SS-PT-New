@@ -99,8 +99,8 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
     >
       <div className="ops-rail-header">
         <div>
-          <span className="ops-rail-kicker">Coach actions</span>
-          <strong>Next move panel</strong>
+          <span className="ops-rail-kicker">Coach Ops</span>
+          <strong>Workout command center</strong>
           <p>{headerDescription}</p>
         </div>
         <button

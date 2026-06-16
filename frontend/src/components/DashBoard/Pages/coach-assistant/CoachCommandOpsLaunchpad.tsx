@@ -4,7 +4,7 @@
  * PURPOSE: Low-click workout/action launchpad for the Swan Coach Ops drawer.
  *
  * WIREFRAME:
- * [Coach launchpad heading]
+ * [Workout command center heading]
  * [Active scope + "Nothing logs until you save in Logger" safety copy]
  * [Primary Log/Pick action]
  * [Builder] [Review intake] [Draft in chat] [PLAUD]
@@ -99,8 +99,8 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
     <section className="panel workout-command-panel">
       <div className="section-title-row">
         <div>
-          <h2 className="panel-title">Coach launchpad</h2>
-          <p className="panel-subtitle">One tap to log, build, review, or import for the active training scope.</p>
+          <h2 className="panel-title">Workout command center</h2>
+          <p className="panel-subtitle">Pick one move: log, build, review intake, draft in chat, or import PLAUD. Logger is the only save point.</p>
         </div>
         <Dumbbell size={19} aria-hidden="true" />
       </div>

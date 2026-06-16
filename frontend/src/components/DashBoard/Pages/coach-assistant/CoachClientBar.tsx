@@ -98,7 +98,7 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
           aria-expanded={opsOpen}
         >
           <Settings2 size={18} aria-hidden="true" />
-          <span>Actions</span>
+          <span>Ops</span>
         </button>
       ) : null}
     </div>

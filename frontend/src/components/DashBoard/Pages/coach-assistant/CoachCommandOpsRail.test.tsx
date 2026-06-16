@@ -8,7 +8,7 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -19,8 +19,8 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     const opsRail = openOpsRail();
-    expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
-    expect(within(opsRail).getByText(/one tap to log, build, review, or import/i)).toBeInTheDocument();
+    expect(within(opsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
+    expect(within(opsRail).getByText(/pick one move/i)).toBeInTheDocument();
     expect(within(opsRail).getByRole('button', { name: /review next intake/i })).toBeInTheDocument();
     expect(within(opsRail).queryByLabelText('Coach Ops mission checklist')).not.toBeInTheDocument();
     expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/Client #42/);
@@ -59,7 +59,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
     const opsRail = openOpsRail();
-    expect(within(opsRail).getByRole('heading', { name: /Coach launchpad/i })).toBeInTheDocument();
+    expect(within(opsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
     expect(within(opsRail).getAllByText(/use your admin self log/i).length).toBeGreaterThan(0);
     expect(within(opsRail).queryByText(/selected client's workout/i)).not.toBeInTheDocument();
     expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent(/My workout log/);
@@ -81,7 +81,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
   it('shows an explicit drawer header close control that collapses Ops', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
-    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
     const opsRail = openOpsRail();
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(within(opsRail).getByLabelText('Coach Ops target and safety')).toHaveTextContent('Client #42');
