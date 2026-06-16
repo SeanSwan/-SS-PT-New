@@ -11,6 +11,7 @@ type GuideAction = DashboardTeachMeGuideCopy['actions'][number];
 
 const askCoach: GuideAction = { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' };
 const logWorkout: GuideAction = { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' };
+const logTodayWorkout: GuideAction = { label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' };
 const progress: GuideAction = { label: 'Progress', to: '/user-dashboard/progress' };
 const home: GuideAction = { label: 'Home', to: '/user-dashboard' };
 
@@ -210,18 +211,29 @@ export const refineUserGuide = (
   }
 
   if (includesAny(path, ['progress'])) {
-    const primaryAction = { label: 'Review Progress', to: '/user-dashboard/progress' };
+    const primaryAction = logTodayWorkout;
     return applyPatch(base, {
-      title: 'User progress proof',
-      summary: 'Use Progress as the source of truth before changing training or sharing proof.',
-      focus: 'Read the chart, compare it to recent logs, and ask Coach what the next training action should be.',
+      title: 'User workout proof loop',
+      summary: 'Use the Progress tab as Exercise Usage: read logged workout history, hit Log Today, or ask Coach what to train next.',
+      focus: "Start from the logged workout history, then save today's workout before using Coach or sharing the proof.",
       primaryAction,
-      actions: actionRail(primaryAction),
-      primaryPrompt: 'teach me the user progress workflow for reading training proof and choosing the next action',
+      actions: [
+        primaryAction,
+        askCoach,
+        { label: 'Progress Tab', to: '/user-dashboard/progress' },
+        home,
+      ],
+      primaryPrompt: "teach me the progress workouts tab. Help me read Exercise Usage, choose Log Today or Ask Coach, and save today's session safely.",
       fastPath: [
-        'Check the training proof.',
-        'Find the next gap.',
-        'Share only meaningful progress.',
+        'Read Exercise Usage.',
+        'Choose Log Today or Ask Coach.',
+        "Save today's session before sharing proof.",
+      ],
+      steps: [
+        'Use Exercise Usage to see which movements and categories are actually logged.',
+        'Tap Log Today when the workout already happened so charts and Coach stay truthful.',
+        'Use Ask Coach when the history should shape the next workout, then save the chosen work in the logger.',
+        'Return to Home after the workout is logged so sharing and community actions point to current proof.',
       ],
     });
   }

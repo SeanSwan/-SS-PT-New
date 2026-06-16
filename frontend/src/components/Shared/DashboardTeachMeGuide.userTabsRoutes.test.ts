@@ -47,7 +47,7 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
       ['about', 'Open About'],
       ['activity', 'Review Activity'],
       ['nutrition', 'Open Nutrition'],
-      ['progress', 'Review Progress'],
+      ['progress', "Log Today's Workout"],
       ['profile', 'Open Profile'],
     ] as const;
 
@@ -65,5 +65,27 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
       expect(guide.primaryPrompt).toContain(tab === 'creative' ? 'studio' : tab);
       expect(guide.primaryPrompt).not.toBe('teach me the user dashboard training workflow');
     });
+  });
+
+  it('teaches the progress tab as the mounted workout proof and logger handoff', () => {
+    const guide = getDashboardTeachMeGuide({
+      role: 'user',
+      pathname: '/user-dashboard/progress#progress',
+    });
+
+    expect(guide.title).toBe('User workout proof loop');
+    expect(guide.summary).toMatch(/Exercise Usage|Log Today|Ask Coach/i);
+    expect(guide.focus).toMatch(/logged workout history|today's workout/i);
+    expect(guide.primaryAction).toEqual({
+      label: "Log Today's Workout",
+      to: '/dashboard/client/log-workout?loadPlan=today',
+    });
+    expect(guide.fastPath.join(' ')).toMatch(/Exercise Usage|Log Today|Ask Coach/i);
+    expect(guide.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
+      expect.objectContaining({ label: 'Progress Tab', to: '/user-dashboard/progress' }),
+      expect.objectContaining({ label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' }),
+    ]));
+    expect(guide.primaryPrompt).toContain('workouts tab');
   });
 });

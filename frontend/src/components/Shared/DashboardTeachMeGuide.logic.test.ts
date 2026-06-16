@@ -85,29 +85,30 @@ describe('getDashboardTeachMeGuide', () => {
     ]));
   });
 
-  it('teaches the public user progress tab as a proof-review job', () => {
+  it('teaches the public user progress tab as the mounted workout proof loop', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'user',
       pathname: '/user-dashboard/progress',
     });
 
-    expect(guide.title).toBe('User progress proof');
+    expect(guide.title).toBe('User workout proof loop');
     expect(guide.primaryAction).toEqual({
-      label: 'Review Progress',
-      to: '/user-dashboard/progress',
+      label: "Log Today's Workout",
+      to: '/dashboard/client/log-workout?loadPlan=today',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Check the training proof/i),
-      expect.stringMatching(/Find the next gap/i),
-      expect.stringMatching(/Share only meaningful progress/i),
+      expect.stringMatching(/Exercise Usage/i),
+      expect.stringMatching(/Log Today or Ask Coach/i),
+      expect.stringMatching(/Save today's session/i),
     ]);
-    expect(guide.steps.join(' ')).toMatch(/Home/i);
-    expect(guide.steps.join(' ')).toMatch(/Progress/i);
-    expect(guide.steps.join(' ')).toMatch(/Studio/i);
-    expect(guide.steps.join(' ')).toMatch(/Friends|Challenges/i);
+    expect(guide.steps.join(' ')).toMatch(/Exercise Usage/i);
+    expect(guide.steps.join(' ')).toMatch(/Log Today/i);
+    expect(guide.steps.join(' ')).toMatch(/Ask Coach/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Log Today's Workout", to: '/dashboard/client/log-workout?loadPlan=today' }),
+      expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       expect.objectContaining({ label: 'Home', to: '/user-dashboard' }),
-      expect.objectContaining({ label: 'Progress', to: '/user-dashboard/progress' }),
+      expect.objectContaining({ label: 'Progress Tab', to: '/user-dashboard/progress' }),
     ]));
   });
 

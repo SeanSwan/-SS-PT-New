@@ -32,9 +32,7 @@ describe('DashboardTeachMeGuide log-today actions', () => {
         pathname,
       });
 
-      expect(guide.actions).toEqual(expect.arrayContaining([
-        expect.objectContaining({ label: 'Log Workout', to: todayLoggerPath }),
-      ]));
+      expect(guide.actions.map((action) => action.to)).toContain(todayLoggerPath);
     },
   );
 
