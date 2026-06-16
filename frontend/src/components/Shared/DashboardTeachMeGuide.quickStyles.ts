@@ -40,8 +40,8 @@ const quickActionControlStyles = css`
   }
 
   @media (max-width: 620px) {
-    padding: 7px 8px;
-    font: 800 10px/1.15 'Sora', sans-serif;
+    padding: 9px 10px;
+    font: 800 11px/1.25 'Sora', sans-serif;
   }
 `;
 
@@ -64,9 +64,9 @@ export const GuideQuickStrip = styled.div`
   }
 
   @media (max-width: 620px) {
-    gap: 6px;
+    gap: 8px;
     margin-bottom: 6px;
-    padding: 7px;
+    padding: 8px;
   }
 `;
 
@@ -126,23 +126,23 @@ export const QuickPathPreview = styled.ol`
   }
 
   @media (max-width: 620px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
+    grid-template-columns: 1fr;
+    gap: 6px;
 
     li {
-      grid-template-columns: 1fr;
-      justify-items: center;
-      gap: 4px;
-      min-height: 34px;
-      padding: 5px;
-      text-align: center;
-      font: 800 9px/1.15 'Sora', sans-serif;
+      grid-template-columns: 24px minmax(0, 1fr);
+      justify-items: start;
+      gap: 8px;
+      min-height: 44px;
+      padding: 8px;
+      text-align: left;
+      font: 800 11px/1.25 'Sora', sans-serif;
     }
 
     span {
-      width: 18px;
-      height: 18px;
-      font: 900 10px/1 'Sora', sans-serif;
+      width: 22px;
+      height: 22px;
+      font: 900 11px/1 'Sora', sans-serif;
     }
   }
 `;
@@ -166,7 +166,7 @@ export const QuickActionGroup = styled.div`
     gap: 6px;
 
     > * {
-      flex: 1 1 calc(50% - 3px);
+      flex: 1 1 100%;
       min-width: 0;
     }
   }

@@ -154,11 +154,12 @@ describe('DashboardTeachMeGuide', () => {
     expect(onAskCoach).toHaveBeenCalledWith('teach me the client workout logging workflow');
   });
 
-  it('keeps the closed phone guide compact enough to preserve the first workout CTA', () => {
+  it('keeps the closed phone guide readable and action-first on phones', () => {
     const quickStyles = readSource('src/components/Shared/DashboardTeachMeGuide.quickStyles.ts');
 
-    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
-    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*min-height: 34px;/);
-    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*font: 800 9px\/1.15 'Sora', sans-serif;/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*grid-template-columns: 1fr;/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*min-height: 44px;/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*font: 800 11px\/1.25 'Sora', sans-serif;/);
+    expect(quickStyles).toMatch(/@media \(max-width: 620px\) \{[\s\S]*flex: 1 1 100%;/);
   });
 });
