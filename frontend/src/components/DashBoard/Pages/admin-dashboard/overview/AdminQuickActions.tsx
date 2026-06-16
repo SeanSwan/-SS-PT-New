@@ -16,9 +16,12 @@ const PRIMARY_ACTION_IDS = new Set([
   'my-workout',
 ]);
 
-const HERO_ACTION_ID = 'coach-command';
-const DAILY_ACTION_ORDER = ['log-client-workout', 'my-workout', 'coach-client-intake'];
-const DAILY_ACTION_IDS = new Set(DAILY_ACTION_ORDER);
+const TODAY_FLOW_ACTION_ORDER = [
+  'coach-command',
+  'log-client-workout',
+  'my-workout',
+  'coach-client-intake',
+];
 
 const QuickActionsWrapper = styled(CommandCard)`
   padding: 2rem;
@@ -57,21 +60,21 @@ const QuickActionsKicker = styled.span`
   letter-spacing: 0;
 `;
 
-const PriorityActionGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.85rem;
-  margin-bottom: 1rem;
-`;
-
-const DailyActionGrid = styled.div`
+const TodayFlowList = styled.ol`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1rem;
 
   @media (max-width: 860px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 640px) { grid-template-columns: 1fr; }
+`;
+
+const TodayFlowStep = styled.li<{ $hero?: boolean }>`
+  min-width: 0;
+  ${({ $hero }) => $hero ? 'grid-column: 1 / -1;' : ''}
 `;
 
 const SecondaryActionGroup = styled.div`
@@ -161,15 +164,18 @@ const ActionDescription = styled.p`
 const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
   const theme = useTheme() as any;
   const accent = theme?.colors?.accent || 'var(--accent-primary, #60C0F0)';
-  const heroAction = actions.find(action => action.id === HERO_ACTION_ID);
-  const dailyActions = DAILY_ACTION_ORDER
+  const todayFlowActions = TODAY_FLOW_ACTION_ORDER
     .map((id) => actions.find(action => action.id === id))
     .filter((action): action is AdminQuickAction => Boolean(action));
   const secondaryActions = actions.filter(action => !PRIMARY_ACTION_IDS.has(action.id));
 
-  const renderAction = (action: AdminQuickAction, tier: 'hero' | 'daily' | 'operation' = 'operation') => {
+  const renderAction = (
+    action: AdminQuickAction,
+    tier: 'hero' | 'daily' | 'operation' = 'operation',
+    stepNumber?: number,
+  ) => {
     const priority = tier !== 'operation';
-    const overline = tier === 'hero' ? 'Start here' : tier === 'daily' ? 'Daily control' : null;
+    const overline = stepNumber ? `Step ${stepNumber}` : null;
 
     return (
     <QuickActionCard
@@ -181,8 +187,8 @@ const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={action.action}
-      aria-label={tier === 'hero'
-        ? `Primary admin action: ${action.title}: ${action.description}`
+      aria-label={stepNumber
+        ? `Step ${stepNumber}: ${action.title}: ${action.description}`
         : `${action.title}: ${action.description}`}
     >
       <QuickActionIcon $accent={accent} $priority={priority} $hero={tier === 'hero'} aria-hidden="true">
@@ -201,12 +207,13 @@ const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
         <QuickActionsTitle>First Moves</QuickActionsTitle>
         <QuickActionsKicker>Admin Command</QuickActionsKicker>
       </QuickActionsHeader>
-      <PriorityActionGrid aria-label="Admin first moves">
-        {heroAction && renderAction(heroAction, 'hero')}
-      </PriorityActionGrid>
-      <DailyActionGrid aria-label="Admin daily controls">
-        {dailyActions.map(action => renderAction(action, 'daily'))}
-      </DailyActionGrid>
+      <TodayFlowList aria-label="Admin today flow">
+        {todayFlowActions.map((action, index) => (
+          <TodayFlowStep key={action.id} $hero={index === 0}>
+            {renderAction(action, index === 0 ? 'hero' : 'daily', index + 1)}
+          </TodayFlowStep>
+        ))}
+      </TodayFlowList>
       <SecondaryActionGroup>
         <ActionGroupLabel>Operations</ActionGroupLabel>
         <QuickActionsGrid aria-label="Admin operations">

@@ -57,7 +57,7 @@ describe('AdminQuickActions interaction contract', () => {
   it('renders quick actions as real buttons with useful accessible names', () => {
     renderActions();
 
-    const primary = screen.getByRole('button', { name: /Primary admin action: Coach Command/i });
+    const primary = screen.getByRole('button', { name: /Step 1: Coach Command/i });
     const action = screen.getByRole('button', { name: /Analytics.*Analytics & insights/i });
 
     expect(primary.tagName).toBe('BUTTON');
@@ -70,28 +70,26 @@ describe('AdminQuickActions interaction contract', () => {
     renderActions();
 
     expect(screen.getByText('First Moves')).toBeInTheDocument();
-    expect(screen.getByText('Start here')).toBeInTheDocument();
-    expect(screen.getAllByText('Daily control')).toHaveLength(3);
+    expect(screen.getByRole('list', { name: /admin today flow/i })).toBeInTheDocument();
     expect(screen.getByText('Operations')).toBeInTheDocument();
     expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
-      'Start hereCoach CommandAsk what to do next',
-      'Daily controlLog ClientChoose client, log today',
-      'Daily controlMy WorkoutLog my workout',
-      'Daily controlOnboard ClientStart Swan Coach intake',
+      'Step 1Coach CommandAsk what to do next',
+      'Step 2Log ClientChoose client, log today',
+      'Step 3My WorkoutLog my workout',
+      'Step 4Onboard ClientStart Swan Coach intake',
       'AnalyticsAnalytics & insights',
     ]);
   });
 
-  it('keeps only one primary start-here action on the admin first screen', () => {
+  it('keeps one ordered action path on the admin first screen', () => {
     renderActions();
 
-    expect(screen.getAllByText('Start here')).toHaveLength(1);
-    expect(screen.getAllByText('Daily control')).toHaveLength(3);
+    expect(screen.getAllByText(/Step \d/i)).toHaveLength(4);
     expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
-      'Start hereCoach CommandAsk what to do next',
-      'Daily controlLog ClientChoose client, log today',
-      'Daily controlMy WorkoutLog my workout',
-      'Daily controlOnboard ClientStart Swan Coach intake',
+      'Step 1Coach CommandAsk what to do next',
+      'Step 2Log ClientChoose client, log today',
+      'Step 3My WorkoutLog my workout',
+      'Step 4Onboard ClientStart Swan Coach intake',
       'AnalyticsAnalytics & insights',
     ]);
   });
