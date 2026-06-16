@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { PlaudIntakeSummary } from '../../../../services/plaudIntakeService';
@@ -49,5 +49,29 @@ describe('CoachIntakeWorkspaceHeader', () => {
 
     expect(screen.getByRole('button', { name: /refresh queue/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open plaud/i })).toBeInTheDocument();
+  });
+
+  it('groups secondary queue tools after the next move instead of competing as peer CTAs', () => {
+    render(
+      <MemoryRouter>
+        <CoachIntakeWorkspaceHeader
+          clientCopy="No client has to be selected first."
+          reviewNextHref="/dashboard/admin/coach-assistant?intake=next"
+          workspaceHref="/dashboard/admin/coach-assistant?workspace=plaud"
+          scope="actionable"
+          summary={summary({ readyReview: 2 })}
+          onCommandPrompt={vi.fn()}
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const nextMove = screen.getByLabelText('Next best Coach intake move');
+    const tools = screen.getByRole('group', { name: 'Queue tools' });
+
+    expect(nextMove.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(tools).getByRole('button', { name: /refresh queue/i })).toBeInTheDocument();
+    expect(within(tools).getByRole('button', { name: /inspect audio/i })).toBeInTheDocument();
+    expect(within(tools).getByRole('link', { name: /open plaud/i })).toBeInTheDocument();
   });
 });

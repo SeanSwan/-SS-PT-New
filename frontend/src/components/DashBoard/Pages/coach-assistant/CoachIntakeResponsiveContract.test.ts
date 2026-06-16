@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const coachPath = (...parts: string[]) => join(process.cwd(), 'src/components/DashBoard/Pages/coach-assistant', ...parts);
 
 const workspaceStyles = readFileSync(coachPath('CoachIntakeWorkspace.styles.ts'), 'utf8');
+const headerStyles = readFileSync(coachPath('CoachIntakeWorkspaceHeader.styles.ts'), 'utf8');
 const queueStyles = readFileSync(coachPath('CoachIntakeWorkspaceQueue.styles.ts'), 'utf8');
 const healthStyles = readFileSync(coachPath('CoachIntakeHealthStrip.styles.ts'), 'utf8');
 const targetStyles = readFileSync(coachPath('CoachIntakeWorkspaceTarget.styles.ts'), 'utf8');
@@ -13,16 +14,17 @@ const workspace = readFileSync(coachPath('CoachIntakeWorkspace.tsx'), 'utf8');
 
 describe('Coach intake responsive contract', () => {
   it('keeps dense intake controls wrapping instead of overlapping at phone widths', () => {
-    expect(workspaceStyles).toMatch(/ActionRow[\s\S]*display:\s*grid/);
-    expect(workspaceStyles).toMatch(/ActionRow[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*170px\),\s*1fr\)\)/);
-    expect(workspaceStyles).toMatch(/>\s*:first-child\s*{\s*grid-column:\s*1\s*\/\s*-1/);
-    expect(workspaceStyles).toMatch(/>\s*\*\s*{\s*min-width:\s*0/);
-    expect(workspaceStyles).toMatch(/Header[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*flex-direction:\s*column/);
-    expect(workspaceStyles).toMatch(/ActionRow[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*width:\s*100%/);
-    expect(workspaceStyles).toMatch(/FirstMovePanel[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.64fr\)/);
-    expect(workspaceStyles).toMatch(/FirstMovePanel[\s\S]*@media \(max-width:\s*640px\)[\s\S]*grid-template-columns:\s*1fr/);
-    expect(workspaceStyles).toMatch(/FirstMoveActions[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-    expect(workspaceStyles).toMatch(/FirstMoveActions[\s\S]*@media \(max-width:\s*520px\)[\s\S]*grid-template-columns:\s*1fr/);
+    expect(headerStyles).toMatch(/ActionRow[\s\S]*display:\s*grid/);
+    expect(headerStyles).toMatch(/ActionRow[\s\S]*width:\s*min\(100%,\s*720px\)/);
+    expect(headerStyles).toMatch(/>\s*\*\s*{\s*min-width:\s*0/);
+    expect(headerStyles).toMatch(/Header[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*flex-direction:\s*column/);
+    expect(headerStyles).toMatch(/ActionRow[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*width:\s*100%/);
+    expect(headerStyles).toMatch(/FirstMovePanel[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.64fr\)/);
+    expect(headerStyles).toMatch(/FirstMovePanel[\s\S]*@media \(max-width:\s*640px\)[\s\S]*grid-template-columns:\s*1fr/);
+    expect(headerStyles).toMatch(/FirstMoveActions[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(headerStyles).toMatch(/FirstMoveActions[\s\S]*@media \(max-width:\s*520px\)[\s\S]*grid-template-columns:\s*1fr/);
+    expect(headerStyles).toMatch(/SecondaryActionGroup[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*150px\),\s*1fr\)\)/);
+    expect(headerStyles).toMatch(/SecondaryActionGroup[\s\S]*@media \(max-width:\s*520px\)[\s\S]*grid-template-columns:\s*1fr/);
     expect(workspaceStyles).toMatch(/white-space:\s*normal/);
     expect(queueStyles).toMatch(/grid-column:\s*1\s*\/\s*-1/);
     expect(queueStyles).toMatch(/repeat\(auto-fit,\s*minmax\(min\(100%,\s*124px\),\s*1fr\)\)/);

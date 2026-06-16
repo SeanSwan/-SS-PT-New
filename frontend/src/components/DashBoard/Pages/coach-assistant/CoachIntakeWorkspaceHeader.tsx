@@ -10,15 +10,18 @@ import { buildCoachIntakeNextMove } from './CoachIntakeNextMove.logic';
 import CoachIntakeScopeStatus from './CoachIntakeScopeStatus';
 import {
   ActionButton,
+  WorkspaceLink,
+} from './CoachIntakeWorkspace.styles';
+import {
   ActionRow,
   Eyebrow,
   FirstMoveActions,
   FirstMoveCopy,
   FirstMovePanel,
   Header,
+  SecondaryActionGroup,
   TitleBlock,
-  WorkspaceLink,
-} from './CoachIntakeWorkspace.styles';
+} from './CoachIntakeWorkspaceHeader.styles';
 
 interface CoachIntakeWorkspaceHeaderProps {
   clientCopy: string;
@@ -71,18 +74,20 @@ export function CoachIntakeWorkspaceHeader({
             </ActionButton>
           </FirstMoveActions>
         </FirstMovePanel>
-        <ActionButton type="button" onClick={onRefresh}>
-          <RefreshCcw size={16} aria-hidden="true" />
-          Refresh queue
-        </ActionButton>
-        <ActionButton type="button" onClick={() => onCommandPrompt('inspect pending Coach audio pieces')}>
-          <GitBranch size={16} aria-hidden="true" />
-          Inspect audio
-        </ActionButton>
-        <WorkspaceLink to={workspaceHref}>
-          <FileAudio size={16} aria-hidden="true" />
-          Open PLAUD
-        </WorkspaceLink>
+        <SecondaryActionGroup role="group" aria-label="Queue tools">
+          <ActionButton type="button" onClick={onRefresh}>
+            <RefreshCcw size={16} aria-hidden="true" />
+            Refresh queue
+          </ActionButton>
+          <ActionButton type="button" onClick={() => onCommandPrompt('inspect pending Coach audio pieces')}>
+            <GitBranch size={16} aria-hidden="true" />
+            Inspect audio
+          </ActionButton>
+          <WorkspaceLink to={workspaceHref}>
+            <FileAudio size={16} aria-hidden="true" />
+            Open PLAUD
+          </WorkspaceLink>
+        </SecondaryActionGroup>
       </ActionRow>
     </Header>
   );
