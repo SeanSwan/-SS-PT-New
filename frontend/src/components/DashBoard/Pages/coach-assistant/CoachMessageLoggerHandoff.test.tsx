@@ -178,6 +178,42 @@ describe('CoachMessage logger handoff', () => {
     ]);
   });
 
+  it('offers logger review for trainer shorthand generated in Coach chat', async () => {
+    const user = userEvent.setup();
+    sessionStorage.clear();
+
+    render(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage([
+            'Keep it 100:',
+            'A1. DB Romanian deadlift \u2013 4x8 @ 85 lbs, rest 75 sec',
+            'A2) TRX row: 3 \u00d7 12',
+            '- 1-arm cable row - 3 x 10 reps',
+          ].join('\n'))}
+          workoutLoggerRoute="/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today"
+          workoutLoggerScopeLabel="Client #42"
+        />
+      </MemoryRouter>,
+    );
+
+    const reviewLink = screen.getByRole('link', { name: /review 3 exercises in logger/i });
+    const preview = within(screen.getByLabelText('Parsed workout preview'));
+    expect(preview.getByText('DB Romanian deadlift')).toBeInTheDocument();
+    expect(preview.getByText('4 x 8 @ 85 lbs')).toBeInTheDocument();
+    expect(preview.getByText('TRX row')).toBeInTheDocument();
+    expect(preview.getByText('1-arm cable row')).toBeInTheDocument();
+
+    await user.click(reviewLink);
+
+    const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued[0].exercises).toEqual([
+      expect.objectContaining({ exerciseName: 'DB Romanian deadlift', sets: 4, reps: 8, weight: 85, restTime: 75 }),
+      expect.objectContaining({ exerciseName: 'TRX row', sets: 3, reps: 12 }),
+      expect.objectContaining({ exerciseName: '1-arm cable row', sets: 3, reps: 10 }),
+    ]);
+  });
+
   it('does not show a logger action when Coach has no route client or workout draft', () => {
     render(
       <MemoryRouter>

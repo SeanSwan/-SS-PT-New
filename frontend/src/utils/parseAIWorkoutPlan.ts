@@ -238,7 +238,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
     // "- Exercise Name: 3x10 @ 135lbs"
     // "**Exercise Name** — 4 sets of 12"
     const exerciseMatch = trimmed.match(
-      /^(?:\d+[\.\)]\s*|[-•]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?(?:\s*[-—:]\s*|\s+)(\d+)\s*(?:sets?\s*(?:x|×|of)\s*|\s*x\s*)(\d+)\s*(?:reps?)?/i
+      /^(?:(?:[A-Z]\d+|\d+)[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?(?:\s*[-\u2013\u2014:]\s*|\s+)(\d+)\s*(?:sets?\s*(?:x|\u00d7|of)\s*|\s*(?:x|\u00d7)\s*)(\d+)\s*(?:reps?)?/i
     );
 
     if (exerciseMatch) {
@@ -268,7 +268,7 @@ function extractExerciseLines(text: string): WorkoutExerciseTransfer[] {
 
     // Simpler pattern: "Exercise Name (3x10)"
     const simpleMatch = trimmed.match(
-      /^(?:\d+[\.\)]\s*|[-•]\s*|\*\*)?([A-Z][A-Za-z\s\-'()]+?)(?:\*\*)?[\s]*\((\d+)\s*[x×]\s*(\d+)\)/i
+      /^(?:(?:[A-Z]\d+|\d+)[\.\)]\s*|[-\u2022]\s*|\*\*)?([A-Z0-9][A-Za-z0-9\s\-'()&/]+?)(?:\*\*)?[\s]*\((\d+)\s*[x\u00d7]\s*(\d+)\)/i
     );
 
     if (simpleMatch) {

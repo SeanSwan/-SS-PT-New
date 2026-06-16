@@ -98,6 +98,34 @@ describe('pending AI workout plan queue', () => {
     ]);
   });
 
+  it('parses trainer shorthand with superset labels and unicode separators', () => {
+    const parsed = parseAIWorkoutPlan([
+      'A1. DB Romanian deadlift \u2013 4x8 @ 85 lbs, rest 75 sec',
+      'A2) TRX row: 3 \u00d7 12',
+      '- 1-arm cable row - 3 x 10 reps',
+    ].join('\n'));
+
+    expect(parsed).toEqual([
+      expect.objectContaining({
+        exerciseName: 'DB Romanian deadlift',
+        sets: 4,
+        reps: 8,
+        weight: 85,
+        restTime: 75,
+      }),
+      expect.objectContaining({
+        exerciseName: 'TRX row',
+        sets: 3,
+        reps: 12,
+      }),
+      expect.objectContaining({
+        exerciseName: '1-arm cable row',
+        sets: 3,
+        reps: 10,
+      }),
+    ]);
+  });
+
   it('preserves explicit zero reps from structured review-only JSON rows', () => {
     const parsed = parseAIWorkoutPlan([
       '```json',
