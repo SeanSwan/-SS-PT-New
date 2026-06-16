@@ -1,8 +1,8 @@
 /**
  * automationService — guarded nurture test send.
  * The single manual-approval send before arming outbound automation. Every guard
- * must hold: confirm:true, valid single phone, known template, owner allowlist (when
- * configured). Number is PII-masked in the result. smsService + models mocked — the
+ * must hold: confirm:true, valid single phone, known template, configured owner
+ * allowlist. Number is PII-masked in the result. smsService + models mocked — the
  * real Twilio path is never hit.
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
@@ -58,7 +58,14 @@ describe('sendNurtureTestMessage (guarded test send)', () => {
     expect(sendTemplated).not.toHaveBeenCalled();
   });
 
+  it('fails closed when no owner allowlist is configured (no send)', async () => {
+    const r = await sendNurtureTestMessage({ to: '+15551239999', templateName: 'welcome', confirm: true });
+    expect(r.error).toBe('test_allowlist_missing');
+    expect(sendTemplated).not.toHaveBeenCalled();
+  });
+
   it('sends ONE templated message when fully valid + masks the number', async () => {
+    process.env.OWNER_PHONE = '+15551239999';
     const r = await sendNurtureTestMessage({
       to: '+15551239999', templateName: 'welcome', confirm: true,
       variables: { clientName: 'Alex' }, triggeredByUserId: 1,
@@ -79,6 +86,7 @@ describe('sendNurtureTestMessage (guarded test send)', () => {
   });
 
   it('surfaces a send failure without throwing', async () => {
+    process.env.OWNER_PHONE = '+15551239999';
     sendTemplated.mockResolvedValue({ success: false, error: 'Twilio not configured' });
     const r = await sendNurtureTestMessage({ to: '+15551239999', templateName: 'welcome', confirm: true });
     expect(r.success).toBe(false);

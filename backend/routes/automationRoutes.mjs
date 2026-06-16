@@ -12,14 +12,9 @@ import { getAllModels } from '../models/index.mjs';
 import {
   ensureDefaultSequences,
   triggerSequence,
-  cancelSequence,
-  processScheduledMessages,
-  previewScheduledMessages,
-  sendNurtureTestMessage
+  cancelSequence
 } from '../services/automationService.mjs';
-import { previewSmsTemplates } from '../services/smsService.mjs';
-
-const TEST_SEND_VALIDATION_ERRORS = ['confirm_required', 'invalid_phone', 'unknown_template', 'not_in_test_allowlist'];
+import automationSafetyRoutes from './automationSafetyRoutes.mjs';
 
 const router = express.Router();
 
@@ -272,101 +267,6 @@ router.post('/cancel', protect, adminOnly, async (req, res) => {
   }
 });
 
-/**
- * GET /api/automation/preview
- * Dry-run: show what the follow-up engine WOULD do right now (who would be
- * messaged + per-message suppression reason) WITHOUT sending anything. The safety
- * surface to inspect before arming SWAN_AUTOMATION_CRON_ENABLED (admin only).
- */
-router.get('/preview', protect, adminOnly, async (req, res) => {
-  try {
-    const limit = Math.min(Number(req.query.limit) || 200, 500);
-    const result = await previewScheduledMessages({ limit });
-    return res.status(200).json({ success: true, data: result });
-  } catch (error) {
-    logger.error('Error previewing automation messages:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to preview automation messages',
-      error: normalizeError(error)
-    });
-  }
-});
-
-/**
- * GET /api/automation/templates/preview
- * Render the nurture SMS templates with sample variables WITHOUT sending — review
- * the message copy (+ unresolved-placeholder + length warnings) before arming
- * outbound automation. Optional ?clientName=&trainerName=&time=&message= overrides.
- */
-router.get('/templates/preview', protect, adminOnly, (req, res) => {
-  try {
-    const overrides = {};
-    for (const key of ['clientName', 'trainerName', 'time', 'message']) {
-      if (typeof req.query[key] === 'string') overrides[key] = req.query[key];
-    }
-    return res.status(200).json({ success: true, data: previewSmsTemplates(overrides) });
-  } catch (error) {
-    logger.error('Error previewing SMS templates:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to preview SMS templates',
-      error: normalizeError(error)
-    });
-  }
-});
-
-/**
- * POST /api/automation/test-send
- * Guarded ONE-OFF nurture test send (admin only). Sends a single templated SMS to
- * an explicitly-provided number ONLY when confirm===true, the phone is valid, the
- * template is known, and (when owner numbers are configured) the number is on the
- * owner allowlist. The manual-approval step before arming SWAN_AUTOMATION_CRON_ENABLED.
- * Body: { to, templateName, variables?, confirm:true }.
- */
-router.post('/test-send', protect, adminOnly, async (req, res) => {
-  try {
-    const { to, templateName, variables, confirm } = req.body || {};
-    const result = await sendNurtureTestMessage({
-      to,
-      templateName,
-      variables,
-      confirm,
-      triggeredByUserId: req.user?.id,
-    });
-    const status = result.success
-      ? 200
-      : (TEST_SEND_VALIDATION_ERRORS.includes(result.error) ? 400 : 502);
-    return res.status(status).json({ success: result.success, data: result });
-  } catch (error) {
-    logger.error('Error sending nurture test message:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to send test message',
-      error: normalizeError(error)
-    });
-  }
-});
-
-/**
- * POST /api/automation/process
- * Manually process pending automation messages (admin only).
- */
-router.post('/process', protect, adminOnly, async (_req, res) => {
-  try {
-    const result = await processScheduledMessages();
-    return res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error) {
-    logger.error('Error processing automation messages:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process automation messages',
-      error: normalizeError(error)
-    });
-  }
-});
+router.use(automationSafetyRoutes);
 
 export default router;

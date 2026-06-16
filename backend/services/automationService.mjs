@@ -7,7 +7,9 @@
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
-import { sendTemplatedSMS, sendSmsMessage, listSmsTemplates } from './smsService.mjs';
+import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
+import { evaluateScheduledMessage } from './automationDecisionService.mjs';
+import { sendNurtureTestMessage } from './nurtureTestSendService.mjs';
 
 const DEFAULT_SEQUENCES = [
   {
@@ -34,87 +36,6 @@ const DEFAULT_SEQUENCES = [
     ]
   }
 ];
-
-const normalizePreferences = (prefs) => {
-  if (!prefs || typeof prefs !== 'object') {
-    return { email: true, sms: true, push: true, quietHours: null };
-  }
-
-  return {
-    email: prefs.email !== false,
-    sms: prefs.sms !== false,
-    push: prefs.push !== false,
-    quietHours: prefs.quietHours || null
-  };
-};
-
-const parseTime = (value) => {
-  if (!value || typeof value !== 'string') return null;
-  const [hours, minutes] = value.split(':').map((part) => Number(part));
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-  return { hours, minutes };
-};
-
-const isWithinQuietHours = (quietHours, now = new Date()) => {
-  if (!quietHours || typeof quietHours !== 'object') return false;
-  const start = parseTime(quietHours.start);
-  const end = parseTime(quietHours.end);
-  if (!start || !end) return false;
-
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const startMinutes = start.hours * 60 + start.minutes;
-  const endMinutes = end.hours * 60 + end.minutes;
-
-  if (startMinutes < endMinutes) {
-    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
-  }
-
-  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
-};
-
-const getNextAllowedTime = (quietHours, now = new Date()) => {
-  const start = parseTime(quietHours?.start);
-  const end = parseTime(quietHours?.end);
-  if (!start || !end) return now;
-
-  const next = new Date(now);
-  const startMinutes = start.hours * 60 + start.minutes;
-  const endMinutes = end.hours * 60 + end.minutes;
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  if (startMinutes < endMinutes) {
-    next.setHours(end.hours, end.minutes, 0, 0);
-    if (currentMinutes >= endMinutes) {
-      next.setDate(next.getDate() + 1);
-    }
-    return next;
-  }
-
-  if (currentMinutes >= startMinutes) {
-    next.setDate(next.getDate() + 1);
-  }
-  next.setHours(end.hours, end.minutes, 0, 0);
-  return next;
-};
-
-/**
- * Pure send-decision for one scheduled automation log. NO side effects — shared by
- * the live sender (processScheduledMessages) AND the dry-run preview so they can
- * never diverge. Centralizes every suppression rule in one auditable place.
- * @returns {{action:'send'|'defer'|'cancel'|'fail', reason:string, channel:string, nextAttempt?:Date}}
- */
-export const evaluateScheduledMessage = (log, user, now = new Date()) => {
-  const channel = log?.channel || 'sms';
-  if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
-
-  const prefs = normalizePreferences(user?.notificationPreferences);
-  if (prefs.sms === false) return { action: 'cancel', reason: 'sms_disabled', channel };
-  if (isWithinQuietHours(prefs.quietHours, now)) {
-    return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
-  }
-  if (!user?.phone) return { action: 'fail', reason: 'no_phone', channel };
-  return { action: 'send', reason: 'eligible', channel };
-};
 
 const getModels = () => {
   const models = getAllModels();
@@ -319,52 +240,6 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   return { dryRun: true, total: pendingLogs.length, summary, byReason, items };
 };
 
-const TEST_SEND_PHONE_RE = /^\+?[1-9]\d{6,14}$/;
-const maskTestPhone = (p) => {
-  const s = String(p || '');
-  return s.length <= 4 ? '****' : `***${s.slice(-4)}`;
-};
-const testSendAllowlist = () => [process.env.OWNER_PHONE, process.env.OWNER_WIFE_PHONE]
-  .filter(Boolean)
-  .map((p) => String(p).trim());
-
-/**
- * Guarded ONE-OFF nurture test send. Sends a single templated SMS to an explicitly
- * provided number so the message can be verified before arming outbound automation.
- * Guards: confirm===true + valid single E.164-style phone + known template +
- * (when OWNER_PHONE/OWNER_WIFE_PHONE are set) an owner allowlist so a test can't hit
- * a real client. Audited + PII-masked. Does NOT arm the cron; Twilio config still
- * gates the real send (safely no-ops if Twilio is unconfigured/disabled).
- * @returns {Promise<{success:boolean, error?:string, to?:string, body?:string|null, templateName?:string, allowed?:string[]}>}
- */
-export const sendNurtureTestMessage = async ({ to, templateName, variables = {}, confirm = false, triggeredByUserId = null } = {}) => {
-  if (confirm !== true) {
-    return { success: false, error: 'confirm_required', message: 'Set confirm:true to send a real test message.' };
-  }
-  const phone = String(to || '').trim();
-  if (!TEST_SEND_PHONE_RE.test(phone)) {
-    return { success: false, error: 'invalid_phone', message: 'Provide a single valid E.164-style phone number.' };
-  }
-  const allow = testSendAllowlist();
-  if (allow.length && !allow.includes(phone)) {
-    return { success: false, error: 'not_in_test_allowlist', message: 'Test sends are restricted to configured owner number(s).' };
-  }
-  const known = listSmsTemplates().map((t) => t.name);
-  if (!known.includes(templateName)) {
-    return { success: false, error: 'unknown_template', allowed: known };
-  }
-
-  const result = await sendTemplatedSMS({ to: phone, templateName, variables });
-  logger.info(`[NurtureTestSend] admin#${triggeredByUserId ?? '?'} -> ${maskTestPhone(phone)} template=${templateName} success=${Boolean(result?.success)}`);
-  return {
-    success: Boolean(result?.success),
-    templateName,
-    to: maskTestPhone(phone),
-    body: result?.body || null,
-    error: result?.success ? undefined : (result?.error || 'send_failed'),
-  };
-};
-
 export const cancelSequence = async (userId, sequenceName) => {
   const { AutomationSequence, AutomationLog } = getModels();
 
@@ -386,6 +261,8 @@ export const cancelSequence = async (userId, sequenceName) => {
 
   return { success: true, updatedCount };
 };
+
+export { evaluateScheduledMessage, sendNurtureTestMessage };
 
 export default {
   ensureDefaultSequences,
