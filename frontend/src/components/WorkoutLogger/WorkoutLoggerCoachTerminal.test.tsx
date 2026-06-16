@@ -78,6 +78,14 @@ describe('WorkoutLoggerCoachTerminal', () => {
         sendImmediately: true,
         prompt: expect.stringContaining('AI_LOAD_TEMPLATE'),
       }),
+      expect.objectContaining({
+        label: 'Adjust safely',
+        prompt: expect.stringContaining('AI_UPDATE_SET'),
+      }),
+      expect.objectContaining({
+        label: 'Load phase',
+        prompt: expect.stringContaining('AI_TOGGLE_NASM_ITEM'),
+      }),
     ]));
   });
 

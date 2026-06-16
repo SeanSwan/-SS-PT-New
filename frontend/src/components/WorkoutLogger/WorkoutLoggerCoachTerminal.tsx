@@ -106,13 +106,13 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
     {
       label: 'Adjust safely',
       description: 'Swaps with exact targets',
-      prompt: `Adjust ${scopedWorkout} for safety. Keep the same training intent, list exact replacements with sets, reps, tempo, and rest, and only add new exercises into the open logger when a replacement is clearly needed.`,
+      prompt: `Adjust ${scopedWorkout} for safety. Keep the same training intent, use AI_UPDATE_SET action blocks for exact changes to existing rows, and use AI_ADD_EXERCISE only when a replacement is clearly needed. Do not submit or save the workout.`,
       sendImmediately: true,
     },
     {
       label: 'Load phase',
       description: 'OPT template into logger',
-      prompt: `Load the best NASM OPT phase template for ${scopedSession} into the open Workout Logger using AI_LOAD_TEMPLATE if the phase is clear. If it is not clear, ask one short question first.`,
+      prompt: `Load the best NASM OPT phase template for ${scopedSession} into the open Workout Logger using AI_LOAD_TEMPLATE if the phase is clear. Use AI_TOGGLE_NASM_ITEM action blocks for warmup, balance_core, or cooldown selections that should be preselected. If phase is not clear, ask one short question first.`,
       sendImmediately: true,
     },
     {
