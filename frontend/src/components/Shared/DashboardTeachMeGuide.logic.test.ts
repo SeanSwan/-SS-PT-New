@@ -8,7 +8,7 @@ describe('getDashboardTeachMeGuide', () => {
   it('teaches the admin command flow without implying hidden writes', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'admin',
-      pathname: '/dashboard/admin/client-management?tab=training',
+      pathname: '/dashboard/admin/overview',
     });
 
     expect(guide.title).toBe('Admin command center');

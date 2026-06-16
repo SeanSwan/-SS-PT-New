@@ -6,6 +6,7 @@
 
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import {
+  adminClientHubCommand,
   adminClientCareLoop,
   adminTrustAndAccess,
 } from './DashboardTeachMeGuide.adminCareRefiners';
@@ -243,6 +244,9 @@ export const refineAdminGuide = (
   }
   if (includesAny(path, ['client-progress-tracking'])) {
     return adminClientProgressTracking(base);
+  }
+  if (includesAny(path, ['client-management', 'client-details'])) {
+    return adminClientHubCommand(base);
   }
   if (includesAny(path, ['pending-orders', 'revenue', 'admin-packages'])) {
     return adminMoneyPath(base);
