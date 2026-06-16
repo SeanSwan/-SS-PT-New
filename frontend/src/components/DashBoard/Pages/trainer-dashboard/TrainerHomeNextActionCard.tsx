@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Brain, CalendarDays, ClipboardList, Dumbbell, Users } from 'lucide-react';
+import { Brain, CalendarDays, ClipboardList, Dumbbell } from 'lucide-react';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import {
   buildTrainerSessionCoachRoute,
@@ -40,6 +40,7 @@ const formatSessionTime = (session: TrainerSession): string => {
 };
 
 const TRAINER_CLIENTS_PATH = '/dashboard/trainer/clients';
+const TRAINER_LOG_WORKOUT_PATH = `${TRAINER_CLIENTS_PATH}?intent=log_workout`;
 const TRAINER_SCHEDULE_PATH = '/dashboard/trainer/schedule';
 
 const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
@@ -52,9 +53,9 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
       <NextActionCard aria-label="Next trainer action" role="region">
         <NextActionCopy>
           <NextActionKicker>Build the day</NextActionKicker>
-          <NextActionTitle>Start with the next client move</NextActionTitle>
+          <NextActionTitle>Start with a workout log</NextActionTitle>
           <NextActionMeta>
-            Fill the schedule, ask Coach for triage, or open your roster.
+            Pick a client to log now, ask Coach for triage, or plan the next opening.
           </NextActionMeta>
         </NextActionCopy>
 
@@ -62,6 +63,14 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
           <NextActionButton
             type="button"
             $variant="primary"
+            onClick={() => onNavigate(TRAINER_LOG_WORKOUT_PATH)}
+            aria-label="Pick a client to log a workout"
+          >
+            <Dumbbell size={16} aria-hidden="true" />
+            Log Workout
+          </NextActionButton>
+          <NextActionButton
+            type="button"
             onClick={() => onNavigate(TRAINER_SCHEDULE_PATH)}
             aria-label="Plan trainer day in schedule"
           >
@@ -75,14 +84,6 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
           >
             <Brain size={16} aria-hidden="true" />
             Ask Coach
-          </NextActionButton>
-          <NextActionButton
-            type="button"
-            onClick={() => onNavigate(TRAINER_CLIENTS_PATH)}
-            aria-label="Open trainer client roster"
-          >
-            <Users size={16} aria-hidden="true" />
-            Clients
           </NextActionButton>
         </NextActionButtons>
       </NextActionCard>

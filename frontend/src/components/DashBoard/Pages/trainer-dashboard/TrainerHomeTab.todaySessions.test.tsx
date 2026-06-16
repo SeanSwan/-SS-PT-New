@@ -145,7 +145,7 @@ describe('TrainerHomeTab today session logging', () => {
     expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/schedule');
   });
 
-  it('keeps a low-click trainer plan card visible when no session is actionable', async () => {
+  it('keeps a low-click trainer logging card visible when no session is actionable', async () => {
     mockedUseTrainerTodaySessions.mockReturnValue({
       sessions: [],
       loading: false,
@@ -163,7 +163,10 @@ describe('TrainerHomeTab today session logging', () => {
 
     const nextAction = screen.getByRole('region', { name: /next trainer action/i });
     expect(within(nextAction).getByText('Build the day')).toBeInTheDocument();
-    expect(within(nextAction).getByRole('heading', { name: /start with the next client move/i })).toBeInTheDocument();
+    expect(within(nextAction).getByRole('heading', { name: /start with a workout log/i })).toBeInTheDocument();
+
+    await user.click(within(nextAction).getByRole('button', { name: /pick a client to log a workout/i }));
+    expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/clients?intent=log_workout');
 
     await user.click(within(nextAction).getByRole('button', { name: /plan trainer day in schedule/i }));
     expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/schedule');
@@ -175,8 +178,7 @@ describe('TrainerHomeTab today session logging', () => {
     expect(coachUrl.searchParams.get('teachPrompt')).toMatch(/trainer Home/i);
     expect(coachUrl.searchParams.get('teachPrompt')).toContain('0 sessions today');
 
-    await user.click(within(nextAction).getByRole('button', { name: /open trainer client roster/i }));
-    expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/clients');
+    expect(within(nextAction).queryByRole('button', { name: /open trainer client roster/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /primary trainer action: log workout/i }));
     expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/clients?intent=log_workout');
