@@ -9,6 +9,7 @@ import { useAutomationSequences, AutomationStep } from '../../hooks/useAutomatio
 import apiService from '../../services/api.service';
 import AutomationConfirmDialog, { type AutomationConfirmRequest } from './AutomationConfirmDialog';
 import AutomationManagerView from './AutomationManagerView';
+import NurturePreviewPanel from './NurturePreviewPanel';
 import { triggerEventOptions, type TemplateOption } from './AutomationManager.options';
 
 const AutomationManager: React.FC = () => {
@@ -264,6 +265,7 @@ const AutomationManager: React.FC = () => {
         handleDelete={handleDelete}
         handleTrigger={handleTrigger}
       />
+      <NurturePreviewPanel />
       <AutomationConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </>
   );
