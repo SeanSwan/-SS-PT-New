@@ -41,6 +41,26 @@ describe('CoachMessage response style variants', () => {
     expect(screen.getByText(/Pick a weight you control/i)).toBeInTheDocument();
   });
 
+  it('splits inline Science and Keep It 100 answers into switchable chat views', async () => {
+    const user = userEvent.setup();
+    render(
+      <CoachMessage
+        message={assistantMessage(
+          'Science: Slow eccentrics increase time under tension. Keep it 100: Lower the weight with control, then drive it up clean.',
+        )}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Science' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Slow eccentrics increase time under tension/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Lower the weight with control/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Keep It 100' }));
+
+    expect(screen.queryByText(/Slow eccentrics increase time under tension/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Lower the weight with control/i)).toBeInTheDocument();
+  });
+
   it('keeps ordinary assistant messages on the markdown renderer path', () => {
     render(<CoachMessage message={assistantMessage('**Train today:** log the session, then review progress.')} />);
 

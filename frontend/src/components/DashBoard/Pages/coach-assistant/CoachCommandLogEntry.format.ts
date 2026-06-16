@@ -26,6 +26,7 @@ const KEEP_100_LABELS = new Set([
   'keep it one hundred',
   'keeping it one hundred',
 ]);
+const INLINE_STYLE_MARKER_PATTERN = /(?:^|\s)(the scientific explanation|scientific explanation|the science|science|keeping it one hundred|keep it one hundred|keeping it 100 percent|keep it 100 percent|keeping it 100|keep it 100)(?::|-)\s*/gi;
 
 function normalizeCopy(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
@@ -108,11 +109,26 @@ function parseStyleMarker(line: string): { key: LogStyleVariantKey; copy: string
   return exactKey ? { key: exactKey, copy: '' } : null;
 }
 
+function expandInlineStyleMarkers(line: string): string[] {
+  const matches = Array.from(line.matchAll(INLINE_STYLE_MARKER_PATTERN))
+    .map((match) => ({
+      contentStart: (match.index ?? 0) + match[0].length,
+      key: markerKey(match[1] || ''),
+      label: match[1] || '',
+      start: match.index ?? 0,
+    }))
+    .filter((match) => match.key);
+  if (new Set(matches.map((match) => match.key)).size < 2) return [line];
+  return matches
+    .map((match, index) => `${match.label}: ${line.slice(match.contentStart, matches[index + 1]?.start ?? line.length).trim()}`)
+    .filter((part) => normalizeCopy(part));
+}
+
 function splitStyleVariants(body: string): LogStyleVariant[] | null {
   const sections: Record<LogStyleVariantKey, string[]> = { science: [], keep100: [] };
   let activeKey: LogStyleVariantKey | null = null;
 
-  body.split(/\r?\n/).forEach((line) => {
+  body.split(/\r?\n/).flatMap(expandInlineStyleMarkers).forEach((line) => {
     const marker = parseStyleMarker(line);
     if (marker) {
       activeKey = marker.key;
