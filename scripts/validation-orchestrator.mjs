@@ -50,6 +50,8 @@ import { execSync } from 'child_process';
 import { join, extname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { runRecursiveConsensus } from './lib/recursive-consensus.mjs';
+import { runFusionSynthesis, formatSynthesisMarkdown } from './lib/fusion-synthesis.mjs';
+import { evaluateSpendGate, formatCostSummary, formatCostSummaryMarkdown, isOverCap } from './lib/cost-gate.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -83,6 +85,14 @@ const MODELS = {
   gemini31Pro:    'gemini-3.1-pro-preview',                // Direct Google API — Google/US — Phase 2C UX debate authority
   // ── EXPENSIVE (DO NOT USE in orchestrator) ──
   // claudeOpus:  'anthropic/claude-4.6-opus-20260205'     // $5/$25 per M — use via CLI subscription instead
+  // ── FUSION SYNTHESIS JUDGE (reads ALL Phase-1 analysts, writes the fused verdict) ──
+  // Per Sean 2026-06-15: the judge is the synthesis Final Decider, so use the STRONGEST
+  // available Claude — Opus 4.8 now, Fable 5 when it returns (CLAUDE.md Final-Decider chain).
+  // Opus is intentionally absent from the track models above (cost discipline), but the judge
+  // runs ONCE per run, not per-track, so the premium model is justified here.
+  //   ⚠ The exact OpenRouter slug below is a [HYPOTHESIS] (follows the anthropic/claude-sonnet-4.6
+  //   pattern). Set SWAN_FUSION_JUDGE_MODEL to the verified slug — or to Fable 5 when it returns —
+  //   to override without a code change. A wrong slug only fails the (non-breaking) synthesis step.
   // ── BANNED MODELS (NEVER USE) ──
   // No Grok. No X-AI models. Hard no, permanent ban. User explicit preference.
   // ── REMOVED (Privacy audit 2026-04-06) ──
@@ -98,6 +108,14 @@ const MODELS = {
 // Added 2026-04-22 by ORCHESTRATOR-DRIFT-FIX-DEBATE-2026-04-22.md
 // (full rationale: memory/project_validation_orchestrator_drift_2026_04_22.md)
 // ─────────────────────────────────────────────
+
+// Fusion synthesis judge config — strongest available Claude (Opus 4.8 now → Fable 5 later).
+// Override model/price via env so the verified slug or Fable can be swapped without a code edit.
+const FUSION_JUDGE = {
+  model: process.env.SWAN_FUSION_JUDGE_MODEL || 'anthropic/claude-opus-4.8',
+  priceInputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_IN) || 5.0,   // Opus 4.8 est. $5/M in
+  priceOutputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_OUT) || 25.0, // Opus 4.8 est. $25/M out
+};
 
 const DISALLOWED_PROVIDER_PREFIXES = ['minimax/', 'stepfun/', 'qwen/', 'deepseek/', 'z-ai/'];
 
@@ -1661,6 +1679,88 @@ function sleep(ms) {
 }
 
 // ─────────────────────────────────────────────
+// Fusion Synthesis Judge (shared across all 3 modes)
+// One judge reads every Phase-1 analyst and emits the fused verdict —
+// the synthesis step OpenRouter Fusion is built around. Non-breaking:
+// runFusionSynthesis returns null (skip) or an ERROR result, never throws
+// here, and the synth result rides in the normal results array.
+// ─────────────────────────────────────────────
+
+async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic, capUSD = null }) {
+  // Kill switch: the judge is a premium Opus-class call on EVERY run. Default ON
+  // (Sean approved the graft) but killable via env so it never spends without consent.
+  if (String(process.env.SWAN_FUSION_SYNTHESIS || 'on').toLowerCase() === 'off') {
+    console.log('    [synthesis] disabled via SWAN_FUSION_SYNTHESIS=off');
+    return;
+  }
+  // Mid-run hard-cap guard: skip the (most expensive) judge call if Phase 1 already
+  // blew the budget, so the cap can't be exceeded by the synthesis step.
+  const priorCost = [...(phase1Results || []), ...(sink || [])].reduce((s, r) => s + (r.costUSD || 0), 0);
+  if (isOverCap(priorCost, capUSD)) {
+    console.log(`    [synthesis] skipped — accumulated spend $${priorCost.toFixed(4)} already over cap $${Number(capUSD).toFixed(4)}`);
+    return;
+  }
+  try {
+    const synth = await runFusionSynthesis({
+      analystResults: phase1Results,
+      callModel: (model, prompt) => callOpenRouter(apiKey, model, prompt),
+      judgeModel: FUSION_JUDGE.model,
+      priceInputPerM: FUSION_JUDGE.priceInputPerM,
+      priceOutputPerM: FUSION_JUDGE.priceOutputPerM,
+      context: ctx,
+      topic,
+      log: (m) => console.log(`    ${m}`),
+    });
+    if (synth) sink.push(synth);
+  } catch (err) {
+    console.error(`    [FAIL] Fusion synthesis: ${err.message}`);
+  }
+}
+
+function writeFusionSynthesisArtifact(results, outputPaths) {
+  const synth = results.find(r => r.name === 'Fusion Synthesis (Judge)' && r.status === 'SUCCESS');
+  if (!synth) return;
+  const md = formatSynthesisMarkdown(synth);
+  writeFileSync(join(outputPaths.latestDir, 'synthesis.md'), md, 'utf-8');
+  writeFileSync(join(outputPaths.archiveDir, 'synthesis.md'), md, 'utf-8');
+  console.log(`    [synthesis] wrote ${join(outputPaths.latestDir, 'synthesis.md')}`);
+}
+
+// ─────────────────────────────────────────────
+// Spend gate + cost summary (Sean 2026-06-15: protect overspending, keep an eye on credits)
+// Pre-run: estimate → hard-cap check (SWAN_VILLAGE_MAX_USD) → confirm (TTY y/N or
+// SWAN_VILLAGE_CONFIRM=yes). Post-run: per-model cost summary + cost-summary.md.
+// ─────────────────────────────────────────────
+
+async function spendGate({ tracks, inputChars, debatesEnabled }) {
+  const synthesisOn = String(process.env.SWAN_FUSION_SYNTHESIS || 'on').toLowerCase() !== 'off';
+  const judge = synthesisOn ? { model: FUSION_JUDGE.model } : null;
+  const extraPricing = { [FUSION_JUDGE.model]: { in: FUSION_JUDGE.priceInputPerM, out: FUSION_JUDGE.priceOutputPerM } };
+  const gate = await evaluateSpendGate({
+    tracks, inputChars, judge, debatesEnabled, extraPricing,
+    log: (m) => console.log(m),
+  });
+  if (!gate.proceed) {
+    console.error('');
+    console.error(`  [SPEND GATE] Run aborted — ${gate.reason}`);
+    console.error('');
+  }
+  return gate;
+}
+
+function finalizeCostSummary(results, outputPaths) {
+  console.log('');
+  console.log(formatCostSummary(results));
+  try {
+    const md = formatCostSummaryMarkdown(results);
+    writeFileSync(join(outputPaths.latestDir, 'cost-summary.md'), md, 'utf-8');
+    writeFileSync(join(outputPaths.archiveDir, 'cost-summary.md'), md, 'utf-8');
+  } catch (err) {
+    console.error(`    [cost-summary] write failed (non-fatal): ${err.message}`);
+  }
+}
+
+// ─────────────────────────────────────────────
 // Report Generator
 // ─────────────────────────────────────────────
 
@@ -1846,7 +1946,9 @@ async function main() {
     const tracks = buildDocumentValidatorTracks(documentContent, opts.document);
     const phase1Tracks = tracks;
 
-    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-docs' });
+    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-docs' });
+    const gate = await spendGate({ tracks: phase1Tracks, inputChars: documentContent.length, debatesEnabled: hasGemini31 });
+    if (!gate.proceed) return;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} document validators (staggered 2s apart)...`);
     if (hasGemini31) {
       console.log(`  Phase 2: Technical Accuracy recursive debate (Gemini CTO ↔ Claude CEO)...`);
@@ -1875,6 +1977,9 @@ async function main() {
     const debateResults = [];
     let phase2DebateLog = null;
     let phase3DebateLog = null;
+
+    // ── Fusion Synthesis: one judge distills the whole Phase-1 panel ──
+    await runFusionSynthesisStep({ phase1Results, sink: debateResults, apiKey, ctx, topic: 'Document Review', capUSD: gate.capUSD });
 
     async function callModelForDebate(provider, model, prompt) {
       if (provider === 'gemini-direct') {
@@ -1957,6 +2062,8 @@ async function main() {
     const successCount = results.filter(r => r.status === 'SUCCESS').length;
     const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
     const outputPaths = writeSplitOutput(results, files, md, timestamp);
+    writeFusionSynthesisArtifact(results, outputPaths);
+    finalizeCostSummary(results, outputPaths);
 
     if (phase2DebateLog) {
       writeFileSync(join(outputPaths.latestDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
@@ -2023,7 +2130,9 @@ async function main() {
     const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
 
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
-    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-planning' });
+    assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-planning' });
+    const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31 });
+    if (!gate.proceed) return;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
     if (groundedCount > 0) {
       console.log(`           ${groundedCount} brain(s) with Google Search Grounding (real-time web research)`);
@@ -2059,6 +2168,9 @@ async function main() {
     let securityDebateLog = null;
     let archDebateLog = null;
     let designDebateLog = null;
+
+    // ── Fusion Synthesis: one judge distills the whole Phase-1 panel ──
+    await runFusionSynthesisStep({ phase1Results, sink: debateResults, apiKey, ctx, topic: 'Plan Review (planning mode)', capUSD: gate.capUSD });
 
     async function callModelForDebate(provider, model, prompt) {
       if (provider === 'gemini-direct') {
@@ -2224,6 +2336,8 @@ async function main() {
     const successCount = results.filter(r => r.status === 'SUCCESS').length;
     const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
     const outputPaths = writeSplitOutput(results, files, md, timestamp);
+    writeFusionSynthesisArtifact(results, outputPaths);
+    finalizeCostSummary(results, outputPaths);
 
     // Write web research sources report
     const groundedResults = results.filter(r => r.groundingMeta?.sources?.length);
@@ -2327,7 +2441,7 @@ async function main() {
   const phase1Tracks = tracks;
   const totalPhases = hasGemini31 ? 3 : 1;
 
-  assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2], { checkpoint: 'phase1-code-review' });
+  assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-code-review' });
   console.log(`  Phase 1: Launching ${phase1Tracks.length} validators (staggered 2s apart)...`);
   if (hasGemini31) {
     console.log(`  Phase 2: 3 Specialty Debates (Security, Code Quality, UX/UI)...`);
@@ -2358,6 +2472,9 @@ async function main() {
   const debateResults = [];
   let phase2DebateLog = null;
   let phase3DebateLog = null;
+
+  // ── Fusion Synthesis: one judge distills the whole Phase-1 panel ──
+  await runFusionSynthesisStep({ phase1Results, sink: debateResults, apiKey, ctx, topic: 'Code Review' });
 
   // Helper to call either OpenRouter or Gemini based on provider
   async function callModelForDebate(provider, model, prompt) {
@@ -2577,6 +2694,7 @@ async function main() {
 
   // ── Write section-specific files to AI Village ──
   const outputPaths = writeSplitOutput(results, files, md, timestamp);
+  writeFusionSynthesisArtifact(results, outputPaths);
 
   // ── Write debate logs (Phase 2 + 3) ──
   if (phase2DebateLog) {
