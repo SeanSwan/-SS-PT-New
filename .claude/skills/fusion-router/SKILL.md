@@ -43,8 +43,9 @@ Hand off to `ai-village-fusion` with the chosen tier:
 - Tier 3 → `node scripts/validation-orchestrator.mjs …` (spend-gated).
 
 ## How "auto kick-in" is wired
-- **Today (no config change):** this skill is the pre-task tier gate — apply it at the start of substantial tasks, the same way `swan-orchestrator` is applied. That's the automatic behavior.
-- **Optional (needs Sean's OK — a settings.json change):** extend the `prompt-watcher` UserPromptSubmit hook so every substantial coding prompt also gets a one-line "classify the fusion tier and propose it" nudge. This makes it fire on every prompt without me remembering — but it's a hook/config edit, so propose it and let Sean approve (don't edit the hook silently). Guard against per-prompt permission fatigue: only the paid tier ever forces a prompt.
+- **WIRED on every prompt (Sean approved 2026-06-16):** the `prompt-watcher` UserPromptSubmit hook (`scripts/hooks/prompt-watcher.mjs`) now emits a one-line fusion-tier nudge alongside its SIMPLE/VISION classifier, so the tier decision fires automatically on every prompt — no one has to remember to invoke this skill. The model decides whether a review is warranted: trivial → just do it; substantial → triangle (default); high-stakes → propose the paid Village and ask first.
+- **Per-prompt fatigue guard:** only the paid tier (Tier 3) ever forces a confirmation (Rule 16). Free tiers proceed; trivial/conversational turns skip fusion entirely.
+- **Also still a pre-task gate:** apply this skill explicitly at the start of substantial tasks (like `swan-orchestrator`) when you want the full tier-selection procedure, not just the hook nudge.
 
 ## Guardrails
 - **Spend (Rule 16):** Tier 3 needs explicit permission every time. Free tiers never spend API credits (flat-rate subs).
