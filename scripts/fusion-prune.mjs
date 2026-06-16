@@ -18,9 +18,11 @@
 import { readdirSync, statSync, rmSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveFusionRoot } from './lib/fusion-handoff.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FUSION_DIR = join(__dirname, '..', '.ai-workflow', 'fusion');
+// Portability: prune the SAME root the triangle writes to (SWAN_FUSION_ROOT or this repo).
+const FUSION_DIR = resolveFusionRoot(process.env, join(__dirname, '..', '.ai-workflow', 'fusion'));
 export const RETENTION_DAYS = Number(process.env.SWAN_FUSION_RETENTION_DAYS) || 90;
 
 /**

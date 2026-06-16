@@ -18,6 +18,7 @@ import {
   writeFreeSynthesis,
   answerPath,
   atomicWrite,
+  resolveFusionRoot,
   DEFAULT_BRAINS,
 } from './fusion-handoff.mjs';
 
@@ -81,6 +82,16 @@ test('buildHandoffJudgePrompt is null until panel ready, then contains both answ
   assert.match(prompt, /cursor pagination/);
   assert.match(prompt, /Add an index first/);
   assert.match(prompt, /NOT a participant/); // inherits the synthesis contract
+});
+
+test('resolveFusionRoot: env override wins (absolute), else fallback — portability', () => {
+  // env unset -> historic fallback unchanged (backward-compatible; running triangle safe)
+  assert.equal(resolveFusionRoot({}, '/fallback/dir'), '/fallback/dir');
+  assert.equal(resolveFusionRoot(undefined, '/fallback/dir'), '/fallback/dir');
+  // env set -> routed to that root, resolved to absolute (so another project never writes into SS-PT)
+  const routed = resolveFusionRoot({ SWAN_FUSION_ROOT: 'other/project/.ai-workflow/fusion' }, '/fallback/dir');
+  assert.notEqual(routed, '/fallback/dir');
+  assert.match(routed, /other[\\/]project[\\/]\.ai-workflow[\\/]fusion$/);
 });
 
 test('atomicWrite writes complete content, replaces atomically, leaves no .tmp', () => {

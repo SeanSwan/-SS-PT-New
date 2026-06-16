@@ -90,6 +90,7 @@ Sean's standing rule: any tuning this skill suggests to itself, the orchestrator
 - `scripts/lib/cost-gate.mjs` — paid-tier estimate / cap / confirm / cost summary
 - `scripts/lib/fusion-handoff.mjs` — free-tier run scaffold + answer/synthesis file mechanics
 - `scripts/lib/fusion-board.mjs` — the shared-folder polling blackboard (status + 20s poll + timeout) for the duo/triangle
-- `scripts/fusion-prune.mjs` — 90-day retention prune for `.ai-workflow/fusion/`
+- `scripts/fusion-prune.mjs` — 90-day retention prune for the fusion root
+- `scripts/fusion-triangle.mjs` — Tier 1/2 live launcher (drives `claude -p` + `gemini -p` + Codex-via-board → synthesis). BUILT + live-smoke-green; Gemini best-first model chain (Pro→flash fallback).
+- **Portability:** the fusion root is `SWAN_FUSION_ROOT`-overridable so other projects route output to themselves, never into SS-PT — see `docs/ai-workflow/references/FUSION-PORTABILITY-PROTOCOL.md`.
 - Rule 46 (3-Brain loop), Rule 67 (pair-coding ledger), Opus-Codex debate protocol — the file-handoff foundations this builds on
-- **Next slice:** `scripts/fusion-triangle.mjs` live launcher (drives `claude -p` + `gemini -p` + Codex-via-board) — to build + live-smoke

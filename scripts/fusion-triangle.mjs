@@ -31,10 +31,11 @@ import { dirname, join } from 'node:path';
 import {
   initBoard, postContribution, pollUntilReady, sealBoard, DEFAULT_POLL_MS,
 } from './lib/fusion-board.mjs';
-import { listAnswers, buildHandoffJudgePrompt, writeFreeSynthesis } from './lib/fusion-handoff.mjs';
+import { listAnswers, buildHandoffJudgePrompt, writeFreeSynthesis, resolveFusionRoot } from './lib/fusion-handoff.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FUSION_ROOT = join(__dirname, '..', '.ai-workflow', 'fusion');
+// Portability: SWAN_FUSION_ROOT routes output to the invoking project; unset = this repo (unchanged).
+const FUSION_ROOT = resolveFusionRoot(process.env, join(__dirname, '..', '.ai-workflow', 'fusion'));
 
 /** Agent → headless CLI spec. Codex intentionally absent (no CLI → board only). */
 export const AGENT_CMD = {

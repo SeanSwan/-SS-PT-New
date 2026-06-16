@@ -30,8 +30,20 @@
  */
 
 import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { buildSynthesisPrompt } from './fusion-synthesis.mjs';
+
+// ── Portability: where fusion runs are written ──
+// The fusion triangle is used across MULTIPLE projects, not just SwanStudios, so
+// the output root must NOT be hardcoded to this repo. Resolution order:
+//   1. SWAN_FUSION_ROOT env (resolved to absolute) — point any project at its own
+//      .ai-workflow/fusion (or a global ~/.swan-fusion) so runs never pollute SS-PT;
+//   2. the caller-provided fallback (CWD-relative by default here).
+// Backward-compatible: with the env UNSET this returns the historic default, so a
+// triangle already running on another project is unaffected.
+export function resolveFusionRoot(env = process.env, fallbackDir = join('.ai-workflow', 'fusion')) {
+  return env && env.SWAN_FUSION_ROOT ? resolve(env.SWAN_FUSION_ROOT) : fallbackDir;
+}
 
 // ── Atomic write (write-temp-then-rename) ──
 // Recommended by the triangle's own synthesis: never let a poller read a
@@ -45,8 +57,8 @@ export function atomicWrite(filePath, content) {
   return filePath;
 }
 
-/** Default location for free-fusion runs (gitignored .ai-workflow tree). */
-export const DEFAULT_FUSION_ROOT = join('.ai-workflow', 'fusion');
+/** Default location for free-fusion runs (gitignored .ai-workflow tree; env-overridable). */
+export const DEFAULT_FUSION_ROOT = resolveFusionRoot();
 
 /** The flat-rate subscription brains used for free fusion. */
 export const DEFAULT_BRAINS = ['claude', 'codex'];
