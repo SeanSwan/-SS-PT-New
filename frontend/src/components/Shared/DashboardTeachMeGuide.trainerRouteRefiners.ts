@@ -6,6 +6,7 @@
 
 import type { DashboardTeachMeGuideCopy } from './DashboardTeachMeGuide.logic';
 import { applyPatch, includesAny } from './DashboardTeachMeGuide.routeRefiners.shared';
+import { trainerSupportRoutes } from './DashboardTeachMeGuide.trainerSupportRefiners';
 import { trainerTrainingSystems } from './DashboardTeachMeGuide.trainerTrainingRefiners';
 
 const trainerTodayCommand = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
@@ -137,88 +138,6 @@ const trainerSprintPlanning = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   primaryPrompt: 'teach me the trainer sprint planning workflow',
 });
 
-const trainerCommunicationFlow = (
-  path: string,
-  base: DashboardTeachMeGuideCopy,
-) => {
-  if (includesAny(path, ['coach-assistant'])) {
-    return applyPatch(base, {
-      title: 'Trainer Coach terminal',
-      summary: 'Use Coach as the client-action terminal for workout questions, plan drafts, logging help, and intake review.',
-      focus: 'Pick the client context first, ask for the exact action, then review before logging, planning, messaging, or scheduling.',
-      primaryAction: { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
-      fastPath: [
-        'Confirm the client you are coaching.',
-        'Ask Coach for the draft, check, or next action.',
-        'Review before sending it to Log Workout, Planner, or Schedule.',
-      ],
-      actions: [
-        { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
-        { label: 'Log Workout', to: '/dashboard/trainer/clients?intent=log_workout' },
-        { label: 'Plan Next Workout', to: '/dashboard/trainer/workout-planner' },
-        { label: 'PLAUD', to: '/dashboard/trainer/plaud' },
-        { label: 'Schedule', to: '/dashboard/trainer/schedule' },
-      ],
-      primaryPrompt: 'teach me the trainer Coach terminal workflow for client workout actions',
-    });
-  }
-
-  return applyPatch(base, {
-    title: 'Trainer communication loop',
-    summary: 'Use messages, PLAUD, and Coach intake to turn client context into a clear reviewed next action.',
-    focus: 'Capture the signal, tie it to the client, then decide whether it becomes a log, plan change, message, or schedule task.',
-    primaryAction: { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
-    fastPath: [
-      'Open the client signal.',
-      'Review the staged action.',
-      'Send, log, or schedule the follow-up.',
-    ],
-    actions: [
-      { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
-      { label: 'Messages', to: '/dashboard/trainer/messages' },
-      { label: 'PLAUD', to: '/dashboard/trainer/plaud' },
-      { label: 'Schedule', to: '/dashboard/trainer/schedule' },
-    ],
-    primaryPrompt: 'teach me the trainer communication workflow',
-  });
-};
-
-const trainerBroadcastTitle = (path: string): string => {
-  if (includesAny(path, ['my-home'])) return 'Trainer achievement space';
-  if (includesAny(path, ['virtual-olympics'])) return 'Trainer competition flow';
-  if (includesAny(path, ['creators'])) return 'Trainer creator flow';
-  return 'Trainer live flow';
-};
-
-const trainerBroadcastPrimaryAction = (path: string) => {
-  if (includesAny(path, ['creators'])) return { label: 'Open Creators', to: '/dashboard/trainer/creators' };
-  if (includesAny(path, ['virtual-olympics'])) return { label: 'Open Virtual Olympics', to: '/dashboard/trainer/virtual-olympics' };
-  if (includesAny(path, ['my-home'])) return { label: 'Open My Home', to: '/dashboard/trainer/my-home' };
-  return { label: 'Open Live Streams', to: '/dashboard/trainer/live' };
-};
-
-const trainerBroadcastFlow = (path: string, base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  title: trainerBroadcastTitle(path),
-  summary: 'Use broadcast and creator routes only after the training action is clear so content supports coaching instead of distracting from it.',
-  focus: 'Connect the stream, creator task, or competition moment back to clients, programming, and follow-up.',
-  primaryAction: trainerBroadcastPrimaryAction(path),
-  fastPath: [
-    'Confirm the client or group purpose.',
-    'Run the stream or content task.',
-    'Return to logging and follow-up.',
-  ],
-  actions: [
-    { label: 'Live Streams', to: '/dashboard/trainer/live' },
-    { label: 'Creators', to: '/dashboard/trainer/creators' },
-    { label: 'Virtual Olympics', to: '/dashboard/trainer/virtual-olympics' },
-    { label: 'My Home', to: '/dashboard/trainer/my-home' },
-    { label: 'Log Workout', to: '/dashboard/trainer/clients?intent=log_workout' },
-  ],
-  primaryPrompt: includesAny(path, ['my-home'])
-    ? 'teach me the trainer achievement workflow'
-    : 'teach me the trainer live and creator workflow',
-});
-
 export const refineTrainerGuide = (
   path: string,
   base: DashboardTeachMeGuideCopy,
@@ -235,21 +154,17 @@ export const refineTrainerGuide = (
   if (includesAny(path, ['assessments', 'body-map', 'video-call', 'videos'])) {
     return trainerAssessmentFlow(base);
   }
-  if (includesAny(path, ['live', 'creators', 'virtual-olympics', 'my-home'])) {
-    return trainerBroadcastFlow(path, base);
-  }
-  if (includesAny(path, ['coach-assistant', 'messages', 'plaud'])) return trainerCommunicationFlow(path, base);
-  if (includesAny(path, ['schedule'])) {
-    return applyPatch(base, {
-      title: 'Trainer schedule flow',
-      primaryAction: { label: 'Open Schedule', to: '/dashboard/trainer/schedule' },
-      fastPath: [
-        'Check today and next session.',
-        'Confirm the client context.',
-        'Log or message after the session.',
-      ],
-      primaryPrompt: 'teach me the trainer schedule workflow',
-    });
+  if (includesAny(path, [
+    'schedule',
+    'coach-assistant',
+    'messages',
+    'plaud',
+    'live',
+    'creators',
+    'virtual-olympics',
+    'my-home',
+  ])) {
+    return trainerSupportRoutes(path, base);
   }
   return base;
 };
