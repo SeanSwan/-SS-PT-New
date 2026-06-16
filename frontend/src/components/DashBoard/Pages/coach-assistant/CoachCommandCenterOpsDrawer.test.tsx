@@ -13,11 +13,11 @@ const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const opsStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.opsStyles.ts'), 'utf8');
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Ops$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
-describe('CoachCommandCenterPage Ops drawer', () => {
+describe('CoachCommandCenterPage Actions drawer', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it('keeps the actions drawer above global assistant overlays on mobile', () => {
@@ -30,7 +30,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
-    const opsTrigger = screen.getByRole('button', { name: /^Ops$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(opsTrigger);
@@ -70,13 +70,13 @@ describe('CoachCommandCenterPage Ops drawer', () => {
 
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
-    const targetSafety = within(operationsRail).getByLabelText('Coach Ops target and safety');
-    const recommendedMove = within(operationsRail).getByLabelText('Recommended Coach Ops move');
+    const targetSafety = within(operationsRail).getByLabelText('Coach Actions target and safety');
+    const recommendedMove = within(operationsRail).getByLabelText('Recommended Coach Actions move');
     const logNow = within(priorityActions).getByRole('link', { name: /Log my workout now/i });
 
     expect(within(operationsRail).getByText(/Do this next/i)).toBeInTheDocument();
     expect(within(recommendedMove).getByText(/Log my workout/i)).toBeInTheDocument();
-    expect(within(operationsRail).queryByLabelText('Coach Ops mission checklist')).not.toBeInTheDocument();
+    expect(within(operationsRail).queryByLabelText('Coach Actions mission checklist')).not.toBeInTheDocument();
     expect(targetSafety).toHaveTextContent(/My workout log/);
     expect(targetSafety).toHaveTextContent(/Save happens in Logger/i);
     expect(within(operationsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('CoachCommandCenterPage Ops drawer', () => {
     );
     expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
     fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));
-    expect(screen.getByRole('button', { name: /^Ops$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^Actions$/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 
@@ -115,9 +115,9 @@ describe('CoachCommandCenterPage Ops drawer', () => {
 
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
-    const targetSafety = within(operationsRail).getByLabelText('Coach Ops target and safety');
+    const targetSafety = within(operationsRail).getByLabelText('Coach Actions target and safety');
 
-    expect(within(operationsRail).queryByLabelText('Coach Ops mission checklist')).not.toBeInTheDocument();
+    expect(within(operationsRail).queryByLabelText('Coach Actions mission checklist')).not.toBeInTheDocument();
     expect(targetSafety).toHaveTextContent(/No client locked/);
     expect(targetSafety).toHaveTextContent(/No workout writes until a target is chosen/i);
     expect(within(priorityActions).getByRole('link', { name: /Pick client first/i })).toHaveAttribute(

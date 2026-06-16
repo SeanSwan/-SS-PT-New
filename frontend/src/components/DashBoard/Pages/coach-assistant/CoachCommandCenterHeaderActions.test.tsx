@@ -8,12 +8,12 @@ import {
 describe('CoachCommandCenterPage header quick actions', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('exposes workout, intake, and PLAUD quick actions before opening the Ops drawer', async () => {
+  it('exposes workout, intake, and PLAUD quick actions before opening the Actions drawer', async () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     const headerActions = screen.getByLabelText('Coach header quick actions');
-    expect(screen.getByRole('button', { name: /^Ops$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^Actions$/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     expect(headerActions).toHaveTextContent(/Client #42/i);
@@ -28,7 +28,7 @@ describe('CoachCommandCenterPage header quick actions', () => {
 
     fireEvent.click(within(headerActions).getByRole('button', { name: /Review intake queue/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Ops$/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /^Actions$/i })).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(screen.getByRole('button', { name: /^Chat$/i }));
     fireEvent.click(within(headerActions).getByRole('button', { name: /Import PLAUD audio/i }));

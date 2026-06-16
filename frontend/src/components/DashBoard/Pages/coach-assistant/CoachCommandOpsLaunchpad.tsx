@@ -105,13 +105,13 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         <Dumbbell size={19} aria-hidden="true" />
       </div>
 
-      <div className={`workout-command-next ${hasLoggerRoute ? 'is-ready' : 'needs-target'}`} aria-label="Recommended Coach Ops move">
+      <div className={`workout-command-next ${hasLoggerRoute ? 'is-ready' : 'needs-target'}`} aria-label="Recommended Coach Actions move">
         <span className="workout-command-next-kicker">Do this next</span>
         <strong>{primaryCopy.title}</strong>
         <small>{hasLoggerRoute ? primaryCopy.note : 'Lock the client first so every action routes correctly.'}</small>
       </div>
 
-      <div className={`workout-command-brief ${hasLoggerRoute ? 'is-ready' : 'needs-target'}`} aria-label="Coach Ops target and safety">
+      <div className={`workout-command-brief ${hasLoggerRoute ? 'is-ready' : 'needs-target'}`} aria-label="Coach Actions target and safety">
         <span className="workout-command-brief-item">
           <small>Target</small>
           <strong>{scopeLabel}</strong>

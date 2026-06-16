@@ -49,7 +49,7 @@ export function MobileCommandStrip({ drawer, selectedStatus, onOpenDrawer }: Mob
         aria-expanded={drawer === 'right'}
         onClick={(event) => onOpenDrawer('right', event)}
       >
-        Ops
+        Actions
       </button>
     </div>
   );
