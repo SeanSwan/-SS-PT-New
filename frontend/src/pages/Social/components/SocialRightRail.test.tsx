@@ -122,7 +122,7 @@ describe('SocialRightRail — populated', () => {
     const user = userEvent.setup();
     render(<SocialRightRail />);
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
   it('All-challenges link routes to the challenges tab', async () => {

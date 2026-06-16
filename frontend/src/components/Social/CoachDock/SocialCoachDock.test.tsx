@@ -88,7 +88,7 @@ describe('SocialCoachDock — chip wiring', () => {
   });
 
   it.each([
-    [/log a workout/i, '/dashboard/client/log-workout'],
+    [/log a workout/i, '/dashboard/client/log-workout?loadPlan=today'],
   ])('chip %s navigates a member (role user) to %s', async (label, expected) => {
     const user = userEvent.setup();
     render(<SocialCoachDock />);
@@ -139,7 +139,7 @@ describe('SocialCoachDock — chip wiring', () => {
 
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
   it('share-a-milestone expands the inline share instead of navigating (D2c)', async () => {
@@ -185,7 +185,7 @@ describe('SocialCoachDock — chip wiring', () => {
 
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 });
 

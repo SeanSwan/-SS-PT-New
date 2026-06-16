@@ -204,7 +204,7 @@ describe('InlineMilestoneShare — draft and confirm', () => {
 
     expect(screen.getByText(/no fresh milestone yet/i)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /log a workout/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
   it('shows a loading line while the profile is in flight, empty state if it fails', () => {

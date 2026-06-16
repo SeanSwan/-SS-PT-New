@@ -42,7 +42,7 @@ describe('WorkoutsTab', () => {
     });
   });
 
-  it('routes the log-workout call to the canonical client workout logger', async () => {
+  it("routes the log-workout call to today's canonical client workout logger", async () => {
     const user = userEvent.setup();
     authGet.mockResolvedValue({ data: { data: { workouts: [] } } });
     mockUseAuth.mockReturnValue({ authAxios: { get: authGet }, user: { role: 'client' } });
@@ -50,7 +50,7 @@ describe('WorkoutsTab', () => {
     render(<WorkoutsTab />);
     await user.click(await screen.findByRole('button', { name: /log workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
   it('routes the empty workout state to Coach with a staged workouts prompt', async () => {

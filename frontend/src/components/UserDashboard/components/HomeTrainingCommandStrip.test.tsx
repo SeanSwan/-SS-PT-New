@@ -10,7 +10,7 @@ describe('HomeTrainingCommandStrip', () => {
     render(
       <HomeTrainingCommandStrip
         coachPath="/dashboard/client/coach-assistant"
-        logWorkoutPath="/dashboard/client/log-workout"
+        logWorkoutPath="/dashboard/client/log-workout?loadPlan=today"
         onNavigate={navigate}
         onProgress={onProgress}
       />,
@@ -22,7 +22,7 @@ describe('HomeTrainingCommandStrip', () => {
     expect(screen.getByText(/save today before memory fades/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /primary action: log workout/i }));
-    expect(navigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(navigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
 
     fireEvent.click(screen.getByRole('button', { name: /view progress/i }));
     expect(onProgress).toHaveBeenCalledTimes(1);

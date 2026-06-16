@@ -17,6 +17,7 @@
  */
 
 const DASHBOARD_ROLE_PATHS = new Set(['admin', 'trainer', 'client']);
+const CLIENT_TODAY_LOG_WORKOUT_PATH = '/dashboard/client/log-workout?loadPlan=today';
 
 export function getDashboardRolePath(role?: string | null): 'admin' | 'trainer' | 'client' {
   const normalizedRole = role?.toLowerCase();
@@ -36,9 +37,9 @@ export function getLogWorkoutDashboardPath(role?: string | null): string {
   if (dashboardRole === 'admin') return '/dashboard/admin/client-management?intent=log_workout';
   if (dashboardRole === 'trainer') return '/dashboard/trainer/clients?intent=log_workout';
 
-  return '/dashboard/client/log-workout';
+  return CLIENT_TODAY_LOG_WORKOUT_PATH;
 }
 
 export function getPersonalLogWorkoutDashboardPath(): string {
-  return '/dashboard/client/log-workout';
+  return CLIENT_TODAY_LOG_WORKOUT_PATH;
 }

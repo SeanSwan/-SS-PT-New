@@ -21,18 +21,18 @@ describe('swanCoachDashboardRoute', () => {
   it.each([
     ['admin', '/dashboard/admin/client-management?intent=log_workout'],
     ['trainer', '/dashboard/trainer/clients?intent=log_workout'],
-    ['client', '/dashboard/client/log-workout'],
-    ['user', '/dashboard/client/log-workout'],
-    [undefined, '/dashboard/client/log-workout'],
-    [null, '/dashboard/client/log-workout'],
+    ['client', '/dashboard/client/log-workout?loadPlan=today'],
+    ['user', '/dashboard/client/log-workout?loadPlan=today'],
+    [undefined, '/dashboard/client/log-workout?loadPlan=today'],
+    [null, '/dashboard/client/log-workout?loadPlan=today'],
   ])('routes team workout role %s to the safe logging entry %s', (role, expected) => {
     expect(getLogWorkoutDashboardPath(role as string | null | undefined)).toBe(expected);
   });
 
   it.each(['admin', 'trainer', 'client', 'user', undefined, null])(
-    'routes personal workout logging for role %s to the client logger',
+    "routes personal workout logging for role %s to today's client logger",
     () => {
-      expect(getPersonalLogWorkoutDashboardPath()).toBe('/dashboard/client/log-workout');
+      expect(getPersonalLogWorkoutDashboardPath()).toBe('/dashboard/client/log-workout?loadPlan=today');
     },
   );
 });
