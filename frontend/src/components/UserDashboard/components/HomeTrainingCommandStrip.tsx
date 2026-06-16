@@ -20,21 +20,18 @@ const ACTIONS = [
     key: 'log',
     label: 'Log Workout',
     detail: 'Save today before memory fades',
-    overline: 'Start here',
     Icon: Dumbbell,
   },
   {
     key: 'progress',
     label: 'View Progress',
     detail: 'Check proof',
-    overline: null,
     Icon: BarChart3,
   },
   {
     key: 'coach',
     label: 'Ask Coach',
     detail: 'Get direction',
-    overline: null,
     Icon: MessageCircle,
   },
 ] as const;
@@ -60,22 +57,23 @@ const HomeTrainingCommandStrip: React.FC<HomeTrainingCommandStripProps> = ({
         </Eyebrow>
         <LeadCopy>Log the work, inspect proof, then ask Coach.</LeadCopy>
       </StripLead>
-      <ActionGrid>
-        {ACTIONS.map(({ key, label, detail, overline, Icon }) => (
-          <CommandButton
-            key={key}
-            type="button"
-            $primary={key === 'log'}
-            onClick={() => handleAction(key)}
-            aria-label={key === 'log' ? `Primary action: ${label}` : label}
-          >
-            <IconWrap><Icon size={18} aria-hidden="true" /></IconWrap>
-            <span>
-              {overline && <ActionOverline>{overline}</ActionOverline>}
-              <strong>{label}</strong>
-              <small>{detail}</small>
-            </span>
-          </CommandButton>
+      <ActionGrid aria-label="User training today flow">
+        {ACTIONS.map(({ key, label, detail, Icon }, index) => (
+          <ActionStep key={key}>
+            <CommandButton
+              type="button"
+              $primary={key === 'log'}
+              onClick={() => handleAction(key)}
+              aria-label={`Step ${index + 1}: ${label}`}
+            >
+              <IconWrap><Icon size={18} aria-hidden="true" /></IconWrap>
+              <span>
+                <ActionOverline>Step {index + 1}</ActionOverline>
+                <strong>{label}</strong>
+                <small>{detail}</small>
+              </span>
+            </CommandButton>
+          </ActionStep>
         ))}
       </ActionGrid>
     </StripShell>
@@ -108,14 +106,21 @@ const LeadCopy = styled.p`
   line-height: 1.35;
 `;
 
-const ActionGrid = styled.div`
+const ActionGrid = styled.ol`
   display: grid;
   gap: 10px;
   grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
   }
+`;
+
+const ActionStep = styled.li`
+  min-width: 0;
 `;
 
 const CommandButton = styled.button<{ $primary?: boolean }>`
