@@ -16,9 +16,12 @@ describe('DashboardTeachMeGuide admin route refiner structure', () => {
     const entrySource = readShared('DashboardTeachMeGuide.adminRouteRefiners.ts');
 
     expect(entrySource).toContain("from './DashboardTeachMeGuide.adminCareRefiners'");
+    expect(entrySource).toContain("from './DashboardTeachMeGuide.adminGrowthRefiners'");
     expect(entrySource).toContain("from './DashboardTeachMeGuide.adminTrainingRefiners'");
     expect(lineCount(entrySource)).toBeLessThanOrEqual(300);
     expect(lineCount(readShared('DashboardTeachMeGuide.adminCareRefiners.ts')))
+      .toBeLessThanOrEqual(300);
+    expect(lineCount(readShared('DashboardTeachMeGuide.adminGrowthRefiners.ts')))
       .toBeLessThanOrEqual(300);
     expect(lineCount(readShared('DashboardTeachMeGuide.adminTrainingRefiners.ts')))
       .toBeLessThanOrEqual(300);

@@ -11,6 +11,7 @@ import {
   adminTrustAndAccess,
 } from './DashboardTeachMeGuide.adminCareRefiners';
 import { adminEngagementSystems } from './DashboardTeachMeGuide.adminEngagementRefiners';
+import { adminGrowthOperations } from './DashboardTeachMeGuide.adminGrowthRefiners';
 import { adminOverviewTriage } from './DashboardTeachMeGuide.adminOverviewRefiner';
 import { adminScheduleControl } from './DashboardTeachMeGuide.adminScheduleRefiners';
 import {
@@ -126,32 +127,6 @@ const adminCoachCommandTerminal = (base: DashboardTeachMeGuideCopy) => applyPatc
   primaryPrompt: 'teach me the admin Coach command terminal workflow for client and owner workout actions',
 });
 
-const adminGrowthLoop = (base: DashboardTeachMeGuideCopy) => applyPatch(base, {
-  eyebrow: 'Teach growth operations',
-  title: 'Admin growth loop',
-  summary: 'Use growth routes to turn campaigns, content, and lead capture into booked clients without losing fulfillment truth.',
-  focus: 'Connect the campaign to the next paid step: lead source, follow-up, onboarding, order state, and the client record.',
-  primaryAction: { label: 'Open Marketing', to: '/dashboard/admin/marketing' },
-  fastPath: [
-    'Check the live campaign or content queue.',
-    'Confirm lead follow-up and next offer.',
-    'Move the person into onboarding or order review.',
-  ],
-  steps: [
-    'Start with Marketing when the question is demand, campaign cadence, leads, or follow-up.',
-    'Use Content Studio when the work is creative proof that supports the campaign.',
-    'Check Orders before celebrating revenue so paid-but-reviewing work is not missed.',
-    'Move qualified leads into onboarding or Client Hub instead of leaving them in a marketing-only lane.',
-  ],
-  actions: [
-    { label: 'Marketing', to: '/dashboard/admin/marketing' },
-    { label: 'Content Studio', to: '/dashboard/admin/content' },
-    { label: 'Orders', to: '/dashboard/admin/pending-orders' },
-    { label: 'Client Onboarding', to: '/dashboard/admin/client-onboarding' },
-  ],
-  primaryPrompt: 'teach me the admin growth workflow',
-});
-
 const adminPeoplePrimaryAction = (path: string) => {
   if (includesAny(path, ['trainer-onboarding'])) return { label: 'Add Trainer', to: '/dashboard/admin/trainer-onboarding' };
   if (includesAny(path, ['client-onboarding'])) return { label: 'Onboard Client', to: '/dashboard/admin/client-onboarding' };
@@ -243,7 +218,7 @@ export const refineAdminGuide = (
     return adminScheduleControl(path, base);
   }
   if (includesAny(path, ['marketing', 'content', 'badge-creator', 'automation'])) {
-    return adminGrowthLoop(base);
+    return adminGrowthOperations(path, base);
   }
   if (includesAny(path, ['trainer-permissions'])) {
     return adminTrainerEnablement(base);
