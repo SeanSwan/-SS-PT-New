@@ -69,9 +69,19 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
     return { success: false, message: 'No active sequences for event', created: 0 };
   }
 
+  const leadId = data.leadId != null ? Number(data.leadId) : null;
   const user = userId ? await User.findByPk(userId) : null;
+
+  // Lead-nurture path: when there is no User, resolve the recipient from a captured Lead.
+  let lead = null;
+  if (!user && leadId) {
+    const { default: Lead } = await import('../models/Lead.mjs');
+    lead = await Lead.findByPk(leadId);
+  }
+
+  const recipient = user?.phone || lead?.phone || lead?.email || null;
   const variables = {
-    clientName: data.clientName || user?.firstName || 'Client',
+    clientName: data.clientName || user?.firstName || lead?.firstName || 'Client',
     trainerName: data.trainerName || '',
     time: data.time || '',
     message: data.message || ''
@@ -90,12 +100,13 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
       logs.push({
         sequenceId: sequence.id,
         userId: userId || null,
+        leadId: user ? null : leadId, // user XOR lead — never both on one log
         stepIndex: index,
         channel: step.channel || 'sms',
         status: 'pending',
         scheduledFor,
         templateName: step.templateName || null,
-        recipient: user?.phone || null,
+        recipient,
         payloadJson: {
           variables,
           context: data

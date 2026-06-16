@@ -30,6 +30,12 @@ AutomationLog.init(
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
+    // Nurture target when this log belongs to a captured Lead (no User yet). Soft
+    // reference (no FK) so a lead delete never blocks; userId XOR leadId in practice.
+    leadId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     stepIndex: {
       type: DataTypes.INTEGER,
       allowNull: true
@@ -81,6 +87,7 @@ AutomationLog.init(
     indexes: [
       { fields: ['sequenceId'] },
       { fields: ['userId'] },
+      { fields: ['leadId'] },
       { fields: ['status'] },
       { fields: ['scheduledFor'] }
     ]
@@ -93,6 +100,9 @@ AutomationLog.associate = (models) => {
     as: 'sequence'
   });
   AutomationLog.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+  if (models.Lead) {
+    AutomationLog.belongsTo(models.Lead, { foreignKey: 'leadId', as: 'lead', constraints: false });
+  }
 };
 
 export default AutomationLog;
