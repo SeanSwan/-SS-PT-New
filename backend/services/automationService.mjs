@@ -7,7 +7,7 @@
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
-import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
+import { sendTemplatedSMS, sendSmsMessage, listSmsTemplates } from './smsService.mjs';
 
 const DEFAULT_SEQUENCES = [
   {
@@ -319,6 +319,52 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   return { dryRun: true, total: pendingLogs.length, summary, byReason, items };
 };
 
+const TEST_SEND_PHONE_RE = /^\+?[1-9]\d{6,14}$/;
+const maskTestPhone = (p) => {
+  const s = String(p || '');
+  return s.length <= 4 ? '****' : `***${s.slice(-4)}`;
+};
+const testSendAllowlist = () => [process.env.OWNER_PHONE, process.env.OWNER_WIFE_PHONE]
+  .filter(Boolean)
+  .map((p) => String(p).trim());
+
+/**
+ * Guarded ONE-OFF nurture test send. Sends a single templated SMS to an explicitly
+ * provided number so the message can be verified before arming outbound automation.
+ * Guards: confirm===true + valid single E.164-style phone + known template +
+ * (when OWNER_PHONE/OWNER_WIFE_PHONE are set) an owner allowlist so a test can't hit
+ * a real client. Audited + PII-masked. Does NOT arm the cron; Twilio config still
+ * gates the real send (safely no-ops if Twilio is unconfigured/disabled).
+ * @returns {Promise<{success:boolean, error?:string, to?:string, body?:string|null, templateName?:string, allowed?:string[]}>}
+ */
+export const sendNurtureTestMessage = async ({ to, templateName, variables = {}, confirm = false, triggeredByUserId = null } = {}) => {
+  if (confirm !== true) {
+    return { success: false, error: 'confirm_required', message: 'Set confirm:true to send a real test message.' };
+  }
+  const phone = String(to || '').trim();
+  if (!TEST_SEND_PHONE_RE.test(phone)) {
+    return { success: false, error: 'invalid_phone', message: 'Provide a single valid E.164-style phone number.' };
+  }
+  const allow = testSendAllowlist();
+  if (allow.length && !allow.includes(phone)) {
+    return { success: false, error: 'not_in_test_allowlist', message: 'Test sends are restricted to configured owner number(s).' };
+  }
+  const known = listSmsTemplates().map((t) => t.name);
+  if (!known.includes(templateName)) {
+    return { success: false, error: 'unknown_template', allowed: known };
+  }
+
+  const result = await sendTemplatedSMS({ to: phone, templateName, variables });
+  logger.info(`[NurtureTestSend] admin#${triggeredByUserId ?? '?'} -> ${maskTestPhone(phone)} template=${templateName} success=${Boolean(result?.success)}`);
+  return {
+    success: Boolean(result?.success),
+    templateName,
+    to: maskTestPhone(phone),
+    body: result?.body || null,
+    error: result?.success ? undefined : (result?.error || 'send_failed'),
+  };
+};
+
 export const cancelSequence = async (userId, sequenceName) => {
   const { AutomationSequence, AutomationLog } = getModels();
 
@@ -347,5 +393,6 @@ export default {
   evaluateScheduledMessage,
   processScheduledMessages,
   previewScheduledMessages,
+  sendNurtureTestMessage,
   cancelSequence
 };

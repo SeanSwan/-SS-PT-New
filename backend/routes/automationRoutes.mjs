@@ -14,9 +14,12 @@ import {
   triggerSequence,
   cancelSequence,
   processScheduledMessages,
-  previewScheduledMessages
+  previewScheduledMessages,
+  sendNurtureTestMessage
 } from '../services/automationService.mjs';
 import { previewSmsTemplates } from '../services/smsService.mjs';
+
+const TEST_SEND_VALIDATION_ERRORS = ['confirm_required', 'invalid_phone', 'unknown_template', 'not_in_test_allowlist'];
 
 const router = express.Router();
 
@@ -308,6 +311,38 @@ router.get('/templates/preview', protect, adminOnly, (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to preview SMS templates',
+      error: normalizeError(error)
+    });
+  }
+});
+
+/**
+ * POST /api/automation/test-send
+ * Guarded ONE-OFF nurture test send (admin only). Sends a single templated SMS to
+ * an explicitly-provided number ONLY when confirm===true, the phone is valid, the
+ * template is known, and (when owner numbers are configured) the number is on the
+ * owner allowlist. The manual-approval step before arming SWAN_AUTOMATION_CRON_ENABLED.
+ * Body: { to, templateName, variables?, confirm:true }.
+ */
+router.post('/test-send', protect, adminOnly, async (req, res) => {
+  try {
+    const { to, templateName, variables, confirm } = req.body || {};
+    const result = await sendNurtureTestMessage({
+      to,
+      templateName,
+      variables,
+      confirm,
+      triggeredByUserId: req.user?.id,
+    });
+    const status = result.success
+      ? 200
+      : (TEST_SEND_VALIDATION_ERRORS.includes(result.error) ? 400 : 502);
+    return res.status(status).json({ success: result.success, data: result });
+  } catch (error) {
+    logger.error('Error sending nurture test message:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send test message',
       error: normalizeError(error)
     });
   }
