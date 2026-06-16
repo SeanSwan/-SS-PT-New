@@ -99,6 +99,8 @@ const SwanCoachAssistantPage: React.FC = () => {
     }),
     [userRole, selectedClient?.id, searchParams],
   );
+  const selectedClientName = selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null;
+  const workoutLoggerScopeLabel = selectedClientName || (userRole === 'client' ? 'My training' : 'My workout log');
   const coach = useCoachAssistant({
     chat,
     targetClientId: selectedClient?.id ?? null,
@@ -232,11 +234,7 @@ const SwanCoachAssistantPage: React.FC = () => {
         <CoachIntakeWorkspace
           userRole={userRole}
           activeIntakeId={searchParams.get('intake')}
-          selectedClientName={
-            selectedClient
-              ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim()
-              : null
-          }
+          selectedClientName={selectedClientName}
           onCommandPrompt={handleIntakeCommand}
           queue={coachIntakeQueue}
         />
@@ -264,6 +262,7 @@ const SwanCoachAssistantPage: React.FC = () => {
           suggestionChipsVisible={suggestionChips.visible}
           transcriptProcessing={transcriptProcessing}
           workoutLoggerRoute={workoutLoggerRoute}
+          workoutLoggerScopeLabel={workoutLoggerScopeLabel}
         />
 
         <SwanCoachComposerPanel

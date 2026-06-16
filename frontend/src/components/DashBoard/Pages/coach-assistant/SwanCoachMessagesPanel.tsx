@@ -55,6 +55,7 @@ interface SwanCoachMessagesPanelProps {
   suggestionChipsVisible: boolean;
   transcriptProcessing: TranscriptProcessingState;
   workoutLoggerRoute?: string | null;
+  workoutLoggerScopeLabel?: string | null;
 }
 
 const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
@@ -80,6 +81,7 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
   suggestionChipsVisible,
   transcriptProcessing,
   workoutLoggerRoute,
+  workoutLoggerScopeLabel,
 }) => (
   <MessagesArea role="log" aria-live="polite" aria-label="Conversation">
     <SuggestedPrompts
@@ -104,6 +106,7 @@ const SwanCoachMessagesPanel: React.FC<SwanCoachMessagesPanelProps> = ({
         audioIntakeReviewNextPending={audioReviewNextPending}
         onTranscriptDateChange={onTranscriptDateChange}
         workoutLoggerRoute={workoutLoggerRoute}
+        workoutLoggerScopeLabel={workoutLoggerScopeLabel}
       />
     ))}
 

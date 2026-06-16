@@ -67,6 +67,7 @@ interface CoachMessageProps {
   audioIntakeReviewNextPending?: boolean;
   onTranscriptDateChange?: (messageId: string, nextDate: string) => void;
   workoutLoggerRoute?: string | null;
+  workoutLoggerScopeLabel?: string | null;
 }
 
 const CoachMessageComponent: React.FC<CoachMessageProps> = ({
@@ -81,6 +82,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
   audioIntakeReviewNextPending,
   onTranscriptDateChange,
   workoutLoggerRoute,
+  workoutLoggerScopeLabel,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const [localApplying, setLocalApplying] = useState(false);
@@ -160,6 +162,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       <CoachMessageLoggerHandoff
         text={actionText}
         workoutLoggerRoute={workoutLoggerRoute}
+        workoutLoggerScopeLabel={workoutLoggerScopeLabel}
       />
 
       {coachActionProposals?.map((proposal) => (

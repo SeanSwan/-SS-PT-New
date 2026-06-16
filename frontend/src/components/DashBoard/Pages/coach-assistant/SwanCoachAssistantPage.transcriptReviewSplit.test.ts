@@ -15,6 +15,10 @@ const SEND_ROUTING_SOURCE = readFileSync(
   resolve(__dirname, './hooks/useSwanCoachSendRouting.ts'),
   'utf8',
 );
+const MESSAGES_PANEL_SOURCE = readFileSync(
+  resolve(__dirname, './SwanCoachMessagesPanel.tsx'),
+  'utf8',
+);
 
 describe('SwanCoachAssistantPage transcript review ownership split', () => {
   it('page imports the transcript review hook instead of useTranscriptIntake directly', () => {
@@ -50,5 +54,13 @@ describe('SwanCoachAssistantPage transcript review ownership split', () => {
   it('hook stays under the project file-size ceiling', () => {
     const lines = TRANSCRIPT_REVIEW_SOURCE.split(/\r?\n/).length;
     expect(lines).toBeLessThanOrEqual(300);
+  });
+
+  it('passes the selected logger scope label into chat workout handoffs', () => {
+    expect(PAGE_SOURCE).toMatch(/const\s+selectedClientName\s*=/);
+    expect(PAGE_SOURCE).toMatch(/const\s+workoutLoggerScopeLabel\s*=/);
+    expect(PAGE_SOURCE).toMatch(/workoutLoggerScopeLabel=\{workoutLoggerScopeLabel\}/);
+    expect(MESSAGES_PANEL_SOURCE).toMatch(/workoutLoggerScopeLabel\?:\s*string\s*\|\s*null/);
+    expect(MESSAGES_PANEL_SOURCE).toMatch(/workoutLoggerScopeLabel=\{workoutLoggerScopeLabel\}/);
   });
 });

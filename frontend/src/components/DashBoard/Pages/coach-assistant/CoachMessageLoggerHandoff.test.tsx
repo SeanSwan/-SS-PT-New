@@ -66,6 +66,26 @@ describe('CoachMessage logger handoff', () => {
     });
   });
 
+  it('labels generated workout handoffs with the active client or self logger target', () => {
+    render(
+      <MemoryRouter>
+        <CoachMessage
+          message={assistantMessage([
+            'Workout for today:',
+            '- Goblet squat: 3 sets x 10 reps',
+          ].join('\n'))}
+          workoutLoggerRoute="/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today"
+          workoutLoggerScopeLabel="Sean Swan"
+        />
+      </MemoryRouter>,
+    );
+
+    const target = within(screen.getByLabelText('Workout handoff target'));
+    expect(target.getByText('Target')).toBeInTheDocument();
+    expect(target.getByText('Sean Swan')).toBeInTheDocument();
+    expect(screen.queryByText('Active logger')).not.toBeInTheDocument();
+  });
+
   it('queues multiple generated chat workouts instead of erasing the first one', async () => {
     const user = userEvent.setup();
     sessionStorage.clear();
