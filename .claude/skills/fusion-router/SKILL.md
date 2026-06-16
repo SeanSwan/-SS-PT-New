@@ -40,7 +40,10 @@ Use `AskUserQuestion` when you genuinely need Sean to choose (especially Tier 2-
 Hand off to `ai-village-fusion` with the chosen tier:
 - Tier 0 → proceed with normal Claude+Codex work (Rule 67 pair-coding).
 - Tier 1/2 → the free polling board (`scripts/fusion-triangle.mjs` for the triangle; duo = same launcher with `--agents claude,codex`). Gemini auto-uses the best available Pro (Pro-first model chain, falls back to flash only when Pro is throttled).
-- Tier 3 → `node scripts/validation-orchestrator.mjs …` (spend-gated).
+- Tier 3 → `node scripts/validation-orchestrator.mjs …` (spend-gated), **then chain into Tier 2 — see below.**
+
+### Tier 3 ALWAYS chains into Tier 2 (Sean's rule, 2026-06-16)
+The paid Village is a **deep-analysis stage, never the final word.** Whenever a Tier 3 run happens, its `synthesis.md` is fed to a **Tier 2 triangle** (Claude+Codex+Gemini) as the input, and **the triangle's synthesis is the FINAL verdict** (closed by the Final Decider chain Fable→Opus→Codex). A high-stakes task therefore runs: **Village (deep) → triangle (ratify) → final.** This catches the Village's blind spots / over-reach with the trusted everyday panel and keeps the Decider as the closer. (Tiers 0–2 do NOT chain — only Tier 3 → Tier 2.) The triangle ratify-pass is free (subscriptions), so the chain adds rigor at ~$0 on top of the paid run.
 
 ## How "auto kick-in" is wired
 - **WIRED on every prompt (Sean approved 2026-06-16):** the `prompt-watcher` UserPromptSubmit hook (`scripts/hooks/prompt-watcher.mjs`) now emits a one-line fusion-tier nudge alongside its SIMPLE/VISION classifier, so the tier decision fires automatically on every prompt — no one has to remember to invoke this skill. The model decides whether a review is warranted: trivial → just do it; substantial → triangle (default); high-stakes → propose the paid Village and ask first.

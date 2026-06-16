@@ -37,6 +37,16 @@ Spend controls (Sean's directive — protect credits):
 - **Judge model:** `SWAN_FUSION_JUDGE_MODEL` (verified Opus 4.8 slug, or Fable 5 when it returns). `SWAN_FUSION_SYNTHESIS=off` disables the judge.
 - **Output:** `synthesis.md` + `cost-summary.md` (per-model credits used) in the AI Village output dir.
 
+### Tier 3 → Tier 2 ratify gate (MANDATORY — Sean's rule, 2026-06-16)
+The Village synthesis is a **deep draft, not the final verdict.** After any paid run, feed its `synthesis.md` into a **Tier 2 triangle** (Claude+Codex+Gemini) and run the free board — **the triangle's synthesis is the FINAL verdict**, closed by the Final Decider (Fable→Opus→Codex). Recipe:
+```bash
+node scripts/validation-orchestrator.mjs …            # paid Village → writes synthesis.md
+node scripts/fusion-triangle.mjs \
+  --task "Ratify/finalize this Village verdict: accept, correct, or flag over-reach + blind spots; produce the final recommendation." \
+  --context "<paste/point at the Village synthesis.md>"  # free triangle → FINAL synthesis.md
+```
+The triangle catches the Village's blind spots/over-reach with the trusted everyday panel; the ratify pass is **$0** (subscriptions). **Never close a high-stakes call on the Village alone** — it always ends with a triangle verdict. (Tiers 0–2 never chain; only Tier 3 → Tier 2.)
+
 ## Tiers 1 & 2 — FREE subscription fusion (duo / triangle) — the everyday workhorse
 
 Zero-credit fusion on the flat-rate subscriptions via a **shared-folder polling blackboard** (`scripts/lib/fusion-board.mjs`, built on `fusion-handoff.mjs`). **Duo** = Claude + Codex; **Triangle** (the default workhorse) = Claude + Codex + Gemini. Every agent points at the same run folder, writes its own file, and polls ~every 20s to see the others and time each other out.
