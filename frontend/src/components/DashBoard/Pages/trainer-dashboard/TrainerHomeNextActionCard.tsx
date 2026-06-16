@@ -6,13 +6,14 @@
  */
 
 import React from 'react';
-import { Brain, CalendarDays, ClipboardList, Dumbbell } from 'lucide-react';
+import { BarChart3, Brain, CalendarDays, ClipboardList, Dumbbell } from 'lucide-react';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
   buildTrainerSessionPlannerRoute,
   getClientName,
+  getSessionClientId,
   getSessionStartDate,
 } from '../../../../hooks/useTrainerTodaySessions';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
@@ -21,6 +22,10 @@ import {
   NextActionButtons,
   NextActionCard,
   NextActionCopy,
+  NextActionFlow,
+  NextActionFlowDetail,
+  NextActionFlowItem,
+  NextActionFlowLabel,
   NextActionKicker,
   NextActionMeta,
   NextActionTitle,
@@ -42,6 +47,36 @@ const formatSessionTime = (session: TrainerSession): string => {
 const TRAINER_CLIENTS_PATH = '/dashboard/trainer/clients';
 const TRAINER_LOG_WORKOUT_PATH = `${TRAINER_CLIENTS_PATH}?intent=log_workout`;
 const TRAINER_SCHEDULE_PATH = '/dashboard/trainer/schedule';
+const TRAINER_PROGRESS_PATH = '/dashboard/trainer/client-progress';
+const TRAINER_OVERVIEW_PATH = '/dashboard/trainer/overview';
+
+const buildTrainerSessionProgressRoute = (session: TrainerSession): string | null => {
+  const clientId = getSessionClientId(session);
+  if (!clientId) return null;
+
+  return `${TRAINER_PROGRESS_PATH}?${new URLSearchParams({
+    clientId,
+    source: 'trainer-overview',
+    returnTo: TRAINER_OVERVIEW_PATH,
+  }).toString()}`;
+};
+
+const TrainerTodayFlow = () => (
+  <NextActionFlow aria-label="Trainer today flow">
+    <NextActionFlowItem>
+      <NextActionFlowLabel>Coach</NextActionFlowLabel>
+      <NextActionFlowDetail>Prime session</NextActionFlowDetail>
+    </NextActionFlowItem>
+    <NextActionFlowItem>
+      <NextActionFlowLabel>Log</NextActionFlowLabel>
+      <NextActionFlowDetail>Save proof</NextActionFlowDetail>
+    </NextActionFlowItem>
+    <NextActionFlowItem>
+      <NextActionFlowLabel>Progress</NextActionFlowLabel>
+      <NextActionFlowDetail>Review next</NextActionFlowDetail>
+    </NextActionFlowItem>
+  </NextActionFlow>
+);
 
 const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
   session,
@@ -58,6 +93,8 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
             Pick a client to log now, ask Coach for triage, or plan the next opening.
           </NextActionMeta>
         </NextActionCopy>
+
+        <TrainerTodayFlow />
 
         <NextActionButtons>
           <NextActionButton
@@ -94,8 +131,9 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
   const coachRoute = buildTrainerSessionCoachRoute(session);
   const logRoute = buildTrainerSessionLogRoute(session);
   const plannerRoute = buildTrainerSessionPlannerRoute(session);
+  const progressRoute = buildTrainerSessionProgressRoute(session);
 
-  if (!coachRoute && !logRoute && !plannerRoute) return null;
+  if (!coachRoute && !logRoute && !plannerRoute && !progressRoute) return null;
 
   return (
     <NextActionCard aria-label="Next trainer action" role="region">
@@ -103,9 +141,11 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
         <NextActionKicker>Next client</NextActionKicker>
         <NextActionTitle>{clientName}</NextActionTitle>
         <NextActionMeta>
-          {formatSessionTime(session)} - coach it, plan it, or log it from here.
+          {formatSessionTime(session)} - coach, plan, log, then check progress from here.
         </NextActionMeta>
       </NextActionCopy>
+
+      <TrainerTodayFlow />
 
       <NextActionButtons>
         {coachRoute && (
@@ -137,6 +177,16 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
           >
             <Dumbbell size={16} aria-hidden="true" />
             Log
+          </NextActionButton>
+        )}
+        {progressRoute && (
+          <NextActionButton
+            type="button"
+            onClick={() => onNavigate(progressRoute)}
+            aria-label={`Review progress for ${clientName}`}
+          >
+            <BarChart3 size={16} aria-hidden="true" />
+            Progress
           </NextActionButton>
         )}
         <NextActionButton

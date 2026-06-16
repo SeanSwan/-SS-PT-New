@@ -9,7 +9,7 @@ import styled from 'styled-components';
 
 export const NextActionCard = styled.section`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.72fr) auto;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
@@ -27,7 +27,7 @@ export const NextActionCard = styled.section`
     0 18px 42px color-mix(in srgb, var(--bg-base, #030712) 28%, transparent),
     0 0 34px color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
 
-  @media (max-width: 640px) {
+  @media (max-width: 900px) {
     grid-template-columns: 1fr;
     align-items: stretch;
   }
@@ -63,6 +63,48 @@ export const NextActionMeta = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 0.82rem;
   line-height: 1.45;
+`;
+
+export const NextActionFlow = styled.ol`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const NextActionFlowItem = styled.li`
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #030712) 24%, transparent);
+`;
+
+export const NextActionFlowLabel = styled.span`
+  display: block;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+`;
+
+export const NextActionFlowDetail = styled.span`
+  display: block;
+  margin-top: 0.22rem;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 `;
 
 export const NextActionButtons = styled.div`
