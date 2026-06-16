@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  ArrowRight,
   AlertTriangle,
   Brain,
   Clock3,
@@ -31,6 +32,7 @@ import { PlaudCoachHandoffPane, PlaudIntakeLanes } from './PlaudIntelligenceWork
 import {
   formatPlaudQueueStatus,
   formatPlaudSourceLabel,
+  getPlaudIntakeNextMove,
   intakePreviewClientLabel,
   intakePreviewHref,
   intakePreviewLabel,
@@ -57,6 +59,9 @@ import {
   IntakePreviewList,
   IntakeRecoveryAlert,
   IntakeRecoveryLink,
+  IntakeNextMove,
+  IntakeNextMoveCopy,
+  IntakeNextMoveLink,
   IntakeSnapshot,
   IntakeSnapshotHeader,
   IntakeStat,
@@ -76,6 +81,7 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
   const invalidReviewLinkRef = useRef<HTMLDivElement | null>(null);
   const coachPath = `/dashboard/${role}/coach-assistant`;
   const { items: intakeItems, summary, isLoading, error, refresh } = usePlaudIntakeQueue({ limit: 20 });
+  const nextMove = getPlaudIntakeNextMove(summary, role);
   const params = new URLSearchParams(location.search);
   const rawMergeRequestId = params.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
@@ -165,6 +171,17 @@ export function PlaudIntelligenceWorkspacePage(): JSX.Element {
             Refresh
           </ActionButton>
         </IntakeSnapshotHeader>
+        <IntakeNextMove aria-label="PLAUD next best move">
+          <IntakeNextMoveCopy>
+            <span>Next best move</span>
+            <strong>{nextMove.label}</strong>
+            <p>{nextMove.body}</p>
+          </IntakeNextMoveCopy>
+          <IntakeNextMoveLink to={nextMove.href}>
+            {nextMove.label}
+            <ArrowRight size={17} aria-hidden="true" />
+          </IntakeNextMoveLink>
+        </IntakeNextMove>
         <IntakeStats>
           <IntakeStat>
             <dt>Actionable</dt>

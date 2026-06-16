@@ -92,4 +92,45 @@ describe('PlaudIntelligenceWorkspacePage render safety', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Unable to load PLAUD intake queue.');
     expect(container.innerHTML).not.toContain('private@example.com');
   });
+
+  it('promotes one next-best intake action before the dense queue details', () => {
+    usePlaudIntakeQueueMock.mockReturnValue({
+      items: [
+        {
+          id: 'item-ready',
+          entityId: 'merge-ready',
+          kind: 'merge_request',
+          source: 'manual_upload',
+          sourceLabel: 'Manual upload',
+          queueStatus: 'ready_review',
+          title: 'Ready review',
+          clientId: 42,
+          clientName: 'Hidden Name',
+          needsClient: false,
+          clipCount: 2,
+          parsedExerciseCount: 6,
+          canReview: true,
+          errorCode: null,
+          status: 'completed',
+          createdAt: '2026-05-06T16:30:00.000Z',
+          completedAt: null,
+          expiresAt: null,
+        },
+      ],
+      summary: { ...baseSummary, readyReview: 2, needsClient: 0 },
+      isLoading: false,
+      error: null,
+      refresh,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/trainer/plaud']}>
+        <PlaudIntelligenceWorkspacePage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('region', { name: /plaud next best move/i })).toHaveTextContent('Review next intake');
+    expect(screen.getByRole('link', { name: /review next intake/i }))
+      .toHaveAttribute('href', '/dashboard/trainer/plaud?review=next');
+  });
 });

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage.tsx'), 'utf8');
 const LOGIC_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage.logic.ts'), 'utf8');
 const PANELS_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePanels.tsx'), 'utf8');
+const SNAPSHOT_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudIntakeSnapshot.styles.ts'), 'utf8');
 const LAYOUT_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
 const DASHBOARD_TABS_SRC = readFileSync(resolve(__dirname, '../../config/dashboard-tabs.ts'), 'utf8');
 const PENDING_REVIEWS_SRC = readFileSync(
@@ -145,6 +146,19 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(LOGIC_SRC).toMatch(/function pickReviewNextMergeRequestId/);
     expect(LOGIC_SRC).toMatch(/sort\(\(a, b\) => reviewableMergeTime\(a\) - reviewableMergeTime\(b\)\)/);
     expect(PAGE_SRC).toMatch(/visibleIntakePreviewItems\(intakeItems, selectedMergeRequestId\)\.map/);
+  });
+
+  it('promotes a single next-best intake move above the queue details', () => {
+    expect(LOGIC_SRC).toMatch(/function getPlaudIntakeNextMove/);
+    expect(PAGE_SRC).toMatch(/aria-label="PLAUD next best move"/);
+    expect(PAGE_SRC).toMatch(/nextMove\.href/);
+    expect(LOGIC_SRC).toMatch(/Review next intake/);
+  });
+
+  it('stacks queue preview rows on phone widths to prevent badge overlap', () => {
+    expect(SNAPSHOT_STYLES_SRC).toMatch(/@media \(max-width: 640px\)[\s\S]{0,180}grid-template-columns: minmax\(0, 1fr\)/);
+    expect(SNAPSHOT_STYLES_SRC).toMatch(/overflow-wrap: anywhere/);
+    expect(SNAPSHOT_STYLES_SRC).toMatch(/white-space: normal/);
   });
 
   it('honors Swan Coach audio-piece links by focusing the merge panel from ?pieces=pending', () => {

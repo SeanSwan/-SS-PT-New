@@ -37,6 +37,82 @@ export const IntakeStats = styled.dl`
   }
 `;
 
+export const IntakeNextMove = styled.section`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem;
+  border: 1px solid var(--border-cyan-soft, rgba(96, 192, 240, 0.28));
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 9%, transparent),
+      color-mix(in srgb, var(--glow-accent, #8B5CF6) 8%, transparent)
+    ),
+    var(--surface-base, rgba(20, 20, 25, 0.72));
+
+  @media (min-width: 760px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+`;
+
+export const IntakeNextMoveCopy = styled.div`
+  min-width: 0;
+
+  span {
+    display: block;
+    color: var(--accent-primary, #60C0F0);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    margin-top: 0.18rem;
+    color: var(--text-primary, #E0ECF4);
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary, rgba(224, 236, 244, 0.76));
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+`;
+
+export const IntakeNextMoveLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border-cyan-strong, rgba(96, 192, 240, 0.55));
+  border-radius: 8px;
+  background: var(--bg-primary, #002060);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 3px;
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    white-space: normal;
+  }
+`;
+
 export const IntakeStat = styled.div`
   min-height: 64px;
   padding: 0.7rem;
@@ -152,6 +228,11 @@ export const IntakePreviewItem = styled.li<{ $selected?: boolean }>`
     : 'none')};
   color: var(--text-secondary, rgba(224, 236, 244, 0.76));
   font-size: 0.84rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
 `;
 
 export const BadgeCluster = styled.span`
@@ -173,6 +254,7 @@ export const IntakePreviewLink = styled(Link)`
   color: inherit;
   font-weight: 800;
   text-decoration: none;
+  overflow-wrap: anywhere;
 
   &:focus-visible {
     outline: 2px solid var(--glow-accent, #8B5CF6);
@@ -196,4 +278,9 @@ export const SourceBadge = styled.span<{ $tone?: 'cyan' | 'gold' }>`
   font-size: 0.72rem;
   font-weight: 800;
   white-space: nowrap;
+
+  @media (max-width: 640px) {
+    max-width: 100%;
+    white-space: normal;
+  }
 `;

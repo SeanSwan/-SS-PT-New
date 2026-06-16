@@ -27,7 +27,6 @@ const KEEP_100_LABELS = new Set([
   'keeping it one hundred',
 ]);
 const INLINE_STYLE_MARKER_PATTERN = /(?:^|\s)(the scientific explanation|scientific explanation|the science|science|keeping it one hundred|keep it one hundred|keeping it 100 percent|keep it 100 percent|keeping it 100|keep it 100)(?::|-)\s*/gi;
-
 function normalizeCopy(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }

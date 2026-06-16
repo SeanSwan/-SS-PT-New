@@ -43,7 +43,6 @@ import {
 } from './CoachCommandCenter.roleConfig';
 
 const RECENT_CLIENT_LIMIT = 12;
-
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);

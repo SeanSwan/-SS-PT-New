@@ -5,9 +5,14 @@
  * Pure helpers for the top-level PLAUD workspace. These keep API-provided
  * queue metadata from becoming arbitrary operator-visible text.
  */
-import type { PlaudIntakeItem } from '../../services/plaudIntakeService';
+import type { PlaudIntakeItem, PlaudIntakeSummary } from '../../services/plaudIntakeService';
 
 export type PlaudDashboardRole = 'admin' | 'trainer';
+export interface PlaudIntakeNextMove {
+  label: string;
+  body: string;
+  href: string;
+}
 
 const QUEUE_STATUS_LABELS: Record<PlaudIntakeItem['queueStatus'], string> = {
   archived: 'Archived',
@@ -90,6 +95,49 @@ export function plaudWorkspaceHref(role: PlaudDashboardRole, params: Record<stri
     ? '/dashboard/admin/coach-assistant?workspace=plaud'
     : '/dashboard/trainer/plaud';
   return withParams(baseHref, params);
+}
+
+export function getPlaudIntakeNextMove(
+  summary: PlaudIntakeSummary,
+  role: PlaudDashboardRole,
+): PlaudIntakeNextMove {
+  if (summary.readyReview > 0) {
+    return {
+      label: 'Review next intake',
+      body: 'Open the oldest ready review, confirm client and date, then approve only the clean workout draft.',
+      href: plaudWorkspaceHref(role, { review: 'next' }),
+    };
+  }
+
+  if (summary.needsClient > 0) {
+    return {
+      label: 'Match a client',
+      body: 'Clear the identity blocker first so the intake can become a reviewable workout log.',
+      href: plaudWorkspaceHref(role, { review: 'next' }),
+    };
+  }
+
+  if (summary.unprocessed > 0) {
+    return {
+      label: 'Start triage',
+      body: 'Open the pending audio pieces, group the workout, and keep final logging behind approval.',
+      href: plaudWorkspaceHref(role, { pieces: 'pending' }),
+    };
+  }
+
+  if (summary.processing > 0) {
+    return {
+      label: 'Check processing',
+      body: 'Refresh the queue and inspect any audio still waiting on transcript or merge readiness.',
+      href: plaudWorkspaceHref(role),
+    };
+  }
+
+  return {
+    label: 'Open Coach intake',
+    body: 'No intake is blocking review. Use Coach for the next client note, draft, or upload handoff.',
+    href: `/dashboard/${role}/coach-assistant?workspace=plaud`,
+  };
 }
 
 function mergePreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
