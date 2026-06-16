@@ -45,14 +45,14 @@ describe('DashboardTeachMeGuide mounted dashboard coverage', () => {
       to: '/dashboard/client/log-workout?loadPlan=today',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Current Workout/i),
-      expect.stringMatching(/Coach This or Plan Vault/i),
-      expect.stringMatching(/Book or share only after logging/i),
+      expect.stringMatching(/Step 1.*Log/i),
+      expect.stringMatching(/Step 2.*Progress/i),
+      expect.stringMatching(/Step 3.*Coach/i),
     ]);
     expect(guide.steps).toEqual(expect.arrayContaining([
-      expect.stringMatching(/Current Workout card/i),
-      expect.stringMatching(/Coach This/i),
-      expect.stringMatching(/Training Plan Vault/i),
+      expect.stringMatching(/Step 1.*Current Workout card/i),
+      expect.stringMatching(/Step 2.*Progress/i),
+      expect.stringMatching(/Step 3.*Coach This/i),
       expect.stringMatching(/Do not treat overview/i),
     ]));
     expect(guide.actions).toEqual(expect.arrayContaining([

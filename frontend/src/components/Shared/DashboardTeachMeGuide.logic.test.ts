@@ -5,34 +5,34 @@ import {
 } from './DashboardTeachMeGuide.logic';
 
 describe('getDashboardTeachMeGuide', () => {
-  it('teaches the admin overview as first-screen triage without implying hidden writes', () => {
+  it('teaches the admin overview as first-screen first moves without implying hidden writes', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'admin',
       pathname: '/dashboard/admin/overview',
     });
 
-    expect(guide.title).toBe('Admin overview triage');
+    expect(guide.title).toBe('Admin overview first moves');
     expect(guide.steps).toEqual(expect.arrayContaining([
-      expect.stringMatching(/scan the overview widgets/i),
-      expect.stringMatching(/client, session, order, revenue, trainer, or trust/i),
+      expect.stringMatching(/Step 1.*Coach Command/i),
+      expect.stringMatching(/Step 2.*Log Client/i),
+      expect.stringMatching(/Step 3.*My Workout/i),
       expect.stringMatching(/Do not write from overview/i),
     ]));
-    expect(guide.primaryPrompt).toMatch(/admin overview triage workflow/i);
+    expect(guide.primaryPrompt).toMatch(/admin overview first moves workflow/i);
     expect(guide.primaryAction).toEqual({
-      label: 'Open Coach Command',
+      label: 'Coach Command',
       to: '/dashboard/admin/coach-assistant',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/Scan alerts and proof/i),
-      expect.stringMatching(/Pick the owner route/i),
-      expect.stringMatching(/Finish inside the source screen/i),
+      expect.stringMatching(/Step 1.*Coach Command/i),
+      expect.stringMatching(/Step 2.*Log Client/i),
+      expect.stringMatching(/Step 3.*My Workout/i),
     ]);
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Open Coach Command', to: '/dashboard/admin/coach-assistant' }),
-      expect.objectContaining({ label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' }),
-      expect.objectContaining({ label: 'Orders', to: '/dashboard/admin/pending-orders' }),
-      expect.objectContaining({ label: 'Sessions', to: '/dashboard/admin/admin-sessions' }),
-      expect.objectContaining({ label: 'Revenue', to: '/dashboard/admin/revenue' }),
+      expect.objectContaining({ label: 'Coach Command', to: '/dashboard/admin/coach-assistant' }),
+      expect.objectContaining({ label: 'Log Client', to: '/dashboard/admin/client-management?intent=log_workout' }),
+      expect.objectContaining({ label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' }),
+      expect.objectContaining({ label: 'Onboard Client', to: '/dashboard/admin/client-onboarding' }),
     ]));
   });
 
@@ -124,14 +124,14 @@ describe('getDashboardTeachMeGuide', () => {
       to: '/dashboard/client/log-workout?loadPlan=today',
     });
     expect(guide.fastPath).toEqual([
-      expect.stringMatching(/training command strip/i),
-      expect.stringMatching(/proof, streak, or Coach/i),
+      expect.stringMatching(/Step 1.*Log Workout/i),
+      expect.stringMatching(/Step 2.*View Progress/i),
       expect.stringMatching(/share after the work is logged/i),
     ]);
     expect(guide.steps).toEqual(expect.arrayContaining([
-      expect.stringMatching(/HomeTrainingCommandStrip/i),
-      expect.stringMatching(/Daily Health Loop/i),
-      expect.stringMatching(/Swan Coach dock/i),
+      expect.stringMatching(/Step 1.*HomeTrainingCommandStrip.*Log Workout/i),
+      expect.stringMatching(/Step 2.*Progress/i),
+      expect.stringMatching(/Step 3.*Ask Coach/i),
       expect.stringMatching(/share proof/i),
     ]));
     expect(guide.primaryPrompt).toMatch(/user home daily command workflow/i);

@@ -49,17 +49,17 @@ export function refineClientOverviewGuide(
     return applyPatch(base, {
       title: 'Client daily command',
       summary: 'Use client Home as the daily command center: current workout, Coach This, Plan Vault, progress, booking, and social proof stay together.',
-      focus: 'Start with the Current Workout card. Log the assigned work first, ask Coach only for a next-action check, then review progress or book before sharing.',
+      focus: 'Start with the Current Workout card: log or open today, review progress proof, then ask Coach for the smallest next action.',
       primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
       fastPath: [
-        'Start with Current Workout.',
-        'Use Coach This or Plan Vault.',
-        'Book or share only after logging.',
+        'Step 1: Log or open today.',
+        'Step 2: Review Progress.',
+        'Step 3: Coach This, then book or share.',
       ],
       steps: [
-        'Use the Current Workout card to log the assigned workout or review the plan that owns today.',
-        'Tap Coach This when you need an explanation or next-action check, but save the actual workout in Logger.',
-        'Use Training Plan Vault to inspect the plan horizon before assuming today is a free-build workout.',
+        'Step 1: use the Current Workout card to log the assigned workout or review the plan that owns today.',
+        'Step 2: open Progress after logging to see what changed and whether the proof is current.',
+        'Step 3: tap Coach This when you need an explanation or next-action check, but save the actual workout in Logger.',
         'Do not treat overview as the saved record. Finish logging, progress review, booking, or sharing in the owning screen.',
       ],
       actions: [
