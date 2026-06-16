@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 const pageSource = readFileSync(resolve(__dirname, './CheckoutView.tsx'), 'utf8');
 const sectionSource = readFileSync(resolve(__dirname, './CheckoutView.sections.tsx'), 'utf8');
+const navigationSource = readFileSync(resolve(__dirname, './CheckoutView.navigationStyles.ts'), 'utf8');
 const runtimeSources = `${pageSource}\n${sectionSource}`;
 
 describe('CheckoutView theme contract', () => {
@@ -20,5 +21,11 @@ describe('CheckoutView theme contract', () => {
     expect(runtimeSources).not.toMatch(/#[0-9a-fA-F]{3,8}|rgba\(/);
     expect(runtimeSources).not.toMatch(/variant=\"(?:cosmic|emerald)\"/);
     expect(runtimeSources).not.toContain('style={{');
+  });
+
+  it('keeps the checkout back control safely above the 44px touch target floor', () => {
+    expect(sectionSource).toContain("from './CheckoutView.styles'");
+    expect(navigationSource).toContain('min-height: 48px');
+    expect(navigationSource).toContain('min-width: 48px');
   });
 });

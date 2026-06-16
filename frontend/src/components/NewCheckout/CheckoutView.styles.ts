@@ -83,23 +83,6 @@ export const CheckoutHeader = styled.div`
   }
 `;
 
-export const BackButton = styled.button`
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  color: var(--accent-primary, #60C0F0);
-  cursor: pointer;
-  font: inherit;
-`;
-
 export const CheckoutTitle = styled.h1`
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 700;
@@ -300,3 +283,5 @@ export const ActionButtonContainer = styled.div`
   gap: 1rem;
   margin-top: 2rem;
 `;
+
+export { BackButton } from './CheckoutView.navigationStyles';
