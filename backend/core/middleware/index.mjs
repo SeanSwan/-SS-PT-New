@@ -29,6 +29,7 @@ export const setupMiddleware = async (app) => {
   //
   // Path-filter exclusion (Codex HIGH-5 Option B for Phase 5 Slice 5.5):
   //   - /api/webhook, /webhooks        — Stripe purchase webhook routes
+  //   - /api/cart/webhook              — legacy mounted cart Stripe webhook
   //   - /api/session-packages/webhook  — direct session-package Stripe webhook
   //   - /api/subscriptions/webhook     — Stripe subscription webhook route
   //   - /api/plaud/webhook             — PLAUD Auto-Ingestion (Phase 5)
@@ -37,6 +38,7 @@ export const setupMiddleware = async (app) => {
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/webhook')
         || req.path.startsWith('/webhooks')
+        || req.path.startsWith('/api/cart/webhook')
         || req.path.startsWith('/api/session-packages/webhook')
         || req.path.startsWith('/api/subscriptions/webhook')
         || req.path.startsWith('/api/plaud/webhook')) {

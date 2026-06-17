@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const readSource = (path) => readFileSync(resolve(process.cwd(), path), 'utf8');
 const cartRouteSource = readSource('routes/cartRoutes.mjs');
+const middlewareSource = readSource('core/middleware/index.mjs');
 
 const sliceBetween = (source, start, end) => {
   const startIndex = source.indexOf(start);
@@ -98,5 +99,11 @@ describe('cart routes security hardening', () => {
     expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook')");
     expect(webhookRoute).not.toContain('parseInt(cartId)');
     expect(webhookRoute).not.toContain('parseInt(userId)');
+  });
+
+  it('skips global express.json for /api/cart/webhook so Stripe raw signature verification can work', () => {
+    expect(middlewareSource).toMatch(
+      /req\.path\.startsWith\(['"]\/api\/cart\/webhook['"]\)/,
+    );
   });
 });
