@@ -470,7 +470,7 @@ const setupAssociations = async () => {
         return {
         User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
-        PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
+        PointTransaction, StorefrontItem, ProductVariant, ShoppingCart, CartItem, Order,
         OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,

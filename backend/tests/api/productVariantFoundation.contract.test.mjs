@@ -42,9 +42,13 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
 
   it('model registry exports ProductVariant for cart and checkout routes', () => {
     const assoc = read('models/associations.mjs');
-    const registryReturn = assoc.lastIndexOf('return {');
-    const returnBlock = assoc.slice(registryReturn, assoc.indexOf('};', registryReturn));
-    expect(returnBlock).toContain('ProductVariant,');
+    const returnBlocks = [...assoc.matchAll(/return\s+\{[\s\S]*?\};/g)].map((match) => match[0]);
+    const ecommerceRegistryReturns = returnBlocks.filter((block) => block.includes('StorefrontItem'));
+
+    expect(ecommerceRegistryReturns.length).toBeGreaterThanOrEqual(2);
+    for (const block of ecommerceRegistryReturns) {
+      expect(block).toContain('ProductVariant,');
+    }
   });
 
   it('storefront API exposes the product fields the UI needs', () => {
