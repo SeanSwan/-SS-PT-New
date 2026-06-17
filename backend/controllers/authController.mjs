@@ -240,6 +240,7 @@ import {
   CLIENT_SOURCES,
   parseClientSource,
 } from '../services/sessionBillingPolicy.mjs';
+import { getWaiverAccessStatus } from '../middleware/waiverGate.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -366,6 +367,36 @@ const sanitizeUser = (user) => {
 
   return sanitized;
 };
+
+async function withWaiverAccessStatus(user) {
+  const sanitized = sanitizeUser(user);
+
+  try {
+    const status = await getWaiverAccessStatus(user);
+    return {
+      ...sanitized,
+      hasLinkedWaiver: status.hasLinkedWaiver,
+      waiverStatus: status.waiverStatus,
+      waiverRecordId: status.waiverRecordId || null,
+      waiverSignedAt: status.waiverSignedAt || null,
+    };
+  } catch (error) {
+    logger.warn('Unable to enrich auth user with waiver status', {
+      error: error.message,
+      userId: user?.id,
+      role: user?.role,
+    });
+
+    const requiresWaiver = ['client', 'user'].includes(user?.role);
+    return {
+      ...sanitized,
+      hasLinkedWaiver: !requiresWaiver,
+      waiverStatus: requiresWaiver ? 'unverified' : 'not_required',
+      waiverRecordId: null,
+      waiverSignedAt: null,
+    };
+  }
+}
 
 /**
  * 🚀 ENHANCED: Simplified rate limiting with better efficiency
@@ -677,7 +708,7 @@ export const register = async (req, res) => {
     // Return user data and token
     res.status(201).json({
       success: true,
-      user: sanitizeUser(user),
+      user: await withWaiverAccessStatus(user),
       token: accessToken,
       refreshToken: refreshToken
     });
@@ -904,7 +935,7 @@ export const login = async (req, res) => {
     // Return user data and tokens
     return res.status(200).json({
       success: true,
-      user: sanitizeUser(user),
+      user: await withWaiverAccessStatus(user),
       token: accessToken,
       refreshToken: refreshToken
     });
@@ -1113,7 +1144,7 @@ export const getProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      user: sanitizeUser(user)
+      user: await withWaiverAccessStatus(user)
     });
   } catch (error) {
     logger.error('Profile fetch error:', { error: error.message, stack: error.stack });
@@ -1246,7 +1277,7 @@ export const updateProfile = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      user: sanitizeUser(user)
+      user: await withWaiverAccessStatus(user)
     });
   } catch (error) {
     await transaction.rollback();
@@ -1318,7 +1349,7 @@ export const validateToken = async (req, res) => {
     // Return user data
     res.status(200).json({
       success: true,
-      user: sanitizeUser(user)
+      user: await withWaiverAccessStatus(user)
     });
   } catch (error) {
     logger.error('Token validation error:', { error: error.message, stack: error.stack });
@@ -1365,7 +1396,7 @@ export const getUserById = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      user: sanitizeUser(user)
+      user: await withWaiverAccessStatus(user)
     });
   } catch (error) {
     logger.error('Get user by ID error:', { error: error.message, stack: error.stack });
@@ -1478,7 +1509,7 @@ export const changePasswordForced = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Password changed successfully',
-      user: sanitizeUser(user),
+      user: await withWaiverAccessStatus(user),
       token: accessToken,
       refreshToken: refreshTokenValue
     });

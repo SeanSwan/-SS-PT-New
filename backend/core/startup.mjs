@@ -28,6 +28,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
+const ADMIN_ACCESS_CODE_MIN_LENGTH = 24;
+const ADMIN_ACCESS_CODE_PLACEHOLDER_PATTERNS = [
+  /admin-access-code-123/i,
+  /change[-_ ]?me/i,
+  /example/i,
+  /password/i,
+];
+
+const adminAccessCodeFailure = (reason) => ({
+  ok: false,
+  reason,
+  message: 'ADMIN_ACCESS_CODE must be a high-entropy production secret and must not use documented examples.',
+});
 
 export const shouldRunProductionDatabaseSync = ({
   nodeEnv = process.env.NODE_ENV,
@@ -36,6 +49,31 @@ export const shouldRunProductionDatabaseSync = ({
   if (startupDatabaseRepair === 'true') return true;
   if (startupDatabaseRepair === 'false') return false;
   return nodeEnv === 'production';
+};
+
+export const validateAdminAccessCode = ({
+  nodeEnv = process.env.NODE_ENV,
+  adminAccessCode = process.env.ADMIN_ACCESS_CODE,
+} = {}) => {
+  if (nodeEnv !== 'production') return { ok: true, skipped: true };
+
+  const code = typeof adminAccessCode === 'string' ? adminAccessCode.trim() : '';
+  if (!code) return adminAccessCodeFailure('missing');
+  if (ADMIN_ACCESS_CODE_PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(code))) {
+    return adminAccessCodeFailure('placeholder');
+  }
+  if (code.length < ADMIN_ACCESS_CODE_MIN_LENGTH) return adminAccessCodeFailure('too_short');
+  if (new Set(code).size < 10) return adminAccessCodeFailure('low_entropy_shape');
+
+  return { ok: true };
+};
+
+export const assertAdminAccessCode = (options = {}) => {
+  const result = validateAdminAccessCode(options);
+  if (!result.ok) {
+    throw new Error(`${result.message} Reason: ${result.reason}.`);
+  }
+  return result;
 };
 
 /**
@@ -516,6 +554,8 @@ export const initializeServer = async (app) => {
     // serving routes in that state would produce silent 500s instead
     // of a clear "fix and redeploy" signal.
     logger.info('🗄️  Running critical database preflight (pre-listen)...');
+    logger.info('Running critical config preflight (pre-listen)...');
+    assertAdminAccessCode();
     await criticalDatabasePreflight(sequelize);
 
     logger.info('📁 Creating required directories...');

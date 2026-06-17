@@ -127,6 +127,21 @@ interface ProtectedRouteProps {
   fallbackPath?: string;
 }
 
+const WAIVER_GATED_ROLES = new Set(['client', 'user']);
+const WAIVER_GATED_ROUTE_PREFIXES = ['/dashboard', '/user-dashboard'];
+
+function isWaiverGatedRoute(pathname: string) {
+  return WAIVER_GATED_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+function requiresWaiverRedirect(auth: ReturnType<typeof useAuth>, pathname: string) {
+  if (!auth.user || !WAIVER_GATED_ROLES.has(auth.user.role)) return false;
+  if (!isWaiverGatedRoute(pathname)) return false;
+  return auth.user.hasLinkedWaiver !== true;
+}
+
 /**
  * Loading component for authentication checks
  */
@@ -267,6 +282,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         onRetry={handleAccessRetry}
       />
     );
+  }
+
+  if (requiresWaiverRedirect(auth, location.pathname)) {
+    const returnUrl = encodeURIComponent(location.pathname + location.search + location.hash);
+    return <Navigate to={`/waiver?returnUrl=${returnUrl}`} replace />;
   }
   
   // User is authenticated and has required permissions

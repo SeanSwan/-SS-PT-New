@@ -262,6 +262,7 @@ import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { requireLinkedWaiver } from './waiverGate.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -359,7 +360,7 @@ export const protect = async (req, res, next) => {
         method: req.method
       });
       
-      next();
+      await requireLinkedWaiver(req, res, next);
     } catch (tokenError) {
       // 🚀 ENHANCED: Simplified token error handling with efficient mapping
       logger.error('Token verification error', { 

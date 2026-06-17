@@ -26,6 +26,10 @@ export interface User {
   role: 'admin' | 'trainer' | 'client' | 'user';
   fitnessGoal?: string;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
+  hasLinkedWaiver?: boolean;
+  waiverStatus?: 'linked' | 'missing' | 'unverified' | 'invalid_user' | 'not_required';
+  waiverRecordId?: number | null;
+  waiverSignedAt?: string | null;
   profileImageUrl?: string;
   photo?: string;
   isActive: boolean;
@@ -257,6 +261,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             lastName: userData.lastName || '',
             role: userData.role || 'user',
             clientSource: userData.clientSource,
+            hasLinkedWaiver: userData.hasLinkedWaiver === true,
+            waiverStatus: userData.waiverStatus,
+            waiverRecordId: userData.waiverRecordId ?? null,
+            waiverSignedAt: userData.waiverSignedAt ?? null,
             profileImageUrl: userData.profileImageUrl || userData.photo,
             photo: userData.photo,
             isActive: userData.isActive !== false,
@@ -331,6 +339,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           lastName: userData.lastName || '',
           role: userData.role || 'user',
           clientSource: userData.clientSource,
+          hasLinkedWaiver: userData.hasLinkedWaiver === true,
+          waiverStatus: userData.waiverStatus,
+          waiverRecordId: userData.waiverRecordId ?? null,
+          waiverSignedAt: userData.waiverSignedAt ?? null,
           profileImageUrl: userData.profileImageUrl || userData.photo,
           photo: userData.photo,
           isActive: userData.isActive !== false,
@@ -425,6 +437,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           lastName: userData.lastName || data.lastName || '',
           role: userData.role || 'user',
           clientSource: userData.clientSource,
+          hasLinkedWaiver: userData.hasLinkedWaiver === true,
+          waiverStatus: userData.waiverStatus,
+          waiverRecordId: userData.waiverRecordId ?? null,
+          waiverSignedAt: userData.waiverSignedAt ?? null,
           profileImageUrl: userData.profileImageUrl || userData.photo,
           photo: userData.photo,
           isActive: userData.isActive !== false,
@@ -532,6 +548,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         lastName: userData.lastName || '',
         role: userData.role || 'user',
         clientSource: userData.clientSource,
+        hasLinkedWaiver: userData.hasLinkedWaiver === true,
+        waiverStatus: userData.waiverStatus,
+        waiverRecordId: userData.waiverRecordId ?? null,
+        waiverSignedAt: userData.waiverSignedAt ?? null,
         profileImageUrl: userData.profileImageUrl || userData.photo,
         photo: userData.photo,
         isActive: userData.isActive !== false,
