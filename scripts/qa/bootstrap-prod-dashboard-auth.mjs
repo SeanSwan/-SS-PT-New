@@ -26,6 +26,7 @@ const roleEnv = {
 };
 const validRoles = new Set(['trainer', 'client', 'user']);
 const defaultRoles = ['trainer', 'client', 'user'];
+const waiverRequiredRoles = new Set(['client', 'user']);
 
 function argValue(args, name) {
   const prefix = `${name}=`;
@@ -66,6 +67,31 @@ export function qaPersonaForRole(role, domain = 'swanstudios-qa.local') {
       bio: 'Scoped production QA trainer persona.',
       hourlyRate: 0,
     } : {}),
+  };
+}
+
+export function roleRequiresLinkedWaiver(role) {
+  return waiverRequiredRoles.has(String(role || '').toLowerCase());
+}
+
+export function qaWaiverSubmissionForPersona(persona) {
+  const firstName = String(persona?.firstName || 'Dashboard').trim();
+  const lastName = String(persona?.lastName || 'QA Persona').trim();
+  const email = String(persona?.email || '').trim().toLowerCase();
+  if (!email) {
+    throw new Error('QA waiver submission requires a persona email');
+  }
+
+  return {
+    fullName: `${firstName} ${lastName}`.trim(),
+    dateOfBirth: '1990-01-01',
+    email,
+    activityTypes: ['HOME_GYM_PT'],
+    signatureData: `Typed QA signature: ${firstName} ${lastName}`.trim(),
+    liabilityAccepted: true,
+    aiConsentAccepted: true,
+    mediaConsentAccepted: false,
+    source: 'header_waiver',
   };
 }
 
@@ -214,6 +240,40 @@ async function loginPersona(baseUrl, persona, password) {
   return data;
 }
 
+async function fetchCurrentUser(baseUrl, token) {
+  const data = await apiRequest({ baseUrl, apiPath: '/api/auth/me', token });
+  if (!data?.user) {
+    throw new Error('/api/auth/me did not return a user payload');
+  }
+  return data.user;
+}
+
+async function ensurePersonaWaiver({ baseUrl, token, persona }) {
+  if (!roleRequiresLinkedWaiver(persona.role)) {
+    return { action: 'not_required', user: null };
+  }
+
+  const currentUser = await fetchCurrentUser(baseUrl, token);
+  if (currentUser.hasLinkedWaiver === true) {
+    return { action: 'existing', user: currentUser };
+  }
+
+  await apiRequest({
+    baseUrl,
+    apiPath: '/api/public/waivers/submit',
+    token,
+    method: 'POST',
+    body: qaWaiverSubmissionForPersona(persona),
+  });
+
+  const refreshedUser = await fetchCurrentUser(baseUrl, token);
+  if (refreshedUser.hasLinkedWaiver !== true) {
+    throw new Error(`${persona.role} QA persona waiver submitted but /api/auth/me still reports no linked waiver`);
+  }
+
+  return { action: 'submitted', user: refreshedUser };
+}
+
 function writeRoleState({ role, baseUrl, authPayload, outputPath }) {
   mkdirSync(path.dirname(outputPath), { recursive: true });
   const state = createStorageState({
@@ -282,10 +342,13 @@ async function main() {
     const password = randomPassword();
     const result = await createOrRefreshPersona({ baseUrl, adminToken, persona, password });
     const authPayload = await loginPersona(baseUrl, persona, password);
+    const waiver = await ensurePersonaWaiver({ baseUrl, token: authPayload.token, persona });
+    if (waiver.user) authPayload.user = waiver.user;
     const outputPath = outputPathForRole(role, adminState);
     writeRoleState({ role, baseUrl, authPayload, outputPath });
     env[roleEnv[role]] = outputPath;
-    process.stdout.write(`${role}: ${result.action} QA persona and saved ${path.relative(repoRoot, outputPath)}\n`);
+    const waiverNote = waiver.action === 'not_required' ? '' : `, waiver ${waiver.action}`;
+    process.stdout.write(`${role}: ${result.action} QA persona${waiverNote} and saved ${path.relative(repoRoot, outputPath)}\n`);
   }
   if (runCrawl) process.exit(runDashboardCrawl(env, passthroughArgs));
 }

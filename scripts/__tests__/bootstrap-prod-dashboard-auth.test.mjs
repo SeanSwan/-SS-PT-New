@@ -8,6 +8,8 @@ import {
   createStorageState,
   parseRoleList,
   qaPersonaForRole,
+  qaWaiverSubmissionForPersona,
+  roleRequiresLinkedWaiver,
 } from '../qa/bootstrap-prod-dashboard-auth.mjs';
 import { getStorageStateRoleSummary } from '../qa/prod-auth-state-role.mjs';
 
@@ -28,6 +30,27 @@ describe('production dashboard auth bootstrap helpers', () => {
     assert.equal(trainer.username, 'sswan_qa_dashboard_trainer');
     assert.equal(trainer.role, 'trainer');
     assert.match(trainer.bio, /QA trainer persona/);
+  });
+
+  it('limits bootstrap waiver provisioning to dashboard client personas', () => {
+    assert.equal(roleRequiresLinkedWaiver('trainer'), false);
+    assert.equal(roleRequiresLinkedWaiver('client'), true);
+    assert.equal(roleRequiresLinkedWaiver('user'), true);
+  });
+
+  it('builds a deterministic in-app waiver submission for QA personas', () => {
+    const client = qaPersonaForRole('client');
+    const submission = qaWaiverSubmissionForPersona(client);
+
+    assert.equal(submission.fullName, 'Dashboard QA Client');
+    assert.equal(submission.dateOfBirth, '1990-01-01');
+    assert.equal(submission.email, 'sswan.qa.dashboard.client@swanstudios-qa.local');
+    assert.deepEqual(submission.activityTypes, ['HOME_GYM_PT']);
+    assert.equal(submission.liabilityAccepted, true);
+    assert.equal(submission.aiConsentAccepted, true);
+    assert.equal(submission.mediaConsentAccepted, false);
+    assert.equal(submission.source, 'header_waiver');
+    assert.match(submission.signatureData, /Dashboard QA Client/);
   });
 
   it('writes the same localStorage keys consumed by production auth', () => {
