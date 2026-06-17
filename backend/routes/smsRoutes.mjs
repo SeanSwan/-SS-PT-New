@@ -96,7 +96,6 @@ const recordManualSmsLog = async ({ to, result, body = null, templateName = null
 };
 
 const allowed = () => ({ allowed: true });
-
 const resolveSuppressionGate = async (email, phone, leadId = null) => {
   const identity = { email, phone };
   if (leadId) identity.leadId = leadId;
