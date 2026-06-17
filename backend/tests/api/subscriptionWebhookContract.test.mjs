@@ -44,7 +44,7 @@ describe('subscription Stripe webhook contract', () => {
 
     try {
       process.env.NODE_ENV = 'production';
-      process.env.STRIPE_SECRET_KEY = 'sk_test_subscription_contract';
+      process.env.STRIPE_SECRET_KEY = 'subscription-contract-test-key';
       delete process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
 
       const app = express();

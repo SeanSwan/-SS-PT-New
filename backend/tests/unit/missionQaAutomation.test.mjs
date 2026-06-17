@@ -253,20 +253,23 @@ describe('mission QA automation guards', () => {
 
   it('covers all production dashboard roles with a read-only console crawler', () => {
     const specPath = path.join(repoRoot, 'frontend/e2e/mission/production-dashboard-crawl.mission.spec.ts');
+    const routesPath = path.join(repoRoot, 'frontend/e2e/mission/production-dashboard-crawl.routes.ts');
     expect(existsSync(specPath)).toBe(true);
+    expect(existsSync(routesPath)).toBe(true);
 
     const spec = readFileSync(specPath, 'utf8');
+    const routes = readFileSync(routesPath, 'utf8');
     expect(spec).toContain('@dashboard-crawl');
     expect(spec).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
     expect(spec).toContain('SWAN_PROD_TRAINER_AUTH_STATE');
     expect(spec).toContain('SWAN_PROD_CLIENT_AUTH_STATE');
     expect(spec).toContain('SWAN_PROD_USER_AUTH_STATE');
-    expect(spec).toContain('/dashboard/admin/coach-assistant');
-    expect(spec).toContain('/dashboard/trainer/clients');
-    expect(spec).toContain('/dashboard/client/progress');
-    expect(spec).toContain('/user-dashboard/progress');
+    expect(routes).toContain('/dashboard/admin/coach-assistant');
+    expect(routes).toContain('/dashboard/trainer/clients');
+    expect(routes).toContain('/dashboard/client/progress');
+    expect(routes).toContain('/user-dashboard/progress');
     expect(spec).toContain('writeMethods.has(request.method())');
-    expect(spec).not.toMatch(/password|sk_live|pk_live|whsec_/i);
+    expect(`${spec}\n${routes}`).not.toMatch(/password|sk_live|pk_live|whsec_/i);
   });
 
   it('covers Swan Coach and staging-write mission slices without enabling production writes', () => {

@@ -59,7 +59,7 @@ vi.mock('../services/sessionPackageCheckoutFulfillmentService.mjs', () => ({
 }));
 
 vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_webhookroute');
-vi.stubEnv('STRIPE_WEBHOOK_SECRET', 'whsec_test_webhookroute');
+    vi.stubEnv('STRIPE_WEBHOOK_SECRET', 'session-package-webhook-test-secret');
 const { default: sessionPackageRoutes } = await import('../routes/sessionPackageRoutes.mjs');
 
 function buildApp() {

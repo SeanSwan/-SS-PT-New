@@ -17,6 +17,7 @@ const repoRoot = path.resolve(__dirname, '..', '..');
 
 const skipDirs = new Set([
   '.git',
+  '.auth',
   'node_modules',
   'dist',
   'coverage',
