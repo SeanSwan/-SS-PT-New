@@ -5,25 +5,167 @@
  */
 
 import express from 'express';
+import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { listSmsTemplates, sendSmsMessage, sendTemplatedSMS } from '../services/smsService.mjs';
 import { getAllModels } from '../models/index.mjs';
+import { isAutomationArmed } from '../services/automationArmState.mjs';
+import { resolveMarketingSuppression } from '../services/marketingSuppressionService.mjs';
 
 const router = express.Router();
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const envNonNegInt = (name, fallback) => {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : fallback;
+};
+
+const manualSmsCap = () => envNonNegInt('SWAN_MANUAL_SMS_MAX_PER_WINDOW', envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3));
+const manualSmsWindowDays = () => envNonNegInt('SWAN_MANUAL_SMS_WINDOW_DAYS', envNonNegInt('SWAN_AUTOMATION_WINDOW_DAYS', 7));
 
 const normalizeError = (error) => {
   if (!error) return '';
   return typeof error === 'string' ? error : (error.message || 'Unknown error');
 };
 
+const normalizeEmail = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const blocked = (status, reason, message) => ({ allowed: false, status, reason, message });
+
+const recipientEmailFrom = (body) => body?.recipientEmail || body?.email;
+
+const respondWithGateBlock = (res, gate) => res.status(gate.status).json({
+  success: false,
+  message: gate.message,
+  reason: gate.reason,
+});
+
+const smsSendSucceeded = (result) => {
+  if (!result) return false;
+  return result.success === true;
+};
+
+const sentAtFor = (sent) => {
+  if (sent) return new Date();
+  return null;
+};
+
+const manualSmsMessageFor = ({ body, result }) => {
+  if (body) return body;
+  if (result && result.body) return result.body;
+  return null;
+};
+
+const manualSmsPayloadFor = ({ templateName, variables }) => {
+  if (templateName) return { source: 'manual', variables: variables || {} };
+  return { source: 'manual' };
+};
+
+const manualSmsErrorFor = ({ sent, result }) => {
+  if (sent) return null;
+  return normalizeError(result ? result.error : null);
+};
+
+const recordManualSmsLog = async ({ to, result, body = null, templateName = null, variables = null }) => {
+  const { AutomationLog } = getAllModels();
+  if (!AutomationLog) return;
+
+  const sent = smsSendSucceeded(result);
+
+  await AutomationLog.create({
+    sequenceId: null,
+    userId: null,
+    stepIndex: null,
+    channel: 'sms',
+    status: sent ? 'sent' : 'failed',
+    scheduledFor: new Date(),
+    sentAt: sentAtFor(sent),
+    templateName,
+    recipient: to,
+    message: manualSmsMessageFor({ body, result }),
+    payloadJson: manualSmsPayloadFor({ templateName, variables }),
+    error: manualSmsErrorFor({ sent, result }),
+  });
+};
+
+const allowed = () => ({ allowed: true });
+
+const resolveSuppressionGate = async (email, phone) => {
+  const suppression = await resolveMarketingSuppression({ email, phone });
+  if (suppression && suppression.suppressed) {
+    return blocked(403, suppression.reason || 'marketing_suppressed', 'Recipient is suppressed.');
+  }
+  if (suppression && suppression.checked === false) {
+    return blocked(503, 'suppression_unverified', 'Recipient suppression status could not be verified.');
+  }
+  return allowed();
+};
+
+const resolveFrequencyGate = async (to) => {
+  const { AutomationLog } = getAllModels();
+  if (!AutomationLog) return allowed();
+
+  const cap = manualSmsCap();
+  const windowStart = new Date(Date.now() - manualSmsWindowDays() * DAY_MS);
+  const sentInWindow = await AutomationLog.count({
+    where: {
+      channel: 'sms',
+      status: 'sent',
+      recipient: to,
+      sentAt: { [Op.gte]: windowStart },
+    },
+  });
+  if (sentInWindow >= cap) {
+    return blocked(429, 'frequency_capped', 'Recipient has reached the SMS frequency cap.');
+  }
+  return allowed();
+};
+
+const ensureManualSmsAllowed = async ({ to, recipientEmail }) => {
+  if (!isAutomationArmed()) {
+    return blocked(503, 'automation_disarmed', 'SMS automation is disarmed.');
+  }
+
+  const email = normalizeEmail(recipientEmail);
+  if (!email) {
+    return blocked(403, 'suppression_identity_required', 'Recipient email is required for SMS suppression checks.');
+  }
+
+  const suppressionGate = await resolveSuppressionGate(email, to);
+  if (!suppressionGate.allowed) {
+    return suppressionGate;
+  }
+
+  return resolveFrequencyGate(to);
+};
+
 const mapSendStatus = (result) => {
-  if (result?.success) return 200;
-  const message = normalizeError(result?.error);
+  if (smsSendSucceeded(result)) return 200;
+  const message = normalizeError(result ? result.error : null);
   if (message.toLowerCase().includes('disabled') || message.toLowerCase().includes('configured')) {
     return 503;
   }
   return 500;
+};
+
+const sendResultMessageFor = (sent) => {
+  if (sent) return 'SMS sent';
+  return 'SMS send failed';
+};
+
+const sendResultErrorFor = ({ sent, result }) => {
+  if (sent) return undefined;
+  return normalizeError(result ? result.error : null);
+};
+
+const respondWithSendResult = (res, result) => {
+  const sent = smsSendSucceeded(result);
+  return res.status(mapSendStatus(result)).json({
+    success: sent,
+    message: sendResultMessageFor(sent),
+    error: sendResultErrorFor({ sent, result }),
+  });
 };
 
 /**
@@ -48,31 +190,15 @@ router.post('/send', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing to or body' });
     }
 
-    const result = await sendSmsMessage({ to, body });
-    const { AutomationLog } = getAllModels();
-
-    if (AutomationLog) {
-      await AutomationLog.create({
-        sequenceId: null,
-        userId: null,
-        stepIndex: null,
-        channel: 'sms',
-        status: result?.success ? 'sent' : 'failed',
-        scheduledFor: new Date(),
-        sentAt: result?.success ? new Date() : null,
-        templateName: null,
-        recipient: to,
-        message: body,
-        payloadJson: { source: 'manual' },
-        error: result?.success ? null : normalizeError(result?.error)
-      });
+    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body) });
+    if (!gate.allowed) {
+      return respondWithGateBlock(res, gate);
     }
 
-    return res.status(mapSendStatus(result)).json({
-      success: Boolean(result?.success),
-      message: result?.success ? 'SMS sent' : 'SMS send failed',
-      error: result?.success ? undefined : normalizeError(result?.error)
-    });
+    const result = await sendSmsMessage({ to, body });
+    await recordManualSmsLog({ to, result, body });
+
+    return respondWithSendResult(res, result);
   } catch (error) {
     logger.error('SMS send failed:', error);
     return res.status(500).json({
@@ -94,31 +220,15 @@ router.post('/send-template', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing to or templateName' });
     }
 
-    const result = await sendTemplatedSMS({ to, templateName, variables });
-    const { AutomationLog } = getAllModels();
-
-    if (AutomationLog) {
-      await AutomationLog.create({
-        sequenceId: null,
-        userId: null,
-        stepIndex: null,
-        channel: 'sms',
-        status: result?.success ? 'sent' : 'failed',
-        scheduledFor: new Date(),
-        sentAt: result?.success ? new Date() : null,
-        templateName,
-        recipient: to,
-        message: result?.body || null,
-        payloadJson: { source: 'manual', variables: variables || {} },
-        error: result?.success ? null : normalizeError(result?.error)
-      });
+    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body) });
+    if (!gate.allowed) {
+      return respondWithGateBlock(res, gate);
     }
 
-    return res.status(mapSendStatus(result)).json({
-      success: Boolean(result?.success),
-      message: result?.success ? 'SMS sent' : 'SMS send failed',
-      error: result?.success ? undefined : normalizeError(result?.error)
-    });
+    const result = await sendTemplatedSMS({ to, templateName, variables });
+    await recordManualSmsLog({ to, result, templateName, variables });
+
+    return respondWithSendResult(res, result);
   } catch (error) {
     logger.error('Templated SMS send failed:', error);
     return res.status(500).json({
@@ -135,7 +245,7 @@ router.post('/send-template', protect, adminOnly, async (req, res) => {
  */
 router.get('/logs', protect, adminOnly, async (req, res) => {
   try {
-    const { AutomationLog, AutomationSequence, User } = getAllModels();
+    const { AutomationLog, AutomationSequence, User, Lead } = getAllModels();
     if (!AutomationLog) {
       return res.status(500).json({ success: false, message: 'Automation log model not available' });
     }
@@ -157,16 +267,9 @@ router.get('/logs', protect, adminOnly, async (req, res) => {
       order: [['createdAt', 'DESC']],
       limit,
       include: [
-        AutomationSequence ? {
-          model: AutomationSequence,
-          as: 'sequence',
-          attributes: ['id', 'name', 'triggerEvent']
-        } : null,
-        User ? {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
-        } : null
+        AutomationSequence ? { model: AutomationSequence, as: 'sequence', attributes: ['id', 'name', 'triggerEvent'] } : null,
+        User ? { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'email', 'phone'] } : null,
+        Lead ? { model: Lead, as: 'lead', attributes: ['id', 'firstName', 'lastName', 'email', 'phone'] } : null,
       ].filter(Boolean)
     });
 

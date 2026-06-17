@@ -99,13 +99,36 @@ const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3);
 const FREQ_WINDOW_DAYS = envNonNegInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
 const FREQ_COOLDOWN_HOURS = envNonNegInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
 const DAY_MS = 24 * 60 * 60 * 1000;
+// A log claimed ('processing') but never resolved this long ago was stranded by a crashed
+// mid-send; it becomes reclaimable so it isn't stuck forever (and stops permanently
+// counting against its recipient's cap). Far longer than any real SMS send (seconds).
+const CLAIM_STALE_MS = 15 * 60 * 1000;
 
-const resolveFrequencyCap = async (log, { AutomationLog }, now) => {
+const resolveFrequencyCap = async (log, { AutomationLog }, now, target = null) => {
   const base = { capped: false, sentInWindow: 0, cap: FREQ_CAP, windowDays: FREQ_WINDOW_DAYS };
-  const where = { status: 'sent', sentAt: { [Op.gte]: new Date(now.getTime() - FREQ_WINDOW_DAYS * DAY_MS) } };
-  if (log.userId) where.userId = log.userId;
-  else if (log.leadId) where.leadId = log.leadId;
-  else return base; // no resolvable recipient → nothing to cap
+  const identityClauses = [];
+  if (log.userId) identityClauses.push({ userId: log.userId });
+  if (log.leadId) identityClauses.push({ leadId: log.leadId });
+  const recipient = target?.phone || log.recipient;
+  if (recipient) identityClauses.push({ recipient });
+  if (!identityClauses.length) return base; // no resolvable recipient -> nothing to cap
+
+  // Count what counts against the cap for this recipient: already-sent within the rolling
+  // window, PLUS any in-flight ('processing') peer a concurrent runner just claimed —
+  // EXCLUDING this log. Counting in-flight peers makes the cap concurrency-safe (under a
+  // race it errs toward DEFER, never toward exceeding the cap).
+  const where = {
+    [Op.and]: [
+      { [Op.or]: identityClauses },
+      {
+        [Op.or]: [
+          { status: 'sent', sentAt: { [Op.gte]: new Date(now.getTime() - FREQ_WINDOW_DAYS * DAY_MS) } },
+          { status: 'processing' },
+        ],
+      },
+    ],
+  };
+  if (log.id != null) where.id = { [Op.ne]: log.id };
 
   const sentInWindow = await AutomationLog.count({ where });
   return {
@@ -213,22 +236,43 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
 
   const { AutomationLog, User } = getModels();
   const now = new Date();
+  const staleBefore = new Date(now.getTime() - CLAIM_STALE_MS);
 
-  const pendingLogs = await AutomationLog.findAll({
+  // Candidates: matured pending logs PLUS any 'processing' log stranded by a crashed
+  // mid-send (claimed longer ago than the stale threshold) so it can be retried instead
+  // of stuck forever (and stop permanently counting against its recipient's cap).
+  const candidateLogs = await AutomationLog.findAll({
     where: {
-      status: 'pending',
-      scheduledFor: { [Op.lte]: now }
+      scheduledFor: { [Op.lte]: now },
+      [Op.or]: [
+        { status: 'pending' },
+        { status: 'processing', updatedAt: { [Op.lt]: staleBefore } },
+      ],
     },
     limit: 200
   });
 
   const results = [];
 
-  for (const log of pendingLogs) {
+  for (const log of candidateLogs) {
     try {
+      // Atomically CLAIM the log before doing anything else: flip to 'processing' only if
+      // it is STILL in the exact state we read (status + updatedAt optimistic lock). If 0
+      // rows update, a concurrent runner (another cron tick / admin /process / another
+      // Render instance) already claimed it -> skip. This is what prevents double-sending
+      // the same log; counting 'processing' in resolveFrequencyCap keeps the cap safe too.
+      const [claimedCount] = await AutomationLog.update(
+        { status: 'processing' },
+        { where: { id: log.id, status: log.status, updatedAt: log.updatedAt } }
+      );
+      if (claimedCount === 0) {
+        results.push({ id: log.id, status: 'skipped_claimed' });
+        continue;
+      }
+
       const target = await resolveAutomationTarget(log, { User });
-      const suppression = await resolveMarketingSuppression({ email: target?.email });
-      const frequency = await resolveFrequencyCap(log, { AutomationLog }, now);
+      const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone });
+      const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
       const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
 
       if (decision.action === 'cancel') {
@@ -242,6 +286,10 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       if (decision.action === 'defer') {
+        log.status = 'pending';
+        if (typeof log.changed === 'function') {
+          log.changed('status', true);
+        }
         log.scheduledFor = decision.nextAttempt;
         await log.save();
         results.push({ id: log.id, status: 'deferred' });
@@ -334,8 +382,8 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
 
   for (const log of pendingLogs) {
     const target = await resolveAutomationTarget(log, { User });
-    const suppression = await resolveMarketingSuppression({ email: target?.email });
-    const frequency = await resolveFrequencyCap(log, { AutomationLog }, now);
+    const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone });
+    const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
     const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
     summary[bucketFor[decision.action]] += 1;
     byReason[decision.reason] = (byReason[decision.reason] || 0) + 1;

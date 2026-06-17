@@ -1,13 +1,19 @@
 /**
- * marketingSuppressionService — the unified "may we contact this person?" check.
- * Proves: confirmed opt-out → suppressed; no match → allowed; no email → no query;
- * email normalized before lookup; a lookup ERROR returns checked:false so callers
- * FAIL CLOSED (never send when consent cannot be verified). Subscriber is mocked.
+ * marketingSuppressionService
+ * ===========================
+ *
+ * Proves confirmed email opt-out and phone STOP opt-out both suppress sends.
+ * Lookup errors return checked:false so callers fail closed.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { findOne } = vi.hoisted(() => ({ findOne: vi.fn() }));
-vi.mock('../models/Subscriber.mjs', () => ({ default: { findOne } }));
+const { subscriberFindOne, smsSuppressionFindOne } = vi.hoisted(() => ({
+  subscriberFindOne: vi.fn(),
+  smsSuppressionFindOne: vi.fn(),
+}));
+
+vi.mock('../models/Subscriber.mjs', () => ({ default: { findOne: subscriberFindOne } }));
+vi.mock('../models/SmsSuppression.mjs', () => ({ default: { findOne: smsSuppressionFindOne } }));
 
 const { resolveMarketingSuppression } = await import('../services/marketingSuppressionService.mjs');
 
@@ -15,33 +21,49 @@ describe('resolveMarketingSuppression', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('returns suppressed:true on a confirmed unsubscribe', async () => {
-    findOne.mockResolvedValue({ id: 1 });
+    subscriberFindOne.mockResolvedValue({ id: 1 });
     const r = await resolveMarketingSuppression({ email: 'unsub@x.com' });
     expect(r).toEqual({ suppressed: true, reason: 'unsubscribed', checked: true });
   });
 
-  it('returns allowed (suppressed:false, checked:true) when there is no unsubscribe row', async () => {
-    findOne.mockResolvedValue(null);
+  it('returns allowed (suppressed:false, checked:true) when there is no opt-out row', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue(null);
     const r = await resolveMarketingSuppression({ email: 'active@x.com' });
     expect(r).toEqual({ suppressed: false, reason: null, checked: true });
   });
 
-  it('skips the query entirely when there is no email (nothing to match)', async () => {
+  it('skips the query entirely when there is no email or phone', async () => {
     const r = await resolveMarketingSuppression({});
     expect(r).toEqual({ suppressed: false, reason: null, checked: true });
-    expect(findOne).not.toHaveBeenCalled();
+    expect(subscriberFindOne).not.toHaveBeenCalled();
+    expect(smsSuppressionFindOne).not.toHaveBeenCalled();
   });
 
-  it('normalizes the email (trim + lowercase) before the lookup', async () => {
-    findOne.mockResolvedValue(null);
+  it('normalizes the email before the lookup', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue(null);
     await resolveMarketingSuppression({ email: '  Unsub@X.COM  ' });
-    expect(findOne).toHaveBeenCalledWith(expect.objectContaining({
+    expect(subscriberFindOne).toHaveBeenCalledWith(expect.objectContaining({
       where: { email: 'unsub@x.com', status: 'unsubscribed' },
     }));
   });
 
-  it('FAILS CLOSED (checked:false) when the lookup throws — caller must not send', async () => {
-    findOne.mockRejectedValue(new Error('db down'));
+  it('returns suppressed:true when the recipient phone has a STOP opt-out', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue({ id: 9 });
+
+    const r = await resolveMarketingSuppression({ phone: '(555) 123-4567' });
+
+    expect(r).toEqual({ suppressed: true, reason: 'sms_opt_out', checked: true });
+    expect(smsSuppressionFindOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { phone: '+15551234567' },
+      attributes: ['id'],
+    }));
+  });
+
+  it('FAILS CLOSED (checked:false) when the lookup throws', async () => {
+    subscriberFindOne.mockRejectedValue(new Error('db down'));
     const r = await resolveMarketingSuppression({ email: 'active@x.com' });
     expect(r).toMatchObject({ suppressed: false, checked: false, reason: 'suppression_check_failed' });
   });

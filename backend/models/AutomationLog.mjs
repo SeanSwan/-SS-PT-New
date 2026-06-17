@@ -46,7 +46,9 @@ AutomationLog.init(
       defaultValue: 'sms'
     },
     status: {
-      type: DataTypes.ENUM('pending', 'sent', 'failed', 'cancelled'),
+      // 'processing' = atomically claimed by a drip runner and mid-send (TOCTOU guard,
+      // see migration 20260616140000 + NURTURE-PRE-ARM-AUDIT-2026-06-16 BLOCKER 2).
+      type: DataTypes.ENUM('pending', 'processing', 'sent', 'failed', 'cancelled'),
       allowNull: false,
       defaultValue: 'pending'
     },

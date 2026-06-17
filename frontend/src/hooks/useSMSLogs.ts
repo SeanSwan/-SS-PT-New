@@ -30,6 +30,13 @@ export type SmsLog = {
     email?: string;
     phone?: string;
   } | null;
+  lead?: {
+    id: number;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  } | null;
   payloadJson?: Record<string, unknown> | null;
 };
 

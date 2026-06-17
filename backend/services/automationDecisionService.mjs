@@ -71,7 +71,7 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
  * @param {object} recipient - user OR lead-derived target: `{ phone, notificationPreferences }`.
  *   Leads carry no per-channel prefs (`notificationPreferences:null` → defaults on); they are
  *   gated by suppression + phone presence instead of by stored preferences.
- * @param {object|null} suppression - result of `resolveMarketingSuppression({ email })`:
+ * @param {object|null} suppression - result of `resolveMarketingSuppression({ email, phone })`:
  *   `{ suppressed, checked }`. `suppressed` → CANCEL; `checked:false` → FAIL CLOSED (consent could
  *   not be verified, so we do NOT send). Omitted/null → suppression not evaluated here (legacy /
  *   unit calls that gate consent elsewhere). The gate runs FIRST so an opt-out always wins.

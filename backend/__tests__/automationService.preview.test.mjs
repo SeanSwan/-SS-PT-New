@@ -9,11 +9,13 @@
  * Models, SMS service, and the suppression lookup are mocked — nothing is sent,
  * nothing is written, no real Subscriber query runs.
  */
+import { Op } from 'sequelize';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
-const { logFindAll, logCount, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
+const { logFindAll, logCount, logUpdate, userFindByPk, leadFindByPk, smsTemplated, smsMessage, resolveSuppression } = vi.hoisted(() => ({
   logFindAll: vi.fn(),
   logCount: vi.fn(),
+  logUpdate: vi.fn(),
   userFindByPk: vi.fn(),
   leadFindByPk: vi.fn(),
   smsTemplated: vi.fn(),
@@ -24,7 +26,7 @@ const { logFindAll, logCount, userFindByPk, leadFindByPk, smsTemplated, smsMessa
 vi.mock('../models/index.mjs', () => ({
   getAllModels: () => ({
     AutomationSequence: {},
-    AutomationLog: { findAll: logFindAll, count: logCount },
+    AutomationLog: { findAll: logFindAll, count: logCount, update: logUpdate },
     User: { findByPk: userFindByPk },
   }),
 }));
@@ -106,6 +108,7 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
       null, { capped: true });
     expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
   });
+
 });
 
 describe('previewScheduledMessages (dry-run)', () => {
@@ -194,6 +197,25 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
     expect(JSON.stringify(res)).not.toContain('+1555'); // still PII-safe for leads
   });
 
+  it('CANCELS a lead recipient by phone STOP opt-out', async () => {
+    resolveSuppression.mockImplementation(async ({ phone }) => (
+      phone === '+15550007777'
+        ? { suppressed: true, reason: 'sms_opt_out', checked: true }
+        : ALLOWED
+    ));
+    logFindAll.mockResolvedValue([
+      { id: 10, userId: null, leadId: 777, channel: 'sms', templateName: 'follow_up_day1' },
+    ]);
+
+    const res = await previewScheduledMessages();
+
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@x.com', phone: '+15550007777' });
+    expect(res.summary).toMatchObject({ wouldCancel: 1 });
+    expect(res.byReason).toMatchObject({ sms_opt_out: 1 });
+    expect(res.items[0]).toMatchObject({ action: 'cancel', reason: 'sms_opt_out', suppressed: true });
+    expect(JSON.stringify(res)).not.toContain('+1555');
+  });
+
   it('FAILS closed (suppression_unverified) when the consent lookup could not run', async () => {
     resolveSuppression.mockResolvedValue({ suppressed: false, reason: 'suppression_check_failed', checked: false });
     logFindAll.mockResolvedValue([
@@ -215,6 +237,23 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
     const item = res.items.find((i) => i.id === 7);
     expect(item).toMatchObject({ action: 'defer', reason: 'frequency_capped', frequencyCapped: true, sentInWindow: 3 });
   });
+
+  it('counts manual sent SMS logs by resolved phone when applying the automation cap', async () => {
+    logFindAll.mockResolvedValue([
+      { id: 8, userId: 10, channel: 'sms', templateName: 'welcome' },
+    ]);
+    logCount.mockImplementation(async ({ where }) => {
+      const andClauses = where[Op.and] || [];
+      const identityClause = andClauses.find((clause) => Array.isArray(clause[Op.or]));
+      const identities = identityClause?.[Op.or] || [];
+      return identities.some((identity) => identity.recipient === '+15550001111') ? 3 : 2;
+    });
+
+    const res = await previewScheduledMessages();
+
+    const item = res.items.find((i) => i.id === 8);
+    expect(item).toMatchObject({ action: 'defer', reason: 'frequency_capped', frequencyCapped: true, sentInWindow: 3 });
+  });
 });
 
 describe('processScheduledMessages (arm gate — BLOCKER 1: disarmed = zero delivery)', () => {
@@ -222,6 +261,7 @@ describe('processScheduledMessages (arm gate — BLOCKER 1: disarmed = zero deli
     vi.clearAllMocks();
     resolveSuppression.mockResolvedValue(ALLOWED);
     logCount.mockResolvedValue(0);
+    logUpdate.mockResolvedValue([1]);
     smsTemplated.mockResolvedValue({ success: true, body: 'hi' });
     delete process.env.SWAN_AUTOMATION_CRON_ENABLED;
   });
@@ -245,12 +285,17 @@ describe('processScheduledMessages (arm gate — BLOCKER 1: disarmed = zero deli
 
   it('processes + SENDS only when ARMED ("true")', async () => {
     process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
+    const updatedAt = new Date('2030-01-01T00:00:00Z');
     logFindAll.mockResolvedValue([
-      { id: 1, userId: 10, channel: 'sms', templateName: 'welcome', payloadJson: {}, save: vi.fn() },
+      { id: 1, userId: 10, status: 'pending', updatedAt, channel: 'sms', templateName: 'welcome', payloadJson: {}, save: vi.fn() },
     ]);
     userFindByPk.mockResolvedValue({ id: 10, phone: '+15550001111', email: 'a@x.com', notificationPreferences: { sms: true } });
     const res = await processScheduledMessages();
     expect(logFindAll).toHaveBeenCalled();
+    expect(logUpdate).toHaveBeenCalledWith(
+      { status: 'processing' },
+      { where: { id: 1, status: 'pending', updatedAt } }
+    );
     expect(smsTemplated).toHaveBeenCalledTimes(1);
     expect(res.processed).toBe(1);
   });
