@@ -1,25 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import {
-  trainerPermissionService
-} from '../../services/nasmApiService';
-import {
-  buildTrainer,
-  buildTrainerPermissionCsv,
-  getErrorMessage,
-  PERMISSION_TYPES
-} from './TrainerPermissionsManager.logic';
-import {
-  applyPermissionTemplate,
-  performPermissionBulkOperation
-} from './TrainerPermissionsManager.operations';
-import type {
-  BulkPermissionOperation,
-  PermissionRequest,
-  PermissionStats,
-  TrainerPermissionsManagerProps,
-  TrainerWithPermissions
-} from './TrainerPermissionsManager.types';
+import { trainerPermissionService } from '../../services/nasmApiService';
+import { buildTrainer, buildTrainerPermissionCsv, getErrorMessage, PERMISSION_TYPES } from './TrainerPermissionsManager.logic';
+import { applyPermissionTemplate, performPermissionBulkOperation } from './TrainerPermissionsManager.operations';
+import type { BulkPermissionOperation, PermissionRequest, PermissionStats, TrainerPermissionsManagerProps, TrainerWithPermissions } from './TrainerPermissionsManager.types';
 
 export const useTrainerPermissionsManagerController = ({
   trainerId,
@@ -36,6 +20,7 @@ export const useTrainerPermissionsManagerController = ({
   const [showRequests, setShowRequests] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [permissionLoadErrorCount, setPermissionLoadErrorCount] = useState(0);
+  const [pendingCriticalGrant, setPendingCriticalGrant] = useState<{ permissionLabel: string; permissionType: string; trainerId: number; trainerName: string } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const filteredTrainers = useMemo(() => {
@@ -128,7 +113,7 @@ export const useTrainerPermissionsManagerController = ({
     loadData();
   }, [loadData]);
 
-  const togglePermission = async (targetTrainerId: number, permissionType: string, currentlyHas: boolean) => {
+  const togglePermission = async (targetTrainerId: number, permissionType: string, currentlyHas: boolean, confirmedCriticalGrant = false) => {
     const permissionKey = `${targetTrainerId}-${permissionType}`;
     const trainer = trainers.find((item) => item.id === targetTrainerId);
     if (processingPermissions.has(permissionKey)) return;
@@ -137,6 +122,18 @@ export const useTrainerPermissionsManagerController = ({
       return;
     }
 
+    const permissionMeta = PERMISSION_TYPES.find((item) => item.key === permissionType);
+    if (!currentlyHas && permissionMeta?.critical && !confirmedCriticalGrant) {
+      setPendingCriticalGrant({
+        permissionLabel: permissionMeta.label,
+        permissionType,
+        trainerId: targetTrainerId,
+        trainerName: trainer ? `${trainer.firstName} ${trainer.lastName}` : 'this trainer'
+      });
+      return;
+    }
+
+    setPendingCriticalGrant(null);
     setProcessingPermissions((prev) => new Set(prev).add(permissionKey));
     try {
       if (currentlyHas) {
@@ -163,6 +160,10 @@ export const useTrainerPermissionsManagerController = ({
       });
     }
   };
+
+  const confirmCriticalPermissionGrant = () => pendingCriticalGrant ? togglePermission(pendingCriticalGrant.trainerId, pendingCriticalGrant.permissionType, false, true) : undefined;
+
+  const cancelCriticalPermissionGrant = () => setPendingCriticalGrant(null);
 
   const applyTemplate = (templateKey: string, trainerIds: number[]) => applyPermissionTemplate({
     loadData,
@@ -265,6 +266,8 @@ export const useTrainerPermissionsManagerController = ({
     applyTemplate,
     bulkProcessing,
     clearAllSelection,
+    cancelCriticalPermissionGrant,
+    confirmCriticalPermissionGrant,
     filteredTrainers,
     handleExportReport,
     handleFilterButton,
@@ -275,6 +278,7 @@ export const useTrainerPermissionsManagerController = ({
     permissionLoadErrorCount,
     permissionLoadWarningText: `${permissionLoadErrorCount} trainer permission set${permissionLoadErrorCount === 1 ? '' : 's'} could not be loaded.`,
     permissionRequests,
+    pendingCriticalGrant,
     processingPermissions,
     searchInputRef,
     searchQuery,

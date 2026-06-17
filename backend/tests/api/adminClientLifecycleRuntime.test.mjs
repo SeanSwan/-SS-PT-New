@@ -6,22 +6,32 @@ const mocks = vi.hoisted(() => {
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined)
   };
-  const userModel = { findOne: vi.fn() };
+  const userModel = { findOne: vi.fn(), create: vi.fn() };
+  const clientProgressModel = { create: vi.fn() };
   const sessionModel = { update: vi.fn() };
+  const sequelizeQuery = vi.fn();
+  const sendGridEmail = vi.fn();
+  const generateClaimToken = vi.fn();
   const getAllModels = vi.fn(() => ({
     User: userModel,
-    ClientProgress: {},
+    ClientProgress: clientProgressModel,
     Session: sessionModel,
     WorkoutSession: {},
     Order: {},
-    DailyWorkoutForm: {}
+    DailyWorkoutForm: {},
+    ClientTrainerAssignment: undefined,
+    ClientOnboardingQuestionnaire: undefined
   }));
 
   return {
     transaction,
     transactionFactory: vi.fn().mockResolvedValue(transaction),
     userModel,
+    clientProgressModel,
     sessionModel,
+    sequelizeQuery,
+    sendGridEmail,
+    generateClaimToken,
     getAllModels
   };
 });
@@ -32,7 +42,8 @@ vi.mock('../../models/index.mjs', () => ({
 
 vi.mock('../../database.mjs', () => ({
   default: {
-    transaction: mocks.transactionFactory
+    transaction: mocks.transactionFactory,
+    query: mocks.sequelizeQuery
   }
 }));
 
@@ -45,7 +56,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 vi.mock('../../services/sendgridService.mjs', () => ({
-  sendGridEmail: vi.fn()
+  sendGridEmail: mocks.sendGridEmail
 }));
 
 vi.mock('../../services/measurementScheduleService.mjs', () => ({
@@ -53,7 +64,7 @@ vi.mock('../../services/measurementScheduleService.mjs', () => ({
 }));
 
 vi.mock('../../services/claimTokenService.mjs', () => ({
-  generateClaimToken: vi.fn()
+  generateClaimToken: mocks.generateClaimToken
 }));
 
 vi.mock('../../services/adminClientActivationQueueService.mjs', () => ({
@@ -68,11 +79,12 @@ vi.mock('../../services/sessionBillingPolicy.mjs', () => ({
     'scheduled',
     'confirmed'
   ]),
-  NON_DEDUCTING_CLIENT_SOURCES: new Set(['move_fitness']),
+  NON_DEDUCTING_CLIENT_SOURCES: new Set(['move_fitness', 'external']),
   normalizePaidSessionCount: vi.fn((value) => {
     const parsed = Number(value ?? 0);
     return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
-  })
+  }),
+  parseClientSource: vi.fn((value) => value || 'move_fitness')
 }));
 
 vi.mock('../../services/auth/passwordResetEmailService.mjs', () => ({
@@ -115,7 +127,19 @@ describe('admin client lifecycle controller runtime behavior', () => {
     mocks.transaction.commit.mockResolvedValue(undefined);
     mocks.transaction.rollback.mockResolvedValue(undefined);
     mocks.userModel.findOne.mockReset();
+    mocks.userModel.create.mockReset();
+    mocks.clientProgressModel.create.mockReset();
     mocks.sessionModel.update.mockReset();
+    mocks.sequelizeQuery.mockReset();
+    mocks.sequelizeQuery.mockResolvedValue([[{ exists: null }]]);
+    mocks.sendGridEmail.mockReset();
+    mocks.sendGridEmail.mockResolvedValue(undefined);
+    mocks.generateClaimToken.mockReset();
+    mocks.generateClaimToken.mockReturnValue({
+      plainToken: 'SWAN-ABCDEFGH',
+      hash: 'claim-token-hash',
+      expires: new Date('2026-07-17T00:00:00.000Z')
+    });
   });
 
   it('soft-delete cancels every future client-held non-terminal session status', async () => {
@@ -197,5 +221,65 @@ describe('admin client lifecycle controller runtime behavior', () => {
       clientId: '301',
       isActive: true
     });
+  });
+
+  it('external generated-password clients receive claim flow only, never plaintext temp passwords', async () => {
+    const previousFrontendUrl = process.env.FRONTEND_URL;
+    process.env.FRONTEND_URL = 'https://app.example.test';
+    mocks.userModel.findOne.mockResolvedValue(null);
+    const createdClient = {
+      id: 901,
+      toJSON: vi.fn(() => ({
+        id: 901,
+        firstName: 'Maya',
+        lastName: 'Stone',
+        email: 'maya@example.test',
+        password: 'hashed-secret',
+        refreshTokenHash: 'refresh-secret',
+        accountStatus: 'stub',
+        clientSource: 'move_fitness',
+      })),
+    };
+    mocks.userModel.create.mockResolvedValue(createdClient);
+    const res = buildResponse();
+
+    try {
+      await adminClientController.createExternalClient(
+        {
+          body: {
+            firstName: 'Maya',
+            lastName: 'Stone',
+            email: 'maya@example.test',
+            clientSource: 'move_fitness',
+          },
+          user: { id: 7, role: 'admin' },
+        },
+        res,
+      );
+    } finally {
+      if (previousFrontendUrl === undefined) {
+        delete process.env.FRONTEND_URL;
+      } else {
+        process.env.FRONTEND_URL = previousFrontendUrl;
+      }
+    }
+
+    const generatedSecret = mocks.userModel.create.mock.calls[0][0].password;
+    const emailPayload = mocks.sendGridEmail.mock.calls[0][0];
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(generatedSecret).toEqual(expect.any(String));
+    expect(mocks.sendGridEmail).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(emailPayload)).not.toContain(generatedSecret);
+    expect(emailPayload.text).not.toMatch(/Temporary Password/i);
+    expect(emailPayload.html).not.toMatch(/Temporary Password/i);
+    expect(emailPayload.text).toContain('https://app.example.test/claim/SWAN-ABCDEFGH');
+    expect(res.body.data).toMatchObject({
+      claimToken: 'SWAN-ABCDEFGH',
+      claimUrl: 'https://app.example.test/claim/SWAN-ABCDEFGH',
+      claimExpiresAt: '2026-07-17T00:00:00.000Z',
+    });
+    expect(res.body.data).not.toHaveProperty('temporaryPassword');
+    expect(JSON.stringify(res.body)).not.toContain(generatedSecret);
   });
 });

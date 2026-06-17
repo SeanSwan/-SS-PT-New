@@ -253,33 +253,45 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       message: 'Workout logged successfully and session deducted',
     });
 
-    render(
-      <MemoryRouter>
-        <WorkoutLogger />
-      </MemoryRouter>,
-    );
+    const workoutLoggedHandler = vi.fn();
+    window.addEventListener('swan:workout-logged', workoutLoggedHandler);
 
-    // Open rolodex, pick Push-ups.
-    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
-    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    try {
+      render(
+        <MemoryRouter>
+          <WorkoutLogger />
+        </MemoryRouter>,
+      );
 
-    // Trigger the canonical save path via the mocked footer button.
-    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+      // Open rolodex, pick Push-ups.
+      fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+      fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
 
-    // Wait for the success path to settle.
-    await waitFor(() => {
-      expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
-    });
+      // Trigger the canonical save path via the mocked footer button.
+      fireEvent.click(await screen.findByTestId('mock-footer-submit'));
 
-    // The key assertion Sean specified: after a successful save, the
-    // offline queue must NOT be touched. A regression of the round-13
-    // bug would fire `queueSubmission` here because the caller
-    // interpreted the success as failure and fell into the catch
-    // branch (WorkoutLogger.tsx:861).
-    await waitFor(() => {
-      expect(mockQueueSubmission).not.toHaveBeenCalled();
-    });
-    expect(toastSuccessMock).toHaveBeenCalledWith('Workout saved. 2 credits deducted; 4 remaining.');
+      // Wait for the success path to settle.
+      await waitFor(() => {
+        expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
+      });
+
+      // The key assertion Sean specified: after a successful save, the
+      // offline queue must NOT be touched. A regression of the round-13
+      // bug would fire `queueSubmission` here because the caller
+      // interpreted the success as failure and fell into the catch
+      // branch (WorkoutLogger.tsx:861).
+      await waitFor(() => {
+        expect(mockQueueSubmission).not.toHaveBeenCalled();
+      });
+      expect(toastSuccessMock).toHaveBeenCalledWith('Workout saved. 2 credits deducted; 4 remaining.');
+      expect(workoutLoggedHandler).toHaveBeenCalledTimes(1);
+      expect((workoutLoggedHandler.mock.calls[0][0] as CustomEvent).detail).toMatchObject({
+        clientId: 91,
+        formId: 'form-uuid-success',
+      });
+    } finally {
+      window.removeEventListener('swan:workout-logged', workoutLoggedHandler);
+    }
   });
 
   it('409 duplicate-form response unlocks Generate Summary with the existing form id', async () => {

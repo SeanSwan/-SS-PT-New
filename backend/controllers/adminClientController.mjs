@@ -1698,7 +1698,6 @@ class AdminClientController {
         healthConcerns,
         emergencyContact,
         clientSource = 'move_fitness',
-        password,
         trainerId,
       } = req.body;
 
@@ -1708,15 +1707,6 @@ class AdminClientController {
         return res.status(400).json({
           success: false,
           message: 'Invalid clientSource for external creation. Must be one of: move_fitness, external'
-        });
-      }
-
-      // Validate password if admin-supplied
-      if (password && password.length < 8) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Password must be at least 8 characters long'
         });
       }
 
@@ -1752,8 +1742,7 @@ class AdminClientController {
       // Generate username from email prefix with high-entropy suffix to prevent collisions
       const baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
       const username = `${baseUsername}_${crypto.randomBytes(4).toString('hex')}`;
-      const effectivePassword = password || (crypto.randomBytes(12).toString('base64url') + '!A1');
-      const passwordSource = password ? 'admin-supplied' : 'generated';
+      const effectivePassword = crypto.randomBytes(24).toString('base64url') + '!A1';
 
       // Check if email already exists
       const existingUser = await User.findOne({ where: { email: { [Op.iLike]: normalizedEmail } } });
@@ -1816,33 +1805,29 @@ class AdminClientController {
 
       await transaction.commit();
 
-      // Send welcome email (non-blocking)
-      if (passwordSource === 'generated') {
-        try {
+      // Send claim invite email (non-blocking). External clients activate by claim link only.
+      const claimUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/claim/${plainToken}`;
+      try {
           const sourceLabel = normalizedClientSource === 'move_fitness' ? 'Move Fitness' : 'External';
           await sendGridEmail({
             to: normalizedEmail,
-            subject: `Welcome to SwanStudios Tools — ${sourceLabel} Client`,
-            text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${normalizedEmail}\nTemporary Password: ${effectivePassword}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
-            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${normalizedEmail}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>Please log in and change your password.</p><p>&mdash; SwanStudios Team</p>`,
+            subject: `Claim your SwanStudios Tools account - ${sourceLabel} Client`,
+            text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${normalizedEmail}\n\nClaim your account and set your password here:\n${claimUrl}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\n- SwanStudios Team`,
+            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${normalizedEmail}</p><p><a href="${claimUrl}">Claim your account and set your password</a>.</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>&mdash; SwanStudios Team</p>`,
           });
-        } catch (emailError) {
-          logger.warn(`Welcome email failed for external client ${normalizedEmail}: ${emailError.message}`);
-        }
+      } catch (emailError) {
+        logger.warn(`Claim invite email failed for external client ${normalizedEmail}: ${emailError.message}`);
       }
 
       const { password: _, refreshTokenHash: __, ...clientData } = newClient.toJSON();
 
       logger.info(`External client created: ${normalizedEmail} (source: ${normalizedClientSource}) by admin ${req.user?.id}`);
 
-      const claimUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/claim/${plainToken}`;
-
       return res.status(201).json({
         success: true,
         message: `External client created (${normalizedClientSource})`,
         data: {
           client: clientData,
-          temporaryPassword: passwordSource === 'generated' ? effectivePassword : undefined,
           claimToken: plainToken,
           claimUrl,
           claimExpiresAt: claimTokenExpires.toISOString(),

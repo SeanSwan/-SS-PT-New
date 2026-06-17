@@ -4,10 +4,11 @@
  * PURPOSE: Canonical 12-chart client progress grid from logged workout data.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useClientProgressCharts } from '../../../../hooks/analytics/useClientProgressCharts';
 import { getProgressProofStatusText } from '../../../../utils/progressProofStatusText';
+import { WORKOUT_LOGGED_EVENT } from '../../../../utils/workoutLoggedEvent';
 import ClientExerciseMegaStats from '../../progress/ClientExerciseMegaStats';
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
 import {
@@ -44,8 +45,13 @@ interface CanonicalProgressChartsGridProps {
 }
 
 const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = () => {
-  const { charts, isLoading, error, nonEmptyChartCount, unavailableChartCount } = useClientProgressCharts();
+  const { charts, isLoading, error, refetch, nonEmptyChartCount, unavailableChartCount } = useClientProgressCharts();
   const [activeLensId, setActiveLensId] = useState<ProgressChartLensId>('all');
+
+  useEffect(() => {
+    window.addEventListener(WORKOUT_LOGGED_EVENT, refetch);
+    return () => window.removeEventListener(WORKOUT_LOGGED_EVENT, refetch);
+  }, [refetch]);
 
   if (isLoading && nonEmptyChartCount === 0) {
     return <LoadingStrip>Loading progress charts...</LoadingStrip>;

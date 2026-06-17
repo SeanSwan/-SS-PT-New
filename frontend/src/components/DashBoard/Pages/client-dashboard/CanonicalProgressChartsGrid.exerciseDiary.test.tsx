@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const exerciseFrequency = [
   { x: 'Push Up', y: 18, sets: 54 },
@@ -16,6 +16,8 @@ const exerciseFrequency = [
   { x: 'Glute Bridge', y: 3, sets: 9 },
   { x: 'Band Pull Apart', y: 2, sets: 6 },
 ];
+
+const refetchCharts = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../hooks/analytics/useClientProgressCharts', () => ({
   useClientProgressCharts: () => ({
@@ -39,13 +41,19 @@ vi.mock('../../../../hooks/analytics/useClientProgressCharts', () => ({
     },
     isLoading: false,
     error: null,
+    refetch: refetchCharts,
     nonEmptyChartCount: 1,
+    unavailableChartCount: 0,
   }),
 }));
 
 import CanonicalProgressChartsGrid from './CanonicalProgressChartsGrid';
 
 describe('CanonicalProgressChartsGrid exercise diary', () => {
+  beforeEach(() => {
+    refetchCharts.mockClear();
+  });
+
   it('imports the diary from the shared progress module, not the clients/team workspace', () => {
     const source = readFileSync(resolve(__dirname, 'CanonicalProgressChartsGrid.tsx'), 'utf8');
 
@@ -67,4 +75,13 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
     expect(screen.getByText(/top 8 - all time/i)).toBeInTheDocument();
   });
 
+  it('refetches canonical charts when a workout log succeeds', () => {
+    render(<CanonicalProgressChartsGrid userId={424242} />);
+
+    act(() => {
+      window.dispatchEvent(new Event('swan:workout-logged'));
+    });
+
+    expect(refetchCharts).toHaveBeenCalledTimes(1);
+  });
 });

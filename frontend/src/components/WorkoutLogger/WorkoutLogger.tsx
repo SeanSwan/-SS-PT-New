@@ -31,6 +31,7 @@ import {
   type AISubmitWorkoutEventDetail,
   type AIUpdateSetPayload,
 } from '../../utils/aiWorkoutEvents';
+import { dispatchWorkoutLogged } from '../../utils/workoutLoggedEvent';
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
 import { getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION } from './WorkoutLoggerCS';
@@ -781,6 +782,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       if (response.success && response.data) {
         toast.success(buildWorkoutSubmitSuccessMessage(response.data, response.message));
         setSubmittedFormId(response.data.id || response.data.formId || null);
+        dispatchWorkoutLogged({
+          clientId: response.data.clientId ?? effectiveClientId,
+          formId: response.data.id || response.data.formId || null,
+          date: response.data.date || workoutDateValue,
+        });
         resolvedOnComplete(response.data);
       } else {
         const existingFormId = response.data?.id || response.data?.formId || null;

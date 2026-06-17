@@ -84,7 +84,10 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = (pro
       )}
 
       <TrainerPermissionsGrid
+        cancelCriticalPermissionGrant={controller.cancelCriticalPermissionGrant}
+        confirmCriticalPermissionGrant={controller.confirmCriticalPermissionGrant}
         filteredTrainers={controller.filteredTrainers}
+        pendingCriticalGrant={controller.pendingCriticalGrant}
         processingPermissions={controller.processingPermissions}
         searchQuery={controller.searchQuery}
         selectedTrainers={controller.selectedTrainers}

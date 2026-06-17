@@ -22,6 +22,21 @@ import { sanitizeInput } from '../services/ai/inputSanitizer.mjs';
 import { scanForPHI } from '../services/ai/phiScanner.mjs';
 import logger from '../utils/logger.mjs';
 
+const NAME_REDACTION = '[NAME-REDACTED]';
+const NAME_HINT_FIELDS = new Set([
+  'clientName',
+  'contactName',
+  'displayName',
+  'fullName',
+  'name',
+  'recipientName',
+  'targetName',
+  'trainerName',
+]);
+const NAME_HINT_ARRAY_FIELDS = new Set(['identityHints', 'nameHints', 'piiNameHints']);
+const SKIP_NAME_HINT_FIELDS = new Set(['equipmentName', 'exerciseName', 'foodName', 'packageName', 'productName']);
+const FITNESS_NAME_CONTEXT = '(?:about|after|assessment|check-?in|form|hip|intake|knee|macros?|nutrition|pain|plan|program|progress|schedule|session|shoulder|sleep|workout)';
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: PII Regex Patterns
 // PURPOSE: Detect and redact common PII patterns in free text
@@ -38,6 +53,101 @@ const PII_PATTERNS = [
   { name: 'full_name_pattern', pattern: /\bmy\s+name\s+is\s+([A-Z][a-z]+\s+[A-Z][a-z]+)\b/gi, replacement: 'my name is [NAME-REDACTED]', severity: 'medium' },
 ];
 
+const CONTEXTUAL_NAME_PATTERNS = [
+  {
+    name: 'contextual_name',
+    pattern: /\b(ask|call|check|coach|email|message|notify|onboard|remind|schedule|text|tell|update)\s+([A-Z][a-z]{1,}(?:\s+[A-Z][a-z]{1,}){1,2})(?=\b|['']s)/g,
+    replacement: (_match, verb) => `${verb} ${NAME_REDACTION}`,
+    severity: 'medium',
+  },
+  {
+    name: 'contextual_name',
+    pattern: new RegExp(`\\b([A-Z][a-z]{1,}(?:\\s+[A-Z][a-z]{1,}){1,2})(?=(?:['']s)?\\s+${FITNESS_NAME_CONTEXT}\\b)`, 'g'),
+    replacement: NAME_REDACTION,
+    severity: 'medium',
+  },
+];
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function addNameHint(hints, value) {
+  if (typeof value !== 'string') return;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length >= 3 && /\s/.test(normalized)) hints.add(normalized);
+}
+
+function collectNameHintsFromObject(value, hints, depth = 0) {
+  if (!isPlainObject(value) || depth > 3) return;
+  if (typeof value.firstName === 'string' && typeof value.lastName === 'string') {
+    addNameHint(hints, `${value.firstName} ${value.lastName}`);
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    if (SKIP_NAME_HINT_FIELDS.has(key)) continue;
+    if (NAME_HINT_FIELDS.has(key)) addNameHint(hints, nested);
+    if (NAME_HINT_ARRAY_FIELDS.has(key) && Array.isArray(nested)) {
+      for (const item of nested) addNameHint(hints, item);
+    }
+    if (isPlainObject(nested)) collectNameHintsFromObject(nested, hints, depth + 1);
+  }
+}
+
+function collectRequestNameHints(req) {
+  const hints = new Set();
+  collectNameHintsFromObject(req.user, hints);
+  collectNameHintsFromObject(req.body, hints);
+  return [...hints];
+}
+
+function buildNameHintTerms(nameHints = []) {
+  const terms = new Set();
+  for (const hint of nameHints) {
+    if (typeof hint !== 'string') continue;
+    const normalized = hint.replace(/\s+/g, ' ').trim();
+    if (!normalized) continue;
+    terms.add(normalized);
+    const parts = normalized.split(' ');
+    if (parts.length >= 2) {
+      for (const part of parts) {
+        if (part.length >= 3) terms.add(part);
+      }
+    }
+  }
+  return [...terms].sort((a, b) => b.length - a.length);
+}
+
+function applyNameHintRedactions(text, nameHints) {
+  let sanitized = text;
+  let count = 0;
+  for (const term of buildNameHintTerms(nameHints)) {
+    const regex = new RegExp(`\\b${escapeRegex(term)}\\b`, 'gi');
+    sanitized = sanitized.replace(regex, () => {
+      count += 1;
+      return NAME_REDACTION;
+    });
+  }
+  return { sanitized, count };
+}
+
+function applyPatternRedactions(text, patterns) {
+  let sanitized = text;
+  const detections = [];
+  for (const { name, pattern, replacement, severity } of patterns) {
+    let count = 0;
+    sanitized = sanitized.replace(pattern, (...args) => {
+      count += 1;
+      return typeof replacement === 'function' ? replacement(...args) : replacement;
+    });
+    if (count > 0) detections.push({ type: name, severity, count });
+  }
+  return { sanitized, detections };
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Text Sanitization
 // PURPOSE: Apply all PII patterns + PHI scan to a text string
@@ -48,7 +158,7 @@ const PII_PATTERNS = [
  * @param {string} text - Raw text input
  * @returns {{ sanitized: string, detections: Object[], hasCriticalPII: boolean }}
  */
-function sanitizeText(text) {
+export function sanitizeText(text, options = {}) {
   if (!text || typeof text !== 'string') {
     return { sanitized: text, detections: [], hasCriticalPII: false };
   }
@@ -71,6 +181,16 @@ function sanitizeText(text) {
       if (severity === 'critical') hasCriticalPII = true;
     }
   }
+
+  const hintedNames = applyNameHintRedactions(sanitized, options.nameHints);
+  sanitized = hintedNames.sanitized;
+  if (hintedNames.count > 0) {
+    detections.push({ type: 'name_hint', severity: 'medium', count: hintedNames.count });
+  }
+
+  const contextualNames = applyPatternRedactions(sanitized, CONTEXTUAL_NAME_PATTERNS);
+  sanitized = contextualNames.sanitized;
+  detections.push(...contextualNames.detections);
 
   // Run PHI scanner for medical information
   const phiResult = scanForPHI(sanitized);
@@ -128,6 +248,7 @@ export function piiSanitization(options = {}) {
       return next();
     }
 
+    const nameHints = collectRequestNameHints(req);
     const allDetections = [];
     let blocked = false;
 
@@ -136,7 +257,7 @@ export function piiSanitization(options = {}) {
       const value = req.body[field];
       if (!value || typeof value !== 'string') continue;
 
-      const result = sanitizeText(value);
+      const result = sanitizeText(value, { nameHints });
 
       if (result.detections.length > 0) {
         allDetections.push(...result.detections.map(d => ({ ...d, field })));
@@ -155,7 +276,7 @@ export function piiSanitization(options = {}) {
       for (let i = 0; i < req.body.messages.length; i++) {
         const msg = req.body.messages[i];
         if (msg.content && typeof msg.content === 'string') {
-          const result = sanitizeText(msg.content);
+          const result = sanitizeText(msg.content, { nameHints });
           if (result.detections.length > 0) {
             allDetections.push(...result.detections.map(d => ({ ...d, field: `messages[${i}].content` })));
             req.body.messages[i].content = result.sanitized;

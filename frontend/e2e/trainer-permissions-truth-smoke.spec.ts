@@ -230,6 +230,9 @@ test('admin trainer permissions uses live trainers and functional controls', asy
   await expect(page.getByText(/Byron Mills/i)).toBeVisible();
 
   await page.getByRole('button', { name: /grant edit client workouts for Asha Reed/i }).click();
+  await expect(page.getByRole('alertdialog', { name: /confirm edit client workouts for Asha Reed/i })).toBeVisible();
+  await expect.poll(() => apiState.grantHits).toBe(0);
+  await page.getByRole('button', { name: /confirm grant edit client workouts for Asha Reed/i }).click();
   await expect.poll(() => apiState.grantHits).toBe(1);
   await expect(page.getByRole('button', { name: /revoke edit client workouts for Asha Reed/i })).toBeVisible();
 

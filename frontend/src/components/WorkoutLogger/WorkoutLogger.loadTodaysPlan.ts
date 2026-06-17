@@ -37,6 +37,13 @@ interface LoadTodaysPlanIntoLoggerParams {
   setPlannedAssignment: Dispatch<SetStateAction<PlannedAssignment | null>>;
 }
 
+function isMissingCurrentPlanContext(error: unknown): boolean {
+  const response = (error as { response?: { status?: number; data?: { message?: string } } } | null)?.response;
+  const message = response?.data?.message || '';
+
+  return response?.status === 404 && /client not found|workout plan/i.test(message);
+}
+
 export async function loadTodaysPlanIntoLogger({
   effectiveClientId,
   createWorkoutLoggerLocalId,
@@ -131,6 +138,11 @@ export async function loadTodaysPlanIntoLogger({
     setPlannedAssignment(null);
     toast.success(`Loaded ${prefilled.length} exercises from ${dayLabel}'s plan`);
   } catch (error: unknown) {
+    if (isMissingCurrentPlanContext(error)) {
+      setPlannedAssignment(null);
+      toast.info('No active workout plan found for this client');
+      return;
+    }
     console.error('Failed to load today\'s plan:', error);
     toast.error(getErrorMessage(error, 'Could not load today\'s workout plan'));
   } finally {

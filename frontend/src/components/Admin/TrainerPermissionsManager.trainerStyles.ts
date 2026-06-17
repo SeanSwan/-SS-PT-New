@@ -199,6 +199,49 @@ export const PermissionStatusText = styled.div<{ type: PermissionStatus }>`
     permissionTheme.colors.textSecondary};
 `;
 
+export const CriticalGrantConfirmCard = styled.div`
+  margin: ${permissionTheme.spacing.sm} 0;
+  padding: ${permissionTheme.spacing.md};
+  border: 1px solid ${permissionTheme.colors.warning};
+  border-radius: ${permissionTheme.borderRadius.md};
+  background: ${permissionTheme.colors.warningWash};
+  color: ${permissionTheme.colors.text};
+  p {
+    margin: ${permissionTheme.spacing.xs} 0;
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+`;
+
+export const CriticalGrantConfirmTitle = styled.div`
+  display: flex; align-items: center; gap: ${permissionTheme.spacing.xs};
+  font-size: 0.9rem;
+  font-weight: 700;
+`;
+
+export const CriticalGrantConfirmMeta = styled.div`
+  margin-bottom: ${permissionTheme.spacing.sm};
+  font-size: 0.78rem;
+  color: ${permissionTheme.colors.textSecondary};
+`;
+
+export const CriticalGrantConfirmActions = styled.div`
+  display: flex; flex-wrap: wrap; gap: ${permissionTheme.spacing.sm};
+`;
+export const CriticalGrantConfirmButton = styled.button<{ $variant: 'warning' | 'secondary' }>`
+  min-height: 44px;
+  padding: 0 ${permissionTheme.spacing.md};
+  border-radius: ${permissionTheme.borderRadius.sm};
+  border: 1px solid ${props => props.$variant === 'warning' ? permissionTheme.colors.warning : permissionTheme.colors.border};
+  background: ${props => props.$variant === 'warning' ? permissionTheme.colors.warning : permissionTheme.colors.background};
+  color: ${props => props.$variant === 'warning' ? 'var(--text-on-warning, #0a0a0f)' : permissionTheme.colors.text};
+  cursor: pointer;
+  font-weight: 700;
+  &:focus-visible {
+    outline: 2px solid ${permissionTheme.colors.primary}; outline-offset: 2px;
+  }
+`;
+
 export const PermissionsSummary = styled.div`
   padding: ${permissionTheme.spacing.md} ${permissionTheme.spacing.lg};
   background: ${permissionTheme.colors.background};

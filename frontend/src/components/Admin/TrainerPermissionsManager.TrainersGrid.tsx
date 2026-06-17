@@ -12,6 +12,11 @@ import {
 } from './TrainerPermissionsManager.logic';
 import {
   CriticalBadge,
+  CriticalGrantConfirmActions,
+  CriticalGrantConfirmButton,
+  CriticalGrantConfirmCard,
+  CriticalGrantConfirmMeta,
+  CriticalGrantConfirmTitle,
   EmptyState,
   MutedKey,
   PermissionCard,
@@ -40,7 +45,15 @@ import type {
 } from './TrainerPermissionsManager.types';
 
 interface TrainerPermissionsGridProps {
+  cancelCriticalPermissionGrant: () => void;
+  confirmCriticalPermissionGrant: () => void;
   filteredTrainers: TrainerWithPermissions[];
+  pendingCriticalGrant: {
+    permissionLabel: string;
+    permissionType: string;
+    trainerId: number;
+    trainerName: string;
+  } | null;
   processingPermissions: Set<string>;
   searchQuery: string;
   selectedTrainers: Set<number>;
@@ -72,7 +85,10 @@ const getStatusLabel = (status: PermissionStatus, permissionData: PermissionData
 };
 
 export const TrainerPermissionsGrid: React.FC<TrainerPermissionsGridProps> = ({
+  cancelCriticalPermissionGrant,
+  confirmCriticalPermissionGrant,
   filteredTrainers,
+  pendingCriticalGrant,
   processingPermissions,
   searchQuery,
   selectedTrainers,
@@ -122,6 +138,9 @@ export const TrainerPermissionsGrid: React.FC<TrainerPermissionsGridProps> = ({
               };
               const status = trainer.permissionLoadFailed ? 'unknown' : getPermissionStatus(permissionData);
               const isProcessing = processingPermissions.has(`${trainer.id}-${permType.key}`);
+              const isPendingCriticalGrant =
+                pendingCriticalGrant?.trainerId === trainer.id &&
+                pendingCriticalGrant.permissionType === permType.key;
               const IconComponent = permType.icon;
 
               return (
@@ -172,6 +191,42 @@ export const TrainerPermissionsGrid: React.FC<TrainerPermissionsGridProps> = ({
                   <PermissionDescription>
                     {permType.description}
                   </PermissionDescription>
+
+                  {isPendingCriticalGrant ? (
+                    <CriticalGrantConfirmCard
+                      role="alertdialog"
+                      aria-label={`Confirm ${permType.label} for ${trainer.firstName} ${trainer.lastName}`}
+                      aria-modal="false"
+                    >
+                      <CriticalGrantConfirmTitle>
+                        <AlertTriangle size={16} />
+                        Confirm Critical Grant
+                      </CriticalGrantConfirmTitle>
+                      <p>
+                        Review this critical permission before granting access to {trainer.firstName} {trainer.lastName}.
+                      </p>
+                      <CriticalGrantConfirmMeta>Permission write requires confirmation</CriticalGrantConfirmMeta>
+                      <CriticalGrantConfirmActions>
+                        <CriticalGrantConfirmButton
+                          type="button"
+                          $variant="warning"
+                          onClick={confirmCriticalPermissionGrant}
+                          disabled={isProcessing}
+                          aria-label={`Confirm grant ${permType.label} for ${trainer.firstName} ${trainer.lastName}`}
+                        >
+                          Confirm
+                        </CriticalGrantConfirmButton>
+                        <CriticalGrantConfirmButton
+                          type="button"
+                          $variant="secondary"
+                          onClick={cancelCriticalPermissionGrant}
+                          aria-label={`Cancel grant ${permType.label} for ${trainer.firstName} ${trainer.lastName}`}
+                        >
+                          Cancel
+                        </CriticalGrantConfirmButton>
+                      </CriticalGrantConfirmActions>
+                    </CriticalGrantConfirmCard>
+                  ) : null}
 
                   <PermissionStatusText type={status}>
                     {getStatusIcon(status)}

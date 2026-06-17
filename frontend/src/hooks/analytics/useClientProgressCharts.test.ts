@@ -51,6 +51,13 @@ const PRIMARY_CARDS_SOURCE = readFileSync(
   ),
   'utf8',
 );
+const INTERACTIVE_CARDS_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.interactiveCards.tsx',
+  ),
+  'utf8',
+);
 const DETAIL_CARDS_SOURCE = readFileSync(
   resolve(
     __dirname,
@@ -58,7 +65,7 @@ const DETAIL_CARDS_SOURCE = readFileSync(
   ),
   'utf8',
 );
-const GRID_CARD_SOURCE = `${GRID_SOURCE}\n${PRIMARY_CARDS_SOURCE}\n${DETAIL_CARDS_SOURCE}`;
+const GRID_CARD_SOURCE = `${GRID_SOURCE}\n${PRIMARY_CARDS_SOURCE}\n${INTERACTIVE_CARDS_SOURCE}\n${DETAIL_CARDS_SOURCE}`;
 const PAGE_SOURCE = readFileSync(
   resolve(
     __dirname,
