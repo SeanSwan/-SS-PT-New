@@ -10,6 +10,7 @@ import apiService from '../../services/api.service';
 import AutomationConfirmDialog, { type AutomationConfirmRequest } from './AutomationConfirmDialog';
 import AutomationManagerView from './AutomationManagerView';
 import NurturePreviewPanel from './NurturePreviewPanel';
+import NurtureTestSendPanel from './NurtureTestSendPanel';
 import { triggerEventOptions, type TemplateOption } from './AutomationManager.options';
 
 const AutomationManager: React.FC = () => {
@@ -266,6 +267,7 @@ const AutomationManager: React.FC = () => {
         handleTrigger={handleTrigger}
       />
       <NurturePreviewPanel />
+      <NurtureTestSendPanel />
       <AutomationConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
     </>
   );
