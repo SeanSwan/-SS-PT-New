@@ -7,10 +7,9 @@
  */
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
+import { roleRoutes, type DashboardRole } from './production-dashboard-crawl.routes';
 
 test.describe.configure({ retries: 0 });
-
-type DashboardRole = 'admin' | 'trainer' | 'client' | 'user';
 
 interface CrawlIssueState {
   blockedWrites: string[];
@@ -35,105 +34,10 @@ const authStates: Record<DashboardRole, string | undefined> = {
   user: process.env.SWAN_PROD_USER_AUTH_STATE,
 };
 
-const roleRoutes: Record<DashboardRole, string[]> = {
-  admin: [
-    '/dashboard/admin',
-    '/dashboard/admin/coach-assistant',
-    '/dashboard/admin/overview',
-    '/dashboard/admin/messages',
-    '/dashboard/admin/client-management',
-    '/dashboard/admin/client-management?intent=log_workout',
-    '/dashboard/admin/client-management?intent=plan_next',
-    '/dashboard/admin/waivers',
-    '/dashboard/admin/admin-sessions',
-    '/dashboard/admin/master-schedule',
-    '/dashboard/admin/workout-planner',
-    '/dashboard/admin/bootcamp',
-    '/dashboard/admin/equipment',
-    '/dashboard/admin/body-map',
-    '/dashboard/admin/meal-planner',
-    '/dashboard/admin/admin-packages',
-    '/dashboard/admin/pending-orders',
-    '/dashboard/admin/revenue',
-    '/dashboard/admin/marketing',
-    '/dashboard/admin/gamification',
-    '/dashboard/admin/content',
-    '/dashboard/admin/security',
-    '/dashboard/admin/style-guide',
-    '/dashboard/admin/badge-creator',
-    '/dashboard/admin/immigration',
-    '/dashboard/admin/my-home',
-    '/dashboard/admin/automation',
-    '/dashboard/admin/sms-logs',
-    '/dashboard/admin/log-my-workout',
-    '/dashboard/admin/log-workout',
-  ],
-  trainer: [
-    '/dashboard/trainer',
-    '/dashboard/trainer/overview',
-    '/dashboard/trainer/clients',
-    '/dashboard/trainer/log-workout',
-    '/dashboard/trainer/client-progress',
-    '/dashboard/trainer/assessments',
-    '/dashboard/trainer/videos',
-    '/dashboard/trainer/workout-forge',
-    '/dashboard/trainer/plaud',
-    '/dashboard/trainer/workout-planner',
-    '/dashboard/trainer/meal-planner',
-    '/dashboard/trainer/schedule',
-    '/dashboard/trainer/messages',
-    '/dashboard/trainer/live',
-    '/dashboard/trainer/creators',
-    '/dashboard/trainer/equipment',
-    '/dashboard/trainer/bootcamp',
-    '/dashboard/trainer/body-map',
-    '/dashboard/trainer/sprint-planner',
-    '/dashboard/trainer/video-call',
-    '/dashboard/trainer/my-home',
-    '/dashboard/trainer/coach-assistant',
-    '/dashboard/trainer/virtual-olympics',
-  ],
-  client: [
-    '/dashboard/client',
-    '/dashboard/client/overview',
-    '/dashboard/client/onboarding',
-    '/dashboard/client/workouts',
-    '/dashboard/client/log-workout',
-    '/dashboard/client/progress',
-    '/dashboard/client/progress/detailed',
-    '/dashboard/client/ai-consent',
-    '/dashboard/client/meal-planner',
-    '/dashboard/client/schedule',
-    '/dashboard/client/community',
-    '/dashboard/client/messages',
-    '/dashboard/client/live',
-    '/dashboard/client/creators',
-    '/dashboard/client/profile',
-    '/dashboard/client/rewards',
-    '/dashboard/client/body-map',
-    '/dashboard/client/my-home',
-    '/dashboard/client/coach-assistant',
-    '/dashboard/client/virtual-olympics',
-  ],
-  user: [
-    '/user-dashboard',
-    '/user-dashboard/reels',
-    '/user-dashboard/friends',
-    '/user-dashboard/challenges',
-    '/user-dashboard/notifications',
-    '/user-dashboard/creative',
-    '/user-dashboard/photos',
-    '/user-dashboard/about',
-    '/user-dashboard/activity',
-    '/user-dashboard/nutrition',
-    '/user-dashboard/progress',
-    '/user-dashboard/profile',
-  ],
-};
-
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const unsafeClickPattern = /\b(delete|remove|submit|save|send|share|post|upload|logout|log out|sign out|checkout|pay|buy|purchase|confirm|approve|archive|block|charge|grant|revoke|publish|enable|disable|start|join|assign|allocate|arm|run|launch)\b/i;
 const maxClicksPerRoute = Number(process.env.SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE || '24');
+const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS || '600000');
 
 function allowedReadFailure(entry: string) {
   return /^401 GET \/api\/subscriptions\/status$/.test(entry);
@@ -148,6 +52,10 @@ function isSocketPollingUrl(rawUrl: string) {
   }
 }
 
+function isNavigationAbort(request: { failure(): { errorText: string } | null }) {
+  return /net::ERR_ABORTED|NS_BINDING_ABORTED|Target closed/i.test(request.failure()?.errorText || '');
+}
+
 function allowedConsoleNoise(message: string, state: CrawlIssueState) {
   if (/preloaded using link preload/i.test(message)) return true;
   if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
@@ -159,6 +67,9 @@ function allowedConsoleNoise(message: string, state: CrawlIssueState) {
   }
   if (/Failed to load resource: the server responded with a status of 400/i.test(message)) {
     return state.requestFailures.some(isSocketPollingUrl) || state.readFailures.some((entry) => /\/socket\.io\//.test(entry));
+  }
+  if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
+    return state.blockedWrites.length > 0;
   }
   return false;
 }
@@ -179,6 +90,7 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
   });
   page.on('pageerror', (error) => state.pageErrors.push(error.message));
   page.on('requestfailed', (request) => {
+    if (isNavigationAbort(request)) return;
     state.requestFailures.push(request.url());
   });
   page.on('response', (response) => {
@@ -193,6 +105,7 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
     if (!writeMethods.has(request.method())) return route.continue();
 
     const endpoint = new URL(request.url()).pathname;
+    if (endpoint === '/socket.io/') return route.continue();
     state.blockedWrites.push(`${request.method()} ${endpoint}`);
     return route.fulfill({
       status: 405,
@@ -207,9 +120,21 @@ async function settle(page: Page) {
   await page.waitForTimeout(250);
 }
 
+async function gotoRoute(page: Page, route: string) {
+  try {
+    await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/ERR_ABORTED|frame was detached/i.test(message)) throw error;
+    await page.waitForTimeout(500).catch(() => undefined);
+    await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+  }
+}
+
 async function markSafeCandidates(page: Page): Promise<CrawlCandidate[]> {
   return page.evaluate(({ unsafe }) => {
     const unsafePattern = new RegExp(unsafe, 'i');
+    const currentPath = window.location.pathname;
     const visible = (element: Element) => {
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
@@ -232,12 +157,16 @@ async function markSafeCandidates(page: Page): Promise<CrawlCandidate[]> {
         return { id, label, href, role: element.getAttribute('role') || element.tagName.toLowerCase() };
       })
       .filter((candidate) => candidate.label && !unsafePattern.test(candidate.label))
-      .filter((candidate) => !candidate.href || candidate.href.startsWith(window.location.origin));
+      .filter((candidate) => {
+        if (!candidate.href) return true;
+        const href = new URL(candidate.href);
+        return href.origin === window.location.origin && href.pathname === currentPath;
+      });
   }, { unsafe: unsafeClickPattern.source });
 }
 
 async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRole, route: string, testInfo: TestInfo) {
-  await page.goto(route, { waitUntil: 'domcontentloaded' });
+  await gotoRoute(page, route);
   await settle(page);
 
   const bodyText = await page.locator('body').innerText({ timeout: 20_000 }).catch(() => '');
@@ -255,7 +184,7 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
     await settle(page);
 
     if (new URL(page.url()).pathname !== new URL(route, page.url()).pathname) {
-      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await gotoRoute(page, route);
       await settle(page);
     }
   }
@@ -275,6 +204,7 @@ function declareRoleCrawl(role: DashboardRole) {
     test.use({ storageState: authStates[role] || { cookies: [], origins: [] } });
 
     test(`@mission @prod-live-readonly @readonly @dashboard-crawl ${role} dashboard has no actionable console errors`, async ({ page }, testInfo) => {
+      test.setTimeout(crawlTimeoutMs);
       test.skip(!authStates[role], `Set SWAN_PROD_${role.toUpperCase()}_AUTH_STATE to crawl ${role} production dashboard.`);
       expect(process.env.SWAN_MISSION_QA_LIVE_API || '0').toBe('1');
       expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');

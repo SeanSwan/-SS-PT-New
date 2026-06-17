@@ -58,6 +58,8 @@ npm run qa:mission
 npm run qa:mission:prod-readonly
 npm run qa:mission:prod-live-readonly
 npm run qa:prod-auth:capture:admin
+npm run qa:prod-auth:bootstrap-dashboard
+npm run qa:dashboard-crawl:prod:auto
 npm run qa:mission:cleanup
 npm run qa:mission:report
 ```
@@ -80,6 +82,10 @@ Playwright storage-state file under an ignored directory such as `.auth/`.
 for admin, trainer, client, and user dashboards. It blocks write methods,
 clicks safe visible dashboard controls, and attaches a
 `dashboard-crawl-report.json` artifact for console, page, and network issues.
+If only an admin production auth state is available, `qa:dashboard-crawl:prod:auto`
+uses that admin state to create or refresh deterministic
+`@swanstudios-qa.local` trainer, client, and user personas, saves the role
+storage states under `.auth/`, and then runs the same read-only crawl.
 
 `qa:mission:cleanup` is dry-run by default and stays scoped to
 `@swanstudios-qa.local` records. `qa:mission:report` writes a markdown evidence

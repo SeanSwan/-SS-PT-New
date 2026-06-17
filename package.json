@@ -24,6 +24,8 @@
     "qa:prod-auth:capture:trainer": "node scripts/qa/capture-prod-auth-state.mjs --role=trainer",
     "qa:prod-auth:capture:client": "node scripts/qa/capture-prod-auth-state.mjs --role=client",
     "qa:prod-auth:capture:user": "node scripts/qa/capture-prod-auth-state.mjs --role=user",
+    "qa:prod-auth:bootstrap-dashboard": "node scripts/qa/bootstrap-prod-dashboard-auth.mjs",
+    "qa:dashboard-crawl:prod:auto": "node scripts/qa/bootstrap-prod-dashboard-auth.mjs --run-crawl",
     "qa:mission:cleanup": "node scripts/qa/mission-qa-cleanup.mjs",
     "qa:mission:report": "node scripts/qa/mission-report.mjs",
     "code-health": "fallow --format json",
