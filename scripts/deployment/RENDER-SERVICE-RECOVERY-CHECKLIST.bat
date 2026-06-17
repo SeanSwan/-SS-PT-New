@@ -32,7 +32,7 @@ echo   SENDGRID_API_KEY: "your_sendgrid_key_here"
 echo   STRIPE_SECRET_KEY: "your_stripe_secret_key_here"
 echo   TWILIO_ACCOUNT_SID: "your_twilio_sid_here"
 echo   TWILIO_AUTH_TOKEN: "your_twilio_token_here"
-echo   ADMIN_ACCESS_CODE: "admin-access-code-123"
+echo   ADMIN_ACCESS_CODE: [placeholder, short value, or human phrase]
 echo.
 echo ✅ SHOULD BE SET BY RENDER AUTOMATICALLY:
 echo   DATABASE_URL: [Render PostgreSQL connection string]
@@ -48,7 +48,7 @@ echo    JWT_SECRET: [Generate 32+ character random string]
 echo    JWT_REFRESH_SECRET: [Generate different 32+ character string]
 echo    SENDGRID_API_KEY: [Your actual SendGrid key or skip if not critical]
 echo    STRIPE_SECRET_KEY: [Your actual Stripe key or skip if not critical]
-echo    ADMIN_ACCESS_CODE: [Your chosen admin password]
+echo    ADMIN_ACCESS_CODE: [Fresh high-entropy value from scripts/utilities/generate-jwt-secrets.mjs]
 echo 3. Click "Save Changes"
 
 echo.
