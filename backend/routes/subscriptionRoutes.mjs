@@ -432,15 +432,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
+  const hasRawBody = Buffer.isBuffer(req.body) || typeof req.body === 'string';
 
   let event;
   try {
     if (webhookSecret) {
+      if (!hasRawBody) {
+        logger.error('[Subscription Webhook] Raw request body missing for signed webhook verification');
+        return res.status(400).send('Webhook Error: raw body required');
+      }
       event = s.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } else if (process.env.NODE_ENV === 'production') {
+      logger.error('[Subscription Webhook] STRIPE_SUBSCRIPTION_WEBHOOK_SECRET missing in production');
+      return res.status(503).send('Subscription webhook is not configured');
     } else {
-      // Dev mode — trust the payload
-      event = JSON.parse(req.body.toString());
-      logger.warn('[Subscription Webhook] No webhook secret configured — accepting unverified event');
+      event = hasRawBody ? JSON.parse(req.body.toString()) : req.body;
+      logger.warn('[Subscription Webhook] No webhook secret configured; accepting unsigned development event');
     }
   } catch (err) {
     logger.error('[Subscription Webhook] Signature verification failed:', err.message);
@@ -643,9 +650,10 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
   } catch (error) {
     logger.error('[Subscription Webhook] Processing error:', error);
+    return res.status(500).json({ received: false, message: 'Webhook processing failed' });
   }
 
-  res.json({ received: true });
+  return res.json({ received: true });
 });
 
 // ─────────────────────────────────────────────────────────────

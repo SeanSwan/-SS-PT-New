@@ -28,13 +28,15 @@ export const setupMiddleware = async (app) => {
   // body and signature fails.
   //
   // Path-filter exclusion (Codex HIGH-5 Option B for Phase 5 Slice 5.5):
-  //   - /api/webhook, /webhooks       — Stripe webhook routes
-  //   - /api/plaud/webhook            — PLAUD Auto-Ingestion (Phase 5)
+  //   - /api/webhook, /webhooks        — Stripe purchase webhook routes
+  //   - /api/subscriptions/webhook     — Stripe subscription webhook route
+  //   - /api/plaud/webhook             — PLAUD Auto-Ingestion (Phase 5)
   // Each webhook route applies its own raw-aware parser (express.raw for
   // Stripe; express.json with verify hook for PLAUD).
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/webhook')
         || req.path.startsWith('/webhooks')
+        || req.path.startsWith('/api/subscriptions/webhook')
         || req.path.startsWith('/api/plaud/webhook')) {
       return next();
     }
