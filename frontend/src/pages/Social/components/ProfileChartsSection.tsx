@@ -20,6 +20,8 @@
 import React, { lazy, Suspense, useMemo } from 'react';
 import styled from 'styled-components';
 import ChartSkeleton from '../../../components/SkeletonLoaders/ChartSkeleton';
+import { useAuth } from '../../../context/AuthContext';
+import { useSubscription } from '../../../hooks/useSubscription';
 import type { ChartVisibility } from './ChartVisibilityToggle';
 
 // Lazy-load chart components (per CLAUDE.md — all charts MUST be lazy)
@@ -71,16 +73,17 @@ interface ChartEntry {
   label: string;
   Component: React.LazyExoticComponent<React.ComponentType<any>>;
   height?: number;
+  requiresPro?: boolean;
 }
 
 const CHART_REGISTRY: ChartEntry[] = [
-  { key: 'workoutFrequency', label: 'Workout Frequency', Component: WorkoutFrequencyBar },
-  { key: 'weightProgression', label: 'Weight Progression', Component: WeightProgressionLive },
+  { key: 'workoutFrequency', label: 'Workout Frequency', Component: WorkoutFrequencyBar, requiresPro: true },
+  { key: 'weightProgression', label: 'Weight Progression', Component: WeightProgressionLive, requiresPro: true },
   // Phase 15.4: muscleRadar key now points at the canonical
   // muscle-group-balance bar list. Old radar visualization no longer
   // applies — the underlying data shape is bars, not a polar fill.
-  { key: 'muscleRadar', label: 'Muscle Group Volume', Component: MuscleGroupBalanceBars },
-  { key: 'macroSplit', label: 'Macro Split', Component: MacroSplitDonut },
+  { key: 'muscleRadar', label: 'Muscle Group Volume', Component: MuscleGroupBalanceBars, requiresPro: true },
+  { key: 'macroSplit', label: 'Macro Split', Component: MacroSplitDonut, requiresPro: true },
   // `cardioEndurance` key intentionally omitted — no canonical replacement
   // (out of Phase 14 12-chart scope). Saved prefs with this key fall
   // through harmlessly.
@@ -88,10 +91,10 @@ const CHART_REGISTRY: ChartEntry[] = [
   // frequency bar (per Sean's mapping). User-facing label kept distinct
   // from `workoutFrequency` so a user who has both keys enabled sees
   // two clearly-labeled bars rather than a duplicate-looking surface.
-  { key: 'sessionFrequency', label: 'Session Frequency', Component: WorkoutFrequencyBar },
-  { key: 'bodyFatTrend', label: 'Body Fat Trend', Component: BodyFatTrendLine },
-  { key: 'muscleRecovery', label: 'Recovery Signals', Component: RecoverySignalBars },
-  { key: 'rpeByExercise', label: 'Effort Trend (RPE)', Component: IntensityRpeTrendLine },
+  { key: 'sessionFrequency', label: 'Session Frequency', Component: WorkoutFrequencyBar, requiresPro: true },
+  { key: 'bodyFatTrend', label: 'Body Fat Trend', Component: BodyFatTrendLine, requiresPro: true },
+  { key: 'muscleRecovery', label: 'Recovery Signals', Component: RecoverySignalBars, requiresPro: true },
+  { key: 'rpeByExercise', label: 'Effort Trend (RPE)', Component: IntensityRpeTrendLine, requiresPro: true },
   { key: 'exerciseRolodex', label: 'Exercise History', Component: ExerciseHistoryChart, height: 400 },
   { key: 'workoutHeatmap', label: 'Workout Calendar', Component: WorkoutHeatmapCalendar },
   { key: 'goalProgress', label: 'Goal Progress', Component: GoalProgressBullet },
@@ -106,12 +109,32 @@ const ProfileChartsSection: React.FC<ProfileChartsSectionProps> = ({
   chartVisibility,
   isOwnProfile = false,
 }) => {
-  const visibleCharts = useMemo(
-    () => CHART_REGISTRY.filter(c => chartVisibility[c.key] === true),
+  const { user } = useAuth();
+  const { isPro, isElite, isTrial, loading: subscriptionLoading } = useSubscription();
+  const isStaffRole = user?.role === 'admin' || user?.role === 'trainer';
+  const hasPaidChartAccess = isStaffRole || isPro || isElite || isTrial;
+  const hasProtectedChartSelected = useMemo(
+    () => CHART_REGISTRY.some(c => chartVisibility[c.key] === true && c.requiresPro),
     [chartVisibility]
   );
+  const visibleCharts = useMemo(
+    () => CHART_REGISTRY.filter(c => chartVisibility[c.key] === true && (!c.requiresPro || hasPaidChartAccess)),
+    [chartVisibility, hasPaidChartAccess]
+  );
+
+  if (subscriptionLoading && hasProtectedChartSelected && !isStaffRole) {
+    return <ChartSkeleton height={280} />;
+  }
 
   if (visibleCharts.length === 0) {
+    if (isOwnProfile && hasProtectedChartSelected && !hasPaidChartAccess) {
+      return (
+        <EmptyHint>
+          Upgrade to Swan Guardian to show advanced progress charts on your profile.
+        </EmptyHint>
+      );
+    }
+
     if (isOwnProfile) {
       return (
         <EmptyHint>

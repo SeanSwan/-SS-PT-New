@@ -51,4 +51,16 @@ describe('universal schedule service auth pipeline', () => {
     expect(combinedSource).not.toContain('fetch(');
     expect(combinedSource).not.toContain('VITE_API_URL');
   });
+
+  it('does not poll trainer/admin roster endpoints from the client schedule view', () => {
+    const calendarDataSource = readSource('frontend/src/components/UniversalMasterSchedule/hooks/useCalendarData.ts');
+
+    expect(calendarDataSource).toContain("const canLoadClientRoster = user?.role === 'admin' || user?.role === 'trainer';");
+    expect(calendarDataSource).toContain('if (!canLoadClientRoster) {');
+    expect(calendarDataSource).toContain('setLoading(prev => ({ ...prev, clients: false }));');
+    expect(calendarDataSource).toContain('setLoading(prev => ({ ...prev, assignments: false }));');
+    expect(calendarDataSource).toContain('canLoadClientRoster ? [');
+    expect(calendarDataSource).toContain("dataType: 'clients'");
+    expect(calendarDataSource).toContain("dataType: 'assignments'");
+  });
 });

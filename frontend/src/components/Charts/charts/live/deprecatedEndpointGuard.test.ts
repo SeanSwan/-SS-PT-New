@@ -96,6 +96,14 @@ describe('Phase 15.4 — canonical consumer surfaces do not call deprecated endp
       expect(PROFILE_CHARTS_SECTION_SOURCE).toMatch(/key:\s*['"]muscleRecovery['"]/);
       expect(PROFILE_CHARTS_SECTION_SOURCE).toMatch(/key:\s*['"]rpeByExercise['"]/);
     });
+
+    it('gates paid profile chart components before non-paying clients hit /api/analytics/:userId/chart-*', () => {
+      expect(PROFILE_CHARTS_SECTION_SOURCE).toContain('requiresPro?: boolean');
+      expect(PROFILE_CHARTS_SECTION_SOURCE).toContain('hasPaidChartAccess');
+      expect(PROFILE_CHARTS_SECTION_SOURCE).toContain('!c.requiresPro || hasPaidChartAccess');
+      expect(PROFILE_CHARTS_SECTION_SOURCE).toMatch(/key:\s*['"]workoutFrequency['"][\s\S]*requiresPro:\s*true/);
+      expect(PROFILE_CHARTS_SECTION_SOURCE).toMatch(/key:\s*['"]weightProgression['"][\s\S]*requiresPro:\s*true/);
+    });
   });
 
   describe('Trainer ClientAnalyticsPanel (mounted via EnhancedClientProgressView at /dashboard/trainer/client-progress)', () => {
