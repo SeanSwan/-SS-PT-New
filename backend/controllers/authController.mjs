@@ -375,6 +375,7 @@ async function withWaiverAccessStatus(user) {
     const status = await getWaiverAccessStatus(user);
     return {
       ...sanitized,
+      waiverRequired: status.required,
       hasLinkedWaiver: status.hasLinkedWaiver,
       waiverStatus: status.waiverStatus,
       waiverRecordId: status.waiverRecordId || null,
@@ -390,6 +391,7 @@ async function withWaiverAccessStatus(user) {
     const requiresWaiver = ['client', 'user'].includes(user?.role);
     return {
       ...sanitized,
+      waiverRequired: requiresWaiver,
       hasLinkedWaiver: !requiresWaiver,
       waiverStatus: requiresWaiver ? 'unverified' : 'not_required',
       waiverRecordId: null,
