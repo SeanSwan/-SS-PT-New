@@ -38,6 +38,8 @@ const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const unsafeClickPattern = /\b(delete|remove|submit|save|send|share|post|upload|logout|log out|sign out|checkout|pay|buy|purchase|confirm|approve|archive|block|charge|grant|revoke|publish|enable|disable|start|join|assign|allocate|arm|run|launch)\b/i;
 const maxClicksPerRoute = Number(process.env.SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE || '24');
 const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS || '600000');
+const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDLE_TIMEOUT_MS || '1000');
+const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
 function isSocketPollingUrl(rawUrl: string) {
   try {
@@ -109,8 +111,12 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
 }
 
 async function settle(page: Page) {
-  await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => undefined);
-  await page.waitForTimeout(250);
+  if (networkIdleTimeoutMs > 0) {
+    await page.waitForLoadState('networkidle', { timeout: networkIdleTimeoutMs }).catch(() => undefined);
+  }
+  if (settleDelayMs > 0) {
+    await page.waitForTimeout(settleDelayMs);
+  }
 }
 
 async function gotoRoute(page: Page, route: string) {
