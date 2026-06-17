@@ -197,6 +197,17 @@ describe('smsRoutes raw send safety gates', () => {
     });
   });
 
+  it('passes leadId into suppression for manual lead resends', async () => {
+    process.env.SWAN_AUTOMATION_CRON_ENABLED = 'true';
+
+    const res = await request(makeApp())
+      .post('/api/sms/send')
+      .send({ to: '+15550002222', body: 'Lead resend', recipientEmail: 'lead@example.com', leadId: 7 });
+
+    expect(res.status).toBe(200);
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@example.com', phone: '+15550002222', leadId: 7 });
+  });
+
   it('includes lead email on SMS logs so lead resends can pass suppression identity checks', async () => {
     automationLogFindAll.mockResolvedValue([
       {

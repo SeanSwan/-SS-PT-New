@@ -192,6 +192,7 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
     ]);
     const res = await previewScheduledMessages();
     expect(leadFindByPk).toHaveBeenCalledWith(777);
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@x.com', phone: '+15550007777', leadId: 777 });
     const item = res.items.find((i) => i.id === 9);
     expect(item).toMatchObject({ action: 'send', recipientKind: 'lead', leadId: 777, hasPhone: true });
     expect(JSON.stringify(res)).not.toContain('+1555'); // still PII-safe for leads
@@ -209,7 +210,7 @@ describe('previewScheduledMessages (suppression + lead recipients)', () => {
 
     const res = await previewScheduledMessages();
 
-    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@x.com', phone: '+15550007777' });
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@x.com', phone: '+15550007777', leadId: 777 });
     expect(res.summary).toMatchObject({ wouldCancel: 1 });
     expect(res.byReason).toMatchObject({ sms_opt_out: 1 });
     expect(res.items[0]).toMatchObject({ action: 'cancel', reason: 'sms_opt_out', suppressed: true });

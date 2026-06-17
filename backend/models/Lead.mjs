@@ -56,6 +56,15 @@ Lead.init(
     lastContactedAt: { type: DataTypes.DATE, allowNull: true, field: 'last_contacted_at' },
     nextFollowUpAt: { type: DataTypes.DATE, allowNull: true, field: 'next_follow_up_at' },
     contactCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, field: 'contact_count' },
+    smsConsentStatus: {
+      type: DataTypes.ENUM('unknown', 'opted_in', 'opted_out'),
+      allowNull: false,
+      defaultValue: 'unknown',
+      field: 'sms_consent_status',
+    },
+    smsConsentAt: { type: DataTypes.DATE, allowNull: true, field: 'sms_consent_at' },
+    smsConsentSource: { type: DataTypes.STRING(255), allowNull: true, field: 'sms_consent_source' },
+    smsOptOutAt: { type: DataTypes.DATE, allowNull: true, field: 'sms_opt_out_at' },
 
     // Timestamps for pipeline tracking
     contactedAt: { type: DataTypes.DATE, allowNull: true, field: 'contacted_at' },

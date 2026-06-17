@@ -29,6 +29,7 @@ describe('admin SMS logs auth pipeline', () => {
     expect(hookSource).toContain('apiService.get(`/api/sms/logs${queryString}`)');
     expect(panelSource).toContain("const endpoint = log.templateName ? '/api/sms/send-template' : '/api/sms/send';");
     expect(panelSource).toContain('recipientEmail: log.user?.email || log.lead?.email');
+    expect(panelSource).toContain('leadId: log.lead?.id');
     expect(panelSource).toContain('apiService.post(endpoint, payload)');
 
     expect(combinedSource).not.toContain("localStorage.getItem('token')");

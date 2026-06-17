@@ -13,18 +13,42 @@
  *  - no identity      → checked:true, suppressed:false (nothing to match; the
  *                       no-phone/no-recipient guard handles deliverability).
  *
- * Future extensions (noted, not built): a per-Lead positive SMS consent record and
- * a global do-not-contact list. Models are imported dynamically to avoid circular
- * imports and keep this unit-testable.
+ * Lead-owned SMS requires an opted-in consent record with a timestamp. Missing
+ * or withdrawn lead consent suppresses the send before Twilio.
  */
 import { normalizePhone } from './smsSuppressionService.mjs';
 
 const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+const normalizeLeadId = (leadId) => {
+  const parsed = Number(leadId);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
-export const resolveMarketingSuppression = async ({ email, phone } = {}) => {
+const resolveLeadSmsConsent = async (leadId) => {
+  const normalizedLeadId = normalizeLeadId(leadId);
+  if (!normalizedLeadId) return null;
+
+  const { default: Lead } = await import('../models/Lead.mjs');
+  const lead = await Lead.findByPk(normalizedLeadId, {
+    attributes: ['id', 'smsConsentStatus', 'smsConsentAt', 'smsOptOutAt'],
+  });
+
+  if (!lead) return { suppressed: true, reason: 'lead_not_found', checked: true };
+  if (lead.smsOptOutAt || lead.smsConsentStatus === 'opted_out') {
+    return { suppressed: true, reason: 'lead_sms_opt_out', checked: true };
+  }
+  if (lead.smsConsentStatus !== 'opted_in' || !lead.smsConsentAt) {
+    return { suppressed: true, reason: 'lead_sms_consent_missing', checked: true };
+  }
+  return null;
+};
+
+export const resolveMarketingSuppression = async ({ email, phone, leadId } = {}) => {
   const normalized = normalizeEmail(email);
   const normalizedPhone = normalizePhone(phone);
-  if (!normalized && !normalizedPhone) return { suppressed: false, reason: null, checked: true };
+  if (!normalized && !normalizedPhone && !normalizeLeadId(leadId)) {
+    return { suppressed: false, reason: null, checked: true };
+  }
 
   try {
     if (normalized) {
@@ -48,6 +72,9 @@ export const resolveMarketingSuppression = async ({ email, phone } = {}) => {
         return { suppressed: true, reason: 'sms_opt_out', checked: true };
       }
     }
+
+    const leadConsent = await resolveLeadSmsConsent(leadId);
+    if (leadConsent) return leadConsent;
 
     return { suppressed: false, reason: null, checked: true };
   } catch (err) {
