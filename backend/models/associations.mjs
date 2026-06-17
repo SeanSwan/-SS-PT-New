@@ -1318,6 +1318,7 @@ const setupAssociations = async () => {
       
       // E-Commerce Models
       StorefrontItem,
+      ProductVariant,
       ShoppingCart,
       CartItem,
       Order,
