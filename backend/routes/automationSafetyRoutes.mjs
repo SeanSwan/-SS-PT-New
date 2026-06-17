@@ -12,6 +12,7 @@ import {
   processScheduledMessages,
   sendNurtureTestMessage
 } from '../services/automationService.mjs';
+import { isAutomationArmed } from '../services/automationArmState.mjs';
 import { previewSmsTemplates } from '../services/smsService.mjs';
 
 const TEST_SEND_VALIDATION_ERRORS = ['confirm_required', 'invalid_phone', 'unknown_template', 'test_allowlist_missing', 'not_in_test_allowlist'];
@@ -22,6 +23,14 @@ const normalizeError = (error) => {
 };
 
 const router = express.Router();
+
+/**
+ * GET /api/automation/status
+ * Read-only automation arm indicator for the admin cockpit.
+ */
+router.get('/status', protect, adminOnly, (_req, res) => {
+  return res.status(200).json({ success: true, data: { armed: isAutomationArmed() } });
+});
 
 /**
  * GET /api/automation/preview
