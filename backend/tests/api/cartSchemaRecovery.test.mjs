@@ -134,4 +134,71 @@ describe('cart schema recovery', () => {
     expect(result[0].storefrontItemId).toBe(5);
     expect(result[0].storefrontItem?.name).toBe('Starter Package');
   });
+
+  it('falls back when the optional product variant table is not deployed yet', async () => {
+    const modelError = new Error('relation "product_variants" does not exist');
+    modelError.parent = { code: '42P01', message: modelError.message };
+
+    const query = vi.fn(async (sql, options = {}) => {
+      if (sql.includes('information_schema.columns')) {
+        if (options?.replacements?.tableName === 'cart_items') {
+          return [[
+            { column_name: 'id', data_type: 'integer' },
+            { column_name: 'cartId', data_type: 'integer' },
+            { column_name: 'storefrontItemId', data_type: 'integer' },
+            { column_name: 'productVariantId', data_type: 'integer' },
+            { column_name: 'quantity', data_type: 'integer' },
+            { column_name: 'price', data_type: 'numeric' }
+          ]];
+        }
+        if (options?.replacements?.tableName === 'storefront_items') {
+          return [[
+            { column_name: 'id', data_type: 'integer' },
+            { column_name: 'name', data_type: 'character varying' },
+            { column_name: 'price', data_type: 'numeric' }
+          ]];
+        }
+      }
+
+      if (sql.includes('FROM cart_items')) {
+        return [[
+          { id: 14, storefrontItemId: 6, productVariantId: 21, quantity: 1, price: '49.00' }
+        ]];
+      }
+
+      if (sql.includes('FROM "storefront_items"')) {
+        return [[
+          { id: 6, name: 'Recovery Product', price: '49.00' }
+        ]];
+      }
+
+      return [[]];
+    });
+
+    const CartItem = {
+      associations: { productVariant: true },
+      findAll: vi.fn().mockRejectedValue(modelError),
+      sequelize: { query }
+    };
+
+    const StorefrontItem = {
+      getTableName: vi.fn(() => 'storefront_items')
+    };
+
+    const ProductVariant = {};
+
+    const result = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      ProductVariant,
+      cartId: 55,
+      storefrontAttributes: ['id', 'name', 'price'],
+      logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() }
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].cartId).toBe(55);
+    expect(result[0].storefrontItem?.name).toBe('Recovery Product');
+    expect(result[0].productVariantId).toBe(21);
+  });
 });

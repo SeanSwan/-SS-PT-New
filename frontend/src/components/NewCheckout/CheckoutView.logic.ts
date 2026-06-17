@@ -4,8 +4,6 @@
  * LAST VALIDATED: 2026-06-13 via CheckoutView.logic.test.ts.
  */
 
-export const PRODUCT_TAX_RATE = 0.08;
-
 type CheckoutCartItem = {
   price?: number | string | null;
   quantity?: number | string | null;
@@ -29,6 +27,8 @@ export type CheckoutFulfillmentIntent = {
 };
 
 export type CheckoutFulfillmentMode = 'none' | 'local_delivery' | 'pickup' | 'local_delivery_or_pickup';
+
+export type CheckoutTaxMode = 'not_applicable' | 'stripe_automatic_tax';
 
 export type CheckoutFulfillmentDetails = {
   mode: Exclude<CheckoutFulfillmentMode, 'none'>;
@@ -78,8 +78,9 @@ export const calculateCheckoutTotals = (cartItems: CheckoutCartItem[] = []) => {
       : sum
   ), 0));
 
-  const tax = roundMoney(taxableProductSubtotal * PRODUCT_TAX_RATE);
-  const total = roundMoney(subtotal + tax);
+  const usesStripeTax = taxableProductSubtotal > 0;
+  const tax = usesStripeTax ? null : 0;
+  const total = subtotal;
   const sessionCount = cartItems.reduce((sum, item) => {
     const sessions = toNumber(item.storefrontItem?.sessions || item.storefrontItem?.totalSessions);
     return sum + (sessions * toNumber(item.quantity || 0));
@@ -89,6 +90,8 @@ export const calculateCheckoutTotals = (cartItems: CheckoutCartItem[] = []) => {
     subtotal,
     taxableProductSubtotal,
     tax,
+    taxMode: usesStripeTax ? 'stripe_automatic_tax' as CheckoutTaxMode : 'not_applicable' as CheckoutTaxMode,
+    taxLabel: usesStripeTax ? 'Calculated by Stripe at payment' : 'Not applicable',
     total,
     sessionCount,
   };

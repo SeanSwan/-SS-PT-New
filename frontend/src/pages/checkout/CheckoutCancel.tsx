@@ -22,6 +22,7 @@ import React, { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CreditCard, HelpCircle, MessageCircle, RefreshCw, ShoppingCart } from 'lucide-react';
 import { OrderReviewStep } from '../../components/NewCheckout';
+import { calculateCheckoutTotals } from '../../components/NewCheckout/CheckoutView.logic';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
@@ -62,13 +63,13 @@ const CheckoutCancel: React.FC = () => {
   const reason = searchParams.get('reason') || 'user_cancelled';
   const step = searchParams.get('step') || 'unknown';
   const cartItems = cart?.items || [];
-  const subtotal = cartItems.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (item.quantity || 0), 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
-  const sessionCount = cartItems.reduce((sum: number, item: any) => {
-    const itemSessions = item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || item.sessions || item.totalSessions || 0;
-    return sum + itemSessions * (item.quantity || 0);
-  }, 0);
+  const {
+    subtotal,
+    tax,
+    taxLabel,
+    total,
+    sessionCount,
+  } = calculateCheckoutTotals(cartItems);
 
   useEffect(() => {
     logger.log('[CheckoutCancel] Checkout cancelled:', {
@@ -186,6 +187,7 @@ const CheckoutCancel: React.FC = () => {
                   cart={cart}
                   subtotal={subtotal}
                   tax={tax}
+                  taxLabel={taxLabel}
                   total={total}
                   sessionCount={sessionCount}
                   showDetailedBreakdown={false}

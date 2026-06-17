@@ -18,4 +18,10 @@ describe('CheckoutCancel theme contract', () => {
     expect(source).not.toContain('style={{');
     expect(source).not.toMatch(/ð|â|console\.error/);
   });
+
+  it('does not fabricate a flat tax estimate after Stripe checkout is cancelled', () => {
+    expect(source).not.toContain('subtotal * 0.08');
+    expect(source).toContain('taxLabel');
+    expect(source).toContain('calculateCheckoutTotals');
+  });
 });

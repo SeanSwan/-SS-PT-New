@@ -21,15 +21,11 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
-  buildStripeIdempotencyKey,
-  getStripeRetryWindowStart
-} from '../utils/stripeIdempotency.mjs';
-import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
-const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
+const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
 
 const router = express.Router();
 const STOREFRONT_CART_ATTRIBUTES = [
@@ -761,233 +757,26 @@ router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, as
   }
 });
 
+const LEGACY_CART_CHECKOUT_DISABLED_CODE = 'LEGACY_CART_CHECKOUT_DISABLED';
+
 /**
- * Create Stripe Checkout Session
+ * Legacy checkout gate
  * POST /api/cart/checkout
- * Creates a Stripe checkout session for the cart items
+ * The active storefront uses POST /api/v2/payments/create-checkout-session.
  */
 router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
-  // --- Add check for Stripe client ---
-  if (!stripeClient) {
-    logger.error('Attempted /api/cart/checkout but Stripe is not enabled/initialized.');
-    return res.status(503).json({ // 503 Service Unavailable
-      success: false,
-      message: 'Payment service is currently unavailable. Please try again later or contact support.',
-    });
-  }
-  // --- End check ---
+  logger.warn('[Cart] Legacy checkout route blocked', {
+    userId: req.authUserId
+  });
 
-  try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
-    const ShoppingCart = getShoppingCart();
-    const CartItem = getCartItem();
-    const StorefrontItem = getStorefrontItem();
-    const User = getUser();
-    
-    logger.debug('[Cart] Creating checkout session', {
-      userId: req.authUserId
-    });
-    
-    // 🚀 ENHANCED: Verify coordinated associations status
-    logger.debug('[Cart] Checkout association status', {
-      hasStorefrontAssociation: !!CartItem.associations?.storefrontItem
-    });
-    
-    // Find the user's active cart with all related items using the correct alias "cartItems"
-    const cart = await ShoppingCart.findOne({
-      where: { 
-        userId: req.authUserId,
-        status: 'active'
-      },
-      include: [{
-        model: CartItem,
-        as: 'cartItems',
-        include: [{
-          model: StorefrontItem,
-          as: 'storefrontItem',
-          attributes: await getSafeStorefrontAttributes(StorefrontItem)
-        }]
-      }]
-    });
-
-    if (!cart) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Active cart not found' 
-      });
+  return res.status(410).json({
+    success: false,
+    message: 'This checkout route is retired. Use the v2 checkout flow.',
+    error: {
+      code: LEGACY_CART_CHECKOUT_DISABLED_CODE,
+      details: 'POST /api/v2/payments/create-checkout-session is the supported checkout route'
     }
-
-    if (!cart.cartItems || cart.cartItems.length === 0) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Your cart is empty' 
-      });
-    }
-
-    logger.debug('[Cart] Loaded checkout cart items', {
-      cartId: cart.id,
-      itemCount: cart.cartItems.length
-    });
-
-    // Calculate cart total for metadata using helper
-    const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cart.cartItems);
-    
-    // Debug cart state for checkout troubleshooting
-    await debugCartState(cart.id, 'checkout_creation');
-    
-    // Format line items for Stripe
-    const lineItems = cart.cartItems.map(item => {
-      const storefrontItem = item.storefrontItem;
-      return {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: storefrontItem ? storefrontItem.name : `Package #${item.storefrontItemId}`,
-            description: storefrontItem ? storefrontItem.description : 'Security service package'
-          },
-          unit_amount: Math.round(item.price * 100)
-        },
-        quantity: item.quantity
-      };
-    });
-
-    // Default frontend URL if environment variable isn't set
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-
-    // Retrieve user record for Stripe customer creation
-    const userRecord = await User.findByPk(req.authUserId);
-    if (!userRecord || !userRecord.email) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'User information missing' 
-      });
-    }
-
-    // Check or create Stripe customer
-    let customerId = userRecord.stripeCustomerId;
-    if (customerId) {
-      try {
-        const customer = await stripeClient.customers.retrieve(customerId);
-        customerId = customer.id;
-      } catch (err) {
-        logger.warn('[Cart] Stored Stripe customer ID rejected; creating replacement', {
-          userId: req.authUserId,
-          ...toCartErrorMetadata(err, 'cart_stripe_customer_rejected')
-        });
-        customerId = null;
-      }
-    }
-    
-    if (!customerId) {
-      const customer = await stripeClient.customers.create({
-        email: userRecord.email,
-        name: `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim(),
-        metadata: {
-          userId: userRecord.id
-        }
-      });
-      customerId = customer.id;
-      // Update user record asynchronously (non-blocking)
-      User.update({ stripeCustomerId: customerId }, { where: { id: userRecord.id } })
-        .catch((err) => logger.error('[Cart] Failed to persist Stripe customer ID', {
-          userId: userRecord.id,
-          ...toCartErrorMetadata(err, 'cart_stripe_customer_persist_failed')
-        }));
-    }
-
-    const retryWindowStartMs = getStripeRetryWindowStart();
-    const checkoutExpiresAtMs = retryWindowStartMs + (31 * 60 * 1000);
-    const checkoutFingerprint = cart.cartItems.map((item) => ({
-      storefrontItemId: item.storefrontItemId,
-      quantity: item.quantity,
-      price: item.price,
-      sessionCredits: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0
-    }));
-    const idempotencyKey = buildStripeIdempotencyKey(
-      `cart-checkout:${req.authUserId}:${cart.id}`,
-      {
-        retryWindowStartMs,
-        total: cartTotal,
-        items: checkoutFingerprint
-      }
-    );
-
-    // Create a Stripe checkout session
-    const sessionOptions = {
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: `${frontendUrl}/checkout/CheckoutSuccess?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/checkout/CheckoutCancel`,
-      client_reference_id: cart.id.toString(),
-      customer: customerId,
-      metadata: {
-        cartId: cart.id,
-        userId: req.authUserId,
-        totalAmount: cartTotal.toFixed(2),
-        itemCount: cart.cartItems.length,
-        createdAt: new Date(retryWindowStartMs).toISOString()
-      },
-      // Pin expiration to the retry window while keeping it safely above Stripe's 30-minute minimum.
-      expires_at: Math.floor(checkoutExpiresAtMs / 1000)
-    };
-
-    const session = await stripeClient.checkout.sessions.create(sessionOptions, { idempotencyKey });
-    logger.info('[Cart] Stripe checkout session created', {
-      userId: req.authUserId,
-      cartId: cart.id
-    });
-
-    // Update cart with checkout session ID for reference
-    await cart.update({
-      checkoutSessionId: session.id,
-      lastActivityAt: new Date()
-    });
-
-    // Return the checkout URL to redirect the user
-    res.status(200).json({
-      success: true,
-      checkoutUrl: session.url,
-      sessionId: session.id
-    });
-  } catch (error) {
-    logCartError('[Cart] Failed to create checkout session', error, req, {
-      stripeErrorType: error.type || 'none'
-    });
-    let errorMessage = 'Failed to create checkout session. Please try again.';
-    let statusCode = 500;
-    
-    if (error.type) {
-      switch (error.type) {
-        case 'StripeCardError':
-          errorMessage = 'Your card was declined';
-          statusCode = 400;
-          break;
-        case 'StripeRateLimitError':
-          errorMessage = 'Too many requests to payment processor';
-          break;
-        case 'StripeInvalidRequestError':
-          errorMessage = 'Invalid payment information';
-          statusCode = 400;
-          break;
-        case 'StripeAPIError':
-        case 'StripeConnectionError':
-          errorMessage = 'Payment service temporarily unavailable';
-          break;
-        case 'StripeAuthenticationError':
-          errorMessage = 'Payment service configuration error';
-          logger.error('Stripe authentication failed - check API keys');
-          break;
-        default:
-          errorMessage = 'Payment service temporarily unavailable';
-      }
-    }
-    
-    res.status(statusCode).json({ 
-      success: false,
-      message: errorMessage
-    });
-  }
+  });
 });
 
 /**

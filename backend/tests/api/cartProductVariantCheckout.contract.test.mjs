@@ -63,7 +63,9 @@ describe('product variant checkout contract', () => {
     expect(paymentRoutes).toContain('resolveCheckoutLineItem');
     expect(paymentRoutes).toContain('productVariantId: item.productVariantId ? item.productVariantId.toString() :');
     expect(paymentRoutes).toContain('taxableProductSubtotal');
-    expect(paymentRoutes).not.toContain('const tax = subtotal * 0.08');
-    expect(paymentRoutes).toContain("name: 'Product sales tax'");
+    expect(paymentRoutes).not.toContain('PRODUCT_TAX_RATE');
+    expect(paymentRoutes).not.toContain('Product sales tax');
+    expect(paymentRoutes).toContain('tax_behavior:');
+    expect(paymentRoutes).toContain("enabled: usesStripeTax");
   });
 });

@@ -49,7 +49,8 @@ import {
 interface OrderReviewStepProps {
   cart: any;
   subtotal: number;
-  tax: number;
+  tax: number | null;
+  taxLabel?: string;
   total: number;
   sessionCount: number;
   showDetailedBreakdown?: boolean;
@@ -64,11 +65,13 @@ const OrderReviewStep: React.FC<OrderReviewStepProps> = ({
   cart,
   subtotal,
   tax,
+  taxLabel = 'Not applicable',
   total,
   sessionCount,
   showDetailedBreakdown = true,
 }) => {
   const cartItems = cart?.items || [];
+  const usesStripeTax = tax === null;
 
   if (cartItems.length === 0) {
     return (
@@ -161,14 +164,14 @@ const OrderReviewStep: React.FC<OrderReviewStepProps> = ({
               <span>${subtotal.toFixed(2)}</span>
             </PriceRow>
             <PriceRow>
-              <span>Tax (8%):</span>
-              <span>${tax.toFixed(2)}</span>
+              <span>Tax:</span>
+              <span>{usesStripeTax ? taxLabel : `$${tax.toFixed(2)}`}</span>
             </PriceRow>
           </>
         )}
 
         <PriceRow $variant="total">
-          <span>Total:</span>
+          <span>{usesStripeTax ? 'Subtotal before Stripe tax:' : 'Total:'}</span>
           <span>${total.toFixed(2)}</span>
         </PriceRow>
 

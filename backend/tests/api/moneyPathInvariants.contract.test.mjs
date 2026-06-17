@@ -11,7 +11,7 @@ import { resolve } from 'path';
  *     from the client), the variant must belong to the item, a physical product
  *     requires a variant, and stock is checked at add-time AND checkout-time.
  *  2. Sales tax applies ONLY to taxable PHYSICAL products — never to training
- *     packages (CA service exemption).
+ *     packages (CA service exemption), and Stripe Tax owns district tax math.
  * Assertions use tolerant regex so routine reformatting doesn't break them; a
  * real weakening of the invariant does. Patterns verified against the live code
  * 2026-06-13. Companion behavioral test: sessionGrantSeparation.contract.test.mjs.
@@ -53,7 +53,7 @@ describe('money-path: cart price authority + variant safety', () => {
   });
 });
 
-describe('money-path: tax applies only to taxable physical products', () => {
+describe('money-path: taxable physical products use Stripe Tax', () => {
   it('a taxable line must be BOTH a physical product AND flagged taxable', () => {
     expect(pay).toMatch(/isTaxablePhysicalProductLine/);
     expect(pay).toMatch(/isTaxable\s*===\s*true/);
@@ -63,9 +63,14 @@ describe('money-path: tax applies only to taxable physical products', () => {
     expect(pay).toMatch(/itemKind\s*===\s*'physical_product'/);
   });
 
-  it('a hardcoded flat product tax rate exists (known limitation: replace with Stripe Tax)', () => {
-    // Documents the current gap so the eventual Stripe Tax switch is a deliberate,
-    // test-visible change rather than a silent one. CA is 7.25–10.25% by district.
-    expect(pay).toMatch(/PRODUCT_TAX_RATE\s*=\s*0?\.08/);
+  it('does not ship a hardcoded flat tax rate or manual tax line item', () => {
+    expect(pay).not.toMatch(/PRODUCT_TAX_RATE\s*=\s*0?\.08/);
+    expect(pay).not.toContain('Product sales tax');
+  });
+
+  it('fails taxable physical checkout closed unless Stripe Tax is explicitly enabled', () => {
+    expect(pay).toContain('STRIPE_TAX_NOT_CONFIGURED_CODE');
+    expect(pay).toContain("process.env.SWAN_STRIPE_TAX_ENABLED === 'true'");
+    expect(pay).toMatch(/automatic_tax:\s*\{\s*enabled:\s*usesStripeTax\s*\}/);
   });
 });

@@ -123,10 +123,12 @@ const CustomerInformationSection: React.FC<{ customerInfo: CheckoutCustomerInfo 
 
 const PaymentActionSection: React.FC<{
   total: number;
+  amountLabel: string;
+  amountAriaLabel: string;
   disabled: boolean;
   isProcessing: boolean;
   onCheckout: () => void;
-}> = ({ total, disabled, isProcessing, onCheckout }) => (
+}> = ({ total, amountLabel, amountAriaLabel, disabled, isProcessing, onCheckout }) => (
   <CheckoutSection
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -139,6 +141,8 @@ const PaymentActionSection: React.FC<{
           disabled={disabled}
           isLoading={isProcessing}
           amount={total}
+          amountLabel={amountLabel}
+          amountAriaLabel={amountAriaLabel}
         />
       </ActionButtonContainer>
     </PaymentMethodSelector>
@@ -210,7 +214,8 @@ export const CheckoutReadyView: React.FC<{
   sessionCount: number;
   subtotal: number;
   success: string | null;
-  tax: number;
+  tax: number | null;
+  taxLabel: string;
   total: number;
 }> = ({
   cart,
@@ -227,8 +232,16 @@ export const CheckoutReadyView: React.FC<{
   subtotal,
   success,
   tax,
+  taxLabel,
   total,
-}) => (
+}) => {
+  const usesStripeTax = tax === null;
+  const amountLabel = usesStripeTax ? 'Subtotal Before Stripe Tax' : 'Total Amount';
+  const amountAriaLabel = usesStripeTax
+    ? `Proceed to secure payment for $${total.toFixed(2)} before Stripe-calculated tax`
+    : `Proceed to secure payment for $${total.toFixed(2)}`;
+
+  return (
   <CheckoutContainer
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -247,6 +260,8 @@ export const CheckoutReadyView: React.FC<{
         />
         <PaymentActionSection
           total={total}
+          amountLabel={amountLabel}
+          amountAriaLabel={amountAriaLabel}
           disabled={!checkoutReady || isProcessing}
           isProcessing={isProcessing}
           onCheckout={onCheckout}
@@ -259,9 +274,11 @@ export const CheckoutReadyView: React.FC<{
         cart={cart}
         subtotal={subtotal}
         tax={tax}
+        taxLabel={taxLabel}
         total={total}
         sessionCount={sessionCount}
       />
     </CheckoutContent>
   </CheckoutContainer>
-);
+  );
+};

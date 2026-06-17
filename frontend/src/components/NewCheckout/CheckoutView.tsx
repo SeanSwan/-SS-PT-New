@@ -70,7 +70,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     () => mergeCheckoutFulfillmentDetails(baseFulfillmentIntent, checkoutState.fulfillmentDetails),
     [baseFulfillmentIntent, checkoutState.fulfillmentDetails]
   );
-  const { subtotal, tax, total, sessionCount } = checkoutTotals;
+  const { subtotal, tax, taxLabel, total, sessionCount } = checkoutTotals;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -226,10 +226,14 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       if (error.response) {
         const status = error.response.status;
         const serverMessage = error.response.data?.message || error.response.data?.error?.details;
+        const errorCode = error.response.data?.error?.code;
 
         if (status === 500) {
           errorMessage = 'Server error occurred. Our team has been notified.';
           errorDetails = 'This may be due to payment system configuration. Please try again in a moment.';
+        } else if (status === 503 && errorCode === 'STRIPE_TAX_NOT_CONFIGURED') {
+          errorMessage = serverMessage || 'Physical product checkout is temporarily unavailable.';
+          errorDetails = 'Stripe Tax setup is required before this item can be purchased online.';
         } else if (status === 503) {
           errorMessage = 'Payment processing temporarily unavailable.';
           errorDetails = 'Stripe payment service is not configured. Please contact support.';
@@ -302,6 +306,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       subtotal={subtotal}
       success={checkoutState.success}
       tax={tax}
+      taxLabel={taxLabel}
       total={total}
       fulfillmentIntent={fulfillmentIntent}
     />

@@ -33,6 +33,12 @@ const RECOVERABLE_CART_ITEM_COLUMNS = [
   'storefront_item_id',
   'productvariantid',
   'product_variant_id',
+  'product_variants',
+  'productvariant',
+  'stockquantity',
+  'stock_quantity',
+  'isactive',
+  'is_active',
   'quantity',
   'price',
   'cart_items',
@@ -61,7 +67,10 @@ function isRecoverableCartDbError(error) {
 
   const isMissingColumn =
     code === '42703' || // Postgres undefined_column
+    code === '42P01' || // Postgres undefined_table/relation
     (text.includes('column') && text.includes('does not exist')) ||
+    (text.includes('relation') && text.includes('does not exist')) ||
+    (text.includes('table') && text.includes('does not exist')) ||
     text.includes('unknown column');
 
   const isTypeDrift =

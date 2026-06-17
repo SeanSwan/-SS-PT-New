@@ -76,7 +76,7 @@ import { deriveChannel } from '../services/leadCaptureShared.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
-const PRODUCT_TAX_RATE = 0.08;
+const STRIPE_TAX_NOT_CONFIGURED_CODE = 'STRIPE_TAX_NOT_CONFIGURED';
 
 function buildCheckoutSessionIdempotencyKey(userId, cart) {
   const itemFingerprint = buildCartItemsStripeFingerprint(
@@ -101,6 +101,8 @@ const isPhysicalProductLine = (item) => (
 const isTaxablePhysicalProductLine = (item) => (
   isPhysicalProductLine(item) && item?.storefrontItem?.isTaxable === true
 );
+
+const isStripeTaxEnabled = () => process.env.SWAN_STRIPE_TAX_ENABLED === 'true';
 
 const resolveCheckoutProductName = (item) => {
   const baseName = item?.storefrontItem?.name || `Storefront Item #${item?.storefrontItemId}`;
@@ -136,6 +138,7 @@ function resolveCheckoutLineItem(item) {
           }
         },
         unit_amount: toStripeCents(itemPrice),
+        tax_behavior: isTaxablePhysicalProductLine(item) ? 'exclusive' : 'unspecified',
       },
       quantity,
     },
@@ -369,15 +372,27 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
-    // Step 2: Calculate totals. Training packages are all-inclusive services;
-    // only taxable physical products receive the manual product-tax line.
+    // Step 2: Calculate totals. Stripe Tax owns taxable physical product tax.
     const checkoutLines = cart.cartItems.map(resolveCheckoutLineItem);
     const subtotal = checkoutLines.reduce((sum, item) => sum + item.subtotal, 0);
     const taxableProductSubtotal = checkoutLines.reduce((sum, item) => (
       sum + item.taxableProductSubtotal
     ), 0);
-    const tax = Number((taxableProductSubtotal * PRODUCT_TAX_RATE).toFixed(2));
-    const total = subtotal + tax;
+    const requiresStripeTax = taxableProductSubtotal > 0;
+    if (requiresStripeTax && !isStripeTaxEnabled()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Physical product checkout is temporarily unavailable',
+        error: {
+          code: STRIPE_TAX_NOT_CONFIGURED_CODE,
+          details: 'Stripe Tax must be configured before taxable physical product checkout is enabled'
+        }
+      });
+    }
+
+    const usesStripeTax = requiresStripeTax;
+    const tax = usesStripeTax ? null : 0;
+    const total = subtotal;
     const totalCents = Math.round(total * 100); // Convert to cents for Stripe
 
     const totalSessions = calculateCartSessionCredits(cart.cartItems);
@@ -444,21 +459,6 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     // Step 4: Prepare line items for Stripe
     const lineItems = checkoutLines.map((item) => item.lineItem);
 
-    // Add product tax as a separate line item for transparency
-    if (tax > 0) {
-      lineItems.push({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: 'Product sales tax',
-            description: 'Sales tax on taxable physical products'
-          },
-          unit_amount: Math.round(tax * 100),
-        },
-        quantity: 1,
-      });
-    }
-
     const checkoutIdempotencyKey = buildCheckoutSessionIdempotencyKey(userId, cart);
 
     // Step 5: Create Stripe Checkout Session
@@ -486,7 +486,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       // shipping_address_collection removed - not needed for digital services
       allow_promotion_codes: true,
       automatic_tax: {
-        enabled: false // We're handling tax manually
+        enabled: usesStripeTax
       }
     }, {
       idempotencyKey: checkoutIdempotencyKey
@@ -498,7 +498,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       paymentIntentId: session.payment_intent,
       total: total,
       subtotal: subtotal,
-      tax: tax,
+      tax: usesStripeTax ? 0 : tax,
       paymentStatus: 'pending',
       customerInfo: JSON.stringify({
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
@@ -506,6 +506,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         phone: customerInfo?.phone || user.phone,
         fulfillmentIntent: normalizedFulfillmentIntent,
         acquisitionAttribution: { channel: checkoutAttribution.channel },
+        taxMode: usesStripeTax ? 'stripe_automatic_tax' : 'not_applicable',
         stripeCustomerId: stripeCustomer.id
       }),
       lastCheckoutAttempt: new Date()
@@ -538,7 +539,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           subtotal: subtotal,
           taxableProductSubtotal,
           fulfillmentIntent: normalizedFulfillmentIntent,
-          tax: tax,
+          tax,
+          taxMode: usesStripeTax ? 'stripe_automatic_tax' : 'not_applicable',
           total: total
         }
       }

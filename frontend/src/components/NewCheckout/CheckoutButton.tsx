@@ -33,6 +33,8 @@ interface CheckoutButtonProps {
   disabled?: boolean;
   isLoading?: boolean;
   amount: number;
+  amountLabel?: string;
+  amountAriaLabel?: string;
   className?: string;
 }
 
@@ -41,6 +43,8 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
   disabled = false,
   isLoading = false,
   amount,
+  amountLabel = 'Total Amount',
+  amountAriaLabel,
   className,
 }) => (
   <ButtonContainer className={className}>
@@ -49,7 +53,7 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <AmountLabel>Total Amount</AmountLabel>
+      <AmountLabel>{amountLabel}</AmountLabel>
       <AmountValue>${amount.toFixed(2)}</AmountValue>
     </AmountDisplay>
 
@@ -64,7 +68,7 @@ const CheckoutButton: React.FC<CheckoutButtonProps> = ({
       leftIcon={isLoading ? undefined : <Lock size={20} aria-hidden="true" />}
       rightIcon={isLoading ? undefined : <ArrowRight size={20} aria-hidden="true" />}
       animateOnRender={true}
-      aria-label={`Proceed to secure payment for $${amount.toFixed(2)}`}
+      aria-label={amountAriaLabel || `Proceed to secure payment for $${amount.toFixed(2)}`}
     >
       {isLoading ? 'Creating Secure Session...' : 'Proceed to Secure Payment'}
     </GlowButton>

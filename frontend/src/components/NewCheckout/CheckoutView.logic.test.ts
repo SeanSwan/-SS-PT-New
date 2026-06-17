@@ -40,13 +40,26 @@ const productItem = {
 };
 
 describe('CheckoutView logic', () => {
-  it('taxes taxable physical products without taxing all-inclusive training packages', () => {
+  it('marks taxable physical products for Stripe Tax without client-side flat-rate tax', () => {
     const totals = calculateCheckoutTotals([trainingItem, productItem]);
 
     expect(totals.subtotal).toBe(422);
     expect(totals.taxableProductSubtotal).toBe(72);
-    expect(totals.tax).toBe(5.76);
-    expect(totals.total).toBe(427.76);
+    expect(totals.tax).toBeNull();
+    expect(totals.taxMode).toBe('stripe_automatic_tax');
+    expect(totals.taxLabel).toBe('Calculated by Stripe at payment');
+    expect(totals.total).toBe(422);
+    expect(totals.sessionCount).toBe(2);
+  });
+
+  it('keeps training-only packages untaxed in the checkout estimate', () => {
+    const totals = calculateCheckoutTotals([trainingItem]);
+
+    expect(totals.subtotal).toBe(350);
+    expect(totals.taxableProductSubtotal).toBe(0);
+    expect(totals.tax).toBe(0);
+    expect(totals.taxMode).toBe('not_applicable');
+    expect(totals.total).toBe(350);
     expect(totals.sessionCount).toBe(2);
   });
 

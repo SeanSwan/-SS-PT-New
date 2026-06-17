@@ -150,7 +150,7 @@ describe('Payment Flow API', () => {
       expect(source).not.toContain('...(metadata || {})');
     });
 
-    it('keeps mounted alternate checkout creators behind Stripe idempotency keys', () => {
+    it('keeps mounted alternate checkout creators behind Stripe idempotency keys or fail-closed gates', () => {
       const cartSource = readFileSync(resolve(__dirname, '../../routes/cartRoutes.mjs'), 'utf8');
       const packageSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
       const packageFulfillmentSource = readFileSync(
@@ -162,8 +162,9 @@ describe('Payment Flow API', () => {
       const achSource = readFileSync(resolve(__dirname, '../../routes/achPaymentRoutes.mjs'), 'utf8');
       const offlineSource = readFileSync(resolve(__dirname, '../../routes/offlinePaymentRoutes.mjs'), 'utf8');
 
-      expect(cartSource).toContain('buildStripeIdempotencyKey');
-      expect(cartSource).toMatch(/checkout\.sessions\.create\(sessionOptions,\s*\{\s*idempotencyKey\s*\}\)/);
+      expect(cartSource).toContain('LEGACY_CART_CHECKOUT_DISABLED_CODE');
+      expect(cartSource).toContain('/api/v2/payments/create-checkout-session');
+      expect(cartSource).not.toMatch(/checkout\.sessions\.create\(sessionOptions,\s*\{\s*idempotencyKey\s*\}\)/);
       expect(packageSource).toContain('session-package-checkout');
       expect(packageSource).toContain('fulfillSessionPackageCheckoutSession(session)');
       expect(packageFulfillmentSource).toContain('session-package-webhook:${sessionId}');

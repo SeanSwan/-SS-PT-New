@@ -518,7 +518,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discounts = items.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
-    const taxes = showTaxes ? subtotal * 0.0875 : 0;
+    const taxes = 0;
     const fees = 0;
     const total = subtotal - discounts + taxes + fees;
     const savings = discounts;
@@ -785,7 +785,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
             <SummaryRow>
               <SummaryLabel>
                 <Info size={14} />
-                Tax (8.75%)
+                Tax
               </SummaryLabel>
               <SummaryValue>{formatPrice(orderSummary.taxes)}</SummaryValue>
             </SummaryRow>
