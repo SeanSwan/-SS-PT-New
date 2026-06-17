@@ -95,6 +95,17 @@ export function qaWaiverSubmissionForPersona(persona) {
   };
 }
 
+export function synthesizeLinkedWaiverUser(user, record) {
+  return {
+    ...user,
+    waiverRequired: true,
+    hasLinkedWaiver: true,
+    waiverStatus: record?.status || 'linked',
+    waiverRecordId: record?.id || null,
+    waiverSignedAt: record?.signedAt || null,
+  };
+}
+
 export function createStorageState({ baseUrl, token, refreshToken, user, now = Date.now() }) {
   const origin = new URL(normalizeBaseUrl(baseUrl)).origin;
   return { cookies: [], origins: [{
@@ -248,7 +259,27 @@ async function fetchCurrentUser(baseUrl, token) {
   return data.user;
 }
 
-async function ensurePersonaWaiver({ baseUrl, token, persona }) {
+async function findLinkedQaWaiver({ baseUrl, adminToken, persona, userId }) {
+  if (!adminToken || !userId) return null;
+  const params = new URLSearchParams({
+    search: persona.email,
+    status: 'linked',
+    limit: '10',
+  });
+  const data = await apiRequest({
+    baseUrl,
+    apiPath: `/api/admin/waivers?${params.toString()}`,
+    token: adminToken,
+  });
+  const numericUserId = Number.parseInt(String(userId), 10);
+  const records = Array.isArray(data?.data?.records) ? data.data.records : [];
+  return records.find((record) => (
+    record?.status === 'linked'
+    && Number.parseInt(String(record?.userId), 10) === numericUserId
+  )) || null;
+}
+
+async function ensurePersonaWaiver({ baseUrl, token, adminToken, persona }) {
   if (!roleRequiresLinkedWaiver(persona.role)) {
     return { action: 'not_required', user: null };
   }
@@ -256,6 +287,19 @@ async function ensurePersonaWaiver({ baseUrl, token, persona }) {
   const currentUser = await fetchCurrentUser(baseUrl, token);
   if (currentUser.hasLinkedWaiver === true) {
     return { action: 'existing', user: currentUser };
+  }
+
+  const existingAdminVerified = await findLinkedQaWaiver({
+    baseUrl,
+    adminToken,
+    persona,
+    userId: currentUser.id,
+  });
+  if (existingAdminVerified) {
+    return {
+      action: 'admin_verified',
+      user: synthesizeLinkedWaiverUser(currentUser, existingAdminVerified),
+    };
   }
 
   await apiRequest({
@@ -268,6 +312,18 @@ async function ensurePersonaWaiver({ baseUrl, token, persona }) {
 
   const refreshedUser = await fetchCurrentUser(baseUrl, token);
   if (refreshedUser.hasLinkedWaiver !== true) {
+    const submittedAdminVerified = await findLinkedQaWaiver({
+      baseUrl,
+      adminToken,
+      persona,
+      userId: refreshedUser.id,
+    });
+    if (submittedAdminVerified) {
+      return {
+        action: 'admin_verified',
+        user: synthesizeLinkedWaiverUser(refreshedUser, submittedAdminVerified),
+      };
+    }
     throw new Error(`${persona.role} QA persona waiver submitted but /api/auth/me still reports no linked waiver`);
   }
 
@@ -342,7 +398,7 @@ async function main() {
     const password = randomPassword();
     const result = await createOrRefreshPersona({ baseUrl, adminToken, persona, password });
     const authPayload = await loginPersona(baseUrl, persona, password);
-    const waiver = await ensurePersonaWaiver({ baseUrl, token: authPayload.token, persona });
+    const waiver = await ensurePersonaWaiver({ baseUrl, token: authPayload.token, adminToken, persona });
     if (waiver.user) authPayload.user = waiver.user;
     const outputPath = outputPathForRole(role, adminState);
     writeRoleState({ role, baseUrl, authPayload, outputPath });

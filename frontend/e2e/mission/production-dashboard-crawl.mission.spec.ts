@@ -97,6 +97,9 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
     const endpoint = new URL(request.url()).pathname;
     if (endpoint === '/socket.io/') return route.continue();
     state.blockedWrites.push(`${request.method()} ${endpoint}`);
+    if (request.method() === 'POST' && endpoint === '/api/dashboard/track-pageview') {
+      return route.fulfill({ status: 204, body: '' });
+    }
     return route.fulfill({
       status: 405,
       contentType: 'application/json',

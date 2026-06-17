@@ -41,6 +41,10 @@ function allowedBlockedWrite(entry: string) {
 
 async function fulfillWriteBlock(route: Route, state: LiveApiState, endpoint: string) {
   state.blockedWrites.push(`${route.request().method()} ${endpoint}`);
+  if (route.request().method() === 'POST' && endpoint === '/api/dashboard/track-pageview') {
+    await route.fulfill({ status: 204, body: '' });
+    return;
+  }
   await route.fulfill({
     status: 405,
     contentType: 'application/json',
