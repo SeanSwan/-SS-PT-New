@@ -39,10 +39,6 @@ const unsafeClickPattern = /\b(delete|remove|submit|save|send|share|post|upload|
 const maxClicksPerRoute = Number(process.env.SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE || '24');
 const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS || '600000');
 
-function allowedReadFailure(entry: string) {
-  return /^401 GET \/api\/subscriptions\/status$/.test(entry);
-}
-
 function isSocketPollingUrl(rawUrl: string) {
   try {
     const url = new URL(rawUrl);
@@ -59,12 +55,6 @@ function isNavigationAbort(request: { failure(): { errorText: string } | null })
 function allowedConsoleNoise(message: string, state: CrawlIssueState) {
   if (/preloaded using link preload/i.test(message)) return true;
   if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
-  if (/\/api\/subscriptions\/status/i.test(message) && /401|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
-    return true;
-  }
-  if (/Failed to load resource: the server responded with a status of 401/i.test(message)) {
-    return state.readFailures.every(allowedReadFailure);
-  }
   if (/Failed to load resource: the server responded with a status of 400/i.test(message)) {
     return state.requestFailures.some(isSocketPollingUrl) || state.readFailures.some((entry) => /\/socket\.io\//.test(entry));
   }
@@ -76,7 +66,7 @@ function allowedConsoleNoise(message: string, state: CrawlIssueState) {
 
 function compactIssues(state: CrawlIssueState) {
   return {
-    readFailures: state.readFailures.filter((entry) => !allowedReadFailure(entry)),
+    readFailures: state.readFailures,
     requestFailures: state.requestFailures.filter((entry) => !isSocketPollingUrl(entry)),
     consoleErrors: state.consoleErrors.filter((entry) => !allowedConsoleNoise(entry, state)),
     pageErrors: state.pageErrors,

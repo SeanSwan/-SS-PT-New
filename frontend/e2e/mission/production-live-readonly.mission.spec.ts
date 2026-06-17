@@ -21,26 +21,15 @@ const adminAuthState = process.env.SWAN_PROD_ADMIN_AUTH_STATE;
 const trainerAuthState = process.env.SWAN_PROD_TRAINER_AUTH_STATE;
 const clientAuthState = process.env.SWAN_PROD_CLIENT_AUTH_STATE || legacyClientAuthState;
 
-function allowedReadFailure(entry: string) {
-  return /^401 \/api\/subscriptions\/status$/.test(entry);
-}
-
 function expectedConsoleNoise(message: string, state: LiveApiState) {
   if (/preloaded using link preload/i.test(message)) return true;
   if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
   if (/track-pageview/i.test(message) && /405|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
     return true;
   }
-  if (/\/api\/subscriptions\/status/i.test(message) && /401|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
-    return true;
-  }
   if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
     return state.blockedWrites.length > 0
       && state.blockedWrites.every((entry) => allowedBlockedWrite(entry));
-  }
-  if (/Failed to load resource: the server responded with a status of 401/i.test(message)) {
-    return state.readFailures.length > 0
-      && state.readFailures.every((entry) => allowedReadFailure(entry));
   }
 
   return false;
@@ -97,7 +86,7 @@ async function visibleBodyText(page: Page) {
 
 async function assertReadOnlyState(state: LiveApiState, consoleErrors: string[]) {
   expect(state.blockedWrites.filter((entry) => !allowedBlockedWrite(entry))).toEqual([]);
-  expect(state.readFailures.filter((entry) => !allowedReadFailure(entry))).toEqual([]);
+  expect(state.readFailures).toEqual([]);
   expect(consoleErrors.filter((item) => !expectedConsoleNoise(item, state))).toEqual([]);
 }
 
