@@ -59,7 +59,7 @@ export const registerServiceWorker = async () => {
     
     return registration;
   } catch (error) {
-    console.error('SW: Service worker registration failed:', error);
+    logger.warn('SW: Service worker registration failed:', error);
     return null;
   }
 };
