@@ -21,9 +21,20 @@ describe('Bootcamp demo mode contract', () => {
   it('uses Rolodex media URLs for GIF-like previews and outbound video viewing', () => {
     expect(demoSource).toContain('getExerciseDemoMedia');
     expect(demoSource).toContain('exercise.videoUrl');
-    expect(demoSource).toContain('exercise.thumbnailUrl || exercise.imageUrl');
+    expect(demoSource).toContain('exercise.catalogVideoSample?.videoUrl');
+    expect(demoSource).toContain('exercise.thumbnailUrl');
+    expect(demoSource).toContain('exercise.imageUrl');
+    expect(demoSource).toContain('exercise.catalogVideoSample?.thumbnailUrl');
+    expect(demoSource).toContain('Open catalog video');
     expect(demoSource).toContain('target="_blank"');
     expect(demoSource).toContain('rel="noopener noreferrer"');
+  });
+
+  it('shows true per-station demo readiness instead of labeling every exercise as a video', () => {
+    expect(demoSource).toContain('getStationDemoReadiness');
+    expect(demoSource).toContain('readyVideos');
+    expect(demoSource).toContain('`${readyVideos}/${totalExercises} demos ready`');
+    expect(demoSource).not.toContain('{exercises.length} videos');
   });
 
   it('keeps exercise selection and outbound video opening as sibling controls', () => {

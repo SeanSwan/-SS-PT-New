@@ -117,6 +117,17 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           if (typeof v === 'string' && /^\d+$/.test(v.trim())) return Number(v);
           return undefined;
         };
+        const toCatalogVideoSample = (value: unknown): ExerciseSlim['catalogVideoSample'] => {
+          if (!value || typeof value !== 'object') return null;
+          const sample = value as Record<string, unknown>;
+          return {
+            title: toOptionalString(sample.title) ?? null,
+            source: toOptionalString(sample.source) ?? null,
+            videoUrl: toOptionalString(sample.videoUrl) ?? null,
+            thumbnailUrl: toOptionalString(sample.thumbnailUrl) ?? null,
+            durationSeconds: toOptionalNumber(sample.durationSeconds) ?? null,
+          };
+        };
         const exercises: ExerciseSlim[] = body.exercises.map((ex: Record<string, unknown>) => ({
           id: String(ex?.id ?? ''),
           name: String(ex?.name ?? 'Unknown Exercise'),
@@ -133,6 +144,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           videoUrl: toOptionalString(ex?.videoUrl),
           imageUrl: toOptionalString(ex?.imageUrl),
           thumbnailUrl: toOptionalString(ex?.thumbnailUrl),
+          catalogVideoSample: toCatalogVideoSample(ex?.catalogVideoSample),
           defaultTempo: toOptionalString(ex?.defaultTempo),
           defaultRestSeconds: toOptionalNumber(ex?.defaultRestSeconds),
           recommendedSets: toOptionalNumber(ex?.recommendedSets),

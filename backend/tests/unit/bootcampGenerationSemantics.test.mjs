@@ -111,8 +111,17 @@ describe('bootcamp generation semantics', () => {
     expect(registryFallbackIndex).toBeGreaterThan(rolodexQueryIndex);
     expect(preRolodexQuery).not.toContain('if (equipmentProfileId) {');
     expect(exerciseRolodexBridgeSource).toContain('"videoUrl", "imageUrl", "thumbnailUrl"');
-    expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? null');
-    expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('normalizeExerciseRows(queryResult)');
+    expect(exerciseRolodexBridgeSource).not.toContain('const [exercises] = await sequelize.query');
+    expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? sample?.videoUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null');
+  });
+
+  it('uses safe catalog demo samples as generated bootcamp media fallbacks', () => {
+    expect(exerciseRolodexBridgeSource).toContain('getCatalogVideoSamplesByExercise');
+    expect(exerciseRolodexBridgeSource).toContain('const sample = catalogVideoSamples[ex.id]');
+    expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? sample?.videoUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null');
   });
 
   it('persists exercise media references for saved class templates and demo mode replay', () => {

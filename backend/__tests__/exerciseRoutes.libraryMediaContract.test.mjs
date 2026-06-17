@@ -31,6 +31,7 @@ vi.mock('../database.mjs', async () => {
 });
 
 const mockFindAll = vi.fn();
+const mockVideoCatalogFindAll = vi.fn();
 const mockExerciseModel = {
   rawAttributes: {
     id: {},
@@ -62,9 +63,23 @@ const mockExerciseModel = {
   },
   findAll: mockFindAll,
 };
+const mockVideoCatalogModel = {
+  rawAttributes: {
+    exerciseId: {},
+    title: {},
+    source: {},
+    youtubeVideoId: {},
+    thumbnailUrl: {},
+    durationSeconds: {},
+    publishedAt: {},
+    created_at: {},
+  },
+  findAll: mockVideoCatalogFindAll,
+};
 
 vi.mock('../models/index.mjs', () => ({
   getExercise: () => mockExerciseModel,
+  getVideoCatalog: () => mockVideoCatalogModel,
   getModel: vi.fn(),
 }));
 
@@ -113,6 +128,32 @@ beforeEach(() => {
       easyVariation: 'Box squat',
       hardVariation: 'Front squat',
       kneeMod: 'Use a shorter range of motion.',
+    },
+    {
+      id: 'ex-2',
+      name: 'Catalog Only Row',
+      exercise_key: 'catalog-only-row',
+      exerciseType: 'compound',
+      bodyPartCategory: 'back',
+      primaryMuscles: '["lats"]',
+      secondaryMuscles: '["biceps"]',
+      difficulty: 440,
+      equipmentNeeded: '["Cable"]',
+      source: 'swanstudios',
+      description: 'Row pattern with controlled tempo.',
+    },
+  ]);
+  mockVideoCatalogFindAll.mockResolvedValue([
+    {
+      exerciseId: 'ex-2',
+      title: 'Catalog Row Demo',
+      source: 'youtube',
+      youtubeVideoId: 'abc123XYZ',
+      thumbnailUrl: 'https://img.youtube.com/vi/abc123XYZ/hqdefault.jpg',
+      durationSeconds: 38,
+      hostedKey: 'r2/private/catalog-row.mp4',
+      thumbnailKey: 'r2/private/catalog-row.jpg',
+      hlsManifestUrl: 'https://private-signed.example/hls.m3u8',
     },
   ]);
 });
@@ -163,5 +204,26 @@ describe('exercise library media contract', () => {
       secondaryMuscles: ['core'],
       equipment: ['Dumbbells'],
     });
+
+    const catalogOnly = res.body.exercises.find(exercise => exercise.id === 'ex-2');
+    expect(catalogOnly).toMatchObject({
+      id: 'ex-2',
+      name: 'Catalog Only Row',
+      videoUrl: null,
+      imageUrl: null,
+      thumbnailUrl: null,
+      catalogVideoSample: {
+        title: 'Catalog Row Demo',
+        source: 'youtube',
+        videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ',
+        thumbnailUrl: 'https://img.youtube.com/vi/abc123XYZ/hqdefault.jpg',
+        durationSeconds: 38,
+      },
+    });
+    const serialized = JSON.stringify(catalogOnly);
+    expect(serialized).not.toContain('hostedKey');
+    expect(serialized).not.toContain('thumbnailKey');
+    expect(serialized).not.toContain('hlsManifestUrl');
+    expect(serialized).not.toContain('r2/private');
   });
 });
