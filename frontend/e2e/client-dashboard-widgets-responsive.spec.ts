@@ -21,6 +21,8 @@ const demoUser = {
   firstName: 'QA',
   lastName: 'Client',
   role: 'client',
+  hasLinkedWaiver: true,
+  waiverStatus: 'linked',
   isActive: true,
 };
 
