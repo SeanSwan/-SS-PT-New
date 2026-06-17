@@ -13,6 +13,7 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || 'http://localhost:5173',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
+    serviceWorkers: skipWebServer ? 'block' : 'allow',
   },
   ...(skipWebServer ? {} : {
     webServer: [
