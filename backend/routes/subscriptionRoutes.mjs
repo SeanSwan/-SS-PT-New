@@ -46,6 +46,34 @@ const getStripe = () => {
 // ─────────────────────────────────────────────────────────────
 const TIER_DEFINITIONS = CATALOG_TIERS;
 
+const buildTransientTrialSubscription = (userId, now = new Date()) => {
+  const trialEndDate = new Date(now);
+  trialEndDate.setDate(trialEndDate.getDate() + 30);
+
+  return {
+    userId,
+    tier: 'free',
+    status: 'trial',
+    trialStartDate: now,
+    trialEndDate,
+    currentPeriodEnd: null,
+    amount: null,
+    paymentMethod: null,
+    cumulativeDonationAmount: 0,
+    hasFullAIAccess() {
+      return false;
+    },
+    isInTrial() {
+      return this.status === 'trial' && this.trialEndDate && new Date() < new Date(this.trialEndDate);
+    },
+    trialDaysRemaining() {
+      if (!this.trialEndDate) return 0;
+      const diff = new Date(this.trialEndDate) - new Date();
+      return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+    },
+  };
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Public Endpoints
 // ─────────────────────────────────────────────────────────────
@@ -85,17 +113,23 @@ router.get('/status', protect, async (req, res) => {
 
     // Auto-create trial if no subscription exists
     if (!subscription) {
-      const now = new Date();
-      const trialEnd = new Date(now);
-      trialEnd.setDate(trialEnd.getDate() + 30);
+      const transientTrialSubscription = buildTransientTrialSubscription(userId);
 
-      subscription = await Subscription.create({
-        userId,
-        tier: 'free',
-        status: 'trial',
-        trialStartDate: now,
-        trialEndDate: trialEnd,
-      });
+      try {
+        subscription = await Subscription.create({
+          userId,
+          tier: transientTrialSubscription.tier,
+          status: transientTrialSubscription.status,
+          trialStartDate: transientTrialSubscription.trialStartDate,
+          trialEndDate: transientTrialSubscription.trialEndDate,
+          cumulativeDonationAmount: transientTrialSubscription.cumulativeDonationAmount,
+        });
+      } catch (creationError) {
+        logger.warn('[Subscription] Trial auto-create failed; returning transient status.', {
+          errorName: creationError instanceof Error ? creationError.name : typeof creationError,
+        });
+        subscription = transientTrialSubscription;
+      }
     }
 
     // Get usage data from User model

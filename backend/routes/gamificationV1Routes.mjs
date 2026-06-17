@@ -36,6 +36,7 @@ const authenticate = protect;
 const requireAdmin = adminOnly;
 const requireTrainer = trainerOrAdminOnly;
 const requireUser = requireAnyRole('client', 'trainer', 'admin');
+const requireProfileReader = requireAnyRole('user', 'client', 'trainer', 'admin');
 
 // Rate limiter for point-earning actions (20 per hour per user)
 const pointActionLimiter = rateLimit({
@@ -513,7 +514,7 @@ router.patch('/notifications/:notificationId/read', authenticate, requireUser, g
  * @desc    Get current user's gamification profile (convenience route)
  * @access  Authenticated users
  */
-router.get('/profile', authenticate, requireUser, viewAsGuard, (req, res) => {
+router.get('/profile', authenticate, requireProfileReader, viewAsGuard, (req, res) => {
   req.params.userId = getEffectiveReadUserId(req);
   return gamificationController.getUserProfile(req, res);
 });
