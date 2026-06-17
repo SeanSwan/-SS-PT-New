@@ -110,6 +110,69 @@ const useOptionalReduxAuth = () => {
   return { dispatch, reduxUser };
 };
 
+const readStoredUser = (): Partial<User> | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+};
+
+const hasOwn = (value: any, key: string) => (
+  value && Object.prototype.hasOwnProperty.call(value, key)
+);
+
+const resolveWaiverFields = (userData: any, fallback?: Partial<User> | null) => {
+  const serverSentWaiverState = (
+    hasOwn(userData, 'hasLinkedWaiver') ||
+    hasOwn(userData, 'waiverStatus') ||
+    hasOwn(userData, 'waiverRecordId') ||
+    hasOwn(userData, 'waiverSignedAt')
+  );
+
+  if (serverSentWaiverState) {
+    return {
+      hasLinkedWaiver: userData.hasLinkedWaiver === true,
+      waiverStatus: userData.waiverStatus,
+      waiverRecordId: userData.waiverRecordId ?? null,
+      waiverSignedAt: userData.waiverSignedAt ?? null
+    };
+  }
+
+  return {
+    hasLinkedWaiver: fallback?.hasLinkedWaiver,
+    waiverStatus: fallback?.waiverStatus,
+    waiverRecordId: fallback?.waiverRecordId ?? null,
+    waiverSignedAt: fallback?.waiverSignedAt ?? null
+  };
+};
+
+const formatAuthUser = (
+  userData: any,
+  usernameFallback?: string,
+  fallback?: Partial<User> | null
+): User => ({
+  id: userData.id,
+  email: userData.email,
+  username: userData.username || usernameFallback || userData.email?.split('@')[0],
+  phone: userData.phone,
+  firstName: userData.firstName || '',
+  lastName: userData.lastName || '',
+  role: userData.role || 'user',
+  clientSource: userData.clientSource,
+  ...resolveWaiverFields(userData, fallback),
+  profileImageUrl: userData.profileImageUrl || userData.photo,
+  photo: userData.photo,
+  isActive: userData.isActive !== false,
+  createdAt: userData.createdAt,
+  updatedAt: userData.updatedAt,
+  trainerInfo: userData.trainerInfo,
+  clientInfo: userData.clientInfo
+});
+
 // Auth Provider Component - PRODUCTION VERSION
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -251,28 +314,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           const userData = response.data.user;
           clearEmergencyAdminBypass();
           
-          // Ensure proper user structure
-          const formattedUser: User = {
-            id: userData.id,
-            email: userData.email,
-            username: userData.username || userData.email?.split('@')[0],
-            phone: userData.phone,
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            role: userData.role || 'user',
-            clientSource: userData.clientSource,
-            hasLinkedWaiver: userData.hasLinkedWaiver === true,
-            waiverStatus: userData.waiverStatus,
-            waiverRecordId: userData.waiverRecordId ?? null,
-            waiverSignedAt: userData.waiverSignedAt ?? null,
-            profileImageUrl: userData.profileImageUrl || userData.photo,
-            photo: userData.photo,
-            isActive: userData.isActive !== false,
-            createdAt: userData.createdAt,
-            updatedAt: userData.updatedAt,
-            trainerInfo: userData.trainerInfo,
-            clientInfo: userData.clientInfo
-          };
+          const formattedUser = formatAuthUser(userData, undefined, readStoredUser());
           
           if (isMounted) {
             setUser(formattedUser);
@@ -329,28 +371,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       if (response?.user && response?.token) {
         const { user: userData, token } = response;
 
-        // Format user data
-        const formattedUser: User = {
-          id: userData.id,
-          email: userData.email,
-          username: userData.username || username,
-          phone: userData.phone,
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          role: userData.role || 'user',
-          clientSource: userData.clientSource,
-          hasLinkedWaiver: userData.hasLinkedWaiver === true,
-          waiverStatus: userData.waiverStatus,
-          waiverRecordId: userData.waiverRecordId ?? null,
-          waiverSignedAt: userData.waiverSignedAt ?? null,
-          profileImageUrl: userData.profileImageUrl || userData.photo,
-          photo: userData.photo,
-          isActive: userData.isActive !== false,
-          createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt,
-          trainerInfo: userData.trainerInfo,
-          clientInfo: userData.clientInfo
-        };
+        const formattedUser = formatAuthUser(userData, username, readStoredUser());
 
         // Store token and user using cleanup utility
         tokenCleanup.storeToken(token, formattedUser);
@@ -427,25 +448,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         localStorage.setItem('tokenTimestamp', Date.now().toString());
         apiService.setAuthToken(token);
         
-        // Format user data
-        const formattedUser: User = {
-          id: userData.id,
-          email: userData.email,
-          username: userData.username || data.username,
-          phone: userData.phone,
+        const formattedUser = {
+          ...formatAuthUser(userData, data.username, readStoredUser()),
           firstName: userData.firstName || data.firstName || '',
-          lastName: userData.lastName || data.lastName || '',
-          role: userData.role || 'user',
-          clientSource: userData.clientSource,
-          hasLinkedWaiver: userData.hasLinkedWaiver === true,
-          waiverStatus: userData.waiverStatus,
-          waiverRecordId: userData.waiverRecordId ?? null,
-          waiverSignedAt: userData.waiverSignedAt ?? null,
-          profileImageUrl: userData.profileImageUrl || userData.photo,
-          photo: userData.photo,
-          isActive: userData.isActive !== false,
-          createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt
+          lastName: userData.lastName || data.lastName || ''
         };
         
         setUser(formattedUser);
@@ -539,27 +545,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const userData = response.data.user;
       clearEmergencyAdminBypass();
 
-      const refreshedUser: User = {
-        id: userData.id,
-        email: userData.email,
-        username: userData.username || userData.email?.split('@')[0],
-        phone: userData.phone,
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        role: userData.role || 'user',
-        clientSource: userData.clientSource,
-        hasLinkedWaiver: userData.hasLinkedWaiver === true,
-        waiverStatus: userData.waiverStatus,
-        waiverRecordId: userData.waiverRecordId ?? null,
-        waiverSignedAt: userData.waiverSignedAt ?? null,
-        profileImageUrl: userData.profileImageUrl || userData.photo,
-        photo: userData.photo,
-        isActive: userData.isActive !== false,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt,
-        trainerInfo: userData.trainerInfo,
-        clientInfo: userData.clientInfo
-      };
+      const refreshedUser = formatAuthUser(userData, undefined, user || readStoredUser());
 
       setUser(refreshedUser);
       localStorage.setItem('user', JSON.stringify(refreshedUser));
