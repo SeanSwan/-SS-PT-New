@@ -23,4 +23,13 @@ describe('playwright smoke launcher worker policy', () => {
     expect(smokeSource).toContain('selectedWorkersArg,');
     expect(smokeSource).toContain('Workers: ${selectedWorkersArg.slice');
   });
+
+  it('chains production smoke into the authenticated dashboard crawl gate', () => {
+    expect(smokeSource).toContain("const dashboardCrawlRequiredRoles = 'admin,trainer,client,user';");
+    expect(smokeSource).toContain("const shouldRunDashboardCrawl = prod && !ownArgs.includes('--skip-dashboard-crawl');");
+    expect(smokeSource).toContain("'playwright-mission.mjs'");
+    expect(smokeSource).toContain('`--require-prod-auth-roles=${dashboardCrawlRequiredRoles}`');
+    expect(smokeSource).toContain("'--grep=@dashboard-crawl'");
+    expect(smokeSource).toContain('SwanStudios authenticated dashboard crawl');
+  });
 });

@@ -11,6 +11,7 @@
  *   node scripts/qa/playwright-smoke.mjs --prod
  *   node scripts/qa/playwright-smoke.mjs --base-url=https://sswanstudios.com
  *   node scripts/qa/playwright-smoke.mjs --prod --workers=2
+ *   node scripts/qa/playwright-smoke.mjs --prod --skip-dashboard-crawl
  */
 
 import { spawnSync } from 'node:child_process';
@@ -22,6 +23,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..', '..');
 const frontendDir = path.join(repoRoot, 'frontend');
+const missionLauncher = path.join(__dirname, 'playwright-mission.mjs');
+const dashboardCrawlRequiredRoles = 'admin,trainer,client,user';
 
 const args = process.argv.slice(2);
 const passthroughIndex = args.indexOf('--');
@@ -43,6 +46,7 @@ const baseURL = baseUrlArg
   : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || `http://127.0.0.1:${localFrontendPort}`;
 const skipWebServer = prod || Boolean(baseUrlArg) || Boolean(process.env.BASE_URL) || process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const selectedWorkersArg = workersArg || (prod || baseUrlArg || process.env.BASE_URL ? '--workers=1' : '--workers=2');
+const shouldRunDashboardCrawl = prod && !ownArgs.includes('--skip-dashboard-crawl');
 
 const smokeSpecs = [
   'admin-compliance-truth-smoke.spec.ts',
@@ -81,6 +85,9 @@ if (localFrontendPort) {
 }
 process.stdout.write(`Web server: ${skipWebServer ? 'skipped' : 'managed by Playwright config'}\n`);
 process.stdout.write(`Specs: ${smokeSpecs.join(', ')}\n\n`);
+if (shouldRunDashboardCrawl) {
+  process.stdout.write(`Authenticated dashboard crawl: enabled after smoke\n\n`);
+}
 
 function shellQuote(arg) {
   if (/^[A-Za-z0-9_./:=@-]+$/.test(arg)) return arg;
@@ -110,4 +117,36 @@ if (result.error) {
   process.stderr.write(`Failed to launch Playwright smoke: ${result.error.message}\n`);
 }
 
-process.exit(result.status ?? 1);
+const smokeExitCode = result.status ?? 1;
+if (smokeExitCode !== 0) {
+  process.exit(smokeExitCode);
+}
+
+if (!shouldRunDashboardCrawl) {
+  process.exit(smokeExitCode);
+}
+
+process.stdout.write(`\nSwanStudios authenticated dashboard crawl\n`);
+process.stdout.write(`Required prod auth roles: ${dashboardCrawlRequiredRoles}\n\n`);
+
+const dashboardCrawlArgs = [
+  missionLauncher,
+  '--prod-live-readonly',
+  `--require-prod-auth-roles=${dashboardCrawlRequiredRoles}`,
+  '--grep=@dashboard-crawl',
+  reporterArg || '--reporter=line',
+  '--project=Desktop Chrome',
+  ...(headed ? ['--headed'] : []),
+];
+
+const dashboardCrawlResult = spawnSync(process.execPath, dashboardCrawlArgs, {
+  cwd: repoRoot,
+  env: process.env,
+  stdio: 'inherit',
+});
+
+if (dashboardCrawlResult.error) {
+  process.stderr.write(`Failed to launch authenticated dashboard crawl: ${dashboardCrawlResult.error.message}\n`);
+}
+
+process.exit(dashboardCrawlResult.status ?? 1);

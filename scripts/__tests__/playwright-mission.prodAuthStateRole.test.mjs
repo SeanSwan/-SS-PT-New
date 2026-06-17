@@ -63,7 +63,26 @@ describe('production auth storage-state role validation', () => {
           authPath: state.file,
           envName: 'SWAN_PROD_CLIENT_AUTH_STATE',
         }),
-        /expected client.*user\.role=admin.*token\.role=admin.*qa:prod-auth:capture:client/s,
+        /expected client.*user\.role=admin.*token\.role=admin.*capture-prod-auth-state\.mjs --role=client/s,
+      );
+    } finally {
+      state.cleanup();
+    }
+  });
+
+  it('accepts user role storage state for the user dashboard crawl', () => {
+    const state = writeState([
+      { name: 'user', value: JSON.stringify({ role: 'user' }) },
+      { name: 'token', value: jwtWithRole('user') },
+    ]);
+
+    try {
+      assert.doesNotThrow(
+        () => assertStorageStateMatchesRole({
+          expectedRole: 'user',
+          authPath: state.file,
+          envName: 'SWAN_PROD_USER_AUTH_STATE',
+        }),
       );
     } finally {
       state.cleanup();

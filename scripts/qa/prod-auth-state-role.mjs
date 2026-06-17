@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-const VALID_ROLES = new Set(['admin', 'trainer', 'client']);
+const VALID_ROLES = new Set(['admin', 'trainer', 'client', 'user']);
 
 function normalizeRole(value) {
   const role = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -63,7 +63,7 @@ function formatRoleEvidence(summary) {
 export function assertStorageStateMatchesRole({ expectedRole, authPath, envName }) {
   const expected = normalizeRole(expectedRole);
   if (!expected) {
-    throw new Error(`unknown required production auth role "${expectedRole}"; use admin, trainer, client`);
+    throw new Error(`unknown required production auth role "${expectedRole}"; use admin, trainer, client, user`);
   }
 
   const summary = getStorageStateRoleSummary(authPath);
@@ -80,7 +80,7 @@ export function assertStorageStateMatchesRole({ expectedRole, authPath, envName 
   if (mismatched) {
     throw new Error(
       `required production auth state ${envName} expected ${expected} but found ${formatRoleEvidence(summary)}; ` +
-      `recapture with npm run qa:prod-auth:capture:${expected} or point ${envName} at the correct storage-state file`
+      `recapture with node scripts/qa/capture-prod-auth-state.mjs --role=${expected} or point ${envName} at the correct storage-state file`
     );
   }
 }

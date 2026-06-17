@@ -18,11 +18,12 @@ const frontendDir = path.join(repoRoot, 'frontend');
 const authDir = path.join(repoRoot, '.auth');
 const args = process.argv.slice(2);
 
-const validRoles = new Set(['admin', 'trainer', 'client']);
+const validRoles = new Set(['admin', 'trainer', 'client', 'user']);
 const roleEnv = {
   admin: 'SWAN_PROD_ADMIN_AUTH_STATE',
   trainer: 'SWAN_PROD_TRAINER_AUTH_STATE',
   client: 'SWAN_PROD_CLIENT_AUTH_STATE',
+  user: 'SWAN_PROD_USER_AUTH_STATE',
 };
 
 function argValue(name) {
@@ -40,7 +41,7 @@ const allowOutsideAuthDir = args.includes('--allow-outside-auth-dir');
 const timeoutMs = Number(argValue('--timeout-ms') || '300000');
 
 function printUsage() {
-  process.stdout.write(`Usage: node scripts/qa/capture-prod-auth-state.mjs --role=admin|trainer|client [options]
+  process.stdout.write(`Usage: node scripts/qa/capture-prod-auth-state.mjs --role=admin|trainer|client|user [options]
 
 Options:
   --out=<path>                  Output storage state path. Defaults to .auth/sswan-prod-<role>.json.
@@ -57,6 +58,7 @@ Examples:
   $env:SWAN_PROD_ADMIN_AUTH_STATE=".auth/sswan-prod-admin.json"
   $env:SWAN_PROD_TRAINER_AUTH_STATE=".auth/sswan-prod-trainer.json"
   $env:SWAN_PROD_CLIENT_AUTH_STATE=".auth/sswan-prod-client.json"
+  $env:SWAN_PROD_USER_AUTH_STATE=".auth/sswan-prod-user.json"
 `);
 }
 
@@ -110,7 +112,7 @@ if (checkBrowserDriver) {
 }
 
 if (!validRoles.has(role)) {
-  fail('pass --role=admin, --role=trainer, or --role=client');
+  fail('pass --role=admin, --role=trainer, --role=client, or --role=user');
 }
 
 if (!Number.isFinite(timeoutMs) || timeoutMs < 30_000) {

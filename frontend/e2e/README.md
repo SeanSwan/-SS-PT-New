@@ -35,7 +35,12 @@ to prove that the routed UI surfaces render, tabs can be used, responsive layout
 does not obviously break, and the browser does not throw console/page errors.
 
 Production smoke sets `SWAN_PLAYWRIGHT_SKIP_WEBSERVER=1`; it targets the
-production URL and does not start local backend/frontend servers.
+production URL and does not start local backend/frontend servers. Production
+smoke also chains the authenticated dashboard crawl after the public smoke specs
+pass, and fails closed unless admin, trainer, client, and user production
+storage-state files are configured. Use the role capture commands below before a
+launch run. `--skip-dashboard-crawl` is only for isolating the credential-free
+public smoke layer during triage.
 Route assertions that are only valid for a current local product branch should
 be opt-in with `SWAN_SMOKE_LOCAL_BUNDLE_ROUTES=1` so the default smoke command
 does not depend on unstaged or not-yet-deployed product work.
@@ -66,10 +71,15 @@ launcher write flags, and a non-production database.
 `qa:mission:prod-readonly` tests the production bundle with mocked mission data.
 `qa:mission:prod-live-readonly` hits real production GET routes and blocks every
 write method. Authenticated production dashboard checks are skipped unless
-`SWAN_PROD_ADMIN_AUTH_STATE`, `SWAN_PROD_TRAINER_AUTH_STATE`, or
-`SWAN_PROD_CLIENT_AUTH_STATE` points at a local Playwright storage-state file
-under an ignored directory such as `.auth/`. `SWAN_PROD_AUTH_STATE` is still
-accepted as a generic client fallback.
+`SWAN_PROD_ADMIN_AUTH_STATE`, `SWAN_PROD_TRAINER_AUTH_STATE`,
+`SWAN_PROD_CLIENT_AUTH_STATE`, or `SWAN_PROD_USER_AUTH_STATE` points at a local
+Playwright storage-state file under an ignored directory such as `.auth/`.
+`SWAN_PROD_AUTH_STATE` is still accepted as a generic client fallback.
+
+`qa:dashboard-crawl:prod` runs the stricter production dashboard console crawl
+for admin, trainer, client, and user dashboards. It blocks write methods,
+clicks safe visible dashboard controls, and attaches a
+`dashboard-crawl-report.json` artifact for console, page, and network issues.
 
 `qa:mission:cleanup` is dry-run by default and stays scoped to
 `@swanstudios-qa.local` records. `qa:mission:report` writes a markdown evidence

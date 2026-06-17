@@ -92,6 +92,7 @@ describe('mission QA automation guards', () => {
         SWAN_PROD_ADMIN_AUTH_STATE: '',
         SWAN_PROD_TRAINER_AUTH_STATE: '',
         SWAN_PROD_CLIENT_AUTH_STATE: '',
+        SWAN_PROD_USER_AUTH_STATE: '',
       },
       timeout: 5_000,
     });
@@ -112,6 +113,8 @@ describe('mission QA automation guards', () => {
       .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly');
     expect(rootPackage.scripts['qa:mission:prod-live-readonly:roles'])
       .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client');
+    expect(rootPackage.scripts['qa:dashboard-crawl:prod'])
+      .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client,user --grep=@dashboard-crawl -- --project="Desktop Chrome"');
     expect(rootPackage.scripts['qa:prod-auth:capture'])
       .toBe('node scripts/qa/capture-prod-auth-state.mjs');
     expect(rootPackage.scripts['qa:prod-auth:capture:admin'])
@@ -120,6 +123,8 @@ describe('mission QA automation guards', () => {
       .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=trainer');
     expect(rootPackage.scripts['qa:prod-auth:capture:client'])
       .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=client');
+    expect(rootPackage.scripts['qa:prod-auth:capture:user'])
+      .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=user');
     expect(rootPackage.scripts['qa:mission:cleanup'])
       .toBe('node scripts/qa/mission-qa-cleanup.mjs');
     expect(rootPackage.scripts['qa:mission:report'])
@@ -139,9 +144,10 @@ describe('mission QA automation guards', () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Usage: node scripts/qa/capture-prod-auth-state.mjs');
-    expect(result.stdout).toContain('--role=admin|trainer|client');
+    expect(result.stdout).toContain('--role=admin|trainer|client|user');
     expect(result.stdout).toContain('.auth/');
     expect(result.stdout).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
+    expect(result.stdout).toContain('SWAN_PROD_USER_AUTH_STATE');
 
     const source = readFileSync(launcherPath, 'utf8');
     expect(source).toContain('assertInsideAuthDir');
@@ -176,6 +182,8 @@ describe('mission QA automation guards', () => {
     expect(matrix).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
     expect(matrix).toContain('SWAN_PROD_TRAINER_AUTH_STATE');
     expect(matrix).toContain('SWAN_PROD_CLIENT_AUTH_STATE');
+    expect(matrix).toContain('SWAN_PROD_USER_AUTH_STATE');
+    expect(matrix).toContain('qa:dashboard-crawl:prod');
     expect(matrix).toContain('qa:prod-auth:capture');
     expect(matrix).toContain('qa:mission:cleanup');
     expect(matrix).toContain('qa:mission:report');
@@ -240,6 +248,24 @@ describe('mission QA automation guards', () => {
     expect(spec).toContain('/dashboard/admin');
     expect(spec).toContain('/dashboard/trainer/clients');
     expect(spec).toContain('/dashboard/client/progress');
+    expect(spec).not.toMatch(/password|sk_live|pk_live|whsec_/i);
+  });
+
+  it('covers all production dashboard roles with a read-only console crawler', () => {
+    const specPath = path.join(repoRoot, 'frontend/e2e/mission/production-dashboard-crawl.mission.spec.ts');
+    expect(existsSync(specPath)).toBe(true);
+
+    const spec = readFileSync(specPath, 'utf8');
+    expect(spec).toContain('@dashboard-crawl');
+    expect(spec).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
+    expect(spec).toContain('SWAN_PROD_TRAINER_AUTH_STATE');
+    expect(spec).toContain('SWAN_PROD_CLIENT_AUTH_STATE');
+    expect(spec).toContain('SWAN_PROD_USER_AUTH_STATE');
+    expect(spec).toContain('/dashboard/admin/coach-assistant');
+    expect(spec).toContain('/dashboard/trainer/clients');
+    expect(spec).toContain('/dashboard/client/progress');
+    expect(spec).toContain('/user-dashboard/progress');
+    expect(spec).toContain('writeMethods.has(request.method())');
     expect(spec).not.toMatch(/password|sk_live|pk_live|whsec_/i);
   });
 

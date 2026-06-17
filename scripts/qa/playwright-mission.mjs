@@ -90,6 +90,9 @@ function normalizedAuthStateEnv() {
     ...(process.env.SWAN_PROD_CLIENT_AUTH_STATE
       ? { SWAN_PROD_CLIENT_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_CLIENT_AUTH_STATE) }
       : {}),
+    ...(process.env.SWAN_PROD_USER_AUTH_STATE
+      ? { SWAN_PROD_USER_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_USER_AUTH_STATE) }
+      : {}),
   };
 }
 
@@ -97,6 +100,7 @@ const prodAuthRoleEnv = {
   admin: ['SWAN_PROD_ADMIN_AUTH_STATE'],
   trainer: ['SWAN_PROD_TRAINER_AUTH_STATE'],
   client: ['SWAN_PROD_CLIENT_AUTH_STATE', 'SWAN_PROD_AUTH_STATE'],
+  user: ['SWAN_PROD_USER_AUTH_STATE'],
 };
 
 function parseRequiredProdAuthRoles() {
@@ -171,6 +175,7 @@ Environment:
   SWAN_MISSION_QA_CONFIRM_PROD_DB_WRITES=true  Required if write mode sees a production-looking DATABASE_URL.
   SWAN_PLAYWRIGHT_FRONTEND_PORT=<port>          First local Vite port to try in contract mode.
   SWAN_PROD_AUTH_STATE=<path>                   Optional Playwright storage state for live authenticated prod checks.
+  SWAN_PROD_USER_AUTH_STATE=<path>              Optional user-role storage state for dashboard crawl checks.
   SWAN_MISSION_QA_REQUIRE_AUTH_ROLES=<roles>     Env alternative to --require-prod-auth-roles.
 `);
 }
