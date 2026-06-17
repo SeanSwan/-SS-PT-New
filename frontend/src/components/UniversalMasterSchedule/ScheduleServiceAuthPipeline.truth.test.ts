@@ -62,5 +62,8 @@ describe('universal schedule service auth pipeline', () => {
     expect(calendarDataSource).toContain('canLoadClientRoster ? [');
     expect(calendarDataSource).toContain("dataType: 'clients'");
     expect(calendarDataSource).toContain("dataType: 'assignments'");
+    expect(calendarDataSource).toContain("user?.role === 'trainer' && user?.id");
+    expect(calendarDataSource).toContain('clientTrainerAssignmentService.getTrainerAssignments(String(user.id))');
+    expect(calendarDataSource).toContain('clientTrainerAssignmentService.getAssignments()');
   });
 });

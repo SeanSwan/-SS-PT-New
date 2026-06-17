@@ -33,7 +33,7 @@ describe('CanadaImmigrationTab auth pipeline', () => {
     expect(pageSource).toContain("apiService.get<ApiEnvelope<any>>('/api/immigration/tasks'");
     expect(pageSource).toContain("apiService.get<ApiEnvelope<any>>('/api/immigration/documents'");
     expect(pageSource).toContain("apiService.get<ApiEnvelope<any>>('/api/immigration/study'");
-    expect(pageSource).toContain("apiService.post('/api/immigration/seed'");
+    expect(pageSource).not.toContain("apiService.post('/api/immigration/seed'");
     expect(pageSource).toContain('apiService.put<{ success?: boolean; data?: any }>(');
     expect(pageSource).toContain('`/api/immigration/tasks/${id}`');
     expect(pageSource).toContain('`/api/immigration/documents/${id}`');

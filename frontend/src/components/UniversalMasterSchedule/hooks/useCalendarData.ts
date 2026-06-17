@@ -374,7 +374,9 @@ export const useCalendarData = () => {
     try {
       await executeWithCircuitBreaker(
         async () => {
-          const assignmentsData = await clientTrainerAssignmentService.getAssignments();
+          const assignmentsData = user?.role === 'trainer' && user?.id
+            ? await clientTrainerAssignmentService.getTrainerAssignments(String(user.id))
+            : await clientTrainerAssignmentService.getAssignments();
           setAssignments(assignmentsData);
           return assignmentsData;
         },
@@ -385,7 +387,7 @@ export const useCalendarData = () => {
       setErrors(prev => ({ ...prev, assignments: 'Failed to load assignments' }));
       throw error;
     }
-  }, [canLoadClientRoster, executeWithCircuitBreaker]);
+  }, [canLoadClientRoster, executeWithCircuitBreaker, user?.id, user?.role]);
   
   // ==================== CACHE MANAGEMENT ====================
   

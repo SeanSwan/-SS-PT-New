@@ -841,6 +841,8 @@ const setupAssociations = async () => {
     AutomationLog.belongsTo(AutomationSequence, { foreignKey: 'sequenceId', as: 'sequence' });
     User.hasMany(AutomationLog, { foreignKey: 'userId', as: 'automationLogs' });
     AutomationLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Lead.hasMany(AutomationLog, { foreignKey: 'leadId', as: 'automationLogs', constraints: false });
+    AutomationLog.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead', constraints: false });
     
     // CONTACT ASSOCIATIONS
     // ===================

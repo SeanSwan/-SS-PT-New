@@ -373,18 +373,11 @@ const CanadaImmigrationTab: React.FC = () => {
     }
   }, [fetchTasks, fetchDocuments, fetchStudySessions]);
 
-  /* ── Seed & initial load ── */
+  /* ── Initial load ── */
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        await apiService.post('/api/immigration/seed', undefined, {
-          validateStatus: status => status < 500,
-        });
-      } catch {
-        // seed endpoint may not exist yet; continue anyway
-      }
       if (!cancelled) await loadAll();
     })();
     return () => { cancelled = true; };
