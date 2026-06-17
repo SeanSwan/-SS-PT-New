@@ -110,9 +110,9 @@ const ProfileChartsSection: React.FC<ProfileChartsSectionProps> = ({
   isOwnProfile = false,
 }) => {
   const { user } = useAuth();
-  const { isPro, isElite, isTrial, loading: subscriptionLoading } = useSubscription();
+  const { isPro, isElite, loading: subscriptionLoading } = useSubscription();
   const isStaffRole = user?.role === 'admin' || user?.role === 'trainer';
-  const hasPaidChartAccess = isStaffRole || isPro || isElite || isTrial;
+  const hasPaidChartAccess = isStaffRole || isPro || isElite;
   const hasProtectedChartSelected = useMemo(
     () => CHART_REGISTRY.some(c => chartVisibility[c.key] === true && c.requiresPro),
     [chartVisibility]

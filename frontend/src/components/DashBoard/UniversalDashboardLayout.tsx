@@ -505,12 +505,12 @@ const ClientProgressDashboardPage = React.lazy(
 // Wrapper component for detailed NASM analytics — kept for deep-link access
 const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
-  const { isPro, isElite, isTrial, loading: subscriptionLoading } = useSubscription();
+  const { isPro, isElite, loading: subscriptionLoading } = useSubscription();
   const navigate = useNavigate();
   const clientId = parseDashboardUserId(user?.id);
   const userRole = user?.role;
   const isStaffRole = userRole === 'admin' || userRole === 'trainer';
-  const hasDetailedProgressAccess = isStaffRole || isPro || isElite || isTrial;
+  const hasDetailedProgressAccess = isStaffRole || isPro || isElite;
 
   if (!clientId) {
     return (
