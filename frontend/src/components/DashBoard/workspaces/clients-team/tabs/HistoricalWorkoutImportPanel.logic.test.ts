@@ -1,5 +1,7 @@
 import {
+  appendHistoricalPreviewToCoachPrompt,
   buildHistoricalImportPlan,
+  buildHistoricalPreviewFormFields,
   knownWorkoutDateSet,
 } from './HistoricalWorkoutImportPanel.logic';
 
@@ -63,5 +65,48 @@ describe('HistoricalWorkoutImportPanel logic', () => {
     expect(plan.coachPrompt).toContain('[redacted-email]');
     expect(plan.coachPrompt).not.toContain('555-123-4567');
     expect(plan.coachPrompt).not.toContain('client@example.com');
+  });
+
+  it('builds redacted history-preview form fields for the draft-only upload endpoint', () => {
+    const fields = buildHistoricalPreviewFormFields({
+      clientId: 42,
+      knownDates: ['2026-01-05T12:00:00.000Z', 'bad-date'],
+      lastWorkoutNotes: 'Last session had sled work. Text 555-123-4567 or client@example.com.',
+      missingDates: ['2026-01-07'],
+      sourceLabel: 'Move Fitness historical import',
+    });
+
+    expect(fields).toEqual({
+      clientId: '42',
+      knownDates: '["2026-01-05"]',
+      lastWorkoutNotes: 'Last session had sled work. Text [redacted-phone] or [redacted-email].',
+      missingDates: '["2026-01-07"]',
+      sourceLabel: 'Move Fitness historical import',
+    });
+  });
+
+  it('adds uploaded preview draft summaries to the Coach handoff prompt without creating saved records', () => {
+    const prompt = appendHistoricalPreviewToCoachPrompt({
+      basePrompt: 'Base historical import prompt.',
+      drafts: [{
+        date: '2026-01-07',
+        confidence: 0.82,
+        parsedWorkout: {
+          exercises: [
+            { exerciseName: 'Bench Press' },
+            { exerciseName: 'Seated Row' },
+          ],
+        },
+      }],
+      missingDraftRequests: [{ date: '2026-01-09' }],
+    });
+
+    expect(prompt).toContain('Base historical import prompt.');
+    expect(prompt).toContain('Uploaded history preview draft candidates:');
+    expect(prompt).toContain('2026-01-07');
+    expect(prompt).toContain('Bench Press, Seated Row');
+    expect(prompt).toContain('Missing-date draft prompts still needed: 2026-01-09.');
+    expect(prompt).toContain('review-gated');
+    expect(prompt).not.toContain('saved records');
   });
 });

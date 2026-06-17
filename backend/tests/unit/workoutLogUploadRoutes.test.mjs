@@ -27,8 +27,8 @@
  *   3. response contract is `{ success, transcript, parsedWorkout,
  *      metadata }` with metadata carrying filename/mimetype/size/
  *      clientId/trainerId/sessionId
- *   4. the route is mounted as POST /upload with protect + authorize
- *      middleware still attached at the router level
+ *   4. the routes are mounted as POST /upload and POST /history-preview
+ *      with protect + authorize middleware still attached at the router level
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -190,6 +190,14 @@ describe('workoutLogUploadRoutes — response contract', () => {
     // `message` doesn't silently strip all error copy from the UI.
     expect(routeSource).toMatch(/res\.status\(\d+\)\.json\(\s*\{\s*error:/);
   });
+
+  it('history preview response is draft-only and returns review candidates, not saved logs', () => {
+    expect(routeSource).toMatch(
+      /router\.post\(\s*['"]\/history-preview['"][\s\S]{0,3600}draftOnly:\s*true[\s\S]{0,1200}drafts:[\s\S]{0,1200}missingDraftRequests:/,
+    );
+    expect(routeSource).toMatch(/previewHistoricalWorkoutImport/);
+    expect(routeSource).not.toMatch(/WorkoutLog\.create|DailyWorkoutForm\.create|adminClient|logWorkout\(/);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -230,6 +238,14 @@ describe('workoutLogUploadRoutes — route mount + middleware chain', () => {
     );
   });
 
+  it('POST /history-preview is mounted with admin/trainer auth and upload rate limiting', () => {
+    const layer = findLayer('post', '/history-preview');
+    expect(layer).toBeTruthy();
+    expect(routeSource).toMatch(
+      /router\.post\(\s*['"]\/history-preview['"][\s\S]{0,200}authorize\(\[['"]admin['"],\s*['"]trainer['"]\]\)[\s\S]{0,300}rateLimiter[\s\S]{0,200}uploadFile/,
+    );
+  });
+
   it('POST /upload uses a route-local uploadFile wrapper around upload.single("file")', () => {
     // The frontend useTranscriptIntake.uploadTranscript() hook sends
     // exactly one file per FormData — locking the multer shape prevents
@@ -243,12 +259,17 @@ describe('workoutLogUploadRoutes — route mount + middleware chain', () => {
   });
 
   it('does not expose any other HTTP methods on the router', () => {
-    // Lock the router's public surface: exactly one route, POST /upload.
+    // Lock the router's public surface: POST /upload and POST /history-preview.
     // A future addition would need to extend this test.
     const routeLayers = workoutLogUploadRoutes.stack.filter((l) => l.route);
-    expect(routeLayers).toHaveLength(1);
-    const [only] = routeLayers;
-    expect(only.route.path).toBe('/upload');
-    expect(Object.keys(only.route.methods)).toEqual(['post']);
+    expect(routeLayers).toHaveLength(2);
+    const routes = routeLayers.map((layer) => ({
+      path: layer.route.path,
+      methods: Object.keys(layer.route.methods),
+    }));
+    expect(routes).toEqual([
+      { path: '/upload', methods: ['post'] },
+      { path: '/history-preview', methods: ['post'] },
+    ]);
   });
 });

@@ -4,6 +4,7 @@
  * Endpoints for uploading voice memos and files to parse into workout logs.
  *
  * POST /api/workout-logs/upload   Upload file + get parsed workout
+ * POST /api/workout-logs/history-preview   Upload history + get draft candidates
  */
 
 import express from 'express';
@@ -11,6 +12,7 @@ import multer from 'multer';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { transcribeAudio, extractText, isAudioFile } from '../services/voiceTranscriptionService.mjs';
 import { parseWorkoutTranscript } from '../services/workoutLogParserService.mjs';
+import { previewHistoricalWorkoutImport } from '../services/historicalWorkoutImportService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -21,6 +23,17 @@ const parseStrictPositiveInteger = (value) => {
   if (typeof value === 'string' && value.trim() === '') return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseJsonArrayField = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || value.trim() === '') return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 };
 
 // Rate limiter: 10 uploads per 15 min per user
@@ -104,6 +117,13 @@ function uploadFile(req, res, next) {
   });
 }
 
+async function extractTranscriptFromFile(file) {
+  if (isAudioFile(file.mimetype)) {
+    return transcribeAudio(file.buffer, file.originalname);
+  }
+  return extractText(file.buffer, file.mimetype);
+}
+
 // All routes require authentication + admin/trainer role
 router.use(protect);
 
@@ -148,12 +168,7 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
     });
 
     // Step 1: Get transcript
-    let transcript;
-    if (isAudioFile(file.mimetype)) {
-      transcript = await transcribeAudio(file.buffer, file.originalname);
-    } else {
-      transcript = await extractText(file.buffer, file.mimetype);
-    }
+    const transcript = await extractTranscriptFromFile(file);
 
     if (!transcript || transcript.trim().length < 5) {
       return res.status(422).json({ error: 'Could not extract meaningful text from file' });
@@ -185,6 +200,81 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
     logger.error('[WorkoutLogUpload] Upload failed', { error: err.message, stack: err.stack });
 
     res.status(500).json({ error: 'Failed to process upload. Please try again.' });
+  }
+});
+
+/**
+ * POST /history-preview -- Upload historical records, get draft-only candidates.
+ */
+router.post('/history-preview', authorize(['admin', 'trainer']), rateLimiter, uploadFile, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const { clientId, sourceLabel, lastWorkoutNotes } = req.body;
+    if (!clientId) {
+      return res.status(400).json({ error: 'clientId is required' });
+    }
+
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    const parsedTrainerId = parseStrictPositiveInteger(req.user?.id);
+
+    if (!parsedClientId) {
+      return res.status(400).json({ error: 'Valid clientId is required' });
+    }
+
+    if (!parsedTrainerId) {
+      return res.status(400).json({ error: 'Valid trainer identity is required' });
+    }
+
+    const file = req.file;
+    logger.info('[WorkoutLogUpload] Processing historical preview upload', {
+      trainerId: parsedTrainerId,
+      clientId: parsedClientId,
+      filename: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+    });
+
+    const transcript = await extractTranscriptFromFile(file);
+    if (!transcript || transcript.trim().length < 5) {
+      return res.status(422).json({ error: 'Could not extract meaningful text from file' });
+    }
+
+    const preview = await previewHistoricalWorkoutImport({
+      transcript,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      knownDates: parseJsonArrayField(req.body.knownDates),
+      missingDates: parseJsonArrayField(req.body.missingDates),
+      sourceLabel: sourceLabel || 'External historical import',
+      lastWorkoutNotes: lastWorkoutNotes || '',
+    });
+
+    res.json({
+      success: true,
+      draftOnly: true,
+      transcript,
+      drafts: preview.drafts,
+      missingDraftRequests: preview.missingDraftRequests,
+      metadata: {
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        clientId: parsedClientId,
+        trainerId: parsedTrainerId,
+        parsedDrafts: preview.drafts.length,
+        missingDraftRequests: preview.missingDraftRequests.length,
+        parsedEntryCount: preview.parsedEntryCount,
+        skippedKnownDates: preview.skippedKnownDates,
+        truncated: preview.truncated,
+      },
+    });
+  } catch (err) {
+    logger.error('[WorkoutLogUpload] Historical preview failed', { error: err.message, stack: err.stack });
+
+    res.status(500).json({ error: 'Failed to preview historical workout import. Please try again.' });
   }
 });
 

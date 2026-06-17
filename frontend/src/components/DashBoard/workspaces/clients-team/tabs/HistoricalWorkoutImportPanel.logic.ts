@@ -26,6 +26,24 @@ export interface HistoricalImportPlan {
   coachPrompt: string;
 }
 
+export interface HistoricalPreviewFormFieldsInput {
+  clientId: number;
+  knownDates: string[];
+  missingDates: string[];
+  sourceLabel: string;
+  lastWorkoutNotes: string;
+}
+
+interface HistoricalPreviewPromptDraft {
+  date: string;
+  confidence?: number | null;
+  parsedWorkout?: { exercises?: Array<{ exerciseName?: string | null }> };
+}
+
+interface HistoricalPreviewPromptRequest {
+  date: string;
+}
+
 const WEEKDAY_PATTERNS: Record<number, number[]> = {
   1: [1],
   2: [1, 4],
@@ -99,6 +117,49 @@ function redactPromptNotes(notes: string): string {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted-email]')
     .replace(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[redacted-phone]')
     .trim();
+}
+
+function normalizedDateArray(dates: string[]): string[] {
+  return [...new Set(dates.map(toDateOnly).filter((date): date is string => Boolean(date)))].sort();
+}
+
+export function buildHistoricalPreviewFormFields(input: HistoricalPreviewFormFieldsInput): Record<string, string> {
+  return {
+    clientId: String(input.clientId),
+    knownDates: JSON.stringify(normalizedDateArray(input.knownDates)),
+    lastWorkoutNotes: redactPromptNotes(input.lastWorkoutNotes),
+    missingDates: JSON.stringify(normalizedDateArray(input.missingDates)),
+    sourceLabel: input.sourceLabel.trim() || 'External historical import',
+  };
+}
+
+function previewExerciseNames(draft: HistoricalPreviewPromptDraft): string {
+  const names = draft.parsedWorkout?.exercises
+    ?.map((exercise) => exercise.exerciseName?.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  return names?.length ? names.join(', ') : 'exercise list needs review';
+}
+
+export function appendHistoricalPreviewToCoachPrompt(input: {
+  basePrompt: string;
+  drafts?: HistoricalPreviewPromptDraft[];
+  missingDraftRequests?: HistoricalPreviewPromptRequest[];
+}): string {
+  const drafts = input.drafts || [];
+  const missingDates = (input.missingDraftRequests || []).map((request) => request.date).filter(Boolean);
+  if (drafts.length === 0 && missingDates.length === 0) return input.basePrompt;
+
+  const lines = [input.basePrompt.trim(), '', 'Uploaded history preview draft candidates:'];
+  drafts.slice(0, 12).forEach((draft) => {
+    const confidence = typeof draft.confidence === 'number' ? ` confidence ${Math.round(draft.confidence * 100)}%` : '';
+    lines.push(`- ${draft.date}${confidence}: ${previewExerciseNames(draft)}.`);
+  });
+  if (missingDates.length > 0) {
+    lines.push(`Missing-date draft prompts still needed: ${missingDates.slice(0, 36).join(', ')}.`);
+  }
+  lines.push('Keep every preview item review-gated; do not write to charts, streaks, or progress proof until an admin/trainer explicitly approves.');
+  return lines.join('\n');
 }
 
 export function buildHistoricalImportPlan(input: HistoricalImportPlanInput): HistoricalImportPlan {

@@ -6,11 +6,13 @@
  * bulk-write estimated workouts.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles, UploadCloud } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getLocalIsoDate } from '../../../../../utils/localDate';
 import {
+  appendHistoricalPreviewToCoachPrompt,
+  buildHistoricalPreviewFormFields,
   buildHistoricalImportPlan,
   clampSessionsPerWeek,
   createHistoricalImportDraftKey,
@@ -38,8 +40,16 @@ interface HistoricalWorkoutImportPanelProps {
   clientName?: string;
 }
 
+interface HistoricalPreviewDraft { date: string; confidence?: number | null; draftOnly?: boolean; parsedWorkout?: { exercises?: Array<{ exerciseName?: string | null }> }; status?: string }
+interface HistoricalPreviewResponse { draftOnly?: boolean; drafts?: HistoricalPreviewDraft[]; missingDraftRequests?: Array<{ date: string; status?: string }> }
+
 interface HistoricalWorkoutAuthAxios {
   get: (url: string, config?: unknown) => Promise<{ data?: { workouts?: HistoricalWorkoutDateSource[] } }>;
+  post: (
+    url: string,
+    data?: unknown,
+    config?: unknown,
+  ) => Promise<{ data?: HistoricalPreviewResponse }>;
 }
 
 const sourceOptions: SourceValue[] = [
@@ -74,6 +84,21 @@ async function loadKnownHistoricalWorkouts(
   return Array.isArray(response.data?.workouts) ? response.data.workouts : [];
 }
 
+async function uploadHistoricalPreview(
+  authAxios: HistoricalWorkoutAuthAxios,
+  file: File,
+  fields: Record<string, string>,
+): Promise<HistoricalPreviewResponse | null> {
+  const formData = new FormData();
+  formData.append('file', file);
+  Object.entries(fields).forEach(([key, value]) => formData.append(key, value));
+  const response = await authAxios.post('/api/workout-logs/history-preview', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120_000,
+  });
+  return response.data || null;
+}
+
 function useKnownHistoricalWorkouts(authAxios: HistoricalWorkoutAuthAxios, clientId: number) {
   const [knownWorkouts, setKnownWorkouts] = useState<HistoricalWorkoutDateSource[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,10 +124,10 @@ function useKnownHistoricalWorkouts(authAxios: HistoricalWorkoutAuthAxios, clien
   return { fetchKnownWorkouts, knownWorkouts, loading, status };
 }
 
-function MissingDatePills({ dates }: { dates: string[] }) {
+function MissingDatePills({ dates, label = 'Missing workout dates' }: { dates: string[]; label?: string }) {
   const shownDates = dates.slice(0, 24);
   return (
-    <MissingDateGrid aria-label="Missing workout dates">
+    <MissingDateGrid aria-label={label}>
       {shownDates.map((date) => <DatePill key={date}>{date}</DatePill>)}
       {dates.length > 24 && <DatePill>+{dates.length - 24} more</DatePill>}
       {dates.length === 0 && <DatePill>No missing dates</DatePill>}
@@ -118,6 +143,10 @@ const HistoricalWorkoutImportPanel: React.FC<HistoricalWorkoutImportPanelProps> 
   const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [sourceLabel, setSourceLabel] = useState<SourceValue>('Move Fitness historical import');
   const [lastWorkoutNotes, setLastWorkoutNotes] = useState('');
+  const [historyFile, setHistoryFile] = useState<File | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewResult, setPreviewResult] = useState<HistoricalPreviewResponse | null>(null);
+  const [previewStatus, setPreviewStatus] = useState('Upload historical records to generate draft-only previews.');
   const { fetchKnownWorkouts, knownWorkouts, loading, status } = useKnownHistoricalWorkouts(authAxios, clientId);
 
   const knownDates = useMemo(() => [...knownWorkoutDateSet(knownWorkouts)].sort(), [knownWorkouts]);
@@ -130,6 +159,11 @@ const HistoricalWorkoutImportPanel: React.FC<HistoricalWorkoutImportPanelProps> 
     sourceLabel,
     startDate,
   }), [clientId, endDate, knownDates, lastWorkoutNotes, sessionsPerWeek, sourceLabel, startDate]);
+  const coachPrompt = useMemo(() => appendHistoricalPreviewToCoachPrompt({
+    basePrompt: plan.coachPrompt,
+    drafts: previewResult?.drafts,
+    missingDraftRequests: previewResult?.missingDraftRequests,
+  }), [plan.coachPrompt, previewResult]);
 
   const handleOpenCoach = useCallback(() => {
     const draftKey = createHistoricalImportDraftKey(clientId);
@@ -139,11 +173,39 @@ const HistoricalWorkoutImportPanel: React.FC<HistoricalWorkoutImportPanelProps> 
       returnTo: `/dashboard/admin/client-management?clientId=${clientId}&tab=training&trainingSection=import`,
       source: 'clients-team',
     });
-    if (storeHistoricalImportDraft(draftKey, plan.coachPrompt)) {
+    if (storeHistoricalImportDraft(draftKey, coachPrompt)) {
       params.set('draftKey', draftKey);
     }
     navigate(`/dashboard/admin/coach-assistant?${params.toString()}`);
-  }, [clientId, navigate, plan.coachPrompt]);
+  }, [clientId, coachPrompt, navigate]);
+
+  const handlePreviewHistory = useCallback(async () => {
+    if (!historyFile) {
+      setPreviewStatus('Choose a history file before previewing drafts.');
+      return;
+    }
+
+    setPreviewing(true);
+    setPreviewStatus('Previewing historical draft candidates.');
+    try {
+      const result = await uploadHistoricalPreview(authAxios, historyFile, buildHistoricalPreviewFormFields({
+        clientId,
+        knownDates,
+        lastWorkoutNotes,
+        missingDates: plan.missingDates,
+        sourceLabel,
+      }));
+      const draftCount = result?.drafts?.length || 0;
+      const missingCount = result?.missingDraftRequests?.length || 0;
+      setPreviewResult(result);
+      setPreviewStatus(`${draftCount} parsed drafts and ${missingCount} missing-date draft prompts ready for review.`);
+    } catch {
+      setPreviewResult(null);
+      setPreviewStatus('History preview failed. Recheck the file and try again.');
+    } finally {
+      setPreviewing(false);
+    }
+  }, [authAxios, clientId, historyFile, knownDates, lastWorkoutNotes, plan.missingDates, sourceLabel]);
 
   return (
     <ImportPanelShell aria-label="Historical workout import planner">
@@ -197,17 +259,36 @@ const HistoricalWorkoutImportPanel: React.FC<HistoricalWorkoutImportPanelProps> 
             placeholder="Example: last known session was lower-body strength, goblet squats 3x10, RDL 3x8, sled pushes, knee tolerated well."
           />
         </Field>
+        <Field $wide>
+          History file
+          <input
+            type="file"
+            accept=".txt,.csv,.pdf,audio/*"
+            onChange={(event) => setHistoryFile(event.target.files?.[0] || null)}
+          />
+        </Field>
       </ImportFormGrid>
 
       <MissingDatePills dates={plan.missingDates} />
+      {previewResult && (
+        <MissingDatePills
+          dates={(previewResult.drafts || []).map((draft) => draft.date)}
+          label="Preview draft dates"
+        />
+      )}
 
       <ActionRow>
+        <ActionButton type="button" onClick={handlePreviewHistory} disabled={previewing}>
+          <UploadCloud size={16} aria-hidden="true" />
+          {previewing ? 'Previewing' : 'Preview History Drafts'}
+        </ActionButton>
         <ActionButton type="button" $primary onClick={handleOpenCoach}>
           <Sparkles size={16} aria-hidden="true" />
           Open Swan Coach Planning
         </ActionButton>
       </ActionRow>
       <StatusText role="status" aria-live="polite">{status}</StatusText>
+      <StatusText role="status" aria-live="polite">{previewStatus}</StatusText>
     </ImportPanelShell>
   );
 };
