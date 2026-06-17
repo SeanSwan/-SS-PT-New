@@ -9,7 +9,7 @@ import express from 'express';
 import { apiLimiter } from '../middleware/rateLimiter.mjs';
 import { protect, authorize, authorizeResourceAccess, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import workoutController from '../controllers/workoutController.mjs';
-import { getExercise } from '../models/index.mjs';
+import { getExercise, getVideoCatalog } from '../models/index.mjs';
 import { Op } from '../database.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -18,6 +18,9 @@ import {
   getLibraryAttributes,
   getLibraryWhere,
 } from '../services/exerciseLibraryContract.mjs';
+import {
+  getCatalogVideoSamplesByExercise,
+} from '../services/exerciseCatalogVideoSamples.mjs';
 
 const router = express.Router();
 
@@ -474,9 +477,21 @@ router.get('/library', protect, apiLimiter, async (req, res) => {
     }
 
     const formatted = exercises.map(formatLibraryExercise);
+    const exerciseIds = formatted.map(exercise => exercise.id).filter(Boolean);
+    let VideoCatalog = null;
+    try {
+      VideoCatalog = getVideoCatalog();
+    } catch {
+      VideoCatalog = null;
+    }
+    const catalogVideoSamples = await getCatalogVideoSamplesByExercise(VideoCatalog, { exerciseIds });
+    const exercisesWithSamples = formatted.map(exercise => ({
+      ...exercise,
+      catalogVideoSample: catalogVideoSamples[exercise.id] ?? null,
+    }));
 
     res.set('Cache-Control', 'private, max-age=300');
-    res.json({ success: true, exercises: formatted, count: formatted.length });
+    res.json({ success: true, exercises: exercisesWithSamples, count: exercisesWithSamples.length });
   } catch (error) {
     logger.error('Exercise library error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch exercise library' });

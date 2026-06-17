@@ -32,13 +32,24 @@ interface BootcampDemoModeProps {
 }
 
 export function getExerciseDemoMedia(exercise: BootcampExercise) {
-  const poster = exercise.thumbnailUrl || exercise.imageUrl || null;
-  const videoUrl = exercise.videoUrl || null;
+  const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null;
+  const poster = exercise.thumbnailUrl
+    || exercise.imageUrl
+    || exercise.catalogVideoSample?.thumbnailUrl
+    || null;
+  const videoUrl = exercise.videoUrl || catalogVideoUrl;
   return {
     poster,
     videoUrl,
+    isCatalogVideo: !exercise.videoUrl && Boolean(catalogVideoUrl),
     canPreviewVideo: Boolean(videoUrl && VIDEO_FILE_PATTERN.test(videoUrl)),
   };
+}
+
+export function getStationDemoReadiness(exercises: BootcampExercise[]) {
+  const totalExercises = exercises.length;
+  const readyVideos = exercises.filter(exercise => Boolean(getExerciseDemoMedia(exercise).videoUrl)).length;
+  return `${readyVideos}/${totalExercises} demos ready`;
 }
 
 const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectExercise }) => {
@@ -73,7 +84,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
           <StationDemoCard key={station?.stationNumber ?? stationIndex}>
             <StationDemoHeader>
               <StationDemoName>{station?.stationName ?? `Station ${stationIndex + 1}`}</StationDemoName>
-              <StationDemoCount>{exercises.length} videos</StationDemoCount>
+              <StationDemoCount>{getStationDemoReadiness(exercises)}</StationDemoCount>
             </StationDemoHeader>
             <DemoExerciseList>
               {exercises.length === 0 ? (
@@ -110,7 +121,9 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         ) : (
                           <DemoPlaceholder>Demo media can be added from the SwanStudios Rolodex.</DemoPlaceholder>
                         )}
-                        <DemoMediaPill>{media.videoUrl ? 'Video ready' : 'Media slot'}</DemoMediaPill>
+                        <DemoMediaPill>
+                          {media.videoUrl ? (media.isCatalogVideo ? 'Catalog video' : 'Video ready') : 'Media slot'}
+                        </DemoMediaPill>
                       </DemoMediaStage>
                       <DemoExerciseName>{exerciseIndex + 1}. {exercise.exerciseName}</DemoExerciseName>
                       <DemoExerciseMeta>
@@ -123,7 +136,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Open video <ExternalLink size={14} />
+                        {media.isCatalogVideo ? 'Open catalog video' : 'Open video'} <ExternalLink size={14} />
                       </DemoVideoLink>
                     )}
                   </DemoExerciseTile>

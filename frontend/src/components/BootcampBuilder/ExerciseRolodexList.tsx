@@ -128,8 +128,12 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
 export default ExerciseRolodexList;
 
 export function getExerciseMediaPreview(exercise: ExerciseSlim) {
-  const poster = exercise.thumbnailUrl || exercise.imageUrl || null;
-  const videoUrl = exercise.videoUrl || null;
+  const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null;
+  const poster = exercise.thumbnailUrl
+    || exercise.imageUrl
+    || exercise.catalogVideoSample?.thumbnailUrl
+    || null;
+  const videoUrl = exercise.videoUrl || catalogVideoUrl;
   return {
     poster,
     videoUrl,

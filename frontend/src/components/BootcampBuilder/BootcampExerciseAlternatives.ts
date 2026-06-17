@@ -1,6 +1,10 @@
 import type { BootcampExercise } from '../../hooks/useBootcampAPI';
 
 type NullableText = string | null;
+type CatalogVideoSample = {
+  videoUrl?: string | null;
+  thumbnailUrl?: string | null;
+} | null;
 
 export interface RolodexLikeExercise {
   id?: string | number;
@@ -15,6 +19,7 @@ export interface RolodexLikeExercise {
   videoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
+  catalogVideoSample?: CatalogVideoSample;
   easyVariation?: string | null;
   mediumVariation?: string | null;
   hardVariation?: string | null;
@@ -169,6 +174,8 @@ export function buildBootcampExerciseFromRolodex(
 ): BootcampExercise {
   const fallback = defaultAlternatives(exercise);
   const equipment = arrayText(exercise.equipmentNeeded || exercise.equipment);
+  const catalogVideoUrl = text(exercise.catalogVideoSample?.videoUrl);
+  const catalogThumbnailUrl = text(exercise.catalogVideoSample?.thumbnailUrl);
 
   return {
     exerciseName: exercise.name,
@@ -191,9 +198,9 @@ export function buildBootcampExerciseFromRolodex(
     stationIndex: options.stationIndex,
     isCardioFinisher: includesAny((exercise.exerciseType || '').toLowerCase(), ['cardio', 'conditioning']),
     equipmentRequired: equipment.length > 0 ? equipment.join(', ') : null,
-    videoUrl: text(exercise.videoUrl),
+    videoUrl: text(exercise.videoUrl) || catalogVideoUrl,
     imageUrl: text(exercise.imageUrl),
-    thumbnailUrl: text(exercise.thumbnailUrl),
+    thumbnailUrl: text(exercise.thumbnailUrl) || catalogThumbnailUrl,
     setupTimeSec: options.setupTimeSec ?? 5,
     description: text(exercise.description),
     exerciseLibraryId: numericId(exercise.id),

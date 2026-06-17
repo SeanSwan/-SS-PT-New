@@ -24,6 +24,13 @@ export interface BootcampExercise {
   videoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
+  catalogVideoSample?: {
+    title?: string | null;
+    source?: string | null;
+    videoUrl?: string | null;
+    thumbnailUrl?: string | null;
+    durationSeconds?: number | null;
+  } | null;
   stationIndex?: number;
   board?: 'main' | 'alternative' | 'lowImpact';
   boardNumber?: number;

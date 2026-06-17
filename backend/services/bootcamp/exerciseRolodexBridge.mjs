@@ -12,8 +12,9 @@
  */
 
 import sequelize from '../../database.mjs';
-import { Op } from 'sequelize';
 import logger from '../../utils/logger.mjs';
+import { getVideoCatalog } from '../../models/index.mjs';
+import { getCatalogVideoSamplesByExercise } from '../exerciseCatalogVideoSamples.mjs';
 
 // ── Setup Time Estimates by Equipment ─────────────────────────────────
 // How long (seconds) it takes a participant to set up each equipment type
@@ -149,13 +150,19 @@ export async function queryExercisesForBootcamp(filters = {}) {
 
     replacements.limit = limit;
 
-    const [exercises] = await sequelize.query(query, {
+    const queryResult = await sequelize.query(query, {
       replacements,
       type: sequelize.constructor.QueryTypes.SELECT,
-    }).catch(() => [[]]);
+    }).catch(() => []);
+
+    const exerciseRows = normalizeExerciseRows(queryResult);
+    const catalogVideoSamples = await loadCatalogVideoSamples(exerciseRows);
 
     // Transform to bootcamp format
-    return (Array.isArray(exercises) ? exercises : []).map(ex => formatForBootcamp(ex));
+    return exerciseRows.map((ex) => {
+      const sample = catalogVideoSamples[ex.id];
+      return formatForBootcamp(ex, sample);
+    });
   } catch (err) {
     logger.warn('Exercise Rolodex query failed, falling back to variation engine:', err.message);
     return [];
@@ -178,10 +185,25 @@ export function estimateSetupTime(exercise) {
   return maxSetup;
 }
 
+function normalizeExerciseRows(queryResult) {
+  if (!Array.isArray(queryResult)) return [];
+  if (Array.isArray(queryResult[0])) return queryResult[0];
+  return queryResult;
+}
+
 /**
  * Format a raw exercise record for bootcamp use.
  */
-function formatForBootcamp(ex) {
+async function loadCatalogVideoSamples(exercises) {
+  try {
+    const exerciseIds = exercises.map(ex => ex.id).filter(Boolean);
+    return await getCatalogVideoSamplesByExercise(getVideoCatalog(), { exerciseIds });
+  } catch {
+    return {};
+  }
+}
+
+function formatForBootcamp(ex, sample = null) {
   const primaryMuscles = parseJsonField(ex.primaryMuscles);
   const secondaryMuscles = parseJsonField(ex.secondaryMuscles);
   const equipment = parseJsonField(ex.equipmentNeeded ?? ex.equipment) || ['bodyweight'];
@@ -198,9 +220,10 @@ function formatForBootcamp(ex) {
     bodyPartCategory: ex.bodyPartCategory ?? 'full_body',
     optPhases: parseJsonField(ex.optPhases) || [1, 2, 3, 4, 5],
     source: ex.source ?? 'unknown',
-    videoUrl: ex.videoUrl ?? null,
+    videoUrl: ex.videoUrl ?? sample?.videoUrl ?? null,
     imageUrl: ex.imageUrl ?? null,
-    thumbnailUrl: ex.thumbnailUrl ?? null,
+    thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null,
+    catalogVideoSample: sample,
     setupTimeSec: estimateSetupTime(ex),
     // Difficulty tiers
     easy: ex.easyVariation ?? null,

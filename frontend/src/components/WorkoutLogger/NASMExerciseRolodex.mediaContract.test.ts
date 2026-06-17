@@ -22,6 +22,7 @@ describe('NASMExerciseRolodex media and mobile preview contract', () => {
       'videoUrl',
       'imageUrl',
       'thumbnailUrl',
+      'catalogVideoSample',
       'defaultTempo',
       'defaultRestSeconds',
       'recommendedSets',

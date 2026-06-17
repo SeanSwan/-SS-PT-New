@@ -103,4 +103,34 @@ describe('Bootcamp exercise alternatives', () => {
     expect(exercise.imageUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat.jpg');
     expect(exercise.thumbnailUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat-thumb.jpg');
   });
+
+  it('uses safe catalog demo samples when direct Rolodex video media is missing', () => {
+    const exercise = buildBootcampExerciseFromRolodex(
+      {
+        id: 84,
+        name: 'Cable Row',
+        exerciseType: 'compound',
+        difficulty: 460,
+        primaryMuscles: ['lats'],
+        equipmentNeeded: ['Cable'],
+        catalogVideoSample: {
+          title: 'Cable Row Demo',
+          source: 'youtube',
+          videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ',
+          thumbnailUrl: 'https://img.youtube.com/vi/abc123XYZ/hqdefault.jpg',
+          durationSeconds: 38,
+        },
+      },
+      {
+        durationSec: 45,
+        restSec: 15,
+        sortOrder: 1,
+        stationIndex: 0,
+      },
+    );
+
+    expect(exercise.videoUrl).toBe('https://www.youtube.com/watch?v=abc123XYZ');
+    expect(exercise.thumbnailUrl).toBe('https://img.youtube.com/vi/abc123XYZ/hqdefault.jpg');
+    expect(exercise.imageUrl).toBeNull();
+  });
 });

@@ -12,6 +12,10 @@ import {
   getLibraryAttributes,
   getLibraryWhere,
 } from './exerciseLibraryContract.mjs';
+import {
+  buildCatalogVideoSample,
+  getCatalogVideoSamplesByExercise,
+} from './exerciseCatalogVideoSamples.mjs';
 
 export const getCoverageExerciseAttributes = (Exercise) => getLibraryAttributes(Exercise);
 
@@ -24,31 +28,6 @@ const roundPercent = (covered, total) => (
   total > 0 ? Math.round((covered / total) * 1000) / 10 : 0
 );
 
-const cleanString = (value) => (
-  typeof value === 'string' && value.trim() ? value.trim() : null
-);
-
-const cleanPublicUrl = (value) => {
-  const candidate = cleanString(value);
-  if (!candidate) return null;
-  try {
-    const parsed = new URL(candidate);
-    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : null;
-  } catch {
-    return null;
-  }
-};
-
-const cleanYoutubeVideoId = (value) => {
-  const candidate = cleanString(value);
-  return candidate && /^[a-zA-Z0-9_-]{6,20}$/.test(candidate) ? candidate : null;
-};
-
-const toDurationSeconds = (value) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
-
 const buildOrder = (Exercise) => {
   const available = Exercise?.rawAttributes ? new Set(Object.keys(Exercise.rawAttributes)) : null;
   const order = [];
@@ -56,22 +35,6 @@ const buildOrder = (Exercise) => {
   order.push(['name', 'ASC']);
   return order;
 };
-
-function buildCatalogVideoSample(rawSample) {
-  if (!rawSample) return null;
-
-  const source = cleanString(rawSample.source);
-  const youtubeVideoId = cleanYoutubeVideoId(rawSample.youtubeVideoId);
-  const isYoutube = source === 'youtube' && youtubeVideoId;
-
-  return {
-    title: cleanString(rawSample.title),
-    source,
-    videoUrl: isYoutube ? `https://www.youtube.com/watch?v=${youtubeVideoId}` : null,
-    thumbnailUrl: isYoutube ? cleanPublicUrl(rawSample.thumbnailUrl) : null,
-    durationSeconds: toDurationSeconds(rawSample.durationSeconds),
-  };
-}
 
 export function buildContentStudioCoveragePayload(
   exercises = [],
@@ -151,49 +114,6 @@ async function getVideoCountsByExercise(VideoCatalog) {
 
     return counts.reduce((acc, row) => {
       acc[row.exerciseId] = toCount(row.videoCount);
-      return acc;
-    }, {});
-  } catch {
-    return {};
-  }
-}
-
-function getVideoSampleAttributes(VideoCatalog) {
-  const available = VideoCatalog?.rawAttributes ? new Set(Object.keys(VideoCatalog.rawAttributes)) : null;
-  return [
-    'exerciseId',
-    'title',
-    'source',
-    'youtubeVideoId',
-    'thumbnailUrl',
-    'durationSeconds',
-  ].filter(attribute => !available || available.has(attribute));
-}
-
-function buildVideoSampleOrder(VideoCatalog) {
-  const available = VideoCatalog?.rawAttributes ? new Set(Object.keys(VideoCatalog.rawAttributes)) : null;
-  const order = [];
-  if (!available || available.has('publishedAt')) order.push(['publishedAt', 'DESC']);
-  if (!available || available.has('created_at')) order.push(['created_at', 'DESC']);
-  if (!available || available.has('createdAt')) order.push(['createdAt', 'DESC']);
-  return order;
-}
-
-async function getCatalogVideoSamplesByExercise(VideoCatalog) {
-  if (!VideoCatalog?.findAll) return {};
-  try {
-    const samples = await VideoCatalog.findAll({
-      where: {
-        exerciseId: { [Sequelize.Op.ne]: null },
-        status: 'published',
-      },
-      attributes: getVideoSampleAttributes(VideoCatalog),
-      order: buildVideoSampleOrder(VideoCatalog),
-      raw: true,
-    });
-
-    return samples.reduce((acc, row) => {
-      if (row.exerciseId && !acc[row.exerciseId]) acc[row.exerciseId] = row;
       return acc;
     }, {});
   } catch {
