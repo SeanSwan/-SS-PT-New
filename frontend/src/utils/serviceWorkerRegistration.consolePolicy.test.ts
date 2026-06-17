@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(join(process.cwd(), 'src/utils/serviceWorkerRegistration.js'), 'utf8');
 
 describe('serviceWorkerRegistration console policy', () => {
-  it('does not report expected registration failures as console errors', () => {
+  it('does not emit a console error when registration is blocked or unavailable', () => {
     expect(source).toContain("logger.warn('SW: Service worker registration failed:'");
     expect(source).not.toContain("console.error('SW: Service worker registration failed:'");
   });
