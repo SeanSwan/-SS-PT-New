@@ -32,4 +32,17 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
     expect(source).toContain("{ path: '/progress/detailed', component: ClientProgressWrapper");
     expect(source).not.toContain('clientId={Number(user?.id || 0)}');
   });
+
+  it('gates direct client detailed analytics links before paid charts mount', () => {
+    const source = readFileSync(layoutSourcePath, 'utf8');
+
+    expect(source).toContain("import { useSubscription } from '../../hooks/useSubscription';");
+    expect(source).toContain('const { isPro, isElite, isTrial, loading: subscriptionLoading } = useSubscription();');
+    expect(source).toContain("const isStaffRole = userRole === 'admin' || userRole === 'trainer';");
+    expect(source).toContain('const hasDetailedProgressAccess = isStaffRole || isPro || isElite || isTrial;');
+    expect(source).toContain('if (subscriptionLoading && !isStaffRole) {');
+    expect(source).toContain('if (!hasDetailedProgressAccess) {');
+    expect(source).toContain('<h2>Guardian analytics required</h2>');
+    expect(source).toContain('return <NASMProgressCharts clientId={clientId} />;');
+  });
 });
