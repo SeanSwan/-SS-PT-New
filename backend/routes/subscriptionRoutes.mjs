@@ -543,24 +543,40 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
             ? Math.round((amount / 12) * 100) / 100
             : amount;
 
-          await Subscription.upsert({
-            userId,
-            tier,
-            status: 'active',
-            amount: effectiveMonthlyAmount,
-            stripeSubscriptionId: session.subscription,
-            stripeCustomerId: session.customer,
-            currentPeriodStart: now,
-            currentPeriodEnd: periodEnd,
-            paymentMethod: 'stripe',
-            cancelledAt: null,
-            cancelReason: null,
-          });
+          await sequelize.transaction(async (t) => {
+            const sub = await Subscription.findOne({
+              where: { userId },
+              transaction: t,
+              order: [['createdAt', 'DESC']],
+            });
+            const subscriptionValues = {
+              tier,
+              status: 'active',
+              amount: effectiveMonthlyAmount,
+              stripeSubscriptionId: session.subscription,
+              stripeCustomerId: session.customer,
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+              paymentMethod: 'stripe',
+              cancelledAt: null,
+              cancelReason: null,
+            };
 
-          await UserModel.update(
-            { subscriptionTier: tier },
-            { where: { id: userId } }
-          );
+            if (sub) {
+              Object.assign(sub, subscriptionValues);
+              await sub.save({ transaction: t });
+            } else {
+              await Subscription.create({
+                userId,
+                ...subscriptionValues,
+              }, { transaction: t });
+            }
+
+            await UserModel.update(
+              { subscriptionTier: tier },
+              { where: { id: userId }, transaction: t }
+            );
+          });
 
           logger.info(`[Subscription Webhook] Activated ${tier} for user ${userId} at $${amount}/${interval}`);
         }
