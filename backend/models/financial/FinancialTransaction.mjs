@@ -196,7 +196,7 @@ FinancialTransaction.init({
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Orders',
+      model: 'orders',
       key: 'id'
     },
     comment: 'Associated order if applicable'
@@ -205,7 +205,7 @@ FinancialTransaction.init({
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'ShoppingCarts',
+      model: 'shopping_carts',
       key: 'id'
     },
     comment: 'Shopping cart used for this transaction'

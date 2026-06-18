@@ -24,7 +24,7 @@ ExerciseEquipment.init({
     type: DataTypes.UUID,
     primaryKey: true,
     references: {
-      model: 'Equipment',
+      model: 'equipment',
       key: 'id'
     },
     onDelete: 'CASCADE'
