@@ -113,4 +113,24 @@ describe('ClientCurrentWorkoutCard view model', () => {
     expect(viewModel.rows).toEqual([{ label: '6 Month plan pending', value: 'Coach Homework' }]);
     expect(viewModel.detail).toMatch(/default 6 Month plan/i);
   });
+
+  it('routes completed assignments to workout history proof instead of generic plan review', () => {
+    const viewModel = buildClientCurrentWorkoutViewModel({
+      workout: {
+        ...homeworkWorkout,
+        assignmentStatus: 'completed',
+        isLoggable: false,
+        ctaLabel: '',
+      },
+      error: false,
+      loading: false,
+    });
+
+    expect(viewModel.action).toEqual({
+      label: 'Review Workout History',
+      ariaLabel: 'Review completed workout history',
+      path: '/dashboard/client/workouts',
+    });
+    expect(viewModel.detail).toMatch(/completed today/i);
+  });
 });
