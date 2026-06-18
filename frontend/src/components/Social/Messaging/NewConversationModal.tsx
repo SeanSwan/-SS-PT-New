@@ -20,6 +20,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { X, Search, Users, GraduationCap } from 'lucide-react';
 import styled from 'styled-components';
 import type { SearchUserResult } from './MessagingTypes';
+import { participantDisplayName } from './messagingApiAdapters';
 import { useSocialFriends } from '../../../hooks/social/useSocialFriends';
 import {
   ModalOverlay, ModalContent, ModalHeader, ModalTitle, CloseButton,
@@ -267,8 +268,8 @@ const NewConversationModal: React.FC<Props> = ({
                   )}
                 </Avatar>
                 <div>
-                  <UserName>{user.firstName} {user.lastName}</UserName>
-                  <UserRole>{user.role}</UserRole>
+                  <UserName>{participantDisplayName(user)}</UserName>
+                  <UserRole>{user.role}{user.username ? ` - @${user.username}` : ''}</UserRole>
                 </div>
               </UserItem>
             ))

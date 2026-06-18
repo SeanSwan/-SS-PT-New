@@ -132,7 +132,16 @@ export const getConversations = async (req, res) => {
         c.type,
         c.name,
         (
-          SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
+          SELECT json_agg(json_build_object(
+            'id', u.id,
+            'name', u."firstName" || ' ' || u."lastName",
+            'firstName', u."firstName",
+            'lastName', u."lastName",
+            'username', u.username,
+            'photo', u.photo,
+            'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END,
+            'lastActive', COALESCE(u."lastActive", u."lastLogin")
+          ))
           FROM conversation_participants cp_inner
           JOIN "Users" u ON u.id = cp_inner.user_id
           WHERE cp_inner.conversation_id = c.id AND cp_inner.user_id != :userId
@@ -227,7 +236,16 @@ export const createConversation = async (req, res) => {
       if (existing) {
         const [existingConversation] = await sequelize.query(
           `SELECT c.id, c.type, c.name,
-            (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
+            (SELECT json_agg(json_build_object(
+              'id', u.id,
+              'name', u."firstName" || ' ' || u."lastName",
+              'firstName', u."firstName",
+              'lastName', u."lastName",
+              'username', u.username,
+              'photo', u.photo,
+              'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END,
+              'lastActive', COALESCE(u."lastActive", u."lastLogin")
+            ))
              FROM conversation_participants cp_inner JOIN "Users" u ON u.id = cp_inner.user_id
              WHERE cp_inner.conversation_id = c.id) as participants
            FROM conversations c WHERE c.id = :conversationId`,
@@ -262,7 +280,16 @@ export const createConversation = async (req, res) => {
       // Fetch the full conversation object to return
       const [newConversation] = await sequelize.query(
         `SELECT c.id, c.type, c.name,
-          (SELECT json_agg(json_build_object('id', u.id, 'name', u."firstName" || ' ' || u."lastName", 'photo', u.photo))
+          (SELECT json_agg(json_build_object(
+            'id', u.id,
+            'name', u."firstName" || ' ' || u."lastName",
+            'firstName', u."firstName",
+            'lastName', u."lastName",
+            'username', u.username,
+            'photo', u.photo,
+            'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END,
+            'lastActive', COALESCE(u."lastActive", u."lastLogin")
+          ))
            FROM conversation_participants cp_inner JOIN "Users" u ON u.id = cp_inner.user_id
            WHERE cp_inner.conversation_id = c.id) as participants
          FROM conversations c WHERE c.id = :conversationId`,
@@ -326,7 +353,11 @@ export const getMessagesForConversation = async (req, res) => {
         json_build_object(
           'id', u.id,
           'name', u."firstName" || ' ' || u."lastName",
-          'photo', u.photo
+          'firstName', u."firstName",
+          'lastName', u."lastName",
+          'username', u.username,
+          'photo', u.photo,
+          'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END
         ) as sender,
         (
           SELECT json_agg(
@@ -363,24 +394,25 @@ export const getMessagesForConversation = async (req, res) => {
  * If no query (or query < 2 chars), returns suggested users (up to 20)
  * so the modal shows available contacts immediately on open.
  *
- * Normalizes role: DB 'user' → 'client' for display.
+ * Normalizes role: DB 'user' -> 'client' for display.
  */
 export const searchUsers = async (req, res) => {
   const { q } = req.query;
   const currentUserId = req.user.id;
+  const query = typeof q === 'string' ? q.trim().replace(/\s+/g, ' ') : '';
 
   try {
     let users;
 
-    if (!q || q.length < 2) {
-      // Return suggested users — most recently active, non-deleted, excluding self
+    if (!query || query.length < 2) {
+      // Return suggested users - most recently active, non-deleted, excluding self
       users = await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role
+        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
            AND ("isActive" = true OR "isActive" IS NULL)
-         ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
+         ORDER BY COALESCE("lastActive", "lastLogin") DESC NULLS LAST, "createdAt" DESC
          LIMIT 20`,
         {
           replacements: { currentUserId },
@@ -390,16 +422,22 @@ export const searchUsers = async (req, res) => {
     } else {
       // Search by name, username, or email
       users = await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role
+        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
          FROM "Users"
-         WHERE ( "firstName" ILIKE :query OR "lastName" ILIKE :query OR username ILIKE :query OR email ILIKE :query )
+         WHERE (
+             "firstName" ILIKE :query
+             OR "lastName" ILIKE :query
+             OR ("firstName" || ' ' || "lastName") ILIKE :query
+             OR username ILIKE :query
+             OR email ILIKE :query
+           )
            AND id != :currentUserId
            AND "deletedAt" IS NULL
            AND ("isActive" = true OR "isActive" IS NULL)
-         ORDER BY "lastLogin" DESC NULLS LAST, "createdAt" DESC
+         ORDER BY COALESCE("lastActive", "lastLogin") DESC NULLS LAST, "createdAt" DESC
          LIMIT 20`,
         {
-          replacements: { query: `%${q}%`, currentUserId },
+          replacements: { query: `%${query}%`, currentUserId },
           type: QueryTypes.SELECT,
         }
       );
@@ -409,6 +447,8 @@ export const searchUsers = async (req, res) => {
     const normalized = users.map(u => ({
       ...u,
       role: u.role === 'user' ? 'client' : u.role,
+      displayName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
+      lastActive: u.lastActive || u.lastLogin || null,
     }));
 
     res.json(normalized);
@@ -492,7 +532,15 @@ export const sendMessage = async (req, res) => {
 
     // Fetch sender info
     const [sender] = await sequelize.query(
-      `SELECT id, "firstName" || ' ' || "lastName" as name, photo FROM "Users" WHERE id = :senderId`,
+      `SELECT id,
+              "firstName" || ' ' || "lastName" as name,
+              "firstName",
+              "lastName",
+              username,
+              photo,
+              CASE WHEN role = 'user' THEN 'client' ELSE role END as role
+       FROM "Users"
+       WHERE id = :senderId`,
       { replacements: { senderId }, type: QueryTypes.SELECT }
     );
 

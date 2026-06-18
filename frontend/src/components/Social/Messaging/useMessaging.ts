@@ -20,8 +20,15 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '../../../hooks/useSocket';
-import type { ConnectionState } from '../../../hooks/useSocket';
 import type { ConversationData, MessageData, SearchUserResult } from './MessagingTypes';
+import {
+  normalizeConversationPayload,
+  normalizeConversationsPayload,
+  normalizeMessage,
+  normalizeMessagePayload,
+  normalizeMessagesPayload,
+  normalizeSearchUsersPayload,
+} from './messagingApiAdapters';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -115,9 +122,9 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
       return;
     }
     try {
-      const data = await apiFetch<{ conversations: ConversationData[] }>('/conversations');
+      const data = await apiFetch<unknown>('/conversations');
       if (mountedRef.current) {
-        setConversations(data.conversations || []);
+        setConversations(normalizeConversationsPayload(data));
         setError(null);
       }
     } catch (err: unknown) {
@@ -143,13 +150,13 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
 
     if (mountedRef.current) setMessagesLoading(true);
     try {
-      const data = await apiFetch<{ messages: MessageData[] }>(
+      const data = await apiFetch<unknown>(
         `/conversations/${convId}/messages?limit=500&sort=desc`,
         { signal: controller.signal }
       );
       // AI Village fix: verify this is still the active conversation
       if (mountedRef.current && String(activeConvRef.current) === String(convId)) {
-        setMessages((data.messages || []).reverse());
+        setMessages(normalizeMessagesPayload(data));
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
@@ -177,12 +184,13 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     } else {
       // REST fallback
       try {
-        const data = await apiFetch<{ message: MessageData }>(
+        const data = await apiFetch<unknown>(
           `/conversations/${activeConversationId}/messages`,
           { method: 'POST', body: JSON.stringify({ content: trimmed }) }
         );
+        const sentMessage = normalizeMessagePayload(data);
         if (mountedRef.current) {
-          setMessages(prev => [...prev, data.message]);
+          if (sentMessage) setMessages(prev => [...prev, sentMessage]);
           fetchConversations();
         }
       } catch (err: unknown) {
@@ -216,15 +224,16 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     if (!enabled) return null;
 
     try {
-      const data = await apiFetch<{ conversation: ConversationData }>(
+      const data = await apiFetch<unknown>(
         '/conversations',
         { method: 'POST', body: JSON.stringify({ participantIds: [participantId] }) }
       );
+      const conversation = normalizeConversationPayload(data);
       if (mountedRef.current) {
         await fetchConversations();
-        setActiveConversationId(data.conversation.id);
+        if (conversation) setActiveConversationId(conversation.id);
       }
-      return data.conversation;
+      return conversation;
     } catch (err: unknown) {
       if (mountedRef.current) {
         const msg = err instanceof Error ? err.message : 'Failed to create conversation';
@@ -239,10 +248,10 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     if (!enabled) return [];
 
     try {
-      const data = await apiFetch<{ users: SearchUserResult[] }>(
+      const data = await apiFetch<unknown>(
         `/users/search${query ? `?q=${encodeURIComponent(query)}` : ''}`
       );
-      return data.users || [];
+      return normalizeSearchUsersPayload(data);
     } catch {
       return [];
     }
@@ -284,11 +293,10 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
 
     const handleNewMessage = (message: unknown) => {
       // AI Village fix: validate payload shape
-      const msg = message as Record<string, unknown>;
-      if (!msg?.conversation_id || !msg?.content || !msg?.id) return;
+      const typedMsg = normalizeMessage(message);
+      if (!typedMsg) return;
 
-      const msgConvId = msg.conversation_id;
-      const typedMsg = msg as unknown as MessageData;
+      const msgConvId = typedMsg.conversation_id;
 
       // If for active conversation, append (with dedup)
       if (String(msgConvId) === String(activeConvRef.current)) {

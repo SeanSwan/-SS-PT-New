@@ -32,7 +32,7 @@ const slideUp = keyframes`
 
 export const MessagingContainer = styled.div`
   display: flex;
-  height: calc(100vh - 120px);
+  height: clamp(560px, calc(100vh - 210px), 900px);
   min-height: 500px;
   border-radius: 12px;
   overflow: hidden;
@@ -41,7 +41,8 @@ export const MessagingContainer = styled.div`
 
   @media (max-width: 768px) {
     flex-direction: column;
-    height: calc(100vh - 80px);
+    height: calc(100dvh - 210px);
+    min-height: 520px;
   }
 `;
 

@@ -44,4 +44,24 @@ describe('useMessaging tier gate', () => {
     expect(messagingViewSource).toContain('const messagingEnabled = isStaffRole || isElite;');
     expect(messagingViewSource).toContain('useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading })');
   });
+
+  it('returns raw live search arrays from the mounted hook as visible users', async () => {
+    const fetchMock = vi.fn(async (url: string) => ({
+      ok: true,
+      json: async () => url.includes('/users/search')
+        ? [{ id: 88, name: 'Sean Swan', username: 'sean', role: 'admin', photo: null }]
+        : [],
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useMessaging(103, { enabled: true }));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await expect(result.current.searchUsers('Sean Swan')).resolves.toEqual([
+      expect.objectContaining({ id: 88, firstName: 'Sean', lastName: 'Swan', role: 'admin' }),
+    ]);
+  });
 });

@@ -28,4 +28,14 @@ describe('messaging routes security hardening', () => {
     expect(controllerSource).not.toContain('Failed to send message: ${error.message}');
     expect(controllerSource).not.toMatch(/res\.status\(500\)\.json\(\{\s*error:\s*`Failed to (create conversation|send message):/);
   });
+
+  it('keeps user search compatible with full-name queries and mounted frontend fields', () => {
+    const controllerSource = readSource('controllers/messagingController.mjs');
+
+    expect(controllerSource).toContain('("firstName" || \' \' || "lastName") ILIKE :query');
+    expect(controllerSource).toContain('displayName: `${u.firstName || \'\'} ${u.lastName || \'\'}`.trim() || u.username');
+    expect(controllerSource).toContain("'firstName', u.\"firstName\"");
+    expect(controllerSource).toContain("'lastName', u.\"lastName\"");
+    expect(controllerSource).toContain("'role', CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END");
+  });
 });

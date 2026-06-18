@@ -17,6 +17,8 @@ export interface MessageParticipant {
   username: string;
   photo: string | null;
   role: string;
+  displayName?: string;
+  lastActive?: string | null;
 }
 
 export interface MessageData {
@@ -52,6 +54,8 @@ export interface SearchUserResult {
   username: string;
   photo: string | null;
   role: string;
+  displayName?: string;
+  lastActive?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────

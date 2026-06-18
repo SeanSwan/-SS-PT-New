@@ -11,6 +11,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { ArrowLeft, Send, MessageSquare, CheckCheck, Check, AlertTriangle, Loader2, X } from 'lucide-react';
 import type { MessageData, MessageParticipant } from './MessagingTypes';
 import type { TypingUser, ErrorState } from './useMessaging';
+import { participantDisplayName } from './messagingApiAdapters';
 import {
   ThreadPanel, ThreadHeader, BackButton, Avatar, ThreadUserName,
   ThreadUserRole, MessageArea, MessageBubble, MessageText, MessageTime,
@@ -190,7 +191,7 @@ const MessageThread: React.FC<Props> = ({
         </AvatarWrap>
         <div>
           <ThreadUserName>
-            {participant ? `${participant.firstName} ${participant.lastName}` : 'Loading...'}
+            {participant ? participantDisplayName(participant) : 'Loading...'}
           </ThreadUserName>
           <ThreadUserRole>
             {isParticipantOnline ? 'Online' : participant?.role || ''}
