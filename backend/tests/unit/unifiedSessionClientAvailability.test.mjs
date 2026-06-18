@@ -8,6 +8,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Op } from 'sequelize';
 
+const { loggerWarnMock } = vi.hoisted(() => ({
+  loggerWarnMock: vi.fn(),
+}));
+
+vi.mock('../../utils/logger.mjs', () => ({
+  default: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: loggerWarnMock,
+  },
+}));
 vi.mock('../../models/Session.mjs', () => ({ default: {} }));
 vi.mock('../../models/User.mjs', () => ({ default: {} }));
 vi.mock('../../database.mjs', () => ({ default: {} }));
@@ -82,5 +94,13 @@ describe('UnifiedSessionService.getAllSessions client availability', () => {
       as: 'sessionType',
       attributes: ['id', 'name', 'duration', 'creditsRequired']
     }));
+  });
+
+  it('returns an empty schedule for social users without logging them as unknown roles', async () => {
+    const sessions = await service.getAllSessions({}, { id: 104, role: 'user' });
+
+    expect(sessions).toEqual([]);
+    expect(sessionModel.findAll).not.toHaveBeenCalled();
+    expect(loggerWarnMock).not.toHaveBeenCalled();
   });
 });

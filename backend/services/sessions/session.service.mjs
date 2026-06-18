@@ -675,6 +675,9 @@ class UnifiedSessionService {
         if (userId) {
           filter.userId = userId;
         }
+      } else if (user.role === 'user') {
+        // Social-only accounts are valid auth users but do not own training sessions.
+        return [];
       } else {
         // Unknown role - deny access
         logger.warn(`[UnifiedSessionService] Unknown role: ${user.role}`);
