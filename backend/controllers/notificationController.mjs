@@ -237,7 +237,7 @@ export const getAllNotifications = async (req, res) => {
           {
             model: User,
             as: 'sender',
-            attributes: ['id', 'firstName', 'lastName', 'profilePicture'],
+            attributes: ['id', 'firstName', 'lastName', 'photo'],
             required: false // Make association optional to avoid failure if column missing
           }
         ]

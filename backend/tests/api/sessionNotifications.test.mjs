@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { mockNotification, mockNotificationModel } = vi.hoisted(() => {
+const { loggerWarnMock, mockNotification, mockNotificationModel } = vi.hoisted(() => {
   const mockNotification = {
     id: 1,
     userId: 3,
@@ -17,8 +17,9 @@ const { mockNotification, mockNotificationModel } = vi.hoisted(() => {
   };
   const mockNotificationModel = {
     create: vi.fn().mockResolvedValue(mockNotification),
+    findAll: vi.fn(),
   };
-  return { mockNotification, mockNotificationModel };
+  return { loggerWarnMock: vi.fn(), mockNotification, mockNotificationModel };
 });
 
 vi.mock('../../models/index.mjs', () => ({
@@ -28,10 +29,10 @@ vi.mock('../../models/index.mjs', () => ({
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
-  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  default: { info: vi.fn(), warn: loggerWarnMock, error: vi.fn(), debug: vi.fn() },
 }));
 
-import { createNotification } from '../../controllers/notificationController.mjs';
+import { createNotification, getAllNotifications } from '../../controllers/notificationController.mjs';
 
 describe('Session Notifications', () => {
   beforeEach(() => {
@@ -165,5 +166,25 @@ describe('Session Notifications', () => {
     expect(mockNotificationModel.create).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'admin' })
     );
+  });
+
+  it('loads notification senders with the canonical User.photo attribute', async () => {
+    mockNotificationModel.findAll.mockResolvedValueOnce([
+      { id: 1, userId: 3, read: false, title: 'Session booked' },
+    ]);
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    };
+
+    await getAllNotifications({ user: { id: 3 } }, res);
+
+    const query = mockNotificationModel.findAll.mock.calls[0][0];
+    expect(query.include[0].attributes).toEqual(['id', 'firstName', 'lastName', 'photo']);
+    expect(loggerWarnMock).not.toHaveBeenCalledWith(
+      'Sender include failed, falling back to basic query:',
+      expect.anything(),
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });
