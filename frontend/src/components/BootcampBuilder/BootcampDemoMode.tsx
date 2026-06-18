@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
+import BootcampDemoVideoModal from './BootcampDemoVideoModal';
+import { getVideoPoster, isDirectVideoFile, isEmbeddableVideoUrl } from './bootcampVideoEmbed';
 import {
   DemoExerciseList,
   DemoExerciseMeta,
@@ -24,8 +26,6 @@ import {
   StationDemoName,
 } from './BootcampDemoMode.styles';
 
-const VIDEO_FILE_PATTERN = /\.(mp4|webm|ogg)(?:[?#].*)?$/i;
-
 interface BootcampDemoModeProps {
   bootcamp: GeneratedBootcamp;
   onSelectExercise: (ex: BootcampExercise) => void;
@@ -33,17 +33,36 @@ interface BootcampDemoModeProps {
 
 export function getExerciseDemoMedia(exercise: BootcampExercise) {
   const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null;
+  // The full-length video opened "for depth" (file plays inline in the modal,
+  // YouTube/Vimeo plays via embed).
+  const videoUrl = exercise.videoUrl || catalogVideoUrl;
   const poster = exercise.thumbnailUrl
     || exercise.imageUrl
     || exercise.catalogVideoSample?.thumbnailUrl
+    || getVideoPoster(videoUrl)        // derive a YouTube thumbnail so the tile isn't empty
     || null;
-  const videoUrl = exercise.videoUrl || catalogVideoUrl;
+  // The GIF-style looping preview: a dedicated short R2 loop (Codex's
+  // previewVideoUrl column) when present, else fall back to looping the full
+  // video ONLY when it's a direct file we can safely autoplay muted.
+  const previewUrl = exercise.previewVideoUrl
+    || (isDirectVideoFile(videoUrl) ? videoUrl : null);
   return {
     poster,
     videoUrl,
+    previewUrl,
+    previewIsFile: isDirectVideoFile(previewUrl),
     isCatalogVideo: !exercise.videoUrl && Boolean(catalogVideoUrl),
-    canPreviewVideo: Boolean(videoUrl && VIDEO_FILE_PATTERN.test(videoUrl)),
+    canPreviewVideo: isDirectVideoFile(previewUrl),
+    isEmbedVideo: isEmbeddableVideoUrl(videoUrl),
   };
+}
+
+type DemoMedia = ReturnType<typeof getExerciseDemoMedia>;
+
+export function getDemoMediaPillLabel(media: DemoMedia): string {
+  if (!media.videoUrl) return 'Media slot';
+  if (media.previewIsFile) return media.isCatalogVideo ? 'Catalog clip' : 'Looping clip';
+  return media.isCatalogVideo ? 'Catalog video' : 'Tap to play';
 }
 
 export function getStationDemoReadiness(exercises: BootcampExercise[]) {
@@ -71,6 +90,10 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
     stationIndex,
   }));
 
+  // "Click for depth" full video + per-tile preview-error fallback to the poster.
+  const [activeVideo, setActiveVideo] = useState<{ title: string; url: string } | null>(null);
+  const [erroredPreviews, setErroredPreviews] = useState<Set<string>>(() => new Set());
+
   return (
     <DemoShell aria-label="Bootcamp station exercise demo mode">
       <DemoHeader>
@@ -91,26 +114,33 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                 <DemoPlaceholder>No exercises assigned to this station yet.</DemoPlaceholder>
               ) : exercises.map((exercise, exerciseIndex) => {
                 const media = getExerciseDemoMedia(exercise);
+                const tileKey = `${stationIndex}-${exercise.sortOrder}-${exercise.exerciseName}`;
+                const showInlinePreview = media.previewIsFile
+                  && Boolean(media.previewUrl)
+                  && !erroredPreviews.has(tileKey);
                 return (
-                  <DemoExerciseTile
-                    key={`${stationIndex}-${exercise.sortOrder}-${exercise.exerciseName}`}
-                  >
+                  <DemoExerciseTile key={tileKey}>
                     <DemoExerciseSelectButton
                       type="button"
                       onClick={() => onSelectExercise(exercise)}
                       aria-label={`Select ${exercise.exerciseName}`}
                     >
                       <DemoMediaStage>
-                        {media.canPreviewVideo && media.videoUrl ? (
+                        {showInlinePreview ? (
                           <DemoVideo
-                            aria-label={`${exercise.exerciseName} exercise demo video`}
+                            aria-label={`${exercise.exerciseName} exercise demo preview`}
                             autoPlay
                             loop
                             muted
                             playsInline
                             poster={media.poster ?? undefined}
                             preload="metadata"
-                            src={media.videoUrl}
+                            src={media.previewUrl ?? undefined}
+                            onError={() => setErroredPreviews((prev) => {
+                              const next = new Set(prev);
+                              next.add(tileKey);
+                              return next;
+                            })}
                           />
                         ) : media.poster ? (
                           <DemoImage
@@ -121,9 +151,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         ) : (
                           <DemoPlaceholder>Demo media can be added from the SwanStudios Rolodex.</DemoPlaceholder>
                         )}
-                        <DemoMediaPill>
-                          {media.videoUrl ? (media.isCatalogVideo ? 'Catalog video' : 'Video ready') : 'Media slot'}
-                        </DemoMediaPill>
+                        <DemoMediaPill>{getDemoMediaPillLabel(media)}</DemoMediaPill>
                       </DemoMediaStage>
                       <DemoExerciseName>{exerciseIndex + 1}. {exercise.exerciseName}</DemoExerciseName>
                       <DemoExerciseMeta>
@@ -135,6 +163,14 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         href={media.videoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(event) => {
+                          // Plain click -> in-app depth modal; modified clicks
+                          // (Ctrl/Cmd/Shift/Alt/middle) keep the new-tab fallback.
+                          if (event.metaKey || event.ctrlKey || event.shiftKey
+                            || event.altKey || event.button === 1) return;
+                          event.preventDefault();
+                          setActiveVideo({ title: exercise.exerciseName, url: media.videoUrl as string });
+                        }}
                       >
                         {media.isCatalogVideo ? 'Open catalog video' : 'Open video'} <ExternalLink size={14} />
                       </DemoVideoLink>
@@ -146,6 +182,13 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
           </StationDemoCard>
         ))}
       </StationDemoGrid>
+
+      <BootcampDemoVideoModal
+        open={Boolean(activeVideo)}
+        title={activeVideo?.title ?? ''}
+        videoUrl={activeVideo?.url ?? null}
+        onClose={() => setActiveVideo(null)}
+      />
     </DemoShell>
   );
 };

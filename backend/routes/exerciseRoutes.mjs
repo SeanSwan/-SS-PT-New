@@ -52,6 +52,34 @@ const parseBoundedPositiveInteger = (value, fallback, max) => {
   return Math.min(parsed, max);
 };
 
+const MEDIA_FIELDS = ['videoUrl', 'previewVideoUrl', 'thumbnailUrl'];
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
+const normalizeMediaUrl = (value, fieldName) => {
+  if (value == null) return { value: null };
+  if (typeof value !== 'string') {
+    return { error: `${fieldName} must be a URL string or null` };
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) return { value: null };
+  if (trimmed.length > 500) {
+    return { error: `${fieldName} must be 500 characters or fewer` };
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { error: `${fieldName} must use http or https` };
+    }
+  } catch {
+    return { error: `${fieldName} must be a valid URL` };
+  }
+
+  return { value: trimmed };
+};
+
 /**
  * @route GET /api/exercises/search
  * @desc Search exercises for WorkoutLogger autocomplete
@@ -513,6 +541,58 @@ router.get('/recommended', protect, workoutController.getExerciseRecommendations
 router.get('/recommended/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);
 
 /**
+ * @route PUT /api/exercises/:id/media
+ * @desc Admin/trainer endpoint for attaching demo media to shared Rolodex exercises.
+ * @access Private (Trainer/Admin only)
+ */
+router.put('/:id/media', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => {
+  try {
+    const Exercise = getExercise();
+    if (!Exercise) {
+      return res.status(503).json({ success: false, message: 'Exercise model not available' });
+    }
+
+    const updates = {};
+    for (const field of MEDIA_FIELDS) {
+      if (!hasOwn(req.body ?? {}, field)) continue;
+      const normalized = normalizeMediaUrl(req.body[field], field);
+      if (normalized.error) {
+        return res.status(400).json({ success: false, message: normalized.error });
+      }
+      updates[field] = normalized.value;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one media field is required',
+      });
+    }
+
+    const exercise = await Exercise.findByPk(req.params.id);
+    if (!exercise) {
+      return res.status(404).json({ success: false, message: 'Exercise not found' });
+    }
+
+    await exercise.update(updates);
+
+    return res.json({
+      success: true,
+      exercise: {
+        id: exercise.id,
+        name: exercise.name,
+        videoUrl: exercise.videoUrl ?? null,
+        previewVideoUrl: exercise.previewVideoUrl ?? null,
+        thumbnailUrl: exercise.thumbnailUrl ?? null,
+      },
+    });
+  } catch (error) {
+    logger.error('Exercise media update error:', error);
+    return sendInternalError(res, 'Failed to update exercise media');
+  }
+});
+
+/**
  * @route GET /api/exercises/:id/teach-mode
  * @desc Deep exercise data for Teach Mode (instructions, cues, safety, biomechanics, progression)
  *       Separate from /:id to avoid bloating the standard exercise response.
@@ -576,6 +656,7 @@ router.get('/:id/teach-mode', protect, apiLimiter, async (req, res) => {
         optPhases: safeParseJSON(exercise.optPhases),
         // Visual & learning
         videoUrl: exercise.videoUrl || null,
+        previewVideoUrl: exercise.previewVideoUrl || null,
         imageUrl: exercise.imageUrl || null,
         thumbnailUrl: exercise.thumbnailUrl || null,
         scientificReferences: exercise.scientificReferences || '',
@@ -625,7 +706,9 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
         primaryMuscles: exercise.primaryMuscles || [],
         secondaryMuscles: exercise.secondaryMuscles || [],
         videoUrl: exercise.videoUrl,
-        imageUrl: exercise.imageUrl
+        previewVideoUrl: exercise.previewVideoUrl,
+        imageUrl: exercise.imageUrl,
+        thumbnailUrl: exercise.thumbnailUrl
       }
     });
 

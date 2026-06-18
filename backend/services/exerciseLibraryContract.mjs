@@ -20,10 +20,12 @@ const LIBRARY_BASE_ATTRIBUTES = [
   'equipmentNeeded',
   'source',
   'description',
+  'instructions',
 ];
 
 const LIBRARY_OPTIONAL_ATTRIBUTES = [
   'videoUrl',
+  'previewVideoUrl',
   'imageUrl',
   'thumbnailUrl',
   'defaultTempo',
@@ -98,7 +100,9 @@ export const formatLibraryExercise = (ex) => {
     equipmentNeeded: equipment,
     source: ex.source || 'swanstudios',
     description: ex.description || null,
+    instructions: nullableText(ex.instructions),
     videoUrl: nullableText(ex.videoUrl),
+    previewVideoUrl: nullableText(ex.previewVideoUrl),
     imageUrl: nullableText(ex.imageUrl),
     thumbnailUrl: nullableText(ex.thumbnailUrl),
     defaultTempo: nullableText(ex.defaultTempo),

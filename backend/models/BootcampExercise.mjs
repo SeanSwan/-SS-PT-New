@@ -85,7 +85,16 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
   equipmentRequired: {
     type: DataTypes.STRING(100),
   },
+  description: {
+    type: DataTypes.TEXT,
+  },
+  instructions: {
+    type: DataTypes.TEXT,
+  },
   videoUrl: {
+    type: DataTypes.STRING(500),
+  },
+  previewVideoUrl: {
     type: DataTypes.STRING(500),
   },
   imageUrl: {
@@ -119,8 +128,9 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
     type: DataTypes.INTEGER,
   },
   exerciseLibraryId: {
-    type: DataTypes.INTEGER,
-    references: { model: 'exercise_library', key: 'id' },
+    type: DataTypes.UUID,
+    references: { model: 'Exercises', key: 'id' },
+    onDelete: 'SET NULL',
   },
 }, {
   tableName: 'bootcamp_exercises',

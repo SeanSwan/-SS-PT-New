@@ -37,6 +37,11 @@ Exercise.init(
       allowNull: true,
       comment: 'URL to demonstration video'
     },
+    previewVideoUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+      comment: 'URL to short loop preview video for exercise demos'
+    },
     imageUrl: {
       type: DataTypes.STRING,
       allowNull: true,

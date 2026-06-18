@@ -110,10 +110,11 @@ describe('bootcamp generation semantics', () => {
     expect(rolodexQueryIndex).toBeGreaterThan(-1);
     expect(registryFallbackIndex).toBeGreaterThan(rolodexQueryIndex);
     expect(preRolodexQuery).not.toContain('if (equipmentProfileId) {');
-    expect(exerciseRolodexBridgeSource).toContain('"videoUrl", "imageUrl", "thumbnailUrl"');
+    expect(exerciseRolodexBridgeSource).toContain('"videoUrl", "previewVideoUrl", "imageUrl", "thumbnailUrl"');
     expect(exerciseRolodexBridgeSource).toContain('normalizeExerciseRows(queryResult)');
     expect(exerciseRolodexBridgeSource).not.toContain('const [exercises] = await sequelize.query');
     expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? sample?.videoUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('previewVideoUrl: ex.previewVideoUrl ?? null');
     expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null');
   });
 
@@ -121,15 +122,35 @@ describe('bootcamp generation semantics', () => {
     expect(exerciseRolodexBridgeSource).toContain('getCatalogVideoSamplesByExercise');
     expect(exerciseRolodexBridgeSource).toContain('const sample = catalogVideoSamples[ex.id]');
     expect(exerciseRolodexBridgeSource).toContain('videoUrl: ex.videoUrl ?? sample?.videoUrl ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('previewVideoUrl: ex.previewVideoUrl ?? null');
     expect(exerciseRolodexBridgeSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? sample?.thumbnailUrl ?? null');
   });
 
   it('persists exercise media references for saved class templates and demo mode replay', () => {
     expect(BootcampExercise.rawAttributes.videoUrl).toBeDefined();
+    expect(BootcampExercise.rawAttributes.previewVideoUrl).toBeDefined();
     expect(BootcampExercise.rawAttributes.imageUrl).toBeDefined();
     expect(BootcampExercise.rawAttributes.thumbnailUrl).toBeDefined();
     expect(bootcampCrudSource).toContain('videoUrl: ex.videoUrl ?? null');
+    expect(bootcampCrudSource).toContain('previewVideoUrl: ex.previewVideoUrl ?? null');
     expect(bootcampCrudSource).toContain('imageUrl: ex.imageUrl ?? null');
     expect(bootcampCrudSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? null');
+  });
+
+  it('persists real instruction text and avoids synthesizing a medium tier from the exercise name', () => {
+    expect(BootcampExercise.rawAttributes.description).toBeDefined();
+    expect(BootcampExercise.rawAttributes.instructions).toBeDefined();
+    expect(bootcampCrudSource).toContain('description: ex.description ?? null');
+    expect(bootcampCrudSource).toContain('instructions: ex.instructions ?? null');
+    expect(bootcampGeneratorSource).toContain('mediumVariation: ex.medium ?? null');
+    expect(exerciseRolodexBridgeSource).toContain('medium: ex.mediumVariation ?? null');
+    expect(bootcampGeneratorSource).not.toContain('mediumVariation: ex.name ?? formatExerciseName(ex.key)');
+    expect(exerciseRolodexBridgeSource).not.toContain('medium: ex.name');
+  });
+
+  it('keeps shared Exercise UUIDs as bootcamp exercise library ids for live media rejoin', () => {
+    expect(BootcampExercise.rawAttributes.exerciseLibraryId.type.key).toBe('UUID');
+    expect(bootcampCrudSource).toContain('exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId)');
+    expect(bootcampGeneratorSource).toContain('const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId)');
   });
 });

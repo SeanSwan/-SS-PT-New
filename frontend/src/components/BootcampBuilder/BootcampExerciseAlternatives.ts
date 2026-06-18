@@ -16,7 +16,9 @@ export interface RolodexLikeExercise {
   equipmentNeeded?: string[] | string | null;
   bodyPartCategory?: string;
   description?: string | null;
+  instructions?: string | null;
   videoUrl?: string | null;
+  previewVideoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
   catalogVideoSample?: CatalogVideoSample;
@@ -73,9 +75,15 @@ function arrayText(value: unknown): string[] {
   return [];
 }
 
-function numericId(value: unknown): number | undefined {
+function normalizeExerciseLibraryId(value: unknown): string | number | undefined {
   if (typeof value === 'number' && Number.isInteger(value)) return value;
   if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  if (
+    typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.trim())
+  ) {
+    return value.trim();
+  }
   return undefined;
 }
 
@@ -199,11 +207,13 @@ export function buildBootcampExerciseFromRolodex(
     isCardioFinisher: includesAny((exercise.exerciseType || '').toLowerCase(), ['cardio', 'conditioning']),
     equipmentRequired: equipment.length > 0 ? equipment.join(', ') : null,
     videoUrl: text(exercise.videoUrl) || catalogVideoUrl,
+    previewVideoUrl: text(exercise.previewVideoUrl),
     imageUrl: text(exercise.imageUrl),
     thumbnailUrl: text(exercise.thumbnailUrl) || catalogThumbnailUrl,
     setupTimeSec: options.setupTimeSec ?? 5,
     description: text(exercise.description),
-    exerciseLibraryId: numericId(exercise.id),
+    instructions: text(exercise.instructions),
+    exerciseLibraryId: normalizeExerciseLibraryId(exercise.id),
   };
 }
 

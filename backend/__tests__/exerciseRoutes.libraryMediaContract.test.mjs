@@ -46,6 +46,7 @@ const mockExerciseModel = {
     source: {},
     description: {},
     videoUrl: {},
+    previewVideoUrl: {},
     imageUrl: {},
     thumbnailUrl: {},
     defaultTempo: {},
@@ -114,6 +115,7 @@ beforeEach(() => {
       source: 'swanstudios',
       description: 'Squat pattern with controlled tempo.',
       videoUrl: 'https://cdn.swanstudios.test/exercises/squat.webm',
+      previewVideoUrl: 'https://cdn.swanstudios.test/exercises/squat-loop.webm',
       imageUrl: 'https://cdn.swanstudios.test/exercises/squat.jpg',
       thumbnailUrl: 'https://cdn.swanstudios.test/exercises/squat.gif',
       defaultTempo: '3/1/1',
@@ -166,6 +168,7 @@ describe('exercise library media contract', () => {
     expect(mockFindAll).toHaveBeenCalled();
     expect(mockFindAll.mock.calls[0][0].attributes).toEqual(expect.arrayContaining([
       'videoUrl',
+      'previewVideoUrl',
       'imageUrl',
       'thumbnailUrl',
       'defaultTempo',
@@ -189,6 +192,7 @@ describe('exercise library media contract', () => {
       name: 'Low Poly Squat',
       exerciseKey: 'nasm-low-poly-squat',
       videoUrl: 'https://cdn.swanstudios.test/exercises/squat.webm',
+      previewVideoUrl: 'https://cdn.swanstudios.test/exercises/squat-loop.webm',
       imageUrl: 'https://cdn.swanstudios.test/exercises/squat.jpg',
       thumbnailUrl: 'https://cdn.swanstudios.test/exercises/squat.gif',
       defaultTempo: '3/1/1',
@@ -210,6 +214,7 @@ describe('exercise library media contract', () => {
       id: 'ex-2',
       name: 'Catalog Only Row',
       videoUrl: null,
+      previewVideoUrl: null,
       imageUrl: null,
       thumbnailUrl: null,
       catalogVideoSample: {

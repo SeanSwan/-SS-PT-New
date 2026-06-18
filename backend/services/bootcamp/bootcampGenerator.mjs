@@ -109,7 +109,7 @@ function selectFullGroupExercises(available) {
 function buildExerciseRecord(ex, opts) {
   // Use bridge estimator if exercise has equipment data, else fall back to stored value
   const setupTime = ex.setupTimeSec ?? estimateSetupTime(ex);
-  const exerciseLibraryId = numericLibraryId(ex.exerciseLibraryId);
+  const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId);
 
   return {
     stationIndex: opts.stationIndex ?? undefined,
@@ -120,7 +120,7 @@ function buildExerciseRecord(ex, opts) {
     isCardioFinisher: opts.isCardioFinisher ?? false,
     muscleTargets: Array.isArray(ex.muscles) ? ex.muscles.join(',') : (ex.muscles ?? ''),
     easyVariation: ex.easy ?? null,
-    mediumVariation: ex.name ?? formatExerciseName(ex.key),
+    mediumVariation: ex.medium ?? null,
     hardVariation: ex.hard ?? null,
     kneeMod: ex.kneeMod ?? null,
     shoulderMod: ex.shoulderMod ?? null,
@@ -128,8 +128,10 @@ function buildExerciseRecord(ex, opts) {
     wristMod: ex.wristMod ?? null,
     backMod: ex.backMod ?? null,
     description: ex.description ?? null,
+    instructions: ex.instructions ?? null,
     equipmentRequired: Array.isArray(ex.equipment) ? ex.equipment.join(', ') : (ex.equipment ?? null),
     videoUrl: ex.videoUrl ?? null,
+    previewVideoUrl: ex.previewVideoUrl ?? null,
     imageUrl: ex.imageUrl ?? null,
     thumbnailUrl: ex.thumbnailUrl ?? null,
     board: 'main',
@@ -138,9 +140,12 @@ function buildExerciseRecord(ex, opts) {
   };
 }
 
-function numericLibraryId(value) {
-  if (Number.isInteger(value)) return value;
-  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+function normalizeExerciseLibraryId(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return trimmed;
+  }
   return null;
 }
 
@@ -583,5 +588,7 @@ function buildStationWorkout(available, targetMuscles, stationCount, format, use
 
 export const __testing__ = {
   buildAvailableEquipmentList,
+  buildExerciseRecord,
+  normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
 };

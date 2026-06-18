@@ -36,6 +36,20 @@ const bootcampMuscleTargetKey = (muscle: string): string =>
 const bootcampExplanationKey = (explanation: BootcampExplanationRow): string =>
   `${explanation.type}|${explanation.message}`;
 
+/**
+ * A variation chip is only worth showing when it's a real ALTERNATIVE — not
+ * empty and not just the exercise repeated back. (The generator currently sets
+ * `mediumVariation: ex.name`, which rendered a nonsensical "Medium: <same
+ * exercise>" tier — guard against that and any future same-name drift.)
+ */
+export function isMeaningfulVariation(
+  variation: string | null | undefined,
+  exerciseName: string,
+): variation is string {
+  const v = (variation ?? '').trim();
+  return v.length > 0 && v.toLowerCase() !== exerciseName.trim().toLowerCase();
+}
+
 // ── Teach Me Styled Components ──
 const TeachMeWrap = styled.div`
   margin: 8px 0;
@@ -83,14 +97,14 @@ const TeachMeLabel = styled.span`
 `;
 
 // ── Helper: generate exercise how-to from DB description + smart fallback ──
-function getExerciseTeachMe(ex: BootcampExercise) {
+export function getExerciseTeachMe(ex: BootcampExercise) {
   const muscles = ex.muscleTargets?.split(',').map(m => m.trim()).filter(Boolean) || [];
   const equipment = ex.equipmentRequired || 'Bodyweight';
   const description = (ex as any).description || '';
 
   // If the exercise has a real description from the database, use it
   if (description && description.length > 20) {
-    return { muscles, equipment, tips: [description] };
+    return { muscles, equipment, tips: [description], isGeneric: false };
   }
 
   // Smart fallback — match by name patterns with detailed instructions
@@ -163,7 +177,10 @@ function getExerciseTeachMe(ex: BootcampExercise) {
     else tips.push('Set up with proper posture and alignment. Perform each rep with controlled tempo. Focus on the target muscle contraction. Breathe out during exertion, in during the return. Maintain core engagement throughout the movement.');
   }
 
-  return { muscles, equipment, tips };
+  // These tips were synthesized from the exercise NAME, not a real per-exercise
+  // description — flagged so the UI presents them as general guidance, not as
+  // authoritative exercise-specific instructions.
+  return { muscles, equipment, tips, isGeneric: true };
 }
 
 const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
@@ -201,8 +218,13 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
                     {info.equipment}
                   </TeachMeRow>
                   <TeachMeRow>
-                    <TeachMeLabel>Instructions: </TeachMeLabel>
+                    <TeachMeLabel>{info.isGeneric ? 'General Form Cues: ' : 'Instructions: '}</TeachMeLabel>
                     {info.tips.map((t) => <div key={bootcampTeachMeTipKey(t)} style={{ marginTop: 4 }}>{t}</div>)}
+                    {info.isGeneric && (
+                      <div style={{ marginTop: 6, fontSize: 11, opacity: 0.6, fontStyle: 'italic' }}>
+                        General guidance based on the exercise name — not yet specific to this exercise.
+                      </div>
+                    )}
                   </TeachMeRow>
                   {selectedExercise.easyVariation && (
                     <TeachMeRow>
@@ -223,13 +245,13 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
 
           <SectionDivider>Difficulty Tiers</SectionDivider>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-            {selectedExercise.easyVariation && (
+            {isMeaningfulVariation(selectedExercise.easyVariation, selectedExercise.exerciseName) && (
               <DifficultyChip $tier="easy">Easy: {selectedExercise.easyVariation}</DifficultyChip>
             )}
-            {(selectedExercise as any).mediumVariation && (
+            {isMeaningfulVariation((selectedExercise as any).mediumVariation, selectedExercise.exerciseName) && (
               <DifficultyChip $tier="medium">Medium: {(selectedExercise as any).mediumVariation}</DifficultyChip>
             )}
-            {selectedExercise.hardVariation && (
+            {isMeaningfulVariation(selectedExercise.hardVariation, selectedExercise.exerciseName) && (
               <DifficultyChip $tier="hard">Hard: {selectedExercise.hardVariation}</DifficultyChip>
             )}
           </div>

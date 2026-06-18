@@ -15,12 +15,93 @@ import {
   getBootcampSpaceProfile,
   getBootcampStretch,
   getExerciseTrend,
+  getExercise,
 } from '../../models/index.mjs';
 
-function numericLibraryId(value) {
-  if (Number.isInteger(value)) return value;
-  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+const LIVE_EXERCISE_FIELDS = ['videoUrl', 'previewVideoUrl', 'thumbnailUrl', 'imageUrl', 'description', 'instructions'];
+
+function normalizeExerciseLibraryId(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return trimmed;
+  }
   return null;
+}
+
+function nullableText(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function getRecordValue(record, key) {
+  if (!record) return undefined;
+  if (typeof record.get === 'function') return record.get(key);
+  return record[key];
+}
+
+function setRecordValue(record, key, value) {
+  if (typeof record?.setDataValue === 'function') {
+    record.setDataValue(key, value);
+    return;
+  }
+  if (record) record[key] = value;
+}
+
+function arrayValue(record, key) {
+  const value = getRecordValue(record, key);
+  return Array.isArray(value) ? value : [];
+}
+
+function collectTemplateExerciseRows(templates) {
+  const rows = [];
+  for (const template of templates ?? []) {
+    rows.push(...arrayValue(template, 'exercises'));
+    for (const station of arrayValue(template, 'stations')) {
+      rows.push(...arrayValue(station, 'exercises'));
+    }
+  }
+  return rows;
+}
+
+async function loadLiveExercises(exerciseIds) {
+  const Exercise = getExercise();
+  if (!Exercise || exerciseIds.length === 0) return [];
+  return Exercise.findAll({
+    where: { id: exerciseIds },
+    attributes: ['id', ...LIVE_EXERCISE_FIELDS],
+    raw: true,
+  });
+}
+
+export async function hydrateTemplateExerciseMedia(templates, exerciseLoader = loadLiveExercises) {
+  const exerciseRows = collectTemplateExerciseRows(templates);
+  const exerciseIds = [...new Set(
+    exerciseRows
+      .map(row => normalizeExerciseLibraryId(getRecordValue(row, 'exerciseLibraryId')))
+      .filter(Boolean)
+  )];
+
+  if (exerciseIds.length === 0) return templates;
+
+  const liveRows = await exerciseLoader(exerciseIds);
+  const liveById = new Map(
+    (liveRows ?? [])
+      .map(row => [normalizeExerciseLibraryId(row.id), row])
+      .filter(([id]) => Boolean(id))
+  );
+
+  for (const exercise of exerciseRows) {
+    const exerciseLibraryId = normalizeExerciseLibraryId(getRecordValue(exercise, 'exerciseLibraryId'));
+    const liveExercise = liveById.get(exerciseLibraryId);
+    if (!liveExercise) continue;
+
+    for (const field of LIVE_EXERCISE_FIELDS) {
+      const liveValue = nullableText(liveExercise[field]);
+      if (liveValue) setRecordValue(exercise, field, liveValue);
+    }
+  }
+
+  return templates;
 }
 
 // ── Save Generated Class to Database ──────────────────────────────────
@@ -87,7 +168,10 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     hipMod: ex.hipMod,
     backMod: ex.backMod,
     equipmentRequired: ex.equipmentRequired,
+    description: ex.description ?? null,
+    instructions: ex.instructions ?? null,
     videoUrl: ex.videoUrl ?? null,
+    previewVideoUrl: ex.previewVideoUrl ?? null,
     imageUrl: ex.imageUrl ?? null,
     thumbnailUrl: ex.thumbnailUrl ?? null,
     board: ex.board ?? 'main',
@@ -96,7 +180,7 @@ export async function saveBootcampTemplate(generatedClass, trainerId) {
     pyramidDrops: ex.pyramidDrops ?? null,
     supersetOrder: ex.supersetOrder ?? null,
     supersetGroupId: ex.supersetGroupId ?? null,
-    exerciseLibraryId: numericLibraryId(ex.exerciseLibraryId),
+    exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId),
   }));
   if (exerciseRecords.length > 0) {
     await Exercise.bulkCreate(exerciseRecords);
@@ -151,7 +235,7 @@ export async function getTemplates(trainerId, { classFormat, dayType, limit = 20
   if (classFormat) where.classFormat = classFormat;
   if (dayType) where.dayType = dayType;
 
-  return Template.findAll({
+  const templates = await Template.findAll({
     where,
     order: [['updatedAt', 'DESC']],
     limit,
@@ -161,6 +245,8 @@ export async function getTemplates(trainerId, { classFormat, dayType, limit = 20
       { model: getBootcampStretch(), as: 'stretches' },
     ],
   });
+
+  return hydrateTemplateExerciseMedia(templates);
 }
 
 // ── Space Profile CRUD ────────────────────────────────────────────────
@@ -203,3 +289,8 @@ export async function approveExerciseTrend(trendId, userId) {
   if (!trend) throw new Error('Trend not found');
   return trend.update({ isApproved: true, approvedBy: userId });
 }
+
+export const __testing__ = {
+  hydrateTemplateExerciseMedia,
+  normalizeExerciseLibraryId,
+};

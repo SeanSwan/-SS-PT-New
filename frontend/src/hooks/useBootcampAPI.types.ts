@@ -20,8 +20,13 @@ export interface BootcampExercise {
   footMod: string | null;
   hipMod: string | null;
   description: string | null;
+  instructions?: string | null;
   equipmentRequired: string | null;
   videoUrl?: string | null;
+  /** Short muted R2 loop used as the GIF-style demo preview (separate from the
+   *  full-length videoUrl). Populated by Codex's backend column of the same name;
+   *  the demo board falls back to looping videoUrl until it lands. */
+  previewVideoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
   catalogVideoSample?: {
@@ -41,7 +46,7 @@ export interface BootcampExercise {
   pyramidDrops?: number | null;
   supersetOrder?: number | null;
   supersetGroupId?: number | null;
-  exerciseLibraryId?: number | null;
+  exerciseLibraryId?: string | number | null;
 }
 
 export interface BootcampStation {

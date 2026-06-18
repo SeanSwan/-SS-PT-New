@@ -80,13 +80,14 @@ describe('Bootcamp exercise alternatives', () => {
   it('carries Rolodex media into manual and hybrid bootcamp exercises', () => {
     const exercise = buildBootcampExerciseFromRolodex(
       {
-        id: 42,
+        id: '11111111-1111-4111-8111-111111111111',
         name: 'Goblet Squat',
         exerciseType: 'compound',
         difficulty: 460,
         primaryMuscles: ['glutes', 'quads'],
         equipmentNeeded: ['Dumbbell'],
         videoUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.mp4',
+        previewVideoUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat-loop.webm',
         imageUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat.jpg',
         thumbnailUrl: 'https://cdn.swanstudios.test/exercises/goblet-squat-thumb.jpg',
       },
@@ -98,8 +99,9 @@ describe('Bootcamp exercise alternatives', () => {
       },
     );
 
-    expect(exercise.exerciseLibraryId).toBe(42);
+    expect(exercise.exerciseLibraryId).toBe('11111111-1111-4111-8111-111111111111');
     expect(exercise.videoUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat.mp4');
+    expect(exercise.previewVideoUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat-loop.webm');
     expect(exercise.imageUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat.jpg');
     expect(exercise.thumbnailUrl).toBe('https://cdn.swanstudios.test/exercises/goblet-squat-thumb.jpg');
   });
