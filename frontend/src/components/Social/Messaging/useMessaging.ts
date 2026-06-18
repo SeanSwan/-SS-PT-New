@@ -39,6 +39,10 @@ export interface ErrorState {
   timestamp: number;
 }
 
+interface UseMessagingOptions {
+  enabled?: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: API Helpers (REST for initial loads + fallback)
 // ─────────────────────────────────────────────────────────────
@@ -65,13 +69,14 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 // SECTION: Hook
 // ─────────────────────────────────────────────────────────────
 
-export function useMessaging(currentUserId: number | null) {
+export function useMessaging(currentUserId: number | null, options: UseMessagingOptions = {}) {
   const { connected, connectionState, emit, on } = useSocket();
+  const enabled = options.enabled ?? true;
 
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | number | null>(null);
   const [messages, setMessages] = useState<MessageData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [error, setError] = useState<ErrorState | null>(null);
 
@@ -105,7 +110,10 @@ export function useMessaging(currentUserId: number | null) {
 
   // ─── REST: Fetch conversations ────────────────────────────
   const fetchConversations = useCallback(async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || !enabled) {
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
     try {
       const data = await apiFetch<{ conversations: ConversationData[] }>('/conversations');
       if (mountedRef.current) {
@@ -120,11 +128,11 @@ export function useMessaging(currentUserId: number | null) {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, enabled]);
 
   // ─── REST: Fetch messages with abort controller ───────────
   const fetchMessages = useCallback(async (convId: string | number) => {
-    if (!convId) return;
+    if (!convId || !enabled) return;
 
     // AI Village fix: cancel previous in-flight request
     if (fetchAbortRef.current) {
@@ -152,11 +160,11 @@ export function useMessaging(currentUserId: number | null) {
     } finally {
       if (mountedRef.current) setMessagesLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   // ─── Send message (Socket.IO primary, REST fallback) ─────
   const sendMessage = useCallback(async (content: string) => {
-    if (!activeConversationId || !content.trim()) return;
+    if (!enabled || !activeConversationId || !content.trim()) return;
     const trimmed = content.trim();
 
     if (connected) {
@@ -184,27 +192,29 @@ export function useMessaging(currentUserId: number | null) {
         }
       }
     }
-  }, [activeConversationId, connected, emit, fetchConversations]);
+  }, [activeConversationId, connected, emit, enabled, fetchConversations]);
 
   // ─── Typing indicator emission (2s debounce) ─────────────
   const emitTyping = useCallback(() => {
-    if (!activeConversationId || !connected) return;
+    if (!enabled || !activeConversationId || !connected) return;
     if (typingTimeoutRef.current) return;
 
     emit('is_typing', { conversationId: activeConversationId });
     typingTimeoutRef.current = setTimeout(() => {
       typingTimeoutRef.current = null;
     }, 2000);
-  }, [activeConversationId, connected, emit]);
+  }, [activeConversationId, connected, emit, enabled]);
 
   // ─── Mark messages as read ────────────────────────────────
   const markAsRead = useCallback((conversationId: string | number, lastMessageId: string | number) => {
-    if (!connected) return;
+    if (!enabled || !connected) return;
     emit('mark_as_read', { conversationId, lastMessageId });
-  }, [connected, emit]);
+  }, [connected, emit, enabled]);
 
   // ─── Create a new conversation (REST only) ────────────────
   const createConversation = useCallback(async (participantId: number) => {
+    if (!enabled) return null;
+
     try {
       const data = await apiFetch<{ conversation: ConversationData }>(
         '/conversations',
@@ -222,10 +232,12 @@ export function useMessaging(currentUserId: number | null) {
       }
       return null;
     }
-  }, [fetchConversations]);
+  }, [enabled, fetchConversations]);
 
   // ─── Search users (REST only) ─────────────────────────────
   const searchUsers = useCallback(async (query: string): Promise<SearchUserResult[]> => {
+    if (!enabled) return [];
+
     try {
       const data = await apiFetch<{ users: SearchUserResult[] }>(
         `/users/search${query ? `?q=${encodeURIComponent(query)}` : ''}`
@@ -234,15 +246,17 @@ export function useMessaging(currentUserId: number | null) {
     } catch {
       return [];
     }
-  }, []);
+  }, [enabled]);
 
   // ─── Select conversation + load messages ──────────────────
   const selectConversation = useCallback((convId: string | number) => {
+    if (!enabled) return;
+
     setActiveConversationId(convId);
     setTypingUsers([]);
     setPendingMessages([]);
     fetchMessages(convId);
-  }, [fetchMessages]);
+  }, [enabled, fetchMessages]);
 
   // ─── Get the other participant ────────────────────────────
   const getOtherParticipant = useCallback((conv: ConversationData) => {
@@ -259,14 +273,14 @@ export function useMessaging(currentUserId: number | null) {
 
   // Join rooms when socket connects + re-join on reconnect
   useEffect(() => {
-    if (!connected || conversations.length === 0) return;
+    if (!enabled || !connected || conversations.length === 0) return;
     const convIds = conversations.map(c => c.id);
     emit('join_conversations', convIds);
-  }, [connected, conversations, emit]);
+  }, [connected, conversations, emit, enabled]);
 
   // Listen for incoming messages
   useEffect(() => {
-    if (!connected) return;
+    if (!enabled || !connected) return;
 
     const handleNewMessage = (message: unknown) => {
       // AI Village fix: validate payload shape
@@ -307,11 +321,11 @@ export function useMessaging(currentUserId: number | null) {
 
     const cleanup = on('new_message', handleNewMessage);
     return cleanup;
-  }, [connected, on]);
+  }, [connected, on, enabled]);
 
   // Listen for typing indicators
   useEffect(() => {
-    if (!connected) return;
+    if (!enabled || !connected) return;
 
     const handleTyping = (...args: unknown[]) => {
       const data = args[0] as Record<string, unknown>;
@@ -346,11 +360,11 @@ export function useMessaging(currentUserId: number | null) {
 
     const cleanup = on('user_typing', handleTyping);
     return cleanup;
-  }, [connected, on, currentUserId]);
+  }, [connected, on, currentUserId, enabled]);
 
   // Listen for read receipts
   useEffect(() => {
-    if (!connected) return;
+    if (!enabled || !connected) return;
 
     const handleRead = (...args: unknown[]) => {
       const data = args[0] as Record<string, unknown>;
@@ -375,11 +389,11 @@ export function useMessaging(currentUserId: number | null) {
 
     const cleanup = on('messages_read', handleRead);
     return cleanup;
-  }, [connected, on]);
+  }, [connected, on, enabled]);
 
   // Listen for online/offline presence
   useEffect(() => {
-    if (!connected) return;
+    if (!enabled || !connected) return;
 
     const handleOnline = (...args: unknown[]) => {
       const data = args[0] as Record<string, unknown>;
@@ -401,7 +415,7 @@ export function useMessaging(currentUserId: number | null) {
     const cleanupOnline = on('user_online', handleOnline);
     const cleanupOffline = on('user_offline', handleOffline);
     return () => { cleanupOnline(); cleanupOffline(); };
-  }, [connected, on]);
+  }, [connected, on, enabled]);
 
   // ─────────────────────────────────────────────────────────
   // SECTION: Initial Load + Fallback Polling
@@ -409,9 +423,17 @@ export function useMessaging(currentUserId: number | null) {
 
   useEffect(() => {
     mountedRef.current = true;
+    if (!enabled) {
+      setConversations([]);
+      setActiveConversationId(null);
+      setMessages([]);
+      setError(null);
+      setLoading(false);
+      return () => { mountedRef.current = false; };
+    }
     fetchConversations();
     return () => { mountedRef.current = false; };
-  }, [fetchConversations]);
+  }, [enabled, fetchConversations]);
 
   // AI Village fix: clear poll on reconnect, only poll when disconnected
   useEffect(() => {
@@ -420,7 +442,7 @@ export function useMessaging(currentUserId: number | null) {
       pollRef.current = null;
     }
 
-    if (!connected && activeConversationId) {
+    if (enabled && !connected && activeConversationId) {
       pollRef.current = setInterval(() => {
         fetchMessages(activeConversationId);
         fetchConversations();
@@ -430,16 +452,16 @@ export function useMessaging(currentUserId: number | null) {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [connected, activeConversationId, fetchMessages, fetchConversations]);
+  }, [connected, activeConversationId, fetchMessages, fetchConversations, enabled]);
 
   // AI Village fix: only mark-as-read for OTHER user's new messages
   useEffect(() => {
-    if (!connected || !activeConversationId || messages.length === 0) return;
+    if (!enabled || !connected || !activeConversationId || messages.length === 0) return;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg && lastMsg.sender_id !== currentUserId) {
       markAsRead(activeConversationId, lastMsg.id);
     }
-  }, [connected, activeConversationId, messages, currentUserId, markAsRead]);
+  }, [connected, activeConversationId, messages, currentUserId, markAsRead, enabled]);
 
   // Cleanup typing timers on unmount
   useEffect(() => {

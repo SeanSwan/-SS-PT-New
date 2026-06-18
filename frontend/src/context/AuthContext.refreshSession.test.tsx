@@ -76,7 +76,12 @@ const Probe = () => {
   const { user, loading } = useAuth();
 
   if (loading) return <div data-testid="auth-state">loading</div>;
-  return <div data-testid="auth-state">{user?.role ?? 'guest'}</div>;
+  const waiverState = user?.hasLinkedWaiver === true
+    ? 'linked'
+    : user?.hasLinkedWaiver === false
+      ? 'missing'
+      : 'unknown';
+  return <div data-testid="auth-state">{user?.role ?? 'guest'}:{waiverState}</div>;
 };
 
 describe('AuthProvider session refresh on boot', () => {
@@ -124,5 +129,28 @@ describe('AuthProvider session refresh on boot', () => {
     expect(mocks.setAuthToken).toHaveBeenCalledWith('fresh-access-token');
     expect(mocks.apiGet).toHaveBeenCalledWith('/api/auth/me');
     expect(mocks.cleanupAllTokens).not.toHaveBeenCalled();
+  });
+
+  it('preserves stored linked-waiver state when /api/auth/me omits waiver fields', async () => {
+    localStorage.setItem('user', JSON.stringify({
+      id: '42',
+      role: 'client',
+      hasLinkedWaiver: true,
+      waiverStatus: 'linked',
+      waiverRecordId: 99,
+      waiverSignedAt: '2026-06-16T00:00:00.000Z',
+    }));
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-state')).toHaveTextContent('client:linked');
+    });
+
+    expect(mocks.apiGet).toHaveBeenCalledWith('/api/auth/me');
   });
 });

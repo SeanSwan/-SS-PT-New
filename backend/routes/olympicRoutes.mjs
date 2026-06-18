@@ -9,6 +9,11 @@
 
 import express from 'express';
 import { Op } from 'sequelize';
+import {
+  buildOlympicEventInfo,
+  isOlympicEventsTableMissingError,
+  warnOlympicEventsTableFallback,
+} from './olympicRouteFallbacks.mjs';
 
 const router = express.Router();
 
@@ -60,19 +65,20 @@ router.get('/events', ensureAuth, async (req, res) => {
           distinct: true,
           col: 'userId',
         });
-        return {
-          eventType,
-          label: eventType === 'pullups' ? 'Pull-ups' : eventType === 'pushups' ? 'Push-ups' : 'Sprint',
-          metric: eventType === 'sprint' ? 'seconds (lower is better)' : 'reps (higher is better)',
+        return buildOlympicEventInfo(eventType, {
           userBest: userBest ? { score: userBest.score, date: userBest.createdAt } : null,
           totalAttempts,
           totalParticipants,
-        };
+        });
       })
     );
 
     return res.json({ success: true, data: events });
   } catch (err) {
+    if (isOlympicEventsTableMissingError(err)) {
+      warnOlympicEventsTableFallback('events', err);
+      return res.json({ success: true, data: VALID_EVENTS.map((eventType) => buildOlympicEventInfo(eventType)) });
+    }
     console.error('Olympics events error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to load events' });
   }
@@ -215,6 +221,10 @@ router.get('/ghosts/:eventType', ensureAuth, async (req, res) => {
       },
     });
   } catch (err) {
+    if (isOlympicEventsTableMissingError(err)) {
+      warnOlympicEventsTableFallback('ghosts', err);
+      return res.json({ success: true, data: { ghosts: [], selfGhost: null } });
+    }
     console.error('Olympics ghosts error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to load ghosts' });
   }
@@ -272,6 +282,10 @@ router.get('/leaderboard/:eventType', ensureAuth, async (req, res) => {
       },
     });
   } catch (err) {
+    if (isOlympicEventsTableMissingError(err)) {
+      warnOlympicEventsTableFallback('leaderboard', err);
+      return res.json({ success: true, data: { leaderboard: [], userRank: null, userBestScore: null } });
+    }
     console.error('Olympics leaderboard error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to load leaderboard' });
   }

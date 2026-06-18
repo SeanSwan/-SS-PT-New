@@ -10,6 +10,7 @@ import {
   qaPersonaForRole,
   qaWaiverSubmissionForPersona,
   roleRequiresLinkedWaiver,
+  synthesizeLinkedWaiverUser,
 } from '../qa/bootstrap-prod-dashboard-auth.mjs';
 import { getStorageStateRoleSummary } from '../qa/prod-auth-state-role.mjs';
 
@@ -51,6 +52,26 @@ describe('production dashboard auth bootstrap helpers', () => {
     assert.equal(submission.mediaConsentAccepted, false);
     assert.equal(submission.source, 'header_waiver');
     assert.match(submission.signatureData, /Dashboard QA Client/);
+  });
+
+  it('can synthesize waiver-linked user state from an admin-verified waiver record', () => {
+    const user = { id: 103, role: 'client', email: 'qa@example.test' };
+    const linked = synthesizeLinkedWaiverUser(user, {
+      id: 7,
+      status: 'linked',
+      signedAt: '2026-06-17T16:08:19.405Z',
+    });
+
+    assert.deepEqual(linked, {
+      id: 103,
+      role: 'client',
+      email: 'qa@example.test',
+      waiverRequired: true,
+      hasLinkedWaiver: true,
+      waiverStatus: 'linked',
+      waiverRecordId: 7,
+      waiverSignedAt: '2026-06-17T16:08:19.405Z',
+    });
   });
 
   it('writes the same localStorage keys consumed by production auth', () => {

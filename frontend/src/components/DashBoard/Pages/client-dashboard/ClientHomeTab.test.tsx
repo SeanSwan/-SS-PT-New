@@ -401,7 +401,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const card = await screen.findByTestId('current-workout-card');
     expect(card.textContent).toMatch(/completed today/i);
 
-    await user.click(screen.getByRole('button', { name: /review workout/i }));
+    await user.click(screen.getByRole('button', { name: /review completed workout history/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');

@@ -35,6 +35,17 @@ describe('product variant checkout contract', () => {
     expect(paymentRoutes).toContain("as: 'productVariant'");
   });
 
+  it('treats product variants as optional for service-only cart and checkout reads', () => {
+    expect(cartRoutes).toContain('const getOptionalProductVariant =');
+    expect(cartRoutes).toContain('const ProductVariant = getOptionalProductVariant();');
+    expect(cartRoutes).toContain("return { status: 409, message: 'Selected product variants are temporarily unavailable.");
+
+    expect(paymentRoutes).toContain('const getOptionalProductVariant =');
+    expect(paymentRoutes).toContain('const buildCheckoutCartItemIncludes =');
+    expect(paymentRoutes).toContain('if (ProductVariant) {');
+    expect(paymentRoutes).toContain('ProductVariant = getOptionalProductVariant();');
+  });
+
   it('persists selected product variants into order item records', () => {
     expect(orderItemModel).toContain('productVariantId:');
     expect(associations).toContain('OrderItem.belongsTo(ProductVariant');

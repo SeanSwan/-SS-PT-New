@@ -40,6 +40,17 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
     expect(assoc).toContain('ProductVariant.belongsTo(StorefrontItem');
   });
 
+  it('model registry exports ProductVariant for cart and checkout routes', () => {
+    const assoc = read('models/associations.mjs');
+    const returnBlocks = [...assoc.matchAll(/return\s+\{[\s\S]*?\};/g)].map((match) => match[0]);
+    const ecommerceRegistryReturns = returnBlocks.filter((block) => block.includes('StorefrontItem'));
+
+    expect(ecommerceRegistryReturns.length).toBeGreaterThanOrEqual(2);
+    for (const block of ecommerceRegistryReturns) {
+      expect(block).toContain('ProductVariant,');
+    }
+  });
+
   it('storefront API exposes the product fields the UI needs', () => {
     const routes = read('routes/storeFrontRoutes.mjs');
     expect(routes).toContain("const getStorefrontItemKind = (item) => valueOrFallback(item.itemKind, 'training_package')");

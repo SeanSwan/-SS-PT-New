@@ -54,6 +54,9 @@ import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { useExerciseTeachData } from '../../../../features/teach-mode/hooks/useExerciseTeachData';
 import { TabBar, TabButton, TabContent, SkeletonLine, EmptyDataMsg } from '../../../../features/teach-mode/styles/TeachModeStyles';
 import { Panel, PanelHeader, PanelTitle, PanelBody, EmptyMessage } from './WorkoutPlannerStyles';
+import { parseEquipment } from './WorkoutPlannerFilters';
+import TeachModeVideoPreview from './TeachModeVideoPreview';
+import { buildTeachModeVideoAsset } from './TeachModeSidebar.videoAsset';
 import {
   ExerciseContextGrid,
   ExerciseContextPill,
@@ -135,7 +138,7 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
 
   const contextPills = useMemo(() => {
     if (!exercise) return [];
-    const equipment = teachData?.equipmentNeeded || exercise.equipmentNeeded || exercise.equipment || [];
+    const equipment = parseEquipment(teachData?.equipmentNeeded || exercise.equipmentNeeded || exercise.equipment);
     return [
       `Focus: ${formatContextValue(teachData?.bodyPartCategory || exercise.bodyPartCategory)}`,
       `Type: ${formatContextValue(teachData?.exerciseType || exercise.exerciseType)}`,
@@ -143,6 +146,11 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
       equipment.length > 0 ? `Gear: ${equipment.slice(0, 2).join(', ')}` : 'Gear: Bodyweight',
     ];
   }, [teachData, exercise]);
+
+  const videoAsset = useMemo(
+    () => buildTeachModeVideoAsset(teachData, exercise),
+    [teachData, exercise]
+  );
 
   return (
     <Panel>
@@ -172,6 +180,15 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
                 <ExerciseContextPill key={pill}>{pill}</ExerciseContextPill>
               ))}
             </ExerciseContextGrid>
+
+            {videoAsset && (
+              <TeachModeVideoPreview
+                exerciseName={exerciseName || exercise.name}
+                videoUrl={videoAsset.videoUrl}
+                thumbnailUrl={videoAsset.thumbnailUrl}
+                sourceLabel={videoAsset.sourceLabel}
+              />
+            )}
 
             {/* 3-Tab Bar */}
             <TabBar role="tablist" aria-label="Teach Mode tabs">

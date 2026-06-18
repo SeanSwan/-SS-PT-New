@@ -104,6 +104,39 @@ const isTaxablePhysicalProductLine = (item) => (
 
 const isStripeTaxEnabled = () => process.env.SWAN_STRIPE_TAX_ENABLED === 'true';
 
+const toPaymentErrorMetadata = (error, fallbackCode = 'PAYMENT_INTERNAL_ERROR') => ({
+  errorName: error?.name || 'Error',
+  errorCode: error?.code || error?.type || fallbackCode,
+});
+
+const getOptionalProductVariant = () => {
+  try {
+    return getProductVariant();
+  } catch (error) {
+    logger.warn('[v2 Payment] ProductVariant model unavailable; continuing without variant include.', {
+      ...toPaymentErrorMetadata(error, 'PRODUCT_VARIANT_MODEL_UNAVAILABLE')
+    });
+    return null;
+  }
+};
+
+const buildCheckoutCartItemIncludes = ({ StorefrontItem, ProductVariant }) => {
+  const include = [{
+    model: StorefrontItem,
+    as: 'storefrontItem'
+  }];
+
+  if (ProductVariant) {
+    include.push({
+      model: ProductVariant,
+      as: 'productVariant',
+      required: false
+    });
+  }
+
+  return include;
+};
+
 const resolveCheckoutProductName = (item) => {
   const baseName = item?.storefrontItem?.name || `Storefront Item #${item?.storefrontItemId}`;
   const variantLabel = item?.productVariant?.label;
@@ -265,7 +298,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       ShoppingCart = getShoppingCart();
       CartItem = getCartItem();
       StorefrontItem = getStorefrontItem();
-      ProductVariant = getProductVariant();
+      ProductVariant = getOptionalProductVariant();
       User = getUser();
 
       logger.info('[v2 Payment] Coordinated checkout models loaded', {
@@ -298,14 +331,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           { 
             model: CartItem, 
             as: 'cartItems',
-            include: [{ 
-              model: StorefrontItem, 
-              as: 'storefrontItem' 
-            }, {
-              model: ProductVariant,
-              as: 'productVariant',
-              required: false
-            }]
+            include: buildCheckoutCartItemIncludes({ StorefrontItem, ProductVariant })
           },
           {
             model: User,

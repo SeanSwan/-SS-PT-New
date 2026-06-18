@@ -15,7 +15,7 @@
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
 import styled from 'styled-components';
 import BodyMapSVG from './BodyMapSVG';
 import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
@@ -27,6 +27,7 @@ import {
   type CreatePainEntryPayload,
 } from '../../services/painEntryService';
 import { useAuth } from '../../context/AuthContext';
+import GlobalClientContext from '../../context/GlobalClientContext';
 import { device } from '../../styles/breakpoints';
 
 // ── Styled Components ───────────────────────────────────────────────────
@@ -161,8 +162,16 @@ interface BodyMapProps {
 
 const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const { user, authAxios } = useAuth() as any;
-  // Fall back to authenticated user's ID when rendered as a standalone page
-  const userId = userIdProp ?? user?.id;
+  const globalClient = useContext(GlobalClientContext);
+  const isAdmin = user?.role === 'admin';
+  const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
+  const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some(
+    (client) => client.id === globalClient.activeClient?.id,
+  )
+    ? globalClient.activeClient.id
+    : undefined;
+  const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
+  const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
   const painService = useMemo(
     () => (authAxios ? createPainEntryService(authAxios) : null),
     [authAxios],
@@ -177,20 +186,22 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const [gender, setGender] = useState<AnatomyGender>('male');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
 
-  const isAdmin = user?.role === 'admin';
-  const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
-
   // Auto-detect mode from user role if not explicitly provided
   const effectiveMode = mode || (isTrainerOrAdmin ? 'trainer' : 'client');
   const isClientMode = effectiveMode === 'client';
 
   // Determine if user can write: trainers/admins always, clients only for own data
   const isOwnData = user?.id === userId;
-  const canWrite = isTrainerOrAdmin || (isClientMode && isOwnData);
+  const canWrite = Boolean(userId) && (isTrainerOrAdmin || (isClientMode && isOwnData));
 
   // Fetch entries on mount
   const fetchEntries = useCallback(async () => {
-    if (!painService || !userId) return;
+    if (!painService || !userId) {
+      setEntries([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -227,7 +238,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   // Save handler
   const handleSave = useCallback(
     async (payload: CreatePainEntryPayload) => {
-      if (!painService || !canWrite) return;
+      if (!painService || !canWrite || !userId) return;
       setIsSaving(true);
       try {
         if (existingEntry) {
@@ -250,7 +261,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   // Resolve handler
   const handleResolve = useCallback(
     async (entryId: number) => {
-      if (!painService || !canWrite) return;
+      if (!painService || !canWrite || !userId) return;
       setIsSaving(true);
       try {
         await painService.resolve(userId, entryId);
@@ -269,7 +280,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   // Delete handler
   const handleDelete = useCallback(
     async (entryId: number) => {
-      if (!painService || !isAdmin) return;
+      if (!painService || !isAdmin || !userId) return;
       setIsSaving(true);
       try {
         await painService.remove(userId, entryId);
@@ -363,7 +374,9 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
 
           {entries.length === 0 && !loading && (
             <StatusText>
-              {isClientMode
+              {!userId
+                ? 'Select a client to view pain and injury entries.'
+                : isClientMode
                 ? 'Tap any area where you feel pain or discomfort to log it. Your trainer will see this when planning your workouts.'
                 : 'No active pain entries. Click a body region to add one.'}
             </StatusText>

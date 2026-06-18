@@ -27,4 +27,23 @@ describe('marketingPublisherWorker', () => {
     expect(setIntervalSpy).not.toHaveBeenCalled();
     setIntervalSpy.mockRestore();
   });
+
+  it('backs off when native social publishing storage is unavailable', async () => {
+    const missingTableError = new Error('relation "social_publishing_jobs" does not exist');
+    missingTableError.code = '42P01';
+    const service = { runDueJobs: vi.fn(async () => { throw missingTableError; }) };
+    const log = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const { createMarketingPublisherWorker } = await import('../../jobs/marketingPublisherWorker.mjs');
+    const worker = createMarketingPublisherWorker({ service, intervalMs: 60000, log });
+
+    await expect(worker.runOnce()).resolves.toEqual([]);
+    await expect(worker.runOnce()).resolves.toEqual([]);
+
+    expect(service.runDueJobs).toHaveBeenCalledTimes(1);
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.stringContaining('worker disabled'),
+      expect.objectContaining({ reason: 'storage_unavailable' }),
+    );
+    expect(log.error).not.toHaveBeenCalled();
+  });
 });

@@ -18,11 +18,13 @@ import {
   getBestTimes,
   getCalendarSuggestions,
 } from '../services/socialPublishingPlanningService.mjs';
+import { isSocialPublishingStorageUnavailableError } from '../services/socialPublishingStorageErrors.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 const SUPPORTED_PLATFORMS = PROVIDER_CAPABILITIES.map(provider => provider.id);
 const PROVIDER_BY_ID = new Map(PROVIDER_CAPABILITIES.map(provider => [provider.id, provider]));
+const STORAGE_UNAVAILABLE_MESSAGE = 'Native social publishing storage is unavailable.';
 
 const getAdminSafeConnectError = (err) => {
   const message = String(err?.message || '');
@@ -31,6 +33,34 @@ const getAdminSafeConnectError = (err) => {
   return 'Failed to initiate connection';
 };
 
+const getSchedulerStatus = () => ({
+  enabled: process.env.MARKETING_PUBLISHER_WORKER_ENABLED !== 'false',
+  intervalMs: Number(process.env.MARKETING_PUBLISHER_WORKER_INTERVAL_MS || 60000),
+});
+
+const buildStorageUnavailableStatus = () => ({
+  ok: false,
+  reason: 'storage_unavailable',
+  message: STORAGE_UNAVAILABLE_MESSAGE,
+});
+
+const buildStorageUnavailableResponse = data => ({
+  success: true,
+  degraded: true,
+  data,
+  storage: buildStorageUnavailableStatus(),
+  message: STORAGE_UNAVAILABLE_MESSAGE,
+});
+
+const buildStorageUnavailableHealth = () => buildStorageUnavailableResponse({
+  mode: 'native',
+  configured: false,
+  accountCount: 0,
+  providers: PROVIDER_CAPABILITIES,
+  scheduler: getSchedulerStatus(),
+  storage: buildStorageUnavailableStatus(),
+});
+
 router.use(protect, adminOnly);
 
 router.get('/health', async (_req, res) => {
@@ -38,6 +68,9 @@ router.get('/health', async (_req, res) => {
     const health = await nativePublisher.getHealth();
     return res.json({ success: true, data: health });
   } catch (err) {
+    if (isSocialPublishingStorageUnavailableError(err)) {
+      return res.json(buildStorageUnavailableHealth());
+    }
     logger.error('Social publishing health check failed:', err.message);
     return res.status(500).json({ success: false, message: 'Health check failed' });
   }
@@ -47,6 +80,9 @@ router.get('/accounts', async (_req, res) => {
   try {
     return res.json({ success: true, data: await nativePublisher.listAccounts() });
   } catch (err) {
+    if (isSocialPublishingStorageUnavailableError(err)) {
+      return res.json(buildStorageUnavailableResponse([]));
+    }
     logger.error('Failed to list social accounts:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to list accounts' });
   }
@@ -158,6 +194,9 @@ router.get('/history', async (req, res) => {
   try {
     return res.json({ success: true, data: await nativePublisher.getHistory(limit) });
   } catch (err) {
+    if (isSocialPublishingStorageUnavailableError(err)) {
+      return res.json(buildStorageUnavailableResponse([]));
+    }
     logger.error('Failed to fetch post history:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to fetch history' });
   }

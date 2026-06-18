@@ -139,7 +139,8 @@ function isWaiverGatedRoute(pathname: string) {
 function requiresWaiverRedirect(auth: ReturnType<typeof useAuth>, pathname: string) {
   if (!auth.user || !WAIVER_GATED_ROLES.has(auth.user.role)) return false;
   if (!isWaiverGatedRoute(pathname)) return false;
-  return auth.user.hasLinkedWaiver !== true;
+  if (auth.user.hasLinkedWaiver === true) return false;
+  return auth.user.hasLinkedWaiver === false && auth.user.waiverStatus !== undefined;
 }
 
 /**

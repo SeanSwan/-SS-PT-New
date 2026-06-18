@@ -2,16 +2,16 @@
  * ┌─── ROUTES: Badge Creator (AI Generation) ──────────────────┐
  * │ PREFIX: /api/admin/badge-creator                            │
  * │ AUTH: protect + adminOnly                                   │
- * │ PURPOSE: AI-powered badge generation via Recraft V3.       │
+ * │ PURPOSE: AI-powered badge generation via Gemini Nano Banana.│
  * │ Extends existing Badge system with visual creation studio.  │
- * │ CEO RULING: Recraft V3, 50 gens/month, curated styles.    │
+ * │ Provider: Gemini 3.1 Flash Image by default.               │
  * └────────────────────────────────────────────────────────────┘
  */
 
 import express from 'express';
 import { randomBytes } from 'node:crypto';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
-import recraft from '../services/recraftService.mjs';
+import geminiBadgeImage from '../services/geminiBadgeImageService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -22,6 +22,7 @@ const DB_BADGE_CATEGORIES = new Set(['strength', 'cardio', 'skill', 'flexibility
 const BADGE_GENERATION_FAILED_MESSAGE = 'Badge generation failed. Try again with a simpler prompt or different style.';
 const BADGE_VARIATION_FAILED_MESSAGE = 'Variation generation failed. Try again with a different style.';
 const PET_AVATAR_GENERATION_FAILED_MESSAGE = 'Pet avatar generation failed. Try again with a different style.';
+const GEMINI_NOT_CONFIGURED_MESSAGE = 'Badge generation is not configured yet. Add GEMINI_API_KEY or GOOGLE_API_KEY on Render before using Nano Banana generation.';
 
 function getMonthKey() {
   const d = new Date();
@@ -126,6 +127,12 @@ function mergeCriteriaSection(badge, sectionName, sectionValue) {
   };
 }
 
+function requireGeminiConfigured(res) {
+  if (geminiBadgeImage.isConfigured()) return true;
+  res.status(424).json({ success: false, message: GEMINI_NOT_CONFIGURED_MESSAGE });
+  return false;
+}
+
 /**
  * Get remaining generations from durable storage (Badge table count).
  * Global cap: 50 custom badges per month across all admins.
@@ -151,7 +158,7 @@ async function getRemainingGenerations() {
 // ── Health Check ─────────────────────────────────────────────
 // GET /api/admin/badge-creator/health
 router.get('/health', async (_req, res) => {
-  const health = await recraft.checkHealth();
+  const health = await geminiBadgeImage.checkHealth();
   res.json({ success: true, data: health });
 });
 
@@ -181,6 +188,7 @@ router.post('/generate', async (req, res) => {
   if (!style || typeof style !== 'string') {
     return res.status(400).json({ success: false, message: 'style is required' });
   }
+  if (!requireGeminiConfigured(res)) return;
 
   // Check generation credits (durable — survives deploys)
   const remaining = await getRemainingGenerations();
@@ -192,7 +200,12 @@ router.post('/generate', async (req, res) => {
   }
 
   try {
-    const result = await recraft.generateBadge({ prompt, style, size: 256 });
+    const result = await geminiBadgeImage.generateBadge({
+      prompt,
+      style,
+      size: 1024,
+      userId: req.user.id,
+    });
 
     if (!result.success) {
       logger.error('Badge generation provider failed:', result.error);
@@ -207,6 +220,9 @@ router.post('/generate', async (req, res) => {
         imageUrl: result.imageUrl,
         prompt,
         style,
+        provider: result.provider,
+        model: result.model,
+        storage: result.storage,
         creditsRemaining: remaining, // Decrements after save, not generate
       },
     });
@@ -344,6 +360,7 @@ router.post('/generate-batch', async (req, res) => {
   if (!style || typeof style !== 'string') {
     return res.status(400).json({ success: false, message: 'style is required' });
   }
+  if (!requireGeminiConfigured(res)) return;
 
   const remaining = await getRemainingGenerations();
   if (remaining < 5) {
@@ -371,7 +388,12 @@ router.post('/generate-batch', async (req, res) => {
     const results = await Promise.allSettled(
       variations.map((suffix, i) => {
         const varPrompt = suffix ? `${prompt}. ${suffix}` : prompt;
-        return recraft.generateBadge({ prompt: varPrompt, style: combinedStyle, size: 256 });
+        return geminiBadgeImage.generateBadge({
+          prompt: varPrompt,
+          style: combinedStyle,
+          size: 1024,
+          userId: req.user.id,
+        });
       })
     );
 
@@ -410,6 +432,7 @@ router.post('/generate-pet-avatar', async (req, res) => {
   if (!species || typeof species !== 'string') {
     return res.status(400).json({ success: false, message: 'species is required' });
   }
+  if (!requireGeminiConfigured(res)) return;
 
   const remaining = await getRemainingGenerations();
   if (remaining <= 0) {
@@ -433,7 +456,12 @@ router.post('/generate-pet-avatar', async (req, res) => {
   const styleModifier = style || 'crystalline ice, deep sapphire blue (#002060), frost white, elegant swan, premium luxury';
 
   try {
-    const result = await recraft.generateBadge({ prompt: fullPrompt, style: styleModifier, size: 256 });
+    const result = await geminiBadgeImage.generateBadge({
+      prompt: fullPrompt,
+      style: styleModifier,
+      size: 1024,
+      userId: req.user.id,
+    });
 
     if (!result.success) {
       logger.error('Pet avatar generation provider failed:', result.error);
@@ -448,6 +476,9 @@ router.post('/generate-pet-avatar', async (req, res) => {
         imageUrl: result.imageUrl,
         species,
         personality,
+        provider: result.provider,
+        model: result.model,
+        storage: result.storage,
         creditsRemaining: remaining - 1,
       },
     });

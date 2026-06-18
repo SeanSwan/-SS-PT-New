@@ -1,8 +1,8 @@
 /**
  * ┌─── PAGE: BadgeCreatorPage ─────────────────────────────────┐
  * │ PURPOSE: AI-powered badge/icon creation studio for admin.  │
- * │ Two modes: AI Generate (Recraft V3) or Upload Custom.      │
- * │ CEO RULING: Recraft V3, 50 gens/month, curated styles.    │
+ * │ Two modes: AI Generate (Gemini Nano Banana) or Upload.     │
+ * │ Uses existing Gemini provider keys and curated styles.     │
  * └────────────────────────────────────────────────────────────┘
  */
 

@@ -8,6 +8,8 @@
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { useAuth } from '../../../context/AuthContext';
+import { useSubscription } from '../../../hooks/useSubscription';
 import { MessagingContainer } from './MessagingStyles';
 import ConversationListPanel from './ConversationListPanel';
 import MessageThread from './MessageThread';
@@ -21,8 +23,13 @@ import { useMessaging } from './useMessaging';
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
 
-  const user = useSelector((state: any) => state.auth?.user || state.user?.user);
+  const reduxUser = useSelector((state: any) => state.auth?.user || state.user?.user);
+  const { user: authUser } = useAuth();
+  const { isElite, loading: subscriptionLoading } = useSubscription();
+  const user = authUser || reduxUser;
   const currentUserId = user?.id || null;
+  const isStaffRole = user?.role === 'admin' || user?.role === 'trainer';
+  const messagingEnabled = isStaffRole || isElite;
 
   const {
     conversations,
@@ -43,7 +50,7 @@ const MessagingView: React.FC = () => {
     emitTyping,
     dismissError,
     pendingMessages,
-  } = useMessaging(currentUserId);
+  } = useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading });
 
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === activeConversationId) || null,
@@ -71,11 +78,21 @@ const MessagingView: React.FC = () => {
   }, [createConversation]);
 
   // Guard: no user ID = show nothing meaningful
-  if (!currentUserId) {
+  if (!currentUserId || (subscriptionLoading && !isStaffRole)) {
     return (
       <MessagingContainer>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'rgba(224,236,244,0.5)', fontSize: '0.9rem' }}>
           Loading...
+        </div>
+      </MessagingContainer>
+    );
+  }
+
+  if (!messagingEnabled) {
+    return (
+      <MessagingContainer>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'rgba(224,236,244,0.65)', fontSize: '0.95rem', padding: '2rem', textAlign: 'center' }}>
+          SwanStudios messaging is available with Crystalline Swan access.
         </div>
       </MessagingContainer>
     );

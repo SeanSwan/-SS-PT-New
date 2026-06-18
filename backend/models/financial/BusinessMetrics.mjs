@@ -375,7 +375,7 @@ BusinessMetrics.init({
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'StorefrontItems',
+      model: 'storefront_items',
       key: 'id'
     },
     comment: 'Best selling package for the period'

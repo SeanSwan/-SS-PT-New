@@ -38,6 +38,8 @@ const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const unsafeClickPattern = /\b(delete|remove|submit|save|send|share|post|upload|logout|log out|sign out|checkout|pay|buy|purchase|confirm|approve|archive|block|charge|grant|revoke|publish|enable|disable|start|join|assign|allocate|arm|run|launch)\b/i;
 const maxClicksPerRoute = Number(process.env.SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE || '24');
 const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS || '600000');
+const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDLE_TIMEOUT_MS || '1000');
+const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
 function isSocketPollingUrl(rawUrl: string) {
   try {
@@ -97,6 +99,9 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
     const endpoint = new URL(request.url()).pathname;
     if (endpoint === '/socket.io/') return route.continue();
     state.blockedWrites.push(`${request.method()} ${endpoint}`);
+    if (request.method() === 'POST' && endpoint === '/api/dashboard/track-pageview') {
+      return route.fulfill({ status: 204, body: '' });
+    }
     return route.fulfill({
       status: 405,
       contentType: 'application/json',
@@ -106,8 +111,12 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
 }
 
 async function settle(page: Page) {
-  await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => undefined);
-  await page.waitForTimeout(250);
+  if (networkIdleTimeoutMs > 0) {
+    await page.waitForLoadState('networkidle', { timeout: networkIdleTimeoutMs }).catch(() => undefined);
+  }
+  if (settleDelayMs > 0) {
+    await page.waitForTimeout(settleDelayMs);
+  }
 }
 
 async function gotoRoute(page: Page, route: string) {
@@ -119,6 +128,12 @@ async function gotoRoute(page: Page, route: string) {
     await page.waitForTimeout(500).catch(() => undefined);
     await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 30_000 });
   }
+}
+
+async function assertDashboardRouteLoaded(page: Page, bodyText: string) {
+  const currentPath = new URL(page.url()).pathname;
+  expect(currentPath).not.toMatch(/^\/(?:login|signin|sign-in)$/i);
+  expect(bodyText).not.toMatch(/\b404\b|page not found/i);
 }
 
 async function markSafeCandidates(page: Page): Promise<CrawlCandidate[]> {
@@ -160,7 +175,7 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
   await settle(page);
 
   const bodyText = await page.locator('body').innerText({ timeout: 20_000 }).catch(() => '');
-  expect(bodyText).not.toMatch(/\b404\b|page not found|log in|sign in/i);
+  await assertDashboardRouteLoaded(page, bodyText);
 
   const candidates = (await markSafeCandidates(page)).slice(0, maxClicksPerRoute);
   for (const candidate of candidates) {

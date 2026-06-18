@@ -119,18 +119,38 @@ export function createNativeSocialPublishingService({
     return rows.map(serializeAccount);
   };
 
-  const getHealth = async () => ({
-    configured: true,
-    mode: 'native',
-    postiz: POSTIZ_OPTIONAL,
-    encryption: isCredentialStoreReady(),
-    providers: PROVIDER_CAPABILITIES,
-    accountCount: (await listAccounts()).length,
-    scheduler: {
-      enabled: process.env.MARKETING_PUBLISHER_WORKER_ENABLED !== 'false',
-      intervalMs: Number(process.env.MARKETING_PUBLISHER_WORKER_INTERVAL_MS || 60000),
-    },
-  });
+  const getHealth = async () => {
+    const baseHealth = {
+      mode: 'native',
+      postiz: POSTIZ_OPTIONAL,
+      encryption: isCredentialStoreReady(),
+      providers: PROVIDER_CAPABILITIES,
+      scheduler: {
+        enabled: process.env.MARKETING_PUBLISHER_WORKER_ENABLED !== 'false',
+        intervalMs: Number(process.env.MARKETING_PUBLISHER_WORKER_INTERVAL_MS || 60000),
+      },
+    };
+
+    try {
+      const accounts = await listAccounts();
+      return {
+        ...baseHealth,
+        configured: true,
+        accountCount: accounts.length,
+        storage: { ok: true },
+      };
+    } catch {
+      return {
+        ...baseHealth,
+        configured: false,
+        accountCount: 0,
+        storage: {
+          ok: false,
+          message: 'Social publishing account storage is unavailable',
+        },
+      };
+    }
+  };
 
   const connectBluesky = async (payload, { userId } = {}) => {
     const adapter = providerAdapters.bluesky;

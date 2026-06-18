@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import type {
@@ -29,6 +30,7 @@ export const useMeasurementEntryController = ({
 }: MeasurementEntryProps) => {
   const { clientId: routeClientId } = useParams<{ clientId?: string }>();
   const effectiveClientId = embeddedClientId || routeClientId;
+  const { user } = useAuth() as any;
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -65,10 +67,41 @@ export const useMeasurementEntryController = ({
   }, []);
 
   useEffect(() => {
+    const selectEmbeddedClient = () => {
+      if (embeddedClientId) {
+        const placeholder = {
+          id: embeddedClientId,
+          name: embeddedClientName || `Client ${embeddedClientId}`,
+        };
+        setClients([placeholder]);
+        setSelectedClient(placeholder);
+        setClientSearch(placeholder.name);
+        return true;
+      }
+      return false;
+    };
+
+    const readTrainerClients = async () => {
+      const assignmentsRes = await apiService.get(`/api/client-trainer-assignments/trainer/${user.id}`);
+      const payload = assignmentsRes.data;
+      const assignments = Array.isArray(payload?.assignments)
+        ? payload.assignments
+        : Array.isArray(payload?.data)
+        ? payload.data
+        : payload?.data?.assignments ?? [];
+      return assignments.map((assignment: any) => assignment.client ?? assignment.Client ?? assignment);
+    };
+
     const fetchClients = async () => {
+      if (selectEmbeddedClient()) return;
       try {
-        const clientsRes = await apiService.get('/api/admin/clients');
-        const rawClients = clientsRes.data?.data?.clients || clientsRes.data?.clients || clientsRes.data || [];
+        let rawClients: unknown = [];
+        if (user?.role === 'trainer' && user?.id) {
+          rawClients = await readTrainerClients();
+        } else if (user?.role === 'admin') {
+          const clientsRes = await apiService.get('/api/admin/clients');
+          rawClients = clientsRes.data?.data?.clients || clientsRes.data?.clients || clientsRes.data || [];
+        }
         const mapped = mapRawClients(rawClients);
         setClients(mapped);
         if (effectiveClientId) {
@@ -87,7 +120,7 @@ export const useMeasurementEntryController = ({
       }
     };
     fetchClients();
-  }, [toast, effectiveClientId, embeddedClientName]);
+  }, [toast, effectiveClientId, embeddedClientId, embeddedClientName, user?.id, user?.role]);
 
   useEffect(() => {
     if (!selectedClient) {

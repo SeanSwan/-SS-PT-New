@@ -13,7 +13,11 @@ describe('MeasurementEntry controller extraction', () => {
     expect(shellSource).not.toContain("apiService.post('/api/measurements'");
     expect(shellSource).not.toContain('useToast');
     expect(shellSource).not.toContain('useParams');
+    expect(controllerSource).toContain("import { useAuth } from '../../../../context/AuthContext'");
+    expect(controllerSource).toContain('if (embeddedClientId) {');
+    expect(controllerSource).toContain("} else if (user?.role === 'admin') {");
     expect(controllerSource).toContain("apiService.get('/api/admin/clients')");
+    expect(controllerSource).toContain('apiService.get(`/api/client-trainer-assignments/trainer/${user.id}`)');
     expect(controllerSource).toContain("apiService.post('/api/measurements'");
     expect(controllerSource).toContain('useToast');
     expect(controllerSource).toContain('useParams');

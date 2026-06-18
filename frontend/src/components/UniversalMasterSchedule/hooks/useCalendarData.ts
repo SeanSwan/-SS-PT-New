@@ -123,6 +123,7 @@ export const useCalendarData = () => {
   const { user } = useAuth();
   const dispatch = useAppDispatch();
   const { socket } = useSocket();
+  const canLoadClientRoster = user?.role === 'admin' || user?.role === 'trainer';
   
   // Redux selectors (Enhanced)
   const sessions = useAppSelector(selectAllSessions);
@@ -140,9 +141,9 @@ export const useCalendarData = () => {
   // Enhanced loading states
   const [loading, setLoading] = useState({
     sessions: true,
-    clients: true,
+    clients: canLoadClientRoster,
     trainers: true,
-    assignments: false,
+    assignments: canLoadClientRoster,
     refreshing: false
   });
   
@@ -322,6 +323,12 @@ export const useCalendarData = () => {
   
   const loadClients = useCallback(async (options: { force?: boolean; showLoading?: boolean } = {}) => {
     const { showLoading = true } = options;
+
+    if (!canLoadClientRoster) {
+      setLoading(prev => ({ ...prev, clients: false }));
+      setErrors(prev => ({ ...prev, clients: null }));
+      return;
+    }
     
     try {
       await executeWithCircuitBreaker(
@@ -335,7 +342,7 @@ export const useCalendarData = () => {
       setErrors(prev => ({ ...prev, clients: 'Failed to load clients' }));
       throw error;
     }
-  }, [dispatch, executeWithCircuitBreaker]);
+  }, [canLoadClientRoster, dispatch, executeWithCircuitBreaker]);
   
   const loadTrainers = useCallback(async (options: { force?: boolean; showLoading?: boolean } = {}) => {
     const { showLoading = true } = options;
@@ -356,11 +363,20 @@ export const useCalendarData = () => {
   
   const loadAssignments = useCallback(async (options: { force?: boolean; showLoading?: boolean } = {}) => {
     const { showLoading = true } = options;
+
+    if (!canLoadClientRoster) {
+      setAssignments([]);
+      setLoading(prev => ({ ...prev, assignments: false }));
+      setErrors(prev => ({ ...prev, assignments: null }));
+      return;
+    }
     
     try {
       await executeWithCircuitBreaker(
         async () => {
-          const assignmentsData = await clientTrainerAssignmentService.getAssignments();
+          const assignmentsData = user?.role === 'trainer' && user?.id
+            ? await clientTrainerAssignmentService.getTrainerAssignments(String(user.id))
+            : await clientTrainerAssignmentService.getAssignments();
           setAssignments(assignmentsData);
           return assignmentsData;
         },
@@ -371,7 +387,7 @@ export const useCalendarData = () => {
       setErrors(prev => ({ ...prev, assignments: 'Failed to load assignments' }));
       throw error;
     }
-  }, [executeWithCircuitBreaker]);
+  }, [canLoadClientRoster, executeWithCircuitBreaker, user?.id, user?.role]);
   
   // ==================== CACHE MANAGEMENT ====================
   
@@ -421,17 +437,20 @@ export const useCalendarData = () => {
       await loadSessions({ showLoading: true });
       
       // Load supporting data in parallel (lower priority)
-      const supportingDataPromises = [
-        loadClients({ showLoading: true }),
-        loadTrainers({ showLoading: true }),
-        loadAssignments({ showLoading: true })
+      const supportingDataTasks = [
+        { dataType: 'trainers', promise: loadTrainers({ showLoading: true }) },
+        ...(canLoadClientRoster ? [
+          { dataType: 'clients', promise: loadClients({ showLoading: true }) },
+          { dataType: 'assignments', promise: loadAssignments({ showLoading: true }) }
+        ] : [])
       ];
+      const supportingDataPromises = supportingDataTasks.map(task => task.promise);
+      const dataTypes = supportingDataTasks.map(task => task.dataType);
       
       const results = await Promise.allSettled(supportingDataPromises);
       
       // Log any failures but don't crash
       results.forEach((result, index) => {
-        const dataTypes = ['clients', 'trainers', 'assignments'];
         if (result.status === 'rejected') {
           logger.warn(`⚠️ Failed to load ${dataTypes[index]}:`, result.reason);
         }
@@ -475,7 +494,7 @@ export const useCalendarData = () => {
     } finally {
       setLoading(prev => ({ ...prev, refreshing: false }));
     }
-  }, [loadSessions, loadClients, loadTrainers, loadAssignments, clearErrors, updateDataHealth, initializeRealTimeUpdates]);
+  }, [canLoadClientRoster, loadSessions, loadClients, loadTrainers, loadAssignments, clearErrors, updateDataHealth, initializeRealTimeUpdates]);
   
   const refreshData = useCallback(async (force: boolean = false, filterOptions?: import('../types').FilterOptions) => {
     if (filterOptions) {
@@ -491,18 +510,21 @@ export const useCalendarData = () => {
       }
 
       // Refresh all data in parallel
-      const refreshPromises = [
-        loadSessions({ force, showLoading: false, filterOptions }),
-        loadClients({ force, showLoading: false }),
-        loadTrainers({ force, showLoading: false }),
-        loadAssignments({ force, showLoading: false })
+      const refreshTasks = [
+        { dataType: 'sessions', promise: loadSessions({ force, showLoading: false, filterOptions }) },
+        { dataType: 'trainers', promise: loadTrainers({ force, showLoading: false }) },
+        ...(canLoadClientRoster ? [
+          { dataType: 'clients', promise: loadClients({ force, showLoading: false }) },
+          { dataType: 'assignments', promise: loadAssignments({ force, showLoading: false }) }
+        ] : [])
       ];
+      const refreshPromises = refreshTasks.map(task => task.promise);
 
       const results = await Promise.allSettled(refreshPromises);
 
       // Check results
       const successCount = results.filter(r => r.status === 'fulfilled').length;
-      logger.log(`✅ Data refresh completed: ${successCount}/4 successful`);
+      logger.log(`✅ Data refresh completed: ${successCount}/${refreshTasks.length} successful`);
 
       updateDataHealth(successCount > 0);
 
@@ -512,7 +534,7 @@ export const useCalendarData = () => {
     } finally {
       setLoading(prev => ({ ...prev, refreshing: false }));
     }
-  }, [loadSessions, loadClients, loadTrainers, loadAssignments, invalidateCache, updateDataHealth]);
+  }, [canLoadClientRoster, loadSessions, loadClients, loadTrainers, loadAssignments, invalidateCache, updateDataHealth]);
 
   refreshDataRef.current = refreshData;
   

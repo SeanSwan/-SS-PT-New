@@ -33,6 +33,7 @@ import { X } from 'lucide-react';
 import ViewAsBanner from './components/ViewAsBanner';
 import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
 import { useAuth } from '../../context/AuthContext';
+import { useSubscription } from '../../hooks/useSubscription';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { 
@@ -504,13 +505,47 @@ const ClientProgressDashboardPage = React.lazy(
 // Wrapper component for detailed NASM analytics — kept for deep-link access
 const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
+  const { isPro, isElite, loading: subscriptionLoading } = useSubscription();
+  const navigate = useNavigate();
   const clientId = parseDashboardUserId(user?.id);
+  const userRole = user?.role;
+  const isStaffRole = userRole === 'admin' || userRole === 'trainer';
+  const hasDetailedProgressAccess = isStaffRole || isPro || isElite;
 
   if (!clientId) {
     return (
       <UniversalErrorContainer role="status">
         <h2>Progress identity unavailable</h2>
         <p>Reload the dashboard once your account identity finishes loading.</p>
+      </UniversalErrorContainer>
+    );
+  }
+
+  if (subscriptionLoading && !isStaffRole) {
+    return (
+      <UniversalLoadingContainer role="status">
+        <UniversalLoadingSpinner
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        />
+        <h2>Checking analytics access...</h2>
+      </UniversalLoadingContainer>
+    );
+  }
+
+  if (!hasDetailedProgressAccess) {
+    return (
+      <UniversalErrorContainer role="status">
+        <h2>Guardian analytics required</h2>
+        <p>Detailed progress analytics are available with Swan Guardian, Crystalline Swan, or an active trial.</p>
+        <UniversalButton
+          type="button"
+          onClick={() => navigate('/ascension')}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          View Memberships
+        </UniversalButton>
       </UniversalErrorContainer>
     );
   }

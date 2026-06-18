@@ -470,7 +470,7 @@ const setupAssociations = async () => {
         return {
         User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
-        PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
+        PointTransaction, StorefrontItem, ProductVariant, ShoppingCart, CartItem, Order,
         OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
@@ -841,6 +841,8 @@ const setupAssociations = async () => {
     AutomationLog.belongsTo(AutomationSequence, { foreignKey: 'sequenceId', as: 'sequence' });
     User.hasMany(AutomationLog, { foreignKey: 'userId', as: 'automationLogs' });
     AutomationLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Lead.hasMany(AutomationLog, { foreignKey: 'leadId', as: 'automationLogs', constraints: false });
+    AutomationLog.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead', constraints: false });
     
     // CONTACT ASSOCIATIONS
     // ===================
@@ -1318,6 +1320,7 @@ const setupAssociations = async () => {
       
       // E-Commerce Models
       StorefrontItem,
+      ProductVariant,
       ShoppingCart,
       CartItem,
       Order,

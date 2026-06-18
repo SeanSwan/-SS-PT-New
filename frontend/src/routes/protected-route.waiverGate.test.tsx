@@ -71,6 +71,7 @@ describe('ProtectedRoute waiver mirror', () => {
       id: '42',
       role: 'client',
       hasLinkedWaiver: false,
+      waiverStatus: 'missing',
     });
 
     expect(await screen.findByTestId('location')).toHaveTextContent(
@@ -84,6 +85,15 @@ describe('ProtectedRoute waiver mirror', () => {
       id: '42',
       role: 'client',
       hasLinkedWaiver: true,
+    });
+
+    expect(screen.getByTestId('protected')).toHaveTextContent('protected dashboard');
+  });
+
+  it('does not redirect when a stale auth payload omits waiver fields', () => {
+    renderProtected('/dashboard/client/overview', {
+      id: '42',
+      role: 'client',
     });
 
     expect(screen.getByTestId('protected')).toHaveTextContent('protected dashboard');
@@ -104,6 +114,7 @@ describe('ProtectedRoute waiver mirror', () => {
       id: '84',
       role: 'user',
       hasLinkedWaiver: false,
+      waiverStatus: 'missing',
     });
 
     expect(await screen.findByTestId('location')).toHaveTextContent(

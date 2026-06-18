@@ -130,7 +130,7 @@ async function getTableColumnMeta(sequelize, tableName) {
   return Array.isArray(columns) ? columns : [];
 }
 
-async function resolveColumnMeta(sequelize, tableName, candidates, fallbackDataType = null) {
+async function resolveColumnMeta(sequelize, tableName, candidates, fallbackDataType = null, options = {}) {
   const columns = await getTableColumnMeta(sequelize, tableName);
   const lowerToMeta = new Map(
     columns
@@ -149,7 +149,7 @@ async function resolveColumnMeta(sequelize, tableName, candidates, fallbackDataT
     }
   }
 
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0 || options.allowMissing === true) return null;
 
   return {
     columnName: candidates[0],
@@ -262,7 +262,9 @@ async function findCartItemsWithStorefrontRaw(sequelize, StorefrontItem, cartId,
   const productVariantIdColumn = await resolveColumnMeta(
     sequelize,
     'cart_items',
-    ['productVariantId', 'product_variant_id', 'productvariantid']
+    ['productVariantId', 'product_variant_id', 'productvariantid'],
+    null,
+    { allowMissing: true }
   );
   const quantityColumn = await resolveColumnMeta(sequelize, 'cart_items', ['quantity']);
   const priceColumn = await resolveColumnMeta(sequelize, 'cart_items', ['price']);

@@ -201,4 +201,71 @@ describe('cart schema recovery', () => {
     expect(result[0].storefrontItem?.name).toBe('Recovery Product');
     expect(result[0].productVariantId).toBe(21);
   });
+
+  it('does not select optional productVariantId when the cart item column is not deployed yet', async () => {
+    const modelError = new Error('column "productVariantId" does not exist');
+    modelError.parent = { code: '42703', message: modelError.message };
+
+    const cartItemQueries = [];
+    const query = vi.fn(async (sql, options = {}) => {
+      if (sql.includes('information_schema.columns')) {
+        if (options?.replacements?.tableName === 'cart_items') {
+          return [[
+            { column_name: 'id', data_type: 'integer' },
+            { column_name: 'cartId', data_type: 'integer' },
+            { column_name: 'storefrontItemId', data_type: 'integer' },
+            { column_name: 'quantity', data_type: 'integer' },
+            { column_name: 'price', data_type: 'numeric' }
+          ]];
+        }
+        if (options?.replacements?.tableName === 'storefront_items') {
+          return [[
+            { column_name: 'id', data_type: 'integer' },
+            { column_name: 'name', data_type: 'character varying' },
+            { column_name: 'price', data_type: 'numeric' }
+          ]];
+        }
+      }
+
+      if (sql.includes('FROM cart_items')) {
+        cartItemQueries.push(sql);
+        return [[
+          { id: 15, storefrontItemId: 7, productVariantId: null, quantity: 1, price: '29.00' }
+        ]];
+      }
+
+      if (sql.includes('FROM "storefront_items"')) {
+        return [[
+          { id: 7, name: 'Legacy Package', price: '29.00' }
+        ]];
+      }
+
+      return [[]];
+    });
+
+    const CartItem = {
+      associations: { productVariant: true },
+      findAll: vi.fn().mockRejectedValue(modelError),
+      sequelize: { query }
+    };
+
+    const StorefrontItem = {
+      getTableName: vi.fn(() => 'storefront_items')
+    };
+
+    const result = await safeLoadCartItemsWithStorefront({
+      CartItem,
+      StorefrontItem,
+      ProductVariant: {},
+      cartId: 56,
+      storefrontAttributes: ['id', 'name', 'price'],
+      logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() }
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].productVariantId).toBeNull();
+    expect(result[0].storefrontItem?.name).toBe('Legacy Package');
+    expect(cartItemQueries[0]).not.toMatch(/"productVariantId"\s+AS\s+"productVariantId"/);
+    expect(cartItemQueries[0]).toContain('NULL AS "productVariantId"');
+  });
 });

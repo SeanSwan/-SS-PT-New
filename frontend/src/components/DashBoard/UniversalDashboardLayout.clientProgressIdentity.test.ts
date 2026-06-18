@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const layoutSourcePath = resolve(__dirname, './UniversalDashboardLayout.tsx');
 const layoutLogicPath = resolve(__dirname, './UniversalDashboardLayout.logic.ts');
+const clientProgressPageSourcePath = resolve(__dirname, './Pages/client-dashboard/ClientProgressDashboardPage.tsx');
 
 describe('UniversalDashboardLayout client detailed progress identity', () => {
   it('exports a strict positive integer dashboard user id parser', async () => {
@@ -31,5 +32,27 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
     expect(source).toContain('<NASMProgressCharts clientId={clientId} />');
     expect(source).toContain("{ path: '/progress/detailed', component: ClientProgressWrapper");
     expect(source).not.toContain('clientId={Number(user?.id || 0)}');
+  });
+
+  it('gates direct client detailed analytics links before paid charts mount', () => {
+    const source = readFileSync(layoutSourcePath, 'utf8');
+
+    expect(source).toContain("import { useSubscription } from '../../hooks/useSubscription';");
+    expect(source).toContain('const { isPro, isElite, loading: subscriptionLoading } = useSubscription();');
+    expect(source).toContain("const isStaffRole = userRole === 'admin' || userRole === 'trainer';");
+    expect(source).toContain('const hasDetailedProgressAccess = isStaffRole || isPro || isElite;');
+    expect(source).not.toContain('const hasDetailedProgressAccess = isStaffRole || isPro || isElite || isTrial;');
+    expect(source).toContain('if (subscriptionLoading && !isStaffRole) {');
+    expect(source).toContain('if (!hasDetailedProgressAccess) {');
+    expect(source).toContain('<h2>Guardian analytics required</h2>');
+    expect(source).toContain('return <NASMProgressCharts clientId={clientId} />;');
+  });
+
+  it('keeps the client progress CTA gate aligned with backend charts.full Pro tier', () => {
+    const source = readFileSync(clientProgressPageSourcePath, 'utf8');
+
+    expect(source).toContain('const { isPro, isElite } = useSubscription();');
+    expect(source).toContain('const hasAdvancedAccess = isPro || isElite;');
+    expect(source).not.toContain('const hasAdvancedAccess = isPro || isElite || isTrial;');
   });
 });

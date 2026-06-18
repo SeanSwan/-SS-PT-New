@@ -100,8 +100,8 @@ const ClientProgressDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, authAxios } = useAuth();
   const { profile } = useGamificationData();
-  const { isPro, isElite, isTrial } = useSubscription();
-  const hasAdvancedAccess = isPro || isElite || isTrial;
+  const { isPro, isElite } = useSubscription();
+  const hasAdvancedAccess = isPro || isElite;
   const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
 
