@@ -5,6 +5,10 @@
  */
 
 import nativeSocialPublishingService from '../services/nativeSocialPublishingService.mjs';
+import {
+  getStorageErrorCode,
+  isSocialPublishingStorageUnavailableError,
+} from '../services/socialPublishingStorageErrors.mjs';
 import logger from '../utils/logger.mjs';
 
 export function createMarketingPublisherWorker({
@@ -16,8 +20,25 @@ export function createMarketingPublisherWorker({
 } = {}) {
   let timer = null;
   let running = false;
+  let disabledReason = null;
+
+  const disableForUnavailableStorage = (err) => {
+    disabledReason = 'storage_unavailable';
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    log.warn(
+      '[marketingPublisher] worker disabled: native social publishing storage is unavailable',
+      {
+        reason: disabledReason,
+        code: getStorageErrorCode(err),
+      },
+    );
+  };
 
   const runOnce = async () => {
+    if (disabledReason) return [];
     if (running) return [];
     running = true;
     try {
@@ -25,6 +46,10 @@ export function createMarketingPublisherWorker({
       if (result.length > 0) log.info(`[marketingPublisher] processed ${result.length} due job(s)`);
       return result;
     } catch (err) {
+      if (isSocialPublishingStorageUnavailableError(err)) {
+        disableForUnavailableStorage(err);
+        return [];
+      }
       log.error(`[marketingPublisher] run failed: ${err.message}`);
       return [];
     } finally {
