@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAdminClientService } from '../../services/adminClientService';
 import { PlaudClientResolver } from './PlaudClientResolver';
 
+const { mockAuthAxios, mockUser } = vi.hoisted(() => ({
+  mockAuthAxios: {
+    get: vi.fn(),
+  },
+  mockUser: { id: 1, role: 'admin' },
+}));
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ authAxios: mockAuthAxios, user: mockUser }),
+}));
+
 vi.mock('../../services/adminClientService', async () => {
   const actual = await vi.importActual<typeof import('../../services/adminClientService')>(
     '../../services/adminClientService',
@@ -17,6 +28,9 @@ vi.mock('../../services/adminClientService', async () => {
 describe('PlaudClientResolver new-client flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUser.id = 1;
+    mockUser.role = 'admin';
+    mockAuthAxios.get.mockReset();
   });
 
   it('selects the created client from the create response without depending on a follow-up search', async () => {
@@ -60,5 +74,40 @@ describe('PlaudClientResolver new-client flow', () => {
     });
     expect(createClient).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog', { name: /add new client/i })).not.toBeInTheDocument();
+  });
+
+  it('loads trainer client search from trainer assignments instead of the admin roster', async () => {
+    const getClients = vi.fn().mockRejectedValue(new Error('admin roster unavailable to trainer'));
+    vi.mocked(createAdminClientService).mockReturnValue({
+      getClients,
+      createClient: vi.fn(),
+      createExternalClient: vi.fn(),
+    } as any);
+    mockUser.id = 9001;
+    mockUser.role = 'trainer';
+    mockAuthAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        assignments: [
+          {
+            id: 77,
+            client: {
+              id: 424242,
+              firstName: 'Assigned',
+              lastName: 'Client',
+              email: 'assigned@example.com',
+              clientSource: 'swanstudios',
+            },
+          },
+        ],
+      },
+    });
+
+    render(<PlaudClientResolver onClientResolved={vi.fn()} />);
+
+    expect(await screen.findByText('Assigned Client')).toBeInTheDocument();
+    expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/client-trainer-assignments/trainer/9001');
+    expect(getClients).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /new client/i })).not.toBeInTheDocument();
   });
 });

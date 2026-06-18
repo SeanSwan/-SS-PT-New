@@ -17,6 +17,7 @@
  * transcript parser choose the database client row without trainer review.
  */
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import {
   createAdminClientService,
   type AdminClient,
@@ -82,6 +83,19 @@ function normalizeClient(client: Partial<AdminClient> & { id?: number | string; 
   };
 }
 
+function normalizeTrainerAssignmentClients(payload: any): PlaudResolvedClient[] {
+  const assignments = Array.isArray(payload?.assignments)
+    ? payload.assignments
+    : Array.isArray(payload?.data)
+    ? payload.data
+    : payload?.data?.assignments ?? [];
+
+  return (Array.isArray(assignments) ? assignments : [])
+    .map((assignment: any) => assignment?.client ?? assignment?.Client ?? assignment)
+    .map((client: Partial<AdminClient>) => normalizeClient(client))
+    .filter(Boolean) as PlaudResolvedClient[];
+}
+
 export function PlaudClientResolver({
   initialClientId,
   initialClientName,
@@ -89,7 +103,9 @@ export function PlaudClientResolver({
   locked = false,
   onClientResolved,
 }: PlaudClientResolverProps): JSX.Element {
-  const adminClient = useMemo(() => createAdminClientService(), []);
+  const { authAxios, user } = useAuth();
+  const adminClient = useMemo(() => createAdminClientService(authAxios || undefined), [authAxios]);
+  const canCreateClients = user?.role !== 'trainer';
   const [query, setQuery] = useState('');
   const [clients, setClients] = useState<PlaudResolvedClient[]>([]);
   const [selectedClient, setSelectedClient] = useState<PlaudResolvedClient | null>(() => (
@@ -121,15 +137,33 @@ export function PlaudClientResolver({
     setIsLoading(true);
     setError(null);
     try {
-      const result = await adminClient.getClients({
-        page: 1,
-        limit: 25,
-        status: 'active',
-        search: search.trim() || undefined,
-      });
-      const normalized = (result.clients || [])
-        .map((client: AdminClient) => normalizeClient(client))
-        .filter(Boolean) as PlaudResolvedClient[];
+      let normalized: PlaudResolvedClient[] = [];
+      if (user?.role === 'trainer') {
+        if (!user?.id || !authAxios) {
+          setClients([]);
+          return;
+        }
+        const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
+        const searchTerm = search.trim().toLowerCase();
+        normalized = normalizeTrainerAssignmentClients(response.data)
+          .filter((client) => {
+            if (!searchTerm) return true;
+            return [client.fullName, client.email, client.clientSource]
+              .filter(Boolean)
+              .some((value) => String(value).toLowerCase().includes(searchTerm));
+          })
+          .slice(0, 25);
+      } else {
+        const result = await adminClient.getClients({
+          page: 1,
+          limit: 25,
+          status: 'active',
+          search: search.trim() || undefined,
+        });
+        normalized = (result.clients || [])
+          .map((client: AdminClient) => normalizeClient(client))
+          .filter(Boolean) as PlaudResolvedClient[];
+      }
       setClients(normalized);
       if (selectedClient && selectedClient.fullName.startsWith('Client #')) {
         const match = normalized.find((client) => client.id === selectedClient.id);
@@ -141,7 +175,7 @@ export function PlaudClientResolver({
     } finally {
       setIsLoading(false);
     }
-  }, [adminClient, selectedClient]);
+  }, [adminClient, authAxios, selectedClient, user?.id, user?.role]);
 
   useEffect(() => {
     if (!isChanging || disabled) return undefined;
@@ -228,9 +262,11 @@ export function PlaudClientResolver({
             disabled={disabled}
           />
           <ResolverActions>
-            <ResolverButton type="button" $primary onClick={() => setIsCreateOpen(true)} disabled={disabled}>
-              New client
-            </ResolverButton>
+            {canCreateClients ? (
+              <ResolverButton type="button" $primary onClick={() => setIsCreateOpen(true)} disabled={disabled}>
+                New client
+              </ResolverButton>
+            ) : null}
             {selectedClient ? (
               <ResolverButton type="button" onClick={() => setIsChanging(false)} disabled={disabled}>
                 Keep selected
