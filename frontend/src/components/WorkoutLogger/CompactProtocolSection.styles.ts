@@ -57,6 +57,10 @@ export const ToggleButton = styled.button<{ $open: boolean }>`
 
 export const TitleText = styled.span`
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: left;
 `;
 
@@ -70,6 +74,31 @@ export const Badge = styled.span`
   font-size: 0.72rem;
   font-weight: 600;
   text-align: center;
+`;
+
+/**
+ * Collapsed-state nudge: surfaces phase-recommended quick-adds without
+ * defaulting the section open. It stays visible on phones because this cue is
+ * most useful when the logger is being used on the floor.
+ */
+export const RecommendedHint = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px dashed ${withAlpha(CS.glow, 0.3)};
+  color: ${withAlpha(CS.text, 0.6)};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  @media (max-width: 480px) {
+    gap: 3px;
+    padding: 2px 6px;
+    font-size: 0.62rem;
+  }
 `;
 
 export const AddButton = styled.button`

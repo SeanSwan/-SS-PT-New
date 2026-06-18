@@ -44,6 +44,20 @@ export const ModeButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+/** One-line caption under the mode toggle so trainers learn what Quick Log does. */
+export const ModeHint = styled.p`
+  margin: -0.5rem 0 1rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: ${CS.textMuted};
+
+  strong {
+    color: ${withAlpha(CS.text, 0.8)};
+    font-weight: 600;
+  }
+`;
+
 export const OfflineBadge = styled.span`
   display: inline-flex;
   align-items: center;

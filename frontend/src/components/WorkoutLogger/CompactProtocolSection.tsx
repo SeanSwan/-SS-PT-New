@@ -21,6 +21,7 @@ import {
   EmptyHint,
   HeaderRow,
   RecommendedChip,
+  RecommendedHint,
   SectionBody,
   SectionCard,
   SelectedChip,
@@ -80,6 +81,9 @@ const CompactProtocolSection: React.FC<CompactProtocolSectionProps> = memo(({
           {icon}
           <TitleText>{title}</TitleText>
           <Badge>{selectedItems.length}</Badge>
+          {!isOpen && selectedItems.length === 0 && availableRecommendations.length > 0 && (
+            <RecommendedHint>{availableRecommendations.length} recommended</RecommendedHint>
+          )}
           <ChevronDown size={18} aria-hidden="true" />
         </ToggleButton>
         <AddButton

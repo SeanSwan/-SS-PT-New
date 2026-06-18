@@ -93,8 +93,18 @@ export async function loadTodaysPlanIntoLogger({
         plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
       );
       setExercises(prev => [...prev, ...prefilled]);
+      // Persist the cursor session's week/day onto the assignment so the
+      // Active Plan Context strip can show them on this load path too; the
+      // toast below is transient and these fields would otherwise be lost.
       setPlannedAssignment(todayAssignment && currentPlanId
-        ? { ...todayAssignment, planId: currentPlanId }
+        ? {
+            ...todayAssignment,
+            planId: currentPlanId,
+            weekNumber: todayAssignment.weekNumber ?? cursorSession.weekNumber ?? null,
+            dayLabel: todayAssignment.dayLabel ?? cursorSession.dayLabel ?? null,
+            dayNumber: todayAssignment.dayNumber ?? cursorSession.dayNumber ?? null,
+            exerciseCount: todayAssignment.exerciseCount ?? prefilled.length,
+          }
         : null);
       const weekNum = cursorSession.weekNumber ?? '?';
       const dayLabel = cursorSession.dayLabel || `Day ${cursorSession.dayNumber ?? '?'}`;

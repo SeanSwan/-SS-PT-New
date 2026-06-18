@@ -14,6 +14,18 @@ describe('useEquipmentAPI helpers', () => {
     ).toBe('AI scanning is not configured. Please add equipment manually.');
   });
 
+  it('prefers backend response text over generic request errors', () => {
+    expect(
+      getEquipmentApiErrorMessage(
+        {
+          message: 'Request failed with status code 429',
+          response: { data: { error: 'Rate limit exceeded. Maximum 10 scans per hour.' } },
+        },
+        'Scan failed. Try again.',
+      ),
+    ).toBe('Rate limit exceeded. Maximum 10 scans per hour.');
+  });
+
   it('validates equipment scan image type and size before upload', () => {
     const valid = new File(['image'], 'bench.webp', { type: 'image/webp' });
     const invalidType = new File(['image'], 'bench.gif', { type: 'image/gif' });

@@ -29,6 +29,7 @@ import {
   isMobileScanDevice,
 } from './equipmentScanInputs';
 import type { EquipmentScanQueueItem, EquipmentScanSource } from './equipmentScanInputs';
+import { SCAN_AUTO_RETRY_DELAY_MS, shouldAutoRetryScan } from './equipmentScanRetry';
 
 // --- Keyframes ---
 
@@ -640,6 +641,10 @@ const EquipmentManagerPage: React.FC = () => {
   const [scanPreview, setScanPreview] = useState<string | null>(null);
   const [scanQueue, setScanQueue] = useState<EquipmentScanQueueItem[]>([]);
   const [activeScanItem, setActiveScanItem] = useState<EquipmentScanQueueItem | null>(null);
+  // The photo whose scan just failed. Retained so the trainer can retry the
+  // SAME image (or fall back to manual) instead of losing it. (Sean, 2026-06-17)
+  const [failedScanItem, setFailedScanItem] = useState<EquipmentScanQueueItem | null>(null);
+  const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [showApproval, setShowApproval] = useState<EquipmentItem | null>(null);
@@ -733,6 +738,12 @@ const EquipmentManagerPage: React.FC = () => {
       });
       setShowAddItem(false);
       setNewItem({ name: '', category: 'other', resistanceType: '', description: '' });
+      // If this manual add resolved a failed scan, clear that error state so the
+      // scan queue can advance past the photo the trainer just handled by hand.
+      cancelAutoRetry();
+      setFailedScanItem(null);
+      setActiveScanItem(null);
+      setScanError(null);
       loadItems(selectedProfile.id);
       loadProfiles();
     } catch {
@@ -766,10 +777,19 @@ const EquipmentManagerPage: React.FC = () => {
     cameraInputRef.current?.click();
   };
 
-  const scanQueuedItem = useCallback(async (queueItem: EquipmentScanQueueItem) => {
+  const cancelAutoRetry = useCallback(() => {
+    if (autoRetryTimerRef.current) {
+      clearTimeout(autoRetryTimerRef.current);
+      autoRetryTimerRef.current = null;
+    }
+  }, []);
+
+  const scanQueuedItem = useCallback(async (queueItem: EquipmentScanQueueItem, attempt = 0) => {
     if (!selectedProfile) return;
 
+    cancelAutoRetry();
     setActiveScanItem(queueItem);
+    setFailedScanItem(null);
     setScanPreview(null);
 
     const reader = new FileReader();
@@ -778,6 +798,7 @@ const EquipmentManagerPage: React.FC = () => {
 
     setScanning(true);
     setScanError(null);
+    let autoRetrying = false;
     try {
       const result = await api.scanEquipment(selectedProfile.id, queueItem.file);
       setShowApproval(result.item);
@@ -788,26 +809,47 @@ const EquipmentManagerPage: React.FC = () => {
       });
       loadItems(selectedProfile.id);
     } catch (err) {
+      if (shouldAutoRetryScan(err, attempt)) {
+        // Transient AI/connection failure: keep the photo on screen and silently
+        // re-send it once before bothering the trainer. Stays "Scanning..." across
+        // the wait so the queue can't advance and nothing flickers.
+        autoRetrying = true;
+        autoRetryTimerRef.current = setTimeout(() => {
+          void scanQueuedItem(queueItem, attempt + 1);
+        }, SCAN_AUTO_RETRY_DELAY_MS);
+        return;
+      }
+      // Terminal failure: retain the photo so the trainer can Try Again on the
+      // SAME image (or add it manually). The queue stays put until they choose.
       setActiveScanItem(null);
+      setFailedScanItem(queueItem);
       setScanError(getEquipmentApiErrorMessage(
         err,
-        `Scan failed for ${queueItem.fileName}. Try again or add equipment manually.`,
+        `Scan failed for ${queueItem.fileName}. Try again or add it manually.`,
       ));
     } finally {
-      setScanning(false);
-      resetScanInputs();
+      if (!autoRetrying) {
+        setScanning(false);
+        resetScanInputs();
+      }
     }
-  }, [api, loadItems, resetScanInputs, selectedProfile]);
+  }, [api, cancelAutoRetry, loadItems, resetScanInputs, selectedProfile]);
 
   useEffect(() => {
-    if (!selectedProfile || scanning || showApproval || activeScanItem || scanError || scanQueue.length === 0) {
+    if (
+      !selectedProfile || scanning || showApproval || activeScanItem
+      || scanError || failedScanItem || scanQueue.length === 0
+    ) {
       return;
     }
 
     const [nextScan, ...remainingQueue] = scanQueue;
     setScanQueue(remainingQueue);
     void scanQueuedItem(nextScan);
-  }, [activeScanItem, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
+  }, [activeScanItem, failedScanItem, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
+
+  // Clear any pending auto-retry timer if the component unmounts mid-wait.
+  useEffect(() => cancelAutoRetry, [cancelAutoRetry]);
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>, source: EquipmentScanSource) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -833,6 +875,29 @@ const EquipmentManagerPage: React.FC = () => {
   const handleClearScanQueue = () => {
     setScanQueue([]);
   };
+
+  // Re-scan the same failed photo; the file was retained.
+  const handleRetryScan = useCallback(() => {
+    if (!failedScanItem) return;
+    const item = failedScanItem;
+    setFailedScanItem(null);
+    setScanError(null);
+    void scanQueuedItem(item, 0);
+  }, [failedScanItem, scanQueuedItem]);
+
+  // Trainer is handling the failed photo manually: drop the error and move on.
+  const handleDismissScanError = useCallback(() => {
+    cancelAutoRetry();
+    setFailedScanItem(null);
+    setActiveScanItem(null);
+    setScanError(null); // lets the queue effect advance to the next queued photo
+  }, [cancelAutoRetry]);
+
+  // "Add manually instead" from the error box: open the manual form but do not
+  // discard the failed photo yet. Cancel returns the trainer to Try Again.
+  const handleAddManuallyFromError = useCallback(() => {
+    setShowAddItem(true);
+  }, []);
 
   const handleCloseApproval = () => {
     setShowApproval(null);
@@ -873,12 +938,14 @@ const EquipmentManagerPage: React.FC = () => {
   };
 
   const handleBack = () => {
+    cancelAutoRetry();
     setView('list');
     setSelectedProfile(null);
     setItems([]);
     setScanPreview(null);
     setScanQueue([]);
     setActiveScanItem(null);
+    setFailedScanItem(null);
     setScanError(null);
     resetScanInputs();
   };
@@ -1145,11 +1212,21 @@ const EquipmentManagerPage: React.FC = () => {
         )}
         {scanError && !scanning && (
           <ScanErrorBox role="alert">
-            <ScanErrorTitle>Scan unavailable</ScanErrorTitle>
+            <ScanErrorTitle>Scan hit a snag</ScanErrorTitle>
             <div>{scanError}</div>
+            {failedScanItem && (
+              <ScanQueueSummary>
+                Your photo for {failedScanItem.fileName} is safe. Nothing was lost.
+              </ScanQueueSummary>
+            )}
             <ScanErrorActions>
-              <GhostButton onClick={() => setShowAddItem(true)}>Add manually instead</GhostButton>
-              <GhostButton onClick={() => setScanError(null)}>
+              {failedScanItem && (
+                <PrimaryButton onClick={handleRetryScan}>
+                  Try again
+                </PrimaryButton>
+              )}
+              <GhostButton onClick={handleAddManuallyFromError}>Add manually instead</GhostButton>
+              <GhostButton onClick={handleDismissScanError}>
                 {scanQueue.length > 0 ? 'Skip to next photo' : 'Dismiss'}
               </GhostButton>
             </ScanErrorActions>

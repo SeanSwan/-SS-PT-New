@@ -254,12 +254,22 @@ describe('Phase 16.1-UX — AI_TOGGLE_NASM_ITEM bridges to compact ProtocolSelec
 // ─────────────────────────────────────────────────────────────
 
 describe('Phase 16.1-UX — Swan Coach workout-generation entry point preserved', () => {
-  it('WorkoutLogger still renders an AITerminalPanel for workout_generation context', () => {
-    // The AITerminalPanel with context="workout_generation" is the
-    // logger's bridge to the Swan Coach / AI assistant flow. A
-    // protocol-section refactor must not strand it.
-    expect(RAW_SOURCE).toMatch(/AITerminalPanel/);
-    expect(RAW_SOURCE).toMatch(/context=\s*["']workout_generation["']/);
+  it('WorkoutLogger mounts the WorkoutLoggerCoachTerminal, which bridges to AITerminalPanel (workout_generation)', () => {
+    // 2026-06-18: the Coach workout-generation bridge moved one layer down
+    // into the WorkoutLoggerCoachTerminal wrapper (WorkoutLoggerCoachTerminal.tsx
+    // renders <AITerminalPanel context="workout_generation">). The original
+    // assertion grepped the logger file directly for AITerminalPanel and went
+    // stale after that refactor. The INTENT — "the Swan Coach generation entry
+    // point is not stranded" — is preserved by asserting (a) the logger mounts
+    // the Coach terminal, and (b) the terminal still carries the context.
+    expect(RAW_SOURCE).toMatch(/<WorkoutLoggerCoachTerminal/);
+
+    const COACH_TERMINAL = readFileSync(
+      resolve(__dirname, './WorkoutLoggerCoachTerminal.tsx'),
+      'utf8',
+    );
+    expect(COACH_TERMINAL).toMatch(/AITerminalPanel/);
+    expect(COACH_TERMINAL).toMatch(/context=\s*["']workout_generation["']/);
   });
 });
 

@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer } from 'lucide-react';
+import { Plus, Download, Timer, History } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 // 2026-04-17 Codex round 2 fix: self-route default onComplete/onCancel
@@ -52,18 +52,14 @@ import {
   WarmupProtocolIcon,
   WorkoutLoggerContainer,
 } from './WorkoutLogger.styles';
-import {
-  LiveRegion,
-  ModeButton,
-  ModeToggle,
-  OfflineBadge,
-  RestTimerBadge,
-} from './WorkoutLoggerStatus.styles';
+import { LiveRegion } from './WorkoutLoggerStatus.styles';
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
+import WorkoutLoggerModeBar from './WorkoutLoggerModeBar';
 import WorkoutLoggerCoachTerminal from './WorkoutLoggerCoachTerminal';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
+import ActivePlanContextStrip from './ActivePlanContextStrip';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
@@ -110,13 +106,16 @@ import {
   normalizeWorkoutDate,
 } from './WorkoutLogger.helpers';
 import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
+import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
 import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
+import StickyLogActionBar from './StickyLogActionBar';
 import QuickLogMode from './QuickLogMode';
+import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
 
 const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
@@ -198,11 +197,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
+  const [isRepeatingSession, setIsRepeatingSession] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
-  const [isQuickLogMode, setIsQuickLogMode] = useState(false);
+  const [isQuickLogMode, setIsQuickLogMode] = useState(readQuickLogPreference);
   const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
 
   // Speed helpers are no-ops without a real client id; client self-mode
@@ -611,6 +611,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     void loadTodaysPlan();
   }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
 
+  // - Repeat Last Session (admin/trainer click-saver; orchestration extracted) -
+  const handleRepeatLastSession = useCallback(
+    () => repeatLastSessionIntoLogger({
+      effectiveClientId,
+      isClientSelfMode,
+      createWorkoutLoggerLocalId,
+      setExercises,
+      setIsRepeatingSession,
+    }),
+    [effectiveClientId, isClientSelfMode, createWorkoutLoggerLocalId],
+  );
+
   // - Exercise CRUD -
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {
     // Ghost prefill is admin-only; client self-mode must never call that endpoint.
@@ -984,6 +996,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionId={scheduledSessionId}
         />
 
+        {/* Active plan context: shows what plan/assignment was loaded
+            (title, week, day, exercise count, status) so it stays in
+            view while logging. Renders nothing until a plan is loaded. */}
+        <ActivePlanContextStrip assignment={plannedAssignment} />
+
         {!isClientSelfMode && typeof effectiveClientId === 'number' && (
           <VoiceImportPanel aria-label="Voice and file workout import">
             <VoiceImportHeader>
@@ -1001,26 +1018,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Phase 6: Session Stats Bar (sticky, live volume/sets/calories) */}
         {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
 
-        {/* Phase 6: Quick Log / Full Mode Toggle */}
+        {/* Phase 6: Quick Log / Full Mode mode bar (preference persists per operator) */}
         {exercises.length > 0 && (
-          <ModeToggle>
-            <ModeButton $active={!isQuickLogMode} onClick={() => setIsQuickLogMode(false)}>
-              Full Mode
-            </ModeButton>
-            <ModeButton $active={isQuickLogMode} onClick={() => setIsQuickLogMode(true)}>
-              Quick Log
-            </ModeButton>
-            {!offlineQueue.isOnline && (
-              <OfflineBadge aria-label="Offline - workouts will be saved locally">
-                Offline{offlineQueue.pendingCount > 0 ? ` (${offlineQueue.pendingCount})` : ''}
-              </OfflineBadge>
-            )}
-            {restTimer.isRunning && (
-              <RestTimerBadge aria-label={`Rest timer: ${restTimer.secondsLeft}s`}>
-                <Timer size={14} aria-hidden="true" /> {restTimer.secondsLeft}s
-              </RestTimerBadge>
-            )}
-          </ModeToggle>
+          <WorkoutLoggerModeBar
+            isQuickLogMode={isQuickLogMode}
+            onChangeMode={(quick) => { setIsQuickLogMode(quick); writeQuickLogPreference(quick); }}
+            isOffline={!offlineQueue.isOnline}
+            pendingCount={offlineQueue.pendingCount}
+            restRunning={restTimer.isRunning}
+            restSecondsLeft={restTimer.secondsLeft}
+          />
         )}
 
         {/* Learning Mode Toggle */}
@@ -1049,7 +1056,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Exercise Section */}
         <ExerciseSection>
           <LoadPlanRow>
-            <LoadPlanButton onClick={loadTodaysPlan} disabled={isLoadingPlan}>
+            {!isClientSelfMode && (
+              <LoadPlanButton
+                onClick={handleRepeatLastSession}
+                disabled={isRepeatingSession || isLoadingPlan}
+                title="Copy the client's most recent workout as a starting draft"
+              >
+                <History size={16} />
+                {isRepeatingSession ? 'Loading...' : 'Repeat Last Session'}
+              </LoadPlanButton>
+            )}
+            <LoadPlanButton onClick={loadTodaysPlan} disabled={isLoadingPlan || isRepeatingSession}>
               <Download size={16} />
               {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
             </LoadPlanButton>
@@ -1197,6 +1214,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>
 
+        {/* Always-reachable Save: fixed above the long set list until saved. */}
+        {exercises.length > 0 && !submittedFormId && (
+          <StickyLogActionBar
+            completedSets={sessionStats.completedSets}
+            totalSets={sessionStats.totalSets}
+            onSubmit={() => handleSubmit()}
+            isSubmitting={isSubmitting}
+          />
+        )}
+
         {/* Footer Actions */}
         <WorkoutLoggerFooter
           onCancel={handleCancel}
@@ -1221,9 +1248,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         onClose={() => setConfirmRequest(null)}
       />
 
-      {/* Timer toggle FAB (only when exercises exist) */}
+      {/* Timer toggle FAB (only when exercises exist). Lifts above the fixed
+          Save bar while it's mounted so it never overlaps the Save action. */}
       {exercises.length > 0 && !showFloatingTimer && (
         <TimerFAB
+          $lift={!submittedFormId}
           onClick={() => setShowFloatingTimer(true)}
           aria-label="Open floating rest timer"
           title="Rest Timer"

@@ -1,5 +1,5 @@
 /**
- * useEquipmentAPI — React hook for Equipment Profile Manager CRUD + AI scan.
+ * useEquipmentAPI - React hook for Equipment Profile Manager CRUD + AI scan.
  * Phase 7: Communicates with /api/equipment-profiles endpoints.
  */
 import { useCallback, useMemo } from 'react';
@@ -36,17 +36,32 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   }
 }
 
+type ApiErrorLike = {
+  message?: unknown;
+  response?: {
+    data?: {
+      error?: unknown;
+      message?: unknown;
+    };
+  };
+};
+
+const firstNonEmptyString = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+};
+
 export function getEquipmentApiErrorMessage(err: unknown, fallback: string): string {
-  if (err instanceof Error && err.message.trim()) return err.message;
-
-  const possibleMessage =
-    (err as any)?.response?.data?.error
-    || (err as any)?.response?.data?.message
-    || (err as any)?.message;
-
-  return typeof possibleMessage === 'string' && possibleMessage.trim()
-    ? possibleMessage
-    : fallback;
+  const apiError = err as ApiErrorLike;
+  return firstNonEmptyString(
+    apiError.response?.data?.error,
+    apiError.response?.data?.message,
+    apiError.message,
+  ) || fallback;
 }
 
 export function validateEquipmentPhoto(file: File): string | null {
@@ -219,7 +234,17 @@ export function useEquipmentAPI() {
       });
       return response.data as { success: boolean; item: EquipmentItem; scanResult: ScanResult };
     } catch (err) {
-      throw new Error(getEquipmentApiErrorMessage(err, 'Scan failed'));
+      // Preserve the HTTP status + a transient/non-transient hint so the caller
+      // can auto-retry a flaky AI connection without burning quota on a 429/503.
+      const status = (err as any)?.response?.status;
+      const configurable = (err as any)?.response?.data?.configurable === true;
+      const scanError = new Error(getEquipmentApiErrorMessage(err, 'Scan failed')) as
+        Error & { status?: number; retryable?: boolean };
+      if (typeof status === 'number') scanError.status = status;
+      scanError.retryable = typeof status !== 'number'
+        ? true
+        : status >= 500 && status !== 503 && !configurable;
+      throw scanError;
     }
   }, []);
 

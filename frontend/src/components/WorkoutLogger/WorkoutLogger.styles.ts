@@ -7,9 +7,12 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
-export const TimerFAB = styled.button`
+export const TimerFAB = styled.button<{ $lift?: boolean }>`
   position: fixed;
-  bottom: 2rem;
+  /* Lifted above the fixed Save bar when it's mounted so the FAB never
+     overlaps / tap-intercepts the Save action (esp. at phone widths where the
+     pill is wider). Stacks vertically instead of competing for the bottom-right. */
+  bottom: ${({ $lift }) => ($lift ? '5.75rem' : '2rem')};
   right: 2rem;
   z-index: 9989;
   width: 52px;
@@ -24,7 +27,7 @@ export const TimerFAB = styled.button`
   color: var(--text-primary, ${CS.text});
   cursor: pointer;
   box-shadow: 0 4px 16px ${withAlpha(CS.bgDeep, 0.4)}, 0 0 16px ${withAlpha(CS.gaming, 0.15)};
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, bottom 0.2s;
 
   &:hover {
     transform: scale(1.08);
@@ -32,7 +35,7 @@ export const TimerFAB = styled.button`
   }
 
   @media (max-width: 430px) {
-    bottom: 1rem;
+    bottom: ${({ $lift }) => ($lift ? '5.25rem' : '1rem')};
     right: 1rem;
   }
 `;
@@ -130,6 +133,8 @@ export const VoiceImportHeader = styled.div`
 export const LoadPlanRow = styled.div`
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 `;
 
