@@ -67,6 +67,17 @@ const logCartError = (message, error, req, metadata = {}) => {
   });
 };
 
+const getOptionalProductVariant = () => {
+  try {
+    return getProductVariant();
+  } catch (error) {
+    logger.warn('[Cart] ProductVariant model unavailable; continuing without variant include.', {
+      ...toCartErrorMetadata(error, 'cart_product_variant_model_unavailable')
+    });
+    return null;
+  }
+};
+
 const parsePositiveInteger = (value) => {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -129,6 +140,10 @@ const resolveCartItemSnapshot = async ({
 
   let variant = null;
   if (productVariantId) {
+    if (!ProductVariant) {
+      return { status: 409, message: 'Selected product variants are temporarily unavailable. Please refresh the store and try again.' };
+    }
+
     variant = await ProductVariant.findByPk(productVariantId);
 
     if (!variant || variant.storefrontItemId !== storefrontItemId) {
@@ -265,7 +280,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
-    const ProductVariant = getProductVariant();
+    const ProductVariant = getOptionalProductVariant();
     
     // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
@@ -328,7 +343,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
-    const ProductVariant = getProductVariant();
+    const ProductVariant = getOptionalProductVariant();
     const User = getUser();
     
     const { storefrontItemId, productVariantId, quantity = 1 } = req.body;
@@ -502,8 +517,8 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
-    
-    const ProductVariant = getProductVariant();
+
+    const ProductVariant = getOptionalProductVariant();
     const { itemId } = req.params;
     const { quantity } = req.body;
 
@@ -618,8 +633,8 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     const ShoppingCart = getShoppingCart();
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
-    
-    const ProductVariant = getProductVariant();
+
+    const ProductVariant = getOptionalProductVariant();
     const { itemId } = req.params;
     const normalizedItemId = parsePositiveInteger(itemId);
 
