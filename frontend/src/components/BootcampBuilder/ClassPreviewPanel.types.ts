@@ -1,4 +1,5 @@
 import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
+import type { BuildMode } from './BootcampBuilderPage.constants';
 
 export type BoardView = 'main' | 'jointFriendly' | 'lowImpact';
 
@@ -13,6 +14,7 @@ export interface BootcampBoardViews {
 
 export interface ClassPreviewPanelProps {
   bootcamp: GeneratedBootcamp | null;
+  buildMode: BuildMode;
   loading: boolean;
   floorMode: boolean;
   saving: boolean;

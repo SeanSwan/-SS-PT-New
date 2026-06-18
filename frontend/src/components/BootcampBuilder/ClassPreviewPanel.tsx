@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Panel, PanelTitle, SectionDivider, InsightCard, PrimaryButton, TimingBadge } from './BootcampBuilderStyles';
 import { buildBootcampBoardViews } from './BootcampBoardViews';
+import BootcampCommandDeck from './BootcampCommandDeck';
 import ClassPreviewAlternatives from './ClassPreviewAlternatives';
 import ClassPreviewMainBoard from './ClassPreviewMainBoard';
 import BootcampDemoMode from './BootcampDemoMode';
@@ -45,6 +46,7 @@ export const bootcampOverflowLapKey = (lap: BootcampOverflowLap): string => [
 
 const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   bootcamp,
+  buildMode,
   loading,
   floorMode,
   saving,
@@ -72,6 +74,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
       <AnimatePresence>
         {bootcamp && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <BootcampCommandDeck bootcamp={bootcamp} buildMode={buildMode} floorMode={floorMode} />
             <TimingBadgeRow>
               <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>
               <TimingBadge>{bootcamp.demoDuration} min demo</TimingBadge>

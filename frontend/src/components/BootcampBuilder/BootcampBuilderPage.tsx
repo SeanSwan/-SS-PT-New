@@ -267,6 +267,7 @@ const BootcampBuilderPage: React.FC = () => {
         />
         <ClassPreviewPanel
           bootcamp={bootcamp}
+          buildMode={buildMode}
           loading={loading}
           floorMode={floorMode}
           saving={saving}
