@@ -244,6 +244,32 @@ const Chip = styled.button<{ $active: boolean }>`
   }
 `;
 
+const GapToggle = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid ${({ $active }) => ($active
+    ? 'var(--color-gilded-fern, #C6A84B)'
+    : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)')};
+  background: ${({ $active }) => ($active
+    ? 'color-mix(in srgb, var(--color-gilded-fern, #C6A84B) 18%, transparent)'
+    : 'var(--bg-elevated, #141419)')};
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-gilded-fern, #C6A84B) 14%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 // ─── Hexagonal Grid ──────────────────────────────────────
 const HexGrid = styled.div`
   display: flex;
@@ -394,6 +420,19 @@ const BODY_PART_FILTERS = [
   'Core', 'Full Body', 'Cardio', 'Recovery', 'Unknown',
 ];
 
+const getCoverageStatusLabel = (ex: CoverageExercise) => {
+  if (ex.covered && ex.catalogVideoCount > 0) {
+    return `Uploaded demo + ${ex.catalogVideoCount} catalog reference${ex.catalogVideoCount === 1 ? '' : 's'}`;
+  }
+  if (ex.covered) return 'Uploaded demo';
+  if (ex.catalogVideoCount > 0) {
+    return `${ex.catalogVideoCount} catalog reference${ex.catalogVideoCount === 1 ? '' : 's'} / upload gap`;
+  }
+  return 'No uploaded media';
+};
+
+const getCoverageAriaLabel = (ex: CoverageExercise) => `${ex.name}: ${getCoverageStatusLabel(ex)}`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -408,6 +447,7 @@ const CrystallineCoverageTracker: React.FC = () => {
   const [search, setSearch] = useState('');
   const [hoveredEx, setHoveredEx] = useState<CoverageExercise | null>(null);
   const [selectedEx, setSelectedEx] = useState<CoverageExercise | null>(null);
+  const [showOnlyGaps, setShowOnlyGaps] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const fetchCoverage = useCallback(async () => {
@@ -462,8 +502,11 @@ const CrystallineCoverageTracker: React.FC = () => {
         e.exerciseKey.toLowerCase().includes(q)
       );
     }
+    if (showOnlyGaps) {
+      result = result.filter(e => !e.covered);
+    }
     return result;
-  }, [exercises, filter, search]);
+  }, [exercises, filter, search, showOnlyGaps]);
 
   const filteredSummary = useMemo(() => {
     const total = filtered.length;
@@ -527,11 +570,11 @@ const CrystallineCoverageTracker: React.FC = () => {
           </StatCard>
           <StatCard $accent="rgba(96, 192, 240, 0.25)">
             <StatValue $color="#60C0F0">{summary.coveredCount}</StatValue>
-            <StatLabel>With Video</StatLabel>
+            <StatLabel>Uploaded Demos</StatLabel>
           </StatCard>
           <StatCard $accent="rgba(201, 42, 84, 0.25)">
             <StatValue $color="var(--color-wing-purple, #8B5CF6)">{summary.gapCount}</StatValue>
-            <StatLabel>Gaps</StatLabel>
+            <StatLabel>No Uploaded Media</StatLabel>
           </StatCard>
           <StatCard $accent="rgba(139, 92, 246, 0.25)">
             <StatValue $color="#8B5CF6">{summary.coveragePercent}%</StatValue>
@@ -575,24 +618,32 @@ const CrystallineCoverageTracker: React.FC = () => {
             </Chip>
           ))}
         </ChipRow>
+        <GapToggle
+          type="button"
+          $active={showOnlyGaps}
+          aria-pressed={showOnlyGaps}
+          onClick={() => setShowOnlyGaps(v => !v)}
+        >
+          Gaps only
+        </GapToggle>
       </ControlRow>
 
       {/* Legend */}
       <Legend>
         <LegendItem>
           <LegendSwatch $color="rgba(96, 192, 240, 0.6)" />
-          Catalog Video
+          Uploaded Demos
         </LegendItem>
         <LegendItem>
           <LegendSwatch $color="rgba(139, 92, 246, 0.5)" />
-          Legacy Video
+          Catalog Reference
         </LegendItem>
         <LegendItem>
           <LegendSwatch $color="rgba(96, 192, 240, 0.06)" />
-          No Video (Gap)
+          No Uploaded Media
         </LegendItem>
         <LegendItem style={{ marginLeft: 'auto' }}>
-          <Film size={14} /> Showing {filteredSummary.total} exercises ({filteredSummary.pct}% covered)
+          <Film size={14} /> {filteredSummary.total} shown / {filteredSummary.covered} uploaded / {filteredSummary.gap} gaps ({filteredSummary.pct}%)
         </LegendItem>
       </Legend>
 
@@ -603,7 +654,7 @@ const CrystallineCoverageTracker: React.FC = () => {
             type="button"
             key={ex.id}
             $covered={ex.covered}
-            $legacy={ex.hasLegacyVideo && ex.catalogVideoCount === 0}
+            $legacy={!ex.covered && ex.catalogVideoCount > 0}
             $selected={activeDetailExercise?.id === ex.id}
             onClick={() => setSelectedEx(ex)}
             onFocus={() => setSelectedEx(ex)}
@@ -615,7 +666,7 @@ const CrystallineCoverageTracker: React.FC = () => {
               }
             }}
             onMouseLeave={handleHexLeave}
-            aria-label={`${ex.name}: ${ex.covered ? 'video covered' : 'video gap'}`}
+            aria-label={getCoverageAriaLabel(ex)}
             title={ex.name}
           />
         ))}
@@ -633,11 +684,7 @@ const CrystallineCoverageTracker: React.FC = () => {
             Source: {hoveredEx.source}
             <br />
             Status: <TooltipStatus $covered={hoveredEx.covered}>
-              {hoveredEx.covered
-                ? hoveredEx.catalogVideoCount > 0
-                  ? `${hoveredEx.catalogVideoCount} catalog video(s)`
-                  : 'Legacy video'
-                : 'No video — gap'}
+              {getCoverageStatusLabel(hoveredEx)}
             </TooltipStatus>
           </TooltipMeta>
         </Tooltip>

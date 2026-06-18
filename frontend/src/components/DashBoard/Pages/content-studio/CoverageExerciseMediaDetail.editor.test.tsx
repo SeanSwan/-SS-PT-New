@@ -55,4 +55,39 @@ describe('CoverageExerciseMediaDetail editor', () => {
     expect(await screen.findByText(/http/i)).toBeTruthy(); // validation error surfaced
     expect(onSaveMedia).not.toHaveBeenCalled();
   });
+
+  it('treats a preview-only loop as uploaded media and opens that loop', () => {
+    render(
+      <CoverageExerciseMediaDetail
+        exercise={ex({
+          previewVideoUrl: 'https://r2.example.com/goblet-loop.webm',
+          covered: true,
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Uploaded preview loop')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /open preview loop/i }))
+      .toHaveAttribute('href', 'https://r2.example.com/goblet-loop.webm');
+  });
+
+  it('labels catalog-only media as a reference, not uploaded coverage', () => {
+    render(
+      <CoverageExerciseMediaDetail
+        exercise={ex({
+          catalogVideoCount: 1,
+          catalogVideoSample: {
+            title: 'Goblet squat setup',
+            source: 'youtube',
+            videoUrl: 'https://www.youtube.com/watch?v=abc123XYZ00',
+            thumbnailUrl: 'https://img.youtube.com/vi/abc123XYZ00/hqdefault.jpg',
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText('1 catalog reference: Goblet squat setup')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /open catalog reference/i }))
+      .toHaveAttribute('href', 'https://www.youtube.com/watch?v=abc123XYZ00');
+  });
 });

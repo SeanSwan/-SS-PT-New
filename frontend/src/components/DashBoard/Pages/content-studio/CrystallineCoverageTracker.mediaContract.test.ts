@@ -30,12 +30,28 @@ describe('CrystallineCoverageTracker media contract', () => {
   it('can open a safe catalog demo sample when an exercise has no direct Rolodex video', () => {
     expect(detailSource).toContain('catalogVideoSample?');
     expect(detailSource).toContain('const catalogVideoUrl = exercise.catalogVideoSample?.videoUrl || null');
-    expect(detailSource).toContain('const openVideoUrl = exercise.videoUrl || catalogVideoUrl');
-    expect(detailSource).toContain('Open catalog demo');
+    expect(detailSource).toContain('const uploadedVideoUrl = exercise.videoUrl || exercise.previewVideoUrl || null');
+    expect(detailSource).toContain('const openVideoUrl = uploadedVideoUrl || catalogVideoUrl');
+    expect(detailSource).toContain('Open preview loop');
+    expect(detailSource).toContain('Open catalog reference');
   });
 
   it('keeps selected exercise detail backgrounds token-backed', () => {
     expect(detailSource).not.toMatch(/background:\s*rgba\(/);
     expect(detailSource).not.toMatch(/var\([^;]*rgba\(/);
+  });
+
+  it('keeps uploaded demo coverage distinct from catalog reference media', () => {
+    expect(trackerSource).toContain('Uploaded Demos');
+    expect(trackerSource).toContain('Catalog Reference');
+    expect(trackerSource).toContain('No Uploaded Media');
+    expect(trackerSource).toContain('$legacy={!ex.covered && ex.catalogVideoCount > 0}');
+  });
+
+  it('offers an explicit uploaded-media gap filter for filming workflow triage', () => {
+    expect(trackerSource).toContain('const [showOnlyGaps, setShowOnlyGaps]');
+    expect(trackerSource).toContain('setShowOnlyGaps(v => !v)');
+    expect(trackerSource).toContain('aria-pressed={showOnlyGaps}');
+    expect(trackerSource).toContain('Gaps only');
   });
 });

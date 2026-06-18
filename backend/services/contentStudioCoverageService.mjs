@@ -72,7 +72,11 @@ export function buildContentStudioCoveragePayload(
       hasLegacyVideo,
       catalogVideoCount,
       catalogVideoSample,
-      covered: hasUploadedMedia || catalogVideoCount > 0,
+      // "Covered" = a video Sean UPLOADED for this exercise (so the tracker
+      // shows what he still needs to film). External catalog/YouTube reference
+      // samples are NOT his uploads — they no longer count as covered; they
+      // surface separately as a "reference available" signal.
+      covered: hasUploadedMedia,
     };
   });
 
