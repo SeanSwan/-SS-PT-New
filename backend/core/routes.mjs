@@ -450,7 +450,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/marketing-calendar', adminMarketingCalendarRoutes); // Persisted Marketing calendar + PT awareness
   app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
   app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10
-  app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Recraft V3
+  app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Gemini Nano Banana
   app.use('/api/olympics', olympicRoutes); // Virtual Olympics — Ghost Racing competitive events
 
   // Public tab icon overrides — needed by all roles on dashboard init
