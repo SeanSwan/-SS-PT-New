@@ -130,6 +130,12 @@ async function gotoRoute(page: Page, route: string) {
   }
 }
 
+async function assertDashboardRouteLoaded(page: Page, bodyText: string) {
+  const currentPath = new URL(page.url()).pathname;
+  expect(currentPath).not.toMatch(/^\/(?:login|signin|sign-in)$/i);
+  expect(bodyText).not.toMatch(/\b404\b|page not found/i);
+}
+
 async function markSafeCandidates(page: Page): Promise<CrawlCandidate[]> {
   return page.evaluate(({ unsafe }) => {
     const unsafePattern = new RegExp(unsafe, 'i');
@@ -169,7 +175,7 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
   await settle(page);
 
   const bodyText = await page.locator('body').innerText({ timeout: 20_000 }).catch(() => '');
-  expect(bodyText).not.toMatch(/\b404\b|page not found|log in|sign in/i);
+  await assertDashboardRouteLoaded(page, bodyText);
 
   const candidates = (await markSafeCandidates(page)).slice(0, maxClicksPerRoute);
   for (const candidate of candidates) {
