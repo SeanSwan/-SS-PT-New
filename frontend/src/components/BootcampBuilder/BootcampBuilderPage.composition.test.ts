@@ -12,6 +12,11 @@ const panelsPath = './BootcampBuilderSidePanels.tsx';
 const boundaryPath = './BootcampBuilderErrorBoundary.tsx';
 const constantsPath = './BootcampBuilderPage.constants.ts';
 const detailPanelPath = './ExerciseDetailPanel.tsx';
+const commandDeckPaths = [
+  './BootcampCommandDeck.tsx',
+  './BootcampCommandDeck.logic.ts',
+  './BootcampCommandDeck.styles.ts',
+];
 
 describe('BootcampBuilderPage composition contract', () => {
   it('keeps the active bootcamp route mounted to the extracted page shell', () => {
@@ -28,7 +33,7 @@ describe('BootcampBuilderPage composition contract', () => {
   });
 
   it('keeps extracted bootcamp builder modules under the file cap', () => {
-    for (const path of [chromePath, panelsPath, boundaryPath, constantsPath]) {
+    for (const path of [chromePath, panelsPath, boundaryPath, constantsPath, ...commandDeckPaths]) {
       expect(existsSync(resolve(__dirname, path))).toBe(true);
       expect(lineCount(read(path))).toBeLessThanOrEqual(300);
     }

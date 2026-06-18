@@ -77,6 +77,13 @@ describe('BootcampBuilderPage workflow contract', () => {
     expect(rolodexSurfaces.every(surface => surface.includes('equipmentProfileId={equipmentProfileId}'))).toBe(true);
   });
 
+  it('mounts the command deck with the active build mode so readiness is visible before class launch', () => {
+    expect(previewSource).toContain("from './BootcampCommandDeck'");
+    expect(previewSource).toContain('<BootcampCommandDeck');
+    expect(previewSource).toContain('buildMode={buildMode}');
+    expect(pageSource).toContain('buildMode={buildMode}');
+  });
+
   it('keeps Bootcamp Builder styling on theme variables instead of fixed neon drift', () => {
     expect(stylesSource).toContain('var(--bg-base, #0A0A0F)');
     expect(stylesSource).toContain('var(--accent-gold, #C6A84B)');

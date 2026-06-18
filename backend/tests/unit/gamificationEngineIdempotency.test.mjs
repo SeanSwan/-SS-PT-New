@@ -75,14 +75,19 @@ describe('GamificationEngine idempotency', () => {
   });
 
   it('checks persisted point metadata before writing legacy ledger rows', () => {
-    const source = readFileSync(
+    const persistenceSource = readFileSync(
       resolve(__dirname, '../../services/gamification/GamificationPersistence.mjs'),
       'utf8'
     );
+    const pointsServiceSource = readFileSync(
+      resolve(__dirname, '../../services/gamification/GamificationPointsService.mjs'),
+      'utf8'
+    );
 
-    expect(source).toContain('findDuplicatePointAward');
-    expect(source).toContain('metadata: {');
-    expect(source).toContain('[Op.like]');
-    expect(source).toContain('%"idempotencyKey":"${idempotencyKey}"%');
+    expect(persistenceSource).toContain('GamificationPointsService.recordLedgerEntry');
+    expect(persistenceSource).toContain('idempotencyKey: getPointIdempotencyKey(metadata)');
+    expect(pointsServiceSource).toContain("Sequelize.json('metadata.idempotencyKey')");
+    expect(pointsServiceSource).toContain('withIdempotencyMetadata(metadata, normalizedKey)');
+    expect(pointsServiceSource).toContain('duplicate: true');
   });
 });

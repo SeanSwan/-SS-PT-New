@@ -82,11 +82,7 @@ const CoachCommandCenterPage: React.FC = () => {
   const selectedDisplayLabel = isClientMode ? 'My training' : commandCenter.selectedClientLabel;
   const quickIntents = quickIntentsForRole(userRole);
   const workoutLoggerRoute = useMemo(
-    () => buildSwanCoachWorkoutLoggerRoute({
-      userRole,
-      selectedClientId: commandCenter.routeClientId,
-      searchParams,
-    }),
+    () => buildSwanCoachWorkoutLoggerRoute({ userRole, selectedClientId: commandCenter.routeClientId, searchParams }),
     [commandCenter.routeClientId, searchParams, userRole],
   );
   const workoutPlannerRoute = useMemo(
@@ -281,6 +277,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerRoute={workoutLoggerRoute}
             workoutLoggerScopeLabel={workoutLoggerScopeLabel}
             workoutPlannerRoute={workoutPlannerRoute}
+            workflowReturnLabel={commandCenter.workflowReturnLabel}
+            workflowReturnTo={commandCenter.workflowReturnTo}
             onClose={commandCenter.closeDrawer}
             onOpenIntake={handleOpenIntakeFromOps}
             onOpenPlaud={handleStartPlaudUpload}

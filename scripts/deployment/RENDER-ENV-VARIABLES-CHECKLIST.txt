@@ -15,8 +15,8 @@ JWT_EXPIRES_IN=3h
 ACCESS_TOKEN_EXPIRY=10800
 REFRESH_TOKEN_EXPIRES_IN=7d
 
-# Admin access
-ADMIN_ACCESS_CODE=admin-access-code-123
+# Admin access - generate a fresh high-entropy value, do not reuse examples
+ADMIN_ACCESS_CODE=<generate-with-scripts/utilities/generate-jwt-secrets.mjs>
 
 # Production settings
 ENABLE_MCP_SERVICES=false
@@ -30,5 +30,5 @@ DATABASE_URL=<auto-set-by-render-postgresql>
 # ⚠️ CRITICAL NOTES:
 # 1. Replace placeholder values with actual secure secrets
 # 2. JWT_SECRET and JWT_REFRESH_SECRET should be different random strings
-# 3. Generate secrets using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# 3. Generate secrets using: node scripts/utilities/generate-jwt-secrets.mjs
 # 4. DATABASE_URL should be automatically set by Render if you have PostgreSQL addon

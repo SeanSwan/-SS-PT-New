@@ -26,6 +26,8 @@ type CoachCommandOpsRailProps = {
   workoutLoggerRoute: string | null;
   workoutLoggerScopeLabel?: string | null;
   workoutPlannerRoute: string | null;
+  workflowReturnLabel?: string | null;
+  workflowReturnTo?: string | null;
   onClose: () => void;
   onOpenIntake: () => void;
   onOpenPlaud: () => void;
@@ -74,6 +76,8 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
   workoutLoggerRoute,
   workoutLoggerScopeLabel = null,
   workoutPlannerRoute,
+  workflowReturnLabel = null,
+  workflowReturnTo = null,
   onClose,
   onOpenIntake,
   onOpenPlaud,
@@ -118,6 +122,8 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
         workoutLoggerRoute={workoutLoggerRoute}
         workoutLoggerScopeLabel={workoutLoggerScopeLabel}
         workoutPlannerRoute={workoutPlannerRoute}
+        workflowReturnLabel={workflowReturnLabel}
+        workflowReturnTo={workflowReturnTo}
         onOpenIntake={onOpenIntake}
         onOpenPlaud={onOpenPlaud}
         onStageWorkoutLog={onStageWorkoutLog}

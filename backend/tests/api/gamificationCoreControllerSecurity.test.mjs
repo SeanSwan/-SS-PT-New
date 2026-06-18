@@ -39,7 +39,7 @@ describe('core gamification controller security hardening', () => {
 
     expect(coreRoutesSource).toContain("app.use('/api/v1/gamification', gamificationV1Routes)");
     expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
-    expect(routeSource).toContain("router.get('/profile', authenticate, requireUser, viewAsGuard, (req, res) => {");
+    expect(routeSource).toContain("router.get('/profile', authenticate, requireProfileReader, viewAsGuard, (req, res) => {");
     expect(routeSource).toContain('req.params.userId = getEffectiveReadUserId(req);');
     expect(routeSource).toContain("router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserProfile)");
     expect(routeSource).toContain("router.get('/users/:userId/transactions', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserTransactions)");

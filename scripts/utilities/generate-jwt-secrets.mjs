@@ -1,19 +1,22 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
+
+export const generateJwtSecret = () => crypto.randomBytes(32).toString('hex');
+export const generateAdminAccessCode = () => crypto.randomBytes(32).toString('base64url');
 
 console.log('🔐 GENERATING SECURE JWT SECRETS FOR PRODUCTION');
 console.log('===============================================');
 console.log('');
 
 console.log('🔑 JWT_SECRET:');
-console.log(crypto.randomBytes(32).toString('hex'));
+console.log(generateJwtSecret());
 console.log('');
 
 console.log('🔑 JWT_REFRESH_SECRET:');
-console.log(crypto.randomBytes(32).toString('hex'));
+console.log(generateJwtSecret());
 console.log('');
 
-console.log('🔑 ADMIN_ACCESS_CODE (suggestion):');
-console.log('SwanAdmin2024!Secure' + Math.floor(Math.random() * 1000));
+console.log('🔑 ADMIN_ACCESS_CODE:');
+console.log(generateAdminAccessCode());
 console.log('');
 
 console.log('📋 INSTRUCTIONS:');

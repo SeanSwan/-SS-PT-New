@@ -70,7 +70,8 @@ describe('Unified Coach intake command registry source contract', () => {
   });
 
   it('makes the Coach workspace ask the unified intake command, not the PLAUD-only command', () => {
-    expect(WORKSPACE_HEADER_SRC).toMatch(/onCommandPrompt\('review next Coach intake'\)/);
+    expect(WORKSPACE_HEADER_SRC).toMatch(/onCommandPrompt\(nextMove\.prompt\)/);
+    expect(WORKSPACE_HEADER_SRC).toMatch(/buildCoachIntakeNextMove/);
     expect(WORKSPACE_SRC).toMatch(/activeAudioPrompt\(activeItem\)/);
     expect(WORKSPACE_UTILS_SRC).toMatch(/inspect Coach intake/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);

@@ -20,6 +20,7 @@ vi.mock('../middleware/authMiddleware.mjs', () => ({
     req.user = { id: 1, role: req.headers['x-test-role'] || 'admin' };
     next();
   },
+  rateLimiter: () => (_req, _res, next) => next(),
 }));
 
 vi.mock('../models/index.mjs', () => ({

@@ -157,12 +157,14 @@ const SMSLogsPanel: React.FC = () => {
           to: log.recipient,
           templateName: log.templateName,
           variables: log.payloadJson?.variables || {},
-          recipientEmail: log.user?.email || log.lead?.email
+          recipientEmail: log.user?.email || log.lead?.email,
+          leadId: log.lead?.id
         }
         : {
           to: log.recipient,
           body: log.message || '',
-          recipientEmail: log.user?.email || log.lead?.email
+          recipientEmail: log.user?.email || log.lead?.email,
+          leadId: log.lead?.id
         };
 
       const response = await apiService.post(endpoint, payload);

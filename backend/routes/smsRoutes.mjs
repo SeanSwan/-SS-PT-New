@@ -30,10 +30,15 @@ const normalizeError = (error) => {
 };
 
 const normalizeEmail = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+const normalizeLeadId = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const blocked = (status, reason, message) => ({ allowed: false, status, reason, message });
 
 const recipientEmailFrom = (body) => body?.recipientEmail || body?.email;
+const recipientLeadIdFrom = (body) => normalizeLeadId(body?.leadId || body?.recipientLeadId);
 
 const respondWithGateBlock = (res, gate) => res.status(gate.status).json({
   success: false,
@@ -67,7 +72,7 @@ const manualSmsErrorFor = ({ sent, result }) => {
   return normalizeError(result ? result.error : null);
 };
 
-const recordManualSmsLog = async ({ to, result, body = null, templateName = null, variables = null }) => {
+const recordManualSmsLog = async ({ to, result, body = null, templateName = null, variables = null, leadId = null }) => {
   const { AutomationLog } = getAllModels();
   if (!AutomationLog) return;
 
@@ -76,6 +81,7 @@ const recordManualSmsLog = async ({ to, result, body = null, templateName = null
   await AutomationLog.create({
     sequenceId: null,
     userId: null,
+    leadId,
     stepIndex: null,
     channel: 'sms',
     status: sent ? 'sent' : 'failed',
@@ -90,9 +96,11 @@ const recordManualSmsLog = async ({ to, result, body = null, templateName = null
 };
 
 const allowed = () => ({ allowed: true });
+const resolveSuppressionGate = async (email, phone, leadId = null) => {
+  const identity = { email, phone };
+  if (leadId) identity.leadId = leadId;
 
-const resolveSuppressionGate = async (email, phone) => {
-  const suppression = await resolveMarketingSuppression({ email, phone });
+  const suppression = await resolveMarketingSuppression(identity);
   if (suppression && suppression.suppressed) {
     return blocked(403, suppression.reason || 'marketing_suppressed', 'Recipient is suppressed.');
   }
@@ -122,7 +130,7 @@ const resolveFrequencyGate = async (to) => {
   return allowed();
 };
 
-const ensureManualSmsAllowed = async ({ to, recipientEmail }) => {
+const ensureManualSmsAllowed = async ({ to, recipientEmail, leadId = null }) => {
   if (!isAutomationArmed()) {
     return blocked(503, 'automation_disarmed', 'SMS automation is disarmed.');
   }
@@ -132,7 +140,7 @@ const ensureManualSmsAllowed = async ({ to, recipientEmail }) => {
     return blocked(403, 'suppression_identity_required', 'Recipient email is required for SMS suppression checks.');
   }
 
-  const suppressionGate = await resolveSuppressionGate(email, to);
+  const suppressionGate = await resolveSuppressionGate(email, to, normalizeLeadId(leadId));
   if (!suppressionGate.allowed) {
     return suppressionGate;
   }
@@ -190,13 +198,14 @@ router.post('/send', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing to or body' });
     }
 
-    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body) });
+    const leadId = recipientLeadIdFrom(req.body);
+    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body), leadId });
     if (!gate.allowed) {
       return respondWithGateBlock(res, gate);
     }
 
     const result = await sendSmsMessage({ to, body });
-    await recordManualSmsLog({ to, result, body });
+    await recordManualSmsLog({ to, result, body, leadId });
 
     return respondWithSendResult(res, result);
   } catch (error) {
@@ -220,13 +229,14 @@ router.post('/send-template', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing to or templateName' });
     }
 
-    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body) });
+    const leadId = recipientLeadIdFrom(req.body);
+    const gate = await ensureManualSmsAllowed({ to, recipientEmail: recipientEmailFrom(req.body), leadId });
     if (!gate.allowed) {
       return respondWithGateBlock(res, gate);
     }
 
     const result = await sendTemplatedSMS({ to, templateName, variables });
-    await recordManualSmsLog({ to, result, templateName, variables });
+    await recordManualSmsLog({ to, result, templateName, variables, leadId });
 
     return respondWithSendResult(res, result);
   } catch (error) {

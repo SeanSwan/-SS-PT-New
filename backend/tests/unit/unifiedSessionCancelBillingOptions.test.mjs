@@ -58,6 +58,7 @@ const { UnifiedSessionService } = await import('../../services/sessions/session.
 const buildClient = (overrides = {}) => ({
   id: 301,
   availableSessions: 0,
+  increment: vi.fn().mockResolvedValue(undefined),
   save: vi.fn().mockResolvedValue(undefined),
   ...overrides
 });
@@ -125,7 +126,8 @@ describe('UnifiedSessionService.cancelSession cancellation billing choices', () 
     expect(session.cancellationReviewedAt).toBeInstanceOf(Date);
     expect(session.sessionCreditRestored).toBe(true);
     expect(client.availableSessions).toBe(1);
-    expect(client.save).toHaveBeenCalledTimes(1);
+    expect(client.increment).toHaveBeenCalledWith('availableSessions', { by: 1, transaction: mockTransaction });
+    expect(client.save).not.toHaveBeenCalled();
     expect(sessionModel.findByPk).toHaveBeenCalledWith(
       77,
       expect.objectContaining({

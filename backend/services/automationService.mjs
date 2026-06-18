@@ -74,13 +74,13 @@ const resolveAutomationTarget = async (log, { User }) => {
   if (log.userId) {
     const user = await User.findByPk(log.userId);
     if (!user) return null;
-    return { kind: 'user', phone: user.phone, email: user.email, notificationPreferences: user.notificationPreferences };
+    return { kind: 'user', phone: user.phone, email: user.email, leadId: null, notificationPreferences: user.notificationPreferences };
   }
   if (log.leadId) {
     const { default: Lead } = await import('../models/Lead.mjs');
     const lead = await Lead.findByPk(log.leadId);
     if (!lead) return null;
-    return { kind: 'lead', phone: lead.phone, email: lead.email, notificationPreferences: null };
+    return { kind: 'lead', phone: lead.phone, email: lead.email, leadId: lead.id, notificationPreferences: null };
   }
   return null;
 };
@@ -271,7 +271,7 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       const target = await resolveAutomationTarget(log, { User });
-      const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone });
+      const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
       const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
       const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
 
@@ -382,7 +382,7 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
 
   for (const log of pendingLogs) {
     const target = await resolveAutomationTarget(log, { User });
-    const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone });
+    const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
     const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
     const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
     summary[bucketFor[decision.action]] += 1;

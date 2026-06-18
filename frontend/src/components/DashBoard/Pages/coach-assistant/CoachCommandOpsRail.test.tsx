@@ -16,7 +16,9 @@ describe('CoachCommandOpsRail workout command panel', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it('shows route-safe Logger and Planner actions when Coach has a selected route client', () => {
-    renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dlogger%26loadPlan%3Dtoday',
+    );
 
     const opsRail = openOpsRail();
     expect(within(opsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
@@ -33,6 +35,10 @@ describe('CoachCommandOpsRail workout command panel', () => {
     expect(within(opsRail).getByRole('link', { name: /open planner/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
+    );
+    expect(within(opsRail).getByRole('link', { name: /resume workflow/i })).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
   });
 

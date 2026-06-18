@@ -7,13 +7,15 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { subscriberFindOne, smsSuppressionFindOne } = vi.hoisted(() => ({
+const { subscriberFindOne, smsSuppressionFindOne, leadFindByPk } = vi.hoisted(() => ({
   subscriberFindOne: vi.fn(),
   smsSuppressionFindOne: vi.fn(),
+  leadFindByPk: vi.fn(),
 }));
 
 vi.mock('../models/Subscriber.mjs', () => ({ default: { findOne: subscriberFindOne } }));
 vi.mock('../models/SmsSuppression.mjs', () => ({ default: { findOne: smsSuppressionFindOne } }));
+vi.mock('../models/Lead.mjs', () => ({ default: { findByPk: leadFindByPk } }));
 
 const { resolveMarketingSuppression } = await import('../services/marketingSuppressionService.mjs');
 
@@ -60,6 +62,49 @@ describe('resolveMarketingSuppression', () => {
       where: { phone: '+15551234567' },
       attributes: ['id'],
     }));
+  });
+
+  it('suppresses lead SMS when the lead has no positive SMS consent record', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue(null);
+    leadFindByPk.mockResolvedValue({ id: 777, smsConsentStatus: 'unknown', smsConsentAt: null, smsOptOutAt: null });
+
+    const r = await resolveMarketingSuppression({ phone: '+15550007777', leadId: 777 });
+
+    expect(r).toEqual({ suppressed: true, reason: 'lead_sms_consent_missing', checked: true });
+    expect(leadFindByPk).toHaveBeenCalledWith(777, expect.objectContaining({
+      attributes: ['id', 'smsConsentStatus', 'smsConsentAt', 'smsOptOutAt'],
+    }));
+  });
+
+  it('allows lead SMS only when the lead has an opted-in SMS consent record', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue(null);
+    leadFindByPk.mockResolvedValue({
+      id: 777,
+      smsConsentStatus: 'opted_in',
+      smsConsentAt: new Date('2030-01-01T00:00:00Z'),
+      smsOptOutAt: null,
+    });
+
+    const r = await resolveMarketingSuppression({ phone: '+15550007777', leadId: 777 });
+
+    expect(r).toEqual({ suppressed: false, reason: null, checked: true });
+  });
+
+  it('suppresses lead SMS when the lead opted out directly', async () => {
+    subscriberFindOne.mockResolvedValue(null);
+    smsSuppressionFindOne.mockResolvedValue(null);
+    leadFindByPk.mockResolvedValue({
+      id: 777,
+      smsConsentStatus: 'opted_out',
+      smsConsentAt: new Date('2030-01-01T00:00:00Z'),
+      smsOptOutAt: new Date('2030-01-02T00:00:00Z'),
+    });
+
+    const r = await resolveMarketingSuppression({ phone: '+15550007777', leadId: 777 });
+
+    expect(r).toEqual({ suppressed: true, reason: 'lead_sms_opt_out', checked: true });
   });
 
   it('FAILS CLOSED (checked:false) when the lookup throws', async () => {

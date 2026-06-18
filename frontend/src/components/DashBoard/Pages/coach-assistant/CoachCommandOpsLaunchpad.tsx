@@ -26,7 +26,7 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarCheck, ClipboardList, Dumbbell, FileAudio, Inbox, MessageSquareText, UserPlus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarCheck, ClipboardList, Dumbbell, FileAudio, Inbox, MessageSquareText, UserPlus } from 'lucide-react';
 
 type CoachCommandOpsLaunchpadProps = {
   clientPickerRoute: string;
@@ -34,6 +34,8 @@ type CoachCommandOpsLaunchpadProps = {
   workoutLoggerRoute: string | null;
   workoutLoggerScopeLabel: string | null;
   workoutPlannerRoute: string | null;
+  workflowReturnLabel: string | null;
+  workflowReturnTo: string | null;
   onOpenIntake: () => void;
   onOpenPlaud: () => void;
   onStageWorkoutLog: () => void;
@@ -79,6 +81,8 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
   workoutPlannerRoute,
+  workflowReturnLabel,
+  workflowReturnTo,
   onOpenIntake,
   onOpenPlaud,
   onStageWorkoutLog,
@@ -138,6 +142,12 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
             showArrow
           />
         </Link>
+
+        {workflowReturnTo && workflowReturnLabel ? (
+          <Link className="workout-command-card route" to={workflowReturnTo} aria-label={`Resume workflow - ${workflowReturnLabel}`}>
+            <ActionBody icon={<ArrowLeft size={18} aria-hidden="true" />} title="Resume workflow" note={workflowReturnLabel} />
+          </Link>
+        ) : null}
 
         {workoutPlannerRoute ? (
           <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open workout builder - Open Planner">
