@@ -82,7 +82,7 @@ describe('useActivityTicker', () => {
         'https://ss-pt-new.onrender.com',
         expect.objectContaining({
           auth: { token: 'test-token' },
-          transports: ['polling'],
+          transports: ['websocket'],
           upgrade: false,
         }),
       );

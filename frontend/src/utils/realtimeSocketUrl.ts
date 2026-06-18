@@ -81,7 +81,7 @@ export const resolveRealtimeSocketTransportOptions = (
 ): RealtimeSocketTransportOptions => {
   if (pointsToRenderSocketOrigin(socketOrigin)) {
     return {
-      transports: ['polling'],
+      transports: ['websocket'],
       upgrade: false,
     };
   }

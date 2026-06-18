@@ -35,9 +35,9 @@ describe('resolveRealtimeSocketUrl', () => {
     })).toBe('http://localhost:10000');
   });
 
-  it('keeps Render fallback sockets on polling to avoid failed production upgrade noise', () => {
+  it('keeps Render fallback sockets on WebSocket to avoid polling transport churn', () => {
     expect(resolveRealtimeSocketTransportOptions('https://ss-pt-new.onrender.com')).toEqual({
-      transports: ['polling'],
+      transports: ['websocket'],
       upgrade: false,
     });
   });
