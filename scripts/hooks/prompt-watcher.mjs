@@ -38,5 +38,9 @@ process.stdout.write(
   'as the default review; high-stakes (auth/billing/Stripe/multi-tenant/minors/' +
   'legal/irreversible migration) → propose the PAID Village and ASK first ' +
   '(Rule 16, spend-gated). The model decides whether a review is warranted; skip ' +
-  'on trivial/conversational turns.\n',
+  'on trivial/conversational turns. ' +
+  '[beep-boop] Observability (Sean 2026-06-18): START your reply with ONE short ' +
+  'marker line so Sean sees the classifier fired — `🔊 beep boop — prompt-watcher: ' +
+  'VISION` when you engage the skill, or `🔉 prompt-watcher: SIMPLE` when you do ' +
+  'not. One line only; then answer normally.\n',
 );

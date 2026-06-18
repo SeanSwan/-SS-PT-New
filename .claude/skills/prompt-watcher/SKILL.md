@@ -13,6 +13,14 @@ description: Per-prompt intent amplifier. Classifies every prompt Sean submits a
 
 A `UserPromptSubmit` hook injects ~2 lines on every prompt: *"Classify this prompt SIMPLE vs VISION. If SIMPLE, proceed normally — do NOT load prompt-watcher. If VISION, load `.claude/skills/prompt-watcher` and run it before acting."* That always-on cost is tiny. **This full skill only loads when the prompt is VISION** — so the heavy analysis never runs on a simple instruction.
 
+## Beep-boop marker (Sean 2026-06-18 — visibility)
+
+Sean couldn't tell when this skill was actually firing ("it burns in the background but I should get just a quick little beep boop so I know it happened"). So **every reply now opens with exactly ONE marker line**, then the normal answer:
+- VISION (skill engaged + prompt silently enhanced): `🔊 beep boop — prompt-watcher: VISION`
+- SIMPLE (skill not loaded): `🔉 prompt-watcher: SIMPLE`
+
+One line only, never more — the enhancement itself stays silent (reveal the enhanced prompt only if Sean asks). The marker is observability, not a confirmation gate.
+
 ## Step 1 — Classify (do this first, every time)
 
 Decide SIMPLE vs VISION from the prompt itself. Bias toward SIMPLE when unsure — a false VISION classification wastes Sean's time; a missed VISION just means a normal response, which is the status quo.
