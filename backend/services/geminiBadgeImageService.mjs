@@ -192,9 +192,12 @@ export async function generateBadge({
   }
 
   try {
-    const response = await fetchImpl(`${GEMINI_API_BASE}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const response = await fetchImpl(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
       body: JSON.stringify({
         contents: [{
           parts: [{ text: buildPrompt({ prompt, style, size }) }],

@@ -68,7 +68,10 @@ describe('geminiBadgeImageService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toContain('/v1/models/gemini-3.1-flash-image:generateContent');
-    expect(url).toContain('key=gemini-test-key');
+    expect(url).not.toContain('gemini-test-key');
+    expect(init.headers).toMatchObject({
+      'x-goog-api-key': 'gemini-test-key',
+    });
     const body = JSON.parse(init.body);
     expect(body.contents[0].parts[0].text).toContain('crystalline swan badge');
     expect(body.contents[0].parts[0].text).toContain('luxury icon');
