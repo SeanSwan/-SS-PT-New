@@ -106,4 +106,44 @@ describe('TeachModeSidebar', () => {
 
     expect(screen.getByLabelText('Push Up workout video')).toBeInTheDocument();
   });
+
+  it('rejects unsafe custom video URLs and falls back to a safe catalog sample', () => {
+    teachState.data = {
+      id: 'exercise-4',
+      name: 'Push Up',
+      videoUrl: 'javascript:alert(1)',
+    };
+
+    render(
+      <TeachModeSidebar
+        exercise={{
+          id: 'exercise-4',
+          name: 'Push Up',
+          exerciseKey: 'push_up',
+          exerciseType: 'compound',
+          bodyPartCategory: 'chest',
+          primaryMuscles: ['chest'],
+          difficulty: 350,
+          equipment: [],
+          catalogVideoSample: {
+            title: 'Catalog Push Up Demo',
+            source: 'youtube',
+            videoUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
+            thumbnailUrl: 'https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg',
+          },
+        }}
+        phaseNumber={1}
+      />,
+    );
+
+    expect(screen.getByText('Catalog video')).toBeInTheDocument();
+    expect(screen.queryByText('Custom video')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /play push up workout video/i }));
+
+    expect(screen.getByTitle('Push Up workout video')).toHaveAttribute(
+      'src',
+      'https://www.youtube.com/embed/abcdefghijk',
+    );
+  });
 });

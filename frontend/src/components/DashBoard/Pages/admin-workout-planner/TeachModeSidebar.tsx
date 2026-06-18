@@ -56,6 +56,7 @@ import { TabBar, TabButton, TabContent, SkeletonLine, EmptyDataMsg } from '../..
 import { Panel, PanelHeader, PanelTitle, PanelBody, EmptyMessage } from './WorkoutPlannerStyles';
 import { parseEquipment } from './WorkoutPlannerFilters';
 import TeachModeVideoPreview from './TeachModeVideoPreview';
+import { buildTeachModeVideoAsset } from './TeachModeSidebar.videoAsset';
 import {
   ExerciseContextGrid,
   ExerciseContextPill,
@@ -99,13 +100,6 @@ const formatDifficulty = (difficulty?: number | null) => {
   if (difficulty >= 700) return 'Advanced';
   if (difficulty >= 450) return 'Intermediate';
   return 'Foundational';
-};
-
-const firstText = (...values: Array<unknown>): string | null => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -153,24 +147,10 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
     ];
   }, [teachData, exercise]);
 
-  const videoAsset = useMemo(() => {
-    if (!exercise) return null;
-    const catalogSample = exercise.catalogVideoSample;
-    const videoUrl = firstText(teachData?.videoUrl, exercise.videoUrl, catalogSample?.videoUrl);
-    if (!videoUrl) return null;
-
-    return {
-      videoUrl,
-      thumbnailUrl: firstText(
-        teachData?.thumbnailUrl,
-        exercise.thumbnailUrl,
-        teachData?.imageUrl,
-        exercise.imageUrl,
-        catalogSample?.thumbnailUrl
-      ),
-      sourceLabel: firstText(teachData?.videoUrl, exercise.videoUrl) ? 'Custom video' : 'Catalog video',
-    };
-  }, [teachData, exercise]);
+  const videoAsset = useMemo(
+    () => buildTeachModeVideoAsset(teachData, exercise),
+    [teachData, exercise]
+  );
 
   return (
     <Panel>
