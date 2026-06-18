@@ -14,6 +14,24 @@ import logger from '../utils/logger.mjs';
 
 const ANALYTICS_INTERNAL_ERROR = 'analytics_internal_error';
 
+function resolveAnalyticsUserId(req) {
+  const raw = req.params?.userId || req.user?.id;
+  const userId = raw === undefined || raw === null ? '' : String(raw).trim();
+  return userId && userId !== 'undefined' && userId !== 'null' ? userId : null;
+}
+
+function requireAnalyticsUserId(req, res) {
+  const userId = resolveAnalyticsUserId(req);
+  if (!userId) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid userId',
+    });
+    return null;
+  }
+  return userId;
+}
+
 function sendAnalyticsError(res, message) {
   return res.status(500).json({
     success: false,
@@ -24,7 +42,7 @@ function sendAnalyticsError(res, message) {
 
 function logAnalyticsError(message, error, req) {
   logger.error(message, {
-    userId: req.params?.userId,
+    userId: resolveAnalyticsUserId(req),
     errorName: error.name,
     errorCode: error.code || ANALYTICS_INTERNAL_ERROR,
   });
@@ -41,7 +59,8 @@ function logAnalyticsError(message, error, req) {
  */
 export async function getStrengthProfile(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { startDate, endDate } = req.query;
 
     const options = {};
@@ -111,7 +130,8 @@ export async function getStrengthProfile(req, res) {
  */
 export async function getVolumeProgression(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { startDate, endDate, groupBy = 'week' } = req.query;
 
     const options = { groupBy };
@@ -137,7 +157,8 @@ export async function getVolumeProgression(req, res) {
  */
 export async function getSessionUsage(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { startDate, endDate } = req.query;
 
     const options = {};
@@ -163,7 +184,8 @@ export async function getSessionUsage(req, res) {
  */
 export async function getClientPersonalRecords(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
 
     const records = await getPersonalRecords(userId);
 
@@ -184,7 +206,8 @@ export async function getClientPersonalRecords(req, res) {
  */
 export async function getFrequencyStats(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { days = 30 } = req.query;
 
     const frequency = await getWorkoutFrequency(userId, parseInt(days));
@@ -206,7 +229,8 @@ export async function getFrequencyStats(req, res) {
  */
 export async function getNASMProgress(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { workoutSessionId } = req.query;
 
     if (!workoutSessionId) {
@@ -256,7 +280,8 @@ export async function getNASMRecommendations(req, res) {
  */
 export async function getAnalyticsDashboard(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { days = 30 } = req.query;
 
     const [exerciseTotals, frequency, sessionUsage, personalRecords] = await Promise.all([
@@ -296,7 +321,8 @@ export async function getAnalyticsDashboard(req, res) {
  */
 export async function getExerciseHistory(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const { muscleGroup, sort = 'timesPerformed', cursor, limit = 50 } = req.query;
 
     const history = await getExerciseHistoryFromLogs(userId, {
@@ -324,7 +350,8 @@ export async function getExerciseHistory(req, res) {
  */
 export async function getExerciseVariety(req, res) {
   try {
-    const { userId } = req.params;
+    const userId = requireAnalyticsUserId(req, res);
+    if (!userId) return;
     const variety = await getExerciseVarietyFromLogs(userId, {
       sequelize: req.app.get('sequelize'),
     });
