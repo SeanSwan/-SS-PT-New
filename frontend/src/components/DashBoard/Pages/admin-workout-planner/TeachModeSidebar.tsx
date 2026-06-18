@@ -54,6 +54,8 @@ import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { useExerciseTeachData } from '../../../../features/teach-mode/hooks/useExerciseTeachData';
 import { TabBar, TabButton, TabContent, SkeletonLine, EmptyDataMsg } from '../../../../features/teach-mode/styles/TeachModeStyles';
 import { Panel, PanelHeader, PanelTitle, PanelBody, EmptyMessage } from './WorkoutPlannerStyles';
+import { parseEquipment } from './WorkoutPlannerFilters';
+import TeachModeVideoPreview from './TeachModeVideoPreview';
 import {
   ExerciseContextGrid,
   ExerciseContextPill,
@@ -99,6 +101,13 @@ const formatDifficulty = (difficulty?: number | null) => {
   return 'Foundational';
 };
 
+const firstText = (...values: Array<unknown>): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Loading Skeleton
 // ─────────────────────────────────────────────────────────────
@@ -135,13 +144,32 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
 
   const contextPills = useMemo(() => {
     if (!exercise) return [];
-    const equipment = teachData?.equipmentNeeded || exercise.equipmentNeeded || exercise.equipment || [];
+    const equipment = parseEquipment(teachData?.equipmentNeeded || exercise.equipmentNeeded || exercise.equipment);
     return [
       `Focus: ${formatContextValue(teachData?.bodyPartCategory || exercise.bodyPartCategory)}`,
       `Type: ${formatContextValue(teachData?.exerciseType || exercise.exerciseType)}`,
       `Level: ${formatDifficulty(teachData?.difficulty ?? exercise.difficulty)}`,
       equipment.length > 0 ? `Gear: ${equipment.slice(0, 2).join(', ')}` : 'Gear: Bodyweight',
     ];
+  }, [teachData, exercise]);
+
+  const videoAsset = useMemo(() => {
+    if (!exercise) return null;
+    const catalogSample = exercise.catalogVideoSample;
+    const videoUrl = firstText(teachData?.videoUrl, exercise.videoUrl, catalogSample?.videoUrl);
+    if (!videoUrl) return null;
+
+    return {
+      videoUrl,
+      thumbnailUrl: firstText(
+        teachData?.thumbnailUrl,
+        exercise.thumbnailUrl,
+        teachData?.imageUrl,
+        exercise.imageUrl,
+        catalogSample?.thumbnailUrl
+      ),
+      sourceLabel: firstText(teachData?.videoUrl, exercise.videoUrl) ? 'Custom video' : 'Catalog video',
+    };
   }, [teachData, exercise]);
 
   return (
@@ -172,6 +200,15 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
                 <ExerciseContextPill key={pill}>{pill}</ExerciseContextPill>
               ))}
             </ExerciseContextGrid>
+
+            {videoAsset && (
+              <TeachModeVideoPreview
+                exerciseName={exerciseName || exercise.name}
+                videoUrl={videoAsset.videoUrl}
+                thumbnailUrl={videoAsset.thumbnailUrl}
+                sourceLabel={videoAsset.sourceLabel}
+              />
+            )}
 
             {/* 3-Tab Bar */}
             <TabBar role="tablist" aria-label="Teach Mode tabs">
