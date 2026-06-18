@@ -19,8 +19,12 @@ describe('CrystallineCoverageTracker media contract', () => {
     expect(existsSync(detailPath)).toBe(true);
     expect(trackerSource).toContain("import CoverageExerciseMediaDetail from './CoverageExerciseMediaDetail'");
     expect(trackerSource).toContain('const [selectedEx, setSelectedEx]');
-    expect(trackerSource).toContain('<CoverageExerciseMediaDetail exercise={activeDetailExercise} />');
+    // The detail panel is rendered (now also as an editor via onSaveMedia); allow extra props.
+    expect(trackerSource).toContain('<CoverageExerciseMediaDetail exercise={activeDetailExercise}');
     expect(trackerSource).toContain('onClick={() => setSelectedEx(ex)}');
+    // 2026-06-18: click now PINS the detail (selectedEx ?? hoveredEx), so a grazed
+    // hex can no longer hijack the pinned selection / media editor target.
+    expect(trackerSource).toContain('selectedEx ?? hoveredEx');
   });
 
   it('can open a safe catalog demo sample when an exercise has no direct Rolodex video', () => {

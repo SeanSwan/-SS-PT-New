@@ -46,6 +46,10 @@ export function buildContentStudioCoveragePayload(
     const catalogVideoCount = toCount(videoCounts[exercise.id]);
     const catalogVideoSample = buildCatalogVideoSample(catalogVideoSamples[exercise.id]);
     const hasLegacyVideo = Boolean(exercise.videoUrl);
+    // Coverage = "videos I uploaded" — count both the full video and the new
+    // short R2 loop (previewVideoUrl), so adding a loop via
+    // PUT /api/exercises/:id/media flips the hex to covered.
+    const hasUploadedMedia = hasLegacyVideo || Boolean(exercise.previewVideoUrl);
     const mediaPreviewUrl = exercise.thumbnailUrl
       || exercise.imageUrl
       || catalogVideoSample?.thumbnailUrl
@@ -61,13 +65,14 @@ export function buildContentStudioCoveragePayload(
       difficulty: exercise.difficulty,
       source: exercise.source,
       videoUrl: exercise.videoUrl,
+      previewVideoUrl: exercise.previewVideoUrl ?? null,
       imageUrl: exercise.imageUrl,
       thumbnailUrl: exercise.thumbnailUrl,
       mediaPreviewUrl,
       hasLegacyVideo,
       catalogVideoCount,
       catalogVideoSample,
-      covered: hasLegacyVideo || catalogVideoCount > 0,
+      covered: hasUploadedMedia || catalogVideoCount > 0,
     };
   });
 

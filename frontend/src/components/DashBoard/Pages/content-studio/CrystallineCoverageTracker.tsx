@@ -47,6 +47,7 @@ interface CoverageExercise {
   difficulty: number;
   source: string;
   videoUrl?: string | null;
+  previewVideoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
   mediaPreviewUrl?: string | null;
@@ -415,19 +416,34 @@ const CrystallineCoverageTracker: React.FC = () => {
     try {
       const res = await authAxios.get('/api/content-studio/coverage');
       if (res.data?.success) {
-        setExercises(res.data.data.exercises);
+        const list: CoverageExercise[] = res.data.data.exercises;
+        setExercises(list);
         setSummary(res.data.data.summary);
         setByBodyPart(res.data.data.byBodyPart);
-      } else {
-        setError('Unexpected response format');
+        return list;
       }
+      setError('Unexpected response format');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch coverage data';
       setError(msg);
     } finally {
       setLoading(false);
     }
+    return undefined;
   }, [authAxios]);
+
+  // Save a pinned exercise's media via the shared library endpoint, then
+  // re-fetch coverage so the hex re-colors and re-pin the freshened record so
+  // the editor reflects what was just saved (not a stale pre-save snapshot).
+  const handleSaveMedia = useCallback(async (
+    id: string | number,
+    fields: { videoUrl: string | null; previewVideoUrl: string | null; thumbnailUrl: string | null },
+  ) => {
+    await authAxios.put(`/api/exercises/${id}/media`, fields);
+    const list = await fetchCoverage();
+    const updated = list?.find(e => String(e.id) === String(id));
+    if (updated) setSelectedEx(updated);
+  }, [authAxios, fetchCoverage]);
 
   useEffect(() => {
     fetchCoverage();
@@ -467,7 +483,11 @@ const CrystallineCoverageTracker: React.FC = () => {
     setHoveredEx(null);
   }, []);
 
-  const activeDetailExercise = hoveredEx || selectedEx;
+  // Click PINS the detail panel; hover only previews when nothing is pinned.
+  // (Was `hoveredEx || selectedEx`, which let any grazed hex overwrite the
+  // clicked selection — the "random" jumping Sean noticed, and it would yank
+  // the media editor's target mid-edit.)
+  const activeDetailExercise = selectedEx ?? hoveredEx;
 
   // ─── Loading State ──────────────────────────────────────
   if (loading) {
@@ -601,7 +621,7 @@ const CrystallineCoverageTracker: React.FC = () => {
         ))}
       </HexGrid>
 
-      <CoverageExerciseMediaDetail exercise={activeDetailExercise} />
+      <CoverageExerciseMediaDetail exercise={activeDetailExercise} onSaveMedia={handleSaveMedia} />
 
       {/* Tooltip */}
       {hoveredEx && (
