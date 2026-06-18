@@ -1,4 +1,5 @@
 'use strict';
+const resolveUsersTable = require('./helpers/resolveUsersTable.cjs');
 
 /**
  * Migration: Create subscriptions table + add subscription fields to users
@@ -6,6 +7,8 @@
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const usersTable = await resolveUsersTable(queryInterface);
+
     // 1. Create subscriptions table
     const tableExists = await queryInterface.sequelize.query(
       `SELECT to_regclass('public."subscriptions"') AS exists`
@@ -21,7 +24,7 @@ module.exports = {
         userId: {
           type: Sequelize.INTEGER,
           allowNull: false,
-          references: { model: 'users', key: 'id' },
+          references: { model: usersTable, key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'CASCADE',
           comment: 'FK to users table',
@@ -113,10 +116,10 @@ module.exports = {
     }
 
     // 2. Add subscription tracking fields to users table (safe — check before adding)
-    const userColumns = await queryInterface.describeTable('users');
+    const userColumns = await queryInterface.describeTable(usersTable);
 
     if (!userColumns.subscriptionTier) {
-      await queryInterface.addColumn('users', 'subscriptionTier', {
+      await queryInterface.addColumn(usersTable, 'subscriptionTier', {
         type: Sequelize.STRING(20),
         allowNull: true,
         defaultValue: 'free',
@@ -125,7 +128,7 @@ module.exports = {
     }
 
     if (!userColumns.aiMessagesUsedThisMonth) {
-      await queryInterface.addColumn('users', 'aiMessagesUsedThisMonth', {
+      await queryInterface.addColumn(usersTable, 'aiMessagesUsedThisMonth', {
         type: Sequelize.INTEGER,
         allowNull: true,
         defaultValue: 0,
@@ -134,7 +137,7 @@ module.exports = {
     }
 
     if (!userColumns.aiGenerationsUsedThisMonth) {
-      await queryInterface.addColumn('users', 'aiGenerationsUsedThisMonth', {
+      await queryInterface.addColumn(usersTable, 'aiGenerationsUsedThisMonth', {
         type: Sequelize.INTEGER,
         allowNull: true,
         defaultValue: 0,
@@ -143,7 +146,7 @@ module.exports = {
     }
 
     if (!userColumns.aiUsageResetDate) {
-      await queryInterface.addColumn('users', 'aiUsageResetDate', {
+      await queryInterface.addColumn(usersTable, 'aiUsageResetDate', {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Next date to reset monthly AI usage counters',
@@ -152,12 +155,14 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    const usersTable = await resolveUsersTable(queryInterface);
+
     // Remove user columns
-    const userColumns = await queryInterface.describeTable('users');
-    if (userColumns.subscriptionTier) await queryInterface.removeColumn('users', 'subscriptionTier');
-    if (userColumns.aiMessagesUsedThisMonth) await queryInterface.removeColumn('users', 'aiMessagesUsedThisMonth');
-    if (userColumns.aiGenerationsUsedThisMonth) await queryInterface.removeColumn('users', 'aiGenerationsUsedThisMonth');
-    if (userColumns.aiUsageResetDate) await queryInterface.removeColumn('users', 'aiUsageResetDate');
+    const userColumns = await queryInterface.describeTable(usersTable);
+    if (userColumns.subscriptionTier) await queryInterface.removeColumn(usersTable, 'subscriptionTier');
+    if (userColumns.aiMessagesUsedThisMonth) await queryInterface.removeColumn(usersTable, 'aiMessagesUsedThisMonth');
+    if (userColumns.aiGenerationsUsedThisMonth) await queryInterface.removeColumn(usersTable, 'aiGenerationsUsedThisMonth');
+    if (userColumns.aiUsageResetDate) await queryInterface.removeColumn(usersTable, 'aiUsageResetDate');
 
     // Drop subscriptions table
     await queryInterface.dropTable('subscriptions');
