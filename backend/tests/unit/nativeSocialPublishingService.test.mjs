@@ -85,6 +85,23 @@ describe('nativeSocialPublishingService', () => {
     }));
   });
 
+  it('reports degraded health instead of throwing when social account storage is unavailable', async () => {
+    const { service, AccountModel } = makeService();
+    AccountModel.findAll.mockRejectedValueOnce(new Error('relation "SocialPublishingAccounts" does not exist'));
+
+    const health = await service.getHealth();
+
+    expect(health).toEqual(expect.objectContaining({
+      configured: false,
+      mode: 'native',
+      accountCount: 0,
+      storage: expect.objectContaining({
+        ok: false,
+        message: 'Social publishing account storage is unavailable',
+      }),
+    }));
+  });
+
   it('stores connected Bluesky account metadata with encrypted credentials only', async () => {
     const adapter = {
       createSession: vi.fn(async () => ({

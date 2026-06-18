@@ -22,6 +22,7 @@ const DB_BADGE_CATEGORIES = new Set(['strength', 'cardio', 'skill', 'flexibility
 const BADGE_GENERATION_FAILED_MESSAGE = 'Badge generation failed. Try again with a simpler prompt or different style.';
 const BADGE_VARIATION_FAILED_MESSAGE = 'Variation generation failed. Try again with a different style.';
 const PET_AVATAR_GENERATION_FAILED_MESSAGE = 'Pet avatar generation failed. Try again with a different style.';
+const RECRAFT_NOT_CONFIGURED_MESSAGE = 'Badge generation is not configured yet. Add RECRAFT_API_KEY on Render before using AI generation.';
 
 function getMonthKey() {
   const d = new Date();
@@ -126,6 +127,12 @@ function mergeCriteriaSection(badge, sectionName, sectionValue) {
   };
 }
 
+function requireRecraftConfigured(res) {
+  if (recraft.isConfigured()) return true;
+  res.status(424).json({ success: false, message: RECRAFT_NOT_CONFIGURED_MESSAGE });
+  return false;
+}
+
 /**
  * Get remaining generations from durable storage (Badge table count).
  * Global cap: 50 custom badges per month across all admins.
@@ -181,6 +188,7 @@ router.post('/generate', async (req, res) => {
   if (!style || typeof style !== 'string') {
     return res.status(400).json({ success: false, message: 'style is required' });
   }
+  if (!requireRecraftConfigured(res)) return;
 
   // Check generation credits (durable — survives deploys)
   const remaining = await getRemainingGenerations();
@@ -344,6 +352,7 @@ router.post('/generate-batch', async (req, res) => {
   if (!style || typeof style !== 'string') {
     return res.status(400).json({ success: false, message: 'style is required' });
   }
+  if (!requireRecraftConfigured(res)) return;
 
   const remaining = await getRemainingGenerations();
   if (remaining < 5) {
@@ -410,6 +419,7 @@ router.post('/generate-pet-avatar', async (req, res) => {
   if (!species || typeof species !== 'string') {
     return res.status(400).json({ success: false, message: 'species is required' });
   }
+  if (!requireRecraftConfigured(res)) return;
 
   const remaining = await getRemainingGenerations();
   if (remaining <= 0) {
