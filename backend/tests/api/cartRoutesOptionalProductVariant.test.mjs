@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getProductVariantMock = vi.hoisted(() => vi.fn());
 const shoppingCartFindOrCreateMock = vi.hoisted(() => vi.fn());
 const cartItemFindAllMock = vi.hoisted(() => vi.fn());
+const cartItemFindOneMock = vi.hoisted(() => vi.fn());
 const describeStorefrontTableMock = vi.hoisted(() => vi.fn());
+const updateCartTotalsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -21,6 +23,7 @@ vi.mock('../../models/index.mjs', () => ({
   getCartItem: () => ({
     associations: { storefrontItem: true },
     findAll: cartItemFindAllMock,
+    findOne: cartItemFindOneMock,
   }),
   getStorefrontItem: () => ({
     getTableName: () => 'storefront_items',
@@ -44,6 +47,14 @@ vi.mock('../../services/SessionGrantService.mjs', () => ({
   grantSessionsForCart: vi.fn(),
 }));
 
+vi.mock('../../utils/cartHelpers.mjs', () => ({
+  default: {
+    calculateCartTotals: vi.fn(() => ({ total: 0, totalSessions: 0 })),
+    getCartTotalsWithFallback: vi.fn(({ total }) => ({ total: Number(total) || 0, totalSessions: 0 })),
+    updateCartTotals: updateCartTotalsMock,
+  },
+}));
+
 const { default: cartRoutes } = await import('../../routes/cartRoutes.mjs');
 
 const app = express();
@@ -54,11 +65,14 @@ describe('cart routes optional ProductVariant model behavior', () => {
   beforeEach(() => {
     shoppingCartFindOrCreateMock.mockReset();
     cartItemFindAllMock.mockReset();
+    cartItemFindOneMock.mockReset();
     describeStorefrontTableMock.mockReset();
     getProductVariantMock.mockReset();
+    updateCartTotalsMock.mockReset();
 
     shoppingCartFindOrCreateMock.mockResolvedValue([{ id: 701, status: 'active', userId: 103 }, false]);
     cartItemFindAllMock.mockResolvedValue([]);
+    cartItemFindOneMock.mockResolvedValue(null);
     describeStorefrontTableMock.mockResolvedValue({
       id: {},
       name: {},
@@ -94,5 +108,42 @@ describe('cart routes optional ProductVariant model behavior', () => {
         }),
       ],
     }));
+  });
+
+  it('keeps PUT /api/cart/update/:itemId alive when optional ProductVariant is absent from the model cache', async () => {
+    const saveCartItemMock = vi.fn().mockResolvedValue(undefined);
+    cartItemFindOneMock.mockResolvedValue({
+      id: 801,
+      cartId: 701,
+      quantity: 1,
+      save: saveCartItemMock,
+      storefrontItem: { stockQuantity: 10 },
+      productVariant: null,
+    });
+    cartItemFindAllMock.mockResolvedValue([{ id: 801, quantity: 2, price: 25, storefrontItem: { name: 'Training' } }]);
+    updateCartTotalsMock.mockResolvedValue({ success: true, total: 50 });
+
+    const response = await request(app)
+      .put('/api/cart/update/801')
+      .send({ quantity: 2 });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      message: 'Cart updated',
+      total: 50,
+      itemCount: 1,
+    });
+    expect(saveCartItemMock).toHaveBeenCalledTimes(1);
+
+    const findOneArgs = cartItemFindOneMock.mock.calls[0]?.[0];
+    expect(findOneArgs.include).toHaveLength(2);
+    expect(findOneArgs.include).toEqual([
+      expect.objectContaining({ as: 'cart' }),
+      expect.objectContaining({ as: 'storefrontItem', required: false }),
+    ]);
+    expect(findOneArgs.include).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ as: 'productVariant' }),
+    ]));
   });
 });

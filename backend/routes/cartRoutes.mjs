@@ -553,11 +553,11 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
         model: StorefrontItem,
         as: 'storefrontItem',
         required: false
-      }, {
+      }, ...(ProductVariant ? [{
         model: ProductVariant,
         as: 'productVariant',
         required: false
-      }]
+      }] : [])]
     });
 
     if (!cartItem) {
