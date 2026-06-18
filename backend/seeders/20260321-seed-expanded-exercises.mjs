@@ -151,6 +151,46 @@ const taebo = [
 // ─── Combine all exercise arrays ────────────────────────────
 const ALL_EXPANDED = [...kettlebell, ...bands, ...bodyweight, ...machines, ...mobility, ...functional, ...beachbody, ...taebo];
 
+const isNameUniqueValidationError = error => (
+  error?.name === 'SequelizeUniqueConstraintError' ||
+  error?.message === 'Validation error'
+);
+
+export async function seedExpandedExercise(exerciseData) {
+  const { id, ...data } = exerciseData;
+
+  try {
+    const [, wasCreated] = await Exercise.findOrCreate({
+      where: { exercise_key: data.exercise_key },
+      defaults: { id, ...data },
+    });
+
+    return wasCreated ? 'created' : 'skipped';
+  } catch (error) {
+    // If exercise_key column doesn't exist yet, fall back to name.
+    if (error.message?.includes('exercise_key')) {
+      const [, wasCreated] = await Exercise.findOrCreate({
+        where: { name: data.name },
+        defaults: { id, ...data },
+      });
+      return wasCreated ? 'created' : 'skipped';
+    }
+
+    if (isNameUniqueValidationError(error)) {
+      const existing = await Exercise.findOne({ where: { name: data.name } });
+      if (existing) {
+        if (!existing.exercise_key && data.exercise_key && typeof existing.update === 'function') {
+          await existing.update({ exercise_key: data.exercise_key });
+        }
+        return 'skipped';
+      }
+    }
+
+    console.error(`Failed to seed ${data.name}:`, error.message);
+    return 'failed';
+  }
+}
+
 /**
  * Seed expanded exercises using exercise_key-based findOrCreate.
  * CEO Ruling V2.0: Use exercise_key for idempotent upserts.
@@ -160,32 +200,9 @@ export async function seedExpandedExercises() {
   let skipped = 0;
 
   for (const exerciseData of ALL_EXPANDED) {
-    const { id, ...data } = exerciseData;
-
-    try {
-      const [, wasCreated] = await Exercise.findOrCreate({
-        where: { exercise_key: data.exercise_key },
-        defaults: { id, ...data },
-      });
-
-      if (wasCreated) {
-        created++;
-      } else {
-        skipped++;
-      }
-    } catch (error) {
-      // If exercise_key column doesn't exist yet, fall back to name
-      if (error.message?.includes('exercise_key')) {
-        const [, wasCreated] = await Exercise.findOrCreate({
-          where: { name: data.name },
-          defaults: { id, ...data },
-        });
-        if (wasCreated) created++;
-        else skipped++;
-      } else {
-        console.error(`Failed to seed ${data.name}:`, error.message);
-      }
-    }
+    const result = await seedExpandedExercise(exerciseData);
+    if (result === 'created') created++;
+    if (result === 'skipped') skipped++;
   }
 
   console.log(`Expanded exercises: ${created} created, ${skipped} already existed (${ALL_EXPANDED.length} total)`);
