@@ -29,6 +29,9 @@ const {
   __test__: { extractJson, buildSystemPrompt, buildContextBlock, calculateConfidence, getGeminiApiKey },
 } = await import('../../services/workoutLogParserService.mjs');
 
+// Mock handle for per-test client-context overrides (Rule 8 redaction tests).
+const { getClientContext } = await import('../../services/clientIntelligenceService.mjs');
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Fixtures
 // ─────────────────────────────────────────────────────────────
@@ -519,19 +522,23 @@ describe('buildSystemPrompt / buildContextBlock', () => {
     expect(buildContextBlock({})).toBe('No additional context.');
   });
 
-  it('includes client name and pain exclusions when present', () => {
+  it('OMITS the client name (Rule 8 — no PII to the LLM) but keeps pain exclusions', () => {
     const block = buildContextBlock({
       clientName: 'Alice',
       pain: { exclusions: [{ bodyRegion: 'knee', painLevel: 7 }] },
     });
-    expect(block).toContain('Client: Alice');
+    expect(block).not.toMatch(/Alice/); // name must NOT reach the parser prompt
     expect(block).toContain('knee (7/10)');
   });
 
-  it('embeds the context block in the system prompt', () => {
-    const ctx = buildContextBlock({ clientName: 'Bob' });
+  it('embeds the context block in the system prompt without leaking the client name', () => {
+    const ctx = buildContextBlock({
+      clientName: 'Bob',
+      pain: { exclusions: [{ bodyRegion: 'knee', painLevel: 7 }] },
+    });
     const prompt = buildSystemPrompt(ctx);
-    expect(prompt).toContain('Client: Bob');
+    expect(prompt).not.toMatch(/Bob/);       // Rule 8: name never reaches the LLM
+    expect(prompt).toContain('knee (7/10)'); // non-PII context IS embedded
     expect(prompt).toContain('strict JSON');
     expect(prompt).toContain('painFlags');
   });
@@ -551,5 +558,35 @@ describe('calculateConfidence', () => {
       VALID_PARSED_OBJECT,
     );
     expect(longScore).toBeGreaterThan(shortScore);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECTION: Rule 8 — no PII reaches the parser LLM (transcript + context)
+// ─────────────────────────────────────────────────────────────
+describe('parseWorkoutTranscript — Rule 8 redaction at the parser boundary', () => {
+  it('sends NEITHER the client name NOR contact PII to the parser LLM', async () => {
+    process.env.GOOGLE_API_KEY = 'test-gemini-key';
+    getClientContext.mockResolvedValueOnce({
+      clientName: 'Marcus',
+      pain: { exclusions: [{ bodyRegion: 'shoulder', painLevel: 5 }] },
+    });
+    const fetchMock = makeGeminiFetch(JSON.stringify(VALID_PARSED_OBJECT));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await parseWorkoutTranscript({
+      transcript:
+        'Marcus did goblet squats 135 by 10. Reach him at marcus@example.com. Left shoulder tight on the last set.',
+      clientId: 42,
+      trainerId: 7,
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const sentToLLM = body.contents[0].parts[0].text; // systemPrompt (context) + transcript
+
+    expect(sentToLLM).not.toMatch(/marcus/i);              // name redacted (transcript) + omitted (context)
+    expect(sentToLLM).not.toContain('marcus@example.com'); // contact PII redacted
+    expect(sentToLLM).toContain('goblet squat');           // exercise language preserved
+    expect(sentToLLM).toContain('shoulder');               // injury language preserved (needed for painFlags)
   });
 });

@@ -27,6 +27,7 @@
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
+import { redactTranscriptPII } from './redactTranscriptPII.mjs';
 import logger from '../utils/logger.mjs';
 
 // ─────────────────────────────────────────────────────────────
@@ -108,9 +109,9 @@ OUTPUT FORMAT (strict JSON, no markdown fences, no commentary):
 
 function buildContextBlock(ctx) {
   const parts = [];
-  if (ctx?.clientName) {
-    parts.push(`Client: ${ctx.clientName}`);
-  }
+  // RULE 8: the client's NAME is deliberately NOT sent to the parser LLM (zero PII
+  // to LLMs). It has no parsing value, and it is redacted from the transcript too
+  // (see redactTranscriptPII at the parse boundary). Do NOT re-add the name here.
   if (ctx?.pain?.exclusions?.length > 0) {
     parts.push(
       `Active pain exclusions: ${ctx.pain.exclusions
@@ -429,7 +430,14 @@ export async function parseWorkoutTranscript({ transcript, clientId, trainerId, 
   const contextBlock = clientContext ? buildContextBlock(clientContext) : 'No client context available.';
   const systemPrompt = buildSystemPrompt(contextBlock);
 
-  const parsed = await runProviderChain({ systemPrompt, transcript });
+  // RULE 8 (zero PII to LLMs): redact the transcript BEFORE it reaches the parser.
+  // The known client name is the highest-value identifier to mask; the deterministic
+  // redactor also strips emails/phones/SSN while preserving injury/movement language.
+  // The ORIGINAL transcript is untouched (confidence + any human-review copy use it).
+  const nameHints = clientContext?.clientName ? [clientContext.clientName] : [];
+  const { text: redactedTranscript } = redactTranscriptPII(transcript, { nameHints });
+
+  const parsed = await runProviderChain({ systemPrompt, transcript: redactedTranscript });
 
   // Validate structure — same defensive check as Phase 9.
   if (!parsed || !Array.isArray(parsed.exercises)) {
