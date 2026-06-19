@@ -138,9 +138,23 @@ _Advisory — Sean accepts/modifies/rejects each._
 - **One-tap confirm** when confidence is high; only force a review step when confidence is low.
 
 ## Open Flags
-- [x] Terrain-map workflow results folded into Architecture Notes (8-agent map `w7eyscb64`).
-- [ ] Q1 (what "MCP/tool layer" means concretely) — ASKED, awaiting Sean.
-- [ ] Are independent platform trainers real users NOW, or near-term it's admin-Sean + Move-Fitness onboarding? (changes whether multi-tenant isolation is today-need vs 6-month-need) — repo can't answer.
-- [ ] Free-text-PII rule (Rule 8): non-negotiable constraint on any chosen design — flag for chromie/fusion.
-- [ ] Greenlight on patching the verified live Hermes IDOR independently (see Verified live security issues) — awaiting Sean.
-- [ ] Operator-action audit retention/query dimensions (compliance/minors-data sensitivity) — legal/business input.
+- [x] Terrain-map workflow folded into Architecture Notes (`w7eyscb64`); pipeline map folded in (`w1ncs4mkp`).
+- [x] Q1 resolved: in-app Operator Console (MCP fast-follow).
+- [x] "Real trainers now?" resolved: near-term users = end-users (user dashboard + social); paying ones get self-service; trainers = v1.1.
+- [x] Rule-8 posture resolved: full hardening in v1 (redact-before-parse + consent + ZDR + draft-purge).
+- [x] Live Hermes IDOR + transcript Rule-8 gap: GREENLIT as standalone pre-work slices (see below).
+- [ ] Guardian taste-quota exact number (N free/mo) — set during build.
+- [ ] Operator-action audit retention/query dimensions (compliance/minors-data) — legal/business input, revisit before trainer v1.1.
+- [ ] Consent-UX flow specifics (one-time vs per-session) — design during build.
+
+## Closeout (grill-me complete 2026-06-18)
+**Greenlit standalone pre-work (Sean, before any operator-console code; each = own test + hostile review):**
+1. **Hermes IDOR fix** — owner/resource-scoped read/list/cancel on `/api/hermes/tasks` (admin full; trainer/user limited to own tasks / authorized client scope). Live production bug; hardens existing pipeline.
+2. **`redactTranscriptPII()`** at the transcript parse boundary — redact names/ages/DOB/contact/injury before Gemini/any cloud parser. Live Rule-8 gap; reused by v1 workflow.
+
+**Next gate:** `chromie` (strategy pressure-test — unproven monetized bet) → triangle fusion → swan-orchestrator → recursive plan → build.
+
+**Propagation candidates (offer to Sean, apply only on yes):**
+- `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` — add the `redactTranscriptPII()` parse-boundary requirement + the verified live Rule-8 gap (its ZDR/consent are documented-not-enforced).
+- Memory `project_hermes_operator_scope.md` — updated with the v1 decisions (audience order, Plaud magic workflow, Crystalline gate, privacy posture). ✓ done.
+- A future operator-layer reference doc once the build plan is set (post-fusion).
