@@ -19,6 +19,10 @@ import {
   MetricValue,
   NextAction,
   ReadinessPill,
+  RepairQueue,
+  RepairQueueItem,
+  RepairQueueList,
+  RepairQueueTitle,
 } from './BootcampCommandDeck.styles';
 
 interface BootcampCommandDeckProps {
@@ -65,6 +69,16 @@ const BootcampCommandDeck: React.FC<BootcampCommandDeckProps> = ({ bootcamp, bui
           {model.missingDemoCount > 0 && <AlertChip>{model.missingDemoCount} demo video gaps</AlertChip>}
           {model.bottleneckCount > 0 && <AlertChip>{model.bottleneckCount} flow bottleneck{model.bottleneckCount > 1 ? 's' : ''}</AlertChip>}
         </AlertStrip>
+      )}
+      {model.repairQueue.length > 0 && (
+        <RepairQueue aria-label="Bootcamp repair queue">
+          <RepairQueueTitle>Repair queue</RepairQueueTitle>
+          <RepairQueueList>
+            {model.repairQueue.map((item) => (
+              <RepairQueueItem key={item}>{item}</RepairQueueItem>
+            ))}
+          </RepairQueueList>
+        </RepairQueue>
       )}
     </CommandDeckShell>
   );

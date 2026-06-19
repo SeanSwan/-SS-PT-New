@@ -21,10 +21,11 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import {
-  Video, Mic2, Hexagon, Sparkles, FileText,
+  Video, Mic2, Hexagon, Sparkles, FileText, Film,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { AICommandBar } from '../../../Shared/AICommandBar';
+import ContentStudioStorageMeter from './ContentStudioStorageMeter';
 import {
   Page, Header, TitleGroup, HeaderIcon, Title, TierBadge,
   StudioBrief, TabBar, Tab, TabContent, LoadingFallback,
@@ -36,14 +37,16 @@ const VoiceStudioPanel = React.lazy(() => import('./VoiceStudioPanel'));
 const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
 const SeedanceVideoPanel = React.lazy(() => import('./SeedanceVideoPanel'));
 const BlogWriterTab = React.lazy(() => import('./BlogWriterTab'));
+const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
 
 type StudioTab =
-  | 'library' | 'coverage' | 'seedance-video'
+  | 'library' | 'coverage' | 'video-optimizer' | 'seedance-video'
   | 'nano-banana' | 'voice' | 'blog-writer';
 
 const TABS: { id: StudioTab; label: string; icon: React.ReactNode; requiresService?: string }[] = [
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
+  { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
   { id: 'nano-banana', label: 'Badge Assets', icon: <Sparkles size={16} /> },
   { id: 'blog-writer', label: 'Blog Drafts', icon: <FileText size={16} /> },
   { id: 'seedance-video', label: 'Seedance Video', icon: <Sparkles size={16} />, requiresService: 'seedance' },
@@ -77,6 +80,7 @@ const ContentStudioHub: React.FC = () => {
     switch (activeTab) {
       case 'library': return <Suspense fallback={fallback('Loading video library...')}><VideoLibraryV3 /></Suspense>;
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
+      case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
       case 'blog-writer': return <Suspense fallback={fallback('Loading blog writer...')}><BlogWriterTab /></Suspense>;
       case 'seedance-video': return <Suspense fallback={fallback('Loading Seedance video...')}><SeedanceVideoPanel /></Suspense>;
@@ -99,6 +103,7 @@ const ContentStudioHub: React.FC = () => {
         </StudioBrief>
       </Header>
       <div style={{ padding: '16px 24px 0' }}><AICommandBar context="content" /></div>
+      <ContentStudioStorageMeter />
       <TabBar role="tablist">
         {visibleTabs.map(tab => (
           <Tab key={tab.id} $active={activeTab === tab.id} $locked={false} onClick={() => setActiveTab(tab.id)} role="tab" aria-selected={activeTab === tab.id} title={tab.label}>

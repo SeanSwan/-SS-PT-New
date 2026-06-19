@@ -16,6 +16,9 @@ import {
 export const ClientCard = styled(motion.div)<{ $membershipColor: string }>`
   --swan-card-padding: 1.35rem;
   ${swanDataCardShell}
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 
   &::before {
     content: '';
@@ -198,7 +201,7 @@ export const ClientActions = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 0.55rem;
-  margin-top: 1rem;
+  margin-top: auto;
   opacity: 1;
   transform: none;
 

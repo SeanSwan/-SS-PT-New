@@ -143,6 +143,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
       aria-label={`${clientName} trainer client summary`}
       data-swan-client-card="trainer"
       data-card-index={index}
+      data-testid={`trainer-client-card-${client.id}`}
     >
       <ClientHeader data-swan-card-section="trainer-identity">
         <ClientAvatar $status={client.status}>
@@ -183,6 +184,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
       </ClientHeader>
 
       <ClientReadinessStrip
+        role="group"
         aria-label={`${clientName} client readiness`}
         data-swan-card-section="trainer-readiness"
       >
@@ -218,28 +220,31 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
 
       <ClientMetrics data-swan-card-section="trainer-metrics">
         <MetricItem>
-          <Calendar size={16} className="metric-icon" />
+          <Calendar size={16} className="metric-icon" aria-hidden="true" />
           <div className="metric-value">{sessionSignal.label}</div>
           <div className="metric-label">{sessionSignal.note}</div>
         </MetricItem>
         <MetricItem>
-          <CheckCircle size={16} className="metric-icon" />
+          <CheckCircle size={16} className="metric-icon" aria-hidden="true" />
           <div className="metric-value">{client.totalSessionsCompleted}</div>
           <div className="metric-label">Completed</div>
         </MetricItem>
         <MetricItem>
-          <Target size={16} className="metric-icon" />
+          <Target size={16} className="metric-icon" aria-hidden="true" />
           <div className="metric-value">{client.goals.current}</div>
           <div className="metric-label">Active Goals</div>
         </MetricItem>
         <MetricItem>
-          <Award size={16} className="metric-icon" />
+          <Award size={16} className="metric-icon" aria-hidden="true" />
           <div className="metric-value">{client.goals.completed}</div>
           <div className="metric-label">Achieved</div>
         </MetricItem>
       </ClientMetrics>
 
-      <WorkoutProofPanel>
+      <WorkoutProofPanel
+        role="group"
+        aria-label={`${clientName} workout proof`}
+      >
         <ProofHeader>
           <ProofLabel>Workout Proof</ProofLabel>
           <ProofValue>{proofValue}</ProofValue>

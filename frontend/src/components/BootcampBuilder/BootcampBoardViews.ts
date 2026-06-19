@@ -1,12 +1,13 @@
 import type { BootcampExercise } from '../../hooks/useBootcampAPI';
 import { getLowImpactSwap } from './BootcampExerciseAlternatives';
+import { getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
 
 type BoardExercise = Pick<BootcampExercise, 'board' | 'exerciseName' | 'stationIndex' | 'sourceExerciseName'>
   & Partial<Pick<BootcampExercise, 'easyVariation' | 'kneeMod' | 'ankleMod' | 'backMod' | 'shoulderMod'>>;
 
 function groupByStation<T extends Pick<BootcampExercise, 'stationIndex'>>(exercises: T[]): Record<number, T[]> {
   return exercises.reduce<Record<number, T[]>>((acc, exercise) => {
-    const key = exercise.stationIndex ?? -1;
+    const key = getBootcampFloorStationIndex(exercise.stationIndex);
     if (!acc[key]) acc[key] = [];
     acc[key].push(exercise);
     return acc;

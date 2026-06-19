@@ -10,6 +10,7 @@ const STYLE_FILES = [
   'CoachCommandCenter.workspaceStyles.ts',
   'CoachCommandCenter.composerStyles.ts',
   'CoachCommandCenter.bridgeDockStyles.ts',
+  'CoachCommandCenter.bridgeMobileDockStyles.ts',
   'CoachCommandCenter.opsStyles.ts',
   'CoachCommandCenter.opsMissionStyles.ts',
   'CoachCommandCenter.responsiveStyles.ts',
@@ -51,5 +52,22 @@ describe('CoachCommandCenter style split', () => {
     const dockSource = readStyleFile('CoachCommandCenter.bridgeDockStyles.ts');
 
     expect(dockSource).toMatch(/\.transcript-reset[\s\S]*?min-height:\s*44px/);
+  });
+
+  it('keeps the mounted mobile command dock reachable and thumb-ready', () => {
+    const bridgeSource = readStyleFile('CoachCommandCenter.bridgeStyles.ts');
+    const mobileDockSource = readStyleFile('CoachCommandCenter.bridgeMobileDockStyles.ts');
+    const dockComponentSource = readStyleFile('CoachConsoleDock.tsx');
+
+    expect(bridgeSource).toContain('coachCommandBridgeMobileDockStyles');
+    expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?position:\s*sticky;/);
+    expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?bottom:\s*0;/);
+    expect(mobileDockSource).toContain('env(safe-area-inset-bottom)');
+    expect(mobileDockSource).toMatch(/\.dock-actions[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
+    expect(mobileDockSource).toMatch(/\.dock-actions-left[\s\S]*?overflow-x:\s*auto;/);
+    expect(mobileDockSource).toMatch(/\.dock-action \.dock-action-label[\s\S]*?display:\s*none;/);
+    expect(mobileDockSource).toMatch(/\.dock-mic,\s*\.dock-send[\s\S]*?min-width:\s*54px;[\s\S]*?min-height:\s*54px;/);
+    expect(dockComponentSource).toContain('aria-label="Attach"');
+    expect(dockComponentSource).toContain('aria-label="Readback"');
   });
 });

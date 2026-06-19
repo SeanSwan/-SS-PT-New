@@ -112,6 +112,25 @@ describe('TrainerClientCard accessibility', () => {
     });
   });
 
+  it('announces readiness and workout proof as named card groups', () => {
+    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+
+    expect(screen.getByRole('group', { name: /accessible client client readiness/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /accessible client workout proof/i })).toBeInTheDocument();
+  });
+
+  it('uses the same stretchable card contract as the admin client grid', () => {
+    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+
+    const card = screen.getByTestId('trainer-client-card-91');
+
+    expect(card).toHaveStyle({
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+    });
+  });
+
   it('surfaces paid-client readiness details before the trainer clicks into the client', () => {
     render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
 

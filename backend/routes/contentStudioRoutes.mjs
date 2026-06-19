@@ -9,6 +9,10 @@
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { loadContentStudioCoveragePayload } from '../services/contentStudioCoverageService.mjs';
+import {
+  ContentStudioVideoGenerationError,
+  requestContentStudioVideoGeneration,
+} from '../services/contentStudioVideoGenerationService.mjs';
 
 const router = Router();
 
@@ -97,6 +101,28 @@ router.get('/coverage', protect, adminOnly, async (req, res) => {
 
 // ─── POST /api/content-studio/render-job ──────────────────
 // Queues a Remotion motion graphics render job
+router.post('/generate-video', protect, adminOnly, async (req, res) => {
+  try {
+    const data = await requestContentStudioVideoGeneration(req.body, {
+      requestedBy: req.user?.id || null,
+    });
+    const statusCode = data.status === 'completed' ? 200 : 202;
+
+    res.status(statusCode).json({
+      success: true,
+      message: data.status === 'completed' ? 'Video generated.' : 'Video generation queued.',
+      data,
+    });
+  } catch (err) {
+    if (err instanceof ContentStudioVideoGenerationError) {
+      return res.status(err.statusCode).json({ success: false, message: err.message });
+    }
+
+    console.error('[ContentStudio] Video generation failed:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to generate video' });
+  }
+});
+
 router.post('/render-job', protect, adminOnly, async (req, res) => {
   try {
     const { templateId, branding, clientName, exerciseName, customText } = req.body;

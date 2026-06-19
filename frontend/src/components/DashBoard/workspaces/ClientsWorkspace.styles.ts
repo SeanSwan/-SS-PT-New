@@ -182,7 +182,9 @@ export const DetailScrollWrap = styled.div`
 
 export const CardGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  grid-auto-rows: 1fr;
+  align-items: stretch;
   gap: 16px;
   padding: 20px;
   overflow-y: auto;

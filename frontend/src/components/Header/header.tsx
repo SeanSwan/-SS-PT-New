@@ -171,6 +171,7 @@ const ReforgedGalaxyHeader: React.FC = memo(() => {
         animate="visible"
         variants={headerState.containerVariants}
         role="banner"
+        data-swan-app-header
         aria-label="Main navigation"
       >
         <HeaderContent>

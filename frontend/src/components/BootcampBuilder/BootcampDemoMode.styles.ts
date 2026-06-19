@@ -63,11 +63,19 @@ export const StationDemoGrid = styled.div`
   }
 `;
 
-export const StationDemoCard = styled.article`
+export const StationDemoCard = styled.article<{ $active?: boolean }>`
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent);
+  border: 1px solid ${({ $active }) => (
+    $active
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)'
+  )};
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent);
+  background: ${({ $active }) => (
+    $active
+      ? 'linear-gradient(145deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, transparent))'
+      : 'color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)'
+  )};
   overflow: hidden;
 `;
 

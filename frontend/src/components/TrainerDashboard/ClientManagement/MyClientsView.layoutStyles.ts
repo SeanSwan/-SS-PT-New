@@ -234,6 +234,8 @@ export const StatCard = styled.div<{
 export const ClientsGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-auto-rows: 1fr;
+  align-items: stretch;
   gap: 1.5rem;
 
   @media (max-width: 768px) {

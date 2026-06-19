@@ -182,7 +182,7 @@ export const ExerciseArea = styled.div`
   border-radius: 10px;
   padding: 20px;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   font-size: 0.85rem;
   margin-bottom: 16px;
 `;
@@ -258,13 +258,13 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
 
 export const HelperCopy = styled.p`
   margin: 12px 0 0;
-  color: var(--text-muted, rgba(224, 236, 244, 0.48));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   font-size: 0.82rem;
 `;
 
 export const EmptyState = styled.div`
   text-align: center;
   padding: 48px 24px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   font-size: 0.95rem;
 `;

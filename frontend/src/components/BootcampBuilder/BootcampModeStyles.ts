@@ -79,9 +79,9 @@ export const TimingAlert = styled.div<{ $over: boolean }>`
   }
 `;
 
-export const FourPane = styled.div`
+export const FourPane = styled.div<{ $floorMode?: boolean }>`
   display: grid;
-  grid-template-columns: 240px 1fr 280px;
+  grid-template-columns: ${({ $floorMode }) => ($floorMode ? 'minmax(0, 1fr)' : '240px 1fr 280px')};
   flex: 1;
   overflow: hidden;
   min-height: 0;
@@ -92,6 +92,6 @@ export const FourPane = styled.div`
   }
 
   @media (min-width: 2200px) {
-    grid-template-columns: 340px minmax(0, 1fr) 380px;
+    grid-template-columns: ${({ $floorMode }) => ($floorMode ? 'minmax(0, 1fr)' : '340px minmax(0, 1fr) 380px')};
   }
 `;

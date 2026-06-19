@@ -25,13 +25,18 @@ import type { ClientSourceTone } from './clientSourceDisplay';
 export const CardShell = styled.article`
   --swan-card-padding: 16px;
   ${swanDataCardShell}
-  display: block;
-  align-self: start;
-  height: max-content;
-  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  height: 100%;
+  min-height: 320px;
 
   > * + * {
     margin-top: 14px;
+  }
+
+  [data-swan-card-section='admin-actions'] {
+    margin-top: auto;
   }
 
   @media (max-width: 430px) {
@@ -44,7 +49,7 @@ export const CardShell = styled.article`
   }
 `;
 
-export const CardButton = styled.div`
+export const CardButton = styled.button`
   position: relative;
   width: 100%;
   min-width: 0;
@@ -54,6 +59,7 @@ export const CardButton = styled.div`
   border: 0;
   background: transparent;
   color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
   user-select: none;
@@ -65,7 +71,7 @@ export const CardButton = styled.div`
   }
 `;
 
-export const IdentityRow = styled.div`
+export const IdentityRow = styled.span`
   width: 100%;
   min-width: 0;
   display: flex;
@@ -77,7 +83,7 @@ export const IdentityRow = styled.div`
   }
 `;
 
-export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
+export const Avatar = styled.span<{ $source?: ClientSourceTone }>`
   ${swanClientAvatar}
   background: ${({ $source }) =>
     $source === 'mf'
@@ -91,13 +97,13 @@ export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   }
 `;
 
-export const CardBody = styled.div`
+export const CardBody = styled.span`
   min-width: 0;
   display: grid;
   align-content: start;
 `;
 
-export const TopLine = styled.div`
+export const TopLine = styled.span`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -105,7 +111,7 @@ export const TopLine = styled.div`
   flex-wrap: wrap;
 `;
 
-export const Name = styled.div`
+export const Name = styled.span`
   min-width: 0;
   color: var(--text-heading, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -119,7 +125,8 @@ export const Pill = styled.span`
   ${swanPill}
 `;
 
-export const ContactLine = styled.div`
+export const ContactLine = styled.span`
+  display: block;
   margin: -2px 0 8px;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -133,7 +140,7 @@ export const ContactLine = styled.div`
 
 export const GoalLine = styled.div`
   display: -webkit-box;
-  min-height: 0;
+  min-height: 36px;
   overflow: hidden;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -143,6 +150,44 @@ export const GoalLine = styled.div`
   line-height: 1.35;
 `;
 
+export const ReadinessGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 360px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ReadinessItem = styled.div`
+  ${swanMetricTile}
+  min-height: 50px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+`;
+
+export const ReadinessLabel = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.64));
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+export const ReadinessValue = styled.span`
+  min-width: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+`;
+
 export const MetricGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -150,6 +195,58 @@ export const MetricGrid = styled.div`
 
   @media (max-width: 360px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+export const ProofPanel = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #050810) 70%, transparent);
+
+  @media (max-width: 360px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+`;
+
+export const ProofHeader = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const ProofValue = styled.div`
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: right;
+
+  small {
+    color: var(--text-muted, rgba(224, 236, 244, 0.68));
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 360px) {
+    justify-items: start;
+    text-align: left;
   }
 `;
 

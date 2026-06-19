@@ -34,9 +34,32 @@ describe('ClientHubGridCard', () => {
     expect(screen.getByText('Strength and mobility')).toBeInTheDocument();
     expect(screen.getByText('7 workouts')).toBeInTheDocument();
     expect(screen.getByText('12 paid sessions')).toBeInTheDocument();
+    expect(screen.getByText('Next session')).toBeInTheDocument();
+    expect(screen.getByText('check schedule')).toBeInTheDocument();
+    expect(screen.getByText('Workout Proof')).toBeInTheDocument();
+    expect(screen.getByText('7 logged')).toBeInTheDocument();
     expect(screen.getByText('72% onboarded')).toBeInTheDocument();
     expect(screen.getByText(/intake progress/i)).toBeInTheDocument();
     expect(screen.getByText(/deducts when logged/i)).toBeInTheDocument();
+  });
+
+  it('uses native controls and semantic groups for the card command surface', () => {
+    render(
+      <ClientHubGridCard
+        client={{
+          ...fixtureClient,
+          onboardingPct: 72,
+        }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    const openButton = screen.getByRole('button', { name: /open fixture client/i });
+
+    expect(openButton.tagName).toBe('BUTTON');
+    expect(openButton.querySelector('div')).toBeNull();
+    expect(screen.getByRole('group', { name: /fixture client readiness/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /fixture client workout proof/i })).toBeInTheDocument();
   });
 
   it('labels Move Fitness clients as free tracking instead of paid session inventory', () => {

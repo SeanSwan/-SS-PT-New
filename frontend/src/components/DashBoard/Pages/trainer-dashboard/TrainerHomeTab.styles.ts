@@ -9,7 +9,8 @@ export const PageWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 860px;
+  width: 100%;
+  align-items: center;
 
   @media (max-width: 414px) { padding: 1rem; gap: 0.875rem; }
   @media (max-width: 375px) { padding: 0.875rem; }
@@ -50,7 +51,7 @@ export const KpiLabel = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
 `;
 
 export const SessionsCard = styled.div`
@@ -95,7 +96,7 @@ export const SessionClient = styled.span`
 export const SessionTime = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
 `;
 
 export const StatusBadge = styled.span<{ $status?: string }>`
@@ -186,7 +187,7 @@ export const EmptyState = styled.div`
   gap: 0.75rem;
   padding: 1.5rem;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   font-size: 0.875rem;
   font-family: 'Sora', sans-serif;
 `;

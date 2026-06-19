@@ -20,6 +20,7 @@ const exerciseModel = {
     source: {},
     description: {},
     videoUrl: {},
+    previewVideoUrl: {},
     imageUrl: {},
     thumbnailUrl: {},
     defaultTempo: {},
@@ -35,6 +36,7 @@ describe('contentStudioCoverageService', () => {
       'exercise_key',
       'bodyPartCategory',
       'videoUrl',
+      'previewVideoUrl',
       'imageUrl',
       'thumbnailUrl',
       'defaultTempo',
@@ -55,6 +57,18 @@ describe('contentStudioCoverageService', () => {
         videoUrl: 'https://media.swanstudios.test/squat.mp4',
         imageUrl: 'https://media.swanstudios.test/squat.jpg',
         thumbnailUrl: 'https://media.swanstudios.test/squat.gif',
+      },
+      {
+        id: 'ex-preview-only',
+        name: 'Preview Loop Curl',
+        exercise_key: 'preview-loop-curl',
+        exerciseType: 'strength',
+        bodyPartCategory: 'arms',
+        primaryMuscles: '["biceps"]',
+        difficulty: 260,
+        source: 'swanstudios',
+        videoUrl: '',
+        previewVideoUrl: 'https://media.swanstudios.test/curl-loop.webm',
       },
       {
         id: 'ex-poster-only',
@@ -82,15 +96,16 @@ describe('contentStudioCoverageService', () => {
     ], { 'ex-catalog': 2 });
 
     expect(payload.summary).toEqual({
-      totalExercises: 3,
+      totalExercises: 4,
       coveredCount: 2,
-      gapCount: 1,
-      coveragePercent: 66.7,
+      gapCount: 2,
+      coveragePercent: 50,
     });
     expect(payload.byBodyPart).toMatchObject({
       legs: { total: 1, covered: 1, gaps: 0 },
+      arms: { total: 1, covered: 1, gaps: 0 },
       core: { total: 1, covered: 0, gaps: 1 },
-      back: { total: 1, covered: 1, gaps: 0 },
+      back: { total: 1, covered: 0, gaps: 1 },
     });
     expect(payload.exercises[0]).toMatchObject({
       id: 'ex-video',
@@ -104,17 +119,24 @@ describe('contentStudioCoverageService', () => {
       covered: true,
     });
     expect(payload.exercises[1]).toMatchObject({
+      id: 'ex-preview-only',
+      previewVideoUrl: 'https://media.swanstudios.test/curl-loop.webm',
+      hasLegacyVideo: false,
+      catalogVideoCount: 0,
+      covered: true,
+    });
+    expect(payload.exercises[2]).toMatchObject({
       id: 'ex-poster-only',
       mediaPreviewUrl: 'https://media.swanstudios.test/plank.gif',
       hasLegacyVideo: false,
       catalogVideoCount: 0,
       covered: false,
     });
-    expect(payload.exercises[2]).toMatchObject({
+    expect(payload.exercises[3]).toMatchObject({
       id: 'ex-catalog',
       hasLegacyVideo: false,
       catalogVideoCount: 2,
-      covered: true,
+      covered: false,
     });
   });
 
@@ -172,7 +194,7 @@ describe('contentStudioCoverageService', () => {
         thumbnailUrl: 'https://img.youtube.com/vi/abc123XYZ/hqdefault.jpg',
         durationSeconds: 42,
       },
-      covered: true,
+      covered: false,
     });
     expect(payload.exercises[1]).toMatchObject({
       id: 'ex-upload',
@@ -183,7 +205,7 @@ describe('contentStudioCoverageService', () => {
         videoUrl: null,
         thumbnailUrl: null,
       },
-      covered: true,
+      covered: false,
     });
     const serialized = JSON.stringify(payload.exercises);
     expect(serialized).not.toContain('hostedKey');

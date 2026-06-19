@@ -7,6 +7,16 @@
 This doc is the load-bearing artifact for the decision to arm the outbound automation engine.
 Re-read it before flipping `SWAN_AUTOMATION_CRON_ENABLED=true` or before activating `lead_nurture`.
 
+## 2026-06-18 Codex Supersession Check
+
+Current code has closed the original BLOCKER 2 and the mechanical pieces of BLOCKER 3:
+- BLOCKER 2 is now code-closed by `AutomationLog.status='processing'`, an atomic `pending|stale-processing -> processing` claim before send, and frequency-cap counting of in-flight `processing` peers.
+- BLOCKER 3 phone suppression is now code-closed by `sms_suppressions`, `smsWebhookRoutes` mounted at `/api/sms/webhooks/inbound`, and `resolveMarketingSuppression({ email, phone, leadId })`.
+- BLOCKER 3 positive lead SMS consent is now fail-closed by `Lead.smsConsentStatus/smsConsentAt/smsOptOutAt`; a lead SMS send is suppressed unless the lead is explicitly `opted_in` with a timestamp.
+- Raw admin SMS sends are also gated while disarmed and require suppression identity, suppression verification, and the manual frequency cap before Twilio.
+
+Live activation gate remains: do not activate `lead_nurture` or any phone-capturing nurture source until the source explicitly captures SMS consent into the Lead fields, `TWILIO_WEBHOOK_PUBLIC_BASE_URL` is correct in Render so STOP signatures validate, and an email-channel sender exists for email-only prospects. The seeded `lead_nurture` sequence must stay `isActive:false` until those operator/product gates are satisfied.
+
 ---
 
 ## What shipped (slices 1–5)

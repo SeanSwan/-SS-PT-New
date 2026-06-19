@@ -48,27 +48,31 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
         >
           {floorMode ? 'Exit Demo' : 'Demo Mode'}
         </FloorModeToggle>
-        <TeachMeToggle
-          sectionId="bootcamp-builder"
-          title="How to Use the Bootcamp Builder"
-          content={BOOTCAMP_TEACH_ME_CONTENT}
-        />
+        {!floorMode && (
+          <TeachMeToggle
+            sectionId="bootcamp-builder"
+            title="How to Use the Bootcamp Builder"
+            content={BOOTCAMP_TEACH_ME_CONTENT}
+          />
+        )}
       </HeaderActions>
     </TopBar>
-    <ModeBar>
-      <ModeBtn $active={buildMode === 'ai'} onClick={() => onBuildModeChange('ai')}>
-        <Wand2 size={14} /> Swan Coach Generate
-      </ModeBtn>
-      <ModeBtn $active={buildMode === 'manual'} onClick={() => onBuildModeChange('manual')}>
-        <Hand size={14} /> Manual
-      </ModeBtn>
-      <ModeBtn $active={buildMode === 'hybrid'} onClick={() => onBuildModeChange('hybrid')}>
-        <Shuffle size={14} /> Hybrid
-      </ModeBtn>
-      <TimingAlert $over={isOverTime}>
-        {isOverTime ? 'Over' : 'On'} {totalClassMin}/55 min
-      </TimingAlert>
-    </ModeBar>
+    {!floorMode && (
+      <ModeBar>
+        <ModeBtn $active={buildMode === 'ai'} onClick={() => onBuildModeChange('ai')}>
+          <Wand2 size={14} /> Swan Coach Generate
+        </ModeBtn>
+        <ModeBtn $active={buildMode === 'manual'} onClick={() => onBuildModeChange('manual')}>
+          <Hand size={14} /> Manual
+        </ModeBtn>
+        <ModeBtn $active={buildMode === 'hybrid'} onClick={() => onBuildModeChange('hybrid')}>
+          <Shuffle size={14} /> Hybrid
+        </ModeBtn>
+        <TimingAlert $over={isOverTime}>
+          {isOverTime ? 'Over' : 'On'} {totalClassMin}/55 min
+        </TimingAlert>
+      </ModeBar>
+    )}
   </>
 );
 

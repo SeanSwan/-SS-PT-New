@@ -1,3 +1,5 @@
+import { getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
+
 type BootcampPlacementExercise = {
   board?: string;
   stationIndex?: number;
@@ -17,7 +19,7 @@ export function countMainBoardExercisesByStation(exercises: BootcampPlacementExe
   const stationCounts = new Map<number, number>();
 
   for (const exercise of getMainBoardExercises(exercises)) {
-    const station = exercise.stationIndex ?? 0;
+    const station = getBootcampFloorStationIndex(exercise.stationIndex);
     stationCounts.set(station, (stationCounts.get(station) || 0) + 1);
   }
 
@@ -39,5 +41,7 @@ export function getNextMainBoardSortOrder(
   exercises: BootcampPlacementExercise[] = [],
   stationIndex: number,
 ): number {
-  return getMainBoardExercises(exercises).filter(exercise => (exercise.stationIndex ?? 0) === stationIndex).length + 1;
+  return getMainBoardExercises(exercises).filter(
+    exercise => getBootcampFloorStationIndex(exercise.stationIndex) === stationIndex,
+  ).length + 1;
 }

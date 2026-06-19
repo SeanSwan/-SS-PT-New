@@ -7,7 +7,7 @@
  * file videoUrl as the loop; YouTube -> derive a poster, no inline loop).
  */
 import { describe, expect, it } from 'vitest';
-import { getExerciseDemoMedia, getDemoMediaPillLabel } from './BootcampDemoMode';
+import { getExerciseDemoMedia, getDemoMediaPillLabel, getStationDemoReadiness } from './BootcampDemoMode';
 import type { BootcampExercise } from '../../hooks/useBootcampAPI';
 
 const ex = (over: Partial<BootcampExercise>): BootcampExercise =>
@@ -22,6 +22,16 @@ describe('getExerciseDemoMedia', () => {
     expect(m.previewUrl).toBe('https://r2.example.com/squat-loop.webm');
     expect(m.previewIsFile).toBe(true);
     expect(m.videoUrl).toBe('https://r2.example.com/squat-full.mp4'); // full video for depth
+  });
+
+  it('treats a preview-only loop as demo-ready media', () => {
+    const exercise = ex({ previewVideoUrl: 'https://r2.example.com/squat-loop.webm' });
+    const m = getExerciseDemoMedia(exercise);
+
+    expect(m.previewUrl).toBe('https://r2.example.com/squat-loop.webm');
+    expect(m.previewIsFile).toBe(true);
+    expect(getDemoMediaPillLabel(m)).toBe('Looping clip');
+    expect(getStationDemoReadiness([exercise])).toBe('1/1 demos ready');
   });
 
   it('falls back to looping a direct-file videoUrl when there is no preview loop', () => {

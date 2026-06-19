@@ -75,6 +75,13 @@ import {
   SessionTime,
   StatusBadge,
 } from './TrainerHomeTab.styles';
+import {
+  TrainerHeroPanel,
+  TrainerHomeHeroGrid,
+  TrainerHomeMainGrid,
+  TrainerHomePrimaryColumn,
+  TrainerHomeSideColumn,
+} from './TrainerHomeTab.layoutStyles';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
@@ -119,160 +126,168 @@ const TrainerHomeTab: React.FC = () => {
 
   return (
     <PageWrap>
-      {/* ── Swan Coach Dock ──────────────────────────────── */}
-      <SwanCoachDockTrainer
-        trainerName={trainerName}
-        sessionCount={stats.sessionsToday}
-        level={level}
-        loading={loading}
-        coachPath={trainerHomeCoachPath}
-        onNavigate={navigate}
-      />
+      <TrainerHomeHeroGrid>
+        <TrainerHeroPanel>
+          <SwanCoachDockTrainer
+            trainerName={trainerName}
+            sessionCount={stats.sessionsToday}
+            level={level}
+            loading={loading}
+            coachPath={trainerHomeCoachPath}
+            onNavigate={navigate}
+          />
+        </TrainerHeroPanel>
 
-      <TrainerHomeNextActionCard
-        session={nextActionableSession}
-        coachPath={trainerHomeCoachPath}
-        onNavigate={navigate}
-      />
+        <TrainerHomeNextActionCard
+          session={nextActionableSession}
+          coachPath={trainerHomeCoachPath}
+          onNavigate={navigate}
+        />
+      </TrainerHomeHeroGrid>
 
-      {/* ── KPI Strip ────────────────────────────────────── */}
-      <KpiStrip aria-label="Today's key metrics">
-        {kpiData.map(({ value, label, Icon, color }, i) => (
-          <KpiCard key={label} style={{ '--i': i } as React.CSSProperties}>
-            <KpiValue>
-              <Icon size={16} color={color} aria-hidden="true" />
-              {value}
-            </KpiValue>
-            <KpiLabel>{label}</KpiLabel>
-          </KpiCard>
-        ))}
-      </KpiStrip>
+      <TrainerHomeMainGrid>
+        <TrainerHomePrimaryColumn>
+          <KpiStrip aria-label="Today's key metrics">
+            {kpiData.map(({ value, label, Icon, color }, i) => (
+              <KpiCard key={label} style={{ '--i': i } as React.CSSProperties}>
+                <KpiValue>
+                  <Icon size={16} color={color} aria-hidden="true" />
+                  {value}
+                </KpiValue>
+                <KpiLabel>{label}</KpiLabel>
+              </KpiCard>
+            ))}
+          </KpiStrip>
 
-      {/* ── Today's Sessions ─────────────────────────────── */}
-      <SessionsCard>
-        <SessionsHeading>Today's Sessions</SessionsHeading>
-        {loading ? (
-          <EmptyState>Loading schedule...</EmptyState>
-        ) : error ? (
-          <EmptyState>{error}</EmptyState>
-        ) : sessions.length === 0 ? (
-          <EmptyState>
-            No sessions scheduled today.
-            <BookBtn
-              onClick={() => navigate('/dashboard/trainer/schedule')}
-              aria-label="Open schedule"
-            >
-              <Calendar size={15} aria-hidden="true" />
-              Open Schedule
-            </BookBtn>
-          </EmptyState>
-        ) : (
-          <>
-            {visibleSessions.map(s => {
-              const startDate = getSessionStartDate(s);
-              const coachRoute = buildTrainerSessionCoachRoute(s);
-              const logRoute = buildTrainerSessionLogRoute(s);
-              const plannerRoute = buildTrainerSessionPlannerRoute(s);
-              const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
-              const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
-              const canPlan = Boolean(plannerRoute && s.status !== 'completed' && s.status !== 'cancelled');
-
-              return (
-                <SessionRow key={s.id}>
-                  <div>
-                    <SessionClient>{getClientName(s)}</SessionClient>
-                    <SessionTime>
-                      {startDate
-                        ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : 'TBD'}
-                    </SessionTime>
-                  </div>
-                  <SessionActions>
-                    <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
-                    {canDictate && (
-                      <SessionLogButton
-                        type="button"
-                        onClick={() => {
-                          if (coachRoute) navigate(coachRoute);
-                        }}
-                        aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
-                      >
-                        <Brain size={14} aria-hidden="true" />
-                        Coach
-                      </SessionLogButton>
-                    )}
-                    {canPlan && (
-                      <SessionLogButton
-                        type="button"
-                        onClick={() => {
-                          if (plannerRoute) navigate(plannerRoute);
-                        }}
-                        aria-label={`Plan workout for ${getClientName(s)}`}
-                      >
-                        <ClipboardList size={14} aria-hidden="true" />
-                        Plan
-                      </SessionLogButton>
-                    )}
-                    {canLog && (
-                      <SessionLogButton
-                        type="button"
-                        onClick={() => {
-                          if (logRoute) navigate(logRoute);
-                        }}
-                        aria-label={`Log workout for ${getClientName(s)}`}
-                      >
-                        <Dumbbell size={14} aria-hidden="true" />
-                        Log
-                      </SessionLogButton>
-                    )}
-                  </SessionActions>
-                </SessionRow>
-              );
-            })}
-            {hiddenSessionCount > 0 && (
-              <SessionsOverflow>
-                <SessionsOverflowNote>
-                  Showing {visibleSessions.length} of {sessions.length} sessions
-                </SessionsOverflowNote>
+          <SessionsCard>
+            <SessionsHeading>Today's Sessions</SessionsHeading>
+            {loading ? (
+              <EmptyState>Loading schedule...</EmptyState>
+            ) : error ? (
+              <EmptyState>{error}</EmptyState>
+            ) : sessions.length === 0 ? (
+              <EmptyState>
+                No sessions scheduled today.
                 <BookBtn
                   type="button"
                   onClick={() => navigate('/dashboard/trainer/schedule')}
-                  aria-label={`View all ${sessions.length} sessions`}
+                  aria-label="Open schedule"
                 >
                   <Calendar size={15} aria-hidden="true" />
-                  View all {sessions.length} sessions
+                  Open Schedule
                 </BookBtn>
-              </SessionsOverflow>
+              </EmptyState>
+            ) : (
+              <>
+                {visibleSessions.map(s => {
+                  const startDate = getSessionStartDate(s);
+                  const coachRoute = buildTrainerSessionCoachRoute(s);
+                  const logRoute = buildTrainerSessionLogRoute(s);
+                  const plannerRoute = buildTrainerSessionPlannerRoute(s);
+                  const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
+                  const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
+                  const canPlan = Boolean(plannerRoute && s.status !== 'completed' && s.status !== 'cancelled');
+
+                  return (
+                    <SessionRow key={s.id}>
+                      <div>
+                        <SessionClient>{getClientName(s)}</SessionClient>
+                        <SessionTime>
+                          {startDate
+                            ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : 'TBD'}
+                        </SessionTime>
+                      </div>
+                      <SessionActions>
+                        <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
+                        {canDictate && (
+                          <SessionLogButton
+                            type="button"
+                            onClick={() => {
+                              if (coachRoute) navigate(coachRoute);
+                            }}
+                            aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
+                          >
+                            <Brain size={14} aria-hidden="true" />
+                            Coach
+                          </SessionLogButton>
+                        )}
+                        {canPlan && (
+                          <SessionLogButton
+                            type="button"
+                            onClick={() => {
+                              if (plannerRoute) navigate(plannerRoute);
+                            }}
+                            aria-label={`Plan workout for ${getClientName(s)}`}
+                          >
+                            <ClipboardList size={14} aria-hidden="true" />
+                            Plan
+                          </SessionLogButton>
+                        )}
+                        {canLog && (
+                          <SessionLogButton
+                            type="button"
+                            onClick={() => {
+                              if (logRoute) navigate(logRoute);
+                            }}
+                            aria-label={`Log workout for ${getClientName(s)}`}
+                          >
+                            <Dumbbell size={14} aria-hidden="true" />
+                            Log
+                          </SessionLogButton>
+                        )}
+                      </SessionActions>
+                    </SessionRow>
+                  );
+                })}
+                {hiddenSessionCount > 0 && (
+                  <SessionsOverflow>
+                    <SessionsOverflowNote>
+                      Showing {visibleSessions.length} of {sessions.length} sessions
+                    </SessionsOverflowNote>
+                    <BookBtn
+                      type="button"
+                      onClick={() => navigate('/dashboard/trainer/schedule')}
+                      aria-label={`View all ${sessions.length} sessions`}
+                    >
+                      <Calendar size={15} aria-hidden="true" />
+                      View all {sessions.length} sessions
+                    </BookBtn>
+                  </SessionsOverflow>
+                )}
+              </>
             )}
-          </>
-        )}
-      </SessionsCard>
+          </SessionsCard>
+        </TrainerHomePrimaryColumn>
 
-      {/* ── Quick Actions ────────────────────────────────── */}
-      <SectionHeading>Quick Actions</SectionHeading>
-      <QuickGrid>
-        {TRAINER_HOME_QUICK_ACTIONS.map(({ label, detail, overline, primary, Icon, path, tone, i }) => {
-          const actionPath = label === 'Ask Coach' ? trainerHomeCoachPath : path;
+        <TrainerHomeSideColumn>
+          <SectionHeading>Quick Actions</SectionHeading>
+          <QuickGrid>
+            {TRAINER_HOME_QUICK_ACTIONS.map(({ label, detail, overline, primary, Icon, path, tone, i }) => {
+              const actionPath = label === 'Ask Coach' ? trainerHomeCoachPath : path;
 
-          return (
-            <ActionCard
-              key={label}
-              $tone={tone}
-              $primary={primary}
-              style={{ '--i': i } as React.CSSProperties}
-              onClick={() => navigate(actionPath)}
-              aria-label={primary ? `Primary trainer action: ${label}` : label}
-            >
-              <ActionIcon $tone={tone} $primary={primary} aria-hidden="true"><Icon size={18} /></ActionIcon>
-              <ActionText>
-                {overline && <ActionOverline>{overline}</ActionOverline>}
-                <ActionLabel $primary={primary}>{label}</ActionLabel>
-                <ActionDetail>{detail}</ActionDetail>
-              </ActionText>
-            </ActionCard>
-          );
-        })}
-      </QuickGrid>
+              return (
+                <ActionCard
+                  key={label}
+                  type="button"
+                  $tone={tone}
+                  $primary={primary}
+                  style={{ '--i': i } as React.CSSProperties}
+                  onClick={() => navigate(actionPath)}
+                  aria-label={primary ? `Primary trainer action: ${label}` : label}
+                >
+                  <ActionIcon $tone={tone} $primary={primary} aria-hidden="true"><Icon size={18} /></ActionIcon>
+                  <ActionText>
+                    {overline && <ActionOverline>{overline}</ActionOverline>}
+                    <ActionLabel $primary={primary}>{label}</ActionLabel>
+                    <ActionDetail>{detail}</ActionDetail>
+                  </ActionText>
+                </ActionCard>
+              );
+            })}
+          </QuickGrid>
+        </TrainerHomeSideColumn>
+      </TrainerHomeMainGrid>
     </PageWrap>
   );
 };

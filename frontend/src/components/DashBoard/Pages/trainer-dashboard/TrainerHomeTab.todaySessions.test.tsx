@@ -179,9 +179,11 @@ describe('TrainerHomeTab today session logging', () => {
     expect(coachUrl.searchParams.get('teachPrompt')).toContain('0 sessions today');
 
     expect(within(nextAction).queryByRole('button', { name: /open trainer client roster/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open schedule/i })).toHaveAttribute('type', 'button');
 
     await user.click(screen.getByRole('button', { name: /primary trainer action: log workout/i }));
     expect(mockNavigate.mock.calls.at(-1)?.[0]).toBe('/dashboard/trainer/clients?intent=log_workout');
+    expect(screen.getByRole('button', { name: /primary trainer action: log workout/i })).toHaveAttribute('type', 'button');
   });
 
   it('routes a scheduled client session into Swan Coach with booked-session dictation context', async () => {

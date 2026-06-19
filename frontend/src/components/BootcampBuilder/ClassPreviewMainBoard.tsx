@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2 } from 'lucide-react';
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import { StationCard, StationHeader, StationName, TimingBadge } from './BootcampBuilderStyles';
+import { getBootcampFloorStationCount } from './BootcampDemoMode.stationCount';
 import { BoardLabel } from './ClassPreviewPanel.previewStyles';
 import {
   ClickableStationCard,
@@ -65,20 +66,30 @@ const ClassPreviewMainBoard: React.FC<ClassPreviewMainBoardProps> = ({
   onDeleteExercise,
   onSelectStation,
 }) => {
-  if (bootcamp.stations.length > 0) {
+  const inferredStationCount = getBootcampFloorStationCount(bootcamp, bootcamp.stations.length);
+  const hasStationLayout = bootcamp.stations.length > 0 || (bootcamp.stationCount ?? 0) > 1 || inferredStationCount > 1;
+  const stationSlots = hasStationLayout
+    ? Array.from({ length: inferredStationCount }, (_, stationIndex) => ({
+      station: bootcamp.stations[stationIndex],
+      stationIndex,
+    }))
+    : [];
+
+  if (stationSlots.length > 0) {
     return (
       <>
-        {bootcamp.stations.map((station, stationIndex) => {
+        {stationSlots.map(({ station, stationIndex }) => {
           const exercises = stationExercises[stationIndex] ?? [];
+          const stationName = station?.stationName ?? `Station ${stationIndex + 1}`;
           return (
             <ClickableStationCard
-              key={station.stationNumber ?? stationIndex}
+              key={station?.stationNumber ?? `station-${stationIndex}`}
               $active={activeStation === stationIndex}
               onClick={() => onSelectStation?.(stationIndex)}
             >
               <StationHeader>
                 <StationName>
-                  {station.stationName}
+                  {stationName}
                   {activeStation === stationIndex && <BoardLabel $board="main">ADDING HERE</BoardLabel>}
                 </StationName>
                 <StationMetaRow>
@@ -87,7 +98,7 @@ const ClassPreviewMainBoard: React.FC<ClassPreviewMainBoardProps> = ({
                       {exercises.length} ex - {Math.ceil(exercises.reduce((sum, ex) => sum + (ex.durationSec || 35) + (ex.restSec || 15), 0) / 60)}min
                     </TimingBadge>
                   )}
-                  {station.equipmentNeeded && <TimingBadge>{station.equipmentNeeded}</TimingBadge>}
+                  {station?.equipmentNeeded && <TimingBadge>{station.equipmentNeeded}</TimingBadge>}
                   {flowData[stationIndex] && (
                     <FlowBadge $score={flowData[stationIndex].flowScore}>
                       {flowData[stationIndex].flowScore}

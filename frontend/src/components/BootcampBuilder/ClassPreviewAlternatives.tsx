@@ -1,6 +1,7 @@
 import type { BootcampExercise, BootcampStation, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import { StationCard, StationHeader, StationName, TimingBadge } from './BootcampBuilderStyles';
 import { getLowImpactDisplay } from './BootcampBoardViews';
+import { getBootcampFloorStationCount } from './BootcampDemoMode.stationCount';
 import type { BoardView, BootcampBoardViews } from './ClassPreviewPanel.types';
 import {
   AlternativeHint,
@@ -18,12 +19,16 @@ interface ClassPreviewAlternativesProps {
   onSelectExercise: (ex: BootcampExercise) => void;
 }
 
-export const bootcampAlternativeStationKey = (board: BoardView, station: BootcampStation): string => [
+export const bootcampAlternativeStationKey = (
+  board: BoardView,
+  station: BootcampStation | undefined,
+  stationIndex: number,
+): string => [
   board,
   'station',
-  station.stationNumber,
-  station.stationName,
-  station.equipmentNeeded ?? '',
+  station?.stationNumber ?? stationIndex,
+  station?.stationName ?? `Station ${stationIndex + 1}`,
+  station?.equipmentNeeded ?? '',
 ].join('|');
 
 export const bootcampAlternativeExerciseKey = (
@@ -54,20 +59,29 @@ const ClassPreviewAlternatives: React.FC<ClassPreviewAlternativesProps> = ({
   board1Exercises,
   onSelectExercise,
 }) => {
+  const inferredStationCount = getBootcampFloorStationCount(bootcamp, bootcamp.stations.length);
+  const hasStationLayout = bootcamp.stations.length > 0 || (bootcamp.stationCount ?? 0) > 1 || inferredStationCount > 1;
+  const stationSlots = hasStationLayout
+    ? Array.from({ length: inferredStationCount }, (_, stationIndex) => ({
+      station: bootcamp.stations[stationIndex],
+      stationIndex,
+    }))
+    : [];
+
   if (activeBoard === 'jointFriendly') {
     return (
       <>
         <AlternativeHint>
           Tap any exercise to see joint-friendly alternatives. Same exercises as Board 1 with modification options.
         </AlternativeHint>
-        {bootcamp.stations.length > 0 ? (
-          bootcamp.stations.map((station, stationIndex) => {
+        {stationSlots.length > 0 ? (
+          stationSlots.map(({ station, stationIndex }) => {
             const exercises = boardViews.getJointFriendlyExercises(stationIndex);
             if (exercises.length === 0) return null;
             return (
-              <StationCard key={bootcampAlternativeStationKey('jointFriendly', station)}>
+              <StationCard key={bootcampAlternativeStationKey('jointFriendly', station, stationIndex)}>
                 <StationHeader>
-                  <StationName>{station.stationName}</StationName>
+                  <StationName>{station?.stationName ?? `Station ${stationIndex + 1}`}</StationName>
                   <TimingBadge>{exercises.length} exercises</TimingBadge>
                 </StationHeader>
                 {exercises.map((ex, exIdx) => (
@@ -120,14 +134,14 @@ const ClassPreviewAlternatives: React.FC<ClassPreviewAlternativesProps> = ({
       <AlternativeHint>
         Low-impact swaps prioritize no-jump patterns, shorter ranges, and supported positions while keeping the same training intent.
       </AlternativeHint>
-      {bootcamp.stations.length > 0 ? (
-        bootcamp.stations.map((station, stationIndex) => {
+      {stationSlots.length > 0 ? (
+        stationSlots.map(({ station, stationIndex }) => {
           const exercises = boardViews.getLowImpactExercises(stationIndex);
           if (exercises.length === 0) return null;
           return (
-            <StationCard key={bootcampAlternativeStationKey('lowImpact', station)}>
+            <StationCard key={bootcampAlternativeStationKey('lowImpact', station, stationIndex)}>
               <StationHeader>
-                <StationName>{station.stationName}</StationName>
+                <StationName>{station?.stationName ?? `Station ${stationIndex + 1}`}</StationName>
                 <TimingBadge>{exercises.length} swaps</TimingBadge>
               </StationHeader>
               {exercises.map((ex, exIdx) => renderLowImpactSwap(ex, exIdx, stationIndex))}

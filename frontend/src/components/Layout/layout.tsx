@@ -43,7 +43,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <MainContainer>
       <Header />
       
-      <ContentWrapper>
+      <ContentWrapper data-swan-app-content-wrapper>
         <Content>
           {children}
         </Content>

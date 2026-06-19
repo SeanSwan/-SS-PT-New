@@ -33,4 +33,20 @@ describe('BootcampBuilder placement helpers', () => {
   it('assigns the next station sort order from main-board exercises only', () => {
     expect(getNextMainBoardSortOrder(exercises, 0)).toBe(2);
   });
+
+  it('normalizes malformed station assignments in placement math', () => {
+    const malformed = [
+      { exerciseName: 'Battle Rope', stationIndex: -1, durationSec: 35, restSec: 15 },
+      { exerciseName: 'Bear Crawl', stationIndex: 2.8, durationSec: 35, restSec: 15 },
+      { exerciseName: 'Supported Bear Crawl', board: 'lowImpact', stationIndex: 2.8, durationSec: 35, restSec: 15 },
+    ];
+
+    const counts = countMainBoardExercisesByStation(malformed);
+
+    expect(counts.get(0)).toBe(1);
+    expect(counts.get(2)).toBe(1);
+    expect(counts.has(-1)).toBe(false);
+    expect(getNextMainBoardSortOrder(malformed, 0)).toBe(2);
+    expect(getNextMainBoardSortOrder(malformed, 2)).toBe(2);
+  });
 });

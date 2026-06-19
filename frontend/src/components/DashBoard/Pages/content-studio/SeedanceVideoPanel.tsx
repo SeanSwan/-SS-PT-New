@@ -31,18 +31,22 @@ import {
   PanelContainer, SectionTitle, SectionHint, OptionLabel,
   PrimaryBtn, ChipRow, Chip, MetaText,
 } from './content-studio.styles';
+import {
+  getSeedanceJobErrorMessage,
+  resolveSeedanceJobResult,
+  type SeedanceJobStatus,
+} from './SeedanceVideoPanel.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
 // ─────────────────────────────────────────────────────────────
 type VideoCategory = 'exercise-demo' | 'social-clip' | 'marketing';
 type VideoStyle = 'cinematic' | 'dynamic' | 'minimal' | 'editorial';
-type JobStatus = 'idle' | 'generating' | 'complete' | 'error';
 
 interface VideoJob {
   id: string; prompt: string; category: VideoCategory;
-  style: VideoStyle; duration: number; status: JobStatus;
-  createdAt: string; videoUrl?: string; error?: string;
+  style: VideoStyle; duration: number; status: SeedanceJobStatus;
+  createdAt: string; videoUrl?: string; providerJobId?: string; error?: string;
 }
 
 const CATEGORIES: { id: VideoCategory; label: string; icon: React.ReactNode; hint: string }[] = [
@@ -103,7 +107,7 @@ const OptionGroup = styled.div`
   display: flex; flex-direction: column; gap: 6px;
 `;
 
-const JobCard = styled.div<{ $status: JobStatus }>`
+const JobCard = styled.div<{ $status: SeedanceJobStatus }>`
   display: flex; align-items: center; gap: 14px; padding: 14px 18px;
   border-radius: 12px; background: var(--bg-elevated, #141419);
   border: 1px solid ${({ $status }) =>
@@ -116,8 +120,9 @@ const JobPrompt = styled.div`
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 `;
 
-const StatusIcon: React.FC<{ status: JobStatus }> = ({ status }) => {
+const StatusIcon: React.FC<{ status: SeedanceJobStatus }> = ({ status }) => {
   if (status === 'generating') return <Loader2 size={18} style={{ color: '#8B5CF6', animation: 'spin 1s linear infinite' }} />;
+  if (status === 'queued') return <Clock size={18} style={{ color: '#8B5CF6' }} />;
   if (status === 'complete') return <CheckCircle2 size={18} style={{ color: '#60C0F0' }} />;
   if (status === 'error') return <AlertCircle size={18} style={{ color: '#ef4444' }} />;
   return null;
@@ -144,10 +149,11 @@ const SeedanceVideoPanel: React.FC = () => {
 
     try {
       const res = await authAxios.post('/api/content-studio/generate-video', { prompt: prompt.trim(), category, style, duration });
-      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'complete' as const, videoUrl: res.data?.data?.videoUrl } : j));
+      const jobResult = resolveSeedanceJobResult(res.data?.data);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...jobResult } : j));
       setPrompt('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Generation failed';
+      const msg = getSeedanceJobErrorMessage(err);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'error' as const, error: msg } : j));
     } finally { setGenerating(false); }
   }, [authAxios, prompt, category, style, duration]);
@@ -203,7 +209,12 @@ const SeedanceVideoPanel: React.FC = () => {
                 <Film size={18} style={{ color: '#8B5CF6', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <JobPrompt>{job.prompt}</JobPrompt>
-                  <MetaText>{job.category} · {job.style} · {job.duration}s{job.error && ` · ${job.error}`}</MetaText>
+                  <MetaText>
+                    {job.category} | {job.style} | {job.duration}s
+                    {job.status === 'queued' && ' | queued with provider'}
+                    {job.providerJobId && ` | ${job.providerJobId}`}
+                    {job.error && ` | ${job.error}`}
+                  </MetaText>
                 </div>
                 <StatusIcon status={job.status} />
                 {job.videoUrl && <a href={job.videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#60C0F0' }}><Play size={18} /></a>}

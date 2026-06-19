@@ -27,16 +27,53 @@ const BootcampDemoVideoModal: React.FC<BootcampDemoVideoModalProps> = ({
   videoUrl,
   onClose,
 }) => {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    if (!open || !videoUrl) return;
+
+    const previousActive = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const previousOverflow = document.body.style.overflow;
+
+    const trapTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusableElements(dialogRef.current);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        closeRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      trapTab(e);
+    };
+
+    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', onKey);
     // Move focus to the close control so keyboard users land inside the dialog.
     closeRef.current?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+      previousActive?.focus();
+    };
+  }, [open, videoUrl, onClose]);
 
   const handleBackdrop = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
@@ -49,7 +86,7 @@ const BootcampDemoVideoModal: React.FC<BootcampDemoVideoModalProps> = ({
 
   return (
     <Backdrop role="presentation" onClick={handleBackdrop}>
-      <Dialog role="dialog" aria-modal="true" aria-label={`${title} demo video`}>
+      <Dialog ref={dialogRef} role="dialog" aria-modal="true" aria-label={`${title} demo video`}>
         <Header>
           <Heading title={title}>{title}</Heading>
           <CloseButton ref={closeRef} type="button" onClick={onClose} aria-label="Close video">
@@ -58,20 +95,20 @@ const BootcampDemoVideoModal: React.FC<BootcampDemoVideoModalProps> = ({
         </Header>
         <Stage>
           {isFile ? (
-            <video
+            <MediaVideo
               controls
               autoPlay
+              muted
               playsInline
+              preload="auto"
               src={videoUrl}
-              style={{ width: '100%', height: '100%', display: 'block', background: '#000' }}
             />
           ) : embedUrl ? (
-            <iframe
+            <EmbedFrame
               title={`${title} demo video`}
               src={embedUrl}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
             />
           ) : (
             <Fallback>
@@ -89,6 +126,24 @@ const BootcampDemoVideoModal: React.FC<BootcampDemoVideoModalProps> = ({
 
 BootcampDemoVideoModal.displayName = 'BootcampDemoVideoModal';
 export default BootcampDemoVideoModal;
+
+function getFocusableElements(root: HTMLElement | null): HTMLElement[] {
+  if (!root) return [];
+  return Array.from(root.querySelectorAll<HTMLElement>([
+    'a[href]',
+    'button:not([disabled])',
+    'iframe',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'video[controls]',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(','))).filter((el) => (
+    el.tabIndex >= 0
+    && el.getAttribute('aria-hidden') !== 'true'
+    && !el.hasAttribute('disabled')
+  ));
+}
 
 // ── Styled Components ──
 
@@ -158,7 +213,21 @@ const Stage = styled.div`
   position: relative;
   aspect-ratio: 16 / 9;
   width: 100%;
-  background: #000;
+  background: var(--bg-base, #0A0A0F);
+`;
+
+const MediaVideo = styled.video`
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--bg-base, #0A0A0F);
+`;
+
+const EmbedFrame = styled.iframe`
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
 `;
 
 const Fallback = styled.div`

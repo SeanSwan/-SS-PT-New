@@ -123,7 +123,7 @@ const CoachGreeting = styled.h1`
 const CoachMeta = styled.p`
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   margin: 0;
   letter-spacing: 0.04em;
 `;
@@ -211,6 +211,7 @@ const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
         {CHIPS.map(({ label, path, Icon }) => (
           <Chip
             key={path}
+            type="button"
             onClick={() => onNavigate(label === 'Ask Coach' ? coachPath : path)}
             aria-label={label}
           >

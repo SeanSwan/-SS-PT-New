@@ -25,6 +25,19 @@ describe('Bootcamp board views', () => {
     expect(views.getLowImpactExercises(1).map(ex => ex.exerciseName)).toEqual(['Push Up']);
   });
 
+  it('keeps malformed station assignments visible in station groups', () => {
+    const views = buildBootcampBoardViews([
+      { exerciseName: 'Battle Rope', board: 'main', stationIndex: -1, sortOrder: 1 },
+      { exerciseName: 'Bear Crawl', board: 'main', stationIndex: 2.8, sortOrder: 1 },
+      { exerciseName: 'Supported Bear Crawl', board: 'lowImpact', stationIndex: 2.8, sortOrder: 1, sourceExerciseName: 'Bear Crawl' },
+    ]);
+
+    expect(views.stationExercises[0].map(ex => ex.exerciseName)).toEqual(['Battle Rope']);
+    expect(views.stationExercises[2].map(ex => ex.exerciseName)).toEqual(['Bear Crawl']);
+    expect(views.getLowImpactExercises(2).map(ex => ex.exerciseName)).toEqual(['Supported Bear Crawl']);
+    expect(views.stationExercises[-1]).toBeUndefined();
+  });
+
   it('shows generated low-impact entries as source to swap text', () => {
     expect(getLowImpactDisplay(exercises[2])).toEqual({
       sourceName: 'Box Jump',

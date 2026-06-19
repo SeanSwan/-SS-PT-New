@@ -33,6 +33,20 @@ describe('ClientHubGridCard style extraction', () => {
     expect(metricNoteBlock).not.toContain('text-overflow: ellipsis');
   });
 
+  it('uses a stretchable trainer-style shell so admin cards keep equal grid height', () => {
+    const shellBlock = stylesSource.slice(
+      stylesSource.indexOf('export const CardShell'),
+      stylesSource.indexOf('export const CardButton')
+    );
+
+    expect(shellBlock).toContain('display: flex');
+    expect(shellBlock).toContain('flex-direction: column');
+    expect(shellBlock).toContain('align-self: stretch');
+    expect(shellBlock).toContain('height: 100%');
+    expect(shellBlock).not.toContain('height: max-content');
+    expect(shellBlock).not.toContain('align-self: start');
+  });
+
   it('keeps contact identity and metric facts readable on phone-width cards', () => {
     const contactLineBlock = stylesSource.slice(
       stylesSource.indexOf('export const ContactLine'),

@@ -7,6 +7,7 @@ const read = (file: string) => readFileSync(resolve(__dirname, file), 'utf8');
 describe('Bootcamp demo mode contract', () => {
   const demoSource = read('./BootcampDemoMode.tsx');
   const demoStylesSource = read('./BootcampDemoMode.styles.ts');
+  const floorStylesSource = read('./BootcampDemoMode.floorStyles.ts');
   const previewSource = read('./ClassPreviewPanel.tsx');
   const chromeSource = read('./BootcampBuilderChrome.tsx');
 
@@ -52,5 +53,19 @@ describe('Bootcamp demo mode contract', () => {
     expect(demoStylesSource).not.toContain('font-size: 2vw');
     expect(chromeSource).toContain('Demo Mode');
     expect(chromeSource).toContain('Exit Demo');
+  });
+
+  it('renders floor-director controls for station focus and remote-style navigation', () => {
+    expect(demoSource).toContain('FloorDirectorRail');
+    expect(demoSource).toContain('getFloorDirectorModel');
+    expect(demoSource).toContain('StationJumpButton');
+    expect(demoSource).toContain('aria-label="Previous station"');
+    expect(demoSource).toContain('aria-label="Next station"');
+    expect(demoSource).toContain("event.key === 'ArrowLeft'");
+    expect(demoSource).toContain("event.key === 'ArrowRight'");
+    expect(demoSource).toContain("directorView === 'focus'");
+    expect(floorStylesSource).toContain('&:focus-visible');
+    expect(floorStylesSource).toContain('@media (min-width: 2200px)');
+    expect(floorStylesSource).toContain('min-width: 116px');
   });
 });

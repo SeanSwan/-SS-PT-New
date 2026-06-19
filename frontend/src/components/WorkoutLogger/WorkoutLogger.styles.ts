@@ -12,7 +12,11 @@ export const TimerFAB = styled.button<{ $lift?: boolean }>`
   /* Lifted above the fixed Save bar when it's mounted so the FAB never
      overlaps / tap-intercepts the Save action (esp. at phone widths where the
      pill is wider). Stacks vertically instead of competing for the bottom-right. */
-  bottom: ${({ $lift }) => ($lift ? '5.75rem' : '2rem')};
+  bottom: ${({ $lift }) => (
+    $lift
+      ? 'calc(5.75rem + env(safe-area-inset-bottom, 0px))'
+      : 'calc(2rem + env(safe-area-inset-bottom, 0px))'
+  )};
   right: 2rem;
   z-index: 9989;
   width: 52px;
@@ -35,7 +39,11 @@ export const TimerFAB = styled.button<{ $lift?: boolean }>`
   }
 
   @media (max-width: 430px) {
-    bottom: ${({ $lift }) => ($lift ? '5.25rem' : '1rem')};
+    bottom: ${({ $lift }) => (
+      $lift
+        ? 'calc(5.25rem + env(safe-area-inset-bottom, 0px))'
+        : 'calc(1rem + env(safe-area-inset-bottom, 0px))'
+    )};
     right: 1rem;
   }
 `;

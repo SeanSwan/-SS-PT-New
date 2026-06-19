@@ -39,4 +39,31 @@ describe('BootcampDemoVideoModal', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('locks page scroll, traps tab focus, and restores focus on unmount', () => {
+    const opener = document.createElement('button');
+    opener.textContent = 'Open modal';
+    document.body.appendChild(opener);
+    opener.focus();
+
+    const { unmount } = render(
+      <BootcampDemoVideoModal open title="Mystery Clip" videoUrl="https://example.com/video-page" onClose={vi.fn()} />,
+    );
+
+    const closeButton = screen.getByRole('button', { name: /close video/i });
+    const fallbackLink = screen.getByRole('link', { name: /open it in a new tab/i });
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.activeElement).toBe(closeButton);
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(fallbackLink);
+
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(closeButton);
+
+    unmount();
+    expect(document.body.style.overflow).toBe('');
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
 });

@@ -125,7 +125,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
       />
       <div className="dock-actions">
         <div className="dock-actions-left">
-          <button type="button" className="dock-action" onClick={onAttach}>
+          <button type="button" className="dock-action" onClick={onAttach} aria-label="Attach">
             <Paperclip size={18} aria-hidden="true" />
             <span className="dock-action-label">Attach</span>
           </button>
@@ -135,7 +135,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
               <span className="dock-action-label">PLAUD</span>
             </button>
           ) : null}
-          <button type="button" className="dock-action" onClick={onReadback}>
+          <button type="button" className="dock-action" onClick={onReadback} aria-label="Readback">
             <Volume2 size={18} aria-hidden="true" />
             <span className="dock-action-label">Readback</span>
           </button>

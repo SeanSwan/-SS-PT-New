@@ -7,7 +7,7 @@ export const SectionHeading = styled.h3`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
   margin: 0;
 `;
 

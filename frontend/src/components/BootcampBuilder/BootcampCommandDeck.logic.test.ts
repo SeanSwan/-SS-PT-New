@@ -106,4 +106,101 @@ describe('getBootcampCommandDeckModel', () => {
     expect(model.missingDemoCount).toBe(2);
     expect(model.bottleneckCount).toBe(1);
   });
+
+  it('builds an ordered repair queue for coach and trainer fixes', () => {
+    const needsRepair = bootcamp({
+      totalClassMin: 60,
+      exercises: [
+        exercise('Push-Up', 0, true),
+        exercise('Squat', 1, false),
+        exercise('Row', 1, false),
+      ],
+      flowData: [{
+        station: 2,
+        name: 'Station 2',
+        maxSetupSec: 20,
+        avgSetupSec: 16,
+        flowScore: 58,
+        bottleneck: true,
+      }],
+    });
+
+    const model = getBootcampCommandDeckModel(needsRepair, 'manual', false);
+
+    expect(model.repairQueue).toEqual([
+      'Fill S3',
+      'Fill S4',
+      'Finish S1 to 4 exercises',
+      'Finish S2 to 4 exercises',
+      'Add 2 demo videos',
+      'Trim 5 minutes from class time',
+      'Review 1 flow bottleneck',
+    ]);
+  });
+
+  it('uses stationCount as the floor-plan source when station metadata is partial', () => {
+    const partialStations = bootcamp({
+      stations: bootcamp().stations.slice(0, 2),
+      exercises: [
+        exercise('Push-Up', 0, true),
+        exercise('Squat', 1, true),
+      ],
+    });
+
+    const model = getBootcampCommandDeckModel(partialStations, 'manual', false);
+
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Stations', value: '0/4 live' }),
+    ]));
+    expect(model.repairQueue).toEqual([
+      'Fill S3',
+      'Fill S4',
+      'Finish S1 to 4 exercises',
+      'Finish S2 to 4 exercises',
+    ]);
+  });
+
+  it('counts overflow station assignments instead of hiding them from readiness', () => {
+    const expandedStations = bootcamp({
+      stationCount: 4,
+      exercises: [
+        exercise('Sled Push', 4, true),
+      ],
+    });
+
+    const model = getBootcampCommandDeckModel(expandedStations, 'manual', false);
+
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Stations', value: '0/5 live' }),
+    ]));
+    expect(model.repairQueue).toEqual([
+      'Fill S1',
+      'Fill S2',
+      'Fill S3',
+      'Fill S4',
+      'Finish S5 to 4 exercises',
+    ]);
+  });
+
+  it('normalizes malformed station indexes into visible repair work', () => {
+    const malformedStations = bootcamp({
+      exercises: [
+        { ...exercise('Battle Rope', -1, true), stationIndex: -1 },
+        { ...exercise('Bear Crawl', 2.8, false), stationIndex: 2.8 },
+      ],
+    });
+
+    const model = getBootcampCommandDeckModel(malformedStations, 'manual', false);
+
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Demo media', value: '1/2' }),
+    ]));
+    expect(model.repairQueue).toEqual([
+      'Fill S2',
+      'Fill S4',
+      'Finish S1 to 4 exercises',
+      'Finish S3 to 4 exercises',
+      'Add 1 demo video',
+    ]);
+  });
 });

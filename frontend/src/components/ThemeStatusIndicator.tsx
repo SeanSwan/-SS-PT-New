@@ -82,7 +82,7 @@ const ThemeStatusIndicator: React.FC<ThemeStatusIndicatorProps> = ({
   if (!enabled) return null;
 
   return (
-    <StatusContainer aria-hidden="true">
+    <StatusContainer data-swan-theme-status aria-hidden="true">
       <StatusTitle>Crystalline Swan Theme</StatusTitle>
       {Object.entries(themeChecks).map(([check, status]) => (
         <StatusItem key={check}>

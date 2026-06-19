@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Activity, ClipboardCheck, Dumbbell, Target, UserRound } from 'lucide-react';
+import { Activity, ClipboardCheck, Dumbbell, Target, Trophy, UserRound } from 'lucide-react';
 import { getClientOnboardingPct } from '../ClientsWorkspace.logic';
 import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientSessionSignal } from './clientSessionSignal';
@@ -33,6 +33,13 @@ import {
   MetricStack,
   Name,
   Pill,
+  ProofHeader,
+  ProofPanel,
+  ProofValue,
+  ReadinessGrid,
+  ReadinessItem,
+  ReadinessLabel,
+  ReadinessValue,
   TopLine,
 } from './ClientHubGridCard.styles';
 
@@ -64,11 +71,27 @@ const onboardingNoteFor = (onboardingPct: number | undefined) => {
   return 'intake progress';
 };
 
+const onboardingReadinessFor = (onboardingPct: number | undefined) => {
+  if (onboardingPct === undefined) return 'pending';
+  if (onboardingPct >= 100) return 'complete';
+  return 'in progress';
+};
+
 const onboardingToneFor = (onboardingPct: number | undefined) => (
   onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'
 );
 
 const activeLabelFor = (client: ClientOption) => (client.isActive === false ? 'inactive' : 'active');
+
+const workoutProofLabelFor = (client: ClientOption) => (
+  (client.workoutCount || 0) > 0 ? `${client.workoutCount} logged` : 'No logs yet'
+);
+
+const sessionBankReadinessFor = (sessionSignal: ReturnType<typeof getClientSessionSignal>) => {
+  if (sessionSignal.tone === 'gold') return 'tracking mode';
+  if (sessionSignal.tone === 'warning') return 'low inventory';
+  return 'paid inventory';
+};
 
 const ContactIdentityLine = ({
   client,
@@ -92,28 +115,78 @@ const ClientCardMetrics = ({
 }) => (
   <MetricGrid data-swan-card-section="admin-metrics">
     <Metric>
-      <Dumbbell size={14} />
+      <Dumbbell size={14} aria-hidden="true" />
       {client.workoutCount || 0} workouts
     </Metric>
     <Metric $tone={sessionSignal.tone}>
-      <Activity size={14} />
+      <Activity size={14} aria-hidden="true" />
       <MetricStack>
         <span>{sessionSignal.label}</span>
         <MetricNote>{sessionSignal.note}</MetricNote>
       </MetricStack>
     </Metric>
     <Metric>
-      <Target size={14} />
+      <Target size={14} aria-hidden="true" />
       {activeLabelFor(client)}
     </Metric>
     <Metric $tone={onboardingToneFor(onboardingPct)}>
-      <ClipboardCheck size={14} />
+      <ClipboardCheck size={14} aria-hidden="true" />
       <MetricStack>
         <span>{onboardingLabelFor(onboardingPct)}</span>
         <MetricNote>{onboardingNoteFor(onboardingPct)}</MetricNote>
       </MetricStack>
     </Metric>
   </MetricGrid>
+);
+
+const ClientReadinessStrip = ({
+  client,
+  sessionSignal,
+  onboardingPct,
+}: {
+  client: ClientOption;
+  sessionSignal: ReturnType<typeof getClientSessionSignal>;
+  onboardingPct: number | undefined;
+}) => (
+  <ReadinessGrid
+    role="group"
+    data-swan-card-section="admin-readiness"
+    aria-label={`${getClientDisplayName(client)} readiness`}
+  >
+    <ReadinessItem>
+      <ReadinessLabel>Source</ReadinessLabel>
+      <ReadinessValue>{sourceLabel(client)} source</ReadinessValue>
+    </ReadinessItem>
+    <ReadinessItem>
+      <ReadinessLabel>Intake</ReadinessLabel>
+      <ReadinessValue>{onboardingReadinessFor(onboardingPct)}</ReadinessValue>
+    </ReadinessItem>
+    <ReadinessItem>
+      <ReadinessLabel>Next session</ReadinessLabel>
+      <ReadinessValue>check schedule</ReadinessValue>
+    </ReadinessItem>
+    <ReadinessItem>
+      <ReadinessLabel>Session bank</ReadinessLabel>
+      <ReadinessValue>{sessionBankReadinessFor(sessionSignal)}</ReadinessValue>
+    </ReadinessItem>
+  </ReadinessGrid>
+);
+
+const ClientWorkoutProofPanel = ({ client }: { client: ClientOption }) => (
+  <ProofPanel
+    role="group"
+    data-swan-card-section="admin-proof"
+    aria-label={`${getClientDisplayName(client)} workout proof`}
+  >
+    <ProofHeader>
+      <Trophy size={13} aria-hidden="true" />
+      <span>Workout Proof</span>
+    </ProofHeader>
+    <ProofValue>
+      <span>{workoutProofLabelFor(client)}</span>
+      <small>{(client.workoutCount || 0) > 0 ? 'chart-ready activity' : 'log first session'}</small>
+    </ProofValue>
+  </ProofPanel>
 );
 
 const QuickActionPanel = ({
@@ -142,19 +215,11 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
   const sessionSignal = getClientSessionSignal(client);
   const sourceTone = getClientSourceTone(client.clientSource);
   const onboardingPct = getClientOnboardingPct(client);
-  const handleOpenKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    onSelect(client);
-  };
-
   return (
     <CardShell data-swan-client-card="admin">
       <CardButton
-        role="button"
-        tabIndex={0}
+        type="button"
         onClick={() => onSelect(client)}
-        onKeyDown={handleOpenKeyDown}
         aria-label={`Open ${fullName}`}
         data-swan-card-section="admin-identity"
       >
@@ -164,7 +229,7 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
             <TopLine>
               <Name>{fullName}</Name>
               <Pill>
-                <UserRound size={12} />
+                <UserRound size={12} aria-hidden="true" />
                 {sourceLabel(client)}
               </Pill>
               <Pill>{experience}</Pill>
@@ -174,7 +239,9 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
         </IdentityRow>
       </CardButton>
       <GoalLine data-swan-card-section="admin-goal">{goal}</GoalLine>
+      <ClientReadinessStrip client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
       <ClientCardMetrics client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
+      <ClientWorkoutProofPanel client={client} />
       <QuickActionPanel client={client} clientName={fullName} onQuickAction={onQuickAction} />
     </CardShell>
   );

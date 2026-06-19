@@ -212,3 +212,40 @@ export const AlertChip = styled.span`
   font-size: 12px;
   font-weight: 700;
 `;
+
+export const RepairQueue = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const RepairQueueTitle = styled.span`
+  color: var(--command-tone);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+`;
+
+export const RepairQueueList = styled.ol`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+`;
+
+export const RepairQueueItem = styled.li`
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--command-tone) 28%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--command-tone) 9%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 6px 10px;
+`;

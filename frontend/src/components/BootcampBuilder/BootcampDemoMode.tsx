@@ -1,7 +1,23 @@
-import React, { useMemo, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+/**
+ * BootcampDemoMode
+ * PURPOSE: TV/mobile floor board for showing station exercises and Rolodex demo media.
+ * PARENTS: ClassPreviewPanel when Bootcamp floor mode is active.
+ * STATE: Local station focus, preview fallback errors, and the active depth-video modal.
+ */
+import React, { useCallback, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import BootcampDemoVideoModal from './BootcampDemoVideoModal';
+import { getFloorDirectorModel } from './BootcampDemoMode.floorDirector';
+import { getBootcampFloorStationCount, getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
+import {
+  DirectorButton,
+  FloorDirectorActions,
+  FloorDirectorRail,
+  FloorDirectorSummary,
+  StationJumpButton,
+  StationJumpRail,
+} from './BootcampDemoMode.floorStyles';
 import { getVideoPoster, isDirectVideoFile, isEmbeddableVideoUrl } from './bootcampVideoEmbed';
 import {
   DemoExerciseList,
@@ -25,6 +41,8 @@ import {
   StationDemoHeader,
   StationDemoName,
 } from './BootcampDemoMode.styles';
+
+export { getFloorDirectorModel } from './BootcampDemoMode.floorDirector';
 
 interface BootcampDemoModeProps {
   bootcamp: GeneratedBootcamp;
@@ -60,14 +78,17 @@ export function getExerciseDemoMedia(exercise: BootcampExercise) {
 type DemoMedia = ReturnType<typeof getExerciseDemoMedia>;
 
 export function getDemoMediaPillLabel(media: DemoMedia): string {
-  if (!media.videoUrl) return 'Media slot';
   if (media.previewIsFile) return media.isCatalogVideo ? 'Catalog clip' : 'Looping clip';
+  if (!media.videoUrl) return 'Media slot';
   return media.isCatalogVideo ? 'Catalog video' : 'Tap to play';
 }
 
 export function getStationDemoReadiness(exercises: BootcampExercise[]) {
   const totalExercises = exercises.length;
-  const readyVideos = exercises.filter(exercise => Boolean(getExerciseDemoMedia(exercise).videoUrl)).length;
+  const readyVideos = exercises.filter((exercise) => {
+    const media = getExerciseDemoMedia(exercise);
+    return Boolean(media.videoUrl || media.previewUrl);
+  }).length;
   return `${readyVideos}/${totalExercises} demos ready`;
 }
 
@@ -76,14 +97,14 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
     const grouped: Record<number, BootcampExercise[]> = {};
     for (const exercise of bootcamp.exercises) {
       if (exercise.board && exercise.board !== 'main') continue;
-      const stationIndex = exercise.stationIndex ?? 0;
+      const stationIndex = getBootcampFloorStationIndex(exercise.stationIndex);
       grouped[stationIndex] = [...(grouped[stationIndex] ?? []), exercise];
     }
     Object.values(grouped).forEach((items) => items.sort((a, b) => a.sortOrder - b.sortOrder));
     return grouped;
   }, [bootcamp.exercises]);
 
-  const stationCount = bootcamp.stations.length || Math.max(1, bootcamp.stationCount || 1);
+  const stationCount = getBootcampFloorStationCount(bootcamp);
   const stations = Array.from({ length: stationCount }, (_, stationIndex) => ({
     station: bootcamp.stations[stationIndex],
     exercises: stationExercises[stationIndex] ?? [],
@@ -93,6 +114,32 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
   // "Click for depth" full video + per-tile preview-error fallback to the poster.
   const [activeVideo, setActiveVideo] = useState<{ title: string; url: string } | null>(null);
   const [erroredPreviews, setErroredPreviews] = useState<Set<string>>(() => new Set());
+  const [activeStationIndex, setActiveStationIndex] = useState(0);
+  const [directorView, setDirectorView] = useState<'all' | 'focus'>('all');
+  const floorDirector = useMemo(
+    () => getFloorDirectorModel(bootcamp, activeStationIndex),
+    [activeStationIndex, bootcamp],
+  );
+  const goToStation = useCallback((stationIndex: number) => {
+    setActiveStationIndex(() => {
+      const normalizedCount = Math.max(1, stationCount);
+      return (stationIndex + normalizedCount) % normalizedCount;
+    });
+  }, [stationCount]);
+  const handleDirectorKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      goToStation(floorDirector.activeStationIndex - 1);
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      goToStation(floorDirector.activeStationIndex + 1);
+    }
+  }, [floorDirector.activeStationIndex, goToStation]);
+  const visibleStations = directorView === 'focus'
+    ? stations.filter(({ stationIndex }) => stationIndex === floorDirector.activeStationIndex)
+    : stations;
+  const activeStationCard = floorDirector.stationCards[floorDirector.activeStationIndex];
 
   return (
     <DemoShell aria-label="Bootcamp station exercise demo mode">
@@ -102,9 +149,52 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
           <DemoSubline>{stationCount} stations - {bootcamp.totalClassMin} min class</DemoSubline>
         </div>
       </DemoHeader>
+      <FloorDirectorRail
+        aria-label="Floor director controls"
+        onKeyDown={handleDirectorKeyDown}
+        role="group"
+        tabIndex={0}
+      >
+        <FloorDirectorSummary aria-label="Floor director status" aria-live="polite" role="status">
+          <strong>{floorDirector.activeStationName}</strong>
+          <span> {activeStationCard?.readinessLabel ?? '0/0 demos'} | Class {floorDirector.summaryLabel} | {floorDirector.primaryCue}</span>
+        </FloorDirectorSummary>
+        <StationJumpRail aria-label="Station focus selector" role="group">
+          {floorDirector.stationCards.map((card) => (
+            <StationJumpButton
+              key={card.stationIndex}
+              type="button"
+              $active={card.isActive}
+              aria-pressed={card.isActive}
+              aria-label={`Focus ${card.stationName}: ${card.readinessLabel}`}
+              onClick={() => goToStation(card.stationIndex)}
+            >
+              <strong>{card.stationName}</strong>
+              <span>{card.readinessLabel}</span>
+            </StationJumpButton>
+          ))}
+        </StationJumpRail>
+        <FloorDirectorActions>
+          <DirectorButton type="button" aria-label="Previous station" onClick={() => goToStation(floorDirector.activeStationIndex - 1)}>
+            <ChevronLeft size={16} aria-hidden="true" /> Prev
+          </DirectorButton>
+          <DirectorButton type="button" aria-label="Next station" onClick={() => goToStation(floorDirector.activeStationIndex + 1)}>
+            Next <ChevronRight size={16} aria-hidden="true" />
+          </DirectorButton>
+          <DirectorButton type="button" $active={directorView === 'all'} aria-pressed={directorView === 'all'} onClick={() => setDirectorView('all')}>
+            All
+          </DirectorButton>
+          <DirectorButton type="button" $active={directorView === 'focus'} aria-pressed={directorView === 'focus'} onClick={() => setDirectorView('focus')}>
+            Focus
+          </DirectorButton>
+        </FloorDirectorActions>
+      </FloorDirectorRail>
       <StationDemoGrid>
-        {stations.map(({ station, exercises, stationIndex }) => (
-          <StationDemoCard key={station?.stationNumber ?? stationIndex}>
+        {visibleStations.map(({ station, exercises, stationIndex }) => (
+          <StationDemoCard
+            key={`station-${stationIndex}`}
+            $active={stationIndex === floorDirector.activeStationIndex}
+          >
             <StationDemoHeader>
               <StationDemoName>{station?.stationName ?? `Station ${stationIndex + 1}`}</StationDemoName>
               <StationDemoCount>{getStationDemoReadiness(exercises)}</StationDemoCount>
@@ -115,9 +205,13 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
               ) : exercises.map((exercise, exerciseIndex) => {
                 const media = getExerciseDemoMedia(exercise);
                 const tileKey = `${stationIndex}-${exercise.sortOrder}-${exercise.exerciseName}`;
+                const previewFailed = erroredPreviews.has(tileKey);
                 const showInlinePreview = media.previewIsFile
                   && Boolean(media.previewUrl)
-                  && !erroredPreviews.has(tileKey);
+                  && !previewFailed;
+                const mediaPillLabel = previewFailed && media.previewIsFile
+                  ? 'Preview unavailable'
+                  : getDemoMediaPillLabel(media);
                 return (
                   <DemoExerciseTile key={tileKey}>
                     <DemoExerciseSelectButton
@@ -142,6 +236,8 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                               return next;
                             })}
                           />
+                        ) : previewFailed && media.previewUrl ? (
+                          <DemoPlaceholder>Preview could not load. Update this loop from the SwanStudios Rolodex.</DemoPlaceholder>
                         ) : media.poster ? (
                           <DemoImage
                             alt={`${exercise.exerciseName} exercise demonstration`}
@@ -151,7 +247,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         ) : (
                           <DemoPlaceholder>Demo media can be added from the SwanStudios Rolodex.</DemoPlaceholder>
                         )}
-                        <DemoMediaPill>{getDemoMediaPillLabel(media)}</DemoMediaPill>
+                        <DemoMediaPill>{mediaPillLabel}</DemoMediaPill>
                       </DemoMediaStage>
                       <DemoExerciseName>{exerciseIndex + 1}. {exercise.exerciseName}</DemoExerciseName>
                       <DemoExerciseMeta>

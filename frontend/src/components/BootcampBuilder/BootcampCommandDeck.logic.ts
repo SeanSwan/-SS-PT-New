@@ -1,6 +1,7 @@
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import { FORMAT_CONFIG } from './BootcampBuilderConstants';
 import type { BuildMode } from './BootcampBuilderPage.constants';
+import { getBootcampFloorStationCount, getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
 
 export interface BootcampCommandMetric {
   label: string;
@@ -13,6 +14,7 @@ export interface BootcampCommandDeckModel {
   readinessLabel: string;
   readinessTone: 'ready' | 'steady' | 'warning' | 'danger';
   nextAction: string;
+  repairQueue: string[];
   missingDemoCount: number;
   bottleneckCount: number;
   metrics: BootcampCommandMetric[];
@@ -25,7 +27,7 @@ const modeLabels: Record<BuildMode, string> = {
 };
 
 function hasExerciseDemoMedia(exercise: BootcampExercise): boolean {
-  return Boolean(exercise.videoUrl || exercise.catalogVideoSample?.videoUrl);
+  return Boolean(exercise.videoUrl || exercise.previewVideoUrl || exercise.catalogVideoSample?.videoUrl);
 }
 
 function getMainExercises(bootcamp: GeneratedBootcamp): BootcampExercise[] {
@@ -33,10 +35,10 @@ function getMainExercises(bootcamp: GeneratedBootcamp): BootcampExercise[] {
 }
 
 function getStationGroups(bootcamp: GeneratedBootcamp, exercises: BootcampExercise[]): BootcampExercise[][] {
-  const stationCount = bootcamp.stations.length || bootcamp.stationCount || 0;
+  const stationCount = getBootcampFloorStationCount(bootcamp, 0);
   return Array.from({ length: stationCount }, (_, stationIndex) => (
     exercises
-      .filter((exercise) => (exercise.stationIndex ?? 0) === stationIndex)
+      .filter((exercise) => getBootcampFloorStationIndex(exercise.stationIndex) === stationIndex)
       .sort((a, b) => a.sortOrder - b.sortOrder)
   ));
 }
@@ -76,10 +78,19 @@ export function getBootcampCommandDeckModel(
   const weakStationIndex = stationGroups.findIndex((group) => (
     expectedPerStation > 0 && group.length > 0 && group.length < expectedPerStation
   ));
+  const emptyStationIndices = stationGroups
+    .map((group, index) => (group.length === 0 ? index : -1))
+    .filter((index) => index >= 0);
+  const weakStationIndices = stationGroups
+    .map((group, index) => (
+      expectedPerStation > 0 && group.length > 0 && group.length < expectedPerStation ? index : -1
+    ))
+    .filter((index) => index >= 0);
   const videoReadyCount = mainExercises.filter(hasExerciseDemoMedia).length;
   const missingDemoCount = Math.max(0, mainExercises.length - videoReadyCount);
   const bottleneckCount = (bootcamp.flowData ?? []).filter((flow) => flow.bottleneck).length;
   const overTime = bootcamp.totalClassMin > 55;
+  const overTimeMin = Math.max(0, bootcamp.totalClassMin - 55);
   const demoCoveragePenalty = mainExercises.length > 0
     ? Math.round((missingDemoCount / mainExercises.length) * 24)
     : 24;
@@ -107,12 +118,20 @@ export function getBootcampCommandDeckModel(
     if (bottleneckCount > 0) return `Review ${bottleneckCount} station flow bottleneck${bottleneckCount > 1 ? 's' : ''}.`;
     return floorMode ? 'Demo Mode is live. Keep the station board on screen.' : 'Save template, export PDF, or launch Demo Mode.';
   })();
+  const repairQueue = [
+    ...emptyStationIndices.map((stationIndex) => `Fill S${stationIndex + 1}`),
+    ...weakStationIndices.map((stationIndex) => `Finish S${stationIndex + 1} to ${expectedPerStation} exercises`),
+    ...(missingDemoCount > 0 ? [`Add ${missingDemoCount} demo video${missingDemoCount > 1 ? 's' : ''}`] : []),
+    ...(overTimeMin > 0 ? [`Trim ${overTimeMin} minute${overTimeMin > 1 ? 's' : ''} from class time`] : []),
+    ...(bottleneckCount > 0 ? [`Review ${bottleneckCount} flow bottleneck${bottleneckCount > 1 ? 's' : ''}`] : []),
+  ];
 
   return {
     readinessScore,
     readinessLabel: getReadinessLabel(readinessScore),
     readinessTone: getReadinessTone(readinessScore),
     nextAction,
+    repairQueue,
     missingDemoCount,
     bottleneckCount,
     metrics: [

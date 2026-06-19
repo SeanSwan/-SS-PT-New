@@ -6,12 +6,12 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
-import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
-import { DEFAULT_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_WORKOUT_MIN, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN } from './BootcampBuilderConstants';
+import { DEFAULT_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_WORKOUT_MIN, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN, type ClassStyle, type IntensityCategory } from './BootcampBuilderConstants';
 import { PageWrapper } from './BootcampBuilderStyles';
 import { FourPane } from './BootcampModeStyles';
 import BootcampBuilderChrome from './BootcampBuilderChrome';
 import BootcampBuilderErrorBoundary from './BootcampBuilderErrorBoundary';
+import BootcampFloorPresentation from './BootcampFloorPresentation';
 import type { BuildMode } from './BootcampBuilderPage.constants';
 import { BootcampLeftPanel, BootcampRightPanel } from './BootcampBuilderSidePanels';
 import { exportBootcampTemplatePDF } from './BootcampBuilderPdfExport';
@@ -222,6 +222,7 @@ const BootcampBuilderPage: React.FC = () => {
   }, []);
   return (
     <PageWrapper $floorMode={floorMode}>
+      <BootcampFloorPresentation active={floorMode} />
       <BootcampBuilderChrome
         bootcamp={bootcamp}
         buildMode={buildMode}
@@ -232,39 +233,41 @@ const BootcampBuilderPage: React.FC = () => {
         onExportPDF={handleExportPDF}
         onToggleFloorMode={() => setFloorMode(prev => !prev)}
       />
-      <FourPane>
-        <BootcampLeftPanel
-          buildMode={buildMode}
-          bootcamp={bootcamp}
-          classFormat={classFormat}
-          setClassFormat={setClassFormat}
-          classStyle={classStyle}
-          setClassStyle={setClassStyle}
-          dayType={dayType}
-          setDayType={setDayType}
-          intensityCategory={intensityCategory}
-          setIntensityCategory={setIntensityCategory}
-          optPhase={optPhase}
-          setOptPhase={setOptPhase}
-          targetDuration={targetDuration}
-          setTargetDuration={setTargetDuration}
-          expectedParticipants={expectedParticipants}
-          setExpectedParticipants={setExpectedParticipants}
-          className={className}
-          setClassName={setClassName}
-          equipmentProfileId={equipmentProfileId}
-          setEquipmentProfileId={setEquipmentProfileId}
-          includeStretch={includeStretch}
-          setIncludeStretch={setIncludeStretch}
-          floorMode={floorMode}
-          loading={loading}
-          error={error}
-          selectedRolodexId={selectedRolodexId}
-          onAddExercise={handleAddFromRolodex}
-          onGenerate={handleGenerate}
-          onSelectFromRolodex={handleSelectFromRolodex}
-          onManualFormatChange={handleManualFormatChange}
-        />
+      <FourPane $floorMode={floorMode}>
+        {!floorMode && (
+          <BootcampLeftPanel
+            buildMode={buildMode}
+            bootcamp={bootcamp}
+            classFormat={classFormat}
+            setClassFormat={setClassFormat}
+            classStyle={classStyle}
+            setClassStyle={setClassStyle}
+            dayType={dayType}
+            setDayType={setDayType}
+            intensityCategory={intensityCategory}
+            setIntensityCategory={setIntensityCategory}
+            optPhase={optPhase}
+            setOptPhase={setOptPhase}
+            targetDuration={targetDuration}
+            setTargetDuration={setTargetDuration}
+            expectedParticipants={expectedParticipants}
+            setExpectedParticipants={setExpectedParticipants}
+            className={className}
+            setClassName={setClassName}
+            equipmentProfileId={equipmentProfileId}
+            setEquipmentProfileId={setEquipmentProfileId}
+            includeStretch={includeStretch}
+            setIncludeStretch={setIncludeStretch}
+            floorMode={floorMode}
+            loading={loading}
+            error={error}
+            selectedRolodexId={selectedRolodexId}
+            onAddExercise={handleAddFromRolodex}
+            onGenerate={handleGenerate}
+            onSelectFromRolodex={handleSelectFromRolodex}
+            onManualFormatChange={handleManualFormatChange}
+          />
+        )}
         <ClassPreviewPanel
           bootcamp={bootcamp}
           buildMode={buildMode}
@@ -277,22 +280,20 @@ const BootcampBuilderPage: React.FC = () => {
           onSelectStation={buildMode !== 'ai' ? setActiveStation : undefined}
           activeStation={activeStation}
         />
-        <BootcampRightPanel
-          buildMode={buildMode}
-          bootcamp={bootcamp}
-          equipmentProfileId={equipmentProfileId}
-          selectedExercise={selectedExercise}
-          selectedRolodexId={selectedRolodexId}
-          onAddExercise={handleAddFromRolodex}
-          onSelectFromRolodex={handleSelectFromRolodex}
-        />
+        {!floorMode && (
+          <BootcampRightPanel
+            buildMode={buildMode}
+            bootcamp={bootcamp}
+            equipmentProfileId={equipmentProfileId}
+            selectedExercise={selectedExercise}
+            selectedRolodexId={selectedRolodexId}
+            onAddExercise={handleAddFromRolodex}
+            onSelectFromRolodex={handleSelectFromRolodex}
+          />
+        )}
       </FourPane>
     </PageWrapper>
   );
 };
-const BootcampBuilderPageWithBoundary: React.FC = () => (
-  <BootcampBuilderErrorBoundary>
-    <BootcampBuilderPage />
-  </BootcampBuilderErrorBoundary>
-);
+const BootcampBuilderPageWithBoundary: React.FC = () => <BootcampBuilderErrorBoundary><BootcampBuilderPage /></BootcampBuilderErrorBoundary>;
 export default BootcampBuilderPageWithBoundary;
