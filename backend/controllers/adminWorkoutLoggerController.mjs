@@ -69,6 +69,8 @@ export const logWorkout = async (req, res) => {
       }
       isPlaudMergeApply = true;
     }
+    const isHistoricalImport =
+      source === 'historical_import' || source === 'move_fitness_historical_import';
 
     let serviceResult;
     try {
@@ -82,6 +84,7 @@ export const logWorkout = async (req, res) => {
         intensity,
         trainerId: req.user?.id ?? null,
         sequelize,
+        suppressEngagementSideEffects: isHistoricalImport,
       });
     } catch (err) {
       if (err instanceof WorkoutLogError) {
@@ -165,6 +168,7 @@ export const logWorkout = async (req, res) => {
         totalReps: serviceResult.totalReps,
         totalWeight: serviceResult.totalWeight,
         exerciseCount: serviceResult.exerciseCount,
+        historicalImport: isHistoricalImport,
       },
       xp: serviceResult.xp,
       ...(isPlaudMergeApply ? { plaudMergeApproved: true } : {}),

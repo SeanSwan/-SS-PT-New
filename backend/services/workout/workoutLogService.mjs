@@ -253,6 +253,7 @@ export async function logWorkoutForClient({
   intensity,
   trainerId,
   sequelize,
+  suppressEngagementSideEffects = false,
 }) {
   // ── Input validation ─────────────────────────────────────────────────────
 
@@ -362,46 +363,50 @@ export async function logWorkoutForClient({
 
     let xpResult = null;
     let xpTx = null;
-    try {
-      xpTx = await sequelize.transaction();
-      xpResult = await awardWorkoutXP({
-        userId: clientId,
-        workoutId: session.id,
-        duration: parsedDuration,
-        exercisesCompleted: exerciseCount,
-        workoutDate: parsedDate,
-        awardedBy: trainerId,
-      }, xpTx);
+    if (suppressEngagementSideEffects) {
+      logger.info(`[WorkoutLogService] Engagement side effects skipped for historical import session ${session.id}`);
+    } else {
+      try {
+        xpTx = await sequelize.transaction();
+        xpResult = await awardWorkoutXP({
+          userId: clientId,
+          workoutId: session.id,
+          duration: parsedDuration,
+          exercisesCompleted: exerciseCount,
+          workoutDate: parsedDate,
+          awardedBy: trainerId,
+        }, xpTx);
 
-      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-        const { WorkoutSession: WS } = getAllModels();
-        await WS.update(
-          { experiencePoints: xpResult.pointsAwarded },
-          { where: { id: session.id }, transaction: xpTx }
-        );
-      }
-      await xpTx.commit();
-
-      // Best-effort social auto-post
-      if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-        try {
-          const { createWorkoutAutoPost, createStreakAutoPost } = await import('../socialAutoPost.mjs');
-          await createWorkoutAutoPost(clientId, {
-            duration: parsedDuration,
-            exercisesCompleted: exerciseCount,
-            pointsAwarded: xpResult.pointsAwarded,
-          });
-          if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
-            await createStreakAutoPost(clientId, xpResult.streakDays);
-          }
-        } catch (autoPostErr) {
-          logger.warn(`[WorkoutLogService] Auto-post failed for session ${session.id}: ${autoPostErr.message}`);
+        if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+          const { WorkoutSession: WS } = getAllModels();
+          await WS.update(
+            { experiencePoints: xpResult.pointsAwarded },
+            { where: { id: session.id }, transaction: xpTx }
+          );
         }
+        await xpTx.commit();
+
+        // Best-effort social auto-post
+        if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+          try {
+            const { createWorkoutAutoPost, createStreakAutoPost } = await import('../socialAutoPost.mjs');
+            await createWorkoutAutoPost(clientId, {
+              duration: parsedDuration,
+              exercisesCompleted: exerciseCount,
+              pointsAwarded: xpResult.pointsAwarded,
+            });
+            if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
+              await createStreakAutoPost(clientId, xpResult.streakDays);
+            }
+          } catch (autoPostErr) {
+            logger.warn(`[WorkoutLogService] Auto-post failed for session ${session.id}: ${autoPostErr.message}`);
+          }
+        }
+      } catch (xpErr) {
+        try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
+        logger.warn(`[WorkoutLogService] XP award failed for session ${session.id}: ${xpErr.message}`);
+        xpResult = null;
       }
-    } catch (xpErr) {
-      try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
-      logger.warn(`[WorkoutLogService] XP award failed for session ${session.id}: ${xpErr.message}`);
-      xpResult = null;
     }
 
     // Collapse sameDay / alreadyAwarded → null for both callers
