@@ -27,10 +27,14 @@ export const dispatchCreateHermesTask = async (params = {}, ctx = {}) => {
   };
 };
 
-export const dispatchListHermesTasks = async (params = {}) => {
+export const dispatchListHermesTasks = async (params = {}, ctx = {}) => {
+  // Owner scope (IDOR fix): a non-admin operator sees only their own task counts;
+  // admins see all. Fail-closed — missing user context yields the deny-all path.
   const result = hermesService.listTasks({
     agentType: params.agentType || undefined,
     status: params.status || undefined,
+    requestedBy: ctx?.user?.id,
+    ownOnly: ctx?.user?.role !== 'admin',
   });
 
   return {

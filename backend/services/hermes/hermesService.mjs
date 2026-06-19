@@ -138,8 +138,11 @@ export function listTasks(filter = {}) {
 
   if (filter.agentType) tasks = tasks.filter(t => t.agentType === filter.agentType);
   if (filter.status) tasks = tasks.filter(t => t.status === filter.status);
-  // requestedBy filter is optional — admins can see all tasks
-  if (filter.requestedBy != null && filter.ownOnly) {
+  // Owner scope (FAIL-CLOSED): when ownOnly is set, return ONLY this requestedBy's
+  // tasks. If ownOnly is set WITHOUT a requestedBy, the === comparison excludes
+  // everything (deny-all) instead of leaking all tasks. Admin callers pass
+  // ownOnly:false to see all.
+  if (filter.ownOnly) {
     tasks = tasks.filter(t => t.requestedBy === filter.requestedBy);
   }
 
@@ -154,15 +157,20 @@ export function listTasks(filter = {}) {
 }
 
 /**
- * Get a single task by ID.
- * Returns null if not found or expired.
+ * Get a single task by ID, scoped to the caller (IDOR fix).
+ * Returns null if not found, expired, OR the caller is not the owner/an admin.
+ * A non-owner read returns null (not 403) so task existence is not disclosed.
  *
  * @param {string} id
+ * @param {number} userId - Requesting user ID
+ * @param {'admin'|'trainer'|'client'} role
  * @returns {HermesTask|null}
  */
-export function getTask(id) {
+export function getTask(id, userId, role) {
   const task = taskStore.get(id);
   if (!task || isExpired(task)) return null;
+  // Owner/resource scope: admin sees any task; everyone else only their own.
+  if (role !== 'admin' && task.requestedBy !== userId) return null;
   return task;
 }
 

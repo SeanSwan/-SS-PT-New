@@ -90,7 +90,13 @@ router.post('/tasks', protect, requireAdminOrTrainer, (req, res) => {
 router.get('/tasks', protect, requireAdminOrTrainer, (req, res) => {
   try {
     const { agentType, status } = req.query;
-    const result = listTasks({ agentType, status });
+    // Owner scope (IDOR fix): trainers see only their own tasks; admins see all.
+    const result = listTasks({
+      agentType,
+      status,
+      requestedBy: req.user.id,
+      ownOnly: req.user.role !== 'admin',
+    });
 
     return res.json({
       success: true,
@@ -120,7 +126,7 @@ router.get('/tasks', protect, requireAdminOrTrainer, (req, res) => {
 
 router.get('/tasks/:id', protect, requireAdminOrTrainer, (req, res) => {
   try {
-    const task = getTask(req.params.id);
+    const task = getTask(req.params.id, req.user.id, req.user.role);
     if (!task) {
       return res.status(404).json({ success: false, error: 'Task not found or expired.' });
     }
