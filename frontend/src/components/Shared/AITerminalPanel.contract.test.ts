@@ -8,17 +8,21 @@ const __dirname = dirname(__filename);
 
 const PANEL_PATH = resolve(__dirname, './AITerminalPanel.tsx');
 const STYLES_PATH = resolve(__dirname, './AITerminalPanel.styles.ts');
+const QUICK_PROMPTS_STYLES_PATH = resolve(__dirname, './AITerminalPanel.quickPrompts.styles.ts');
 const TYPES_PATH = resolve(__dirname, './AITerminalPanel.types.ts');
 const WORKOUT_LOGGER_COACH_ROUTE_PATH = resolve(__dirname, '../WorkoutLogger/workoutLoggerCoachRoute.ts');
 
 const panelSource = readFileSync(PANEL_PATH, 'utf8');
 const typesSource = readFileSync(TYPES_PATH, 'utf8');
 const stylesSource = readFileSync(STYLES_PATH, 'utf8');
+const quickPromptStylesSource = readFileSync(QUICK_PROMPTS_STYLES_PATH, 'utf8');
 const workoutLoggerCoachRouteSource = readFileSync(WORKOUT_LOGGER_COACH_ROUTE_PATH, 'utf8');
 
 describe('AITerminalPanel contract', () => {
   it('keeps the active Swan Coach terminal below the component line cap by extracting styles', () => {
     expect(panelSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(stylesSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(quickPromptStylesSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(existsSync(STYLES_PATH)).toBe(true);
     expect(panelSource).toContain("from './AITerminalPanel.styles'");
     expect(panelSource).toContain("from './AITerminalPanel.types'");
@@ -58,9 +62,20 @@ describe('AITerminalPanel contract', () => {
   });
 
   it('keeps terminal input controls mobile-wrapping and token-backed', () => {
+    expect(stylesSource).toMatch(/export const InputArea[\s\S]*?align-items:\s*center;/);
     expect(stylesSource).toMatch(/export const InputArea[\s\S]*?@media \(max-width:\s*430px\)[\s\S]*?flex-wrap:\s*wrap;/);
     expect(stylesSource).toMatch(/export const ChatInput[\s\S]*?min-width:\s*min\(100%,\s*14rem\);/);
+    expect(stylesSource).toMatch(/@media \(min-width:\s*1280px\)[\s\S]*?font-size:\s*15px;/);
     expect(stylesSource).toMatch(/export const SendButton[\s\S]*?background:\s*linear-gradient\([^`]*var\(--ai-terminal-send-bg-a/);
     expect(stylesSource).toMatch(/export const PanelHeader[\s\S]*?color:\s*var\(--ai-terminal-header-text,/);
+  });
+
+  it('keeps the opened terminal readable on wide workout logger screens', () => {
+    expect(stylesSource).toContain('min-height: clamp(360px, 42vh, 560px)');
+    expect(stylesSource).toMatch(/export const EmptyHint[\s\S]*?font-size:\s*15px;/);
+    expect(stylesSource).not.toMatch(/font-size:\s*13px;/);
+    expect(stylesSource).not.toContain('rgba(255, 255, 255, 0.4)');
+    expect(quickPromptStylesSource).toMatch(/export const QuickPromptButton[\s\S]*?min-height:\s*64px;/);
+    expect(quickPromptStylesSource).toMatch(/export const QuickPromptDescription[\s\S]*?font-size:\s*12px;/);
   });
 });

@@ -2,30 +2,30 @@ import styled from 'styled-components';
 
 export const QuickPromptBar = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-  gap: 8px;
-  padding: 10px 12px 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+  padding: 12px 14px 0;
 `;
 
 export const QuickPromptButton = styled.button`
-  min-height: 44px;
-  border: 1px solid var(--ai-terminal-quick-border, #60c0f03d);
-  border-radius: 10px;
-  background: var(--ai-terminal-quick-bg, #00206066);
+  min-height: 64px;
+  border: 1px solid var(--ai-terminal-quick-border, #60c0f059);
+  border-radius: 12px;
+  background: var(--ai-terminal-quick-bg, #0020608c);
   color: var(--ai-terminal-quick-text, #e0ecf4);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 2px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 14px 16px;
   text-align: left;
   font: inherit;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 
   strong {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.2;
   }
 
@@ -46,7 +46,7 @@ export const QuickPromptButton = styled.button`
 `;
 
 export const QuickPromptDescription = styled.span`
-  color: var(--ai-terminal-quick-muted, #cbd5e1);
-  font-size: 11px;
-  line-height: 1.3;
+  color: var(--ai-terminal-quick-muted, #d7e4ee);
+  font-size: 12px;
+  line-height: 1.35;
 `;
