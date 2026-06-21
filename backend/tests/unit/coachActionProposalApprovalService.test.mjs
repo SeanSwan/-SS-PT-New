@@ -63,14 +63,20 @@ function fakeRejectRaceDb({ order = [] } = {}) {
   };
 }
 
-async function loadApprovalService({ order = [], decryptedProposal = null } = {}) {
+async function loadApprovalService({ order = [], decryptedProposal = null, accessAllowed = true } = {}) {
   vi.resetModules();
   const submitAiWorkoutLogAsDailyForm = vi.fn(async () => {
     order.push('workout-write');
     return { id: 'workout-1' };
   });
-  const ensureClientAccess = vi.fn(async () => ({ allowed: true, clientId: 42 }));
+  const ensureClientAccess = vi.fn(async () => (
+    accessAllowed ? { allowed: true, clientId: 42 } : { allowed: false, status: 403, message: 'Client access denied' }
+  ));
   const processAIDataUpdates = vi.fn(async () => ({ successful: 1, errors: [] }));
+  const createMacroEntries = vi.fn(async (meals) => {
+    order.push('nutrition-write');
+    return { mealsLogged: Array.isArray(meals) ? meals.length : 0, date: '2026-05-05', totalCalories: 755 };
+  });
   vi.doMock('../../database.mjs', () => ({ default: {} }));
   vi.doMock('../../utils/clientAccess.mjs', () => ({
     ensureClientAccess,
@@ -92,9 +98,22 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
   vi.doMock('../../services/aiDataWriteService.mjs', () => ({
     processAIDataUpdates,
   }));
+  vi.doMock('../../services/nutrition/macroLogService.mjs', () => ({
+    createMacroEntries,
+  }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, ensureClientAccess, submitAiWorkoutLogAsDailyForm, processAIDataUpdates };
+  return { ...service, ensureClientAccess, submitAiWorkoutLogAsDailyForm, processAIDataUpdates, createMacroEntries };
 }
+
+const pendingNutritionRow = {
+  ...pendingWorkoutRow,
+  proposal_type: 'nutrition_log',
+  summary_json: { title: 'Review nutrition log draft' },
+};
+const nutritionPayload = {
+  payload: { clientId: 42, date: '2026-05-05', meals: [{ mealType: 'lunch', description: 'burrito bowl', calories: 650, verified: true }] },
+  targetUserId: 42,
+};
 
 beforeEach(() => {
   vi.stubEnv('JWT_SECRET', 'unit-test-review-token-secret');
@@ -477,6 +496,81 @@ describe('coachActionProposalApprovalService', () => {
       writer: 'deterministic',
     });
     expect(JSON.stringify(result.body.proposal.detail.approvalGate)).not.toContain('555-0101');
+  });
+
+  // ── NUTRITION_LOG deterministic write path (hostile-review TEST-1/3/6/8) ──
+  it('claims then writes the nutrition log via createMacroEntries and FORCES verified:false', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order, row: pendingNutritionRow });
+    const { approveCoachActionProposal, getCoachActionProposal, createMacroEntries } = await loadApprovalService({ order, decryptedProposal: nutritionPayload });
+    const detail = await getCoachActionProposal({ id: pendingNutritionRow.id, req: { user: { id: 7, role: 'trainer' } }, sequelizeOverride: db });
+
+    const result = await approveCoachActionProposal({
+      id: pendingNutritionRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detail.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.applied).toBe(true);
+    expect(createMacroEntries).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(['claim', 'nutrition-write']);
+    const [mealsArg, optsArg] = createMacroEntries.mock.calls[0];
+    // The injected verified:true must be neutralized before the write.
+    expect(mealsArg.every((m) => m.verified === false)).toBe(true);
+    expect(optsArg).toEqual({ clientId: 42, date: '2026-05-05' });
+  });
+
+  it('returns NUTRITION_LOG_EMPTY without writing when the draft has no meals', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order, row: pendingNutritionRow });
+    const { approveCoachActionProposal, getCoachActionProposal, createMacroEntries } = await loadApprovalService({ order, decryptedProposal: { payload: { clientId: 42, meals: [] }, targetUserId: 42 } });
+    const detail = await getCoachActionProposal({ id: pendingNutritionRow.id, req: { user: { id: 7, role: 'trainer' } }, sequelizeOverride: db });
+
+    const result = await approveCoachActionProposal({
+      id: pendingNutritionRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detail.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('NUTRITION_LOG_EMPTY');
+    expect(createMacroEntries).not.toHaveBeenCalled();
+  });
+
+  it('fails closed with 403 when ensureClientAccess denies — no claim, no write', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order, row: pendingNutritionRow });
+    const { approveCoachActionProposal, getCoachActionProposal, createMacroEntries, ensureClientAccess } = await loadApprovalService({ order, decryptedProposal: nutritionPayload, accessAllowed: false });
+    const detail = await getCoachActionProposal({ id: pendingNutritionRow.id, req: { user: { id: 7, role: 'trainer' } }, sequelizeOverride: db });
+
+    const result = await approveCoachActionProposal({
+      id: pendingNutritionRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detail.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(403);
+    expect(result.body.code).toBe('CLIENT_ACCESS_DENIED');
+    expect(ensureClientAccess).toHaveBeenCalled();
+    expect(createMacroEntries).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
+  });
+
+  it('requires the encrypted detail-review token before a nutrition log can be approved', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order, row: pendingNutritionRow });
+    const { approveCoachActionProposal, createMacroEntries } = await loadApprovalService({ order, decryptedProposal: nutritionPayload });
+
+    const blocked = await approveCoachActionProposal({
+      id: pendingNutritionRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: {} },
+      sequelizeOverride: db,
+    });
+
+    expect(blocked.status).toBe(428);
+    expect(blocked.body.code).toBe('PROPOSAL_DETAIL_REVIEW_REQUIRED');
+    expect(createMacroEntries).not.toHaveBeenCalled();
   });
 
 });

@@ -78,3 +78,19 @@ export function safeSummaryExerciseCount(count: CoachActionProposal['summary'][s
 export function safeProposalStatus(value: CoachActionProposal['status']): string {
   return VALID_PROPOSAL_STATUSES.has(value) ? value : 'Needs review';
 }
+
+export function safeSummaryMealCount(count: CoachActionProposal['summary'][string]): string | null {
+  if (count == null || String(count).trim() === '') {
+    return null;
+  }
+  const value = Number(count);
+  return Number.isInteger(value) && value > 0 ? `${value} meal${value === 1 ? '' : 's'}` : null;
+}
+
+export function safeSummaryCalories(value: CoachActionProposal['summary'][string]): string | null {
+  if (value == null || String(value).trim() === '') {
+    return null;
+  }
+  const cal = Number(value);
+  return Number.isFinite(cal) && cal > 0 ? `~${Math.round(cal)} kcal` : null;
+}

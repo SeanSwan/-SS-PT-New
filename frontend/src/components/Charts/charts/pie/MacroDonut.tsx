@@ -6,6 +6,7 @@ import {
   ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer,
   CenterLabel, CHART_COLORS, VICTORY_ANIMATE,
 } from '../../chartTheme';
+import { useReducedMotion } from '../../../../hooks/useReducedMotion';
 
 interface MacroDonutProps {
   protein?: number;
@@ -15,18 +16,20 @@ interface MacroDonutProps {
   loading?: boolean;
 }
 
-// Per-datum colors — do NOT touch MACRO_PALETTE in chartTheme (shared constant)
+// Keep this order local; MACRO_PALETTE is shared elsewhere with a different order.
 const DATUM_COLORS = {
-  protein: '#8B5CF6', // Wing Purple
-  carbs: '#60C0F0',   // Ice Wing
-  fat: '#C6A84B',     // Gilded Fern
+  protein: CHART_COLORS.wingPurple,
+  carbs: CHART_COLORS.iceWing,
+  fat: CHART_COLORS.gildedFern,
 };
 
 const MacroDonut: React.FC<MacroDonutProps> = ({
   protein, carbs, fat, totalCalories, loading,
 }) => {
+  const isLoading = Boolean(loading);
+  const prefersReducedMotion = useReducedMotion();
   const { data, calLabel, isEmpty } = useMemo(() => {
-    if (loading) return { data: [], calLabel: '...', isEmpty: false };
+    if (isLoading) return { data: [], calLabel: '...', isEmpty: false };
     const total = (protein || 0) + (carbs || 0) + (fat || 0);
     if (!total) return { data: [], calLabel: '—', isEmpty: true };
     const pPct = Math.round(((protein || 0) / total) * 100);
@@ -41,10 +44,15 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
       ],
       calLabel: Math.round(totalCalories || 0).toLocaleString(),
     };
-  }, [protein, carbs, fat, totalCalories, loading]);
+  }, [protein, carbs, fat, totalCalories, isLoading]);
 
   return (
-    <ChartCard role="region" aria-label="Macronutrient split donut chart" tabIndex={0}>
+    <ChartCard
+      role="region"
+      aria-label="Macronutrient split donut chart"
+      aria-busy={isLoading}
+      tabIndex={0}
+    >
       <ChartHeader>
         <div>
           <ChartTitle>Macro Split</ChartTitle>
@@ -52,7 +60,7 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
         </div>
       </ChartHeader>
       <ChartContainer>
-        {loading ? (
+        {isLoading ? (
           <LoadingState>
             <Loader2 size={28} color="var(--accent-primary, #60C0F0)" />
           </LoadingState>
@@ -74,7 +82,7 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
               x="label"
               y="value"
               innerRadius={80}
-              animate={VICTORY_ANIMATE}
+              animate={prefersReducedMotion ? undefined : VICTORY_ANIMATE}
               labelRadius={({ innerRadius }) => (innerRadius as number) + 30}
               style={{
                 labels: { fill: CHART_COLORS.frostWhite, fontSize: 11, fontFamily: "'Sora', sans-serif" },
@@ -104,6 +112,10 @@ const LoadingState = styled.div`
   justify-content: center;
   height: 200px;
   svg { animation: ${spinKf} 0.8s linear infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    svg { animation: none; }
+  }
 `;
 
 const EmptyState = styled.div`

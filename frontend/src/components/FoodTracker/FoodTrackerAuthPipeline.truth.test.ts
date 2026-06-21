@@ -50,6 +50,8 @@ describe('mounted FoodTracker auth pipeline', () => {
   it('keeps mounted FoodTracker backend calls on the shared API service', () => {
     const foodIntakeSource = readSource('frontend/src/components/FoodTracker/FoodIntakeForm.tsx');
     const mealPlanSource = readSource('frontend/src/components/FoodTracker/MealPlanTab.tsx');
+    const mealPlanSectionsSource = readSource('frontend/src/components/FoodTracker/MealPlanTab.sections.tsx');
+    const mealPlanSaveSource = readSource('frontend/src/components/FoodTracker/MealPlanApproveSavePanel.tsx');
     const supplementsSource = readSource('frontend/src/components/FoodTracker/SupplementsTab.tsx');
     const gardeningSource = readSource('frontend/src/components/FoodTracker/GardeningTab.tsx');
     const farmFinderSource = readSource('frontend/src/components/FoodTracker/FarmFinderTab.tsx');
@@ -57,6 +59,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     const combinedSource = [
       foodIntakeSource,
       mealPlanSource,
+      mealPlanSaveSource,
       supplementsSource,
       gardeningSource,
       farmFinderSource,
@@ -70,6 +73,10 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(mealPlanSource).toContain("apiService.get('/api/meal-plans/golf-presets')");
     expect(mealPlanSource).toContain("apiService.post('/api/meal-plans/generate'");
     expect(mealPlanSource).toContain("apiService.post('/api/meal-plans/analyze-photo'");
+    expect(mealPlanSectionsSource).toContain("import MealPlanApproveSavePanel from './MealPlanApproveSavePanel'");
+    expect(mealPlanSectionsSource).toContain("import MealPhotoReview from './MealPhotoReview'");
+    expect(mealPlanSaveSource).toContain("import apiService from '../../services/api.service'");
+    expect(mealPlanSaveSource).toContain("apiService.post('/api/macros'");
 
     expect(supplementsSource).toContain("import apiService from '../../services/api.service'");
     expect(supplementsSource).toContain("apiService.get('/api/supplements/categories')");
@@ -93,5 +100,72 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(combinedSource).not.toContain('fetch(');
     expect(combinedSource).not.toContain('Authorization');
     expect(combinedSource).not.toContain('VITE_API_BASE');
+  });
+
+  it('keeps generated meal-plan target inputs on strict decimal parsing', () => {
+    const mealPlanSource = readSource('frontend/src/components/FoodTracker/MealPlanTab.tsx');
+
+    expect(mealPlanSource).toContain('parseMealPlanTarget');
+    expect(mealPlanSource).not.toMatch(/parseInt\(\s*calories/);
+    expect(mealPlanSource).not.toMatch(/parseInt\(\s*protein/);
+    expect(mealPlanSource).not.toMatch(/parseInt\(\s*carbs/);
+    expect(mealPlanSource).not.toMatch(/parseInt\(\s*fat/);
+  });
+
+  it('labels Snap-a-Meal photo confidence as an AI estimate, not certainty', () => {
+    const sectionsSource = readSource('frontend/src/components/FoodTracker/MealPlanTab.sections.tsx');
+
+    expect(sectionsSource).toContain('AI estimate');
+    expect(sectionsSource).not.toContain('% confident</ConfChip>');
+  });
+
+  it('honors reduced motion for mounted Nutrition workspace framer-motion surfaces', () => {
+    const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
+    const supplementsSource = readSource('frontend/src/components/FoodTracker/SupplementsTab.tsx');
+
+    expect(workspaceSource).toContain("import { useReducedMotion } from 'framer-motion';");
+    expect(workspaceSource).toContain('const reduceMotion = Boolean(useReducedMotion());');
+    expect(workspaceSource).toContain('whileHover={reduceMotion ? undefined : { scale: 1.02 }}');
+    expect(workspaceSource).toContain('whileTap={reduceMotion ? undefined : { scale: 0.98 }}');
+
+    expect(supplementsSource).toContain("import { AnimatePresence, useReducedMotion } from 'framer-motion';");
+    expect(supplementsSource).toContain('const reduceMotion = Boolean(useReducedMotion());');
+    expect(supplementsSource).toContain('whileHover={reduceMotion ? undefined : { scale: 1.02 }}');
+    expect(supplementsSource).toContain('layout={!reduceMotion}');
+    expect(supplementsSource).toContain('initial={reduceMotion ? false : { opacity: 0, y: 12 }}');
+    expect(supplementsSource).toContain('transition={reduceMotion ? { duration: 0 } : { duration: 0.2 }}');
+    expect(supplementsSource).not.toContain('whileHover={{ scale: 1.02 }}');
+    expect(supplementsSource).not.toContain('whileHover={{ scale: 1.03 }}');
+    expect(supplementsSource).not.toContain("initial={{ opacity: 0, y: 12 }}");
+    expect(supplementsSource).not.toContain("exit={{ opacity: 0, scale: 0.95 }}");
+  });
+
+  it('keeps live FoodTracker source modules split under the line cap', () => {
+    const sourceFiles = [
+      'frontend/src/components/FoodTracker/FoodIntakeForm.tsx',
+      'frontend/src/components/FoodTracker/FoodIntakeForm.logic.ts',
+      'frontend/src/components/FoodTracker/FoodIntakeForm.sections.tsx',
+      'frontend/src/components/FoodTracker/FoodIntakeForm.styles.ts',
+      'frontend/src/components/FoodTracker/MealPlanTab.tsx',
+      'frontend/src/components/FoodTracker/MealPlanTab.types.ts',
+      'frontend/src/components/FoodTracker/MealPlanTab.motion.ts',
+      'frontend/src/components/FoodTracker/MealPlanTab.sections.tsx',
+      'frontend/src/components/FoodTracker/MealPlanTab.styles.ts',
+      'frontend/src/components/FoodTracker/SupplementsTab.tsx',
+      'frontend/src/components/FoodTracker/FoodSearchPanel.tsx',
+      'frontend/src/components/FoodTracker/FoodSearchPanel.logic.ts',
+      'frontend/src/components/FoodTracker/FoodSearchPanel.styles.ts',
+      'frontend/src/components/FoodTracker/FoodIntelligenceDashboard.tsx',
+      'frontend/src/components/FoodTracker/FoodIntelligenceDashboard.logic.ts',
+      'frontend/src/components/FoodTracker/FoodIntelligenceDashboard.styles.ts',
+      'frontend/src/components/FoodTracker/RestaurantTab.tsx',
+      'frontend/src/components/FoodTracker/RestaurantTab.logic.ts',
+      'frontend/src/components/FoodTracker/RestaurantTab.styles.ts',
+    ];
+
+    for (const file of sourceFiles) {
+      const lineCount = readSource(file).split(/\r?\n/).length;
+      expect(lineCount, file).toBeLessThanOrEqual(300);
+    }
   });
 });

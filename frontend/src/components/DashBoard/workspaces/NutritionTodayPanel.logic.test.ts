@@ -47,6 +47,13 @@ describe('NutritionTodayPanel logic', () => {
       percent: 38,
       ounces: 24,
     });
+
+    expect(getHydrationProgress({ filled: 3, dailyGoal: 8, glassOz: 10 })).toEqual({
+      filled: 3,
+      dailyGoal: 8,
+      percent: 38,
+      ounces: 30,
+    });
   });
 
   it('rejects non-primitive or non-decimal macro values instead of rendering credible totals', () => {
@@ -94,6 +101,30 @@ describe('NutritionTodayPanel logic', () => {
     expect(buildRepeatMacroPayload({ description: '   ' })).toBeNull();
   });
 
+  it('rejects malformed macro values in one-tap repeat payloads', () => {
+    expect(buildRepeatMacroPayload({
+      mealType: 'lunch',
+      description: 'Chicken bowl',
+      calories: ['640'] as unknown as number,
+      protein: '1e2' as unknown as number,
+      carbs: { valueOf: () => 70 } as unknown as number,
+      fat: Number.POSITIVE_INFINITY,
+      fiber: -4,
+      sugar: 6,
+      sodium: 820,
+    }, '2026-06-20')).toMatchObject({
+      date: '2026-06-20',
+      calories: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+      fiber: null,
+      sugar: 6,
+      sodium: 820,
+      verified: false,
+    });
+  });
+
   it('builds care-first nutrition insights from real macro, hydration, and weekly data', () => {
     const insights = buildNutritionInsights({
       summary: {
@@ -120,6 +151,25 @@ describe('NutritionTodayPanel logic', () => {
     expect(insights[1].copy).toContain('8g of 30g');
     expect(insights[2].target).toBe('hydration');
     expect(insights.map((insight) => insight.copy).join(' ')).not.toMatch(/calorie target/i);
+  });
+
+  it('does not invent protein or fiber gap insight copy from incomplete summaries', () => {
+    const insights = buildNutritionInsights({
+      summary: {
+        totalProtein: null,
+        totalFiber: undefined,
+        mealCount: 2,
+      },
+      hydration: { filled: 8, dailyGoal: 8 },
+      weekDays: [
+        { date: '2026-06-16', mealCount: 1 },
+        { date: '2026-06-18', mealCount: 2 },
+      ],
+    });
+
+    expect(insights.map((insight) => insight.id)).not.toContain('protein-gap');
+    expect(insights.map((insight) => insight.id)).not.toContain('fiber-gap');
+    expect(insights.map((insight) => insight.copy).join(' ')).not.toMatch(/0g of/);
   });
 
   it('can add a training-day correlation only when real training-day input is provided', () => {

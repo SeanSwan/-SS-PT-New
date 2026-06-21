@@ -31,11 +31,23 @@ const MAX_DESCRIPTION_LENGTH = 500;
 const MAX_ITEMS_COUNT = 50;
 const MAX_MACRO_VALUE = 99999; // kcal or mg cap
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 const MAX_WEEKLY_RANGE_DAYS = 90;
+
+const toFiniteDecimalNumber = (val) => {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val !== 'string') return null;
+
+  const trimmed = val.trim();
+  if (!DECIMAL_NUMBER_REGEX.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 const sanitizeNumber = (val, max = MAX_MACRO_VALUE) => {
   if (val === null || val === undefined) return null;
-  const n = Number(val);
+  const n = toFiniteDecimalNumber(val);
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.min(Math.round(n * 10) / 10, max);
 };
@@ -89,7 +101,6 @@ router.post('/', async (req, res) => {
       items,
       source = 'manual',
       aiConversationId,
-      verified = false,
     } = req.body;
 
     // Validate description
@@ -135,7 +146,7 @@ router.post('/', async (req, res) => {
       sodium:           sanitizeNumber(sodium),
       items:            safeItems,
       aiConversationId: safeAiConversationId,
-      verified:         verified === true,
+      verified:         false,
     }, { userId: req.user.id, source: safeSource });
 
     return res.status(201).json({ success: true, entry });
@@ -342,6 +353,7 @@ router.patch('/:id(\\d+)', async (req, res) => {
 
     const updates = {};
     const numericFields = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'];
+    const hasClientVerifiedInput = Object.prototype.hasOwnProperty.call(req.body, 'verified');
 
     // Validate mealType
     if (req.body.mealType !== undefined) {
@@ -368,9 +380,9 @@ router.patch('/:id(\\d+)', async (req, res) => {
       updates.items = Array.isArray(req.body.items) ? req.body.items.slice(0, MAX_ITEMS_COUNT) : entry.items;
     }
 
-    // Validate verified
-    if (req.body.verified !== undefined) {
-      updates.verified = req.body.verified === true;
+    // Self-serve edits cannot mark estimates verified; any fact edit invalidates prior verification.
+    if (Object.keys(updates).length > 0 || hasClientVerifiedInput) {
+      updates.verified = false;
     }
 
     await entry.update(updates);

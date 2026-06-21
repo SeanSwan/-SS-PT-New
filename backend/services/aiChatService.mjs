@@ -1567,7 +1567,7 @@ Weight: ${u.weight || 'Not recorded'}
 Height: ${u.height || 'Not recorded'}
 Goal: ${u.fitnessGoal || 'Not set'}
 Experience: ${u.trainingExperience || 'Not set'}
-Health Concerns: ${u.healthConcerns || 'None noted'}${conditionFlags}
+Health Concerns: ${stripIdentityFromNotes(u.healthConcerns, userId, clientIdentity) || 'None noted'}${conditionFlags}
 Sessions Available: ${getCoachClientProfileSessionsLabel(u)}
 Client Source: ${getCoachClientProfileSourceLabel(u.clientSource)}
 Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}`);
@@ -1576,10 +1576,10 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
           try {
             const mp = typeof u.masterPromptJson === 'string' ? JSON.parse(u.masterPromptJson) : u.masterPromptJson;
             if (mp.goals) {
-              dataParts.push(`\n--- MASTER PROMPT GOALS ---\nPrimary: ${mp.goals.primary || 'general_fitness'}\nSecondary: ${(mp.goals.secondary || []).join(', ') || 'None'}\nNotes: ${mp.goals.notes || 'None'}`);
+              dataParts.push(`\n--- MASTER PROMPT GOALS ---\nPrimary: ${mp.goals.primary || 'general_fitness'}\nSecondary: ${(mp.goals.secondary || []).join(', ') || 'None'}\nNotes: ${stripIdentityFromNotes(mp.goals.notes, userId, clientIdentity) || 'None'}`);
             }
             if (mp.health?.injuries?.length > 0) {
-              dataParts.push(`\n--- MASTER PROMPT INJURIES ---\n${mp.health.injuries.join(', ')}`);
+              dataParts.push(`\n--- MASTER PROMPT INJURIES ---\n${stripIdentityFromNotes(mp.health.injuries.join(', '), userId, clientIdentity)}`);
             }
           } catch { /* malformed JSON */ }
         }
@@ -1602,7 +1602,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     if (onboarding.length > 0) {
       const ob = onboarding[0];
       const np = tryParse(ob.nutritionPrefs);
-      dataParts.push(`\n--- ONBOARDING ---\nGoal: ${ob.primaryGoal || '-'} | Tier: ${ob.trainingTier || '-'} | Commitment: ${ob.commitmentLevel || '-'}/10 | Health Risk: ${ob.healthRisk || '-'}\nNutrition Prefs: ${np ? JSON.stringify(np) : 'None'}`);
+      dataParts.push(`\n--- ONBOARDING ---\nGoal: ${ob.primaryGoal || '-'} | Tier: ${ob.trainingTier || '-'} | Commitment: ${ob.commitmentLevel || '-'}/10 | Health Risk: ${ob.healthRisk || '-'}\nNutrition Prefs: ${np ? stripIdentityFromNotes(JSON.stringify(np), userId, clientIdentity) : 'None'}`);
     }
 
     // ── 4. MOVEMENT ANALYSIS ──
@@ -1612,7 +1612,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       const ohsaStr = ohsa && typeof ohsa === 'object'
         ? Object.entries(ohsa).filter(([_, v]) => v && typeof v === 'object').map(([k, v]) => `${k}: ${v.finding || v.status || JSON.stringify(v)}`).join('; ') || 'No findings'
         : 'Not performed';
-      dataParts.push(`\n--- NASM MOVEMENT ANALYSIS ---\nDate: ${m.assessmentDate || '?'} | Score: ${m.nasmAssessmentScore ?? '?'}/100 | Quality: ${m.overallMovementQualityScore ?? '?'}/100 | Med Clearance: ${m.medicalClearanceRequired ? 'YES' : 'No'}${m.medicalClearanceDate ? ` (${m.medicalClearanceDate})` : ''}\nOHSA: ${ohsaStr}${m.correctiveExerciseStrategy ? `\nCorrective: ${JSON.stringify(tryParse(m.correctiveExerciseStrategy))}` : ''}${m.optPhaseRecommendation ? `\nOPT Phase: ${JSON.stringify(tryParse(m.optPhaseRecommendation))}` : ''}${m.trainerNotes ? `\nNotes: ${m.trainerNotes}` : ''}`);
+      dataParts.push(`\n--- NASM MOVEMENT ANALYSIS ---\nDate: ${m.assessmentDate || '?'} | Score: ${m.nasmAssessmentScore ?? '?'}/100 | Quality: ${m.overallMovementQualityScore ?? '?'}/100 | Med Clearance: ${m.medicalClearanceRequired ? 'YES' : 'No'}${m.medicalClearanceDate ? ` (${m.medicalClearanceDate})` : ''}\nOHSA: ${ohsaStr}${m.correctiveExerciseStrategy ? `\nCorrective: ${JSON.stringify(tryParse(m.correctiveExerciseStrategy))}` : ''}${m.optPhaseRecommendation ? `\nOPT Phase: ${JSON.stringify(tryParse(m.optPhaseRecommendation))}` : ''}${m.trainerNotes ? `\nNotes: ${stripIdentityFromNotes(m.trainerNotes, userId, clientIdentity)}` : ''}`);
     }
 
     // ── 5. BASELINE ──
@@ -1626,7 +1626,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
         : (b.bloodPressureSystolic >= 130 || b.bloodPressureDiastolic >= 80)
           ? ' ⚠️ PRE-HYPERTENSION — apply preventive sodium limits'
           : '';
-      dataParts.push(`\n--- BASELINE (${b.takenAt || '?'}) ---\n${lifts || 'No lifts tested'} | Pull-ups: ${b.pullUpsReps ?? '-'} | Plank: ${b.plankDuration ? `${b.plankDuration}s` : '-'} | BF: ${b.bodyFatPercentage ? `${b.bodyFatPercentage}%` : '-'} | HR: ${b.restingHeartRate || '-'} | BP: ${b.bloodPressureSystolic ? `${b.bloodPressureSystolic}/${b.bloodPressureDiastolic}${bpWarning}` : '-'}${b.injuryNotes ? `\nInjuries: ${b.injuryNotes}` : ''}`);
+      dataParts.push(`\n--- BASELINE (${b.takenAt || '?'}) ---\n${lifts || 'No lifts tested'} | Pull-ups: ${b.pullUpsReps ?? '-'} | Plank: ${b.plankDuration ? `${b.plankDuration}s` : '-'} | BF: ${b.bodyFatPercentage ? `${b.bodyFatPercentage}%` : '-'} | HR: ${b.restingHeartRate || '-'} | BP: ${b.bloodPressureSystolic ? `${b.bloodPressureSystolic}/${b.bloodPressureDiastolic}${bpWarning}` : '-'}${b.injuryNotes ? `\nInjuries: ${stripIdentityFromNotes(b.injuryNotes, userId, clientIdentity)}` : ''}`);
     }
 
     // ── 6. WORKOUT HISTORY ──
@@ -1758,7 +1758,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
 
     // ── 16. PAIN ──
     if (painEntries.length > 0) {
-      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${p.description}` : ''}`).join('\n')}`);
+      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${stripIdentityFromNotes(p.description, userId, clientIdentity)}` : ''}`).join('\n')}`);
     }
 
     // ── 17. SESSIONS (notes PII-stripped) ──

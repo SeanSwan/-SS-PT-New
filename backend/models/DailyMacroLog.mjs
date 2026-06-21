@@ -165,7 +165,7 @@ DailyMacroLog.init({
     allowNull: false,
     defaultValue: 'manual',
     validate: {
-      isIn: [['manual', 'ai_chat', 'voice', 'barcode', 'usda_lookup']],
+      isIn: [['manual', 'ai_chat', 'voice', 'barcode', 'usda_lookup', 'photo']],
     },
     comment: 'How this entry was created',
   },

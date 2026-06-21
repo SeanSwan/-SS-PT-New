@@ -11,6 +11,7 @@ const TOKEN_TTL_MS = 30 * 60 * 1000;
 const REVIEW_REQUIRED_TYPES = new Set([
   'client_onboarding',
   'workout_log',
+  'nutrition_log',
   'client_data_update',
   'frontend_dispatch',
   'split_plan',

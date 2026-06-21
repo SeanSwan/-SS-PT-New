@@ -219,6 +219,7 @@ export interface CoachActionProposal {
   type:
     | 'client_onboarding'
     | 'workout_log'
+    | 'nutrition_log'
     | 'client_data_update'
     | 'frontend_dispatch'
     | 'clarification'

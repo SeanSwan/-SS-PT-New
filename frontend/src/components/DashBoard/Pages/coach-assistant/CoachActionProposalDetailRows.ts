@@ -10,6 +10,7 @@ export function proposalTypeLabel(type: string) {
   const labels: Record<string, string> = {
     client_onboarding: 'Client onboarding',
     workout_log: 'Workout log',
+    nutrition_log: 'Nutrition log',
     client_data_update: 'Client data update',
     frontend_dispatch: 'Workout form action',
     clarification: 'Clarification',
@@ -129,6 +130,42 @@ function exerciseCount(value: unknown): string | null {
   return `${value.length} exercise${value.length === 1 ? '' : 's'} available`;
 }
 
+const MEAL_TYPE_LABELS: Record<string, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+  pre_workout: 'Pre-workout',
+  post_workout: 'Post-workout',
+};
+
+function mealTypeLabel(value: unknown): string {
+  return MEAL_TYPE_LABELS[String(value || '').trim()] || 'Meal';
+}
+
+function mealCountLabel(value: unknown): string | null {
+  const count = Number(value);
+  if (!Number.isFinite(count) || count <= 0) return null;
+  return `${count} meal${count === 1 ? '' : 's'}`;
+}
+
+function caloriesLabel(value: unknown): string | null {
+  const cal = Number(value);
+  if (!Number.isFinite(cal) || cal <= 0) return null;
+  return `~${Math.round(cal)} kcal (estimate)`;
+}
+
+function nutritionMealRows(value: unknown): Array<[string, unknown]> {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 8).map((entry) => {
+    const meal = asRecord(entry) || {};
+    const cal = meal.calories != null ? `${meal.calories} kcal` : 'kcal n/a';
+    const conf = meal.confidence != null ? ` · ${Math.round(Number(meal.confidence) * 100)}% conf` : '';
+    const desc = String(meal.description || 'meal').slice(0, 80);
+    return [mealTypeLabel(meal.mealType), `${desc} · ${cal}${conf}`];
+  });
+}
+
 function readyIfPresent(value: unknown, label: string): string | null {
   return hasProvidedValue(value) ? label : null;
 }
@@ -233,6 +270,17 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
       ['Client', safeClientId(workout.clientId)],
       ['Exercises', exerciseCount(workout.exercises)],
       ['Notes', readyIfPresent(workout.notes, 'Workout notes ready for review')],
+    ]));
+  }
+  const nutrition = asRecord(detail.nutrition);
+  if (nutrition) {
+    return withApprovalGateRows(detail, compactRows([
+      ['Nutrition draft', 'AI estimate — review before approving'],
+      ['Date', safeDate(nutrition.date)],
+      ['Client', safeClientId(nutrition.clientId)],
+      ['Meals', mealCountLabel(nutrition.mealCount)],
+      ['Calories', caloriesLabel(nutrition.totalCalories)],
+      ...nutritionMealRows(nutrition.meals),
     ]));
   }
   const clarification = asRecord(detail.clarification);

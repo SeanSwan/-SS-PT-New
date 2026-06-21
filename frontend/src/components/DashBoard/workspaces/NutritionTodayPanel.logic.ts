@@ -21,6 +21,7 @@ export interface NutritionWeekDay {
 export interface HydrationState {
   filled: number;
   dailyGoal: number;
+  glassOz?: number | null;
 }
 
 export interface NutritionInsight {
@@ -61,9 +62,7 @@ export const todayIso = (date: Date = new Date()) => formatLocalCalendarDate(dat
 export const daysAgoIso = (days: number, from = new Date()) => getLocalCalendarDateDaysAgo(days, from);
 
 const toFiniteDecimalNumber = (value: unknown) => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (!DECIMAL_NUMBER_PATTERN.test(trimmed)) return null;
@@ -71,9 +70,14 @@ const toFiniteDecimalNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-export const cleanWholeNumber = (value: unknown) => {
+const cleanNonNegativeNumber = (value: unknown) => {
   const numberValue = toFiniteDecimalNumber(value);
-  return numberValue !== null && Number.isFinite(numberValue) && numberValue > 0 ? Math.round(numberValue) : 0;
+  return numberValue !== null && numberValue >= 0 ? numberValue : null;
+};
+
+export const cleanWholeNumber = (value: unknown) => {
+  const numberValue = cleanNonNegativeNumber(value);
+  return numberValue !== null && numberValue > 0 ? Math.round(numberValue) : 0;
 };
 
 const previousDateIso = (isoDate: string) => {
@@ -105,21 +109,20 @@ export const getMacroMetrics = (summary: NutritionTodaySummary | null | undefine
   { label: 'Fiber', value: `${cleanWholeNumber(summary?.totalFiber)}g`, tone: 'fern' as const },
 ];
 
-export const getHydrationProgress = ({ filled, dailyGoal }: HydrationState) => {
+export const getHydrationProgress = ({ filled, dailyGoal, glassOz }: HydrationState) => {
   const goal = Math.max(1, cleanWholeNumber(dailyGoal) || 8);
   const glasses = Math.min(goal, Math.max(0, cleanWholeNumber(filled)));
+  const glassSize = cleanNonNegativeNumber(glassOz);
+  const ouncesPerGlass = glassSize !== null && glassSize > 0 ? glassSize : 8;
   return {
     filled: glasses,
     dailyGoal: goal,
     percent: Math.round((glasses / goal) * 100),
-    ounces: glasses * 8,
+    ounces: Math.round(glasses * ouncesPerGlass * 10) / 10,
   };
 };
 
-export const getNextNutritionAction = (
-  summary: NutritionTodaySummary | null | undefined,
-  hydration: HydrationState,
-): { title: string; copy: string; target: NutritionTodayTarget } => {
+export const getNextNutritionAction = (summary: NutritionTodaySummary | null | undefined, hydration: HydrationState): { title: string; copy: string; target: NutritionTodayTarget } => {
   const meals = cleanWholeNumber(summary?.mealCount);
   const water = getHydrationProgress(hydration);
 
@@ -162,13 +165,13 @@ export const buildRepeatMacroPayload = (entry: RepeatMacroEntry | null | undefin
     date,
     mealType,
     description,
-    calories: entry?.calories ?? null,
-    protein: entry?.protein ?? null,
-    carbs: entry?.carbs ?? null,
-    fat: entry?.fat ?? null,
-    fiber: entry?.fiber ?? null,
-    sugar: entry?.sugar ?? null,
-    sodium: entry?.sodium ?? null,
+    calories: cleanNonNegativeNumber(entry?.calories),
+    protein: cleanNonNegativeNumber(entry?.protein),
+    carbs: cleanNonNegativeNumber(entry?.carbs),
+    fat: cleanNonNegativeNumber(entry?.fat),
+    fiber: cleanNonNegativeNumber(entry?.fiber),
+    sugar: cleanNonNegativeNumber(entry?.sugar),
+    sodium: cleanNonNegativeNumber(entry?.sodium),
     items: Array.isArray(entry?.items) ? entry.items : [],
     source: 'manual' as const,
     verified: false,
@@ -181,16 +184,12 @@ const countLoggedWeekDays = (days: NutritionWeekDay[]) => new Set(
     .map((day) => day.date),
 ).size;
 
-export const buildNutritionInsights = ({
-  summary,
-  hydration,
-  weekDays,
-  trainingDay = false,
-  gentleMode = false,
-}: NutritionInsightInput): NutritionInsight[] => {
+export const buildNutritionInsights = ({ summary, hydration, weekDays, trainingDay = false, gentleMode = false }: NutritionInsightInput): NutritionInsight[] => {
   const insights: NutritionInsight[] = [];
-  const protein = cleanWholeNumber(summary?.totalProtein);
-  const fiber = cleanWholeNumber(summary?.totalFiber);
+  const proteinValue = cleanNonNegativeNumber(summary?.totalProtein);
+  const fiberValue = cleanNonNegativeNumber(summary?.totalFiber);
+  const protein = proteinValue === null ? 0 : Math.round(proteinValue);
+  const fiber = fiberValue === null ? 0 : Math.round(fiberValue);
   const meals = cleanWholeNumber(summary?.mealCount);
   const water = getHydrationProgress(hydration);
   const loggedWeekDays = countLoggedWeekDays(weekDays);
@@ -244,7 +243,7 @@ export const buildNutritionInsights = ({
     });
   }
 
-  if (meals > 0 && protein < PROTEIN_TARGET_GRAMS - 20) {
+  if (meals > 0 && proteinValue !== null && protein < PROTEIN_TARGET_GRAMS - 20) {
     insights.push({
       id: 'protein-gap',
       title: 'Protein support',
@@ -254,7 +253,7 @@ export const buildNutritionInsights = ({
     });
   }
 
-  if (meals > 0 && fiber < FIBER_TARGET_GRAMS - 8) {
+  if (meals > 0 && fiberValue !== null && fiber < FIBER_TARGET_GRAMS - 8) {
     insights.push({
       id: 'fiber-gap',
       title: 'Fiber coverage',

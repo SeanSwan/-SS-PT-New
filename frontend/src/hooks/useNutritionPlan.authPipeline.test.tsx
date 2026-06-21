@@ -14,8 +14,12 @@ vi.mock('../services/api.service', () => ({
 
 const source = readFileSync(resolve(__dirname, './useNutritionPlan.ts'), 'utf8');
 const repoRoot = resolve(__dirname, '../../..');
-const layoutSource = readFileSync(
-  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const routeRegistrySource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
@@ -45,8 +49,8 @@ describe('useNutritionPlan auth pipeline', () => {
   });
 
   it('is consumed by mounted nutrition builder routes backed by mounted nutrition APIs', () => {
-    expect(layoutSource).toContain("const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'))");
-    expect(layoutSource).toContain("{ path: '/nutrition/:clientId?', component: NutritionPlanBuilder");
+    expect(routeComponentsSource).toContain("export const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'))");
+    expect(routeRegistrySource).toContain("{ path: '/nutrition/:clientId?', component: NutritionPlanBuilder");
     expect(coreRoutes).toContain("app.use('/api/nutrition', clientNutritionRoutes)");
   });
 

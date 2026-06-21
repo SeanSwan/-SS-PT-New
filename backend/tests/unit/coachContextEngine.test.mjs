@@ -35,7 +35,24 @@ function fakeSequelize({ failDomain = null } = {}) {
         return [{ id: 11, title: 'Lower body', createdAt: '2026-06-01', duration: 60, intensity: 7, exercises: [{ exerciseName: 'goblet squat', setNumber: 1, reps: 10, weight: 50 }] }];
       }
       if (/PainEntries/.test(sql)) return [{ bodyPart: 'knee', level: 7, isActive: true }];
-      if (/MacroLogs/.test(sql)) return [{ calories: 2000, protein: 150, carbs: 180, fat: 70 }];
+      if (/daily_macro_logs/.test(sql)) {
+        return [{
+          date: '2026-06-20',
+          mealType: 'lunch',
+          calories: 2000,
+          protein: 150,
+          carbs: 180,
+          fat: 70,
+          fiber: 18,
+          sugar: 22,
+          sodium: 900,
+          source: 'voice',
+          verified: false,
+          flagSodium: true,
+          flagSugar: false,
+          flagProcessed: false,
+        }];
+      }
       if (/"Goals"/.test(sql)) return [{ title: 'Run 5k', description: '', progress: 40, status: 'active' }];
       if (/FROM sessions/.test(sql)) return [{ id: 31, sessionDate: '2026-06-15T17:00:00.000Z', duration: 60, status: 'scheduled' }];
       return [];
@@ -91,7 +108,43 @@ describe('buildCoachContext', () => {
     expect(r.context.gamification).toBeDefined();
   });
 
-  it('covers all v1 domains', () => {
-    expect(CONTEXT_DOMAINS).toEqual(['profile', 'workouts', 'pain', 'macros', 'goals', 'schedule']);
+  it('covers all v1 domains with nutrition promoted from the legacy macros read', () => {
+    expect(CONTEXT_DOMAINS).toEqual(['profile', 'workouts', 'pain', 'nutrition', 'goals', 'schedule']);
+  });
+
+  it('nutrition domain queries canonical daily_macro_logs without raw meal text', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
+    const sequelize = fakeSequelize();
+    await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize });
+    const executedSql = sequelize.query.mock.calls.map(([sql]) => sql).join('\n');
+    const nutritionSql = sequelize.query.mock.calls.map(([sql]) => sql).find((sql) => /daily_macro_logs/.test(sql));
+    expect(executedSql).toMatch(/FROM\s+daily_macro_logs/);
+    expect(executedSql).not.toContain('"MacroLogs"');
+    expect(nutritionSql).not.toMatch(/\bdescription\b/i);
+    expect(nutritionSql).not.toMatch(/\bitems\b/i);
+  });
+
+  it('adds a PII-safe nutrition context while preserving macro averages', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
+    const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize() });
+
+    expect(r.context.macroAverages).toMatchObject({
+      calories: 2000,
+      protein: 150,
+      carbs: 180,
+      fat: 70,
+      sampleDays: 1,
+    });
+    expect(r.context.nutrition).toMatchObject({
+      sampleEntries: 1,
+      loggedDays: 1,
+      latestDate: '2026-06-20',
+      latestMealType: 'lunch',
+      verifiedCount: 0,
+      estimateCount: 1,
+      sodiumFlagCount: 1,
+      sources: ['voice'],
+    });
+    expect(JSON.stringify(r.context.nutrition)).not.toMatch(/description|items|Maria|Lopez/i);
   });
 });

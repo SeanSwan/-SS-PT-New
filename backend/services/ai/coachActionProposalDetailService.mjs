@@ -101,6 +101,32 @@ export function sanitizeProposalDetail({ row, proposal }) {
       },
     });
   }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.NUTRITION_LOG) {
+    // Meal descriptions are food names (not identity PII) and the reviewer owns
+    // the proposal — safe to surface for trainer review. Macros are AI estimates.
+    const meals = Array.isArray(payload.meals) ? payload.meals : [];
+    const totalCalories = meals.reduce((sum, m) => sum + (Number(m?.calories) || 0), 0);
+    const round = (v) => (Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
+    return withApprovalGate(proposal, {
+      nutrition: {
+        clientId: parseDetailClientId(payload.clientId, proposal.targetUserId),
+        date: payload.date || null,
+        mealCount: meals.length,
+        totalCalories: Math.round(totalCalories),
+        meals: meals.slice(0, 20).map((m) => ({
+          mealType: typeof m?.mealType === 'string' ? m.mealType : 'snack',
+          description: typeof m?.description === 'string' ? m.description.slice(0, 160) : '',
+          calories: round(m?.calories),
+          protein: round(m?.protein),
+          carbs: round(m?.carbs),
+          fat: round(m?.fat),
+          confidence: Number.isFinite(Number(m?.confidence))
+            ? Math.max(0, Math.min(1, Number(m.confidence)))
+            : null,
+        })),
+      },
+    });
+  }
   if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
     return withApprovalGate(proposal, {
       clientDataUpdate: {

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -7,9 +7,25 @@ const repoRoot = resolve(__dirname, '../../..');
 const readSource = (relativePath: string) =>
   readFileSync(resolve(repoRoot, relativePath), 'utf8');
 
+const readFirstSource = (...relativePaths: string[]) => {
+  const foundPath = relativePaths.find((relativePath) => existsSync(resolve(repoRoot, relativePath)));
+  if (!foundPath) {
+    throw new Error(`Missing source fixture. Checked: ${relativePaths.join(', ')}`);
+  }
+
+  return readSource(foundPath);
+};
+
 describe('nutrition hooks auth pipeline', () => {
   it('is consumed by the mounted nutrition workspace and backed by nutrition APIs', () => {
-    const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readFirstSource(
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx',
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'
+    );
+    const routeRegistrySource = readFirstSource(
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx',
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'
+    );
     const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
     const hydrationTabSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionHydrationTab.tsx');
     const restaurantTabSource = readSource('frontend/src/components/FoodTracker/RestaurantTab.tsx');
@@ -18,12 +34,18 @@ describe('nutrition hooks auth pipeline', () => {
     const hydrationRoutesSource = readSource('backend/routes/hydrationRoutes.mjs');
     const restaurantRoutesSource = readSource('backend/routes/restaurantRoutes.mjs');
 
-    expect(layoutSource).toContain("const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'))");
-    expect(layoutSource).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
-    expect(workspaceSource).toContain('const { summary, loading: macroLoading, refetch: refetchMacroSummary } = useMacroSummary()');
+    expect(routeComponentsSource).toMatch(/(?:export\s+)?const NutritionWorkspaceLazy = React\.lazy\(\(\) => import\('\.\/workspaces\/NutritionWorkspace'\)\)/);
+    expect(routeRegistrySource).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
+    expect(workspaceSource).toContain('const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary()');
+    expect(workspaceSource).toContain('const macroUnavailablePanel = macroError ? (');
+    expect(workspaceSource).toContain('const { filled: hydrationGlasses, glassOz, loading: hydrationLoading } = useHydration()');
+    expect(workspaceSource).toContain('hydrationMl={hydrationMl}');
+    expect(workspaceSource).toContain('loading={loading || hydrationLoading}');
     expect(workspaceSource).toContain("{activeTab === 'restaurant' && <RestaurantTab />}");
     expect(workspaceSource).toContain("{activeTab === 'hydration' && <NutritionHydrationTab />}");
-    expect(hydrationTabSource).toContain('const { filled, dailyGoal: DAILY_GOAL, updateFilled } = useHydration()');
+    expect(hydrationTabSource).toContain('const { filled, dailyGoal: DAILY_GOAL, glassOz, loading, updateFilled } = useHydration()');
+    expect(hydrationTabSource).toContain('const ounces = Math.round(filled * glassOz * 10) / 10');
+    expect(hydrationTabSource).not.toContain('const GLASS_OZ = 8');
     expect(restaurantTabSource).toContain('useRestaurantSearch()');
 
     expect(coreRoutesSource).toContain("app.use('/api/macros', dailyMacroRoutes)");
@@ -43,13 +65,20 @@ describe('nutrition hooks auth pipeline', () => {
     const combinedApiSource = `${macroSource}\n${hydrationSource}\n${restaurantSource}`;
 
     expect(macroSource).toContain("import apiService from '../services/api.service'");
+    expect(macroSource).toContain("import { formatLocalCalendarDate } from '../components/DashBoard/workspaces/clients-team/nutritionDate'");
+    expect(macroSource).toContain('const dateParam = date || formatLocalCalendarDate()');
     expect(macroSource).toContain('apiService.get(`/api/macros/summary?date=${dateParam}`)');
+    expect(macroSource).not.toContain("new Date().toISOString().split('T')[0]");
 
     expect(hydrationSource).toContain("import apiService from '../services/api.service'");
+    expect(hydrationSource).toContain("import { formatLocalCalendarDate } from '../components/DashBoard/workspaces/clients-team/nutritionDate'");
+    expect(hydrationSource).toContain('const todayStr = () => formatLocalCalendarDate()');
+    expect(hydrationSource).toContain('glassOz: number');
     expect(hydrationSource).toContain('apiService.get(`/api/hydration?date=${todayStr()}`)');
     expect(hydrationSource).toContain("apiService.put('/api/hydration'");
     expect(hydrationSource).toContain('apiService.isAuthenticated()');
     expect(hydrationSource).toContain('localStorage.getItem(`${LS_KEY_PREFIX}${todayStr()}`)');
+    expect(hydrationSource).not.toContain("new Date().toISOString().split('T')[0]");
 
     expect(restaurantSource).toContain("import apiService from '../services/api.service'");
     expect(restaurantSource).toContain('apiService.get(`/api/restaurant/search?${params}`');

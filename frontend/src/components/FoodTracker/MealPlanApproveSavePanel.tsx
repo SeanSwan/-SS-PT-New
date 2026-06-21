@@ -11,7 +11,6 @@ import {
   type MealPlanInput,
   type MealPlanMacroDraft,
 } from './MealPlanApproveSavePanel.logic';
-
 interface MealPlanApproveSavePanelProps {
   plan: MealPlanInput | null;
   onSaved?: (success: boolean) => void;
@@ -33,6 +32,7 @@ const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ pla
 
   useEffect(() => {
     setDrafts(buildMacroDraftsFromMealPlan(plan));
+    setDate(todayIso());
     setStatus('');
     setError('');
     setSavedIds(new Set());
@@ -126,12 +126,14 @@ const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ pla
       <DraftList>
         {drafts.map((draft, index) => {
           const mealLabel = labelFor(draft.mealType);
+          const rowLocked = saving || savedIds.has(draft.id);
           return (
             <DraftRow key={draft.id}>
               <MealTypeSelect
                 aria-label={`Meal ${index + 1} type`}
                 value={draft.mealType}
                 onChange={(event) => updateDraft(draft.id, 'mealType', event.target.value)}
+                disabled={rowLocked}
               >
                 {MEAL_PLAN_MEAL_TYPES.map((type) => <option key={type} value={type}>{labelFor(type)}</option>)}
               </MealTypeSelect>
@@ -139,12 +141,13 @@ const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ pla
                 aria-label={`${mealLabel} description`}
                 value={draft.description}
                 onChange={(event) => updateDraft(draft.id, 'description', event.target.value)}
+                disabled={rowLocked}
               />
               <MacroFields>
                 {macroFields.map((field) => (
                   <MacroField key={field}>
                     <span>{field === 'calories' ? 'cal' : field[0].toUpperCase()}</span>
-                    <MacroInput aria-label={`${mealLabel} ${field}`} type="number" min="0" value={draft[field] ?? ''} onChange={(event) => updateDraft(draft.id, field, event.target.value)} />
+                    <MacroInput aria-label={`${mealLabel} ${field}`} type="number" min="0" value={draft[field] ?? ''} onChange={(event) => updateDraft(draft.id, field, event.target.value)} disabled={rowLocked} />
                   </MacroField>
                 ))}
               </MacroFields>

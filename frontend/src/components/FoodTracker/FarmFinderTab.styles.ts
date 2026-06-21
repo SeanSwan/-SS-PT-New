@@ -78,6 +78,9 @@ export const SearchBtn = styled.button`
   &:hover:not(:disabled) { filter: brightness(1.1); }
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation: none; }
+  }
 `;
 
 export const ErrorMsg = styled.div`
@@ -186,6 +189,9 @@ export const LoadingRow = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.5));
   svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    svg { animation: none; }
+  }
 `;
 
 export const MarketDetails = styled.div`

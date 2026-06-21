@@ -4,6 +4,7 @@ import {
   ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer,
   CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE,
 } from '../../chartTheme';
+import { useReducedMotion } from '../../../../hooks/useReducedMotion';
 
 // Default daily targets (grams)
 const TARGETS = { protein: 150, carbs: 250, fat: 65, fiber: 30, hydration: 2500 };
@@ -17,33 +18,56 @@ interface NutritionBalanceRadarProps {
   loading?: boolean;
 }
 
-const DEMO_DATA = [
-  { x: 0, y: 87 },
-  { x: 1, y: 72 },
-  { x: 2, y: 65 },
-  { x: 3, y: 58 },
-  { x: 4, y: 91 },
+export interface NutritionRadarDatum {
+  x: number;
+  y: number;
+}
+
+const emptyRadarData = (): NutritionRadarDatum[] => [
+  { x: 0, y: 0 },
+  { x: 1, y: 0 },
+  { x: 2, y: 0 },
+  { x: 3, y: 0 },
+  { x: 4, y: 0 },
 ];
+
+const pct = (value: unknown, target: number) => {
+  const numericValue = Number(value ?? 0);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return 0;
+  return Math.min(Math.round((numericValue / target) * 100), 100);
+};
+
+export const buildNutritionRadarData = ({
+  protein, carbs, fat, fiber, hydrationMl, loading,
+}: NutritionBalanceRadarProps): NutritionRadarDatum[] => {
+  if (loading) return emptyRadarData();
+
+  return [
+    { x: 0, y: pct(protein, TARGETS.protein) },
+    { x: 1, y: pct(carbs, TARGETS.carbs) },
+    { x: 2, y: pct(fat, TARGETS.fat) },
+    { x: 3, y: pct(fiber, TARGETS.fiber) },
+    { x: 4, y: pct(hydrationMl, TARGETS.hydration) },
+  ];
+};
 
 const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
   protein, carbs, fat, fiber, hydrationMl, loading,
 }) => {
-  const data = useMemo(() => {
-    const hasData = !loading && (protein || carbs || fat || fiber || hydrationMl);
-    if (!hasData) return DEMO_DATA;
-    // Clamp each to 0-100% of target
-    const pct = (val: number, target: number) => Math.min(Math.round((val / target) * 100), 100);
-    return [
-      { x: 0, y: pct(protein || 0, TARGETS.protein) },
-      { x: 1, y: pct(carbs || 0, TARGETS.carbs) },
-      { x: 2, y: pct(fat || 0, TARGETS.fat) },
-      { x: 3, y: pct(fiber || 0, TARGETS.fiber) },
-      { x: 4, y: pct(hydrationMl || 0, TARGETS.hydration) },
-    ];
-  }, [protein, carbs, fat, fiber, hydrationMl, loading]);
+  const isLoading = Boolean(loading);
+  const prefersReducedMotion = useReducedMotion();
+  const data = useMemo(
+    () => buildNutritionRadarData({ protein, carbs, fat, fiber, hydrationMl, loading: isLoading }),
+    [protein, carbs, fat, fiber, hydrationMl, isLoading],
+  );
 
   return (
-  <ChartCard role="region" aria-label="Nutrition balance adherence radar chart" tabIndex={0}>
+  <ChartCard
+    role="region"
+    aria-label="Nutrition balance adherence radar chart"
+    aria-busy={isLoading}
+    tabIndex={0}
+  >
     <ChartHeader>
       <div>
         <ChartTitle>Nutrition Balance</ChartTitle>
@@ -51,7 +75,12 @@ const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
       </div>
     </ChartHeader>
     <ChartContainer>
-      <VictoryChart polar theme={victoryTheme} animate={VICTORY_ANIMATE} domain={{ y: [0, 100] }}>
+      <VictoryChart
+        polar
+        theme={victoryTheme}
+        animate={prefersReducedMotion ? undefined : VICTORY_ANIMATE}
+        domain={{ y: [0, 100] }}
+      >
         <VictoryPolarAxis
           dependentAxis
           style={{ axis: { stroke: 'none' }, grid: { stroke: CHART_COLORS.gridLine } }}

@@ -22,7 +22,7 @@ When ready to prepare a draft, use a coach_action_proposal block as one JSON blo
   "action": "coach_action_proposal",
   "schema_version": "2026-05-07",
   "intake_id": "11111111-1111-4111-8111-111111111111",
-  "proposal_type": "client_onboarding|workout_log|client_data_update|frontend_dispatch|clarification|split_plan",
+  "proposal_type": "client_onboarding|workout_log|nutrition_log|client_data_update|frontend_dispatch|clarification|split_plan",
   "requires_confirmation": true,
   "evidence_refs": ["seg_04"],
   "safety_flags": ["trainer_approval_required"],
@@ -33,6 +33,7 @@ When ready to prepare a draft, use a coach_action_proposal block as one JSON blo
 Payload guidance:
 - client_onboarding payload: include gathered onboarding fields only; never invent names, claim codes, passwords, URLs, or consent. Prefer firstName, lastName, email, phone, clientSource, trainingGoal, limitations, painNotes, equipmentAccess, availability, and firstSessionPriorities when the trainer provides them.
 - workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence. Include scheduledSessionId only when a server-provided selected booked session context gives that exact id; never invent or change scheduled session ids.
+- nutrition_log payload: include clientId only when the selected/confirmed client is known; include optional ISO date and a "meals" array. Each meal has description plus mealType (breakfast|lunch|dinner|snack|pre_workout|post_workout) and conservative calories/protein/carbs/fat/fiber/sugar/sodium. Use null for any macro you cannot estimate — never guess 0. These are ESTIMATES for trainer approval; do not claim the meal was logged.
 - client_data_update payload: include targetUserId or clientId plus non-empty updates; each update must be reviewable.
 - frontend_dispatch payload: use only for draft UI changes, never as a final write path.
 - clarification payload: include question plus optional options when the trainer needs one narrow answer.

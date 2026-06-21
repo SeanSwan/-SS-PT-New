@@ -20,8 +20,20 @@ const router = express.Router();
 router.use(protect);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 const isValidDate = (str) => DATE_REGEX.test(str) && !isNaN(new Date(str + 'T00:00:00Z').getTime());
 const todayStr = () => new Date().toISOString().split('T')[0];
+
+const toFiniteDecimalNumber = (val) => {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val !== 'string') return null;
+
+  const trimmed = val.trim();
+  if (!DECIMAL_NUMBER_REGEX.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 /**
  * GET /api/hydration?date=YYYY-MM-DD
@@ -54,15 +66,17 @@ router.put('/', async (req, res) => {
     const date = (req.body.date && isValidDate(req.body.date)) ? req.body.date : todayStr();
 
     // Validate glassesFilled
-    const safeGlasses = Number(glassesFilled);
-    if (!Number.isFinite(safeGlasses) || safeGlasses < 0 || safeGlasses > 30) {
+    const safeGlasses = toFiniteDecimalNumber(glassesFilled);
+    if (safeGlasses === null || safeGlasses < 0 || safeGlasses > 30) {
       return res.status(400).json({ success: false, error: 'glassesFilled must be 0-30' });
     }
 
-    const safeGoal = (dailyGoal && Number.isFinite(Number(dailyGoal)) && Number(dailyGoal) >= 1 && Number(dailyGoal) <= 30)
-      ? Number(dailyGoal) : undefined;
-    const safeOz = (glassOz && Number.isFinite(Number(glassOz)) && Number(glassOz) >= 1 && Number(glassOz) <= 32)
-      ? Number(glassOz) : undefined;
+    const goalNumber = dailyGoal === undefined ? null : toFiniteDecimalNumber(dailyGoal);
+    const ozNumber = glassOz === undefined ? null : toFiniteDecimalNumber(glassOz);
+    const safeGoal = (goalNumber !== null && goalNumber >= 1 && goalNumber <= 30)
+      ? goalNumber : undefined;
+    const safeOz = (ozNumber !== null && ozNumber >= 1 && ozNumber <= 32)
+      ? ozNumber : undefined;
 
     const [record, created] = await DailyHydration.findOrCreate({
       where: { userId: req.user.id, date },

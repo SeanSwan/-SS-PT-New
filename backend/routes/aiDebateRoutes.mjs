@@ -126,7 +126,7 @@ router.post('/start', protect, trainerOrAdminOnly, async (req, res) => {
         { replacements: { clientId: resolvedClientId }, type: sequelize.QueryTypes.SELECT }
       ).catch(() => []),
       sequelize.query(
-        `SELECT calories, protein, carbs, fat FROM "MacroLogs"
+        `SELECT calories, protein, carbs, fat FROM daily_macro_logs
          WHERE "userId" = :clientId ORDER BY "createdAt" DESC LIMIT 7`,
         { replacements: { clientId: resolvedClientId }, type: sequelize.QueryTypes.SELECT }
       ).catch(() => []),

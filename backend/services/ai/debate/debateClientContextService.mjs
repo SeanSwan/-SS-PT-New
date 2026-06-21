@@ -72,7 +72,7 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
     safeQuery(
       sequelize,
       `SELECT calories, protein, carbs, fat
-       FROM "MacroLogs"
+       FROM daily_macro_logs
        WHERE "userId" = :clientId
        ORDER BY "createdAt" DESC
        LIMIT 7`,

@@ -92,6 +92,72 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     }));
   });
 
+  it('does not save malformed external macro fields as credible nutrition values', async () => {
+    apiMocks.post.mockResolvedValue({ data: { success: true } });
+    vi.stubGlobal('fetch', vi.fn((url: string | URL) => {
+      const u = String(url);
+      if (u.includes('nal.usda.gov')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            foods: [{
+              fdcId: 2,
+              description: 'ODD CHICKEN',
+              foodNutrients: [
+                { nutrientNumber: '208', value: '1e3' },
+                { nutrientNumber: '203', value: ['45'] },
+                { nutrientNumber: '204', value: '4.5' },
+                { nutrientNumber: '205', value: '0x10' },
+              ],
+            }],
+          }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          products: [{
+            _id: 'off-odd',
+            product_name: 'Odd Packaged Chicken',
+            serving_quantity: '1e2',
+            nutriments: {
+              'energy-kcal_100g': 120,
+              proteins_100g: 20,
+              fat_100g: 4,
+              carbohydrates_100g: 5,
+            },
+          }, {
+            _id: 'off-zero',
+            product_name: 'Zero Packaged Chicken',
+            serving_quantity: '0',
+            nutriments: {
+              'energy-kcal_100g': 90,
+              proteins_100g: 18,
+              fat_100g: 2,
+              carbohydrates_100g: 3,
+            },
+          }],
+        }),
+      } as Response);
+    }));
+    const user = userEvent.setup();
+
+    render(<FoodSearchPanel onDataSent={vi.fn()} />);
+    await user.type(screen.getByPlaceholderText(/search foods/i), 'odd chicken');
+    await user.click(await screen.findByRole('button', { name: /add odd chicken to snack/i }, { timeout: 2000 }));
+
+    await waitFor(() => expect(apiMocks.post).toHaveBeenCalledTimes(1));
+    expect(apiMocks.post).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
+      calories: null,
+      protein: null,
+      carbs: null,
+      fat: 5,
+      verified: false,
+    }));
+    expect(screen.queryByText(/1e2g/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('0g')).not.toBeInTheDocument();
+  });
+
   it('blocks a rapid double-tap from double-logging the same searched food', async () => {
     const pending: Array<() => void> = [];
     apiMocks.post.mockImplementation(() => new Promise((resolve) => { pending.push(() => resolve({ data: { success: true } })); }));

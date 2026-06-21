@@ -416,4 +416,49 @@ describe('coachActionProposalService', () => {
     expect(result).toEqual({ proposals: [], frontendActions: [] });
     expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
   });
+
+  it('keeps nutrition_log meal free-text out of the clear-text summary_json (Rule 8, hostile-review TEST-7)', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Nutrition draft prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'nutrition_log',
+        evidence_refs: ['seg_04'],
+        safety_flags: ['needs_client_confirmation'],
+        payload: {
+          date: '2026-05-05',
+          meals: [
+            { mealType: 'lunch', description: 'chicken burrito bowl', calories: 650, protein: 45 },
+            { mealType: 'snack', description: 'banana', calories: 105 },
+          ],
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result.proposals).toHaveLength(1);
+    expect(result.proposals[0]).toMatchObject({
+      type: COACH_PROPOSAL_TYPE.NUTRITION_LOG,
+      status: COACH_PROPOSAL_STATUS.PENDING,
+      title: 'Review nutrition log draft',
+      summary: { mealCount: 2, totalCalories: 755, clientId: 42 },
+    });
+    const serialized = JSON.stringify(db.calls.map((call) => call.options?.replacements), (_key, value) => (
+      Buffer.isBuffer(value) ? '<buffer>' : value
+    ));
+    // Meal free-text lives only in the ENCRYPTED cipher — never in clear-text summary_json.
+    expect(serialized).not.toContain('chicken burrito bowl');
+    expect(serialized).not.toContain('banana');
+    expect(serialized).toContain('Review nutrition log draft');
+  });
 });

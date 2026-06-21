@@ -28,6 +28,7 @@ export const COACH_PROPOSAL_STATUS = Object.freeze({
 export const COACH_PROPOSAL_TYPE = Object.freeze({
   CLIENT_ONBOARDING: 'client_onboarding',
   WORKOUT_LOG: 'workout_log',
+  NUTRITION_LOG: 'nutrition_log',
   CLIENT_DATA_UPDATE: 'client_data_update',
   FRONTEND_DISPATCH: 'frontend_dispatch',
   CLARIFICATION: 'clarification',
@@ -48,6 +49,7 @@ function proposalTitle(type) {
   const titles = {
     [COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING]: 'Review client onboarding draft',
     [COACH_PROPOSAL_TYPE.WORKOUT_LOG]: 'Review workout log draft',
+    [COACH_PROPOSAL_TYPE.NUTRITION_LOG]: 'Review nutrition log draft',
     [COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE]: 'Review client data update',
     [COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH]: 'Review workout form submission',
     [COACH_PROPOSAL_TYPE.CLARIFICATION]: 'Answer Coach clarification',
@@ -91,6 +93,18 @@ function summarizeProposal(type, payload, conversation) {
       clientId: parseSummaryClientId(payload.clientId, conversation?.targetUserId),
       date: payload.date || null,
       exerciseCount: exercises.length,
+    };
+  }
+  if (type === COACH_PROPOSAL_TYPE.NUTRITION_LOG) {
+    // summary_json is stored CLEAR-TEXT → IDs + counts only, never meal free-text.
+    const meals = Array.isArray(payload.meals) ? payload.meals : [];
+    const totalCalories = meals.reduce((s, m) => s + (Number(m.calories) || 0), 0);
+    return {
+      ...base,
+      clientId: parseSummaryClientId(payload.clientId, conversation?.targetUserId),
+      date: payload.date || null,
+      mealCount: meals.length,
+      totalCalories: Math.round(totalCalories),
     };
   }
   if (type === COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING) {

@@ -17,6 +17,9 @@ import {
 } from './FarmFinderTab.styles';
 import apiService from '../../services/api.service';
 
+const FARM_SEARCH_ERROR = 'Farmers market search is unavailable right now. Please try again.';
+const FARM_DETAILS_ERROR = 'Could not load market details. Please try again.';
+
 // ── Types ──────────────────────────────────────────────────────
 interface MarketSummary {
   id: string;
@@ -87,14 +90,14 @@ const FarmFinderTab: React.FC = () => {
         if (data.apiDown) {
           setError('Farmers market data is temporarily unavailable. Please try again later.');
         } else {
-          setError(data.error || 'Search failed');
+          setError(FARM_SEARCH_ERROR);
         }
         return;
       }
       setMarkets(data.markets);
       if (data.markets.length === 0) setError('No farmers markets found near this zip code');
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to search. Check your connection.');
+    } catch {
+      setError(FARM_SEARCH_ERROR);
     } finally {
       setLoading(false);
     }
@@ -114,10 +117,10 @@ const FarmFinderTab: React.FC = () => {
       if (data.success && data.market) {
         setDetails(prev => ({ ...prev, [marketId]: data.market }));
       } else {
-        setDetailError('Could not load market details. Try again.');
+        setDetailError(FARM_DETAILS_ERROR);
       }
-    } catch (err: any) {
-      setDetailError(err?.response?.data?.error || err?.response?.data?.message || 'Could not load market details. Check your connection.');
+    } catch {
+      setDetailError(FARM_DETAILS_ERROR);
     } finally {
       setDetailLoading(null);
     }

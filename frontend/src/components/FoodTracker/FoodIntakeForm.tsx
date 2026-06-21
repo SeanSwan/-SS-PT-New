@@ -1,983 +1,241 @@
 /**
  * FoodIntakeForm Component
  *
- * Allows users to log their food intake through the SwanStudios nutrition API.
- * This component supports the integration between nutrition tracking and gamification.
- *
- * UI: styled-components + lucide-react (zero MUI dependencies)
+ * Allows users to log, edit, and remove manual macro entries through /api/macros.
+ * UI is split into line-cap-safe sections and styled-components modules.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Utensils } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import useMcpIntegration from '../../hooks/useMcpIntegration';
 import apiService from '../../services/api.service';
-
-// Icons (lucide-react replacements for MUI icons)
-import {
-  Plus,
-  Trash2,
-  UtensilsCrossed,
-  Utensils,
-  Zap,
-  Activity
-} from 'lucide-react';
 import { logger } from '@/utils/logger';
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface FoodItem {
-  id: string;
-  name: string;
-  portion: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  quality: 'low' | 'medium' | 'high';
-}
-
-interface FoodIntakeEntry {
-  id: string;
-  timestamp: string;
-  userId: string;
-  meal: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  items: FoodItem[];
-}
+import {
+  FoodFormGrid,
+  FoodItemsEditor,
+  NutritionSummary,
+  SavedMealNotice,
+  StatusChips,
+  SubmitRow,
+  SuccessToast,
+} from './FoodIntakeForm.sections';
+import {
+  ErrorAlert,
+  FieldGroup,
+  FormWrapper,
+  Label,
+  StyledSelect,
+  Title,
+} from './FoodIntakeForm.styles';
+import {
+  DELETE_ERROR_COPY,
+  MEAL_TYPES,
+  SAVE_ERROR_COPY,
+  UPDATE_ERROR_COPY,
+  buildFoodIntakeEntry,
+  buildMacroPayload,
+  calculateFoodTotals,
+  createEmptyFoodItem,
+  createFoodItemId,
+  editableItemsFromSavedEntry,
+  savedMacroEntryFromResponse,
+  validateFoodItems,
+  type FoodItem,
+  type MealType,
+  type SavedMacroEntry,
+} from './FoodIntakeForm.logic';
 
 interface FoodIntakeFormProps {
   onDataSent?: (success: boolean) => void;
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-
-const MEAL_TYPES = [
-  { value: 'breakfast', label: 'Breakfast' },
-  { value: 'lunch', label: 'Lunch' },
-  { value: 'dinner', label: 'Dinner' },
-  { value: 'snack', label: 'Snack' }
-];
-
-const FOOD_QUALITY = [
-  { value: 'low', label: 'Low Quality (Processed/Ultra-Processed)' },
-  { value: 'medium', label: 'Medium Quality (Semi-Processed)' },
-  { value: 'high', label: 'High Quality (Whole Foods)' }
-];
-
-const nutritionTheme = {
-  panel: 'color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent)',
-  panelBorder: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)',
-  input: 'color-mix(in srgb, var(--bg-elevated, #141419) 56%, transparent)',
-  inputBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent)',
-  inputBorderSoft: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)',
-  inputWash: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent)',
-  inputWashSoft: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 3%, transparent)',
-  accent: 'var(--accent-primary, #60C0F0)',
-  accentSecondary: 'var(--accent-secondary, #8B5CF6)',
-  accentGlow: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)',
-  accentGlowStrong: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)',
-  secondaryWash: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent)',
-  secondaryBorder: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)',
-  secondaryFocus: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)',
-  danger: 'var(--accent-error, #C92A54)',
-  dangerWash: 'color-mix(in srgb, var(--accent-error, #C92A54) 15%, transparent)',
-  dangerWashStrong: 'color-mix(in srgb, var(--accent-error, #C92A54) 30%, transparent)',
-  dangerBorder: 'color-mix(in srgb, var(--accent-error, #C92A54) 40%, transparent)',
-  dangerGlow: 'color-mix(in srgb, var(--accent-error, #C92A54) 25%, transparent)',
-  success: 'var(--accent-success, #22C55E)',
-  successWash: 'color-mix(in srgb, var(--accent-success, #22C55E) 15%, transparent)',
-  successWashStrong: 'color-mix(in srgb, var(--accent-success, #22C55E) 20%, transparent)',
-  successBorder: 'color-mix(in srgb, var(--accent-success, #22C55E) 40%, transparent)',
-  text: 'var(--text-primary, #E0ECF4)',
-  textSoft: 'var(--text-secondary, rgba(224, 236, 244, 0.7))',
-  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.5))',
-  surface: 'var(--bg-surface, #1A1A24)',
-  shadow: '0 8px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)'
-} as const;
-
-// ─── Keyframes ───────────────────────────────────────────────────────────────
-
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const toastSlideIn = keyframes`
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-`;
-
-const toastSlideOut = keyframes`
-  from {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-`;
-
-const errorShake = keyframes`
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
-`;
-
-// ─── Styled Components ───────────────────────────────────────────────────────
-
-const FormWrapper = styled.div`
-  padding: 24px;
-  border-radius: 12px;
-  background: ${nutritionTheme.panel};
-  border: 1px solid ${nutritionTheme.panelBorder};
-  backdrop-filter: blur(16px);
-  color: ${nutritionTheme.text};
-`;
-
-const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: ${nutritionTheme.text};
-  margin: 0 0 16px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const StatusRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-`;
-
-const Chip = styled.span<{ $active?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  background: ${({ $active }) =>
-    $active ? nutritionTheme.successWash : nutritionTheme.inputWash};
-  color: ${({ $active }) =>
-    $active ? nutritionTheme.success : nutritionTheme.textMuted};
-  border: 1px solid ${({ $active }) =>
-    $active ? nutritionTheme.successBorder : nutritionTheme.inputBorderSoft};
-
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-`;
-
-const ErrorAlert = styled.div`
-  background: ${nutritionTheme.dangerWash};
-  border: 1px solid ${nutritionTheme.dangerBorder};
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  color: ${nutritionTheme.danger};
-  font-size: 0.9rem;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-`;
-
-const FieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const Label = styled.label`
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: ${nutritionTheme.textSoft};
-`;
-
-const StyledSelect = styled.select`
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1px solid ${nutritionTheme.inputBorder};
-  background: ${nutritionTheme.input};
-  color: ${nutritionTheme.text};
-  font-size: 0.95rem;
-  outline: none;
-  appearance: auto;
-  min-height: 44px;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    border-color: ${nutritionTheme.accentSecondary};
-    box-shadow: 0 0 0 2px ${nutritionTheme.secondaryFocus};
-  }
-
-  option {
-    background: ${nutritionTheme.surface};
-    color: ${nutritionTheme.text};
-  }
-`;
-
-const FoodCard = styled.div`
-  border: 1px solid ${nutritionTheme.inputBorderSoft};
-  border-radius: 12px;
-  padding: 16px;
-  background: ${nutritionTheme.inputWashSoft};
-`;
-
-const FoodCardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const FoodCardTitle = styled.span`
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: ${nutritionTheme.text};
-`;
-
-const IconBtn = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-height: 44px;
-  min-width: 44px;
-  border-radius: 50%;
-  border: none;
-  background: ${({ $danger }) =>
-    $danger ? nutritionTheme.dangerWash : nutritionTheme.inputWash};
-  color: ${({ $danger }) => ($danger ? nutritionTheme.danger : nutritionTheme.textSoft)};
-  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${({ $disabled }) => ($disabled ? 0.35 : 1)};
-  transition: background 0.2s ease, color 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: ${({ $danger }) =>
-      $danger ? nutritionTheme.dangerWashStrong : nutritionTheme.inputBorder};
-  }
-
-  svg {
-    width: 18px;
-    height: 18px;
-  }
-`;
-
-const FoodFieldGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr 1fr;
-  }
-`;
-
-const MacroFieldGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-  }
-`;
-
-const InputWithUnit = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const UnitSuffix = styled.span`
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${nutritionTheme.textSoft};
-  font-size: 0.85rem;
-  pointer-events: none;
-`;
-
-const StyledInput = styled.input<{ $hasUnit?: boolean; $hasError?: boolean }>`
-  width: 100%;
-  padding: 12px 14px;
-  padding-right: ${({ $hasUnit }) => ($hasUnit ? '48px' : '14px')};
-  border-radius: 8px;
-  border: 1px solid ${({ $hasError }) => $hasError ? nutritionTheme.danger : nutritionTheme.inputBorder};
-  background: ${nutritionTheme.input};
-  color: ${nutritionTheme.text};
-  font-size: 0.95rem;
-  outline: none;
-  min-height: 44px;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &:focus {
-    border-color: ${nutritionTheme.accentSecondary};
-    box-shadow: 0 0 0 2px ${nutritionTheme.secondaryFocus};
-  }
-
-  &::placeholder {
-    color: ${nutritionTheme.textSoft};
-  }
-
-  &[aria-invalid="true"] {
-    border-color: ${nutritionTheme.danger};
-    box-shadow: 0 0 8px ${nutritionTheme.dangerGlow};
-    animation: ${errorShake} 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-  }
-
-  /* Remove number spinners */
-  &[type='number']::-webkit-inner-spin-button,
-  &[type='number']::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  &[type='number'] {
-    -moz-appearance: textfield;
-  }
-`;
-
-const HelperText = styled.small`
-  font-size: 0.78rem;
-  color: ${nutritionTheme.textSoft};
-  margin-top: 2px;
-`;
-
-const FieldError = styled.span`
-  display: block;
-  font-size: 0.78rem;
-  color: ${nutritionTheme.danger};
-  margin-top: 2px;
-  min-height: 0;
-`;
-
-const AddButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px dashed ${nutritionTheme.secondaryBorder};
-  background: transparent;
-  color: ${nutritionTheme.accentSecondary};
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-
-  &:hover {
-    background: ${nutritionTheme.secondaryWash};
-    border-color: ${nutritionTheme.accentSecondary};
-  }
-
-  svg {
-    width: 18px;
-    height: 18px;
-  }
-`;
-
-const SummaryHeading = styled.h3`
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: ${nutritionTheme.text};
-  margin: 0 0 12px 0;
-`;
-
-const SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-
-  @media (min-width: 600px) {
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-  }
-`;
-
-const SummaryCard = styled.div`
-  text-align: center;
-  padding: 12px 8px;
-  border: 1px solid ${nutritionTheme.inputBorderSoft};
-  border-radius: 10px;
-  background: ${nutritionTheme.inputWashSoft};
-`;
-
-const SummaryLabel = styled.span`
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: ${nutritionTheme.textMuted};
-  margin-bottom: 4px;
-`;
-
-const SummaryValue = styled.span`
-  display: block;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: ${nutritionTheme.text};
-`;
-
-const SubmitButton = styled.button<{ $loading?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 48px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, ${nutritionTheme.accentSecondary}, ${nutritionTheme.accent});
-  color: var(--text-inverse, #0F172A);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: ${({ $loading }) => ($loading ? 'wait' : 'pointer')};
-  opacity: ${({ $loading }) => ($loading ? 0.75 : 1)};
-  pointer-events: ${({ $loading }) => ($loading ? 'none' : 'auto')};
-  transition: opacity 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 0 12px ${nutritionTheme.accentGlow};
-
-  &:hover:not(:disabled) {
-    opacity: 0.9;
-    box-shadow: 0 0 20px ${nutritionTheme.accentGlowStrong};
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-  }
-`;
-
-const Spinner = styled.span`
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent);
-  border-top-color: ${nutritionTheme.text};
-  border-radius: 50%;
-  animation: ${spin} 0.6s linear infinite;
-`;
-
-const ToastOverlay = styled.div<{ $visible: boolean; $exiting: boolean }>`
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
-  animation: ${({ $exiting }) => ($exiting ? toastSlideOut : toastSlideIn)} 0.3s ease forwards;
-`;
-
-const ToastContent = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 24px;
-  border-radius: 10px;
-  background: ${nutritionTheme.successWashStrong};
-  border: 1px solid ${nutritionTheme.successBorder};
-  color: ${nutritionTheme.success};
-  font-size: 0.9rem;
-  font-weight: 500;
-  backdrop-filter: blur(16px);
-  box-shadow: ${nutritionTheme.shadow};
-  white-space: nowrap;
-`;
-
-const ToastCloseBtn = styled.button`
-  background: none;
-  border: none;
-  color: ${nutritionTheme.textMuted};
-  cursor: pointer;
-  padding: 2px;
-  line-height: 1;
-  font-size: 1.1rem;
-
-  &:hover {
-    color: ${nutritionTheme.text};
-  }
-`;
-
-// ─── Component ───────────────────────────────────────────────────────────────
+const readResponseEntry = (response: any) => response?.data?.entry ?? response?.entry ?? null;
 
 const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
   const { user } = useAuth();
-
-  // Form state
-  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
-  const [foodItems, setFoodItems] = useState<FoodItem[]>([
-    {
-      id: '1',
-      name: '',
-      portion: '',
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      quality: 'medium'
-    }
-  ]);
-
-  // Legacy hook name, REST-backed at runtime.
   const { logFoodIntake } = useMcpIntegration();
-
-  // UI state
-  const [loading, setLoading] = useState<boolean>(false);
-  const [success, setSuccess] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [mealType, setMealType] = useState<MealType>('breakfast');
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([createEmptyFoodItem()]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [savedEntry, setSavedEntry] = useState<SavedMacroEntry | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
   const [toastExiting, setToastExiting] = useState(false);
 
-  // Auto-dismiss toast after 5 seconds
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    setToastExiting(false);
+    setToastVisible(true);
+  }, []);
+
+  const handleCloseToast = useCallback(() => {
+    setToastExiting(true);
+    window.setTimeout(() => {
+      setToastVisible(false);
+      setToastExiting(false);
+    }, 300);
+  }, []);
+
   useEffect(() => {
-    if (showSuccessMessage) {
-      const timer = setTimeout(() => {
-        handleCloseSuccessMessage();
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccessMessage]);
+    if (!toastVisible) return undefined;
+    const timer = window.setTimeout(handleCloseToast, 5000);
+    return () => window.clearTimeout(timer);
+  }, [handleCloseToast, toastVisible]);
 
-  // Add a new food item (functional update to avoid stale closures)
+  const resetForm = useCallback(() => {
+    setMealType('breakfast');
+    setFoodItems([createEmptyFoodItem()]);
+    setFieldErrors({});
+    setEditing(false);
+  }, []);
+
   const handleAddFoodItem = useCallback(() => {
-    setFoodItems(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        name: '',
-        portion: '',
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        quality: 'medium' as const,
-      }
-    ]);
+    setFoodItems((prev) => [...prev, createEmptyFoodItem(createFoodItemId())]);
   }, []);
 
-  // Remove a food item (functional update)
   const handleRemoveFoodItem = useCallback((id: string) => {
-    setFoodItems(prev => {
-      if (prev.length <= 1) return prev;
-      return prev.filter(item => item.id !== id);
-    });
+    setFoodItems((prev) => prev.length <= 1 ? prev : prev.filter((item) => item.id !== id));
   }, []);
 
-  // Update a food item (generic type constraint + functional update)
   const handleFoodItemChange = useCallback(<K extends keyof FoodItem>(
-    id: string, field: K, value: FoodItem[K]
+    id: string,
+    field: K,
+    value: FoodItem[K],
   ) => {
-    setFoodItems(prev => prev.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    ));
-    // Clear field error on change
-    const fieldKey = `food-${field}-${id}`;
-    setFieldErrors(prev => {
-      if (prev[fieldKey]) {
-        const next = { ...prev };
-        delete next[fieldKey];
-        return next;
-      }
-      return prev;
+    setFoodItems((prev) => prev.map((item) => item.id === id ? { ...item, [field]: value } : item));
+    setFieldErrors((prev) => {
+      const fieldKey = `food-${field}-${id}`;
+      if (!prev[fieldKey]) return prev;
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
     });
   }, []);
 
-  // Calculate totals (memoized)
-  const calculateTotals = useCallback(() => {
-    return foodItems.reduce(
-      (totals, item) => ({
-        calories: totals.calories + (item.calories || 0),
-        protein: totals.protein + (item.protein || 0),
-        carbs: totals.carbs + (item.carbs || 0),
-        fat: totals.fat + (item.fat || 0),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
-  }, [foodItems]);
+  const startEditSavedMeal = useCallback(() => {
+    if (!savedEntry) return;
+    setMealType(savedEntry.mealType);
+    setFoodItems(editableItemsFromSavedEntry(savedEntry));
+    setError(null);
+    setEditing(true);
+  }, [savedEntry]);
 
-  // Submit the form
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDeleteSavedMeal = useCallback(async () => {
+    if (!savedEntry?.id) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiService.delete(`/api/macros/${savedEntry.id}`);
+      setSavedEntry(null);
+      resetForm();
+      setStatusMessage('Meal removed. My Macros is current.');
+      showToast('Saved meal removed from My Macros.');
+      onDataSent?.(true);
+    } catch {
+      setError(DELETE_ERROR_COPY);
+      onDataSent?.(false);
+    } finally {
+      setDeleting(false);
+    }
+  }, [onDataSent, resetForm, savedEntry, showToast]);
 
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!user?.id) {
-      setError('User not found. Please log in again.');
+      setError('Please log in again before logging food intake.');
+      onDataSent?.(false);
       return;
     }
 
-    // Field-level validation
-    const errors: Record<string, string> = {};
-    foodItems.forEach(item => {
-      if (import.meta.env.DEV) {
-        if (typeof item.name !== 'string' || typeof item.portion !== 'string') {
-          console.error('Type violation in FoodItem:', item);
-        }
-      }
-      if (!(item.name?.trim())) {
-        errors[`food-name-${item.id}`] = 'Food name is required';
-      }
-      if (!(item.portion?.trim())) {
-        errors[`food-portion-${item.id}`] = 'Portion size is required';
-      }
-    });
+    const errors = validateFoodItems(foodItems);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Please fill out all required fields');
+      setError('Please fill out all required fields.');
       return;
     }
 
+    const payload = buildMacroPayload(mealType, foodItems);
     setLoading(true);
     setError(null);
-
     try {
-      // Create the food intake entry
-      const entry: FoodIntakeEntry = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        userId: user.id,
-        meal: mealType,
-        items: foodItems
-      };
+      const response = editing && savedEntry?.id
+        ? await apiService.patch(`/api/macros/${savedEntry.id}`, payload)
+        : await apiService.post('/api/macros', payload);
+      const nextEntry = savedMacroEntryFromResponse(readResponseEntry(response), payload);
+      setSavedEntry(nextEntry);
+      setStatusMessage(editing ? 'Meal updated. My Macros is current.' : 'Meal saved. You can edit this row before leaving.');
+      showToast(editing ? 'Saved meal updated in My Macros.' : 'Food intake logged successfully.');
+      setEditing(false);
 
-      const totals = calculateTotals();
-      const description = foodItems.map(i => `${i.name} (${i.portion})`).join(', ');
-
-      // Persist to backend database via /api/macros
-      await apiService.post('/api/macros', {
-          date: new Date().toISOString().split('T')[0],
-          mealType: mealType,
-          description,
-          calories: totals.calories,
-          protein: totals.protein,
-          carbs: totals.carbs,
-          fat: totals.fat,
-          items: foodItems,
-          source: 'manual',
-      });
-
-      // Keep the legacy integration hook non-blocking. The nutrition API above is
-      // the source of truth; this lets older gamification hooks observe the event.
-      try {
-        await logFoodIntake(entry);
-      } catch (integrationErr) {
-        logger.warn('Food intake side-effect logging failed (non-blocking):', integrationErr);
+      if (!editing) {
+        try {
+          await logFoodIntake(buildFoodIntakeEntry(String(user.id), mealType, foodItems));
+        } catch (integrationErr) {
+          logger.warn('Food intake side-effect logging failed (non-blocking):', integrationErr);
+        }
       }
 
-      // Success feedback
-      setSuccess(true);
-      setShowSuccessMessage(true);
-      setToastExiting(false);
       resetForm();
-
-      // Callback to parent
-      if (onDataSent) {
-        onDataSent(true);
-      }
-    } catch (error: any) {
-      console.error('Error submitting food intake:', error);
-      setError(error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Error submitting food intake');
-
-      // Callback to parent
-      if (onDataSent) {
-        onDataSent(false);
-      }
+      onDataSent?.(true);
+    } catch {
+      setError(editing ? UPDATE_ERROR_COPY : SAVE_ERROR_COPY);
+      onDataSent?.(false);
     } finally {
       setLoading(false);
     }
   };
 
-  // Reset form
-  const resetForm = () => {
-    setMealType('breakfast');
-    setFoodItems([
-      {
-        id: '1',
-        name: '',
-        portion: '',
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        quality: 'medium'
-      }
-    ]);
-  };
-
-  // Handle close toast
-  const handleCloseSuccessMessage = () => {
-    setToastExiting(true);
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-      setToastExiting(false);
-    }, 300);
-  };
-
-  // Memoized totals (avoids recalc on every render)
-  const totals = useMemo(() => calculateTotals(), [calculateTotals]);
+  const totals = useMemo(() => calculateFoodTotals(foodItems), [foodItems]);
 
   return (
     <FormWrapper>
-      <Title>
-        <Utensils size={24} />
-        Food Intake Tracker
-      </Title>
-
-      {/* API Status Indicators */}
-      <StatusRow>
-        <Chip $active>
-          <Zap />
-          Nutrition API: Active
-        </Chip>
-        <Chip $active>
-          <Activity />
-          Gamification API: Connected
-        </Chip>
-      </StatusRow>
-
-      {error && (
-        <ErrorAlert>{error}</ErrorAlert>
-      )}
-
+      <Title><Utensils size={24} />Food Intake Tracker</Title>
+      <StatusChips statusMessage={statusMessage} />
+      {error && <ErrorAlert role="alert">{error}</ErrorAlert>}
+      <SavedMealNotice
+        entry={savedEntry}
+        deleting={deleting}
+        onEdit={startEditSavedMeal}
+        onDelete={handleDeleteSavedMeal}
+      />
       <form onSubmit={handleSubmit}>
-        <FormGrid>
-          {/* Meal Type */}
+        <FoodFormGrid>
           <FieldGroup>
-            <Label>Meal Type</Label>
+            <Label htmlFor="food-intake-meal-type">Meal Type</Label>
             <StyledSelect
+              id="food-intake-meal-type"
               value={mealType}
-              onChange={(e) => setMealType(e.target.value as any)}
+              onChange={(event) => setMealType(event.target.value as MealType)}
               required
             >
               {MEAL_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
+                <option key={type.value} value={type.value}>{type.label}</option>
               ))}
             </StyledSelect>
           </FieldGroup>
-
-          {/* Food Items */}
-          {foodItems.map((item, index) => (
-            <FoodCard key={item.id}>
-              <FoodCardHeader>
-                <FoodCardTitle>Food Item #{index + 1}</FoodCardTitle>
-                <IconBtn
-                  type="button"
-                  $danger
-                  $disabled={foodItems.length <= 1}
-                  disabled={foodItems.length <= 1}
-                  onClick={() => handleRemoveFoodItem(item.id)}
-                  aria-label={`Remove food item ${index + 1}`}
-                >
-                  <Trash2 />
-                </IconBtn>
-              </FoodCardHeader>
-
-              {/* Food Name & Portion */}
-              <FoodFieldGrid>
-                <FieldGroup>
-                  <Label htmlFor={`food-name-${item.id}`}>Food Name</Label>
-                  <StyledInput
-                    id={`food-name-${item.id}`}
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => handleFoodItemChange(item.id, 'name', e.target.value)}
-                    required
-                    placeholder="e.g., Grilled Chicken"
-                    aria-invalid={!!fieldErrors[`food-name-${item.id}`]}
-                    aria-describedby={fieldErrors[`food-name-${item.id}`] ? `food-name-${item.id}-error` : undefined}
-                    $hasError={!!fieldErrors[`food-name-${item.id}`]}
-                  />
-                  {fieldErrors[`food-name-${item.id}`] && (
-                    <FieldError id={`food-name-${item.id}-error`} role="alert">
-                      {fieldErrors[`food-name-${item.id}`]}
-                    </FieldError>
-                  )}
-                </FieldGroup>
-                <FieldGroup>
-                  <Label htmlFor={`food-portion-${item.id}`}>Portion/Serving Size</Label>
-                  <StyledInput
-                    id={`food-portion-${item.id}`}
-                    type="text"
-                    value={item.portion}
-                    onChange={(e) => handleFoodItemChange(item.id, 'portion', e.target.value)}
-                    required
-                    placeholder="e.g., 1 cup, 100g"
-                    aria-invalid={!!fieldErrors[`food-portion-${item.id}`]}
-                    aria-describedby={fieldErrors[`food-portion-${item.id}`] ? `food-portion-${item.id}-error` : undefined}
-                    $hasError={!!fieldErrors[`food-portion-${item.id}`]}
-                  />
-                  {fieldErrors[`food-portion-${item.id}`] && (
-                    <FieldError id={`food-portion-${item.id}-error`} role="alert">
-                      {fieldErrors[`food-portion-${item.id}`]}
-                    </FieldError>
-                  )}
-                </FieldGroup>
-              </FoodFieldGrid>
-
-              {/* Macro Fields */}
-              <MacroFieldGrid style={{ marginTop: 12 }}>
-                <FieldGroup>
-                  <Label htmlFor={`food-cal-${item.id}`}>Calories</Label>
-                  <InputWithUnit>
-                    <StyledInput
-                      id={`food-cal-${item.id}`}
-                      type="number"
-                      value={item.calories}
-                      onChange={(e) => handleFoodItemChange(item.id, 'calories', Number(e.target.value))}
-                      min={0}
-                      $hasUnit
-                    />
-                    <UnitSuffix>kcal</UnitSuffix>
-                  </InputWithUnit>
-                </FieldGroup>
-                <FieldGroup>
-                  <Label htmlFor={`food-protein-${item.id}`}>Protein</Label>
-                  <InputWithUnit>
-                    <StyledInput
-                      id={`food-protein-${item.id}`}
-                      type="number"
-                      value={item.protein}
-                      onChange={(e) => handleFoodItemChange(item.id, 'protein', Number(e.target.value))}
-                      min={0}
-                      $hasUnit
-                    />
-                    <UnitSuffix>g</UnitSuffix>
-                  </InputWithUnit>
-                </FieldGroup>
-                <FieldGroup>
-                  <Label htmlFor={`food-carbs-${item.id}`}>Carbs</Label>
-                  <InputWithUnit>
-                    <StyledInput
-                      id={`food-carbs-${item.id}`}
-                      type="number"
-                      value={item.carbs}
-                      onChange={(e) => handleFoodItemChange(item.id, 'carbs', Number(e.target.value))}
-                      min={0}
-                      $hasUnit
-                    />
-                    <UnitSuffix>g</UnitSuffix>
-                  </InputWithUnit>
-                </FieldGroup>
-                <FieldGroup>
-                  <Label htmlFor={`food-fat-${item.id}`}>Fat</Label>
-                  <InputWithUnit>
-                    <StyledInput
-                      id={`food-fat-${item.id}`}
-                      type="number"
-                      value={item.fat}
-                      onChange={(e) => handleFoodItemChange(item.id, 'fat', Number(e.target.value))}
-                      min={0}
-                      $hasUnit
-                    />
-                    <UnitSuffix>g</UnitSuffix>
-                  </InputWithUnit>
-                </FieldGroup>
-              </MacroFieldGrid>
-
-              {/* Food Quality */}
-              <FieldGroup style={{ marginTop: 12 }}>
-                <Label>Food Quality</Label>
-                <StyledSelect
-                  value={item.quality}
-                  onChange={(e) => handleFoodItemChange(item.id, 'quality', e.target.value as FoodItem['quality'])}
-                >
-                  {FOOD_QUALITY.map((quality) => (
-                    <option key={quality.value} value={quality.value}>
-                      {quality.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-                <HelperText>Higher quality foods earn more gamification points</HelperText>
-              </FieldGroup>
-            </FoodCard>
-          ))}
-
-          {/* Add Food Item Button */}
-          <AddButton type="button" onClick={handleAddFoodItem}>
-            <Plus />
-            Add Another Food Item
-          </AddButton>
-
-          {/* Nutrition Summary */}
-          <div>
-            <SummaryHeading>Nutrition Summary</SummaryHeading>
-            <SummaryGrid>
-              <SummaryCard>
-                <SummaryLabel>Calories</SummaryLabel>
-                <SummaryValue>{totals.calories} kcal</SummaryValue>
-              </SummaryCard>
-              <SummaryCard>
-                <SummaryLabel>Protein</SummaryLabel>
-                <SummaryValue>{totals.protein} g</SummaryValue>
-              </SummaryCard>
-              <SummaryCard>
-                <SummaryLabel>Carbs</SummaryLabel>
-                <SummaryValue>{totals.carbs} g</SummaryValue>
-              </SummaryCard>
-              <SummaryCard>
-                <SummaryLabel>Fat</SummaryLabel>
-                <SummaryValue>{totals.fat} g</SummaryValue>
-              </SummaryCard>
-            </SummaryGrid>
-          </div>
-
-          {/* Submit Button */}
-          <SubmitButton
-            type="submit"
-            disabled={loading}
-            $loading={loading}
-          >
-            {loading ? <Spinner /> : <UtensilsCrossed />}
-            {loading ? 'Submitting...' : 'Log Food Intake'}
-          </SubmitButton>
-        </FormGrid>
+          <FoodItemsEditor
+            foodItems={foodItems}
+            fieldErrors={fieldErrors}
+            onAdd={handleAddFoodItem}
+            onRemove={handleRemoveFoodItem}
+            onChange={handleFoodItemChange}
+          />
+          <NutritionSummary totals={totals} />
+          <SubmitRow loading={loading} editing={editing} />
+        </FoodFormGrid>
       </form>
-
-      {/* Success Toast */}
-      {showSuccessMessage && (
-        <ToastOverlay $visible={showSuccessMessage} $exiting={toastExiting}>
-          <ToastContent>
-            Food intake logged successfully!
-            <ToastCloseBtn
-              type="button"
-              onClick={handleCloseSuccessMessage}
-              aria-label="Close notification"
-            >
-              &times;
-            </ToastCloseBtn>
-          </ToastContent>
-        </ToastOverlay>
-      )}
+      <SuccessToast
+        visible={toastVisible}
+        exiting={toastExiting}
+        message={toastMessage}
+        onClose={handleCloseToast}
+      />
     </FormWrapper>
   );
 };

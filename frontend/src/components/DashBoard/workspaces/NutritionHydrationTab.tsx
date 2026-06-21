@@ -26,27 +26,25 @@ import { Droplets, RotateCcw, Trophy } from 'lucide-react';
 import { useHydration } from '../../../hooks/useHydration';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Constants
-// ─────────────────────────────────────────────────────────────
-const GLASS_OZ = 8;
-
-// ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const NutritionHydrationTab: React.FC = () => {
-  const { filled, dailyGoal: DAILY_GOAL, updateFilled } = useHydration();
+  const { filled, dailyGoal: DAILY_GOAL, glassOz, loading, updateFilled } = useHydration();
 
   const toggleGlass = useCallback((index: number) => {
+    if (loading) return;
+
     // If clicking the last filled glass, unfill it; otherwise fill up to index
     if (index + 1 === filled) {
       updateFilled(index);
     } else {
       updateFilled(index + 1);
     }
-  }, [filled, updateFilled]);
+  }, [filled, loading, updateFilled]);
 
   const pct = Math.round((filled / DAILY_GOAL) * 100);
   const goalMet = filled >= DAILY_GOAL;
+  const ounces = Math.round(filled * glassOz * 10) / 10;
 
   return (
     <Wrapper>
@@ -56,7 +54,7 @@ const NutritionHydrationTab: React.FC = () => {
         </HeroIcon>
         <HeroText>
           <HeroTitle>{goalMet ? 'Goal Reached!' : 'Daily Hydration'}</HeroTitle>
-          <HeroSub>{filled} of {DAILY_GOAL} glasses ({filled * GLASS_OZ} oz)</HeroSub>
+          <HeroSub>{filled} of {DAILY_GOAL} glasses ({ounces} oz)</HeroSub>
         </HeroText>
         <ProgressRing>
           <svg viewBox="0 0 100 100">
@@ -80,6 +78,8 @@ const NutritionHydrationTab: React.FC = () => {
             $filled={i < filled}
             $goalMet={goalMet}
             onClick={() => toggleGlass(i)}
+            disabled={loading}
+            aria-busy={loading}
             aria-label={`Glass ${i + 1} — ${i < filled ? 'filled' : 'empty'}`}
           >
             <Droplets size={28} />
@@ -99,7 +99,12 @@ const NutritionHydrationTab: React.FC = () => {
       </TipCard>
 
       {filled > 0 && (
-        <ResetBtn type="button" onClick={() => updateFilled(0)}>
+        <ResetBtn
+          type="button"
+          onClick={() => updateFilled(0)}
+          disabled={loading}
+          aria-busy={loading}
+        >
           <RotateCcw size={14} /> Reset Today
         </ResetBtn>
       )}
@@ -192,9 +197,13 @@ const GlassBtn = styled.button<{ $filled: boolean; $goalMet: boolean }>`
   cursor: pointer;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
 
-  &:hover {
+  &:not(:disabled):hover {
     border-color: var(--accent-primary, #60C0F0);
     transform: translateY(-2px);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
   }
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
@@ -243,8 +252,12 @@ const ResetBtn = styled.button`
   cursor: pointer;
   transition: color 200ms, border-color 200ms;
 
-  &:hover {
+  &:not(:disabled):hover {
     color: var(--text-primary, #E0ECF4);
     border-color: var(--text-secondary, rgba(224,236,244,0.6));
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
   }
 `;

@@ -45,4 +45,26 @@ describe('useMacroSummary', () => {
     expect(result.current.summary).toBeNull();
     expect(result.current.error).toBe('Macro summary unavailable. Try refreshing your dashboard.');
   });
+
+  it('clears a stale previous summary when a later summary refresh fails', async () => {
+    mockApiService.get
+      .mockResolvedValueOnce({
+        data: { success: true, summary: { date: '2026-06-20', totalCalories: 1200, mealCount: 2 } },
+      })
+      .mockRejectedValueOnce({
+        response: { data: { error: 'SQL timeout on daily_macro_logs userId=42' } },
+      });
+
+    const { result, rerender } = renderHook(({ date }) => useMacroSummary(date), {
+      initialProps: { date: '2026-06-20' },
+    });
+
+    await waitFor(() => expect(result.current.summary?.date).toBe('2026-06-20'));
+
+    rerender({ date: '2026-06-21' });
+
+    await waitFor(() => expect(result.current.error).toBe('Macro summary unavailable. Try refreshing your dashboard.'));
+    expect(mockApiService.get).toHaveBeenCalledWith('/api/macros/summary?date=2026-06-21');
+    expect(result.current.summary).toBeNull();
+  });
 });

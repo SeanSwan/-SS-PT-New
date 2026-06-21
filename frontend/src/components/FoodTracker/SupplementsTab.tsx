@@ -9,7 +9,7 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Leaf, Dumbbell, Zap, Sun, Heart, Shield, Moon,
   Star, ExternalLink, ChevronDown, ChevronUp,
@@ -28,6 +28,9 @@ import {
   ShopLink, ComingSoon,
 } from './SupplementsTab.catalog.styles';
 import apiService from '../../services/api.service';
+
+const SUPPLEMENT_GAP_LOGIN_ERROR = 'Log in to analyze your nutrition.';
+const SUPPLEMENT_GAP_ERROR = 'Supplement gap analysis is unavailable right now. Please try again.';
 
 // ── Types ──────────────────────────────────────────────────────
 interface Supplement {
@@ -73,6 +76,7 @@ const SupplementsTab: React.FC = () => {
   const [gapLoading, setGapLoading] = useState(false);
   const [gapError, setGapError] = useState('');
   const [ftcDisclosure, setFtcDisclosure] = useState('');
+  const reduceMotion = Boolean(useReducedMotion());
 
   useEffect(() => {
     Promise.all([
@@ -98,7 +102,7 @@ const SupplementsTab: React.FC = () => {
       const response = await apiService.get('/api/supplements/gaps?days=7');
       setGapAnalysis(response.data);
     } catch (err: any) {
-      setGapError(err?.response?.data?.message || (err?.response?.status === 401 ? 'Log in to analyze your nutrition' : err?.message || 'Failed to analyze gaps'));
+      setGapError(err?.response?.status === 401 ? SUPPLEMENT_GAP_LOGIN_ERROR : SUPPLEMENT_GAP_ERROR);
     } finally {
       setGapLoading(false);
     }
@@ -132,7 +136,7 @@ const SupplementsTab: React.FC = () => {
           AI analyzes your logged meals to identify nutritional deficiencies and recommend targeted supplements.
         </SectionDesc>
         {!gapAnalysis && !gapLoading && (
-          <AnalyzeBtn onClick={analyzeGaps} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <AnalyzeBtn onClick={analyzeGaps} whileHover={reduceMotion ? undefined : { scale: 1.02 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }}>
             Analyze My Last 7 Days
           </AnalyzeBtn>
         )}
@@ -179,13 +183,13 @@ const SupplementsTab: React.FC = () => {
       <SectionTitle style={{ marginTop: 24 }}>Browse by Category</SectionTitle>
       <CategoryRow>
         <CatChip $active={selectedCategory === null} onClick={() => setSelectedCategory(null)}
-          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          whileHover={reduceMotion ? undefined : { scale: 1.03 }} whileTap={reduceMotion ? undefined : { scale: 0.97 }}>
           All
         </CatChip>
         {categories.map(cat => (
           <CatChip key={cat.id} $active={selectedCategory === cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            whileHover={reduceMotion ? undefined : { scale: 1.03 }} whileTap={reduceMotion ? undefined : { scale: 0.97 }}>
             {ICON_MAP[cat.icon] || null} {cat.name}
           </CatChip>
         ))}
@@ -194,9 +198,9 @@ const SupplementsTab: React.FC = () => {
       <ProductGrid>
         <AnimatePresence mode="popLayout">
           {filteredProducts.map(product => (
-            <ProductCard key={product.id} layout
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
+            <ProductCard key={product.id} layout={!reduceMotion}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, scale: 0.95 }} transition={reduceMotion ? { duration: 0 } : { duration: 0.2 }}>
               {/* Trigger is a button; ShopLink anchor lives in ExpandedDetail sibling — no nesting */}
               <ProductHeader
                 type="button"
@@ -220,8 +224,8 @@ const SupplementsTab: React.FC = () => {
               </BadgeRow>
               <AnimatePresence>
                 {expandedProduct === product.id && (
-                  <ExpandedDetail initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <ExpandedDetail initial={reduceMotion ? false : { height: 0, opacity: 0 }} animate={reduceMotion ? undefined : { height: 'auto', opacity: 1 }}
+                    exit={reduceMotion ? undefined : { height: 0, opacity: 0 }} transition={reduceMotion ? { duration: 0 } : { duration: 0.2 }}>
                     <NasmBox>
                       <NasmLabel>NASM Context</NasmLabel>
                       <NasmText>{product.nasmContext}</NasmText>

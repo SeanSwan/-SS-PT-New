@@ -28,6 +28,7 @@ import logger from '../../utils/logger.mjs';
 const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
 const MAX_MACRO_VALUE  = 99999;
 const DATE_REGEX       = /^\d{4}-\d{2}-\d{2}$/;
+const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 
 // Map route-side source strings → model-valid stored values
 const SOURCE_MAP = {
@@ -37,14 +38,25 @@ const SOURCE_MAP = {
   'barcode':    'barcode',
   'voice':      'voice',
   'usda_lookup':'usda_lookup',
-  // 'food-scanner' has no model equivalent — stored as 'manual' (safe default)
+  'food-scanner':'photo', // AI meal-photo estimate — keep provenance distinct from hand-typed 'manual'
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+const toFiniteDecimalNumber = (val) => {
+  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+  if (typeof val !== 'string') return null;
+
+  const trimmed = val.trim();
+  if (!DECIMAL_NUMBER_REGEX.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const sanitizeNumber = (val) => {
   if (val === null || val === undefined) return null;
-  const n = Number(val);
+  const n = toFiniteDecimalNumber(val);
   if (!Number.isFinite(n) || n < 0) return null;
   return Math.min(Math.round(n * 10) / 10, MAX_MACRO_VALUE);
 };
@@ -94,7 +106,7 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     aiConversationId: (typeof data.aiConversationId === 'string' && data.aiConversationId.length <= 100)
                         ? data.aiConversationId : null,
     source:           normalizeMacroSource(source),
-    verified:         data.verified === true,
+    verified:         false,
   };
 }
 

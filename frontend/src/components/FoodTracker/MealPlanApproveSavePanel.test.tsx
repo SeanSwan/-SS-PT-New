@@ -66,6 +66,16 @@ describe('MealPlanApproveSavePanel', () => {
     expect(screen.getByLabelText(/log date/i)).toHaveValue('2026-01-05');
   });
 
+  it('resets a manually changed log date when a new generated plan arrives', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 5, 23, 45));
+    const { rerender } = render(<MealPlanApproveSavePanel plan={samplePlan} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/log date/i), { target: { value: '2026-01-01' } });
+    expect(screen.getByLabelText(/log date/i)).toHaveValue('2026-01-01');
+    rerender(<MealPlanApproveSavePanel plan={twoMealPlan} onSaved={vi.fn()} />);
+    expect(screen.getByLabelText(/log date/i)).toHaveValue('2026-01-05');
+  });
+
   it('lets the user edit and save generated meal-plan macros through /api/macros', async () => {
     apiMocks.post.mockResolvedValue({ data: { success: true, entry: { id: 11 } } });
     const onSaved = vi.fn();
@@ -193,6 +203,23 @@ describe('MealPlanApproveSavePanel', () => {
     await user.click(screen.getByRole('button', { name: /approve and save meal plan/i }));
     await screen.findByText(/2 meals saved to My Macros/i);
     expect(apiMocks.post).toHaveBeenCalledTimes(3); // only the 1 failed row re-posted, not both
+  });
+
+  it('locks successfully-saved rows after a partial save so skipped retry rows cannot imply editable changes were saved', async () => {
+    apiMocks.post
+      .mockResolvedValueOnce({ data: { success: true } })
+      .mockRejectedValueOnce(new Error('transient'));
+    const user = userEvent.setup();
+
+    render(<MealPlanApproveSavePanel plan={twoMealPlan} onSaved={vi.fn()} />);
+    await user.click(screen.getByRole('button', { name: /approve and save meal plan/i }));
+    await screen.findByText(/Saved 1 of 2 meals/i);
+
+    expect(screen.getByLabelText('Meal 1 type')).toBeDisabled();
+    expect(screen.getByLabelText('Breakfast description')).toBeDisabled();
+    expect(screen.getByLabelText('Breakfast calories')).toBeDisabled();
+    expect(screen.getByLabelText('Meal 2 type')).toBeEnabled();
+    expect(screen.getByLabelText('Lunch description')).toBeEnabled();
   });
 
   it('lets each generated meal carry its own meal type and caps the log date at today', async () => {

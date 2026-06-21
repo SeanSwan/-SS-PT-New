@@ -20,6 +20,9 @@ import {
 } from './GardeningTab.styles';
 import apiService from '../../services/api.service';
 
+const GARDENING_ZONE_ERROR = 'Growing zone lookup is unavailable right now. Please try again.';
+const GARDENING_PLANTS_ERROR = 'Plant recommendations are unavailable right now. Please try again.';
+
 // ── Types ──────────────────────────────────────────────────────
 interface PlantData {
   id: string;
@@ -46,8 +49,8 @@ interface ZoneData {
 
 const difficultyColor = (d: string) => {
   if (d === 'easy') return 'var(--accent-primary, #60C0F0)';
-  if (d === 'moderate') return '#C6A84B';
-  return '#C92A54';
+  if (d === 'moderate') return 'var(--accent-gold, #C6A84B)';
+  return 'var(--accent-error, #C92A54)';
 };
 
 // ── Component ──────────────────────────────────────────────────
@@ -73,7 +76,7 @@ const GardeningTab: React.FC = () => {
       const response = await apiService.get(`/api/gardening/zone/${zipCode}`);
       const data = response.data;
       if (!data.success) {
-        setError(data.error || 'Zone not found');
+        setError(GARDENING_ZONE_ERROR);
         setLoading(false);
         return;
       }
@@ -84,9 +87,13 @@ const GardeningTab: React.FC = () => {
       if (difficulty) params.set('difficulty', difficulty);
       const plantResponse = await apiService.get(`/api/gardening/plants?${params}`);
       const plantData = plantResponse.data;
-      if (plantData.success) setPlants(plantData.plants);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to look up zone. Check your connection.');
+      if (plantData.success) {
+        setPlants(plantData.plants);
+      } else {
+        setError(GARDENING_PLANTS_ERROR);
+      }
+    } catch {
+      setError(GARDENING_ZONE_ERROR);
     } finally {
       setLoading(false);
     }
@@ -106,10 +113,10 @@ const GardeningTab: React.FC = () => {
       if (data.success) {
         setPlants(data.plants);
       } else {
-        setError(data.error || 'Failed to filter plants');
+        setError(GARDENING_PLANTS_ERROR);
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to filter plants. Check your connection.');
+    } catch {
+      setError(GARDENING_PLANTS_ERROR);
     }
   }, [zoneData]);
 

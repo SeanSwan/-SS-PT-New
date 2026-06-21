@@ -49,6 +49,7 @@ const StructuredCoachProposalSchema = z.object({
   proposal_type: z.enum([
     'client_onboarding',
     'workout_log',
+    'nutrition_log',
     'client_data_update',
     'frontend_dispatch',
     'clarification',
@@ -87,6 +88,19 @@ const WorkoutLogActionSchema = z.object({
   date: z.string().trim().min(4),
   scheduledSessionId: ScheduledSessionIdSchema.optional(),
   exercises: z.array(ExerciseDraftSchema).min(1),
+}).passthrough();
+
+// Each meal needs a human-readable description; macros are sanitized downstream
+// by macroLogService.buildMacroRow (null-not-zero, clamped), so the schema stays
+// lenient/passthrough here and lets the deterministic writer own coercion.
+const NutritionMealDraftSchema = z.object({
+  description: z.string().trim().min(1),
+}).passthrough();
+
+const NutritionLogActionSchema = z.object({
+  action: z.literal('import_nutrition_log'),
+  date: z.string().trim().min(4).optional(),
+  meals: z.array(NutritionMealDraftSchema).min(1).max(20),
 }).passthrough();
 
 const ClientDataUpdateActionSchema = z.object({
@@ -264,6 +278,15 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       );
       return payload ? { type: proposalTypes.WORKOUT_LOG, payload: { ...payload, proposalMeta: meta } } : null;
     }
+    if (parsed.proposal_type === proposalTypes.NUTRITION_LOG) {
+      const payload = safeParseAction(
+        NutritionLogActionSchema,
+        { action: 'import_nutrition_log', ...parsed.payload },
+      );
+      return payload
+        ? { type: proposalTypes.NUTRITION_LOG, payload: { ...payload, clientId: conversation?.targetUserId || null, proposalMeta: meta } }
+        : null;
+    }
     if (parsed.proposal_type === proposalTypes.CLIENT_ONBOARDING) {
       const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
       return payload ? classifyClientOnboardingPayload(payload, proposalTypes, meta) : null;
@@ -295,6 +318,12 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
   if (block.action === 'import_workout_log') {
     const payload = safeParseAction(WorkoutLogActionSchema, withWorkoutRouteDefaults(block, routeContext));
     return payload ? { type: proposalTypes.WORKOUT_LOG, payload } : null;
+  }
+  if (block.action === 'import_nutrition_log') {
+    const payload = safeParseAction(NutritionLogActionSchema, block);
+    return payload
+      ? { type: proposalTypes.NUTRITION_LOG, payload: { ...payload, clientId: conversation?.targetUserId || null } }
+      : null;
   }
   if (block.action === 'update_client_data') {
     const payload = safeParseAction(ClientDataUpdateActionSchema, block);

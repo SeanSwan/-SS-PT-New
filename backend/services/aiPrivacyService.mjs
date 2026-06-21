@@ -23,6 +23,7 @@
  */
 import logger from '../utils/logger.mjs';
 import { piiManager } from './privacy/PIIManager.mjs';
+import { sanitizeText } from '../middleware/piiSanitizationMiddleware.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Client Name Cache
@@ -235,20 +236,42 @@ export async function stripIdentityFromResponse(response, targetUserId, sequeliz
  * @param {object} identity - Pre-fetched identity object (optional, avoids extra query)
  * @returns {string} Sanitized note text
  */
+const FREE_TEXT_WITHHELD_PLACEHOLDER = '[clinical note withheld — client identity unavailable for redaction]';
+
 export function stripIdentityFromNotes(noteContent, targetUserId, identity = null) {
   if (!noteContent) return noteContent;
 
+  // FAIL-CLOSED (Rule 8): with no identity map we cannot know the client's name,
+  // so we cannot reliably strip it from free text — and a free-text clinical note
+  // must NEVER reach an LLM raw. Withhold it. Non-identity derived signals (e.g.
+  // detected condition flags computed separately by the caller) still reach the
+  // model. This replaces the previous fail-OPEN behavior (returned raw text) that
+  // leaked names when the identity load threw or returned 0 rows (dual users/"Users"
+  // drift). [Hostile-review PRIV-1/SEC-1/PII-1, 2026-06-19]
+  if (!identity) {
+    return FREE_TEXT_WITHHELD_PLACEHOLDER;
+  }
+
   let sanitized = noteContent;
   const clientTag = `[Client #${targetUserId}]`;
+  const terms = buildIdentityTerms(identity);
+  const sortedTerms = terms.sort((a, b) => b.length - a.length);
+  for (const term of sortedTerms) {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'gi');
+    sanitized = sanitized.replace(regex, clientTag);
+  }
 
-  if (identity) {
-    const terms = buildIdentityTerms(identity);
-    const sortedTerms = terms.sort((a, b) => b.length - a.length);
-    for (const term of sortedTerms) {
-      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escaped, 'gi');
-      sanitized = sanitized.replace(regex, clientTag);
-    }
+  // Defense-in-depth (SEC-2): the known-client term list cannot catch THIRD-PARTY
+  // names co-mentioned in clinical narratives ("Sarah called re: knee"), or stray
+  // emails/phones. sanitizeText is a deterministic, no-network scrub that preserves
+  // clinical/injury/movement language (same scrubber the workout parser trusts via
+  // redactTranscriptPII).
+  try {
+    const result = sanitizeText(sanitized, { nameHints: terms });
+    if (result && typeof result.sanitized === 'string') sanitized = result.sanitized;
+  } catch (err) {
+    logger.warn('[AIPrivacy] stripIdentityFromNotes fallback scrub failed (non-fatal):', err?.message);
   }
 
   return sanitized;

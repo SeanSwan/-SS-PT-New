@@ -685,6 +685,11 @@ const setupAssociations = async () => {
     User.hasMany(FoodScanHistory, { foreignKey: 'userId', as: 'foodScans' });
     User.hasMany(Orientation, { foreignKey: 'userId', as: 'orientations' });
     FoodProduct.hasMany(FoodScanHistory, { foreignKey: 'productId', as: 'scanHistory' });
+
+    if (DailyMacroLog) {
+      User.hasMany(DailyMacroLog, { foreignKey: 'userId', as: 'dailyMacroLogs', constraints: false });
+      DailyMacroLog.belongsTo(User, { foreignKey: 'userId', as: 'user', constraints: false });
+    }
     
     FoodScanHistory.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     FoodScanHistory.belongsTo(FoodProduct, { foreignKey: 'productId', as: 'product' });

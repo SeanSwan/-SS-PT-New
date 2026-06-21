@@ -12,11 +12,12 @@
  *   - authorization FIRST — denied access loads ZERO domains
  *
  * Domains v1 (all schema-verified 2026-06-10): profile + session credits,
- * last-5 workouts, active pain, 7-day macros, active goals, upcoming schedule.
+ * last-5 workouts, active pain, nutrition summary, active goals, upcoming schedule.
  * Gamification is DEFERRED to A2 (schema unverified — reported in dataQuality).
  */
 import { deIdentifyClient } from '../deIdentifier.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from './clientAccess.mjs';
+import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
 
 function selectType(sequelize) {
   return sequelize?.QueryTypes?.SELECT || 'SELECT';
@@ -64,13 +65,15 @@ const DOMAIN_LOADERS = {
      LIMIT 10`,
     replacements,
   ),
-  macros: (sequelize, replacements) => safeQuery(
+  nutrition: (sequelize, replacements) => safeQuery(
     sequelize,
-    `SELECT calories, protein, carbs, fat
-     FROM "MacroLogs"
+    `SELECT date, "mealType", calories, protein, carbs, fat, fiber, sugar,
+            sodium, source, verified, "flagSodium", "flagSugar", "flagProcessed",
+            "createdAt"
+     FROM daily_macro_logs
      WHERE "userId" = :clientId
      ORDER BY "createdAt" DESC
-     LIMIT 7`,
+     LIMIT 21`,
     replacements,
   ),
   goals: (sequelize, replacements) => safeQuery(
@@ -174,7 +177,7 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
     {
       painEntries: results.pain,
       workouts: results.workouts,
-      macroLogs: results.macros,
+      macroLogs: results.nutrition,
       goals: results.goals,
     },
   );
@@ -186,6 +189,7 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
     ...deIdentified,
     sessionCredits: toNum(clientRow.availableSessions),
     schedule: summarizeSchedule(results.schedule),
+    nutrition: summarizeNutritionLogs(results.nutrition),
     workoutCount: Array.isArray(results.workouts) ? results.workouts.length : 0,
     lastWorkoutDate: results.workouts?.[0]?.createdAt
       ? new Date(results.workouts[0].createdAt).toISOString().slice(0, 10)

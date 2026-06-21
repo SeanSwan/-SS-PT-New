@@ -21,9 +21,11 @@ import {
   safeProposalStatus,
   safeProposalTitle,
   safeProposalTypeLabel,
+  safeSummaryCalories,
   safeSummaryClient,
   safeSummaryDate,
   safeSummaryExerciseCount,
+  safeSummaryMealCount,
   terminalStatusMessage,
   type CoachActionProposalCardProps,
 } from './CoachActionProposalCard.logic';
@@ -51,7 +53,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const [createdClientRoute, setCreatedClientRoute] = useState<string | null>(null);
   const summary = proposal.summary || {};
   const pending = status === 'PENDING';
-  const approveLabel = proposal.type === 'workout_log'
+  const approveLabel = (proposal.type === 'workout_log' || proposal.type === 'nutrition_log')
     ? 'Approve and log'
     : proposal.type === 'split_plan' ? 'Approve split plan' : 'Approve draft';
   const clarificationOptions = useMemo(() => clarificationOptionsFromDetail(detail), [detail]);
@@ -67,6 +69,8 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
     ['Client', safeSummaryClient(summary)],
     ['Date', safeSummaryDate(summary.date)],
     ['Exercises', safeSummaryExerciseCount(summary.exerciseCount)],
+    ['Meals', safeSummaryMealCount(summary.mealCount)],
+    ['Calories', safeSummaryCalories(summary.totalCalories)],
   ].filter((row) => row[1] != null), [proposal.type, summary]);
 
   const runLoadDetails = async () => {

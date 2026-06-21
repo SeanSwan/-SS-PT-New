@@ -23,6 +23,23 @@ describe('meal plan routes security hardening', () => {
     expect(routeSource).toContain("router.post('/analyze-photo'");
   });
 
+  it('locks the voice meal-parse route as tier-gated + redacted, without leaking parser errors (Slice 1.6)', () => {
+    expect(routeSource).toContain("router.post('/parse-voice'");
+    expect(routeSource).toContain("requireTier('pro', 'nutrition.coaching')");
+    expect(routeSource).toContain('parseNutritionTranscript');
+    // never echo the raw parser/LLM error to the client
+    expect(routeSource).not.toContain('message: err.message');
+    expect(routeSource).toContain("'Could not understand that meal description. Please try again.'");
+    expect(routeSource).toContain("'Voice meal logging is temporarily unavailable'");
+
+    // active frontend consumer: the Speak-a-Meal panel calls the voice-parse route via apiService
+    const voicePanelSource = readFrontend('src/components/FoodTracker/VoiceNutritionPanel.tsx');
+    expect(voicePanelSource).toContain("import apiService from '../../services/api.service'");
+    expect(voicePanelSource).toContain("apiService.post('/api/meal-plans/parse-voice'");
+    expect(voicePanelSource).not.toContain('fetch(');
+    expect(voicePanelSource).not.toContain('Authorization');
+  });
+
   it('does not echo provider or upload exception details to nutrition clients', () => {
     expect(routeSource).toContain("const INTERNAL_ERROR = 'internal_error';");
     expect(routeSource).toContain('const uploadMealPhoto =');

@@ -52,9 +52,11 @@ export function useMacroSummary(date?: string): UseMacroSummaryResult {
       if (json.success && json.summary) {
         setSummary(json.summary);
       } else {
+        setSummary(null);
         setError(MACRO_SUMMARY_ERROR);
       }
     } catch {
+      setSummary(null);
       setError(MACRO_SUMMARY_ERROR);
     } finally {
       setLoading(false);

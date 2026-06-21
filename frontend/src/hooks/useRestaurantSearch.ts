@@ -8,6 +8,8 @@
 import { useState, useCallback, useRef } from 'react';
 import apiService from '../services/api.service';
 
+const RESTAURANT_SEARCH_SAFE_ERROR = 'Restaurant search is unavailable right now. Please try again.';
+
 export interface FoodResult {
   id: string;
   name: string;
@@ -107,7 +109,7 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
       if (err?.response?.data?.configured === false) {
         setConfigured(false);
       }
-      setError(err?.response?.data?.error || err?.message || 'Search failed');
+      setError(RESTAURANT_SEARCH_SAFE_ERROR);
     } finally {
       setLoading(false);
     }
