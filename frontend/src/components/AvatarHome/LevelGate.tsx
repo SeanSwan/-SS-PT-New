@@ -1,9 +1,7 @@
 /**
- * ┌─── COMPONENT: LevelGate ───────────────────────────────────┐
- * │ PURPOSE: Shows locked state for users below Level 10.       │
- * │ Displays progress toward unlock with XP bar.               │
- * │ CEO RULING: 3D world unlocks at Lv10 as a milestone reward.│
- * └────────────────────────────────────────────────────────────┘
+ * COMPONENT: LevelGate
+ * PURPOSE: Shows the locked Avatar Home state below the required level.
+ * PARENT: AvatarHomePage
  */
 
 import React from 'react';
@@ -29,14 +27,18 @@ const LockIcon = styled.div`
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: rgba(96, 192, 240, 0.08);
-  border: 2px solid rgba(96, 192, 240, 0.2);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  border: 2px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
   animation: ${pulse} 3s ease-in-out infinite;
   color: var(--accent-primary, #60C0F0);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 const Title = styled.h2`
@@ -50,7 +52,7 @@ const Title = styled.h2`
 const Subtitle = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 15px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  color: var(--text-secondary, #A8B7C7);
   margin: 0 0 32px;
   max-width: 400px;
 `;
@@ -65,17 +67,21 @@ const ProgressBar = styled.div`
   width: 100%;
   height: 12px;
   border-radius: 6px;
-  background: rgba(96, 192, 240, 0.1);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   overflow: hidden;
-  border: 1px solid rgba(96, 192, 240, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
 `;
 
 const ProgressFill = styled.div<{ $pct: number }>`
   height: 100%;
-  width: ${({ $pct }) => Math.min($pct, 100)}%;
+  width: ${({ $pct }) => Math.min(100, Math.max(0, $pct))}%;
   border-radius: 6px;
   background: linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const LevelText = styled.div`
@@ -88,7 +94,7 @@ const LevelText = styled.div`
 const Hint = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  color: var(--text-secondary, #A8B7C7);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -100,32 +106,43 @@ interface LevelGateProps {
   requiredLevel?: number;
 }
 
+const clampLevel = (value: number, fallback: number): number =>
+  Number.isFinite(value) ? Math.max(0, Math.floor(value)) : fallback;
+
 const LevelGate: React.FC<LevelGateProps> = ({ currentLevel, requiredLevel = 10 }) => {
-  const progress = Math.min((currentLevel / requiredLevel) * 100, 100);
-  const levelsLeft = Math.max(requiredLevel - currentLevel, 0);
+  const safeRequiredLevel = Math.max(1, clampLevel(requiredLevel, 10));
+  const safeCurrentLevel = Math.min(safeRequiredLevel, clampLevel(currentLevel, 0));
+  const progress = (safeCurrentLevel / safeRequiredLevel) * 100;
+  const levelsLeft = Math.max(safeRequiredLevel - safeCurrentLevel, 0);
 
   return (
     <Wrapper>
-      <LockIcon>
+      <LockIcon aria-hidden="true">
         <Lock size={36} />
       </LockIcon>
       <Title>Your SwanStudios Home</Title>
       <Subtitle>
-        Reach Level {requiredLevel} to unlock your 3D avatar home — customize your space,
+        Reach Level {safeRequiredLevel} to unlock your 3D avatar home - customize your space,
         upgrade furniture, and watch your progress come to life.
       </Subtitle>
 
       <ProgressContainer>
-        <LevelText>Level {currentLevel} / {requiredLevel}</LevelText>
-        <ProgressBar>
+        <LevelText>Level {safeCurrentLevel} / {safeRequiredLevel}</LevelText>
+        <ProgressBar
+          role="progressbar"
+          aria-label="Avatar Home unlock progress"
+          aria-valuemin={0}
+          aria-valuemax={safeRequiredLevel}
+          aria-valuenow={safeCurrentLevel}
+        >
           <ProgressFill $pct={progress} />
         </ProgressBar>
       </ProgressContainer>
 
       <Hint>
-        <Sparkles size={14} />
+        <Sparkles size={14} aria-hidden="true" />
         {levelsLeft > 0
-          ? `${levelsLeft} level${levelsLeft !== 1 ? 's' : ''} to go — keep training!`
+          ? `${levelsLeft} level${levelsLeft !== 1 ? 's' : ''} to go - keep training!`
           : 'Almost there!'}
       </Hint>
     </Wrapper>

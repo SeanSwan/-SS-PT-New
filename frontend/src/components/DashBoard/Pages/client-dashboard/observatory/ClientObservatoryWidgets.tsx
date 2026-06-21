@@ -9,12 +9,16 @@ import {
   ChallengePreview,
   LeaderboardPreview,
   type QuickAction,
-  clampPercent,
-  compactNumber,
-  iconLabel,
 } from './ClientObservatoryData';
 import ClientCurrentWorkoutCard from './ClientCurrentWorkoutCard';
 import ClientTrainingPlanVaultCard from './ClientTrainingPlanVaultCard';
+import {
+  normalizeAchievementRows,
+  normalizeChallengeWidget,
+  normalizeLeaderboardRows,
+  normalizeTagRows,
+  type AchievementPreview,
+} from './ClientObservatoryWidgets.preview';
 import type {
   ClientTrainingPlanSlot,
   ClientTrainingPlanVault,
@@ -41,20 +45,6 @@ import {
   WidgetValue,
 } from './ClientObservatoryFeed.styles';
 
-interface AchievementPreview {
-  id?: string | number;
-  progress?: number;
-  isCompleted?: boolean;
-  achievement?: {
-    name?: string;
-    title?: string;
-    icon?: string;
-    iconEmoji?: string;
-    pointValue?: number;
-    xpReward?: number;
-  };
-}
-
 interface ClientObservatoryWidgetsProps {
   achievements: AchievementPreview[];
   challenge?: ChallengePreview;
@@ -66,26 +56,11 @@ interface ClientObservatoryWidgetsProps {
   leaderboard: LeaderboardPreview[];
   progress: number;
   quickActions: QuickAction[];
+  showCurrentWorkoutCard?: boolean;
   streakDays: number;
   tags: string[];
   onNavigate: (path: string) => void;
   onViewPlanPdf: (slot: ClientTrainingPlanSlot) => void;
-}
-
-function challengeProgress(challenge?: ChallengePreview): number {
-  if (!challenge) return 0;
-  if (typeof challenge.progress === 'number') return clampPercent(challenge.progress);
-  if (typeof challenge.currentProgress === 'number' && typeof challenge.target === 'number' && challenge.target > 0) {
-    return clampPercent((challenge.currentProgress / challenge.target) * 100);
-  }
-  return 0;
-}
-
-function leaderName(entry: LeaderboardPreview): string {
-  const first = entry.client?.firstName;
-  const last = entry.client?.lastName;
-  const username = entry.client?.username;
-  return [first, last].filter(Boolean).join(' ') || username || 'Athlete';
 }
 
 const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
@@ -99,24 +74,29 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
   leaderboard,
   progress,
   quickActions,
+  showCurrentWorkoutCard = true,
   streakDays,
   tags,
   onNavigate,
   onViewPlanPdf,
 }) => {
-  const challengePct = challengeProgress(challenge);
-  const challengeTitle = challenge?.title || challenge?.name || 'No active challenge yet';
+  const challengeWidget = normalizeChallengeWidget(challenge);
+  const achievementRows = normalizeAchievementRows(achievements);
+  const leaderboardRows = normalizeLeaderboardRows(leaderboard);
+  const tagRows = normalizeTagRows(tags);
 
   return (
     <>
-      <DesktopWidgetOnly>
-        <ClientCurrentWorkoutCard
-          currentWorkout={currentWorkout}
-          currentWorkoutError={currentWorkoutError}
-          currentWorkoutLoading={currentWorkoutLoading}
-          onNavigate={onNavigate}
-        />
-      </DesktopWidgetOnly>
+      {showCurrentWorkoutCard && (
+        <DesktopWidgetOnly>
+          <ClientCurrentWorkoutCard
+            currentWorkout={currentWorkout}
+            currentWorkoutError={currentWorkoutError}
+            currentWorkoutLoading={currentWorkoutLoading}
+            onNavigate={onNavigate}
+          />
+        </DesktopWidgetOnly>
+      )}
 
       <ClientTrainingPlanVaultCard
         planVault={planVault}
@@ -160,15 +140,15 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
                 <Trophy size={14} aria-hidden="true" />
                 Active Challenge
               </SectionKicker>
-              <SectionTitle>{challengeTitle}</SectionTitle>
+              <SectionTitle>{challengeWidget.title}</SectionTitle>
             </div>
-            <WidgetValue>{challengePct}%</WidgetValue>
+            <WidgetValue>{challengeWidget.progress}%</WidgetValue>
           </WidgetHeader>
-          <ProgressTrack role="progressbar" aria-label="Challenge progress" aria-valuenow={challengePct} aria-valuemin={0} aria-valuemax={100}>
-            <ProgressFill $pct={challengePct} />
+          <ProgressTrack role="progressbar" aria-label="Challenge progress" aria-valuenow={challengeWidget.progress} aria-valuemin={0} aria-valuemax={100}>
+            <ProgressFill $pct={challengeWidget.progress} />
           </ProgressTrack>
           <MutedText $top="0.75rem">
-            {challenge?.description || 'Join a community challenge when you are ready to compete.'}
+            {challengeWidget.description}
           </MutedText>
         </CardInner>
       </WidgetCard>
@@ -206,13 +186,13 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
             </GhostButton>
           </WidgetHeader>
           <WidgetList>
-            {achievements.slice(0, 3).map((item, index) => (
-              <WidgetRow key={item.id || index}>
-                <WidgetLabel>{item.achievement?.name || item.achievement?.title || 'Achievement'}</WidgetLabel>
-                <WidgetValue>{iconLabel(item.achievement?.icon || item.achievement?.iconEmoji)}</WidgetValue>
+            {achievementRows.map((item) => (
+              <WidgetRow key={item.key}>
+                <WidgetLabel>{item.label}</WidgetLabel>
+                <WidgetValue>{item.value}</WidgetValue>
               </WidgetRow>
             ))}
-            {achievements.length === 0 && (
+            {achievementRows.length === 0 && (
               <WidgetRow>
                 <WidgetLabel>Complete workouts to unlock badges</WidgetLabel>
                 <WidgetValue>0</WidgetValue>
@@ -234,13 +214,13 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
             </div>
           </WidgetHeader>
           <WidgetList>
-            {leaderboard.slice(0, 3).map((entry, index) => (
-              <WidgetRow key={entry.userId || index}>
-                <WidgetLabel>{index + 1}. {leaderName(entry)}</WidgetLabel>
-                <WidgetValue>{compactNumber(entry.points || entry.overallLevel || entry.level || 0)}</WidgetValue>
+            {leaderboardRows.map((entry) => (
+              <WidgetRow key={entry.key}>
+                <WidgetLabel>{entry.label}</WidgetLabel>
+                <WidgetValue>{entry.value}</WidgetValue>
               </WidgetRow>
             ))}
-            {leaderboard.length === 0 && (
+            {leaderboardRows.length === 0 && (
               <WidgetRow>
                 <WidgetLabel>No leaderboard entries yet</WidgetLabel>
                 <WidgetValue>--</WidgetValue>
@@ -262,10 +242,10 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
             </div>
           </WidgetHeader>
           <WidgetList>
-            {(tags.length ? tags : ['No tags yet']).map((tag) => (
-              <WidgetRow key={tag}>
-                <WidgetLabel>{tag}</WidgetLabel>
-                <WidgetValue>{tag.startsWith('#') ? 'tag' : '--'}</WidgetValue>
+            {tagRows.map((tag) => (
+              <WidgetRow key={tag.key}>
+                <WidgetLabel>{tag.label}</WidgetLabel>
+                <WidgetValue>{tag.value}</WidgetValue>
               </WidgetRow>
             ))}
           </WidgetList>

@@ -2,7 +2,11 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
+import { SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE } from './ClientObservatoryPostIntent';
 import {
   CLIENT_OVERVIEW_COACH_PROMPT,
   CLIENT_OVERVIEW_COACH_PATH,
@@ -13,6 +17,9 @@ import {
 } from './ClientObservatoryData';
 
 const noop = vi.fn();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const SOURCE = readFileSync(resolve(__dirname, './ClientObservatoryFeed.tsx'), 'utf8');
 
 describe('ClientObservatoryFeed XP receipt', () => {
   it('keeps overview quick actions workout-progress-first', () => {
@@ -69,7 +76,13 @@ describe('ClientObservatoryFeed XP receipt', () => {
     expect(prompt.length).toBeLessThan(320);
   });
 
-  it('shows the point award returned by Quick Post', () => {
+  it('requires router navigation from the mounted client overview parent', () => {
+    expect(SOURCE).toContain('onNavigate: (path: string) => void;');
+    expect(SOURCE).not.toContain('onNavigate?:');
+    expect(SOURCE).not.toContain('window.location.href');
+  });
+
+  it('shows the point award returned by Quick Post with deterministic receipt copy', () => {
     render(
       <ClientObservatoryFeed
         feedLoading={false}
@@ -88,7 +101,53 @@ describe('ClientObservatoryFeed XP receipt', () => {
     );
 
     expect(screen.getByText('+25 XP')).toBeInTheDocument();
-    expect(screen.getByText('You earned 25 points for creating a training post!')).toBeInTheDocument();
+    expect(screen.getByText(SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText('You earned 25 points for creating a training post!')).not.toBeInTheDocument();
+  });
+
+  it('does not render raw backend receipt details in the mounted client feed', () => {
+    render(
+      <ClientObservatoryFeed
+        feedLoading={false}
+        posts={[]}
+        postText=""
+        creatingPost={false}
+        postReceipt={{
+          pointsAwarded: 10,
+          message: 'postgres://private-tenant client@example.com <script>alert(1)</script>',
+        }}
+        quickActions={QUICK_ACTIONS}
+        onPostTextChange={noop}
+        onCreatePost={async () => {}}
+        onNavigate={noop}
+      />
+    );
+
+    expect(screen.getByText('+10 XP')).toBeInTheDocument();
+    expect(screen.getByText(SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(/postgres|private-tenant|client@example|script/i)).not.toBeInTheDocument();
+  });
+
+  it('hides malformed point-award metrics instead of rendering false XP proof', () => {
+    render(
+      <ClientObservatoryFeed
+        feedLoading={false}
+        posts={[]}
+        postText=""
+        creatingPost={false}
+        postReceipt={{
+          pointsAwarded: Number.POSITIVE_INFINITY,
+          message: 'You earned Infinity points for creating a training post!',
+        }}
+        quickActions={QUICK_ACTIONS}
+        onPostTextChange={noop}
+        onCreatePost={async () => {}}
+        onNavigate={noop}
+      />
+    );
+
+    expect(screen.queryByText(/Infinity|NaN/)).not.toBeInTheDocument();
+    expect(screen.queryByText(SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('submits smart inferred canonical post type and hashtags from the active client composer', async () => {

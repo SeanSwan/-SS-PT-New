@@ -1,41 +1,22 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: CompanionPet                                      ║
- * ║  PURPOSE: Tamagotchi companion — adopt, interact, evolve      ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-28         ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────────────────────────────────────────┐
- * │        [SVG Pet Sprite with animations]                     │
- * │             ████████░░░░ Health: 72                         │
- * │            Frosty the Crystal Dragon                        │
- * │         ✨ Happy · Adult · Lv 18                            │
- * │      [🤝 Pet]  [🍖 Feed]  [⚡ Play]                        │
- * └────────────────────────────────────────────────────────────┘
- *
- * ADOPTION FLOW (if no pet):
- * ┌────────────────────────────────────────────────────────────┐
- * │           Adopt Your Companion                              │
- * │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐           │
- * │  │Dragon│ │ Wolf │ │Phoenx│ │ Swan │ │Panthr│           │
- * │  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘           │
- * │           [Name your pet...]                               │
- * │              [✨ Adopt]                                     │
- * └────────────────────────────────────────────────────────────┘
- *
- * DATA FLOW:
- * Props In:  { userId, size?, showControls?, compact? }
- * Hook:      useCompanionPet → GET/POST /api/gamification/users/:id/pet/*
- * Children:  PetSprite (SVG), AdoptionFlow (inline)
- *
- * GAMIFICATION HOOKS:
- * - Pet health derived from Aegis HUD needs (no separate decay)
- * - Activity recording feeds pet evolution + appearance mods
- * - Pet/Feed/Play interactions boost pet happiness
+ * COMPONENT: CompanionPet
+ * PURPOSE: Mounted companion preview, adoption flow, and interaction controls.
+ * DATA: Uses /api/gamification pet endpoints through useCompanionPet.
  */
 import React, { useState, useCallback } from 'react';
+import {
+  Bird,
+  Flame,
+  Gamepad2,
+  HeartHandshake,
+  PawPrint,
+  Shield,
+  Sparkles,
+  Utensils,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import PetSprite from './PetSprite';
+import { normalizePetPercent } from './companionPetNumbers';
 import { useCompanionPet } from './useCompanionPet';
 import type { CompanionPetProps, PetSpeciesId } from './CompanionPetTypes';
 import {
@@ -43,24 +24,24 @@ import {
   PetName, PetInfo, InteractionBar, InteractionButton,
   AdoptionContainer, AdoptionTitle, AdoptionSubtitle,
   SpeciesGrid, SpeciesCard, SpeciesName, SpeciesElement,
-  NameInput, AdoptButton,
+  NameInput, AdoptButton, SpeciesIcon, LoadingPetContainer,
 } from './CompanionPetStyles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Species Catalog (matches backend)
-// ─────────────────────────────────────────────────────────────
+type SpeciesOption = {
+  id: PetSpeciesId;
+  name: string;
+  element: string;
+  color: string;
+  Icon: LucideIcon;
+};
 
-const SPECIES_CATALOG: Array<{ id: PetSpeciesId; name: string; element: string; color: string; icon: string }> = [
-  { id: 'crystal_dragon', name: 'Crystal Dragon', element: 'ice',    color: '#60C0F0', icon: '🐉' },
-  { id: 'iron_wolf',      name: 'Iron Wolf',      element: 'steel',  color: '#C0C0C0', icon: '🐺' },
-  { id: 'ember_phoenix',  name: 'Ember Phoenix',  element: 'fire',   color: '#F59E0B', icon: '🔥' },
-  { id: 'frost_swan',     name: 'Frost Swan',     element: 'frost',  color: '#E0ECF4', icon: '🦢' },
-  { id: 'shadow_panther', name: 'Shadow Panther',  element: 'shadow', color: '#8B5CF6', icon: '🐆' },
+const SPECIES_CATALOG: SpeciesOption[] = [
+  { id: 'crystal_dragon', name: 'Crystal Dragon', element: 'ice', color: 'var(--accent-primary, #60C0F0)', Icon: Sparkles },
+  { id: 'iron_wolf', name: 'Iron Wolf', element: 'steel', color: 'var(--text-secondary, #94a3b8)', Icon: Shield },
+  { id: 'ember_phoenix', name: 'Ember Phoenix', element: 'fire', color: 'var(--accent-gold, #C6A84B)', Icon: Flame },
+  { id: 'frost_swan', name: 'Frost Swan', element: 'frost', color: 'var(--text-primary, #E0ECF4)', Icon: Bird },
+  { id: 'shadow_panther', name: 'Shadow Panther', element: 'shadow', color: 'var(--accent-secondary, #8B5CF6)', Icon: PawPrint },
 ];
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Adoption Flow Sub-Component
-// ─────────────────────────────────────────────────────────────
 
 const AdoptionFlow: React.FC<{
   onAdopt: (species: PetSpeciesId, name: string) => void;
@@ -83,19 +64,23 @@ const AdoptionFlow: React.FC<{
       </AdoptionSubtitle>
 
       <SpeciesGrid>
-        {SPECIES_CATALOG.map(sp => (
-          <SpeciesCard
+        {SPECIES_CATALOG.map(sp => {
+          const Icon = sp.Icon;
+          return (
+            <SpeciesCard
             key={sp.id}
+            type="button"
             $selected={selected === sp.id}
             $color={sp.color}
             onClick={() => setSelected(sp.id)}
             aria-pressed={selected === sp.id}
-          >
-            <span style={{ fontSize: '2rem' }}>{sp.icon}</span>
-            <SpeciesName>{sp.name}</SpeciesName>
-            <SpeciesElement>{sp.element}</SpeciesElement>
-          </SpeciesCard>
-        ))}
+            >
+              <SpeciesIcon><Icon size={24} aria-hidden /></SpeciesIcon>
+              <SpeciesName>{sp.name}</SpeciesName>
+              <SpeciesElement>{sp.element}</SpeciesElement>
+            </SpeciesCard>
+          );
+        })}
       </SpeciesGrid>
 
       {selected && (
@@ -107,7 +92,7 @@ const AdoptionFlow: React.FC<{
             maxLength={50}
             aria-label="Pet name"
           />
-          <AdoptButton onClick={handleAdopt} disabled={loading}>
+          <AdoptButton type="button" onClick={handleAdopt} disabled={loading}>
             {loading ? 'Hatching...' : 'Adopt Companion'}
           </AdoptButton>
         </>
@@ -116,34 +101,39 @@ const AdoptionFlow: React.FC<{
   );
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Main Component
-// ─────────────────────────────────────────────────────────────
-
 const CompanionPet: React.FC<CompanionPetProps> = ({
   userId,
   size = 180,
   showControls = true,
   compact = false,
 }) => {
-  const { pet, hasPet, loading, interacting, adoptPet, interact } = useCompanionPet(userId);
+  const { pet, hasPet, loading, error, interacting, adoptPet, interact, refetch } = useCompanionPet(userId);
 
-  // Loading state
   if (loading) {
     return (
-      <PetContainer style={{ minHeight: compact ? 100 : 200, justifyContent: 'center' }}>
+      <LoadingPetContainer $compact={compact}>
         <PetInfo>Loading companion...</PetInfo>
-      </PetContainer>
+      </LoadingPetContainer>
     );
   }
 
-  // No pet — show adoption flow
+  if (error) {
+    return (
+      <LoadingPetContainer $compact={compact} role="alert" aria-live="polite">
+        <PetInfo>Companion data is temporarily unavailable.</PetInfo>
+        <InteractionButton type="button" onClick={refetch} disabled={interacting}>
+          Retry
+        </InteractionButton>
+      </LoadingPetContainer>
+    );
+  }
+
   if (!hasPet || !pet) {
     return <AdoptionFlow onAdopt={adoptPet} loading={interacting} />;
   }
 
-  // Health bar color based on health
-  const healthColor = pet.health >= 70 ? '#4CAF50' : pet.health >= 40 ? '#F59E0B' : '#EF4444';
+  const health = normalizePetPercent(pet.health);
+  const healthTone = health >= 70 ? 'strong' : health >= 40 ? 'caution' : 'critical';
 
   return (
     <PetContainer>
@@ -152,7 +142,7 @@ const CompanionPet: React.FC<CompanionPetProps> = ({
       </PetSpriteWrapper>
 
       <HealthBar>
-        <HealthFill $percent={pet.health} $color={healthColor} />
+        <HealthFill $percent={health} $tone={healthTone} />
       </HealthBar>
 
       {!compact && (
@@ -160,9 +150,9 @@ const CompanionPet: React.FC<CompanionPetProps> = ({
           <PetName>{pet.name}</PetName>
           <PetInfo>
             <span>{pet.mood.emoji} {pet.mood.description}</span>
-            <span>·</span>
+            <span>|</span>
             <span>{pet.evolution.name}</span>
-            <span>·</span>
+            <span>|</span>
             <span>Lv {pet.level}</span>
           </PetInfo>
         </>
@@ -170,14 +160,14 @@ const CompanionPet: React.FC<CompanionPetProps> = ({
 
       {showControls && (
         <InteractionBar>
-          <InteractionButton onClick={() => interact('pet')} disabled={interacting}>
-            🤝 Pet
+          <InteractionButton type="button" onClick={() => interact('pet')} disabled={interacting}>
+            <HeartHandshake size={14} aria-hidden /> Pet
           </InteractionButton>
-          <InteractionButton onClick={() => interact('feed')} disabled={interacting}>
-            🍖 Feed
+          <InteractionButton type="button" onClick={() => interact('feed')} disabled={interacting}>
+            <Utensils size={14} aria-hidden /> Feed
           </InteractionButton>
-          <InteractionButton onClick={() => interact('play')} disabled={interacting}>
-            ⚡ Play
+          <InteractionButton type="button" onClick={() => interact('play')} disabled={interacting}>
+            <Gamepad2 size={14} aria-hidden /> Play
           </InteractionButton>
         </InteractionBar>
       )}

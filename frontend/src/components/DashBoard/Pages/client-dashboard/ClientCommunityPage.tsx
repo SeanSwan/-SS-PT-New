@@ -52,7 +52,7 @@
  * - Hashtag usage bonus → +5 XP for first-time tag use
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Send, Clock, Swords, MessageSquare, Hash, Users, Shield } from 'lucide-react';
 import { FeedFilterBar, type FeedFilters } from '../../../Social/Hashtags';
 import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../../Social/RPG';
@@ -63,10 +63,6 @@ import {
   useSocialFeed, useSocialChallenges, useLeaderboard, useCreatePost,
 } from '../../../../hooks/useDashboardQueries';
 import {
-  appendHashtag,
-  inferSmartPostIntent,
-} from '../../../Social/Feed/utils/postIntentInference';
-import {
   PageWrap, PostBtn, PostBox, PostInput, HashtagHint, TwoCol, SectionCard,
   ChallengeCard, ChallengeTitle, ChallengeDesc, ChallengeFooter, ProgressBarOuter,
   ProgressBarInner, LeaderRow, RankBadge, FeedPost, EmptyState, ShimmerBlock,
@@ -74,73 +70,21 @@ import {
   CharacterCounter, ChallengeProgressInline, ChallengeTime, CompactErrorBox,
   LeaderName, LeaderPoints, PostContentArea,
 } from './ClientCommunityStyles';
+import {
+  getSafeCommunityLoadError,
+  getSafeCreatePostErrorCopy,
+  getAwardedPostPoints,
+  normalizeCommunityChallenge,
+  normalizeCommunityFeedPost,
+  normalizeLeaderboardEntry,
+  prepareCommunityPost,
+  type CommunityChallenge,
+  type CommunityFeedPost,
+  type LeaderboardEntry,
+} from './ClientCommunityPage.helpers';
 
 // Styled components extracted to ClientCommunityStyles.ts per 300-line rule
 const MAX_POST_LENGTH = 500;
-
-interface LeaderboardEntry {
-  id?: string | number;
-  userId?: string | number;
-  firstName?: string;
-  username?: string;
-  totalPoints?: number;
-  points?: number;
-}
-
-interface CommunityChallenge {
-  id?: string | number;
-  title?: string;
-  name?: string;
-  description?: string;
-  progress?: number;
-  daysRemaining?: number;
-}
-
-interface CommunityFeedPost {
-  id?: string | number;
-  user?: {
-    firstName?: string;
-  };
-  authorName?: string;
-  content?: string;
-  text?: string;
-  createdAt?: string;
-}
-
-const stableKeyPart = (value: unknown): string => String(value ?? '')
-  .trim()
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, '-')
-  .replace(/^-|-$/g, '');
-
-const communityChallengeKey = (challenge: CommunityChallenge, index: number): string => {
-  const primary = challenge.id ?? challenge.title ?? challenge.name ?? challenge.description;
-  return `challenge-${stableKeyPart(primary) || `slot-${index}`}`;
-};
-
-const leaderboardEntryKey = (leader: LeaderboardEntry, index: number): string => {
-  const primary = leader.id ?? leader.userId ?? leader.username ?? leader.firstName;
-  return `leader-${stableKeyPart(primary) || `slot-${index}`}`;
-};
-
-const communityFeedPostKey = (post: CommunityFeedPost, index: number): string => {
-  const primary = post.id ?? post.createdAt ?? post.content ?? post.text ?? post.authorName ?? post.user?.firstName;
-  return `post-${stableKeyPart(primary) || `slot-${index}`}`;
-};
-
-const prepareCommunityPost = (content: string) => {
-  const smartIntent = inferSmartPostIntent(content, 'general');
-  const enrichedContent = smartIntent.hashtags.reduce(
-    (nextContent, hashtag) => appendHashtag(nextContent, hashtag),
-    content,
-  );
-
-  return {
-    content: enrichedContent,
-    type: smartIntent.submissionType,
-    visibility: 'friends' as const,
-  };
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -150,6 +94,8 @@ const prepareCommunityPost = (content: string) => {
 const ClientCommunityPage: React.FC = () => {
   const [filters, setFilters] = useState<FeedFilters>({ category: 'all', hashtag: null });
   const [postText, setPostText] = useState('');
+  const [postReceiptPoints, setPostReceiptPoints] = useState<number | null>(null);
+  const postSubmittingRef = useRef(false);
 
   // TanStack Query: automatic caching + AbortController on unmount
   const { data: challenges = [], error: challengesError } = useSocialChallenges();
@@ -164,23 +110,34 @@ const ClientCommunityPage: React.FC = () => {
   const { party, myRole, leaveParty, createParty, joinParty } = useParty();
 
   const loading = feedLoading;
-  const fetchError = feedError?.message || challengesError?.message || null;
+  const fetchError = getSafeCommunityLoadError(feedError, challengesError);
+  const createPostError = getSafeCreatePostErrorCopy(createPost.error);
 
   const handlePost = () => {
     const trimmedPost = postText.trim();
-    if (!trimmedPost) return;
-    createPost.mutate(prepareCommunityPost(trimmedPost), {
-      onSuccess: () => setPostText(''),
-    });
+    if (!trimmedPost || createPost.isPending || postSubmittingRef.current) return;
+
+    postSubmittingRef.current = true;
+    setPostReceiptPoints(null);
+    try {
+      createPost.mutate(prepareCommunityPost(trimmedPost), {
+        onSuccess: (result) => {
+          setPostText('');
+          setPostReceiptPoints(getAwardedPostPoints(result));
+        },
+        onSettled: () => {
+          postSubmittingRef.current = false;
+        },
+      });
+    } catch (error) {
+      postSubmittingRef.current = false;
+      throw error;
+    }
   };
 
   // Memoize leaderboard mapping to avoid recomputing on every render
   const leaderData = useMemo(() => {
-    return (leaderboard as LeaderboardEntry[]).slice(0, 5).map((u, i) => ({
-      id: leaderboardEntryKey(u, i),
-      name: u.firstName || u.username || `Athlete ${i + 1}`,
-      xp: u.totalPoints || u.points || 0,
-    }));
+    return (leaderboard as LeaderboardEntry[]).slice(0, 5).map(normalizeLeaderboardEntry);
   }, [leaderboard]);
 
   if (loading) {
@@ -194,7 +151,7 @@ const ClientCommunityPage: React.FC = () => {
 
   return (
     <PageWrap>
-      {fetchError && <ErrorBox>{fetchError}</ErrorBox>}
+      {fetchError && <ErrorBox role="alert">{fetchError}</ErrorBox>}
 
       {/* Hashtag Discovery Filter Bar */}
       <FeedFilterBar filters={filters} onFiltersChange={setFilters} />
@@ -212,14 +169,16 @@ const ClientCommunityPage: React.FC = () => {
           <HashtagHint>
             <Hash size={12} />
             Type #hashtags to categorize your post
-            <PointsChip>+15 XP</PointsChip>
+            {postReceiptPoints
+              ? <PointsChip role="status">+{postReceiptPoints} XP earned</PointsChip>
+              : <PointsChip>XP varies by type</PointsChip>}
             <CharacterCounter $danger={postText.length > MAX_POST_LENGTH * 0.9}>
               {postText.length}/{MAX_POST_LENGTH}
             </CharacterCounter>
           </HashtagHint>
-          {createPost.error && <CompactErrorBox>{createPost.error.message || 'Failed to create post'}</CompactErrorBox>}
+          {createPostError && <CompactErrorBox role="alert">{createPostError}</CompactErrorBox>}
         </PostContentArea>
-        <PostBtn onClick={handlePost} disabled={createPost.isPending || !postText.trim()} aria-label="Create post">
+        <PostBtn type="button" onClick={handlePost} disabled={createPost.isPending || !postText.trim()} aria-label="Create post">
           <Send size={16} aria-hidden="true" /> Post
         </PostBtn>
       </PostBox>
@@ -229,7 +188,7 @@ const ClientCommunityPage: React.FC = () => {
         <SectionCard>
           <h3><Shield size={18} aria-hidden="true" /> Faction War</h3>
           {factions.length > 0 ? (
-            <FactionLeaderboard factions={factions} />
+            <FactionLeaderboard factions={factions} frameless />
           ) : (
             <EmptyState>Factions loading... Join a faction to compete!</EmptyState>
           )}
@@ -237,7 +196,7 @@ const ClientCommunityPage: React.FC = () => {
         <SectionCard>
           <h3><Users size={18} aria-hidden="true" /> Party</h3>
           {party ? (
-            <PartyHPBar party={party} myRole={myRole} onLeave={leaveParty} />
+            <PartyHPBar party={party} myRole={myRole} onLeave={leaveParty} frameless />
           ) : (
             <PartyCreateJoin onCreate={createParty} onJoin={joinParty} />
           )}
@@ -255,24 +214,27 @@ const ClientCommunityPage: React.FC = () => {
           <h3><Swords size={18} aria-hidden="true" /> Active Challenges</h3>
           {challenges.length === 0
             ? <EmptyState>No active challenges right now. Check back soon!</EmptyState>
-            : (challenges as CommunityChallenge[]).slice(0, 3).map((c, i) => (
-              <ChallengeCard key={communityChallengeKey(c, i)}>
-                <ChallengeTitle>{c.title || c.name || 'Challenge'}</ChallengeTitle>
-                <ChallengeDesc>{c.description || 'Complete this challenge to earn rewards.'}</ChallengeDesc>
+            : (challenges as CommunityChallenge[]).slice(0, 3).map((rawChallenge, i) => {
+              const challenge = normalizeCommunityChallenge(rawChallenge, i);
+              return (
+              <ChallengeCard key={challenge.id}>
+                <ChallengeTitle>{challenge.title}</ChallengeTitle>
+                <ChallengeDesc>{challenge.description}</ChallengeDesc>
                 <ChallengeFooter>
                   <ChallengeProgressInline>
                     <ProgressBarOuter>
-                      <ProgressBarInner $pct={c.progress || 0} />
+                      <ProgressBarInner $pct={challenge.progress} />
                     </ProgressBarOuter>
-                    {c.progress || 0}%
+                    {challenge.progress}%
                   </ChallengeProgressInline>
                   <ChallengeTime>
                     <Clock size={12} aria-hidden="true" />
-                    {c.daysRemaining || '?'} days left
+                    {challenge.daysRemaining} days left
                   </ChallengeTime>
                 </ChallengeFooter>
               </ChallengeCard>
-            ))
+            );
+            })
           }
         </SectionCard>
 
@@ -305,17 +267,20 @@ const ClientCommunityPage: React.FC = () => {
                 ? `No posts tagged #${filters.hashtag} yet. Be the first!`
                 : 'No posts yet. Be the first to share something!'}
             </EmptyState>
-          : (feed as CommunityFeedPost[]).map((p, i) => (
-            <FeedPost key={communityFeedPostKey(p, i)}>
+          : (feed as CommunityFeedPost[]).map((rawPost, i) => {
+            const post = normalizeCommunityFeedPost(rawPost, i);
+            return (
+            <FeedPost key={post.id}>
               <div className="post-author">
-                {p.user?.firstName || p.authorName || 'Community Member'}
+                {post.author}
               </div>
-              <div className="post-body">{p.content || p.text || ''}</div>
+              <div className="post-body">{post.body}</div>
               <div className="post-time">
-                {p.createdAt ? new Date(p.createdAt).toLocaleString() : ''}
+                {post.createdAt}
               </div>
             </FeedPost>
-          ))
+          );
+          })
         }
       </SectionCard>
     </PageWrap>

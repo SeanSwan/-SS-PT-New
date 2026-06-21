@@ -28,6 +28,7 @@ const functionSource = (name, nextName) => {
 const profileSource = functionSource('getUserProfile', 'getLeaderboard');
 const awardPointsSource = functionSource('awardPoints', 'getAllAchievements');
 const transactionsSource = functionSource('getUserTransactions', 'recordWorkoutCompletion');
+const recordWorkoutSource = functionSource('recordWorkoutCompletion', 'markNotificationAsRead');
 const activityFeedSource = functionSource('getActivityFeed', 'getComebackChallenge');
 
 describe('core gamification controller security hardening', () => {
@@ -79,6 +80,15 @@ describe('core gamification controller security hardening', () => {
     expect(activityFeedSource).not.toContain('parseInt(');
   });
 
+  it('rejects malformed activity-feed since timestamps before querying', () => {
+    expect(controllerSource).toContain('const parseOptionalIsoDate =');
+    expect(activityFeedSource).toContain('const normalizedSince = parseOptionalIsoDate(since);');
+    expect(activityFeedSource).toContain('if (since !== undefined && !normalizedSince) {');
+    expect(activityFeedSource).toContain("message: 'Valid since timestamp is required'");
+    expect(activityFeedSource).toContain('whereClause.createdAt = { [Op.gte]: normalizedSince };');
+    expect(activityFeedSource).not.toContain('new Date(since)');
+  });
+
   it('keeps active point mutation, transaction, and feed failures stable', () => {
     expect(awardPointsSource).toContain('const normalizedUserId = parsePositiveInteger(userId);');
     expect(awardPointsSource).toContain('userId: normalizedUserId,');
@@ -87,5 +97,51 @@ describe('core gamification controller security hardening', () => {
     expect(transactionsSource).toContain("return sendGamificationError(res, 'Failed to get user transactions');");
     expect(activityFeedSource).toContain("return sendGamificationError(res, 'Failed to get activity feed');");
     expect([awardPointsSource, transactionsSource, activityFeedSource].join('\n')).not.toContain('safeError(req, error)');
+  });
+
+  it('records workout completion before streak bonus so ledger balances progress forward', () => {
+    const normalizedWorkoutSource = recordWorkoutSource.replace(/\r\n/g, '\n');
+    const workoutIndex = normalizedWorkoutSource.indexOf("source: 'workout_completion'");
+    const streakIndex = normalizedWorkoutSource.indexOf("source: 'streak_bonus'");
+
+    expect(routeSource).toContain("'/record-workout'");
+    expect(workoutIndex).toBeGreaterThan(-1);
+    expect(streakIndex).toBeGreaterThan(-1);
+    expect(workoutIndex).toBeLessThan(streakIndex);
+    expect(normalizedWorkoutSource).toContain('const baseWorkoutPoints = pointsToAward;');
+    expect(normalizedWorkoutSource).toContain('let pointTransaction;');
+  });
+
+  it('uses the central point ledger for workout-triggered milestone bonuses', () => {
+    const normalizedWorkoutSource = recordWorkoutSource.replace(/\r\n/g, '\n');
+    const milestoneStart = normalizedWorkoutSource.indexOf('// Check for milestone achievements');
+    const milestoneEnd = normalizedWorkoutSource.indexOf('// Tag workout session', milestoneStart);
+    const milestoneSection = normalizedWorkoutSource.slice(milestoneStart, milestoneEnd);
+
+    expect(milestoneStart).toBeGreaterThan(-1);
+    expect(milestoneEnd).toBeGreaterThan(milestoneStart);
+    expect(milestoneSection).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(milestoneSection).toContain("idempotencyKey: `milestone:workout:${normalizedUserId}:${workoutMilestoneKey}`");
+    expect(milestoneSection).toContain('maxPoints: Number.MAX_SAFE_INTEGER');
+    expect(milestoneSection).not.toContain('await PointTransaction.create({');
+    expect(milestoneSection).not.toContain('await user.update({');
+    expect(normalizedWorkoutSource).toContain('newBalance: finalBalance');
+  });
+
+  it('uses the central point ledger for main workout and streak bonus awards', () => {
+    const normalizedWorkoutSource = recordWorkoutSource.replace(/\r\n/g, '\n');
+    const ledgerStart = normalizedWorkoutSource.indexOf('// Create main workout completion transaction');
+    const ledgerEnd = normalizedWorkoutSource.indexOf('// Update user stats', ledgerStart);
+    const positivePointSection = normalizedWorkoutSource.slice(ledgerStart, ledgerEnd);
+
+    expect(ledgerStart).toBeGreaterThan(-1);
+    expect(ledgerEnd).toBeGreaterThan(ledgerStart);
+    expect(positivePointSection).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(positivePointSection).toContain("source: 'workout_completion'");
+    expect(positivePointSection).toContain('idempotencyKey: `workout:${normalizedUserId}:${workoutCompletionKey}`');
+    expect(positivePointSection).toContain("source: 'streak_bonus'");
+    expect(positivePointSection).toContain('idempotencyKey: `streak:${normalizedUserId}:${updatedStats.streakDays}:${today.toISOString().slice(0, 10)}`');
+    expect(positivePointSection).toContain('maxPoints: Number.MAX_SAFE_INTEGER');
+    expect(positivePointSection).not.toContain('PointTransaction.create({');
   });
 });

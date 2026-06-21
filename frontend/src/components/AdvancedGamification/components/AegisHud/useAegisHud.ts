@@ -1,18 +1,11 @@
 /**
- * ============================================================================
  * FILE: useAegisHud.ts
- * PURPOSE: React hook for fetching and managing Aegis HUD needs data
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
- * ============================================================================
+ * PURPOSE: Fetch and manage Aegis HUD needs data through apiService.
  */
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../../../../services/api.service';
+import { GAMIFICATION_SAFE_ERROR_COPY, getGamificationUserPath } from '../../utils/gamificationPath';
 import type { AegisHudData } from './AegisHudTypes';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: API Helpers
-// ─────────────────────────────────────────────────────────────
 
 const API_BASE = '/api/gamification';
 
@@ -38,18 +31,15 @@ async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise
         : await apiService.get(url, config);
 
   if (res.status < 200 || res.status >= 300) {
-    const message = (res.data as { message?: string; error?: string } | undefined)?.message
-      || (res.data as { message?: string; error?: string } | undefined)?.error
-      || `Aegis HUD API error: ${res.status}`;
-    throw new Error(message);
+    throw new Error(`Aegis HUD API error: ${res.status}`);
+  }
+
+  if ((res.data as { success?: unknown } | null | undefined)?.success === false) {
+    throw new Error(`Aegis HUD API error: ${res.status}`);
   }
 
   return res.data as T;
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ──��──────────────────────────────────────────────────────────
 
 interface UseAegisHudOptions {
   /** Auto-refresh interval in ms (default: 60000 = 1 min) */
@@ -63,6 +53,20 @@ interface AegisHudResponse {
   data: AegisHudData;
 }
 
+const isAegisHudData = (value: unknown): value is AegisHudData => {
+  const data = value as Partial<AegisHudData> | null | undefined;
+  return Array.isArray(data?.needs)
+    && typeof data.overallHealth === 'number'
+    && Number.isFinite(data.overallHealth);
+};
+
+const getValidAegisHudData = (result: AegisHudResponse): AegisHudData => {
+  if (!result.success || !isAegisHudData(result.data)) {
+    throw new Error('Invalid Aegis HUD payload');
+  }
+  return result.data;
+};
+
 export function useAegisHud(userId: number | null | undefined, options: UseAegisHudOptions = {}) {
   const { refreshInterval = 60000, skip = false } = options;
 
@@ -72,28 +76,31 @@ export function useAegisHud(userId: number | null | undefined, options: UseAegis
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchNeeds = useCallback(async () => {
-    if (!userId || skip) return;
+    const aegisPath = getGamificationUserPath(userId, '/aegis-hud');
+    if (!aegisPath || skip) {
+      setData(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
 
     try {
+      setLoading(true);
       setError(null);
-      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}/users/${userId}/aegis-hud`);
-      if (result.success) {
-        setData(result.data);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load Aegis HUD';
-      setError(msg);
-      console.error('[AegisHUD]', msg);
+      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}${aegisPath}`);
+      setData(getValidAegisHudData(result));
+    } catch {
+      setData(null);
+      setError(GAMIFICATION_SAFE_ERROR_COPY);
     } finally {
       setLoading(false);
     }
   }, [userId, skip]);
 
-  // Initial fetch + auto-refresh
   useEffect(() => {
     fetchNeeds();
 
-    if (refreshInterval > 0 && !skip) {
+    if (refreshInterval > 0 && !skip && getGamificationUserPath(userId, '/aegis-hud')) {
       intervalRef.current = setInterval(fetchNeeds, refreshInterval);
     }
 
@@ -102,19 +109,17 @@ export function useAegisHud(userId: number | null | undefined, options: UseAegis
     };
   }, [fetchNeeds, refreshInterval, skip]);
 
-  // Replenish action (call after workout, social post, etc.)
   const replenish = useCallback(async (actionType: string) => {
-    if (!userId) return;
+    const aegisPath = getGamificationUserPath(userId, '/aegis-hud/replenish');
+    if (!aegisPath) return;
     try {
-      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}/users/${userId}/aegis-hud/replenish`, {
+      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}${aegisPath}`, {
         method: 'POST',
         body: JSON.stringify({ actionType }),
       });
-      if (result.success) {
-        setData(result.data);
-      }
-    } catch (err) {
-      console.error('[AegisHUD] replenish failed:', err);
+      setData(getValidAegisHudData(result));
+    } catch {
+      setError(GAMIFICATION_SAFE_ERROR_COPY);
     }
   }, [userId]);
 

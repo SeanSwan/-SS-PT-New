@@ -12,6 +12,8 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const coreRoutesSource = readBackend('../../core/routes.mjs');
+const vaultServiceSource = readBackend('../../services/gamification/VaultDecryptionService.mjs');
+const vaultStateSource = readBackend('../../services/gamification/vaultDecryptionState.mjs');
 
 const functionSource = (name, nextName) => {
   const startMarker = `  ${name}: async`;
@@ -36,8 +38,9 @@ describe('gamification vault controller security hardening', () => {
     expect(routeSource).toContain("router.get('/vault/config', authenticate, requireUser, gamificationController.getVaultConfig)");
     expect(routeSource).toContain("router.post('/users/:userId/vault/roll', authenticate, authorizeResourceAccess('userId'), pointActionLimiter, gamificationController.rollVaultDrop)");
     expect(routeSource).toContain("router.get('/users/:userId/vault/inventory', authenticate, authorizeResourceAccess('userId'), gamificationController.getVaultInventory)");
-    expect(vaultHookSource).toContain('`/users/${userId}/vault/roll`');
-    expect(vaultHookSource).toContain('`/users/${userId}/vault/inventory`');
+    expect(vaultHookSource).toContain("getGamificationUserPath(userId, '/vault/roll')");
+    expect(vaultHookSource).toContain("getGamificationUserPath(userId, '/vault/inventory')");
+    expect(vaultHookSource).toContain('const url = `${API_BASE}${path}`;');
   });
 
   it('keeps vault frontend transport on the shared API service', () => {
@@ -59,6 +62,36 @@ describe('gamification vault controller security hardening', () => {
     expect(getInventorySource).not.toContain('parseInt(');
   });
 
+  it('keeps vault drops cosmetic-only and never awards random xp bonuses', () => {
+    expect(rollVaultSource).toContain('transaction = await db.transaction();');
+    expect(rollVaultSource).toContain('lock: transaction.LOCK.UPDATE');
+    expect(rollVaultSource).toContain('await VaultDecryptionService.recordDrop(record, drop, { transaction });');
+    expect(rollVaultSource).toContain('await transaction.commit();');
+    expect(rollVaultSource).toContain("xpBonus: 0");
+    expect(rollVaultSource).toContain("rewardMode: 'cosmetic_only'");
+    expect(rollVaultSource).not.toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(rollVaultSource).not.toContain('const vaultBonusXP = parsePositiveInteger(drop.xpBonus, 0);');
+    expect(rollVaultSource).not.toContain('source: getVaultPointSource(requestedActionType)');
+    expect(rollVaultSource).not.toContain("description: 'Vault drop bonus XP'");
+    expect(rollVaultSource).not.toContain("reason: 'vault_drop'");
+    expect(rollVaultSource).not.toContain('record.update({ totalXP:');
+    expect(controllerSource).not.toContain('Variable-ratio reinforcement loot drops after actions');
+  });
+
+  it('locks vault service rewards to cosmetic loot only', () => {
+    expect(vaultServiceSource).toContain('rewardMode: \'cosmetic_only\'');
+    expect(vaultServiceSource).not.toMatch(/\bxpBonus:\s*(?:[1-9]|\d{2,})/);
+    expect(vaultServiceSource).not.toContain("type: 'xp_boost'");
+    expect(vaultServiceSource).not.toContain("type: 'streak_freeze'");
+    expect(vaultServiceSource).not.toContain('variable-ratio');
+    expect(vaultServiceSource).not.toContain('streak freezes');
+    expect(vaultServiceSource).not.toContain('XP Boost');
+    expect(vaultStateSource).toContain('rewardMode: \'cosmetic_only\'');
+    expect(vaultStateSource).toContain('xpBonus: 0');
+    expect(vaultStateSource).not.toContain("'xp_boost'");
+    expect(vaultStateSource).not.toContain("'streak_freeze'");
+  });
+
   it('keeps vault client-facing failures stable', () => {
     const combined = [rollVaultSource, getInventorySource].join('\n');
 
@@ -66,4 +99,5 @@ describe('gamification vault controller security hardening', () => {
     expect(combined).not.toContain('error: error.message');
     expect(combined).not.toContain('safeError(req, error)');
   });
+
 });

@@ -87,13 +87,13 @@ export function emitGamificationEvent(event, data, options = {}) {
       if (!shouldEmit(event, userId)) return;
     }
 
-    // Broadcast to all connected clients in the 'gamification' room
-    io.to('gamification').emit(`gamification:${event}`, {
+    const targetRoom = userId ? `user:${userId}` : 'gamification';
+    io.to(targetRoom).emit(`gamification:${event}`, {
       ...data,
       timestamp: new Date().toISOString(),
     });
 
-    logger.info(`Gamification event emitted: ${event} for user ${userId}`);
+    logger.info(`Gamification event emitted: ${event} for user ${userId || 'broadcast'}`);
   } catch (error) {
     // Non-fatal — gamification events are enhancement, not critical path
     logger.error(`Failed to emit gamification event: ${error.message}`);

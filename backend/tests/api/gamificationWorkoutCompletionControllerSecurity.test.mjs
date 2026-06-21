@@ -76,4 +76,23 @@ describe('gamification workout completion controller security hardening', () => 
     expect(recordWorkoutSource).not.toContain('Number(targetUserId)');
     expect(recordWorkoutSource).not.toContain('exercisesCompleted * settings.pointsPerExercise');
   });
+
+  it('does not coerce malformed numeric payloads or settings multipliers', () => {
+    expect(controllerSource).toContain('const parsePrimitiveNumber = (value) => {');
+    expect(controllerSource).toContain("if (typeof value !== 'string') return null;");
+    expect(recordWorkoutSource).toContain('const normalizedPointsMultiplier = parseBoundedNumber(settings?.pointsMultiplier, 0, 5);');
+    expect(recordWorkoutSource).toContain('if (normalizedPointsMultiplier !== null && normalizedPointsMultiplier > 0) {');
+    expect(recordWorkoutSource).not.toContain('pointsToAward = Math.round(pointsToAward * settings.pointsMultiplier);');
+  });
+
+  it('uses the central point ledger for workout-triggered milestone bonuses', () => {
+    const normalizedWorkoutSource = recordWorkoutSource.replace(/\r\n/g, '\n');
+
+    expect(normalizedWorkoutSource).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(normalizedWorkoutSource).toContain("source: 'milestone_reached'");
+    expect(normalizedWorkoutSource).toContain("idempotencyKey: `milestone:workout:${normalizedUserId}:${workoutMilestoneKey}`");
+    expect(normalizedWorkoutSource).toContain('maxPoints: Number.MAX_SAFE_INTEGER');
+    expect(normalizedWorkoutSource).not.toContain('const finalLevel = calculateLevel(finalBalance);');
+    expect(normalizedWorkoutSource).not.toContain('await user.update({\n          points: finalBalance');
+  });
 });

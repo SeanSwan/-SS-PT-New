@@ -13,6 +13,25 @@ import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 
 const router = express.Router();
 
+const sendGamificationRuntimeError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: 'internal_error'
+});
+
+const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
+
+const normalizeLeaderboardLimit = (value, fallback = 10, max = 50) => {
+  const normalized = typeof value === 'number'
+    ? String(value)
+    : typeof value === 'string'
+      ? value.trim()
+      : '';
+  if (!POSITIVE_INTEGER_PATTERN.test(normalized)) return fallback;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? Math.min(parsed, max) : fallback;
+};
+
 /**
  * @route   GET /api/master-prompt/gamification/status
  * @desc    Get user's gamification status and progress
@@ -41,11 +60,7 @@ router.get('/status', async (req, res) => {
       userId: req.user?.id
     });
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve gamification status',
-      error: error.message
-    });
+    sendGamificationRuntimeError(res, 'Failed to retrieve gamification status');
   }
 });
 
@@ -129,11 +144,7 @@ router.get('/achievements', async (req, res) => {
       userId: req.user?.id
     });
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve achievements',
-      error: error.message
-    });
+    sendGamificationRuntimeError(res, 'Failed to retrieve achievements');
   }
 });
 
@@ -150,7 +161,7 @@ router.get('/leaderboard', async (req, res) => {
     const leaderboard = await gamificationEngine.getLeaderboard({
       timeframe,
       category,
-      limit: Math.min(parseInt(limit), 50), // Max 50
+      limit: normalizeLeaderboardLimit(limit),
       requestingUserId: userId
     });
     
@@ -172,11 +183,7 @@ router.get('/leaderboard', async (req, res) => {
       userId: req.user?.id
     });
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve leaderboard',
-      error: error.message
-    });
+    sendGamificationRuntimeError(res, 'Failed to retrieve leaderboard');
   }
 });
 
@@ -211,11 +218,7 @@ router.post('/check-ethical-compliance',
         userId: req.user?.id
       });
       
-      res.status(500).json({
-        success: false,
-        message: 'Ethical compliance check failed',
-        error: error.message
-      });
+      sendGamificationRuntimeError(res, 'Ethical compliance check failed');
     }
   }
 );
@@ -248,11 +251,7 @@ router.get('/engagement-metrics',
         userId: req.user?.id
       });
       
-      res.status(500).json({
-        success: false,
-        message: 'Failed to retrieve engagement metrics',
-        error: error.message
-      });
+      sendGamificationRuntimeError(res, 'Failed to retrieve engagement metrics');
     }
   }
 );
@@ -304,11 +303,7 @@ router.post('/configure-rules',
         userId: req.user?.id
       });
       
-      res.status(500).json({
-        success: false,
-        message: 'Failed to configure rules',
-        error: error.message
-      });
+      sendGamificationRuntimeError(res, 'Failed to configure rules');
     }
   }
 );
@@ -359,11 +354,7 @@ router.post('/process-action', async (req, res) => {
       action: req.body.action
     });
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process action',
-      error: error.message
-    });
+    sendGamificationRuntimeError(res, 'Failed to process action');
   }
 });
 
@@ -394,11 +385,7 @@ router.get('/health-check',
         userId: req.user?.id
       });
       
-      res.status(500).json({
-        success: false,
-        message: 'Health check failed',
-        error: error.message
-      });
+      sendGamificationRuntimeError(res, 'Health check failed');
     }
   }
 );

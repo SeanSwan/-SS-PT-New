@@ -39,9 +39,18 @@ async function loadDispatcher({
 
   const createPointTransaction = vi.fn(async () => ({ id: 100 }));
   const PointTransaction = { create: createPointTransaction };
+  const recordLedgerEntry = vi.fn(async ({ points }) => ({
+    pointsAwarded: points,
+    newBalance: Number(user?.points ?? 0) + Number(points ?? 0),
+    newLevel: 1,
+    newTier: 'bronze_forge',
+  }));
 
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => ({ User, Streak, UserAchievement, Achievement, PointTransaction }),
+  }));
+  vi.doMock('../../services/gamification/GamificationPointsService.mjs', () => ({
+    default: { recordLedgerEntry },
   }));
   vi.doMock('../../services/workoutService.mjs', () => ({
     default: { getExerciseRecommendations: vi.fn(async () => []) },
@@ -59,6 +68,7 @@ async function loadDispatcher({
     createUserAchievement,
     findByPkAchievement,
     createPointTransaction,
+    recordLedgerEntry,
   };
 }
 
@@ -175,13 +185,18 @@ describe('goal gamification command dispatchers', () => {
     expect(result.clientId).toBe(42);
   });
 
-  it('awards UUID achievements with a PII-safe receipt and point transaction', async () => {
+  it('awards UUID achievements with a PII-safe receipt and central ledger transaction', async () => {
     const user = {
       id: 42,
       points: 100,
       update: vi.fn(async () => undefined),
     };
-    const { dispatch, hasDispatcher, createUserAchievement, createPointTransaction } = await loadDispatcher({
+    const transaction = {
+      commit: vi.fn(async () => undefined),
+      rollback: vi.fn(async () => undefined),
+    };
+    const sequelize = { transaction: vi.fn(async () => transaction) };
+    const { dispatch, hasDispatcher, createUserAchievement, createPointTransaction, recordLedgerEntry } = await loadDispatcher({
       user,
       achievement: { id: 'achievement-uuid-1', name: 'Private badge', xpReward: 100 },
     });
@@ -193,6 +208,7 @@ describe('goal gamification command dispatchers', () => {
       achievementId: 'achievement-uuid-1',
     }, {
       user: { id: 1, role: 'admin' },
+      options: { sequelize },
     });
 
     expect(createUserAchievement).toHaveBeenCalledWith(expect.objectContaining({
@@ -202,21 +218,22 @@ describe('goal gamification command dispatchers', () => {
       progress: 100,
       progressPercentage: 100,
       pointsAwarded: 100,
-    }), expect.any(Object));
-    expect(createPointTransaction).toHaveBeenCalledWith(expect.objectContaining({
+    }), { transaction });
+    expect(recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       points: 100,
-      balance: 200,
       transactionType: 'earn',
       source: 'achievement_earned',
       sourceId: null,
+      description: 'Achievement earned',
+      idempotencyKey: 'ai-achievement:42:achievement-uuid-1',
       awardedBy: 1,
-    }), expect.any(Object));
-    expect(user.update).toHaveBeenCalledWith({
-      points: 200,
-      level: 1,
-      tier: 'bronze_forge',
-    }, expect.any(Object));
+    }), transaction);
+    expect(createPointTransaction).not.toHaveBeenCalled();
+    expect(user.update).not.toHaveBeenCalled();
+    expect(sequelize.transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.commit).toHaveBeenCalledTimes(1);
+    expect(transaction.rollback).not.toHaveBeenCalled();
     expect(result).toEqual({
       clientId: 42,
       achievementId: 'achievement-uuid-1',
@@ -237,7 +254,12 @@ describe('goal gamification command dispatchers', () => {
       points: 100,
       update: vi.fn(async () => undefined),
     };
-    const { dispatch, createUserAchievement, createPointTransaction } = await loadDispatcher({
+    const transaction = {
+      commit: vi.fn(async () => undefined),
+      rollback: vi.fn(async () => undefined),
+    };
+    const sequelize = { transaction: vi.fn(async () => transaction) };
+    const { dispatch, createUserAchievement, createPointTransaction, recordLedgerEntry } = await loadDispatcher({
       user,
       achievement: { id: 'achievement-uuid-1', xpReward: 100 },
     });
@@ -248,14 +270,31 @@ describe('goal gamification command dispatchers', () => {
     }, {
       user: { id: 1, role: 'admin' },
       resolvedClient: { id: 42 },
+      options: { sequelize },
     });
 
     expect(createUserAchievement).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
     }), expect.any(Object));
-    expect(createPointTransaction).toHaveBeenCalledWith(expect.objectContaining({
+    expect(recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
-    }), expect.any(Object));
+      idempotencyKey: 'ai-achievement:42:achievement-uuid-1',
+    }), transaction);
+    expect(createPointTransaction).not.toHaveBeenCalled();
     expect(result.clientId).toBe(42);
+  });
+  it('fails closed before badge mutation when transaction context is missing', async () => {
+    const { dispatch, createUserAchievement, recordLedgerEntry } = await loadDispatcher({
+      user: { id: 42, points: 100 },
+      achievement: { id: 'achievement-uuid-1', xpReward: 100 },
+    });
+
+    await expect(dispatch('award_badge', {
+      clientId: 42,
+      achievementId: 'achievement-uuid-1',
+    }, { user: { id: 1, role: 'admin' } })).rejects.toThrow(/Database transaction unavailable/);
+
+    expect(createUserAchievement).not.toHaveBeenCalled();
+    expect(recordLedgerEntry).not.toHaveBeenCalled();
   });
 });

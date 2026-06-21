@@ -428,8 +428,8 @@ const SAFE_USER_ACHIEVEMENT_ATTRS = [
 const weeklyRecapWorkoutSources = ['workout_completion', 'workout_completed'];
 
 const getAchievementPointValue = (achievement) => {
-  const parsed = Number(achievement?.xpReward);
-  return Number.isFinite(parsed) ? parsed : 0;
+  const parsed = parseNonNegativeInteger(achievement?.xpReward, 0);
+  return parsed ?? 0;
 };
 
 // SECURITY FIX #10: Sanitize error messages for non-admin responses
@@ -447,10 +447,20 @@ const sendGamificationError = (res, message) => res.status(500).json({
   error: INTERNAL_ERROR
 });
 
-const parsePositiveInteger = (value, fallback = null) => {
-  if (value === undefined || value === null || value === '') return fallback;
+const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
 
-  const parsed = Number(value);
+const parsePrimitiveNumber = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!DECIMAL_NUMBER_PATTERN.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parsePositiveInteger = (value, fallback = null) => {
+  const parsed = parsePrimitiveNumber(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
@@ -460,19 +470,40 @@ const parseBoundedPositiveInteger = (value, fallback, max) => {
 };
 
 const parseNonNegativeInteger = (value, fallback = null) => {
-  if (value === undefined || value === null || value === '') return fallback;
-
-  const parsed = Number(value);
+  const parsed = parsePrimitiveNumber(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
 };
 
 const parseBoundedNumber = (value, min, max) => {
-  if (value === undefined || value === null || value === '') return null;
-
-  const parsed = Number(value);
+  const parsed = parsePrimitiveNumber(value);
   if (!Number.isFinite(parsed) || parsed < min || parsed > max) return null;
 
   return parsed;
+};
+
+const parseOptionalIsoDate = (value) => {
+  if (value === undefined) return null;
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(trimmed);
+  if (!match) return null;
+
+  const [, yearRaw, monthRaw, dayRaw] = match;
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    utcDate.getUTCFullYear() !== year
+    || utcDate.getUTCMonth() !== month - 1
+    || utcDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const normalizeBoundedString = (value, maxLength) => {
@@ -1425,8 +1456,11 @@ const gamificationController = {
         });
       }
       
-      // Check if user exists
-      const user = await User.findByPk(normalizedUserId, { transaction });
+      // Check if user exists and serialize point writes for this user.
+      const user = await User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       
       if (!user) {
         await transaction.rollback();
@@ -1487,23 +1521,17 @@ const gamificationController = {
       
       // Award points to user
       const achievementPoints = getAchievementPointValue(achievement);
-      const newBalance = user.points + achievementPoints;
-      const newLevel = calculateLevel(newBalance);
-      const newTier = getTier(newLevel);
-      
-      await PointTransaction.create({
+      const ledgerResult = await GamificationPointsService.recordLedgerEntry({
         userId: normalizedUserId,
         points: achievementPoints,
-        balance: newBalance,
         transactionType: 'earn',
         source: 'achievement_earned',
-        sourceId: achievement.id,
+        sourceId: null,
         description: `Achievement Earned: ${achievement.name}`,
-        metadata: { achievementId: achievement.id }
-      }, { transaction });
-      
-      // Update user points and derived progression fields together.
-      await user.update({ points: newBalance, level: newLevel, tier: newTier }, { transaction });
+        metadata: { achievementId: achievement.id },
+        awardedBy: req.user?.id,
+        idempotencyKey: `achievement:${normalizedUserId}:${achievement.id}`
+      }, transaction);
       
       // Commit the transaction
       await transaction.commit();
@@ -1512,8 +1540,8 @@ const gamificationController = {
         success: true,
         message: 'Achievement awarded successfully',
         userAchievement,
-        pointsAwarded: achievementPoints,
-        newBalance
+        pointsAwarded: ledgerResult.pointsAwarded,
+        newBalance: ledgerResult.newBalance
       });
     } catch (error) {
       await transaction.rollback();
@@ -1526,27 +1554,41 @@ const gamificationController = {
    * Update user achievement progress
    */
   updateAchievementProgress: async (req, res) => {
+    const { userId, achievementId } = req.params;
+    const { progress } = req.body;
+    const normalizedUserId = parsePositiveInteger(userId);
+    const normalizedProgress = parseBoundedNumber(progress, 0, 100);
+
+    if (!normalizedUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid user id is required'
+      });
+    }
+
+    if (normalizedProgress === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Progress must be a number from 0 to 100'
+      });
+    }
+
+    const transaction = await db.transaction();
+
     try {
-      const { userId, achievementId } = req.params;
-      const { progress } = req.body;
-      const normalizedUserId = parsePositiveInteger(userId);
-      const normalizedProgress = parseBoundedNumber(progress, 0, 100);
-      
-      if (!normalizedUserId) {
-        return res.status(400).json({
+      const user = await User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (!user) {
+        await transaction.rollback();
+        return res.status(404).json({
           success: false,
-          message: 'Valid user id is required'
+          message: 'User not found'
         });
       }
 
-      if (normalizedProgress === null) {
-        return res.status(400).json({
-          success: false,
-          message: 'Progress must be a number from 0 to 100'
-        });
-      }
-      
-      // Check if user achievement exists
       let userAchievement = await UserAchievement.findOne({
         attributes: SAFE_USER_ACHIEVEMENT_ATTRS,
         where: {
@@ -1556,108 +1598,83 @@ const gamificationController = {
         include: [{
           model: Achievement,
           as: 'achievement'
-        }]
+        }],
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
 
       if (!userAchievement) {
-        // Create new record with initial progress
-        const achievement = await Achievement.findByPk(achievementId);
-        
+        const achievement = await Achievement.findByPk(achievementId, { transaction });
+
         if (!achievement) {
+          await transaction.rollback();
           return res.status(404).json({
             success: false,
             message: 'Achievement not found'
           });
         }
-        
+
         userAchievement = await UserAchievement.create({
           userId: normalizedUserId,
           achievementId,
           progress: normalizedProgress,
-          isCompleted: normalizedProgress >= 100
-        });
-        
-        // If completed, award points
+          isCompleted: normalizedProgress >= 100,
+          earnedAt: normalizedProgress >= 100 ? new Date() : null
+        }, { transaction });
+
         if (normalizedProgress >= 100) {
-          // Get user
-          const user = await User.findByPk(normalizedUserId);
-          
-          if (user) {
-            const achievementPoints = getAchievementPointValue(achievement);
-            const newBalance = user.points + achievementPoints;
-            const newLevel = calculateLevel(newBalance);
-            const newTier = getTier(newLevel);
-            
-            // Create point transaction
-            await PointTransaction.create({
-              userId: normalizedUserId,
-              points: achievementPoints,
-              balance: newBalance,
-              transactionType: 'earn',
-              source: 'achievement_earned',
-              sourceId: achievement.id,
-              description: `Achievement Earned: ${achievement.name}`,
-              metadata: { achievementId: achievement.id }
-            });
-            
-            // Update user points and derived progression fields together.
-            await user.update({ points: newBalance, level: newLevel, tier: newTier });
-            
-            // Update pointsAwarded in userAchievement
-            await userAchievement.update({ pointsAwarded: achievementPoints });
-          }
+          const achievementPoints = getAchievementPointValue(achievement);
+          await GamificationPointsService.recordLedgerEntry({
+            userId: normalizedUserId,
+            points: achievementPoints,
+            transactionType: 'earn',
+            source: 'achievement_earned',
+            sourceId: null,
+            description: `Achievement Earned: ${achievement.name}`,
+            metadata: { achievementId: achievement.id },
+            awardedBy: req.user?.id,
+            idempotencyKey: `achievement:${normalizedUserId}:${achievement.id}`
+          }, transaction);
+
+          await userAchievement.update({ pointsAwarded: achievementPoints }, { transaction });
         }
-      } else {
-        // Only update if not already completed
-        if (!userAchievement.isCompleted) {
-          const newProgress = normalizedProgress;
-          const wasCompleted = userAchievement.progress < 100 && newProgress >= 100;
-          
-          await userAchievement.update({
-            progress: newProgress,
-            isCompleted: newProgress >= 100,
-            earnedAt: newProgress >= 100 ? new Date() : userAchievement.earnedAt
-          });
-          
-          // If newly completed, award points
-          if (wasCompleted) {
-            // Get user
-            const user = await User.findByPk(normalizedUserId);
-            
-            if (user && userAchievement.achievement) {
-              const achievementPoints = getAchievementPointValue(userAchievement.achievement);
-              const newBalance = user.points + achievementPoints;
-              const newLevel = calculateLevel(newBalance);
-              const newTier = getTier(newLevel);
-              
-              // Create point transaction
-              await PointTransaction.create({
-                userId: normalizedUserId,
-                points: achievementPoints,
-                balance: newBalance,
-                transactionType: 'earn',
-                source: 'achievement_earned',
-                sourceId: userAchievement.achievement.id,
-                description: `Achievement Earned: ${userAchievement.achievement.name}`,
-                metadata: { achievementId: userAchievement.achievement.id }
-              });
-              
-              // Update user points and derived progression fields together.
-              await user.update({ points: newBalance, level: newLevel, tier: newTier });
-              
-              // Update pointsAwarded in userAchievement
-              await userAchievement.update({ pointsAwarded: achievementPoints });
-            }
-          }
+      } else if (!userAchievement.isCompleted) {
+        const newProgress = normalizedProgress;
+        const wasCompleted = userAchievement.progress < 100 && newProgress >= 100;
+
+        await userAchievement.update({
+          progress: newProgress,
+          isCompleted: newProgress >= 100,
+          earnedAt: newProgress >= 100 ? new Date() : userAchievement.earnedAt
+        }, { transaction });
+
+        if (wasCompleted && userAchievement.achievement) {
+          const achievementPoints = getAchievementPointValue(userAchievement.achievement);
+          await GamificationPointsService.recordLedgerEntry({
+            userId: normalizedUserId,
+            points: achievementPoints,
+            transactionType: 'earn',
+            source: 'achievement_earned',
+            sourceId: null,
+            description: `Achievement Earned: ${userAchievement.achievement.name}`,
+            metadata: { achievementId: userAchievement.achievement.id },
+            awardedBy: req.user?.id,
+            idempotencyKey: `achievement:${normalizedUserId}:${userAchievement.achievement.id}`
+          }, transaction);
+
+          await userAchievement.update({ pointsAwarded: achievementPoints }, { transaction });
         }
       }
-      
+
+      await transaction.commit();
+
       return res.status(200).json({
         success: true,
         message: 'Achievement progress updated',
         userAchievement
       });
     } catch (error) {
+      await transaction.rollback();
       console.error('Error updating achievement progress:', error);
       return sendGamificationError(res, 'Failed to update achievement progress');
     }
@@ -1980,7 +1997,10 @@ const gamificationController = {
       }
       
       // Check if user exists
-      const user = await User.findByPk(normalizedUserId, { transaction });
+      const user = await User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       
       if (!user) {
         await transaction.rollback();
@@ -1996,7 +2016,8 @@ const gamificationController = {
           id: normalizedRewardId,
           isActive: true
         },
-        transaction
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
       
       if (!reward) {
@@ -2025,8 +2046,17 @@ const gamificationController = {
         });
       }
       
+      const rewardPointCost = parseNonNegativeInteger(reward.pointCost);
+      if (rewardPointCost === null) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Reward configuration is invalid'
+        });
+      }
+
       // Check if user has enough points
-      if (user.points < reward.pointCost) {
+      if (user.points < rewardPointCost) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -2040,26 +2070,24 @@ const gamificationController = {
         rewardId: normalizedRewardId,
         redeemedAt: new Date(),
         status: 'pending',
-        pointsCost: reward.pointCost,
+        pointsCost: rewardPointCost,
         expiresAt: reward.expiresAt
       }, { transaction });
       
-      // Deduct points from user
-      const newBalance = user.points - reward.pointCost;
-      
-      await PointTransaction.create({
-        userId: normalizedUserId,
-        points: reward.pointCost,
-        balance: newBalance,
-        transactionType: 'spend',
-        source: 'reward_redemption',
-        sourceId: reward.id,
-        description: `Reward Redeemed: ${reward.name}`,
-        metadata: { rewardId: reward.id }
-      }, { transaction });
-      
-      // Update user points
-      await user.update({ points: newBalance }, { transaction });
+      if (rewardPointCost > 0) {
+        await GamificationPointsService.recordLedgerEntry({
+          userId: normalizedUserId,
+          points: rewardPointCost,
+          transactionType: 'spend',
+          source: 'reward_redemption',
+          sourceId: reward.id,
+          description: `Reward Redeemed: ${reward.name}`,
+          metadata: { rewardId: reward.id, userRewardId: userReward.id },
+          awardedBy: req.user?.id ?? null,
+          idempotencyKey: `reward:${normalizedUserId}:${reward.id}:${userReward.id}`,
+          maxPoints: Number.MAX_SAFE_INTEGER
+        }, transaction);
+      }
       
       // Update reward stock and redemption count
       await reward.update({
@@ -2360,8 +2388,11 @@ const gamificationController = {
         });
       }
       
-      // Check if user exists
-      const user = await User.findByPk(normalizedUserId, { transaction });
+      // Check if user exists and serialize balance changes for milestone bonuses.
+      const user = await User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       
       if (!user) {
         await transaction.rollback();
@@ -2400,43 +2431,45 @@ const gamificationController = {
         });
       }
       
-      // Award new milestones
-      const awardedMilestones = [];
-      let totalBonusPoints = 0;
+      // Award bonus points once before writing milestone rows so idempotency can
+      // stop concurrent duplicate milestone awards.
+      let awardedMilestones = [];
+      const milestoneIds = newMilestones.map(milestone => milestone.id);
+      const milestoneKey = milestoneIds.slice().sort().join(',');
+      const intendedBonusPoints = newMilestones.reduce(
+        (sum, milestone) => sum + parseNonNegativeInteger(milestone.bonusPoints, 0),
+        0
+      );
       let finalBalance = user.points;
-      
-      for (const milestone of newMilestones) {
-        // Create user milestone record
-        const userMilestone = await UserMilestone.create({
+      let totalBonusPoints = 0;
+      let shouldCreateMilestoneRows = true;
+
+      if (intendedBonusPoints > 0) {
+        const ledgerResult = await GamificationPointsService.recordLedgerEntry({
+          userId: normalizedUserId,
+          points: intendedBonusPoints,
+          transactionType: 'bonus',
+          source: 'milestone_reached',
+          sourceId: null,
+          description: `Milestone Bonuses: ${newMilestones.map(m => m.name).join(', ')}`,
+          metadata: { milestoneIds },
+          awardedBy: req.user?.id ?? null,
+          idempotencyKey: `milestone:check:${normalizedUserId}:${milestoneKey}`,
+          maxPoints: Number.MAX_SAFE_INTEGER
+        }, transaction);
+
+        totalBonusPoints = ledgerResult.pointsAwarded;
+        finalBalance = ledgerResult.newBalance ?? user.points;
+        shouldCreateMilestoneRows = !ledgerResult.duplicate;
+      }
+
+      if (shouldCreateMilestoneRows) {
+        awardedMilestones = await Promise.all(newMilestones.map(milestone => UserMilestone.create({
           userId: normalizedUserId,
           milestoneId: milestone.id,
           reachedAt: new Date(),
-          bonusPointsAwarded: milestone.bonusPoints
-        }, { transaction });
-        
-        awardedMilestones.push(userMilestone);
-        totalBonusPoints += milestone.bonusPoints;
-      }
-      
-      // Award bonus points for all milestones in a single transaction
-      if (totalBonusPoints > 0) {
-        finalBalance = user.points + totalBonusPoints;
-        const newLevel = calculateLevel(finalBalance);
-        const newTier = getTier(newLevel);
-        
-        // Create point transaction for bonuses
-        await PointTransaction.create({
-          userId: normalizedUserId,
-          points: totalBonusPoints,
-          balance: finalBalance,
-          transactionType: 'bonus',
-          source: 'milestone_reached',
-          description: `Milestone Bonuses: ${newMilestones.map(m => m.name).join(', ')}`,
-          metadata: { milestoneIds: newMilestones.map(m => m.id) }
-        }, { transaction });
-        
-        // Update user progression fields together so visible level/tier stay in sync.
-        await user.update({ points: finalBalance, level: newLevel, tier: newTier }, { transaction });
+          bonusPointsAwarded: parseNonNegativeInteger(milestone.bonusPoints, 0)
+        }, { transaction })));
       }
       
       // Commit the transaction
@@ -2573,11 +2606,12 @@ const gamificationController = {
       const settings = await GamificationSettings.findOne({ transaction });
       
       // Calculate points based on workout completion
-      let pointsToAward = settings?.pointsPerWorkout || 50;
+      let pointsToAward = parseNonNegativeInteger(settings?.pointsPerWorkout, 50);
+      const normalizedPointsPerExercise = parseNonNegativeInteger(settings?.pointsPerExercise, 0);
       
       // Bonus points for exercises completed
-      if (normalizedExercisesCompleted > 0 && settings?.pointsPerExercise) {
-        pointsToAward += normalizedExercisesCompleted * settings.pointsPerExercise;
+      if (normalizedExercisesCompleted > 0 && normalizedPointsPerExercise > 0) {
+        pointsToAward += normalizedExercisesCompleted * normalizedPointsPerExercise;
       }
       
       // Bonus points for duration (1 point per minute over 30 minutes)
@@ -2586,8 +2620,9 @@ const gamificationController = {
       }
       
       // Apply multiplier if enabled
-      if (settings?.pointsMultiplier) {
-        pointsToAward = Math.round(pointsToAward * settings.pointsMultiplier);
+      const normalizedPointsMultiplier = parseBoundedNumber(settings?.pointsMultiplier, 0, 5);
+      if (normalizedPointsMultiplier !== null && normalizedPointsMultiplier > 0) {
+        pointsToAward = Math.round(pointsToAward * normalizedPointsMultiplier);
       }
       
       // Same-day duplicate workout guard
@@ -2663,33 +2698,21 @@ const gamificationController = {
       updatedStats.lastActivityDate = today;
       
       // Award streak bonus if applicable
-      if (updatedStats.streakDays % 7 === 0 && settings?.pointsPerStreak) {
-        const streakBonus = settings.pointsPerStreak;
-        pointsToAward += streakBonus;
-        updatedStats.points += streakBonus;
-        
-        // Create separate transaction for streak bonus
-        await PointTransaction.create({
-          userId: normalizedUserId,
-          points: streakBonus,
-          balance: updatedStats.points,
-          transactionType: 'bonus',
-          source: 'streak_bonus',
-          sourceId: null,
-          description: `${updatedStats.streakDays}-day streak bonus`,
-          metadata: { streakDays: updatedStats.streakDays },
-          awardedBy: req.user?.id
-        }, { transaction });
+      const baseWorkoutPoints = pointsToAward;
+      const earnedStreakBonus = updatedStats.streakDays % 7 === 0 && settings?.pointsPerStreak
+        ? settings.pointsPerStreak
+        : 0;
+      if (earnedStreakBonus > 0) {
+        pointsToAward += earnedStreakBonus;
+        updatedStats.points += earnedStreakBonus;
       }
 
-      updatedStats.level = calculateLevel(updatedStats.points);
-      updatedStats.tier = getTier(updatedStats.level);
-      
       // Create main workout completion transaction
-      const pointTransaction = await PointTransaction.create({
+      let pointTransaction;
+      const workoutCompletionKey = workoutId ?? today.toISOString().slice(0, 10);
+      const workoutLedgerResult = await GamificationPointsService.recordLedgerEntry({
         userId: normalizedUserId,
-        points: pointsToAward - (updatedStats.streakDays % 7 === 0 ? settings?.pointsPerStreak || 0 : 0),
-        balance: user.points + pointsToAward - (updatedStats.streakDays % 7 === 0 ? settings?.pointsPerStreak || 0 : 0),
+        points: baseWorkoutPoints,
         transactionType: 'earn',
         source: 'workout_completion',
         sourceId: workoutId,
@@ -2701,8 +2724,31 @@ const gamificationController = {
           caloriesBurned: normalizedCaloriesBurned,
           notes: normalizedNotes
         },
-        awardedBy: req.user?.id
-      }, { transaction });
+        awardedBy: req.user?.id,
+        idempotencyKey: `workout:${normalizedUserId}:${workoutCompletionKey}`,
+        maxPoints: Number.MAX_SAFE_INTEGER
+      }, transaction);
+      pointTransaction = workoutLedgerResult.pointTransaction;
+      updatedStats.points = workoutLedgerResult.newBalance ?? (user.points + baseWorkoutPoints);
+
+      if (earnedStreakBonus > 0) {
+        const streakLedgerResult = await GamificationPointsService.recordLedgerEntry({
+          userId: normalizedUserId,
+          points: earnedStreakBonus,
+          transactionType: 'bonus',
+          source: 'streak_bonus',
+          sourceId: null,
+          description: `${updatedStats.streakDays}-day streak bonus`,
+          metadata: { streakDays: updatedStats.streakDays },
+          awardedBy: req.user?.id,
+          idempotencyKey: `streak:${normalizedUserId}:${updatedStats.streakDays}:${today.toISOString().slice(0, 10)}`,
+          maxPoints: Number.MAX_SAFE_INTEGER
+        }, transaction);
+        updatedStats.points = streakLedgerResult.newBalance ?? updatedStats.points;
+      }
+
+      updatedStats.level = calculateLevel(updatedStats.points);
+      updatedStats.tier = getTier(updatedStats.level);
       
       // Update user stats
       await user.update(updatedStats, { transaction });
@@ -2728,44 +2774,43 @@ const gamificationController = {
       );
       
       let totalMilestoneBonus = 0;
-      const awardedMilestones = [];
-      
-      // Award new milestones
-      for (const milestone of unAwardedMilestones) {
-        const userMilestone = await UserMilestone.create({
+      let awardedMilestones = [];
+      let finalBalance = updatedStats.points;
+      const workoutMilestoneIds = unAwardedMilestones.map(milestone => milestone.id);
+      const workoutMilestoneKey = workoutMilestoneIds.slice().sort().join(',');
+      const intendedWorkoutMilestoneBonus = unAwardedMilestones.reduce(
+        (sum, milestone) => sum + parseNonNegativeInteger(milestone.bonusPoints, 0),
+        0
+      );
+      let shouldCreateWorkoutMilestones = true;
+
+      if (intendedWorkoutMilestoneBonus > 0) {
+        const ledgerResult = await GamificationPointsService.recordLedgerEntry({
+          userId: normalizedUserId,
+          points: intendedWorkoutMilestoneBonus,
+          transactionType: 'bonus',
+          source: 'milestone_reached',
+          sourceId: null,
+          description: `Workout milestone bonuses: ${unAwardedMilestones.map(m => m.name).join(', ')}`,
+          metadata: { milestoneIds: workoutMilestoneIds, workoutId },
+          awardedBy: req.user?.id ?? null,
+          idempotencyKey: `milestone:workout:${normalizedUserId}:${workoutMilestoneKey}`,
+          maxPoints: Number.MAX_SAFE_INTEGER
+        }, transaction);
+
+        totalMilestoneBonus = ledgerResult.pointsAwarded;
+        finalBalance = ledgerResult.newBalance ?? updatedStats.points;
+        shouldCreateWorkoutMilestones = !ledgerResult.duplicate;
+      }
+
+      if (shouldCreateWorkoutMilestones) {
+        await Promise.all(unAwardedMilestones.map(milestone => UserMilestone.create({
           userId: normalizedUserId,
           milestoneId: milestone.id,
           reachedAt: new Date(),
-          bonusPointsAwarded: milestone.bonusPoints
-        }, { transaction });
-        
-        awardedMilestones.push(milestone);
-        totalMilestoneBonus += milestone.bonusPoints;
-      }
-      
-      // Award milestone bonus points
-      if (totalMilestoneBonus > 0) {
-        const finalBalance = updatedStats.points + totalMilestoneBonus;
-        const finalLevel = calculateLevel(finalBalance);
-        const finalTier = getTier(finalLevel);
-
-        await PointTransaction.create({
-          userId: normalizedUserId,
-          points: totalMilestoneBonus,
-          balance: finalBalance,
-          transactionType: 'bonus',
-          source: 'milestone_reached',
-          description: `Milestone bonuses: ${awardedMilestones.map(m => m.name).join(', ')}`,
-          metadata: { milestoneIds: awardedMilestones.map(m => m.id) },
-          awardedBy: req.user?.id
-        }, { transaction });
-
-        // Update user points again
-        await user.update({
-          points: finalBalance,
-          level: finalLevel,
-          tier: finalTier
-        }, { transaction });
+          bonusPointsAwarded: parseNonNegativeInteger(milestone.bonusPoints, 0)
+        }, { transaction })));
+        awardedMilestones = unAwardedMilestones;
       }
 
       // Tag workout session with milestone info (if workoutId provided and milestones earned)
@@ -2828,7 +2873,7 @@ const gamificationController = {
         success: true,
         message: 'Workout completion recorded successfully',
         pointsAwarded: pointsToAward + totalMilestoneBonus,
-        newBalance: updatedStats.points + totalMilestoneBonus,
+        newBalance: finalBalance,
         awardedMilestones,
         streakDays: updatedStats.streakDays,
         totalWorkouts: updatedStats.totalWorkouts
@@ -2966,17 +3011,17 @@ const gamificationController = {
         });
       }
 
-      return res.json({
-        success: true,
-        data: {
-          available: gamificationRecord.streakFreezes || 0,
-          max: 3,
-          used: gamificationRecord.streakFreezesUsed || 0,
-          lastEarned: gamificationRecord.lastStreakFreezeEarned,
-          lastUsed: gamificationRecord.lastStreakFreezeUsed,
-          currentStreak: gamificationRecord.streakCount || 0
-        }
-      });
+        return res.json({
+          success: true,
+          data: {
+            available: parseNonNegativeInteger(gamificationRecord.streakFreezes, 0),
+            max: 3,
+            used: parseNonNegativeInteger(gamificationRecord.streakFreezesUsed, 0),
+            lastEarned: gamificationRecord.lastStreakFreezeEarned,
+            lastUsed: gamificationRecord.lastStreakFreezeUsed,
+            currentStreak: parseNonNegativeInteger(gamificationRecord.streakCount, 0)
+          }
+        });
     } catch (error) {
       console.error('getStreakFreezeStatus error:', error.message);
       return sendGamificationError(res, 'Failed to get streak freeze status');
@@ -2988,19 +3033,30 @@ const gamificationController = {
    * Consumes one streak freeze to protect the user's streak.
    */
   useStreakFreeze: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.user?.id);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
 
-      const gamificationRecord = await Gamification.findOne({ where: { userId } });
+      transaction = await db.transaction();
+
+      const gamificationRecord = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       if (!gamificationRecord) {
+        await transaction.rollback();
+        transaction = null;
         return res.status(404).json({ success: false, error: 'No gamification record found' });
       }
 
-      const currentFreezes = gamificationRecord.streakFreezes || 0;
+      const currentFreezes = parseNonNegativeInteger(gamificationRecord.streakFreezes, 0);
       if (currentFreezes <= 0) {
+        await transaction.rollback();
+        transaction = null;
         return res.json({
           success: false,
           error: 'No streak freezes available',
@@ -3010,20 +3066,24 @@ const gamificationController = {
 
       await gamificationRecord.update({
         streakFreezes: currentFreezes - 1,
-        streakFreezesUsed: (gamificationRecord.streakFreezesUsed || 0) + 1,
+        streakFreezesUsed: parseNonNegativeInteger(gamificationRecord.streakFreezesUsed, 0) + 1,
         lastStreakFreezeUsed: new Date()
-      });
+      }, { transaction });
+
+      await transaction.commit();
+      transaction = null;
 
       return res.json({
         success: true,
-        message: 'Streak freeze used! Your streak is safe. 🛡️',
+        message: 'Streak freeze used. Your streak is safe.',
         data: {
           remaining: currentFreezes - 1,
           max: 3,
-          streakPreserved: gamificationRecord.streakCount || 0
+          streakPreserved: parseNonNegativeInteger(gamificationRecord.streakCount, 0)
         }
       });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('useStreakFreeze error:', error.message);
       return sendGamificationError(res, 'Failed to use streak freeze');
     }
@@ -3087,7 +3147,12 @@ const gamificationController = {
       // User's current state - explicit attrs prevent schema drift on unrelated columns
       const gamRecord = await Gamification.findOne({
         where: { userId },
-        attributes: ['streakCount', 'longestStreak', 'level', 'currentTier', 'totalXP']
+        attributes: ['streakCount', 'longestStreak', 'level', 'currentTier']
+      });
+      const latestPointBalance = await PointTransaction.findOne({
+        where: { userId },
+        attributes: ['balance'],
+        order: [['createdAt', 'DESC'], ['id', 'DESC']]
       });
 
       return res.json({
@@ -3113,7 +3178,7 @@ const gamificationController = {
             longestStreak: gamRecord?.longestStreak || 0,
             level: gamRecord?.level || 1,
             tier: gamRecord?.currentTier || 'bronze',
-            totalXP: gamRecord?.totalXP || 0,
+            totalXP: latestPointBalance?.balance || 0,
           },
           weekStarting: thisWeekStart.toISOString(),
         }
@@ -3139,8 +3204,16 @@ const gamificationController = {
       const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 50);
 
       const whereClause = {};
-      if (since) {
-        whereClause.createdAt = { [Op.gte]: new Date(since) };
+      const normalizedSince = parseOptionalIsoDate(since);
+      if (since !== undefined && !normalizedSince) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid since timestamp is required'
+        });
+      }
+
+      if (normalizedSince) {
+        whereClause.createdAt = { [Op.gte]: normalizedSince };
       }
 
       // Only show earn/bonus transactions (not spends/expires)
@@ -3262,6 +3335,7 @@ const gamificationController = {
    * Returns current needs state with decay applied.
    */
   getAegisHud: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.params.userId);
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -3269,16 +3343,24 @@ const gamificationController = {
       const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
       const { default: Gamification } = await import('../models/Gamification.mjs');
 
-      let record = await Gamification.findOne({ where: { userId } });
+      transaction = await db.transaction();
+      let record = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
 
       // Auto-create gamification record if none exists
       if (!record) {
-        record = await Gamification.create({ userId });
+        record = await Gamification.create({ userId }, { transaction });
       }
 
-      const hudData = await AegisHudService.getNeeds(record);
+      const hudData = await AegisHudService.getNeeds(record, { transaction });
+      await transaction.commit();
+      transaction = null;
       return res.json({ success: true, data: hudData });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('getAegisHud error:', error.message);
       return sendGamificationError(res, 'Failed to get Aegis HUD');
     }
@@ -3290,26 +3372,38 @@ const gamificationController = {
    * Body: { actionType: 'workout_completed' | 'social_post' | etc. }
    */
   replenishAegisHud: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.params.userId);
-      const { actionType } = req.body;
+      const { actionType } = req.body ?? {};
+      const requestedActionType = normalizeBoundedString(actionType, 80);
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
-      if (!actionType) return res.status(400).json({ success: false, error: 'actionType required' });
+      if (!requestedActionType) return res.status(400).json({ success: false, error: 'actionType required' });
 
       const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
       const { default: Gamification } = await import('../models/Gamification.mjs');
 
-      let record = await Gamification.findOne({ where: { userId } });
-      if (!record) record = await Gamification.create({ userId });
+      transaction = await db.transaction();
+      let record = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!record) record = await Gamification.create({ userId }, { transaction });
 
-      const hudData = await AegisHudService.replenishFromAction(record, actionType);
+      const hudData = await AegisHudService.replenishFromAction(record, requestedActionType, { transaction });
       if (!hudData) {
+        await transaction.rollback();
+        transaction = null;
         return res.status(400).json({ success: false, error: 'Unknown action type' });
       }
 
+      await transaction.commit();
+      transaction = null;
       return res.json({ success: true, data: hudData });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('replenishAegisHud error:', error.message);
       return sendGamificationError(res, 'Failed to replenish Aegis HUD');
     }
@@ -3321,10 +3415,11 @@ const gamificationController = {
    * Body: { value: 0-100 }
    */
   setAegisHudNeed: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.params.userId);
       const { needKey } = req.params;
-      const { value } = req.body;
+      const { value } = req.body ?? {};
       const normalizedValue = parseBoundedNumber(value, 0, 100);
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -3333,12 +3428,20 @@ const gamificationController = {
       const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
       const { default: Gamification } = await import('../models/Gamification.mjs');
 
-      let record = await Gamification.findOne({ where: { userId } });
-      if (!record) record = await Gamification.create({ userId });
+      transaction = await db.transaction();
+      let record = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!record) record = await Gamification.create({ userId }, { transaction });
 
-      const hudData = await AegisHudService.setNeed(record, needKey, normalizedValue);
+      const hudData = await AegisHudService.setNeed(record, needKey, normalizedValue, { transaction });
+      await transaction.commit();
+      transaction = null;
       return res.json({ success: true, data: hudData });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('setAegisHudNeed error:', error.message);
       return sendGamificationError(res, 'Failed to set Aegis HUD need');
     }
@@ -3350,8 +3453,8 @@ const gamificationController = {
    * Public endpoint for frontend to render the HUD correctly.
    */
   // ─────────────────────────────────────────────────────────────
-  // SECTION: Vault Decryption — Loot Drop System (V2)
-  // PURPOSE: Variable-ratio reinforcement loot drops after actions
+  // SECTION: Vault Decryption - Cosmetic Reward Reveal (V2)
+  // PURPOSE: Cosmetic-only vault drops after qualifying actions
   // ─────────────────────────────────────────────────────────────
 
   /**
@@ -3360,6 +3463,7 @@ const gamificationController = {
    * Body: { actionType: 'workout_completed' | 'personal_record' | etc. }
    */
   rollVaultDrop: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.params.userId);
       const { actionType } = req.body ?? {};
@@ -3375,8 +3479,13 @@ const gamificationController = {
         return res.status(400).json({ success: false, error: 'Unknown action type' });
       }
 
-      let record = await Gamification.findOne({ where: { userId } });
-      if (!record) record = await Gamification.create({ userId });
+      transaction = await db.transaction();
+      let record = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!record) record = await Gamification.create({ userId }, { transaction });
 
       const idempotencyKey = `vault_${userId}_${requestedActionType}_${new Date().toISOString().slice(0, 13)}`;
       const activityLog = Array.isArray(record.activityLog) ? record.activityLog : [];
@@ -3385,6 +3494,8 @@ const gamificationController = {
       );
 
       if (existingDrop) {
+        await transaction.rollback();
+        transaction = null;
         return res.json({
           success: true,
           data: {
@@ -3397,17 +3508,20 @@ const gamificationController = {
 
       const drop = VaultDecryptionService.rollForDrop(requestedActionType, userId);
       if (!drop) {
+        await transaction.commit();
+        transaction = null;
         return res.json({ success: true, data: { dropped: false, message: 'No drop this time' } });
       }
 
-      // Record the drop
-      await VaultDecryptionService.recordDrop(record, drop);
+      Object.assign(drop, {
+        xpBonus: 0,
+        rewardMode: 'cosmetic_only'
+      });
 
-      // If drop has xpBonus, award it
-      if (drop.xpBonus > 0) {
-        const currentXP = record.totalXP || 0;
-        await record.update({ totalXP: currentXP + drop.xpBonus });
-      }
+      await VaultDecryptionService.recordDrop(record, drop, { transaction });
+
+      await transaction.commit();
+      transaction = null;
 
       return res.json({
         success: true,
@@ -3417,6 +3531,7 @@ const gamificationController = {
         },
       });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('rollVaultDrop error:', error.message);
       return sendGamificationError(res, 'Failed to roll vault drop');
     }
@@ -3488,7 +3603,7 @@ const gamificationController = {
 
   /**
    * POST /api/gamification/users/:userId/ghost/compare
-   * Compare completed workout against ghost and award bonuses.
+   * Compare completed workout against ghost for cosmetic feedback.
    * Body: { ghostData, currentWorkoutData }
    */
   compareGhost: async (req, res) => {
@@ -3501,14 +3616,12 @@ const gamificationController = {
       const { default: GhostModeService } = await import('../services/gamification/GhostModeService.mjs');
       const comparison = GhostModeService.compareWithGhost(ghostData, currentWorkoutData);
 
-      // Award bonus XP if any
-      if (comparison.bonusXP > 0) {
-        const { default: Gamification } = await import('../models/Gamification.mjs');
-        const record = await Gamification.findOne({ where: { userId } });
-        if (record) {
-          await record.update({ totalXP: (record.totalXP || 0) + comparison.bonusXP });
-        }
-      }
+      comparison.rewardMode = 'cosmetic_only';
+      comparison.trustStatus = 'client_submitted_comparison';
+      comparison.bonusXP = 0;
+      comparison.bonuses = Array.isArray(comparison.bonuses)
+        ? comparison.bonuses.map((bonus) => ({ ...bonus, xp: 0 }))
+        : [];
 
       return res.json({ success: true, data: comparison });
     } catch (error) {
@@ -3541,9 +3654,10 @@ const gamificationController = {
    * Body: { jobClass: 'paladin' | 'monk' | 'ranger' | 'white_mage' | 'dark_knight' }
    */
   setJobClass: async (req, res) => {
+    let transaction;
     try {
       const userId = parsePositiveInteger(req.params.userId);
-      const { jobClass } = req.body;
+      const { jobClass } = req.body ?? {};
       const validClasses = ['paladin', 'monk', 'ranger', 'white_mage', 'dark_knight'];
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -3552,10 +3666,17 @@ const gamificationController = {
       }
 
       const { default: Gamification } = await import('../models/Gamification.mjs');
-      let record = await Gamification.findOne({ where: { userId } });
-      if (!record) record = await Gamification.create({ userId });
+      transaction = await db.transaction();
+      let record = await Gamification.findOne({
+        where: { userId },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!record) record = await Gamification.create({ userId }, { transaction });
 
-      await record.update({ jobClass });
+      await record.update({ jobClass }, { transaction });
+      await transaction.commit();
+      transaction = null;
 
       return res.json({
         success: true,
@@ -3563,6 +3684,7 @@ const gamificationController = {
         data: { jobClass },
       });
     } catch (error) {
+      if (transaction) await transaction.rollback();
       console.error('setJobClass error:', error.message);
       return sendGamificationError(res, 'Failed to set job class');
     }

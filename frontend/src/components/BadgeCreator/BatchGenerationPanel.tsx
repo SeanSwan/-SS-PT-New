@@ -1,241 +1,34 @@
 /**
- * ┌─── COMPONENT: BatchGenerationPanel ─────────────────────────┐
- * │ PURPOSE: Generate 5 badge variations from one prompt.       │
- * │ Supports style mixing (combine 2 art styles).               │
- * │ Includes pet avatar generation preset.                      │
- * │ PHASE 3: Batch generation, style mixing, pet avatars.       │
- * │ CEO RULING: 5 variations per batch, costs 5 credits.        │
- * └─────────────────────────────────────────────────────────────┘
+ * COMPONENT: BatchGenerationPanel
+ * PURPOSE: Generate badge variations and pet avatars, then save selected art as badges.
+ * DATA: Uses protected `/api/admin/badge-creator` routes through shared auth transport.
  */
-
-import React, { useState, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
-import {
-  Layers, RefreshCw, Sparkles, Save, Check, Dog,
-  Shuffle, AlertTriangle,
-} from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
+import { Dog, Layers, Save, Shuffle, Sparkles } from 'lucide-react';
 import StyleBrowser, { type ArtStyle } from './StyleBrowser';
 import apiService from '../../services/api.service';
+import { normalizeBadgeImageResult, safeBadgeImageUrl } from './BadgeCreatorImageSafety';
+import { normalizeBatchImageRows, normalizeCreditCount, type BatchImageRow } from './BadgeCreatorPayloadSafety';
+import {
+  ActionBtn, FailedIcon, FailedOverlay, Input, Label, Panel, PetSelect, RaritySelect,
+  ResultCard, ResultImg, ResultImage, ResultLabel, ResultsGrid, Row, SaveBtn, SaveRow,
+  SelectedCheck, SpinningRefresh, StyleSpacer, TextArea, ToggleBtn,
+} from './BatchGenerationPanel.styles';
 
-// ── Types ──
-interface BatchImage {
-  index: number;
-  variation: string;
-  success: boolean;
-  imageUrl: string | null;
-  error?: string;
-}
-
-interface BatchResult {
-  batchGroupId: string;
-  images: BatchImage[];
-  creditsUsed: number;
-  creditsRemaining: number;
-  styleMixed: boolean;
-}
-
+type BatchImage = BatchImageRow;
+interface BatchResult { images: unknown; creditsRemaining: unknown; }
 interface Props {
-  styles: ArtStyle[];
-  credits: { remaining: number; max: number } | null;
-  onCreditsUpdate: (remaining: number) => void;
-  onStatusMsg: (msg: { type: 'success' | 'error'; text: string }) => void;
+  styles: ArtStyle[]; credits: { remaining: number; max: number } | null;
+  onCreditsUpdate: (remaining: number) => void; onStatusMsg: (msg: { type: 'success' | 'error'; text: string }) => void;
 }
-
-// ── Animations ──
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
-// ── Styled Components ──
-const Panel = styled.div`padding: 0;`;
-
-const Label = styled.label`
-  display: block;
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
-  margin-bottom: 6px;
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  min-height: 80px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  resize: vertical;
-  outline: none;
-  margin-bottom: 16px;
-  &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-  &::placeholder { color: rgba(224, 236, 244, 0.5); }
-`;
-
-const Row = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-`;
-
-const ToggleBtn = styled.button<{ $active: boolean }>`
-  min-height: 44px;
-  padding: 10px 18px;
-  border-radius: 10px;
-  border: 2px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'rgba(96, 192, 240, 0.15)'};
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.1)' : 'var(--bg-elevated, #141419)'};
-  color: ${({ $active }) => $active ? '#8B5CF6' : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.15s;
-  &:hover { border-color: var(--accent-secondary, #8B5CF6); }
-`;
-
-const ActionBtn = styled.button`
-  min-height: 48px;
-  padding: 12px 24px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
-  color: #fff;
-  transition: all 0.15s;
-  margin-bottom: 20px;
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-  &:hover:not(:disabled) { opacity: 0.9; }
-`;
-
-const PetSelect = styled.select`
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  flex: 1;
-  min-width: 160px;
-  option { background: #141419; }
-`;
-
-const ResultsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
-  margin-top: 16px;
-`;
-
-const ResultCard = styled.div<{ $selected: boolean }>`
-  border-radius: 12px;
-  background: var(--bg-elevated, #141419);
-  border: 2px solid ${({ $selected }) => $selected ? 'var(--accent-secondary, #8B5CF6)' : 'rgba(96, 192, 240, 0.12)'};
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.15s;
-  &:hover { transform: translateY(-2px); border-color: var(--accent-secondary, #8B5CF6); }
-`;
-
-const ResultImg = styled.div`
-  width: 100%;
-  aspect-ratio: 1;
-  background: rgba(10, 10, 15, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  img { width: 100%; height: 100%; object-fit: contain; }
-`;
-
-const ResultLabel = styled.div`
-  padding: 8px 10px;
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const FailedOverlay = styled.div`
-  color: rgba(239, 68, 68, 0.7);
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  text-align: center;
-  padding: 16px;
-`;
-
-const SaveRow = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  align-items: center;
-`;
-
-const Input = styled.input`
-  flex: 1;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  outline: none;
-  &:focus { border-color: var(--accent-secondary, #8B5CF6); }
-`;
-
-const RaritySelect = styled.select`
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  option { background: #141419; }
-`;
-
-const SaveBtn = styled.button`
-  min-height: 44px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: none;
-  background: linear-gradient(135deg, #002060, #8B5CF6);
-  color: #E0ECF4;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-  &:hover:not(:disabled) { opacity: 0.85; }
-`;
 
 const PET_SPECIES = ['Phoenix', 'Wolf', 'Dragon', 'Owl', 'Swan'];
+export const BADGE_BATCH_GENERATE_ERROR = 'Batch generation could not finish. Check credits and try again.';
+export const BADGE_BATCH_PET_ERROR = 'Pet avatar generation could not finish. Check credits and try again.';
+export const BADGE_BATCH_SAVE_ERROR = 'Badge could not be saved. Rename it and try again.';
+export const BADGE_BATCH_NETWORK_ERROR = 'Badge generator service is temporarily unavailable. Please try again.';
+
+const titleCaseTab = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 
 const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdate, onStatusMsg }) => {
   const [prompt, setPrompt] = useState('');
@@ -246,64 +39,69 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
   const [petSpecies, setPetSpecies] = useState('phoenix');
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState<BatchImage[]>([]);
-  const [batchGroupId, setBatchGroupId] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [saveName, setSaveName] = useState('');
   const [saveRarity, setSaveRarity] = useState('common');
   const [saving, setSaving] = useState(false);
+  const generatingRef = useRef(false);
+  const savingRef = useRef(false);
 
-  const handleBatchGenerate = useCallback(async () => {
-    if (!prompt.trim() || !primaryStyle) return;
-    setGenerating(true);
+  const resetGeneration = () => {
     setResults([]);
     setSelectedIdx(null);
-    setBatchGroupId(null);
+  };
+
+  const handleBatchGenerate = useCallback(async () => {
+    if (generatingRef.current || !prompt.trim() || !primaryStyle) return;
+    generatingRef.current = true;
+    setGenerating(true);
+    resetGeneration();
 
     try {
       const body: Record<string, string> = {
-        prompt,
+        prompt: prompt.trim(),
         style: primaryStyle.promptModifier,
       };
-      if (mixEnabled && secondaryStyle) {
-        body.secondaryStyle = secondaryStyle.promptModifier;
-      }
-
-      const res = await apiService.post<{
-        success: boolean;
-        data?: BatchResult;
-        message?: string;
-      }>('/api/admin/badge-creator/generate-batch', body, {
-        validateStatus: status => status < 500,
-      });
-      const d = res.data;
-      if (d.success && d.data) {
-        const data = d.data;
-        setResults(data.images);
-        setBatchGroupId(data.batchGroupId);
-        onCreditsUpdate(data.creditsRemaining);
-        const successCount = data.images.filter(i => i.success).length;
+      if (mixEnabled && secondaryStyle) body.secondaryStyle = secondaryStyle.promptModifier;
+      const res = await apiService.post<{ success: boolean; data?: BatchResult }>(
+        '/api/admin/badge-creator/generate-batch',
+        body,
+        { validateStatus: status => status < 500 }
+      );
+      const data = res.data.data;
+      if (res.data.success && data) {
+        const normalizedImages = normalizeBatchImageRows(data.images);
+        const creditsRemaining = normalizeCreditCount(data.creditsRemaining);
+        if (!normalizedImages.length || creditsRemaining === null) {
+          onStatusMsg({ type: 'error', text: BADGE_BATCH_GENERATE_ERROR });
+          return;
+        }
+        const safeImages = normalizedImages.map(normalizeBadgeImageResult);
+        setResults(safeImages);
+        onCreditsUpdate(Math.min(creditsRemaining, credits?.max ?? creditsRemaining));
+        const successCount = safeImages.filter(image => image.success).length;
         onStatusMsg({ type: 'success', text: `Batch complete: ${successCount}/5 variations generated` });
       } else {
-        onStatusMsg({ type: 'error', text: d.message || 'Batch generation failed' });
+        onStatusMsg({ type: 'error', text: BADGE_BATCH_GENERATE_ERROR });
       }
     } catch {
-      onStatusMsg({ type: 'error', text: 'Network error during batch generation' });
+      onStatusMsg({ type: 'error', text: BADGE_BATCH_NETWORK_ERROR });
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
-  }, [prompt, primaryStyle, secondaryStyle, mixEnabled, onCreditsUpdate, onStatusMsg]);
+  }, [prompt, primaryStyle, secondaryStyle, mixEnabled, credits?.max, onCreditsUpdate, onStatusMsg]);
 
   const handlePetGenerate = useCallback(async () => {
-    if (!primaryStyle) return;
+    if (generatingRef.current || !primaryStyle) return;
+    generatingRef.current = true;
     setGenerating(true);
-    setResults([]);
-    setSelectedIdx(null);
+    resetGeneration();
 
     try {
       const res = await apiService.post<{
         success: boolean;
         data?: { imageUrl: string; creditsRemaining: number };
-        message?: string;
       }>('/api/admin/badge-creator/generate-pet-avatar', {
         species: petSpecies,
         personality: prompt.trim() || undefined,
@@ -311,31 +109,34 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
       }, {
         validateStatus: status => status < 500,
       });
-      const d = res.data;
-      if (d.success && d.data) {
-        setResults([{ index: 0, variation: 'Pet Avatar', success: true, imageUrl: d.data.imageUrl }]);
-        onCreditsUpdate(d.data.creditsRemaining);
-        onStatusMsg({ type: 'success', text: `${petSpecies} avatar generated!` });
+      const safeImageUrl = safeBadgeImageUrl(res.data.data?.imageUrl);
+      const creditsRemaining = normalizeCreditCount(res.data.data?.creditsRemaining);
+      if (res.data.success && res.data.data && safeImageUrl && creditsRemaining !== null) {
+        setResults([{ index: 0, variation: 'Pet Avatar', success: true, imageUrl: safeImageUrl }]);
+        onCreditsUpdate(Math.min(creditsRemaining, credits?.max ?? creditsRemaining));
+        onStatusMsg({ type: 'success', text: `${titleCaseTab(petSpecies)} avatar generated.` });
       } else {
-        onStatusMsg({ type: 'error', text: d.message || 'Pet avatar generation failed' });
+        onStatusMsg({ type: 'error', text: BADGE_BATCH_PET_ERROR });
       }
     } catch {
-      onStatusMsg({ type: 'error', text: 'Network error' });
+      onStatusMsg({ type: 'error', text: BADGE_BATCH_NETWORK_ERROR });
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
-  }, [petSpecies, prompt, primaryStyle, onCreditsUpdate, onStatusMsg]);
+  }, [petSpecies, prompt, primaryStyle, credits?.max, onCreditsUpdate, onStatusMsg]);
 
   const handleSaveSelected = useCallback(async () => {
-    if (selectedIdx === null || !saveName.trim()) return;
-    const img = results[selectedIdx];
-    if (!img?.imageUrl) return;
-
+    if (savingRef.current || selectedIdx === null || !saveName.trim()) return;
+    const selectedImage = results[selectedIdx];
+    if (!selectedImage?.imageUrl) return;
+    savingRef.current = true;
     setSaving(true);
+
     try {
-      const res = await apiService.post<{ success: boolean; message?: string }>('/api/admin/badge-creator/save', {
-        name: saveName,
-        imageUrl: img.imageUrl,
+      const res = await apiService.post<{ success: boolean }>('/api/admin/badge-creator/save', {
+        name: saveName.trim(),
+        imageUrl: selectedImage.imageUrl,
         prompt,
         style: primaryStyle?.id,
         rarity: saveRarity,
@@ -343,135 +144,138 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
       }, {
         validateStatus: status => status < 500,
       });
-      const d = res.data;
-      if (d.success) {
-        onStatusMsg({ type: 'success', text: `Badge "${saveName}" saved!` });
+      if (res.data.success) {
+        onStatusMsg({ type: 'success', text: `Badge "${saveName.trim()}" saved.` });
         setSaveName('');
         setSelectedIdx(null);
       } else {
-        onStatusMsg({ type: 'error', text: d.message || 'Save failed' });
+        onStatusMsg({ type: 'error', text: BADGE_BATCH_SAVE_ERROR });
       }
     } catch {
-      onStatusMsg({ type: 'error', text: 'Network error' });
+      onStatusMsg({ type: 'error', text: BADGE_BATCH_NETWORK_ERROR });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }, [selectedIdx, saveName, saveRarity, results, prompt, primaryStyle, onStatusMsg]);
 
+  const requiredCredits = petMode ? 1 : 5;
+  const hasCredits = (credits?.remaining ?? 0) >= requiredCredits;
+  const canGenerate = Boolean(primaryStyle) && hasCredits && (petMode || Boolean(prompt.trim()));
+
   return (
     <Panel>
-      {/* Mode toggles */}
       <Row>
-        <ToggleBtn $active={!petMode} onClick={() => setPetMode(false)}>
-          <Layers size={16} /> Batch (5 Variations)
+        <ToggleBtn type="button" $active={!petMode} onClick={() => setPetMode(false)}>
+          <Layers size={16} aria-hidden="true" /> Batch (5 Variations)
         </ToggleBtn>
-        <ToggleBtn $active={petMode} onClick={() => setPetMode(true)}>
-          <Dog size={16} /> Pet Avatar
+        <ToggleBtn type="button" $active={petMode} onClick={() => setPetMode(true)}>
+          <Dog size={16} aria-hidden="true" /> Pet Avatar
         </ToggleBtn>
-        <ToggleBtn $active={mixEnabled} onClick={() => setMixEnabled(!mixEnabled)}>
-          <Shuffle size={16} /> Style Mixer {mixEnabled ? 'ON' : 'OFF'}
+        <ToggleBtn type="button" $active={mixEnabled} onClick={() => setMixEnabled(value => !value)}>
+          <Shuffle size={16} aria-hidden="true" /> Style Mixer {mixEnabled ? 'ON' : 'OFF'}
         </ToggleBtn>
       </Row>
 
-      {/* Pet species selector */}
       {petMode && (
         <>
           <Label>Pet species</Label>
           <Row>
-            <PetSelect value={petSpecies} onChange={e => setPetSpecies(e.target.value)}>
-              {PET_SPECIES.map(s => (
-                <option key={s.toLowerCase()} value={s.toLowerCase()}>{s}</option>
+            <PetSelect value={petSpecies} onChange={event => setPetSpecies(event.target.value)}>
+              {PET_SPECIES.map(species => (
+                <option key={species.toLowerCase()} value={species.toLowerCase()}>{species}</option>
               ))}
             </PetSelect>
           </Row>
         </>
       )}
 
-      {/* Prompt */}
       <Label>{petMode ? 'Personality / extra details (optional)' : 'Describe your badge'}</Label>
       <TextArea
         value={prompt}
-        onChange={e => setPrompt(e.target.value)}
+        onChange={event => setPrompt(event.target.value)}
         placeholder={petMode
           ? 'e.g., playful, fiery personality, wears a tiny crown...'
-          : 'e.g., Golden swan shield badge, crystalline ice texture...'
-        }
+          : 'e.g., Golden swan shield badge, crystalline ice texture...'}
       />
 
-      {/* Primary style */}
       <Label>Primary style</Label>
       <StyleBrowser styles={styles} selectedId={primaryStyle?.id || null} onSelect={setPrimaryStyle} />
 
-      {/* Secondary style (mixer) */}
       {mixEnabled && (
         <>
-          <div style={{ marginTop: 16 }} />
+          <StyleSpacer />
           <Label>Secondary style (mix with)</Label>
           <StyleBrowser styles={styles} selectedId={secondaryStyle?.id || null} onSelect={setSecondaryStyle} />
         </>
       )}
 
-      {/* Generate button */}
-      <div style={{ marginTop: 16 }}>
-        <ActionBtn
-          onClick={petMode ? handlePetGenerate : handleBatchGenerate}
-          disabled={
-            generating
-            || !primaryStyle
-            || (!petMode && !prompt.trim())
-            || (credits?.remaining ?? 0) < (petMode ? 1 : 5)
-          }
-        >
-          {generating
-            ? <><RefreshCw size={16} style={{ animation: `${spin} 1s linear infinite` }} /> Generating...</>
-            : petMode
-              ? <><Dog size={16} /> Generate Pet Avatar (1 credit)</>
-              : <><Sparkles size={16} /> Generate 5 Variations ({mixEnabled ? 'Mixed' : 'Single Style'}) — 5 credits</>
-          }
-        </ActionBtn>
-      </div>
+      <StyleSpacer />
+      <ActionBtn
+        type="button"
+        onClick={petMode ? () => void handlePetGenerate() : () => void handleBatchGenerate()}
+        disabled={generating || !canGenerate}
+        aria-busy={generating}
+      >
+        {generating
+          ? <><SpinningRefresh size={16} aria-hidden="true" /> Generating...</>
+          : petMode
+            ? <><Dog size={16} aria-hidden="true" /> Generate Pet Avatar (1 credit)</>
+            : <><Sparkles size={16} aria-hidden="true" /> Generate 5 Variations ({mixEnabled ? 'Mixed' : 'Single Style'}) - 5 credits</>}
+      </ActionBtn>
 
-      {/* Results grid */}
       {results.length > 0 && (
         <>
-          <Label>Select your favorite — click to pick, then save below</Label>
+          <Label>Select your favorite - click to pick, then save below</Label>
           <ResultsGrid>
-            {results.map((img, i) => (
-              <ResultCard key={i} $selected={selectedIdx === i} onClick={() => img.success && setSelectedIdx(i)}>
+            {results.map((image, index) => (
+              <ResultCard
+                key={`${image.variation}-${index}`}
+                type="button"
+                $selected={selectedIdx === index}
+                disabled={!image.success}
+                aria-pressed={selectedIdx === index}
+                aria-label={`Select ${image.variation} variation`}
+                onClick={() => image.success && setSelectedIdx(index)}
+              >
                 <ResultImg>
-                  {img.success && img.imageUrl ? (
-                    <img src={img.imageUrl} alt={`Variation ${i + 1}`} />
+                  {image.success && image.imageUrl ? (
+                    <ResultImage src={image.imageUrl} alt={`Variation ${index + 1}`} />
                   ) : (
                     <FailedOverlay>
-                      <AlertTriangle size={20} style={{ marginBottom: 4 }} />
-                      <div>Failed</div>
+                      <FailedIcon size={20} aria-hidden="true" />
+                      <div>Generation skipped</div>
                     </FailedOverlay>
                   )}
                 </ResultImg>
                 <ResultLabel>
-                  <span>{img.variation}</span>
-                  {selectedIdx === i && <Check size={14} color="#8B5CF6" />}
+                  <span>{image.variation}</span>
+                  {selectedIdx === index && <SelectedCheck size={14} aria-hidden="true" />}
                 </ResultLabel>
               </ResultCard>
             ))}
           </ResultsGrid>
 
-          {/* Save selected */}
           {selectedIdx !== null && (
             <SaveRow>
               <Input
                 value={saveName}
-                onChange={e => setSaveName(e.target.value)}
+                onChange={event => setSaveName(event.target.value)}
                 placeholder="Badge name..."
               />
-              <RaritySelect value={saveRarity} onChange={e => setSaveRarity(e.target.value)}>
+              <RaritySelect value={saveRarity} onChange={event => setSaveRarity(event.target.value)}>
                 <option value="common">Common</option>
                 <option value="rare">Rare</option>
                 <option value="epic">Epic</option>
                 <option value="legendary">Legendary</option>
               </RaritySelect>
-              <SaveBtn onClick={handleSaveSelected} disabled={!saveName.trim() || saving}>
-                <Save size={14} />
+              <SaveBtn
+                type="button"
+                onClick={() => void handleSaveSelected()}
+                disabled={!saveName.trim() || saving}
+                aria-busy={saving}
+              >
+                <Save size={14} aria-hidden="true" />
                 {saving ? 'Saving...' : 'Save'}
               </SaveBtn>
             </SaveRow>

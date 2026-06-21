@@ -1,4 +1,4 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const PointTransaction = db.define('PointTransaction', {
@@ -51,6 +51,10 @@ const PointTransaction = db.define('PointTransaction', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  idempotencyKey: {
+    type: DataTypes.STRING(128),
+    allowNull: true
+  },
   description: {
     type: DataTypes.STRING,
     allowNull: false
@@ -78,6 +82,16 @@ const PointTransaction = db.define('PointTransaction', {
     },
     {
       fields: ['source']
+    },
+    {
+      fields: ['userId', 'source', 'idempotencyKey'],
+      unique: true,
+      name: 'point_transactions_user_source_idempotency_key',
+      where: {
+        idempotencyKey: {
+          [Op.ne]: null
+        }
+      }
     },
     {
       fields: ['createdAt']

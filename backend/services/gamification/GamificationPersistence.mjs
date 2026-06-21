@@ -47,6 +47,15 @@ import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../../database.mjs';
 import GamificationPointsService from './GamificationPointsService.mjs';
 import PointTransaction from '../../models/PointTransaction.mjs';
+import {
+  countActiveUsersSince,
+  getAchievementCompletionRateFromDatabase,
+  getAverageSessionLengthFromDatabase,
+  getAverageStreakFromDatabase,
+  getEngagementMetricsFromDatabase,
+  getEngagementRateFromDatabase,
+  getTotalPointsAwardedFromLedger
+} from './gamificationPersistenceMetrics.mjs';
 
 function normalizePointMetadata(metadata) {
   return metadata && typeof metadata === 'object' && !Array.isArray(metadata)
@@ -97,14 +106,16 @@ const LEGACY_REASON_SOURCE_MAP = {
 
 function toPointSource(reason, metadata) {
   if (VALID_POINT_SOURCES.has(metadata?.source)) return metadata.source;
-  if (String(reason || '').startsWith('achievement_')) return 'achievement_earned';
-  return LEGACY_REASON_SOURCE_MAP[reason] || 'social_engagement';
+  const normalizedReason = String(reason || '');
+  if (VALID_POINT_SOURCES.has(normalizedReason)) return normalizedReason;
+  if (normalizedReason.startsWith('achievement_')) return 'achievement_earned';
+  return LEGACY_REASON_SOURCE_MAP[normalizedReason] || 'social_engagement';
 }
 
 function toPointSourceId(metadata) {
   for (const field of ['sourceId', 'workoutId', 'postId', 'commentId', 'challengeId', 'goalId', 'sessionId']) {
-    const parsed = Number(metadata?.[field]);
-    if (Number.isInteger(parsed)) return parsed;
+    const parsed = normalizeInteger(metadata?.[field]);
+    if (parsed !== null) return parsed;
   }
   return null;
 }
@@ -114,6 +125,41 @@ function toPointDescription(reason) {
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
   return `Gamification: ${label}`;
+}
+
+const MAX_LEDGER_LEADERBOARD_LIMIT = 100;
+
+function normalizeInteger(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+  if (!/^-?\d+$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function normalizeLeaderboardLimit(limit) {
+  const parsed = normalizeInteger(limit);
+  if (parsed === null || parsed < 1) return 10;
+  return Math.min(parsed, MAX_LEDGER_LEADERBOARD_LIMIT);
+}
+
+function normalizeLedgerLeaderboardUserId(userId) {
+  const parsed = normalizeInteger(userId);
+  return parsed !== null ? parsed : userId;
+}
+
+function normalizeNonNegativeInteger(value) {
+  const parsed = normalizeInteger(value);
+  return parsed !== null && parsed >= 0 ? parsed : 0;
+}
+
+function normalizeLedgerPoints(points) {
+  return normalizeNonNegativeInteger(points);
 }
 
 class GamificationPersistence {
@@ -592,7 +638,7 @@ class GamificationPersistence {
         try {
           const points = await this.redis.hget(`user:${userId}:points`, 'total');
           if (points !== null) {
-            return parseInt(points) || 0;
+            return normalizeLedgerPoints(points);
           }
         } catch (redisError) {
           console.log('🎯 Redis getTotalPoints failed, using database fallback');
@@ -606,7 +652,7 @@ class GamificationPersistence {
           where: { userId },
           order: [['createdAt', 'DESC'], ['id', 'DESC']]
         });
-        return Number(latestTransaction?.balance || 0);
+        return normalizeLedgerPoints(latestTransaction?.balance);
       } catch (dbError) {
         piiSafeLogger.error('Failed to get total points', {
           error: dbError.message,
@@ -642,11 +688,11 @@ class GamificationPersistence {
           );
 
           return {
-            totalWorkouts: parseInt(stats[0]) || 0,
-            currentStreak: parseInt(stats[1]) || 0,
-            perfectFormCount: parseInt(stats[2]) || 0,
-            sharedWorkouts: parseInt(stats[3]) || 0,
-            accessibilityUsage: parseInt(stats[4]) || 0
+            totalWorkouts: normalizeNonNegativeInteger(stats[0]),
+            currentStreak: normalizeNonNegativeInteger(stats[1]),
+            perfectFormCount: normalizeNonNegativeInteger(stats[2]),
+            sharedWorkouts: normalizeNonNegativeInteger(stats[3]),
+            accessibilityUsage: normalizeNonNegativeInteger(stats[4])
           };
         } catch (redisError) {
           console.log('🎯 Redis getUserStatistics failed, using database fallback');
@@ -686,27 +732,61 @@ class GamificationPersistence {
    */
   async getLeaderboard(period = 'weekly', limit = 10) {
     try {
-      const leaderboard = await this.redis.zrevrange(
-        `leaderboard:${period}`,
-        0,
-        limit - 1,
-        'WITHSCORES'
-      );
+      const normalizedLimit = normalizeLeaderboardLimit(limit);
 
-      const result = [];
-      for (let i = 0; i < leaderboard.length; i += 2) {
-        const userId = leaderboard[i];
-        const points = parseInt(leaderboard[i + 1]);
-        
-        // Get user info (would normally fetch from user table)
-        result.push({
-          userId,
-          points,
-          rank: Math.floor(i / 2) + 1
-        });
+      if (this.redisEnabled && this.redis) {
+        try {
+          const leaderboard = await this.redis.zrevrange(
+            `leaderboard:${period}`,
+            0,
+            normalizedLimit - 1,
+            'WITHSCORES'
+          );
+
+          const result = [];
+          for (let i = 0; i < leaderboard.length; i += 2) {
+            const userId = leaderboard[i];
+            const points = normalizeLedgerPoints(leaderboard[i + 1]);
+
+            // Get user info (would normally fetch from user table)
+            result.push({
+              userId,
+              points,
+              rank: Math.floor(i / 2) + 1
+            });
+          }
+
+          if (result.length > 0) return result;
+        } catch (redisError) {
+          piiSafeLogger.info('Redis leaderboard unavailable; using PostgreSQL fallback', {
+            period,
+            error: redisError.message
+          });
+        }
       }
 
-      return result;
+      // PostgreSQL fallback: rank by the canonical latest point-ledger balance.
+      const rows = await sequelize.query(
+        `WITH latest_balances AS (
+          SELECT DISTINCT ON ("userId") "userId", "balance"
+          FROM "PointTransactions"
+          ORDER BY "userId", "createdAt" DESC, "id" DESC
+        )
+        SELECT "userId", "balance"
+        FROM latest_balances
+        ORDER BY "balance" DESC, "userId" ASC
+        LIMIT :limit`,
+        {
+          replacements: { limit: normalizedLimit },
+          type: sequelize.QueryTypes.SELECT
+        }
+      );
+
+      return rows.map((row, index) => ({
+        userId: normalizeLedgerLeaderboardUserId(row.userId),
+        points: normalizeLedgerPoints(row.balance),
+        rank: index + 1
+      }));
     } catch (error) {
       piiSafeLogger.error('Failed to get leaderboard', {
         error: error.message,
@@ -813,9 +893,28 @@ class GamificationPersistence {
         const rank = await this.redis.zrevrank(`leaderboard:${period}`, userId);
         return rank !== null ? rank + 1 : null;
       }
-      // PostgreSQL fallback: count users with more XP
+      // PostgreSQL fallback: rank by the canonical point ledger balance.
       const [result] = await sequelize.query(
-        'SELECT COUNT(*) + 1 AS rank FROM "Gamifications" WHERE "totalXP" > (SELECT COALESCE("totalXP", 0) FROM "Gamifications" WHERE "userId" = :userId)',
+        `WITH latest_balances AS (
+          SELECT DISTINCT ON ("userId") "userId", "balance"
+          FROM "PointTransactions"
+          ORDER BY "userId", "createdAt" DESC, "id" DESC
+        ),
+        target_balance AS (
+          SELECT "balance"
+          FROM latest_balances
+          WHERE "userId" = :userId
+        )
+        SELECT CASE
+          WHEN NOT EXISTS (SELECT 1 FROM target_balance) THEN NULL
+          ELSE (
+            SELECT COUNT(*) + 1
+            FROM latest_balances lb
+            CROSS JOIN target_balance tb
+            WHERE lb."balance" > tb."balance"
+              OR (lb."balance" = tb."balance" AND lb."userId" < :userId)
+          )
+        END AS rank`,
         { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
       );
       return result?.rank ? parseInt(result.rank) : null;
@@ -926,9 +1025,20 @@ class GamificationPersistence {
       // PostgreSQL fallback: query PointTransaction for today's count
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
+      const pointSource = toPointSource(action, {});
+      const shouldMatchLegacyReason = pointSource !== action || !VALID_POINT_SOURCES.has(action);
+      const legacyReasonClause = shouldMatchLegacyReason
+        ? ' AND "metadata"->>\'legacyReason\' = :legacyReason'
+        : '';
+      const replacements = {
+        userId,
+        action: pointSource,
+        startOfToday: startOfToday.toISOString()
+      };
+      if (shouldMatchLegacyReason) replacements.legacyReason = action;
       const [result] = await sequelize.query(
-        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :action AND "createdAt" >= :startOfToday',
-        { replacements: { userId, action, startOfToday: startOfToday.toISOString() }, type: sequelize.QueryTypes.SELECT }
+        `SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :action AND "createdAt" >= :startOfToday${legacyReasonClause}`,
+        { replacements, type: sequelize.QueryTypes.SELECT }
       );
       return parseInt(result?.cnt) || 0;
     } catch (error) {
@@ -952,9 +1062,17 @@ class GamificationPersistence {
         return parseInt(count) || 0;
       }
       // PostgreSQL fallback
+      const source = toPointSource('helped_community', {});
       const [result] = await sequelize.query(
-        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = \'helped_community\'',
-        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+        'SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :source AND "metadata"->>\'legacyReason\' = :legacyReason',
+        {
+          replacements: {
+            userId,
+            source,
+            legacyReason: 'helped_community'
+          },
+          type: sequelize.QueryTypes.SELECT
+        }
       );
       return parseInt(result?.cnt) || 0;
     } catch (error) {
@@ -971,8 +1089,11 @@ class GamificationPersistence {
    */
   async getActiveUsersCount() {
     try {
-      const count = await this.redis.scard('active_users:today');
-      return count || 0;
+      if (this.redisEnabled && this.redis) {
+        const count = await this.redis.scard('active_users:today');
+        return count || 0;
+      }
+      return await countActiveUsersSince(sequelize, 1);
     } catch (error) {
       piiSafeLogger.error('Failed to get active users count', {
         error: error.message
@@ -986,9 +1107,11 @@ class GamificationPersistence {
    */
   async getTotalPointsAwarded() {
     try {
-      // This would typically sum from database
-      const total = await this.redis.get('platform:total_points_awarded');
-      return parseInt(total) || 0;
+      if (this.redisEnabled && this.redis) {
+        const total = await this.redis.get('platform:total_points_awarded');
+        return parseInt(total) || 0;
+      }
+      return await getTotalPointsAwardedFromLedger(sequelize);
     } catch (error) {
       piiSafeLogger.error('Failed to get total points awarded', {
         error: error.message
@@ -1001,16 +1124,14 @@ class GamificationPersistence {
    * Get achievement completion rate
    */
   async getAchievementCompletionRate() {
-    // Mock implementation - would calculate from actual data
-    return 75; // 75% completion rate
+    return await getAchievementCompletionRateFromDatabase(sequelize);
   }
 
   /**
    * Get average streak across users
    */
   async getAverageStreak() {
-    // Mock implementation - would calculate from actual data
-    return 5.2; // Average streak of 5.2 days
+    return await getAverageStreakFromDatabase(sequelize);
   }
 
   /**
@@ -1019,18 +1140,7 @@ class GamificationPersistence {
    */
   async getEngagementMetrics(options = {}) {
     try {
-      const { timeframe = '30d', segment } = options;
-      
-      // Mock implementation - would pull from actual analytics
-      return {
-        dailyActiveUsers: 1250,
-        weeklyActiveUsers: 5600,
-        monthlyActiveUsers: 18750,
-        averageSessionTime: 45, // minutes
-        pointsPerUser: 850,
-        achievementsPerUser: 3.2,
-        streakCompletionRate: 68.5
-      };
+      return await getEngagementMetricsFromDatabase(sequelize, options);
     } catch (error) {
       piiSafeLogger.error('Failed to get engagement metrics', {
         error: error.message,
@@ -1045,7 +1155,10 @@ class GamificationPersistence {
    */
   async getDailyActiveUsers() {
     try {
-      return await this.redis.scard('active_users:daily');
+      if (this.redisEnabled && this.redis) {
+        return await this.redis.scard('active_users:daily');
+      }
+      return await countActiveUsersSince(sequelize, 1);
     } catch (error) {
       piiSafeLogger.error('Failed to get daily active users', {
         error: error.message
@@ -1059,7 +1172,10 @@ class GamificationPersistence {
    */
   async getWeeklyActiveUsers() {
     try {
-      return await this.redis.scard('active_users:weekly');
+      if (this.redisEnabled && this.redis) {
+        return await this.redis.scard('active_users:weekly');
+      }
+      return await countActiveUsersSince(sequelize, 7);
     } catch (error) {
       piiSafeLogger.error('Failed to get weekly active users', {
         error: error.message
@@ -1072,16 +1188,14 @@ class GamificationPersistence {
    * Get average session length
    */
   async getAverageSessionLength() {
-    // Mock implementation - would calculate from actual session data
-    return 38; // 38 minutes average
+    return await getAverageSessionLengthFromDatabase(sequelize);
   }
 
   /**
    * Get engagement rate
    */
   async getEngagementRate() {
-    // Mock implementation - would calculate from actual data
-    return 78.5; // 78.5% engagement rate
+    return await getEngagementRateFromDatabase(sequelize);
   }
 
   /**

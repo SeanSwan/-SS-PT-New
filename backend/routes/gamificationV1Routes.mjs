@@ -30,6 +30,12 @@ const router = express.Router();
 const routeErrorMeta = (error) => ({
   errorName: error instanceof Error ? error.name : typeof error
 });
+const parseSearchLimit = (value, fallback = 20, max = 100) => {
+  const rawValue = Array.isArray(value) ? null : value;
+  const stringValue = String(rawValue ?? '').trim();
+  if (!/^[1-9]\d*$/.test(stringValue)) return fallback;
+  return Math.min(Number(stringValue), max);
+};
 
 // Middleware shortcuts
 const authenticate = protect;
@@ -85,9 +91,9 @@ router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('use
 /**
  * @route   GET /api/v1/gamification/leaderboard
  * @desc    Get leaderboard with advanced filtering (FRONTEND EXPECTED)
- * @access  Public
+ * @access  Authenticated users
  */
-router.get('/leaderboard', progressController.getLeaderboard);
+router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard);
 
 // ============================================================================
 // 🎯 CHALLENGE SYSTEM ENDPOINTS
@@ -138,9 +144,9 @@ router.put('/challenges/:id/progress', authenticate, requireUser, challengeContr
 /**
  * @route   GET /api/v1/gamification/challenges/:id/leaderboard
  * @desc    Get challenge-specific leaderboard
- * @access  Public
+ * @access  Authenticated users
  */
-router.get('/challenges/:id/leaderboard', challengeController.getChallengeLeaderboard);
+router.get('/challenges/:id/leaderboard', authenticate, requireUser, challengeController.getChallengeLeaderboard);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/challenges
@@ -412,16 +418,16 @@ router.delete('/users/:userId/unfollow', authenticate, requireUser, socialContro
 /**
  * @route   GET /api/v1/gamification/users/:userId/followers
  * @desc    Get user's followers
- * @access  Public
+ * @access  Authenticated users
  */
-router.get('/users/:userId/followers', socialController.getUserFollowers);
+router.get('/users/:userId/followers', authenticate, requireUser, socialController.getUserFollowers);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/following
  * @desc    Get users that user is following
- * @access  Public
+ * @access  Authenticated users
  */
-router.get('/users/:userId/following', socialController.getUserFollowing);
+router.get('/users/:userId/following', authenticate, requireUser, socialController.getUserFollowing);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/follow-status
@@ -433,9 +439,9 @@ router.get('/users/:userId/follow-status', authenticate, requireUser, socialCont
 /**
  * @route   GET /api/v1/gamification/users/:userId/social-stats
  * @desc    Get user's social statistics
- * @access  Public
+ * @access  Authenticated users
  */
-router.get('/users/:userId/social-stats', socialController.getUserSocialStats);
+router.get('/users/:userId/social-stats', authenticate, requireUser, socialController.getUserSocialStats);
 
 /**
  * @route   GET /api/v1/gamification/discover-users
@@ -574,7 +580,7 @@ router.get('/search', async (req, res) => {
     }
 
     const sanitizedQuery = q.trim().substring(0, 200);
-    const sanitizedLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
+    const sanitizedLimit = parseSearchLimit(limit);
     const validTypes = ['all', 'challenges', 'achievements', 'rewards'];
     const sanitizedType = validTypes.includes(type) ? type : 'all';
 

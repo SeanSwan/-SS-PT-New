@@ -1,15 +1,7 @@
 /**
- * ============================================================================
  * FILE: AegisHudTypes.ts
- * PURPOSE: Type definitions for the Aegis HUD needs system
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
- * ============================================================================
+ * PURPOSE: Type definitions for the mounted Aegis HUD needs system.
  */
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Need Types
-// ─────────────────────────────────────────────────────────────
-
 export type NeedKey = 'athletic' | 'recovery' | 'social' | 'discipline' | 'vitality';
 
 export interface NeedBar {
@@ -37,10 +29,6 @@ export interface AegisHudData {
   jobClass?: string | null;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Config Types (from /aegis-hud/config endpoint)
-// ─────────────────────────────────────────────────────────────
-
 export interface NeedConfig {
   label: string;
   icon: string;
@@ -59,10 +47,6 @@ export interface AegisHudConfig {
   actions: Record<string, ActionReplenish>;
   moodlets: Moodlet[];
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component Props
-// ─────────────────────────────────────────────────────────────
 
 export interface AegisHudProps {
   userId: number;

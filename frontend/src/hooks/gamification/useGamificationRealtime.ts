@@ -1,162 +1,131 @@
-import { useEffect, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../use-toast';
+import { useCallback, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { GamificationProfile, Achievement, Reward } from './useGamificationData';
+import { io, Socket } from 'socket.io-client';
 
-/**
- * Custom hook to handle real-time gamification updates
- * Uses Socket.IO to listen for events and update the React Query cache
- */
+import { useAuth } from '../../context/AuthContext';
+import { ProductionTokenManager } from '../../services/api.service';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from '../../utils/realtimeSocketUrl';
+import { useToast } from '../use-toast';
+
+type GamificationRealtimeEvent =
+  | 'gamification:points_awarded'
+  | 'gamification:workout_completed'
+  | 'gamification:achievement_unlocked'
+  | 'gamification:level_up'
+  | 'gamification:streak_milestone';
+
+type GamificationRealtimePayload = {
+  userId?: string | number;
+  points?: unknown;
+  xpEarned?: unknown;
+};
+
+const GAMIFICATION_EVENTS: GamificationRealtimeEvent[] = [
+  'gamification:points_awarded',
+  'gamification:workout_completed',
+  'gamification:achievement_unlocked',
+  'gamification:level_up',
+  'gamification:streak_milestone',
+];
+
+const eventTitle = (event: GamificationRealtimeEvent) => {
+  switch (event) {
+    case 'gamification:achievement_unlocked':
+      return 'Achievement unlocked';
+    case 'gamification:level_up':
+      return 'Level up unlocked';
+    case 'gamification:streak_milestone':
+      return 'Streak milestone reached';
+    case 'gamification:workout_completed':
+      return 'Workout XP updated';
+    default:
+      return 'Rewards profile updated';
+  }
+};
+
+export const normalizeRealtimeXp = (value: unknown): number => {
+  const points = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())
+      ? Number(value.trim())
+      : 0;
+  if (!Number.isFinite(points) || points <= 0) return 0;
+  const rounded = Math.round(points);
+  return Number.isSafeInteger(rounded) ? rounded : 0;
+};
+
 export const useGamificationRealtime = () => {
-  const { user } = useAuth();
+  const { token: authToken, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Handle real-time points award
-  const handlePointsAwarded = useCallback((data: { 
-    userId: string; 
-    points: number; 
-    source: string; 
-    description: string;
-    balance: number;
-  }) => {
-    // Only process if this is for the current user
-    if (data.userId !== user?.id) return;
-    
-    // Update the profile in React Query cache
-    queryClient.setQueryData(['gamification', 'profile', user.id], (oldData: GamificationProfile | undefined) => {
-      if (!oldData) return oldData;
-      
-      // Create a new transaction
-      const newTransaction = {
-        id: Date.now().toString(),
-        points: data.points,
-        balance: data.balance,
-        transactionType: 'earn' as const,
-        source: data.source,
-        description: data.description,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Return updated profile
-      return {
-        ...oldData,
-        points: data.balance,
-        recentTransactions: [newTransaction, ...oldData.recentTransactions]
-      };
-    });
-    
-    // Show a toast notification
+  const [isConnected, setIsConnected] = useState(false);
+
+  const handleGamificationEvent = useCallback((
+    event: GamificationRealtimeEvent,
+    data: GamificationRealtimePayload,
+  ) => {
+    if (!user?.id || String(data?.userId ?? '') !== String(user.id)) return;
+
+    void queryClient.invalidateQueries({ queryKey: ['gamification'] });
+
+    const points = normalizeRealtimeXp(data.points ?? data.xpEarned);
     toast({
-      title: "Points Awarded!",
-      description: `You've earned ${data.points} points: ${data.description}`,
-      variant: "default"
+      title: eventTitle(event),
+      description: points > 0
+        ? `Your rewards profile refreshed with ${points} XP.`
+        : 'Your rewards profile has fresh progress.',
+      variant: 'default',
     });
   }, [queryClient, toast, user?.id]);
-  
-  // Handle achievement unlocked
-  const handleAchievementUnlocked = useCallback((data: { 
-    userId: string; 
-    achievement: Achievement;
-    pointsAwarded: number;
-  }) => {
-    // Only process if this is for the current user
-    if (data.userId !== user?.id) return;
-    
-    // Update the profile in React Query cache
-    queryClient.setQueryData(['gamification', 'profile', user.id], (oldData: GamificationProfile | undefined) => {
-      if (!oldData) return oldData;
-      
-      // Create a new user achievement
-      const newUserAchievement = {
-        id: Date.now().toString(),
-        achievementId: data.achievement.id,
-        earnedAt: new Date().toISOString(),
-        progress: 100,
-        isCompleted: true,
-        pointsAwarded: data.pointsAwarded,
-        achievement: data.achievement
-      };
-      
-      // Create a new transaction
-      const newTransaction = {
-        id: Date.now().toString(),
-        points: data.pointsAwarded,
-        balance: oldData.points + data.pointsAwarded,
-        transactionType: 'earn' as const,
-        source: 'achievement_earned',
-        description: `Achievement Earned: ${data.achievement.name}`,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Return updated profile
-      return {
-        ...oldData,
-        points: oldData.points + data.pointsAwarded,
-        achievements: [...oldData.achievements, newUserAchievement],
-        recentTransactions: [newTransaction, ...oldData.recentTransactions]
-      };
-    });
-    
-    // Show a toast notification
-    toast({
-      title: "Achievement Unlocked!",
-      description: `${data.achievement.name}: ${data.achievement.description}`,
-      variant: "default"
-    });
-  }, [queryClient, toast, user?.id]);
-  
-  // Set up Socket.IO connection
+
   useEffect(() => {
-    if (!user?.id) return;
-    
-    // In a production app, you would connect to your real Socket.IO server
-    // const socket: Socket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000');
-    
-    // For demo purposes, we'll mock the socket events
-    const mockSocket = {
-      on: (event: string, callback: Function) => {
-        // Store the callbacks for mock triggering
-        if (event === 'points_awarded') {
-          (window as any).mockTriggerPointsAwarded = (data: any) => callback(data);
-        } else if (event === 'achievement_unlocked') {
-          (window as any).mockTriggerAchievementUnlocked = (data: any) => callback(data);
-        }
-      },
-      off: () => {},
-      disconnect: () => {}
-    } as unknown as Socket;
-    
-    // Set up event listeners
-    mockSocket.on('points_awarded', handlePointsAwarded);
-    mockSocket.on('achievement_unlocked', handleAchievementUnlocked);
-    
-    // Return cleanup function
-    return () => {
-      mockSocket.off('points_awarded', handlePointsAwarded);
-      mockSocket.off('achievement_unlocked', handleAchievementUnlocked);
-      mockSocket.disconnect();
-    };
-  }, [handlePointsAwarded, handleAchievementUnlocked, user?.id]);
-  
-  // Method to manually trigger mock events (for demo purposes)
-  const triggerMockEvent = useCallback((event: 'points_awarded' | 'achievement_unlocked', data: any) => {
-    if (event === 'points_awarded' && (window as any).mockTriggerPointsAwarded) {
-      (window as any).mockTriggerPointsAwarded({
-        userId: user?.id,
-        ...data
-      });
-    } else if (event === 'achievement_unlocked' && (window as any).mockTriggerAchievementUnlocked) {
-      (window as any).mockTriggerAchievementUnlocked({
-        userId: user?.id,
-        ...data
-      });
+    if (!user?.id) {
+      setIsConnected(false);
+      return;
     }
-  }, [user?.id]);
-  
-  return {
-    triggerMockEvent
-  };
+
+    const token = authToken || ProductionTokenManager.getToken();
+    if (!token) {
+      setIsConnected(false);
+      return;
+    }
+
+    const socketUrl = resolveRealtimeSocketUrl();
+    const socketOptions = resolveRealtimeSocketTransportOptions(socketUrl);
+    const socket: Socket = io(socketUrl, {
+      auth: { token },
+      ...socketOptions,
+      reconnectionAttempts: 2,
+      timeout: 5000,
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      socket.emit('authenticate', { token });
+    });
+    socket.on('authenticated', () => setIsConnected(true));
+    socket.on('disconnect', () => setIsConnected(false));
+    socket.on('connect_error', () => setIsConnected(false));
+    socket.on('auth_error', () => {
+      setIsConnected(false);
+      socket.disconnect();
+    });
+
+    GAMIFICATION_EVENTS.forEach(event => {
+      socket.on(event, data => handleGamificationEvent(event, data));
+    });
+
+    return () => {
+      GAMIFICATION_EVENTS.forEach(event => {
+        socket.off(event);
+      });
+      socket.disconnect();
+      setIsConnected(false);
+    };
+  }, [authToken, handleGamificationEvent, user?.id]);
+
+  return { isConnected };
 };

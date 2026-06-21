@@ -43,11 +43,13 @@ export const HeroGrid = styled.div`
   z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 0.88fr) minmax(260px, 0.55fr);
-  gap: clamp(1rem, 2vw, 2rem);
-  padding: clamp(1.15rem, 2vw, 2rem);
+  gap: 1.5rem;
+  padding: 1.5rem;
 
   @media (max-width: 820px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
   }
 `;
 
@@ -66,12 +68,15 @@ export const ProfileRow = styled.div`
 `;
 
 export const AvatarShell = styled.div`
-  width: clamp(74px, 8vw, 108px);
+  width: 96px;
   aspect-ratio: 1;
   border-radius: 50%;
   padding: 3px;
   background: conic-gradient(from 210deg, var(--accent-primary, #60C0F0), var(--accent-gold, #C6A84B), var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
   box-shadow: 0 0 30px color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
+
+  @media (max-width: 820px) { width: 82px; }
+  @media (max-width: 520px) { width: 74px; }
 `;
 
 export const AvatarImage = styled.img`
@@ -98,8 +103,11 @@ export const HeroKicker = styled.span`
 export const HeroTitle = styled.h1`
   margin: 0.25rem 0 0;
   color: var(--text-primary, #E0ECF4);
-  font: 900 clamp(2.15rem, 5vw, 5.1rem)/0.92 'Plus Jakarta Sans', sans-serif;
+  font: 900 4.25rem/0.92 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0;
+
+  @media (max-width: 900px) { font-size: 3.15rem; }
+  @media (max-width: 520px) { font-size: 2.25rem; }
 `;
 
 export const HeroHandle = styled.span`
@@ -113,7 +121,9 @@ export const HeroSubline = styled.p`
   max-width: 48rem;
   margin: 0;
   color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent));
-  font: 600 clamp(0.94rem, 1.2vw, 1.05rem)/1.65 'Sora', sans-serif;
+  font: 600 1rem/1.65 'Sora', sans-serif;
+
+  @media (max-width: 520px) { font-size: 0.95rem; }
 `;
 
 export const HeroStats = styled.div`
@@ -137,7 +147,9 @@ export const HeroStat = styled.div`
 export const StatValue = styled.strong`
   display: block;
   color: var(--text-primary, #E0ECF4);
-  font: 900 clamp(1.25rem, 2vw, 1.75rem)/1 'Fira Code', monospace;
+  font: 900 1.55rem/1 'Fira Code', monospace;
+
+  @media (max-width: 520px) { font-size: 1.35rem; }
 `;
 
 export const StatLabel = styled.span`
@@ -215,13 +227,13 @@ export const LensRail = styled.nav`
   grid-template-columns: repeat(6, minmax(96px, 1fr));
   gap: 0.75rem;
   box-sizing: border-box;
-  padding: 0 clamp(1.15rem, 2vw, 2rem) clamp(1.15rem, 2vw, 2rem);
+  padding: 0 1.5rem 1.5rem;
   scroll-margin-top: 96px;
 
   @media (max-width: 900px) {
     display: flex;
     overflow-x: auto;
-    padding-bottom: 0.25rem;
+    padding: 0 1rem 0.25rem;
     scroll-snap-type: x proximity;
   }
 `;

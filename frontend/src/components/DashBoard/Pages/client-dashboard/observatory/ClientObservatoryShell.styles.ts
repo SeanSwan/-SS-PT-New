@@ -23,7 +23,7 @@ export const PageShell = styled.section`
   width: 100%;
   max-width: 1720px;
   margin: 0 auto;
-  padding: clamp(1rem, 2vw, 2rem);
+  padding: 1.5rem;
   color: var(--text-primary, #E0ECF4);
 
   &::before {
@@ -46,12 +46,13 @@ export const PageShell = styled.section`
 export const MainGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr);
-  gap: clamp(1rem, 1.8vw, 1.5rem);
+  gap: 1.35rem;
   align-items: start;
   margin-top: 1.25rem;
 
   @media (max-width: 1180px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 `;
 
@@ -116,7 +117,11 @@ export const ObservatoryCard = styled.div`
 export const CardInner = styled.div`
   position: relative;
   z-index: 1;
-  padding: clamp(1rem, 1.6vw, 1.35rem);
+  padding: 1.25rem;
+
+  @media (max-width: 520px) {
+    padding: 1rem;
+  }
 `;
 
 export const SectionKicker = styled.span`
@@ -133,8 +138,12 @@ export const SectionKicker = styled.span`
 export const SectionTitle = styled.h2`
   margin: 0;
   color: var(--text-primary, #E0ECF4);
-  font: 800 clamp(1.05rem, 1.2vw, 1.35rem)/1.15 'Plus Jakarta Sans', sans-serif;
+  font: 800 1.25rem/1.15 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0;
+
+  @media (max-width: 520px) {
+    font-size: 1.05rem;
+  }
 `;
 
 export const MutedText = styled.p<{ $top?: string }>`

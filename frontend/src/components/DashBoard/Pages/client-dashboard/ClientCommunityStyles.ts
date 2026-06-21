@@ -1,32 +1,36 @@
 /**
  * ============================================================================
  * FILE: ClientCommunityStyles.ts
- * PURPOSE: Styled components for ClientCommunityPage — extracted per 300-line rule
+ * PURPOSE: Primary styled components for ClientCommunityPage
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-25
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  */
 
-import styled, { keyframes, css } from 'styled-components';
+import styled from 'styled-components';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Animations
-// ─────────────────────────────────────────────────────────────
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
+export {
+  EmptyState,
+  ErrorBox,
+  FeedPost,
+  LeaderName,
+  LeaderPoints,
+  LeaderRow,
+  PointsChip,
+  RankBadge,
+  ShimmerBlock,
+} from './ClientCommunityFeedStyles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Layout
-// ─────────────────────────────────────────────────────────────
 export const PageWrap = styled.div`
   padding: 1.5rem;
   min-height: 100%;
   color: var(--text-primary, #E0ECF4);
+
+  @media (max-width: 640px) {
+    padding: 1rem;
+  }
 `;
 
-// Energy Conversion button: blue bg → purple glow on hover
 export const PostBtn = styled.button`
   min-height: 44px;
   min-width: 44px;
@@ -35,14 +39,20 @@ export const PostBtn = styled.button`
   border: 1px solid var(--accent-primary, #002060);
   cursor: pointer;
   background: var(--accent-primary, #002060);
-  color: #FFFFFF;
+  color: var(--text-heading, #FFFFFF);
   font-family: 'Sora', sans-serif;
   font-weight: 600;
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.375rem;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.2s ease,
+    transform 0.25s ease;
 
   &:hover:not(:disabled) {
     background: var(--bg-elevated, #003080);
@@ -61,25 +71,43 @@ export const PostBtn = styled.button`
     cursor: not-allowed;
     transform: none;
   }
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transform: none;
+
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+  }
 `;
 
 export const PostBox = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+  }
 `;
 
 export const PostInput = styled.textarea`
   flex: 1;
+  width: 100%;
   min-height: 56px;
   padding: 0.75rem;
   background: var(--bg-surface, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
   border-radius: 8px;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
@@ -89,7 +117,7 @@ export const PostInput = styled.textarea`
   &:focus-visible {
     outline: none;
     box-shadow: inset 0 0 0 2px var(--accent-primary, #60C0F0),
-                0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+      0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
   }
 
   &::placeholder {
@@ -99,6 +127,8 @@ export const PostInput = styled.textarea`
 
 export const PostContentArea = styled.div`
   flex: 1;
+  min-width: 0;
+  width: 100%;
 `;
 
 export const HashtagHint = styled.div`
@@ -108,6 +138,7 @@ export const HashtagHint = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 `;
 
 export const CharacterCounter = styled.span<{ $danger?: boolean }>`
@@ -127,17 +158,21 @@ export const CompactErrorBox = styled.div`
 
 export const TwoCol = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
-  @media (max-width: 768px) { grid-template-columns: 1fr; }
+
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 export const SectionCard = styled.div`
   background: var(--bg-surface, #0A0A0F);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   padding: 1.25rem;
+  min-width: 0;
 
   h3 {
     margin: 0 0 0.75rem;
@@ -147,18 +182,22 @@ export const SectionCard = styled.div`
     align-items: center;
     gap: 0.5rem;
   }
+
+  @media (max-width: 640px) {
+    padding: 1rem;
+  }
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Challenges
-// ─────────────────────────────────────────────────────────────
 export const ChallengeCard = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(139, 92, 246, 0.15));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent));
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  &:last-child { margin-bottom: 0; }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 export const ChallengeTitle = styled.div`
@@ -177,6 +216,7 @@ export const ChallengeFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   font-size: 0.75rem;
   color: var(--text-muted, #94a3b8);
 `;
@@ -184,12 +224,15 @@ export const ChallengeFooter = styled.div`
 export const ChallengeProgressInline = styled.div`
   display: flex;
   align-items: center;
+  min-width: 0;
+  flex: 1;
 `;
 
 export const ChallengeTime = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 `;
 
 export const ProgressBarOuter = styled.div`
@@ -207,108 +250,9 @@ export const ProgressBarInner = styled.div<{ $pct: number }>`
   border-radius: 3px;
   width: ${({ $pct }) => Math.min($pct, 100)}%;
   background: var(--accent-secondary, #8B5CF6);
-  transition: width 0.4s;
-`;
+  transition: width 0.4s ease;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Leaderboard
-// ─────────────────────────────────────────────────────────────
-export const LeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
-  &:last-child { border-bottom: none; }
-`;
-
-export const LeaderName = styled.span`
-  flex: 1;
-  font-size: 0.875rem;
-`;
-
-export const LeaderPoints = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: var(--accent-primary, #60C0F0);
-`;
-
-// AI Village Phase 3: Luxury metal RankBadge tokens
-export const RankBadge = styled.div<{ $rank: number }>`
-  ${({ $rank }) => {
-    const colors: Record<number, { bg: string; border: string; text: string; shadow: string }> = {
-      1: { bg: '#141419', border: '#C6A84B', text: '#FCECAE', shadow: 'rgba(198, 168, 75, 0.3)' },
-      2: { bg: '#141419', border: '#64748B', text: '#E0ECF4', shadow: 'rgba(224, 236, 244, 0.2)' },
-      3: { bg: '#141419', border: '#92400E', text: '#FDBA74', shadow: 'rgba(146, 64, 14, 0.4)' },
-    };
-    const color = colors[$rank] || { bg: '#141419', border: '#4070C0', text: '#E0ECF4', shadow: 'transparent' };
-    return css`
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 32px;
-      height: 32px;
-      padding: 0 8px;
-      background: ${color.bg};
-      border: 1px solid ${color.border};
-      border-radius: 6px;
-      color: ${color.text};
-      box-shadow: inset 0 0 8px ${color.shadow};
-      font-family: 'Fira Code', monospace;
-      font-size: 0.875rem;
-      font-weight: 700;
-    `;
-  }}
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Feed & States
-// ─────────────────────────────────────────────────────────────
-export const FeedPost = styled.div`
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
-  &:last-child { border-bottom: none; }
-  .post-author { font-weight: 600; font-size: 0.875rem; }
-  .post-body { font-size: 0.8125rem; color: var(--text-secondary, #94a3b8); margin-top: 0.25rem; }
-  .post-time { font-size: 0.6875rem; color: var(--text-muted, #94a3b8); margin-top: 0.25rem; }
-`;
-
-export const EmptyState = styled.p`
-  color: var(--text-muted, #94a3b8);
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 1.5rem 0;
-`;
-
-export const ShimmerBlock = styled.div<{ $height?: string; $bottom?: string }>`
-  height: ${({ $height }) => $height || '80px'};
-  margin-bottom: ${({ $bottom }) => $bottom || 0};
-  border-radius: 12px;
-  background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, rgba(96,192,240,0.06) 50%, var(--bg-elevated, #141419) 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
-`;
-
-export const ErrorBox = styled.div`
-  background: var(--bg-elevated, #141419);
-  border-left: 4px solid var(--error-accent, #C92A54);
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  color: var(--text-primary, #E0ECF4);
-  font-size: 0.875rem;
-`;
-
-export const PointsChip = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.6875rem;
-  color: var(--accent-secondary, #8B5CF6);
-  font-weight: 600;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;

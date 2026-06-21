@@ -4,14 +4,25 @@ import { fileURLToPath } from 'node:url';
 import { QueryTypes } from 'sequelize';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import sequelize from '../../database.mjs';
-import badgeService from '../../services/badgeService.mjs';
+
+const mocks = vi.hoisted(() => ({
+  recordLedgerEntry: vi.fn()
+}));
+
+vi.mock('../../services/gamification/GamificationPointsService.mjs', () => ({
+  default: {
+    recordLedgerEntry: mocks.recordLedgerEntry
+  }
+}));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const { default: badgeService } = await import('../../services/badgeService.mjs');
 
 describe('badge service criteria truth', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    mocks.recordLedgerEntry.mockReset();
   });
 
   it('does not randomly award badges', () => {
@@ -74,6 +85,41 @@ describe('badge service criteria truth', () => {
     vi.spyOn(sequelize, 'query').mockResolvedValue([{ count: '1' }]);
 
     await expect(badgeService.userHasBadge('user-1', 'badge-1')).resolves.toBe(true);
+  });
+
+  it('awards badge reward points through the central idempotent point ledger', async () => {
+    mocks.recordLedgerEntry.mockResolvedValue({ pointsAwarded: 75, newBalance: 275, duplicate: false });
+
+    await badgeService.applyBadgeRewards(7, {
+      id: 'badge-uuid',
+      rewards: { points: 75 }
+    });
+
+    expect(mocks.recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 7,
+      points: 75,
+      transactionType: 'bonus',
+      source: 'achievement_earned',
+      sourceId: null,
+      description: 'Badge reward points',
+      metadata: expect.objectContaining({
+        reason: 'badge_earned',
+        badgeId: 'badge-uuid',
+        rewardSource: 'badge_earned'
+      }),
+      awardedBy: null,
+      idempotencyKey: 'badge:7:badge-uuid',
+      maxPoints: 500
+    }));
+  });
+
+  it('rejects malformed badge reward point values before the ledger', async () => {
+    await badgeService.applyBadgeRewards(7, {
+      id: 'badge-uuid',
+      rewards: { points: '75xp' }
+    });
+
+    expect(mocks.recordLedgerEntry).not.toHaveBeenCalled();
   });
 
   it('fails closed instead of returning a fake badge image CDN URL', async () => {

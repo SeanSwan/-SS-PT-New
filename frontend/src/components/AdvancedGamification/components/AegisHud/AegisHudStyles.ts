@@ -10,11 +10,12 @@
  * Uses CSS custom properties for theme compatibility.
  */
 
-import styled, { keyframes, css } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Keyframe Animations
-// ─────────────────────────────────────────────────────────────
+const accentAlpha = (percent: number) =>
+  `color-mix(in srgb, var(--accent-primary, #60C0F0) ${percent}%, transparent)`;
+
+// Section: Keyframe Animations
 
 const barFillIn = keyframes`
   from { width: 0%; opacity: 0.5; }
@@ -36,19 +37,16 @@ const shimmer = keyframes`
   100% { background-position: 200% center; }
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Container
-// ─────────────────────────────────────────────────────────────
+// Section: Container
 
 export const HudContainer = styled.div<{ $compact?: boolean }>`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-soft, ${accentAlpha(12)});
   border-radius: 16px;
   padding: ${({ $compact }) => ($compact ? '12px 16px' : '20px 24px')};
   position: relative;
   overflow: hidden;
 
-  /* Subtle inner glow */
   &::before {
     content: '';
     position: absolute;
@@ -92,13 +90,11 @@ export const OverallHealth = styled.span<{ $value: number }>`
   color: ${({ $value }) =>
     $value >= 70 ? 'var(--accent-primary, #60C0F0)' :
     $value >= 40 ? 'var(--accent-gold, #C6A84B)' :
-    '#C92A54'
+    'var(--status-danger, #C92A54)'
   };
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Need Bar
-// ─────────────────────────────────────────────────────────────
+// Section: Need Bar
 
 export const NeedBarRow = styled.div`
   display: flex;
@@ -107,7 +103,7 @@ export const NeedBarRow = styled.div`
   padding: 6px 0;
 
   &:not(:last-child) {
-    border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
+    border-bottom: 1px solid var(--border-soft, ${accentAlpha(6)});
   }
 `;
 
@@ -152,7 +148,7 @@ export const NeedValue = styled.span<{ $color: string; $value: number }>`
   color: ${({ $value }) =>
     $value >= 70 ? 'var(--text-primary, #E0ECF4)' :
     $value >= 30 ? 'var(--text-secondary, #94a3b8)' :
-    '#C92A54'
+    'var(--status-danger, #C92A54)'
   };
 `;
 
@@ -177,7 +173,6 @@ export const BarFill = styled.div<{ $width: number; $color: string; $animate?: b
     animation: ${barFillIn} 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   `}
 
-  /* Glow effect on the bar */
   &::after {
     content: '';
     position: absolute;
@@ -192,7 +187,6 @@ export const BarFill = styled.div<{ $width: number; $color: string; $animate?: b
     animation: ${glowPulse} 2s ease-in-out infinite;
   }
 
-  /* Shimmer on high values */
   ${({ $width, $color }) => $width >= 80 && css`
     background-size: 200% 100%;
     background-image: linear-gradient(
@@ -205,9 +199,7 @@ export const BarFill = styled.div<{ $width: number; $color: string; $animate?: b
   `}
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Moodlet Badge
-// ─────────────────────────────────────────────────────────────
+// Section: Moodlet Badge
 
 export const MoodletContainer = styled.div`
   display: flex;
@@ -238,9 +230,7 @@ export const MoodletPill = styled.span<{ $size?: 'sm' | 'md' | 'lg' }>`
   svg { width: ${({ $size }) => $size === 'sm' ? '10px' : '12px'}; height: auto; }
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Loading State
-// ─────────────────────────────────────────────────────────────
+// Section: Loading State
 
 const skeletonShimmer = keyframes`
   0% { background-position: -200% 0; }

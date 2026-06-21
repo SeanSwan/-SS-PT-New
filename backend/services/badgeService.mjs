@@ -28,6 +28,11 @@
 import { piiSafeLogger } from '../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
+import {
+  BADGE_REWARD_REASON,
+  awardBadgeRewardPoints,
+  normalizeBadgeRewardPoints
+} from './badgeRewardPointsService.mjs';
 
 function queryRows(result) {
   if (Array.isArray(result)) {
@@ -792,8 +797,9 @@ class BadgeService {
    */
   async applyBadgeRewards(userId, badge) {
     // Apply points reward
-    if (badge.rewards.points && badge.rewards.points > 0) {
-      await this.addPointsToUser(userId, badge.rewards.points, 'badge_earned', badge.id);
+    const rewardPoints = normalizeBadgeRewardPoints(badge?.rewards?.points);
+    if (rewardPoints > 0) {
+      await this.addPointsToUser(userId, rewardPoints, BADGE_REWARD_REASON, badge.id);
     }
 
     // Apply title reward
@@ -835,8 +841,13 @@ class BadgeService {
 
   // Placeholder methods for reward application
   async addPointsToUser(userId, points, source, sourceId) {
-    // Would integrate with points service
-    this.logger.info('Points added to user', { userId, points, source });
+    return awardBadgeRewardPoints({
+      userId,
+      points,
+      source,
+      sourceId,
+      logger: this.logger
+    });
   }
 
   async updateUserTitle(userId, title) {

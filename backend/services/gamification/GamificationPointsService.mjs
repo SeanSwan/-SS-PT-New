@@ -11,8 +11,8 @@
  * point awards, validation, idempotency checks, and multiplier application.
  *
  * HOW IT FITS IN THE APP (Strangler Fig Pattern):
- *   gamificationController → GamificationPointsService (NEW delegation target)
- *                          → direct Sequelize queries (LEGACY — migrate gradually)
+ *   gamificationController -> GamificationPointsService (NEW delegation target)
+ *                          -> direct Sequelize queries (LEGACY - migrate gradually)
  *
  * ARCHITECTURE:
  * graph TD
@@ -26,17 +26,43 @@
 import PointTransaction from '../../models/PointTransaction.mjs';
 import User from '../../models/User.mjs';
 import GamificationSettings from '../../models/GamificationSettings.mjs';
-import { Op, Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 import db from '../../database.mjs';
 import { calculateLevel, getTier } from '../../utils/levelingAlgorithm.mjs';
+import { scheduleLedgerRealtimeEvent } from './GamificationRealtimeEvents.mjs';
 
 const MAX_SINGLE_AWARD = 500;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
 
 function normalizeInteger(value) {
   if (value === undefined || value === null || value === '') return null;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) ? parsed : null;
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+  if (!/^-?\d+$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function normalizeMultiplier(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim())
+      ? Number(value.trim())
+      : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(parsed, 5.0);
+}
+
+function normalizeBalance(value) {
+  if (value === undefined || value === null || value === '') return 0;
+  const parsed = normalizeInteger(value);
+  return parsed !== null && parsed >= 0 ? parsed : 0;
 }
 
 function normalizeIdempotencyKey(value) {
@@ -52,24 +78,37 @@ function withIdempotencyMetadata(metadata, idempotencyKey) {
   return { ...base, idempotencyKey };
 }
 
+function duplicateLedgerResult(existing) {
+  return {
+    success: true,
+    duplicate: true,
+    pointsAwarded: 0,
+    newBalance: existing.balance,
+    pointTransaction: existing
+  };
+}
+
 export class GamificationPointsService {
   /**
    * Validate point award request.
    * @returns {{ valid: boolean, error?: string, parsedPoints?: number }}
    */
-  static validateAward(points, source, description) {
-    if (!points || !source || !description) {
+  static validateAward(points, source, description, maxPoints = MAX_SINGLE_AWARD) {
+    if (points === undefined || points === null || points === '' || !source || !description) {
       return { valid: false, error: 'Points, source, and description are required' };
     }
-    const parsedPoints = parseInt(points);
-    if (!Number.isInteger(parsedPoints) || parsedPoints < 1 || parsedPoints > MAX_SINGLE_AWARD) {
-      return { valid: false, error: `Points must be between 1 and ${MAX_SINGLE_AWARD}` };
+    const parsedPoints = normalizeInteger(points);
+    const normalizedMaxPoints = Number.isSafeInteger(maxPoints) && maxPoints >= 1
+      ? maxPoints
+      : MAX_SINGLE_AWARD;
+    if (!Number.isInteger(parsedPoints) || parsedPoints < 1 || parsedPoints > normalizedMaxPoints) {
+      return { valid: false, error: `Points must be between 1 and ${normalizedMaxPoints}` };
     }
     return { valid: true, parsedPoints };
   }
 
   /**
-   * Check idempotency — has this action already been awarded today?
+   * Check idempotency - has this action already been awarded today?
    * @returns {boolean} true if duplicate exists
    */
   static async checkDuplicate(userId, source, sourceId, transaction) {
@@ -92,8 +131,9 @@ export class GamificationPointsService {
    */
   static async getMultipliedPoints(basePoints, transaction) {
     const settings = await GamificationSettings.findOne({ transaction });
-    if (settings?.isEnabled && settings?.pointsMultiplier) {
-      return Math.round(basePoints * Math.min(settings.pointsMultiplier, 5.0));
+    const multiplier = normalizeMultiplier(settings?.pointsMultiplier);
+    if (settings?.isEnabled && multiplier !== null) {
+      return Math.round(basePoints * multiplier);
     }
     return basePoints;
   }
@@ -123,9 +163,10 @@ export class GamificationPointsService {
     awardedBy = null,
     idempotencyKey = null,
     applyMultiplier = false,
-    dedupeBySourceToday = false
+    dedupeBySourceToday = false,
+    maxPoints = MAX_SINGLE_AWARD
   }, outerTransaction = null) {
-    const validation = this.validateAward(points, source, description);
+    const validation = this.validateAward(points, source, description, maxPoints);
     if (!validation.valid) {
       const error = new Error(validation.error);
       error.statusCode = 400;
@@ -136,24 +177,20 @@ export class GamificationPointsService {
       const normalizedKey = normalizeIdempotencyKey(idempotencyKey);
       const normalizedSourceId = normalizeInteger(sourceId);
 
+      const findExistingIdempotentTransaction = () => PointTransaction.findOne({
+        where: {
+          userId,
+          source,
+          idempotencyKey: normalizedKey
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
       if (normalizedKey) {
-        const existing = await PointTransaction.findOne({
-          where: {
-            userId,
-            source,
-            [Op.and]: Sequelize.where(Sequelize.json('metadata.idempotencyKey'), normalizedKey)
-          },
-          transaction,
-          lock: transaction.LOCK.UPDATE
-        });
+        const existing = await findExistingIdempotentTransaction();
         if (existing) {
-          return {
-            success: true,
-            duplicate: true,
-            pointsAwarded: 0,
-            newBalance: existing.balance,
-            pointTransaction: existing
-          };
+          return duplicateLedgerResult(existing);
         }
       } else if (dedupeBySourceToday && await this.checkDuplicate(userId, source, normalizedSourceId, transaction)) {
         return {
@@ -176,6 +213,13 @@ export class GamificationPointsService {
         throw error;
       }
 
+      if (normalizedKey) {
+        const existing = await findExistingIdempotentTransaction();
+        if (existing) {
+          return duplicateLedgerResult(existing);
+        }
+      }
+
       const pointsToRecord = applyMultiplier
         ? await this.getMultipliedPoints(validation.parsedPoints, transaction)
         : validation.parsedPoints;
@@ -187,14 +231,23 @@ export class GamificationPointsService {
         lock: transaction.LOCK.UPDATE
       });
 
-      const currentBalance = Math.max(
-        Number(user.points || 0),
-        Number(lastTransaction?.balance || 0)
-      );
+      const isSpendLike = transactionType === 'spend' || transactionType === 'expire';
+      const userBalance = normalizeBalance(user.points);
+      const ledgerBalance = normalizeBalance(lastTransaction?.balance);
+      const currentBalance = isSpendLike
+        ? userBalance
+        : Math.max(userBalance, ledgerBalance);
+      if (isSpendLike && pointsToRecord > currentBalance) {
+        const error = new Error('Insufficient points for spend transaction');
+        error.statusCode = 400;
+        throw error;
+      }
       const newBalance = this.calculateBalance(currentBalance, pointsToRecord, transactionType);
       const newLevel = calculateLevel(Math.max(newBalance, 0));
       const newTier = getTier(newLevel);
       const ledgerMetadata = withIdempotencyMetadata(metadata, normalizedKey);
+      const previousLevel = user.level;
+      const previousTier = user.tier;
 
       const pointTransaction = await PointTransaction.create({
         userId,
@@ -203,14 +256,15 @@ export class GamificationPointsService {
         transactionType,
         source,
         sourceId: normalizedSourceId,
+        idempotencyKey: normalizedKey,
         description,
         metadata: ledgerMetadata,
         awardedBy
       }, { transaction });
 
       const userUpdates = { points: newBalance };
-      if (newLevel !== user.level) userUpdates.level = newLevel;
-      if (newTier !== user.tier) userUpdates.tier = newTier;
+      if (newLevel !== previousLevel) userUpdates.level = newLevel;
+      if (newTier !== previousTier) userUpdates.tier = newTier;
       await user.update(userUpdates, { transaction });
 
       return {
@@ -220,14 +274,26 @@ export class GamificationPointsService {
         newBalance,
         newLevel,
         newTier,
-        previousLevel: user.level,
-        previousTier: user.tier,
+        previousLevel,
+        previousTier,
         pointTransaction
       };
     };
 
-    if (outerTransaction) return execute(outerTransaction);
-    return db.transaction(execute);
+    const eventEntry = {
+      userId,
+      source,
+      sourceId,
+      transactionType,
+    };
+    if (outerTransaction) {
+      const result = await execute(outerTransaction);
+      scheduleLedgerRealtimeEvent(result, eventEntry, outerTransaction);
+      return result;
+    }
+    const result = await db.transaction(execute);
+    scheduleLedgerRealtimeEvent(result, eventEntry, null);
+    return result;
   }
 }
 

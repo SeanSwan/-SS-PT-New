@@ -1,39 +1,19 @@
 /**
- * ============================================================================
  * FILE: useGhostMode.ts
- * PURPOSE: Custom hook for Ghost Mode data fetching and comparison logic
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-29
- * AI VILLAGE VALIDATED: 2026-03-29
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Fetches ghost data from the API, manages active/inactive
- * state, and provides comparison results during an active workout.
- *
- * HOW IT FITS IN THE APP: Used by GhostModeBanner to load ghost data and by
- * the workout logger to get real-time comparison deltas.
- *
- * KEY DECISIONS: Uses authAxios from AuthContext (not native fetch) for
- * centralized 401 handling and token refresh flows.
+ * PURPOSE: Fetch ghost-mode state through authAxios with safe user paths.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
+import { GAMIFICATION_SAFE_ERROR_COPY, getGamificationUserPath } from '../../utils/gamificationPath';
 import type {
-  GhostData,
-  GhostResponse,
   GhostComparisonResult,
   GhostConfig,
+  GhostData,
+  GhostResponse,
 } from './GhostModeTypes';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Constants
-// ─────────────────────────────────────────────────────────────
-
 const API_BASE = '/api/gamification';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
 
 interface UseGhostModeOptions {
   userId: number;
@@ -56,6 +36,14 @@ interface UseGhostModeReturn {
   }) => Promise<GhostComparisonResult | null>;
 }
 
+const unwrapGamificationPayload = <T,>(payload: unknown): T => {
+  const envelope = payload as { success?: unknown; data?: unknown } | null | undefined;
+  if (envelope?.success === false) {
+    throw new Error('Gamification request failed');
+  }
+  return (envelope?.success === true ? envelope.data : payload) as T;
+};
+
 export function useGhostMode({ userId, category, autoLoad = false }: UseGhostModeOptions): UseGhostModeReturn {
   const { authAxios } = useAuth();
   const [ghostData, setGhostData] = useState<GhostData | null>(null);
@@ -64,69 +52,82 @@ export function useGhostMode({ userId, category, autoLoad = false }: UseGhostMod
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<GhostConfig | null>(null);
   const [comparisonResult, setComparisonResult] = useState<GhostComparisonResult | null>(null);
+  const [pendingActivation, setPendingActivation] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  // Load ghost config once
   useEffect(() => {
     let cancelled = false;
+
     authAxios.get(`${API_BASE}/ghost/config`)
-      .then(res => {
+      .then((res) => {
         if (!cancelled && mountedRef.current) {
-          const data = res.data;
-          setConfig(data.success ? data.data : data);
+          setConfig(unwrapGamificationPayload<GhostConfig>(res.data));
         }
       })
-      .catch(() => { /* config is optional, don't block */ });
-    return () => { cancelled = true; };
+      .catch(() => {
+        // Config is optional for the mounted preview.
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [authAxios]);
 
   const loadGhost = useCallback(async (cat?: string) => {
-    if (!userId) return;
+    const params = new URLSearchParams();
+    if (cat || category) params.set('category', (cat || category)!);
+    const query = params.toString();
+    const ghostPath = getGamificationUserPath(userId, `/ghost${query ? `?${query}` : ''}`);
+
+    if (!ghostPath) {
+      setIsLoading(false);
+      setError(null);
+      setGhostData(null);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+
     try {
-      const params = new URLSearchParams();
-      if (cat || category) params.set('category', (cat || category)!);
-      const url = `${API_BASE}/users/${userId}/ghost${params.toString() ? `?${params}` : ''}`;
-
+      const url = `${API_BASE}${ghostPath}`;
       const res = await authAxios.get(url);
-      const response: GhostResponse = res.data.success ? res.data.data : res.data;
+      const response = unwrapGamificationPayload<GhostResponse>(res.data);
 
-      if (mountedRef.current) {
-        if (response.hasGhost && response.ghost) {
-          setGhostData(response.ghost);
-        } else {
-          setGhostData(null);
-          setError(response.message || 'No ghost data available');
-        }
-      }
-    } catch (err) {
-      if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to load ghost');
+      if (!mountedRef.current) return;
+
+      if (response.hasGhost && response.ghost) {
+        setGhostData(response.ghost);
+      } else {
         setGhostData(null);
+        setError('No ghost data available yet.');
+      }
+    } catch {
+      if (mountedRef.current) {
+        setError(GAMIFICATION_SAFE_ERROR_COPY);
+        setGhostData(null);
+        setComparisonResult(null);
       }
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
   }, [userId, category, authAxios]);
 
-  // Auto-load on mount if requested
   useEffect(() => {
-    if (autoLoad && userId) {
+    if (autoLoad && getGamificationUserPath(userId, '/ghost')) {
       loadGhost();
     }
   }, [autoLoad, userId, loadGhost]);
 
-  // Fix: async loadGhost moved OUT of state updater into a useEffect
-  const [pendingActivation, setPendingActivation] = useState(false);
-
   const toggle = useCallback(() => {
-    setIsActive(prev => {
-      const next = !prev;
+    setIsActive((previous) => {
+      const next = !previous;
       if (next && !ghostData) {
         setPendingActivation(true);
       }
@@ -134,7 +135,6 @@ export function useGhostMode({ userId, category, autoLoad = false }: UseGhostMod
     });
   }, [ghostData]);
 
-  // Load ghost data when activation is pending (moved out of state updater)
   useEffect(() => {
     if (pendingActivation) {
       setPendingActivation(false);
@@ -146,16 +146,22 @@ export function useGhostMode({ userId, category, autoLoad = false }: UseGhostMod
     totalVolume: number;
     exercises: Array<{ name: string; exerciseId?: number; volume: number }>;
   }): Promise<GhostComparisonResult | null> => {
-    if (!ghostData || !userId) return null;
+    const comparePath = getGamificationUserPath(userId, '/ghost/compare');
+    if (!ghostData || !comparePath) return null;
+
     try {
-      const res = await authAxios.post(`${API_BASE}/users/${userId}/ghost/compare`, {
+      const res = await authAxios.post(`${API_BASE}${comparePath}`, {
         ghostData,
         currentWorkoutData,
       });
-      const result: GhostComparisonResult = res.data.success ? res.data.data : res.data;
+      const result = unwrapGamificationPayload<GhostComparisonResult>(res.data);
       if (mountedRef.current) setComparisonResult(result);
       return result;
     } catch {
+      if (mountedRef.current) {
+        setComparisonResult(null);
+        setError(GAMIFICATION_SAFE_ERROR_COPY);
+      }
       return null;
     }
   }, [ghostData, userId, authAxios]);

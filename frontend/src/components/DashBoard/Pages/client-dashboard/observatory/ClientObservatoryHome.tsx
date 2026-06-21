@@ -39,6 +39,9 @@ import {
   handleFrom,
   hashtagsFromPosts,
   quickActionsForClientSource,
+  safeClientOverviewLevel,
+  safeClientOverviewPoints,
+  safeClientOverviewStreakDays,
 } from './ClientObservatoryData';
 import {
   CardInner,
@@ -50,7 +53,7 @@ import {
   SectionTitle,
   SideColumn,
 } from './ClientObservatoryShell.styles';
-import ClientMobileWorkoutPriorityRail from './ClientMobileWorkoutPriorityRail';
+import ClientMobileWorkoutPriorityRail, { useMobilePriorityRail } from './ClientMobileWorkoutPriorityRail';
 
 const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'));
 const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'));
@@ -73,6 +76,7 @@ const ClientObservatoryHome: React.FC = () => {
   const currentWorkout = useCurrentClientWorkout(user?.id);
   const planPdfViewer = useClientPlanPdfViewer();
   const clientSource = (user as { clientSource?: string } | null | undefined)?.clientSource;
+  const showMobilePriority = useMobilePriorityRail();
 
   const [activeLens, setActiveLens] = useState<LensId>(() => lensFromRoute(tab));
   const [postText, setPostText] = useState('');
@@ -100,9 +104,9 @@ const ClientObservatoryHome: React.FC = () => {
   const displayName = displayNameFrom(user, profile);
   const userHandle = handleFrom(user, profile);
   const avatar = avatarFrom(user, profile);
-  const level = profile?.level ?? 1;
-  const points = profile?.points ?? 0;
-  const streakDays = profile?.streakDays ?? 0;
+  const level = safeClientOverviewLevel(profile?.level);
+  const points = safeClientOverviewPoints(profile?.points);
+  const streakDays = safeClientOverviewStreakDays(profile?.streakDays);
   const canBookSessions = canBookSwanStudiosSessions(clientSource);
   const coachPath = useMemo(() => buildClientOverviewCoachPath({
     level,
@@ -135,7 +139,7 @@ const ClientObservatoryHome: React.FC = () => {
     const content = (input?.content ?? postText).trim();
     if (content.length < 3) return;
     const result = await createPost.mutateAsync(input ? { ...input, content } : content);
-    const pointsAwarded = Number(result?.pointsAwarded ?? result?.data?.pointsAwarded ?? 0);
+    const pointsAwarded = safeClientOverviewPoints(result?.pointsAwarded ?? result?.data?.pointsAwarded);
     if (pointsAwarded > 0) {
       setPostReceipt({
         pointsAwarded,
@@ -231,6 +235,7 @@ const ClientObservatoryHome: React.FC = () => {
         currentWorkout={currentWorkout.workout}
         currentWorkoutError={currentWorkout.error}
         currentWorkoutLoading={currentWorkout.loading}
+        showMobilePriority={showMobilePriority}
         onNavigate={handleNavigate}
       />
 
@@ -268,6 +273,7 @@ const ClientObservatoryHome: React.FC = () => {
             leaderboard={leaderboard}
             progress={progress}
             quickActions={quickActions}
+            showCurrentWorkoutCard={!showMobilePriority}
             streakDays={streakDays}
             tags={tags}
             onNavigate={handleNavigate}

@@ -1,18 +1,7 @@
 /**
- * ┌─── SUB-COMPONENT: NeedBarComponent ────────────────────────┐
- * │ PARENT: AegisHud                                            │
- * │ PURPOSE: Single horizontal need bar with icon, label, value │
- * │ WIREFRAME:                                                  │
- * │ ┌──────────────────────────────────────────────────────────┐│
- * │ │ [Icon] Athletic Power               72/100              ││
- * │ │        ████████████████████░░░░░░░░                     ││
- * │ └──────────────────────────────────────────────────────────┘│
- * │ Props: NeedBarProps                                         │
- * │ CLICK-OUTCOMES: None (display only)                         │
- * │ GAMIFICATION: None (displays need state)                    │
- * └────────────────────────────────────────────────────────────┘
+ * COMPONENT: NeedBarComponent
+ * PURPOSE: Single Aegis HUD need row with icon, label, value, and bar fill.
  */
-
 import React from 'react';
 import {
   Dumbbell, HeartPulse, Users, Brain, Zap,
@@ -29,10 +18,6 @@ import {
   BarFill,
 } from './AegisHudStyles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Icon Map
-// ─────────────────────────────────────────────────────────────
-
 const ICON_MAP: Record<string, React.ElementType> = {
   dumbbell: Dumbbell,
   'heart-pulse': HeartPulse,
@@ -41,24 +26,50 @@ const ICON_MAP: Record<string, React.ElementType> = {
   zap: Zap,
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
+const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
+
+const parseProgressNumber = (value: unknown, fallback: number) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  if (typeof value !== 'string') return fallback;
+
+  const trimmed = value.trim();
+  if (!DECIMAL_NUMBER_PATTERN.test(trimmed)) return fallback;
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeProgress = (value: number, maxValue: number) => {
+  const parsedMax = parseProgressNumber(maxValue, 100);
+  const parsedValue = parseProgressNumber(value, 0);
+  const safeMax = parsedMax > 0 ? parsedMax : 100;
+  const safeValue = parsedValue;
+  const clampedValue = Math.min(safeMax, Math.max(0, safeValue));
+
+  return {
+    displayValue: Math.round(clampedValue),
+    displayMax: Math.round(safeMax),
+    percentage: Math.min(100, Math.max(0, (clampedValue / safeMax) * 100)),
+  };
+};
 
 const NeedBarComponent: React.FC<NeedBarProps> = React.memo(({ need, animate = true }) => {
   const IconComponent = ICON_MAP[need.icon] || Zap;
-  const percentage = Math.min(100, Math.max(0, (need.value / need.maxValue) * 100));
+  const { displayValue, displayMax, percentage } = normalizeProgress(need.value, need.maxValue);
 
   return (
     <NeedBarRow>
       <NeedIcon $color={need.color}>
-        <IconComponent />
+        <IconComponent size={16} aria-hidden />
       </NeedIcon>
       <NeedInfo>
         <NeedLabelRow>
           <NeedLabel>{need.label}</NeedLabel>
-          <NeedValue $color={need.color} $value={need.value}>
-            {Math.round(need.value)}/{need.maxValue}
+          <NeedValue $color={need.color} $value={displayValue}>
+            {displayValue}/{displayMax}
           </NeedValue>
         </NeedLabelRow>
         <BarTrack>

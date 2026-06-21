@@ -1,17 +1,5 @@
-/**
- * ============================================================================
- * FILE: VaultDecryptionStyles.ts
- * PURPOSE: Styled components for Vault Decryption loot animation
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
- * ============================================================================
- */
-
 import styled, { keyframes, css } from 'styled-components';
 import type { LootRarity } from './VaultDecryptionTypes';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Keyframe Animations
-// ─────────────────────────────────────────────────────────────
 
 const vaultSpin = keyframes`
   0% { transform: rotateY(0deg); }
@@ -39,11 +27,6 @@ const rarityReveal = keyframes`
   100% { transform: scale(1) rotate(0deg); }
 `;
 
-const shieldPulse = keyframes`
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50% { transform: scale(1.3); opacity: 0.8; }
-`;
-
 const particleBurst = keyframes`
   0% { transform: translate(0, 0) scale(1); opacity: 1; }
   100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
@@ -55,9 +38,12 @@ const pearlShimmer = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Overlay
-// ─────────────────────────────────────────────────────────────
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 export const VaultOverlay = styled.div<{ $visible: boolean }>`
   position: fixed;
@@ -66,16 +52,13 @@ export const VaultOverlay = styled.div<{ $visible: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 10, 15, 0.92);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 92%, transparent);
   backdrop-filter: blur(8px);
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  ${reducedMotion}
 `;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Vault Container (the decrypting lock)
-// ─────────────────────────────────────────────────────────────
 
 export const VaultContainer = styled.div`
   width: 340px;
@@ -103,10 +86,13 @@ export const VaultLock = styled.div<{ $phase: 'decrypting' | 'revealed'; $color:
   ` : css`
     background: color-mix(in srgb, ${$color} 15%, var(--bg-surface, #1A1A24));
     border: 2px solid ${$color};
-    box-shadow: 0 0 60px color-mix(in srgb, ${$color} 40%, transparent),
-                0 0 120px color-mix(in srgb, ${$color} 15%, transparent);
+    box-shadow:
+      0 0 60px color-mix(in srgb, ${$color} 40%, transparent),
+      0 0 120px color-mix(in srgb, ${$color} 15%, transparent);
     animation: ${rarityReveal} 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   `}
+
+  ${reducedMotion}
 `;
 
 export const LockIcon = styled.div<{ $decrypting: boolean; $color: string }>`
@@ -117,12 +103,13 @@ export const LockIcon = styled.div<{ $decrypting: boolean; $color: string }>`
     animation: ${vaultSpin} 1.5s linear infinite;
   `}
 
-  svg { width: 48px; height: 48px; }
-`;
+  svg {
+    width: 48px;
+    height: 48px;
+  }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hex Code Stream (decryption visual)
-// ─────────────────────────────────────────────────────────────
+  ${reducedMotion}
+`;
 
 export const HexStream = styled.div<{ $color: string }>`
   position: absolute;
@@ -146,11 +133,9 @@ export const HexStream = styled.div<{ $color: string }>`
     word-break: break-all;
     animation: ${hexScroll} 2s linear infinite;
   }
-`;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Progress Bar (decryption progress)
-// ─────────────────────────────────────────────────────────────
+  ${reducedMotion}
+`;
 
 export const DecryptProgress = styled.div`
   width: 100%;
@@ -166,6 +151,7 @@ export const ProgressLabel = styled.span<{ $color: string }>`
   color: ${({ $color }) => $color};
   letter-spacing: 1px;
   animation: ${decryptGlitch} 0.5s steps(1) infinite;
+  ${reducedMotion}
 `;
 
 export const DecryptBar = styled.div`
@@ -183,11 +169,8 @@ export const DecryptFill = styled.div<{ $progress: number; $color: string }>`
   border-radius: 2px;
   transition: width 0.1s linear;
   box-shadow: 0 0 8px ${({ $color }) => $color};
+  ${reducedMotion}
 `;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Reward Reveal
-// ─────────────────────────────────────────────────────────────
 
 export const RewardCard = styled.div<{ $rarity: LootRarity; $color: string }>`
   width: 100%;
@@ -201,16 +184,20 @@ export const RewardCard = styled.div<{ $rarity: LootRarity; $color: string }>`
   overflow: hidden;
 
   ${({ $rarity }) => $rarity === 'pearlescent' && css`
-    background: linear-gradient(135deg,
-      rgba(96, 192, 240, 0.1),
-      rgba(139, 92, 246, 0.1),
-      rgba(198, 168, 75, 0.1),
-      rgba(96, 192, 240, 0.1)
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent),
+      color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent),
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)
     );
     background-size: 300% 300%;
-    animation: ${rarityReveal} 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-               ${pearlShimmer} 4s ease-in-out infinite;
+    animation:
+      ${rarityReveal} 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      ${pearlShimmer} 4s ease-in-out infinite;
   `}
+
+  ${reducedMotion}
 `;
 
 export const RarityBadge = styled.span<{ $color: string }>`
@@ -257,10 +244,6 @@ export const XpBonusTag = styled.div<{ $color: string }>`
   color: ${({ $color }) => $color};
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Particles
-// ─────────────────────────────────────────────────────────────
-
 export const Particle = styled.div<{ $color: string; $delay: number; $x: number; $y: number }>`
   position: absolute;
   width: 6px;
@@ -271,24 +254,25 @@ export const Particle = styled.div<{ $color: string; $delay: number; $x: number;
   --px: ${({ $x }) => $x}px;
   --py: ${({ $y }) => $y}px;
   animation: ${particleBurst} 1.2s cubic-bezier(0.16, 1, 0.3, 1) ${({ $delay }) => $delay}s forwards;
+  ${reducedMotion}
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Close Button
-// ─────────────────────────────────────────────────────────────
-
 export const CloseBtn = styled.button`
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-  color: var(--text-primary, #E0ECF4);
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
   padding: 10px 24px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  min-height: 44px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
@@ -298,4 +282,11 @@ export const CloseBtn = styled.button`
   &:active {
     transform: scale(0.97);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 4px;
+  }
+
+  ${reducedMotion}
 `;

@@ -1,7 +1,12 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Award, Crown, Gift, Shield, Star, Trophy, Users, Zap } from 'lucide-react';
-import { useGamificationData } from '../hooks/gamification/useGamificationData';
+import {
+  type LeaderboardEntry,
+  type PointTransaction,
+  type UserAchievement,
+  useGamificationData,
+} from '../hooks/gamification/useGamificationData';
 import {
   ActionLink,
   ContentGrid,
@@ -29,6 +34,21 @@ import {
   StatsGrid,
   StatusBanner,
 } from './AdvancedGamificationPage.styles';
+import {
+  getAchievementDescription,
+  getAchievementName,
+  clampGamificationPercent,
+  formatGamificationLevel,
+  formatGamificationNumber,
+  formatGamificationRank,
+  getLeaderboardClientName,
+  getLeaderboardLevel,
+  getLeaderboardRowKey,
+  getRewardPointCost,
+  getRewardName,
+  getTransactionDescription,
+  getTransactionPointLabel,
+} from './AdvancedGamificationPage.logic';
 
 interface AdvancedGamificationPageProps {
   className?: string;
@@ -42,26 +62,56 @@ type RewardDisplay = {
   reward?: { name?: string };
 };
 
-const formatNumber = (value?: number | null) => Number(value || 0).toLocaleString();
+const SAFE_GAMIFICATION_ERROR_COPY = 'Gamification data could not be refreshed.';
 
-const formatRank = (rank?: number | null) => {
-  if (!rank || rank < 1) return 'Not ranked';
-  const mod10 = rank % 10;
-  const mod100 = rank % 100;
-  const suffix = mod10 === 1 && mod100 !== 11 ? 'st' : mod10 === 2 && mod100 !== 12 ? 'nd' : mod10 === 3 && mod100 !== 13 ? 'rd' : 'th';
-  return `${rank}${suffix}`;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const asDisplayRows = <T,>(value: unknown, keys: string[]): T[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((row) => {
+    if (!isRecord(row) || row.success === false) return false;
+    return keys.some((key) => row[key] !== undefined && row[key] !== null);
+  }) as T[];
+};
+
+const getDisplayRowKey = (item: unknown, prefix: string, index: number) => {
+  const row = isRecord(item) ? item : {};
+  const id = row.id ?? row.rewardId ?? row.achievementId;
+  if (typeof id === 'string' || typeof id === 'number') return `${prefix}-${id}`;
+  return `${prefix}-${index}`;
 };
 
 const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ className }) => {
   const gamification = useGamificationData();
   const profile = gamification.profile.data;
-  const achievements = profile?.achievements || [];
+  const achievements = asDisplayRows<UserAchievement>(
+    profile?.achievements,
+    ['id', 'achievementId', 'achievement', 'name', 'title', 'description', 'pointsAwarded']
+  );
+  const queryRewards = asDisplayRows<RewardDisplay>(
+    gamification.rewards.data,
+    ['id', 'rewardId', 'reward', 'name', 'pointCost', 'pointsCost']
+  );
+  const profileRewards = asDisplayRows<RewardDisplay>(
+    profile?.rewards,
+    ['id', 'rewardId', 'reward', 'name', 'pointCost', 'pointsCost']
+  );
   const rewards = (
-    gamification.rewards.data?.length ? gamification.rewards.data : profile?.rewards || []
+    queryRewards.length ? queryRewards : profileRewards
   ) as RewardDisplay[];
-  const leaderboard = gamification.leaderboard.data || [];
-  const transactions = profile?.recentTransactions || [];
+  const leaderboard = asDisplayRows<LeaderboardEntry>(
+    gamification.leaderboard.data,
+    ['userId', 'id', 'client', 'firstName', 'lastName', 'name', 'fullName', 'username', 'overallLevel', 'level', 'points']
+  );
+  const transactions = asDisplayRows<PointTransaction>(
+    profile?.recentTransactions,
+    ['id', 'description', 'source', 'points', 'transactionType']
+  );
   const error = gamification.profile.error || gamification.error;
+  const hasProfileOutage = Boolean(error && !profile);
+  const nextLevelProgress = clampGamificationPercent(profile?.nextLevelProgress);
 
   return (
     <>
@@ -76,9 +126,9 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
       <PageShell className={className}>
         <HeroBand>
           <HeroCopy>
-            <Eyebrow><Trophy size={16} /> Gamification Hub</Eyebrow>
-            <h1>XP, rewards, and milestones</h1>
-            <p>Live progress from your SwanStudios gamification profile.</p>
+            <Eyebrow><Trophy size={16} /> Rewards Command</Eyebrow>
+            <h1>Train, level, rally</h1>
+            <p>Mission-control for workout proof, streak pressure, unlocks, and the squad board.</p>
           </HeroCopy>
           <HeroActions>
             <ActionLink to="/dashboard/client/rewards">Rewards</ActionLink>
@@ -86,9 +136,9 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
           </HeroActions>
         </HeroBand>
 
-        {error && (
+        {error && !hasProfileOutage && (
           <StatusBanner role="status">
-            {(error as Error).message || 'Gamification data could not be refreshed.'}
+            {SAFE_GAMIFICATION_ERROR_COPY}
           </StatusBanner>
         )}
 
@@ -99,6 +149,10 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
             <Shimmer />
             <Shimmer />
           </LoadingGrid>
+        ) : hasProfileOutage ? (
+          <StatusBanner role="status">
+            {SAFE_GAMIFICATION_ERROR_COPY}
+          </StatusBanner>
         ) : (
           <>
             <StatsGrid>
@@ -106,28 +160,28 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
                 <IconSlot><Zap size={22} /></IconSlot>
                 <StatText>
                   <span>XP</span>
-                  <strong>{formatNumber(profile?.points)}</strong>
+                  <strong>{formatGamificationNumber(profile?.points)}</strong>
                 </StatText>
               </StatCard>
               <StatCard>
                 <IconSlot><Crown size={22} /></IconSlot>
                 <StatText>
                   <span>Level</span>
-                  <strong>{formatNumber(profile?.level || 1)}</strong>
+                  <strong>{formatGamificationLevel(profile?.level)}</strong>
                 </StatText>
               </StatCard>
               <StatCard>
                 <IconSlot><Award size={22} /></IconSlot>
                 <StatText>
                   <span>Achievements</span>
-                  <strong>{formatNumber(achievements.length)}</strong>
+                  <strong>{formatGamificationNumber(achievements.length)}</strong>
                 </StatText>
               </StatCard>
               <StatCard>
                 <IconSlot><Users size={22} /></IconSlot>
                 <StatText>
                   <span>Leaderboard</span>
-                  <strong>{formatRank(profile?.leaderboardPosition)}</strong>
+                  <strong>{formatGamificationRank(profile?.leaderboardPosition)}</strong>
                 </StatText>
               </StatCard>
             </StatsGrid>
@@ -136,12 +190,18 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
               <PanelHeading>
                 <div>
                   <span>Next level</span>
-                  <h2>{formatNumber(profile?.nextLevelPoints)} XP target</h2>
+                  <h2>{formatGamificationNumber(profile?.nextLevelPoints)} XP target</h2>
                 </div>
-                <ProgressValue>{Math.round(profile?.nextLevelProgress || 0)}%</ProgressValue>
+                <ProgressValue>{nextLevelProgress}%</ProgressValue>
               </PanelHeading>
-              <ProgressTrack aria-label="Next level progress">
-                <ProgressFill $pct={profile?.nextLevelProgress || 0} />
+              <ProgressTrack
+                aria-label="Next level progress"
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={nextLevelProgress}
+                role="progressbar"
+              >
+                <ProgressFill $pct={nextLevelProgress} />
               </ProgressTrack>
             </ProgressPanel>
 
@@ -151,12 +211,12 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
                 {achievements.length === 0 ? (
                   <EmptyText>Earned achievements will appear after logged workouts and challenges.</EmptyText>
                 ) : (
-                  achievements.slice(0, 4).map((item) => (
-                    <ListRow key={item.id}>
+                  achievements.slice(0, 4).map((item, index) => (
+                    <ListRow key={getDisplayRowKey(item, 'achievement', index)}>
                       <MiniBadge><Shield size={15} /></MiniBadge>
                       <div>
-                        <strong>{item.achievement?.name || 'Achievement'}</strong>
-                        <span>{item.achievement?.description || `${item.pointsAwarded || 0} XP awarded`}</span>
+                        <strong>{getAchievementName(item)}</strong>
+                        <span>{getAchievementDescription(item)}</span>
                       </div>
                     </ListRow>
                   ))
@@ -168,12 +228,12 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
                 {rewards.length === 0 ? (
                   <EmptyText>Available rewards will show here when the catalog is active.</EmptyText>
                 ) : (
-                  rewards.slice(0, 4).map((item) => (
-                    <ListRow key={item.id}>
+                  rewards.slice(0, 4).map((item, index) => (
+                    <ListRow key={getDisplayRowKey(item, 'reward', index)}>
                       <MiniBadge><Gift size={15} /></MiniBadge>
                       <div>
-                        <strong>{item.reward?.name || item.name || 'Reward'}</strong>
-                        <span>{formatNumber(item.pointsCost || item.pointCost)} XP</span>
+                        <strong>{getRewardName(item)}</strong>
+                        <span>{formatGamificationNumber(getRewardPointCost(item))} XP</span>
                       </div>
                     </ListRow>
                   ))
@@ -185,12 +245,12 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
                 {transactions.length === 0 ? (
                   <EmptyText>XP activity will appear after workouts, streaks, and reward actions.</EmptyText>
                 ) : (
-                  transactions.slice(0, 4).map((item) => (
-                    <ListRow key={item.id}>
+                  transactions.slice(0, 4).map((item, index) => (
+                    <ListRow key={getDisplayRowKey(item, 'transaction', index)}>
                       <MiniBadge><Zap size={15} /></MiniBadge>
                       <div>
-                        <strong>{item.description || item.source || 'XP activity'}</strong>
-                        <span>{item.transactionType === 'spend' ? '-' : '+'}{formatNumber(item.points)} XP</span>
+                        <strong>{getTransactionDescription(item)}</strong>
+                        <span>{getTransactionPointLabel(item)}</span>
                       </div>
                     </ListRow>
                   ))
@@ -202,12 +262,12 @@ const AdvancedGamificationPage: React.FC<AdvancedGamificationPageProps> = ({ cla
                 {leaderboard.length === 0 ? (
                   <EmptyText>Leaderboard entries appear as clients build XP history.</EmptyText>
                 ) : (
-                  leaderboard.slice(0, 4).map((entry, index) => (
-                    <ListRow key={entry.userId || index}>
-                      <RankBadge>{index + 1}</RankBadge>
+                  leaderboard.slice(0, 4).map((entry, rankIndex) => (
+                    <ListRow key={getLeaderboardRowKey(entry, rankIndex)}>
+                      <RankBadge>{rankIndex + 1}</RankBadge>
                       <div>
-                        <strong>{entry.client?.firstName || 'Client'} {entry.client?.lastName || ''}</strong>
-                        <span>Level {entry.overallLevel || 1}</span>
+                        <strong>{getLeaderboardClientName(entry)}</strong>
+                        <span>Level {formatGamificationLevel(getLeaderboardLevel(entry))}</span>
                       </div>
                     </ListRow>
                   ))

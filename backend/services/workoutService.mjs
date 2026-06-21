@@ -15,6 +15,48 @@ import { getAllModels } from '../models/index.mjs';
 // 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
 // Models will be retrieved via getAllModels() inside each service function when needed
 
+const MAX_REPS_FOR_XP = 20;
+const MAX_WEIGHT_BONUS_FOR_XP = 30;
+const MAX_RPE_FOR_XP = 10;
+const MAX_FORM_RATING_FOR_XP = 10;
+const MIN_FORM_RATING_FOR_XP = 0;
+let gamificationPointsServiceModule;
+
+async function getGamificationPointsService() {
+  if (!gamificationPointsServiceModule) {
+    gamificationPointsServiceModule = (await import('./gamification/GamificationPointsService.mjs')).default;
+  }
+  return gamificationPointsServiceModule;
+}
+
+const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
+
+function toFinitePrimitiveNumber(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!DECIMAL_NUMBER_PATTERN.test(trimmed)) return null;
+  const numeric = Number(trimmed);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function toPositiveNumber(value) {
+  const numeric = toFinitePrimitiveNumber(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function clampNumber(value, min, max) {
+  const numeric = toFinitePrimitiveNumber(value);
+  if (!Number.isFinite(numeric)) return min;
+  return Math.min(Math.max(numeric, min), max);
+}
+
+function toNonNegativeInteger(value) {
+  const numeric = toFinitePrimitiveNumber(value);
+  return Number.isSafeInteger(numeric) && numeric > 0 ? numeric : 0;
+}
+
 /**
  * 🚀 ENHANCED: Get workout sessions with simplified query building
  * @param {string} userId - User ID
@@ -623,28 +665,32 @@ function calculateProgressMetrics(session) {
  */
 function calculateSetXP(set, workoutExercise) {
   let xp = 0;
-  
+  const repsCompleted = toPositiveNumber(set.repsCompleted);
+  const weightUsed = toPositiveNumber(set.weightUsed);
+  const rpe = clampNumber(set.rpe, 0, MAX_RPE_FOR_XP);
+  const formRating = clampNumber(workoutExercise.formRating, MIN_FORM_RATING_FOR_XP, MAX_FORM_RATING_FOR_XP);
+
   // Base XP for completing a set
   xp += 5;
-  
+
   // XP based on reps
-  if (set.repsCompleted) {
-    xp += Math.min(set.repsCompleted, 20);
+  if (repsCompleted) {
+    xp += Math.min(repsCompleted, MAX_REPS_FOR_XP);
   }
-  
+
   // XP based on weight
-  if (set.weightUsed) {
-    xp += Math.min(Math.floor(set.weightUsed / 10), 30);
+  if (weightUsed) {
+    xp += Math.min(Math.floor(weightUsed / 10), MAX_WEIGHT_BONUS_FOR_XP);
   }
-  
+
   // XP based on RPE
-  if (set.rpe) {
-    xp += set.rpe;
+  if (rpe) {
+    xp += rpe;
   }
-  
+
   // XP multiplier based on form rating
-  if (workoutExercise.formRating) {
-    xp *= (0.8 + (workoutExercise.formRating / 10));
+  if (formRating) {
+    xp *= (0.8 + (formRating / 10));
   }
   
   // XP bonus for PR
@@ -652,7 +698,7 @@ function calculateSetXP(set, workoutExercise) {
     xp *= 1.5;
   }
   
-  return Math.round(xp);
+  return Math.max(0, Math.round(xp));
 }
 
 /**
@@ -779,17 +825,40 @@ async function updateGamification(userId, metrics, session, transaction) {
   }
   
   // Calculate total XP gained
-  const totalXP = metrics.strengthXP + metrics.cardioXP + metrics.flexibilityXP + 
+  const totalXP = metrics.strengthXP + metrics.cardioXP + metrics.flexibilityXP +
                   metrics.balanceXP + metrics.coreXP;
-  
+  if (totalXP > 0) {
+    const GamificationPointsService = await getGamificationPointsService();
+    await GamificationPointsService.recordLedgerEntry({
+      userId,
+      points: totalXP,
+      transactionType: 'earn',
+      source: 'workout_completion',
+      sourceId: null,
+      description: 'Workout session completed',
+      metadata: {
+        reason: 'workout_service_session_completed',
+        workoutSessionId: session.id ?? null,
+        strengthXP: metrics.strengthXP,
+        cardioXP: metrics.cardioXP,
+        flexibilityXP: metrics.flexibilityXP,
+        balanceXP: metrics.balanceXP,
+        coreXP: metrics.coreXP,
+      },
+      awardedBy: null,
+      idempotencyKey: `workout-service:${userId}:${session.id ?? 'unknown'}:completion`,
+      maxPoints: Math.max(totalXP, 500),
+    }, transaction);
+  }
+
   // Determine if level up occurs
   const currentLevel = gamification.level;
   const currentXP = gamification.experience;
   const newTotalXP = currentXP + totalXP;
-  
+
   // Calculate XP needed for next level
   const xpForNextLevel = 100 * Math.pow(1.5, currentLevel - 1);
-  
+
   // Check if level up occurs
   let newLevel = currentLevel;
   let remainingXP = newTotalXP;
@@ -798,18 +867,30 @@ async function updateGamification(userId, metrics, session, transaction) {
     remainingXP -= xpForNextLevel;
     newLevel++;
   }
-  
-  // Update gamification data
+  const totalExercises = Array.isArray(session.exercises) ? session.exercises.length : 0;
+  const nextStreakCount = updateStreak(gamification.lastUpdateDate, gamification.streakCount);
+  const nextTotalWorkouts = (gamification.totalWorkouts || 0) + 1;
+  const nextTotalExercises = (gamification.totalExercises || 0) + totalExercises;
+
+  // Keep the legacy gamification profile's non-ledger state in sync. Visible
+  // point balance is written through PointTransaction/User via the ledger above.
   await gamification.update({
     level: newLevel,
     experience: remainingXP,
-    streakCount: updateStreak(gamification.lastUpdateDate, gamification.streakCount),
-    totalXP: (gamification.totalXP || 0) + totalXP,
+    streakCount: nextStreakCount,
+    totalWorkouts: nextTotalWorkouts,
+    totalExercises: nextTotalExercises,
     lastUpdateDate: new Date()
   }, { transaction });
-  
+
   // Check for achievements
-  await checkAchievements(userId, gamification, metrics, session, transaction);
+  await checkAchievements(userId, {
+    level: newLevel,
+    experience: remainingXP,
+    streakCount: nextStreakCount,
+    totalWorkouts: nextTotalWorkouts,
+    totalExercises: nextTotalExercises,
+  }, metrics, session, transaction);
   
   return gamification;
 }
@@ -891,12 +972,27 @@ async function checkAchievements(userId, gamification, metrics, session, transac
         achievementId: achievement.id,
         awardedAt: new Date()
       }, { transaction });
-      
-      // Add XP reward
-      await gamification.update({
-        totalXP: gamification.totalXP + (achievement.xpReward || 0),
-        experience: gamification.experience + (achievement.xpReward || 0)
-      }, { transaction });
+
+      const rewardPoints = toNonNegativeInteger(achievement.xpReward);
+      if (rewardPoints > 0) {
+        const GamificationPointsService = await getGamificationPointsService();
+        await GamificationPointsService.recordLedgerEntry({
+          userId,
+          points: rewardPoints,
+          transactionType: 'bonus',
+          source: 'achievement_earned',
+          sourceId: null,
+          description: 'Workout achievement earned',
+          metadata: {
+            reason: 'workout_service_achievement',
+            achievementId: achievement.id,
+            achievementType: achievement.type,
+            workoutSessionId: session.id ?? null,
+          },
+          awardedBy: null,
+          idempotencyKey: `workout-service-achievement:${userId}:${achievement.id}`,
+        }, transaction);
+      }
     }
   }
 }
@@ -1028,7 +1124,7 @@ async function getExerciseRecommendations(userId, options = {}) {
     optPhase = null,
     libraryMode = false
   } = options;
-  
+
   // Get user's progress to tailor recommendations
   const clientProgress = libraryMode ? null : await ClientProgress.findOne({
     where: { userId }

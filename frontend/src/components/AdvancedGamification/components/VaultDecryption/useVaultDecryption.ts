@@ -1,13 +1,11 @@
 /**
- * ============================================================================
  * FILE: useVaultDecryption.ts
- * PURPOSE: React hook for vault loot drops — roll, animate, collect
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
- * ============================================================================
+ * PURPOSE: Roll, animate, and collect vault drops through safe user paths.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import apiService from '../../../../services/api.service';
+import { getGamificationUserPath } from '../../utils/gamificationPath';
 import type { VaultDrop, VaultDropResult } from './VaultDecryptionTypes';
 
 const API_BASE = '/api/gamification';
@@ -47,16 +45,16 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
         : await apiService.get(url, config);
 
   if (res.status < 200 || res.status >= 300) {
-    const err = res.data as { error?: string; message?: string } | undefined;
-    throw new Error(err?.error || err?.message || `API error ${res.status}`);
+    throw new Error(`API error ${res.status}`);
+  }
+
+  const payload = res.data as { success?: unknown } | null | undefined;
+  if (payload?.success === false) {
+    throw new Error('API error');
   }
 
   return res.data as T;
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
 
 export function useVaultDecryption(userId: number | null | undefined) {
   const [currentDrop, setCurrentDrop] = useState<VaultDrop | null>(null);
@@ -64,15 +62,12 @@ export function useVaultDecryption(userId: number | null | undefined) {
   const [inventory, setInventory] = useState<VaultDrop[]>([]);
   const [loading, setLoading] = useState(false);
 
-  /**
-   * Roll for a loot drop after a qualifying action.
-   * If a drop occurs, triggers the animation automatically.
-   */
   const rollForDrop = useCallback(async (actionType: string): Promise<VaultDropResult | null> => {
-    if (!userId) return null;
+    const rollPath = getGamificationUserPath(userId, '/vault/roll');
+    if (!rollPath) return null;
 
     try {
-      const result = await apiFetch<VaultApiResponse>(`/users/${userId}/vault/roll`, {
+      const result = await apiFetch<VaultApiResponse>(rollPath, {
         method: 'POST',
         body: JSON.stringify({ actionType }),
       });
@@ -84,51 +79,40 @@ export function useVaultDecryption(userId: number | null | undefined) {
       }
 
       return result.data;
-    } catch (err) {
-      console.error('[Vault] Roll failed:', err);
+    } catch {
       return null;
     }
   }, [userId]);
 
-  /**
-   * Called when the decryption animation finishes (item revealed).
-   */
   const onDecryptionComplete = useCallback(() => {
-    // Animation reached 100% — item is now visible
+    // Animation reached 100%; item is now visible.
   }, []);
 
-  /**
-   * Called when user clicks "Collect" to dismiss the animation.
-   */
   const onCollect = useCallback(() => {
     if (currentDrop) {
-      setInventory((prev) => [currentDrop, ...prev]);
+      setInventory((previous) => [currentDrop, ...previous]);
     }
     setCurrentDrop(null);
     setIsAnimating(false);
   }, [currentDrop]);
 
-  /**
-   * Fetch the user's full loot inventory.
-   */
   const fetchInventory = useCallback(async () => {
-    if (!userId) return;
+    const inventoryPath = getGamificationUserPath(userId, '/vault/inventory');
+    if (!inventoryPath) return;
+
     setLoading(true);
     try {
-      const result = await apiFetch<VaultInventoryResponse>(`/users/${userId}/vault/inventory`);
+      const result = await apiFetch<VaultInventoryResponse>(inventoryPath);
       if (result.success) {
         setInventory(result.data.inventory || []);
       }
-    } catch (err) {
-      console.error('[Vault] Fetch inventory failed:', err);
+    } catch {
+      setInventory([]);
     } finally {
       setLoading(false);
     }
   }, [userId]);
 
-  /**
-   * Manually trigger a drop animation (for testing/admin).
-   */
   const triggerTestDrop = useCallback((drop: VaultDrop) => {
     setCurrentDrop(drop);
     setIsAnimating(true);

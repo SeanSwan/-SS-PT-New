@@ -31,7 +31,7 @@ describe('legacy gamification leaderboard controller hardening', () => {
   it('classifies the old controller route as legacy while v1 owns active leaderboard traffic', () => {
     expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
     expect(coreRoutesSource).toContain("// app.use('/api/gamification', gamificationRoutes);");
-    expect(activeRouteSource).toContain("router.get('/leaderboard', progressController.getLeaderboard)");
+    expect(activeRouteSource).toContain("router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard)");
     expect(legacyRouteSource).toContain("router.get('/leaderboard', gamificationController.getLeaderboard)");
   });
 

@@ -1,14 +1,12 @@
 /**
- * ┌─── COMPONENT: MinimalistView ──────────────────────────────┐
- * │ PURPOSE: 2D data grid fallback for users who prefer no 3D. │
- * │ WCAG 2.2 accessible, high-contrast, keyboard navigable.   │
- * │ CEO RULING: "Minimalist Mode" toggle for accessibility.    │
- * └────────────────────────────────────────────────────────────┘
+ * COMPONENT: MinimalistView
+ * PURPOSE: 2D Avatar Home fallback for users who prefer a reduced visual surface.
+ * PARENT: AvatarHomePage
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { Home, Bed, UtensilsCrossed, Dumbbell, User, Eye } from 'lucide-react';
+import { Bed, Dumbbell, Eye, Home, UtensilsCrossed, User } from 'lucide-react';
 
 const Grid = styled.div`
   display: grid;
@@ -18,14 +16,17 @@ const Grid = styled.div`
   max-width: 800px;
   margin: 0 auto;
 
-  @media (max-width: 640px) { grid-template-columns: 1fr; }
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
 `;
 
 const Card = styled.div`
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
 `;
 
 const CardTitle = styled.h3`
@@ -43,22 +44,33 @@ const Row = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.06);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
 
-  &:last-child { border-bottom: none; }
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const Label = styled.span`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  color: var(--text-secondary, #A8B7C7);
 `;
 
 const Value = styled.span`
   font-family: 'Fira Code', monospace;
   color: var(--accent-primary, #60C0F0);
   font-size: 12px;
+  text-align: right;
+  overflow-wrap: anywhere;
+`;
+
+const ToggleWrap = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 24px;
 `;
 
 const ToggleBtn = styled.button`
@@ -67,17 +79,18 @@ const ToggleBtn = styled.button`
   gap: 6px;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  background: rgba(96, 192, 240, 0.08);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
   color: var(--accent-primary, #60C0F0);
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
-  margin: 24px auto 0;
 
-  &:hover { background: rgba(96, 192, 240, 0.12); }
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  }
 `;
 
 interface AvatarHomeData {
@@ -95,7 +108,8 @@ interface MinimalistViewProps {
   onToggle3D: () => void;
 }
 
-const formatItem = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+const formatItem = (value?: string) =>
+  (value || 'not_set').replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 
 const ROOM_ICONS: Record<string, React.ReactNode> = {
   bedroom: <Bed size={16} />,
@@ -114,7 +128,7 @@ const MinimalistView: React.FC<MinimalistViewProps> = ({ data, onToggle3D }) => 
       </Card>
 
       <Card>
-        <CardTitle><Home size={16} /> Home — {formatItem(data.homeTier)}</CardTitle>
+        <CardTitle><Home size={16} /> Home - {formatItem(data.homeTier)}</CardTitle>
         <Row><Label>Active Room</Label><Value>{formatItem(data.activeRoom)}</Value></Row>
       </Card>
 
@@ -131,11 +145,11 @@ const MinimalistView: React.FC<MinimalistViewProps> = ({ data, onToggle3D }) => 
       ))}
     </Grid>
 
-    <div style={{ textAlign: 'center' }}>
-      <ToggleBtn onClick={onToggle3D}>
-        <Eye size={14} /> Switch to 3D View
+    <ToggleWrap>
+      <ToggleBtn type="button" onClick={onToggle3D}>
+        <Eye size={14} aria-hidden="true" /> Switch to 3D View
       </ToggleBtn>
-    </div>
+    </ToggleWrap>
   </>
 );
 

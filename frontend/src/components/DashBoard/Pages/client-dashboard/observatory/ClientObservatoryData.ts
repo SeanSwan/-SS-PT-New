@@ -114,10 +114,10 @@ export const CLIENT_OVERVIEW_COACH_PATH =
 
 export function buildClientOverviewCoachPrompt(snapshot?: ClientOverviewCoachSnapshot): string {
   if (!snapshot) return CLIENT_OVERVIEW_COACH_PROMPT;
-  const level = Number.isFinite(snapshot.level) ? Math.max(1, Math.round(snapshot.level)) : 1;
-  const points = Number.isFinite(snapshot.points) ? Math.max(0, snapshot.points) : 0;
+  const level = safeClientOverviewLevel(snapshot.level);
+  const points = safeClientOverviewPoints(snapshot.points);
   const progress = clampPercent(snapshot.progress);
-  const streakDays = Number.isFinite(snapshot.streakDays) ? Math.max(0, Math.round(snapshot.streakDays)) : 0;
+  const streakDays = safeClientOverviewStreakDays(snapshot.streakDays);
   const bookingCue = snapshot.canBookSessions ? 'booking is open' : 'book through your trainer';
   return [
     'Teach me this overview.',
@@ -167,6 +167,28 @@ export function clampPercent(value: number | undefined): number {
   return Math.min(Math.max(Math.round(value || 0), 0), 100);
 }
 
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function safeWholeNumber(value: unknown, fallback: number, floor: number): number {
+  const numberValue = finiteNumber(value);
+  if (numberValue === null) return fallback;
+  return Math.max(floor, Math.round(numberValue));
+}
+
+export function safeClientOverviewLevel(value: unknown): number {
+  return safeWholeNumber(value, 1, 1);
+}
+
+export function safeClientOverviewPoints(value: unknown): number {
+  return safeWholeNumber(value, 0, 0);
+}
+
+export function safeClientOverviewStreakDays(value: unknown): number {
+  return safeWholeNumber(value, 0, 0);
+}
+
 export function compactNumber(value: number | undefined): string {
   if (!Number.isFinite(value)) return '0';
   return Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value || 0);
@@ -174,7 +196,7 @@ export function compactNumber(value: number | undefined): string {
 
 export function countCollection(value: number | unknown[] | undefined): number {
   if (Array.isArray(value)) return value.length;
-  return typeof value === 'number' ? value : 0;
+  return safeClientOverviewPoints(value);
 }
 
 export function displayNameFrom(user: unknown, profile: unknown): string {

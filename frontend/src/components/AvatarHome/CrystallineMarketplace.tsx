@@ -1,19 +1,27 @@
-/**
- * ┌─── COMPONENT: CrystallineMarketplace ───────────────────────┐
- * │ PURPOSE: In-app marketplace for furniture, pet skins, and   │
- * │ outfits. Uses crystal currency earned through gameplay.     │
- * │ PHASE 3: Crystalline Marketplace.                           │
- * │ CEO RULING: No real-money IAP — crystals from XP/gameplay.  │
- * └─────────────────────────────────────────────────────────────┘
- */
-
-import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ShoppingBag, Diamond, Check, Shirt, Home, Dog,
-  Loader, AlertTriangle,
+  AlertTriangle,
 } from 'lucide-react';
 import apiService from '../../services/api.service';
+import {
+  BuyBtn,
+  CrystalBadge,
+  FilterBtn,
+  FilterRow,
+  Grid,
+  Header,
+  ItemCard,
+  ItemMeta,
+  ItemName,
+  LoadingSpinner,
+  LoadingState,
+  Panel,
+  PriceTag,
+  RarityTag,
+  StatusMsg,
+  Title,
+} from './CrystallineMarketplace.styles';
 
 interface CatalogItem {
   id: string;
@@ -34,159 +42,63 @@ interface OwnedItem {
   equippedIn: string | null;
 }
 
-const RARITY_COLORS: Record<string, string> = {
-  common: '#4070C0',
-  rare: '#C6A84B',
-  epic: '#8B5CF6',
-  legendary: '#60C0F0',
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const asNonEmptyString = (value: unknown): string | null => (
+  typeof value === 'string' && value.trim() ? value : null
+);
+
+const asFiniteCrystalAmount = (value: unknown): number | null => (
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+);
+
+const normalizeCatalogItem = (value: unknown): CatalogItem | null => {
+  if (!isRecord(value)) return null;
+  const id = asNonEmptyString(value.id);
+  const type = asNonEmptyString(value.type);
+  const name = asNonEmptyString(value.name);
+  const price = asFiniteCrystalAmount(value.price);
+  if (!id || !type || !name || price === null) return null;
+
+  return {
+    id,
+    type,
+    name,
+    price,
+    rarity: asNonEmptyString(value.rarity) ?? 'common',
+    room: asNonEmptyString(value.room) ?? undefined,
+    slot: asNonEmptyString(value.slot) ?? undefined,
+    species: asNonEmptyString(value.species) ?? undefined,
+  };
 };
 
-const legendaryGlow = keyframes`
-  0% { box-shadow: 0 0 6px rgba(198, 168, 75, 0.3); }
-  33% { box-shadow: 0 0 6px rgba(139, 92, 246, 0.3); }
-  66% { box-shadow: 0 0 6px rgba(96, 192, 240, 0.3); }
-  100% { box-shadow: 0 0 6px rgba(198, 168, 75, 0.3); }
-`;
+const normalizeOwnedItem = (value: unknown): OwnedItem | null => {
+  if (!isRecord(value)) return null;
+  const id = asNonEmptyString(value.id);
+  const type = asNonEmptyString(value.type);
+  const name = asNonEmptyString(value.name);
+  if (!id || !type || !name) return null;
 
-const Panel = styled.div`padding: 0;`;
+  return {
+    id,
+    type,
+    name,
+    rarity: asNonEmptyString(value.rarity) ?? 'common',
+    equippedIn: asNonEmptyString(value.equippedIn),
+  };
+};
 
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
+const normalizeCatalog = (value: unknown): CatalogItem[] => (
+  Array.isArray(value) ? value.map(normalizeCatalogItem).filter((item): item is CatalogItem => item !== null) : []
+);
 
-const Title = styled.h3`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
+const normalizeOwnedItems = (value: unknown): OwnedItem[] => (
+  Array.isArray(value) ? value.map(normalizeOwnedItem).filter((item): item is OwnedItem => item !== null) : []
+);
 
-const CrystalBadge = styled.div`
-  padding: 6px 14px;
-  border-radius: 8px;
-  background: rgba(96, 192, 240, 0.08);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  font-family: 'Fira Code', monospace;
-  font-size: 13px;
-  color: var(--accent-primary, #60C0F0);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const FilterRow = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-`;
-
-const FilterBtn = styled.button<{ $active: boolean }>`
-  min-height: 36px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: 1px solid ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : 'rgba(96, 192, 240, 0.15)'};
-  background: ${({ $active }) => $active ? 'rgba(96, 192, 240, 0.1)' : 'transparent'};
-  color: ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.65))'};
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  &:hover { border-color: var(--accent-primary, #60C0F0); }
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
-`;
-
-const ItemCard = styled.div<{ $rarity: string; $owned: boolean }>`
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--bg-elevated, #141419);
-  border: 2px solid ${({ $rarity }) => RARITY_COLORS[$rarity] || RARITY_COLORS.common}40;
-  ${({ $rarity }) => $rarity === 'legendary' ? `animation: ${legendaryGlow} 3s ease-in-out infinite;` : ''}
-  opacity: ${({ $owned }) => $owned ? 0.7 : 1};
-  transition: transform 0.15s;
-  &:hover { transform: translateY(-2px); }
-`;
-
-const ItemName = styled.div`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-  margin-bottom: 4px;
-`;
-
-const ItemMeta = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-`;
-
-const RarityTag = styled.span<{ $rarity: string }>`
-  color: ${({ $rarity }) => RARITY_COLORS[$rarity] || '#4070C0'};
-  text-transform: uppercase;
-  font-weight: 700;
-`;
-
-const PriceTag = styled.span`
-  color: var(--accent-primary, #60C0F0);
-  display: flex;
-  align-items: center;
-  gap: 3px;
-`;
-
-const BuyBtn = styled.button<{ $owned: boolean }>`
-  min-height: 44px;
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  background: ${({ $owned }) => $owned ? 'rgba(16, 185, 129, 0.1)' : 'linear-gradient(135deg, #002060, #8B5CF6)'};
-  color: ${({ $owned }) => $owned ? '#10B981' : '#E0ECF4'};
-  ${({ $owned }) => $owned ? 'border: 1px solid rgba(16, 185, 129, 0.2);' : ''}
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: ${({ $owned }) => $owned ? 'default' : 'pointer'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-  &:hover:not(:disabled) { opacity: 0.85; }
-`;
-
-const StatusMsg = styled.div<{ $type: 'success' | 'error' }>`
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: ${({ $type }) => $type === 'success' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)'};
-  border: 1px solid ${({ $type }) => $type === 'success' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'};
-  color: ${({ $type }) => $type === 'success' ? '#10B981' : '#EF4444'};
-`;
+const isFulfilled = <T,>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> =>
+  result.status === 'fulfilled';
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   furniture: <Home size={12} />,
@@ -194,71 +106,100 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   outfit: <Shirt size={12} />,
 };
 
+const MARKETPLACE_LOAD_ERROR = 'Marketplace balances are unavailable. Please try again later.';
+const MARKETPLACE_PURCHASE_ERROR = 'Unable to complete purchase. Check your crystals and try again.';
+const MARKETPLACE_NETWORK_ERROR = 'Marketplace service is temporarily unavailable. Please try again.';
+
 const CrystallineMarketplace: React.FC = () => {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [owned, setOwned] = useState<OwnedItem[]>([]);
-  const [balance, setBalance] = useState(0);
+  const [balance, setBalance] = useState<number | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const purchasingRef = useRef<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    try {
-      const [catalogRes, crystalRes] = await Promise.all([
-        apiService.get<{ success: boolean; data: CatalogItem[] }>('/api/avatar-home/marketplace'),
-        apiService.get<{ success: boolean; data: { balance: number; ownedItems: OwnedItem[] } }>('/api/avatar-home/crystals'),
-      ]);
-      const catalogD = catalogRes.data;
-      const crystalD = crystalRes.data;
-      if (catalogD.success) setCatalog(catalogD.data);
-      if (crystalD.success) {
-        setBalance(crystalD.data.balance);
-        setOwned(crystalD.data.ownedItems);
+    const [catalogResult, crystalResult] = await Promise.allSettled([
+      apiService.get<{ success: boolean; data: unknown }>('/api/avatar-home/marketplace'),
+      apiService.get<{ success: boolean; data: unknown }>('/api/avatar-home/crystals'),
+    ]);
+    let readFailed = false;
+
+    if (isFulfilled(catalogResult) && catalogResult.value.data.success) {
+      setCatalog(normalizeCatalog(catalogResult.value.data.data));
+    } else {
+      readFailed = true;
+    }
+
+    if (isFulfilled(crystalResult) && crystalResult.value.data.success && isRecord(crystalResult.value.data.data)) {
+      const nextBalance = asFiniteCrystalAmount(crystalResult.value.data.data.balance);
+      if (nextBalance === null) {
+        setBalance(null);
+        setOwned([]);
+        readFailed = true;
+      } else {
+        setBalance(nextBalance);
+        setOwned(normalizeOwnedItems(crystalResult.value.data.data.ownedItems));
       }
-    } catch { /* best-effort */ }
+    } else {
+      setBalance(null);
+      setOwned([]);
+      readFailed = true;
+    }
+
+    if (readFailed) setStatus({ type: 'error', text: MARKETPLACE_LOAD_ERROR });
     setLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const filtered = filter === 'all' ? catalog : catalog.filter(i => i.type === filter);
+  const ownedIds = new Set(owned.map(i => i.id));
+
   const handlePurchase = async (itemId: string) => {
+    if (purchasingRef.current || ownedIds.has(itemId)) return;
+    purchasingRef.current = itemId;
     setPurchasing(itemId);
     setStatus(null);
     try {
       const res = await apiService.post<{
         success: boolean;
-        data?: { item: OwnedItem; crystalBalance: number };
-        message?: string;
+        data?: unknown;
       }>('/api/avatar-home/marketplace/purchase', {
         itemId,
       }, {
         validateStatus: status => status < 500,
       });
       const d = res.data;
-      if (d.success && d.data) {
-        const purchasedItem = d.data.item;
-        setBalance(d.data.crystalBalance);
+      if (d.success && isRecord(d.data)) {
+        const purchasedItem = normalizeOwnedItem(d.data.item);
+        const crystalBalance = asFiniteCrystalAmount(d.data.crystalBalance);
+        if (!purchasedItem || crystalBalance === null) {
+          setStatus({ type: 'error', text: MARKETPLACE_PURCHASE_ERROR });
+          return;
+        }
+        setBalance(crystalBalance);
         setOwned(prev => [...prev, purchasedItem]);
         setStatus({ type: 'success', text: `Purchased ${purchasedItem.name}!` });
       } else {
-        setStatus({ type: 'error', text: d.message || 'Purchase failed' });
+        setStatus({ type: 'error', text: MARKETPLACE_PURCHASE_ERROR });
       }
     } catch {
-      setStatus({ type: 'error', text: 'Network error' });
+      setStatus({ type: 'error', text: MARKETPLACE_NETWORK_ERROR });
+    } finally {
+      purchasingRef.current = null;
+      setPurchasing(null);
     }
-    setPurchasing(null);
   };
-
-  const filtered = filter === 'all' ? catalog : catalog.filter(i => i.type === filter);
-  const ownedIds = new Set(owned.map(i => i.id));
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 48, gap: 8, color: 'rgba(224,236,244,0.7)' }}>
-        <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Loading marketplace...
-      </div>
+      <LoadingState role="status" aria-live="polite">
+        <LoadingSpinner size={18} aria-hidden="true" /> Loading marketplace...
+      </LoadingState>
     );
   }
 
@@ -266,11 +207,13 @@ const CrystallineMarketplace: React.FC = () => {
     <Panel>
       <Header>
         <Title><ShoppingBag size={18} /> Crystalline Marketplace</Title>
-        <CrystalBadge><Diamond size={14} /> {balance.toLocaleString()} Crystals</CrystalBadge>
+        <CrystalBadge>
+          <Diamond size={14} /> {balance === null ? 'Balance unavailable' : `${balance.toLocaleString()} Crystals`}
+        </CrystalBadge>
       </Header>
 
       {status && (
-        <StatusMsg $type={status.type}>
+        <StatusMsg $type={status.type} role="status" aria-live="polite">
           {status.type === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
           {status.text}
         </StatusMsg>
@@ -303,10 +246,11 @@ const CrystallineMarketplace: React.FC = () => {
               <BuyBtn
                 $owned={isOwned}
                 onClick={() => !isOwned && handlePurchase(item.id)}
-                disabled={isOwned || purchasing === item.id || balance < item.price}
+                disabled={isOwned || Boolean(purchasing) || balance === null || balance < item.price}
               >
                 {isOwned ? <><Check size={14} /> Owned</> :
                  purchasing === item.id ? 'Purchasing...' :
+                 balance === null ? 'Balance unavailable' :
                  balance < item.price ? 'Not enough crystals' :
                  <><Diamond size={14} /> Buy for {item.price}</>}
               </BuyBtn>

@@ -38,6 +38,7 @@ import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import GamificationPersistence from './GamificationPersistence.mjs';
 
 const MAX_ENGINE_IDEMPOTENCY_KEY_LENGTH = 128;
+const MAX_STREAK_FREEZES = 3;
 const ENGINE_IDENTITY_FIELDS = [
   'sourceId',
   'workoutId',
@@ -80,6 +81,19 @@ function buildEngineIdempotencyKey(userId, action, metadata) {
   }
 
   return parts.join(':').slice(0, MAX_ENGINE_IDEMPOTENCY_KEY_LENGTH);
+}
+
+function toNonNegativeInteger(value, fallback = 0) {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\d+$/.test(value.trim())
+      ? Number(value.trim())
+      : Number.NaN;
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function toBoundedStreakFreezeCount(value) {
+  return Math.min(MAX_STREAK_FREEZES, toNonNegativeInteger(value));
 }
 
 export class GamificationEngine {
@@ -236,9 +250,9 @@ export class GamificationEngine {
         multiplier,
         duplicate: false,
         idempotencyKey: awardMetadata.idempotencyKey,
-        // Variable ratio reinforcement — surprise multiplier info for UI celebration
-        surpriseMultiplier: awardMetadata._surpriseMultiplier || null,
-        surpriseLabel: awardMetadata._surpriseLabel || null
+        // Legacy response fields retained for UI compatibility; random bonuses are disabled.
+        surpriseMultiplier: null,
+        surpriseLabel: null
       };
     } catch (error) {
       piiSafeLogger.error('Failed to award points', {
@@ -319,12 +333,9 @@ export class GamificationEngine {
         requestingUserId
       } = options;
       
-      return await this.persistence.getLeaderboard({
-        timeframe,
-        category,
-        limit,
-        requestingUserId
-      });
+      void category;
+      void requestingUserId;
+      return await this.persistence.getLeaderboard(timeframe, limit);
     } catch (error) {
       piiSafeLogger.error('Failed to get leaderboard', {
         error: error.message,
@@ -458,16 +469,14 @@ export class GamificationEngine {
    */
   // ─────────────────────────────────────────────────────────────
   // SECTION: Multiplier Calculation
-  // PURPOSE: Variable ratio reinforcement + streak/time bonuses
-  // WHY: Psychology research shows unpredictable rewards (slot machine
-  //      effect) create stronger engagement than fixed rewards.
-  //      Applied ethically here — rewards health-positive actions.
+  // PURPOSE: deterministic consistency and schedule bonuses
+  // WHY: point boosts must be earned from visible training behavior, not
+  //      unearned reward rolls that can create unhealthy loops.
   // ─────────────────────────────────────────────────────────────
   async calculateMultiplier(userId, action, metadata) {
     let multiplier = 1.0;
-    let surpriseMultiplier = null;
 
-    // Streak bonus (predictable — rewards consistency)
+    // Streak bonus: predictable reward for real consistency.
     if (action.includes('workout') || action.includes('streak')) {
       const streak = await this.persistence.getCurrentStreak(userId);
       if (streak >= 7) multiplier += 0.2;
@@ -481,94 +490,24 @@ export class GamificationEngine {
       multiplier += 0.1;
     }
 
-    // ── Variable Ratio Reinforcement (Surprise XP Multiplier) ──
-    // Psychology: Unpredictable rewards create stronger dopamine response
-    // than predictable ones (Skinner, 1957). Applied ethically to
-    // health-positive actions only.
-    //
-    // Distribution: ~15% chance of surprise multiplier on workout actions
-    //   - 10% chance: 1.5x "Lucky Workout!"
-    //   - 4% chance:  2.0x "Double XP Surge!"
-    //   - 1% chance:  3.0x "LEGENDARY Workout!!"
-    //
-    // Constraints (Ethical Gamification):
-    //   - Only triggers on workout/exercise actions (not social/profile)
-    //   - Max 2 surprise multipliers per day per user
-    //   - Total multiplier still capped at 5.0x (AI Village consensus)
-    const isWorkoutAction = action.includes('workout') || action === 'workout_completed';
-    if (isWorkoutAction) {
-      surpriseMultiplier = this.rollSurpriseMultiplier();
-      if (surpriseMultiplier > 1.0) {
-        // SECURITY FIX #7: DB-level cap instead of trusting caller metadata
-        // Query actual surprise multiplier count from PointTransaction today
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        let todaySurprises = 0;
-        try {
-          const { Op } = await import('sequelize');
-          const PointTransaction = (await import('../../models/PointTransaction.mjs')).default;
-          todaySurprises = await PointTransaction.count({
-            where: {
-              userId,
-              source: 'workout_completed',
-              createdAt: { [Op.gte]: startOfToday },
-              description: { [Op.like]: '%surprise%' }
-            }
-          });
-        } catch (_e) {
-          // Fall back to metadata if DB query fails
-          todaySurprises = metadata._todaySurpriseCount || 0;
-        }
-        if (todaySurprises < 2) {
-          multiplier *= surpriseMultiplier;
-          piiSafeLogger.trackGamificationEngagement('surprise_multiplier', userId, {
-            action,
-            surpriseMultiplier,
-            totalMultiplier: multiplier
-          });
-        } else {
-          surpriseMultiplier = null; // Cap reached, no surprise today
-        }
-      }
-    }
-
-    // Cap at 5.0x (AI Village Phase 2 consensus — raised from 3.0x)
+    // Cap at 5.0x; every multiplier is deterministic and user-explainable.
     const finalMultiplier = Math.min(multiplier, 5.0);
 
-    // Attach surprise info to metadata for UI celebration trigger
-    if (surpriseMultiplier && surpriseMultiplier > 1.0) {
-      metadata._surpriseMultiplier = surpriseMultiplier;
-      metadata._surpriseLabel = this.getSurpriseLabel(surpriseMultiplier);
+    if (metadata && typeof metadata === 'object' && finalMultiplier > 1.0) {
+      metadata._deterministicMultiplier = finalMultiplier;
+      metadata._deterministicBonusLabel = this.getDeterministicMultiplierLabel(finalMultiplier);
     }
 
     return finalMultiplier;
   }
 
   /**
-   * Roll for surprise XP multiplier using variable ratio schedule.
-   * Returns 1.0 (no surprise), 1.5, 2.0, or 3.0.
-   *
-   * Uses crypto-quality random for fairness (no bias from Math.random).
-   * Distribution designed to feel exciting but not exploitative.
+   * Get user-facing label for deterministic multiplier tiers.
    */
-  rollSurpriseMultiplier() {
-    // SECURITY FIX #17: Use crypto.getRandomValues for fair, unpredictable rolls
-    const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    const roll = (array[0] / 0xFFFFFFFF) * 100; // 0-100 range
-    if (roll < 1) return 3.0;       // 1% — LEGENDARY
-    if (roll < 5) return 2.0;       // 4% — Double XP
-    if (roll < 15) return 1.5;      // 10% — Lucky
-    return 1.0;                      // 85% — Normal
-  }
-
-  /**
-   * Get user-facing label for surprise multiplier tier.
-   */
-  getSurpriseLabel(multiplier) {
-    if (multiplier >= 3.0) return 'LEGENDARY Workout!!';
-    if (multiplier >= 2.0) return 'Double XP Surge!';
-    if (multiplier >= 1.5) return 'Lucky Workout!';
+  getDeterministicMultiplierLabel(multiplier) {
+    if (multiplier >= 2.0) return 'Consistency Command Bonus';
+    if (multiplier >= 1.5) return 'Streak Momentum Bonus';
+    if (multiplier > 1.0) return 'Training Rhythm Bonus';
     return null;
   }
   
@@ -796,10 +735,9 @@ export class GamificationEngine {
         return { awarded: false, reason: 'no_record' };
       }
 
-      const currentFreezes = userGamification.streakFreezes || 0;
-      const MAX_FREEZES = 3;
+      const currentFreezes = toBoundedStreakFreezeCount(userGamification.streakFreezes);
 
-      if (currentFreezes >= MAX_FREEZES) {
+      if (currentFreezes >= MAX_STREAK_FREEZES) {
         return { awarded: false, reason: 'max_reached', current: currentFreezes };
       }
 
@@ -815,7 +753,7 @@ export class GamificationEngine {
       return {
         awarded: true,
         current: currentFreezes + 1,
-        max: MAX_FREEZES
+        max: MAX_STREAK_FREEZES
       };
     } catch (error) {
       piiSafeLogger.error('Failed to award streak freeze', {
@@ -840,7 +778,9 @@ export class GamificationEngine {
         return { used: false, reason: 'no_record' };
       }
 
-      const currentFreezes = userGamification.streakFreezes || 0;
+      const currentFreezes = toBoundedStreakFreezeCount(userGamification.streakFreezes);
+      const streakFreezesUsed = toNonNegativeInteger(userGamification.streakFreezesUsed);
+      const streakPreserved = toNonNegativeInteger(userGamification.streakCount);
 
       if (currentFreezes <= 0) {
         return { used: false, reason: 'no_freezes', streakLost: true };
@@ -848,20 +788,20 @@ export class GamificationEngine {
 
       await userGamification.update({
         streakFreezes: currentFreezes - 1,
-        streakFreezesUsed: (userGamification.streakFreezesUsed || 0) + 1,
+        streakFreezesUsed: streakFreezesUsed + 1,
         lastStreakFreezeUsed: new Date()
       });
 
       piiSafeLogger.trackGamificationEngagement('streak_freeze_used', userId, {
         remaining: currentFreezes - 1,
-        streakPreserved: userGamification.streakCount
+        streakPreserved
       });
 
       return {
         used: true,
         remaining: currentFreezes - 1,
-        streakPreserved: userGamification.streakCount,
-        message: 'Streak freeze used! Your streak is safe. 🛡️'
+        streakPreserved,
+        message: 'Streak freeze used. Your streak is safe.'
       };
     } catch (error) {
       piiSafeLogger.error('Failed to use streak freeze', {
@@ -885,9 +825,9 @@ export class GamificationEngine {
       }
 
       return {
-        available: userGamification.streakFreezes || 0,
-        max: 3,
-        used: userGamification.streakFreezesUsed || 0,
+        available: toBoundedStreakFreezeCount(userGamification.streakFreezes),
+        max: MAX_STREAK_FREEZES,
+        used: toNonNegativeInteger(userGamification.streakFreezesUsed),
         lastEarned: userGamification.lastStreakFreezeEarned,
         lastUsed: userGamification.lastStreakFreezeUsed
       };

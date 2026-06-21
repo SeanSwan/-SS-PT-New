@@ -8,7 +8,10 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Dumbbell, TrendingUp, Trophy, Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
+import {
+  getSafeGamificationIdSegment,
+  useGamificationData,
+} from '../../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
 import {
@@ -23,6 +26,7 @@ import {
   PageTitle,
   PageWrap,
   RecapGrid,
+  RecapEmptyState,
   RecapItem,
   RecapLabel,
   RecapValue,
@@ -40,7 +44,12 @@ import {
   XpBarTrack,
   XpBarWrap,
 } from './ClientProgressDashboardPage.styles';
-
+import { getClientProgressDashboardMetrics, type WeeklyRecap } from './ClientProgressDashboardPage.metrics';
+import {
+  normalizeClientPersonalRecords,
+  type PersonalRecordView,
+} from './ClientProgressDashboardPage.records';
+import { loadClientWeeklyRecap } from './ClientProgressDashboardPage.recap';
 // Do not re-introduce ProfileChartsGrid on /dashboard/client/progress.
 // The canonical chart registry is owned by CanonicalProgressChartsGrid + useClientProgressCharts.
 const CanonicalProgressChartsGrid = React.lazy(
@@ -50,76 +59,48 @@ const CompanionPet = React.lazy(
   () => import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')
 );
 
-const TIER_COLORS: Record<string, string> = {
-  bronze: 'var(--tier-bronze, #CD7F32)',
-  silver: 'var(--tier-silver, #C0C0C0)',
-  gold: 'var(--tier-gold, #C6A84B)',
-  platinum: 'var(--accent-secondary, #8B5CF6)',
-  bronze_forge: 'var(--tier-bronze, #CD7F32)',
-  silver_edge: 'var(--tier-silver, #C0C0C0)',
-  titanium_core: 'var(--tier-gold, #C6A84B)',
-  obsidian_warrior: 'var(--bg-base, #0A0A0F)',
-  crystalline_swan: 'var(--accent-primary, #60C0F0)',
-};
-
-const TIER_LABELS: Record<string, string> = {
-  bronze: 'Bronze Forge',
-  silver: 'Silver Edge',
-  gold: 'Titanium Core',
-  platinum: 'Obsidian+',
-  bronze_forge: 'Bronze Forge',
-  silver_edge: 'Silver Edge',
-  titanium_core: 'Titanium Core',
-  obsidian_warrior: 'Obsidian Warrior',
-  crystalline_swan: 'Crystalline Swan',
-};
-
-interface WeeklyRecap {
-  thisWeek?: {
-    workouts?: number;
-    surpriseMultipliers?: number;
-    totalXP?: number;
-  };
-  current?: {
-    streak?: number;
-  };
-}
-
-interface PersonalRecord {
-  exerciseName?: string;
-  exercise?: string;
-  weight?: string | number;
-  estimated1RM?: string | number;
-  value?: string | number;
-  unit?: string;
-  reps?: string | number;
-  date?: string;
-}
-
 const ClientProgressDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, authAxios } = useAuth();
   const { profile } = useGamificationData();
   const { isPro, isElite } = useSubscription();
   const hasAdvancedAccess = isPro || isElite;
+  const companionPetUserId = Number(user?.id);
+  const canRenderCompanionPet = Number.isInteger(companionPetUserId) && companionPetUserId > 0;
   const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
-  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
+  const [weeklyRecapSettled, setWeeklyRecapSettled] = useState(false);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecordView[]>([]);
 
   useEffect(() => {
-    if (!authAxios || !user?.id) return;
-    authAxios.get(`/api/gamification/users/${user.id}/weekly-recap`)
-      .then(res => {
-        const payload = res.data as unknown;
-        const recap = (
-          typeof payload === 'object' &&
-          payload !== null &&
-          'data' in payload
-        )
-          ? (payload as { data?: WeeklyRecap }).data ?? null
-          : payload as WeeklyRecap;
+    let isMounted = true; const cleanup = () => { isMounted = false; };
+    setWeeklyRecapSettled(false);
+
+    if (!authAxios || !user?.id) {
+      setWeeklyRecap(null);
+      setWeeklyRecapSettled(true);
+      return cleanup;
+    }
+
+    const weeklyRecapUserIdSegment = getSafeGamificationIdSegment(user.id);
+    if (!weeklyRecapUserIdSegment) {
+      setWeeklyRecap(null);
+      setWeeklyRecapSettled(true);
+      return cleanup;
+    }
+
+    loadClientWeeklyRecap(authAxios, weeklyRecapUserIdSegment)
+      .then(recap => {
+        if (!isMounted) return;
         setWeeklyRecap(recap ?? null);
       })
-      .catch(() => { /* weekly recap is non-blocking */ });
+      .catch(() => {
+        if (isMounted) setWeeklyRecap(null);
+      })
+      .finally(() => {
+        if (isMounted) setWeeklyRecapSettled(true);
+      });
+
+    return cleanup;
   }, [authAxios, user?.id]);
 
   useEffect(() => {
@@ -129,15 +110,23 @@ const ClientProgressDashboardPage: React.FC = () => {
       .then(res => {
         const payload = res.data as { data?: unknown; records?: unknown };
         const records = payload.data ?? payload.records ?? [];
-        setPersonalRecords(Array.isArray(records) ? records as PersonalRecord[] : []);
+        setPersonalRecords(normalizeClientPersonalRecords(records));
       })
       .catch(() => setPersonalRecords([]));
   }, [authAxios, user?.id]);
 
   const p = profile.data;
-  const tierColor = TIER_COLORS[p?.tier || 'bronze'] || 'var(--tier-bronze, #CD7F32)';
-  const tierLabel = TIER_LABELS[p?.tier || 'bronze'] || 'Bronze Forge';
-  const streakDays = (weeklyRecap?.current?.streak ?? p?.streakDays) || 0;
+  const {
+    level,
+    totalXp,
+    nextLevelProgress,
+    weekWorkouts,
+    weekBonuses,
+    weekXp,
+    streakDays,
+    tierColor,
+    tierLabel,
+  } = getClientProgressDashboardMetrics(p, weeklyRecap);
 
   return (
     <PageWrap>
@@ -148,7 +137,7 @@ const ClientProgressDashboardPage: React.FC = () => {
       <StatsStrip>
         <StatCard $delay={0} $accent={tierColor}>
           <StatLabel>Level</StatLabel>
-          <StatValue $color="var(--accent-primary, #60C0F0)">{p?.level || 1}</StatValue>
+          <StatValue $color="var(--accent-primary, #60C0F0)">{level}</StatValue>
         </StatCard>
         <StatCard $delay={1} $accent={tierColor}>
           <StatLabel>Tier</StatLabel>
@@ -156,12 +145,16 @@ const ClientProgressDashboardPage: React.FC = () => {
         </StatCard>
         <StatCard $delay={2}>
           <StatLabel>Total XP</StatLabel>
-          <StatValue>{(p?.points || 0).toLocaleString()}</StatValue>
+          <StatValue>{totalXp.toLocaleString()}</StatValue>
         </StatCard>
-        <StatCard $delay={3}>
+        <StatCard
+          $delay={3}
+          data-testid="client-progress-week-workouts"
+          aria-label={`Weekly workouts ${weekWorkouts}`}
+        >
           <StatLabel>Wk Workouts</StatLabel>
           <StatValue $color="var(--accent-secondary, #8B5CF6)">
-            {weeklyRecap?.thisWeek?.workouts ?? 0}
+            {weekWorkouts}
           </StatValue>
         </StatCard>
         <StatCard $delay={4}>
@@ -179,20 +172,26 @@ const ClientProgressDashboardPage: React.FC = () => {
       <XpBarWrap>
         <XpBarLabel>
           <LabelStar size={14} />
-          Level {p?.level || 1}{' -> '}{(p?.level || 1) + 1}
+          Level {level}{' -> '}{level + 1}
         </XpBarLabel>
-        <XpBarTrack>
-          <XpBarFill $pct={p?.nextLevelProgress || 0} />
+        <XpBarTrack
+          role="progressbar"
+          aria-label="Level progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={nextLevelProgress}
+        >
+          <XpBarFill $pct={nextLevelProgress} />
         </XpBarTrack>
-        <XpBarPct>{p?.nextLevelProgress || 0}%</XpBarPct>
+        <XpBarPct>{nextLevelProgress}%</XpBarPct>
       </XpBarWrap>
 
       <SplitRow>
         <Card>
           <CardTitle>Your Companion</CardTitle>
-          {user?.id ? (
+          {canRenderCompanionPet ? (
             <Suspense fallback={<Skeleton $h="140px" />}>
-              <CompanionPet userId={user.id as unknown as number} size={120} compact showControls={false} />
+              <CompanionPet userId={companionPetUserId} size={120} compact showControls={false} />
             </Suspense>
           ) : (
             <Skeleton $h="120px" />
@@ -204,15 +203,15 @@ const ClientProgressDashboardPage: React.FC = () => {
           {weeklyRecap ? (
             <RecapGrid>
               <RecapItem>
-                <RecapValue>{weeklyRecap?.thisWeek?.workouts ?? 0}</RecapValue>
+                <RecapValue>{weekWorkouts}</RecapValue>
                 <RecapLabel>Workouts</RecapLabel>
               </RecapItem>
               <RecapItem>
-                <RecapValue>{weeklyRecap?.thisWeek?.surpriseMultipliers ?? 0}</RecapValue>
+                <RecapValue>{weekBonuses}</RecapValue>
                 <RecapLabel>Bonuses</RecapLabel>
               </RecapItem>
               <RecapItem>
-                <RecapValue>{weeklyRecap?.thisWeek?.totalXP ?? 0}</RecapValue>
+                <RecapValue>{weekXp}</RecapValue>
                 <RecapLabel>XP Earned</RecapLabel>
               </RecapItem>
               <RecapItem>
@@ -220,6 +219,14 @@ const ClientProgressDashboardPage: React.FC = () => {
                 <RecapLabel>Streak Days</RecapLabel>
               </RecapItem>
             </RecapGrid>
+          ) : weeklyRecapSettled ? (
+            <RecapEmptyState
+              role="status"
+              aria-live="polite"
+              aria-label="Weekly recap unavailable"
+            >
+              No weekly recap available yet.
+            </RecapEmptyState>
           ) : (
             <RecapGrid>
               {[1, 2, 3, 4].map(i => (
@@ -237,14 +244,13 @@ const ClientProgressDashboardPage: React.FC = () => {
         <Card $bottom="1.25rem">
           <CardTitle><Trophy size={16} /> Personal Records</CardTitle>
           <StatsStrip $bottom="0">
-            {personalRecords.slice(0, 4).map((pr: PersonalRecord, i: number) => (
-              <StatCard key={`${pr.exerciseName || pr.exercise || 'pr'}-${i}`} $delay={i} $accent="var(--accent-gold, #C6A84B)">
-                <StatLabel>{pr.exerciseName || pr.exercise || 'Exercise'}</StatLabel>
+            {personalRecords.slice(0, 4).map((pr: PersonalRecordView, i: number) => (
+              <StatCard key={pr.key} $delay={i} $accent="var(--accent-gold, #C6A84B)">
+                <StatLabel>{pr.exerciseName}</StatLabel>
                 <StatValue $color="var(--accent-gold, #C6A84B)">
-                  {pr.weight || pr.estimated1RM || pr.value || '-'}
-                  {pr.unit || 'lbs'}
+                  {pr.valueText}
                 </StatValue>
-                <StatSub>{pr.reps ? `${pr.reps} reps` : pr.date || ''}</StatSub>
+                <StatSub>{pr.detailText}</StatSub>
               </StatCard>
             ))}
           </StatsStrip>
@@ -259,7 +265,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         </ChartsSectionHeader>
         {user?.id ? (
           <Suspense fallback={<ChartsLoading>Loading charts...</ChartsLoading>}>
-            <CanonicalProgressChartsGrid userId={user.id} />
+            <CanonicalProgressChartsGrid />
           </Suspense>
         ) : (
           <Skeleton $h="300px" />

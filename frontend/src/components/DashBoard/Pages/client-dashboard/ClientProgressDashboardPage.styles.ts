@@ -70,7 +70,7 @@ export const StatCard = styled.div<{ $accent?: string; $delay?: number }>`
 `;
 
 export const StatLabel = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.65rem;
   font-weight: 500;
@@ -87,7 +87,7 @@ export const StatValue = styled.span<{ $color?: string }>`
 `;
 
 export const StatSub = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-size: 0.7rem;
 `;
 
@@ -141,7 +141,7 @@ export const XpBarFill = styled.div<{ $pct: number }>`
 `;
 
 export const XpBarPct = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   white-space: nowrap;
@@ -188,7 +188,7 @@ export const TrailingChevron = styled(ChevronRight)`
 
 export const ChartsLoading = styled.div`
   padding: 2rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   text-align: center;
 `;
 
@@ -205,6 +205,16 @@ export const RecapItem = styled.div`
   border-radius: 8px;
 `;
 
+export const RecapEmptyState = styled.div`
+  padding: 1rem;
+  border-radius: 8px;
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
+  background: var(--bg-surface, #1A1A24);
+  border: 1px dashed var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
+  font-size: 0.85rem;
+  text-align: center;
+`;
+
 export const RecapValue = styled.div`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
@@ -213,7 +223,7 @@ export const RecapValue = styled.div`
 `;
 
 export const RecapLabel = styled.div`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-size: 0.65rem;
   letter-spacing: 0.04em;
   margin-top: 0.25rem;

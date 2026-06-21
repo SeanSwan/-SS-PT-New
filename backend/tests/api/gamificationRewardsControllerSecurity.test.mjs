@@ -12,6 +12,7 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const adminGamificationSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts');
+const adminGamificationCatalogActionsSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationCatalogActions.ts');
 const useGamificationDataSource = readFrontend('src/hooks/gamification/useGamificationData.ts');
 
 const functionSource = (name, nextName) => {
@@ -44,10 +45,11 @@ describe('gamification rewards controller security hardening', () => {
     expect(routeSource).toContain("router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController.deleteReward)");
     expect(routeSource).toContain("router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, pointActionLimiter, authorizeResourceAccess('userId'), gamificationController.redeemReward)");
     expect(adminGamificationSource).toContain("authAxios.get('/api/v1/gamification/rewards')");
-    expect(adminGamificationSource).toContain("authAxios.post('/api/v1/gamification/rewards', reward)");
-    expect(adminGamificationSource).toContain('authAxios.put(`/api/v1/gamification/rewards/${id}`, updatedFields)');
-    expect(adminGamificationSource).toContain('authAxios.delete(`/api/v1/gamification/rewards/${id}`)');
-    expect(useGamificationDataSource).toContain('authAxios.post(`/api/v1/gamification/users/${targetUserId}/rewards/${rewardId}/redeem`)');
+    expect(adminGamificationCatalogActionsSource).toContain("authAxios.post('/api/v1/gamification/rewards', reward)");
+    expect(adminGamificationCatalogActionsSource).toContain("mutationPathFor('rewards', id)");
+    expect(adminGamificationCatalogActionsSource).toContain('authAxios.put(path, updatedFields)');
+    expect(adminGamificationCatalogActionsSource).toContain('authAxios.delete(path)');
+    expect(useGamificationDataSource).toContain('authAxios.post(`/api/v1/gamification/users/${userIdSegment}/rewards/${rewardIdSegment}/redeem`)');
   });
 
   it('keeps reward client-facing failures stable', () => {
@@ -74,9 +76,40 @@ describe('gamification rewards controller security hardening', () => {
   it('strictly normalizes user-scoped reward redemption ids', () => {
     expect(rewardSources.redeem).toContain('const normalizedUserId = parsePositiveInteger(userId);');
     expect(rewardSources.redeem).toContain('const normalizedRewardId = parsePositiveInteger(rewardId);');
+    expect(rewardSources.redeem).toContain('const rewardPointCost = parseNonNegativeInteger(reward.pointCost);');
     expect(rewardSources.redeem).toContain('User.findByPk(normalizedUserId');
     expect(rewardSources.redeem).toContain('id: normalizedRewardId,');
     expect(rewardSources.redeem).toContain('userId: normalizedUserId,');
     expect(rewardSources.redeem).toContain('rewardId: normalizedRewardId,');
+    expect(rewardSources.redeem).toContain('pointsCost: rewardPointCost');
+  });
+
+  it('locks user points and reward stock rows before redemption checks', () => {
+    const normalizedRedeemSource = rewardSources.redeem.replace(/\r\n/g, '\n');
+
+    expect(normalizedRedeemSource).toContain(`User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      })`);
+    expect(normalizedRedeemSource).toContain(`Reward.findOne({
+        where: {
+          id: normalizedRewardId,
+          isActive: true
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      })`);
+  });
+
+  it('uses the central point ledger for reward redemption spends', () => {
+    expect(rewardSources.redeem).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(rewardSources.redeem).toContain('if (rewardPointCost > 0) {');
+    expect(rewardSources.redeem).toContain('points: rewardPointCost');
+    expect(rewardSources.redeem).toContain("transactionType: 'spend'");
+    expect(rewardSources.redeem).toContain("source: 'reward_redemption'");
+    expect(rewardSources.redeem).toContain('metadata: { rewardId: reward.id, userRewardId: userReward.id }');
+    expect(rewardSources.redeem).toContain('idempotencyKey: `reward:${normalizedUserId}:${reward.id}:${userReward.id}`');
+    expect(rewardSources.redeem).not.toContain('await PointTransaction.create({');
+    expect(rewardSources.redeem).not.toContain('await user.update({ points: newBalance');
   });
 });

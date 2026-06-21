@@ -21,9 +21,9 @@ describe('social point award regression', () => {
     expect(modelSource).toContain("'social_engagement'");
     expect(modelSource).toContain("'goal_milestone'");
     expect(modelSource).toContain("'goal_completed'");
-    expect(modelSource).not.toMatch(/idempotencyKey:\s*\{/);
-    expect(serviceSource).toContain("metadata.idempotencyKey");
-    expect(serviceSource).not.toMatch(/idempotencyKey:\s*normalizedKey/);
+    expect(modelSource).toMatch(/idempotencyKey:\s*\{/);
+    expect(serviceSource).toContain('withIdempotencyMetadata(metadata, normalizedKey)');
+    expect(serviceSource).toMatch(/idempotencyKey:\s*normalizedKey/);
     expect(createMigration).toContain("'social_engagement'");
     expect(createMigration).toContain("'goal_milestone'");
     expect(createMigration).toContain("'goal_completed'");

@@ -1,21 +1,26 @@
 /**
  * ============================================================================
  * FILE: VaultDecryptionService.mjs
- * PURPOSE: Vault Decryption loot drop system — variable-ratio reinforcement
+ * PURPOSE: Vault Decryption cosmetic reward reveal system
  * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
  * AI VILLAGE VALIDATED: Pending
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Manages the loot drop system using cryptographically
- * secure RNG. After qualifying actions (workouts, streaks, achievements),
- * the system rolls for a loot drop with rarity tiers. Cosmetic-only rewards
- * use RNG; real rewards (XP bonuses, streak freezes) are deterministic milestones.
+ * WHAT THIS FILE DOES: Manages cosmetic vault reveal drops using
+ * cryptographically secure RNG. Randomness only affects presentation rewards;
+ * XP, streaks, and progression value stay in deterministic ledger services.
  *
  * HOW IT FITS IN THE APP: Called by GamificationEngine after point awards.
  * Frontend displays the "Vault Decryption" animation when a drop occurs.
  */
 
 import crypto from 'crypto';
+import {
+  getTimestampMs,
+  isPlainRecord,
+  normalizeVaultDrop,
+  toActivityLogArray,
+} from './vaultDecryptionState.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Rarity Tiers
@@ -29,6 +34,7 @@ const RARITY_TIERS = {
     glowColor: '#4070C0',
     dropChance: 0.45,     // 45% of drops
     xpBonus: 0,
+    rewardMode: 'cosmetic_only',
     decryptionTime: 1.5,  // seconds for animation
   },
   rare: {
@@ -36,7 +42,8 @@ const RARITY_TIERS = {
     color: '#C6A84B',     // Gilded Fern
     glowColor: '#C6A84B',
     dropChance: 0.30,     // 30% of drops
-    xpBonus: 25,
+    xpBonus: 0,
+    rewardMode: 'cosmetic_only',
     decryptionTime: 2.5,
   },
   epic: {
@@ -44,7 +51,8 @@ const RARITY_TIERS = {
     color: '#8B5CF6',     // Wing Purple
     glowColor: '#8B5CF6',
     dropChance: 0.18,     // 18% of drops
-    xpBonus: 75,
+    xpBonus: 0,
+    rewardMode: 'cosmetic_only',
     decryptionTime: 3.5,
   },
   legendary: {
@@ -52,7 +60,8 @@ const RARITY_TIERS = {
     color: '#60C0F0',     // Ice Wing
     glowColor: '#60C0F0',
     dropChance: 0.06,     // 6% of drops
-    xpBonus: 200,
+    xpBonus: 0,
+    rewardMode: 'cosmetic_only',
     decryptionTime: 5.0,
   },
   pearlescent: {
@@ -60,7 +69,8 @@ const RARITY_TIERS = {
     color: '#E0ECF4',     // Frost White (animated gradient in UI)
     glowColor: '#E0ECF4',
     dropChance: 0.01,     // 1% of drops
-    xpBonus: 500,
+    xpBonus: 0,
+    rewardMode: 'cosmetic_only',
     decryptionTime: 7.0,
   },
 };
@@ -85,7 +95,7 @@ const LOOT_TABLES = {
     { id: 'frame_gilded_vine', type: 'avatar_frame', name: 'Gilded Vine Frame', description: 'Gold vine avatar frame' },
     { id: 'emote_thunder', type: 'emote', name: 'Thunder Emote', description: 'Animated thunder clap reaction' },
     { id: 'banner_sapphire', type: 'profile_banner', name: 'Sapphire Depths Banner', description: 'Profile banner: sapphire ocean' },
-    { id: 'xp_boost_10', type: 'xp_boost', name: '10% XP Boost (24h)', description: 'Earn 10% more XP for 24 hours', duration: 86400 },
+    { id: 'badge_sapphire_spark', type: 'badge', name: 'Sapphire Spark Badge', description: 'Profile badge: sapphire spark' },
   ],
   epic: [
     { id: 'title_apex_predator', type: 'title', name: 'Apex Predator', description: 'Profile title: "Apex Predator"' },
@@ -93,22 +103,22 @@ const LOOT_TABLES = {
     { id: 'frame_purple_aurora', type: 'avatar_frame', name: 'Purple Aurora Frame', description: 'Animated purple aurora frame' },
     { id: 'emote_swan_dive', type: 'emote', name: 'Swan Dive', description: 'Animated swan dive celebration' },
     { id: 'banner_aurora', type: 'profile_banner', name: 'Aurora Borealis Banner', description: 'Animated aurora banner' },
-    { id: 'xp_boost_25', type: 'xp_boost', name: '25% XP Boost (24h)', description: 'Earn 25% more XP for 24 hours', duration: 86400 },
-    { id: 'streak_freeze_1', type: 'streak_freeze', name: 'Streak Freeze', description: 'One free streak freeze token' },
+    { id: 'badge_aurora_edge', type: 'badge', name: 'Aurora Edge Badge', description: 'Animated aurora badge' },
+    { id: 'banner_crystal_wake', type: 'profile_banner', name: 'Crystal Wake Banner', description: 'Profile banner: crystalline wake' },
   ],
   legendary: [
     { id: 'title_obsidian_warrior', type: 'title', name: 'Obsidian Warrior', description: 'Profile title: "Obsidian Warrior"' },
     { id: 'frame_ice_crystal', type: 'avatar_frame', name: 'Ice Crystal Frame', description: 'Animated crystalline ice frame' },
     { id: 'emote_legendary_roar', type: 'emote', name: 'Legendary Roar', description: 'Full-screen legendary celebration' },
     { id: 'banner_void', type: 'profile_banner', name: 'Void Crystal Banner', description: 'Animated void crystal banner' },
-    { id: 'xp_boost_50', type: 'xp_boost', name: '50% XP Boost (48h)', description: 'Earn 50% more XP for 48 hours', duration: 172800 },
-    { id: 'streak_freeze_3', type: 'streak_freeze', name: '3x Streak Freeze', description: 'Three streak freeze tokens' },
+    { id: 'badge_obsidian_crown', type: 'badge', name: 'Obsidian Crown Badge', description: 'Animated obsidian crown badge' },
+    { id: 'banner_swan_summit', type: 'profile_banner', name: 'Swan Summit Banner', description: 'Profile banner: summit lights' },
   ],
   pearlescent: [
     { id: 'title_crystalline_swan', type: 'title', name: 'Crystalline Swan', description: 'Profile title: "Crystalline Swan" — rarest title' },
     { id: 'frame_pearlescent', type: 'avatar_frame', name: 'Pearlescent Frame', description: 'Animated pearlescent shimmer frame' },
     { id: 'banner_nebula', type: 'profile_banner', name: 'Nebula Crown Banner', description: 'Animated cosmic nebula banner' },
-    { id: 'xp_boost_100', type: 'xp_boost', name: '2x XP (72h)', description: 'Double XP for 72 hours', duration: 259200 },
+    { id: 'emote_prismatic_salute', type: 'emote', name: 'Prismatic Salute', description: 'Full-screen prismatic celebration' },
     { id: 'exclusive_badge', type: 'badge', name: 'Pearlescent Swan Badge', description: 'Ultra-rare animated badge' },
   ],
 };
@@ -165,7 +175,8 @@ class VaultDecryptionService {
       rarityColor: rarityConfig.color,
       glowColor: rarityConfig.glowColor,
       decryptionTime: rarityConfig.decryptionTime,
-      xpBonus: rarityConfig.xpBonus,
+      xpBonus: 0,
+      rewardMode: 'cosmetic_only',
       item: {
         ...item,
         rarity,
@@ -206,32 +217,36 @@ class VaultDecryptionService {
    * For MVP, we store drops in the gamification record's JSON field.
    */
   static async getUserInventory(gamificationRecord) {
-    const activityLog = gamificationRecord?.activityLog || [];
+    const activityLog = toActivityLogArray(gamificationRecord?.activityLog);
     return activityLog
-      .filter(entry => entry.type === 'vault_drop')
-      .map(entry => entry.drop)
-      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      .filter(entry => entry.type === 'vault_drop' && isPlainRecord(entry.drop))
+      .map(entry => normalizeVaultDrop(entry.drop, RARITY_TIERS))
+      .filter(Boolean)
+      .sort((a, b) => getTimestampMs(b.timestamp) - getTimestampMs(a.timestamp));
   }
 
   /**
    * Record a drop in the user's activity log.
    */
-  static async recordDrop(gamificationRecord, drop) {
-    if (!gamificationRecord) return;
+  static async recordDrop(gamificationRecord, drop, options = {}) {
+    if (!gamificationRecord || !isPlainRecord(drop)) return null;
 
-    const activityLog = [...(gamificationRecord.activityLog || [])];
+    const activityLog = toActivityLogArray(gamificationRecord.activityLog);
+    const safeDrop = normalizeVaultDrop(drop, RARITY_TIERS, new Date().toISOString());
+    if (!safeDrop) return null;
+    const { timestamp } = safeDrop;
     activityLog.push({
       type: 'vault_drop',
-      drop,
-      timestamp: drop.timestamp,
+      drop: safeDrop,
+      timestamp,
     });
 
     // Keep last 100 activity log entries
     const trimmedLog = activityLog.slice(-100);
 
-    await gamificationRecord.update({ activityLog: trimmedLog });
+    await gamificationRecord.update({ activityLog: trimmedLog }, options);
 
-    return drop;
+    return safeDrop;
   }
 
   /**

@@ -1,5 +1,5 @@
 /**
- * useGamificationData — profile shape regression tests
+ * useGamificationData - profile shape regression tests
  * =====================================================
  * Locks the canonical /api/v1/gamification/profile unwrap path against the
  * streakDays shape drift discovered in the canonical-surface-audit 2026-04-13:
@@ -22,7 +22,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// ── Mock auth context (provides user + authAxios) ────────────────────────
+// Mock auth context (provides user + authAxios)
 const mockAxiosGet = vi.fn();
 const mockUser = { id: 42, firstName: 'Test', lastName: 'Client', username: 'testclient' };
 vi.mock('../../context/AuthContext', () => ({
@@ -32,19 +32,19 @@ vi.mock('../../context/AuthContext', () => ({
   }),
 }));
 
-// ── Mock toast ───────────────────────────────────────────────────────────
+// Mock toast
 vi.mock('../use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-// ── Mock logger ──────────────────────────────────────────────────────────
+// Mock logger
 vi.mock('@/utils/logger', () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));
 
 import { useGamificationData } from './useGamificationData';
 
-// Wrapper factory — fresh QueryClient per test so caches don't bleed
+// Wrapper factory - fresh QueryClient per test so caches don't bleed
 const makeWrapper = () => {
   const client = new QueryClient({
     defaultOptions: {
@@ -57,7 +57,7 @@ const makeWrapper = () => {
   );
 };
 
-// Real backend-shape response — matches gamificationController.getUserProfile:698-710
+// Real backend-shape response - matches gamificationController.getUserProfile:698-710
 // streakDays is at TOP LEVEL of profile (spread from user.toJSON()), not nested under stats
 const realProfileResponse = {
   data: {
@@ -70,7 +70,7 @@ const realProfileResponse = {
       points: 2500,
       level: 5,
       tier: 'silver_edge',
-      streakDays: 12, // ← TOP-LEVEL, the real column on User model
+      streakDays: 12, // TOP-LEVEL, the real column on User model
       longestStreakDays: 20,
       lastActivityDate: '2026-04-13T00:00:00.000Z',
       leaderboardPosition: 7,
@@ -135,7 +135,7 @@ describe('useGamificationData — profile streakDays top-level read', () => {
     expect(result.current.profile.data?.streakDays).toBe(0);
   });
 
-  it('does NOT read from raw.stats.streakDays — legacy path must stay dead (regression guard)', async () => {
+  it('does NOT read from raw.stats.streakDays - legacy path must stay dead (regression guard)', async () => {
     // If some future refactor reintroduces the `stats` nesting, this test
     // proves the hook ignores it in favor of the real top-level column.
     mockAxiosGet.mockImplementation((url: string) => {
@@ -148,8 +148,8 @@ describe('useGamificationData — profile streakDays top-level read', () => {
               points: 2500,
               level: 5,
               tier: 'silver_edge',
-              streakDays: 15, // real top-level — must win
-              stats: { streakDays: 999 }, // legacy nested — must be ignored
+              streakDays: 15, // real top-level must win
+              stats: { streakDays: 999 }, // legacy nested must be ignored
             },
           },
         });
@@ -224,5 +224,23 @@ describe('useGamificationData — profile streakDays top-level read', () => {
 
     expect(result.current.profile.data?.achievements[0]?.achievement.name).toBe('First Workout');
     expect(result.current.profile.data?.recentTransactions[0]?.description).toBe('Session recap approved');
+  });
+
+  it('does not turn a total profile outage into a synthetic zero-XP profile', async () => {
+    mockAxiosGet.mockImplementation((url: string) => {
+      if (url.includes('/api/v1/gamification/profile') || url.includes('/api/profile/achievements')) {
+        return Promise.reject(new Error('private gamification profile outage'));
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    const { result } = renderHook(() => useGamificationData(), { wrapper: makeWrapper() });
+
+    await waitFor(() => {
+      expect(result.current.profile.isError).toBe(true);
+    }, { timeout: 3000 });
+
+    expect(result.current.profile.data).toBeUndefined();
+    expect(JSON.stringify(result.current)).not.toContain('private gamification profile outage');
   });
 });

@@ -54,6 +54,16 @@ const easeOutExpo = (t: number): number => {
   return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 };
 
+export const normalizeXpCounterValue = (value: unknown): number => {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^-?\d+(?:\.\d+)?$/.test(value.trim())
+      ? Number(value)
+      : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.round(parsed);
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
@@ -105,13 +115,18 @@ const XPCounter: React.FC<XPCounterProps> = ({
   label = 'XP EARNED',
   showDelta = true,
 }) => {
-  const [displayValue, setDisplayValue] = useState(startXP);
+  const safeStartXP = normalizeXpCounterValue(startXP);
+  const safeEndXP = Math.max(safeStartXP, normalizeXpCounterValue(endXP));
+  const [displayValue, setDisplayValue] = useState(safeStartXP);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
   // Auto-calculate duration based on delta magnitude
-  const delta = endXP - startXP;
-  const duration = manualDuration || (delta < 100 ? 800 : delta < 1000 ? 1200 : 1500);
+  const delta = safeEndXP - safeStartXP;
+  const parsedManualDuration = typeof manualDuration === 'number' ? manualDuration : Number.NaN;
+  const duration = Number.isFinite(parsedManualDuration) && parsedManualDuration > 0
+    ? parsedManualDuration
+    : (delta < 100 ? 800 : delta < 1000 ? 1200 : 1500);
 
   // Increment logic: <100 by 1s, <1000 by 5s, 1000+ by 25s
   const getIncrement = (remaining: number): number => {
@@ -122,9 +137,9 @@ const XPCounter: React.FC<XPCounterProps> = ({
 
   useEffect(() => {
     // Respect prefers-reduced-motion
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     if (prefersReducedMotion) {
-      setDisplayValue(endXP);
+      setDisplayValue(safeEndXP);
       onComplete?.();
       return;
     }
@@ -135,14 +150,14 @@ const XPCounter: React.FC<XPCounterProps> = ({
       const progress = Math.min(elapsed / duration, 1);
       const easedProgress = easeOutExpo(progress);
 
-      const currentValue = Math.round(startXP + delta * easedProgress);
+      const currentValue = Math.round(safeStartXP + delta * easedProgress);
       setDisplayValue(currentValue);
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
         // Guarantee exact final value
-        setDisplayValue(endXP);
+        setDisplayValue(safeEndXP);
         onComplete?.();
       }
     };
@@ -154,7 +169,7 @@ const XPCounter: React.FC<XPCounterProps> = ({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [startXP, endXP, duration, delta, onComplete]);
+  }, [safeStartXP, safeEndXP, duration, delta, onComplete]);
 
   return (
     <CounterContainer

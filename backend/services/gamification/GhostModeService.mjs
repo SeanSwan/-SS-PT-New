@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FILE: GhostModeService.mjs
- * PURPOSE: Ghost Mode — compete against your own previous workout performance
+ * PURPOSE: Ghost Mode - compete against your own previous workout performance
  * AUTHOR: Claude Opus 4.6 | CREATED: 2026-03-28
  * AI VILLAGE VALIDATED: Pending
  * ============================================================================
@@ -9,54 +9,73 @@
  * WHAT THIS FILE DOES: Retrieves a user's best previous workout matching the
  * current category/muscle group and creates a "ghost" comparison. During the
  * workout, the user sees their previous reps/weight/volume as a target to beat.
- * Beating the ghost awards bonus XP and triggers a "Ghost Defeated" celebration.
+ * Beating the ghost triggers a "Ghost Defeated" celebration. Real XP awards
+ * must come from server-verified workout completion, not client comparison data.
  *
  * HOW IT FITS IN THE APP: Called from workout logger when Ghost Mode is toggled on.
  * The service queries WorkoutSessions for matching previous workouts and formats
  * the ghost data for real-time comparison.
  */
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // SECTION: Ghost Data Structure
 // PURPOSE: Defines what ghost data looks like for comparison
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 
-/**
- * Ghost data shape returned to frontend:
- * {
- *   ghostId: string,
- *   sourceSessionId: number,
- *   sourceDate: ISO string,
- *   category: string,
- *   totalVolume: number,
- *   totalSets: number,
- *   exercises: [
- *     { name, sets: [{ reps, weight, volume }], totalVolume }
- *   ],
- *   comparison: { metric: 'volume' | 'reps' | 'weight', target: number }
- * }
- */
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Bonus XP Awards
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
+// SECTION: Cosmetic Ghost Rewards
+// -------------------------------------------------------------
 
 const GHOST_BONUSES = {
-  ghost_defeated: 50,        // Beat ghost's total volume
-  ghost_crushed: 100,        // Beat ghost by 10%+
-  ghost_dominated: 200,      // Beat ghost by 25%+
-  ghost_matched: 25,         // Matched ghost within 5%
-  personal_record_ghost: 150, // Set a PR while in ghost mode
+  ghost_defeated: 0,         // Beat ghost's total volume
+  ghost_crushed: 0,          // Beat ghost by 10%+
+  ghost_dominated: 0,        // Beat ghost by 25%+
+  ghost_matched: 0,          // Matched ghost within 5%
+  personal_record_ghost: 0,  // Set a PR while in ghost mode
+};
+const GHOST_REWARD_MODE = 'cosmetic_only';
+const GHOST_REWARD_TRUST = 'client_submitted_comparison';
+const noGhostComparison = () => ({
+  result: 'no_comparison',
+  bonusXP: 0,
+  bonuses: [],
+  rewardMode: GHOST_REWARD_MODE,
+  trustStatus: GHOST_REWARD_TRUST,
+});
+
+const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
+
+const toFiniteNumber = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value !== 'string') return 0;
+
+  const normalized = value.trim();
+  if (!DECIMAL_NUMBER_PATTERN.test(normalized)) return 0;
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
-// ─────────────────────────────────────────────────────────────
+const toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
+const toNonNegativeInteger = (value) => {
+  const parsed = toFiniteNumber(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+const getWorkoutExercises = (workoutData) => (
+  Array.isArray(workoutData?.exercises) ? workoutData.exercises : []
+);
+
+// -------------------------------------------------------------
 // SECTION: Core Service
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 
 class GhostModeService {
   /**
    * Get the best matching previous workout to serve as the ghost.
-   * Prioritizes: same category → same day-of-week → highest volume.
+   * Prioritizes: same category, then same day-of-week, then highest volume.
    */
   static async getGhost(userId, options = {}) {
     const { category = 'full_body', muscleGroup = null, exerciseIds = [] } = options;
@@ -179,23 +198,23 @@ class GhostModeService {
         sourceSessionId: bestSession.id,
         sourceDate: bestSession.date || bestSession.createdAt,
         category: normalizedCategory,
-        totalVolume: parseFloat(bestSession.totalVolume) || 0,
-        totalSets: parseInt(bestSession.totalSets) || 0,
-        totalReps: parseInt(bestSession.totalReps) || 0,
+        totalVolume: toNonNegativeNumber(bestSession.totalVolume),
+        totalSets: toNonNegativeInteger(bestSession.totalSets),
+        totalReps: toNonNegativeInteger(bestSession.totalReps),
         exercises: (Array.isArray(bestSession.exercises)
           ? bestSession.exercises
           : JSON.parse(bestSession.exercises || '[]')
         ).filter(e => e.exerciseName).map(e => ({
           name: e.exerciseName,
           exerciseId: e.exerciseId,
-          sets: e.sets || 0,
-          reps: e.reps || 0,
-          weight: e.weight || 0,
-          volume: e.volume || 0,
+          sets: toNonNegativeInteger(e.sets),
+          reps: toNonNegativeInteger(e.reps),
+          weight: toNonNegativeNumber(e.weight),
+          volume: toNonNegativeNumber(e.volume),
         })),
         comparison: {
           metric: 'volume',
-          target: parseFloat(bestSession.totalVolume) || 0,
+          target: toNonNegativeNumber(bestSession.totalVolume),
         },
       };
 
@@ -207,19 +226,19 @@ class GhostModeService {
   }
 
   /**
-   * Compare a completed workout against the ghost and award bonuses.
-   * Returns the comparison result and any bonus XP earned.
+   * Compare a completed workout against the ghost for cosmetic feedback.
+   * Point awards must be handled by server-verified workout completion.
    */
   static compareWithGhost(ghostData, currentWorkoutData) {
     if (!ghostData || !currentWorkoutData) {
-      return { result: 'no_comparison', bonusXP: 0, bonuses: [] };
+      return noGhostComparison();
     }
 
-    const ghostVolume = ghostData.totalVolume || 0;
-    const currentVolume = currentWorkoutData.totalVolume || 0;
+    const ghostVolume = toFiniteNumber(ghostData.totalVolume);
+    const currentVolume = toFiniteNumber(currentWorkoutData.totalVolume);
 
-    if (ghostVolume === 0) {
-      return { result: 'no_comparison', bonusXP: 0, bonuses: [] };
+    if (ghostVolume <= 0 || currentVolume < 0) {
+      return noGhostComparison();
     }
 
     const ratio = currentVolume / ghostVolume;
@@ -241,15 +260,16 @@ class GhostModeService {
     }
 
     // Per-exercise comparisons
-    const exerciseComparisons = (ghostData.exercises || []).map(ghostEx => {
-      const matchingCurrent = (currentWorkoutData.exercises || []).find(
+    const currentExercises = getWorkoutExercises(currentWorkoutData);
+    const exerciseComparisons = getWorkoutExercises(ghostData).map(ghostEx => {
+      const matchingCurrent = currentExercises.find(
         e => e.exerciseId === ghostEx.exerciseId || e.name === ghostEx.name
       );
 
       if (!matchingCurrent) return { name: ghostEx.name, status: 'skipped' };
 
-      const ghostVol = ghostEx.volume || 0;
-      const currentVol = matchingCurrent.volume || 0;
+      const ghostVol = toFiniteNumber(ghostEx.volume);
+      const currentVol = toFiniteNumber(matchingCurrent.volume);
 
       return {
         name: ghostEx.name,
@@ -267,6 +287,8 @@ class GhostModeService {
       ratio: Math.round(ratio * 100),
       bonusXP: totalBonusXP,
       bonuses,
+      rewardMode: GHOST_REWARD_MODE,
+      trustStatus: GHOST_REWARD_TRUST,
       exerciseComparisons,
     };
   }
@@ -277,7 +299,9 @@ class GhostModeService {
   static getConfig() {
     return {
       bonuses: GHOST_BONUSES,
-      description: 'Ghost Mode lets you race against your own previous best workout. Beat the ghost to earn bonus XP!',
+      description: 'Ghost Mode lets you race against your own previous best workout. Beat the ghost for a cosmetic victory moment.',
+      rewardMode: GHOST_REWARD_MODE,
+      trustStatus: GHOST_REWARD_TRUST,
     };
   }
 }

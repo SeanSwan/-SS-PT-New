@@ -44,7 +44,7 @@ describe('gamification milestones controller security hardening', () => {
     expect(routeSource).toContain("router.put('/milestones/:id', authenticate, requireAdmin, gamificationController.updateMilestone)");
     expect(routeSource).toContain("router.delete('/milestones/:id', authenticate, requireAdmin, gamificationController.deleteMilestone)");
     expect(routeSource).toContain("router.post('/users/:userId/check-milestones', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.checkAndAwardMilestones)");
-    expect(gamificationMapperSource).toContain('milestones: raw.milestones || []');
+    expect(gamificationMapperSource).toContain('milestones: asArray(raw.milestones)');
   });
 
   it('keeps milestone client-facing failures stable', () => {
@@ -73,5 +73,20 @@ describe('gamification milestones controller security hardening', () => {
     expect(milestoneSources.checkAndAward).toContain('User.findByPk(normalizedUserId');
     expect(milestoneSources.checkAndAward).toContain('where: { userId: normalizedUserId }');
     expect(milestoneSources.checkAndAward).toContain('userId: normalizedUserId,');
+  });
+
+  it('uses the central point ledger for milestone bonus awards', () => {
+    const normalizedCheckSource = milestoneSources.checkAndAward.replace(/\r\n/g, '\n');
+
+    expect(normalizedCheckSource).toContain(`User.findByPk(normalizedUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      })`);
+    expect(normalizedCheckSource).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(normalizedCheckSource).toContain("transactionType: 'bonus'");
+    expect(normalizedCheckSource).toContain("source: 'milestone_reached'");
+    expect(normalizedCheckSource).toContain("idempotencyKey: `milestone:check:${normalizedUserId}:${milestoneKey}`");
+    expect(normalizedCheckSource).not.toContain('await PointTransaction.create({');
+    expect(normalizedCheckSource).not.toContain('await user.update({ points: finalBalance');
   });
 });

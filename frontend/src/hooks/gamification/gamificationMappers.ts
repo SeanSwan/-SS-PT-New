@@ -12,7 +12,6 @@
 import {
   type GamificationProfile as NewGamificationProfile,
   type TierName,
-  type UserAchievement as NewUserAchievement,
   getLevelProgress,
 } from '../../types/gamification';
 import type {
@@ -21,6 +20,7 @@ import type {
   LegacyTier,
   UserAchievement,
 } from './gamificationLegacyTypes';
+import { firstNonNegativeNumber, isRecord, safeId, safeText } from './gamificationMapperGuards';
 
 interface UserSnapshot {
   id?: string | number;
@@ -31,10 +31,22 @@ interface UserSnapshot {
 }
 
 interface ProfileMapperInput {
-  raw: NewGamificationProfile & Record<string, any>;
+  raw: NewGamificationProfile & Record<string, unknown>;
   targetUserId?: string | number;
   user?: UserSnapshot | null;
 }
+
+type AchievementWithExtras = Achievement & Partial<{
+  rarity: string;
+  skillTree: string;
+  xpReward: number;
+  iconEmoji: string;
+}>;
+
+const mapNonNullAchievements = (
+  items: unknown[],
+  mapper: (item: unknown) => Achievement | null
+): Achievement[] => items.map(mapper).filter((achievement): achievement is Achievement => achievement !== null);
 
 export function mapTierToLegacy(tier: TierName): LegacyTier {
   switch (tier) {
@@ -67,65 +79,128 @@ export function getNextLegacyTier(
   }
 }
 
-export function mapAchievementToLegacy(ua: NewUserAchievement): UserAchievement {
+const clampProgressPercent = (value: unknown, fallback = 0) => {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' && /^-?\d+(\.\d+)?$/.test(value.trim()) ? Number(value.trim()) : fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.min(100, parsed));
+};
+
+const getUsableNextLevelTarget = (rawTarget: unknown, points: number): number | null => {
+  const parsed = typeof rawTarget === 'number' ? rawTarget : typeof rawTarget === 'string' && /^-?\d+(\.\d+)?$/.test(rawTarget.trim()) ? Number(rawTarget.trim()) : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed <= points) return null;
+  return Math.ceil(parsed);
+};
+
+const asArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
+const hasRealIsoCalendarDate = (text: string): boolean => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  if (!match) return true;
+  const [year, month, day] = match.slice(1).map(Number);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+  return calendarDate.getUTCFullYear() === year && calendarDate.getUTCMonth() + 1 === month && calendarDate.getUTCDate() === day;
+};
+
+const getSafeEarnedAt = (value: unknown): string => {
+  const text = safeText(value);
+  if (!text) return '';
+  const parsedDate = new Date(text);
+  return Number.isFinite(parsedDate.getTime()) && hasRealIsoCalendarDate(text) ? text : '';
+};
+export function mapAchievementToLegacy(item: unknown): UserAchievement | null {
+  if (!isRecord(item)) return null;
+
+  const nestedAchievement = isRecord(item.achievement) ? item.achievement : null;
+  const achievementId = safeId(item.achievementId) ?? safeId(nestedAchievement?.id);
+  const id = safeId(item.id) ?? achievementId;
+  if (!id || !achievementId) return null;
+
+  const progress = firstNonNegativeNumber(item.progress);
+  const maxProgress = firstNonNegativeNumber(item.maxProgress, nestedAchievement?.maxProgress);
+  const pointsAwarded = firstNonNegativeNumber(item.pointsAwarded, item.xpAwarded, nestedAchievement?.xpReward);
+  const iconEmoji = safeText(nestedAchievement?.iconEmoji);
+  const iconUrl = safeText(nestedAchievement?.iconUrl);
+
   return {
-    id: ua.id,
-    achievementId: ua.achievementId,
-    earnedAt: ua.earnedAt || new Date().toISOString(),
-    progress: ua.progress,
-    isCompleted: ua.isCompleted,
-    pointsAwarded: ua.pointsAwarded,
+    id,
+    achievementId,
+    earnedAt: getSafeEarnedAt(item.earnedAt),
+    progress,
+    isCompleted: item.isCompleted === true,
+    pointsAwarded,
     achievement: {
-      id: ua.achievement?.id || ua.achievementId,
-      name: ua.achievement?.name || ua.achievement?.title || 'Achievement',
-      description: ua.achievement?.description || '',
-      icon: ua.achievement?.iconEmoji || 'Trophy',
-      pointValue: ua.achievement?.xpReward || ua.pointsAwarded,
-      requirementType: ua.achievement?.category || 'milestone',
-      requirementValue: ua.achievement?.requiredPoints || ua.maxProgress,
+      id: safeId(nestedAchievement?.id) ?? achievementId,
+      name: safeText(nestedAchievement?.name) ?? safeText(nestedAchievement?.title) ?? 'Achievement',
+      description: safeText(nestedAchievement?.description) ?? '',
+      icon: iconEmoji ?? iconUrl ?? 'Trophy',
+      pointValue: firstNonNegativeNumber(nestedAchievement?.xpReward, pointsAwarded),
+      requirementType: safeText(nestedAchievement?.category) ?? 'milestone',
+      requirementValue: firstNonNegativeNumber(nestedAchievement?.requiredPoints, maxProgress),
       tier: 'bronze',
       isActive: true,
-      badgeImageUrl: ua.achievement?.iconUrl,
+      ...(iconUrl ? { badgeImageUrl: iconUrl } : {}),
     },
   };
 }
 
-export function mapAchievementTemplateToLegacy(item: any): Achievement {
-  if (item.name || item.title || item.iconEmoji) {
-    return {
-      id: String(item.id),
-      name: item.name || item.title || 'Achievement',
-      description: item.description || '',
-      icon: item.iconEmoji || item.iconUrl || 'Trophy',
-      pointValue: item.xpReward || item.pointValue || 0,
-      requirementType: item.category || item.skillTree || 'milestone',
-      requirementValue: item.requiredPoints || 0,
-      tier: 'bronze',
-      isActive: item.isActive !== false,
-      badgeImageUrl: item.iconUrl,
-      ...(item.rarity ? { rarity: item.rarity } : {}),
-      ...(item.skillTree ? { skillTree: item.skillTree } : {}),
-      ...(item.xpReward ? { xpReward: item.xpReward } : {}),
-      ...(item.iconEmoji ? { iconEmoji: item.iconEmoji } : {}),
-    } as Achievement;
-  }
+export function mapAchievementTemplateToLegacy(item: unknown): Achievement | null {
+  if (!isRecord(item)) return null;
 
-  return mapAchievementToLegacy(item as NewUserAchievement).achievement;
+  const nestedAchievement = isRecord(item.achievement) ? item.achievement : null;
+  const id = safeId(item.id) ?? safeId(item.achievementId) ?? safeId(nestedAchievement?.id);
+  if (!id) return null;
+
+  const iconEmoji = safeText(item.iconEmoji) ?? safeText(nestedAchievement?.iconEmoji);
+  const iconUrl = safeText(item.iconUrl) ?? safeText(nestedAchievement?.iconUrl);
+  const xpReward = firstNonNegativeNumber(item.xpReward, nestedAchievement?.xpReward, item.pointValue);
+  const rarity = safeText(item.rarity) ?? safeText(nestedAchievement?.rarity);
+  const skillTree = safeText(item.skillTree) ?? safeText(nestedAchievement?.skillTree);
+  const achievement: AchievementWithExtras = {
+    id,
+    name: safeText(item.name) ?? safeText(item.title) ?? safeText(nestedAchievement?.name) ?? safeText(nestedAchievement?.title) ?? 'Achievement',
+    description: safeText(item.description) ?? safeText(nestedAchievement?.description) ?? '',
+    icon: iconEmoji ?? iconUrl ?? 'Trophy',
+    pointValue: xpReward,
+    requirementType: safeText(item.category) ?? skillTree ?? safeText(nestedAchievement?.category) ?? 'milestone',
+    requirementValue: firstNonNegativeNumber(item.requiredPoints, nestedAchievement?.requiredPoints),
+    tier: 'bronze',
+    isActive: item.isActive === false ? false : nestedAchievement?.isActive !== false,
+    ...(iconUrl ? { badgeImageUrl: iconUrl } : {}),
+    ...(rarity ? { rarity } : {}),
+    ...(skillTree ? { skillTree } : {}),
+    ...(xpReward > 0 ? { xpReward } : {}),
+    ...(iconEmoji ? { iconEmoji } : {}),
+  };
+
+  return achievement;
 }
 
-export function mapFallbackAchievementToLegacy(item: any): Achievement {
+export function mapAchievementTemplatesToLegacy(items: unknown[]): Achievement[] {
+  return mapNonNullAchievements(items, mapAchievementTemplateToLegacy);
+}
+
+export function mapFallbackAchievementToLegacy(item: unknown): Achievement | null {
+  if (!isRecord(item)) return null;
+  const id = safeId(item.id);
+  if (!id) return null;
+  const iconUrl = safeText(item.iconUrl);
+
   return {
-    id: String(item.id),
-    name: item.name || 'Achievement',
-    description: item.description || '',
-    icon: item.iconUrl || 'Trophy',
+    id,
+    name: safeText(item.name) ?? 'Achievement',
+    description: safeText(item.description) ?? '',
+    icon: iconUrl ?? 'Trophy',
     pointValue: 0,
-    requirementType: item.category || 'milestone',
+    requirementType: safeText(item.category) ?? 'milestone',
     requirementValue: 0,
     tier: 'bronze',
     isActive: true,
-    badgeImageUrl: item.iconUrl,
+    ...(iconUrl ? { badgeImageUrl: iconUrl } : {}),
   };
+}
+
+export function mapFallbackAchievementsToLegacy(items: unknown[]): Achievement[] {
+  return mapNonNullAchievements(items, mapFallbackAchievementToLegacy);
 }
 
 export function buildLegacyProfile({
@@ -133,30 +208,38 @@ export function buildLegacyProfile({
   targetUserId,
   user,
 }: ProfileMapperInput): GamificationProfile {
-  const levelProgress = getLevelProgress(raw.points);
+  const points = firstNonNegativeNumber(raw.points);
+  const stats = isRecord(raw.stats) ? raw.stats : null;
+  const levelProgress = getLevelProgress(points);
   const legacyTier = mapTierToLegacy(raw.tier || levelProgress.tier);
   const nextTier = getNextLegacyTier(legacyTier);
-  const legacyAchievements = (raw.recentAchievements || raw.userAchievements || []).map(
-    mapAchievementToLegacy
-  );
+  const usableNextLevelTarget = getUsableNextLevelTarget(raw.nextLevelPoints, points);
+  const nextLevelProgress = usableNextLevelTarget
+    ? clampProgressPercent(raw.nextLevelProgress, levelProgress.progressPercent)
+    : levelProgress.progressPercent;
+  const recentAchievements = asArray<unknown>(raw.recentAchievements);
+  const userAchievements = asArray<unknown>(raw.userAchievements);
+  const legacyAchievements = (recentAchievements.length ? recentAchievements : userAchievements)
+    .map(mapAchievementToLegacy)
+    .filter((achievement): achievement is UserAchievement => achievement !== null);
   const profile: GamificationProfile = {
     id: String(raw.userId ?? targetUserId ?? ''),
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
     username: user?.username || '',
     photo: user?.profileImageUrl,
-    points: raw.points,
-    level: raw.level ?? levelProgress.level,
+    points,
+    level: firstNonNegativeNumber(raw.level) || levelProgress.level,
     tier: legacyTier,
-    streakDays: raw.streakDays ?? raw.stats?.streakDays ?? 0,
+    streakDays: firstNonNegativeNumber(raw.streakDays, stats?.streakDays),
     achievements: legacyAchievements,
-    rewards: raw.rewards || [],
-    milestones: raw.milestones || [],
-    leaderboardPosition: raw.leaderboardPosition ?? 0,
-    recentTransactions: raw.recentTransactions || [],
-    nextLevelProgress: raw.nextLevelProgress ?? levelProgress.progressPercent,
-    nextLevelPoints: raw.nextLevelPoints ?? levelProgress.pointsNeededForNext,
-    nextTierProgress: raw.nextTierProgress ?? 0,
+    rewards: asArray(raw.rewards),
+    milestones: asArray(raw.milestones),
+    leaderboardPosition: firstNonNegativeNumber(raw.leaderboardPosition),
+    recentTransactions: asArray(raw.recentTransactions),
+    nextLevelProgress,
+    nextLevelPoints: usableNextLevelTarget ?? levelProgress.nextLevelAt,
+    nextTierProgress: clampProgressPercent(raw.nextTierProgress),
     nextTier,
     progressSnapshots: undefined,
     streakCalendar: undefined,
@@ -168,18 +251,19 @@ export function buildLegacyProfile({
       gold: 20000,
       platinum: 50000,
     };
-    profile.nextTierProgress = Math.min(100, (raw.points / tierTargets[nextTier]) * 100);
+    profile.nextTierProgress = clampProgressPercent((points / tierTargets[nextTier]) * 100);
   }
 
   return profile;
 }
 
 export function buildFallbackProfile(
-  fallbackUser: any,
+  fallbackUser: unknown,
   targetUserId?: string | number,
   user?: UserSnapshot | null
 ): GamificationProfile {
-  const points = fallbackUser?.points || 0;
+  const fallbackRecord = isRecord(fallbackUser) ? fallbackUser : null;
+  const points = firstNonNegativeNumber(fallbackRecord?.points);
   const levelProgress = getLevelProgress(points);
   const legacyTier = mapTierToLegacy(levelProgress.tier);
   return {
@@ -189,9 +273,9 @@ export function buildFallbackProfile(
     username: user?.username || '',
     photo: user?.profileImageUrl,
     points,
-    level: fallbackUser?.level || levelProgress.level,
+    level: firstNonNegativeNumber(fallbackRecord?.level) || levelProgress.level,
     tier: legacyTier,
-    streakDays: fallbackUser?.streakDays || 0,
+    streakDays: firstNonNegativeNumber(fallbackRecord?.streakDays),
     achievements: [],
     rewards: [],
     milestones: [],

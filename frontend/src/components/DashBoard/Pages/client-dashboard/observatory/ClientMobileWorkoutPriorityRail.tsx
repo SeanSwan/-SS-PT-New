@@ -14,6 +14,7 @@ interface ClientMobileWorkoutPriorityRailProps {
   currentWorkout?: CurrentClientWorkout | null;
   currentWorkoutError?: boolean;
   currentWorkoutLoading?: boolean;
+  showMobilePriority: boolean;
   onNavigate: (path: string) => void;
 }
 
@@ -23,7 +24,7 @@ const viewportMatchesMobilePriority = (): boolean => (
   window.matchMedia(MOBILE_PRIORITY_QUERY).matches
 );
 
-function useMobilePriorityRail(): boolean {
+export function useMobilePriorityRail(): boolean {
   const [showMobilePriority, setShowMobilePriority] = useState(viewportMatchesMobilePriority);
 
   useEffect(() => {
@@ -42,10 +43,9 @@ const ClientMobileWorkoutPriorityRail: React.FC<ClientMobileWorkoutPriorityRailP
   currentWorkout,
   currentWorkoutError,
   currentWorkoutLoading,
+  showMobilePriority,
   onNavigate,
 }) => {
-  const showMobilePriority = useMobilePriorityRail();
-
   if (!showMobilePriority) return null;
 
   return (

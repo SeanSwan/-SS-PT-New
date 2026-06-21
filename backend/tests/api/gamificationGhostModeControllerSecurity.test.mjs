@@ -12,6 +12,7 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const coreRoutesSource = readBackend('../../core/routes.mjs');
+const ghostServiceSource = readBackend('../../services/gamification/GhostModeService.mjs');
 
 const functionSource = (name, nextName) => {
   const startMarker = `  ${name}: async`;
@@ -38,8 +39,10 @@ describe('gamification ghost mode controller security hardening', () => {
     expect(routeSource).toContain("router.get('/users/:userId/ghost', authenticate, authorizeResourceAccess('userId'), gamificationController.getGhost)");
     expect(routeSource).toContain("router.post('/users/:userId/ghost/compare', authenticate, authorizeResourceAccess('userId'), gamificationController.compareGhost)");
     expect(ghostHookSource).toContain('authAxios.get(`${API_BASE}/ghost/config`)');
+    expect(ghostHookSource).toContain('getGamificationUserPath(userId, `/ghost${query ? `?${query}` : \'\'}`)');
     expect(ghostHookSource).toContain('authAxios.get(url)');
-    expect(ghostHookSource).toContain('authAxios.post(`${API_BASE}/users/${userId}/ghost/compare`');
+    expect(ghostHookSource).toContain("getGamificationUserPath(userId, '/ghost/compare')");
+    expect(ghostHookSource).toContain('authAxios.post(`${API_BASE}${comparePath}`');
     expect(authPipelineTest).toContain('mounts V1 backend routes for active ghost mode endpoints');
   });
 
@@ -51,5 +54,25 @@ describe('gamification ghost mode controller security hardening', () => {
       expect(source).not.toContain('safeError(req, error)');
       expect(source).not.toContain('error: error.message');
     });
+  });
+
+  it('keeps client-submitted ghost comparison cosmetic-only until server verified by workout session', () => {
+    expect(compareGhostSource).toContain("comparison.rewardMode = 'cosmetic_only';");
+    expect(compareGhostSource).toContain("comparison.trustStatus = 'client_submitted_comparison';");
+    expect(compareGhostSource).toContain('comparison.bonusXP = 0;');
+    expect(compareGhostSource).not.toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(compareGhostSource).not.toContain("description: 'Ghost mode bonus XP'");
+    expect(compareGhostSource).not.toContain("reason: 'ghost_mode_compare'");
+    expect(compareGhostSource).not.toContain('idempotencyKey: `ghost:${userId}:${ghostComparisonKey}`');
+    expect(compareGhostSource).not.toContain('maxPoints: Number.MAX_SAFE_INTEGER');
+    expect(controllerSource).not.toContain('const buildGhostComparisonKey =');
+    expect(compareGhostSource).not.toContain('record.update({ totalXP:');
+    expect(ghostServiceSource).toContain('const GHOST_REWARD_MODE = \'cosmetic_only\';');
+    expect(ghostServiceSource).toContain('const GHOST_REWARD_TRUST = \'client_submitted_comparison\';');
+    expect(ghostServiceSource).toMatch(/ghost_defeated:\s*0/);
+    expect(ghostServiceSource).toMatch(/ghost_crushed:\s*0/);
+    expect(ghostServiceSource).toMatch(/ghost_dominated:\s*0/);
+    expect(ghostServiceSource).toMatch(/ghost_matched:\s*0/);
+    expect(ghostServiceSource).not.toContain('earn bonus XP');
   });
 });

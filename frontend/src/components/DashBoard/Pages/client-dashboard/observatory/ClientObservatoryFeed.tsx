@@ -11,9 +11,9 @@ import {
   POST_CATEGORIES,
   type QuickAction,
   compactNumber,
-  countCollection,
-  timeLabel,
+  safeClientOverviewPoints,
 } from './ClientObservatoryData';
+import { normalizeFeedPostPreviews } from './ClientObservatoryFeed.preview';
 import {
   CardInner,
   GhostButton,
@@ -54,7 +54,7 @@ import {
   ReelOverlay,
   ReelTitle,
 } from './ClientObservatoryFeed.styles';
-import { prepareObservatoryPost } from './ClientObservatoryPostIntent';
+import { prepareObservatoryPost, safeObservatoryPostReceiptMessage } from './ClientObservatoryPostIntent';
 
 interface ClientObservatoryFeedProps {
   feedLoading: boolean;
@@ -73,14 +73,7 @@ interface ClientObservatoryFeedProps {
     visibility: 'friends';
     media: File | null;
   }) => Promise<void>;
-  onNavigate?: (path: string) => void;
-}
-
-function postAuthor(post: FeedPostPreview): string {
-  const first = post.user?.firstName;
-  const last = post.user?.lastName;
-  const username = post.user?.username;
-  return [first, last].filter(Boolean).join(' ') || username || 'SwanStudios athlete';
+  onNavigate: (path: string) => void;
 }
 
 const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
@@ -92,7 +85,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   quickActions,
   onPostTextChange,
   onCreatePost,
-  onNavigate = (path: string) => { window.location.href = path; },
+  onNavigate,
 }) => {
   const [category, setCategory] = useState<(typeof POST_CATEGORIES)[number]>('Training');
   const [isReelMode, setIsReelMode] = useState(false);
@@ -100,6 +93,8 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const trimmedPost = postText.trim();
   const canPost = trimmedPost.length >= 3 && !creatingPost;
+  const previewPosts = normalizeFeedPostPreviews(posts).slice(0, 3);
+  const receiptPointsAwarded = safeClientOverviewPoints(postReceipt?.pointsAwarded);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -196,10 +191,12 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                 aria-label="Create a community post"
               />
 
-              {postReceipt && postReceipt.pointsAwarded > 0 && (
+              {postReceipt && receiptPointsAwarded > 0 && (
                 <PostReceipt role="status" aria-live="polite">
-                  <PostReceiptBadge>+{postReceipt.pointsAwarded} XP</PostReceiptBadge>
-                  <PostReceiptMessage>{postReceipt.message}</PostReceiptMessage>
+                  <PostReceiptBadge>+{receiptPointsAwarded} XP</PostReceiptBadge>
+                  <PostReceiptMessage>
+                    {safeObservatoryPostReceiptMessage(postReceipt.message)}
+                  </PostReceiptMessage>
                 </PostReceipt>
               )}
 
@@ -251,7 +248,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
             <EmptyState>Loading community updates...</EmptyState>
           )}
 
-          {!feedLoading && posts.length === 0 && (
+          {!feedLoading && previewPosts.length === 0 && (
             <EmptyState>
               <span>
                 No community posts yet. Start the first signal with the composer above.
@@ -259,22 +256,22 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
             </EmptyState>
           )}
 
-          {!feedLoading && posts.length > 0 && (
+          {!feedLoading && previewPosts.length > 0 && (
             <PostList>
-              {posts.slice(0, 3).map((post, index) => (
-                <PostItem key={post.id || index}>
+              {previewPosts.map((post) => (
+                <PostItem key={post.key}>
                   <PostAvatar
-                    src={post.user?.photo || post.user?.profileImage || OBSERVATORY_ASSETS.profileMark}
+                    src={post.avatarUrl || OBSERVATORY_ASSETS.profileMark}
                     alt=""
                     aria-hidden="true"
                   />
                   <PostBody>
                     <PostMeta>
-                      <PostAuthor>{postAuthor(post)}</PostAuthor>
-                      <span>{timeLabel(post.createdAt)}</span>
-                      <span>{compactNumber(countCollection(post.likes))} likes</span>
+                      <PostAuthor>{post.author}</PostAuthor>
+                      <span>{post.timeAgo}</span>
+                      <span>{post.likesLabel} likes</span>
                     </PostMeta>
-                    <PostContent>{post.content || 'Shared a training update.'}</PostContent>
+                    <PostContent>{post.content}</PostContent>
                   </PostBody>
                   <PostMedia
                     src={post.mediaUrl || OBSERVATORY_ASSETS.feedFallback}
@@ -286,9 +283,9 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
             </PostList>
           )}
 
-          {!feedLoading && posts.length > 0 && (
+          {!feedLoading && previewPosts.length > 0 && (
             <ComposerActions $top="0.9rem">
-              <MutedText>{compactNumber(posts.length)} visible updates in this preview</MutedText>
+              <MutedText>{compactNumber(previewPosts.length)} visible updates in this preview</MutedText>
             </ComposerActions>
           )}
         </CardInner>

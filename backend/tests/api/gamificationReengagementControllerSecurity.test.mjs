@@ -66,4 +66,29 @@ describe('gamification re-engagement controller security hardening', () => {
     expect(combined).not.toContain('error: error.message');
     expect(combined).toContain('sendGamificationError(res,');
   });
+
+  it('serializes streak-freeze spends with a transaction row lock', () => {
+    expect(useStreakSource).toContain('let transaction;');
+    expect(useStreakSource).toContain('transaction = await db.transaction();');
+    expect(useStreakSource).toContain('lock: transaction.LOCK.UPDATE');
+    expect(useStreakSource).toContain('await transaction.commit();');
+    expect(useStreakSource).toContain('await transaction.rollback();');
+    expect(useStreakSource).toContain('const currentFreezes = parseNonNegativeInteger(gamificationRecord.streakFreezes, 0);');
+    expect(useStreakSource).toContain('streakFreezesUsed: parseNonNegativeInteger(gamificationRecord.streakFreezesUsed, 0) + 1');
+    expect(useStreakSource).toContain("message: 'Streak freeze used. Your streak is safe.'");
+    expect(useStreakSource).not.toContain('streakFreezes || 0');
+    expect(useStreakSource).not.toContain('streakFreezesUsed || 0');
+  });
+
+  it('normalizes streak-freeze response counters instead of leaking raw counter state', () => {
+    expect(streakStatusSource).toContain('available: parseNonNegativeInteger(gamificationRecord.streakFreezes, 0)');
+    expect(streakStatusSource).toContain('used: parseNonNegativeInteger(gamificationRecord.streakFreezesUsed, 0)');
+    expect(streakStatusSource).toContain('currentStreak: parseNonNegativeInteger(gamificationRecord.streakCount, 0)');
+    expect(useStreakSource).toContain('streakPreserved: parseNonNegativeInteger(gamificationRecord.streakCount, 0)');
+
+    expect(streakStatusSource).not.toContain('streakFreezes || 0');
+    expect(streakStatusSource).not.toContain('streakFreezesUsed || 0');
+    expect(streakStatusSource).not.toContain('streakCount || 0');
+    expect(useStreakSource).not.toContain('streakPreserved: gamificationRecord.streakCount || 0');
+  });
 });

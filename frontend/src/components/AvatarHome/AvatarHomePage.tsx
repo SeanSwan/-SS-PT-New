@@ -1,15 +1,11 @@
 /**
- * ┌─── PAGE: AvatarHomePage ───────────────────────────────────┐
- * │ PURPOSE: Main entry for the 3D avatar home feature.        │
- * │ Shows LevelGate (< Lv10), MinimalistView, or HomeWorld.   │
- * │ Fetches avatar home data from /api/avatar-home.            │
- * │ CEO RULING: Progressive unlock at Lv10, Minimalist Mode.  │
- * └────────────────────────────────────────────────────────────┘
+ * PAGE: AvatarHomePage
+ * PURPOSE: Dashboard-mounted entry for the user's Avatar Home.
+ * DATA: /api/avatar-home and /api/gamification/profile
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-import { Home, Eye, EyeOff, Loader } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Eye, EyeOff, Home } from 'lucide-react';
 import LevelGate from './LevelGate';
 import MinimalistView from './MinimalistView';
 import HomeWorld from './HomeWorld';
@@ -19,76 +15,26 @@ import CrystallineMarketplace from './CrystallineMarketplace';
 import FactionHooksPanel from './FactionHooksPanel';
 import ReadyPlayerMeAvatar from './ReadyPlayerMeAvatar';
 import apiService from '../../services/api.service';
+import { getSafeGamificationIdSegment } from '../../hooks/gamification/gamificationRewardRedemption';
+import { normalizeReadyPlayerMeUrl } from './readyPlayerMeUrl';
+import { normalizeAvatarHomeLevel } from './avatarHomeNumbers';
+import {
+  ErrorBanner,
+  Header,
+  HeaderTitle,
+  HomeLayout,
+  LoadingSpinner,
+  LoadingState,
+  ModeToggle,
+  PageWrapper,
+  PhaseThreeGrid,
+  PhaseThreeStack,
+} from './AvatarHomePage.styles';
 
-const PageWrapper = styled.div`
-  min-height: 100%;
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.12);
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const HeaderTitle = styled.h1`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ModeToggle = styled.button<{ $minimalist: boolean }>`
-  min-height: 44px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid ${({ $minimalist }) =>
-    $minimalist ? 'rgba(198, 168, 75, 0.3)' : 'rgba(96, 192, 240, 0.2)'};
-  background: ${({ $minimalist }) =>
-    $minimalist ? 'rgba(198, 168, 75, 0.08)' : 'rgba(96, 192, 240, 0.08)'};
-  color: ${({ $minimalist }) =>
-    $minimalist ? '#C6A84B' : 'var(--accent-primary, #60C0F0)'};
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s;
-
-  &:hover { opacity: 0.85; }
-`;
-
-const LoadingState = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  gap: 8px;
-`;
-
-const ErrorBanner = styled.div`
-  padding: 16px 24px;
-  margin: 16px 24px;
-  border-radius: 10px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #EF4444;
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-`;
+const AVATAR_HOME_LOAD_ERROR = 'Unable to load Avatar Home. Please try again later.';
+const AVATAR_HOME_MUTATION_ERROR = 'Unable to update Avatar Home. Please try again.';
+const VALID_ROOMS = ['bedroom', 'kitchen', 'training_room'] as const;
+const VALID_HOME_TIERS = ['starter', 'mid', 'premium', 'luxury'] as const;
 
 interface HomeData {
   unlocked: boolean;
@@ -103,116 +49,198 @@ interface HomeData {
   readyPlayerMeUrl: string | null;
 }
 
-const HomeLayout = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 20px;
-  padding: 0 24px 24px;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
+const asString = (value: unknown, fallback: string): string =>
+  typeof value === 'string' && value.trim() ? value : fallback;
+
+const isKnownRoom = (value: unknown): value is typeof VALID_ROOMS[number] =>
+  typeof value === 'string' && VALID_ROOMS.includes(value as typeof VALID_ROOMS[number]);
+
+const isKnownTier = (value: unknown): value is typeof VALID_HOME_TIERS[number] =>
+  typeof value === 'string' && VALID_HOME_TIERS.includes(value as typeof VALID_HOME_TIERS[number]);
+
+const normalizeFurniture = (value: unknown): HomeData['furniture'] => {
+  if (!isRecord(value)) return {};
+
+  return VALID_ROOMS.reduce<HomeData['furniture']>((rooms, room) => {
+    const roomValue = value[room];
+    if (!isRecord(roomValue)) return rooms;
+
+    const slots = Object.entries(roomValue).reduce<Record<string, string>>((safeSlots, [slot, item]) => {
+      if (slot.trim() && typeof item === 'string' && item.trim()) {
+        safeSlots[slot] = item;
+      }
+      return safeSlots;
+    }, {});
+
+    if (Object.keys(slots).length > 0) rooms[room] = slots;
+    return rooms;
+  }, {});
+};
+
+const normalizeAvatarHomeData = (value: unknown): HomeData | null => {
+  if (!isRecord(value)) return null;
+
+  return {
+    unlocked: value.unlocked === true,
+    avatarBodyType: asString(value.avatarBodyType, 'athletic'),
+    avatarSkinTone: asString(value.avatarSkinTone, '#C68642'),
+    avatarHairStyle: asString(value.avatarHairStyle, 'short'),
+    avatarOutfit: asString(value.avatarOutfit, 'starter_workout'),
+    homeTier: isKnownTier(value.homeTier) ? value.homeTier : 'starter',
+    activeRoom: isKnownRoom(value.activeRoom) ? value.activeRoom : 'training_room',
+    furniture: normalizeFurniture(value.furniture),
+    minimalistMode: value.minimalistMode === true,
+    readyPlayerMeUrl: normalizeReadyPlayerMeUrl(value.readyPlayerMeUrl),
+  };
+};
+
+type AvatarHomeResponse = {
+  success: boolean;
+  data?: HomeData;
+  message?: string;
+  meta?: {
+    currentLevel?: unknown;
+  };
+};
 
 const AvatarHomePage: React.FC = () => {
   const [homeData, setHomeData] = useState<HomeData | null>(null);
-  const [userLevel, setUserLevel] = useState<number>(1);
-  const [userId, setUserId] = useState<number>(0);
+  const [userLevel, setUserLevel] = useState<number | null>(null);
+  const [userIdSegment, setUserIdSegment] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
   const [showAdoptModal, setShowAdoptModal] = useState(false);
   const [petKey, setPetKey] = useState(0);
 
   useEffect(() => {
-    // Fetch avatar home data
-    apiService.get<{ success: boolean; data?: HomeData; message?: string }>('/api/avatar-home')
+    apiService.get<AvatarHomeResponse>('/api/avatar-home')
       .then(res => {
         const d = res.data;
         if (d.success) {
-          setHomeData(d.data || null);
+          const safeHome = normalizeAvatarHomeData(d.data);
+          if (safeHome) {
+            setHomeData(safeHome);
+            const homeLevel = normalizeAvatarHomeLevel(d.meta?.currentLevel);
+            if (homeLevel !== null) setUserLevel(homeLevel);
+          } else {
+            setError(AVATAR_HOME_LOAD_ERROR);
+          }
         } else {
-          setError(d.message || 'Failed to load avatar home');
+          setError(AVATAR_HOME_LOAD_ERROR);
         }
       })
-      .catch(() => setError('Network error'))
+      .catch(() => setError(AVATAR_HOME_LOAD_ERROR))
       .finally(() => setLoading(false));
 
-    // Fetch user level + userId from gamification
-    // Response shape: { success, profile: { id, level, ... } }
     apiService.get('/api/gamification/profile')
       .then(res => {
         const d = res.data;
         const profile = d.profile || d.data || d;
-        if (profile?.level) setUserLevel(profile.level);
-        if (profile?.id) setUserId(profile.id);
-        else if (profile?.userId) setUserId(profile.userId);
+        const profileUserIdSegment = getSafeGamificationIdSegment(profile?.id ?? profile?.userId);
+        const profileLevel = normalizeAvatarHomeLevel(profile?.level);
+        if (profileLevel !== null) setUserLevel(profileLevel);
+        if (profileUserIdSegment) setUserIdSegment(profileUserIdSegment);
       })
-      .catch(() => {/* gamification may not be set up */});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {})
+      .finally(() => setProfileLoading(false));
   }, []);
 
   const toggleMinimalistMode = useCallback(async () => {
+    setMutationError(null);
     try {
-      const res = await apiService.patch<{ success: boolean; data: { minimalistMode: boolean } }>('/api/avatar-home/minimalist-mode');
+      const res = await apiService.patch<{ success: boolean; data: { minimalistMode: boolean } }>(
+        '/api/avatar-home/minimalist-mode'
+      );
       const d = res.data;
-      if (d.success && homeData) {
+      if (d.success && homeData && typeof d.data?.minimalistMode === 'boolean') {
         setHomeData({ ...homeData, minimalistMode: d.data.minimalistMode });
+      } else {
+        setMutationError(AVATAR_HOME_MUTATION_ERROR);
       }
-    } catch { /* best-effort */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {
+      setMutationError(AVATAR_HOME_MUTATION_ERROR);
+    }
   }, [homeData]);
 
   const handleRoomChange = useCallback(async (room: string) => {
+    setMutationError(null);
     try {
-      const res = await apiService.patch<{ success: boolean; data: { activeRoom: string } }>('/api/avatar-home/room', { room });
+      const res = await apiService.patch<{ success: boolean; data: { activeRoom: string } }>(
+        '/api/avatar-home/room',
+        { room }
+      );
       const d = res.data;
       if (d.success && homeData) {
         setHomeData({ ...homeData, activeRoom: room });
+      } else {
+        setMutationError(AVATAR_HOME_MUTATION_ERROR);
       }
-    } catch { /* best-effort */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {
+      setMutationError(AVATAR_HOME_MUTATION_ERROR);
+    }
   }, [homeData]);
 
   if (loading) {
     return (
       <PageWrapper>
         <LoadingState>
-          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          <LoadingSpinner size={18} aria-hidden="true" />
           Loading your home...
         </LoadingState>
       </PageWrapper>
     );
   }
 
-  if (error) {
-    return (
-      <PageWrapper>
-        <ErrorBanner>{error}</ErrorBanner>
-      </PageWrapper>
-    );
-  }
+  if (error) return <PageWrapper><ErrorBanner>{error}</ErrorBanner></PageWrapper>;
 
-  // Level gate — user hasn't reached Level 10
   if (!homeData?.unlocked) {
+    if (userLevel === null && profileLoading) {
+      return (
+        <PageWrapper>
+          <LoadingState>
+            <LoadingSpinner size={18} aria-hidden="true" />
+            Verifying unlock progress...
+          </LoadingState>
+        </PageWrapper>
+      );
+    }
+
     return (
       <PageWrapper>
-        <LevelGate currentLevel={userLevel} requiredLevel={10} />
+        {userLevel !== null ? (
+          <LevelGate currentLevel={userLevel} requiredLevel={10} />
+        ) : (
+          <ErrorBanner>Unable to verify Avatar Home unlock progress. Please try again later.</ErrorBanner>
+        )}
       </PageWrapper>
     );
   }
 
-  // Unlocked — show 3D or minimalist view
   return (
     <PageWrapper>
       <Header>
         <HeaderTitle>
-          <Home size={20} /> My Home
+          <Home size={20} aria-hidden="true" /> My Home
         </HeaderTitle>
-        <ModeToggle $minimalist={homeData.minimalistMode} onClick={toggleMinimalistMode}>
-          {homeData.minimalistMode ? <Eye size={14} /> : <EyeOff size={14} />}
+        <ModeToggle
+          type="button"
+          $minimalist={homeData.minimalistMode}
+          onClick={toggleMinimalistMode}
+          aria-pressed={homeData.minimalistMode}
+        >
+          {homeData.minimalistMode ? <Eye size={14} aria-hidden="true" /> : <EyeOff size={14} aria-hidden="true" />}
           {homeData.minimalistMode ? 'Minimalist Mode' : '3D Mode'}
         </ModeToggle>
       </Header>
+
+      {mutationError && (
+        <ErrorBanner role="status" aria-live="polite">{mutationError}</ErrorBanner>
+      )}
 
       {homeData.minimalistMode ? (
         <MinimalistView data={homeData} onToggle3D={toggleMinimalistMode} />
@@ -224,33 +252,34 @@ const AvatarHomePage: React.FC = () => {
             furniture={homeData.furniture}
             onRoomChange={handleRoomChange}
           />
-          {userId > 0 && (
+          {userIdSegment && (
             <CompanionPetPanel
               key={petKey}
-              userId={userId}
+              userIdSegment={userIdSegment}
               onAdoptClick={() => setShowAdoptModal(true)}
             />
           )}
         </HomeLayout>
       )}
 
-      {/* Phase 3: Marketplace, Factions, Ready Player Me */}
       {!homeData.minimalistMode && (
-        <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <PhaseThreeStack>
           <CrystallineMarketplace />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <PhaseThreeGrid>
             <FactionHooksPanel />
             <ReadyPlayerMeAvatar
               currentUrl={homeData.readyPlayerMeUrl}
-              onAvatarUpdate={(url) => setHomeData(prev => prev ? { ...prev, readyPlayerMeUrl: url } : prev)}
+              onAvatarUpdate={(url) => (
+                setHomeData(prev => prev ? { ...prev, readyPlayerMeUrl: url } : prev)
+              )}
             />
-          </div>
-        </div>
+          </PhaseThreeGrid>
+        </PhaseThreeStack>
       )}
 
-      {showAdoptModal && userId > 0 && (
+      {showAdoptModal && userIdSegment && (
         <PetAdoptionModal
-          userId={userId}
+          userIdSegment={userIdSegment}
           onClose={() => setShowAdoptModal(false)}
           onAdopted={() => setPetKey(k => k + 1)}
         />

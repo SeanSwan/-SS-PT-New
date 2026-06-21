@@ -33,7 +33,7 @@ describe('gamificationEvents Socket.IO bridge', () => {
 
     expect(emitted).toHaveLength(1);
     expect(emitted[0]).toMatchObject({
-      room: 'gamification',
+      room: 'user:7',
       event: 'gamification:level_up',
       payload: {
         userId: 7,
@@ -41,5 +41,21 @@ describe('gamificationEvents Socket.IO bridge', () => {
       },
     });
     expect(emitted[0].payload.timestamp).toEqual(expect.any(String));
+  });
+
+  it('falls back to the shared gamification room for non-user-scoped broadcasts', () => {
+    emitGamificationEvent(
+      'points_awarded',
+      { points: 5 },
+      { debounce: false },
+    );
+
+    expect(emitted[0]).toMatchObject({
+      room: 'gamification',
+      event: 'gamification:points_awarded',
+      payload: {
+        points: 5,
+      },
+    });
   });
 });

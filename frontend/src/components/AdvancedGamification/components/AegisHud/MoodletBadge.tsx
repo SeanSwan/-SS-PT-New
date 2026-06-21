@@ -1,18 +1,7 @@
 /**
- * ┌─── SUB-COMPONENT: MoodletBadge ────────────────────────────┐
- * │ PARENT: AegisHud                                            │
- * │ PURPOSE: Inline pill badge showing current mood derived     │
- * │          from needs state (energized, drained, etc.)        │
- * │ WIREFRAME:                                                  │
- * │ ┌──────────────────────┐                                    │
- * │ │ ⚡ Energized         │                                    │
- * │ └──────────────────────┘                                    │
- * │ Props: MoodletBadgeProps                                    │
- * │ CLICK-OUTCOMES: None (display only)                         │
- * │ GAMIFICATION: Shows current moodlet state                   │
- * └────────────────────────────────────────────────────────────┘
+ * COMPONENT: MoodletBadge
+ * PURPOSE: Inline Aegis HUD pill showing the current moodlet state.
  */
-
 import React from 'react';
 import {
   Crown, Zap, Sparkles, Shield, Moon,
@@ -20,10 +9,6 @@ import {
 } from 'lucide-react';
 import type { MoodletBadgeProps } from './AegisHudTypes';
 import { MoodletPill } from './AegisHudStyles';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Moodlet Icon Map
-// ─────────────────────────────────────────────────────────────
 
 const MOODLET_ICONS: Record<string, React.ElementType> = {
   crown: Crown,
@@ -38,16 +23,12 @@ const MOODLET_ICONS: Record<string, React.ElementType> = {
   minus: Minus,
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
-
 const MoodletBadge: React.FC<MoodletBadgeProps> = React.memo(({ moodlet, size = 'md' }) => {
   const IconComponent = MOODLET_ICONS[moodlet.icon] || Minus;
 
   return (
     <MoodletPill $size={size}>
-      <IconComponent />
+      <IconComponent size={size === 'sm' ? 10 : 12} aria-hidden />
       {moodlet.label}
     </MoodletPill>
   );

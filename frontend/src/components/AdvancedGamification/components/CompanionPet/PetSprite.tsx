@@ -1,32 +1,12 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: PetSprite                                         ║
- * ║  PURPOSE: SVG-based evolving pet sprite — scales all devices  ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-28         ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌──────────────────────────┐
- * │      ✨ (aura glow)     │  ← Mythic stage only
- * │     👑 (crown)          │  ← Elder+ stage
- * │    ◆◆◆ (body)          │  ← Species-shaped body
- * │   ◇ (eye) ◇            │  ← Hatchling+ stage
- * │    ~~~~ (tail)          │  ← Juvenile+ stage
- * │   ∠∠ (wings)           │  ← Adult+ stage
- * │   ⚔ (weapon mod)       │  ← From personal records
- * │   🛡 (armor mod)        │  ← From strength workouts
- * └──────────────────────────┘
- *
- * SCALING: SVG viewBox is 200x200. Container scales via CSS width/height.
- * Renders identically from 320px phone to 3840px 4K display.
+ * PetSprite
+ * Purpose: SVG companion pet renderer used by the mounted CompanionPet preview.
+ * Surface: admin RPG preview, client profile, and client progress companion pet slots.
+ * Behavior: keeps species geometry, activity mods, mood animation, and health opacity in one pure SVG component.
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import type { PetData, PetSpeciesId } from './CompanionPetTypes';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Species Body Shapes
-// PURPOSE: Each species has unique SVG body geometry
-// ─────────────────────────────────────────────────────────────
+import { parsePetNumber } from './companionPetNumbers';
 
 const SPECIES_BODIES: Record<PetSpeciesId, { body: string; tail: string; wingL: string; wingR: string; crown: string }> = {
   crystal_dragon: {
@@ -66,63 +46,74 @@ const SPECIES_BODIES: Record<PetSpeciesId, { body: string; tail: string; wingL: 
   },
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Appearance Mod SVG Overlays
-// ─────────────────────────────────────────────────────────────
-
 function renderArmorMod(mod: string, color: string): React.ReactNode {
   if (mod.includes('armor') || mod.includes('plates')) {
     const opacity = mod.includes('mythic') ? 0.8 : mod.includes('crystal') ? 0.6 : mod.includes('steel') ? 0.45 : 0.3;
     return (
       <g key="armor">
-        <path d="M85,80 L100,72 L115,80 L115,110 L100,115 L85,110 Z"
-          fill={color} fillOpacity={opacity} stroke={color} strokeWidth="0.5" strokeOpacity={0.6} />
+        <path
+          d="M85,80 L100,72 L115,80 L115,110 L100,115 L85,110 Z"
+          fill={color}
+          fillOpacity={opacity}
+          stroke={color}
+          strokeOpacity={0.6}
+          strokeWidth="0.5"
+        />
       </g>
     );
   }
+
   if (mod.includes('speed') || mod.includes('wind') || mod.includes('lightning') || mod.includes('sonic')) {
     const count = mod.includes('sonic') ? 5 : mod.includes('lightning') ? 4 : mod.includes('wind') ? 3 : 2;
     return (
       <g key="speed">
         {Array.from({ length: count }).map((_, i) => (
-          <line key={i} x1={55 - i * 4} y1={90 + i * 8} x2={40 - i * 4} y2={88 + i * 8}
-            stroke={color} strokeWidth="1.5" strokeOpacity={0.5 - i * 0.08} strokeLinecap="round" />
+          <line
+            key={i}
+            x1={55 - i * 4}
+            x2={40 - i * 4}
+            y1={90 + i * 8}
+            y2={88 + i * 8}
+            stroke={color}
+            strokeLinecap="round"
+            strokeOpacity={0.5 - i * 0.08}
+            strokeWidth="1.5"
+          />
         ))}
       </g>
     );
   }
+
   if (mod.includes('glow') || mod.includes('aura') || mod.includes('flame')) {
     const r = mod.includes('legendary') ? 60 : mod.includes('bright') ? 50 : mod.includes('steady') ? 40 : 30;
     return (
-      <circle key="glow" cx={100} cy={100} r={r}
-        fill={color} fillOpacity={0.08} stroke={color} strokeWidth="1" strokeOpacity={0.15}>
-        <animate attributeName="r" values={`${r};${r + 4};${r}`} dur="2s" repeatCount="indefinite" />
-        <animate attributeName="fill-opacity" values="0.08;0.14;0.08" dur="2s" repeatCount="indefinite" />
+      <circle key="glow" cx={100} cy={100} r={r} fill={color} fillOpacity={0.08} stroke={color} strokeOpacity={0.15} strokeWidth="1">
+        <animate attributeName="r" dur="2s" repeatCount="indefinite" values={`${r};${r + 4};${r}`} />
+        <animate attributeName="fill-opacity" dur="2s" repeatCount="indefinite" values="0.08;0.14;0.08" />
       </circle>
     );
   }
+
   if (mod.includes('blade') || mod.includes('sword') || mod.includes('lance') || mod.includes('weapon')) {
     const scale = mod.includes('mythic') ? 1.3 : mod.includes('lance') ? 1.15 : mod.includes('long') ? 1 : 0.7;
     return (
       <g key="weapon" transform={`translate(138, 95) scale(${scale})`}>
-        <line x1="0" y1="0" x2="15" y2="-20" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        <line x1="5" y1="-5" x2="10" y2="-5" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="0" x2="15" y1="0" y2="-20" stroke={color} strokeLinecap="round" strokeWidth="2" />
+        <line x1="5" x2="10" y1="-5" y2="-5" stroke={color} strokeLinecap="round" strokeWidth="1.5" />
       </g>
     );
   }
+
   if (mod.includes('collar') || mod.includes('cape') || mod.includes('crown') || mod.includes('mantle')) {
     return (
       <g key="social-accessory">
-        <circle cx={100} cy={68} r={4} fill="none" stroke={color} strokeWidth="1.5" strokeOpacity={0.7} />
+        <circle cx={100} cy={68} r={4} fill="none" stroke={color} strokeOpacity={0.7} strokeWidth="1.5" />
       </g>
     );
   }
+
   return null;
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Main Component
-// ─────────────────────────────────────────────────────────────
 
 interface PetSpriteProps {
   pet: PetData;
@@ -136,26 +127,12 @@ const PetSprite: React.FC<PetSpriteProps> = ({ pet, size = 200 }) => {
   const features = pet.evolution.features;
   const baseColor = pet.speciesInfo.baseColor;
   const accentColor = pet.speciesInfo.accentColor;
-  const healthRatio = pet.health / 100;
+  const healthValue = parsePetNumber(pet.health, 0);
+  const healthRatio = Math.min(1, Math.max(0, healthValue / 100));
   const moodAnim = pet.mood.animation;
-
-  // Neglect visual: reduce saturation + opacity when health drops
   const bodyOpacity = 0.5 + healthRatio * 0.5;
   const glowIntensity = healthRatio * 0.4;
 
-  // Animation based on mood
-  const animTransform = useMemo(() => {
-    switch (moodAnim) {
-      case 'bounce': return 'translateY(-3px)';
-      case 'wiggle': return 'rotate(2deg)';
-      case 'droop': return 'translateY(3px) rotate(-2deg)';
-      case 'shiver': return 'translateX(1px)';
-      case 'flicker': return 'scale(0.97)';
-      default: return 'none';
-    }
-  }, [moodAnim]);
-
-  // Egg stage — just show a glowing egg
   if (stage === 0) {
     return (
       <svg width={size} height={size} viewBox="0 0 200 200" role="img" aria-label={`${pet.name} (Egg)`}>
@@ -167,7 +144,7 @@ const PetSprite: React.FC<PetSpriteProps> = ({ pet, size = 200 }) => {
         </defs>
         <circle cx={100} cy={100} r={50} fill="url(#egg-glow)" />
         <ellipse cx={100} cy={105} rx={28} ry={35} fill={baseColor} fillOpacity={0.7} stroke={accentColor} strokeWidth="1.5">
-          <animate attributeName="ry" values="35;36;35" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="ry" dur="3s" repeatCount="indefinite" values="35;36;35" />
         </ellipse>
         <text x={100} y={165} textAnchor="middle" fontFamily="Sora, sans-serif" fontSize="11" fill={baseColor} fillOpacity="0.7">
           {pet.name}
@@ -179,6 +156,7 @@ const PetSprite: React.FC<PetSpriteProps> = ({ pet, size = 200 }) => {
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" role="img" aria-label={`${pet.name} the ${pet.speciesInfo.name}`}>
       <defs>
+        <style>{'.pet-body { transition: opacity 0.5s ease; }'}</style>
         <radialGradient id={`pet-glow-${species}`} cx="50%" cy="45%" r="55%">
           <stop offset="0%" stopColor={baseColor} stopOpacity={glowIntensity} />
           <stop offset="100%" stopColor={accentColor} stopOpacity="0" />
@@ -188,128 +166,102 @@ const PetSprite: React.FC<PetSpriteProps> = ({ pet, size = 200 }) => {
         </filter>
       </defs>
 
-      {/* Background glow (health-dependent) */}
       <circle cx={100} cy={100} r={70} fill={`url(#pet-glow-${species})`}>
-        <animate attributeName="r" values="70;73;70" dur="3s" repeatCount="indefinite" />
+        <animate attributeName="r" dur="3s" repeatCount="indefinite" values="70;73;70" />
       </circle>
 
-      {/* Aura (Mythic only) */}
       {features.includes('aura') && (
-        <circle cx={100} cy={100} r={65} fill="none"
-          stroke={accentColor} strokeWidth="1" strokeOpacity="0.2" strokeDasharray="4 4">
-          <animateTransform attributeName="transform" type="rotate"
-            from="0 100 100" to="360 100 100" dur="20s" repeatCount="indefinite" />
+        <circle cx={100} cy={100} r={65} fill="none" stroke={accentColor} strokeDasharray="4 4" strokeOpacity="0.2" strokeWidth="1">
+          <animateTransform attributeName="transform" dur="20s" from="0 100 100" repeatCount="indefinite" to="360 100 100" type="rotate" />
         </circle>
       )}
 
-      {/* Main body group with mood animation */}
-      <g filter="url(#pet-shadow)" opacity={bodyOpacity} style={{ transition: 'opacity 0.5s ease' }}>
-        {/* Animate group for mood */}
-        <animateTransform attributeName="transform" type="translate"
-          values={moodAnim === 'bounce' ? '0,0;0,-4;0,0' :
-                  moodAnim === 'shiver' ? '0,0;1,0;-1,0;0,0' :
-                  moodAnim === 'droop' ? '0,0;0,2;0,0' : '0,0;0,0;0,0'}
+      <g filter="url(#pet-shadow)" opacity={bodyOpacity} className="pet-body">
+        <animateTransform
+          attributeName="transform"
           dur={moodAnim === 'bounce' ? '1s' : moodAnim === 'shiver' ? '0.3s' : '2s'}
-          repeatCount="indefinite" />
+          repeatCount="indefinite"
+          type="translate"
+          values={moodAnim === 'bounce' ? '0,0;0,-4;0,0' : moodAnim === 'shiver' ? '0,0;1,0;-1,0;0,0' : moodAnim === 'droop' ? '0,0;0,2;0,0' : '0,0;0,0;0,0'}
+        />
 
-        {/* Wings (Adult+) */}
         {features.includes('wings') && (
           <g>
             <path d={shapes.wingL} fill={baseColor} fillOpacity={0.5} stroke={accentColor} strokeWidth="0.8">
-              <animateTransform attributeName="transform" type="rotate"
-                values="0 70 85;-8 70 85;0 70 85" dur="2s" repeatCount="indefinite" />
+              <animateTransform attributeName="transform" dur="2s" repeatCount="indefinite" type="rotate" values="0 70 85;-8 70 85;0 70 85" />
             </path>
             <path d={shapes.wingR} fill={baseColor} fillOpacity={0.5} stroke={accentColor} strokeWidth="0.8">
-              <animateTransform attributeName="transform" type="rotate"
-                values="0 130 85;8 130 85;0 130 85" dur="2s" repeatCount="indefinite" />
+              <animateTransform attributeName="transform" dur="2s" repeatCount="indefinite" type="rotate" values="0 130 85;8 130 85;0 130 85" />
             </path>
           </g>
         )}
 
-        {/* Tail (Juvenile+) */}
         {features.includes('tail') && (
-          <path d={shapes.tail} fill="none" stroke={baseColor} strokeWidth="2.5" strokeLinecap="round" strokeOpacity={0.7}>
-            <animateTransform attributeName="transform" type="rotate"
-              values="0 100 140;3 100 140;-3 100 140;0 100 140" dur="3s" repeatCount="indefinite" />
+          <path d={shapes.tail} fill="none" stroke={baseColor} strokeLinecap="round" strokeOpacity={0.7} strokeWidth="2.5">
+            <animateTransform attributeName="transform" dur="3s" repeatCount="indefinite" type="rotate" values="0 100 140;3 100 140;-3 100 140;0 100 140" />
           </path>
         )}
 
-        {/* Body */}
         {features.includes('body') && (
           <path d={shapes.body} fill={baseColor} fillOpacity={0.65} stroke={accentColor} strokeWidth="1.2" />
         )}
 
-        {/* Eyes (Hatchling+) */}
         {features.includes('eyes') && (
           <g>
             <circle cx={90} cy={85} r={4} fill={accentColor}>
-              <animate attributeName="r" values="4;4;0.5;4" dur="4s" repeatCount="indefinite"
-                keyTimes="0;0.92;0.96;1" />
+              <animate attributeName="r" dur="4s" keyTimes="0;0.92;0.96;1" repeatCount="indefinite" values="4;4;0.5;4" />
             </circle>
             <circle cx={110} cy={85} r={4} fill={accentColor}>
-              <animate attributeName="r" values="4;4;0.5;4" dur="4s" repeatCount="indefinite"
-                keyTimes="0;0.92;0.96;1" />
+              <animate attributeName="r" dur="4s" keyTimes="0;0.92;0.96;1" repeatCount="indefinite" values="4;4;0.5;4" />
             </circle>
-            {/* Highlight dots */}
             <circle cx={92} cy={83} r={1.5} fill="#FFFFFF" fillOpacity="0.8" />
             <circle cx={112} cy={83} r={1.5} fill="#FFFFFF" fillOpacity="0.8" />
-
-            {/* Sad eyes when health low */}
-            {pet.health < 30 && (
+            {healthValue < 30 && (
               <>
-                <line x1={85} y1={79} x2={95} y2={82} stroke={accentColor} strokeWidth="1" strokeOpacity="0.5" />
-                <line x1={115} y1={79} x2={105} y2={82} stroke={accentColor} strokeWidth="1" strokeOpacity="0.5" />
+                <line x1={85} x2={95} y1={79} y2={82} stroke={accentColor} strokeOpacity="0.5" strokeWidth="1" />
+                <line x1={115} x2={105} y1={79} y2={82} stroke={accentColor} strokeOpacity="0.5" strokeWidth="1" />
               </>
             )}
           </g>
         )}
 
-        {/* Crown (Elder+) */}
         {features.includes('crown') && (
           <path d={shapes.crown} fill={accentColor} fillOpacity={0.7} stroke={baseColor} strokeWidth="0.8">
-            <animate attributeName="fill-opacity" values="0.7;0.9;0.7" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="fill-opacity" dur="3s" repeatCount="indefinite" values="0.7;0.9;0.7" />
           </path>
         )}
 
-        {/* Appearance mods from activity */}
         {pet.appearanceMods.map(mod => renderArmorMod(mod.mod, accentColor))}
 
-        {/* Neglect indicator: crying when sad/critical */}
         {pet.mood.id === 'sad' || pet.mood.id === 'critical' ? (
           <g>
             <circle cx={93} cy={92} r={1} fill="#60C0F0" fillOpacity="0.6">
-              <animate attributeName="cy" values="92;105;92" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="fill-opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
+              <animate attributeName="cy" dur="2s" repeatCount="indefinite" values="92;105;92" />
+              <animate attributeName="fill-opacity" dur="2s" repeatCount="indefinite" values="0.6;0;0.6" />
             </circle>
             <circle cx={113} cy={92} r={1} fill="#60C0F0" fillOpacity="0.6">
-              <animate attributeName="cy" values="92;108;92" dur="2.3s" repeatCount="indefinite" />
-              <animate attributeName="fill-opacity" values="0.6;0;0.6" dur="2.3s" repeatCount="indefinite" />
+              <animate attributeName="cy" dur="2.3s" repeatCount="indefinite" values="92;108;92" />
+              <animate attributeName="fill-opacity" dur="2.3s" repeatCount="indefinite" values="0.6;0;0.6" />
             </circle>
           </g>
         ) : null}
 
-        {/* Happy sparkles when ecstatic */}
         {pet.mood.id === 'ecstatic' && (
           <g>
             {[0, 1, 2, 3].map(i => (
-              <circle key={i}
-                cx={70 + i * 22} cy={50 + (i % 2) * 10} r={1.5}
-                fill={accentColor} fillOpacity="0.8">
-                <animate attributeName="r" values="0;2;0" dur={`${1.2 + i * 0.3}s`} repeatCount="indefinite" />
-                <animate attributeName="fill-opacity" values="0;0.8;0" dur={`${1.2 + i * 0.3}s`} repeatCount="indefinite" />
+              <circle key={i} cx={70 + i * 22} cy={50 + (i % 2) * 10} r={1.5} fill={accentColor} fillOpacity="0.8">
+                <animate attributeName="r" dur={`${1.2 + i * 0.3}s`} repeatCount="indefinite" values="0;2;0" />
+                <animate attributeName="fill-opacity" dur={`${1.2 + i * 0.3}s`} repeatCount="indefinite" values="0;0.8;0" />
               </circle>
             ))}
           </g>
         )}
       </g>
 
-      {/* Pet name + mood */}
-      <text x={100} y={180} textAnchor="middle" fontFamily="Sora, sans-serif" fontSize="10"
-        fill={baseColor} fillOpacity={0.8}>
+      <text x={100} y={180} textAnchor="middle" fontFamily="Sora, sans-serif" fontSize="10" fill={baseColor} fillOpacity={0.8}>
         {pet.name}
       </text>
-      <text x={100} y={193} textAnchor="middle" fontFamily="Fira Code, monospace" fontSize="8"
-        fill={accentColor} fillOpacity={0.5}>
+      <text x={100} y={193} textAnchor="middle" fontFamily="Fira Code, monospace" fontSize="8" fill={accentColor} fillOpacity={0.5}>
         {pet.mood.emoji} {pet.evolution.name}
       </text>
     </svg>

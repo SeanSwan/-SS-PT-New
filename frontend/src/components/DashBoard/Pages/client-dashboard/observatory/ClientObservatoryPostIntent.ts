@@ -12,6 +12,8 @@ import {
 import type { POST_CATEGORIES } from './ClientObservatoryData';
 
 type ObservatoryCategory = (typeof POST_CATEGORIES)[number];
+export const SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE =
+  'Post shared. SwanStudios points updated.';
 
 const CATEGORY_FALLBACK_TYPES: Record<ObservatoryCategory, PostType> = {
   Training: 'workout',
@@ -34,4 +36,8 @@ export function prepareObservatoryPost(
   );
 
   return { content: enrichedContent, type };
+}
+
+export function safeObservatoryPostReceiptMessage(_value: unknown): string {
+  return SAFE_OBSERVATORY_POST_RECEIPT_MESSAGE;
 }

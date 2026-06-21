@@ -10,7 +10,7 @@ export const PageShell = styled.main`
   min-height: 100vh;
   padding: clamp(1rem, 3vw, 2rem);
   color: var(--text-primary, #E0ECF4);
-  background: radial-gradient(circle at top left, rgba(96, 192, 240, 0.12), transparent 34%),
+  background: radial-gradient(circle at top left, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), transparent 34%),
     var(--bg-base, #030712);
 `;
 
@@ -63,7 +63,7 @@ export const ActionLink = styled(Link)`
   justify-content: center;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   color: var(--text-primary, #E0ECF4);
   text-decoration: none;
   background: var(--bg-elevated, #141419);
@@ -74,7 +74,7 @@ export const StatusBanner = styled.div`
   padding: 0.875rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--error-accent, #C92A54);
-  background: rgba(201, 42, 84, 0.14);
+  background: color-mix(in srgb, var(--error-accent, #C92A54) 14%, transparent);
 `;
 
 export const LoadingGrid = styled.div`
@@ -90,9 +90,13 @@ export const LoadingGrid = styled.div`
 export const Shimmer = styled.div`
   min-height: 9rem;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, rgba(96, 192, 240, 0.08) 50%, var(--bg-elevated, #141419) 75%);
+  background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent) 50%, var(--bg-elevated, #141419) 75%);
   background-size: 200% 100%;
   animation: ${shimmer} 1.4s infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 export const StatsGrid = styled.div`
@@ -116,7 +120,7 @@ export const StatCard = styled.article`
   min-height: 7.5rem;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.14));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent));
   background: var(--bg-elevated, #141419);
 `;
 
@@ -127,7 +131,7 @@ export const IconSlot = styled.div`
   display: grid;
   place-items: center;
   color: var(--accent-primary, #60C0F0);
-  background: rgba(96, 192, 240, 0.12);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
 `;
 
 export const StatText = styled.div`
@@ -148,7 +152,7 @@ export const ProgressPanel = styled.section`
   margin: 1rem 0;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(198, 168, 75, 0.18));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-secondary, #C6A84B) 18%, transparent));
   background: var(--bg-surface, #1A1A24);
 `;
 
@@ -186,6 +190,11 @@ export const ProgressFill = styled.div<{ $pct: number }>`
   width: ${({ $pct }) => Math.max(0, Math.min(100, $pct))}%;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-secondary, #C6A84B), var(--accent-primary, #60C0F0));
+  transition: width 0.35s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 export const ContentGrid = styled.div`
@@ -202,7 +211,7 @@ export const SectionPanel = styled.section`
   min-height: 14rem;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
   background: var(--bg-elevated, #141419);
 `;
 
@@ -219,7 +228,7 @@ export const ListRow = styled.div`
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0;
-  border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border-top: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
 
   strong,
   span {
@@ -240,7 +249,7 @@ export const MiniBadge = styled.div`
   display: grid;
   place-items: center;
   color: var(--accent-secondary, #C6A84B);
-  background: rgba(198, 168, 75, 0.12);
+  background: color-mix(in srgb, var(--accent-secondary, #C6A84B) 12%, transparent);
 `;
 
 export const RankBadge = styled(MiniBadge)`

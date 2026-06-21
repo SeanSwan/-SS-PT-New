@@ -1,43 +1,28 @@
 /**
- * ClientProgressDashboardPage — canonical KPI truth tests
- * ========================================================
- * Locks the canonical /dashboard/client/progress surface against the
- * weekly-recap shape-mismatch regression discovered in the
- * canonical-surface-audit 2026-04-13:
- *
- *   Backend gamificationController.getWeeklyRecap returns
- *     { data: { thisWeek: { workouts, totalXP, surpriseMultipliers }, current: { streak, ... }, ... } }
- *   but the prior UI read flat fields like `totalWorkouts`, `workoutsThisWeek`,
- *   `exercisesCompleted`, `pointsEarned`, `streakDays` at the top level, so
- *   every weekly stat rendered as 0 (or silently fell back to wrong data
- *   like achievements count).
- *
- * These tests mock authAxios at the useAuth level and drive the component
- * with a realistic getWeeklyRecap payload, then assert the rendered numbers
- * match the real backend fields.
+ * Canonical /dashboard/client/progress KPI truth tests.
+ * Locks the weekly-recap real backend shape against flat legacy key fallback.
  */
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mock react-router-dom ────────────────────────────────────────────────
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
-}));
+const mockNavigate = vi.hoisted(() => vi.fn());
+vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 
 // ── Mock auth context (provides user + authAxios) ────────────────────────
-const mockAxiosGet = vi.fn();
-const mockUser = { id: 42, firstName: 'Test', lastName: 'Client' };
+const mockAxiosGet = vi.hoisted(() => vi.fn());
+const mockAuthAxios = vi.hoisted(() => ({ get: mockAxiosGet }));
+const mockUser = vi.hoisted((): { id: unknown; firstName: string; lastName: string } => ({ id: 42, firstName: 'Test', lastName: 'Client' }));
 vi.mock('../../../../context/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
-    authAxios: { get: mockAxiosGet },
+    authAxios: mockAuthAxios,
   }),
 }));
 
 // ── Mock useGamificationData — returns a baseline profile ───────────────
-const mockGamificationProfile = {
+const mockGamificationProfile = vi.hoisted(() => ({
   id: '42',
   firstName: 'Test',
   lastName: 'Client',
@@ -54,26 +39,22 @@ const mockGamificationProfile = {
   nextLevelProgress: 65,
   nextLevelPoints: 3000,
   nextTierProgress: 0,
-};
+}));
 vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
+  getSafeGamificationIdSegment: (value: unknown) => {
+    const segment = typeof value === 'number' ? String(value) : typeof value === 'string' ? value.trim() : '';
+    return /^[1-9]\d*$/.test(segment) && Number.isSafeInteger(Number(segment)) ? segment : null;
+  },
   useGamificationData: () => ({
     profile: { data: mockGamificationProfile, isLoading: false, error: null },
-    achievements: { data: [] },
-    rewards: { data: [] },
-    leaderboard: { data: [] },
-    isLoading: false,
-    error: null,
+    achievements: { data: [] }, rewards: { data: [] }, leaderboard: { data: [] },
+    isLoading: false, error: null,
   }),
 }));
 
 // ── Mock useSubscription ─────────────────────────────────────────────────
 vi.mock('../../../../hooks/useSubscription', () => ({
-  useSubscription: () => ({
-    isPro: false,
-    isElite: false,
-    isTrial: true,
-    tier: 'trial',
-  }),
+  useSubscription: () => ({ isPro: false, isElite: false, isTrial: true, tier: 'trial' }),
 }));
 
 // ── Stub the lazy children so the test doesn't try to load them ─────────
@@ -86,6 +67,9 @@ vi.mock('../../../AdvancedGamification/components/CompanionPet/CompanionPet', ()
 vi.mock('../../../Shared/CrystallineLockOverlay', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
+vi.mock('./CanonicalProgressChartsGrid', () => ({
+  default: () => <div data-testid="canonical-progress-charts-grid" />,
+}));
 
 import ClientProgressDashboardPage from './ClientProgressDashboardPage';
 
@@ -94,28 +78,10 @@ const realWeeklyRecapResponse = {
   data: {
     success: true,
     data: {
-      thisWeek: {
-        totalXP: 420,
-        workouts: 5,
-        surpriseMultipliers: 2,
-      },
-      lastWeek: {
-        totalXP: 350,
-        workouts: 4,
-      },
-      trends: {
-        xpChange: 70,
-        workoutChange: 1,
-        xpDirection: 'up',
-        workoutDirection: 'up',
-      },
-      current: {
-        streak: 12,
-        longestStreak: 20,
-        level: 5,
-        tier: 'silver',
-        totalXP: 2500,
-      },
+      thisWeek: { totalXP: 420, workouts: 5, surpriseMultipliers: 2 },
+      lastWeek: { totalXP: 350, workouts: 4 },
+      trends: { xpChange: 70, workoutChange: 1, xpDirection: 'up', workoutDirection: 'up' },
+      current: { streak: 12, longestStreak: 20, level: 5, tier: 'silver', totalXP: 2500 },
       weekStarting: '2026-04-13T00:00:00.000Z',
     },
   },
@@ -126,11 +92,7 @@ const realPersonalRecordsResponse = {
     success: true,
     // 3 records — PR count uniquely 3 so getByText('3') doesn't collide
     // with other numbers like surpriseMultipliers (2) or workouts (5).
-    data: [
-      { exerciseName: 'Bench Press', weight: 185, reps: 5, unit: 'lbs' },
-      { exerciseName: 'Squat', weight: 245, reps: 3, unit: 'lbs' },
-      { exerciseName: 'Deadlift', weight: 315, reps: 2, unit: 'lbs' },
-    ],
+    data: [{ exerciseName: 'Bench Press', weight: 185, reps: 5, unit: 'lbs' }, { exerciseName: 'Squat', weight: 245, reps: 3, unit: 'lbs' }, { exerciseName: 'Deadlift', weight: 315, reps: 2, unit: 'lbs' }],
   },
 };
 
@@ -147,6 +109,8 @@ describe('ClientProgressDashboardPage — canonical KPI truth', () => {
   beforeEach(() => {
     mockAxiosGet.mockReset();
     mockNavigate.mockReset();
+    mockUser.id = 42;
+    mockGamificationProfile.achievements = [];
   });
 
   it('reads weekly-recap from the real nested shape (data.thisWeek.workouts) — not from flat legacy keys', async () => {
@@ -238,6 +202,18 @@ describe('ClientProgressDashboardPage — canonical KPI truth', () => {
     });
   });
 
+  it('does not call a user-scoped gamification endpoint when the authenticated userId is unsafe', async () => {
+    mockUser.id = '../42';
+    wireRealResponses();
+    render(<ClientProgressDashboardPage />);
+
+    await screen.findByText(/my progress/i);
+
+    const calls = mockAxiosGet.mock.calls.map((call) => call[0] as string);
+    expect(calls.some((url) => url.includes('/api/gamification/users/'))).toBe(false);
+    expect(screen.queryByTestId('companion-pet')).not.toBeInTheDocument();
+  });
+
   it('calls the client-safe personal-records endpoint (not the legacy /api/analytics/:id path)', async () => {
     wireRealResponses();
     render(<ClientProgressDashboardPage />);
@@ -303,7 +279,6 @@ describe('ClientProgressDashboardPage — canonical KPI truth', () => {
       expect(prsLabel).toBeInTheDocument();
     });
 
-    // Highlights block header must NOT appear when no records
     // (the header "Personal Records" is rendered inside the length>0 gate)
     // Use queryAllByText to allow for the possibility that future copy could
     // reuse the phrase — assert ZERO matches.

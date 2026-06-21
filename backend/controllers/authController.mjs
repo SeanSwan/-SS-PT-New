@@ -921,10 +921,10 @@ export const login = async (req, res) => {
           where: { userId: user.id },
           defaults: {
             level: 1,
-            currentXP: 0,
+            experience: 0,
             totalXP: 0,
-            tier: 'bronze',
-            currentStreak: 0,
+            currentTier: 'bronze',
+            streakCount: 0,
             longestStreak: 0,
           }
         });

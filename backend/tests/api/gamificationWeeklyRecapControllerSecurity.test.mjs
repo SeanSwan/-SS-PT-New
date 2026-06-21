@@ -30,12 +30,16 @@ const weeklyRecapSource = functionSource('getWeeklyRecap', 'getActivityFeed');
 describe('gamification weekly recap controller security hardening', () => {
   it('locks the active weekly-recap route and frontend consumer', () => {
     const progressPageSource = readFrontend('src/components/DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.tsx');
+    const progressPageRecapSource = readFrontend('src/components/DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.recap.ts');
     const progressPageTestSource = readFrontend('src/components/DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.test.tsx');
 
     expect(coreRoutesSource).toContain("app.use('/api/v1/gamification', gamificationV1Routes)");
     expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
     expect(routeSource).toContain("router.get('/users/:userId/weekly-recap', authenticate, authorizeResourceAccess('userId'), gamificationController.getWeeklyRecap)");
-    expect(progressPageSource).toContain('authAxios.get(`/api/gamification/users/${user.id}/weekly-recap`)');
+    expect(progressPageSource).toContain('const weeklyRecapUserIdSegment = getSafeGamificationIdSegment(user.id);');
+    expect(progressPageSource).toContain('loadClientWeeklyRecap(authAxios, weeklyRecapUserIdSegment)');
+    expect(progressPageRecapSource).toContain('authAxios.get(');
+    expect(progressPageRecapSource).toContain('`/api/gamification/users/${weeklyRecapUserIdSegment}/weekly-recap`');
     expect(progressPageTestSource).toContain('calls the canonical weekly-recap endpoint with the authenticated userId');
     expect(progressPageTestSource).toContain('reads weekly-recap from the real nested shape');
   });
@@ -47,5 +51,14 @@ describe('gamification weekly recap controller security hardening', () => {
     expect(weeklyRecapSource).not.toContain('Number.parseInt(');
     expect(weeklyRecapSource).not.toContain('error: error.message');
     expect(weeklyRecapSource).not.toContain('safeError(req, error)');
+  });
+
+  it('reads current total XP from the central point ledger balance', () => {
+    expect(weeklyRecapSource).toContain('const latestPointBalance = await PointTransaction.findOne({');
+    expect(weeklyRecapSource).toContain("attributes: ['balance']");
+    expect(weeklyRecapSource).toContain("order: [['createdAt', 'DESC'], ['id', 'DESC']]");
+    expect(weeklyRecapSource).toContain('totalXP: latestPointBalance?.balance || 0');
+    expect(weeklyRecapSource).not.toContain("attributes: ['streakCount', 'longestStreak', 'level', 'currentTier', 'totalXP']");
+    expect(weeklyRecapSource).not.toContain('gamRecord?.totalXP || 0');
   });
 });

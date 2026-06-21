@@ -27,9 +27,9 @@ const ghostSlideIn = keyframes`
 `;
 
 const ghostVictoryBurst = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(96, 192, 240, 0.4); }
-  50% { transform: scale(1.02); box-shadow: 0 0 20px 4px rgba(96, 192, 240, 0.3); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(96, 192, 240, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent); }
+  50% { transform: scale(1.02); box-shadow: 0 0 20px 4px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
 `;
 
 // Reduced motion: disable all ghost animations for vestibular sensitivities
@@ -47,14 +47,16 @@ const reducedMotion = css`
 export const GhostBannerContainer = styled.div<{ $isActive: boolean }>`
   background: var(--bg-surface, #1A1A24);
   border: 1px solid ${({ $isActive }) =>
-    $isActive ? 'rgba(96, 192, 240, 0.3)' : 'rgba(224, 236, 244, 0.08)'};
+    $isActive
+      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'
+      : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent)'};
   border-radius: 12px;
   padding: 16px;
   animation: ${ghostSlideIn} 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
   ${({ $isActive }) => $isActive && css`
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.15);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   `}
 
   ${reducedMotion}
@@ -87,29 +89,31 @@ export const GhostToggle = styled.button<{ $active: boolean }>`
   padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid ${({ $active }) =>
-    $active ? 'rgba(96, 192, 240, 0.4)' : 'rgba(224, 236, 244, 0.15)'};
+    $active
+      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent)'
+      : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent)'};
   background: ${({ $active }) =>
-    $active ? 'rgba(96, 192, 240, 0.15)' : 'transparent'};
+    $active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)' : 'transparent'};
   color: ${({ $active }) =>
-    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
+    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: rgba(96, 192, 240, 0.2);
-    border-color: rgba(96, 192, 240, 0.5);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
     transform: translateY(-1px);
   }
 
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
   }
 `;
 
@@ -145,8 +149,8 @@ export const GhostStatLabel = styled.span<{ $variant?: 'ghost' | 'current' }>`
   font-weight: 500;
   color: ${({ $variant }) =>
     $variant === 'ghost'
-      ? 'rgba(80, 160, 240, 0.7)'
-      : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
+      ? 'color-mix(in srgb, var(--data-accent, #50A0F0) 70%, transparent)'
+      : 'var(--text-secondary, #94a3b8)'};
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 4px;
@@ -175,8 +179,8 @@ export const VsIndicator = styled.div`
   text-align: center;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(198, 168, 75, 0.1);
-  border: 1px solid rgba(198, 168, 75, 0.2);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent);
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -199,21 +203,21 @@ export const DeltaIndicator = styled.div<{ $status: 'ahead' | 'behind' | 'tied' 
       case 'ahead':
         return css`
           color: var(--accent-primary, #60C0F0);
-          background: rgba(96, 192, 240, 0.1);
-          border: 1px solid rgba(96, 192, 240, 0.25);
+          background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
           animation: ${ghostVictoryBurst} 2s ease-in-out infinite;
         `;
       case 'behind':
         return css`
-          color: #8BA8C8; /* Glacial Ash v2 — WCAG AA 5.2:1 on dark */
-          background: rgba(139, 168, 200, 0.1);
-          border: 1px solid rgba(139, 168, 200, 0.25);
+          color: var(--text-secondary, #94a3b8);
+          background: color-mix(in srgb, var(--text-secondary, #94a3b8) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--text-secondary, #94a3b8) 25%, transparent);
         `;
       case 'tied':
         return css`
           color: var(--accent-gold, #C6A84B);
-          background: rgba(198, 168, 75, 0.1);
-          border: 1px solid rgba(198, 168, 75, 0.25);
+          background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+          border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 25%, transparent);
         `;
     }
   }}
@@ -244,8 +248,8 @@ export const ExerciseRow = styled.div<{ $status: 'beat' | 'tied' | 'lost' | 'ski
     switch ($status) {
       case 'beat': return 'var(--accent-primary, #60C0F0)';
       case 'tied': return 'var(--accent-gold, #C6A84B)';
-      case 'lost': return '#8BA8C8'; /* Glacial Ash v2 */
-      default: return 'rgba(224, 236, 244, 0.15)';
+      case 'lost': return 'var(--text-secondary, #94a3b8)';
+      default: return 'color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent)';
     }
   }};
   font-size: 0.8rem;
@@ -262,7 +266,7 @@ export const ExerciseName = styled.span`
 
 export const ExerciseVolume = styled.span`
   font-family: 'Fira Code', monospace;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, #94a3b8);
   font-size: 0.75rem;
 `;
 
@@ -271,7 +275,7 @@ export const ExerciseDelta = styled.span<{ $positive: boolean }>`
   font-size: 0.75rem;
   font-weight: 600;
   color: ${({ $positive }) =>
-    $positive ? 'var(--accent-primary, #60C0F0)' : '#8BA8C8'}; /* Glacial Ash v2 for negative */
+    $positive ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -281,10 +285,10 @@ export const ExerciseDelta = styled.span<{ $positive: boolean }>`
 export const GhostSourceInfo = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.7rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: var(--text-muted, #64748b);
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(224, 236, 244, 0.06);
+  border-top: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent);
 `;
 
 export const NoGhostMessage = styled.div`
@@ -292,5 +296,5 @@ export const NoGhostMessage = styled.div`
   padding: 24px 16px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.85rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, #94a3b8);
 `;

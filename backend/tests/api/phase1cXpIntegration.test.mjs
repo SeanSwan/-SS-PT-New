@@ -1,20 +1,5 @@
-/**
- * Phase 1C XP Service + Integration Tests
- * ========================================
- * 16 tests covering:
- * - awardWorkoutXP service structure and return shape
- * - Idempotency guard (PointTransaction.sourceId)
- * - Day-level guard (WorkoutSession.date + experiencePoints > 0)
- * - Same-day guard (lastActivityDate match)
- * - Streak logic (consecutive, gap, grace)
- * - Milestone awarding
- * - Failure isolation (XP failure does not break workout response)
- * - Controller XP-state mapping (sameDay/alreadyAwarded → xp: null)
- */
-
 import { describe, expect, test, vi, beforeAll } from 'vitest';
 
-// ===== Service Structure (3 tests) =====
 
 describe('awardWorkoutXP service — structure', () => {
   let awardWorkoutXP;
@@ -39,6 +24,19 @@ describe('awardWorkoutXP service — structure', () => {
     const mod = await import('../../services/awardWorkoutXP.mjs');
     expect(mod.default).toBeDefined();
     expect(typeof mod.default.awardWorkoutXP).toBe('function');
+  });
+
+  test('4 — imports the central point ledger once', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const __filename = fileURLToPath(import.meta.url);
+    const servicePath = path.resolve(path.dirname(__filename), '../../services/awardWorkoutXP.mjs');
+    const source = fs.readFileSync(servicePath, 'utf-8');
+    const imports = source.match(/import\s+GamificationPointsService\s+from\s+'\.\/gamification\/GamificationPointsService\.mjs';/g) ?? [];
+
+    expect(imports).toHaveLength(1);
+    expect(source).toMatch(/GamificationPointsService\.recordLedgerEntry/);
   });
 });
 
@@ -67,10 +65,10 @@ describe('awardWorkoutXP — idempotency + day-level guard contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
     // Must import WorkoutSession (for day-level guard)
     expect(source).toMatch(/import\s+WorkoutSession\s+from/);
@@ -88,10 +86,10 @@ describe('awardWorkoutXP — idempotency + day-level guard contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
     // Must read user.lastActivityDate
     expect(source).toMatch(/lastActivityDate/);
@@ -107,13 +105,16 @@ describe('awardWorkoutXP — idempotency + day-level guard contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
-    // Idempotency guard checks PointTransaction by sourceId
+    expect(source).toMatch(/GamificationPointsService\.recordLedgerEntry/);
+    expect(source).toMatch(/idempotencyKey:\s*workoutIdempotencyKey/);
+    expect(source).toMatch(/toSafeIntegerId\(workoutId\)/);
     expect(source).toMatch(/PointTransaction\.findOne/);
+    expect(source).not.toMatch(/sourceId:\s*String\(workoutId\)/);
     expect(source).toMatch(/sourceId/);
     expect(source).toMatch(/workout_completion/);
     // Returns alreadyAwarded
@@ -130,10 +131,10 @@ describe('awardWorkoutXP — streak logic contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
     // Streak increment on daysSinceLast === 1
     expect(source).toMatch(/daysSinceLast\s*===\s*1/);
@@ -146,13 +147,12 @@ describe('awardWorkoutXP — streak logic contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
-    // Streak broken reset
-    expect(source).toMatch(/Streak broken.*reset to 1/i);
+    expect(source).toMatch(/else\s*\{\s*updatedStats\.streakDays\s*=\s*1/s);
     expect(source).toMatch(/streakDays\s*=\s*1/);
   });
 
@@ -162,16 +162,13 @@ describe('awardWorkoutXP — streak logic contracts', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
-    // Grace day check at daysSinceLast === 2
     expect(source).toMatch(/daysSinceLast\s*===\s*2/);
-    // 30-day rolling window
     expect(source).toMatch(/thirtyDaysAgo/);
-    // STREAK_GRACE prefix in PointTransaction lookup
     expect(source).toMatch(/STREAK_GRACE/);
     expect(source).toMatch(/Op\.startsWith/);
   });
@@ -187,7 +184,7 @@ describe('awardWorkoutXP — milestone contracts', () => {
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
     const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
+      path.join(serviceDir, 'awardWorkoutXPSupport.mjs'),
       'utf-8'
     );
 
@@ -197,7 +194,7 @@ describe('awardWorkoutXP — milestone contracts', () => {
     expect(source).toMatch(/isActive:\s*true/);
     // Awards via UserMilestone.create
     expect(source).toMatch(/UserMilestone\.create/);
-    // Returns awardedMilestones in result
+    // Returns awardedMilestones to the main service result
     expect(source).toMatch(/awardedMilestones/);
   });
 
@@ -208,7 +205,7 @@ describe('awardWorkoutXP — milestone contracts', () => {
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
     const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
+      path.join(serviceDir, 'awardWorkoutXPSupport.mjs'),
       'utf-8'
     );
 
@@ -256,12 +253,11 @@ describe('workoutLogService — XP failure isolation', () => {
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
     const serviceDir = path.resolve(path.dirname(__filename), '../../services');
-    const source = fs.readFileSync(
-      path.join(serviceDir, 'awardWorkoutXP.mjs'),
-      'utf-8'
-    );
+    const source = [
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXP.mjs'), 'utf-8'),
+      fs.readFileSync(path.join(serviceDir, 'awardWorkoutXPSupport.mjs'), 'utf-8'),
+    ].join('\n');
 
-    // Only advances lastActivityDate if newer
     expect(source).toMatch(/normalizedDate\s*>\s*lastActivity/);
     expect(source).toMatch(/lastActivityDate.*normalizedDate/);
   });
@@ -279,9 +275,7 @@ describe('workoutLogService — XP-state mapping', () => {
     const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
     const source = fs.readFileSync(svcPath, 'utf-8');
 
-    // Service must collapse sameDay to null
     expect(source).toMatch(/xpResult\.sameDay/);
-    // XP response is null when sameDay is true
     expect(source).toMatch(/xpResponse.*sameDay.*alreadyAwarded/s);
   });
 
@@ -293,9 +287,7 @@ describe('workoutLogService — XP-state mapping', () => {
     const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
     const source = fs.readFileSync(svcPath, 'utf-8');
 
-    // Service must collapse alreadyAwarded to null
     expect(source).toMatch(/xpResult\.alreadyAwarded/);
-    // Return value includes xp field
     expect(source).toMatch(/xp:\s*xpResponse/);
   });
 });

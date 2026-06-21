@@ -373,6 +373,8 @@ export const canUserJoinChallenge = (
 /**
  * Generate challenge recommendations for user
  */
+type ScoredChallenge = Challenge & { _score: number };
+
 export const generateChallengeRecommendations = (
   challenges: Challenge[],
   user: GamificationUser,
@@ -383,11 +385,11 @@ export const generateChallengeRecommendations = (
       const { canJoin } = canUserJoinChallenge(challenge, user);
       return canJoin;
     })
-    .map(challenge => ({
+    .map((challenge): ScoredChallenge => ({
       ...challenge,
       _score: calculateRecommendationScore(challenge, user)
     }))
-    .sort((a, b) => (b as any)._score - (a as any)._score)
+    .sort((a, b) => b._score - a._score)
     .slice(0, limit)
     .map(({ _score, ...challenge }) => challenge); // Remove score field
 };
@@ -415,9 +417,8 @@ const calculateRecommendationScore = (
     score += 25;
   }
   
-  // Challenge type variety
-  // (This would need user's challenge history to calculate properly)
-  score += Math.random() * 20; // Placeholder for variety score
+  // Stable variety keeps ties consistent across renders until history exists.
+  score += getStableRecommendationVariety(challenge, user);
   
   // Participation rate (higher is better for engagement)
   score += challenge.progressData.totalParticipants * 0.1;
@@ -426,6 +427,24 @@ const calculateRecommendationScore = (
   score += calculateChallengeRewardValue(challenge) * 0.05;
   
   return score;
+};
+
+const getStableRecommendationVariety = (
+  challenge: Challenge,
+  user: GamificationUser
+): number => {
+  const source = [
+    challenge.id,
+    challenge.type,
+    challenge.category,
+    challenge.difficulty,
+    user.userId,
+  ].join('|');
+  let hash = 0;
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) >>> 0;
+  }
+  return (hash % 2000) / 100;
 };
 
 /**
@@ -528,34 +547,4 @@ export const getUnlockAnimation = (tier: AchievementTier) => {
     platinum: { duration: 1500, intensity: 'epic', particles: 75 },
     diamond: { duration: 2000, intensity: 'epic', particles: 100 }
   }[tier];
-};
-
-// ================================================================
-// EXPORT ALL UTILITIES
-// ================================================================
-
-export {
-  calculateXpForLevel,
-  calculateLevelFromXp,
-  calculateXpToNextLevel,
-  calculateLevelProgress,
-  calculateChallengeDifficulty,
-  calculateChallengeCompletionRate,
-  estimateChallengeDuration,
-  calculateChallengeRewardValue,
-  calculateAchievementRarity,
-  calculateAchievementPoints,
-  estimateAchievementUnlockTime,
-  calculateRankChange,
-  calculateActivityScore,
-  formatNumber,
-  formatDuration,
-  formatPercentage,
-  formatRelativeTime,
-  canUserJoinChallenge,
-  generateChallengeRecommendations,
-  getTierColors,
-  getDifficultyColors,
-  getCategoryColors,
-  getUnlockAnimation
 };

@@ -5,7 +5,7 @@
  * award receipts. Do not echo names, badge titles, or free-form text.
  */
 import { getAllModels } from '../../../models/index.mjs';
-import { calculateLevel, getTier } from '../../../utils/levelingAlgorithm.mjs';
+import GamificationPointsService from '../../gamification/GamificationPointsService.mjs';
 import { resolveCommandClientId } from './clientScope.mjs';
 
 const toNumber = (value) => {
@@ -16,9 +16,13 @@ const toNumber = (value) => {
 const asPlain = (row) => (row?.toJSON ? row.toJSON() : row);
 const resolveClientId = resolveCommandClientId;
 
-const withOptionalTransaction = async (ctx, callback) => {
+const withRequiredTransaction = async (ctx, callback) => {
   const sequelize = ctx.options?.sequelize || ctx.sequelize;
-  if (!sequelize?.transaction) return callback(null);
+  if (!sequelize?.transaction) {
+    const error = new Error('Database transaction unavailable for gamification award.');
+    error.statusCode = 503;
+    throw error;
+  }
   const transaction = await sequelize.transaction();
   try {
     const result = await callback(transaction);
@@ -101,8 +105,8 @@ export const dispatchViewXpStreaks = async (params, ctx) => {
   };
 };
 
-export const dispatchAwardBadge = async (params, ctx) => withOptionalTransaction(ctx, async (transaction) => {
-  const { User, Achievement, UserAchievement, PointTransaction } = getAllModels();
+export const dispatchAwardBadge = async (params, ctx) => withRequiredTransaction(ctx, async (transaction) => {
+  const { User, Achievement, UserAchievement } = getAllModels();
   const clientId = resolveClientId(params, ctx);
   const achievementId = String(params.achievementId);
   const options = transaction ? { transaction } : {};
@@ -135,9 +139,6 @@ export const dispatchAwardBadge = async (params, ctx) => withOptionalTransaction
   }
 
   const pointsAwarded = toNumber(achievement.xpReward);
-  const newBalance = toNumber(user.points) + pointsAwarded;
-  const newLevel = calculateLevel(newBalance);
-  const newTier = getTier(newLevel);
   const earnedAt = new Date();
   const achievementFields = {
     userId: clientId,
@@ -156,18 +157,30 @@ export const dispatchAwardBadge = async (params, ctx) => withOptionalTransaction
     await UserAchievement.create(achievementFields, options);
   }
 
-  await PointTransaction.create({
-    userId: clientId,
-    points: pointsAwarded,
-    balance: newBalance,
-    transactionType: 'earn',
-    source: 'achievement_earned',
-    sourceId: null,
-    description: 'Achievement earned',
-    metadata: { achievementId },
-    awardedBy: ctx.user?.id ?? null,
-  }, options);
-  await user.update({ points: newBalance, level: newLevel, tier: newTier }, options);
+  let ledgerResult = {
+    pointsAwarded: 0,
+    newBalance: toNumber(user.points),
+    newLevel: toNumber(user.level),
+    newTier: user.tier ?? null,
+  };
+  if (pointsAwarded > 0) {
+    ledgerResult = await GamificationPointsService.recordLedgerEntry({
+      userId: clientId,
+      points: pointsAwarded,
+      transactionType: 'earn',
+      source: 'achievement_earned',
+      sourceId: null,
+      description: 'Achievement earned',
+      metadata: { achievementId },
+      awardedBy: ctx.user?.id ?? null,
+      idempotencyKey: `ai-achievement:${clientId}:${achievementId}`,
+      maxPoints: Number.MAX_SAFE_INTEGER,
+    }, transaction);
+  }
+  const finalPointsAwarded = toNumber(ledgerResult.pointsAwarded);
+  const newBalance = toNumber(ledgerResult.newBalance ?? user.points);
+  const newLevel = toNumber(ledgerResult.newLevel ?? user.level);
+  const newTier = ledgerResult.newTier ?? user.tier ?? null;
 
   return {
     clientId,
@@ -175,7 +188,7 @@ export const dispatchAwardBadge = async (params, ctx) => withOptionalTransaction
     found: true,
     awarded: true,
     alreadyAwarded: false,
-    pointsAwarded,
+    pointsAwarded: finalPointsAwarded,
     newBalance,
     newLevel,
     newTier,

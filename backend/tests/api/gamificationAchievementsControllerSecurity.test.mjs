@@ -12,6 +12,7 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const adminGamificationSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts');
+const adminGamificationCatalogActionsSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationCatalogActions.ts');
 const trainerGamificationSource = readFrontend('src/components/DashBoard/Pages/trainer-gamification/hooks/useTrainerGamification.ts');
 
 const functionSource = (name, nextName) => {
@@ -43,7 +44,7 @@ describe('gamification achievements controller security hardening', () => {
     expect(routeSource).toContain("router.post('/users/:userId/achievements/:achievementId', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.awardAchievement)");
     expect(routeSource).toContain("router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.updateAchievementProgress)");
     expect(adminGamificationSource).toContain("authAxios.get('/api/v1/gamification/achievements')");
-    expect(adminGamificationSource).toContain("authAxios.post('/api/v1/gamification/achievements', achievement)");
+    expect(adminGamificationCatalogActionsSource).toContain("authAxios.post('/api/v1/gamification/achievements', achievement)");
     expect(trainerGamificationSource).toContain("authAxios.get('/api/v1/gamification/achievements')");
     expect(trainerGamificationSource).toContain('authAxios.post(`/api/v1/gamification/users/${clientId}/achievements/${achievementId}`)');
   });
@@ -59,11 +60,45 @@ describe('gamification achievements controller security hardening', () => {
   it('strictly normalizes user-scoped achievement ids and progress values', () => {
     expect(achievementSources.award).toContain('const normalizedUserId = parsePositiveInteger(userId);');
     expect(achievementSources.award).toContain('User.findByPk(normalizedUserId');
+    expect(achievementSources.award).toContain('lock: transaction.LOCK.UPDATE');
     expect(achievementSources.award).toContain('userId: normalizedUserId,');
     expect(achievementSources.progress).toContain('const normalizedUserId = parsePositiveInteger(userId);');
     expect(achievementSources.progress).toContain('const normalizedProgress = parseBoundedNumber(progress, 0, 100);');
     expect(achievementSources.progress).toContain('if (normalizedProgress === null)');
+    expect(achievementSources.progress).toContain('const transaction = await db.transaction();');
+    expect(achievementSources.progress).toContain('User.findByPk(normalizedUserId');
+    expect(achievementSources.progress).toContain('lock: transaction.LOCK.UPDATE');
     expect(achievementSources.progress).toContain('progress: normalizedProgress');
     expect(achievementSources.progress).not.toContain('Math.min(100, Math.max(0, progress))');
+  });
+
+  it('uses the central point ledger for direct achievement awards', () => {
+    expect(achievementSources.award).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(achievementSources.award).toContain("source: 'achievement_earned'");
+    expect(achievementSources.award).toContain('sourceId: null');
+    expect(achievementSources.award).not.toContain('sourceId: achievement.id');
+    expect(achievementSources.award).toContain('idempotencyKey: `achievement:${normalizedUserId}:${achievement.id}`');
+    expect(achievementSources.award).not.toContain('await PointTransaction.create({');
+  });
+
+  it('normalizes achievement reward point values before ledger awards', () => {
+    expect(controllerSource).toContain('const parsed = parseNonNegativeInteger(achievement?.xpReward, 0);');
+    expect(controllerSource).not.toContain('const parsed = Number(achievement?.xpReward);');
+    expect(achievementSources.award).toContain('const achievementPoints = getAchievementPointValue(achievement);');
+    expect(achievementSources.progress).toContain('const achievementPoints = getAchievementPointValue(achievement);');
+    expect(achievementSources.progress).toContain('const achievementPoints = getAchievementPointValue(userAchievement.achievement);');
+  });
+
+  it('uses the central point ledger for progress-completion achievement awards', () => {
+    expect(achievementSources.progress).toContain('GamificationPointsService.recordLedgerEntry({');
+    expect(achievementSources.progress).toContain("source: 'achievement_earned'");
+    expect(achievementSources.progress).toContain('sourceId: null');
+    expect(achievementSources.progress).not.toContain('sourceId: achievement.id');
+    expect(achievementSources.progress).not.toContain('sourceId: userAchievement.achievement.id');
+    expect(achievementSources.progress).toContain('idempotencyKey: `achievement:${normalizedUserId}:${achievement.id}`');
+    expect(achievementSources.progress).toContain('idempotencyKey: `achievement:${normalizedUserId}:${userAchievement.achievement.id}`');
+    expect(achievementSources.progress).toContain('}, transaction);');
+    expect(achievementSources.progress).not.toContain('await PointTransaction.create({');
+    expect(achievementSources.progress).not.toContain('await user.update({ points: newBalance');
   });
 });
