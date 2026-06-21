@@ -864,14 +864,14 @@ class GamificationPersistence {
       // SECURITY FIX #10: PostgreSQL fallback when Redis disabled
       if (this.redisEnabled && this.redis) {
         const streak = await this.redis.hget(`user:${userId}:stats`, 'currentStreak');
-        return parseInt(streak) || 0;
+        return normalizeNonNegativeInteger(streak);
       }
       // PostgreSQL fallback: query Gamification model
       const [rows] = await sequelize.query(
         'SELECT "streakCount" FROM "Gamifications" WHERE "userId" = :userId LIMIT 1',
         { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
       );
-      return rows?.streakCount || 0;
+      return normalizeNonNegativeInteger(rows?.streakCount);
     } catch (error) {
       piiSafeLogger.error('Failed to get current streak', {
         error: error.message,
@@ -917,7 +917,8 @@ class GamificationPersistence {
         END AS rank`,
         { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
       );
-      return result?.rank ? parseInt(result.rank) : null;
+      const rank = normalizeInteger(result?.rank);
+      return rank !== null && rank > 0 ? rank : null;
     } catch (error) {
       piiSafeLogger.error('Failed to get user leaderboard rank', {
         error: error.message,
@@ -944,7 +945,7 @@ class GamificationPersistence {
         'SELECT COUNT(*) AS cnt FROM "UserAchievements" WHERE "userId" = :userId AND "achievementId" = :achievementId',
         { replacements: { userId, achievementId }, type: sequelize.QueryTypes.SELECT }
       );
-      return (parseInt(result?.cnt) || 0) > 0;
+      return normalizeNonNegativeInteger(result?.cnt) > 0;
     } catch (error) {
       piiSafeLogger.error('Failed to check achievement', {
         error: error.message,
@@ -992,14 +993,14 @@ class GamificationPersistence {
     try {
       if (this.redisEnabled && this.redis) {
         const count = await this.redis.hget(`user:${userId}:stats`, 'totalWorkouts');
-        return parseInt(count) || 0;
+        return normalizeNonNegativeInteger(count);
       }
       // PostgreSQL fallback
       const [result] = await sequelize.query(
         'SELECT "totalWorkouts" FROM "Gamifications" WHERE "userId" = :userId LIMIT 1',
         { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
       );
-      return result?.totalWorkouts || 0;
+      return normalizeNonNegativeInteger(result?.totalWorkouts);
     } catch (error) {
       piiSafeLogger.error('Failed to get workout count', {
         error: error.message,
@@ -1020,7 +1021,7 @@ class GamificationPersistence {
         const today = new Date().toISOString().split('T')[0];
         const key = `user:${userId}:actions:${today}:${action}`;
         const count = await this.redis.get(key);
-        return parseInt(count) || 0;
+        return normalizeNonNegativeInteger(count);
       }
       // PostgreSQL fallback: query PointTransaction for today's count
       const startOfToday = new Date();
@@ -1040,7 +1041,7 @@ class GamificationPersistence {
         `SELECT COUNT(*) AS cnt FROM "PointTransactions" WHERE "userId" = :userId AND "source" = :action AND "createdAt" >= :startOfToday${legacyReasonClause}`,
         { replacements, type: sequelize.QueryTypes.SELECT }
       );
-      return parseInt(result?.cnt) || 0;
+      return normalizeNonNegativeInteger(result?.cnt);
     } catch (error) {
       piiSafeLogger.error('Failed to get action count today', {
         error: error.message,
@@ -1059,7 +1060,7 @@ class GamificationPersistence {
     try {
       if (this.redisEnabled && this.redis) {
         const count = await this.redis.hget(`user:${userId}:stats`, 'sharedWorkouts');
-        return parseInt(count) || 0;
+        return normalizeNonNegativeInteger(count);
       }
       // PostgreSQL fallback
       const source = toPointSource('helped_community', {});
@@ -1074,7 +1075,7 @@ class GamificationPersistence {
           type: sequelize.QueryTypes.SELECT
         }
       );
-      return parseInt(result?.cnt) || 0;
+      return normalizeNonNegativeInteger(result?.cnt);
     } catch (error) {
       piiSafeLogger.error('Failed to get community help count', {
         error: error.message,
@@ -1109,7 +1110,7 @@ class GamificationPersistence {
     try {
       if (this.redisEnabled && this.redis) {
         const total = await this.redis.get('platform:total_points_awarded');
-        return parseInt(total) || 0;
+        return normalizeNonNegativeInteger(total);
       }
       return await getTotalPointsAwardedFromLedger(sequelize);
     } catch (error) {
