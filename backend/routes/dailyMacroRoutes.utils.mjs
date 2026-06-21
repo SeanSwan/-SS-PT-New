@@ -9,6 +9,7 @@ export const MAX_WEEKLY_RANGE_DAYS = 90;
 const MAX_MACRO_VALUE = 99999;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
+const USER_ID_QUERY_REGEX = /^[1-9]\d*$/;
 
 const roundOneDecimal = (value) => Math.round(value * 10) / 10;
 
@@ -46,11 +47,11 @@ export const resolveMacroTargetUserId = async (req, queryField = 'userId') => {
   const rawTarget = req.query?.[queryField];
   if (!rawTarget) return { userId: ownUserId };
 
-  const targetUserId = parseInt(rawTarget, 10);
-  if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
+  if (typeof rawTarget !== 'string' || !USER_ID_QUERY_REGEX.test(rawTarget)) {
     return { status: 400, error: 'Invalid userId' };
   }
 
+  const targetUserId = Number(rawTarget);
   const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, targetUserId);
   if (!allowed) {
     return { status: 404, error: 'Macro data not found' };

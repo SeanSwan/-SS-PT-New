@@ -98,4 +98,14 @@ describe('POST /api/macros local-date guard', () => {
     expect(mocks.createSingleMacroEntry).toHaveBeenCalledTimes(1);
     expect(mocks.createSingleMacroEntry.mock.calls[0][0].date).toBe('2026-06-20');
   });
+
+  it('rejects malformed targeted summary userIds before assignment access', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/summary')
+      .query({ date: '2026-06-20', userId: '42abc' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Invalid userId');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+  });
 });
