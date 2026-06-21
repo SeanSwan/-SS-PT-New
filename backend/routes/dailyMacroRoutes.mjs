@@ -43,7 +43,12 @@ const sanitizeNumber = (val, max = MAX_MACRO_VALUE) => {
 const isValidDate = (str) => {
   if (!DATE_REGEX.test(str)) return false;
   const d = new Date(str + 'T00:00:00Z');
-  return !isNaN(d.getTime());
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === str;
+};
+
+const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
+  return date.toISOString().slice(0, 10);
 };
 
 const resolveMacroTargetUserId = async (req, queryField = 'userId') => {
@@ -101,8 +106,13 @@ router.post('/', async (req, res) => {
     // Validate source
     const safeSource = ALLOWED_SOURCES.includes(source) ? source : 'manual';
 
-    // Validate date
-    const entryDate = date && isValidDate(date) ? date : new Date().toISOString().split('T')[0];
+    // Validate date and reject future-dated entries (no phantom future macro logs).
+    const today = serverUtcDateOnly();
+    const maxClientLocalDate = serverUtcDateOnly(1);
+    const entryDate = date && isValidDate(date) ? date : today;
+    if (entryDate > maxClientLocalDate) {
+      return res.status(400).json({ success: false, error: 'Cannot log meals for a future date.' });
+    }
 
     // Validate items array
     const safeItems = Array.isArray(items) ? items.slice(0, MAX_ITEMS_COUNT) : [];
