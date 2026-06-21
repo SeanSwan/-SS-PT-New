@@ -10,8 +10,8 @@
  * Facts) in parallel when the user types a search term. Results are merged,
  * deduplicated, and displayed as nutrition cards with macro breakdowns.
  *
- * HOW IT FITS IN THE APP: FoodTracker tab -> FoodSearchPanel (this) -> user
- * clicks "Add to Log" -> dispatches CustomEvent -> parent FoodTracker logs it.
+ * HOW IT FITS IN THE APP: FoodTracker tab -> FoodSearchPanel (this) -> user clicks
+ * "Add to <meal>" -> POST /api/macros (self-serve, Decision #2) logs it to today.
  *
  * KEY DECISIONS: Dual-API approach gives USDA accuracy + OFF international
  * coverage. Promise.allSettled ensures one API failure doesn't block results.
@@ -20,8 +20,10 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Search, Filter, Plus, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, Loader2, Check } from 'lucide-react';
 import { theme } from '../../theme/tokens';
+import { MEAL_TYPE_OPTIONS } from './mealPhotoLog';
+import { formatMealLabel, useFoodSearchAddToLog } from './useFoodSearchAddToLog';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
@@ -304,6 +306,7 @@ const Card = styled.div<{ $healthRating?: 'good' | 'okay' | 'bad' }>`
   animation: ${fadeUp} 0.3s ease-out both; transition: transform 0.2s, border-color 0.2s;
   will-change: transform;
   &:hover { transform: translateY(-2px); border-color: ${foodTheme.borderHover}; }
+  @media (prefers-reduced-motion: reduce) { animation: none; transition: border-color 0.2s; &:hover { transform: none; } }
 `;
 const Header = styled.div`
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -350,10 +353,25 @@ const AddBtn = styled.button`
   gap: ${theme.spacing.sm}; background: linear-gradient(135deg, ${foodTheme.accentSecondary}, ${foodTheme.accent}); border: none; border-radius: 10px;
   color: ${foodTheme.inverse}; font: ${theme.typography.weight.semibold} ${theme.typography.scale.sm} 'Sora', sans-serif;
   cursor: pointer; transition: box-shadow 0.2s, transform 0.15s;
-  &:hover { box-shadow: 0 0 16px ${foodTheme.glow}; transform: translateY(-1px); }
-  &:active { transform: translateY(0); }
+  &:hover:not(:disabled) { box-shadow: 0 0 16px ${foodTheme.glow}; transform: translateY(-1px); }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { opacity: 0.6; cursor: default; }
+  @media (prefers-reduced-motion: reduce) { transition: box-shadow 0.2s; &:hover:not(:disabled) { transform: none; } }
 `;
-const Spin = styled(Loader2)`animation: ${spin} 0.8s linear infinite;`;
+
+const MealRow = styled.div`
+  display: flex; align-items: center; gap: ${theme.spacing.sm}; margin-bottom: ${theme.spacing.md};
+  label { color: ${foodTheme.textSoft}; font: ${theme.typography.weight.medium} ${theme.typography.scale.sm} 'Sora', sans-serif; }
+`;
+const MealSelect = styled.select`
+  min-height: 44px; padding: 0 ${theme.spacing.md}; border-radius: 10px;
+  border: 1px solid ${foodTheme.border}; background: ${foodTheme.input}; color: ${foodTheme.text};
+  font: ${theme.typography.weight.medium} ${theme.typography.scale.sm} 'Sora', sans-serif; cursor: pointer;
+`;
+const Spin = styled(Loader2)`
+  animation: ${spin} 0.8s linear infinite;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+`;
 
 const SafetyPill = styled.span<{ $color: string; $dim?: boolean }>`
   display: inline-flex; align-items: center;
@@ -374,12 +392,17 @@ const Empty = styled.div`
 // PURPOSE: Main search panel with debounced dual-API queries
 // ─────────────────────────────────────────────────────────────
 
-const FoodSearchPanel: React.FC = () => {
+interface FoodSearchPanelProps {
+  onDataSent?: (success: boolean) => void;
+}
+
+const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [allResults, setAllResults] = useState<FoodResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const { addError, addToLog, addedIds, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
@@ -424,16 +447,13 @@ const FoodSearchPanel: React.FC = () => {
     [allResults, category],
   );
 
-  const addToLog = (food: FoodResult) => {
-    window.dispatchEvent(new CustomEvent('food-search:add', { detail: food }));
-  };
-
+  // Search result saves live in useFoodSearchAddToLog; this panel keeps presentation state.
   return (
     <Wrap>
       <SearchBar>
         <SIcon size={18} />
         <SInput
-          type="text" placeholder="Search foods... (e.g. chicken breast, oatmeal)"
+          type="text" aria-label="Search foods" placeholder="Search foods... (e.g. chicken breast, oatmeal)"
           value={query} onChange={(e) => setQuery(e.target.value)} autoFocus
         />
       </SearchBar>
@@ -444,6 +464,14 @@ const FoodSearchPanel: React.FC = () => {
           <Chip key={c} $on={category === c} onClick={() => setCategory(c)}>{c}</Chip>
         ))}
       </Filters>
+
+      <MealRow>
+        <label htmlFor="food-search-meal-type">Add to</label>
+        <MealSelect id="food-search-meal-type" value={mealType} onChange={(e) => setMealType(e.target.value)}>
+          {MEAL_TYPE_OPTIONS.map((m) => <option key={m} value={m}>{formatMealLabel(m)}</option>)}
+        </MealSelect>
+      </MealRow>
+      {addError && <Empty role="alert" style={{ color: foodTheme.danger, padding: '8px' }}>{addError}</Empty>}
 
       {loading && <Empty><Spin size={28} /></Empty>}
       {!loading && searched && filteredResults.length === 0 && (
@@ -461,7 +489,7 @@ const FoodSearchPanel: React.FC = () => {
                     <IngredientBadge group={f.iarcGroup} isEUBanned={f.isEUBanned} isGMO={f.isGMO} />
                   </Name>
                   {(f.brand || f.servingSize) && (
-                    <Meta>{[f.brand, f.servingSize].filter(Boolean).join(' · ')}</Meta>
+                    <Meta>{[f.brand, f.servingSize].filter(Boolean).join(' - ')}</Meta>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -475,7 +503,17 @@ const FoodSearchPanel: React.FC = () => {
                 <Macro $c={foodTheme.accentSecondary}><div className="v">{f.carbs}g</div><div className="l">Carbs</div></Macro>
                 <Macro $c={foodTheme.gold}><div className="v">{f.fat}g</div><div className="l">Fat</div></Macro>
               </Macros>
-              <AddBtn onClick={() => addToLog(f)}><Plus size={18} /> Add to Log</AddBtn>
+              <AddBtn
+                onClick={() => addToLog(f)}
+                disabled={savingId != null || addedIds.has(f.id)}
+                aria-label={addedIds.has(f.id) ? `${f.name} added to ${formatMealLabel(mealType)}` : `Add ${f.name} to ${formatMealLabel(mealType)}`}
+              >
+                {addedIds.has(f.id)
+                  ? <><Check size={18} /> Added</>
+                  : savingId === f.id
+                    ? <><Spin size={18} /> Adding...</>
+                    : <><Plus size={18} /> Add to {formatMealLabel(mealType)}</>}
+              </AddBtn>
             </Card>
           ))}
         </Grid>
