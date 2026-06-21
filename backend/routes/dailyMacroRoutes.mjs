@@ -15,71 +15,27 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
 import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
+import {
+  ALLOWED_MEAL_TYPES,
+  ALLOWED_SOURCES,
+  MAX_DESCRIPTION_LENGTH,
+  MAX_ITEMS_COUNT,
+  MAX_WEEKLY_RANGE_DAYS,
+  buildDailyMacroSummary,
+  buildMacroEntryUpdates,
+  buildWeeklyMacroDays,
+  isValidDate,
+  resolveMacroTargetUserId,
+  sanitizeNumber,
+  serverUtcDateOnly,
+} from './dailyMacroRoutes.utils.mjs';
 
 const router = express.Router();
 
 router.use(protect);
-
-// ── Security constants ──
-const ALLOWED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
-const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode'];
-const MAX_DESCRIPTION_LENGTH = 500;
-const MAX_ITEMS_COUNT = 50;
-const MAX_MACRO_VALUE = 99999; // kcal or mg cap
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
-const MAX_WEEKLY_RANGE_DAYS = 90;
-
-const toFiniteDecimalNumber = (val) => {
-  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
-  if (typeof val !== 'string') return null;
-
-  const trimmed = val.trim();
-  if (!DECIMAL_NUMBER_REGEX.test(trimmed)) return null;
-
-  const parsed = Number(trimmed);
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const sanitizeNumber = (val, max = MAX_MACRO_VALUE) => {
-  if (val === null || val === undefined) return null;
-  const n = toFiniteDecimalNumber(val);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.min(Math.round(n * 10) / 10, max);
-};
-
-const isValidDate = (str) => {
-  if (!DATE_REGEX.test(str)) return false;
-  const d = new Date(str + 'T00:00:00Z');
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === str;
-};
-
-const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
-  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
-  return date.toISOString().slice(0, 10);
-};
-
-const resolveMacroTargetUserId = async (req, queryField = 'userId') => {
-  const ownUserId = Number(req.user.id);
-  const rawTarget = req.query?.[queryField];
-  if (!rawTarget) return { userId: ownUserId };
-
-  const targetUserId = parseInt(rawTarget, 10);
-  if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
-    return { status: 400, error: 'Invalid userId' };
-  }
-
-  const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, targetUserId);
-  if (!allowed) {
-    return { status: 404, error: 'Macro data not found' };
-  }
-
-  return { userId: targetUserId };
-};
 
 /**
  * POST /api/macros
@@ -203,47 +159,7 @@ router.get('/summary', async (req, res) => {
       },
     });
 
-    const summary = {
-      date,
-      userId: targetUserId,
-      totalCalories: 0,
-      totalProtein: 0,
-      totalCarbs: 0,
-      totalFat: 0,
-      totalFiber: 0,
-      totalSugar: 0,
-      totalSodium: 0,
-      mealCount: entries.length,
-      meals: {},
-    };
-
-    for (const entry of entries) {
-      summary.totalCalories += entry.calories || 0;
-      summary.totalProtein += entry.protein || 0;
-      summary.totalCarbs += entry.carbs || 0;
-      summary.totalFat += entry.fat || 0;
-      summary.totalFiber += entry.fiber || 0;
-      summary.totalSugar += entry.sugar || 0;
-      summary.totalSodium += entry.sodium || 0;
-
-      if (!summary.meals[entry.mealType]) {
-        summary.meals[entry.mealType] = { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 };
-      }
-      summary.meals[entry.mealType].calories += entry.calories || 0;
-      summary.meals[entry.mealType].protein += entry.protein || 0;
-      summary.meals[entry.mealType].carbs += entry.carbs || 0;
-      summary.meals[entry.mealType].fat += entry.fat || 0;
-      summary.meals[entry.mealType].count += 1;
-    }
-
-    // Round all totals to 1 decimal
-    summary.totalCalories = Math.round(summary.totalCalories * 10) / 10;
-    summary.totalProtein = Math.round(summary.totalProtein * 10) / 10;
-    summary.totalCarbs = Math.round(summary.totalCarbs * 10) / 10;
-    summary.totalFat = Math.round(summary.totalFat * 10) / 10;
-    summary.totalFiber = Math.round(summary.totalFiber * 10) / 10;
-    summary.totalSugar = Math.round(summary.totalSugar * 10) / 10;
-    summary.totalSodium = Math.round(summary.totalSodium * 10) / 10;
+    const summary = buildDailyMacroSummary(entries, date, targetUserId);
 
     return res.json({ success: true, summary });
   } catch (err) {
@@ -292,27 +208,7 @@ router.get('/weekly', async (req, res) => {
       limit: 1000,
     });
 
-    // Group by date
-    const dailyTotals = {};
-    for (const entry of entries) {
-      const d = entry.date;
-      if (!dailyTotals[d]) {
-        dailyTotals[d] = { date: d, calories: 0, protein: 0, carbs: 0, fat: 0, mealCount: 0 };
-      }
-      dailyTotals[d].calories += entry.calories || 0;
-      dailyTotals[d].protein += entry.protein || 0;
-      dailyTotals[d].carbs += entry.carbs || 0;
-      dailyTotals[d].fat += entry.fat || 0;
-      dailyTotals[d].mealCount += 1;
-    }
-
-    const days = Object.values(dailyTotals).map(d => ({
-      ...d,
-      calories: Math.round(d.calories * 10) / 10,
-      protein: Math.round(d.protein * 10) / 10,
-      carbs: Math.round(d.carbs * 10) / 10,
-      fat: Math.round(d.fat * 10) / 10,
-    }));
+    const days = buildWeeklyMacroDays(entries);
 
     const avgCalories = days.length > 0
       ? Math.round(days.reduce((s, d) => s + d.calories, 0) / days.length)
@@ -351,39 +247,7 @@ router.patch('/:id(\\d+)', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
-    const updates = {};
-    const numericFields = ['calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium'];
-    const hasClientVerifiedInput = Object.prototype.hasOwnProperty.call(req.body, 'verified');
-
-    // Validate mealType
-    if (req.body.mealType !== undefined) {
-      updates.mealType = ALLOWED_MEAL_TYPES.includes(req.body.mealType)
-        ? req.body.mealType : entry.mealType;
-    }
-
-    // Validate description
-    if (req.body.description !== undefined) {
-      if (typeof req.body.description === 'string' && req.body.description.trim().length > 0) {
-        updates.description = req.body.description.trim().substring(0, MAX_DESCRIPTION_LENGTH);
-      }
-    }
-
-    // Validate numeric macro fields
-    for (const field of numericFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = sanitizeNumber(req.body[field]);
-      }
-    }
-
-    // Validate items
-    if (req.body.items !== undefined) {
-      updates.items = Array.isArray(req.body.items) ? req.body.items.slice(0, MAX_ITEMS_COUNT) : entry.items;
-    }
-
-    // Self-serve edits cannot mark estimates verified; any fact edit invalidates prior verification.
-    if (Object.keys(updates).length > 0 || hasClientVerifiedInput) {
-      updates.verified = false;
-    }
+    const updates = buildMacroEntryUpdates(entry, req.body);
 
     await entry.update(updates);
 

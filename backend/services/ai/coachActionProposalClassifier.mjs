@@ -5,26 +5,14 @@
  */
 import { z } from 'zod';
 import { CLIENT_SOURCES, parseClientSource } from '../sessionBillingPolicy.mjs';
+import {
+  classifyWriteFrontendDispatch,
+  parseSafeFrontendDispatch,
+} from './coachFrontendDispatchClassifier.mjs';
+import { classifyNutritionLogPayload } from './coachNutritionProposalClassifier.mjs';
 
-const SAFE_FRONTEND_EVENTS = new Set([
-  'AI_ADD_EXERCISE',
-  'AI_LOAD_TEMPLATE',
-  'AI_UPDATE_SET',
-  'AI_TOGGLE_NASM_ITEM',
-]);
-const WRITE_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
-const SAFE_FRONTEND_PAYLOAD_FIELDS = Object.freeze({
-  AI_ADD_EXERCISE: ['exerciseName', 'sets', 'reps', 'weight', 'tempo', 'restSeconds', 'notes'],
-  AI_LOAD_TEMPLATE: ['phase'],
-  AI_UPDATE_SET: ['exerciseName', 'setNumber', 'weight', 'reps', 'rpe', 'tempo'],
-  AI_TOGGLE_NASM_ITEM: ['section', 'itemName', 'markAll', 'completed'],
-});
-const SAFE_FRONTEND_REQUIRED_FIELDS = Object.freeze({
-  AI_ADD_EXERCISE: ['exerciseName'],
-  AI_LOAD_TEMPLATE: ['phase'],
-  AI_UPDATE_SET: ['exerciseName'],
-  AI_TOGGLE_NASM_ITEM: ['section'],
-});
+export { parseSafeFrontendDispatch };
+
 const ScheduledSessionIdSchema = z.union([
   z.number().int().positive(),
   z.string().regex(/^[1-9]\d*$/),
@@ -35,12 +23,6 @@ const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab
 
 const ExerciseDraftSchema = z.object({
   name: z.string().trim().min(1),
-}).passthrough();
-
-const FrontendDispatchActionSchema = z.object({
-  action: z.literal('frontend_dispatch'),
-  event: z.string().trim().min(1),
-  payload: z.record(z.unknown()).optional().default({}),
 }).passthrough();
 
 const StructuredCoachProposalSchema = z.object({
@@ -90,19 +72,6 @@ const WorkoutLogActionSchema = z.object({
   exercises: z.array(ExerciseDraftSchema).min(1),
 }).passthrough();
 
-// Each meal needs a human-readable description; macros are sanitized downstream
-// by macroLogService.buildMacroRow (null-not-zero, clamped), so the schema stays
-// lenient/passthrough here and lets the deterministic writer own coercion.
-const NutritionMealDraftSchema = z.object({
-  description: z.string().trim().min(1),
-}).passthrough();
-
-const NutritionLogActionSchema = z.object({
-  action: z.literal('import_nutrition_log'),
-  date: z.string().trim().min(4).optional(),
-  meals: z.array(NutritionMealDraftSchema).min(1).max(20),
-}).passthrough();
-
 const ClientDataUpdateActionSchema = z.object({
   action: z.literal('update_client_data'),
   updates: z.array(z.unknown()).min(1),
@@ -120,26 +89,6 @@ const ClientOnboardingActionSchema = z.object({
 function safeParseAction(schema, block) {
   const parsed = schema.safeParse(block);
   return parsed.success ? parsed.data : null;
-}
-
-function isSafeFrontendPayloadValue(value) {
-  return value == null || ['string', 'number', 'boolean'].includes(typeof value);
-}
-
-function sanitizeSafeFrontendPayload(event, payload) {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return {};
-  const allowedFields = SAFE_FRONTEND_PAYLOAD_FIELDS[event] || [];
-  return allowedFields.reduce((clean, field) => {
-    if (Object.prototype.hasOwnProperty.call(payload, field) && isSafeFrontendPayloadValue(payload[field])) {
-      clean[field] = payload[field];
-    }
-    return clean;
-  }, {});
-}
-
-function hasRequiredSafeFrontendPayloadFields(event, payload) {
-  const requiredFields = SAFE_FRONTEND_REQUIRED_FIELDS[event] || [];
-  return requiredFields.every((field) => Object.prototype.hasOwnProperty.call(payload, field));
 }
 
 function onboardingData(payload) {
@@ -253,19 +202,6 @@ export function parseJsonActionBlocks(content) {
   return blocks;
 }
 
-export function parseSafeFrontendDispatch(block) {
-  const candidate = block.action === 'coach_action_proposal' && block.proposal_type === 'frontend_dispatch'
-    ? { action: 'frontend_dispatch', ...(block.payload || {}) }
-    : block;
-  if (candidate.action !== 'frontend_dispatch') return null;
-  const parsed = safeParseAction(FrontendDispatchActionSchema, candidate);
-  if (!parsed || !SAFE_FRONTEND_EVENTS.has(parsed.event)) return null;
-  const payload = sanitizeSafeFrontendPayload(parsed.event, parsed.payload);
-  return hasRequiredSafeFrontendPayloadFields(parsed.event, payload)
-    ? { ...parsed, payload }
-    : null;
-}
-
 export function classifyActionBlock(block, conversation, { proposalTypes, schemaVersion, routeContext = null }) {
   if (block.action === 'coach_action_proposal') {
     const parsed = safeParseAction(StructuredCoachProposalSchema, block);
@@ -279,13 +215,12 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       return payload ? { type: proposalTypes.WORKOUT_LOG, payload: { ...payload, proposalMeta: meta } } : null;
     }
     if (parsed.proposal_type === proposalTypes.NUTRITION_LOG) {
-      const payload = safeParseAction(
-        NutritionLogActionSchema,
-        { action: 'import_nutrition_log', ...parsed.payload },
-      );
-      return payload
-        ? { type: proposalTypes.NUTRITION_LOG, payload: { ...payload, clientId: conversation?.targetUserId || null, proposalMeta: meta } }
-        : null;
+      return classifyNutritionLogPayload({
+        payload: { action: 'import_nutrition_log', ...parsed.payload },
+        conversation,
+        proposalTypes,
+        meta,
+      });
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_ONBOARDING) {
       const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
@@ -306,10 +241,11 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       const payload = safeParseAction(SplitPlanPayloadSchema, parsed.payload);
       return payload ? { type: proposalTypes.SPLIT_PLAN, payload: { ...payload, proposalMeta: meta } } : null;
     }
-    const payload = safeParseAction(FrontendDispatchActionSchema, { action: 'frontend_dispatch', ...parsed.payload });
-    return payload && WRITE_FRONTEND_EVENTS.has(payload.event)
-      ? { type: proposalTypes.FRONTEND_DISPATCH, payload: { ...payload, proposalMeta: meta } }
-      : null;
+    return classifyWriteFrontendDispatch(
+      { action: 'frontend_dispatch', ...parsed.payload },
+      proposalTypes,
+      meta,
+    );
   }
   if (block.action === 'create_client' || block.action === 'ONBOARD_CLIENT') {
     const payload = safeParseAction(ClientOnboardingActionSchema, block);
@@ -320,10 +256,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
     return payload ? { type: proposalTypes.WORKOUT_LOG, payload } : null;
   }
   if (block.action === 'import_nutrition_log') {
-    const payload = safeParseAction(NutritionLogActionSchema, block);
-    return payload
-      ? { type: proposalTypes.NUTRITION_LOG, payload: { ...payload, clientId: conversation?.targetUserId || null } }
-      : null;
+    return classifyNutritionLogPayload({ payload: block, conversation, proposalTypes });
   }
   if (block.action === 'update_client_data') {
     const payload = safeParseAction(ClientDataUpdateActionSchema, block);
@@ -333,9 +266,8 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       payload: { ...payload, targetUserId: conversation?.targetUserId || null },
     };
   }
-  if (block.action === 'frontend_dispatch' && WRITE_FRONTEND_EVENTS.has(block.event)) {
-    const payload = safeParseAction(FrontendDispatchActionSchema, block);
-    return payload ? { type: proposalTypes.FRONTEND_DISPATCH, payload } : null;
+  if (block.action === 'frontend_dispatch') {
+    return classifyWriteFrontendDispatch(block, proposalTypes);
   }
   return null;
 }
