@@ -72,4 +72,33 @@ describe('GamificationPersistence Redis statistics parser', () => {
     );
     expect(persistence.calculateStatsFromDatabase).not.toHaveBeenCalled();
   });
+
+  it('rejects malformed Redis and SQL scalar counters instead of partially parsing them', async () => {
+    const persistence = new GamificationPersistence();
+    persistence.redisEnabled = true;
+    persistence.redis = {
+      hget: vi.fn(async (_key, field) => ({
+        currentStreak: '0x7',
+        totalWorkouts: '10abc',
+        sharedWorkouts: '-4'
+      })[field]),
+      get: vi.fn(async (key) => (key.includes(':actions:') ? '1e2' : ['900']))
+    };
+
+    await expect(persistence.getCurrentStreak(7)).resolves.toBe(0);
+    await expect(persistence.getUserWorkoutCount(7)).resolves.toBe(0);
+    await expect(persistence.getActionCountToday(7, 'profile_updated')).resolves.toBe(0);
+    await expect(persistence.getCommunityHelpCount(7)).resolves.toBe(0);
+    await expect(persistence.getTotalPointsAwarded()).resolves.toBe(0);
+
+    persistence.redisEnabled = false;
+    mocks.sequelize.query
+      .mockResolvedValueOnce([{ rank: '0x2' }])
+      .mockResolvedValueOnce([{ cnt: '1e3' }])
+      .mockResolvedValueOnce([{ totalWorkouts: ['12'] }]);
+
+    await expect(persistence.getUserLeaderboardRank(7)).resolves.toBeNull();
+    await expect(persistence.hasAchievement(7, 'first_workout')).resolves.toBe(false);
+    await expect(persistence.getUserWorkoutCount(7)).resolves.toBe(0);
+  });
 });
