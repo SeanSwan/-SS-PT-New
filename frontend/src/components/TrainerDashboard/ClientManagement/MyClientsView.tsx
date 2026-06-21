@@ -30,8 +30,8 @@
  * 5. Communicate with clients directly
  */
 
-import React, { useState, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import React, { useState, useCallback, useRef } from 'react';
+import { AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users,
@@ -44,15 +44,18 @@ import { useToast } from '../../../hooks/use-toast';
 
 // Components
 import GlowButton from '../../ui/buttons/GlowButton';
-import { LoadingSpinner } from '../../ui/LoadingSpinner';
 import WorkoutCopilotPanel from '../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel';
 import { downloadTrainerClientReport } from './trainerClientReportExport';
 import {
   ClientsContainer,
   ClientsGrid,
   EmptyState,
-  LoadingContainer,
 } from './MyClientsView.layoutStyles';
+import {
+  SkeletonCard,
+  SkeletonHeaderRow,
+  SkeletonShimmer,
+} from './MyClientsView.skeletonStyles';
 import {
   getTrainerClientIntent,
   parseTrainerClientManagementId,
@@ -72,6 +75,8 @@ const MyClientsView: React.FC = () => {
   const { toast } = useToast();
   const trainerClientIntent = getTrainerClientIntent(searchParams);
   const [copilotClient, setCopilotClient] = useState<{ id: number; name: string } | null>(null);
+  const reduceMotion = useReducedMotion();
+  const copilotTriggerRef = useRef<HTMLElement | null>(null); // WCAG 2.4.3 focus restore
   const {
     error,
     filteredClients,
@@ -118,15 +123,20 @@ const MyClientsView: React.FC = () => {
     handleViewProgress(clientId);
   }, [handleLogWorkout, handleViewProgress, trainerClientIntent]);
 
+  const handlePlanWorkout = useCallback((clientId: string) => {
+    navigate(`/dashboard/trainer/workout-planner?clientId=${clientId}&source=my-clients`);
+  }, [navigate]);
+
   const handleScheduleSession = useCallback((clientId: string) => {
-    navigate(`/dashboard/trainer/schedule?clientId=${clientId}`);
+    navigate(`/dashboard/trainer/schedule?clientId=${clientId}&source=my-clients`);
   }, [navigate]);
 
   const handleMessageClient = useCallback((clientId: string) => {
-    navigate(`/dashboard/trainer/messages?clientId=${clientId}`);
+    navigate(`/dashboard/trainer/messages?clientId=${clientId}&source=my-clients`);
   }, [navigate]);
 
   const handleOpenCopilot = useCallback((clientId: string, clientName: string) => {
+    copilotTriggerRef.current = (document.activeElement as HTMLElement) ?? null;
     const parsedClientId = parseTrainerClientManagementId(clientId);
 
     if (parsedClientId === null) {
@@ -143,18 +153,41 @@ const MyClientsView: React.FC = () => {
     });
   }, [toast]);
 
-  // Render loading state
+  const handleCloseCopilot = useCallback(() => {
+    setCopilotClient(null);
+    const trigger = copilotTriggerRef.current;
+    if (trigger && typeof trigger.focus === 'function') {
+      requestAnimationFrame(() => trigger.focus());
+    }
+  }, []);
+
+  // Render loading state — structured skeleton grid (mirrors TrainerClientCard) to
+  // hold layout and cut perceived load time, per GLM 5.2 design mandate Finding 4.
   if (loading) {
     return (
-      <LoadingContainer>
-        <LoadingSpinner size="large" />
-        <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
-          Loading Your Clients...
-        </h3>
-        <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
-          Fetching client assignments and session data
-        </p>
-      </LoadingContainer>
+      <ClientsContainer
+        initial={reduceMotion ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: reduceMotion ? 0 : 0.3 }}
+        aria-busy="true"
+        aria-label="Loading your clients"
+      >
+        <ClientsGrid>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} aria-hidden="true">
+              <SkeletonHeaderRow>
+                <SkeletonShimmer $variant="avatar" />
+                <div>
+                  <SkeletonShimmer $variant="title" />
+                  <SkeletonShimmer $variant="chip" />
+                </div>
+              </SkeletonHeaderRow>
+              <SkeletonShimmer $variant="line" />
+              <SkeletonShimmer $variant="line" />
+            </SkeletonCard>
+          ))}
+        </ClientsGrid>
+      </ClientsContainer>
     );
   }
 
@@ -177,9 +210,9 @@ const MyClientsView: React.FC = () => {
 
   return (
     <ClientsContainer
-      initial={{ opacity: 0, y: 20 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: reduceMotion ? 0 : 0.6 }}
     >
       <TrainerClientsHeader
         totalClients={stats.totalClients}
@@ -202,19 +235,18 @@ const MyClientsView: React.FC = () => {
       {/* Clients Grid */}
       {filteredClients.length > 0 ? (
         <ClientsGrid
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: reduceMotion ? 0 : 0.5, delay: reduceMotion ? 0 : 0.3 }}
         >
           <AnimatePresence mode="popLayout">
-            {filteredClients.map((assignment, index) => (
+            {filteredClients.map((assignment) => (
               <TrainerClientCard
                 key={assignment.client.id}
                 assignment={assignment}
-                intent={trainerClientIntent}
-                index={index}
                 onOpenClient={handleOpenClient}
                 onLogWorkout={handleLogWorkout}
+                onPlanWorkout={handlePlanWorkout}
                 onScheduleSession={handleScheduleSession}
                 onMessageClient={handleMessageClient}
                 onViewProgress={handleViewProgress}
@@ -252,7 +284,7 @@ const MyClientsView: React.FC = () => {
       {copilotClient && (
         <WorkoutCopilotPanel
           open={!!copilotClient}
-          onClose={() => setCopilotClient(null)}
+          onClose={handleCloseCopilot}
           clientId={copilotClient.id}
           clientName={copilotClient.name}
           onSuccess={() => loadClients()}

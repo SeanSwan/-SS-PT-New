@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ClientHubGridCard from './ClientHubGridCard';
@@ -12,6 +12,8 @@ const fixtureClient = {
   isActive: true,
   availableSessions: 12,
   workoutCount: 7,
+  lastSessionDate: '2026-05-20T12:00:00.000Z',
+  assignedAt: '2026-05-22T12:00:00.000Z',
   fitnessGoal: 'Strength and mobility',
   trainingExperience: 'beginner',
 };
@@ -31,13 +33,18 @@ describe('ClientHubGridCard', () => {
     expect(screen.getByRole('button', { name: /open fixture client/i })).toBeInTheDocument();
     expect(screen.getByText('SwanStudios')).toBeInTheDocument();
     expect(screen.getByText('beginner')).toBeInTheDocument();
-    expect(screen.getByText('Strength and mobility')).toBeInTheDocument();
+    expect(screen.getByText(/Assigned (Today|Yesterday|\d+ (days|weeks|months) ago)/i)).toBeInTheDocument();
+    const goal = screen.getByText('Strength and mobility');
+    expect(goal).toBeInTheDocument();
+    expect(goal).toHaveAttribute('title', 'Strength and mobility');
+    expect(goal).toHaveAccessibleName('Goal: Strength and mobility');
     expect(screen.getByText('7 workouts')).toBeInTheDocument();
     expect(screen.getByText('12 paid sessions')).toBeInTheDocument();
     expect(screen.getByText('Next session')).toBeInTheDocument();
     expect(screen.getByText('check schedule')).toBeInTheDocument();
     expect(screen.getByText('Workout Proof')).toBeInTheDocument();
     expect(screen.getByText('7 logged')).toBeInTheDocument();
+    expect(screen.getByText('Last logged: May 20')).toBeInTheDocument();
     expect(screen.getByText('72% onboarded')).toBeInTheDocument();
     expect(screen.getByText(/intake progress/i)).toBeInTheDocument();
     expect(screen.getByText(/deducts when logged/i)).toBeInTheDocument();
@@ -113,6 +120,24 @@ describe('ClientHubGridCard', () => {
     expect(screen.getByText(/refill soon/i)).toBeInTheDocument();
   });
 
+  it('normalizes malformed workout counts before rendering proof copy', () => {
+    render(
+      <ClientHubGridCard
+        client={{
+          ...fixtureClient,
+          workoutCount: -3.8,
+        }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('0 workouts')).toBeInTheDocument();
+    expect(screen.getByText('No logs yet')).toBeInTheDocument();
+    expect(screen.getByText('log first session')).toBeInTheDocument();
+    expect(screen.queryByText('-3.8 workouts')).not.toBeInTheDocument();
+    expect(screen.queryByText('-3.8 logged')).not.toBeInTheDocument();
+  });
+
   it('selects the client from the whole card', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -155,6 +180,12 @@ describe('ClientHubGridCard', () => {
     await user.click(screen.getByRole('button', { name: /plan fixture client workout/i }));
     await user.click(screen.getByRole('button', { name: /view fixture client progress/i }));
     await user.click(screen.getByRole('button', { name: /open swan coach for fixture client/i }));
+
+    const quickActions = screen.getByRole('group', { name: /fixture client quick actions/i });
+    expect(quickActions).toHaveAttribute('data-swan-card-section', 'admin-actions');
+    within(quickActions).getAllByRole('button').forEach((button) => {
+      expect(button.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    });
 
     expect(onSelect).not.toHaveBeenCalled();
     expect(onQuickAction).toHaveBeenNthCalledWith(1, fixtureClient, 'log');

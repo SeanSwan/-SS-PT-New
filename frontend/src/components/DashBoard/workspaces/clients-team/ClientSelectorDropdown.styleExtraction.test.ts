@@ -13,6 +13,10 @@ const source = read('./ClientSelectorDropdown.tsx');
 const styles = read('./ClientSelectorDropdown.styles.ts');
 
 describe('ClientSelectorDropdown style extraction', () => {
+  it('keeps the extracted selector styles under the 300-line cap', () => {
+    expect(styles.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
+
   it('keeps selector chrome extracted and clear-search touch-safe', () => {
     expect(source).not.toContain('style={{');
     expect(source).toMatch(/<ClearSearchButton[\s\S]*?type="button"/);

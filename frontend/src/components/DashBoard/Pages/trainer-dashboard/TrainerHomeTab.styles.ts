@@ -23,13 +23,13 @@ export const KpiStrip = styled.div.attrs(() => ({ role: 'group' }))`
   @media (min-width: 600px) { grid-template-columns: repeat(4, 1fr); }
 `;
 
-export const KpiCard = styled.div`
+export const KpiCard = styled.div<{ $index?: number }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
   border-radius: 14px;
   padding: 1rem;
   animation: ${countUp} 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation-delay: ${({ $index = 0 }) => `${$index * 60}ms`};
 
   @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
@@ -51,7 +51,7 @@ export const KpiLabel = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted, rgba(224, 236, 244, 0.68));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, var(--bg-elevated, #141419)));
 `;
 
 export const SessionsCard = styled.div`
@@ -96,7 +96,7 @@ export const SessionClient = styled.span`
 export const SessionTime = styled.span`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.68));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, var(--bg-elevated, #141419)));
 `;
 
 export const StatusBadge = styled.span<{ $status?: string }>`
@@ -109,13 +109,13 @@ export const StatusBadge = styled.span<{ $status?: string }>`
     $status === 'completed'
       ? 'color-mix(in srgb, var(--success, #22c55e) 12%, transparent)'
       : $status === 'cancelled'
-        ? 'color-mix(in srgb, var(--danger, #C92A54) 12%, transparent)'
+        ? 'color-mix(in srgb, var(--danger, #ff416c) 12%, transparent)'
         : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'};
   color: ${({ $status }) =>
     $status === 'completed'
       ? 'var(--success, #22c55e)'
       : $status === 'cancelled'
-        ? 'var(--danger, #C92A54)'
+        ? 'var(--danger, #ff416c)'
         : 'var(--accent-primary, #60C0F0)'};
 `;
 
@@ -187,7 +187,7 @@ export const EmptyState = styled.div`
   gap: 0.75rem;
   padding: 1.5rem;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.68));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, var(--bg-elevated, #141419)));
   font-size: 0.875rem;
   font-family: 'Sora', sans-serif;
 `;
@@ -214,7 +214,7 @@ export const SessionsOverflow = styled.div`
 export const SessionsOverflowNote = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.52));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, var(--bg-elevated, #141419)));
 `;
 
 export const BookBtn = styled.button`
@@ -231,7 +231,10 @@ export const BookBtn = styled.button`
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    background 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 13%, transparent);
@@ -242,5 +245,47 @@ export const BookBtn = styled.button`
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const sessionShimmer = keyframes`
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+export const SessionRowSkeleton = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
+
+  &:last-child { border-bottom: none; }
+
+  &::before,
+  &::after {
+    content: '';
+    border-radius: 8px;
+    background: linear-gradient(
+      90deg,
+      var(--surface-graphite, #1A1A24) 0%,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--surface-graphite, #1A1A24)) 50%,
+      var(--surface-graphite, #1A1A24) 100%
+    );
+    background-size: 200% 100%;
+    animation: ${sessionShimmer} 1.5s linear infinite;
+  }
+
+  &::before { width: 42%; height: 1.05rem; }
+  &::after { width: 4.75rem; height: 1.6rem; border-radius: 999px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after { animation: none; }
   }
 `;

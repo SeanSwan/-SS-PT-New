@@ -238,7 +238,7 @@ export const ProofValue = styled.div`
   text-align: right;
 
   small {
-    color: var(--text-muted, rgba(224, 236, 244, 0.68));
+    color: var(--accent-primary, #60C0F0);
     font-family: 'Fira Code', monospace;
     font-size: 10px;
     font-weight: 700;
@@ -286,7 +286,7 @@ export const MetricStack = styled.span`
 export const MetricNote = styled.span`
   white-space: normal;
   overflow-wrap: anywhere;
-  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, var(--bg-elevated, #141419));
   font-family: 'Fira Code', monospace;
   font-size: 10px;
   font-weight: 700;

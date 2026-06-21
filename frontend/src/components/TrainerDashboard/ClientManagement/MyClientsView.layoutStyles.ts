@@ -28,8 +28,8 @@ export const HeaderSection = styled.div`
   align-items: center;
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background: var(--surface-elevated, rgba(30, 30, 60, 0.6));
-  border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.3));
+  background: var(--surface-elevated, #1A1A24);
+  border: 1px solid var(--border-accent-soft, color-mix(in srgb, #8B5CF6 30%, transparent));
   border-radius: 16px;
   backdrop-filter: blur(10px);
 
@@ -48,7 +48,7 @@ export const HeaderTitle = styled.div`
   h1 {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     margin: 0;
     background: linear-gradient(
       135deg,
@@ -59,6 +59,12 @@ export const HeaderTitle = styled.div`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+
+    @media (forced-colors: active) {
+      background: none;
+      -webkit-text-fill-color: revert;
+      color: CanvasText;
+    }
   }
 
   .client-count {
@@ -67,7 +73,7 @@ export const HeaderTitle = styled.div`
       var(--accent-purple-strong, #8B5CF6),
       var(--accent-purple, #8b5cf6)
     );
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     padding: 0.5rem 1rem;
     border-radius: 20px;
     font-size: 0.9rem;
@@ -80,7 +86,7 @@ export const HeaderTitle = styled.div`
   .client-intent-note {
     max-width: 34rem;
     margin: 0.65rem 0 0;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+    color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
     font-size: 0.95rem;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -122,22 +128,22 @@ export const SearchContainer = styled.div`
   .search-input {
     width: 100%;
     min-height: 44px;
-    background: var(--surface-elevated, rgba(30, 30, 60, 0.6));
-    border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.3));
+    background: var(--surface-elevated, #1A1A24);
+    border: 1px solid var(--border-accent-soft, color-mix(in srgb, #8B5CF6 30%, transparent));
     border-radius: 12px;
     padding: 0.75rem 1rem 0.75rem 3rem;
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     font-size: 0.95rem;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
     &::placeholder {
-      color: var(--text-muted, rgba(255, 255, 255, 0.5));
+      color: var(--text-muted, color-mix(in srgb, #E0ECF4 55%, #141419));
     }
 
     &:focus {
       outline: none;
       border-color: var(--accent-purple, #8b5cf6);
-      box-shadow: 0 0 20px var(--accent-purple-shadow, rgba(139, 92, 246, 0.3));
+      box-shadow: 0 0 20px var(--accent-purple-shadow, color-mix(in srgb, #8B5CF6 30%, transparent));
     }
   }
 
@@ -146,29 +152,30 @@ export const SearchContainer = styled.div`
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted, rgba(255, 255, 255, 0.5));
+    color: var(--text-muted, color-mix(in srgb, #E0ECF4 55%, #141419));
   }
 `;
 
 export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   background: ${props =>
     props.$active
-      ? 'linear-gradient(135deg, var(--accent-purple-strong, #8B5CF6), var(--accent-purple, #8b5cf6))'
-      : 'var(--surface-elevated, rgba(30, 30, 60, 0.6))'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
+      : 'var(--surface-elevated, #1A1A24)'
   };
   border: 1px solid ${props =>
     props.$active
       ? 'transparent'
-      : 'var(--border-accent-soft, rgba(139, 92, 246, 0.3))'
+      : 'var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent))'
   };
   border-radius: 8px;
   min-height: 44px;
   padding: 0.5rem 1rem;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary, #E0ECF4);
+  text-shadow: ${props => (props.$active ? '0 1px 2px color-mix(in srgb, #0A0A0F 35%, transparent)' : 'none')};
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -180,11 +187,21 @@ export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   &:hover {
     background: ${props =>
       props.$active
-        ? 'linear-gradient(135deg, var(--accent-purple-strong, #8B5CF6), var(--accent-purple, #8b5cf6))'
-        : 'var(--surface-hover, rgba(50, 50, 80, 0.4))'
+        ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
+        : 'var(--surface-hover, #222230)'
     };
     transform: translateY(-2px);
-    box-shadow: 0 0 20px var(--accent-purple-shadow, rgba(139, 92, 246, 0.3));
+    box-shadow: 0 0 20px var(--accent-purple-shadow, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
   }
 `;
 
@@ -200,12 +217,12 @@ export const StatCard = styled.div<{
   $colorSoft?: string;
   $colorStrong?: string;
 }>`
-  background: var(--surface-elevated, rgba(30, 30, 60, 0.6));
+  background: var(--surface-elevated, #1A1A24);
   border: 1px solid ${props => props.$colorSoft ?? `${props.$color}30`};
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
   &:hover {
     border-color: ${props => props.$colorStrong ?? `${props.$color}60`};
@@ -221,13 +238,18 @@ export const StatCard = styled.div<{
   .stat-number {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     margin-bottom: 0.25rem;
   }
 
   .stat-label {
-    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+    color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
     font-size: 0.9rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover { transform: none; }
   }
 `;
 
@@ -251,15 +273,15 @@ export const EmptyState = styled(motion.div)`
   justify-content: center;
   padding: 4rem 2rem;
   text-align: center;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
 
   .empty-icon {
-    color: var(--accent-purple-muted, rgba(139, 92, 246, 0.5));
+    color: var(--accent-purple-muted, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent));
     margin-bottom: 1.5rem;
   }
 
   h3 {
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     margin-bottom: 0.5rem;
   }
 
@@ -268,13 +290,4 @@ export const EmptyState = styled(motion.div)`
     max-width: 400px;
     line-height: 1.6;
   }
-`;
-
-export const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  color: var(--text-primary, #ffffff);
 `;

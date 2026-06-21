@@ -9,27 +9,23 @@ import styled from 'styled-components';
 
 export const NextActionCard = styled.section`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.72fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 0.95rem;
+  min-width: 0;
+  padding: 1.25rem;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface-royal-depth, #003080) 76%, transparent),
-      color-mix(in srgb, var(--bg-elevated, #141419) 82%, transparent)
-    ),
-    var(--bg-elevated, #141419);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, var(--brand-primary, #002060));
+  /* Crystalline ice-edge: crisp Royal Depth -> Midnight Sapphire vault gradient with a 1px
+     inset top highlight to read like light catching a frozen edge (signature focal moment). */
+  background: linear-gradient(145deg, var(--surface-royal-depth, #003080) 0%, var(--brand-primary, #002060) 100%);
   box-shadow:
-    0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent) inset,
-    0 18px 42px color-mix(in srgb, var(--bg-base, #030712) 28%, transparent),
-    0 0 34px color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 12%, transparent),
+    0 20px 40px color-mix(in srgb, var(--bg-base, #0A0A0F) 55%, transparent),
+    0 0 30px color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
 
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+  @media (max-width: 520px) {
+    padding: 1rem;
   }
 `;
 
@@ -52,29 +48,35 @@ export const NextActionTitle = styled.h2`
   margin: 0;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  font-size: 1.35rem;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+
+  @media (max-width: 520px) {
+    font-size: 1.12rem;
+  }
 `;
 
 export const NextActionMeta = styled.p`
   margin: 0;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 75%, var(--brand-primary, #002060)));
   font-family: 'Sora', sans-serif;
   font-size: 0.82rem;
   line-height: 1.45;
+  max-width: 42rem;
 `;
 
 export const NextActionFlow = styled.ol`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(7.4rem, 1fr));
   gap: 0.45rem;
   min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 
-  @media (max-width: 480px) {
+  @media (max-width: 380px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -82,9 +84,10 @@ export const NextActionFlow = styled.ol`
 export const NextActionFlowItem = styled.li`
   min-width: 0;
   padding: 0.55rem 0.65rem;
+  min-height: 72px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent);
-  background: color-mix(in srgb, var(--bg-base, #030712) 24%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 30%, transparent);
 `;
 
 export const NextActionFlowLabel = styled.span`
@@ -94,35 +97,27 @@ export const NextActionFlowLabel = styled.span`
   font-size: 0.72rem;
   font-weight: 900;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 `;
 
 export const NextActionFlowDetail = styled.span`
   display: block;
   margin-top: 0.22rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 75%, var(--brand-primary, #002060)));
   font-family: 'Sora', sans-serif;
   font-size: 0.68rem;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 `;
 
 export const NextActionButtons = styled.div`
-  display: flex;
+  display: grid;
   align-items: center;
-  justify-content: flex-end;
+  grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
+  justify-content: stretch;
   gap: 0.5rem;
-  flex-wrap: wrap;
-
-  @media (max-width: 640px) {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-content: stretch;
-
-    > :last-child:nth-child(odd) {
-      grid-column: 1 / -1;
-    }
-  }
 
   @media (max-width: 360px) {
     grid-template-columns: 1fr;
@@ -136,6 +131,7 @@ export const NextActionButton = styled.button<{ $variant?: 'primary' | 'secondar
   gap: 0.4rem;
   min-height: 44px;
   min-width: 44px;
+  width: 100%;
   padding: 0.65rem 0.9rem;
   border-radius: 12px;
   border: 1px solid ${({ $variant }) => (
@@ -145,7 +141,7 @@ export const NextActionButton = styled.button<{ $variant?: 'primary' | 'secondar
   )};
   background: ${({ $variant }) => (
     $variant === 'primary'
-      ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--swan-lavender, #4070C0))'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)'
   )};
   color: var(--text-primary, #E0ECF4);

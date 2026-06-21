@@ -3,13 +3,8 @@ import type { ClientSourceTone } from './clientSourceDisplay';
 import { swanClientActionButton, swanDataCardShell, swanPill } from './clientCardSystem';
 
 export const SelectorWrap = styled.div`
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-
-  @media (max-width: 520px) {
-    max-width: none;
-  }
+  position: relative; width: 100%; max-width: 480px;
+  @media (max-width: 520px) { max-width: none; }
 `;
 
 export const SelectorButton = styled.button<{ $hasSelection: boolean }>`
@@ -64,12 +59,7 @@ export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   }
 `;
 
-export const SelectionInfo = styled.div`
-  flex: 1;
-  text-align: left;
-  min-width: 0;
-  overflow-wrap: anywhere;
-`;
+export const SelectionInfo = styled.div`flex: 1; text-align: left; min-width: 0; overflow-wrap: anywhere;`;
 
 export const SelectionName = styled.div`
   font-weight: 600;
@@ -194,17 +184,10 @@ export const SearchInput = styled.input`
 `;
 
 export const MutedIconSlot = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  opacity: 0.4;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0.4;
 `;
 
-export const SelectorPlaceholder = styled.span`
-  opacity: 0.5;
-  overflow-wrap: anywhere;
-`;
+export const SelectorPlaceholder = styled.span`opacity: 0.5; overflow-wrap: anywhere;`;
 
 export const ChevronIndicator = styled.span<{ $open: boolean }>`
   display: inline-flex;
@@ -247,11 +230,7 @@ export const ClearSearchButton = styled.button`
   }
 `;
 
-export const SectionLabelIcon = styled.span`
-  display: inline-flex;
-  align-items: center;
-  margin-right: 4px;
-`;
+export const SectionLabelIcon = styled.span`display: inline-flex; align-items: center; margin-right: 4px;`;
 
 export const SectionLabel = styled.div`
   padding: 8px 14px 4px;
@@ -307,7 +286,5 @@ export const EmptyMsg = styled.div`
   padding: 24px 14px;
   text-align: center;
   color: var(--text-muted, rgba(224, 236, 244, 0.75));
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  overflow-wrap: anywhere;
+  font-family: 'Sora', sans-serif; font-size: 13px; overflow-wrap: anywhere;
 `;

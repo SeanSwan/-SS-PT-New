@@ -11,14 +11,17 @@
  * HOW IT FITS IN THE APP: ClientsWorkspace -> unselected client grid.
  */
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Activity, ClipboardCheck, Dumbbell, Target, Trophy, UserRound } from 'lucide-react';
 import { getClientOnboardingPct } from '../ClientsWorkspace.logic';
 import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientSessionSignal } from './clientSessionSignal';
 import { getClientSourceLabel, getClientSourceTone } from './clientSourceDisplay';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
-import ClientHubGridCardActions, { type ClientHubQuickAction } from './ClientHubGridCardActions';
+import ClientHubGridCardActions, {
+  type ClientHubQuickAction,
+  type ClientHubQuickActionConfig,
+} from './ClientHubGridCardActions';
 import {
   Avatar,
   CardBody,
@@ -46,11 +49,11 @@ import {
 interface ClientHubGridCardProps {
   client: ClientOption;
   onSelect: (client: ClientOption) => void;
+  quickActions?: readonly ClientHubQuickActionConfig[];
   onQuickAction?: (client: ClientOption, action: ClientHubQuickAction) => void;
 }
 
-const sourceLabel = (client: ClientOption) =>
-  getClientSourceLabel(client.clientSource);
+const sourceLabel = (client: ClientOption) => getClientSourceLabel(client.clientSource);
 
 const trimmedOrFallback = (value: string | undefined, fallback: string) => {
   const trimmed = value?.trim();
@@ -77,15 +80,45 @@ const onboardingReadinessFor = (onboardingPct: number | undefined) => {
   return 'in progress';
 };
 
-const onboardingToneFor = (onboardingPct: number | undefined) => (
-  onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'
-);
+const onboardingToneFor = (onboardingPct: number | undefined) =>
+  onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default';
 
 const activeLabelFor = (client: ClientOption) => (client.isActive === false ? 'inactive' : 'active');
 
+const workoutCountFor = (client: ClientOption) => {
+  const parsed = Number(client.workoutCount ?? 0);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+};
+
 const workoutProofLabelFor = (client: ClientOption) => (
-  (client.workoutCount || 0) > 0 ? `${client.workoutCount} logged` : 'No logs yet'
+  workoutCountFor(client) > 0 ? `${workoutCountFor(client)} logged` : 'No logs yet'
 );
+
+const lastLoggedLabelFor = (client: ClientOption) => {
+  if (!client.lastSessionDate || workoutCountFor(client) <= 0) return null;
+  const timestamp = Date.parse(client.lastSessionDate);
+  if (!Number.isFinite(timestamp)) return null;
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(timestamp));
+  return `Last logged: ${formatted}`;
+};
+
+const relativeClientDateLabelFor = (client: ClientOption) => {
+  const value = client.assignedAt || client.joinDate;
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+  const prefix = client.assignedAt ? 'Assigned' : 'Joined';
+  if (days === 0) return `${prefix} Today`;
+  if (days === 1) return `${prefix} Yesterday`;
+  if (days < 14) return `${prefix} ${days} days ago`;
+  if (days < 60) return `${prefix} ${Math.max(2, Math.round(days / 7))} weeks ago`;
+  return `${prefix} ${Math.max(2, Math.round(days / 30))} months ago`;
+};
 
 const sessionBankReadinessFor = (sessionSignal: ReturnType<typeof getClientSessionSignal>) => {
   if (sessionSignal.tone === 'gold') return 'tracking mode';
@@ -116,7 +149,7 @@ const ClientCardMetrics = ({
   <MetricGrid data-swan-card-section="admin-metrics">
     <Metric>
       <Dumbbell size={14} aria-hidden="true" />
-      {client.workoutCount || 0} workouts
+      {workoutCountFor(client)} workouts
     </Metric>
     <Metric $tone={sessionSignal.tone}>
       <Activity size={14} aria-hidden="true" />
@@ -184,7 +217,8 @@ const ClientWorkoutProofPanel = ({ client }: { client: ClientOption }) => (
     </ProofHeader>
     <ProofValue>
       <span>{workoutProofLabelFor(client)}</span>
-      <small>{(client.workoutCount || 0) > 0 ? 'chart-ready activity' : 'log first session'}</small>
+      <small>{workoutCountFor(client) > 0 ? 'chart-ready activity' : 'log first session'}</small>
+      {lastLoggedLabelFor(client) && <small>{lastLoggedLabelFor(client)}</small>}
     </ProofValue>
   </ProofPanel>
 );
@@ -192,22 +226,28 @@ const ClientWorkoutProofPanel = ({ client }: { client: ClientOption }) => (
 const QuickActionPanel = ({
   client,
   clientName,
+  quickActions,
   onQuickAction,
 }: {
   client: ClientOption;
   clientName: string;
+  quickActions?: readonly ClientHubQuickActionConfig[];
   onQuickAction?: (client: ClientOption, action: ClientHubQuickAction) => void;
 }) => {
   if (!onQuickAction) return null;
   return (
     <ClientHubGridCardActions
       clientName={clientName}
+      actions={quickActions}
       onAction={(action) => onQuickAction(client, action)}
     />
   );
 };
 
-const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect, onQuickAction }) => {
+const ClientHubGridCard = forwardRef<HTMLElement, ClientHubGridCardProps>(function ClientHubGridCard(
+  { client, onSelect, quickActions, onQuickAction },
+  ref
+) {
   const fullName = getClientDisplayName(client);
   const hasCapturedName = hasCapturedClientName(client);
   const experience = trimmedOrFallback(client.trainingExperience, 'experience pending');
@@ -215,8 +255,9 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
   const sessionSignal = getClientSessionSignal(client);
   const sourceTone = getClientSourceTone(client.clientSource);
   const onboardingPct = getClientOnboardingPct(client);
+  const relativeClientDate = relativeClientDateLabelFor(client);
   return (
-    <CardShell data-swan-client-card="admin">
+    <CardShell ref={ref} data-swan-client-card="admin">
       <CardButton
         type="button"
         onClick={() => onSelect(client)}
@@ -233,18 +274,26 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
                 {sourceLabel(client)}
               </Pill>
               <Pill>{experience}</Pill>
+              {relativeClientDate && <Pill>{relativeClientDate}</Pill>}
             </TopLine>
             <ContactIdentityLine client={client} show={hasCapturedName} />
           </CardBody>
         </IdentityRow>
       </CardButton>
-      <GoalLine data-swan-card-section="admin-goal">{goal}</GoalLine>
+      <GoalLine data-swan-card-section="admin-goal" aria-label={`Goal: ${goal}`} title={goal}>
+        {goal}
+      </GoalLine>
       <ClientReadinessStrip client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
       <ClientCardMetrics client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
       <ClientWorkoutProofPanel client={client} />
-      <QuickActionPanel client={client} clientName={fullName} onQuickAction={onQuickAction} />
+      <QuickActionPanel
+        client={client}
+        clientName={fullName}
+        quickActions={quickActions}
+        onQuickAction={onQuickAction}
+      />
     </CardShell>
   );
-};
+});
 
 export default ClientHubGridCard;

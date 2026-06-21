@@ -5,6 +5,7 @@
  */
 
 import type { Dispatch, SetStateAction } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import {
   Calendar,
   CheckCircle,
@@ -125,11 +126,13 @@ export const TrainerClientsHeader = ({
   );
 };
 
-export const TrainerClientsStats = ({ stats }: TrainerClientsStatsProps) => (
+export const TrainerClientsStats = ({ stats }: TrainerClientsStatsProps) => {
+  const reduceMotion = useReducedMotion();
+  return (
   <StatsRow
-    initial={{ opacity: 0, y: 20 }}
+    initial={reduceMotion ? false : { opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.4, delay: 0.1 }}
+    transition={{ duration: reduceMotion ? 0 : 0.4, delay: reduceMotion ? 0 : 0.1 }}
   >
     <StatCard {...statCardProps(STAT_ACCENTS.purple)}>
       <Users size={24} className="stat-icon" />
@@ -152,7 +155,8 @@ export const TrainerClientsStats = ({ stats }: TrainerClientsStatsProps) => (
       <div className="stat-label">With Logs</div>
     </StatCard>
   </StatsRow>
-);
+  );
+};
 
 export const TrainerClientsFilters = ({
   intent,
@@ -164,17 +168,19 @@ export const TrainerClientsFilters = ({
   const placeholder = intent === 'log_workout'
     ? "Search clients to log today's workout..."
     : 'Search clients by name or email...';
+  const reduceMotion = useReducedMotion();
 
   return (
     <FilterSection
-      initial={{ opacity: 0, x: -20 }}
+      initial={reduceMotion ? false : { opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: 0.2 }}
+      transition={{ duration: reduceMotion ? 0 : 0.4, delay: reduceMotion ? 0 : 0.2 }}
     >
       <SearchContainer>
         <Search size={18} className="search-icon" />
         <input
           type="text"
+          aria-label="Search clients by name or email"
           placeholder={placeholder}
           value={searchTerm}
           onChange={(event) => onSearchTermChange(event.target.value)}
@@ -186,9 +192,10 @@ export const TrainerClientsFilters = ({
         <FilterButton
           key={filter}
           $active={statusFilter === filter}
+          aria-pressed={statusFilter === filter}
           onClick={() => onStatusFilterChange(filter)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={reduceMotion ? undefined : { scale: 1.05 }}
+          whileTap={reduceMotion ? undefined : { scale: 0.95 }}
         >
           {filter === 'all' ? 'All Clients' : labelForFilter(filter)}
         </FilterButton>

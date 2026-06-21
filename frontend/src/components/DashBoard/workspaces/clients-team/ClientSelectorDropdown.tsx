@@ -46,6 +46,9 @@ export interface ClientOption {
   isActive?: boolean;
   availableSessions?: number;
   workoutCount?: number;
+  lastSessionDate?: string | null;
+  assignedAt?: string | null;
+  joinDate?: string | null;
   fitnessGoal?: string;
   trainingExperience?: string;
   dateOfBirth?: string | null;

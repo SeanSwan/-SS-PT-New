@@ -36,6 +36,7 @@ const assignment: ClientAssignment = {
 const handlers = {
   onOpenClient: vi.fn(),
   onLogWorkout: vi.fn(),
+  onPlanWorkout: vi.fn(),
   onScheduleSession: vi.fn(),
   onMessageClient: vi.fn(),
   onViewProgress: vi.fn(),
@@ -51,21 +52,24 @@ describe('TrainerClientCard accessibility', () => {
     vi.restoreAllMocks();
   });
 
-  it('shows a labeled trainer command rail with 44px touch targets', () => {
+  it('uses the same Clients & Team card chrome and action vocabulary', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    const commandRail = screen.getByRole('group', {
-      name: 'Accessible Client trainer commands',
-    });
-    const expectedLabels = ['Log Today', 'Plan', 'Progress', 'Schedule', 'Message'];
+    const card = document.querySelector('[data-swan-client-card="admin"]');
+    expect(card).toBeInTheDocument();
+    expect(card).not.toHaveAttribute('data-swan-client-card', 'trainer');
+
+    const commandRail = screen.getByLabelText('Accessible Client quick actions');
+    const expectedLabels = ['Log', 'Plan', 'Charts', 'Coach', 'Schedule', 'Message'];
 
     expect(within(commandRail).getAllByRole('button').map((button) => button.textContent)).toEqual(expectedLabels);
 
     for (const label of expectedLabels) {
-      const button = within(commandRail).getByRole('button', { name: new RegExp(label, 'i') });
+      const button = within(commandRail).getByText(label).closest('button');
 
+      expect(button).toBeInTheDocument();
       expect(button).not.toHaveAttribute('variant');
       expect(button).toHaveTextContent(label);
       expect(button).toHaveStyle({
@@ -83,10 +87,10 @@ describe('TrainerClientCard accessibility', () => {
   });
 
   it('lets keyboard users open the client workspace from the name without nesting action buttons inside a button card', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
     const openWorkspaceButton = screen.getByRole('button', {
-      name: 'Open Accessible Client client workspace',
+      name: 'Open Accessible Client',
     });
 
     expect(openWorkspaceButton.tagName).toBe('BUTTON');
@@ -94,36 +98,74 @@ describe('TrainerClientCard accessibility', () => {
     fireEvent.click(openWorkspaceButton);
     expect(handlers.onOpenClient).toHaveBeenCalledWith('91');
 
-    fireEvent.click(screen.getByRole('button', { name: /log today/i }));
+    fireEvent.click(screen.getByRole('button', { name: /log accessible client workout/i }));
     expect(handlers.onLogWorkout).toHaveBeenCalledWith('91');
     expect(handlers.onOpenClient).toHaveBeenCalledTimes(1);
   });
 
+  it('routes the admin-style quick actions through trainer handlers', () => {
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /plan accessible client workout/i }));
+    expect(handlers.onPlanWorkout).toHaveBeenCalledWith('91');
+
+    fireEvent.click(screen.getByRole('button', { name: /schedule accessible client session/i }));
+    expect(handlers.onScheduleSession).toHaveBeenCalledWith('91');
+
+    fireEvent.click(screen.getByRole('button', { name: /message accessible client/i }));
+    expect(handlers.onMessageClient).toHaveBeenCalledWith('91');
+
+    fireEvent.click(screen.getByRole('button', { name: /view accessible client progress/i }));
+    expect(handlers.onViewProgress).toHaveBeenCalledWith('91');
+
+    fireEvent.click(screen.getByRole('button', { name: /open swan coach for accessible client/i }));
+    expect(handlers.onOpenCopilot).toHaveBeenCalledWith('91', 'Accessible Client');
+  });
+
+  it('does not normalize malformed assignment ids into a different trainer route target', () => {
+    const malformedAssignment: ClientAssignment = {
+      ...assignment,
+      client: {
+        ...assignment.client,
+        id: 'not-a-client-id',
+      },
+    };
+
+    render(<TrainerClientCard assignment={malformedAssignment} {...handlers} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Accessible Client' }));
+    expect(handlers.onOpenClient).toHaveBeenCalledWith('not-a-client-id');
+
+    fireEvent.click(screen.getByRole('button', { name: /log accessible client workout/i }));
+    expect(handlers.onLogWorkout).toHaveBeenCalledWith('not-a-client-id');
+    expect(handlers.onLogWorkout).not.toHaveBeenCalledWith('0');
+  });
+
   it('keeps the daily trainer actions visible without requiring hover', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    const actionRail = screen.getByRole('group', {
-      name: 'Accessible Client trainer commands',
-    });
+    const actionRail = screen.getByLabelText('Accessible Client quick actions');
+    const buttons = within(actionRail).getAllByRole('button');
 
-    expect(actionRail).toHaveStyle({
-      opacity: '1',
-      transform: 'none',
-    });
+    expect(buttons).toHaveLength(6);
+    for (const button of buttons) {
+      expect(button).toBeVisible();
+    }
   });
 
   it('announces readiness and workout proof as named card groups', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    expect(screen.getByRole('group', { name: /accessible client client readiness/i })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /accessible client readiness/i })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /accessible client workout proof/i })).toBeInTheDocument();
   });
 
   it('uses the same stretchable card contract as the admin client grid', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    const card = screen.getByTestId('trainer-client-card-91');
+    const card = document.querySelector('[data-swan-client-card="admin"]');
 
+    expect(card).toBeInTheDocument();
     expect(card).toHaveStyle({
       display: 'flex',
       flexDirection: 'column',
@@ -132,25 +174,23 @@ describe('TrainerClientCard accessibility', () => {
   });
 
   it('surfaces paid-client readiness details before the trainer clicks into the client', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    expect(screen.getByText('SwanStudios paid')).toBeInTheDocument();
+    expect(screen.getByText('SwanStudios source')).toBeInTheDocument();
     expect(screen.getByText('beginner')).toBeInTheDocument();
     expect(screen.getByText('Strength and mobility')).toBeInTheDocument();
-    expect(screen.getByText('Next session: Jun 12')).toBeInTheDocument();
-    expect(screen.getByText('Intake 67%')).toBeInTheDocument();
-    expect(screen.getByText('Active client')).toBeInTheDocument();
+    expect(screen.getByText('check schedule')).toBeInTheDocument();
+    expect(screen.getByText('in progress')).toBeInTheDocument();
+    expect(screen.getByText('active')).toBeInTheDocument();
     expect(screen.getAllByText('4 paid sessions')).toHaveLength(1);
     expect(screen.getAllByText('deducts when logged')).toHaveLength(1);
   });
 
-  it('marks the email row for compact mobile ellipsis while preserving the full value', () => {
-    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+  it('uses the admin card contact line for email identity', () => {
+    render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
     const email = screen.getByText('accessible@example.com');
-    expect(email).toHaveAttribute('data-swan-trainer-email', 'true');
-    expect(email.parentElement).toHaveAttribute('title', 'accessible@example.com');
-    expect(email.parentElement).toHaveAttribute('aria-label', 'accessible@example.com');
+    expect(email.closest('[data-swan-card-section="admin-identity"]')).toBeInTheDocument();
   });
 
   it('distinguishes Move Fitness tracking clients from paid SwanStudios session clients', () => {
@@ -159,16 +199,16 @@ describe('TrainerClientCard accessibility', () => {
       client: {
         ...assignment.client,
         id: '92',
-        clientSource: ' Move Fitness ' as any,
+        clientSource: 'move_fitness',
         availableSessions: 0,
         nextSessionDate: undefined,
       },
     };
 
-    render(<TrainerClientCard assignment={moveFitnessAssignment} index={0} {...handlers} />);
+    render(<TrainerClientCard assignment={moveFitnessAssignment} {...handlers} />);
 
-    expect(screen.getByText('Move Fitness tracking')).toBeInTheDocument();
-    expect(screen.getByText('Next session unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Move Fitness source')).toBeInTheDocument();
+    expect(screen.getByText('check schedule')).toBeInTheDocument();
     expect(screen.getAllByText('free tracking').length).toBeGreaterThan(0);
     expect(screen.getAllByText('no deduction').length).toBeGreaterThan(0);
   });

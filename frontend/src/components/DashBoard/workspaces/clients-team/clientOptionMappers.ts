@@ -20,6 +20,11 @@ export const normalizeClientOptionId = (value: unknown): number | null => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+const normalizeWorkoutCount = (value: unknown): number => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+};
+
 export const mapAdminClientToClientOption = (client: any): ClientOption | null => {
   const id = normalizeClientOptionId(client?.id);
   if (!id) return null;
@@ -32,7 +37,7 @@ export const mapAdminClientToClientOption = (client: any): ClientOption | null =
     clientSource: client.clientSource || 'swanstudios',
     isActive: client.isActive !== false,
     availableSessions: normalizeAvailableSessions(client.availableSessions),
-    workoutCount: client.totalWorkouts || 0,
+    workoutCount: normalizeWorkoutCount(client.totalWorkouts),
     fitnessGoal: client.fitnessGoal || '',
     trainingExperience: client.trainingExperience || '',
     dateOfBirth: client.dateOfBirth || null,
@@ -61,6 +66,6 @@ export const toMiniCardClient = (client: ClientOption | null): MiniCardClient | 
     engagementScore: 50,
     lastWeighIn: null,
     sessionsLeft,
-    workoutCount: client.workoutCount || 0,
+    workoutCount: normalizeWorkoutCount(client.workoutCount),
   };
 };

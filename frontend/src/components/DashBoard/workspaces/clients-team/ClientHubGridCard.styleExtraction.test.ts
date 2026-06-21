@@ -7,6 +7,10 @@ const stylesPath = resolve(__dirname, 'ClientHubGridCard.styles.ts');
 const stylesSource = existsSync(stylesPath) ? readFileSync(stylesPath, 'utf8') : '';
 
 describe('ClientHubGridCard style extraction', () => {
+  it('keeps the active admin client card under the project line cap', () => {
+    expect(componentSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
+
   it('keeps local styled-components outside the active client card shell', () => {
     expect(componentSource).toContain("from './ClientHubGridCard.styles'");
     expect(componentSource).not.toContain('const CardShell = styled.');

@@ -112,9 +112,9 @@ export const swanPill = css`
   gap: 6px;
   padding: 4px 9px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
-  background: color-mix(in srgb, var(--bg-base, #050810) 78%, transparent);
-  color: var(--text-muted, rgba(224, 236, 244, 0.84));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 90%, transparent);
+  color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 11px;
   font-weight: 700;

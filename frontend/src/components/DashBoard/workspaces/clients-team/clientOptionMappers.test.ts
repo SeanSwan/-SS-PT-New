@@ -68,6 +68,35 @@ describe('clientOptionMappers', () => {
     });
   });
 
+  it('normalizes malformed workout totals before they reach client cards', () => {
+    expect(toMiniCardClient({
+      ...baseClient,
+      workoutCount: -4.9,
+    })).toMatchObject({
+      workoutCount: 0,
+    });
+
+    expect(mapAdminClientToClientOption({
+      id: 79,
+      firstName: 'Workout',
+      lastName: 'Drift',
+      totalWorkouts: '6.8',
+    })).toMatchObject({
+      id: 79,
+      workoutCount: 6,
+    });
+
+    expect(mapAdminClientToClientOption({
+      id: 80,
+      firstName: 'Malformed',
+      lastName: 'Workouts',
+      totalWorkouts: 'not-a-number',
+    })).toMatchObject({
+      id: 80,
+      workoutCount: 0,
+    });
+  });
+
   it('normalizes API client ids before clients become selectable daily-training records', () => {
     expect(mapAdminClientToClientOption({
       id: '88',

@@ -93,7 +93,7 @@ describe('MyClientsView trainer log intent mode', () => {
     expect(screen.getByText(/1 ready to log/i)).toBeInTheDocument();
     expect(screen.getByText(/Choose the client, then today/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /log workout for ada lovelace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open ada lovelace/i }));
 
     expect(mocks.navigate).toHaveBeenCalledWith('/dashboard/trainer/log-workout?clientId=42&loadPlan=today');
   });
