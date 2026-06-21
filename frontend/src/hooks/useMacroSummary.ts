@@ -9,10 +9,13 @@
  * for a given date. Returns { protein, carbs, fat, totalCalories, mealCount }
  * plus loading/error states.
  *
- * HOW IT FITS IN THE APP: NutritionWorkspace → MacroDonut / NutritionBalanceRadar
+ * HOW IT FITS IN THE APP: NutritionWorkspace -> MacroDonut / NutritionBalanceRadar
  */
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api.service';
+import { formatLocalCalendarDate } from '../components/DashBoard/workspaces/clients-team/nutritionDate';
+
+const MACRO_SUMMARY_ERROR = 'Macro summary unavailable. Try refreshing your dashboard.';
 
 export interface MacroSummary {
   date: string;
@@ -43,16 +46,16 @@ export function useMacroSummary(date?: string): UseMacroSummaryResult {
     setLoading(true);
     setError(null);
     try {
-      const dateParam = date || new Date().toISOString().split('T')[0];
+      const dateParam = date || formatLocalCalendarDate();
       const response = await apiService.get(`/api/macros/summary?date=${dateParam}`);
       const json = response.data;
       if (json.success && json.summary) {
         setSummary(json.summary);
       } else {
-        setError(json.error || 'Failed to load macro data');
+        setError(MACRO_SUMMARY_ERROR);
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Network error');
+    } catch {
+      setError(MACRO_SUMMARY_ERROR);
     } finally {
       setLoading(false);
     }
