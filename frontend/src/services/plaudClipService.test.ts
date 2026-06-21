@@ -63,6 +63,10 @@ describe('plaudClipService — exports', () => {
     expect(CLIP_SRC).toMatch(/form\.append\(['"]files['"]/);
     expect(CLIP_SRC).toMatch(/multipart\/form-data/);
   });
+
+  it('models official Plaud sync as an upload source', () => {
+    expect(CLIP_SRC).toMatch(/'plaud_official_sync'/);
+  });
 });
 
 describe('plaudMergeService — exports', () => {

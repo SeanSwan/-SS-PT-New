@@ -47,6 +47,7 @@ function minutesBetweenMs(left, right) {
 }
 
 function sourceLabel(source) {
+  if (source === 'plaud_official_sync') return 'Plaud official sync';
   if (source === 'applaud_local_sync') return 'APPLAUD sync';
   if (source === 'applaud_webhook') return 'Applaud';
   return 'Manual upload';

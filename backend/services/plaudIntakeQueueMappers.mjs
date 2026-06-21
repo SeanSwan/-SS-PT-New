@@ -39,6 +39,7 @@ const CLIP_SOURCE_LABELS = {
   manual_upload: 'Manual upload',
   applaud_webhook: 'Applaud',
   applaud_local_sync: 'APPLAUD sync',
+  plaud_official_sync: 'Plaud official sync',
 };
 
 export const CLIP_STATUSES = ['uploading', 'pending_merge', 'lost', 'expired'];

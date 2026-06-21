@@ -19,6 +19,9 @@ const ROUTES_SRC = readFileSync(
 const UPLOAD_SRC = readFileSync(
   resolve(__dirname, '../../controllers/plaud/plaudUploadController.mjs'), 'utf8',
 );
+const UPLOAD_VALIDATION_SRC = readFileSync(
+  resolve(__dirname, '../../controllers/plaud/plaudUploadValidation.mjs'), 'utf8',
+);
 const LIST_SRC = readFileSync(
   resolve(__dirname, '../../controllers/plaud/plaudListController.mjs'), 'utf8',
 );
@@ -89,9 +92,9 @@ describe('Slice 3.5 — plaudUploadController', () => {
   });
 
   it('codec allowlist enforced (mp3/aac/opus/pcm_s16le/flac/vorbis)', () => {
-    expect(UPLOAD_SRC).toMatch(/ALLOWED_CODECS\s*=\s*new\s+Set\(\[/);
+    expect(UPLOAD_VALIDATION_SRC).toMatch(/ALLOWED_CODECS\s*=\s*new\s+Set\(\[/);
     for (const codec of ['mp3', 'aac', 'opus', 'pcm_s16le', 'flac', 'vorbis']) {
-      expect(UPLOAD_SRC).toMatch(new RegExp(`'${codec}'`));
+      expect(UPLOAD_VALIDATION_SRC).toMatch(new RegExp(`'${codec}'`));
     }
   });
 
@@ -105,9 +108,9 @@ describe('Slice 3.5 — plaudUploadController', () => {
   });
 
   it('mime → ext mapping covers PLAUD-native containers', () => {
-    expect(UPLOAD_SRC).toMatch(/'audio\/mpeg':\s*'mp3'/);
-    expect(UPLOAD_SRC).toMatch(/'audio\/x-m4a':\s*'m4a'/);
-    expect(UPLOAD_SRC).toMatch(/'audio\/wav':\s*'wav'/);
+    expect(UPLOAD_VALIDATION_SRC).toMatch(/'audio\/mpeg':\s*'mp3'/);
+    expect(UPLOAD_VALIDATION_SRC).toMatch(/'audio\/x-m4a':\s*'m4a'/);
+    expect(UPLOAD_VALIDATION_SRC).toMatch(/'audio\/wav':\s*'wav'/);
   });
 
   it('per-file size cap from PLAUD_MAX_FILE_BYTES env (default 20MB)', () => {

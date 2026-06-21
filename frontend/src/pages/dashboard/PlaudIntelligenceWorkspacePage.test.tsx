@@ -7,6 +7,9 @@ const LOGIC_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePag
 const PANELS_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePanels.tsx'), 'utf8');
 const SNAPSHOT_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudIntakeSnapshot.styles.ts'), 'utf8');
 const LAYOUT_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
+const ROUTES_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.routes.tsx'), 'utf8');
+const ROUTE_COMPONENTS_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'), 'utf8');
+const DASHBOARD_ROUTE_SRC = `${LAYOUT_SRC}\n${ROUTES_SRC}\n${ROUTE_COMPONENTS_SRC}`;
 const DASHBOARD_TABS_SRC = readFileSync(resolve(__dirname, '../../config/dashboard-tabs.ts'), 'utf8');
 const PENDING_REVIEWS_SRC = readFileSync(
   resolve(__dirname, '../../components/PlaudClipMerge/PlaudPendingReviewsList.tsx'),
@@ -26,11 +29,11 @@ const TRAINER_SIDEBAR_SRC = readFileSync(
 );
 
 function roleBlock(role: 'admin' | 'trainer'): string {
-  const routeConfigStart = LAYOUT_SRC.indexOf('const roleConfigurations');
-  const start = LAYOUT_SRC.indexOf(`  ${role}: {`, routeConfigStart);
+  const routeConfigStart = ROUTES_SRC.indexOf('const roleConfigurations');
+  const start = ROUTES_SRC.indexOf(`  ${role}: {`, routeConfigStart);
   const nextRole = role === 'admin' ? '  trainer: {' : '  client: {';
-  const end = LAYOUT_SRC.indexOf(nextRole, start);
-  return LAYOUT_SRC.slice(start, end);
+  const end = ROUTES_SRC.indexOf(nextRole, start);
+  return ROUTES_SRC.slice(start, end);
 }
 
 describe('PlaudIntelligenceWorkspacePage source contract', () => {
@@ -53,9 +56,9 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   });
 
   it('merges admin PLAUD into the command center while preserving the trainer PLAUD workspace', () => {
-    expect(LAYOUT_SRC).toMatch(/PlaudIntelligenceWorkspacePage/);
-    expect(LAYOUT_SRC).toMatch(/AdminPlaudCommandCenterRedirect/);
-    expect(LAYOUT_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
+    expect(DASHBOARD_ROUTE_SRC).toMatch(/PlaudIntelligenceWorkspacePage/);
+    expect(DASHBOARD_ROUTE_SRC).toMatch(/AdminPlaudCommandCenterRedirect/);
+    expect(DASHBOARD_ROUTE_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
     expect(roleBlock('admin')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}AdminPlaudCommandCenterRedirect/);
     expect(roleBlock('trainer')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}PlaudIntelligenceWorkspacePage/);
   });
@@ -172,6 +175,7 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
     expect(PAGE_SRC).toMatch(/usePlaudIntakeQueue/);
     expect(PAGE_SRC).toMatch(/Unified intake queue/);
     expect(`${PANELS_SRC}\n${LOGIC_SRC}`).toMatch(/Applaud/);
+    expect(LOGIC_SRC).toMatch(/Plaud official sync/);
     expect(PAGE_SRC).toMatch(/Ready review/);
     expect(INTAKE_SERVICE_SRC).toMatch(/\/api\/plaud\/intake/);
   });

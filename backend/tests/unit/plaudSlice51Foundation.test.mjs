@@ -123,9 +123,9 @@ describe('Slice 5.1 — PlaudClip model additions', () => {
     expect(src).toMatch(/clipSource:\s*\{[\s\S]{0,200}field:\s*'clip_source'/);
   });
 
-  it('clipSource validator includes manual upload, webhook, and local sync sources', () => {
+  it('clipSource validator includes manual upload, webhook, local sync, and official sync sources', () => {
     expect(src).toMatch(
-      /clipSource:[\s\S]{0,400}isIn:\s*\[\[\s*'manual_upload',\s*'applaud_webhook',\s*'applaud_local_sync'\s*\]\]/,
+      /clipSource:[\s\S]{0,450}isIn:\s*\[\[\s*'manual_upload',\s*'applaud_webhook',\s*'applaud_local_sync',\s*'plaud_official_sync'\s*\]\]/,
     );
   });
 

@@ -25,66 +25,25 @@
 import { randomUUID } from 'node:crypto';
 import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
-import { writeFile, unlink, mkdtemp } from 'node:fs/promises';
+import { writeFile, unlink, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { writeClipToDisk } from '../../services/plaudClipStorageDualTier.mjs';
+import { probeFile, detectSilence, ClipCorruptError } from '../../services/audioProbeService.mjs';
 import {
-  writeClipToDisk,
-} from '../../services/plaudClipStorageDualTier.mjs';
+  ALLOWED_CODECS,
+  ALLOWED_EXT,
+  normalizeRecordedAt,
+  pickExtFromMimetype,
+  safeUploadRejectionMessage,
+} from './plaudUploadValidation.mjs';
 import {
-  probeFile,
-  detectSilence,
-  ClipCorruptError,
-} from '../../services/audioProbeService.mjs';
-
-const ALLOWED_CODECS = new Set(['mp3', 'aac', 'opus', 'pcm_s16le', 'flac', 'vorbis']);
-const ALLOWED_EXT = new Set(['mp3', 'wav', 'm4a', 'aac', 'flac', 'ogg', 'webm']);
-const MAX_SOURCE_FUTURE_DRIFT_MS = 5 * 60 * 1000;
-
-function pickExtFromMimetype(mimetype, originalname) {
-  const fallback = (originalname || '').split('.').pop()?.toLowerCase() || '';
-  const map = {
-    'audio/mpeg': 'mp3',
-    'audio/mp3': 'mp3',
-    'audio/wav': 'wav',
-    'audio/x-wav': 'wav',
-    'audio/m4a': 'm4a',
-    'audio/x-m4a': 'm4a',
-    'audio/mp4': 'm4a',
-    'audio/aac': 'aac',
-    'audio/flac': 'flac',
-    'audio/ogg': 'ogg',
-    'audio/webm': 'webm',
-  };
-  const candidate = map[mimetype] || fallback;
-  return ALLOWED_EXT.has(candidate) ? candidate : null;
-}
-
-function normalizeRecordedAt(value, nowMs = Date.now()) {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const parsed = new Date(value);
-  const time = parsed.getTime();
-  if (!Number.isFinite(time)) return null;
-  if (time > nowMs + MAX_SOURCE_FUTURE_DRIFT_MS) return null;
-  return parsed.toISOString();
-}
-
-function normalizeClipSource(value) {
-  return value === 'applaud_local_sync' ? 'applaud_local_sync' : 'manual_upload';
-}
-
-function safeUploadRejectionMessage(code) {
-  const messages = {
-    AUTH_REQUIRED: 'Authentication required',
-    CLIP_CORRUPT: 'Audio could not be read. Re-record or upload a different file.',
-    CLIP_TOO_SILENT: 'Audio is too quiet to process. Re-record or upload a clearer file.',
-    INTERNAL_ERROR: 'Upload processing failed. Try again with this file.',
-    NO_FILES: 'No files provided',
-    UNSUPPORTED_AUDIO_TYPE: 'File type is not supported. Upload a supported audio file.',
-    UPLOAD_TOO_LARGE: 'File is over the upload size limit.',
-  };
-  return messages[code] || 'File was rejected. Check the file and try again.';
-}
+  acceptedFromExisting,
+  deleteLostExternalClip,
+  findExistingClip,
+  normalizeClipExternalId,
+  normalizeClipSource,
+} from '../../services/plaudUploadIdempotencyService.mjs';
 
 export async function uploadHandler(req, res) {
   if (!req.files || req.files.length === 0) {
@@ -106,12 +65,30 @@ export async function uploadHandler(req, res) {
   const rejected = [];
   const recordedAt = normalizeRecordedAt(req.body?.recordedAt);
   const clipSource = normalizeClipSource(req.body?.clipSource);
+  const clipExternalId = clipSource === 'plaud_official_sync'
+    ? normalizeClipExternalId(req.body?.clipExternalId)
+    : null;
 
-  // Temp dir for ffprobe inputs (multer is memoryStorage; ffprobe needs a path)
+  if (clipSource === 'plaud_official_sync' && !clipExternalId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'OFFICIAL_SYNC_EXTERNAL_ID_REQUIRED',
+        message: safeUploadRejectionMessage('OFFICIAL_SYNC_EXTERNAL_ID_REQUIRED'),
+      },
+    });
+  }
+  if (clipSource === 'plaud_official_sync' && req.files.length !== 1) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'OFFICIAL_SYNC_ONE_FILE', message: safeUploadRejectionMessage('OFFICIAL_SYNC_ONE_FILE') },
+    });
+  }
+
   const tmpDir = await mkdtemp(join(tmpdir(), 'plaud-upload-'));
 
   for (const f of req.files) {
-    const result = await processOneFile({ file: f, userId, tmpDir, recordedAt, clipSource })
+    const result = await processOneFile({ file: f, userId, tmpDir, recordedAt, clipSource, clipExternalId })
       .catch((err) => {
         logger.error('[plaudUpload] processOneFile threw: %s', err.message);
         return {
@@ -122,8 +99,7 @@ export async function uploadHandler(req, res) {
     if (result.rejected) rejected.push(result.rejected);
   }
 
-  // Best-effort tmp cleanup
-  try { await unlink(tmpDir).catch(() => {}); } catch { /* best-effort */ }
+  try { await rm(tmpDir, { recursive: true, force: true }).catch(() => {}); } catch { /* best-effort */ }
 
   return res.status(200).json({
     success: true,
@@ -132,7 +108,7 @@ export async function uploadHandler(req, res) {
   });
 }
 
-async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSource = 'manual_upload' }) {
+async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSource = 'manual_upload', clipExternalId = null }) {
   const ext = pickExtFromMimetype(file.mimetype, file.originalname);
   if (!ext) {
     return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: safeUploadRejectionMessage('UNSUPPORTED_AUDIO_TYPE') } };
@@ -141,7 +117,14 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
     return { rejected: { filename: file.originalname, code: 'UPLOAD_TOO_LARGE', message: safeUploadRejectionMessage('UPLOAD_TOO_LARGE') } };
   }
 
-  // Stage on tmp disk so ffprobe can read it (multer memoryStorage)
+  const existingBeforeProbe = await findExistingClip({ userId, clipSource, clipExternalId });
+  if (existingBeforeProbe) {
+    if (!(await deleteLostExternalClip(existingBeforeProbe))) {
+      if (existingBeforeProbe.status === 'uploading') return inFlightDuplicateRejection(file);
+      return { accepted: acceptedFromExisting(existingBeforeProbe, file) };
+    }
+  }
+
   const tmpPath = join(tmpDir, `${randomUUID()}.${ext}`);
   await writeFile(tmpPath, file.buffer, { mode: 0o600 });
 
@@ -190,15 +173,18 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
       `INSERT INTO plaud_clips (
          clip_id, user_id, filename_original, storage_ext, mimetype,
          size_bytes, duration_sec, sha256, status,
-         recorded_at, clip_source, expires_at
+         recorded_at, clip_source, clip_external_id, expires_at
        )
        VALUES (
          :clipId, :userId, :filename, :ext, :mimetype,
          :size, :duration, '', 'uploading',
-         :recordedAt, :clipSource,
+         :recordedAt, :clipSource, :clipExternalId,
          NOW() + (:ttlHours || ' hours')::INTERVAL
        )
-       RETURNING id, clip_id, recorded_at, clip_source, uploaded_at, expires_at`,
+       ON CONFLICT (clip_source, clip_external_id, user_id)
+         WHERE clip_external_id IS NOT NULL
+       DO NOTHING
+       RETURNING id, clip_id, recorded_at, clip_source, clip_external_id, uploaded_at, expires_at`,
       {
         replacements: {
           clipId,
@@ -207,9 +193,10 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
           ext,
           mimetype: file.mimetype,
           size: file.size,
-          duration: meta.durationSec || null,
+          duration: meta.durationSec ?? null,
           recordedAt,
           clipSource,
+          clipExternalId,
           ttlHours: String(Number(process.env.PLAUD_CLIP_TTL_HOURS) || 24),
         },
       },
@@ -221,6 +208,11 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
   const dbRow = (phaseA || [])[0];
   if (!dbRow) {
     await unlink(tmpPath).catch(() => {});
+    const existingAfterConflict = await findExistingClip({ userId, clipSource, clipExternalId });
+    if (existingAfterConflict) {
+      if (existingAfterConflict.status === 'uploading') return inFlightDuplicateRejection(file);
+      return { accepted: acceptedFromExisting(existingAfterConflict, file) };
+    }
     return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: safeUploadRejectionMessage('INTERNAL_ERROR') } };
   }
 
@@ -275,6 +267,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
       durationSec: meta.durationSec,
       recordedAt: dbRow.recorded_at,
       clipSource: dbRow.clip_source,
+      clipExternalId: dbRow.clip_external_id,
       uploadedAt: dbRow.uploaded_at,
       expiresAt: dbRow.expires_at,
       status: 'pending_merge',
@@ -284,6 +277,17 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
   };
 }
 
+function inFlightDuplicateRejection(file) {
+  return {
+    rejected: {
+      filename: file.originalname,
+      code: 'CLIP_INGEST_IN_PROGRESS',
+      message: safeUploadRejectionMessage('CLIP_INGEST_IN_PROGRESS'),
+    },
+  };
+}
+
 export const _internal = {
-  processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype, normalizeRecordedAt, normalizeClipSource, safeUploadRejectionMessage,
+  processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype, normalizeRecordedAt, normalizeClipSource,
+  normalizeClipExternalId, safeUploadRejectionMessage,
 };

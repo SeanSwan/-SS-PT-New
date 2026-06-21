@@ -124,9 +124,9 @@ PlaudClip.init(
       allowNull: false,
       defaultValue: 'manual_upload',
       field: 'clip_source',
-      validate: { isIn: [['manual_upload', 'applaud_webhook', 'applaud_local_sync']] },
+      validate: { isIn: [['manual_upload', 'applaud_webhook', 'applaud_local_sync', 'plaud_official_sync']] },
     },
-    // Plaud's recording_id (UUID-ish from Applaud). NULL for manual uploads.
+    // Source-specific recording/event id. NULL for manual uploads.
     // Partial UNIQUE index (clip_source, clip_external_id, user_id)
     // WHERE clip_external_id IS NOT NULL enforces dedup for webhook ingestion.
     clipExternalId: {

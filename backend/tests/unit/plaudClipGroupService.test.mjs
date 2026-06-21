@@ -52,4 +52,17 @@ describe('plaudClipGroupService', () => {
       ['6'],
     ]);
   });
+
+  it('labels official Plaud CLI groups distinctly from Applaud sync', () => {
+    const groups = buildPlaudClipGroupCandidates([
+      row({
+        clipId: 'official-1',
+        clipSource: 'plaud_official_sync',
+        recordedAt: '2026-05-14T16:00:00.000Z',
+      }),
+    ]);
+
+    expect(groups[0].title).toBe('Plaud official sync group 1');
+    expect(groups[0].sourceMix).toEqual(['plaud_official_sync']);
+  });
 });

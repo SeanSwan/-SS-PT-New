@@ -1,5 +1,11 @@
 # PLAUD Auto-Ingestion Runbook
 
+## 2026-06-19 status
+
+The preferred path is now the official Plaud CLI. Use `docs/ai-workflow/references/PLAUD-OFFICIAL-SYNC-RUNBOOK.md` for the current setup.
+
+The Applaud webhook and folder-sync paths below remain documented as fallback/repair material for local exports.
+
 **Phase 5 Slice 5.8** — operational setup for Sean's home machine + Cloudflare Tunnel + Render env vars + verification.
 
 > Plan reference: `docs/ai-workflow/AI-HANDOFF/PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.2-2026-05-04.md`
@@ -10,7 +16,7 @@
 
 ## What this runbook does
 
-Auto-ingest your Plaud recordings into the SwanStudios merge queue. When you come home with your Plaud, the recordings:
+Fallback Applaud mode can still auto-ingest Plaud recordings into the SwanStudios merge queue. In that older path, the recordings:
 
 1. Sync from your Plaud device → Plaud cloud (handled by Plaud's mobile app, normal Plaud workflow)
 2. Get pulled by Applaud running locally on your home machine (every 10 min poll)
@@ -262,6 +268,10 @@ As of 2026-05-14, SwanStudios also ships a Windows-friendly local sync path for 
 - Repo launcher: `scripts/launchers/Start-Swan-Applaud-Sync.ps1`
 - Double-click wrapper: `scripts/launchers/Start-Swan-Applaud-Sync.cmd`
 - Sync agent: `scripts/applaud-sync/swan-applaud-sync.mjs`
+- Home-machine supervisor: `scripts/launchers/Start-Swan-Applaud-Automation.ps1`
+- Startup installer: `scripts/launchers/Install-Swan-Applaud-Autostart.ps1`
+- Plaud cloud auth repair: `scripts/launchers/Repair-Swan-Applaud-CloudAuth.ps1`
+- Health check: `node scripts/qa/check-applaud-automation.mjs`
 - Desktop copies created for convenience: `Start-Swan-Applaud-Sync.ps1` and `Start-Swan-Applaud-Sync.cmd`
 
 This path watches the folder where the local APPLAUD/PLAUD app exports recordings, then uploads stable recent audio files to `POST /api/plaud/clips/upload`. The launcher logs in to SwanStudios, stores the token with Windows DPAPI under `%LOCALAPPDATA%\SwanStudios\applaud-sync`, and starts the watcher. The sync state file stores SHA-256 fingerprints so the same local recording is not uploaded twice.
@@ -282,6 +292,8 @@ If this fallback is used instead of the webhook/tunnel setup above, the Cloudfla
 ### Clip never appears in the queue
 
 - **Check Render logs first.** No `INCOMING REQUEST: POST /api/plaud/webhook/applaud` entries means Applaud isn't successfully POSTing. Look at Applaud's local logs for sig errors / DNS errors / config errors.
+- **If using recommended home-machine production mode, check local health first.** Run `node scripts/qa/check-applaud-automation.mjs`. Fix any `ERROR` rows before checking Render. In this mode, absence of webhook logs is expected because Swan receives the local uploader request at `/api/plaud/clips/upload`.
+- **If local health reports missing Applaud setup/token.** Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\Repair-Swan-Applaud-CloudAuth.ps1`. This is the expected repair path when Plaud expires or revokes the browser token Applaud reads from Brave/Chrome storage.
 - **Check `cloudflared` is running.** If the tunnel is down, Render can't fetch the audio URL; you'll see `[plaudApplaudWebhook]` logs with `AUDIO_FETCH_TIMEOUT` or `AUDIO_FETCH_FAILED`.
 - **Check the webhook secret matches** between Applaud's `.env` and Render's `PLAUD_APPLAUD_WEBHOOK_SECRET_V1`. Mismatch → `401 SIGNATURE_INVALID` repeated in Render logs. Re-paste the secret and confirm both ends are identical.
 - **Check Plaud session.** Re-log into web.plaud.ai in your browser. Applaud's logs should show "Plaud JWT detected". If not, the session expired.

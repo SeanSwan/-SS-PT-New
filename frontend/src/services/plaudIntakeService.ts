@@ -11,7 +11,7 @@ export interface PlaudIntakeItem {
   id: string;
   entityId: string;
   kind: 'clip' | 'merge_request';
-  source: 'manual_upload' | 'applaud_webhook' | 'applaud_local_sync' | 'plaud_merge';
+  source: 'manual_upload' | 'applaud_webhook' | 'applaud_local_sync' | 'plaud_official_sync' | 'plaud_merge';
   sourceLabel: string;
   queueStatus:
     | 'unprocessed'

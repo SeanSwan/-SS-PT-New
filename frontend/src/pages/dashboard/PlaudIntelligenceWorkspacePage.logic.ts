@@ -28,6 +28,7 @@ const SOURCE_LABELS: Record<PlaudIntakeItem['source'], string> = {
   applaud_local_sync: 'APPLAUD sync',
   applaud_webhook: 'Applaud',
   manual_upload: 'Manual upload',
+  plaud_official_sync: 'Plaud official sync',
   plaud_merge: 'PLAUD merge',
 };
 
