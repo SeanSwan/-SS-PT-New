@@ -77,6 +77,81 @@ describe('aiDataWriteService macro_log date fallback', () => {
     expect(capture.replacements?.date).toBe('2026-06-19');
   });
 
+  it('does not partially parse malformed macro numbers into persisted estimates', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({
+      calories: '420kcal',
+      protein: [35],
+      carbs: '0x10',
+      fat: '1e2',
+      fiber: true,
+      sugar: { grams: 12 },
+      sodium: '900mg',
+      addedSugar: '13g',
+      cholesterol: [110],
+      saturatedFat: '8g',
+      transFat: '0.5g',
+      novaGroup: '4abc',
+    })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements).toMatchObject({
+      calories: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+      fiber: null,
+      sugar: null,
+      sodium: null,
+      addedSugar: null,
+      cholesterol: null,
+      saturatedFat: null,
+      transFat: null,
+      novaGroup: null,
+      flagSodium: false,
+      flagSugar: false,
+      flagCholesterol: false,
+      flagSaturatedFat: false,
+      flagTransFat: false,
+      flagProcessed: false,
+      verified: false,
+      source: 'ai_chat',
+    });
+  });
+
+  it('preserves plain decimal string macro numbers', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({
+      calories: '420.5',
+      protein: '35.25',
+      carbs: '32',
+      fat: '14.75',
+      sodium: '801',
+      addedSugar: '12.5',
+      novaGroup: '4',
+    })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements).toMatchObject({
+      calories: 420.5,
+      protein: 35.25,
+      carbs: 32,
+      fat: 14.75,
+      sodium: 801,
+      addedSugar: 12.5,
+      novaGroup: 4,
+      flagSodium: true,
+      flagSugar: true,
+      flagProcessed: true,
+      verified: false,
+      source: 'ai_chat',
+    });
+  });
+
   it('rejects impossible explicit macro_log dates before any SQL write', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));

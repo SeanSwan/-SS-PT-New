@@ -1,26 +1,9 @@
 /**
  * Nutrition serving-size validation.
  *
- * HTTP routes receive JSON values, so this parser accepts only finite numbers
- * and plain decimal strings. It intentionally rejects JavaScript coercions such
- * as booleans, arrays, hex strings, and exponent notation.
+ * HTTP routes receive JSON values, so serving sizes use the shared strict
+ * numeric parser to reject coercions and partial parses.
  */
-const PLAIN_DECIMAL_PATTERN = /^\d+(?:\.\d+)?$/;
+import { parsePlainDecimalNumber } from './numericInputValidation.mjs';
 
-export const parseServingSizeGrams = (value) => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-  if (!PLAIN_DECIMAL_PATTERN.test(trimmedValue)) {
-    return null;
-  }
-
-  const parsedValue = Number(trimmedValue);
-  return Number.isFinite(parsedValue) ? parsedValue : null;
-};
+export const parseServingSizeGrams = (value) => parsePlainDecimalNumber(value);

@@ -17,6 +17,7 @@
 import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
 import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
+import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
 import {
   attachGeneratedWorkoutPlanPdf,
   extractInsertedWorkoutPlanId,
@@ -56,6 +57,24 @@ function clampPlanDurationWeeks(value, fallback = 4) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(1, Math.min(52, parsed));
+}
+
+function sanitizeAiMacroNumber(value, fallback = 0) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'string' && value.trim() === '') return fallback;
+
+  const parsed = parsePlainDecimalNumber(value);
+  if (parsed === null || parsed < 0) return null;
+  return parsed;
+}
+
+function sanitizeAiNovaGroup(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+
+  const parsed = parsePlainDecimalNumber(value);
+  if (parsed === null || !Number.isInteger(parsed)) return null;
+  return Math.max(1, Math.min(4, parsed));
 }
 
 /**
@@ -256,12 +275,12 @@ async function insertClientNote(userId, trainerId, data, sequelize) {
 async function insertMacroLog(userId, data, sequelize) {
   if (!data.description) throw new Error('Food description is required');
 
-  const sodium = parseFloat(data.sodium) || 0;
-  const addedSugar = parseFloat(data.addedSugar) || 0;
-  const cholesterol = parseFloat(data.cholesterol) || 0;
-  const saturatedFat = parseFloat(data.saturatedFat) || 0;
-  const transFat = parseFloat(data.transFat) || 0;
-  const novaGroup = data.novaGroup ? Math.max(1, Math.min(4, parseInt(data.novaGroup))) : null;
+  const sodium = sanitizeAiMacroNumber(data.sodium);
+  const addedSugar = sanitizeAiMacroNumber(data.addedSugar);
+  const cholesterol = sanitizeAiMacroNumber(data.cholesterol);
+  const saturatedFat = sanitizeAiMacroNumber(data.saturatedFat);
+  const transFat = sanitizeAiMacroNumber(data.transFat);
+  const novaGroup = sanitizeAiNovaGroup(data.novaGroup);
 
   // Auto-calculate FDA warning flags per meal
   const flagSodium = sodium > 800;           // >33% of 2,300mg DV
@@ -276,12 +295,12 @@ async function insertMacroLog(userId, data, sequelize) {
     date: resolveNutritionWriteDate(data.date),
     mealType: data.mealType || 'snack',
     description: data.description,
-    calories: parseFloat(data.calories) || 0,
-    protein: parseFloat(data.protein) || 0,
-    carbs: parseFloat(data.carbs) || 0,
-    fat: parseFloat(data.fat) || 0,
-    fiber: parseFloat(data.fiber) || 0,
-    sugar: parseFloat(data.sugar) || 0,
+    calories: sanitizeAiMacroNumber(data.calories),
+    protein: sanitizeAiMacroNumber(data.protein),
+    carbs: sanitizeAiMacroNumber(data.carbs),
+    fat: sanitizeAiMacroNumber(data.fat),
+    fiber: sanitizeAiMacroNumber(data.fiber),
+    sugar: sanitizeAiMacroNumber(data.sugar),
     sodium,
     addedSugar: addedSugar || null,
     saturatedFat: saturatedFat || null,
