@@ -17,4 +17,23 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
     expect(styles).toContain('overflow-wrap: anywhere');
     expect(styles).not.toContain('white-space: nowrap');
   });
+
+  it('keeps filled action contrast tokenized instead of raw white literals', () => {
+    expect(styles).toContain('var(--button-text, #FFFFFF)');
+    expect(styles).not.toContain("? '#FFFFFF'");
+  });
+
+  it('makes the selected-client detail surface a smooth single-scroll owner', () => {
+    expect(styles).toContain('scroll-behavior: smooth');
+    expect(styles).toContain('scrollbar-gutter: stable');
+    expect(styles).toContain('overscroll-behavior: contain');
+    expect(styles).toContain('padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px))');
+  });
+
+  it('raises the Client Hub readability floor on 4K monitor-class screens', () => {
+    expect(styles).toContain('@media (min-width: 2560px)');
+    expect(styles).toContain('--client-hub-density-scale: 1.08');
+    expect(styles).toContain('@media (min-width: 3840px)');
+    expect(styles).toContain('--client-hub-density-scale: 1.16');
+  });
 });

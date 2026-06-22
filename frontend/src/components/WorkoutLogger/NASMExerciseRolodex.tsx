@@ -133,6 +133,11 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
 
+  const handlePreview = useCallback((exercise: ExerciseSlim, index: number) => {
+    setHighlightIndex(index);
+    setPreviewExercise(exercise);
+  }, []);
+
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
@@ -167,8 +172,9 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       <ExerciseRow
         style={style}
         $highlighted={index === highlightIndex}
-        onClick={() => handleSelect(ex)}
-        onFocus={() => setPreviewExercise(ex)}
+        onClick={() => handlePreview(ex, index)}
+        onDoubleClick={() => handleSelect(ex)}
+        onFocus={() => handlePreview(ex, index)}
         onMouseEnter={() => setPreviewExercise(ex)}
         role="option"
         aria-selected={index === highlightIndex}
@@ -180,7 +186,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         </ExMeta>
       </ExerciseRow>
     );
-  }, [filteredResults, handleSelect, highlightIndex]);
+  }, [filteredResults, handlePreview, handleSelect, highlightIndex]);
 
   if (!isOpen) return null;
 

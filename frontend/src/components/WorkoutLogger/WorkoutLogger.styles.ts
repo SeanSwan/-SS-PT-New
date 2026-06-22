@@ -49,14 +49,19 @@ export const TimerFAB = styled.button<{ $lift?: boolean }>`
 `;
 
 export const WorkoutLoggerContainer = styled(motion.div)`
-  min-height: 100vh;
+  min-height: min(100%, 100dvh);
   background: ${CS.bgDeep};
   background-image: radial-gradient(circle at 80% 20%, ${withAlpha(CS.secondary, 0.08)} 0%, transparent 40%),
                     radial-gradient(circle at 20% 80%, ${withAlpha(CS.glow, 0.04)} 0%, transparent 40%);
   padding: 2rem;
   color: ${CS.text};
   font-family: 'Sora', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
   position: relative;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 
   &::before {
     content: '';
@@ -71,6 +76,23 @@ export const WorkoutLoggerContainer = styled(motion.div)`
   }
 
   & > * { position: relative; }
+
+  @supports not (height: 100dvh) {
+    min-height: 100vh;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 2400px;
+    margin: 0 auto;
+    padding: 2.5rem;
+    font-size: 1.0625rem;
+  }
+
+  @media (min-width: 3840px) {
+    max-width: 3200px;
+    padding: 3rem;
+    font-size: 1.125rem;
+  }
 
   @media (max-width: 768px) { padding: 1rem; }
   @media (max-width: 430px) { padding: 0.75rem; }

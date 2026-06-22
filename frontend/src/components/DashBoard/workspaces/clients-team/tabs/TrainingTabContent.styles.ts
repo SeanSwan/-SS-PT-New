@@ -26,6 +26,14 @@ export const LayoutWrapper = styled.div`
     flex-direction: column;
     min-height: 360px;
   }
+
+  @media (min-width: 2560px) {
+    min-height: 480px;
+  }
+
+  @media (min-width: 3840px) {
+    min-height: 540px;
+  }
 `;
 
 export const Sidebar = styled.div`
@@ -45,16 +53,27 @@ export const Sidebar = styled.div`
     padding: 8px 4px;
   }
 
+  @media (min-width: 2560px) {
+    width: 280px;
+    gap: 4px;
+    padding: 10px;
+  }
+
+  @media (min-width: 3840px) {
+    width: 320px;
+    padding: 12px;
+  }
+
   @media (max-width: 767px) {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     max-width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-    padding: 6px;
+    padding: 8px;
     gap: 6px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
   }
 `;
 
@@ -137,12 +156,23 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
     }
   }
 
+  @media (min-width: 2560px) {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 14px 18px;
+    font-size: 15px;
+  }
+
   @media (max-width: 767px) {
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 8px 14px;
+    width: 100%;
+    min-height: 48px;
+    padding: 9px 10px;
     gap: 6px;
     font-size: 12px;
+    justify-content: flex-start;
 
     &::before {
       display: none;

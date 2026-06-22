@@ -47,4 +47,19 @@ describe('TrainingTabContent style extraction', () => {
     expect(stylesSource).toContain('prefers-reduced-motion: reduce');
     expect(stylesSource).not.toContain('white-space: nowrap');
   });
+
+  it('wraps mobile training sub-tabs instead of adding another horizontal scrollbar', () => {
+    expect(stylesSource).toMatch(/@media \(max-width: 767px\)[\s\S]*display: grid;/);
+    expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(stylesSource).toContain('overflow: visible');
+    expect(stylesSource).not.toContain('overflow-x: auto');
+  });
+
+  it('keeps the training tab shell readable on QHD and 4K screens', () => {
+    expect(stylesSource).toContain('@media (min-width: 2560px)');
+    expect(stylesSource).toContain('width: 280px');
+    expect(stylesSource).toContain('font-size: 14px');
+    expect(stylesSource).toContain('@media (min-width: 3840px)');
+    expect(stylesSource).toContain('width: 320px');
+  });
 });

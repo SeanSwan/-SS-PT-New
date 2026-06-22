@@ -25,16 +25,18 @@ export const Wrapper = styled.div`
   border: 1px solid ${withAlpha(CS.glow, 0.15)};
   border-radius: 1rem;
   padding: 12px;
+  max-height: min(760px, calc(100dvh - 168px));
+  overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-gutter: stable; scroll-behavior: smooth;
   box-shadow: 0 16px 48px ${withAlpha(CS.bgDeep, 0.5)}, 0 0 40px ${withAlpha(CS.glow, 0.06)};
   animation: ${slideDown} 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   @media (prefers-reduced-motion: reduce) { animation: none; }
+  @media (prefers-reduced-motion: reduce) { scroll-behavior: auto; }
+  @media (max-width: 600px) { max-height: min(82dvh, calc(100dvh - 96px)); }
 `;
 
 export const SearchRow = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-bottom: 4px;
+  position: relative; display: flex; align-items: center; margin-bottom: 4px;
 `;
 
 export const SearchIconStyled = styled(Search)`
@@ -89,24 +91,18 @@ export const FilterToggle = styled.button`
   &:focus-visible { outline: 2px solid ${CS.glow}; outline-offset: 2px; border-radius: 0.5rem; }
 `;
 
-export const FilterRows = styled.div`
-  padding: 0 0 6px;
-`;
+export const FilterRows = styled.div`padding: 0 0 6px;`;
 
 export const FilterLabel = styled.div`
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: 0.65rem; font-weight: 700;
   color: ${CS.textSecondary};
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 2px 0 2px 2px;
+  letter-spacing: 0.5px; margin: 2px 0 2px 2px;
 `;
 
 export const MiniChipRow = styled.div`
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
+  gap: 4px; flex-wrap: wrap; margin-bottom: 4px;
 `;
 
 export const MiniChip = styled.button<{ $active: boolean }>`
@@ -147,14 +143,11 @@ export const PreviewSide = styled.div`
   line-height: 1.5;
   color: ${CS.textSecondary};
   max-height: ${MAX_ROWS_MOBILE * ROW_HEIGHT}px;
-  overflow-y: auto;
-  @media (max-width: 600px) {
-    order: -1;
-    max-height: none;
-  }
-  @media ${DESKTOP_BREAKPOINT_MQ} {
-    max-height: ${MAX_ROWS_DESKTOP * ROW_HEIGHT}px;
-  }
+  overflow: visible;
+  @media (max-width: 600px) { order: -1; max-height: none; }
+  @media ${DESKTOP_BREAKPOINT_MQ} { max-height: ${MAX_ROWS_DESKTOP * ROW_HEIGHT}px; }
+  @media (min-width: 2560px) { font-size: 0.92rem; }
+  @media (min-width: 3840px) { font-size: 1rem; }
 `;
 
 export const PreviewHeader = styled.div`
@@ -216,6 +209,7 @@ export const ListContainer = styled.div`
   border-radius: 0.5rem;
   overflow: hidden;
   & > div {
+    scrollbar-gutter: stable; overscroll-behavior: contain; scroll-behavior: smooth;
     &::-webkit-scrollbar { width: 6px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb {
@@ -249,6 +243,8 @@ export const ExName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  @media (min-width: 2560px) { font-size: 0.98rem; }
+  @media (min-width: 3840px) { font-size: 1.05rem; }
 `;
 
 export const ExMeta = styled.span`
@@ -261,6 +257,8 @@ export const ExMeta = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  @media (min-width: 2560px) { font-size: 0.88rem; }
+  @media (min-width: 3840px) { font-size: 0.95rem; }
 `;
 
 export const TypeBadge = styled.span`
