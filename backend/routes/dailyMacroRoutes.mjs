@@ -21,6 +21,7 @@ import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mj
 import {
   ALLOWED_MEAL_TYPES,
   ALLOWED_SOURCES,
+  MACRO_DATE_ERROR,
   MAX_DESCRIPTION_LENGTH,
   MAX_ITEMS_COUNT,
   MAX_WEEKLY_RANGE_DAYS,
@@ -29,19 +30,15 @@ import {
   buildWeeklyMacroDays,
   isValidDate,
   resolveMacroTargetUserId,
+  resolveOptionalMacroDate,
   sanitizeNumber,
   serverUtcDateOnly,
 } from './dailyMacroRoutes.utils.mjs';
 
 const router = express.Router();
-const MACRO_DATE_ERROR = 'Date must be a real YYYY-MM-DD calendar date.';
 
 router.use(protect);
 
-/**
- * POST /api/macros
- * Log a food entry (manual or from AI chat)
- */
 router.post('/', async (req, res) => {
   try {
     const {
@@ -117,14 +114,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/macros
- * Get entries for a specific date (defaults to today)
- */
 router.get('/', async (req, res) => {
   try {
-    const rawDate = req.query.date || new Date().toISOString().split('T')[0];
-    const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
+    const resolvedDate = resolveOptionalMacroDate(req.query.date);
+    if (resolvedDate.error) {
+      return res.status(resolvedDate.status).json({ success: false, error: resolvedDate.error });
+    }
+    const date = resolvedDate.date;
 
     const entries = await DailyMacroLog.findAll({
       where: {
@@ -142,14 +138,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/macros/summary
- * Get daily totals for a specific date
- */
 router.get('/summary', async (req, res) => {
   try {
-    const rawDate = req.query.date || new Date().toISOString().split('T')[0];
-    const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
+    const resolvedDate = resolveOptionalMacroDate(req.query.date);
+    if (resolvedDate.error) {
+      return res.status(resolvedDate.status).json({ success: false, error: resolvedDate.error });
+    }
+    const date = resolvedDate.date;
 
     const target = await resolveMacroTargetUserId(req);
     if (target.error) {
@@ -170,17 +165,14 @@ router.get('/summary', async (req, res) => {
   } catch (err) {
     // Non-fatal: table may not exist yet (daily_macro_logs not migrated)
     if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
-      return res.json({ success: true, summary: { date: req.query.date || new Date().toISOString().split('T')[0], totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0, totalFiber: 0, totalSugar: 0, totalSodium: 0, mealCount: 0, meals: {} } });
+      const fallbackDate = resolveOptionalMacroDate(req.query.date).date;
+      return res.json({ success: true, summary: { date: fallbackDate, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0, totalFiber: 0, totalSugar: 0, totalSodium: 0, mealCount: 0, meals: {} } });
     }
     logger.error('[DailyMacroRoutes] Get summary error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to get summary' });
   }
 });
 
-/**
- * GET /api/macros/weekly
- * Get weekly macro totals (7 days starting from `start` date)
- */
 router.get('/weekly', async (req, res) => {
   try {
     const defaultStart = (() => {
@@ -189,8 +181,16 @@ router.get('/weekly', async (req, res) => {
       return d.toISOString().split('T')[0];
     })();
 
-    const startDate = (req.query.start && isValidDate(req.query.start)) ? req.query.start : defaultStart;
-    const endDate = (req.query.end && isValidDate(req.query.end)) ? req.query.end : new Date().toISOString().split('T')[0];
+    const resolvedStart = resolveOptionalMacroDate(req.query.start, defaultStart);
+    if (resolvedStart.error) {
+      return res.status(resolvedStart.status).json({ success: false, error: resolvedStart.error });
+    }
+    const resolvedEnd = resolveOptionalMacroDate(req.query.end);
+    if (resolvedEnd.error) {
+      return res.status(resolvedEnd.status).json({ success: false, error: resolvedEnd.error });
+    }
+    const startDate = resolvedStart.date;
+    const endDate = resolvedEnd.date;
 
     // Cap query range to prevent unbounded scans
     const msRange = new Date(endDate).getTime() - new Date(startDate).getTime();
@@ -233,10 +233,6 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-/**
- * PATCH /api/macros/:id
- * Update a macro entry
- */
 router.patch('/:id(\\d+)', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
@@ -263,10 +259,6 @@ router.patch('/:id(\\d+)', async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/macros/:id
- * Delete a macro entry
- */
 router.delete('/:id(\\d+)', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);

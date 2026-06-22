@@ -5,6 +5,7 @@ export const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode'];
 export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_ITEMS_COUNT = 50;
 export const MAX_WEEKLY_RANGE_DAYS = 90;
+export const MACRO_DATE_ERROR = 'Date must be a real YYYY-MM-DD calendar date.';
 
 const MAX_MACRO_VALUE = 99999;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,6 +41,18 @@ export const isValidDate = (str) => {
 export const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
   const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
   return date.toISOString().slice(0, 10);
+};
+
+export const resolveOptionalMacroDate = (rawValue, fallbackDate = serverUtcDateOnly()) => {
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
+    return { date: fallbackDate };
+  }
+
+  if (typeof rawValue !== 'string' || !isValidDate(rawValue)) {
+    return { status: 400, error: MACRO_DATE_ERROR };
+  }
+
+  return { date: rawValue };
 };
 
 export const resolveMacroTargetUserId = async (req, queryField = 'userId') => {

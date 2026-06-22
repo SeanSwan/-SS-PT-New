@@ -38,6 +38,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 import dailyMacroRoutes from '../../routes/dailyMacroRoutes.mjs';
+import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 
 const makeApp = () => {
   const app = express();
@@ -63,6 +64,8 @@ describe('POST /api/macros local-date guard', () => {
     mocks.createSingleMacroEntry.mockReset();
     mocks.assertAssignmentOrAdmin.mockReset();
     mocks.createSingleMacroEntry.mockImplementation(async (entry) => ({ id: 777, ...entry }));
+    DailyMacroLog.findAll.mockReset();
+    DailyMacroLog.findAll.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -107,5 +110,37 @@ describe('POST /api/macros local-date guard', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('Invalid userId');
     expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+  });
+
+  it('rejects impossible entry read dates before querying macro rows', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros')
+      .query({ date: '2026-02-31' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Date must be a real YYYY-MM-DD calendar date.');
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects impossible summary dates before target assignment or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/summary')
+      .query({ date: '2026-02-31', userId: '101' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Date must be a real YYYY-MM-DD calendar date.');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects impossible weekly range dates before target assignment or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/weekly')
+      .query({ start: '2026-02-31', end: '2026-06-20', userId: '101' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Date must be a real YYYY-MM-DD calendar date.');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
   });
 });
