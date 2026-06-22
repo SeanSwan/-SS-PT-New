@@ -119,6 +119,13 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
         ref={commandTextRef}
         value={commandText}
         onChange={(event) => onCommandTextChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return;
+          if (event.shiftKey && !event.metaKey && !event.ctrlKey) return;
+
+          event.preventDefault();
+          event.currentTarget.form?.requestSubmit();
+        }}
         placeholder="Talk or type to Swan Coach…"
         aria-describedby="coach-dock-status"
         rows={2}
