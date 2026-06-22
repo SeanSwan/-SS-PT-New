@@ -78,6 +78,17 @@ describe('macroLogService verified invariant', () => {
     }));
   });
 
+  it('normalizes AI-command macro row mealType casing before persistence', () => {
+    const row = buildMacroRow({
+      date: '2026-06-21',
+      mealType: ' Lunch ',
+      description: 'Burrito bowl',
+      calories: 620,
+    }, { userId: 42, source: 'ai_chat' });
+
+    expect(row.mealType).toBe('lunch');
+  });
+
   it('scrubs AI-command macro row display copy before persistence', () => {
     const row = buildMacroRow({
       date: '2026-06-21',

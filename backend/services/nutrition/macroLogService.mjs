@@ -64,6 +64,12 @@ const sanitizeNumber = (val) => {
 
 const resolveMacroLogDate = (value) => resolveNutritionWriteDate(value);
 
+const normalizeMacroMealType = (value) => {
+  if (typeof value !== 'string') return 'snack';
+  const normalized = value.trim().toLowerCase();
+  return VALID_MEAL_TYPES.includes(normalized) ? normalized : 'snack';
+};
+
 const sanitizeMacroItem = (item) => {
   if (typeof item === 'string') return sanitizeNutritionCopy(item, '', 150);
   if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
@@ -107,7 +113,7 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
   return {
     userId,
     date:             resolveMacroLogDate(data.date),
-    mealType:         VALID_MEAL_TYPES.includes(data.mealType) ? data.mealType : 'snack',
+    mealType:         normalizeMacroMealType(data.mealType),
     description:      safeDescription,
     calories:         sanitizeNumber(data.calories),
     protein:          sanitizeNumber(data.protein),
