@@ -88,4 +88,24 @@ describe('NutritionTriageCard logic', () => {
     });
     expect(triage.flags.map((flag) => flag.id)).toEqual(['no-meals']);
   });
+
+  it('rejects fractional meal counts before triage status and logged-day rhythm', () => {
+    const triage = buildNutritionTriage({
+      summary: summary({ mealCount: 1.5 }),
+      weeklyDays: Array.from({ length: 7 }, (_, index) => ({
+        date: `2026-06-${String(index + 14).padStart(2, '0')}`,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        mealCount: index === 2 ? 1.5 : 0,
+      })),
+    });
+
+    expect(triage).toMatchObject({
+      statusLabel: 'No meals logged today',
+      weeklyLabel: '0 of 7 days logged',
+    });
+    expect(triage.flags.map((flag) => flag.id)).toEqual(['no-meals', 'low-rhythm']);
+  });
 });

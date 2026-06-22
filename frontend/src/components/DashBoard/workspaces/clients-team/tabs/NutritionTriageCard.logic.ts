@@ -56,8 +56,13 @@ const round = (value: unknown): number => Math.round(asNumber(value));
 
 const formatInt = (value: number): string => value.toLocaleString('en-US', { maximumFractionDigits: 0 });
 
+const asWholeCount = (value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) return 0;
+  return value;
+};
+
 const hasLoggedDay = (day: WeeklyMacroDay): boolean =>
-  asNumber(day.mealCount) > 0
+  asWholeCount(day.mealCount) > 0
   || asNumber(day.calories) > 0
   || asNumber(day.protein) > 0
   || asNumber(day.carbs) > 0
@@ -69,10 +74,15 @@ const mealStatusLabel = (mealCount: number): string => {
   return `${mealCount} meals today`;
 };
 
-const buildFlags = (summary: MacroSummary, loggedDays: number, weeklyDays: WeeklyMacroDay[]): NutritionTriageFlag[] => {
+const buildFlags = (
+  summary: MacroSummary,
+  todayMealCount: number,
+  loggedDays: number,
+  weeklyDays: WeeklyMacroDay[],
+): NutritionTriageFlag[] => {
   const flags: NutritionTriageFlag[] = [];
 
-  if (round(summary.mealCount) <= 0) {
+  if (todayMealCount <= 0) {
     flags.push({
       id: 'no-meals',
       label: 'No meals logged today',
@@ -119,16 +129,17 @@ export const buildNutritionTriage = ({
   weeklyDays: WeeklyMacroDay[];
 }): NutritionTriageViewModel => {
   const loggedDays = weeklyDays.filter(hasLoggedDay).length;
+  const todayMealCount = asWholeCount(summary.mealCount);
   const averageCalories = loggedDays > 0
     ? Math.round(weeklyDays.filter(hasLoggedDay).reduce((sum, day) => sum + asNumber(day.calories), 0) / loggedDays)
     : 0;
 
   return {
-    statusLabel: mealStatusLabel(round(summary.mealCount)),
+    statusLabel: mealStatusLabel(todayMealCount),
     proteinLabel: `${formatInt(round(summary.totalProtein))}g protein`,
     fiberLabel: `${formatInt(round(summary.totalFiber))}g fiber`,
     weeklyLabel: `${loggedDays} of 7 days logged`,
     averageLabel: averageCalories > 0 ? `${formatInt(averageCalories)} avg cal` : 'No weekly average yet',
-    flags: buildFlags(summary, loggedDays, weeklyDays),
+    flags: buildFlags(summary, todayMealCount, loggedDays, weeklyDays),
   };
 };
