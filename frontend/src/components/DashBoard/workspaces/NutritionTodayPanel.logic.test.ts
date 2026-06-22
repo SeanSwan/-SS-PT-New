@@ -33,6 +33,25 @@ describe('NutritionTodayPanel logic', () => {
     ], '2026-06-20')).toBe(1);
   });
 
+  it('rejects fractional meal counts before showing meals or weekly logged days', () => {
+    expect(calculateNutritionStreak([
+      { date: '2026-06-20', mealCount: 1.5, calories: 0 },
+    ], '2026-06-20')).toBe(0);
+
+    expect(getNextNutritionAction(
+      { mealCount: 1.5 },
+      { filled: 8, dailyGoal: 8 },
+    ).target).toBe('log');
+
+    const insights = buildNutritionInsights({
+      summary: { totalProtein: null, totalFiber: null, mealCount: 1.5 },
+      hydration: { filled: 8, dailyGoal: 8 },
+      weekDays: [{ date: '2026-06-20', mealCount: 1.5, calories: 0 }],
+    });
+
+    expect(insights.map((insight) => insight.copy).join(' ')).toContain('0 of the last 7 days');
+  });
+
   it('normalizes macro and hydration values without fabricating calorie targets', () => {
     expect(getMacroMetrics({
       totalProtein: 52.4,

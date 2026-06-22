@@ -76,8 +76,10 @@ const cleanNonNegativeNumber = (value: unknown) => {
 };
 
 export const cleanWholeNumber = (value: unknown) => {
-  const numberValue = cleanNonNegativeNumber(value);
-  return numberValue !== null && numberValue > 0 ? Math.round(numberValue) : 0;
+  const n = cleanNonNegativeNumber(value); return n !== null && n > 0 ? Math.round(n) : 0;
+};
+export const cleanWholeCount = (value: unknown) => {
+  const n = cleanNonNegativeNumber(value); return n !== null && Number.isSafeInteger(n) ? n : 0;
 };
 
 const previousDateIso = (isoDate: string) => {
@@ -90,7 +92,7 @@ const previousDateIso = (isoDate: string) => {
 export const calculateNutritionStreak = (days: NutritionWeekDay[], today = todayIso()) => {
   const loggedDates = new Set(
     days
-      .filter((day) => cleanWholeNumber(day.mealCount) > 0 || cleanWholeNumber(day.calories) > 0)
+      .filter((day) => cleanWholeCount(day.mealCount) > 0 || cleanWholeNumber(day.calories) > 0)
       .map((day) => day.date),
   );
   let cursor = today;
@@ -110,8 +112,8 @@ export const getMacroMetrics = (summary: NutritionTodaySummary | null | undefine
 ];
 
 export const getHydrationProgress = ({ filled, dailyGoal, glassOz }: HydrationState) => {
-  const goal = Math.max(1, cleanWholeNumber(dailyGoal) || 8);
-  const glasses = Math.min(goal, Math.max(0, cleanWholeNumber(filled)));
+  const goal = Math.max(1, cleanWholeCount(dailyGoal) || 8);
+  const glasses = Math.min(goal, Math.max(0, cleanWholeCount(filled)));
   const glassSize = cleanNonNegativeNumber(glassOz);
   const ouncesPerGlass = glassSize !== null && glassSize > 0 ? glassSize : 8;
   return {
@@ -123,7 +125,7 @@ export const getHydrationProgress = ({ filled, dailyGoal, glassOz }: HydrationSt
 };
 
 export const getNextNutritionAction = (summary: NutritionTodaySummary | null | undefined, hydration: HydrationState): { title: string; copy: string; target: NutritionTodayTarget } => {
-  const meals = cleanWholeNumber(summary?.mealCount);
+  const meals = cleanWholeCount(summary?.mealCount);
   const water = getHydrationProgress(hydration);
 
   if (meals === 0) {
@@ -180,7 +182,7 @@ export const buildRepeatMacroPayload = (entry: RepeatMacroEntry | null | undefin
 
 const countLoggedWeekDays = (days: NutritionWeekDay[]) => new Set(
   days
-    .filter((day) => cleanWholeNumber(day.mealCount) > 0 || cleanWholeNumber(day.calories) > 0)
+    .filter((day) => cleanWholeCount(day.mealCount) > 0 || cleanWholeNumber(day.calories) > 0)
     .map((day) => day.date),
 ).size;
 
@@ -190,7 +192,7 @@ export const buildNutritionInsights = ({ summary, hydration, weekDays, trainingD
   const fiberValue = cleanNonNegativeNumber(summary?.totalFiber);
   const protein = proteinValue === null ? 0 : Math.round(proteinValue);
   const fiber = fiberValue === null ? 0 : Math.round(fiberValue);
-  const meals = cleanWholeNumber(summary?.mealCount);
+  const meals = cleanWholeCount(summary?.mealCount);
   const water = getHydrationProgress(hydration);
   const loggedWeekDays = countLoggedWeekDays(weekDays);
 

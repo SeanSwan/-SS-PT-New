@@ -12,6 +12,7 @@ import {
   calculateNutritionStreak,
   buildNutritionInsights,
   buildRepeatMacroPayload,
+  cleanWholeCount,
   cleanWholeNumber,
   daysAgoIso,
   getHydrationProgress,
@@ -96,7 +97,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
   const hydrationForGuidance = hydrationLoading ? { ...hydration, filled: hydration.dailyGoal, percent: 100 } : hydration;
   const activeSummary = loading ? null : summary;
   const calories = cleanWholeNumber(activeSummary?.totalCalories);
-  const meals = cleanWholeNumber(activeSummary?.mealCount);
+  const meals = cleanWholeCount(activeSummary?.mealCount);
   const nextAction = getNextNutritionAction(activeSummary, hydrationForGuidance);
   const macroMetrics = getMacroMetrics(activeSummary);
   const insights = loading ? [] : buildNutritionInsights({ summary: activeSummary, hydration: hydrationForGuidance, weekDays, gentleMode, trainingDay });
