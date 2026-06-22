@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   findUserByPk: vi.fn(),
+  generateMealPlan: vi.fn(),
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
   parseNutritionTranscript: vi.fn(),
   tierAllowed: true,
@@ -35,7 +36,7 @@ vi.mock('../../middleware/aiRateLimiter.mjs', () => ({
 }));
 
 vi.mock('../../services/mealPlanService.mjs', () => ({
-  generateMealPlan: vi.fn(),
+  generateMealPlan: mocks.generateMealPlan,
   getGolfPresets: vi.fn(() => []),
   getGolfPreset: vi.fn(() => null),
 }));
@@ -79,6 +80,7 @@ const bodyText = (response) => JSON.stringify(response.body);
 describe('meal plan routes security hardening', () => {
   beforeEach(() => {
     mocks.findUserByPk.mockReset();
+    mocks.generateMealPlan.mockReset();
     mocks.logger.error.mockReset();
     mocks.logger.warn.mockReset();
     mocks.logger.info.mockReset();
@@ -89,6 +91,7 @@ describe('meal plan routes security hardening', () => {
       lastName: 'FortyTwo',
       username: 'client42',
     });
+    mocks.generateMealPlan.mockResolvedValue({ planName: 'Safe plan', meals: [] });
   });
 
   it('locks the mounted meal-plan API and active frontend consumer', () => {
@@ -137,6 +140,30 @@ describe('meal plan routes security hardening', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toMatch(/say a bit more/i);
     expect(mocks.parseNutritionTranscript).not.toHaveBeenCalled();
+  });
+
+  it('allowlists meal-plan prompt inputs before calling the generator', async () => {
+    const response = await request(makeApp())
+      .post('/api/meal-plans/generate')
+      .send({
+        calories: 2200,
+        restrictions: ['Vegetarian', 'Jackie Smith allergy note 555-0101'],
+        healthConditions: ['Diabetes', 'Jackie Smith has private condition'],
+        activityType: 'golf performance for Jackie Smith',
+        optPhase: 'Phase 2 - Strength Endurance for Jackie Smith',
+      });
+
+    expect(response.status).toBe(200);
+    expect(mocks.generateMealPlan).toHaveBeenCalledTimes(1);
+    const params = mocks.generateMealPlan.mock.calls[0][0];
+    expect(params).toMatchObject({
+      restrictions: ['Vegetarian'],
+      healthConditions: ['Diabetes'],
+      activityType: 'general fitness',
+      optPhase: 'Phase 1 - Stabilization Endurance',
+    });
+    expect(JSON.stringify(params)).not.toContain('Jackie Smith');
+    expect(JSON.stringify(params)).not.toContain('555-0101');
   });
 
   it('returns safe 422 for no-food parse results without leaking parser text', async () => {

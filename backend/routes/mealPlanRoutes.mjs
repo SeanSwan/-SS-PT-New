@@ -29,6 +29,27 @@ const router = Router();
 const INTERNAL_ERROR = 'internal_error';
 const INVALID_PHOTO_UPLOAD = 'invalid_photo_upload';
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
+const ALLOWED_RESTRICTIONS = new Set([
+  'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Keto',
+  'Paleo', 'Low-Sodium', 'Nut-Free', 'Halal', 'Kosher',
+]);
+const ALLOWED_HEALTH_CONDITIONS = new Set([
+  'Diabetes', 'Hypertension', 'Celiac Disease', 'Lactose Intolerance',
+  'IBS', 'GERD', 'High Cholesterol', 'Kidney Disease',
+]);
+const ALLOWED_ACTIVITY_TYPES = new Set([
+  'general fitness', 'golf performance', 'bodybuilding', 'endurance',
+  'body composition support', 'strength and lean mass support',
+]);
+const ALLOWED_OPT_PHASES = new Set([
+  'Phase 1 - Stabilization Endurance',
+  'Phase 2 - Strength Endurance',
+  'Phase 3 - Hypertrophy',
+  'Phase 4 - Maximal Strength',
+  'Phase 5 - Power',
+]);
+const DEFAULT_ACTIVITY_TYPE = 'general fitness';
+const DEFAULT_OPT_PHASE = 'Phase 1 - Stabilization Endurance';
 
 const sendMealPlanError = (res, status, message, error = INTERNAL_ERROR) => (
   res.status(status).json({ success: false, message, error })
@@ -52,6 +73,15 @@ const optionalMealPlanTarget = (value) => {
   const parsed = toFiniteDecimalNumber(value);
   return parsed !== null && parsed > 0 ? parsed : undefined;
 };
+
+const allowlistedArray = (values, allowed) => {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.filter((value) => typeof value === 'string' && allowed.has(value)))];
+};
+
+const allowlistedString = (value, allowed, fallback) => (
+  typeof value === 'string' && allowed.has(value) ? value : fallback
+);
 
 // Multer config for photo uploads (10MB max, images only)
 const upload = multer({
@@ -128,10 +158,10 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
       protein: optionalMealPlanTarget(protein),
       carbs: optionalMealPlanTarget(carbs),
       fat: optionalMealPlanTarget(fat),
-      restrictions: Array.isArray(restrictions) ? restrictions : [],
-      healthConditions: Array.isArray(healthConditions) ? healthConditions : [],
-      activityType: activityType || 'general fitness',
-      optPhase: optPhase || 'Phase 1 — Stabilization',
+      restrictions: allowlistedArray(restrictions, ALLOWED_RESTRICTIONS),
+      healthConditions: allowlistedArray(healthConditions, ALLOWED_HEALTH_CONDITIONS),
+      activityType: allowlistedString(activityType, ALLOWED_ACTIVITY_TYPES, DEFAULT_ACTIVITY_TYPE),
+      optPhase: allowlistedString(optPhase, ALLOWED_OPT_PHASES, DEFAULT_OPT_PHASE),
     });
 
     res.json({ success: true, plan });
