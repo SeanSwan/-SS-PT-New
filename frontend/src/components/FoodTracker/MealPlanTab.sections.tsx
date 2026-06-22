@@ -122,8 +122,8 @@ export const MealPlanGeneratorSection = (props: GeneratorProps) => {
         <option value="golf performance">Golf Performance</option>
         <option value="bodybuilding">Bodybuilding</option>
         <option value="endurance">Endurance / Cardio</option>
-        <option value="weight loss">Weight Loss</option>
-        <option value="muscle gain">Muscle Gain</option>
+        <option value="body composition support">Body Composition Support</option>
+        <option value="strength and lean mass support">Strength / Lean Mass Support</option>
       </Select>
     </FormGroup>
     <OptionSelect id="meal-plan-opt-phase" label="NASM OPT Phase" value={props.optPhase} options={OPT_PHASES} onChange={props.onOptPhaseChange} />

@@ -81,6 +81,13 @@ describe('MealPlanTab sections', () => {
     expect(screen.getAllByText(/N\/A/).length).toBeGreaterThan(0);
   });
 
+  it('uses care-first activity goal labels in the meal-plan selector', () => {
+    render(<MealPlanGeneratorSection {...baseGeneratorProps} plan={null} />);
+
+    expect(screen.queryByRole('option', { name: /weight loss/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /body composition support/i })).toBeInTheDocument();
+  });
+
   it('does not render malformed photo totals or confidence as certainty', () => {
     render(<PhotoAnalysisSection
       photoFile={null}
