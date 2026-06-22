@@ -215,6 +215,14 @@ Create a complete daily meal plan that meets these targets.`;
   }
 }
 
+const GENERATED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+function normalizeGeneratedMealType(value) {
+  if (typeof value !== 'string') return 'snack';
+  const normalized = value.trim().toLowerCase();
+  return GENERATED_MEAL_TYPES.includes(normalized) ? normalized : 'snack';
+}
+
 function sanitizePlan(raw) {
   return {
     planName: sanitizeNutritionCopy(raw.planName, 'Custom Meal Plan', 200),
@@ -227,7 +235,7 @@ function sanitizePlan(raw) {
     },
     meals: Array.isArray(raw.meals)
       ? raw.meals.slice(0, 8).map(m => ({
-          mealType: typeof m.mealType === 'string' ? m.mealType : 'snack',
+          mealType: normalizeGeneratedMealType(m.mealType),
           time: typeof m.time === 'string' ? m.time.slice(0, 20) : '',
           name: sanitizeNutritionCopy(m.name, 'Meal', 150),
           foods: Array.isArray(m.foods)

@@ -52,7 +52,7 @@ describe('AI-generated nutrition copy care guard', () => {
       planName: 'Cutting Zero Sugar Meal Plan',
       dailyTargets: { calories: 1800, protein: 135, carbs: 180, fat: 60, fiber: 28 },
       meals: [{
-        mealType: 'breakfast',
+        mealType: ' Lunch ',
         time: '7:00 AM',
         name: 'Clean eating cutting bowl',
         foods: [{ name: 'Clean eating Greek yogurt', serving: '1 guilt-free cup', calories: 150, protein: 20, carbs: 8, fat: 4 }],
@@ -67,6 +67,7 @@ describe('AI-generated nutrition copy care guard', () => {
     const result = await generateMealPlan({ calories: 1800, activityType: 'strength training' });
 
     expect(JSON.stringify(result)).not.toMatch(unsafeCopyPattern);
+    expect(result.meals[0].mealType).toBe('lunch');
     const prompt = generateContentMock.mock.calls[0][0].contents[0].parts.map((p) => p.text || '').join('\n');
     expect(prompt).toMatch(/care-first/i);
     expect(prompt).toMatch(/Do not use diet-culture labels/i);
@@ -80,7 +81,7 @@ describe('AI-generated nutrition copy care guard', () => {
       totalCarbs: 65,
       totalFat: 18,
       totalFiber: 8,
-      mealType: 'lunch',
+      mealType: ' Dinner ',
       overallConfidence: 0.8,
       notes: 'Clean eating cutting meal with zero sugar; avoid inflammatory food and sugar crash.',
     });
@@ -88,6 +89,7 @@ describe('AI-generated nutrition copy care guard', () => {
     const result = await analyzeMealPhoto(Buffer.from('image'), 'image/jpeg');
 
     expect(JSON.stringify(result)).not.toMatch(unsafeCopyPattern);
+    expect(result.mealType).toBe('dinner');
     const prompt = generateContentMock.mock.calls[0][0].contents[0].parts.map((p) => p.text || '').join('\n');
     expect(prompt).toMatch(/care-first/i);
     expect(prompt).toMatch(/moral food labels/i);

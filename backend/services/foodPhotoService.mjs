@@ -132,6 +132,14 @@ export async function analyzeMealPhoto(imageBuffer, mimeType) {
   }
 }
 
+const PHOTO_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+function normalizePhotoMealType(value) {
+  if (typeof value !== 'string') return 'snack';
+  const normalized = value.trim().toLowerCase();
+  return PHOTO_MEAL_TYPES.includes(normalized) ? normalized : 'snack';
+}
+
 /**
  * Sanitize and validate the AI response
  */
@@ -156,7 +164,7 @@ function sanitizeResult(raw) {
     totalCarbs: clamp(raw.totalCarbs, 0, 2000),
     totalFat: clamp(raw.totalFat, 0, 1000),
     totalFiber: clamp(raw.totalFiber, 0, 200),
-    mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(raw.mealType) ? raw.mealType : 'snack',
+    mealType: normalizePhotoMealType(raw.mealType),
     overallConfidence: clamp(raw.overallConfidence, 0, 1),
     notes: sanitizeNutritionCopy(raw.notes, '', 300),
     fdaDisclaimer: 'Nutritional estimates are AI-generated approximations and should not replace professional dietary advice. Actual values may vary by preparation method and portion size.',
