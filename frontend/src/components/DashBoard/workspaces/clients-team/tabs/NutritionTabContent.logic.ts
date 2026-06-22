@@ -27,6 +27,7 @@ export interface NutritionTimelineRow {
 
 export interface NutritionProvenanceSummary {
   estimateCount: number;
+  pendingReviewCount: number;
   sourceLine: string;
   totalCount: number;
   verifiedCount: number;
@@ -71,8 +72,16 @@ const titleCase = (value: string): string =>
 const sourceLabel = (source: string | null | undefined): string =>
   SOURCE_LABELS[source?.trim().toLowerCase() || ''] || 'Estimate';
 
-const reviewLabels = (entry: NutritionTimelineEntry, label: string): string[] =>
-  entry.verified ? ['Verified'] : ['Needs review', label];
+const normalizedSource = (source: string | null | undefined): string =>
+  source?.trim().toLowerCase() || '';
+
+const isManualSource = (source: string | null | undefined): boolean =>
+  normalizedSource(source) === 'manual';
+
+const reviewLabels = (entry: NutritionTimelineEntry, label: string): string[] => {
+  if (entry.verified) return ['Verified'];
+  return isManualSource(entry.source) ? ['Needs verification', label] : ['Needs review', label];
+};
 
 const plural = (count: number, singular: string, pluralLabel: string): string =>
   `${count} ${count === 1 ? singular : pluralLabel}`;
@@ -89,17 +98,21 @@ export const buildNutritionProvenanceSummary = (
 ): NutritionProvenanceSummary => {
   const totalCount = entries.length;
   const verifiedCount = entries.filter((entry) => entry.verified === true).length;
-  const estimateCount = totalCount - verifiedCount;
+  const pendingReviewCount = totalCount - verifiedCount;
+  const estimateCount = entries.filter((entry) =>
+    entry.verified !== true && !isManualSource(entry.source)
+  ).length;
   const sourceLabels = Array.from(new Set(entries.map((entry) => sourceLabel(entry.source))));
 
   return {
     estimateCount,
+    pendingReviewCount,
     sourceLine: sourceLabels.length > 0 ? sourceLabels.join(', ') : 'No sources yet',
     totalCount,
     verifiedCount,
     verificationLine: totalCount === 0
       ? 'No nutrition rows for this date'
-      : `${plural(verifiedCount, 'verified', 'verified')} / ${plural(estimateCount, 'estimate', 'estimates')}`,
+      : `${plural(verifiedCount, 'verified', 'verified')} / ${plural(pendingReviewCount, 'pending review', 'pending reviews')}`,
   };
 };
 

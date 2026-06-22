@@ -56,8 +56,8 @@ describe('NutritionTabContent', () => {
 
     expect(await screen.findByText('Nutrition Timeline')).toBeInTheDocument();
     expect(screen.getByText('Alpha Client')).toBeInTheDocument();
-    const provenance = screen.getByRole('region', { name: /nutrition provenance/i });
-    expect(provenance).toHaveTextContent('0 verified / 1 estimate');
+    const provenance = await screen.findByRole('region', { name: /nutrition provenance/i });
+    expect(provenance).toHaveTextContent('0 verified / 1 pending review');
     expect(provenance).toHaveTextContent('Photo estimate');
     expect(provenance).toHaveTextContent('Source and verification status only');
     expect(screen.queryByText(/confidence|photo ref|model version/i)).not.toBeInTheDocument();
@@ -66,6 +66,38 @@ describe('NutritionTabContent', () => {
     expect(screen.getAllByText('Photo estimate').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Needs review')).toBeInTheDocument();
     expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/client-timeline?date=${today}&userId=101`);
+  });
+
+  it('does not render manual unverified meals as estimates in the selected-client timeline', async () => {
+    const today = formatLocalCalendarDate();
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        entries: [
+          {
+            id: 88,
+            mealType: 'snack',
+            description: 'Greek yogurt',
+            calories: 180,
+            protein: 20,
+            fiber: 0,
+            source: 'manual',
+            verified: false,
+            createdAt: `${today}T19:00:00.000Z`,
+          },
+        ],
+      },
+    });
+
+    render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+
+    const provenance = await screen.findByRole('region', { name: /nutrition provenance/i });
+    expect(provenance).toHaveTextContent('0 verified / 1 pending review');
+    expect(provenance).toHaveTextContent('Manual');
+    expect(screen.getByText('Greek yogurt')).toBeInTheDocument();
+    expect(screen.getByText('180 cal - 20g protein - 0g fiber / Manual')).toBeInTheDocument();
+    expect(screen.getByText('Needs verification')).toBeInTheDocument();
+    expect(screen.queryByText('Manual estimate')).not.toBeInTheDocument();
   });
 
   it('shows loading copy before the selected-client timeline request resolves', () => {

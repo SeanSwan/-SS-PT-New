@@ -48,6 +48,19 @@ describe('NutritionTabContent logic', () => {
     });
   });
 
+  it('labels unverified manual entries as verification-needed without calling them estimates', () => {
+    const rows = buildNutritionTimelineRows([
+      entry({ source: 'manual', verified: false, mealType: 'snack', description: 'Greek yogurt' }),
+    ]);
+
+    expect(rows[0]).toMatchObject({
+      title: 'Snack',
+      sourceLabel: 'Manual',
+      reviewLabels: ['Needs verification', 'Manual'],
+      canVerify: true,
+    });
+  });
+
   it('preserves stored backend source labels for timeline rows', () => {
     const rows = buildNutritionTimelineRows([
       entry({ source: 'photo' }),
@@ -74,10 +87,27 @@ describe('NutritionTabContent logic', () => {
 
     expect(summary).toEqual({
       estimateCount: 2,
+      pendingReviewCount: 2,
       sourceLine: 'Photo estimate, Voice estimate, Manual',
       totalCount: 3,
       verifiedCount: 1,
-      verificationLine: '1 verified / 2 estimates',
+      verificationLine: '1 verified / 2 pending reviews',
+    });
+  });
+
+  it('does not count manual unverified rows as estimates in provenance copy', () => {
+    const summary = buildNutritionProvenanceSummary([
+      entry({ source: 'manual', verified: false }),
+      entry({ source: 'photo', verified: false }),
+    ]);
+
+    expect(summary).toEqual({
+      estimateCount: 1,
+      pendingReviewCount: 2,
+      sourceLine: 'Manual, Photo estimate',
+      totalCount: 2,
+      verifiedCount: 0,
+      verificationLine: '0 verified / 2 pending reviews',
     });
   });
 
@@ -86,6 +116,7 @@ describe('NutritionTabContent logic', () => {
 
     expect(summary).toEqual({
       estimateCount: 0,
+      pendingReviewCount: 0,
       sourceLine: 'No sources yet',
       totalCount: 0,
       verifiedCount: 0,
