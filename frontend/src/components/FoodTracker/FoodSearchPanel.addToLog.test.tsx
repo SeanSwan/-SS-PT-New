@@ -214,9 +214,10 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
 
   it('shows safe copy and does not mark added when the save fails', async () => {
     apiMocks.post.mockRejectedValue(new Error('raw lower-layer detail'));
+    const onDataSent = vi.fn();
     const user = userEvent.setup();
 
-    render(<FoodSearchPanel />);
+    render(<FoodSearchPanel onDataSent={onDataSent} />);
     await user.type(screen.getByPlaceholderText(/search foods/i), 'chicken');
 
     const addBtn = await screen.findByRole('button', { name: /add chicken breast to snack/i }, { timeout: 2000 });
@@ -224,6 +225,7 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
 
     expect(await screen.findByText(/could not add that food/i)).toBeInTheDocument();
     expect(screen.queryByText(/raw lower-layer detail/i)).not.toBeInTheDocument();
+    expect(onDataSent).toHaveBeenCalledWith(false);
     // still re-tryable (not marked added)
     expect(screen.getByRole('button', { name: /add chicken breast to snack/i })).toBeEnabled();
   });

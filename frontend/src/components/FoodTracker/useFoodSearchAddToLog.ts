@@ -31,6 +31,7 @@ export const useFoodSearchAddToLog = (onDataSent?: (success: boolean) => void) =
       onDataSent?.(true);
     } catch {
       setAddError('Could not add that food to your log. Please try again.');
+      onDataSent?.(false);
     } finally {
       savingRef.current = false;
       setSavingId(null);
