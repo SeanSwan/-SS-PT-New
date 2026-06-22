@@ -7,6 +7,10 @@ import { DateSchema, registerCommands } from './baseSchemas.mjs';
 const PositiveIntSchema = z.coerce.number().int().positive();
 const PainLevelInputSchema = z.coerce.number().int().min(1).max(10);
 const MacroNumberSchema = z.coerce.number().min(0).optional();
+const MealTypeSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toLowerCase() : value),
+  z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']).default('snack'),
+);
 const ScheduleMySessionSchema = z.object({
   trainerId: PositiveIntSchema,
   date: DateSchema,
@@ -15,7 +19,7 @@ const ScheduleMySessionSchema = z.object({
 const NutritionMealSchema = z.object({
   description: z.string().trim().min(1).max(500).optional(),
   name: z.string().trim().min(1).max(500).optional(),
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']).default('snack'),
+  mealType: MealTypeSchema,
   calories: MacroNumberSchema,
   protein: MacroNumberSchema,
   carbs: MacroNumberSchema,

@@ -35,6 +35,10 @@ const SodiumIntakeInputSchema = z.object({
   sodiumLimit: z.coerce.number().int().min(500).max(5000).default(2300),
   mealSodiumLimit: z.coerce.number().int().min(100).max(3000).default(800),
 });
+const MealTypeSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toLowerCase() : value),
+  z.enum(['breakfast', 'lunch', 'dinner', 'snack']).default('snack'),
+);
 
 const commands = [
   {
@@ -47,7 +51,7 @@ const commands = [
       date: DateSchema.optional(),  // defaults to today in dispatcher if absent
       meals: z.array(z.object({
         description: z.string().min(1).max(500),              // food description (required by DailyMacroLog)
-        mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']).default('snack'),
+        mealType: MealTypeSchema,
         calories: z.number().min(0).optional(),
         protein:  z.number().min(0).optional(),
         carbs:    z.number().min(0).optional(),
