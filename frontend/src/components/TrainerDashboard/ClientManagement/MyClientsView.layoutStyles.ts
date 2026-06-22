@@ -29,7 +29,7 @@ export const HeaderSection = styled.div`
   margin-bottom: 2rem;
   padding: 1.5rem;
   background: var(--surface-elevated, #1A1A24);
-  border: 1px solid var(--border-accent-soft, color-mix(in srgb, #8B5CF6 30%, transparent));
+  border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
   border-radius: 16px;
   backdrop-filter: blur(10px);
 
@@ -86,7 +86,7 @@ export const HeaderTitle = styled.div`
   .client-intent-note {
     max-width: 34rem;
     margin: 0.65rem 0 0;
-    color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
+    color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--bg-elevated, #141419)));
     font-size: 0.95rem;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -129,7 +129,7 @@ export const SearchContainer = styled.div`
     width: 100%;
     min-height: 44px;
     background: var(--surface-elevated, #1A1A24);
-    border: 1px solid var(--border-accent-soft, color-mix(in srgb, #8B5CF6 30%, transparent));
+    border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
     border-radius: 12px;
     padding: 0.75rem 1rem 0.75rem 3rem;
     color: var(--text-primary, #E0ECF4);
@@ -137,13 +137,13 @@ export const SearchContainer = styled.div`
     transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 
     &::placeholder {
-      color: var(--text-muted, color-mix(in srgb, #E0ECF4 55%, #141419));
+      color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, var(--bg-elevated, #141419)));
     }
 
     &:focus {
       outline: none;
       border-color: var(--accent-purple, #8b5cf6);
-      box-shadow: 0 0 20px var(--accent-purple-shadow, color-mix(in srgb, #8B5CF6 30%, transparent));
+      box-shadow: 0 0 20px var(--accent-purple-shadow, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
     }
   }
 
@@ -152,7 +152,7 @@ export const SearchContainer = styled.div`
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--text-muted, color-mix(in srgb, #E0ECF4 55%, #141419));
+    color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, var(--bg-elevated, #141419)));
   }
 `;
 
@@ -171,7 +171,7 @@ export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   min-height: 44px;
   padding: 0.5rem 1rem;
   color: var(--text-primary, #E0ECF4);
-  text-shadow: ${props => (props.$active ? '0 1px 2px color-mix(in srgb, #0A0A0F 35%, transparent)' : 'none')};
+  text-shadow: ${props => (props.$active ? '0 1px 2px color-mix(in srgb, var(--bg-base, #0A0A0F) 35%, transparent)' : 'none')};
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -243,7 +243,7 @@ export const StatCard = styled.div<{
   }
 
   .stat-label {
-    color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
+    color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--bg-elevated, #141419)));
     font-size: 0.9rem;
   }
 
@@ -273,7 +273,7 @@ export const EmptyState = styled(motion.div)`
   justify-content: center;
   padding: 4rem 2rem;
   text-align: center;
-  color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--bg-elevated, #141419)));
 
   .empty-icon {
     color: var(--accent-purple-muted, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent));

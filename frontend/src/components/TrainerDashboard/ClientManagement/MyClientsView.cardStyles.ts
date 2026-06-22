@@ -121,7 +121,7 @@ export const ClientNameButton = styled.button`
 
 export const ClientDetails = styled.div`
   font-size: 0.85rem;
-  color: var(--text-secondary, color-mix(in srgb, #E0ECF4 72%, #141419));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--bg-elevated, #141419)));
   line-height: 1.4;
   display: grid;
   gap: 0.3rem;
@@ -191,7 +191,7 @@ export const MetricItem = styled.div`
 
   .metric-label {
     font-size: 0.75rem;
-    color: var(--text-tertiary, color-mix(in srgb, #E0ECF4 65%, #141419));
+    color: var(--text-tertiary, color-mix(in srgb, var(--text-primary, #E0ECF4) 65%, var(--bg-elevated, #141419)));
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
