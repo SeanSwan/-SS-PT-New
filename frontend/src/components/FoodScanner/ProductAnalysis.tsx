@@ -5,11 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ── Ingredient Safety Color System (IARC conservative defaults) ──
 // "red" = IARC Group 1 carcinogen + EU-banned additives ONLY
 // "yellow" = IARC Group 2A/2B, highly processed, excessive sugar/sodium
-// "green" = Generally recognized as safe (GRAS), whole food ingredients
+// "green" = lower-concern ingredient signals such as GRAS / whole food ingredients
 const SAFETY_COLORS = {
-  good:  { bg: 'rgba(96, 192, 240, 0.1)', border: 'rgba(96, 192, 240, 0.2)', icon: '#60C0F0', label: 'Safe' },
-  okay:  { bg: 'rgba(198, 168, 75, 0.1)', border: 'rgba(198, 168, 75, 0.2)', icon: '#C6A84B', label: 'Caution' },
-  bad:   { bg: 'rgba(201, 42, 84, 0.1)', border: 'rgba(201, 42, 84, 0.2)', icon: '#C92A54', label: 'Concern' },
+  good:  { bg: 'rgba(96, 192, 240, 0.1)', border: 'rgba(96, 192, 240, 0.2)', icon: '#60C0F0', label: 'Lower concern' },
+  okay:  { bg: 'rgba(198, 168, 75, 0.1)', border: 'rgba(198, 168, 75, 0.2)', icon: '#C6A84B', label: 'Review' },
+  bad:   { bg: 'rgba(201, 42, 84, 0.1)', border: 'rgba(201, 42, 84, 0.2)', icon: '#C92A54', label: 'Higher concern' },
 } as const;
 
 // Types
@@ -56,6 +56,13 @@ export interface FoodProduct {
   imageUrl: string | null;
   healthierAlternatives: any[] | null;
 }
+
+export const foodScannerRatingLabel = (rating: FoodProduct['overallRating'] | string): string => {
+  if (rating === 'good') return 'Lower concern';
+  if (rating === 'okay') return 'Review';
+  if (rating === 'bad') return 'Higher concern';
+  return 'Needs review';
+};
 
 interface ProductAnalysisProps {
   product: FoodProduct;
@@ -558,7 +565,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
           <OverallRating>
             <RatingLabel>Rating:</RatingLabel>
             <RatingBadge rating={product.overallRating}>
-              {product.overallRating.charAt(0).toUpperCase() + product.overallRating.slice(1)}
+              {foodScannerRatingLabel(product.overallRating)}
             </RatingBadge>
           </OverallRating>
         </HeaderContent>
@@ -596,20 +603,20 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
           >
             <SectionTitle>Ingredients Analysis</SectionTitle>
             <SafetyLegend>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.good.icon} />{SAFETY_COLORS.good.label} — GRAS / whole food</LegendItem>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.okay.icon} />{SAFETY_COLORS.okay.label} — processed / Group 2</LegendItem>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.bad.icon} />{SAFETY_COLORS.bad.label} — IARC Group 1 / EU-banned</LegendItem>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.good.icon} />{SAFETY_COLORS.good.label} - GRAS / whole food signal</LegendItem>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.okay.icon} />{SAFETY_COLORS.okay.label} - processed / Group 2 signal</LegendItem>
+              <LegendItem><LegendDot $color={SAFETY_COLORS.bad.icon} />{SAFETY_COLORS.bad.label} - IARC Group 1 / EU-banned signal</LegendItem>
             </SafetyLegend>
             {totalIngredients > 0 && (
               <SummaryBar>
                 <SummaryChip $color={SAFETY_COLORS.good.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.good.icon} />{goodIngredients} safe
+                  <SummaryDot $color={SAFETY_COLORS.good.icon} />{goodIngredients} lower concern
                 </SummaryChip>
                 <SummaryChip $color={SAFETY_COLORS.okay.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.okay.icon} />{okayIngredients} caution
+                  <SummaryDot $color={SAFETY_COLORS.okay.icon} />{okayIngredients} review
                 </SummaryChip>
                 <SummaryChip $color={SAFETY_COLORS.bad.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.bad.icon} />{badIngredients} concern
+                  <SummaryDot $color={SAFETY_COLORS.bad.icon} />{badIngredients} higher concern
                 </SummaryChip>
               </SummaryBar>
             )}
@@ -801,7 +808,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
           >
-            <SectionTitle>Healthier Alternatives</SectionTitle>
+            <SectionTitle>Alternative Options</SectionTitle>
             {product.healthierAlternatives && product.healthierAlternatives.length > 0 ? (
               <AlternativesList>
                 {product.healthierAlternatives.map((alternative, index) => (
@@ -812,26 +819,26 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
               </AlternativesList>
             ) : (
               <InfoMessage>
-                No specific alternatives provided for this product.
-                {product.overallRating === 'good' && " This product is already rated as good for health."}
+                No specific alternatives provided from this data source.
+                {product.overallRating === 'good' && " Current scan data does not show higher-concern ingredient flags."}
               </InfoMessage>
             )}
             
             <SectionTitle>General Recommendations</SectionTitle>
             {product.overallRating === 'bad' ? (
               <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>Look for products that are:</p>
+                <p>When comparing options, look for products with:</p>
                 <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
                   <li>Certified organic</li>
                   <li>Non-GMO verified</li>
-                  <li>Free from artificial additives</li>
-                  <li>Contain fewer processed ingredients</li>
-                  <li>Have a shorter ingredients list</li>
+                  <li>Fewer artificial additives</li>
+                  <li>Fewer processed ingredients</li>
+                  <li>A shorter ingredients list</li>
                 </ul>
               </div>
             ) : product.overallRating === 'okay' ? (
               <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>This product is acceptable but could be improved. Consider alternatives that have:</p>
+                <p>This product has mixed ingredient signals. Consider comparing options with:</p>
                 <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
                   <li>More organic ingredients</li>
                   <li>Fewer additives</li>
@@ -840,9 +847,9 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
               </div>
             ) : (
               <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>This product appears to be a healthy choice! Here are some general tips:</p>
+                <p>This scan shows lower concern ingredient signals. General comparison tips:</p>
                 <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
-                  <li>Continue choosing products with clean, simple ingredients</li>
+                  <li>Choose shorter, recognizable ingredient lists</li>
                   <li>Look for organic certification when possible</li>
                   <li>Vary your diet to get a wide range of nutrients</li>
                 </ul>

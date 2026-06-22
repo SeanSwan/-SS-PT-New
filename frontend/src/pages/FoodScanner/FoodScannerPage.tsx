@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 import BarcodeScanner from '../../components/FoodScanner/BarcodeScanner';
-import ProductAnalysis, { FoodProduct } from '../../components/FoodScanner/ProductAnalysis';
+import ProductAnalysis, { foodScannerRatingLabel, type FoodProduct } from '../../components/FoodScanner/ProductAnalysis';
 import axios from 'axios';
 
 // Styled components
@@ -504,7 +504,7 @@ const FoodScannerPage: React.FC = () => {
           Food Ingredient Scanner
         </Title>
         <Subtitle>
-          Scan food products to analyze ingredients and make healthier choices
+          Scan food products to review ingredient and nutrition signals before logging them
         </Subtitle>
       </Header>
       
@@ -566,7 +566,7 @@ const FoodScannerPage: React.FC = () => {
                       <Step>
                         <StepNumber>3</StepNumber>
                         <StepContent>
-                          View detailed ingredient analysis and health information
+                          View ingredient classifications and nutrition information
                         </StepContent>
                       </Step>
                     </StepsList>
@@ -709,7 +709,7 @@ const FoodScannerPage: React.FC = () => {
                         </ScanHistoryDetails>
                       </ScanHistoryContent>
                       <ScanHistoryRating rating={scan.product.overallRating}>
-                        {scan.product.overallRating.charAt(0).toUpperCase() + scan.product.overallRating.slice(1)}
+                        {foodScannerRatingLabel(scan.product.overallRating)}
                       </ScanHistoryRating>
                       {scan.isFavorite && (
                         <div style={{ color: '#ffc107', fontSize: '1.2rem' }}>★</div>
