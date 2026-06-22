@@ -1,4 +1,5 @@
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import { formatDisplayDate } from '../services/nutrition/displayDate.mjs';
 
 export const ALLOWED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
 export const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode'];
@@ -43,7 +44,13 @@ export const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
   return date.toISOString().slice(0, 10);
 };
 
-export const resolveOptionalMacroDate = (rawValue, fallbackDate = serverUtcDateOnly()) => {
+export const serverDisplayDateOnly = (offsetDays = 0, now = new Date()) => {
+  const date = new Date(now.getTime());
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return formatDisplayDate(date);
+};
+
+export const resolveOptionalMacroDate = (rawValue, fallbackDate = serverDisplayDateOnly()) => {
   if (rawValue === undefined || rawValue === null || rawValue === '') {
     return { date: fallbackDate };
   }

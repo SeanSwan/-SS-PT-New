@@ -58,9 +58,10 @@ vi.mock('../../utils/logger.mjs', () => ({
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const repoRoot = resolve(__dirname, '../../..');
 
 const readBackend = (path) => readFileSync(resolve(__dirname, path), 'utf8');
-const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend', path), 'utf8');
+const readFrontend = (path) => readFileSync(resolve(repoRoot, 'frontend', path), 'utf8');
 
 const routeSource = readBackend('../../routes/mealPlanRoutes.mjs');
 const coreRoutesSource = readBackend('../../core/routes.mjs');

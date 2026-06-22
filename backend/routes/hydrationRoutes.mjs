@@ -14,6 +14,7 @@ import express from 'express';
 import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import DailyHydration from '../models/DailyHydration.mjs';
+import { formatDisplayDate } from '../services/nutrition/displayDate.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -30,7 +31,12 @@ const isValidDate = (str) => {
     && parsed.getUTCMonth() === month - 1
     && parsed.getUTCDate() === day;
 };
-const todayStr = () => new Date().toISOString().split('T')[0];
+const displayDate = (offsetDays = 0, now = new Date()) => {
+  const date = new Date(now.getTime());
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return formatDisplayDate(date);
+};
+const todayStr = () => displayDate();
 const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
 const resolveOptionalDate = (value) => {
   if (!hasProvidedDate(value)) return { date: todayStr() };
@@ -130,9 +136,7 @@ router.put('/', async (req, res) => {
 router.get('/weekly', async (req, res) => {
   try {
     const defaultStart = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - 6);
-      return d.toISOString().split('T')[0];
+      return displayDate(-6);
     })();
 
     const startDate = (req.query.start && isValidDate(req.query.start)) ? req.query.start : defaultStart;

@@ -1,4 +1,5 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,7 +60,10 @@ const mealPayload = (date) => ({
 });
 
 describe('POST /api/macros local-date guard', () => {
+  const originalDisplayTz = process.env.SWAN_DISPLAY_TZ;
+
   beforeEach(() => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-20T23:30:00Z'));
     mocks.createSingleMacroEntry.mockReset();
@@ -72,6 +76,48 @@ describe('POST /api/macros local-date guard', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    if (originalDisplayTz === undefined) {
+      delete process.env.SWAN_DISPLAY_TZ;
+    } else {
+      process.env.SWAN_DISPLAY_TZ = originalDisplayTz;
+    }
+  });
+
+  it('uses the display timezone date when a macro write omits date', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+
+    const response = await request(makeApp())
+      .post('/api/macros')
+      .send(mealPayload(undefined));
+
+    expect(response.status).toBe(201);
+    expect(mocks.createSingleMacroEntry.mock.calls[0][0].date).toBe('2026-06-21');
+  });
+
+  it('uses the display timezone date when a macro read omits date', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+
+    const response = await request(makeApp())
+      .get('/api/macros');
+
+    expect(response.status).toBe(200);
+    expect(response.body.date).toBe('2026-06-21');
+    expect(DailyMacroLog.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42, date: '2026-06-21' },
+    }));
+  });
+
+  it('uses the display timezone range when weekly macro dates are omitted', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+
+    const response = await request(makeApp())
+      .get('/api/macros/weekly');
+
+    const whereDate = DailyMacroLog.findAll.mock.calls[0][0].where.date;
+    expect(response.status).toBe(200);
+    expect(response.body.startDate).toBe('2026-06-15');
+    expect(response.body.endDate).toBe('2026-06-21');
+    expect(whereDate[Op.between]).toEqual(['2026-06-15', '2026-06-21']);
   });
 
   it('accepts a client-local today that is one calendar day ahead of server UTC', async () => {

@@ -1,4 +1,5 @@
 import express from 'express';
+import { Op } from 'sequelize';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -51,7 +52,10 @@ const hydrationRecord = (overrides = {}) => ({
 });
 
 describe('hydration routes', () => {
+  const originalDisplayTz = process.env.SWAN_DISPLAY_TZ;
+
   beforeEach(() => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-01T12:00:00Z'));
     mocks.findAll.mockReset();
@@ -62,6 +66,46 @@ describe('hydration routes', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    if (originalDisplayTz === undefined) {
+      delete process.env.SWAN_DISPLAY_TZ;
+    } else {
+      process.env.SWAN_DISPLAY_TZ = originalDisplayTz;
+    }
+  });
+
+  it('uses the display timezone date when GET omits date', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+
+    const response = await request(makeApp())
+      .get('/api/hydration');
+
+    expect(response.status).toBe(200);
+    expect(mocks.findOrCreate.mock.calls[0][0].where).toEqual({ userId: 42, date: '2026-06-21' });
+  });
+
+  it('uses the display timezone date when PUT omits date', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+
+    const response = await request(makeApp())
+      .put('/api/hydration')
+      .send({ glassesFilled: 4 });
+
+    expect(response.status).toBe(200);
+    expect(mocks.findOrCreate.mock.calls[0][0].where).toEqual({ userId: 42, date: '2026-06-21' });
+  });
+
+  it('uses the display timezone range when weekly hydration start is omitted', async () => {
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+    mocks.findAll.mockResolvedValue([]);
+
+    const response = await request(makeApp())
+      .get('/api/hydration/weekly');
+
+    const whereDate = mocks.findAll.mock.calls[0][0].where.date;
+    expect(response.status).toBe(200);
+    expect(response.body.startDate).toBe('2026-06-15');
+    expect(response.body.endDate).toBe('2026-06-21');
+    expect(whereDate[Op.between]).toEqual(['2026-06-15', '2026-06-21']);
   });
 
   it('rejects impossible GET dates before creating hydration records', async () => {

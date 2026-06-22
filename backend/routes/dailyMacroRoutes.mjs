@@ -31,6 +31,7 @@ import {
   isValidDate,
   resolveMacroTargetUserId,
   resolveOptionalMacroDate,
+  serverDisplayDateOnly,
   sanitizeNumber,
   serverUtcDateOnly,
 } from './dailyMacroRoutes.utils.mjs';
@@ -72,7 +73,7 @@ router.post('/', async (req, res) => {
     const safeSource = ALLOWED_SOURCES.includes(source) ? source : 'manual';
 
     // Validate date and reject future-dated entries (no phantom future macro logs).
-    const today = serverUtcDateOnly();
+    const today = serverDisplayDateOnly();
     const maxClientLocalDate = serverUtcDateOnly(1);
     const hasProvidedDate = date !== undefined && date !== null && date !== '';
     if (hasProvidedDate && !isValidDate(date)) {
@@ -176,9 +177,7 @@ router.get('/summary', async (req, res) => {
 router.get('/weekly', async (req, res) => {
   try {
     const defaultStart = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() - 6);
-      return d.toISOString().split('T')[0];
+      return serverDisplayDateOnly(-6);
     })();
 
     const resolvedStart = resolveOptionalMacroDate(req.query.start, defaultStart);
