@@ -117,6 +117,22 @@ vi.mock('../../FoodTracker/FoodSearchPanel', () => ({
   ),
 }));
 
+vi.mock('../../FoodTracker/RestaurantTab', () => ({
+  default: () => <section aria-label="restaurant nutrition tool">Restaurant tool</section>,
+}));
+
+vi.mock('../../FoodTracker/GardeningTab', () => ({
+  default: () => <section aria-label="garden nutrition tool">Garden tool</section>,
+}));
+
+vi.mock('../../FoodTracker/FarmFinderTab', () => ({
+  default: () => <section aria-label="farm finder nutrition tool">Farm finder tool</section>,
+}));
+
+vi.mock('../../FoodTracker/SupplementsTab', () => ({
+  default: () => <section aria-label="supplements nutrition tool">Supplements tool</section>,
+}));
+
 vi.mock('../../Charts/charts/pie/MacroDonut', () => ({
   default: () => <section aria-label="macro donut">Macro donut</section>,
 }));
@@ -190,6 +206,22 @@ describe('NutritionWorkspace macro summary refresh', () => {
     await user.click(screen.getByRole('tab', { name: /my macros/i }));
     expect(screen.getByRole('tab', { name: /my macros/i })).toHaveAttribute('id', 'nutrition-tab-macros-tab');
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'nutrition-tab-macros-tab');
+  });
+
+  it('keeps secondary nutrition surfaces behind the More selector', async () => {
+    const user = userEvent.setup();
+    render(<NutritionWorkspace />);
+
+    expect(screen.queryByRole('tab', { name: /restaurant/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /garden/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /farm finder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /supplements/i })).not.toBeInTheDocument();
+
+    const moreSelect = screen.getByLabelText(/more nutrition tools/i);
+    await user.selectOptions(moreSelect, 'restaurant');
+
+    expect(screen.getByRole('tabpanel', { name: /restaurant/i })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/restaurant nutrition tool/i)).toBeInTheDocument();
   });
 
   it('refreshes macro totals after the meal-plan approve and save flow succeeds', async () => {
@@ -290,7 +322,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
   });
 
   it('keeps the mounted nutrition workspace modules under the Swan line cap', () => {
-    ['NutritionWorkspace.tsx', 'NutritionWorkspace.styles.ts', 'NutritionTodayPanel.tsx', 'NutritionTodayPanel.styles.ts', 'NutritionTodayPanel.logic.ts', 'NutritionTodayPanel.viewModel.ts'].forEach((fileName) => {
+    ['NutritionWorkspace.tsx', 'NutritionWorkspace.styles.ts', 'NutritionWorkspace.tabs.tsx', 'NutritionTodayPanel.tsx', 'NutritionTodayPanel.styles.ts', 'NutritionTodayPanel.logic.ts', 'NutritionTodayPanel.viewModel.ts'].forEach((fileName) => {
       const source = readFileSync(resolve(__dirname, fileName), 'utf8');
       expect(source.split(/\r?\n/).length, fileName).toBeLessThanOrEqual(300);
     });

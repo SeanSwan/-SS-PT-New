@@ -2,17 +2,18 @@
  * ============================================================================
  * FILE: NutritionWorkspace.tsx
  * PURPOSE: Unified Nutrition Hub — meal logging, food search, hydration,
- *          macro charts, and nutrition education in a tabbed interface
+ *          macro charts, and secondary nutrition tools in a focused interface
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-26
  * AI VILLAGE VALIDATED: 2026-03-26
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Combines FoodIntakeForm, FoodSearchPanel,
- * FoodIntelligenceDashboard, HydrationTab, LearnTab, and macro Victory charts
- * in a scrollable tab bar. Available to all roles.
+ * FoodIntelligenceDashboard, HydrationTab, LearnTab, macro Victory charts,
+ * and lower-priority nutrition tools behind More. Available to all roles.
  *
  * HOW IT FITS IN THE APP: UniversalDashboardLayout → NutritionWorkspace
- * KEY DECISIONS: 11 tabs (Log, Search, Restaurant, Hydration, Macros, Garden, Farms, Supplements, AI Meal Plan, Intelligence, Learn)
+ * KEY DECISIONS: Today-first primary tabs; Restaurant, Garden, Farm Finder,
+ * and Supplements stay available behind More.
  *
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: NutritionWorkspace                               ║
@@ -32,7 +33,7 @@
 
 import React, { useCallback, useState, lazy, Suspense } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin, Pill, Brain, Mic, CalendarCheck, HeartPulse } from 'lucide-react';
+import { Apple, HeartPulse } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useHydration } from '../../../hooks/useHydration';
@@ -58,10 +59,22 @@ import {
   MacroHiddenText,
   MacroHiddenTitle,
   MacroGrid,
+  MoreToolsLabel,
+  MoreToolsRow,
+  MoreToolsSelect,
   TabBtn,
   TabRow,
   WorkspaceRoot,
 } from './NutritionWorkspace.styles';
+import {
+  NUTRITION_MORE_TABS,
+  NUTRITION_PRIMARY_TABS,
+  NUTRITION_TAB_LABELS,
+  isMoreNutritionTab,
+  nutritionPanelId,
+  nutritionTabId,
+  type Tab,
+} from './NutritionWorkspace.tabs';
 
 // SECTION: Lazy imports
 const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'));
@@ -78,27 +91,6 @@ const VoiceNutritionPanel = lazy(() => import('../../FoodTracker/VoiceNutritionP
 const NutritionTodayPanel = lazy(() => import('./NutritionTodayPanel'));
 const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
 const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
-
-type Tab = 'today' | 'log' | 'voice' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn' | 'garden' | 'farms' | 'supplements' | 'meal-plan';
-
-const nutritionTabId = (tab: Tab) => `nutrition-tab-${tab}-tab`;
-const nutritionPanelId = (tab: Tab) => `nutrition-tab-${tab}`;
-
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'today', label: 'Today', icon: <CalendarCheck size={16} /> },
-  { id: 'log', label: 'Log Meal', icon: <Utensils size={16} /> },
-  { id: 'voice', label: 'Speak a Meal', icon: <Mic size={16} /> },
-  { id: 'search', label: 'Food Search', icon: <ScanBarcode size={16} /> },
-  { id: 'restaurant', label: 'Restaurant', icon: <Building2 size={16} /> },
-  { id: 'hydration', label: 'Hydration', icon: <Droplets size={16} /> },
-  { id: 'macros', label: 'My Macros', icon: <PieChart size={16} /> },
-  { id: 'garden', label: 'Garden', icon: <Sprout size={16} /> },
-  { id: 'farms', label: 'Farm Finder', icon: <MapPin size={16} /> },
-  { id: 'supplements', label: 'Supplements', icon: <Pill size={16} /> },
-  { id: 'meal-plan', label: 'Swan Coach Meal Plan', icon: <Brain size={16} /> },
-  { id: 'intelligence', label: 'Intelligence', icon: <Search size={16} /> },
-  { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
-];
 
 const OUNCES_TO_ML = 29.5735;
 
@@ -148,6 +140,7 @@ const NutritionWorkspace: React.FC = () => {
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const trainingDay = hasWorkoutLoggedOnDate(workoutSessions.data, summary?.date);
   const reduceMotion = Boolean(useReducedMotion());
+  const activeMoreTab = isMoreNutritionTab(activeTab);
   const handleMealLogResult = useCallback((success: boolean) => {
     if (success) {
       refetchMacroSummary();
@@ -195,7 +188,7 @@ const NutritionWorkspace: React.FC = () => {
       </Header>
 
       <TabRow role="tablist" aria-label="Nutrition workspace tabs">
-        {TABS.map(tab => (
+        {NUTRITION_PRIMARY_TABS.map(tab => (
           <TabBtn
             key={tab.id}
             id={nutritionTabId(tab.id)}
@@ -213,11 +206,30 @@ const NutritionWorkspace: React.FC = () => {
           </TabBtn>
         ))}
       </TabRow>
+      <MoreToolsRow>
+        <MoreToolsLabel htmlFor="nutrition-more-tools">More</MoreToolsLabel>
+        <MoreToolsSelect
+          id="nutrition-more-tools"
+          aria-label="More nutrition tools"
+          aria-controls={activeMoreTab ? nutritionPanelId(activeTab) : undefined}
+          value={activeMoreTab ? activeTab : ''}
+          onChange={(event) => {
+            const nextTab = event.target.value as Tab;
+            if (nextTab) setActiveTab(nextTab);
+          }}
+        >
+          <option value="">Choose a nutrition tool</option>
+          {NUTRITION_MORE_TABS.map(tab => (
+            <option key={tab.id} value={tab.id}>{tab.label}</option>
+          ))}
+        </MoreToolsSelect>
+      </MoreToolsRow>
 
       <ContentArea
         role="tabpanel"
         id={nutritionPanelId(activeTab)}
-        aria-labelledby={nutritionTabId(activeTab)}
+        aria-labelledby={activeMoreTab ? undefined : nutritionTabId(activeTab)}
+        aria-label={activeMoreTab ? NUTRITION_TAB_LABELS[activeTab] : undefined}
       >
         <ErrorBoundary>
           <Suspense fallback={<CosmicSuspenseLoader />}>

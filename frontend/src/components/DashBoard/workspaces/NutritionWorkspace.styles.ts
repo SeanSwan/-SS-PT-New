@@ -163,6 +163,29 @@ export const TabBtn = styled(motion.button)<{ $active: boolean }>`
   white-space: nowrap;
 `;
 
+export const MoreToolsRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+`;
+
+export const MoreToolsLabel = styled.label`
+  color: var(--text-secondary, #94a3b8);
+  font: 800 0.78rem/1 var(--font-ui, 'Sora', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0;
+`;
+
+export const MoreToolsSelect = styled.select`
+  ${nutritionControlCss}
+  min-width: min(260px, 100%);
+  padding: 0 0.95rem;
+  cursor: pointer;
+  color-scheme: dark;
+`;
+
 export const ContentArea = styled.div`
   ${nutritionCardCss}
   min-height: 400px;
