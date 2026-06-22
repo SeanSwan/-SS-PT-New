@@ -117,6 +117,17 @@ describe('hydration routes', () => {
     expect(mocks.findAll).not.toHaveBeenCalled();
   });
 
+  it('rejects weekly start dates after the display end date before querying hydration rows', async () => {
+    mocks.findAll.mockResolvedValue([]);
+
+    const response = await request(makeApp())
+      .get('/api/hydration/weekly?start=2026-03-02');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('start cannot be after end date');
+    expect(mocks.findAll).not.toHaveBeenCalled();
+  });
+
   it('rejects impossible GET dates before creating hydration records', async () => {
     const response = await request(makeApp())
       .get('/api/hydration?date=2026-02-31');

@@ -24,6 +24,7 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 const HYDRATION_DATE_ERROR = 'date must be a real YYYY-MM-DD calendar date';
 const HYDRATION_FUTURE_DATE_ERROR = 'date cannot be in the future';
+const HYDRATION_RANGE_ERROR = 'start cannot be after end date';
 const isValidDate = (str) => {
   if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
   const [year, month, day] = str.split('-').map(Number);
@@ -151,6 +152,9 @@ router.get('/weekly', async (req, res) => {
     }
     const startDate = resolvedStart.date;
     const endDate = todayStr();
+    if (startDate > endDate) {
+      return res.status(400).json({ success: false, error: HYDRATION_RANGE_ERROR });
+    }
 
     const records = await DailyHydration.findAll({
       where: {
