@@ -182,17 +182,23 @@ router.post('/parse-voice', authenticateToken, requireTier('pro', 'nutrition.coa
     // RULE 8 parity with the workout parser: feed the client's OWN name(s) as redaction
     // hints so a self-spoken name ("I, John, had...") is masked before the transcript
     // reaches the LLM (contextual regex alone misses names outside verb/fitness context).
-    // Fail-soft — a DB hiccup must never block logging.
+    // Fail closed if identity hints cannot be loaded; Rule 8 outranks voice-log availability.
     let nameHints = [];
     try {
       const u = await User.findByPk(req.user?.id, { attributes: ['firstName', 'lastName', 'username'] });
-      if (u) {
-        const full = `${u.firstName || ''} ${u.lastName || ''}`.trim();
-        nameHints = [full, u.username].filter((n) => n && String(n).trim().length >= 3);
+      if (!u) {
+        logger.warn('[MealPlanRoutes] parse-voice identity lookup returned no user; failing closed for Rule 8', {
+          userId: req.user?.id,
+        });
+        return sendMealPlanError(res, 503, 'Voice meal logging is temporarily unavailable');
       }
-    } catch (lookupErr) {
-      logger.warn('[MealPlanRoutes] parse-voice name-hint lookup failed (non-fatal):', lookupErr?.message);
-      if (req.user?.username && String(req.user.username).length >= 3) nameHints = [req.user.username];
+      const full = `${u.firstName || ''} ${u.lastName || ''}`.trim();
+      nameHints = [full, u.username].filter((n) => n && String(n).trim().length >= 3);
+    } catch {
+      logger.warn('[MealPlanRoutes] parse-voice name-hint lookup failed; failing closed for Rule 8', {
+        userId: req.user?.id,
+      });
+      return sendMealPlanError(res, 503, 'Voice meal logging is temporarily unavailable');
     }
 
     const draft = await parseNutritionTranscript({

@@ -172,6 +172,20 @@ describe('meal plan routes security hardening', () => {
     expect(bodyText(response)).not.toContain('API_KEY');
   });
 
+  it('fails closed before the parser when client identity hints cannot be loaded', async () => {
+    mocks.findUserByPk.mockRejectedValueOnce(new Error('Users table unavailable: Jackie Smith'));
+
+    const response = await request(makeApp())
+      .post('/api/meal-plans/parse-voice')
+      .send({ transcript: 'Jackie Smith had oatmeal and coffee' });
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toBe('Voice meal logging is temporarily unavailable');
+    expect(bodyText(response)).not.toContain('Users table unavailable');
+    expect(bodyText(response)).not.toContain('Jackie Smith');
+    expect(mocks.parseNutritionTranscript).not.toHaveBeenCalled();
+  });
+
   it('returns the subscription 402 gate before parse-voice calls the parser', async () => {
     mocks.tierAllowed = false;
 
