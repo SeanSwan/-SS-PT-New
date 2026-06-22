@@ -43,6 +43,10 @@ import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
 import { hasWorkoutLoggedOnDate } from './NutritionTodayPanel.trainingDay';
 import {
+  readNutritionGentleModePreference,
+  writeNutritionGentleModePreference,
+} from './nutritionGentleModePreference';
+import {
   ContentArea,
   Header,
   HeaderActions,
@@ -97,25 +101,6 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 const OUNCES_TO_ML = 29.5735;
-const GENTLE_MODE_STORAGE_KEY = 'ss-nutrition-gentle-mode';
-
-const readGentleModePreference = () => {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(GENTLE_MODE_STORAGE_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-const writeGentleModePreference = (enabled: boolean) => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(GENTLE_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
-  } catch {
-    // Storage can be unavailable in private or embedded contexts; the UI state still works.
-  }
-};
 
 const MacroChartsPanel: React.FC<{ summary: MacroSummary | null; loading: boolean; gentleMode: boolean }> = ({ summary, loading, gentleMode }) => {
   const { filled: hydrationGlasses, glassOz, loading: hydrationLoading } = useHydration();
@@ -156,7 +141,7 @@ const MacroChartsPanel: React.FC<{ summary: MacroSummary | null; loading: boolea
 
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('today');
-  const [gentleMode, setGentleMode] = useState<boolean>(() => readGentleModePreference());
+  const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
@@ -172,7 +157,7 @@ const NutritionWorkspace: React.FC = () => {
   const toggleGentleMode = useCallback(() => {
     setGentleMode((current) => {
       const next = !current;
-      writeGentleModePreference(next);
+      writeNutritionGentleModePreference(next);
       return next;
     });
   }, []);

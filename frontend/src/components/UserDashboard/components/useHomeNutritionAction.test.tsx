@@ -44,6 +44,7 @@ vi.mock('../../../hooks/useHydration', () => ({
 
 describe('useHomeNutritionAction', () => {
   beforeEach(() => {
+    localStorage.clear();
     mocks.macro.summary = {
       date: '2026-06-21',
       totalCalories: 620,
@@ -86,6 +87,14 @@ describe('useHomeNutritionAction', () => {
   it('withholds nutrition guidance on macro errors instead of showing false zeroes', () => {
     mocks.macro.summary = null;
     mocks.macro.error = 'Macro summary unavailable. Try refreshing your dashboard.';
+
+    const { result } = renderHook(() => useHomeNutritionAction());
+
+    expect(result.current).toBeNull();
+  });
+
+  it('withholds Home nutrition guidance when Gentle Mode is enabled', () => {
+    localStorage.setItem('ss-nutrition-gentle-mode', 'true');
 
     const { result } = renderHook(() => useHomeNutritionAction());
 

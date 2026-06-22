@@ -9,6 +9,7 @@ import {
   getNextNutritionAction,
   type NutritionTodayTarget,
 } from '../../DashBoard/workspaces/NutritionTodayPanel.logic';
+import { readNutritionGentleModePreference } from '../../DashBoard/workspaces/nutritionGentleModePreference';
 
 export interface HomeNutritionAction {
   title: string;
@@ -22,6 +23,10 @@ export function useHomeNutritionAction(): HomeNutritionAction | null {
   const hydration = useHydration();
 
   return useMemo(() => {
+    if (readNutritionGentleModePreference()) {
+      return null;
+    }
+
     if (macro.loading || hydration.loading || macro.error || !macro.summary) {
       return null;
     }
