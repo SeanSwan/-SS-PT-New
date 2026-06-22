@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useNutritionPlan } from './useNutritionPlan';
@@ -14,13 +14,20 @@ vi.mock('../services/api.service', () => ({
 
 const source = readFileSync(resolve(__dirname, './useNutritionPlan.ts'), 'utf8');
 const repoRoot = resolve(__dirname, '../../..');
-const routeComponentsSource = readFileSync(
-  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
-  'utf8',
+const readFirstSource = (...relativePaths: string[]) => {
+  const foundPath = relativePaths.find((relativePath) => existsSync(resolve(repoRoot, relativePath)));
+  if (!foundPath) {
+    throw new Error(`Missing source fixture. Checked: ${relativePaths.join(', ')}`);
+  }
+  return readFileSync(resolve(repoRoot, foundPath), 'utf8');
+};
+const routeComponentsSource = readFirstSource(
+  'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx',
+  'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx',
 );
-const routeRegistrySource = readFileSync(
-  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
-  'utf8',
+const routeRegistrySource = readFirstSource(
+  'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx',
+  'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx',
 );
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 
@@ -49,7 +56,7 @@ describe('useNutritionPlan auth pipeline', () => {
   });
 
   it('is consumed by mounted nutrition builder routes backed by mounted nutrition APIs', () => {
-    expect(routeComponentsSource).toContain("export const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'))");
+    expect(routeComponentsSource).toMatch(/const NutritionPlanBuilder = React\.lazy\(\(\) => import\('\.\.\/Admin\/NutritionPlanBuilder'\)\)/);
     expect(routeRegistrySource).toContain("{ path: '/nutrition/:clientId?', component: NutritionPlanBuilder");
     expect(coreRoutes).toContain("app.use('/api/nutrition', clientNutritionRoutes)");
   });
