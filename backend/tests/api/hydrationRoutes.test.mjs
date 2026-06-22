@@ -108,6 +108,15 @@ describe('hydration routes', () => {
     expect(whereDate[Op.between]).toEqual(['2026-06-15', '2026-06-21']);
   });
 
+  it('rejects impossible weekly start dates before querying hydration rows', async () => {
+    const response = await request(makeApp())
+      .get('/api/hydration/weekly?start=2026-02-31');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('date must be a real YYYY-MM-DD calendar date');
+    expect(mocks.findAll).not.toHaveBeenCalled();
+  });
+
   it('rejects impossible GET dates before creating hydration records', async () => {
     const response = await request(makeApp())
       .get('/api/hydration?date=2026-02-31');

@@ -38,8 +38,8 @@ const displayDate = (offsetDays = 0, now = new Date()) => {
 };
 const todayStr = () => displayDate();
 const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
-const resolveOptionalDate = (value) => {
-  if (!hasProvidedDate(value)) return { date: todayStr() };
+const resolveOptionalDate = (value, fallbackDate = todayStr()) => {
+  if (!hasProvidedDate(value)) return { date: fallbackDate };
   if (!isValidDate(value)) return { error: HYDRATION_DATE_ERROR };
   return { date: value };
 };
@@ -139,7 +139,11 @@ router.get('/weekly', async (req, res) => {
       return displayDate(-6);
     })();
 
-    const startDate = (req.query.start && isValidDate(req.query.start)) ? req.query.start : defaultStart;
+    const resolvedStart = resolveOptionalDate(req.query.start, defaultStart);
+    if (resolvedStart.error) {
+      return res.status(400).json({ success: false, error: resolvedStart.error });
+    }
+    const startDate = resolvedStart.date;
     const endDate = todayStr();
 
     const records = await DailyHydration.findAll({
