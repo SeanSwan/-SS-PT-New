@@ -7,11 +7,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const guardedSources = [
-  '../../services/gamification/goalChallengeService.mjs',
-  '../../services/gamification/goalChallengeTemplates.mjs',
-  '../../services/gamificationComboService.mjs',
-  '../../services/weeklyChallengeCron.mjs',
-  '../../../scripts/achievement-badge-manifest.json'
+  { path: '../../services/gamification/goalChallengeService.mjs', enforceLineCount: true },
+  { path: '../../services/gamification/goalChallengeTemplates.mjs', enforceLineCount: true },
+  { path: '../../services/gamificationComboService.mjs', enforceLineCount: true },
+  { path: '../../services/weeklyChallengeCron.mjs', enforceLineCount: true },
+  { path: '../../../scripts/achievement-badge-manifest.json', enforceLineCount: true },
+  { path: '../../../scripts/badge-manifest.json', enforceLineCount: false }
 ];
 
 const asciiGeneratedSources = [
@@ -21,13 +22,16 @@ const asciiGeneratedSources = [
 
 describe('backend generated challenge language', () => {
   it('uses stretching and flexibility language instead of forbidden wellness terms', () => {
-    for (const sourcePath of guardedSources) {
+    for (const { path: sourcePath, enforceLineCount } of guardedSources) {
       const source = readFileSync(resolve(__dirname, sourcePath), 'utf8');
 
-      expect(source.split(/\r?\n/).length, `${sourcePath} line count`).toBeLessThanOrEqual(300);
+      if (enforceLineCount) {
+        expect(source.split(/\r?\n/).length, `${sourcePath} line count`).toBeLessThanOrEqual(300);
+      }
       expect(source, sourcePath).not.toMatch(/\byoga\b/i);
       expect(source, sourcePath).not.toMatch(/\bmeditation\b/i);
       expect(source, sourcePath).not.toMatch(/\bmindfulness\b/i);
+      expect(source, sourcePath).not.toMatch(/\bzen\b|\bchakra\b/i);
     }
   });
 

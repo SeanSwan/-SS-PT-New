@@ -18,14 +18,15 @@ const CARE_COPY_LINE_PATTERN =
   /nutrition|meal|sugar|eating|fuel|macro|calorie|protein|hydration|water|gallon/i;
 
 const UNSAFE_NUTRITION_COPY_PATTERN =
-  /\bcalorie target\b|\bperfect\w*\b|\bflawless\b|\bsugar free\b|zero added sugar|\bno added sugar\b|\bno sugar\b|\brestriction\b|\bgallon\b|\bdrink a gallon\b|\bwater in a single day\b/i;
+  /\bcalorie target\b|\bcalorie goal\b|\bprotein target\b|\bperfect\w*\b|\bflawless\b|\bsugar free\b|zero added sugar|\bno added sugar\b|\bno sugar\b|\brestriction\b|\bgallon\b|\bdrink a gallon\b|\bwater in a single day\b/i;
 
 describe('nutrition achievement care-first copy', () => {
   it('does not reward restriction, zero-sugar streaks, or perfection-chasing nutrition goals', () => {
     const seededSource = readBackendFile('seeders/20260301001000-seed-achievements.cjs');
     const manifestSource = readRepoFile('frontend/src/data/badge-manifest.json');
     const scriptManifestSource = readRepoFile('scripts/achievement-badge-manifest.json');
-    const nutritionCopy = `${seededSource}\n${manifestSource}\n${scriptManifestSource}`
+    const styleManifestSource = readRepoFile('scripts/badge-manifest.json');
+    const nutritionCopy = `${seededSource}\n${manifestSource}\n${scriptManifestSource}\n${styleManifestSource}`
       .split('\n')
       .filter((line) => CARE_COPY_LINE_PATTERN.test(line))
       .join('\n');
