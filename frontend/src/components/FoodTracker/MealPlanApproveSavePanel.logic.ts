@@ -78,8 +78,9 @@ const describeMeal = (meal: MealPlanMealInput, foods: MealPlanFoodInput[]) => {
       return serving ? `${String(food.name).trim()} (${serving})` : String(food.name).trim();
     })
     .join(', ');
-  const mealName = String(meal.name || meal.mealType || 'Meal plan meal').trim();
-  return foodCopy ? `${mealName}: ${foodCopy}` : mealName;
+  const mealName = String(meal.name || '').trim();
+  if (foodCopy && mealName) return `${mealName}: ${foodCopy}`;
+  return foodCopy || mealName;
 };
 
 export const buildMacroDraftsFromMealPlan = (plan: MealPlanInput | null | undefined): MealPlanMacroDraft[] =>

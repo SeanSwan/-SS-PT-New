@@ -284,6 +284,13 @@ interface ScanHistoryItem {
   product: FoodProduct;
 }
 
+const HISTORY_ERROR_COPY = 'Scan history is temporarily unavailable. Please try again.';
+const SCAN_ERROR_COPY = 'Could not retrieve that product. Try another barcode or search.';
+const PRODUCT_DETAILS_ERROR_COPY = 'Could not retrieve product details. Please try again.';
+const SEARCH_ERROR_COPY = 'Product search is temporarily unavailable. Please try again.';
+const SAVE_PRODUCT_ERROR_COPY = 'Could not update that product right now.';
+const LOG_PRODUCT_ERROR_COPY = 'Could not log that product right now.';
+
 // Main component
 const FoodScannerPage: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -317,11 +324,11 @@ const FoodScannerPage: React.FC = () => {
       if (response.data && response.data.success) {
         setScanHistory(response.data.scans);
       } else {
-        setError(response.data?.message || 'Failed to fetch scan history');
+        setError(HISTORY_ERROR_COPY);
       }
     } catch (error: any) {
       console.error('Error fetching scan history:', error);
-      setError(error.response?.data?.message || 'An error occurred while fetching scan history');
+      setError(HISTORY_ERROR_COPY);
     } finally {
       setLoading(false);
     }
@@ -345,13 +352,13 @@ const FoodScannerPage: React.FC = () => {
         // Stop scanning after successful scan
         setIsScanning(false);
       } else {
-        setError(response.data?.message || 'Failed to retrieve product information');
+        setError(SCAN_ERROR_COPY);
         // Continue scanning if there was an error
         setIsScanning(true);
       }
     } catch (error: any) {
       console.error('Error processing barcode:', error);
-      setError(error.response?.data?.message || 'An error occurred while scanning the product');
+      setError(SCAN_ERROR_COPY);
       // Continue scanning if there was an error
       setIsScanning(true);
     } finally {
@@ -400,14 +407,14 @@ const FoodScannerPage: React.FC = () => {
         if (productResponse.data && productResponse.data.success) {
           setScannedProduct(productResponse.data.product);
         } else {
-          setError(productResponse.data?.message || 'Failed to retrieve product details');
+          setError(PRODUCT_DETAILS_ERROR_COPY);
         }
       } else {
         setError('No products found matching your search');
       }
     } catch (error: any) {
       console.error('Error searching for product:', error);
-      setError(error.response?.data?.message || 'An error occurred while searching for the product');
+      setError(SEARCH_ERROR_COPY);
     } finally {
       setLoading(false);
     }
@@ -443,7 +450,7 @@ const FoodScannerPage: React.FC = () => {
       console.error('Error saving product:', error);
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to save product',
+        description: SAVE_PRODUCT_ERROR_COPY,
         variant: 'destructive'
       });
     }
@@ -478,7 +485,7 @@ const FoodScannerPage: React.FC = () => {
       console.error('Error logging scanned product:', error);
       toast({
         title: 'Log Error',
-        description: error.response?.data?.message || 'Failed to log product',
+        description: LOG_PRODUCT_ERROR_COPY,
         variant: 'destructive',
       });
     } finally {

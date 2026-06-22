@@ -156,4 +156,21 @@ describe('MealPlanApproveSavePanel logic', () => {
     expect(result.valid).toBe(false);
     expect(result.message).toBe('Each meal needs a food description before saving.');
   });
+
+  it('does not treat meal type alone as a saveable generated meal description', () => {
+    const [draft] = buildMacroDraftsFromMealPlan({
+      meals: [
+        {
+          mealType: 'breakfast',
+          foods: [{ name: '', calories: 100, protein: 10, carbs: 8, fat: 2 }],
+        },
+      ],
+    });
+
+    expect(draft.description).toBe('');
+    expect(validateMacroDrafts([draft])).toEqual({
+      valid: false,
+      message: 'Each meal needs a food description before saving.',
+    });
+  });
 });
