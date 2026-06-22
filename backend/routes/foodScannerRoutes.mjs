@@ -11,6 +11,12 @@ import {
   NUTRITION_FUTURE_DATE_ERROR,
   resolveNutritionWriteDate,
 } from '../services/nutrition/displayDate.mjs';
+import {
+  hasProductNutritionValue,
+  publicMacroLog,
+  scaledNutritionValueOrRaw,
+  strictNutritionNumber,
+} from '../services/nutrition/productNutritionValidation.mjs';
 import { parseServingSizeGrams } from '../services/nutrition/servingSizeValidation.mjs';
 
 const router = express.Router();
@@ -472,12 +478,8 @@ router.post('/log-scan', protect, async (req, res) => {
     }
 
     const nutri = product.nutritionalInfo || {};
-    const sodium = parseFloat(nutri.sodium_100g || nutri.sodium || 0);
-    const addedSugar = parseFloat(nutri.sugars_100g || nutri.sugars || 0);
-    const cholesterol = parseFloat(nutri.cholesterol_100g || nutri.cholesterol || 0);
-    const saturatedFat = parseFloat(nutri['saturated-fat_100g'] || nutri.saturatedFat || 0);
-    const transFat = parseFloat(nutri['trans-fat_100g'] || nutri.transFat || 0);
-    const novaGroup = nutri.nova_group || (product.ingredients?.some(i => i.isProcessed) ? 3 : null);
+    const processedIngredientNova = product.ingredients?.some(i => i.isProcessed) ? 3 : null;
+    const novaGroup = hasProductNutritionValue(nutri.nova_group) ? nutri.nova_group : processedIngredientNova;
 
     const { processAIDataUpdates } = await import('../services/aiDataWriteService.mjs');
     const sequelizeInstance = (await import('../database.mjs')).default;
@@ -489,17 +491,17 @@ router.post('/log-scan', protect, async (req, res) => {
       date: safeDate,
       mealType: mealType || 'snack',
       description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${safeServingSizeGrams}g)`,
-      calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0) * multiplier,
-      protein: parseFloat(nutri.proteins_100g || nutri.proteins || nutri.protein || 0) * multiplier,
-      carbs: parseFloat(nutri.carbohydrates_100g || nutri.carbohydrates || nutri.carbs || 0) * multiplier,
-      fat: parseFloat(nutri.fat_100g || nutri.fat || 0) * multiplier,
-      fiber: parseFloat(nutri.fiber_100g || nutri.fiber || 0) * multiplier,
-      sugar: parseFloat(nutri.sugars_100g || nutri.sugars || nutri.sugar || 0) * multiplier,
-      sodium: sodium * multiplier,
-      addedSugar: addedSugar * multiplier,
-      cholesterol: cholesterol * multiplier,
-      saturatedFat: saturatedFat * multiplier,
-      transFat: transFat * multiplier,
+      calories: scaledNutritionValueOrRaw(multiplier, nutri.energy_kcal_100g, nutri['energy-kcal'], nutri.calories),
+      protein: scaledNutritionValueOrRaw(multiplier, nutri.proteins_100g, nutri.proteins, nutri.protein),
+      carbs: scaledNutritionValueOrRaw(multiplier, nutri.carbohydrates_100g, nutri.carbohydrates, nutri.carbs),
+      fat: scaledNutritionValueOrRaw(multiplier, nutri.fat_100g, nutri.fat),
+      fiber: scaledNutritionValueOrRaw(multiplier, nutri.fiber_100g, nutri.fiber),
+      sugar: scaledNutritionValueOrRaw(multiplier, nutri.sugars_100g, nutri.sugars, nutri.sugar),
+      sodium: scaledNutritionValueOrRaw(multiplier, nutri.sodium_100g, nutri.sodium),
+      addedSugar: scaledNutritionValueOrRaw(multiplier, nutri.sugars_100g, nutri.sugars),
+      cholesterol: scaledNutritionValueOrRaw(multiplier, nutri.cholesterol_100g, nutri.cholesterol),
+      saturatedFat: scaledNutritionValueOrRaw(multiplier, nutri['saturated-fat_100g'], nutri.saturatedFat),
+      transFat: scaledNutritionValueOrRaw(multiplier, nutri['trans-fat_100g'], nutri.transFat),
       novaGroup,
       brandName: product.brand || null,
       mealSource: 'packaged',
@@ -531,7 +533,7 @@ router.post('/log-scan', protect, async (req, res) => {
         healthConcerns: product.healthConcerns,
         ingredients: product.ingredients,
       },
-      macroLog: macroLogData,
+      macroLog: publicMacroLog(macroLogData),
       logResult: result,
     });
   } catch (error) {
@@ -594,8 +596,10 @@ router.post('/ai-analyze', protect, aiRateLimiter, async (req, res) => {
       if (product.healthConcerns?.length > 0) analysis.flags.push('HEALTH_CONCERNS_IDENTIFIED');
 
       const nutri2 = product.nutritionalInfo || {};
-      if (parseFloat(nutri2.sodium_100g || nutri2.sodium || 0) > 800) analysis.flags.push('HIGH_SODIUM');
-      if (parseFloat(nutri2.sugars_100g || nutri2.sugars || 0) > 12) analysis.flags.push('HIGH_SUGAR');
+      const sodiumForFlag = strictNutritionNumber(nutri2.sodium_100g, nutri2.sodium);
+      const sugarForFlag = strictNutritionNumber(nutri2.sugars_100g, nutri2.sugars);
+      if (sodiumForFlag !== null && sodiumForFlag > 800) analysis.flags.push('HIGH_SODIUM');
+      if (sugarForFlag !== null && sugarForFlag > 12) analysis.flags.push('HIGH_SUGAR');
     }
 
     return res.status(200).json({ success: true, analysis });

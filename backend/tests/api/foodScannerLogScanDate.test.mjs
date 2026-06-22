@@ -143,6 +143,68 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
     expect(update.data.protein).toBeCloseTo(16.555);
   });
 
+  it('does not partially parse malformed product nutrition values before the macro writer', async () => {
+    mocks.getProductByBarcode.mockResolvedValueOnce({
+      id: 1002,
+      name: 'Odd Yogurt',
+      brand: 'Acme',
+      overallRating: 'okay',
+      isOrganic: false,
+      isNonGMO: false,
+      healthConcerns: [],
+      ingredients: [],
+      nutritionalInfo: {
+        energy_kcal_100g: '110kcal',
+        proteins_100g: ['11'],
+        carbohydrates_100g: '1e2',
+        fat_100g: '0x3',
+        fiber_100g: { grams: 2 },
+        sugars_100g: '8g',
+        sodium_100g: '55mg',
+        cholesterol_100g: '10mg',
+        'saturated-fat_100g': '1.5g',
+        'trans-fat_100g': '0.1g',
+        nova_group: '5',
+      },
+    });
+
+    const response = await request(makeApp())
+      .post('/api/food-scanner/log-scan')
+      .send({ barcode: '12345678', servingSizeGrams: 150 });
+
+    expect(response.status).toBe(200);
+    const update = mocks.processAIDataUpdates.mock.calls[0][1][0];
+    expect(update.data).toMatchObject({
+      calories: '110kcal',
+      protein: ['11'],
+      carbs: '1e2',
+      fat: '0x3',
+      fiber: { grams: 2 },
+      sugar: '8g',
+      sodium: '55mg',
+      cholesterol: '10mg',
+      saturatedFat: '1.5g',
+      transFat: '0.1g',
+      novaGroup: '5',
+    });
+    expect(update.data.calories).not.toBeCloseTo(165);
+    expect(update.data.protein).not.toBeCloseTo(16.5);
+    expect(response.body.macroLog).toMatchObject({
+      calories: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+      fiber: null,
+      sugar: null,
+      sodium: null,
+      cholesterol: null,
+      saturatedFat: null,
+      transFat: null,
+      novaGroup: null,
+    });
+    expect(JSON.stringify(response.body.macroLog)).not.toContain('110kcal');
+  });
+
   it.each([
     { label: 'boolean true', value: true },
     { label: 'boolean false', value: false },
@@ -184,5 +246,30 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
       message: 'Could not log scanned product. No diary entry was saved.',
     });
     expect(JSON.stringify(response.body)).not.toContain('Swan Coach could not apply');
+  });
+
+  it('does not partially parse malformed sodium or sugar into AI-analysis flags', async () => {
+    mocks.getProductByBarcode.mockResolvedValueOnce({
+      id: 1003,
+      name: 'Odd Snack',
+      brand: 'Acme',
+      overallRating: 'okay',
+      isOrganic: true,
+      isNonGMO: true,
+      healthConcerns: [],
+      ingredients: [],
+      nutritionalInfo: {
+        sodium_100g: ['900'],
+        sugars_100g: '13g',
+      },
+    });
+
+    const response = await request(makeApp())
+      .post('/api/food-scanner/ai-analyze')
+      .send({ barcode: '12345678' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.analysis.flags).not.toContain('HIGH_SODIUM');
+    expect(response.body.analysis.flags).not.toContain('HIGH_SUGAR');
   });
 });
