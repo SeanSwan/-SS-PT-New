@@ -199,4 +199,4 @@ export const MacroChip = styled.span`padding:4px 10px;border-radius:8px;backgrou
 export const SampleMeal = styled.p`margin:4px 0;color:var(--text-secondary,rgba(224,236,244,0.7));font-size:13px;line-height:1.4;`;
 export const PresetText = styled.p`margin:0;color:var(--text-secondary,rgba(224,236,244,0.7));font-size:13px;line-height:1.4;`;
 export const AvoidRow = styled.div`display:flex;flex-wrap:wrap;gap:6px;`;
-export const AvoidChip = styled.span`padding:3px 8px;border:1px solid color-mix(in srgb,var(--accent-error,#C92A54) 20%,transparent);border-radius:10px;background:color-mix(in srgb,var(--accent-error,#C92A54) 8%,transparent);color:color-mix(in srgb,var(--accent-error,#C92A54) 80%,var(--text-primary,#E0ECF4));font-size:11px;`;
+export const AvoidChip = styled.span`padding:3px 8px;border:1px solid color-mix(in srgb,var(--accent-secondary, #8B5CF6) 22%,transparent);border-radius:10px;background:color-mix(in srgb,var(--accent-secondary, #8B5CF6) 9%,transparent);color:color-mix(in srgb,var(--accent-secondary, #8B5CF6) 82%,var(--text-primary,#E0ECF4));font-size:11px;`;

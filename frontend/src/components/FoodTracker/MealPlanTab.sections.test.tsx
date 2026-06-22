@@ -41,6 +41,8 @@ const baseGeneratorProps = {
 
 const readSectionSource = () =>
   readFileSync(resolve(__dirname, 'MealPlanTab.sections.tsx'), 'utf8');
+const readStylesSource = () =>
+  readFileSync(resolve(__dirname, 'MealPlanTab.styles.ts'), 'utf8');
 
 describe('MealPlanTab sections', () => {
   it('routes framer-motion props through reduced-motion helpers', () => {
@@ -86,6 +88,14 @@ describe('MealPlanTab sections', () => {
 
     expect(screen.queryByRole('option', { name: /weight loss/i })).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: /body composition support/i })).toBeInTheDocument();
+  });
+
+  it('keeps Plan Around preset chips out of the error color system', () => {
+    const stylesSource = readStylesSource();
+    const avoidChipStyle = stylesSource.match(/export const AvoidChip[\s\S]*?`;/)?.[0] ?? '';
+
+    expect(avoidChipStyle).toContain('var(--accent-secondary, #8B5CF6)');
+    expect(avoidChipStyle).not.toContain('var(--accent-error');
   });
 
   it('does not render malformed photo totals or confidence as certainty', () => {
