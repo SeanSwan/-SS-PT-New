@@ -23,6 +23,7 @@
 import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
 import { resolveNutritionWriteDate } from './displayDate.mjs';
+import { sanitizeNutritionCopy } from './nutritionCareCopy.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,17 @@ const sanitizeNumber = (val) => {
 
 const resolveMacroLogDate = (value) => resolveNutritionWriteDate(value);
 
+const sanitizeMacroItem = (item) => {
+  if (typeof item === 'string') return sanitizeNutritionCopy(item, '', 150);
+  if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+
+  const next = { ...item };
+  if (typeof next.name === 'string') next.name = sanitizeNutritionCopy(next.name, '', 150);
+  if (typeof next.serving === 'string') next.serving = sanitizeNutritionCopy(next.serving, '', 100);
+  if (typeof next.description === 'string') next.description = sanitizeNutritionCopy(next.description, '', 150);
+  return next;
+};
+
 /**
  * Normalize a source string to a model-valid stored value.
  * @param {string|undefined} source
@@ -87,11 +99,16 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     throw new Error('Food description is required');
   }
 
+  const safeDescription = sanitizeNutritionCopy(data.description.trim(), '', 500);
+  if (!safeDescription) {
+    throw new Error('Food description is required');
+  }
+
   return {
     userId,
     date:             resolveMacroLogDate(data.date),
     mealType:         VALID_MEAL_TYPES.includes(data.mealType) ? data.mealType : 'snack',
-    description:      data.description.trim().slice(0, 500),
+    description:      safeDescription,
     calories:         sanitizeNumber(data.calories),
     protein:          sanitizeNumber(data.protein),
     carbs:            sanitizeNumber(data.carbs),
@@ -99,7 +116,7 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
     fiber:            sanitizeNumber(data.fiber),
     sugar:            sanitizeNumber(data.sugar),
     sodium:           sanitizeNumber(data.sodium),
-    items:            Array.isArray(data.items) ? data.items.slice(0, 50) : [],
+    items:            Array.isArray(data.items) ? data.items.slice(0, 50).map(sanitizeMacroItem) : [],
     aiConversationId: (typeof data.aiConversationId === 'string' && data.aiConversationId.length <= 100)
                         ? data.aiConversationId : null,
     source:           normalizeMacroSource(source),
