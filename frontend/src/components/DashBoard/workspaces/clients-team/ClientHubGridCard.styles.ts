@@ -24,6 +24,11 @@ import type { ClientSourceTone } from './clientSourceDisplay';
 
 export const CardShell = styled.article`
   --swan-card-padding: 16px;
+  /* Establish a container so the card's internals respond to the CARD's own
+     width, not the viewport. This is what stops the layout "mutating" on
+     browser zoom (zoom changes the viewport, not the card's relative width)
+     and lets a wide 4K card grow its padding/typography comfortably. */
+  container: clientcard / inline-size;
   ${swanDataCardShell}
   display: flex;
   flex-direction: column;
@@ -39,7 +44,18 @@ export const CardShell = styled.article`
     margin-top: auto;
   }
 
-  @media (max-width: 430px) {
+  /* Wide cards (big screens / 4K) get more breathing room + larger type. */
+  @container clientcard (min-width: 420px) {
+    --swan-card-padding: 20px;
+
+    > * + * {
+      margin-top: 16px;
+    }
+  }
+
+  /* Narrow cards (mobile, zoomed-in) tighten up — container-driven, not
+     viewport-driven, so it only triggers when the card itself is small. */
+  @container clientcard (max-width: 300px) {
     --swan-card-padding: 14px;
     min-height: auto;
 
@@ -78,7 +94,7 @@ export const IdentityRow = styled.span`
   align-items: start;
   gap: 14px;
 
-  @media (max-width: 430px) {
+  @container clientcard (max-width: 300px) {
     gap: 12px;
   }
 `;
@@ -92,7 +108,7 @@ export const Avatar = styled.span<{ $source?: ClientSourceTone }>`
         ? 'linear-gradient(135deg, var(--bg-elevated, #141419), var(--tertiary, #4070C0))'
       : 'linear-gradient(135deg, var(--primary, #002060), var(--accent-primary, #60C0F0))'};
 
-  @media (max-width: 430px) {
+  @container clientcard (max-width: 300px) {
     --swan-avatar-size: 48px;
   }
 `;
@@ -115,7 +131,7 @@ export const Name = styled.span`
   min-width: 0;
   color: var(--text-heading, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 17px;
+  font-size: clamp(17px, 3.4cqi, 21px);
   font-weight: 800;
   line-height: 1.18;
   overflow-wrap: anywhere;
@@ -133,7 +149,7 @@ export const ContactLine = styled.span`
   word-break: break-word;
   color: var(--text-muted, rgba(224, 236, 244, 0.76));
   font-family: 'Fira Code', monospace;
-  font-size: 11px;
+  font-size: clamp(11px, 2.3cqi, 13px);
   font-weight: 700;
   line-height: 1.3;
 `;
@@ -146,7 +162,7 @@ export const GoalLine = styled.div`
   -webkit-box-orient: vertical;
   color: var(--text-muted, rgba(224, 236, 244, 0.82));
   font-family: 'Sora', sans-serif;
-  font-size: 13px;
+  font-size: clamp(13px, 2.6cqi, 15px);
   line-height: 1.35;
 `;
 
@@ -155,7 +171,7 @@ export const ReadinessGrid = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 
-  @media (max-width: 360px) {
+  @container clientcard (max-width: 280px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -182,7 +198,7 @@ export const ReadinessValue = styled.span`
   min-width: 0;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
-  font-size: 12px;
+  font-size: clamp(12px, 2.5cqi, 14px);
   font-weight: 800;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -193,7 +209,7 @@ export const MetricGrid = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 
-  @media (max-width: 360px) {
+  @container clientcard (max-width: 280px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -209,7 +225,7 @@ export const ProofPanel = styled.div`
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
   background: color-mix(in srgb, var(--bg-base, #050810) 70%, transparent);
 
-  @media (max-width: 360px) {
+  @container clientcard (max-width: 280px) {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -233,7 +249,7 @@ export const ProofValue = styled.div`
   gap: 2px;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
-  font-size: 12px;
+  font-size: clamp(12px, 2.5cqi, 14px);
   font-weight: 800;
   text-align: right;
 
@@ -244,7 +260,7 @@ export const ProofValue = styled.div`
     font-weight: 700;
   }
 
-  @media (max-width: 360px) {
+  @container clientcard (max-width: 280px) {
     justify-items: start;
     text-align: left;
   }
@@ -267,7 +283,7 @@ export const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
     return 'color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent)';
   }};
   font-family: 'Sora', sans-serif;
-  font-size: 12px;
+  font-size: clamp(12px, 2.5cqi, 14px);
   font-weight: 800;
   min-width: 0;
   overflow-wrap: anywhere;
