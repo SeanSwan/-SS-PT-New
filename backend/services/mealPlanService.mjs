@@ -18,6 +18,7 @@
  */
 
 import logger from '../utils/logger.mjs';
+import { NUTRITION_CARE_COPY_RULES, sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Golf Nutrition Presets
@@ -130,6 +131,7 @@ Rules:
 - Macros across all meals should sum to within 5% of daily targets
 - Grocery list should include everything needed for this day's meals
 - Keep meals practical and easy to prepare (max 30 min prep per meal)
+${NUTRITION_CARE_COPY_RULES}
 - Return ONLY valid JSON, no markdown`;
 
 /**
@@ -215,7 +217,7 @@ Create a complete daily meal plan that meets these targets.`;
 
 function sanitizePlan(raw) {
   return {
-    planName: typeof raw.planName === 'string' ? raw.planName.slice(0, 200) : 'Custom Meal Plan',
+    planName: sanitizeNutritionCopy(raw.planName, 'Custom Meal Plan', 200),
     dailyTargets: {
       calories: clamp(raw.dailyTargets?.calories, 800, 6000),
       protein: clamp(raw.dailyTargets?.protein, 20, 500),
@@ -227,7 +229,7 @@ function sanitizePlan(raw) {
       ? raw.meals.slice(0, 8).map(m => ({
           mealType: typeof m.mealType === 'string' ? m.mealType : 'snack',
           time: typeof m.time === 'string' ? m.time.slice(0, 20) : '',
-          name: typeof m.name === 'string' ? m.name.slice(0, 150) : 'Meal',
+          name: sanitizeNutritionCopy(m.name, 'Meal', 150),
           foods: Array.isArray(m.foods)
             ? m.foods.slice(0, 10).map(f => ({
                 name: typeof f.name === 'string' ? f.name.slice(0, 150) : '',
@@ -245,9 +247,9 @@ function sanitizePlan(raw) {
     groceryList: Array.isArray(raw.groceryList)
       ? raw.groceryList.filter(i => typeof i === 'string').slice(0, 40).map(i => i.slice(0, 100))
       : [],
-    nasmNote: typeof raw.nasmNote === 'string' ? raw.nasmNote.slice(0, 300) : '',
+    nasmNote: sanitizeNutritionCopy(raw.nasmNote, '', 300),
     tips: Array.isArray(raw.tips)
-      ? raw.tips.filter(t => typeof t === 'string').slice(0, 5).map(t => t.slice(0, 200))
+      ? raw.tips.filter(t => typeof t === 'string').slice(0, 5).map(t => sanitizeNutritionCopy(t, '', 200)).filter(Boolean)
       : [],
   };
 }

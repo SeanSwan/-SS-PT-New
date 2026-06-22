@@ -17,6 +17,7 @@
  */
 
 import logger from '../utils/logger.mjs';
+import { NUTRITION_CARE_COPY_RULES, sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Prompt
@@ -44,7 +45,7 @@ Return ONLY valid JSON with this exact structure:
   "totalFiber": number,
   "mealType": "breakfast" | "lunch" | "dinner" | "snack" (best guess based on foods),
   "overallConfidence": 0.0 to 1.0,
-  "notes": "brief observation about the meal quality (1 sentence)"
+  "notes": "brief neutral observation about visible foods, portions, or pairings (1 sentence)"
 }
 
 Rules:
@@ -53,6 +54,7 @@ Rules:
 - If no food is visible, return empty foods array with overallConfidence: 0
 - Include sauces, dressings, and drinks visible in the image
 - Fiber defaults to 0 if not estimable
+${NUTRITION_CARE_COPY_RULES}
 - Return ONLY valid JSON, no markdown or explanation`;
 
 // ─────────────────────────────────────────────────────────────
@@ -156,7 +158,7 @@ function sanitizeResult(raw) {
     totalFiber: clamp(raw.totalFiber, 0, 200),
     mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(raw.mealType) ? raw.mealType : 'snack',
     overallConfidence: clamp(raw.overallConfidence, 0, 1),
-    notes: typeof raw.notes === 'string' ? raw.notes.slice(0, 300) : '',
+    notes: sanitizeNutritionCopy(raw.notes, '', 300),
     fdaDisclaimer: 'Nutritional estimates are AI-generated approximations and should not replace professional dietary advice. Actual values may vary by preparation method and portion size.',
   };
 }
