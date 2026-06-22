@@ -91,10 +91,10 @@ const NutritionHydrationTab: React.FC = () => {
       <TipCard>
         <TipTitle>Hydration Tips</TipTitle>
         <TipList>
-          <li>Drink a glass of water first thing in the morning</li>
-          <li>Keep a water bottle at your desk or gym bag</li>
-          <li>Drink 16 oz 30 min before training for peak performance</li>
-          <li>Dehydration of just 2% body weight reduces strength output</li>
+          <li>Start with water when it fits your morning routine</li>
+          <li>Keep a bottle nearby during work, errands, or training</li>
+          <li>Sip before training and adjust based on heat, session length, and comfort</li>
+          <li>Watch for thirst, darker urine, headaches, or low energy as cues to add fluids</li>
         </TipList>
       </TipCard>
 

@@ -35,6 +35,15 @@ describe('NutritionHydrationTab', () => {
     expect(screen.getByText('3 of 8 glasses (36 oz)')).toBeInTheDocument();
   });
 
+  it('keeps hydration tips supportive instead of fear or peak-performance framed', () => {
+    render(<NutritionHydrationTab />);
+
+    expect(screen.queryByText(/peak performance/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Dehydration of just 2%/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sip before training and adjust based on heat, session length, and comfort/i)).toBeInTheDocument();
+    expect(screen.getByText(/Watch for thirst, darker urine, headaches, or low energy as cues to add fluids/i)).toBeInTheDocument();
+  });
+
   it('does not allow hydration changes while persisted hydration is loading', async () => {
     const user = userEvent.setup();
     mocks.hydration.loading = true;
