@@ -57,6 +57,12 @@ describe('FoodIntakeForm edit-after-save flow', () => {
     render(<FoodIntakeForm onDataSent={vi.fn()} />);
 
     expect(screen.queryByText(/gamification points/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/food quality/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /low quality/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /medium quality/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /high quality/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/processing context/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /whole \/ minimally processed/i })).toBeInTheDocument();
     expect(screen.getByText(/consistency beats perfect tracking/i)).toBeInTheDocument();
   });
 

@@ -45,9 +45,9 @@ export const MEAL_TYPES: Array<{ value: MealType; label: string }> = [
 ];
 
 export const FOOD_QUALITY: Array<{ value: FoodQuality; label: string }> = [
-  { value: 'low', label: 'Low Quality (Processed/Ultra-Processed)' },
-  { value: 'medium', label: 'Medium Quality (Semi-Processed)' },
-  { value: 'high', label: 'High Quality (Whole Foods)' },
+  { value: 'low', label: 'More Processed' },
+  { value: 'medium', label: 'Mixed / Packaged' },
+  { value: 'high', label: 'Whole / Minimally Processed' },
 ];
 
 export const SAVE_ERROR_COPY = 'Food intake could not be saved. Review My Macros before retrying.';

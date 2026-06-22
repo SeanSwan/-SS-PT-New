@@ -135,11 +135,11 @@ export const FoodItemsEditor = ({ foodItems, fieldErrors, onAdd, onRemove, onCha
             <NumberField id={`food-fat-${item.id}`} label="Fat" value={item.fat} unit="g" onChange={(value) => onChange(item.id, 'fat', value)} />
           </MacroFieldGrid>
           <FieldGroup>
-            <Label htmlFor={qualityId}>Food Quality</Label>
+            <Label htmlFor={qualityId}>Processing Context</Label>
             <StyledSelect id={qualityId} value={item.quality} onChange={(event) => onChange(item.id, 'quality', event.target.value as FoodQuality)}>
               {FOOD_QUALITY.map((quality) => <option key={quality.value} value={quality.value}>{quality.label}</option>)}
             </StyledSelect>
-            <HelperText>Use the closest honest quality label; consistency beats perfect tracking.</HelperText>
+            <HelperText>Use the closest honest context label; consistency beats perfect tracking.</HelperText>
           </FieldGroup>
         </FoodCard>
       );
