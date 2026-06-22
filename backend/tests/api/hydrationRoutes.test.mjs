@@ -135,4 +135,41 @@ describe('hydration routes', () => {
     expect(response.body.error).toBe('date must be a real YYYY-MM-DD calendar date');
     expect(mocks.findOrCreate).not.toHaveBeenCalled();
   });
+
+  it('accepts a client-local hydration date one calendar day ahead of server UTC', async () => {
+    const response = await request(makeApp())
+      .put('/api/hydration')
+      .send({ date: '2026-03-02', glassesFilled: 4 });
+
+    expect(response.status).toBe(200);
+    expect(mocks.findOrCreate.mock.calls[0][0].where).toEqual({ userId: 42, date: '2026-03-02' });
+  });
+
+  it('rejects future hydration dates beyond the one-day timezone grace before model access', async () => {
+    const getResponse = await request(makeApp())
+      .get('/api/hydration?date=2026-03-03');
+
+    expect(getResponse.status).toBe(400);
+    expect(getResponse.body.error).toBe('date cannot be in the future');
+    expect(mocks.findOrCreate).not.toHaveBeenCalled();
+
+    mocks.findOrCreate.mockClear();
+
+    const putResponse = await request(makeApp())
+      .put('/api/hydration')
+      .send({ date: '2026-03-03', glassesFilled: 4 });
+
+    expect(putResponse.status).toBe(400);
+    expect(putResponse.body.error).toBe('date cannot be in the future');
+    expect(mocks.findOrCreate).not.toHaveBeenCalled();
+
+    mocks.findAll.mockResolvedValue([]);
+
+    const weeklyResponse = await request(makeApp())
+      .get('/api/hydration/weekly?start=2026-03-03');
+
+    expect(weeklyResponse.status).toBe(400);
+    expect(weeklyResponse.body.error).toBe('date cannot be in the future');
+    expect(mocks.findAll).not.toHaveBeenCalled();
+  });
 });

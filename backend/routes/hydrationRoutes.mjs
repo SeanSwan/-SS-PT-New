@@ -23,6 +23,7 @@ router.use(protect);
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 const HYDRATION_DATE_ERROR = 'date must be a real YYYY-MM-DD calendar date';
+const HYDRATION_FUTURE_DATE_ERROR = 'date cannot be in the future';
 const isValidDate = (str) => {
   if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
   const [year, month, day] = str.split('-').map(Number);
@@ -37,10 +38,15 @@ const displayDate = (offsetDays = 0, now = new Date()) => {
   return formatDisplayDate(date);
 };
 const todayStr = () => displayDate();
+const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
+  return date.toISOString().slice(0, 10);
+};
 const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
 const resolveOptionalDate = (value, fallbackDate = todayStr()) => {
   if (!hasProvidedDate(value)) return { date: fallbackDate };
   if (!isValidDate(value)) return { error: HYDRATION_DATE_ERROR };
+  if (value > serverUtcDateOnly(1)) return { error: HYDRATION_FUTURE_DATE_ERROR };
   return { date: value };
 };
 
