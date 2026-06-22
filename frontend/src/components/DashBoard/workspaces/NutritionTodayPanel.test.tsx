@@ -62,12 +62,13 @@ describe('NutritionTodayPanel', () => {
         return Promise.resolve({
           data: {
             entries: [{
-              mealType: 'lunch',
+              mealType: ' Lunch ',
               description: 'Chicken bowl',
               calories: 640,
               protein: 45,
               carbs: 70,
               fat: 18,
+              source: 'photo',
               verified: true,
             }],
           },
@@ -265,7 +266,7 @@ describe('NutritionTodayPanel', () => {
       description: 'Chicken bowl',
       calories: 640,
       protein: 45,
-      source: 'manual',
+      source: 'food-scanner',
       verified: false,
     }));
     expect(onLogged).toHaveBeenCalledTimes(1);

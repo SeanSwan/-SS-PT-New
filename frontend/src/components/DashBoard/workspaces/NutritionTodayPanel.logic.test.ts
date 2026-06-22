@@ -128,6 +128,34 @@ describe('NutritionTodayPanel logic', () => {
     expect(buildRepeatMacroPayload({ description: '   ' })).toBeNull();
   });
 
+  it('preserves repeat meal provenance while normalizing valid legacy meal types', () => {
+    expect(buildRepeatMacroPayload({
+      mealType: ' Lunch ',
+      description: 'Chicken bowl',
+      source: 'photo',
+    }, '2026-06-20')).toMatchObject({
+      mealType: 'lunch',
+      source: 'food-scanner',
+      verified: false,
+    });
+
+    expect(buildRepeatMacroPayload({
+      mealType: ' DINNER ',
+      description: 'Burrito bowl',
+      source: 'ai_chat',
+    }, '2026-06-20')).toMatchObject({
+      mealType: 'dinner',
+      source: 'ai-chat',
+      verified: false,
+    });
+
+    expect(buildRepeatMacroPayload({
+      mealType: 'snack',
+      description: 'Protein bar',
+      source: 'unknown',
+    }, '2026-06-20')?.source).toBe('manual');
+  });
+
   it('rejects malformed macro values in one-tap repeat payloads', () => {
     expect(buildRepeatMacroPayload({
       mealType: 'lunch',

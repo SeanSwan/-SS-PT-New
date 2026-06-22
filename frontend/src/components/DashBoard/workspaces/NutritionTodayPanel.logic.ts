@@ -1,4 +1,6 @@
 import { formatLocalCalendarDate, getLocalCalendarDateDaysAgo } from './clients-team/nutritionDate';
+export { buildRepeatMacroPayload } from './NutritionTodayPanel.repeatMeal';
+export type { RepeatMacroEntry } from './NutritionTodayPanel.repeatMeal';
 export type NutritionTodayTarget = 'log' | 'voice' | 'search' | 'hydration' | 'macros';
 
 export interface NutritionTodaySummary {
@@ -40,20 +42,6 @@ interface NutritionInsightInput {
   gentleMode?: boolean;
 }
 
-export interface RepeatMacroEntry {
-  mealType?: string | null;
-  description?: string | null;
-  calories?: number | null;
-  protein?: number | null;
-  carbs?: number | null;
-  fat?: number | null;
-  fiber?: number | null;
-  sugar?: number | null;
-  sodium?: number | null;
-  items?: unknown;
-}
-
-const allowedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
 const PROTEIN_SUPPORT_THRESHOLD_GRAMS = 130, FIBER_SUPPORT_THRESHOLD_GRAMS = 22;
 const MAX_HYDRATION_GLASSES = 30;
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
@@ -156,27 +144,6 @@ export const getNextNutritionAction = (summary: NutritionTodaySummary | null | u
     title: 'Review the macro balance from today.',
     copy: 'You have enough logged context for a quick macro check before the day gets away from you.',
     target: 'macros',
-  };
-};
-
-export const buildRepeatMacroPayload = (entry: RepeatMacroEntry | null | undefined, date = todayIso()) => {
-  const description = String(entry?.description || '').trim();
-  if (!description) return null;
-  const mealType = allowedMealTypes.includes(String(entry?.mealType || '')) ? entry?.mealType : 'snack';
-  return {
-    date,
-    mealType,
-    description,
-    calories: cleanNonNegativeNumber(entry?.calories),
-    protein: cleanNonNegativeNumber(entry?.protein),
-    carbs: cleanNonNegativeNumber(entry?.carbs),
-    fat: cleanNonNegativeNumber(entry?.fat),
-    fiber: cleanNonNegativeNumber(entry?.fiber),
-    sugar: cleanNonNegativeNumber(entry?.sugar),
-    sodium: cleanNonNegativeNumber(entry?.sodium),
-    items: Array.isArray(entry?.items) ? entry.items : [],
-    source: 'manual' as const,
-    verified: false,
   };
 };
 

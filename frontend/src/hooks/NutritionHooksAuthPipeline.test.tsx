@@ -38,7 +38,7 @@ describe('nutrition hooks auth pipeline', () => {
     expect(routeRegistrySource).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
     expect(workspaceSource).toContain('const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary()');
     expect(workspaceSource).toContain('const macroUnavailablePanel = macroError ? (');
-    expect(workspaceSource).toContain('const { filled: hydrationGlasses, glassOz, loading: hydrationLoading } = useHydration()');
+    expect(workspaceSource).toContain('const { filled: hydrationGlasses, dailyGoal: hydrationGoalGlasses, glassOz, loading: hydrationLoading } = useHydration()');
     expect(workspaceSource).toContain('hydrationMl={hydrationMl}');
     expect(workspaceSource).toContain('loading={loading || hydrationLoading}');
     expect(workspaceSource).toContain("{activeTab === 'restaurant' && <RestaurantTab />}");

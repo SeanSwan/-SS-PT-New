@@ -326,7 +326,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
   });
 
   it('keeps the mounted nutrition workspace modules under the Swan line cap', () => {
-    ['NutritionWorkspace.tsx', 'NutritionWorkspace.styles.ts', 'NutritionWorkspace.tabs.tsx', 'NutritionTodayPanel.tsx', 'NutritionTodayPanel.styles.ts', 'NutritionTodayPanel.logic.ts', 'NutritionTodayPanel.viewModel.ts'].forEach((fileName) => {
+    ['NutritionWorkspace.tsx', 'NutritionWorkspace.styles.ts', 'NutritionWorkspace.tabs.tsx', 'NutritionTodayPanel.tsx', 'NutritionTodayPanel.styles.ts', 'NutritionTodayPanel.logic.ts', 'NutritionTodayPanel.repeatMeal.ts', 'NutritionTodayPanel.viewModel.ts'].forEach((fileName) => {
       const source = readFileSync(resolve(__dirname, fileName), 'utf8');
       expect(source.split(/\r?\n/).length, fileName).toBeLessThanOrEqual(300);
     });
