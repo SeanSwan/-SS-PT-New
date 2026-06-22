@@ -51,6 +51,11 @@ const toNonNegativeNumber = (value: unknown): number => {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 };
 
+const toWholeCount = (value: unknown, max = Number.MAX_SAFE_INTEGER): number => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) return 0;
+  return Math.min(value, max);
+};
+
 const formatMeals = (mealCount: number): string => {
   if (mealCount <= 0) return 'No meals today';
   if (mealCount === 1) return '1 meal today';
@@ -78,8 +83,8 @@ export const buildNutritionRosterRows = (
 
   return clients.map((client) => {
     const record = byUserId.get(client.id);
-    const mealCount = toNonNegativeNumber(record?.mealCountToday);
-    const weeklyLoggedDays = toNonNegativeNumber(record?.weeklyLoggedDays);
+    const mealCount = toWholeCount(record?.mealCountToday);
+    const weeklyLoggedDays = toWholeCount(record?.weeklyLoggedDays, 7);
     const protein = Math.round(toNonNegativeNumber(record?.totalProtein));
     const flags = buildFlagLabels(record?.flags);
 
@@ -87,7 +92,7 @@ export const buildNutritionRosterRows = (
       clientId: client.id,
       clientName: client.displayName,
       statusLabel: record ? formatMeals(mealCount) : 'No nutrition data',
-      weeklyLabel: `${Math.max(0, weeklyLoggedDays)}/7 days`,
+      weeklyLabel: `${weeklyLoggedDays}/7 days`,
       proteinLabel: `${Math.max(0, protein)}g protein`,
       flags,
       attentionScore: attentionScoreFor(flags),

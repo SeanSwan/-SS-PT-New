@@ -79,4 +79,21 @@ describe('ClientNutritionRosterTriagePanel logic', () => {
       flags: ['No attention flags'],
     });
   });
+
+  it('rejects fractional and out-of-range count fields before rendering coach-facing labels', () => {
+    const rows = buildNutritionRosterRows([clients[0]], [{
+      userId: 101,
+      mealCountToday: 1.5,
+      weeklyLoggedDays: 9,
+      totalProtein: 88.6,
+      flags: {},
+    }]);
+
+    expect(rows[0]).toMatchObject({
+      statusLabel: 'No meals today',
+      weeklyLabel: '7/7 days',
+      proteinLabel: '89g protein',
+      flags: ['No attention flags'],
+    });
+  });
 });
