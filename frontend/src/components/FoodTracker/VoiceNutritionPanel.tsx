@@ -129,7 +129,7 @@ const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent })
               ))}
             </FollowUps>
           )}
-          <MealPlanApproveSavePanel plan={plan} onSaved={onDataSent} />
+          <MealPlanApproveSavePanel plan={plan} onSaved={onDataSent} source="voice" />
           <ResetBtn type="button" onClick={handleReset}><RotateCcw size={14} /> Log another meal</ResetBtn>
         </>
       )}

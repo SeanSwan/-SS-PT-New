@@ -2,7 +2,7 @@ import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { formatDisplayDate } from '../services/nutrition/displayDate.mjs';
 
 export const ALLOWED_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
-export const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode'];
+export const ALLOWED_SOURCES = ['manual', 'ai-chat', 'food-scanner', 'barcode', 'voice', 'usda_lookup'];
 export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_ITEMS_COUNT = 50;
 export const MAX_WEEKLY_RANGE_DAYS = 90;

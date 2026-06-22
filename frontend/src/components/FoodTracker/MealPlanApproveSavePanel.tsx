@@ -9,11 +9,13 @@ import {
   cleanMealPlanMacroValue,
   validateMacroDrafts,
   type MealPlanInput,
+  type MealPlanMacroSource,
   type MealPlanMacroDraft,
 } from './MealPlanApproveSavePanel.logic';
 interface MealPlanApproveSavePanelProps {
   plan: MealPlanInput | null;
   onSaved?: (success: boolean) => void;
+  source?: MealPlanMacroSource;
 }
 
 const todayIso = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -21,7 +23,7 @@ const labelFor = (mealType: string) => mealType.charAt(0).toUpperCase() + mealTy
 const isSafeLogDate = (value: string, today = todayIso()) => /^\d{4}-\d{2}-\d{2}$/.test(value) && value <= today;
 const macroFields = ['calories', 'protein', 'carbs', 'fat'] as const;
 
-const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ plan, onSaved }) => {
+const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ plan, onSaved, source = 'ai-chat' }) => {
   const [drafts, setDrafts] = useState<MealPlanMacroDraft[]>(() => buildMacroDraftsFromMealPlan(plan));
   const [date, setDate] = useState(todayIso());
   const [saving, setSaving] = useState(false);
@@ -73,7 +75,7 @@ const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ pla
     setSaving(true);
     try {
       const results = await Promise.allSettled(
-        pending.map((draft) => apiService.post('/api/macros', buildMacroSavePayload(draft, date))),
+        pending.map((draft) => apiService.post('/api/macros', buildMacroSavePayload(draft, date, source))),
       );
 
       const nextSaved = new Set(savedIds);

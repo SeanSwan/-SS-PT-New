@@ -130,6 +130,27 @@ describe('POST /api/macros local-date guard', () => {
     expect(mocks.createSingleMacroEntry.mock.calls[0][0].date).toBe('2026-06-21');
   });
 
+  it('preserves route-valid voice and food-search source provenance on create', async () => {
+    for (const source of ['voice', 'usda_lookup']) {
+      const response = await request(makeApp())
+        .post('/api/macros')
+        .send({ ...mealPayload('2026-06-20'), source });
+
+      expect(response.status).toBe(201);
+    }
+
+    expect(mocks.createSingleMacroEntry).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Object),
+      { userId: 42, source: 'voice' },
+    );
+    expect(mocks.createSingleMacroEntry).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Object),
+      { userId: 42, source: 'usda_lookup' },
+    );
+  });
+
   it('still rejects dates beyond the one-day timezone grace', async () => {
     const response = await request(makeApp())
       .post('/api/macros')

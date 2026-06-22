@@ -34,6 +34,27 @@ describe('VoiceNutritionPanel (Slice 1.6)', () => {
     expect(screen.getByDisplayValue('chicken burrito bowl')).toBeInTheDocument();
   });
 
+  it('saves drafted voice meals with voice source provenance', async () => {
+    apiMocks.post
+      .mockResolvedValueOnce({ data: { success: true, draft: {
+        meals: [{ mealType: 'lunch', description: 'chicken burrito bowl', calories: 650, protein: 45, carbs: 70, fat: 18 }],
+        confidence: 0.7, lowConfidence: false, followUpQuestions: [],
+      } } })
+      .mockResolvedValueOnce({ data: { success: true, entry: { id: 123 } } });
+    const user = userEvent.setup();
+
+    render(<VoiceNutritionPanel onDataSent={vi.fn()} />);
+    await user.type(screen.getByLabelText(/what did you eat/i), 'I had a chicken burrito bowl');
+    await user.click(screen.getByRole('button', { name: /draft my meal/i }));
+    await user.click(await screen.findByRole('button', { name: /approve and save meal plan/i }));
+
+    await waitFor(() => expect(apiMocks.post).toHaveBeenCalledTimes(2));
+    expect(apiMocks.post).toHaveBeenNthCalledWith(2, '/api/macros', expect.objectContaining({
+      source: 'voice',
+      verified: false,
+    }));
+  });
+
   it('surfaces low-confidence follow-up questions before saving', async () => {
     apiMocks.post.mockResolvedValueOnce({ data: { success: true, draft: {
       meals: [{ mealType: 'snack', description: 'some chips', calories: 200 }],

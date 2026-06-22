@@ -1,5 +1,6 @@
 export const MEAL_PLAN_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 export type MealPlanMealType = (typeof MEAL_PLAN_MEAL_TYPES)[number];
+export type MealPlanMacroSource = 'ai-chat' | 'voice';
 
 interface MealPlanFoodInput {
   name?: string;
@@ -121,7 +122,7 @@ export const validateMacroDrafts = (drafts: MealPlanMacroDraft[]) => {
   return { valid: true, message: '' };
 };
 
-export const buildMacroSavePayload = (draft: MealPlanMacroDraft, date: string) => ({
+export const buildMacroSavePayload = (draft: MealPlanMacroDraft, date: string, source: MealPlanMacroSource = 'ai-chat') => ({
   date,
   mealType: draft.mealType,
   description: draft.description.trim(),
@@ -133,6 +134,6 @@ export const buildMacroSavePayload = (draft: MealPlanMacroDraft, date: string) =
   sugar: cleanNumber(draft.sugar),
   sodium: cleanNumber(draft.sodium),
   items: draft.items,
-  source: 'ai-chat' as const,
+  source,
   verified: false,
 });

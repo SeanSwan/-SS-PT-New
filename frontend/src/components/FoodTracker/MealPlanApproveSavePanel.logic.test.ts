@@ -64,6 +64,23 @@ describe('MealPlanApproveSavePanel logic', () => {
     });
   });
 
+  it('lets the mounted voice review path preserve voice source provenance', () => {
+    const [draft] = buildMacroDraftsFromMealPlan({
+      meals: [
+        {
+          mealType: 'dinner',
+          name: 'Spoken salmon bowl',
+          foods: [{ name: 'Salmon', serving: '6 oz', calories: 350, protein: 40, carbs: 0, fat: 20 }],
+        },
+      ],
+    });
+
+    expect(buildMacroSavePayload(draft, '2026-06-19', 'voice')).toMatchObject({
+      source: 'voice',
+      verified: false,
+    });
+  });
+
   it('rejects array/object/hex/exponent macro coercion in generated meal plans', () => {
     const [draft] = buildMacroDraftsFromMealPlan({
       meals: [

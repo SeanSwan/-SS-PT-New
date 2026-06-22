@@ -43,7 +43,7 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('logs a searched food to /api/macros with DB macros (manual, verified:false) and refreshes macros', async () => {
+  it('logs a searched food to /api/macros with DB macros (usda_lookup, verified:false) and refreshes macros', async () => {
     apiMocks.post.mockResolvedValue({ data: { success: true } });
     const onDataSent = vi.fn();
     const user = userEvent.setup();
@@ -62,7 +62,7 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
       protein: 31,
       carbs: 0,
       fat: 4,
-      source: 'manual',
+      source: 'usda_lookup',
       verified: false,
     }));
     expect(onDataSent).toHaveBeenCalledWith(true);

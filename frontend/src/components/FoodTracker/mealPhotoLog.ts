@@ -105,8 +105,8 @@ export interface SearchFood {
 
 /**
  * Self-log payload for a food picked from the USDA/Open Food Facts search (Slice 1.5).
- * source 'manual' (route-valid; a deliberate DB pick - macros come from the food DB,
- * so the client never hand-types them), verified:false (per-serving estimate until a
+ * source 'usda_lookup' (route-valid; macros come from external food DB lookup,
+ * not hand-typed manual entry), verified:false (per-serving estimate until a
  * coach/USDA portion is confirmed - care-first honesty).
  */
 export interface NutritionDraftMeal {
@@ -166,7 +166,7 @@ export function buildSearchMacroPayload(food: SearchFood, opts: { mealType: stri
     protein: cleanMacro(food?.protein),
     carbs: cleanMacro(food?.carbs),
     fat: cleanMacro(food?.fat),
-    source: 'manual' as const,
+    source: 'usda_lookup' as const,
     verified: false as const,
   };
 }

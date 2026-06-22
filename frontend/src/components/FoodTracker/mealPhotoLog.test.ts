@@ -141,7 +141,7 @@ describe('buildSearchMacroPayload (Slice 1.5)', () => {
       mealType: 'lunch',
       description: 'Chicken Breast (USDA)',
       calories: 165, protein: 31, carbs: 0, fat: 4,
-      source: 'manual',
+      source: 'usda_lookup',
       verified: false,
     });
   });
@@ -210,10 +210,11 @@ describe('self-serve verified:false invariant', () => {
       photo,
       search,
       buildMacroSavePayload(planDraft, '2026-06-20'),
-      buildMacroSavePayload(voiceDraft, '2026-06-20'),
+      buildMacroSavePayload(voiceDraft, '2026-06-20', 'voice'),
     ];
 
     expect(payloads).toHaveLength(4);
+    expect(payloads.map((payload) => payload.source)).toEqual(['food-scanner', 'usda_lookup', 'ai-chat', 'voice']);
     payloads.forEach((payload) => {
       expect(payload.verified).toBe(false);
     });
