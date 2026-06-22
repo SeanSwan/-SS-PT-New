@@ -15,7 +15,7 @@
  * path. Source normalization is handled here so stored values are always model-valid.
  *
  * SOURCE NORMALIZATION:
- *   Route-side accepted: 'manual', 'ai-chat', 'food-scanner', 'barcode'
+ *   Route-side accepted: 'manual', 'ai-chat', 'food-scanner', 'barcode', 'voice', 'usda_lookup'
  *   Model-valid stored:  'manual', 'ai_chat', 'voice', 'barcode', 'usda_lookup', 'photo'
  *   The 'ai-chat' → 'ai_chat' normalization fixes a pre-existing mismatch.
  */
