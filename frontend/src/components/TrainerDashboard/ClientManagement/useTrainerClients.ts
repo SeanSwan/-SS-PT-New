@@ -36,6 +36,11 @@ type AdminClient = {
   joinDate?: string;
 };
 
+const trainerClientErrorMeta = (error: unknown) => ({
+  errorName: error instanceof Error ? error.name : typeof error,
+});
+const TRAINER_ASSIGNMENTS_LOAD_ERROR = 'Failed to fetch trainer assignments';
+
 const toSessionCount = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
@@ -134,7 +139,7 @@ const adaptTrainerAssignment = async (
       client,
     };
   } catch (err) {
-    logger.warn('Error fetching client session data:', err);
+    logger.warn('Trainer client session detail fetch failed', trainerClientErrorMeta(err));
     return {
       ...assignment,
       isActive: assignmentStatus === 'active',
@@ -237,12 +242,12 @@ export const useTrainerClients = () => {
       );
 
       setClients(enhancedAssignments.filter(isClientAssignment));
-    } catch (err: any) {
-      console.error('Error loading clients:', err);
-      setError(err.response?.data?.message || 'Failed to load clients');
+    } catch (err: unknown) {
+      logger.warn('Trainer client assignment load failed', trainerClientErrorMeta(err));
+      setError(TRAINER_ASSIGNMENTS_LOAD_ERROR);
       toast({
         title: 'Error',
-        description: 'Failed to load client assignments',
+        description: 'Refresh client assignments or try again.',
         variant: 'destructive',
       });
     } finally {

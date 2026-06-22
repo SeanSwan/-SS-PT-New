@@ -65,7 +65,7 @@ export const ClientAvatar = styled.div<{ $status: string }>`
         default: return 'var(--status-neutral, #6b7280)';
       }
     }};
-    border: 2px solid var(--surface-elevated, rgba(30, 30, 60, 0.6));
+    border: 2px solid var(--surface-elevated, #1A1A24);
     box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 `;
@@ -79,7 +79,7 @@ export const ClientName = styled.h3`
   min-width: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary, #E0ECF4);
   margin: 0 0 0.25rem 0;
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@ export const ClientNameButton = styled.button`
 
 export const ClientDetails = styled.div`
   font-size: 0.85rem;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--bg-elevated, #141419)));
   line-height: 1.4;
   display: grid;
   gap: 0.3rem;
@@ -185,13 +185,13 @@ export const MetricItem = styled.div`
   .metric-value {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--text-primary, #ffffff);
+    color: var(--text-primary, #E0ECF4);
     margin-bottom: 0.25rem;
   }
 
   .metric-label {
     font-size: 0.75rem;
-    color: var(--text-tertiary, rgba(255, 255, 255, 0.6));
+    color: var(--text-tertiary, color-mix(in srgb, var(--text-primary, #E0ECF4) 65%, var(--bg-elevated, #141419)));
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
@@ -233,7 +233,13 @@ export const ActionButton = styled(motion.button)<{
       : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)'
   )};
   width: 100%;
-  padding: 0.58rem 0.7rem;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0.6rem 0.8rem;
   font-size: 0.8rem;
   font-weight: 800;
   line-height: 1.12;

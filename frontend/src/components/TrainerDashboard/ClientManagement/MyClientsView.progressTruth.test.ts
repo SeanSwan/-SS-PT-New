@@ -9,6 +9,10 @@ const __dirname = dirname(__filename);
 const RAW_SOURCE = readFileSync(resolve(__dirname, './MyClientsView.tsx'), 'utf8');
 const RAW_SECTIONS_SOURCE = readFileSync(resolve(__dirname, './MyClientsView.sections.tsx'), 'utf8');
 const RAW_CARD_SOURCE = readFileSync(resolve(__dirname, './MyClientsView.clientCard.tsx'), 'utf8');
+const RAW_ADMIN_CARD_SOURCE = readFileSync(
+  resolve(__dirname, '../../DashBoard/workspaces/clients-team/ClientHubGridCard.tsx'),
+  'utf8',
+);
 const RAW_HOOK_SOURCE = readFileSync(resolve(__dirname, './useTrainerClients.ts'), 'utf8');
 
 const SOURCE = RAW_SOURCE
@@ -18,6 +22,9 @@ const SECTIONS_SOURCE = RAW_SECTIONS_SOURCE
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/[^\n]*/g, '');
 const CARD_SOURCE = RAW_CARD_SOURCE
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/[^\n]*/g, '');
+const ADMIN_CARD_SOURCE = RAW_ADMIN_CARD_SOURCE
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/[^\n]*/g, '');
 const HOOK_SOURCE = RAW_HOOK_SOURCE
@@ -33,17 +40,28 @@ describe('MyClientsView workout-proof truth locks', () => {
 
   it('uses logged workout/session proof copy instead of fake improvement counts', () => {
     expect(HOOK_SOURCE).toMatch(/loggedClients/);
-    expect(CARD_SOURCE).toMatch(/Workout Proof/);
-    expect(CARD_SOURCE).toMatch(/No logs yet/);
-    expect(CARD_SOURCE).toMatch(/Last logged:/);
+    expect(CARD_SOURCE).toMatch(/ClientHubGridCard/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/Workout Proof/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/No logs yet/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/chart-ready activity/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/Last logged:/);
+    expect(CARD_SOURCE).toMatch(/lastSessionDate/);
+    expect(CARD_SOURCE).toMatch(/assignedAt/);
     expect(SOURCE).not.toMatch(/improvingClients/);
     expect(SOURCE).not.toMatch(/Improving Clients/);
   });
 
+  it('uses fixed safe assignment error copy without hiding the failing surface', () => {
+    expect(HOOK_SOURCE).toMatch(/TRAINER_ASSIGNMENTS_LOAD_ERROR/);
+    expect(HOOK_SOURCE).toMatch(/Failed to fetch trainer assignments/);
+    expect(HOOK_SOURCE).not.toMatch(/setError\('Failed to load clients'\)/);
+  });
+
   it('uses source-aware session copy instead of raw sessions-left debt for Move Fitness clients', () => {
-    expect(CARD_SOURCE).toMatch(/getClientSessionSignal/);
-    expect(CARD_SOURCE).toMatch(/sessionSignal\.label/);
-    expect(CARD_SOURCE).toMatch(/sessionSignal\.note/);
+    expect(CARD_SOURCE).toMatch(/ClientHubGridCard/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/getClientSessionSignal/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/sessionSignal\.label/);
+    expect(ADMIN_CARD_SOURCE).toMatch(/sessionSignal\.note/);
     expect(SOURCE).not.toMatch(/Sessions Left/);
   });
 

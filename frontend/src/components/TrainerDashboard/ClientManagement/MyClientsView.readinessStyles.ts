@@ -25,9 +25,9 @@ export const ClientReadinessStrip = styled.div`
 export const ReadinessChip = styled.div`
   min-height: 48px;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.18));
+  border: 1px solid var(--border-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 8px;
-  background: var(--surface-deep, rgba(5, 12, 24, 0.42));
+  background: var(--surface-deep, #141419);
   color: var(--text-primary, #E0ECF4);
   display: flex;
   align-items: center;
@@ -50,12 +50,12 @@ export const ReadinessChip = styled.div`
 export const WorkoutProofPanel = styled.div`
   margin: 1rem 0;
   padding: 0.85rem;
-  border: 1px solid var(--border-accent-soft, rgba(139, 92, 246, 0.22));
+  border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent));
   border-radius: 12px;
   background:
     linear-gradient(160deg,
-      color-mix(in srgb, var(--surface-accent, #003080) 26%, transparent),
-      color-mix(in srgb, var(--bg-base, #050810) 76%, transparent));
+      color-mix(in srgb, var(--surface-accent, #003080) 32%, transparent),
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, transparent));
 `;
 
 export const ProofHeader = styled.div`
@@ -68,19 +68,19 @@ export const ProofHeader = styled.div`
 `;
 
 export const ProofLabel = styled.span`
-  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 75%, var(--brand-primary, #002060)));
   font-size: 0.85rem;
 `;
 
 export const ProofValue = styled.span`
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.85rem;
   font-weight: 700;
   text-align: right;
 `;
 
 export const ProofSubtext = styled.div`
-  color: var(--text-tertiary, rgba(255, 255, 255, 0.62));
+  color: var(--text-tertiary, color-mix(in srgb, var(--text-primary, #E0ECF4) 65%, var(--brand-primary, #002060)));
   font-size: 0.75rem;
   line-height: 1.4;
   text-align: left;

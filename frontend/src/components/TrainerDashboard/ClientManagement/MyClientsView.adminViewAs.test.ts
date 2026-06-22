@@ -100,8 +100,8 @@ describe('MyClientsView — Phase 18.A admin-view-as source-text lock', () => {
     expect(HOOK_SOURCE).toMatch(/authAxios\.get\(\s*`\/api\/client-trainer-assignments\/trainer\/\$\{user\.id\}`/);
   });
 
-  it('message quick action routes to the canonical trainer messages hub instead of a coming-soon toast', () => {
-    expect(SOURCE).toMatch(/navigate\(\s*`\/dashboard\/trainer\/messages\?clientId=\$\{clientId\}`\s*\)/);
+  it('plan quick action routes to the canonical trainer workout planner instead of a coming-soon toast', () => {
+    expect(SOURCE).toMatch(/navigate\(\s*`\/dashboard\/trainer\/workout-planner\?clientId=\$\{clientId\}&source=my-clients`\s*\)/);
     expect(SOURCE).not.toMatch(/Client messaging system is in development/);
   });
 

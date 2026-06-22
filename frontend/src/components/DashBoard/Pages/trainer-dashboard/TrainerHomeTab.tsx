@@ -1,29 +1,8 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: TrainerHomeTab                                   ║
- * ║  PURPOSE: Default trainer landing surface — ops cockpit      ║
- * ║  OWNER: Claude Sonnet 4.6 | LAST MODIFIED: 2026-04-09        ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * REPLACES: TrainerOverviewPage at /dashboard/trainer/overview
- *
- * WIREFRAME:
- * ┌──────────────────────────────────────────┐
- * │ SwanCoachDockTrainer (always-on)         │
- * ├──────────────────────────────────────────┤
- * │ KPI Strip: Clients | Sessions | Hrs | %  │
- * ├──────────────────────────────────────────┤
- * │ Today's Sessions  (max 5)                │
- * ├──────────────────────────────────────────┤
- * │ Quick Actions (2×2)                      │
- * └──────────────────────────────────────────┘
- *
- * DATA FLOW:
- *   useAuth → trainerName
- *   useGamificationData → level (falls back to 1 if unavailable)
- *   useTrainerTodaySessions → sessions, loading, error, stats
- *   SwanCoachDockTrainer → no consent gate, always-on
- *   Quick Actions → navigate only, no data fetch
+ * FILE: TrainerHomeTab.tsx
+ * PURPOSE: Default trainer landing surface and command cockpit.
+ * FLOW: auth/profile/session data -> hero dock, next action, KPIs, sessions, quick actions.
+ * REPLACES: TrainerOverviewPage at /dashboard/trainer/overview.
  */
 
 import React from 'react';
@@ -72,6 +51,7 @@ import {
   SessionsOverflow,
   SessionsOverflowNote,
   SessionRow,
+  SessionRowSkeleton,
   SessionTime,
   StatusBadge,
 } from './TrainerHomeTab.styles';
@@ -83,7 +63,7 @@ import {
   TrainerHomeSideColumn,
 } from './TrainerHomeTab.layoutStyles';
 
-// ─── Animations ──────────────────────────────────────────────────────────────
+// Constants
 
 const KPI_COLORS = [
   'var(--accent-primary, #60C0F0)',
@@ -94,7 +74,7 @@ const KPI_COLORS = [
 
 const MAX_TRAINER_HOME_SESSIONS = 5;
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// Component
 
 const TrainerHomeTab: React.FC = () => {
   const navigate = useNavigate();
@@ -102,7 +82,9 @@ const TrainerHomeTab: React.FC = () => {
   const { profile } = useGamificationData();
   const { sessions, loading, error, stats } = useTrainerTodaySessions();
 
-  const trainerName = user?.firstName ?? user?.username ?? 'Trainer';
+  const trainerName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.username || 'Trainer';
+  const trainerHandle = user?.username ? `@${user.username}` : undefined;
+  const trainerPhotoUrl = user?.profileImageUrl ?? user?.photo ?? null;
   const level = profile.data?.level ?? 1;
   const visibleSessions = sessions.slice(0, MAX_TRAINER_HOME_SESSIONS);
   const hiddenSessionCount = Math.max(0, sessions.length - visibleSessions.length);
@@ -118,10 +100,10 @@ const TrainerHomeTab: React.FC = () => {
   }), [nextActionableSession, stats.clientsToday, stats.completionRate, stats.sessionsToday]);
 
   const kpiData = [
-    { value: loading ? '—' : stats.clientsToday,               label: 'Clients Today', Icon: Users,        color: KPI_COLORS[0] },
-    { value: loading ? '—' : stats.sessionsToday,              label: 'Sessions',      Icon: CalendarDays, color: KPI_COLORS[1] },
-    { value: loading ? '—' : stats.hoursLogged.toFixed(1),     label: 'Hours Logged',  Icon: Clock,        color: KPI_COLORS[2] },
-    { value: loading ? '—' : `${stats.completionRate}%`,       label: 'Completion',    Icon: CheckCircle,  color: KPI_COLORS[3] },
+    { value: loading ? '-' : stats.clientsToday,               label: 'Clients Today', Icon: Users,        color: KPI_COLORS[0] },
+    { value: loading ? '-' : stats.sessionsToday,              label: 'Sessions',      Icon: CalendarDays, color: KPI_COLORS[1] },
+    { value: loading ? '-' : stats.hoursLogged.toFixed(1),     label: 'Hours Logged',  Icon: Clock,        color: KPI_COLORS[2] },
+    { value: loading ? '-' : `${stats.completionRate}%`,       label: 'Completion',    Icon: CheckCircle,  color: KPI_COLORS[3] },
   ];
 
   return (
@@ -132,6 +114,8 @@ const TrainerHomeTab: React.FC = () => {
             trainerName={trainerName}
             sessionCount={stats.sessionsToday}
             level={level}
+            trainerHandle={trainerHandle}
+            trainerPhotoUrl={trainerPhotoUrl}
             loading={loading}
             coachPath={trainerHomeCoachPath}
             onNavigate={navigate}
@@ -149,7 +133,7 @@ const TrainerHomeTab: React.FC = () => {
         <TrainerHomePrimaryColumn>
           <KpiStrip aria-label="Today's key metrics">
             {kpiData.map(({ value, label, Icon, color }, i) => (
-              <KpiCard key={label} style={{ '--i': i } as React.CSSProperties}>
+              <KpiCard key={label} $index={i}>
                 <KpiValue>
                   <Icon size={16} color={color} aria-hidden="true" />
                   {value}
@@ -162,7 +146,11 @@ const TrainerHomeTab: React.FC = () => {
           <SessionsCard>
             <SessionsHeading>Today's Sessions</SessionsHeading>
             {loading ? (
-              <EmptyState>Loading schedule...</EmptyState>
+              <>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SessionRowSkeleton key={i} aria-hidden="true" />
+                ))}
+              </>
             ) : error ? (
               <EmptyState>{error}</EmptyState>
             ) : sessions.length === 0 ? (
@@ -272,7 +260,7 @@ const TrainerHomeTab: React.FC = () => {
                   type="button"
                   $tone={tone}
                   $primary={primary}
-                  style={{ '--i': i } as React.CSSProperties}
+                  $index={i}
                   onClick={() => navigate(actionPath)}
                   aria-label={primary ? `Primary trainer action: ${label}` : label}
                 >

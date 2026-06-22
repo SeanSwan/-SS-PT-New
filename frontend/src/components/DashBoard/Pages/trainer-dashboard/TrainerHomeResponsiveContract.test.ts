@@ -20,11 +20,30 @@ describe('TrainerHomeTab responsive contract', () => {
   });
 
   it('stacks the next-client command card before the flow rail and actions can overlap', () => {
-    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(210px, 0.72fr) auto');
-    expect(nextActionStylesSource).toContain('@media (max-width: 900px)');
-    expect(nextActionStylesSource).toContain('grid-template-columns: 1fr');
+    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr)');
+    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(7.4rem, 1fr))');
+    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr))');
     expect(nextActionStylesSource).toContain('export const NextActionFlow');
-    expect(nextActionStylesSource).toContain('@media (max-width: 480px)');
+    expect(nextActionStylesSource).toContain('@media (max-width: 380px)');
+    expect(nextActionStylesSource).not.toContain('overflow-wrap: anywhere');
+    expect(nextActionStylesSource).toContain('word-break: normal');
+  });
+
+  it('renders a real trainer profile photo slot on the trainer hero dock', () => {
+    expect(componentSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');
+    expect(componentSource).toContain('trainerHandle={trainerHandle}');
+    expect(coachDockSource).toContain("import { sanitizeImageUrl } from '../../../../utils/imageUrl'");
+    expect(coachDockSource).toContain('trainerPhotoUrl?: string | null');
+    expect(coachDockSource).toContain('<img src={safePhoto} alt={`${trainerName} profile`} />');
+    expect(coachDockSource).toContain('{trainerHandle && <CoachHandle>{trainerHandle}</CoachHandle>}');
+  });
+
+  it('keeps the trainer hero chips and meta text mobile-safe', () => {
+    expect(coachDockSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(coachDockSource).toContain('flex: 1 1 10rem');
+    expect(coachDockSource).toContain('justify-content: center');
+    expect(coachDockSource).toContain('<CoachMeta>{sessLabel} - Lv.{level}</CoachMeta>');
+    expect(coachDockSource).not.toContain('&nbsp;·&nbsp;');
   });
 
   it('uses a client-observatory inspired trainer command layout instead of the narrow stacked home column', () => {
@@ -42,16 +61,51 @@ describe('TrainerHomeTab responsive contract', () => {
     const combinedSource = [
       stylesSource,
       readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      nextActionStylesSource,
       coachDockSource,
     ].join('\n');
 
-    expect(combinedSource).not.toMatch(/rgba\(224,\s*236,\s*244,\s*0\.(?:3|4)\d*\)/);
-    expect(combinedSource).not.toMatch(/rgba\(255,\s*255,\s*255,\s*0\.(?:3|4)\d*\)/);
-    expect(combinedSource).toContain('rgba(224, 236, 244, 0.68)');
+    expect(combinedSource).not.toContain('rgba(');
+    // Updated 2026-06-20 (GLM 5.2 Finding 1, accepted by Gemini): muted text must mix with the
+    // SOLID card surface, not `transparent` — mixing with transparent makes contrast depend on
+    // whatever sits behind the text (WCAG risk). Mixing with --bg-elevated guarantees the ratio.
+    expect(combinedSource).toContain('color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, var(--bg-elevated, #141419))');
+  });
+
+  it('uses fixed-format trainer-home type and explicit motion', () => {
+    const combinedSource = [
+      stylesSource,
+      readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      nextActionStylesSource,
+      coachDockSource,
+    ].join('\n');
+
+    expect(combinedSource).not.toContain('clamp(');
+    expect(combinedSource).not.toContain('transition: all');
+    expect(combinedSource).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('keeps trainer-home sources ASCII-clean and under the dashboard line cap', () => {
+    [
+      componentSource,
+      stylesSource,
+      layoutStylesSource,
+      nextActionStylesSource,
+      readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      coachDockSource,
+    ].forEach((source) => {
+      expect(source).not.toMatch(/[^\x00-\x7F]/);
+      expect(source.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    });
   });
 
   it('keeps trainer coach dock chips as explicit non-submit buttons', () => {
     expect(coachDockSource).toContain('<Chip');
     expect(coachDockSource).toContain('type="button"');
+  });
+
+  it('keeps the mounted trainer home component free of inline styles', () => {
+    expect(componentSource).not.toContain('style={{');
+    expect(componentSource).toContain('$index={i}');
   });
 });
