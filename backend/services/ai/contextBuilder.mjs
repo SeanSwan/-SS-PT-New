@@ -520,7 +520,7 @@ function buildGoalProgress(goals, measurementTrends, progressSummary) {
       }
       if (measurementTrends.weightTrend === 'decreasing') {
         entry.status = 'on_track';
-        goalAnalysis.recommendations.push('Weight trending down — maintain current caloric deficit and training volume.');
+        goalAnalysis.recommendations.push('Weight trending down - maintain the current lower-fuel phase and training volume.');
       } else if (measurementTrends.weightTrend === 'increasing') {
         entry.status = 'off_track';
         goalAnalysis.recommendations.push('Weight trending up despite fat loss goal — review nutrition plan and increase cardio/NEAT.');
