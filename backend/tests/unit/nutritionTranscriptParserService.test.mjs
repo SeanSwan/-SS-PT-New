@@ -24,6 +24,8 @@ vi.mock('../../services/redactTranscriptPII.mjs', () => ({
 import { parseNutritionTranscript, __test__ } from '../../services/nutrition/nutritionTranscriptParserService.mjs';
 
 const { buildContextBlock, shapeMeal, calculateOverallConfidence } = __test__;
+const unsafeCopyPattern =
+  /\b(cutting|bulking?|caloric deficit|cheat meal|clean eating|dirty bulk|sugar crash|inflammatory|deficien(?:t|cy|cies)|zero sugar|no sugar|guilt|spike insulin|wasted macros)\b/i;
 
 describe('buildContextBlock (identity-blind)', () => {
   it('returns a neutral default when no hints are given', () => {
@@ -139,6 +141,30 @@ describe('parseNutritionTranscript', () => {
 
     expect(result.lowConfidence).toBe(true);
     expect(result.followUpQuestions).toHaveLength(1);
+  });
+
+  it('scrubs generated parser draft copy and prompts the model away from diet-culture framing', async () => {
+    runJsonLlmChainMock.mockResolvedValue({
+      meals: [{
+        mealType: 'lunch',
+        description: 'Clean eating cheat meal bowl',
+        calories: 650,
+        protein: 45,
+        carbs: 70,
+        fat: 18,
+        items: [{ name: 'Zero sugar chicken', serving: '1 guilt-free bowl' }],
+        confidence: 0.7,
+      }],
+      notes: 'Caloric deficit avoids deficiency and sugar crash.',
+      followUpQuestions: ['Was that no sugar soda?'],
+    });
+
+    const result = await parseNutritionTranscript({ transcript: 'I had a chicken bowl and soda', clientId: 1 });
+
+    expect(JSON.stringify(result)).not.toMatch(unsafeCopyPattern);
+    const { systemPrompt } = runJsonLlmChainMock.mock.calls[0][0];
+    expect(systemPrompt).toMatch(/care-first copy rules/i);
+    expect(systemPrompt).toMatch(/Do not use diet-culture labels/i);
   });
 
   it('uses the display timezone date when the parser caller omits date', async () => {

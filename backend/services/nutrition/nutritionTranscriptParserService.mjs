@@ -36,6 +36,7 @@ import { runJsonLlmChain } from '../ai/jsonLlmParser.mjs';
 import { redactTranscriptPII } from '../redactTranscriptPII.mjs';
 import logger from '../../utils/logger.mjs';
 import { formatDisplayDate } from './displayDate.mjs';
+import { NUTRITION_CARE_COPY_RULES, sanitizeNutritionCopy } from './nutritionCareCopy.mjs';
 
 const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
 const LOW_CONFIDENCE_THRESHOLD = 0.6;
@@ -70,6 +71,8 @@ RULES:
 - Give each meal a "confidence" 0.0–1.0 (portion clarity, brand specificity, ambiguity).
 - When the description is too vague to log safely (missing portion, ambiguous dish), LOWER confidence and add a SHORT, specific follow-up question to "followUpQuestions" (e.g. "How big was the burrito bowl — regular or large?"). Ask at most 3, only when they would materially change the estimate.
 - This is an ESTIMATE for the person to review and approve. Do not claim it was saved.
+
+${NUTRITION_CARE_COPY_RULES}
 
 OUTPUT FORMAT (strict JSON, no markdown fences, no commentary):
 {
@@ -122,12 +125,13 @@ const cleanNumber = (val, max) => {
 
 function shapeMeal(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const description = typeof raw.description === 'string' ? raw.description.trim().slice(0, 500) : '';
+  const rawDescription = typeof raw.description === 'string' ? raw.description.trim() : '';
+  const description = sanitizeNutritionCopy(rawDescription, '', 500);
   if (!description) return null;
   const items = Array.isArray(raw.items)
     ? raw.items.slice(0, 30).map((i) => ({
-        name: typeof i?.name === 'string' ? i.name.slice(0, 150) : 'item',
-        serving: typeof i?.serving === 'string' ? i.serving.slice(0, 60) : undefined,
+        name: typeof i?.name === 'string' ? sanitizeNutritionCopy(i.name, '', 150) : 'item',
+        serving: typeof i?.serving === 'string' ? sanitizeNutritionCopy(i.serving, '', 60) : undefined,
       }))
     : [];
   return {
@@ -200,7 +204,11 @@ export async function parseNutritionTranscript({ transcript, clientId, date, nam
 
   const confidence = calculateOverallConfidence(transcript, meals);
   const followUpQuestions = Array.isArray(parsed?.followUpQuestions)
-    ? parsed.followUpQuestions.filter((q) => typeof q === 'string' && q.trim()).slice(0, 3).map((q) => q.trim().slice(0, 200))
+    ? parsed.followUpQuestions
+        .filter((q) => typeof q === 'string' && q.trim())
+        .slice(0, 3)
+        .map((q) => sanitizeNutritionCopy(q.trim(), '', 200))
+        .filter(Boolean)
     : [];
 
   logger.info('[NutritionParser] Parse complete', {
@@ -214,7 +222,7 @@ export async function parseNutritionTranscript({ transcript, clientId, date, nam
     meals,
     date: date || formatDisplayDate(),
     confidence,
-    notes: typeof parsed?.notes === 'string' ? parsed.notes.slice(0, 300) : '',
+    notes: sanitizeNutritionCopy(parsed?.notes, '', 300),
     lowConfidence: confidence < LOW_CONFIDENCE_THRESHOLD,
     followUpQuestions,
   };
