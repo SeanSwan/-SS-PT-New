@@ -24,6 +24,18 @@ import {
 const DEFAULT_MODEL = process.env.AI_GEMINI_MODEL || 'gemini-2.5-flash';
 
 /**
+ * Resolve the Gemini API key using the same fallback chain the rest of the
+ * codebase uses (jsonLlmParser / aiChatService / mealPlanService / etc.).
+ * The key is stored as GEMINI_API_KEY in this project's environments; reading
+ * only GOOGLE_API_KEY here previously made the adapter self-skip as
+ * `not_configured`, forcing the router to fall through to OpenAI — and when
+ * OpenAI was also unset the long-horizon generation returned 500.
+ * @returns {string}
+ */
+const getApiKey = () =>
+  process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || '';
+
+/**
  * Normalize Gemini SDK/runtime errors into AiProviderError.
  *
  * @param {unknown} err
@@ -86,11 +98,11 @@ const geminiAdapter = {
   name: 'gemini',
 
   /**
-   * Check if GOOGLE_API_KEY is present.
+   * Check if a Gemini API key is present (GOOGLE_API_KEY / GEMINI_API_KEY / GOOGLE_AI_API_KEY).
    * @returns {boolean}
    */
   isConfigured() {
-    return Boolean(process.env.GOOGLE_API_KEY);
+    return Boolean(getApiKey());
   },
 
   /**
@@ -102,7 +114,7 @@ const geminiAdapter = {
    */
   async generateWorkoutDraft(ctx) {
     if (!this.isConfigured()) {
-      throw makeProviderError('gemini', 'PROVIDER_AUTH', 'GOOGLE_API_KEY is not configured');
+      throw makeProviderError('gemini', 'PROVIDER_AUTH', 'Gemini API key is not configured (set GEMINI_API_KEY or GOOGLE_API_KEY)');
     }
 
     const modelName = ctx.modelPreference || DEFAULT_MODEL;
@@ -118,7 +130,7 @@ const geminiAdapter = {
       throw makeProviderError('gemini', 'PROVIDER_AUTH', 'Google Generative AI SDK not installed');
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    const genAI = new GoogleGenerativeAI(getApiKey());
     // Use pre-built system message if provided (e.g. long-horizon), else workout default
     const systemMessage = ctx.systemMessage || WORKOUT_SYSTEM_MESSAGE;
     const model = genAI.getGenerativeModel({
