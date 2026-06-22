@@ -22,6 +22,7 @@ const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 export interface EditableFood {
   name: string;
+  mealType?: MealTypeOption;
   estimatedServing?: string;
   calories: number | null;
   protein: number | null;
@@ -85,7 +86,7 @@ export function toMacroPayload(food: EditableFood, opts: { mealType: string; dat
 export function buildMacroPayloads(foods: EditableFood[], opts: { mealType: string; date?: string }): MacroPayload[] {
   return (Array.isArray(foods) ? foods : [])
     .filter((f) => f && String(f.name || '').trim().length > 0)
-    .map((f) => toMacroPayload(f, opts));
+    .map((f) => toMacroPayload(f, { ...opts, mealType: f.mealType || opts.mealType }));
 }
 
 export function summarizeSave(results: Array<{ ok: boolean }>): { saved: number; failed: number; total: number } {

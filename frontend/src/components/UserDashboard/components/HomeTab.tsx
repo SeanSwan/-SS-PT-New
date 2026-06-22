@@ -43,6 +43,7 @@ import {
 } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import useHomeComposer from './useHomeComposer';
+import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
   buildCreatorStats,
@@ -116,6 +117,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const streakDays = gamProfile?.data?.streakDays ?? 0;
   const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
+  const nutritionAction = useHomeNutritionAction();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
@@ -260,6 +262,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
               progressPercent={progressPercent}
               tierName={tierName}
               logWorkoutPath={logWorkoutPath}
+              nutritionAction={nutritionAction}
+              onOpenNutrition={() => onTabChange('nutrition')}
             />
           </Panel>
 

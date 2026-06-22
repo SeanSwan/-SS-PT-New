@@ -139,7 +139,7 @@ export const FoodItemsEditor = ({ foodItems, fieldErrors, onAdd, onRemove, onCha
             <StyledSelect id={qualityId} value={item.quality} onChange={(event) => onChange(item.id, 'quality', event.target.value as FoodQuality)}>
               {FOOD_QUALITY.map((quality) => <option key={quality.value} value={quality.value}>{quality.label}</option>)}
             </StyledSelect>
-            <HelperText>Higher quality foods earn more gamification points</HelperText>
+            <HelperText>Use the closest honest quality label; consistency beats perfect tracking.</HelperText>
           </FieldGroup>
         </FoodCard>
       );

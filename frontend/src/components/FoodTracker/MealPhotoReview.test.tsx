@@ -107,6 +107,19 @@ describe('MealPhotoReview (Slice 1.4)', () => {
     expect(screen.getByText(/AI estimate 70%/i)).toBeInTheDocument();
   });
 
+  it('lets each reviewed photo food save with its own meal type', async () => {
+    apiMocks.post.mockResolvedValue({ data: { success: true } });
+
+    render(<MealPhotoReview analysis={analysis} onSaved={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText(/meal type for chicken/i), { target: { value: 'breakfast' } });
+    fireEvent.change(screen.getByLabelText(/meal type for rice/i), { target: { value: 'dinner' } });
+    fireEvent.click(screen.getByRole('button', { name: /approve .*save to today/i }));
+
+    expect(await screen.findByText(/saved 2 items to today's log/i)).toBeInTheDocument();
+    expect(apiMocks.post).toHaveBeenNthCalledWith(1, '/api/macros', expect.objectContaining({ description: 'Chicken', mealType: 'breakfast' }));
+    expect(apiMocks.post).toHaveBeenNthCalledWith(2, '/api/macros', expect.objectContaining({ description: 'Rice', mealType: 'dinner' }));
+  });
+
   it('does not render malformed confidence values as estimate percentages', () => {
     render(<MealPhotoReview analysis={{
       mealType: 'lunch',

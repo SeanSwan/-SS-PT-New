@@ -110,6 +110,32 @@ describe('MealPlanApproveSavePanel logic', () => {
     expect(payload).toMatchObject({ fiber: 4, sugar: 1, sodium: 100 });
   });
 
+  it('keeps calorie/protein/carb/fat behavior unchanged while carrying extra SCD-2 macros', () => {
+    const [draft] = buildMacroDraftsFromMealPlan({
+      meals: [
+        {
+          mealType: 'lunch',
+          name: 'Rice bowl',
+          foods: [
+            { name: 'Rice', calories: 200, protein: 4, carbs: 45, fat: 1, fiber: 2, sugar: 0, sodium: 5 },
+            { name: 'Chicken', calories: 180, protein: 34, carbs: 0, fat: 4, fiber: 0, sugar: 0, sodium: 120 },
+          ],
+          totalCalories: 410,
+        },
+      ],
+    });
+
+    expect(buildMacroSavePayload(draft, '2026-06-19')).toMatchObject({
+      calories: 410,
+      protein: 38,
+      carbs: 45,
+      fat: 5,
+      fiber: 2,
+      sugar: 0,
+      sodium: 125,
+    });
+  });
+
   it('rejects empty editable meal rows before saving', () => {
     const result = validateMacroDrafts([
       {

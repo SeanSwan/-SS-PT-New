@@ -27,6 +27,7 @@ import {
   HeartPulse,
   ShieldCheck,
   Sparkles,
+  Utensils,
   Users,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +55,12 @@ interface DailyHealthLoopProps {
   progressPercent: number;
   tierName: string;
   logWorkoutPath: string;
+  nutritionAction?: {
+    title: string;
+    copy: string;
+    label: string;
+  } | null;
+  onOpenNutrition?: () => void;
 }
 
 function getMissionCopy(streakDays: number, level: number, progressPercent: number) {
@@ -83,10 +90,21 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
   progressPercent,
   tierName,
   logWorkoutPath,
+  nutritionAction,
+  onOpenNutrition,
 }) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  const mission = getMissionCopy(streakDays, level, progressPercent);
+  const nutritionMission = nutritionAction && onOpenNutrition ? nutritionAction : null;
+  const mission = nutritionMission || getMissionCopy(streakDays, level, progressPercent);
+  const PrimaryIcon = nutritionMission ? Utensils : Dumbbell;
+  const handlePrimaryAction = () => {
+    if (nutritionMission && onOpenNutrition) {
+      onOpenNutrition();
+      return;
+    }
+    navigate(logWorkoutPath);
+  };
 
   return (
     <LoopShell
@@ -103,13 +121,16 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
         <MissionTitle>{mission.title}</MissionTitle>
         <MissionCopy>{mission.copy}</MissionCopy>
         <ResultRow aria-label="Completion impact">
-          <ResultPill><ShieldCheck size={13} /> Progress updates</ResultPill>
+          <ResultPill>
+            {nutritionMission ? <Utensils size={13} /> : <ShieldCheck size={13} />}
+            {nutritionMission ? ' Nutrition Today' : ' Progress updates'}
+          </ResultPill>
           <ResultPill><Sparkles size={13} /> {Math.round(progressPercent)}% to next level</ResultPill>
           <ResultPill><Users size={13} /> Share only when ready</ResultPill>
         </ResultRow>
-        <PrimaryAction onClick={() => navigate(logWorkoutPath)}>
-          <Dumbbell size={17} />
-          Log Workout
+        <PrimaryAction onClick={handlePrimaryAction}>
+          <PrimaryIcon size={17} />
+          {nutritionMission ? nutritionMission.label : 'Log Workout'}
           <Arrow size={15} />
         </PrimaryAction>
       </MissionPanel>

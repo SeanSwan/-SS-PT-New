@@ -19,6 +19,7 @@ import {
 
 interface PhotoFoodInput {
   name: string;
+  mealType?: string;
   estimatedServing?: string;
   calories?: number;
   protein?: number;
@@ -35,9 +36,10 @@ interface MealPhotoReviewProps {
 
 type SaveSummary = { saved: number; failed: number; total: number };
 
-const toEditable = (foods?: PhotoFoodInput[]): EditableFood[] =>
+const toEditable = (foods?: PhotoFoodInput[], defaultMealType?: string): EditableFood[] =>
   (Array.isArray(foods) ? foods : []).map((f) => ({
     name: String(f?.name || ''),
+    mealType: normalizeMealType(f?.mealType || defaultMealType),
     estimatedServing: f?.estimatedServing,
     calories: f?.calories ?? null,
     protein: f?.protein ?? null,
@@ -58,8 +60,7 @@ const ConfidenceBadge = ({ value }: { value: unknown }) => {
 };
 
 const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) => {
-  const [foods, setFoods] = useState<EditableFood[]>(toEditable(analysis?.foods));
-  const [mealType, setMealType] = useState<string>(normalizeMealType(analysis?.mealType));
+  const [foods, setFoods] = useState<EditableFood[]>(toEditable(analysis?.foods, analysis?.mealType));
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<SaveSummary | null>(null);
   const [error, setError] = useState('');
@@ -67,8 +68,7 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
 
   // Re-seed when a new photo is analyzed.
   useEffect(() => {
-    setFoods(toEditable(analysis?.foods));
-    setMealType(normalizeMealType(analysis?.mealType));
+    setFoods(toEditable(analysis?.foods, analysis?.mealType));
     setResult(null);
     setError('');
   }, [analysis]);
@@ -77,6 +77,7 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
     setFoods((prev) => prev.map((f, i) => {
       if (i !== idx) return f;
       if (field === 'name') return { ...f, name: value };
+      if (field === 'mealType') return { ...f, mealType: normalizeMealType(value) };
       return { ...f, [field]: cleanMacro(value) };
     }));
   };
@@ -103,7 +104,7 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
     setSaving(true);
     try {
       const settled = await Promise.allSettled(
-        savable.map(({ food }) => apiService.post('/api/macros', toMacroPayload(food, { mealType }))),
+        savable.map(({ food }) => apiService.post('/api/macros', toMacroPayload(food, { mealType: food.mealType || 'snack' }))),
       );
       // Keep failed rows so retry cannot duplicate already-saved foods.
       const savedIndexes = new Set(
@@ -127,13 +128,6 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
     <Wrap>
       <EditHint><AlertTriangle size={14} /> AI estimate - review &amp; edit before saving to your log.</EditHint>
 
-      <MealTypeRow>
-        <label htmlFor="meal-photo-type">Meal</label>
-        <Select id="meal-photo-type" value={mealType} onChange={(e) => setMealType(e.target.value)} disabled={saving || fullySaved}>
-          {MEAL_TYPE_OPTIONS.map((m) => <option key={m} value={m}>{m[0].toUpperCase() + m.slice(1)}</option>)}
-        </Select>
-      </MealTypeRow>
-
       <FoodList>
         {foods.map((f, i) => (
           <FoodRow key={i}>
@@ -144,6 +138,14 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
               disabled={saving || fullySaved}
               placeholder="Food name"
             />
+            <Select
+              aria-label={`Meal type for ${f.name || `food ${i + 1}`}`}
+              value={normalizeMealType(f.mealType)}
+              onChange={(e) => updateField(i, 'mealType', e.target.value)}
+              disabled={saving || fullySaved}
+            >
+              {MEAL_TYPE_OPTIONS.map((m) => <option key={m} value={m}>{m[0].toUpperCase() + m.slice(1)}</option>)}
+            </Select>
             <Macros>
               <NumField><span>cal</span><NumInput aria-label={`Calories for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.calories ?? ''} onChange={(e) => updateField(i, 'calories', e.target.value)} disabled={saving || fullySaved} /></NumField>
               <NumField><span>P</span><NumInput aria-label={`Protein for ${f.name || `food ${i + 1}`}`} type="number" min="0" value={f.protein ?? ''} onChange={(e) => updateField(i, 'protein', e.target.value)} disabled={saving || fullySaved} /></NumField>
@@ -193,11 +195,6 @@ const EditHint = styled.div`
   display: flex; align-items: center; gap: 0.4rem;
   font-size: 0.8rem;
   color: var(--accent-gold, #C6A84B);
-`;
-
-const MealTypeRow = styled.div`
-  display: flex; align-items: center; gap: 0.6rem;
-  label { font-size: 0.85rem; color: var(--text-secondary, #A0B0C0); }
 `;
 
 const Select = styled.select`

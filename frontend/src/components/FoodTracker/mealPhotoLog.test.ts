@@ -101,6 +101,18 @@ describe('buildMacroPayloads', () => {
     expect(payloads[0].description).toBe('banana');
     expect(payloads[0].verified).toBe(false);
   });
+
+  it('honors per-row meal types when building photo macro payloads', () => {
+    const payloads = buildMacroPayloads(
+      [
+        { name: 'eggs', mealType: 'breakfast', calories: 140, protein: 12, carbs: 1, fat: 10 },
+        { name: 'rice', mealType: 'dinner', calories: 250, protein: 5, carbs: 50, fat: 1 },
+      ],
+      { mealType: 'snack', date: '2026-06-19' },
+    );
+
+    expect(payloads.map((payload) => payload.mealType)).toEqual(['breakfast', 'dinner']);
+  });
 });
 
 describe('summarizeSave', () => {

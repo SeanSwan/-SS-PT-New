@@ -53,6 +53,13 @@ describe('FoodIntakeForm edit-after-save flow', () => {
     mocks.logFoodIntake.mockResolvedValue({ success: true });
   });
 
+  it('does not frame food quality as a gamification points reward', () => {
+    render(<FoodIntakeForm onDataSent={vi.fn()} />);
+
+    expect(screen.queryByText(/gamification points/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/consistency beats perfect tracking/i)).toBeInTheDocument();
+  });
+
   it('creates a manual macro row, lets the client edit it, and updates through /api/macros/:id', async () => {
     mocks.post.mockResolvedValueOnce({
       data: {
