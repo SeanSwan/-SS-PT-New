@@ -75,18 +75,32 @@ describe('macroLogService verified invariant', () => {
     }));
   });
 
-  it('does not persist impossible rollover dates through the shared macro row builder', () => {
+  it('keeps missing macro dates defaulted to server today', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-20T12:00:00Z'));
     try {
       const row = buildMacroRow({
-        date: '2026-02-31',
         mealType: 'lunch',
         description: 'Burrito bowl',
         calories: 620,
       }, { userId: 42, source: 'ai_chat' });
 
       expect(row.date).toBe('2026-06-20');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects impossible provided dates through the shared macro row builder', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'));
+    try {
+      expect(() => buildMacroRow({
+        date: '2026-02-31',
+        mealType: 'lunch',
+        description: 'Burrito bowl',
+        calories: 620,
+      }, { userId: 42, source: 'ai_chat' })).toThrow('Date must be a real YYYY-MM-DD calendar date');
     } finally {
       vi.useRealTimers();
     }

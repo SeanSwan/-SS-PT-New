@@ -64,27 +64,22 @@ describe('hydration routes', () => {
     vi.useRealTimers();
   });
 
-  it('does not use impossible GET dates as hydration persistence keys', async () => {
+  it('rejects impossible GET dates before creating hydration records', async () => {
     const response = await request(makeApp())
       .get('/api/hydration?date=2026-02-31');
 
-    expect(response.status).toBe(200);
-    expect(mocks.findOrCreate).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 42, date: '2026-03-01' },
-    }));
-    expect(JSON.stringify(mocks.findOrCreate.mock.calls[0][0])).not.toContain('2026-02-31');
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('date must be a real YYYY-MM-DD calendar date');
+    expect(mocks.findOrCreate).not.toHaveBeenCalled();
   });
 
-  it('does not use impossible PUT dates as hydration persistence keys', async () => {
+  it('rejects impossible PUT dates before updating hydration records', async () => {
     const response = await request(makeApp())
       .put('/api/hydration')
       .send({ date: '2026-02-31', glassesFilled: 4 });
 
-    expect(response.status).toBe(200);
-    expect(mocks.findOrCreate).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 42, date: '2026-03-01' },
-      defaults: expect.objectContaining({ glassesFilled: 4 }),
-    }));
-    expect(JSON.stringify(mocks.findOrCreate.mock.calls[0][0])).not.toContain('2026-02-31');
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('date must be a real YYYY-MM-DD calendar date');
+    expect(mocks.findOrCreate).not.toHaveBeenCalled();
   });
 });

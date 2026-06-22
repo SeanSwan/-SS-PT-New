@@ -21,6 +21,7 @@ router.use(protect);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
+const HYDRATION_DATE_ERROR = 'date must be a real YYYY-MM-DD calendar date';
 const isValidDate = (str) => {
   if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
   const [year, month, day] = str.split('-').map(Number);
@@ -30,6 +31,12 @@ const isValidDate = (str) => {
     && parsed.getUTCDate() === day;
 };
 const todayStr = () => new Date().toISOString().split('T')[0];
+const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
+const resolveOptionalDate = (value) => {
+  if (!hasProvidedDate(value)) return { date: todayStr() };
+  if (!isValidDate(value)) return { error: HYDRATION_DATE_ERROR };
+  return { date: value };
+};
 
 const toFiniteDecimalNumber = (val) => {
   if (typeof val === 'number') return Number.isFinite(val) ? val : null;
@@ -48,7 +55,11 @@ const toFiniteDecimalNumber = (val) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const date = (req.query.date && isValidDate(req.query.date)) ? req.query.date : todayStr();
+    const resolvedDate = resolveOptionalDate(req.query.date);
+    if (resolvedDate.error) {
+      return res.status(400).json({ success: false, error: resolvedDate.error });
+    }
+    const date = resolvedDate.date;
 
     const [record] = await DailyHydration.findOrCreate({
       where: { userId: req.user.id, date },
@@ -70,7 +81,11 @@ router.get('/', async (req, res) => {
 router.put('/', async (req, res) => {
   try {
     const { glassesFilled, dailyGoal, glassOz } = req.body;
-    const date = (req.body.date && isValidDate(req.body.date)) ? req.body.date : todayStr();
+    const resolvedDate = resolveOptionalDate(req.body.date);
+    if (resolvedDate.error) {
+      return res.status(400).json({ success: false, error: resolvedDate.error });
+    }
+    const date = resolvedDate.date;
 
     // Validate glassesFilled
     const safeGlasses = toFiniteDecimalNumber(glassesFilled);

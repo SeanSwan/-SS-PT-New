@@ -70,6 +70,15 @@ const isValidDate = (str) => {
     && parsed.getUTCDate() === day;
 };
 
+const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
+const resolveMacroLogDate = (value) => {
+  if (!hasProvidedDate(value)) return new Date().toISOString().slice(0, 10);
+  if (!isValidDate(value)) {
+    throw new Error('Date must be a real YYYY-MM-DD calendar date');
+  }
+  return value;
+};
+
 /**
  * Normalize a source string to a model-valid stored value.
  * @param {string|undefined} source
@@ -96,7 +105,7 @@ export function buildMacroRow(data, { userId, source = 'manual' }) {
 
   return {
     userId,
-    date:             (data.date && isValidDate(data.date)) ? data.date : new Date().toISOString().slice(0, 10),
+    date:             resolveMacroLogDate(data.date),
     mealType:         VALID_MEAL_TYPES.includes(data.mealType) ? data.mealType : 'snack',
     description:      data.description.trim().slice(0, 500),
     calories:         sanitizeNumber(data.calories),
@@ -128,6 +137,7 @@ export async function createSingleMacroEntry(sanitizedData, { userId, source = '
   return DailyMacroLog.create({
     ...sanitizedData,
     userId,
+    date: resolveMacroLogDate(sanitizedData.date),
     source: normalizeMacroSource(source),
     verified: false,
   });
@@ -143,7 +153,7 @@ export async function createSingleMacroEntry(sanitizedData, { userId, source = '
  * @throws {Error} If any row fails to insert (transaction rolled back)
  */
 export async function createMacroEntries(meals, { clientId, date }) {
-  const targetDate = (date && isValidDate(date)) ? date : new Date().toISOString().slice(0, 10);
+  const targetDate = resolveMacroLogDate(date);
   const round1     = (n) => Math.round(n * 10) / 10;
 
   const t = await DailyMacroLog.sequelize.transaction();

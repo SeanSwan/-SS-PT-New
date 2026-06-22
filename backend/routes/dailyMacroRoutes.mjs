@@ -34,6 +34,7 @@ import {
 } from './dailyMacroRoutes.utils.mjs';
 
 const router = express.Router();
+const MACRO_DATE_ERROR = 'Date must be a real YYYY-MM-DD calendar date.';
 
 router.use(protect);
 
@@ -76,7 +77,11 @@ router.post('/', async (req, res) => {
     // Validate date and reject future-dated entries (no phantom future macro logs).
     const today = serverUtcDateOnly();
     const maxClientLocalDate = serverUtcDateOnly(1);
-    const entryDate = date && isValidDate(date) ? date : today;
+    const hasProvidedDate = date !== undefined && date !== null && date !== '';
+    if (hasProvidedDate && !isValidDate(date)) {
+      return res.status(400).json({ success: false, error: MACRO_DATE_ERROR });
+    }
+    const entryDate = hasProvidedDate ? date : today;
     if (entryDate > maxClientLocalDate) {
       return res.status(400).json({ success: false, error: 'Cannot log meals for a future date.' });
     }
