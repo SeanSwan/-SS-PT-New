@@ -86,6 +86,16 @@ describe('aiDataWriteService macro_log date fallback', () => {
     expect(capture.replacements?.mealType).toBe('snack');
   });
 
+  it('normalizes AI-provided macro_log mealType casing before persistence', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({ mealType: ' Lunch ' })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements?.mealType).toBe('lunch');
+  });
+
   it('scrubs generated macro_log display copy before persistence', async () => {
     const capture = {};
     const sequelize = makeMacroCaptureSequelize(capture);

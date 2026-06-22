@@ -43,8 +43,8 @@ const TRUSTED_MACRO_MEAL_TYPES = new Set(['breakfast', 'lunch', 'dinner', 'snack
 
 function trustedMacroMealType(value) {
   if (typeof value !== 'string') return 'snack';
-  const trimmed = value.trim();
-  return TRUSTED_MACRO_MEAL_TYPES.has(trimmed) ? trimmed : 'snack';
+  const normalized = value.trim().toLowerCase();
+  return TRUSTED_MACRO_MEAL_TYPES.has(normalized) ? normalized : 'snack';
 }
 
 function normalizeUpdateType(type) {
