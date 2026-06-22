@@ -138,8 +138,8 @@ export async function analyzeMealPhoto(imageBuffer, mimeType) {
 function sanitizeResult(raw) {
   const foods = Array.isArray(raw.foods)
     ? raw.foods.map(f => ({
-        name: typeof f.name === 'string' ? f.name.slice(0, 150) : 'Unknown food',
-        estimatedServing: typeof f.estimatedServing === 'string' ? f.estimatedServing.slice(0, 100) : '',
+        name: typeof f.name === 'string' ? sanitizeNutritionCopy(f.name, '', 150) : 'Unknown food',
+        estimatedServing: typeof f.estimatedServing === 'string' ? sanitizeNutritionCopy(f.estimatedServing, '', 100) : '',
         calories: clamp(f.calories, 0, 5000),
         protein: clamp(f.protein, 0, 500),
         carbs: clamp(f.carbs, 0, 1000),

@@ -74,7 +74,7 @@ describe('AI-generated nutrition copy care guard', () => {
 
   it('scrubs meal-photo notes and prompts the model away from moral food labels', async () => {
     mockGeminiJson({
-      foods: [{ name: 'Chicken bowl', estimatedServing: '1 bowl', calories: 600, protein: 40, carbs: 65, fat: 18, fiber: 8, confidence: 0.8 }],
+      foods: [{ name: 'Clean eating chicken bowl', estimatedServing: '1 guilt-free no sugar bowl', calories: 600, protein: 40, carbs: 65, fat: 18, fiber: 8, confidence: 0.8 }],
       totalCalories: 600,
       totalProtein: 40,
       totalCarbs: 65,
