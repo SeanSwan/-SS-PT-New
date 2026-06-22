@@ -66,6 +66,8 @@ async function loadDispatcher() {
 }
 
 afterEach(() => {
+  delete process.env.SWAN_DISPLAY_TZ;
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.resetModules();
 });
@@ -197,5 +199,43 @@ describe('Swan Coach nutrition command dispatchers', () => {
       where: expect.objectContaining({ userId: 42 }),
     }));
     expect(result.clientId).toBe(42);
+  });
+
+  it('uses the studio display timezone for default nutrition read dates', async () => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
+
+    const { dispatch, DailyMacroLog } = await loadDispatcher();
+
+    const logResult = await dispatch('view_nutrition_log', { clientId: 42 }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+    expect(logResult.date).toBe('2026-06-21');
+    expect(DailyMacroLog.findAll).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { userId: 42, date: '2026-06-21' },
+    }));
+
+    const trendResult = await dispatch('view_macro_trends', { clientId: 42 }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+    expect(trendResult).toMatchObject({
+      startDate: '2026-06-15',
+      endDate: '2026-06-21',
+    });
+    expect(DailyMacroLog.findAll).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: 42 }),
+    }));
+
+    const sodiumResult = await dispatch('flag_sodium_intake', { clientId: 42 }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+    expect(sodiumResult.date).toBe('2026-06-21');
+    expect(DailyMacroLog.findAll).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: { userId: 42, date: '2026-06-21' },
+    }));
   });
 });

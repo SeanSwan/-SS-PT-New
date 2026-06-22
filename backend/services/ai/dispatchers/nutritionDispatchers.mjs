@@ -32,6 +32,31 @@ import DailyMacroLog from '../../../models/DailyMacroLog.mjs';
 import logger from '../../../utils/logger.mjs';
 import { resolveCommandClientId } from './clientScope.mjs';
 
+const displayTimeZone = () => process.env.SWAN_DISPLAY_TZ || 'America/Los_Angeles';
+
+const formatDisplayDate = (date = new Date()) => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: displayTimeZone(),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    if (values.year && values.month && values.day) {
+      return `${values.year}-${values.month}-${values.day}`;
+    }
+  } catch {
+    // Fall back to UTC when SWAN_DISPLAY_TZ is invalid or unavailable.
+  }
+  return date.toISOString().slice(0, 10);
+};
+
+const addCalendarDays = (dateString, days) => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+};
+
 // ── E03: log_meals ────────────────────────────────────────────────────────────
 
 /**
@@ -66,7 +91,7 @@ export async function logMeals(params, ctx) {
  */
 export async function viewNutritionLog(params, ctx) {
   const clientId = resolveCommandClientId(params, ctx);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatDisplayDate();
   const empty = { date: today, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
   try {
     const rows = await DailyMacroLog.findAll({
@@ -105,10 +130,8 @@ export async function viewNutritionLog(params, ctx) {
  */
 export async function viewMacroTrends(params, ctx) {
   const clientId = resolveCommandClientId(params, ctx);
-  const endDate   = new Date().toISOString().slice(0, 10);
-  const startD    = new Date();
-  startD.setDate(startD.getDate() - 6);          // last 7 days inclusive
-  const startDate = startD.toISOString().slice(0, 10);
+  const endDate = formatDisplayDate();
+  const startDate = addCalendarDays(endDate, -6);
   const empty = { daysLogged: 0, avgCalories: 0, avgProtein: 0, avgCarbs: 0, avgFat: 0, startDate, endDate };
   try {
     const rows = await DailyMacroLog.findAll({
@@ -193,7 +216,7 @@ const buildFoodSummary = (product, searchMode, counts) => {
   };
 };
 
-const todayDate = () => new Date().toISOString().slice(0, 10);
+const todayDate = () => formatDisplayDate();
 
 const emptySodiumSummary = (clientId, date, sodiumLimit, mealSodiumLimit) => ({
   clientId,
