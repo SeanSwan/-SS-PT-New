@@ -174,10 +174,10 @@ describe('NutritionTodayPanel logic', () => {
       'hydration-gap',
       'weekly-rhythm',
     ]);
-    expect(insights[0].copy).toContain('42g of 150g');
-    expect(insights[1].copy).toContain('8g of 30g');
+    expect(insights[0].copy).toContain('42g protein logged so far');
+    expect(insights[1].copy).toContain('8g fiber logged so far');
     expect(insights[2].target).toBe('hydration');
-    expect(insights.map((insight) => insight.copy).join(' ')).not.toMatch(/calorie target/i);
+    expect(insights.map((insight) => insight.copy).join(' ')).not.toMatch(/calorie target|\d+g\s+of\s+\d+g/i);
   });
 
   it('does not invent protein or fiber gap insight copy from incomplete summaries', () => {

@@ -54,7 +54,8 @@ export interface RepeatMacroEntry {
 }
 
 const allowedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-const PROTEIN_TARGET_GRAMS = 150; const FIBER_TARGET_GRAMS = 30;
+const PROTEIN_SUPPORT_THRESHOLD_GRAMS = 130;
+const FIBER_SUPPORT_THRESHOLD_GRAMS = 22;
 const MAX_HYDRATION_GLASSES = 30;
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
@@ -245,21 +246,21 @@ export const buildNutritionInsights = ({ summary, hydration, weekDays, trainingD
     });
   }
 
-  if (meals > 0 && proteinValue !== null && protein < PROTEIN_TARGET_GRAMS - 20) {
+  if (meals > 0 && proteinValue !== null && protein < PROTEIN_SUPPORT_THRESHOLD_GRAMS) {
     insights.push({
       id: 'protein-gap',
       title: 'Protein support',
-      copy: `${protein}g of ${PROTEIN_TARGET_GRAMS}g logged. Add a clear protein source at the next meal so the log supports training recovery.`,
+      copy: `${protein}g protein logged so far. Add a clear protein source at the next meal if it matches what you actually ate or plan to eat.`,
       target: 'search',
       tone: 'cyan',
     });
   }
 
-  if (meals > 0 && fiberValue !== null && fiber < FIBER_TARGET_GRAMS - 8) {
+  if (meals > 0 && fiberValue !== null && fiber < FIBER_SUPPORT_THRESHOLD_GRAMS) {
     insights.push({
       id: 'fiber-gap',
       title: 'Fiber coverage',
-      copy: `${fiber}g of ${FIBER_TARGET_GRAMS}g logged. Add fruit, beans, oats, or vegetables if they fit the meal you actually ate.`,
+      copy: `${fiber}g fiber logged so far. Add fruit, beans, oats, or vegetables if they fit the meal you actually ate.`,
       target: 'search',
       tone: 'fern',
     });

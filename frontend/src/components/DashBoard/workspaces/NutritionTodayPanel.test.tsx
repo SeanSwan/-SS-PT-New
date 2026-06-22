@@ -112,8 +112,9 @@ describe('NutritionTodayPanel', () => {
     expect(screen.getByText(/Hold nutrition decisions until today's log finishes loading/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /next action/i })).toBeDisabled();
     expect(screen.getByRole('region', { name: /nutrition insights/i })).toHaveAttribute('aria-busy', 'true');
-    expect(screen.queryByText(/52g of 150g/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/9g of 30g/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/protein logged so far/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fiber logged so far/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+g of \d+g/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/2 meals logged today/i)).not.toBeInTheDocument();
     await waitFor(() => expect(mocks.apiGet).toHaveBeenCalled());
   });
@@ -156,9 +157,10 @@ describe('NutritionTodayPanel', () => {
 
     expect(await screen.findByRole('region', { name: /nutrition insights/i })).toBeInTheDocument();
     expect(screen.getByText(/protein support/i)).toBeInTheDocument();
-    expect(screen.getByText(/52g of 150g/i)).toBeInTheDocument();
+    expect(screen.getByText(/52g protein logged so far/i)).toBeInTheDocument();
     expect(screen.getByText(/fiber coverage/i)).toBeInTheDocument();
-    expect(screen.getByText(/9g of 30g/i)).toBeInTheDocument();
+    expect(screen.getByText(/9g fiber logged so far/i)).toBeInTheDocument();
+    expect(screen.queryByText(/\d+g of \d+g/i)).not.toBeInTheDocument();
     expect(screen.getByText(/2 of the last 7 days/i)).toBeInTheDocument();
   });
 
