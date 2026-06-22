@@ -99,21 +99,24 @@ export const buildNutritionRosterRows = (
     if (userId !== null) byUserId.set(userId, record);
   });
 
-  return clients.map((client) => {
-    const record = byUserId.get(client.id);
+  return clients.flatMap((client) => {
+    const clientId = toPositiveIntegerId(client.id);
+    if (clientId === null) return [];
+
+    const record = byUserId.get(clientId);
     const mealCount = toWholeCount(record?.mealCountToday);
     const weeklyLoggedDays = toWholeCount(record?.weeklyLoggedDays, 7);
     const protein = Math.round(toNonNegativeNumber(record?.totalProtein));
     const flags = buildFlagLabels(record?.flags);
 
-    return {
-      clientId: client.id,
+    return [{
+      clientId,
       clientName: client.displayName,
       statusLabel: record ? formatMeals(mealCount) : 'No nutrition data',
       weeklyLabel: `${weeklyLoggedDays}/7 days`,
       proteinLabel: `${Math.max(0, protein)}g protein`,
       flags,
       attentionScore: attentionScoreFor(flags),
-    };
+    }];
   }).sort((a, b) => b.attentionScore - a.attentionScore || a.clientName.localeCompare(b.clientName));
 };

@@ -113,4 +113,20 @@ describe('ClientNutritionRosterTriagePanel logic', () => {
       flags: ['No nutrition data'],
     });
   });
+
+  it('normalizes visible client ids before joining records and skips invalid client rows', () => {
+    const rows = buildNutritionRosterRows([
+      { id: '101' as unknown as number, displayName: 'Alpha Client' },
+      { id: ['202'] as unknown as number, displayName: 'Coerced Client' },
+    ], records);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      clientId: 101,
+      clientName: 'Alpha Client',
+      statusLabel: '2 meals today',
+      weeklyLabel: '4/7 days',
+      proteinLabel: '55g protein',
+    });
+  });
 });
