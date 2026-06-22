@@ -21,7 +21,7 @@ const router = express.Router();
 router.use(protect);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
+const WHOLE_NUMBER_REGEX = /^\d+$/;
 const HYDRATION_DATE_ERROR = 'date must be a real YYYY-MM-DD calendar date';
 const HYDRATION_FUTURE_DATE_ERROR = 'date cannot be in the future';
 const HYDRATION_RANGE_ERROR = 'start cannot be after end date';
@@ -51,16 +51,17 @@ const resolveOptionalDate = (value, fallbackDate = todayStr()) => {
   return { date: value };
 };
 
-const toFiniteDecimalNumber = (val) => {
-  if (typeof val === 'number') return Number.isFinite(val) ? val : null;
+const toFiniteWholeNumber = (val) => {
+  if (typeof val === 'number') return Number.isInteger(val) ? val : null;
   if (typeof val !== 'string') return null;
 
   const trimmed = val.trim();
-  if (!DECIMAL_NUMBER_REGEX.test(trimmed)) return null;
+  if (!WHOLE_NUMBER_REGEX.test(trimmed)) return null;
 
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
 };
+const hasProvidedNumber = (value) => value !== undefined && value !== null && value !== '';
 
 /**
  * GET /api/hydration?date=YYYY-MM-DD
@@ -101,29 +102,35 @@ router.put('/', async (req, res) => {
     const date = resolvedDate.date;
 
     // Validate glassesFilled
-    const safeGlasses = toFiniteDecimalNumber(glassesFilled);
+    const safeGlasses = toFiniteWholeNumber(glassesFilled);
     if (safeGlasses === null || safeGlasses < 0 || safeGlasses > 30) {
-      return res.status(400).json({ success: false, error: 'glassesFilled must be 0-30' });
+      return res.status(400).json({ success: false, error: 'glassesFilled must be a whole number 0-30' });
     }
 
-    const goalNumber = dailyGoal === undefined ? null : toFiniteDecimalNumber(dailyGoal);
-    const ozNumber = glassOz === undefined ? null : toFiniteDecimalNumber(glassOz);
-    const safeGoal = (goalNumber !== null && goalNumber >= 1 && goalNumber <= 30)
-      ? goalNumber : undefined;
-    const safeOz = (ozNumber !== null && ozNumber >= 1 && ozNumber <= 32)
-      ? ozNumber : undefined;
+    const goalNumber = hasProvidedNumber(dailyGoal) ? toFiniteWholeNumber(dailyGoal) : null;
+    if (hasProvidedNumber(dailyGoal) && (goalNumber === null || goalNumber < 1 || goalNumber > 30)) {
+      return res.status(400).json({ success: false, error: 'dailyGoal must be a whole number 1-30' });
+    }
+
+    const ozNumber = hasProvidedNumber(glassOz) ? toFiniteWholeNumber(glassOz) : null;
+    if (hasProvidedNumber(glassOz) && (ozNumber === null || ozNumber < 1 || ozNumber > 32)) {
+      return res.status(400).json({ success: false, error: 'glassOz must be a whole number 1-32' });
+    }
+
+    const safeGoal = goalNumber !== null ? goalNumber : undefined;
+    const safeOz = ozNumber !== null ? ozNumber : undefined;
 
     const [record, created] = await DailyHydration.findOrCreate({
       where: { userId: req.user.id, date },
       defaults: {
-        glassesFilled: Math.round(safeGlasses),
+        glassesFilled: safeGlasses,
         dailyGoal: safeGoal || 8,
         glassOz: safeOz || 8,
       },
     });
 
     if (!created) {
-      const updates = { glassesFilled: Math.round(safeGlasses) };
+      const updates = { glassesFilled: safeGlasses };
       if (safeGoal !== undefined) updates.dailyGoal = safeGoal;
       if (safeOz !== undefined) updates.glassOz = safeOz;
       await record.update(updates);

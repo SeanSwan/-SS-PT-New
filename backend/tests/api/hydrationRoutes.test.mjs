@@ -147,6 +147,21 @@ describe('hydration routes', () => {
     expect(mocks.findOrCreate).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [{ glassesFilled: 2.5 }, 'glassesFilled must be a whole number 0-30'],
+    [{ glassesFilled: '2.5' }, 'glassesFilled must be a whole number 0-30'],
+    [{ glassesFilled: 4, dailyGoal: 8.5 }, 'dailyGoal must be a whole number 1-30'],
+    [{ glassesFilled: 4, glassOz: 8.5 }, 'glassOz must be a whole number 1-32'],
+  ])('rejects fractional hydration integer fields before model access %#', async (body, expectedError) => {
+    const response = await request(makeApp())
+      .put('/api/hydration')
+      .send(body);
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe(expectedError);
+    expect(mocks.findOrCreate).not.toHaveBeenCalled();
+  });
+
   it('accepts a client-local hydration date one calendar day ahead of server UTC', async () => {
     const response = await request(makeApp())
       .put('/api/hydration')
