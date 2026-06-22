@@ -47,6 +47,14 @@ async function loadDispatcher() {
   const DailyMacroLog = {
     findAll: vi.fn(async () => sodiumRows),
   };
+  const createMacroEntries = vi.fn(async (meals, opts) => ({
+    mealsLogged: meals.length,
+    date: opts.date,
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFat: 0,
+  }));
 
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => ({}),
@@ -60,9 +68,12 @@ async function loadDispatcher() {
   vi.doMock('../../models/DailyMacroLog.mjs', () => ({
     default: DailyMacroLog,
   }));
+  vi.doMock('../../services/nutrition/macroLogService.mjs', () => ({
+    createMacroEntries,
+  }));
 
   const dispatcher = await import('../../services/ai/commandDispatcher.mjs');
-  return { ...dispatcher, foodScannerService, DailyMacroLog };
+  return { ...dispatcher, foodScannerService, DailyMacroLog, createMacroEntries };
 }
 
 afterEach(() => {
@@ -237,5 +248,24 @@ describe('Swan Coach nutrition command dispatchers', () => {
     expect(DailyMacroLog.findAll).toHaveBeenLastCalledWith(expect.objectContaining({
       where: { userId: 42, date: '2026-06-21' },
     }));
+  });
+
+  it('uses the studio display timezone for default nutrition write dates', async () => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
+
+    const { dispatch, createMacroEntries } = await loadDispatcher();
+    const meals = [{ description: 'protein shake', mealType: 'snack', calories: 220 }];
+
+    await dispatch('log_meals', { clientId: 42, meals }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(createMacroEntries).toHaveBeenCalledWith(meals, {
+      clientId: 42,
+      date: '2026-06-21',
+    });
   });
 });

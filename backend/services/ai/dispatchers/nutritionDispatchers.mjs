@@ -75,7 +75,7 @@ export async function logMeals(params, ctx) {
   // per-row date assignment, number sanitization, and the missing-table error path.
   return createMacroEntries(params.meals, {
     clientId,
-    date: params.date || null,   // service defaults to today when null
+    date: params.date || formatDisplayDate(),
   });
 }
 
