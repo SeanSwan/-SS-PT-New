@@ -74,4 +74,16 @@ describe('FoodIntelligenceDashboard', () => {
     expect(screen.queryByText('Serving: 0g')).not.toBeInTheDocument();
     expect(screen.getByText('4.5g fat')).toBeInTheDocument();
   });
+
+  it('keeps fast-food verdicts care-first without cutting or bulk framing', async () => {
+    const user = userEvent.setup();
+
+    render(<FoodIntelligenceDashboard />);
+    await user.click(screen.getByRole('tab', { name: /fast food/i }));
+
+    expect(screen.getByText('Double Cheeseburger')).toBeInTheDocument();
+    expect(screen.queryByText(/\bcutting\b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bbulk\b/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Plan it around your day and training context/i)).toBeInTheDocument();
+  });
 });

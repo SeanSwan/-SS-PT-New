@@ -48,12 +48,12 @@ export const PRODUCE_DATA: ProduceItem[] = [
 ];
 
 export const FAST_FOOD_ITEMS: FastFoodItem[] = [
-  { name: 'Grilled Chicken Sandwich', restaurant: 'Most chains', cal: 380, protein: 32, carbs: 38, fat: 10, verdict: 'Good choice for protein. Skip the mayo for fewer calories.' },
-  { name: 'Double Cheeseburger', restaurant: 'Most chains', cal: 740, protein: 42, carbs: 48, fat: 42, verdict: 'High calorie/fat. Okay for a bulk - not ideal for cutting.' },
-  { name: 'Caesar Salad (with dressing)', restaurant: 'Most chains', cal: 470, protein: 18, carbs: 22, fat: 35, verdict: 'Sneaky high-cal from dressing + croutons. Ask for dressing on the side.' },
-  { name: 'Egg McMuffin', restaurant: 'McDonald\'s', cal: 300, protein: 17, carbs: 30, fat: 12, verdict: 'Solid breakfast option - good protein-to-calorie ratio.' },
-  { name: 'Protein Bowl (no rice)', restaurant: 'Chipotle', cal: 420, protein: 46, carbs: 14, fat: 22, verdict: 'Excellent macro profile. Add double protein for a serious bulk meal.' },
-  { name: 'Large Fries', restaurant: 'Most chains', cal: 490, protein: 7, carbs: 63, fat: 24, verdict: 'Pure carbs and fat with minimal protein. Occasional treat only.' },
+  { name: 'Grilled Chicken Sandwich', restaurant: 'Most chains', cal: 380, protein: 32, carbs: 38, fat: 10, verdict: 'Protein-forward option. Sauce on the side gives you more control over the meal.' },
+  { name: 'Double Cheeseburger', restaurant: 'Most chains', cal: 740, protein: 42, carbs: 48, fat: 42, verdict: 'Higher energy and fat. Plan it around your day and training context.' },
+  { name: 'Caesar Salad (with dressing)', restaurant: 'Most chains', cal: 470, protein: 18, carbs: 22, fat: 35, verdict: 'Dressing and croutons drive much of the energy; asking for dressing on the side gives more control.' },
+  { name: 'Egg McMuffin', restaurant: 'McDonald\'s', cal: 300, protein: 17, carbs: 30, fat: 12, verdict: 'Balanced breakfast option with a practical protein-to-energy ratio.' },
+  { name: 'Protein Bowl (no rice)', restaurant: 'Chipotle', cal: 420, protein: 46, carbs: 14, fat: 22, verdict: 'Strong protein profile. Add extra protein if your coach has set a higher-protein day.' },
+  { name: 'Large Fries', restaurant: 'Most chains', cal: 490, protein: 7, carbs: 63, fat: 24, verdict: 'Mostly carbohydrate and fat with little protein; pair with a protein source if it fits your plan.' },
 ];
 
 export const resultVariantForRisk = (risk: ProduceRisk): ResultVariant => {
