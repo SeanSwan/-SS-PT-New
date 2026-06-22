@@ -84,6 +84,20 @@ describe('checkClientAccess matrix', () => {
     expect((await checkClientAccess({ id: 9, role: 'visitor' }, 7, fakeSequelize())).allowed).toBe(false);
   });
 
+  it.each([
+    ['array client id', ['7']],
+    ['decimal string client id', '7.0'],
+    ['whitespace-padded client id', ' 7'],
+    ['leading-zero client id', '007'],
+    ['object client id', { toString: () => '7' }],
+    ['boolean client id', true],
+  ])('rejects coercive target client ids: %s', async (_label, targetClientId) => {
+    const sequelize = fakeSequelize({ assignmentRows: [{ 1: 1 }] });
+    const r = await checkClientAccess(TRAINER, targetClientId, sequelize);
+    expect(r).toEqual({ allowed: false, via: null, reason: 'invalid_request' });
+    expect(sequelize.query).not.toHaveBeenCalled();
+  });
+
   it('pending assignments grant NOTHING (only status=active matches)', async () => {
     // The SQL itself filters status='active'; simulate the DB returning no rows
     // for a pending-only assignment and assert denial.

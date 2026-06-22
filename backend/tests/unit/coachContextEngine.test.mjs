@@ -14,6 +14,14 @@ import { buildCoachContext, CONTEXT_DOMAINS } from '../../services/ai/contextEng
 vi.mock('../../services/ai/contextEngine/clientAccess.mjs', () => ({
   checkClientAccess: vi.fn(),
   CLIENT_ACCESS_DENIED_MESSAGE: "You don't have access to that client's data. Ask an admin to assign this client to you.",
+  parseContextClientId: (targetClientId) => {
+    if (typeof targetClientId === 'number') {
+      return Number.isSafeInteger(targetClientId) && targetClientId > 0 ? targetClientId : null;
+    }
+    if (typeof targetClientId !== 'string' || !/^[1-9]\d*$/.test(targetClientId)) return null;
+    const parsed = Number(targetClientId);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  },
 }));
 
 const accessMock = vi.mocked(checkClientAccess);
@@ -71,6 +79,14 @@ describe('buildCoachContext', () => {
     const r = await buildCoachContext({ user: TRAINER, targetClientId: 7, sequelize });
     expect(r.ok).toBe(false);
     expect(r.deniedReason).toBe('not_assigned');
+    expect(sequelize.query).not.toHaveBeenCalled();
+  });
+
+  it('rejects coercive target client IDs before nutrition context queries', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'assignment', reason: null });
+    const sequelize = fakeSequelize();
+    const r = await buildCoachContext({ user: TRAINER, targetClientId: ['7'], sequelize });
+    expect(r).toMatchObject({ ok: false, deniedReason: 'invalid_request' });
     expect(sequelize.query).not.toHaveBeenCalled();
   });
 

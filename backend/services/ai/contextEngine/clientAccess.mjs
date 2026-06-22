@@ -21,6 +21,19 @@ import logger from '../../../utils/logger.mjs';
 export const CLIENT_ACCESS_DENIED_MESSAGE =
   "You don't have access to that client's data. Ask an admin to assign this client to you.";
 
+export function parseContextClientId(targetClientId) {
+  if (typeof targetClientId === 'number') {
+    return Number.isSafeInteger(targetClientId) && targetClientId > 0 ? targetClientId : null;
+  }
+
+  if (typeof targetClientId !== 'string' || !/^[1-9]\d*$/.test(targetClientId)) {
+    return null;
+  }
+
+  const parsed = Number(targetClientId);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
 /**
  * @param {Object} user - { id, role }
  * @param {number|string} targetClientId
@@ -28,8 +41,8 @@ export const CLIENT_ACCESS_DENIED_MESSAGE =
  * @returns {Promise<{ allowed: boolean, via: string|null, reason: string|null }>}
  */
 export async function checkClientAccess(user, targetClientId, sequelize) {
-  const clientId = Number(targetClientId);
-  if (!user?.id || !user?.role || !Number.isSafeInteger(clientId) || clientId <= 0) {
+  const clientId = parseContextClientId(targetClientId);
+  if (!user?.id || !user?.role || clientId === null) {
     return { allowed: false, via: null, reason: 'invalid_request' };
   }
 

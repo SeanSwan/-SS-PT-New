@@ -21,6 +21,18 @@ import { dispatchBriefMyDay } from '../../services/ai/dispatchers/dayBriefDispat
 vi.mock('../../services/ai/contextEngine/clientAccess.mjs', () => ({
   checkClientAccess: vi.fn(),
   CLIENT_ACCESS_DENIED_MESSAGE: 'denied',
+  parseContextClientId: (targetClientId) => {
+    if (typeof targetClientId === 'number') {
+      return Number.isSafeInteger(targetClientId) && targetClientId > 0 ? targetClientId : null;
+    }
+
+    if (typeof targetClientId !== 'string' || !/^[1-9]\d*$/.test(targetClientId)) {
+      return null;
+    }
+
+    const parsed = Number(targetClientId);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  },
 }));
 
 const accessMock = vi.mocked(checkClientAccess);

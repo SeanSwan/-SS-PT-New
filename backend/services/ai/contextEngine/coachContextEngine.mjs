@@ -16,7 +16,7 @@
  * Gamification is DEFERRED to A2 (schema unverified — reported in dataQuality).
  */
 import { deIdentifyClient } from '../deIdentifier.mjs';
-import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from './clientAccess.mjs';
+import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE, parseContextClientId } from './clientAccess.mjs';
 import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
 
 function selectType(sequelize) {
@@ -143,7 +143,14 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
     return { ok: false, deniedReason: 'no_database', message: 'Database connection not available.' };
   }
 
-  const clientId = Number(targetClientId);
+  const clientId = parseContextClientId(targetClientId);
+  if (clientId === null) {
+    return {
+      ok: false,
+      deniedReason: 'invalid_request',
+      message: CLIENT_ACCESS_DENIED_MESSAGE,
+    };
+  }
   const replacements = { clientId };
 
   // 2. Load all domains in parallel; per-domain failure degrades, never throws.
