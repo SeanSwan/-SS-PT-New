@@ -848,9 +848,9 @@ export const setupRoutes = async (app) => {
       logger.info(`🏠 Frontend served from: ${frontendDistPath}`);
       logger.info(`📄 Index.html path: ${indexPath}`);
     } else {
-      logger.error('🚨 CRITICAL: Cannot configure SPA routing - frontend files not found!');
-      logger.error(`Frontend path: ${frontendDistPath}`);
-      logger.error(`Index path: ${indexPath}`);
+      logger.warn('SPA fallback routing not configured because frontend dist is unavailable in this backend service.');
+      logger.info(`Frontend path: ${frontendDistPath}`);
+      logger.info(`Index path: ${indexPath}`);
       
       // Fallback error handler for missing frontend
       app.get('*', (req, res) => {

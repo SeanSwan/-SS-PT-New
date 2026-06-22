@@ -177,9 +177,9 @@ export const setupMiddleware = async (app) => {
       
       logger.info('✅ Frontend static files configured with robust path resolution');
     } else {
-      logger.error('🚨 CRITICAL: Frontend dist directory not found in any expected location!');
-      logger.error('🔍 Searched paths:', possibleFrontendPaths);
-      logger.error('💡 Ensure frontend is built with: npm run build');
+      logger.warn('Frontend dist directory not found; backend static file serving is disabled for this service.');
+      logger.info('Searched frontend dist paths:', possibleFrontendPaths);
+      logger.info('If the Render static site serves the frontend, this is expected.');
     }
   }
 

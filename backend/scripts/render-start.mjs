@@ -65,15 +65,8 @@ async function start() {
       // Run exercise seeders (idempotent — uses ON CONFLICT DO NOTHING / findOrCreate)
       console.log('Running exercise seeders...');
       try {
-        // NASM seeder uses Sequelize CLI format (up/down exports)
-        await run('npx', [
-          'sequelize-cli', 'db:seed',
-          '--seed', '20260228-seed-nasm-comprehensive-exercises.mjs',
-          '--config', 'config/config.cjs',
-          '--seeders-path', 'seeders',
-          '--models-path', 'models',
-          '--env', 'production'
-        ]);
+        // Direct runner avoids sequelize-cli's known .mjs --seed resolution bug.
+        await run('node', ['scripts/run-nasm-comprehensive-seeder.mjs']);
         console.log('NASM exercise seeder completed (200+ exercises)');
       } catch (exSeedErr) {
         console.warn('NASM exercise seeder failed (non-fatal):', exSeedErr.message);
