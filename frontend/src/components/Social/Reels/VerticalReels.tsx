@@ -2,15 +2,7 @@
  * VerticalReels - dashboard/standalone vertical media viewer for real social posts.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Play,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, Loader2, Play, Volume2, VolumeX } from 'lucide-react';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useToast } from '../../../hooks/use-toast';
 import {
@@ -49,15 +41,7 @@ interface VerticalReelsProps {
 }
 
 const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) => {
-  const {
-    posts,
-    isLoading,
-    error,
-    refreshPosts,
-    likePost,
-    unlikePost,
-    loadComments,
-  } = useSocialFeed();
+  const { posts, isLoading, error, refreshPosts, likePost, unlikePost, loadComments } = useSocialFeed();
   const { toast } = useToast();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(true);
