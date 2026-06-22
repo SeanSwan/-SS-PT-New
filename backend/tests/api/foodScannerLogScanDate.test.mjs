@@ -130,6 +130,40 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
     expect(mocks.processAIDataUpdates).not.toHaveBeenCalled();
   });
 
+  it('accepts plain decimal string serving sizes and scales macro values', async () => {
+    const response = await request(makeApp())
+      .post('/api/food-scanner/log-scan')
+      .send({ barcode: '12345678', servingSizeGrams: '150.5' });
+
+    expect(response.status).toBe(200);
+    expect(mocks.processAIDataUpdates).toHaveBeenCalledTimes(1);
+    const update = mocks.processAIDataUpdates.mock.calls[0][1][0];
+    expect(update.data.description).toContain('(150.5g)');
+    expect(update.data.calories).toBeCloseTo(165.55);
+    expect(update.data.protein).toBeCloseTo(16.555);
+  });
+
+  it.each([
+    { label: 'boolean true', value: true },
+    { label: 'boolean false', value: false },
+    { label: 'hex string', value: '0x10' },
+    { label: 'exponent string', value: '1e3' },
+    { label: 'array value', value: [150] },
+    { label: 'object value', value: { grams: 150 } },
+  ])('rejects coercive serving sizes before product lookup or macro write: $label', async ({ value }) => {
+    const response = await request(makeApp())
+      .post('/api/food-scanner/log-scan')
+      .send({ barcode: '12345678', servingSizeGrams: value });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Serving size must be between 1g and 10,000g',
+    });
+    expect(mocks.getProductByBarcode).not.toHaveBeenCalled();
+    expect(mocks.processAIDataUpdates).not.toHaveBeenCalled();
+  });
+
   it('does not claim a scan was logged when the macro writer saved zero rows', async () => {
     mocks.processAIDataUpdates.mockResolvedValueOnce({
       successful: 0,

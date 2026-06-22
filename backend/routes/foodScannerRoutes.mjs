@@ -11,6 +11,7 @@ import {
   NUTRITION_FUTURE_DATE_ERROR,
   resolveNutritionWriteDate,
 } from '../services/nutrition/displayDate.mjs';
+import { parseServingSizeGrams } from '../services/nutrition/servingSizeValidation.mjs';
 
 const router = express.Router();
 
@@ -442,8 +443,8 @@ router.post('/log-scan', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid barcode is required (8-14 digits)' });
     }
 
-    const safeServingSizeGrams = Number(servingSizeGrams);
-    if (!Number.isFinite(safeServingSizeGrams) || safeServingSizeGrams < 1 || safeServingSizeGrams > 10000) {
+    const safeServingSizeGrams = parseServingSizeGrams(servingSizeGrams);
+    if (safeServingSizeGrams === null || safeServingSizeGrams < 1 || safeServingSizeGrams > 10000) {
       return res.status(400).json({ success: false, message: 'Serving size must be between 1g and 10,000g' });
     }
 
