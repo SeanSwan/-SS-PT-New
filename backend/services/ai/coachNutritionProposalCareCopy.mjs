@@ -6,6 +6,14 @@
  */
 import { sanitizeNutritionCopy } from '../nutrition/nutritionCareCopy.mjs';
 
+const VALID_PROPOSAL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
+
+const normalizeProposalMealType = (value) => {
+  if (typeof value !== 'string') return 'snack';
+  const normalized = value.trim().toLowerCase();
+  return VALID_PROPOSAL_MEAL_TYPES.includes(normalized) ? normalized : 'snack';
+};
+
 const sanitizeNutritionProposalItem = (item) => {
   if (typeof item === 'string') return sanitizeNutritionCopy(item, '', 150);
   if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
@@ -19,6 +27,7 @@ const sanitizeNutritionProposalItem = (item) => {
 
 export function sanitizeNutritionProposalMeal(meal, { descriptionMax = 500 } = {}) {
   const next = meal && typeof meal === 'object' && !Array.isArray(meal) ? { ...meal } : {};
+  next.mealType = normalizeProposalMealType(next.mealType);
   next.description = sanitizeNutritionCopy(next.description, '', descriptionMax);
   if (Array.isArray(next.items)) {
     next.items = next.items.slice(0, 50).map(sanitizeNutritionProposalItem);

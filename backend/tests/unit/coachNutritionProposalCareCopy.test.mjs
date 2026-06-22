@@ -41,7 +41,7 @@ describe('Coach nutrition proposal care-copy guards', () => {
           clientId: 42,
           date: '2026-05-05',
           meals: [{
-            mealType: 'lunch',
+            mealType: ' POST_WORKOUT ',
             description: 'Clean eating cheat meal bowl with zero sugar sauce',
             calories: 650,
             items: [{ name: 'Zero sugar chicken', serving: '1 guilt-free bowl' }],
@@ -60,6 +60,7 @@ describe('Coach nutrition proposal care-copy guards', () => {
     expect(result.status).toBe(200);
     const [mealsArg] = createMacroEntries.mock.calls[0];
     expect(JSON.stringify(mealsArg)).not.toMatch(unsafeNutritionCopyPattern);
+    expect(mealsArg[0].mealType).toBe('post_workout');
     expect(mealsArg.every((meal) => meal.verified === false)).toBe(true);
   });
 
@@ -71,7 +72,7 @@ describe('Coach nutrition proposal care-copy guards', () => {
           clientId: 42,
           meals: [
             {
-              mealType: 'lunch',
+              mealType: ' Lunch ',
               description: 'Clean eating cheat meal bowl with zero sugar sauce',
               calories: 650,
               items: [{ name: 'Zero sugar chicken', serving: '1 guilt-free bowl' }],
@@ -83,5 +84,6 @@ describe('Coach nutrition proposal care-copy guards', () => {
     });
 
     expect(JSON.stringify(detail.nutrition.meals)).not.toMatch(unsafeNutritionCopyPattern);
+    expect(detail.nutrition.meals[0].mealType).toBe('lunch');
   });
 });
