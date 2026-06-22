@@ -46,7 +46,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   onSearchQueryChange, onFilterCategoryChange, onSourceFilterChange, onExerciseTypeFilterChange,
   onEquipmentFilterChange, onImpactFilterChange, onClearFilters, saving, planExercises, hasGeneratedHorizonPlan,
   loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations, onSaveDraft,
-  onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onSelectExercise,
+  onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onCreatePdf, onSelectExercise,
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onToggleExplanations, teachModeProps,
   generatedPlan, selectedMesoDay, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
@@ -157,6 +157,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           onUpdateLoaded={onUpdateLoaded}
           onUpdateAndActivate={onUpdateAndActivate}
           onDuplicateLoadedPlan={onDuplicateLoadedPlan}
+          onCreatePdf={onCreatePdf}
           onSelectExercise={onSelectExercise}
           onUpdateExercise={onUpdateExercise}
           onRemoveExercise={onRemoveExercise}

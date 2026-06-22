@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { ChevronDown, ChevronUp, Info, Loader2, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Info, Loader2, Save } from 'lucide-react';
 import type { OPTPhaseParams } from './WorkoutPlannerTypes';
 import { workoutPlannerExplanationKey } from './WorkoutPlannerRowKeys';
 import {
@@ -47,6 +47,8 @@ interface BuilderActionMatrixProps {
   onUpdateLoaded: () => void;
   onUpdateAndActivate: () => void;
   onDuplicateLoadedPlan: () => void;
+  onCreatePdf: () => void;
+  showCreatePdf?: boolean;
 }
 
 const NewPlanActions: React.FC<Pick<
@@ -81,7 +83,25 @@ const updateAndActivateDisabled = (saving: boolean, hasExercises: boolean) => (
   saving || !hasExercises
 );
 
-const LoadedPlanActions: React.FC<Omit<BuilderActionMatrixProps, 'loadedPlanId' | 'onSaveDraft' | 'onSaveAndActivate'>> = ({
+const BuilderCreatePdfAction: React.FC<Pick<
+  BuilderActionMatrixProps,
+  'saving' | 'hasExercises' | 'onCreatePdf'
+>> = ({ saving, hasExercises, onCreatePdf }) => (
+  <ActionBtn
+    type="button"
+    onClick={onCreatePdf}
+    disabled={saving || !hasExercises}
+    aria-label="Create PDF from current workout builder"
+  >
+    <Download size={14} />
+    Create PDF
+  </ActionBtn>
+);
+
+const LoadedPlanActions: React.FC<Omit<
+  BuilderActionMatrixProps,
+  'loadedPlanId' | 'onSaveDraft' | 'onSaveAndActivate' | 'onCreatePdf' | 'showCreatePdf'
+>> = ({
   saving,
   hasExercises,
   loadedIsCurrent,
@@ -122,9 +142,18 @@ const LoadedPlanActions: React.FC<Omit<BuilderActionMatrixProps, 'loadedPlanId' 
 
 export const BuilderActionMatrix: React.FC<BuilderActionMatrixProps> = ({
   loadedPlanId,
+  onCreatePdf,
+  showCreatePdf = true,
   ...props
 }) => (
   <ActionWrap>
+    {showCreatePdf && (
+      <BuilderCreatePdfAction
+        saving={props.saving}
+        hasExercises={props.hasExercises}
+        onCreatePdf={onCreatePdf}
+      />
+    )}
     {loadedPlanId
       ? <LoadedPlanActions {...props} />
       : <NewPlanActions {...props} />}

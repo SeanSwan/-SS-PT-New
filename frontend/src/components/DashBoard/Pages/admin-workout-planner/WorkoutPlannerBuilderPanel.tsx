@@ -42,6 +42,7 @@ interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   onUpdateLoaded: () => void;
   onUpdateAndActivate: () => void;
   onDuplicateLoadedPlan: () => void;
+  onCreatePdf: () => void;
   onSelectExercise: (exercise: ExerciseSlim) => void;
   onUpdateExercise: (id: string, field: keyof PlanExercise, value: unknown) => void;
   onRemoveExercise: (id: string) => void;
@@ -71,6 +72,7 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onUpdateLoaded,
   onUpdateAndActivate,
   onDuplicateLoadedPlan,
+  onCreatePdf,
   onSelectExercise,
   onUpdateExercise,
   onRemoveExercise,
@@ -100,6 +102,8 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
           onUpdateLoaded={onUpdateLoaded}
           onUpdateAndActivate={onUpdateAndActivate}
           onDuplicateLoadedPlan={onDuplicateLoadedPlan}
+          onCreatePdf={onCreatePdf}
+          showCreatePdf={!generatedPlan}
         />
       </PanelHeader>
 

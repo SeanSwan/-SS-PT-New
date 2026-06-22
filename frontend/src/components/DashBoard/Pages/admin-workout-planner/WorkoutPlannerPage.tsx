@@ -18,13 +18,12 @@ import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanConten
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
 import { useWorkoutPlannerTrainingStyleState } from './useWorkoutPlannerTrainingStyleState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
+import { useWorkoutPlannerPdfActions } from './useWorkoutPlannerPdfActions';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const navigate = useNavigate();
@@ -219,6 +218,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setLoadedPlanName,
     setStatusMsg,
   });
+  const { handleCreateBuilderPdf } = useWorkoutPlannerPdfActions({ selectedClient, planExercisesLength: planExercises.length, hasGeneratedHorizonPlan, planDuration, userRole: user?.role, goal, phaseNumber, buildPlanData, setStatusMsg });
 
   const { loadPlanIntoBuilder } = useWorkoutPlannerLoadPlanActions({
     authAxios,
@@ -286,7 +286,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onImpactFilterChange: setImpactFilter, onClearFilters: clearRolodexFilters,
     onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
-    onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onSelectExercise: setSelectedExercise,
+    onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onCreatePdf: handleCreateBuilderPdf, onSelectExercise: setSelectedExercise,
     onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
     onToggleExplanations: handleToggleExplanations, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
