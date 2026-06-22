@@ -10,7 +10,8 @@ const guardedSources = [
   '../../services/gamification/goalChallengeService.mjs',
   '../../services/gamification/goalChallengeTemplates.mjs',
   '../../services/gamificationComboService.mjs',
-  '../../services/weeklyChallengeCron.mjs'
+  '../../services/weeklyChallengeCron.mjs',
+  '../../../scripts/achievement-badge-manifest.json'
 ];
 
 const asciiGeneratedSources = [
