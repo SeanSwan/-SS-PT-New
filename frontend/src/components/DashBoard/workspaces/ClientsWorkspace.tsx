@@ -232,6 +232,7 @@ const ClientsWorkspace: React.FC = () => {
   const {
     renderTraining,
     renderProgress,
+    renderNutrition,
     renderBiometrics,
     renderOverview,
     renderSettings,
@@ -257,6 +258,7 @@ const ClientsWorkspace: React.FC = () => {
       deactivationConfirmation={deactivationConfirmation}
       renderTraining={renderTraining}
       renderProgress={renderProgress}
+      renderNutrition={renderNutrition}
       renderBiometrics={renderBiometrics}
       renderOverview={renderOverview}
       renderSettings={renderSettings}

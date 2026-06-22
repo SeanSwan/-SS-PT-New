@@ -42,6 +42,8 @@ import {
 } from './ClientsWorkspace.styles';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
+import ClientNutritionEstimateReviewPanel from './clients-team/ClientNutritionEstimateReviewPanel';
+import ClientNutritionRosterTriagePanel from './clients-team/ClientNutritionRosterTriagePanel';
 import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
 import ClientsWorkspaceIntentBanner from './ClientsWorkspaceIntentBanner';
 import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
@@ -79,6 +81,7 @@ interface ClientsWorkspaceViewProps {
   deactivationConfirmation: ClientLifecycleConfirmRequest | null;
   renderTraining: TabRenderer;
   renderProgress: TabRenderer;
+  renderNutrition: TabRenderer;
   renderBiometrics: TabRenderer;
   renderOverview: TabRenderer;
   renderSettings: TabRenderer;
@@ -168,6 +171,7 @@ const SelectedClientDetail: React.FC<Pick<
   | 'detailTab'
   | 'renderTraining'
   | 'renderProgress'
+  | 'renderNutrition'
   | 'renderBiometrics'
   | 'renderOverview'
   | 'renderSettings'
@@ -179,6 +183,7 @@ const SelectedClientDetail: React.FC<Pick<
   detailTab,
   renderTraining,
   renderProgress,
+  renderNutrition,
   renderBiometrics,
   renderOverview,
   renderSettings,
@@ -196,6 +201,7 @@ const SelectedClientDetail: React.FC<Pick<
         onBack={onClearSelectedClient}
         renderTraining={renderTraining}
         renderProgress={renderProgress}
+        renderNutrition={renderNutrition}
         renderBiometrics={renderBiometrics}
         renderOverview={renderOverview}
         renderSettings={renderSettings}
@@ -262,12 +268,7 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       intent={props.clientHubIntent}
       selectedClientId={props.selectedClient?.id ?? null}
     />
-    <CreateClientModal
-      open={props.manualCreateOpen}
-      onClose={props.onCloseManualCreate}
-      onSubmit={props.onManualCreate}
-      trainers={props.manualCreateTrainers}
-    />
+    <CreateClientModal open={props.manualCreateOpen} onClose={props.onCloseManualCreate} onSubmit={props.onManualCreate} trainers={props.manualCreateTrainers} />
     <ClientCreationHandoffPanel
       handoff={props.creationHandoff}
       onDismiss={props.onDismissCreationHandoff}
@@ -277,12 +278,9 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       request={props.deactivationConfirmation}
       onClose={props.onCloseDeactivationConfirmation}
     />
-    <ClientActivationQueueSlot
-      authAxios={props.authAxios}
-      selectedClient={props.selectedClient}
-      onSelectClient={props.onSelectClient}
-      onNavigate={props.onNavigate}
-    />
+    <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
+    <ClientNutritionRosterTriagePanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
+    <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
     <SelectedClientHeaderSlot
       selectedClient={props.selectedClient}
       onLogWorkout={props.onLogWorkout}

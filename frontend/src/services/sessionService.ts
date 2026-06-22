@@ -665,7 +665,10 @@ class SessionService {
         { responseType: 'blob' }
       );
       
-      return new Blob([response.data], { type: response.headers['content-type'] });
+      const contentType = response.headers['content-type'];
+      return new Blob([response.data], {
+        type: typeof contentType === 'string' ? contentType : undefined,
+      });
     } catch (error) {
       console.error('Error exporting sessions:', error);
       throw error;

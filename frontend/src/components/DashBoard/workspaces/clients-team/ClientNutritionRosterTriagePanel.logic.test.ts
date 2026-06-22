@@ -1,0 +1,82 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildNutritionRosterRows,
+  selectRosterClientIds,
+  type NutritionRosterClient,
+  type RosterTriageRecord,
+} from './ClientNutritionRosterTriagePanel.logic';
+
+const clients: NutritionRosterClient[] = [
+  { id: 101, displayName: 'Alpha Client' },
+  { id: 202, displayName: 'Beta Client' },
+  { id: 303, displayName: 'Gamma Client' },
+];
+
+const records: RosterTriageRecord[] = [
+  {
+    userId: 101,
+    mealCountToday: 2,
+    weeklyLoggedDays: 4,
+    totalProtein: 55,
+    flags: {
+      noMealsToday: false,
+      sodiumAttention: true,
+      sugarAttention: false,
+      sparseWeekly: false,
+    },
+  },
+  {
+    userId: 202,
+    mealCountToday: 0,
+    weeklyLoggedDays: 0,
+    totalProtein: 0,
+    flags: {
+      noMealsToday: true,
+      sodiumAttention: false,
+      sugarAttention: false,
+      sparseWeekly: true,
+    },
+  },
+];
+
+describe('ClientNutritionRosterTriagePanel logic', () => {
+  it('sorts attention rows first and keeps honest labels', () => {
+    const rows = buildNutritionRosterRows(clients, records);
+
+    expect(rows.map((row) => row.clientName)).toEqual(['Beta Client', 'Alpha Client', 'Gamma Client']);
+    expect(rows[0]).toMatchObject({
+      statusLabel: 'No meals today',
+      weeklyLabel: '0/7 days',
+      proteinLabel: '0g protein',
+      flags: ['No meals today', 'Sparse weekly logging'],
+    });
+    expect(rows[1].flags).toEqual(['Sodium attention']);
+    expect(rows[2].flags).toEqual(['No nutrition data']);
+  });
+
+  it('caps batch requests to the first twelve positive client ids', () => {
+    const many = [
+      { id: 1, displayName: 'Client 1 duplicate' },
+      ...Array.from({ length: 16 }, (_, index) => ({ id: index + 1, displayName: `Client ${index + 1}` })),
+    ];
+
+    expect(selectRosterClientIds(many)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it('rejects coercive roster totals before rendering coach-facing labels', () => {
+    const rows = buildNutritionRosterRows([clients[0]], [{
+      userId: 101,
+      mealCountToday: ['2'] as unknown as number,
+      weeklyLoggedDays: '1e2' as unknown as number,
+      totalProtein: { valueOf: () => 88 } as unknown as number,
+      flags: {},
+    }]);
+
+    expect(rows[0]).toMatchObject({
+      statusLabel: 'No meals today',
+      weeklyLabel: '0/7 days',
+      proteinLabel: '0g protein',
+      flags: ['No attention flags'],
+    });
+  });
+});

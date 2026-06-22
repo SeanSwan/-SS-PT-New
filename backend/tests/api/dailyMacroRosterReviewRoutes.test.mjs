@@ -1,0 +1,118 @@
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeApp, mocks, resetRosterRouteMocks } from './dailyMacroRosterTriageRoutes.harness.mjs';
+
+describe('coach-only nutrition review routes', () => {
+  beforeEach(resetRosterRouteMocks);
+
+  it('blocks clients from roster triage before assignment checks or macro queries', async () => {
+    mocks.user = { id: 101, role: 'client' };
+
+    const response = await request(makeApp())
+      .get('/api/macros/roster-triage?date=2026-06-20&userIds=101');
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe('Nutrition review access denied');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
+  it('blocks clients from the estimate review queue before assignment checks or macro queries', async () => {
+    mocks.user = { id: 101, role: 'client' };
+
+    const response = await request(makeApp())
+      .get('/api/macros/review-queue?date=2026-06-20&userIds=101');
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe('Nutrition review access denied');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
+  it('blocks clients from marking their own nutrition estimates verified', async () => {
+    mocks.user = { id: 101, role: 'client' };
+
+    const response = await request(makeApp())
+      .patch('/api/macros/client-timeline/77/verify');
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe('Nutrition review access denied');
+    expect(mocks.dailyMacroLogFindOne).not.toHaveBeenCalled();
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+  });
+
+  it('returns selected-client nutrition timeline entries after assignment checks', async () => {
+    mocks.dailyMacroLogFindAll.mockResolvedValue([{
+      id: 77,
+      userId: 101,
+      date: '2026-06-20',
+      mealType: 'lunch',
+      description: 'chicken bowl',
+      calories: 620,
+      protein: 44,
+      source: 'photo',
+      verified: false,
+      createdAt: '2026-06-20T19:00:00.000Z',
+    }]);
+
+    const response = await request(makeApp())
+      .get('/api/macros/client-timeline?date=2026-06-20&userId=101');
+
+    expect(response.status).toBe(200);
+    expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 101);
+    expect(response.body.entries).toEqual([
+      expect.objectContaining({
+        id: 77,
+        mealType: 'lunch',
+        description: 'chicken bowl',
+        calories: 620,
+        protein: 44,
+        source: 'photo',
+        verified: false,
+      }),
+    ]);
+  });
+
+  it('marks an assigned nutrition estimate verified through the coach review route', async () => {
+    const update = vi.fn().mockResolvedValue({
+      id: 77,
+      userId: 101,
+      mealType: 'lunch',
+      description: 'chicken bowl',
+      verified: true,
+    });
+    mocks.dailyMacroLogFindOne.mockResolvedValue({
+      id: 77,
+      userId: 101,
+      mealType: 'lunch',
+      description: 'chicken bowl',
+      verified: false,
+      update,
+    });
+
+    const response = await request(makeApp())
+      .patch('/api/macros/client-timeline/77/verify');
+
+    expect(response.status).toBe(200);
+    expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 101);
+    expect(update).toHaveBeenCalledWith({ verified: true });
+    expect(response.body.entry).toEqual(expect.objectContaining({
+      id: 77,
+      verified: true,
+    }));
+  });
+
+  it('returns safe fixed copy when the estimate review queue query fails', async () => {
+    mocks.dailyMacroLogFindAll.mockRejectedValue(new Error('SQLSTATE raw tenant trace'));
+
+    const response = await request(makeApp())
+      .get('/api/macros/review-queue?date=2026-06-20&userIds=101');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      error: 'Failed to get nutrition review queue',
+    });
+    expect(JSON.stringify(response.body)).not.toMatch(/SQLSTATE|tenant trace/i);
+  });
+});

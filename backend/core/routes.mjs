@@ -197,6 +197,7 @@ import aiDebateRoutes from '../routes/aiDebateRoutes.mjs';
 import aiBffRoutes from '../routes/aiBffRoutes.mjs';
 import aiVillageRoutes from '../routes/aiVillageRoutes.mjs';
 import dailyMacroRoutes from '../routes/dailyMacroRoutes.mjs';
+import dailyMacroRosterTriageRoutes from '../routes/dailyMacroRosterTriageRoutes.mjs';
 import hydrationRoutes from '../routes/hydrationRoutes.mjs';
 import restaurantRoutes from '../routes/restaurantRoutes.mjs';
 import gardeningRoutes from '../routes/gardeningRoutes.mjs';
@@ -626,6 +627,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/ai/debate', aiDebateRoutes);
   app.use('/api/admin/ai-bff', aiBffRoutes);
   app.use('/api/ai-village', aiVillageRoutes);
+  app.use('/api/macros', dailyMacroRosterTriageRoutes);
   app.use('/api/macros', dailyMacroRoutes);
   app.use('/api/hydration', hydrationRoutes);
   app.use('/api/restaurant', restaurantRoutes);

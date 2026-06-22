@@ -61,6 +61,12 @@ describe('ClientsWorkspace route state parsing', () => {
     expect(getClientDetailTabFromSearchParams(params)).toBe('progress');
   });
 
+  it('accepts a shareable nutrition detail tab route', () => {
+    const params = new URLSearchParams('clientId=61&tab=nutrition');
+
+    expect(getClientDetailTabFromSearchParams(params)).toBe('nutrition');
+  });
+
   it('rejects unsafe detail tab route values', () => {
     const params = new URLSearchParams('clientId=61&tab=javascript:alert(1)');
 

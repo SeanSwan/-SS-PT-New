@@ -1,7 +1,7 @@
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
-export type ClientDetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
+export type ClientDetailTab = 'training' | 'progress' | 'nutrition' | 'biometrics' | 'overview' | 'settings';
 export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'plaud' | 'copilot' | 'history';
 export type ClientDetailSearchParams = {
   clientId: string;
@@ -23,6 +23,7 @@ export interface ClientScheduleWorkoutLoggerContext {
 const CLIENT_DETAIL_TABS = new Set<ClientDetailTab>([
   'training',
   'progress',
+  'nutrition',
   'biometrics',
   'overview',
   'settings',

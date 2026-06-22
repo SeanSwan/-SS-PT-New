@@ -16,7 +16,7 @@
  */
 
 import React, { memo, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Heart, Copy, LogOut, Users } from 'lucide-react';
 import type { Party } from '../../../hooks/social/useParty';
 
@@ -28,9 +28,10 @@ interface PartyHPBarProps {
   party: Party;
   myRole: string | null;
   onLeave: () => void;
+  frameless?: boolean;
 }
 
-const PartyHPBar: React.FC<PartyHPBarProps> = memo(({ party, myRole, onLeave }) => {
+const PartyHPBar: React.FC<PartyHPBarProps> = memo(({ party, myRole, onLeave, frameless = false }) => {
   const [copied, setCopied] = useState(false);
   const hpPct = Math.round((party.currentHP / party.maxHP) * 100);
   const hpColor = hpPct > 60 ? '#4ade80' : hpPct > 30 ? '#fbbf24' : '#ef4444';
@@ -42,7 +43,7 @@ const PartyHPBar: React.FC<PartyHPBarProps> = memo(({ party, myRole, onLeave }) 
   };
 
   return (
-    <PartyWrap>
+    <PartyWrap $frameless={frameless}>
       <PartyHeader>
         <Heart size={14} color={hpColor} />
         <PartyName>{party.name}</PartyName>
@@ -90,12 +91,20 @@ const pulse = keyframes`
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 
-const PartyWrap = styled.div`
+const PartyWrap = styled.div<{ $frameless?: boolean }>`
   padding: 12px 14px;
   border-radius: 10px;
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   margin: 12px 0;
+
+  ${({ $frameless }) => $frameless && css`
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    margin: 0;
+  `}
 `;
 
 const PartyHeader = styled.div`

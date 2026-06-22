@@ -15,6 +15,7 @@ import { getClientDisplayName } from './clients-team/clientIdentity';
 
 const TrainingTabContent = lazy(() => import('./clients-team/tabs/TrainingTabContent'));
 const ProgressTabContent = lazy(() => import('./clients-team/tabs/ProgressTabContent'));
+const NutritionTabContent = lazy(() => import('./clients-team/tabs/NutritionTabContent'));
 const BiometricsTabContent = lazy(() => import('./clients-team/tabs/BiometricsTabContent'));
 const OverviewTabContent = lazy(() => import('./clients-team/tabs/OverviewTabContent'));
 const SettingsTabContent = lazy(() => import('./clients-team/tabs/SettingsTabContent'));
@@ -73,6 +74,12 @@ export const useClientsWorkspaceTabRenderers = (
     </Suspense>
   ), [selectedClient]);
 
+  const renderNutrition = useCallback((clientId: number | string) => (
+    <Suspense fallback={<LoadingPulse>Loading nutrition...</LoadingPulse>}>
+      <NutritionTabContent clientId={clientId} clientName={clientName(selectedClient)} />
+    </Suspense>
+  ), [selectedClient]);
+
   const renderBiometrics = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading biometrics...</LoadingPulse>}>
       <BiometricsTabContent clientId={clientId} clientName={clientName(selectedClient)} />
@@ -91,5 +98,5 @@ export const useClientsWorkspaceTabRenderers = (
     </Suspense>
   ), [selectedClient]);
 
-  return { renderTraining, renderProgress, renderBiometrics, renderOverview, renderSettings };
+  return { renderTraining, renderProgress, renderNutrition, renderBiometrics, renderOverview, renderSettings };
 };

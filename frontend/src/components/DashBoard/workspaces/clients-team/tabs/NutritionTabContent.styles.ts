@@ -1,0 +1,270 @@
+import styled from 'styled-components';
+import { swanDataCardShell, swanMetricTile } from '../clientCardSystem';
+
+const alpha = (token: string, fallback: string, amount: number) =>
+  `color-mix(in srgb, var(${token}, ${fallback}) ${amount}%, transparent)`;
+
+export const NutritionTimelineShell = styled.section`
+  --swan-card-padding: 18px;
+  ${swanDataCardShell}
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+`;
+
+export const NutritionTimelineHeader = styled.header`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    flex-direction: column;
+  }
+`;
+
+export const NutritionTimelineTitleGroup = styled.div`
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+`;
+
+export const NutritionTimelineTitle = styled.h3`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+`;
+
+export const NutritionTimelineClient = styled.span`
+  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 72)});
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+`;
+
+export const NutritionTimelineDate = styled.span`
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+`;
+
+export const NutritionProvenanceCard = styled.section`
+  ${swanMetricTile}
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+`;
+
+export const NutritionProvenanceTitle = styled.h4`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+`;
+
+export const NutritionProvenanceGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const NutritionProvenanceMetric = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+
+  strong {
+    color: var(--text-primary, #E0ECF4);
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+  }
+`;
+
+export const NutritionProvenanceLabel = styled.span`
+  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 72)});
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+`;
+
+export const NutritionProvenanceCopy = styled.span`
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 850;
+`;
+
+export const NutritionTimelineList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+export const NutritionTimelineRowCard = styled.article`
+  ${swanMetricTile}
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  padding: 12px;
+`;
+
+export const NutritionTimelineRowHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+`;
+
+export const NutritionTimelineMeal = styled.h4`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+`;
+
+export const NutritionTimelineTime = styled.span`
+  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 68)});
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+`;
+
+export const NutritionTimelineDescription = styled.p`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+`;
+
+export const NutritionTimelineMeta = styled.span`
+  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 75)});
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+`;
+
+export const NutritionTimelineBadges = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+export const NutritionTimelineBadge = styled.span<{ $attention?: boolean }>`
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  background: ${({ $attention }) => (
+    $attention
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)'
+  )};
+  border: 1px solid ${({ $attention }) => (
+    $attention
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 26%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)'
+  )};
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 850;
+`;
+
+export const NutritionTimelineActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    justify-content: stretch;
+  }
+`;
+
+export const NutritionTimelineVerifyButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--button-primary-bg, #002060) 88%, transparent),
+    color-mix(in srgb, var(--accent-purple, #8B5CF6) 18%, var(--surface-elevated, #003080))
+  );
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-purple, #8B5CF6) 18%, transparent);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.68;
+  }
+
+  @media (max-width: 520px) {
+    width: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    transform: none;
+  }
+`;
+
+export const NutritionTimelineState = styled.div`
+  ${swanMetricTile}
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 78)});
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+`;

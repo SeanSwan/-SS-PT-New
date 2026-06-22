@@ -91,6 +91,73 @@ export const CardSubtext = styled.p`
   overflow-wrap: anywhere;
 `;
 
+export const TriageMetaGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+export const TriageMetaItem = styled.div`
+  ${swanMetricTile}
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  min-width: 0;
+`;
+
+export const TriageMetaLabel = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.65));
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+export const TriageMetaValue = styled.span`
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+`;
+
+export const TriageFlagList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+`;
+
+export const TriageFlag = styled.span<{ $tone?: 'default' | 'warning' }>`
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  background: ${({ $tone }) => (
+    $tone === 'warning'
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)'
+  )};
+  border: 1px solid ${({ $tone }) => (
+    $tone === 'warning'
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent)'
+  )};
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+`;
+
 export const HeroRow = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
