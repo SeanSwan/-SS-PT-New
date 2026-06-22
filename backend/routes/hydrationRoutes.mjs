@@ -21,7 +21,14 @@ router.use(protect);
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
-const isValidDate = (str) => DATE_REGEX.test(str) && !isNaN(new Date(str + 'T00:00:00Z').getTime());
+const isValidDate = (str) => {
+  if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
+  const [year, month, day] = str.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
+};
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 const toFiniteDecimalNumber = (val) => {
