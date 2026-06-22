@@ -30,10 +30,24 @@ export interface NutritionRosterRow {
   attentionScore: number;
 }
 
+const integerIdPattern = /^\d+$/;
+
+const toPositiveIntegerId = (value: unknown): number | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!integerIdPattern.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 export const selectRosterClientIds = (clients: NutritionRosterClient[]): number[] =>
   clients
-    .map((client) => Number(client.id))
-    .filter((id) => Number.isSafeInteger(id) && id > 0)
+    .map((client) => toPositiveIntegerId(client.id))
+    .filter((id): id is number => id !== null)
     .filter((id, index, ids) => ids.indexOf(id) === index)
     .slice(0, MAX_ROSTER_TRIAGE_CLIENTS);
 
@@ -79,7 +93,11 @@ export const buildNutritionRosterRows = (
   clients: NutritionRosterClient[],
   records: RosterTriageRecord[]
 ): NutritionRosterRow[] => {
-  const byUserId = new Map(records.map((record) => [Number(record.userId), record]));
+  const byUserId = new Map<number, RosterTriageRecord>();
+  records.forEach((record) => {
+    const userId = toPositiveIntegerId(record.userId);
+    if (userId !== null) byUserId.set(userId, record);
+  });
 
   return clients.map((client) => {
     const record = byUserId.get(client.id);

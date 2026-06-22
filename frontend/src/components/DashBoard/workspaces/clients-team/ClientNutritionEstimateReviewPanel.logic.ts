@@ -37,6 +37,19 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const decimalNumberPattern = /^\d+(?:\.\d+)?$/;
+const integerIdPattern = /^\d+$/;
+
+const toPositiveIntegerId = (value: unknown): number | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!integerIdPattern.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const toPositiveNumber = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -66,16 +79,23 @@ export const buildNutritionEstimateReviewRows = (
   clients: NutritionEstimateReviewClient[],
   entries: NutritionEstimateReviewEntry[]
 ): NutritionEstimateReviewRow[] => {
-  const clientNames = new Map(clients.map((client) => [Number(client.id), client.displayName]));
+  const clientNames = new Map<number, string>();
+  clients.forEach((client) => {
+    const clientId = toPositiveIntegerId(client.id);
+    if (clientId !== null) clientNames.set(clientId, client.displayName);
+  });
 
-  return entries
-    .filter((entry) => !entry.verified && clientNames.has(Number(entry.userId)))
-    .map((entry) => ({
+  return entries.flatMap((entry) => {
+    const userId = toPositiveIntegerId(entry.userId);
+    if (entry.verified || userId === null || !clientNames.has(userId)) return [];
+
+    return [{
       id: entry.id,
-      clientName: clientNames.get(Number(entry.userId)) || 'Client',
+      clientName: clientNames.get(userId) || 'Client',
       mealTitle: titleCase(entry.mealType || 'meal'),
       description: entry.description?.trim() || 'Macro estimate',
       macroLine: `${rounded(entry.calories)} cal - ${rounded(entry.protein)}g protein - ${rounded(entry.fiber)}g fiber`,
       sourceLabel: sourceLabel(entry.source),
-    }));
+    }];
+  });
 };

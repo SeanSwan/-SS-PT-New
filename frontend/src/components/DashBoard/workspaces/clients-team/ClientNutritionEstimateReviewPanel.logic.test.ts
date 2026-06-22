@@ -47,4 +47,20 @@ describe('ClientNutritionEstimateReviewPanel logic', () => {
 
     expect(rows).toEqual([]);
   });
+
+  it('rejects coercive user ids before joining estimates to visible clients', () => {
+    const rows = buildNutritionEstimateReviewRows(clients, [{
+      id: 79,
+      userId: ['101'] as unknown as string,
+      mealType: 'snack',
+      description: 'coerced identity meal',
+      calories: 320,
+      protein: 24,
+      fiber: 4,
+      source: 'voice',
+      verified: false,
+    }]);
+
+    expect(rows).toEqual([]);
+  });
 });

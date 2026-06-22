@@ -96,4 +96,21 @@ describe('ClientNutritionRosterTriagePanel logic', () => {
       flags: ['No attention flags'],
     });
   });
+
+  it('rejects coercive record user ids before joining roster records to visible clients', () => {
+    const rows = buildNutritionRosterRows([clients[0]], [{
+      userId: [101] as unknown as number,
+      mealCountToday: 2,
+      weeklyLoggedDays: 4,
+      totalProtein: 88,
+      flags: {},
+    }]);
+
+    expect(rows[0]).toMatchObject({
+      statusLabel: 'No nutrition data',
+      weeklyLabel: '0/7 days',
+      proteinLabel: '0g protein',
+      flags: ['No nutrition data'],
+    });
+  });
 });
