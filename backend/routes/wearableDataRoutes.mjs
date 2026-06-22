@@ -49,6 +49,9 @@ router.post('/sync', protect, async (req, res) => {
     }
 
     const rawItems = Array.isArray(data) ? data : [{ ...req.body, recordDate }];
+    if (rawItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one wearable sync item is required' });
+    }
     const items = [];
 
     for (const item of rawItems) {
@@ -108,19 +111,28 @@ router.get('/', protect, async (req, res) => {
 
     if (deviceType) where.deviceType = deviceType;
 
-    if (startDate && endDate) {
-      const resolvedStart = resolveWearableRecordDate(startDate);
-      if (resolvedStart.error) {
-        return res.status(400).json({ success: false, message: fieldDateError('startDate', resolvedStart.error) });
+    if (startDate || endDate) {
+      const recordDateFilter = {};
+      let resolvedStart = null;
+      let resolvedEnd = null;
+      if (startDate) {
+        resolvedStart = resolveWearableRecordDate(startDate);
+        if (resolvedStart.error) {
+          return res.status(400).json({ success: false, message: fieldDateError('startDate', resolvedStart.error) });
+        }
+        recordDateFilter[Op.gte] = resolvedStart.recordDate;
       }
-      const resolvedEnd = resolveWearableRecordDate(endDate);
-      if (resolvedEnd.error) {
-        return res.status(400).json({ success: false, message: fieldDateError('endDate', resolvedEnd.error) });
+      if (endDate) {
+        resolvedEnd = resolveWearableRecordDate(endDate);
+        if (resolvedEnd.error) {
+          return res.status(400).json({ success: false, message: fieldDateError('endDate', resolvedEnd.error) });
+        }
+        recordDateFilter[Op.lte] = resolvedEnd.recordDate;
       }
-      if (resolvedStart.recordDate > resolvedEnd.recordDate) {
+      if (resolvedStart && resolvedEnd && resolvedStart.recordDate > resolvedEnd.recordDate) {
         return res.status(400).json({ success: false, message: 'startDate cannot be after endDate' });
       }
-      where.recordDate = { [Op.between]: [resolvedStart.recordDate, resolvedEnd.recordDate] };
+      where.recordDate = recordDateFilter;
     } else {
       const dayWindow = clampInt(days, { defaultValue: 30, min: 1, max: 3650 });
       const start = new Date();

@@ -442,7 +442,8 @@ router.post('/log-scan', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid barcode is required (8-14 digits)' });
     }
 
-    if (servingSizeGrams < 1 || servingSizeGrams > 10000) {
+    const safeServingSizeGrams = Number(servingSizeGrams);
+    if (!Number.isFinite(safeServingSizeGrams) || safeServingSizeGrams < 1 || safeServingSizeGrams > 10000) {
       return res.status(400).json({ success: false, message: 'Serving size must be between 1g and 10,000g' });
     }
 
@@ -481,12 +482,12 @@ router.post('/log-scan', protect, async (req, res) => {
     const sequelizeInstance = (await import('../database.mjs')).default;
 
     // Scale from per-100g values to actual serving size
-    const multiplier = servingSizeGrams / 100;
+    const multiplier = safeServingSizeGrams / 100;
 
     const macroLogData = {
       date: safeDate,
       mealType: mealType || 'snack',
-      description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${servingSizeGrams}g)`,
+      description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${safeServingSizeGrams}g)`,
       calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0) * multiplier,
       protein: parseFloat(nutri.proteins_100g || nutri.proteins || nutri.protein || 0) * multiplier,
       carbs: parseFloat(nutri.carbohydrates_100g || nutri.carbohydrates || nutri.carbs || 0) * multiplier,

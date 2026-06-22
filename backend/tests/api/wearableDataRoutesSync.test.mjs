@@ -206,6 +206,24 @@ describe('wearable data sync route', () => {
     expect(mocks.findAndCountAll).not.toHaveBeenCalled();
   });
 
+  it('rejects an impossible single-bound startDate before querying records', async () => {
+    const response = await request(makeApp())
+      .get('/api/wearable-data?startDate=2026-02-31');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('startDate must be a real YYYY-MM-DD calendar date');
+    expect(mocks.findAndCountAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects a future single-bound endDate before querying records', async () => {
+    const response = await request(makeApp())
+      .get('/api/wearable-data?endDate=2026-03-03');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('endDate cannot be in the future');
+    expect(mocks.findAndCountAll).not.toHaveBeenCalled();
+  });
+
   it('rejects a bad batch row without partially writing earlier valid rows', async () => {
     const response = await request(makeApp())
       .post('/api/wearable-data/sync')
@@ -235,6 +253,22 @@ describe('wearable data sync route', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('recordDate is required for every wearable sync item');
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it('rejects an explicit empty wearable sync batch instead of claiming success', async () => {
+    const response = await request(makeApp())
+      .post('/api/wearable-data/sync')
+      .send({
+        deviceType: 'manual',
+        data: [],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'At least one wearable sync item is required',
+    });
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 });
