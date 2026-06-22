@@ -33,18 +33,18 @@ export interface FastFoodItem {
 export const SAFE_INTELLIGENCE_ERROR = 'Nutrition intelligence is unavailable right now. Please try again.';
 
 export const PRODUCE_DATA: ProduceItem[] = [
-  { name: 'Strawberries', risk: 'high', tip: 'Always buy organic. #1 on Dirty Dozen list. Wash thoroughly under running water.' },
-  { name: 'Spinach', risk: 'high', tip: 'High pesticide residue. Choose organic when possible. Triple-wash before consuming.' },
-  { name: 'Kale', risk: 'high', tip: 'Increasing pesticide contamination. Organic recommended for daily smoothies.' },
-  { name: 'Apples', risk: 'high', tip: 'Wax coating traps pesticides. Peel non-organic or buy organic.' },
-  { name: 'Grapes', risk: 'high', tip: 'Thin skin absorbs chemicals easily. Wash with baking soda solution.' },
-  { name: 'Avocados', risk: 'low', tip: 'Thick skin protects fruit. #1 on Clean Fifteen - conventional is fine.' },
-  { name: 'Sweet Corn', risk: 'low', tip: 'Husk protects kernels. Very low pesticide residue.' },
-  { name: 'Pineapple', risk: 'low', tip: 'Thick rind means minimal pesticide exposure. Conventional is safe.' },
-  { name: 'Onions', risk: 'low', tip: 'Outer layers are removed before eating. Very clean produce choice.' },
-  { name: 'Sweet Potatoes', risk: 'low', tip: 'Underground growth reduces exposure. Great nutrient-dense carb source.' },
-  { name: 'Bananas', risk: 'low', tip: 'Peel before eating eliminates most residue. Great pre-workout snack.' },
-  { name: 'Broccoli', risk: 'medium', tip: 'Moderate pesticide levels. Wash well and steam to reduce residue.' },
+  { name: 'Strawberries', risk: 'high', tip: 'Higher-residue category. Rinse well; organic can be useful when it fits your budget and access.' },
+  { name: 'Spinach', risk: 'high', tip: 'Higher-residue leafy green. Rinse thoroughly and rotate greens when possible.' },
+  { name: 'Kale', risk: 'high', tip: 'Residue can vary by source. Rinse well; organic is optional for daily use if it fits your plan.' },
+  { name: 'Apples', risk: 'high', tip: 'Wash well. Peeling is an option when residue is a concern, but the peel also adds fiber.' },
+  { name: 'Grapes', risk: 'high', tip: 'Thin skins benefit from thorough rinsing; a short baking-soda soak is optional.' },
+  { name: 'Avocados', risk: 'low', tip: 'Thick peel limits edible-surface residue; conventional can be a practical budget choice.' },
+  { name: 'Sweet Corn', risk: 'low', tip: 'Husk helps shield kernels; rinse after shucking and choose what fits your budget.' },
+  { name: 'Pineapple', risk: 'low', tip: 'Thick rind limits edible-surface residue; wash the rind before cutting.' },
+  { name: 'Onions', risk: 'low', tip: 'Outer layers are removed before eating; rinse after peeling when needed.' },
+  { name: 'Sweet Potatoes', risk: 'low', tip: 'Scrub the skin well; a steady carbohydrate source that can fit many training days.' },
+  { name: 'Bananas', risk: 'low', tip: 'Peel reduces edible-surface residue; portable carbohydrate for pre-training fuel.' },
+  { name: 'Broccoli', risk: 'medium', tip: 'Rinse well and trim as preferred; steaming can support texture and digestion comfort.' },
 ];
 
 export const FAST_FOOD_ITEMS: FastFoodItem[] = [
@@ -57,21 +57,21 @@ export const FAST_FOOD_ITEMS: FastFoodItem[] = [
 ];
 
 export const resultVariantForRisk = (risk: ProduceRisk): ResultVariant => {
-  if (risk === 'high') return 'alert';
+  if (risk === 'high') return 'purple';
   if (risk === 'low') return 'cyan';
   return 'purple';
 };
 
 export const macroToneForRisk = (risk: ProduceRisk): MacroTone => {
-  if (risk === 'high') return 'danger';
+  if (risk === 'high') return 'warning';
   if (risk === 'low') return 'success';
-  return 'warning';
+  return 'secondary';
 };
 
 export const riskLabel = (risk: ProduceRisk): string => {
-  if (risk === 'high') return 'High Risk';
-  if (risk === 'low') return 'Low Risk';
-  return 'Moderate';
+  if (risk === 'high') return 'Higher Priority';
+  if (risk === 'low') return 'Lower Priority';
+  return 'Moderate Priority';
 };
 
 export const resultVariantForFastFood = (item: FastFoodItem): ResultVariant =>

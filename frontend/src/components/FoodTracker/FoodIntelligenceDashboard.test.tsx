@@ -86,4 +86,18 @@ describe('FoodIntelligenceDashboard', () => {
     expect(screen.queryByText(/\bbulk\b/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Plan it around your day and training context/i)).toBeInTheDocument();
   });
+
+  it('keeps produce guidance practical without fear-based residue absolutes', async () => {
+    const user = userEvent.setup();
+
+    render(<FoodIntelligenceDashboard />);
+    await user.click(screen.getByRole('tab', { name: /produce guide/i }));
+
+    const produceCopy = document.body.textContent ?? '';
+    expect(screen.getByText('Produce Planning Guide')).toBeInTheDocument();
+    expect(produceCopy).toMatch(/Washing well and choosing\s+within your budget/i);
+    expect(produceCopy).not.toMatch(/Dirty Dozen|Clean Fifteen|High Risk|Low Risk/i);
+    expect(produceCopy).not.toMatch(/Always buy organic|absorbs chemicals|traps pesticides/i);
+    expect(produceCopy).not.toMatch(/Very clean produce|conventional is safe|organic recommended/i);
+  });
 });

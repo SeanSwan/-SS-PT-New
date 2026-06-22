@@ -137,7 +137,7 @@ const FoodIntelligenceDashboard: React.FC = () => {
     <Dashboard>
       <Header>
         <Title>Food Intelligence</Title>
-        <Subtitle>AI-powered nutrition analysis, food safety, and smart eating guidance</Subtitle>
+        <Subtitle>AI-powered nutrition analysis, food planning, and smart eating guidance</Subtitle>
       </Header>
 
       <TabRow role="tablist" aria-label="Food intelligence tools">
@@ -210,11 +210,11 @@ const FoodIntelligenceDashboard: React.FC = () => {
         <GlassPanel>
           <PanelHeadingRow>
             <Leaf size={20} color={intelligenceTheme.accent} />
-            <PanelTitle>Produce Safety Guide</PanelTitle>
+            <PanelTitle>Produce Planning Guide</PanelTitle>
           </PanelHeadingRow>
           <PanelIntro>
-            Based on the Environmental Working Group&apos;s Dirty Dozen and Clean Fifteen lists.
-            Prioritize organic for high-risk items when budget allows.
+            Use residue-priority cues as optional planning context. Washing well and choosing
+            within your budget matters more than perfect labels.
           </PanelIntro>
           <ResultGrid>
             {PRODUCE_DATA.map((item) => (
