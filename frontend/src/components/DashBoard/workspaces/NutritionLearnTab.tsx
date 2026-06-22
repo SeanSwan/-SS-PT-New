@@ -54,9 +54,9 @@ const MODULES: LearnModule[] = [
     title: 'Micronutrients & Recovery',
     subtitle: 'Vitamins and minerals that power performance',
     content: [
-      'Vitamin D: Supports bone density, immune function, and muscle recovery. Most adults are deficient — especially in northern climates. Sources: sunlight, fatty fish, fortified foods.',
-      'Magnesium: Involved in 300+ enzymatic reactions. Critical for muscle contraction and relaxation. Deficiency causes cramps and poor sleep. Sources: dark leafy greens, nuts, seeds.',
-      'Iron: Carries oxygen to working muscles. Low iron = fatigue and reduced performance. Sources: red meat, spinach, lentils. Pair with vitamin C for better absorption.',
+      'Vitamin D: Supports bone density, immune function, and muscle recovery. Many adults have low vitamin D status, especially in northern climates. Sources: sunlight, fatty fish, fortified foods.',
+      'Magnesium: Involved in 300+ enzymatic reactions. Supports muscle contraction, relaxation, and sleep quality. Sources: dark leafy greens, nuts, seeds.',
+      'Iron: Carries oxygen to working muscles. Low iron status can contribute to fatigue and reduced performance. Sources: red meat, spinach, lentils. Pair with vitamin C for better absorption.',
       'Zinc: Supports testosterone production, immune function, and wound healing. Sources: oysters, beef, pumpkin seeds.',
       'Omega-3s (EPA/DHA): Reduce exercise-induced inflammation and support joint health. Sources: salmon, sardines, fish oil supplements.',
     ],
@@ -65,9 +65,9 @@ const MODULES: LearnModule[] = [
     id: 'hydration',
     icon: <Droplets size={20} />,
     title: 'Hydration Science',
-    subtitle: 'Why water intake directly impacts your gains',
+    subtitle: 'How fluid intake supports training readiness',
     content: [
-      'Even 2% dehydration reduces strength output by up to 10% and cognitive function by 25%. By the time you feel thirsty, you\'re already dehydrated.',
+      'Hydration status can affect strength output and focus. Use thirst, sweat rate, urine color, and training duration as practical cues for your fluid plan.',
       'Pre-workout: Drink 16-20 oz of water 2-3 hours before training, then 8 oz 20-30 minutes before.',
       'During workout: 7-10 oz every 10-20 minutes of exercise. For sessions over 60 min, consider electrolytes.',
       'Post-workout: Replace every pound of body weight lost during exercise with 16-24 oz of fluid.',
@@ -82,8 +82,8 @@ const MODULES: LearnModule[] = [
     content: [
       'Pre-workout (2-3 hours before): Balanced meal with complex carbs + moderate protein + low fat. Example: chicken, rice, and vegetables.',
       'Pre-workout snack (30-60 min before): Simple carbs + small protein. Example: banana with a scoop of protein.',
-      'Post-workout (within 30-60 min): The anabolic window — fast-digesting protein + simple carbs to spike insulin and shuttle nutrients to muscles. Example: whey shake + fruit.',
-      'NASM notes: Nutrient timing is most important for athletes training twice daily or in caloric deficit. For general fitness, total daily intake matters more than exact timing.',
+      'Post-workout (within 30-60 min): Protein plus carbohydrates can support recovery and help replenish training fuel. Example: whey shake + fruit.',
+      'NASM notes: Nutrient timing is most important for athletes training twice daily or in lower-fuel training phases. For general fitness, total daily intake matters more than exact timing.',
     ],
   },
 ];
