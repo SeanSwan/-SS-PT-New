@@ -16,7 +16,7 @@
  *
  * SOURCE NORMALIZATION:
  *   Route-side accepted: 'manual', 'ai-chat', 'food-scanner', 'barcode'
- *   Model-valid stored:  'manual', 'ai_chat', 'voice', 'barcode', 'usda_lookup'
+ *   Model-valid stored:  'manual', 'ai_chat', 'voice', 'barcode', 'usda_lookup', 'photo'
  *   The 'ai-chat' → 'ai_chat' normalization fixes a pre-existing mismatch.
  */
 

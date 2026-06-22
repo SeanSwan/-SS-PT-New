@@ -1,6 +1,24 @@
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
 
+const displayTimeZone = () => process.env.SWAN_DISPLAY_TZ || 'America/Los_Angeles';
+
+const formatDisplayDate = (date = new Date()) => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: displayTimeZone(),
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    if (values.year && values.month && values.day) return `${values.year}-${values.month}-${values.day}`;
+  } catch {
+    // Fall back to UTC when SWAN_DISPLAY_TZ is invalid or unavailable.
+  }
+  return date.toISOString().slice(0, 10);
+};
+
 export async function approveNutritionLogProposal({
   id,
   req,
@@ -50,7 +68,7 @@ export async function approveNutritionLogProposal({
   const safeMeals = meals.map((meal) => ({ ...meal, verified: false }));
   let result;
   try {
-    result = await createMacroEntries(safeMeals, { clientId: access.clientId, date: payload.date });
+    result = await createMacroEntries(safeMeals, { clientId: access.clientId, date: payload.date || formatDisplayDate() });
   } catch (err) {
     await updateProposalStatus({
       id,

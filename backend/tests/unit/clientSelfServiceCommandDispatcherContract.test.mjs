@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadDispatcher } from './clientSelfServiceCommandDispatcherHarness.mjs';
 
 afterEach(() => {
+  delete process.env.SWAN_DISPLAY_TZ;
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.resetModules();
 });
@@ -254,6 +256,28 @@ describe('client self-service command dispatchers', () => {
     });
     expect(JSON.stringify(result)).not.toContain('eggs and toast');
     expect(JSON.stringify(result)).not.toContain('client@example.com');
+  });
+
+  it('uses the studio display timezone for omitted client nutrition write dates', async () => {
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
+
+    const { dispatch, createMacroEntries } = await loadDispatcher();
+    const meals = [{
+      description: 'evening protein shake',
+      mealType: 'snack',
+      calories: 220,
+    }];
+
+    await dispatch('log_my_nutrition', { meals }, {
+      user: { id: 17, role: 'client', email: 'client@example.com' },
+    });
+
+    expect(createMacroEntries).toHaveBeenCalledWith(meals, {
+      clientId: 17,
+      date: '2026-06-21',
+    });
   });
 
   it('summarizes available session slots without booking or leaking profile PII', async () => {

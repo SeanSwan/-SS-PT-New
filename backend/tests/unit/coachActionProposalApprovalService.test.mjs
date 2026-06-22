@@ -121,6 +121,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.resetModules();
 });
@@ -519,6 +520,35 @@ describe('coachActionProposalApprovalService', () => {
     // The injected verified:true must be neutralized before the write.
     expect(mealsArg.every((m) => m.verified === false)).toBe(true);
     expect(optsArg).toEqual({ clientId: 42, date: '2026-05-05' });
+  });
+
+  it('uses the studio display timezone when approving nutrition proposals without a date', async () => {
+    vi.stubEnv('SWAN_DISPLAY_TZ', 'America/Los_Angeles');
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
+
+    const order = [];
+    const db = fakeApprovalDb({ order, row: pendingNutritionRow });
+    const { approveCoachActionProposal, getCoachActionProposal, createMacroEntries } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        payload: { clientId: 42, meals: [{ mealType: 'snack', description: 'protein shake', calories: 220 }] },
+        targetUserId: 42,
+      },
+    });
+    const detail = await getCoachActionProposal({ id: pendingNutritionRow.id, req: { user: { id: 7, role: 'trainer' } }, sequelizeOverride: db });
+
+    const result = await approveCoachActionProposal({
+      id: pendingNutritionRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detail.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(createMacroEntries).toHaveBeenCalledWith(expect.any(Array), {
+      clientId: 42,
+      date: '2026-06-21',
+    });
   });
 
   it('returns NUTRITION_LOG_EMPTY without writing when the draft has no meals', async () => {
