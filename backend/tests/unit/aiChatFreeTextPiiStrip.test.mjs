@@ -88,6 +88,19 @@ function createSequelizeWithNameInFreeText() {
           description: 'Jackie says it worsens after squats',
         }];
       }
+      // #12 Macro logs - meal descriptions are free text too.
+      if (sql.includes('FROM daily_macro_logs')) {
+        return [{
+          date: '2026-06-22',
+          mealType: 'breakfast',
+          description: 'Jackie Smith had Greek yogurt with berries',
+          calories: 280,
+          protein: 26,
+          carbs: 32,
+          fat: 5,
+          fiber: 6,
+        }];
+      }
       return [];
     }),
   };
@@ -112,6 +125,17 @@ describe('aiChatService enrichWithUserData — free-text clinical field PII stri
 
     // Replacement tag present.
     expect(context).toContain('[Client #42]');
+  });
+
+  it('masks the client name embedded in macro log meal descriptions', async () => {
+    const sequelize = createSequelizeWithNameInFreeText();
+
+    const context = await enrichWithUserData(42, 'trainer', 'macro_logging', sequelize);
+
+    expect(context).not.toContain('Jackie Smith');
+    expect(context).not.toMatch(/\bJackie\b/);
+    expect(context).not.toMatch(/\bSmith\b/);
+    expect(context).toContain('breakfast: [Client #42] had Greek yogurt with berries');
   });
 
   it('PRESERVES the clinical language the coach AI needs (body-aware, identity-blind)', async () => {

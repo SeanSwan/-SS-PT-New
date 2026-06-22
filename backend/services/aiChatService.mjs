@@ -1694,7 +1694,8 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       for (const m of macros) {
         const d = m.date?.toISOString?.()?.split('T')[0] || String(m.date);
         if (!byDate[d]) byDate[d] = { meals: [], t: { cal: 0, pro: 0, carb: 0, fat: 0 } };
-        byDate[d].meals.push(`${m.mealType}: ${m.description} (${m.calories || 0}cal ${m.protein || 0}P ${m.carbs || 0}C ${m.fat || 0}F)`);
+        const safeDescription = stripIdentityFromNotes(m.description, userId, clientIdentity) || 'Meal entry';
+        byDate[d].meals.push(`${m.mealType}: ${safeDescription} (${m.calories || 0}cal ${m.protein || 0}P ${m.carbs || 0}C ${m.fat || 0}F)`);
         byDate[d].t.cal += (m.calories || 0); byDate[d].t.pro += (m.protein || 0);
         byDate[d].t.carb += (m.carbs || 0); byDate[d].t.fat += (m.fat || 0);
       }
