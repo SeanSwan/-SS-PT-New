@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const generateContentMock = vi.fn();
@@ -20,6 +22,7 @@ const {
 
 const originalGoogleKey = process.env.GOOGLE_API_KEY;
 const originalGeminiKey = process.env.GEMINI_API_KEY;
+const aiChatServiceSource = readFileSync(resolve(__dirname, '../../services/aiChatService.mjs'), 'utf8');
 
 const unsafeCopyPattern =
   /\b(cutting|bulking?|caloric deficit|cheat meal|clean eating|dirty bulk|sugar crash|inflammatory|deficien(?:t|cy|cies)|zero sugar|no sugar|guilt|spike insulin|wasted macros)\b/i;
@@ -119,5 +122,22 @@ describe('AI-generated nutrition copy care guard', () => {
       context: 'coach_assistant',
       message: 'How was the workout?',
     })).toBe('Good morning. Ready for your workout?');
+  });
+
+  it('does not instruct mounted chat prompts to generate moral food labels first', () => {
+    const macroPrompt = aiChatServiceSource.slice(
+      aiChatServiceSource.indexOf('macro_logging: `'),
+      aiChatServiceSource.indexOf('    form_tips: `')
+    );
+    const simpleStylePrompt = aiChatServiceSource.slice(
+      aiChatServiceSource.indexOf('simple_only: `'),
+      aiChatServiceSource.indexOf('  balanced: `')
+    );
+
+    expect(macroPrompt).toContain('context-friendly, review-worthy, or less aligned');
+    expect(macroPrompt).toContain('follow-through, consistency, or timing trends');
+    expect(macroPrompt).not.toMatch(/Rate the product: GOOD|clean ingredients|toxic ingredients|Track compliance trends/i);
+    expect(simpleStylePrompt).toContain('direct but neutral language');
+    expect(simpleStylePrompt).not.toMatch(/Use "good" and "bad" language|This is bad for you|fake sugar|belly fat/i);
   });
 });
