@@ -144,6 +144,60 @@ describe('NutritionTabContent', () => {
     expect(screen.getByText('Needs review')).toBeInTheDocument();
   });
 
+  it('clears stale verification errors when the selected-client timeline reloads', async () => {
+    const today = formatLocalCalendarDate();
+    apiGetMock
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          entries: [
+            {
+              id: 77,
+              mealType: 'lunch',
+              description: 'chicken bowl',
+              calories: 620,
+              protein: 44,
+              fiber: 9,
+              source: 'photo',
+              verified: false,
+              createdAt: `${today}T19:00:00.000Z`,
+            },
+          ],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          entries: [
+            {
+              id: 88,
+              mealType: 'dinner',
+              description: 'salmon plate',
+              calories: 540,
+              protein: 42,
+              fiber: 6,
+              source: 'manual',
+              verified: true,
+              createdAt: `${today}T20:00:00.000Z`,
+            },
+          ],
+        },
+      });
+    apiPatchMock.mockRejectedValueOnce(new Error('SQLSTATE raw tenant trace'));
+
+    const user = userEvent.setup();
+    const { rerender } = render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+
+    await user.click(await screen.findByRole('button', { name: /mark lunch verified/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nutrition verification unavailable');
+
+    rerender(<NutritionTabContent clientId={202} clientName="Beta Client" />);
+
+    expect(await screen.findByText('salmon plate')).toBeInTheDocument();
+    expect(screen.getByText('Beta Client')).toBeInTheDocument();
+    expect(screen.queryByText('Nutrition verification unavailable')).not.toBeInTheDocument();
+  });
+
   it('uses safe fixed copy for timeline load failures', async () => {
     apiGetMock.mockRejectedValue(new Error('SQLSTATE raw tenant trace'));
 

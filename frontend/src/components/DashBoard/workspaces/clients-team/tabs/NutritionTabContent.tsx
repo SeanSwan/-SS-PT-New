@@ -86,6 +86,7 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
 
     const loadTimeline = async () => {
       setStatus('loading');
+      setVerifyError(null);
       try {
         const params = new URLSearchParams({ date, userId: String(numericClientId) });
         const response = await apiService.get(`/api/macros/client-timeline?${params.toString()}`);
