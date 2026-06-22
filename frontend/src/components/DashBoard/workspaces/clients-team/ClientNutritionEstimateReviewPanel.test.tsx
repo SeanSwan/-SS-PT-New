@@ -75,6 +75,34 @@ describe('ClientNutritionEstimateReviewPanel', () => {
     expect(await screen.findByText('No estimates awaiting review')).toBeInTheDocument();
   });
 
+  it('does not underreport pending estimates when only five rows are displayed', async () => {
+    const today = formatLocalCalendarDate();
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        entries: Array.from({ length: 6 }, (_, index) => ({
+          id: 80 + index,
+          userId: 101,
+          date: today,
+          mealType: 'snack',
+          description: `meal ${index + 1}`,
+          calories: 200 + index,
+          protein: 12,
+          fiber: 4,
+          source: 'voice',
+          verified: false,
+          createdAt: `${today}T19:0${index}:00.000Z`,
+        })),
+      },
+    });
+
+    render(<ClientNutritionEstimateReviewPanel clients={clients} />);
+
+    expect(await screen.findByText('Showing 5 of 6 pending')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /mark alpha client snack verified/i })).toHaveLength(5);
+    expect(screen.queryByText('meal 6')).not.toBeInTheDocument();
+  });
+
   it('uses safe fixed copy for load and verify failures', async () => {
     const today = formatLocalCalendarDate();
     apiGetMock.mockResolvedValue({

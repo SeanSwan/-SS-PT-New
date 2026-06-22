@@ -101,10 +101,14 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
 
   if (hidden || rosterClientIds.length === 0) return null;
 
-  const rows = buildNutritionEstimateReviewRows(
+  const allRows = buildNutritionEstimateReviewRows(
     reviewClients.filter((client) => rosterClientIds.includes(client.id)),
     entries
-  ).slice(0, 5);
+  );
+  const rows = allRows.slice(0, 5);
+  const pendingMeta = allRows.length > rows.length
+    ? `Showing ${rows.length} of ${allRows.length} pending`
+    : `${allRows.length} pending`;
 
   const verifyRow = async (row: NutritionEstimateReviewRow) => {
     if (verifyingId !== null) return;
@@ -134,7 +138,7 @@ const ClientNutritionEstimateReviewPanel: React.FC<ClientNutritionEstimateReview
     <EstimateReviewShell aria-labelledby="nutrition-estimate-review-title" aria-busy={state === 'loading'}>
       <EstimateReviewHeader>
         <EstimateReviewTitle id="nutrition-estimate-review-title">Nutrition Estimate Review</EstimateReviewTitle>
-        <EstimateReviewMeta>{state === 'ready' ? `${rows.length} pending` : 'Needs coach review'}</EstimateReviewMeta>
+        <EstimateReviewMeta>{state === 'ready' ? pendingMeta : 'Needs coach review'}</EstimateReviewMeta>
       </EstimateReviewHeader>
 
       {verifyError ? (
