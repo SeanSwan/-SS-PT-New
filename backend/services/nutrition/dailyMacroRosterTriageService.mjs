@@ -6,8 +6,14 @@ const MAX_REVIEW_QUEUE_DAYS = 14;
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 export const ESTIMATE_REVIEW_SOURCES = ['ai_chat', 'barcode', 'photo', 'usda_lookup', 'voice'];
+export const FUTURE_DATE_ERROR = 'Future date';
 
 const todayStr = () => formatDisplayDate();
+
+const serverUtcDateOnly = (offsetDays = 0, now = new Date()) => {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays));
+  return date.toISOString().slice(0, 10);
+};
 
 export const daysBefore = (dateValue, days) => {
   const date = new Date(`${dateValue}T00:00:00Z`);
@@ -27,6 +33,13 @@ const isValidDate = (value) => {
 export const requestedDateOrDefault = (rawValue) => {
   if (typeof rawValue === 'undefined') return todayStr();
   return isValidDate(rawValue) ? rawValue : null;
+};
+
+export const resolveRequestedDate = (rawValue) => {
+  const date = requestedDateOrDefault(rawValue);
+  if (!date) return { status: 400, error: 'Invalid date' };
+  if (date > serverUtcDateOnly(1)) return { status: 400, error: FUTURE_DATE_ERROR };
+  return { date };
 };
 
 export const parseRosterUserIds = (rawValue) => {

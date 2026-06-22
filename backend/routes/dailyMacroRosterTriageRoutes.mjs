@@ -12,7 +12,7 @@ import {
   parseReviewWindowDays,
   parseRosterUserIds,
   parseSingleUserId,
-  requestedDateOrDefault,
+  resolveRequestedDate,
   reviewQueueEntry,
   timelineEntry,
 } from '../services/nutrition/dailyMacroRosterTriageService.mjs';
@@ -40,10 +40,11 @@ const requireNutritionReviewer = (req, res, next) => {
 
 router.get('/roster-triage', requireNutritionReviewer, async (req, res) => {
   try {
-    const date = requestedDateOrDefault(req.query.date);
-    if (!date) {
-      return res.status(400).json({ success: false, error: 'Invalid date' });
+    const dateResult = resolveRequestedDate(req.query.date);
+    if (dateResult.status) {
+      return res.status(dateResult.status).json({ success: false, error: dateResult.error });
     }
+    const date = dateResult.date;
     const userIds = parseRosterUserIds(req.query.userIds);
     if (!userIds || userIds.length === 0) {
       return res.status(400).json({ success: false, error: 'Invalid userIds' });
@@ -122,10 +123,11 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
 
 router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
   try {
-    const date = requestedDateOrDefault(req.query.date);
-    if (!date) {
-      return res.status(400).json({ success: false, error: 'Invalid date' });
+    const dateResult = resolveRequestedDate(req.query.date);
+    if (dateResult.status) {
+      return res.status(dateResult.status).json({ success: false, error: dateResult.error });
     }
+    const date = dateResult.date;
     const userIds = parseRosterUserIds(req.query.userIds);
     if (!userIds || userIds.length === 0) {
       return res.status(400).json({ success: false, error: 'Invalid userIds' });
@@ -170,10 +172,11 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
 
 router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
   try {
-    const date = requestedDateOrDefault(req.query.date);
-    if (!date) {
-      return res.status(400).json({ success: false, error: 'Invalid date' });
+    const dateResult = resolveRequestedDate(req.query.date);
+    if (dateResult.status) {
+      return res.status(dateResult.status).json({ success: false, error: dateResult.error });
     }
+    const date = dateResult.date;
     const userId = parseSingleUserId(req.query.userId);
     if (!userId) {
       return res.status(400).json({ success: false, error: 'Invalid userId' });

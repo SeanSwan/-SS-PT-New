@@ -144,6 +144,16 @@ describe('GET /api/macros/roster-triage', () => {
     expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
   });
 
+  it('rejects future roster triage dates before assignment checks or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/roster-triage?date=9999-12-31&userIds=101');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Future date');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
   it('uses the display timezone date when roster triage omits date', async () => {
     const originalTz = process.env.SWAN_DISPLAY_TZ;
     process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';

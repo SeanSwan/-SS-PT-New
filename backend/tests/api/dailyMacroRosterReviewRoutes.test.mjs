@@ -145,6 +145,26 @@ describe('coach-only nutrition review routes', () => {
     ]);
   });
 
+  it('rejects future estimate review queue dates before assignment checks or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/review-queue?date=9999-12-31&userIds=101');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Future date');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects future client timeline dates before assignment checks or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/client-timeline?date=9999-12-31&userId=101');
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('Future date');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
   it('returns safe fixed copy when the estimate review queue query fails', async () => {
     mocks.dailyMacroLogFindAll.mockRejectedValue(new Error('SQLSTATE raw tenant trace'));
 
