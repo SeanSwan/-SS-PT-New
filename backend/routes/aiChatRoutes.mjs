@@ -55,6 +55,10 @@ import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserDa
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
+import {
+  CURRENT_MESSAGE_WITHHELD,
+  sanitizePromptHistory,
+} from '../services/ai/aiChatPromptPrivacy.mjs';
 import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -62,6 +66,7 @@ import {
   buildCoachIntakeContextPromptBlock,
   buildCoachIntakeContextFromResult,
 } from '../services/ai/coachIntakeContextService.mjs';
+import { sanitizeNutritionChatCopy } from '../services/nutrition/nutritionCareCopy.mjs';
 import { listUnifiedCoachIntakeItems } from '../services/coachIntakeItemService.mjs';
 import { getCoachIntakeHealth } from '../services/coachIntakeHealthService.mjs';
 import { getCoachIntakeRetentionReport } from '../services/coachIntakeRetentionPolicyService.mjs';
@@ -619,7 +624,8 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         piiStripped = stripResult.identitiesStripped > 0;
       } catch (stripErr) {
         logger.warn('[AIChatRoutes] PII stripping failed (non-fatal):', stripErr.message);
-        // Continue with original message — fail open for usability, but log the failure
+        sanitizedMessage = CURRENT_MESSAGE_WITHHELD;
+        piiStripped = true;
       }
     }
 
@@ -701,8 +707,15 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       context: conversation.context,
       workoutDate: selectedWorkoutDate,
     });
-    // Use sanitized message (identity stripped) for the AI prompt
-    const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
+    const promptHistory = await sanitizePromptHistory({
+      messages: conversation.messages,
+      enrichUserId,
+      sequelize,
+    });
+    if (promptHistory.identitiesStripped > 0) piiStripped = true;
+
+    // Use sanitized message/history (identity stripped) for the AI prompt
+    const promptMessages = buildPromptMessages(systemPrompt, promptHistory.messages, sanitizedMessage);
 
     // Send to AI provider
     const aiResult = await sendChatMessage(promptMessages);
@@ -717,6 +730,12 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         logger.warn('[AIChatRoutes] Response PII stripping failed (non-fatal):', stripErr.message);
       }
     }
+    aiContent = sanitizeNutritionChatCopy(aiContent, {
+      context: conversation.context,
+      foodContext,
+      message: sanitizedMessage,
+      maxLength: AI_CHAT_MESSAGE_MAX_CHARS,
+    });
 
     // Create message entries
     // Store the ORIGINAL user message in conversation history (trainer sees what they typed)

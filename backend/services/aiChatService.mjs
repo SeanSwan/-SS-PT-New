@@ -14,6 +14,7 @@
 import logger from '../utils/logger.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
+import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
 import {
   NON_DEDUCTING_CLIENT_SOURCES,
   normalizeClientSource,
@@ -92,6 +93,8 @@ NASM ACUTE VARIABLES BY GOAL:
 
 const NUTRITION_REFERENCE = `
 PhD-LEVEL SPORTS NUTRITION PROTOCOLS (you MUST apply these):
+${NUTRITION_CARE_COPY_RULES}
+
 CALORIC NEEDS:
 - BMR: Mifflin-St Jeor equation (Men: 10×weight(kg) + 6.25×height(cm) - 5×age - 5; Women: same + 161)
 - TDEE multipliers: Sedentary 1.2, Light 1.375, Moderate 1.55, Active 1.725, Very Active 1.9

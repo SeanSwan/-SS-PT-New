@@ -12,7 +12,11 @@ vi.mock('@google/generative-ai', () => ({
 
 const { generateMealPlan } = await import('../../services/mealPlanService.mjs');
 const { analyzeMealPhoto } = await import('../../services/foodPhotoService.mjs');
-const { sanitizeNutritionCopy } = await import('../../services/nutrition/nutritionCareCopy.mjs');
+const {
+  sanitizeNutritionChatCopy,
+  sanitizeNutritionCopy,
+  shouldApplyNutritionCareCopy,
+} = await import('../../services/nutrition/nutritionCareCopy.mjs');
 
 const originalGoogleKey = process.env.GOOGLE_API_KEY;
 const originalGeminiKey = process.env.GEMINI_API_KEY;
@@ -91,5 +95,29 @@ describe('AI-generated nutrition copy care guard', () => {
 
     expect(copy).toContain('Anti-inflammatory foods');
     expect(copy).toContain('Prep grains in bulk');
+  });
+
+  it('scrubs mounted Coach chat nutrition copy without rewriting unrelated chat', () => {
+    const nutritionCopy = sanitizeNutritionChatCopy(
+      'Rate this product: GOOD clean ingredients, BAD avoid toxic ingredients. Track compliance trends. This is a bad food choice.',
+      { context: 'macro_logging', message: 'Analyze this snack label.' }
+    );
+
+    expect(nutritionCopy).not.toMatch(/\b(GOOD|BAD|toxic ingredients|clean ingredients|compliance)\b/i);
+    expect(nutritionCopy).not.toMatch(/\bbad food choice\b/i);
+    expect(nutritionCopy).toContain('context-friendly');
+    expect(nutritionCopy).toContain('less aligned');
+    expect(nutritionCopy).toContain('ingredients worth reviewing');
+    expect(nutritionCopy).toContain('follow-through');
+    expect(sanitizeNutritionChatCopy(
+      'For hydration, this is a bad snack before training.',
+      { context: 'coach_assistant', message: 'Thanks' }
+    )).toContain('less aligned snack');
+
+    expect(shouldApplyNutritionCareCopy({ context: 'coach_assistant', message: 'How was the workout?' })).toBe(false);
+    expect(sanitizeNutritionChatCopy('Good morning. Ready for your workout?', {
+      context: 'coach_assistant',
+      message: 'How was the workout?',
+    })).toBe('Good morning. Ready for your workout?');
   });
 });
