@@ -288,6 +288,6 @@ const PresetDetails = ({ preset, reduceMotion }: { preset: GolfPreset; reduceMot
     <PresetSection><PresetLabel>Macro Split</PresetLabel><MacroRow><MacroChip>Carbs {preset.macroSplit.carbPct}%</MacroChip><MacroChip>Protein {preset.macroSplit.proteinPct}%</MacroChip><MacroChip>Fat {preset.macroSplit.fatPct}%</MacroChip></MacroRow></PresetSection>
     <PresetSection><PresetLabel>Sample Meals</PresetLabel>{preset.sampleMeals.map((meal, index) => <SampleMeal key={`${meal}-${index}`}>- {meal}</SampleMeal>)}</PresetSection>
     <PresetSection><PresetLabel>Hydration</PresetLabel><PresetText>{preset.hydration}</PresetText></PresetSection>
-    <PresetSection><PresetLabel>Avoid</PresetLabel><AvoidRow>{preset.avoid.map((item, index) => <AvoidChip key={`${item}-${index}`}>{item}</AvoidChip>)}</AvoidRow></PresetSection>
+    <PresetSection><PresetLabel>Plan Around</PresetLabel><AvoidRow>{preset.avoid.map((item, index) => <AvoidChip key={`${item}-${index}`}>{item}</AvoidChip>)}</AvoidRow></PresetSection>
   </PresetExpanded>
 );

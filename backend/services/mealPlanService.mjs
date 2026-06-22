@@ -26,7 +26,7 @@ const GOLF_PRESETS = {
   'pre-round': {
     name: 'Pre-Round Fuel',
     timing: '2-3 hours before tee time',
-    description: 'Complex carbs + moderate protein for sustained energy. Low fat/fiber to avoid GI distress on the course.',
+    description: 'Complex carbs + moderate protein for sustained energy. Moderate fat/fiber can keep digestion comfortable on the course.',
     macroSplit: { carbPct: 55, proteinPct: 25, fatPct: 20 },
     calorieRange: '400-600',
     sampleMeals: [
@@ -34,8 +34,8 @@ const GOLF_PRESETS = {
       'Whole wheat toast with peanut butter + Greek yogurt',
       'Rice bowl with grilled chicken and light teriyaki',
     ],
-    hydration: '16-20 oz water. Avoid excess caffeine (1 cup coffee max).',
-    avoid: ['High-fat foods', 'High-fiber meals', 'Excess caffeine', 'Alcohol', 'New/unfamiliar foods'],
+    hydration: '16-20 oz water. Keep caffeine moderate if it supports focus without jitters.',
+    avoid: ['Large high-fat meals', 'Very high-fiber meals', 'Excess caffeine', 'Alcohol close to tee time', 'New/unfamiliar foods'],
   },
   'on-course': {
     name: 'On-Course Fueling',
@@ -50,7 +50,7 @@ const GOLF_PRESETS = {
       'Turkey and cheese wrap (half portion)',
     ],
     hydration: '4-8 oz water every 2-3 holes. Electrolyte mix if >80°F or high humidity.',
-    avoid: ['Heavy sandwiches', 'Candy bars (sugar crash)', 'Beer during play', 'Soda'],
+    avoid: ['Large heavy sandwiches', 'High-sugar snacks without protein/fat pairing', 'Beer during play', 'Soda without water pairing'],
   },
   'post-round': {
     name: 'Post-Round Recovery',
@@ -64,7 +64,7 @@ const GOLF_PRESETS = {
       'Protein shake + whole grain wrap with lean meat',
     ],
     hydration: '24-32 oz water within first hour. Replace electrolytes if played in heat.',
-    avoid: ['Skipping the post-round meal', 'Alcohol before rehydrating', 'Fast food (inflammatory)'],
+    avoid: ['Skipping the post-round meal', 'Alcohol before rehydrating', 'Large high-fat meals right after play'],
   },
   'tournament-day': {
     name: 'Tournament Day Protocol',
