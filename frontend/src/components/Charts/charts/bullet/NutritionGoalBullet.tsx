@@ -27,10 +27,20 @@ const REFERENCES: BulletReference[] = [
 ];
 
 const SAFE_ERROR_COPY = 'Nutrition totals unavailable. Try refreshing this dashboard.';
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 const cleanNumber = (value: unknown) => {
-  const numberValue = Number(value ?? 0);
-  return Number.isFinite(numberValue) && numberValue > 0 ? Math.round(numberValue) : 0;
+  let numberValue: number | null = null;
+  if (typeof value === 'number') {
+    numberValue = Number.isFinite(value) ? value : null;
+  } else if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (DECIMAL_NUMBER_PATTERN.test(trimmed)) {
+      const parsed = Number(trimmed);
+      numberValue = Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+  return numberValue !== null && numberValue > 0 ? Math.round(numberValue) : 0;
 };
 
 const formatMetric = (value: number, unit: string) => `${value.toLocaleString()}${unit}`;

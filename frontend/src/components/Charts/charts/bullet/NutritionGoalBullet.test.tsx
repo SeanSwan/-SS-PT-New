@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import NutritionGoalBullet from './NutritionGoalBullet';
-import { useMacroSummary } from '../../../../hooks/useMacroSummary';
+import { useMacroSummary, type MacroSummary } from '../../../../hooks/useMacroSummary';
 
 vi.mock('../../../../hooks/useMacroSummary', () => ({
   useMacroSummary: vi.fn(),
@@ -68,5 +68,29 @@ describe('NutritionGoalBullet', () => {
     });
     rerender(<NutritionGoalBullet />);
     expect(screen.getByText('Nutrition totals unavailable. Try refreshing this dashboard.')).toBeInTheDocument();
+  });
+
+  it('rejects malformed nutrition totals instead of coercing them into believable progress', () => {
+    mockUseMacroSummary.mockReturnValue({
+      summary: {
+        ...summary,
+        totalCalories: ['820'],
+        totalProtein: '0x10',
+        totalFiber: '1e2',
+        totalSodium: { valueOf: () => 1100 },
+        mealCount: 0,
+      } as unknown as MacroSummary,
+      loading: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<NutritionGoalBullet />);
+
+    expect(screen.getByText('No nutrition logged today')).toBeInTheDocument();
+    expect(screen.queryByText('820 / 2,200')).not.toBeInTheDocument();
+    expect(screen.queryByText('16g / 150g')).not.toBeInTheDocument();
+    expect(screen.queryByText('100g / 30g')).not.toBeInTheDocument();
+    expect(screen.queryByText('1,100mg / 2,300mg')).not.toBeInTheDocument();
   });
 });
