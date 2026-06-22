@@ -56,10 +56,17 @@ export const FORMAT_CONFIG = {
   amrap:      { exercisesPerStation: null, durationSec: null, fixedStations: null, blockMin: 4, rounds: 1 },
   partner:    { exercisesPerStation: 2, durationSec: 40, fixedStations: 6, rounds: 3 },
   hybrid:     { exercisesPerStation: null, durationSec: 35, fixedStations: null, rounds: 1 },
+  custom:     { exercisesPerStation: 4, durationSec: 30, fixedStations: 4, rounds: 2 },
 };
 
 export const TRANSITION_TIME_SEC = 15;
 export const STATION_TRANSITION_SEC = 30;
+export const CUSTOM_STRUCTURE_LIMITS = Object.freeze({
+  minStations: 1,
+  maxStations: 6,
+  minExercisesPerStation: 1,
+  maxExercisesPerStation: 5,
+});
 
 // ── Muscle Group Distributions by Day Type ────────────────────────────
 

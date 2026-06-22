@@ -61,6 +61,8 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 export function useBootcampAPI() {
   const generateClass = useCallback(async (params: {
     classFormat: ClassFormat;
+    stationCount?: number;
+    exercisesPerStation?: number;
     classStyle?: ClassStyle;
     dayType: DayType;
     intensityCategory?: IntensityCategory;

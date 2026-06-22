@@ -70,7 +70,9 @@ export function getBootcampCommandDeckModel(
   const mainExercises = getMainExercises(bootcamp);
   const stationGroups = getStationGroups(bootcamp, mainExercises);
   const stationCount = stationGroups.length;
-  const expectedPerStation = format?.isStationBased ? format.exercisesPerStation : 0;
+  const expectedPerStation = typeof bootcamp.exercisesPerStation === 'number' && bootcamp.exercisesPerStation > 0
+    ? bootcamp.exercisesPerStation
+    : format?.isStationBased ? format.exercisesPerStation : 0;
   const completeStationCount = expectedPerStation > 0
     ? stationGroups.filter((group) => group.length >= expectedPerStation).length
     : stationCount;

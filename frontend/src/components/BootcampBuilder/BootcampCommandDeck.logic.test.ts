@@ -160,6 +160,32 @@ describe('getBootcampCommandDeckModel', () => {
     ]);
   });
 
+  it('uses custom exercises per station for trainer-selected bootcamp structures', () => {
+    const custom = bootcamp({
+      classFormat: 'custom',
+      stationCount: 6,
+      exercisesPerStation: 5,
+      stations: [1, 2, 3, 4, 5, 6].map((stationNumber) => ({
+        stationNumber,
+        stationName: `Station ${stationNumber}`,
+        equipmentNeeded: null,
+        sortOrder: stationNumber,
+      })),
+      exercises: Array.from({ length: 30 }, (_, index) => exercise(`Exercise ${index + 1}`, Math.floor(index / 5), true)),
+    });
+
+    const model = getBootcampCommandDeckModel(custom, 'manual', false);
+
+    expect(model.metrics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        label: 'Stations',
+        value: '6/6 live',
+        detail: '5 exercises per station',
+      }),
+    ]));
+    expect(model.repairQueue).not.toContain('Finish S1 to 4 exercises');
+  });
+
   it('counts overflow station assignments instead of hiding them from readiness', () => {
     const expandedStations = bootcamp({
       stationCount: 4,

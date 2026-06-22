@@ -1,20 +1,27 @@
 /**
- * ┌─── SUB-COMPONENT: ConfigPanel ──────────────────────────────┐
- * │ PARENT: BootcampBuilderPage                                  │
- * │ PURPOSE: Left panel — class configuration form               │
- * │ Props: config state + setters, onGenerate, loading, error    │
- * └──────────────────────────────────────────────────────────────┘
+ * SUB-COMPONENT: ConfigPanel
+ * PARENT: BootcampBuilderPage
+ * PURPOSE: Left panel class configuration form for AI generation.
  */
 import React from 'react';
 import { Panel, PanelTitle, FormGroup, Label, Select, Input, PrimaryButton, ErrorBanner } from './BootcampBuilderStyles';
-import { CLASS_FORMATS, DAY_TYPES, OPT_PHASES, CLASS_STYLES, INTENSITY_CATEGORIES } from './BootcampBuilderConstants';
-import type { ClassFormat, DayType } from '../../hooks/useBootcampAPI';
+import {
+  BOOTCAMP_EXERCISES_PER_STATION_OPTIONS,
+  BOOTCAMP_STATION_COUNT_OPTIONS,
+  DAY_TYPES,
+  OPT_PHASES,
+  CLASS_STYLES,
+  INTENSITY_CATEGORIES,
+} from './BootcampBuilderConstants';
+import type { DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 
 export interface ConfigPanelProps {
-  classFormat: ClassFormat;
-  setClassFormat: (v: ClassFormat) => void;
+  stationCount: number;
+  setStationCount: (v: number) => void;
+  exercisesPerStation: number;
+  setExercisesPerStation: (v: number) => void;
   dayType: DayType;
   setDayType: (v: DayType) => void;
   classStyle: ClassStyle;
@@ -40,7 +47,8 @@ export interface ConfigPanelProps {
 }
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
-  classFormat, setClassFormat,
+  stationCount, setStationCount,
+  exercisesPerStation, setExercisesPerStation,
   dayType, setDayType,
   classStyle, setClassStyle,
   intensityCategory, setIntensityCategory,
@@ -56,12 +64,19 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     <PanelTitle>Class Configuration</PanelTitle>
 
     <FormGroup>
-      <Label>Class Format</Label>
-      <Select value={classFormat} onChange={e => setClassFormat(e.target.value as ClassFormat)}>
-        {CLASS_FORMATS.map(f => (
-          <option key={f.value} value={f.value}>
-            {f.label}{f.description ? ` — ${f.description}` : ''}
-          </option>
+      <Label>Station Count</Label>
+      <Select aria-label="Station Count" value={stationCount} onChange={e => setStationCount(Number(e.target.value))}>
+        {BOOTCAMP_STATION_COUNT_OPTIONS.map(count => (
+          <option key={count} value={count}>{count}</option>
+        ))}
+      </Select>
+    </FormGroup>
+
+    <FormGroup>
+      <Label>Exercises Per Station</Label>
+      <Select aria-label="Exercises Per Station" value={exercisesPerStation} onChange={e => setExercisesPerStation(Number(e.target.value))}>
+        {BOOTCAMP_EXERCISES_PER_STATION_OPTIONS.map(count => (
+          <option key={count} value={count}>{count}</option>
         ))}
       </Select>
     </FormGroup>
@@ -70,7 +85,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       <Label>Class Style</Label>
       <Select value={classStyle} onChange={e => setClassStyle(e.target.value as ClassStyle)}>
         {CLASS_STYLES.map(s => (
-          <option key={s.value} value={s.value}>{s.label} — {s.description}</option>
+          <option key={s.value} value={s.value}>{s.label} - {s.description}</option>
         ))}
       </Select>
     </FormGroup>
@@ -132,7 +147,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
           type="checkbox"
           checked={includeStretch}
           onChange={e => setIncludeStretch(e.target.checked)}
-          style={{ width: 18, height: 18, accentColor: '#60c0f0' }}
+          style={{ width: 18, height: 18, accentColor: 'var(--accent-primary, #60C0F0)' }}
         />
         Include 3-5 min warm-up stretch
       </label>

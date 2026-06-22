@@ -12,16 +12,20 @@ describe('BootcampBuilderPage workflow contract', () => {
     read('./ExerciseModAccordion.tsx'),
   ].join('\n');
   const sidePanelsSource = read('./BootcampBuilderSidePanels.tsx');
+  const configPanelSource = read('./ConfigPanel.tsx');
   const constantsSource = read('./BootcampBuilderPage.constants.ts');
   const builderConstantsSource = read('./BootcampBuilderConstants.ts');
   const stylesSource = read('./BootcampBuilderStyles.ts');
   const modeStylesSource = read('./BootcampModeStyles.ts');
   const teachMeSource = constantsSource.match(/const BOOTCAMP_TEACH_ME_CONTENT = \[([\s\S]*?)\]\.join\(''\);/)?.[1] ?? '';
 
-  it('defaults new classes to the common four-station format instead of the old eight-station format', () => {
+  it('defaults new classes to the custom four-station structure instead of a preset-only format', () => {
     expect(builderConstantsSource).toContain("DEFAULT_BOOTCAMP_FORMAT = '4x4_r2'");
+    expect(builderConstantsSource).toContain("CUSTOM_BOOTCAMP_FORMAT = 'custom'");
     expect(builderConstantsSource).toContain("DEFAULT_BOOTCAMP_WORKOUT_MIN = '40'");
-    expect(pageSource).toContain('useState<ClassFormat>(DEFAULT_BOOTCAMP_FORMAT)');
+    expect(pageSource).toContain('classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat');
+    expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_STATION_COUNT)');
+    expect(pageSource).toContain('useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION)');
     expect(pageSource).not.toContain("useState<ClassFormat>('2x8_r3')");
     expect(builderConstantsSource.indexOf("'4x4_r2'")).toBeLessThan(builderConstantsSource.indexOf("'2x8_r3'"));
   });
@@ -30,12 +34,24 @@ describe('BootcampBuilderPage workflow contract', () => {
     const generateCall = pageSource.match(/api\.generateClass\(\{[\s\S]*?\}\);/)?.[0] ?? '';
 
     expect(generateCall).toContain('classFormat,');
+    expect(generateCall).toContain('stationCount,');
+    expect(generateCall).toContain('exercisesPerStation,');
     expect(generateCall).toContain('classStyle,');
     expect(generateCall).toContain('dayType,');
     expect(generateCall).toContain('intensityCategory,');
     expect(generateCall).toContain('equipmentProfileId: equipmentProfileId || undefined');
     expect(generateCall).toContain('optPhase,');
     expect(generateCall).toContain('includeStretch,');
+  });
+
+  it('uses independent station and exercise controls instead of preset-only class formats', () => {
+    expect(builderConstantsSource).toContain('BOOTCAMP_STATION_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6]');
+    expect(builderConstantsSource).toContain('BOOTCAMP_EXERCISES_PER_STATION_OPTIONS = [1, 2, 3, 4, 5]');
+    expect(configPanelSource).toContain('Station Count');
+    expect(configPanelSource).toContain('Exercises Per Station');
+    expect(configPanelSource).not.toContain('<Label>Class Format</Label>');
+    expect(sidePanelsSource).toContain('stationCount={stationCount}');
+    expect(sidePanelsSource).toContain('exercisesPerStation={exercisesPerStation}');
   });
 
   it('keeps manual and hybrid additions honest about target station placement', () => {

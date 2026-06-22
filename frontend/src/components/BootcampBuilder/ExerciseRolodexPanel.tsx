@@ -8,7 +8,10 @@ import {
   buildEquipmentProfileTokens,
   filterExercisesByEquipmentProfile,
 } from './BootcampEquipmentProfileFilter';
-import { CLASS_FORMATS, DEFAULT_BOOTCAMP_FORMAT } from './BootcampBuilderConstants';
+import {
+  BOOTCAMP_EXERCISES_PER_STATION_OPTIONS,
+  BOOTCAMP_STATION_COUNT_OPTIONS,
+} from './BootcampBuilderConstants';
 import ExerciseRolodexList from './ExerciseRolodexList';
 import {
   BODY_PARTS,
@@ -34,6 +37,7 @@ import {
   PanelWrap,
   ResultCount,
   SearchBox,
+  StructureSelectGrid,
 } from './ExerciseRolodexPanel.styles';
 
 export interface RolodexExercise extends ExerciseSlim {}
@@ -45,8 +49,10 @@ interface ExerciseRolodexPanelProps {
   targetStation?: number;
   formatLabel?: string;
   stationInfo?: string;
-  classFormat?: string;
-  onFormatChange?: (format: string) => void;
+  stationCount?: number;
+  exercisesPerStation?: number;
+  onStationCountChange?: (count: number) => void;
+  onExercisesPerStationChange?: (count: number) => void;
   showFormatSelector?: boolean;
   equipmentProfileId?: number | null;
   onEquipmentProfileChange?: (profileId: number | null) => void;
@@ -59,8 +65,10 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
   targetStation,
   formatLabel,
   stationInfo,
-  classFormat,
-  onFormatChange,
+  stationCount,
+  exercisesPerStation,
+  onStationCountChange,
+  onExercisesPerStationChange,
   showFormatSelector,
   equipmentProfileId,
   onEquipmentProfileChange,
@@ -154,13 +162,29 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         <ResultCount>{filteredExercises.length} results</ResultCount>
       </PanelHeader>
 
-      {showFormatSelector && onFormatChange ? (
+      {showFormatSelector && onStationCountChange && onExercisesPerStationChange ? (
         <FormatInfoBar>
-          <FormatSelect value={classFormat || DEFAULT_BOOTCAMP_FORMAT} onChange={(event) => onFormatChange(event.target.value)}>
-            {CLASS_FORMATS.map((format) => (
-              <option key={format.value} value={format.value}>{format.label}</option>
-            ))}
-          </FormatSelect>
+          <StructureSelectGrid>
+            <FormatSelect
+              aria-label="Station Count"
+              value={stationCount ?? BOOTCAMP_STATION_COUNT_OPTIONS[3]}
+              onChange={(event) => onStationCountChange(Number(event.target.value))}
+            >
+              {BOOTCAMP_STATION_COUNT_OPTIONS.map((count) => (
+                <option key={count} value={count}>{count} stations</option>
+              ))}
+            </FormatSelect>
+            <FormatSelect
+              aria-label="Exercises Per Station"
+              value={exercisesPerStation ?? BOOTCAMP_EXERCISES_PER_STATION_OPTIONS[3]}
+              onChange={(event) => onExercisesPerStationChange(Number(event.target.value))}
+            >
+              {BOOTCAMP_EXERCISES_PER_STATION_OPTIONS.map((count) => (
+                <option key={count} value={count}>{count} exercises</option>
+              ))}
+            </FormatSelect>
+          </StructureSelectGrid>
+          {stationInfo && <span>{stationInfo}</span>}
         </FormatInfoBar>
       ) : (formatLabel || stationInfo) ? (
         <FormatInfoBar>

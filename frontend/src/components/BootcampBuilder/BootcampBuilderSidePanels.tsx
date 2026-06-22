@@ -1,7 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
+import type { GeneratedBootcamp, BootcampExercise, DayType } from '../../hooks/useBootcampAPI';
 import type { ClassStyle, IntensityCategory } from './BootcampBuilderConstants';
-import { FORMAT_CONFIG, getExercisesPerStation, getStationCount } from './BootcampBuilderConstants';
 import { getMainBoardExercises } from './BootcampBuilderPlacement';
 import ConfigPanel from './ConfigPanel';
 import ExerciseDetailPanel from './ExerciseDetailPanel';
@@ -14,8 +13,10 @@ type Setter<T> = Dispatch<SetStateAction<T>>;
 interface BootcampLeftPanelProps {
   buildMode: BuildMode;
   bootcamp: GeneratedBootcamp | null;
-  classFormat: ClassFormat;
-  setClassFormat: (value: ClassFormat) => void;
+  stationCount: number;
+  setStationCount: (value: number) => void;
+  exercisesPerStation: number;
+  setExercisesPerStation: (value: number) => void;
   classStyle: ClassStyle;
   setClassStyle: Setter<ClassStyle>;
   dayType: DayType;
@@ -41,7 +42,6 @@ interface BootcampLeftPanelProps {
   onAddExercise: (exercise: RolodexExercise) => void;
   onGenerate: () => void;
   onSelectFromRolodex: (exercise: RolodexExercise) => void;
-  onManualFormatChange: (format: string) => void;
 }
 
 interface BootcampRightPanelProps {
@@ -54,20 +54,18 @@ interface BootcampRightPanelProps {
   onSelectFromRolodex: (exercise: RolodexExercise) => void;
 }
 
-const getManualStationInfo = (classFormat: ClassFormat, bootcamp: GeneratedBootcamp | null) => {
-  const cfg = FORMAT_CONFIG[classFormat];
-  if (!cfg?.isStationBased) return 'Circuit mode';
-  const sc = getStationCount(classFormat);
-  const epc = getExercisesPerStation(classFormat);
+const getManualStationInfo = (stationCount: number, exercisesPerStation: number, bootcamp: GeneratedBootcamp | null) => {
   const filled = getMainBoardExercises(bootcamp?.exercises || []).length;
-  return `${filled}/${sc * epc} slots`;
+  return `${filled}/${stationCount * exercisesPerStation} slots`;
 };
 
 export const BootcampLeftPanel: React.FC<BootcampLeftPanelProps> = ({
   buildMode,
   bootcamp,
-  classFormat,
-  setClassFormat,
+  stationCount,
+  setStationCount,
+  exercisesPerStation,
+  setExercisesPerStation,
   classStyle,
   setClassStyle,
   dayType,
@@ -93,22 +91,24 @@ export const BootcampLeftPanel: React.FC<BootcampLeftPanelProps> = ({
   onAddExercise,
   onGenerate,
   onSelectFromRolodex,
-  onManualFormatChange,
 }) => buildMode === 'manual' ? (
   <ExerciseRolodexPanel
     onAddExercise={onAddExercise}
     onSelectExercise={onSelectFromRolodex}
     selectedId={selectedRolodexId}
     showFormatSelector
-    classFormat={classFormat}
-    onFormatChange={onManualFormatChange}
+    stationCount={stationCount}
+    exercisesPerStation={exercisesPerStation}
+    onStationCountChange={setStationCount}
+    onExercisesPerStationChange={setExercisesPerStation}
     equipmentProfileId={equipmentProfileId}
     onEquipmentProfileChange={setEquipmentProfileId}
-    stationInfo={getManualStationInfo(classFormat, bootcamp)}
+    stationInfo={getManualStationInfo(stationCount, exercisesPerStation, bootcamp)}
   />
 ) : (
   <ConfigPanel
-    classFormat={classFormat} setClassFormat={setClassFormat}
+    stationCount={stationCount} setStationCount={setStationCount}
+    exercisesPerStation={exercisesPerStation} setExercisesPerStation={setExercisesPerStation}
     classStyle={classStyle} setClassStyle={setClassStyle}
     dayType={dayType} setDayType={setDayType}
     intensityCategory={intensityCategory} setIntensityCategory={setIntensityCategory}

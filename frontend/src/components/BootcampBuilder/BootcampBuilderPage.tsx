@@ -1,12 +1,8 @@
-/**
- * BootcampBuilderPage - active /bootcamp-builder page shell.
- * Owns class generation, save/export, and manual station placement state.
- */
 import React, { useCallback, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useBootcampAPI } from '../../hooks/useBootcampAPI';
 import type { GeneratedBootcamp, BootcampExercise, ClassFormat, DayType } from '../../hooks/useBootcampAPI';
-import { DEFAULT_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_WORKOUT_MIN, FORMAT_CONFIG, getStationCount, getExercisesPerStation, getRounds, calcWorkInterval, OVERHEAD_MIN, type ClassStyle, type IntensityCategory } from './BootcampBuilderConstants';
+import { CUSTOM_BOOTCAMP_FORMAT, DEFAULT_BOOTCAMP_EXERCISES_PER_STATION, DEFAULT_BOOTCAMP_ROUNDS, DEFAULT_BOOTCAMP_STATION_COUNT, DEFAULT_BOOTCAMP_WORKOUT_MIN, calcWorkIntervalForStructure, OVERHEAD_MIN, type ClassStyle, type IntensityCategory } from './BootcampBuilderConstants';
 import { PageWrapper } from './BootcampBuilderStyles';
 import { FourPane } from './BootcampModeStyles';
 import BootcampBuilderChrome from './BootcampBuilderChrome';
@@ -25,8 +21,9 @@ import {
   getNextMainBoardSortOrder,
 } from './BootcampBuilderPlacement';
 const BootcampBuilderPage: React.FC = () => {
-  const api = useBootcampAPI();
-  const [classFormat, setClassFormat] = useState<ClassFormat>(DEFAULT_BOOTCAMP_FORMAT);
+  const api = useBootcampAPI(), classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat;
+  const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT);
+  const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
   const [classStyle, setClassStyle] = useState<ClassStyle>('standard');
   const [dayType, setDayType] = useState<DayType>('full_body');
   const [intensityCategory, setIntensityCategory] = useState<IntensityCategory>('high_impact');
@@ -51,20 +48,22 @@ const BootcampBuilderPage: React.FC = () => {
   const isOverTime = totalClassMin > 55;
   useEffect(() => {
     if (buildMode === 'ai') return;
-    const cfg = FORMAT_CONFIG[classFormat];
-    if (!cfg?.isStationBased || bootcamp) return;
+    if (bootcamp) return;
     const targetDur = parseInt(targetDuration, 10) || 45;
-    const { workSec } = calcWorkInterval(classFormat, targetDur);
+    const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
     setBootcamp({
       name: className || 'Manual Class',
       classFormat,
       dayType,
-      stationCount: cfg.stations,
+      stationCount,
+      exercisesPerStation,
+      rounds: DEFAULT_BOOTCAMP_ROUNDS,
+      exerciseDurationSec: workSec,
       targetDuration: targetDur,
       totalWorkoutMin: 0,
       totalClassMin: OVERHEAD_MIN,
       expectedParticipants: parseInt(expectedParticipants, 10) || 12,
-      stations: Array.from({ length: cfg.stations }, (_, i) => ({
+      stations: Array.from({ length: stationCount }, (_, i) => ({
         stationNumber: i + 1,
         stationName: `Station ${i + 1}`,
         equipmentNeeded: null,
@@ -72,11 +71,11 @@ const BootcampBuilderPage: React.FC = () => {
       exercises: [],
       explanations: [{
         type: 'info',
-        message: `Manual - ${cfg.stations} stations x ${cfg.exercisesPerStation} exercises x ${cfg.rounds} rounds, ${workSec}s each`,
+        message: `Manual - ${stationCount} stations x ${exercisesPerStation} exercises x ${DEFAULT_BOOTCAMP_ROUNDS} rounds, ${workSec}s each`,
       }],
       overflowPlan: null,
     } as any);
-  }, [buildMode, classFormat, bootcamp, targetDuration, className, dayType, expectedParticipants]);
+  }, [buildMode, classFormat, bootcamp, targetDuration, className, dayType, expectedParticipants, stationCount, exercisesPerStation]);
   const handleSelectFromRolodex = useCallback((exercise: RolodexExercise) => {
     setSelectedRolodexId(exercise.id);
     setSelectedExercise(buildBootcampExerciseFromRolodex(exercise, {
@@ -101,16 +100,14 @@ const BootcampBuilderPage: React.FC = () => {
     });
   }, []);
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise) => {
-    const formatCfg = FORMAT_CONFIG[classFormat];
-    const isStationBased = formatCfg?.isStationBased ?? false;
     const targetDur = parseInt(targetDuration, 10) || 45;
-    const { workSec } = calcWorkInterval(classFormat, targetDur);
-    const maxPerStation = getExercisesPerStation(classFormat);
-    const numStations = isStationBased ? getStationCount(classFormat) : 0;
+    const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
+    const maxPerStation = exercisesPerStation;
+    const numStations = stationCount;
     const existingForPlacement = getMainBoardExercises(bootcamp?.exercises || []);
     const stationCounts = countMainBoardExercisesByStation(existingForPlacement);
-    let placedStationIdx = activeStation ?? 0;
-    if (isStationBased && numStations > 0 && activeStation === null) {
+    let placedStationIdx = activeStation != null && activeStation < numStations ? activeStation : 0;
+    if (numStations > 0 && activeStation === null) {
       placedStationIdx = -1;
       for (let i = 0; i < numStations; i++) {
         if ((stationCounts.get(i) || 0) < maxPerStation) {
@@ -119,11 +116,11 @@ const BootcampBuilderPage: React.FC = () => {
         }
       }
     }
-    if (isStationBased && placedStationIdx === -1) {
+    if (placedStationIdx === -1) {
       toast.error(`All ${numStations} stations are full (${maxPerStation} exercises each). Delete an exercise first.`);
       return;
     }
-    if (isStationBased && (stationCounts.get(placedStationIdx) || 0) >= maxPerStation) {
+    if ((stationCounts.get(placedStationIdx) || 0) >= maxPerStation) {
       toast.error(`Station ${placedStationIdx + 1} is full (${maxPerStation} exercises). Click another station or delete an exercise.`);
       return;
     }
@@ -141,37 +138,40 @@ const BootcampBuilderPage: React.FC = () => {
       if (prev) {
         return {
           ...prev,
+          stationCount: numStations,
+          exercisesPerStation: maxPerStation,
+          rounds: DEFAULT_BOOTCAMP_ROUNDS,
+          exerciseDurationSec: workSec,
           exercises: updatedExercises,
           totalWorkoutMin: Math.ceil(totalExSec / 60),
           totalClassMin: Math.ceil(totalExSec / 60) + OVERHEAD_MIN,
         };
       }
-      const stations = isStationBased
-        ? Array.from({ length: numStations }, (_, i) => ({
+      const stations = Array.from({ length: numStations }, (_, i) => ({
           stationNumber: i + 1,
           stationName: `Station ${i + 1}`,
           equipmentNeeded: null,
-        }))
-        : [];
+        }));
       return {
         name: className || 'Manual Class',
         classFormat,
         dayType,
         stationCount: numStations,
+        exercisesPerStation: maxPerStation,
+        rounds: DEFAULT_BOOTCAMP_ROUNDS,
+        exerciseDurationSec: workSec,
         targetDuration: targetDur,
         totalWorkoutMin: Math.ceil(totalExSec / 60),
         totalClassMin: Math.ceil(totalExSec / 60) + OVERHEAD_MIN,
         expectedParticipants: parseInt(expectedParticipants, 10) || 12,
         stations,
         exercises: updatedExercises,
-        explanations: [{ type: 'info', message: isStationBased
-          ? `Manual - ${numStations} stations x ${maxPerStation} ex x ${getRounds(classFormat)} rounds, ${workSec}s each`
-          : 'Manual circuit - add exercises' }],
+        explanations: [{ type: 'info', message: `Manual - ${numStations} stations x ${maxPerStation} ex x ${DEFAULT_BOOTCAMP_ROUNDS} rounds, ${workSec}s each` }],
         overflowPlan: null,
       } as any;
     });
-    toast.success(`Added: ${exercise.name}${isStationBased ? ` -> Station ${placedStationIdx + 1}` : ''}`);
-  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation]);
+    toast.success(`Added: ${exercise.name} -> Station ${placedStationIdx + 1}`);
+  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation, stationCount, exercisesPerStation]);
   const handleGenerate = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -180,6 +180,8 @@ const BootcampBuilderPage: React.FC = () => {
     try {
       const result = await api.generateClass({
         classFormat,
+        stationCount,
+        exercisesPerStation,
         classStyle,
         dayType,
         intensityCategory,
@@ -196,7 +198,7 @@ const BootcampBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, classFormat, classStyle, dayType, intensityCategory, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase, includeStretch]);
+  }, [api, classFormat, stationCount, exercisesPerStation, classStyle, dayType, intensityCategory, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase, includeStretch]);
   const handleSave = useCallback(async () => {
     if (!bootcamp || saving) return;
     setSaving(true);
@@ -215,11 +217,8 @@ const BootcampBuilderPage: React.FC = () => {
     exportBootcampTemplatePDF(bootcamp);
     toast.success('Bootcamp PDF exported');
   }, [bootcamp]);
-  const handleManualFormatChange = useCallback((format: string) => {
-    setClassFormat(format as ClassFormat);
-    setBootcamp(null);
-    setActiveStation(null);
-  }, []);
+  const handleStationCountChange = useCallback((value: number) => { setStationCount(value); setBootcamp(null); setActiveStation(null); }, []);
+  const handleExercisesPerStationChange = useCallback((value: number) => { setExercisesPerStation(value); setBootcamp(null); setActiveStation(null); }, []);
   return (
     <PageWrapper $floorMode={floorMode}>
       <BootcampFloorPresentation active={floorMode} />
@@ -238,8 +237,10 @@ const BootcampBuilderPage: React.FC = () => {
           <BootcampLeftPanel
             buildMode={buildMode}
             bootcamp={bootcamp}
-            classFormat={classFormat}
-            setClassFormat={setClassFormat}
+            stationCount={stationCount}
+            setStationCount={handleStationCountChange}
+            exercisesPerStation={exercisesPerStation}
+            setExercisesPerStation={handleExercisesPerStationChange}
             classStyle={classStyle}
             setClassStyle={setClassStyle}
             dayType={dayType}
@@ -265,7 +266,6 @@ const BootcampBuilderPage: React.FC = () => {
             onAddExercise={handleAddFromRolodex}
             onGenerate={handleGenerate}
             onSelectFromRolodex={handleSelectFromRolodex}
-            onManualFormatChange={handleManualFormatChange}
           />
         )}
         <ClassPreviewPanel

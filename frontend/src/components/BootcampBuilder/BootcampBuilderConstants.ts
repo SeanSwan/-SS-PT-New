@@ -16,8 +16,14 @@ export const OVERHEAD_MIN = 13; // 5 demo + 5 clear + 3 stretch
 export const DEFAULT_REST_SEC = 15; // between exercises at same station
 export const ROTATION_SEC = 30;     // between stations
 export const DEFAULT_BOOTCAMP_FORMAT = '4x4_r2' as const;
+export const CUSTOM_BOOTCAMP_FORMAT = 'custom' as const;
+export const DEFAULT_BOOTCAMP_STATION_COUNT = 4;
+export const DEFAULT_BOOTCAMP_EXERCISES_PER_STATION = 4;
+export const DEFAULT_BOOTCAMP_ROUNDS = 2;
 export const DEFAULT_BOOTCAMP_WORKOUT_MIN = '40';
 export const COMMON_CLASS_FORMAT_KEYS = ['4x4_r2', '4x5_r1', '3x4_r2', '3x5_r2'] as const;
+export const BOOTCAMP_STATION_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
+export const BOOTCAMP_EXERCISES_PER_STATION_OPTIONS = [1, 2, 3, 4, 5] as const;
 
 // ── Format Config ───────────────────────────────────────────
 export interface FormatConfig {
@@ -80,6 +86,7 @@ export const FORMAT_CONFIG: Record<string, FormatConfig> = {
   // ── Specialty ──
   'partner': makeStation(6, 2, 3),
   'hybrid':  { exercisesPerStation: 0, stations: 0, rounds: 1, isStationBased: false },
+  custom: makeStation(DEFAULT_BOOTCAMP_STATION_COUNT, DEFAULT_BOOTCAMP_EXERCISES_PER_STATION, DEFAULT_BOOTCAMP_ROUNDS),
 
   // ── Legacy aliases (existing saved templates) ──
   'stations_4x':  makeStation(5, 4, 2),
@@ -108,6 +115,19 @@ export function calcWorkInterval(format: string, targetDurationMin: number): { w
   const availableWorkSec = (targetDurationMin * 60) - rotationOverhead - restOverhead;
   const workSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / totalSlots)));
 
+  return { workSec, restSec: DEFAULT_REST_SEC, totalSlots };
+}
+
+export function getCustomBootcampFormatConfig(stations: number, exercisesPerStation: number, rounds = DEFAULT_BOOTCAMP_ROUNDS): FormatConfig {
+  return makeStation(stations, exercisesPerStation, rounds);
+}
+
+export function calcWorkIntervalForStructure(stations: number, exercisesPerStation: number, rounds: number, targetDurationMin: number) {
+  const totalSlots = stations * exercisesPerStation * rounds;
+  const rotationOverhead = stations * ROTATION_SEC;
+  const restOverhead = stations * Math.max(0, exercisesPerStation - 1) * rounds * DEFAULT_REST_SEC;
+  const availableWorkSec = (targetDurationMin * 60) - rotationOverhead - restOverhead;
+  const workSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / Math.max(1, totalSlots))));
   return { workSec, restSec: DEFAULT_REST_SEC, totalSlots };
 }
 

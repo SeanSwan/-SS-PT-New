@@ -60,6 +60,7 @@ router.post('/generate', async (req, res) => {
   try {
     const {
       classFormat, classStyle, dayType, intensityCategory,
+      stationCount, exercisesPerStation,
       targetDuration, expectedParticipants,
       spaceProfileId, equipmentProfileId,
       name, includeStretch, stretchDurationMin,
@@ -81,7 +82,10 @@ router.post('/generate', async (req, res) => {
     ];
     const VALID_INTENSITIES = ['high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'];
 
-    const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : '4x4_r2';
+    const hasCustomStructure = stationCount != null || exercisesPerStation != null;
+    const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : hasCustomStructure ? 'custom' : '4x4_r2';
+    const safeStationCount = stationCount == null ? undefined : Math.min(Math.max(parseInt(stationCount, 10) || 4, 1), 6);
+    const safeExercisesPerStation = exercisesPerStation == null ? undefined : Math.min(Math.max(parseInt(exercisesPerStation, 10) || 4, 1), 5);
     const safeDayType = VALID_DAY_TYPES.includes(dayType) ? dayType : 'full_body';
     const safeDuration = Math.min(Math.max(parseInt(targetDuration, 10) || 45, 20), 90);
     const safeParticipants = Math.min(Math.max(parseInt(expectedParticipants, 10) || 12, 1), 50);
@@ -89,6 +93,8 @@ router.post('/generate', async (req, res) => {
     const result = await generateBootcampClass({
       trainerId: req.user.id,
       classFormat: safeFormat,
+      stationCount: safeStationCount,
+      exercisesPerStation: safeExercisesPerStation,
       classStyle: VALID_STYLES.includes(classStyle) ? classStyle : 'standard',
       dayType: safeDayType,
       intensityCategory: VALID_INTENSITIES.includes(intensityCategory) ? intensityCategory : undefined,

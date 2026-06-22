@@ -179,8 +179,21 @@ export const FormatInfoBar = styled.div`
   color: var(--accent-secondary, #8B5CF6);
   flex-shrink: 0;
   display: flex;
+  gap: 8px;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+`;
+
+export const StructureSelectGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(92px, 1fr) minmax(116px, 1fr);
+  gap: 8px;
+  width: 100%;
+
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const FormatSelect = styled.select`

@@ -116,6 +116,9 @@ export interface GeneratedBootcamp {
   dayType: DayType;
   intensityCategory?: IntensityCategory;
   stationCount: number;
+  exercisesPerStation?: number;
+  rounds?: number;
+  exerciseDurationSec?: number;
   targetDuration: number;
   totalWorkoutMin: number;
   demoDuration: number;

@@ -20,7 +20,7 @@ import { Op } from 'sequelize';
 import {
   FORMAT_CONFIG, TRANSITION_TIME_SEC, STATION_TRANSITION_SEC,
   DAY_TYPE_MUSCLES, CARDIO_FINISHERS, LAP_EXERCISES,
-  formatExerciseName, distributeMuscleGroups,
+  CUSTOM_STRUCTURE_LIMITS, formatExerciseName, distributeMuscleGroups,
 } from './bootcampConstants.mjs';
 import { estimateSetupTime } from './exerciseRolodexBridge.mjs';
 import { optimizeStationFlow } from './flowOptimizer.mjs';
@@ -279,10 +279,73 @@ export function rankExercisesForBootcamp(exercises, { intensityCategory } = {}) 
 
 // ── Main Generation Function ──────────────────────────────────────────
 
+function clampInt(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  const safe = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.min(Math.max(safe, min), max);
+}
+
+export function resolveBootcampStructure({
+  classFormat = '4x4_r2',
+  stationCount,
+  exercisesPerStation,
+  targetDuration = 50,
+} = {}) {
+  const baseFormat = FORMAT_CONFIG[classFormat] ?? FORMAT_CONFIG['4x4_r2'];
+  const hasCustomStructure = classFormat === 'custom' || stationCount != null || exercisesPerStation != null;
+
+  if (!hasCustomStructure) {
+    let resolvedStationCount;
+    if (classFormat === 'full_group') {
+      resolvedStationCount = 0;
+    } else if (baseFormat.fixedStations) {
+      resolvedStationCount = baseFormat.fixedStations;
+    } else {
+      const exerciseTimeSec = baseFormat.exercisesPerStation * baseFormat.durationSec;
+      const stationTimeSec = exerciseTimeSec + (baseFormat.exercisesPerStation - 1) * TRANSITION_TIME_SEC + STATION_TRANSITION_SEC;
+      resolvedStationCount = Math.max(4, Math.min(10, Math.floor((targetDuration * 60) / stationTimeSec)));
+    }
+    return { classFormat, format: baseFormat, stationCount: resolvedStationCount };
+  }
+
+  const resolvedStationCount = clampInt(
+    stationCount,
+    baseFormat.fixedStations || 4,
+    CUSTOM_STRUCTURE_LIMITS.minStations,
+    CUSTOM_STRUCTURE_LIMITS.maxStations,
+  );
+  const resolvedExercisesPerStation = clampInt(
+    exercisesPerStation,
+    baseFormat.exercisesPerStation || 4,
+    CUSTOM_STRUCTURE_LIMITS.minExercisesPerStation,
+    CUSTOM_STRUCTURE_LIMITS.maxExercisesPerStation,
+  );
+  const rounds = baseFormat.rounds || 2;
+  const totalSlots = resolvedStationCount * resolvedExercisesPerStation * rounds;
+  const transitionSec = resolvedStationCount * Math.max(0, resolvedExercisesPerStation - 1) * rounds * TRANSITION_TIME_SEC;
+  const stationTransitionSec = Math.max(0, resolvedStationCount - 1) * STATION_TRANSITION_SEC;
+  const availableWorkSec = (targetDuration * 60) - transitionSec - stationTransitionSec;
+  const durationSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / Math.max(1, totalSlots))));
+
+  return {
+    classFormat: 'custom',
+    stationCount: resolvedStationCount,
+    format: {
+      ...baseFormat,
+      exercisesPerStation: resolvedExercisesPerStation,
+      durationSec,
+      fixedStations: resolvedStationCount,
+      rounds,
+    },
+  };
+}
+
 export async function generateBootcampClass(options) {
   const {
     trainerId,
-    classFormat = '4x4_r2',
+    classFormat: requestedClassFormat = '4x4_r2',
+    stationCount: requestedStationCount,
+    exercisesPerStation: requestedExercisesPerStation,
     classStyle = 'standard',
     dayType = 'full_body',
     intensityCategory,
@@ -296,21 +359,13 @@ export async function generateBootcampClass(options) {
     exclusionKeys,
   } = options;
 
-  const format = FORMAT_CONFIG[classFormat];
-  if (!format) throw new Error(`Unknown class format: ${classFormat}`);
-
-  // Step 1: Determine station count
-  let stationCount;
-  if (classFormat === 'full_group') {
-    stationCount = 0;
-  } else if (format.fixedStations) {
-    stationCount = format.fixedStations;
-  } else {
-    const exerciseTimeSec = format.exercisesPerStation * format.durationSec;
-    const stationTimeSec = exerciseTimeSec + (format.exercisesPerStation - 1) * TRANSITION_TIME_SEC + STATION_TRANSITION_SEC;
-    const totalWorkoutSec = targetDuration * 60;
-    stationCount = Math.max(4, Math.min(10, Math.floor(totalWorkoutSec / stationTimeSec)));
-  }
+  const structure = resolveBootcampStructure({
+    classFormat: requestedClassFormat,
+    stationCount: requestedStationCount,
+    exercisesPerStation: requestedExercisesPerStation,
+    targetDuration,
+  });
+  let { classFormat, format, stationCount } = structure;
 
   // Step 2: Load space profile constraints
   let spaceProfile = null;
@@ -318,7 +373,10 @@ export async function generateBootcampClass(options) {
     const SpaceProfile = getBootcampSpaceProfile();
     spaceProfile = await SpaceProfile.findByPk(spaceProfileId);
     if (spaceProfile?.maxStations && stationCount > spaceProfile.maxStations) {
-      stationCount = spaceProfile.maxStations;
+      stationCount = Math.max(CUSTOM_STRUCTURE_LIMITS.minStations, spaceProfile.maxStations);
+      if (classFormat === 'custom') {
+        format = { ...format, fixedStations: stationCount };
+      }
     }
   }
 
@@ -482,6 +540,9 @@ export async function generateBootcampClass(options) {
     name: templateName,
     classFormat, classStyle, dayType, intensityCategory,
     stationCount, targetDuration,
+    exercisesPerStation: format.exercisesPerStation ?? undefined,
+    rounds: format.rounds ?? undefined,
+    exerciseDurationSec: format.durationSec ?? undefined,
     totalWorkoutMin,
     demoDuration: 5,
     clearDuration: 5,
@@ -591,4 +652,5 @@ export const __testing__ = {
   buildExerciseRecord,
   normalizeExerciseLibraryId,
   rankExercisesForBootcamp,
+  resolveBootcampStructure,
 };
