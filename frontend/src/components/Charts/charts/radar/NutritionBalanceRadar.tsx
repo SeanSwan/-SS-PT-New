@@ -8,6 +8,7 @@ import { useReducedMotion } from '../../../../hooks/useReducedMotion';
 
 // Default daily targets (grams)
 const TARGETS = { protein: 150, carbs: 250, fat: 65, fiber: 30, hydration: 2500 };
+const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 interface NutritionBalanceRadarProps {
   protein?: number;
@@ -31,9 +32,26 @@ const emptyRadarData = (): NutritionRadarDatum[] => [
   { x: 4, y: 0 },
 ];
 
+const cleanPositiveNumber = (value: unknown) => {
+  let numericValue: number | null = null;
+
+  if (typeof value === 'number') {
+    numericValue = Number.isFinite(value) ? value : null;
+  } else if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (DECIMAL_NUMBER_PATTERN.test(trimmed)) {
+      const parsed = Number(trimmed);
+      numericValue = Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+
+  if (numericValue === null || numericValue <= 0) return 0;
+  return numericValue;
+};
+
 const pct = (value: unknown, target: number) => {
-  const numericValue = Number(value ?? 0);
-  if (!Number.isFinite(numericValue) || numericValue <= 0) return 0;
+  const numericValue = cleanPositiveNumber(value);
+  if (numericValue <= 0) return 0;
   return Math.min(Math.round((numericValue / target) * 100), 100);
 };
 
@@ -64,14 +82,14 @@ const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
   return (
   <ChartCard
     role="region"
-    aria-label="Nutrition balance adherence radar chart"
+    aria-label="Nutrition balance reference radar chart"
     aria-busy={isLoading}
     tabIndex={0}
   >
     <ChartHeader>
       <div>
         <ChartTitle>Nutrition Balance</ChartTitle>
-        <ChartSubtitle>Macro & hydration adherence (%)</ChartSubtitle>
+        <ChartSubtitle>Macro & hydration reference coverage (%)</ChartSubtitle>
       </div>
     </ChartHeader>
     <ChartContainer>
