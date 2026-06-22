@@ -68,10 +68,10 @@ const MODULES: LearnModule[] = [
     subtitle: 'How fluid intake supports training readiness',
     content: [
       'Hydration status can affect strength output and focus. Use thirst, sweat rate, urine color, and training duration as practical cues for your fluid plan.',
-      'Pre-workout: Drink 16-20 oz of water 2-3 hours before training, then 8 oz 20-30 minutes before.',
-      'During workout: 7-10 oz every 10-20 minutes of exercise. For sessions over 60 min, consider electrolytes.',
-      'Post-workout: Replace every pound of body weight lost during exercise with 16-24 oz of fluid.',
-      'Daily baseline: Aim for half your body weight (lbs) in ounces of water. A 180 lb person needs ~90 oz/day minimum.',
+      'Before training: Start hydrated with steady sips earlier in the day; add fluids if the session is long, hot, or sweaty.',
+      'During training: Use thirst, sweat, and session length as cues. For longer sessions, electrolytes can help replace sodium losses.',
+      'After training: Rehydrate gradually with water and meals or snacks that include sodium and potassium when sweat loss was high.',
+      'Daily baseline: Use body size, climate, medication guidance, and urine color as context; ask your coach or clinician before making aggressive changes.',
     ],
   },
   {

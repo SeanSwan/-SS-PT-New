@@ -22,7 +22,10 @@ describe('NutritionLearnTab', () => {
 
     await user.click(screen.getByRole('button', { name: /hydration science/i }));
     expect(document.body.textContent).not.toMatch(/\balready dehydrated\b/i);
+    expect(document.body.textContent).not.toMatch(/\bDrink 16-20 oz\b|\b7-10 oz every\b|\b16-24 oz\b|\bminimum\b/i);
     expect(screen.getByText(/hydration status can affect/i)).toBeInTheDocument();
+    expect(screen.getByText(/start hydrated with steady sips/i)).toBeInTheDocument();
+    expect(screen.getByText(/use body size, climate, medication guidance, and urine color/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /nutrient timing/i }));
     expect(document.body.textContent).not.toMatch(/\bcaloric deficit\b|\bspike insulin\b/i);
