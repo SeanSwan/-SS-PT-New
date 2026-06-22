@@ -7,6 +7,7 @@ import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodProduct from '../models/FoodProduct.mjs';
 import FoodScanHistory from '../models/FoodScanHistory.mjs';
 import logger from '../utils/logger.mjs';
+import { formatDisplayDate } from '../services/nutrition/displayDate.mjs';
 
 const router = express.Router();
 
@@ -468,7 +469,7 @@ router.post('/log-scan', protect, async (req, res) => {
     const multiplier = servingSizeGrams / 100;
 
     const macroLogData = {
-      date: date || new Date().toISOString().split('T')[0],
+      date: date || formatDisplayDate(),
       mealType: mealType || 'snack',
       description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${servingSizeGrams}g)`,
       calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0) * multiplier,
