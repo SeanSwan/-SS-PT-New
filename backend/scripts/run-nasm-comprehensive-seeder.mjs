@@ -13,11 +13,12 @@ import { up } from '../seeders/20260228-seed-nasm-comprehensive-exercises.mjs';
 
 const start = Date.now();
 const originalWarn = console.warn;
+let suppressedValidationSkipCount = 0;
 
 console.warn = (...args) => {
   const message = args.map((arg) => String(arg)).join(' ');
-  if (message.includes('Skipped "') && message.includes('Validation error')) {
-    console.log(...args);
+  if (message.includes('Skipped "') && message.includes(': Validation error')) {
+    suppressedValidationSkipCount++;
     return;
   }
   originalWarn(...args);
@@ -29,6 +30,9 @@ try {
   await up(queryInterface);
 
   const seconds = ((Date.now() - start) / 1000).toFixed(1);
+  if (suppressedValidationSkipCount > 0) {
+    console.log(`NASM comprehensive seeder skipped ${suppressedValidationSkipCount} invalid seed rows; seed data cleanup needed.`);
+  }
   console.log(`NASM comprehensive seeder completed in ${seconds}s`);
   process.exitCode = 0;
 } catch (err) {
