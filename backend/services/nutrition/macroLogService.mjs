@@ -22,13 +22,12 @@
 
 import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
-import { formatDisplayDate } from './displayDate.mjs';
+import { resolveNutritionWriteDate } from './displayDate.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
 const MAX_MACRO_VALUE  = 99999;
-const DATE_REGEX       = /^\d{4}-\d{2}-\d{2}$/;
 const DECIMAL_NUMBER_REGEX = /^\d+(?:\.\d+)?$/;
 
 // Map route-side source strings → model-valid stored values
@@ -62,23 +61,7 @@ const sanitizeNumber = (val) => {
   return Math.min(Math.round(n * 10) / 10, MAX_MACRO_VALUE);
 };
 
-const isValidDate = (str) => {
-  if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
-  const [year, month, day] = str.split('-').map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  return parsed.getUTCFullYear() === year
-    && parsed.getUTCMonth() === month - 1
-    && parsed.getUTCDate() === day;
-};
-
-const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
-const resolveMacroLogDate = (value) => {
-  if (!hasProvidedDate(value)) return formatDisplayDate();
-  if (!isValidDate(value)) {
-    throw new Error('Date must be a real YYYY-MM-DD calendar date');
-  }
-  return value;
-};
+const resolveMacroLogDate = (value) => resolveNutritionWriteDate(value);
 
 /**
  * Normalize a source string to a model-valid stored value.

@@ -76,4 +76,44 @@ describe('aiDataWriteService macro_log date fallback', () => {
     expect(result).toEqual({ successful: 1, errors: [] });
     expect(capture.replacements?.date).toBe('2026-06-19');
   });
+
+  it('rejects impossible explicit macro_log dates before any SQL write', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
+
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({ date: '2026-02-31' })], 7, sequelize);
+
+    expect(result).toEqual({
+      successful: 0,
+      errors: [{
+        type: 'macro_log',
+        code: 'AI_DATA_WRITE_FAILED',
+        message: 'Swan Coach could not apply that update. No data was changed.',
+      }],
+    });
+    expect(capture.replacements).toBeUndefined();
+  });
+
+  it('rejects future explicit macro_log dates before any SQL write without leaking validation text', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T12:00:00.000Z'));
+
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({ date: '2026-06-22' })], 7, sequelize);
+
+    expect(result).toEqual({
+      successful: 0,
+      errors: [{
+        type: 'macro_log',
+        code: 'AI_DATA_WRITE_FAILED',
+        message: 'Swan Coach could not apply that update. No data was changed.',
+      }],
+    });
+    expect(capture.replacements).toBeUndefined();
+  });
 });

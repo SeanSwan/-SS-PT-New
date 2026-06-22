@@ -101,4 +101,40 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
     expect(update.type).toBe('macro_log');
     expect(update.data.date).toBe('2026-06-21');
   });
+
+  it('rejects future scanner log dates before product lookup or macro write', async () => {
+    const response = await request(makeApp())
+      .post('/api/food-scanner/log-scan')
+      .send({ barcode: '12345678', servingSizeGrams: 150, date: '2026-06-24' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Date cannot be in the future',
+    });
+    expect(mocks.getProductByBarcode).not.toHaveBeenCalled();
+    expect(mocks.processAIDataUpdates).not.toHaveBeenCalled();
+  });
+
+  it('does not claim a scan was logged when the macro writer saved zero rows', async () => {
+    mocks.processAIDataUpdates.mockResolvedValueOnce({
+      successful: 0,
+      errors: [{
+        type: 'macro_log',
+        code: 'AI_DATA_WRITE_FAILED',
+        message: 'Swan Coach could not apply that update. No data was changed.',
+      }],
+    });
+
+    const response = await request(makeApp())
+      .post('/api/food-scanner/log-scan')
+      .send({ barcode: '12345678', servingSizeGrams: 150 });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Could not log scanned product. No diary entry was saved.',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('Swan Coach could not apply');
+  });
 });

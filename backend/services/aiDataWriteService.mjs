@@ -16,7 +16,7 @@
  */
 import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
-import { formatDisplayDate } from './nutrition/displayDate.mjs';
+import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
 import {
   attachGeneratedWorkoutPlanPdf,
   extractInsertedWorkoutPlanId,
@@ -273,7 +273,7 @@ async function insertMacroLog(userId, data, sequelize) {
 
   const replacements = {
     userId,
-    date: data.date || formatDisplayDate(),
+    date: resolveNutritionWriteDate(data.date),
     mealType: data.mealType || 'snack',
     description: data.description,
     calories: parseFloat(data.calories) || 0,

@@ -7,7 +7,10 @@ import FoodIngredient from '../models/FoodIngredient.mjs';
 import FoodProduct from '../models/FoodProduct.mjs';
 import FoodScanHistory from '../models/FoodScanHistory.mjs';
 import logger from '../utils/logger.mjs';
-import { formatDisplayDate } from '../services/nutrition/displayDate.mjs';
+import {
+  NUTRITION_FUTURE_DATE_ERROR,
+  resolveNutritionWriteDate,
+} from '../services/nutrition/displayDate.mjs';
 
 const router = express.Router();
 
@@ -449,6 +452,18 @@ router.post('/log-scan', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid meal type' });
     }
 
+    let safeDate;
+    try {
+      safeDate = resolveNutritionWriteDate(date);
+    } catch (dateError) {
+      return res.status(400).json({
+        success: false,
+        message: dateError.message === NUTRITION_FUTURE_DATE_ERROR
+          ? 'Date cannot be in the future'
+          : 'Date must be a real YYYY-MM-DD calendar date',
+      });
+    }
+
     const product = await foodScannerService.getProductByBarcode(barcode, userId);
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found for this barcode' });
@@ -469,7 +484,7 @@ router.post('/log-scan', protect, async (req, res) => {
     const multiplier = servingSizeGrams / 100;
 
     const macroLogData = {
-      date: date || formatDisplayDate(),
+      date: safeDate,
       mealType: mealType || 'snack',
       description: `${product.name}${product.brand ? ` (${product.brand})` : ''} (${servingSizeGrams}g)`,
       calories: parseFloat(nutri.energy_kcal_100g || nutri['energy-kcal'] || nutri.calories || 0) * multiplier,
@@ -489,6 +504,17 @@ router.post('/log-scan', protect, async (req, res) => {
     };
 
     const result = await processAIDataUpdates(userId, [{ type: 'macro_log', data: macroLogData }], userId, sequelizeInstance);
+    if (!result || Number(result.successful || 0) < 1) {
+      logger.warn('[FoodScannerRoutes] log-scan macro write failed', {
+        userId,
+        barcode,
+        errorCount: Array.isArray(result?.errors) ? result.errors.length : 0,
+      });
+      return res.status(500).json({
+        success: false,
+        message: 'Could not log scanned product. No diary entry was saved.',
+      });
+    }
 
     return res.status(200).json({
       success: true,

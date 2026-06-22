@@ -109,4 +109,36 @@ describe('macroLogService verified invariant', () => {
       vi.useRealTimers();
     }
   });
+
+  it('rejects future macro dates beyond the one-day timezone grace in shared AI rows', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'));
+    try {
+      expect(() => buildMacroRow({
+        date: '2026-06-22',
+        mealType: 'lunch',
+        description: 'Burrito bowl',
+        calories: 620,
+      }, { userId: 42, source: 'ai_chat' })).toThrow('Cannot log meals for a future date');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('allows one-day-ahead macro dates for client-local timezone grace', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T23:30:00Z'));
+    try {
+      const row = buildMacroRow({
+        date: '2026-06-21',
+        mealType: 'lunch',
+        description: 'Burrito bowl',
+        calories: 620,
+      }, { userId: 42, source: 'ai_chat' });
+
+      expect(row.date).toBe('2026-06-21');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
