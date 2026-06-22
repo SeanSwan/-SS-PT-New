@@ -5,7 +5,7 @@
  * onSaved fires on success.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MealPhotoReview from './MealPhotoReview';
 
@@ -165,10 +165,12 @@ describe('MealPhotoReview (Slice 1.4)', () => {
 
     render(<MealPhotoReview analysis={withBlankRow} onSaved={vi.fn()} />);
 
-    expect(screen.getByText(/1 unnamed row will be skipped/i)).toBeInTheDocument();
+    const warning = screen.getByText(/1 unnamed row will be skipped/i).closest('[role="status"]');
+    expect(warning).toHaveAttribute('aria-live', 'polite');
     fireEvent.click(screen.getByRole('button', { name: /approve .*save to today/i }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent(/saved 1 item to today's log/i);
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/saved 1 item to today's log/i));
+    expect(screen.getByRole('status')).toHaveTextContent(/1 unnamed row was skipped and was not saved/i);
     expect(apiMocks.post).toHaveBeenCalledTimes(1);
     expect(apiMocks.post).toHaveBeenCalledWith('/api/macros', expect.objectContaining({ description: 'Banana' }));
   });

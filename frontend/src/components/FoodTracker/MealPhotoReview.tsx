@@ -88,6 +88,7 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
   const blankNameRows = foods.filter((food) => String(food.name || '').trim().length === 0).length;
   const savableFoodCount = foods.filter((food) => String(food.name || '').trim().length > 0).length;
   const blankNameCopy = `${blankNameRows} unnamed ${blankNameRows === 1 ? 'row' : 'rows'} will be skipped when saving.`;
+  const skippedBlankCopy = `${blankNameRows} unnamed ${blankNameRows === 1 ? 'row' : 'rows'} ${blankNameRows === 1 ? 'was' : 'were'} skipped and ${blankNameRows === 1 ? 'was' : 'were'} not saved.`;
 
   const handleSave = async () => {
     if (savingRef.current) return; // synchronous guard: rapid double-tap can't double-write
@@ -160,8 +161,8 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
         ))}
       </FoodList>
 
-      {blankNameRows > 0 && !fullySaved && (
-        <StatusMsg><AlertTriangle size={14} /> {blankNameCopy}</StatusMsg>
+      {blankNameRows > 0 && !result && (
+        <StatusMsg role="status" aria-live="polite" aria-atomic="true"><AlertTriangle size={14} /> {blankNameCopy}</StatusMsg>
       )}
 
       {!fullySaved && (
@@ -172,10 +173,10 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
 
       {error && <StatusMsg role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> {error}</StatusMsg>}
       {result && result.failed === 0 && (
-        <StatusMsg role="status" aria-live="polite" aria-atomic="true"><CheckCircle2 size={14} /> Saved {result.saved} {result.saved === 1 ? 'item' : 'items'} to today's log.</StatusMsg>
+        <StatusMsg role="status" aria-live="polite" aria-atomic="true"><CheckCircle2 size={14} /> Saved {result.saved} {result.saved === 1 ? 'item' : 'items'} to today's log. {blankNameRows > 0 ? skippedBlankCopy : ''}</StatusMsg>
       )}
       {result && result.failed > 0 && (
-        <StatusMsg role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> Saved {result.saved} of {result.total}; {result.failed} failed - adjust and try again.</StatusMsg>
+        <StatusMsg role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> Saved {result.saved} of {result.total}; {result.failed} failed - adjust and try again. {blankNameRows > 0 ? skippedBlankCopy : ''}</StatusMsg>
       )}
     </Wrap>
   );
