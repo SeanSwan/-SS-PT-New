@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { Op } from 'sequelize';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeApp, mocks, resetRosterRouteMocks } from './dailyMacroRosterTriageRoutes.harness.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -141,6 +142,30 @@ describe('GET /api/macros/roster-triage', () => {
     expect(response.body.error).toBe('Invalid date');
     expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
     expect(mocks.dailyMacroLogFindAll).not.toHaveBeenCalled();
+  });
+
+  it('uses the display timezone date when roster triage omits date', async () => {
+    const originalTz = process.env.SWAN_DISPLAY_TZ;
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+    try {
+      mocks.dailyMacroLogFindAll.mockResolvedValue([]);
+      const response = await request(makeApp())
+        .get('/api/macros/roster-triage?userIds=101');
+
+      expect(response.status).toBe(200);
+      expect(response.body.date).toBe('2026-06-21');
+      expect(response.body.weekStart).toBe('2026-06-15');
+      expect(mocks.dailyMacroLogFindAll.mock.calls[0][0].where.date[Op.between]).toEqual([
+        '2026-06-15',
+        '2026-06-21',
+      ]);
+    } finally {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.SWAN_DISPLAY_TZ;
+      else process.env.SWAN_DISPLAY_TZ = originalTz;
+    }
   });
 
   it('fails closed when assignment checks deny any requested client', async () => {

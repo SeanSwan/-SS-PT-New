@@ -75,9 +75,11 @@ describe('macroLogService verified invariant', () => {
     }));
   });
 
-  it('keeps missing macro dates defaulted to server today', () => {
+  it('keeps missing macro dates defaulted to the display timezone date', () => {
+    const originalTz = process.env.SWAN_DISPLAY_TZ;
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'));
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
     try {
       const row = buildMacroRow({
         mealType: 'lunch',
@@ -85,9 +87,11 @@ describe('macroLogService verified invariant', () => {
         calories: 620,
       }, { userId: 42, source: 'ai_chat' });
 
-      expect(row.date).toBe('2026-06-20');
+      expect(row.date).toBe('2026-06-21');
     } finally {
       vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.SWAN_DISPLAY_TZ;
+      else process.env.SWAN_DISPLAY_TZ = originalTz;
     }
   });
 

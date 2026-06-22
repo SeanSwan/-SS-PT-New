@@ -22,6 +22,7 @@
 
 import DailyMacroLog from '../../models/DailyMacroLog.mjs';
 import logger from '../../utils/logger.mjs';
+import { formatDisplayDate } from './displayDate.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ const isValidDate = (str) => {
 
 const hasProvidedDate = (value) => value !== undefined && value !== null && value !== '';
 const resolveMacroLogDate = (value) => {
-  if (!hasProvidedDate(value)) return new Date().toISOString().slice(0, 10);
+  if (!hasProvidedDate(value)) return formatDisplayDate();
   if (!isValidDate(value)) {
     throw new Error('Date must be a real YYYY-MM-DD calendar date');
   }

@@ -141,6 +141,21 @@ describe('parseNutritionTranscript', () => {
     expect(result.followUpQuestions).toHaveLength(1);
   });
 
+  it('uses the display timezone date when the parser caller omits date', async () => {
+    const originalTz = process.env.SWAN_DISPLAY_TZ;
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+    try {
+      const result = await parseNutritionTranscript({ transcript: 'I had eggs and toast', clientId: 1 });
+      expect(result.date).toBe('2026-06-21');
+    } finally {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.SWAN_DISPLAY_TZ;
+      else process.env.SWAN_DISPLAY_TZ = originalTz;
+    }
+  });
+
   it('throws on a too-short transcript and when no meals are parsed', async () => {
     await expect(parseNutritionTranscript({ transcript: 'a' })).rejects.toThrow(/too short/i);
 

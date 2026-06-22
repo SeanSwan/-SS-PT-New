@@ -35,6 +35,7 @@
 import { runJsonLlmChain } from '../ai/jsonLlmParser.mjs';
 import { redactTranscriptPII } from '../redactTranscriptPII.mjs';
 import logger from '../../utils/logger.mjs';
+import { formatDisplayDate } from './displayDate.mjs';
 
 const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
 const LOW_CONFIDENCE_THRESHOLD = 0.6;
@@ -211,7 +212,7 @@ export async function parseNutritionTranscript({ transcript, clientId, date, nam
 
   return {
     meals,
-    date: date || new Date().toISOString().slice(0, 10),
+    date: date || formatDisplayDate(),
     confidence,
     notes: typeof parsed?.notes === 'string' ? parsed.notes.slice(0, 300) : '',
     lowConfidence: confidence < LOW_CONFIDENCE_THRESHOLD,

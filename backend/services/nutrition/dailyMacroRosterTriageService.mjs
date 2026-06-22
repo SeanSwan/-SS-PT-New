@@ -1,3 +1,5 @@
+import { formatDisplayDate } from './displayDate.mjs';
+
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_ROSTER_USER_IDS = 50;
 const MAX_REVIEW_QUEUE_DAYS = 14;
@@ -5,7 +7,7 @@ const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 export const ESTIMATE_REVIEW_SOURCES = ['ai_chat', 'barcode', 'photo', 'usda_lookup', 'voice'];
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => formatDisplayDate();
 
 export const daysBefore = (dateValue, days) => {
   const date = new Date(`${dateValue}T00:00:00Z`);
