@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Ingredient Safety Color System (IARC conservative defaults) ──
-// "red" = IARC Group 1 carcinogen + EU-banned additives ONLY
+// "red" = IARC Group 1 + EU-banned additive signal
 // "yellow" = IARC Group 2A/2B, highly processed, excessive sugar/sodium
 // "green" = lower-concern ingredient signals such as GRAS / whole food ingredients
 const SAFETY_COLORS = {
@@ -373,7 +373,7 @@ const ConcernItem = styled.div`
   font-size: 0.9rem;
   
   &:before {
-    content: "⚠️";
+    content: "i";
     margin-right: 0.5rem;
   }
 `;
@@ -441,7 +441,7 @@ const AlternativeItem = styled.div`
   font-size: 0.9rem;
   
   &:before {
-    content: "✓";
+    content: "+";
     margin-right: 0.5rem;
     color: #00c853;
   }
@@ -631,8 +631,8 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
                       onClick={() => hasDetailData(ingredient) && setExpandedIdx(expandedIdx === index ? null : index)}
                     >
                       <IngredientIcon rating={ingredient.healthRating}>
-                        {ingredient.healthRating === 'good' ? '✓' :
-                          ingredient.healthRating === 'bad' ? '✗' : '?'}
+                        {ingredient.healthRating === 'bad' ? '!' :
+                          ingredient.healthRating === 'okay' ? '?' : 'i'}
                       </IngredientIcon>
                       <IngredientName>{ingredient.name}</IngredientName>
                       <IngredientTags>
@@ -662,11 +662,11 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
                             <DetailRow>
                               <DetailLabel>IARC</DetailLabel>
                               <span>
-                                Group {ingredient.iarcGroup}
-                                {ingredient.iarcGroup === '1' && ' — Confirmed carcinogen'}
-                                {ingredient.iarcGroup === '2A' && ' — Probably carcinogenic'}
-                                {ingredient.iarcGroup === '2B' && ' — Possibly carcinogenic'}
-                                {ingredient.iarcGroup === '3' && ' — Not classifiable'}
+                                IARC category {ingredient.iarcGroup}
+                                {ingredient.iarcGroup === '1' && ' - strongest evidence category'}
+                                {ingredient.iarcGroup === '2A' && ' - elevated evidence category'}
+                                {ingredient.iarcGroup === '2B' && ' - limited evidence category'}
+                                {ingredient.iarcGroup === '3' && ' - not classified by this scan data'}
                               </span>
                             </DetailRow>
                           )}
@@ -677,7 +677,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
                             <DetailRow><DetailLabel>Banned</DetailLabel><span>{ingredient.bannedRegions.join(', ')}</span></DetailRow>
                           )}
                           {ingredient.healthConcerns && ingredient.healthConcerns.length > 0 && (
-                            <DetailRow><DetailLabel>Risks</DetailLabel><span>{ingredient.healthConcerns.join('; ')}</span></DetailRow>
+                            <DetailRow><DetailLabel>Notes</DetailLabel><span>{ingredient.healthConcerns.join('; ')}</span></DetailRow>
                           )}
                           {ingredient.healthierAlternatives && ingredient.healthierAlternatives.length > 0 && (
                             <DetailRow><DetailLabel>Try</DetailLabel><span style={{ color: '#60C0F0' }}>{ingredient.healthierAlternatives.join(', ')}</span></DetailRow>
@@ -694,7 +694,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
             
             {product.healthConcerns && product.healthConcerns.length > 0 && (
               <div>
-                <SectionTitle>Health Concerns</SectionTitle>
+                <SectionTitle>Ingredient Notes</SectionTitle>
                 <ConcernsList>
                   {product.healthConcerns.map((concern, index) => (
                     <ConcernItem key={index}>{concern}</ConcernItem>
@@ -714,7 +714,7 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
             </CertificationList>
             <FdaDisclaimer>
               For general wellness purposes only. Not medical advice. Ingredient
-              safety ratings use conservative IARC/EU classifications and may not
+              labels use conservative IARC/EU classifications and may not
               reflect individual sensitivities. Consult a healthcare professional
               for dietary guidance.
             </FdaDisclaimer>

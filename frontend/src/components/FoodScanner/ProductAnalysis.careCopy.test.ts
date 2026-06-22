@@ -15,7 +15,19 @@ describe('ProductAnalysis care-first scanner copy', () => {
     expect(productSource).not.toMatch(/good for health/i);
     expect(productSource).not.toMatch(/healthy choice/i);
     expect(productSource).not.toMatch(/clean, simple ingredients/i);
+    expect(productSource).not.toMatch(/confirmed carcinogen/i);
+    expect(productSource).not.toMatch(/probably carcinogenic/i);
+    expect(productSource).not.toMatch(/possibly carcinogenic/i);
+    expect(productSource).not.toContain('<DetailLabel>Risks</DetailLabel>');
+    expect(productSource).not.toContain('<SectionTitle>Health Concerns</SectionTitle>');
+    expect(productSource).not.toContain("ingredient.healthRating === 'good' ? '✓'");
+    expect(productSource).not.toContain("ingredient.healthRating === 'bad' ? '✗'");
+    expect(productSource).not.toContain('content: "✓";');
     expect(productSource).toContain('Lower concern');
+    expect(productSource).toContain('IARC category');
+    expect(productSource).toContain('<DetailLabel>Notes</DetailLabel>');
+    expect(productSource).toContain('<SectionTitle>Ingredient Notes</SectionTitle>');
+    expect(productSource).toContain('content: "+";');
     expect(productSource).toContain('shorter, recognizable ingredient lists');
 
     expect(pageSource).toContain('foodScannerRatingLabel');
