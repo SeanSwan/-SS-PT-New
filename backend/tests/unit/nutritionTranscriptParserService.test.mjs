@@ -64,6 +64,10 @@ describe('shapeMeal', () => {
     expect(shapeMeal({ description: 'apple', mealType: 'brunch' }).mealType).toBe('snack');
     expect(shapeMeal({ mealType: 'lunch' })).toBeNull();
   });
+  it('normalizes model mealType casing and whitespace before clamping', () => {
+    expect(shapeMeal({ description: 'rice bowl', mealType: ' Lunch ' }).mealType).toBe('lunch');
+    expect(shapeMeal({ description: 'protein shake', mealType: 'POST_WORKOUT' }).mealType).toBe('post_workout');
+  });
   it('defaults confidence to 0.5 and rejects negatives', () => {
     expect(shapeMeal({ description: 'x' }).confidence).toBe(0.5);
     expect(shapeMeal({ description: 'x', calories: -10 }).calories).toBeNull();

@@ -123,6 +123,12 @@ const cleanNumber = (val, max) => {
   return Math.min(Math.round(n * 10) / 10, max);
 };
 
+const normalizeMealType = (value) => {
+  if (typeof value !== 'string') return 'snack';
+  const normalized = value.trim().toLowerCase();
+  return VALID_MEAL_TYPES.includes(normalized) ? normalized : 'snack';
+};
+
 function shapeMeal(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const rawDescription = typeof raw.description === 'string' ? raw.description.trim() : '';
@@ -135,7 +141,7 @@ function shapeMeal(raw) {
       }))
     : [];
   return {
-    mealType: VALID_MEAL_TYPES.includes(raw.mealType) ? raw.mealType : 'snack',
+    mealType: normalizeMealType(raw.mealType),
     description,
     calories: cleanNumber(raw.calories, 99999),
     protein: cleanNumber(raw.protein, 9999),
