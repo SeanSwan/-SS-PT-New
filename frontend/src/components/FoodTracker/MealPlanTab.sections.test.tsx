@@ -1,9 +1,12 @@
 import React from 'react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MealPlanGeneratorSection, PhotoAnalysisSection } from './MealPlanTab.sections';
+
+const apiMocks = vi.hoisted(() => ({ post: vi.fn() }));
+vi.mock('../../services/api.service', () => ({ default: { post: apiMocks.post } }));
 
 vi.mock('framer-motion', () => {
   const MotionDiv = ({ children, initial, animate, exit, whileHover, whileTap, ...props }: any) => <div {...props}>{children}</div>;
@@ -125,5 +128,39 @@ describe('MealPlanTab sections', () => {
     expect(screen.queryByText('0x10g C')).not.toBeInTheDocument();
     expect(screen.queryByText('AI estimate 10000%')).not.toBeInTheDocument();
     expect(screen.getByText('AI estimate N/A')).toBeInTheDocument();
+  });
+
+  it('reports failed photo-review saves as a failed data event', async () => {
+    apiMocks.post.mockRejectedValue(new Error('SQLSTATE raw macro insert trace'));
+    const onDataSent = vi.fn();
+
+    render(<PhotoAnalysisSection
+      photoFile={null}
+      photoPreview={null}
+      photoResult={{
+        foods: [{ name: 'Chicken', calories: 200, protein: 30, carbs: 0, fat: 5, confidence: 0.8 }],
+        totalCalories: 200,
+        totalProtein: 30,
+        totalCarbs: 0,
+        totalFat: 5,
+        mealType: 'lunch',
+        overallConfidence: 0.8,
+        notes: '',
+        fdaDisclaimer: 'Estimate only.',
+      } as any}
+      photoLoading={false}
+      photoError=""
+      fileInputRef={React.createRef<HTMLInputElement>()}
+      onPhotoSelect={vi.fn()}
+      onAnalyzePhoto={vi.fn()}
+      onClearPhoto={vi.fn()}
+      onDataSent={onDataSent}
+    />);
+
+    fireEvent.click(screen.getByRole('button', { name: /approve .*save to today/i }));
+
+    expect(await screen.findByText(/saved 0 of 1/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SQLSTATE raw/i)).not.toBeInTheDocument();
+    expect(onDataSent).toHaveBeenCalledWith(false);
   });
 });

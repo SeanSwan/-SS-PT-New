@@ -31,7 +31,7 @@ interface PhotoFoodInput {
 
 interface MealPhotoReviewProps {
   analysis: { foods?: PhotoFoodInput[]; mealType?: string } | null;
-  onSaved?: () => void;
+  onSaved?: (success: boolean) => void;
 }
 
 type SaveSummary = { saved: number; failed: number; total: number };
@@ -99,6 +99,7 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
       .filter(({ food }) => String(food.name || '').trim().length > 0);
     if (savable.length === 0) {
       setError('Add at least one food before saving.');
+      onSaved?.(false);
       return;
     }
     savingRef.current = true;
@@ -114,9 +115,10 @@ const MealPhotoReview: React.FC<MealPhotoReviewProps> = ({ analysis, onSaved }) 
       setFoods((prev) => prev.filter((_, i) => !savedIndexes.has(i)));
       const summary = summarizeSave(settled.map((s) => ({ ok: s.status === 'fulfilled' })));
       setResult(summary);
-      if (summary.saved > 0 && onSaved) onSaved();
+      onSaved?.(summary.saved > 0);
     } catch {
       setError('Could not save that meal. Please try again.');
+      onSaved?.(false);
     } finally {
       savingRef.current = false;
       setSaving(false);

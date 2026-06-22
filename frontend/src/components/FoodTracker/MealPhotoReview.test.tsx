@@ -85,6 +85,18 @@ describe('MealPhotoReview (Slice 1.4)', () => {
     expect(apiMocks.post).toHaveBeenCalledTimes(3); // only the 1 failed row re-posted, not both
   });
 
+  it('reports a failed save when every reviewed food fails to save', async () => {
+    apiMocks.post.mockRejectedValue(new Error('SQLSTATE raw macro insert trace'));
+    const onSaved = vi.fn();
+
+    render(<MealPhotoReview analysis={analysis} onSaved={onSaved} />);
+    fireEvent.click(screen.getByRole('button', { name: /approve .*save to today/i }));
+
+    expect(await screen.findByText(/saved 0 of 2/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SQLSTATE raw/i)).not.toBeInTheDocument();
+    expect(onSaved).toHaveBeenCalledWith(false);
+  });
+
   it('marks the save button busy and announces save status through a live region', async () => {
     const pending: Array<() => void> = [];
     apiMocks.post.mockImplementation(() => new Promise((resolve) => { pending.push(() => resolve({ data: { success: true } })); }));

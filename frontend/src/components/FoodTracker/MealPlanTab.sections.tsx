@@ -253,7 +253,7 @@ const PhotoResult = ({ result, onDataSent, reduceMotion }: { result: PhotoAnalys
       <ConfChip $val={cleanMacro(result.overallConfidence) ?? 0}>AI estimate {formatConfidence(result.overallConfidence)}</ConfChip>
     </TargetRow>
     {result.notes && <NasmNote>{result.notes}</NasmNote>}
-    <MealPhotoReview analysis={result} onSaved={() => onDataSent?.(true)} />
+    <MealPhotoReview analysis={result} onSaved={onDataSent} />
     <Disclaimer>{result.fdaDisclaimer}</Disclaimer>
   </PhotoResultWrap>
 );
