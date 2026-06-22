@@ -254,4 +254,46 @@ describe('NutritionTodayPanel', () => {
     expect(onLogged).toHaveBeenCalledTimes(1);
     expect(await screen.findByRole('status')).toHaveTextContent(/repeated latest meal/i);
   });
+
+  it('offers one-tap repeat from a recent prior-day meal when today is empty', async () => {
+    const user = userEvent.setup();
+    const yesterday = daysAgoIso(1);
+    mocks.apiGet.mockImplementation((url: string) => {
+      if (url === `/api/macros?date=${todayIso()}`) {
+        return Promise.resolve({ data: { entries: [] } });
+      }
+      if (url === `/api/macros?date=${yesterday}`) {
+        return Promise.resolve({
+          data: {
+            entries: [{
+              mealType: 'breakfast',
+              description: 'Greek yogurt bowl',
+              calories: 410,
+              protein: 32,
+              carbs: 38,
+              fat: 11,
+              verified: true,
+            }],
+          },
+        });
+      }
+      return Promise.resolve({ data: { days: [{ date: todayIso(), mealCount: 0 }] } });
+    });
+
+    render(<NutritionTodayPanel summary={{ ...summary, mealCount: 0 }} onNavigate={vi.fn()} />);
+
+    await user.click(await screen.findByRole('button', { name: /repeat latest meal/i }));
+
+    expect(mocks.apiGet).toHaveBeenCalledWith(`/api/macros?date=${todayIso()}`);
+    expect(mocks.apiGet).toHaveBeenCalledWith(`/api/macros?date=${yesterday}`);
+    expect(mocks.apiPost).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
+      date: todayIso(),
+      mealType: 'breakfast',
+      description: 'Greek yogurt bowl',
+      calories: 410,
+      protein: 32,
+      source: 'manual',
+      verified: false,
+    }));
+  });
 });

@@ -7,6 +7,7 @@ import { AlertTriangle, CalendarCheck, CheckCircle2, Droplets, HeartPulse, Mic, 
 import apiService from '../../../services/api.service';
 import { useHydration } from '../../../hooks/useHydration';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
+import { loadRecentRepeatMealEntry } from './NutritionTodayPanel.latestMeal';
 import {
   calculateNutritionStreak,
   buildNutritionInsights,
@@ -111,9 +112,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
 
   const loadLatestEntry = useCallback(async () => {
     try {
-      const response = await apiService.get(`/api/macros?date=${todayIso()}`);
-      const entries = Array.isArray(response?.data?.entries) ? response.data.entries : [];
-      setLatestEntry(entries.length > 0 ? entries[entries.length - 1] : null);
+      setLatestEntry(await loadRecentRepeatMealEntry(apiService));
     } catch {
       setLatestEntry(null);
     }
