@@ -23,6 +23,19 @@ import {
 
 const DEFAULT_MODEL = process.env.AI_GEMINI_MODEL || 'gemini-2.5-flash';
 
+const normalizeApiKey = (value) => (typeof value === 'string' ? value.trim() : '');
+
+/**
+ * Resolve the Gemini API key from every alias used in this codebase.
+ * @returns {string}
+ */
+const getApiKey = () =>
+  [
+    process.env.GOOGLE_API_KEY,
+    process.env.GEMINI_API_KEY,
+    process.env.GOOGLE_AI_API_KEY,
+  ].map(normalizeApiKey).find(Boolean) || '';
+
 /**
  * Normalize Gemini SDK/runtime errors into AiProviderError.
  *
@@ -86,11 +99,11 @@ const geminiAdapter = {
   name: 'gemini',
 
   /**
-   * Check if GOOGLE_API_KEY is present.
+   * Check if a Gemini API key is present.
    * @returns {boolean}
    */
   isConfigured() {
-    return Boolean(process.env.GOOGLE_API_KEY);
+    return Boolean(getApiKey());
   },
 
   /**
@@ -101,8 +114,9 @@ const geminiAdapter = {
    * @throws {import('../types.mjs').AiProviderError}
    */
   async generateWorkoutDraft(ctx) {
-    if (!this.isConfigured()) {
-      throw makeProviderError('gemini', 'PROVIDER_AUTH', 'GOOGLE_API_KEY is not configured');
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      throw makeProviderError('gemini', 'PROVIDER_AUTH', 'Gemini API key is not configured');
     }
 
     const modelName = ctx.modelPreference || DEFAULT_MODEL;
@@ -118,7 +132,7 @@ const geminiAdapter = {
       throw makeProviderError('gemini', 'PROVIDER_AUTH', 'Google Generative AI SDK not installed');
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    const genAI = new GoogleGenerativeAI(apiKey);
     // Use pre-built system message if provided (e.g. long-horizon), else workout default
     const systemMessage = ctx.systemMessage || WORKOUT_SYSTEM_MESSAGE;
     const model = genAI.getGenerativeModel({
