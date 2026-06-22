@@ -2653,8 +2653,8 @@
       }
     },
     "no_sugar_7": {
-      "title": "Sugar Free",
-      "description": "Log zero added sugar for 7 consecutive days",
+      "title": "Added Sugar Awareness",
+      "description": "Review added sugar patterns for 7 logged days",
       "emoji": "🍬",
       "skillTree": "free_spirit",
       "category": "hidden",
