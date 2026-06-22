@@ -17,7 +17,8 @@ vi.mock('../../utils/logger.mjs', () => ({
   },
 }));
 
-import { buildMacroRow } from '../../services/nutrition/macroLogService.mjs';
+import DailyMacroLog from '../../models/DailyMacroLog.mjs';
+import { buildMacroRow, createSingleMacroEntry } from '../../services/nutrition/macroLogService.mjs';
 
 describe('macroLogService verified invariant', () => {
   it('keeps AI-command macro rows unverified even when upstream input asks otherwise', () => {
@@ -30,6 +31,25 @@ describe('macroLogService verified invariant', () => {
     }, { userId: 42, source: 'ai_chat' });
 
     expect(row).toEqual(expect.objectContaining({
+      userId: 42,
+      source: 'ai_chat',
+      verified: false,
+    }));
+  });
+
+  it('keeps single-entry macro writes unverified even when caller input asks otherwise', async () => {
+    DailyMacroLog.create.mockReset();
+    DailyMacroLog.create.mockResolvedValue({ id: 77 });
+
+    await createSingleMacroEntry({
+      date: '2026-06-21',
+      mealType: 'lunch',
+      description: 'Burrito bowl',
+      calories: 620,
+      verified: true,
+    }, { userId: 42, source: 'ai-chat' });
+
+    expect(DailyMacroLog.create).toHaveBeenCalledWith(expect.objectContaining({
       userId: 42,
       source: 'ai_chat',
       verified: false,

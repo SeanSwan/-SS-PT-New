@@ -129,6 +129,7 @@ export async function createSingleMacroEntry(sanitizedData, { userId, source = '
     ...sanitizedData,
     userId,
     source: normalizeMacroSource(source),
+    verified: false,
   });
 }
 
