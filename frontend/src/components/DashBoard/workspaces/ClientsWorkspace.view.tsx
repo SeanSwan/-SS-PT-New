@@ -146,24 +146,6 @@ const ClientActivationQueueSlot: React.FC<{
   );
 };
 
-const SelectedClientHeaderSlot: React.FC<Pick<
-  ClientsWorkspaceViewProps,
-  'selectedClient' | 'onLogWorkout' | 'onPlanNext' | 'onViewProgress' | 'onOpenAI'
->> = ({ selectedClient, onLogWorkout, onPlanNext, onViewProgress, onOpenAI }) => {
-  if (!selectedClient) return null;
-
-  return (
-    <SelectedClientTrainingHeader
-      client={selectedClient}
-      onboardingPct={getClientOnboardingPct(selectedClient)}
-      onLogToday={onLogWorkout}
-      onPlanNext={onPlanNext}
-      onViewProgress={onViewProgress}
-      onDictateAI={onOpenAI}
-    />
-  );
-};
-
 const SelectedClientDetail: React.FC<Pick<
   ClientsWorkspaceViewProps,
   | 'selectedClient'
@@ -175,6 +157,10 @@ const SelectedClientDetail: React.FC<Pick<
   | 'renderBiometrics'
   | 'renderOverview'
   | 'renderSettings'
+  | 'onLogWorkout'
+  | 'onPlanNext'
+  | 'onViewProgress'
+  | 'onOpenAI'
   | 'onShowDetailTab'
   | 'onClearSelectedClient'
 >> = ({
@@ -187,6 +173,10 @@ const SelectedClientDetail: React.FC<Pick<
   renderBiometrics,
   renderOverview,
   renderSettings,
+  onLogWorkout,
+  onPlanNext,
+  onViewProgress,
+  onOpenAI,
   onShowDetailTab,
   onClearSelectedClient,
 }) => {
@@ -194,6 +184,14 @@ const SelectedClientDetail: React.FC<Pick<
 
   return (
     <DetailScrollWrap>
+      <SelectedClientTrainingHeader
+        client={selectedClient}
+        onboardingPct={getClientOnboardingPct(selectedClient)}
+        onLogToday={onLogWorkout}
+        onPlanNext={onPlanNext}
+        onViewProgress={onViewProgress}
+        onDictateAI={onOpenAI}
+      />
       <ClientDetailView
         client={detailClient}
         activeTab={detailTab}
@@ -281,13 +279,6 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
     <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
     <ClientNutritionRosterTriagePanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
     <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
-    <SelectedClientHeaderSlot
-      selectedClient={props.selectedClient}
-      onLogWorkout={props.onLogWorkout}
-      onPlanNext={props.onPlanNext}
-      onViewProgress={props.onViewProgress}
-      onOpenAI={props.onOpenAI}
-    />
     <ContentArea>
       <ClientsWorkspaceContent {...props} />
     </ContentArea>

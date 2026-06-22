@@ -31,10 +31,6 @@ export const ExerciseAddBtn = styled.button`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
-
-  @media (min-width: 431px) {
-    display: none;
-  }
 `;
 
 export const ExerciseItem = styled.div<{ $selected?: boolean }>`
@@ -43,17 +39,17 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   text-align: left;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)' : 'var(--border-soft, rgba(96, 192, 240, 0.06))'};
   border-radius: 10px;
   background: ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)' : 'rgba(255, 255, 255, 0.015)'};
   color: inherit;
   font: inherit;
   cursor: pointer;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  min-height: 100px;
+  min-height: 132px;
   overflow: hidden;
   border-left: 3px solid ${({ $selected }) => $selected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
 
@@ -76,11 +72,44 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   }
 `;
 
+export const PlannerMediaThumb = styled.div`
+  flex: 0 0 96px;
+  width: 96px;
+  min-height: 88px;
+  align-self: stretch;
+  display: flex;
+  align-items: stretch;
+
+  > div {
+    margin-bottom: 0;
+    min-height: 100%;
+  }
+
+  @media (max-width: 640px) {
+    flex-basis: 82px;
+    width: 82px;
+  }
+
+  @media (max-width: 430px) {
+    display: none;
+  }
+`;
+
+export const ExerciseRowContent = styled.div`
+  flex: 1;
+  min-width: 0;
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+`;
+
 export const ExerciseName = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 600;
-  font-size: 0.8rem;
-  line-height: 1.25;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.3;
   color: var(--text-primary, #E0ECF4);
   margin-bottom: 3px;
   white-space: normal;
@@ -98,15 +127,23 @@ export const ExerciseName = styled.div`
   }
 `;
 
+export const ExerciseDetailLine = styled.div`
+  color: var(--text-muted, rgba(224, 236, 244, 0.78));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+`;
+
 export const ExerciseMeta = styled.div`
   font-family: 'Sora', sans-serif;
-  font-size: 0.65rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.5));
+  font-size: 0.72rem;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   display: flex;
   gap: 3px;
   align-items: center;
   flex-wrap: wrap;
-  max-height: 42px;
+  max-height: 54px;
   overflow: hidden;
 
   /* Pipe separators and tag spans */
@@ -122,12 +159,12 @@ export const MetaTag = styled.span<{ $impact?: string }>`
   padding: 2px 8px;
   border-radius: 4px;
   font-family: 'Sora', sans-serif;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.02em;
   white-space: nowrap;
-  max-width: 12ch;
+  max-width: 14ch;
   overflow: hidden;
   text-overflow: ellipsis;
   background: ${({ $impact }) => {

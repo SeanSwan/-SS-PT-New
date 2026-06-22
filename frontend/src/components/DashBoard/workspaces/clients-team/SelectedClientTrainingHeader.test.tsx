@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import SelectedClientTrainingHeader from './SelectedClientTrainingHeader';
@@ -27,7 +27,16 @@ describe('SelectedClientTrainingHeader', () => {
       />
     );
 
+    expect(screen.getByLabelText(/fallback.client@example.test training actions/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /fallback.client@example.test/i })).toBeInTheDocument();
+    expect(screen.queryByText(/daily training flow/i)).not.toBeInTheDocument();
+
+    const detailsToggle = screen.getByRole('button', { name: /details/i });
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(detailsToggle);
+
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByLabelText(/fallback.client@example.test daily training actions/i)).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: /fallback.client@example.test/i })).toHaveLength(2);
+    expect(screen.getAllByRole('heading', { name: /fallback.client@example.test/i })).toHaveLength(3);
   });
 });

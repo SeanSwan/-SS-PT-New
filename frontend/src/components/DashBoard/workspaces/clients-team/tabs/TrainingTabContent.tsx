@@ -18,10 +18,16 @@
  * Children: ClientTrainingCommandBar plus lazy training workflow panels.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Archive, ClipboardList, FileAudio, Play, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { Archive, ChevronDown, ClipboardList, FileAudio, Play, Sparkles, UploadCloud, Wand2 } from 'lucide-react';
 import { isNaturalWorkoutDictationCandidate } from '../../../../../hooks/aiMessageLimits';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
+import {
+  CommandDisclosure,
+  CommandPanel,
+  CommandToggleButton,
+  CommandToggleCopy,
+} from '../ClientTrainingCommandBar.styles';
 import {
   ContentArea,
   LayoutWrapper,
@@ -84,6 +90,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
   const [loadTodayPlanSignal, setLoadTodayPlanSignal] = useState(0);
   const [planVaultRefreshSignal, setPlanVaultRefreshSignal] = useState(0);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const commandPanelId = useId();
   const numericClientId = getNumericClientId(clientId);
 
   useEffect(() => {
@@ -92,6 +100,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 
   useEffect(() => {
     setLastSavedWorkout(null);
+    setCommandOpen(false);
   }, [clientId]);
 
   const handleSectionChange = useCallback((section: TrainingSection) => {
@@ -154,14 +163,34 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
           </PlaceholderCard>
         ) : (
           <>
-            <ClientTrainingCommandBar
-              clientId={numericClientId}
-              clientName={clientName}
-              scheduledSessionCreditHint={scheduledSessionCreditHint}
-              scheduledSessionDate={scheduledSessionDate}
-              scheduledSessionId={scheduledSessionId}
-              onCommandLaneStart={handleCommandLaneStart}
-            />
+            <CommandDisclosure>
+              <CommandToggleButton
+                type="button"
+                $open={commandOpen}
+                aria-expanded={commandOpen}
+                aria-controls={commandPanelId}
+                onClick={() => setCommandOpen((open) => !open)}
+              >
+                <Sparkles size={17} />
+                <CommandToggleCopy>
+                  <span>Tell Swan</span>
+                  <small>Open when you want AI commands, dictation, or a review-gated workout draft.</small>
+                </CommandToggleCopy>
+                <ChevronDown size={16} />
+              </CommandToggleButton>
+              <CommandPanel id={commandPanelId} hidden={!commandOpen}>
+                {commandOpen && (
+                  <ClientTrainingCommandBar
+                    clientId={numericClientId}
+                    clientName={clientName}
+                    scheduledSessionCreditHint={scheduledSessionCreditHint}
+                    scheduledSessionDate={scheduledSessionDate}
+                    scheduledSessionId={scheduledSessionId}
+                    onCommandLaneStart={handleCommandLaneStart}
+                  />
+                )}
+              </CommandPanel>
+            </CommandDisclosure>
             <TrainingTabSectionContent
               activeSection={activeSection}
               clientName={clientName}

@@ -19,16 +19,16 @@ const TYPES_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerTypes.ts')
 
 describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
-    expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 112;');
+    expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 156;');
     expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
-    expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?display:\s*flex/);
-    expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?justify-content:\s*center/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?display:\s*flex/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?justify-content:\s*center/);
   });
 
   it('keeps exercise names and meta chips contained inside the row card', () => {
     expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?box-sizing:\s*border-box/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*100px/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*42px/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*132px/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*54px/);
     expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?line-height:\s*1\.25/);
     expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
   });
@@ -39,7 +39,13 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(ROW_SOURCE).toMatch(/function formatImpactLabel\(impact: string\): string/);
     expect(ROW_SOURCE).toMatch(/formatImpactLabel\(impact\)/);
     expect(PAGE_SOURCE).not.toMatch(/<MetaTag \$impact=\{getJointImpact\(ex\)\}>\{getJointImpact\(ex\)\}<\/MetaTag>/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?max-width:\s*12ch/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?max-width:\s*14ch/);
+  });
+
+  it('uses the shared logger media preview in non-interactive thumbnail mode', () => {
+    expect(ROW_SOURCE).toContain("import ExerciseMediaPreview from '../../../WorkoutLogger/ExerciseMediaPreview';");
+    expect(ROW_SOURCE).toMatch(/<ExerciseMediaPreview exercise=\{exercise\} variant="thumbnail" \/>/);
+    expect(EXERCISE_STYLE_SOURCE).toContain('export const PlannerMediaThumb');
   });
 
   it('keeps the mobile add control a real 44px keyboard-visible button', () => {
@@ -77,8 +83,8 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(PAGE_SOURCE).toMatch(/useSearchParams/);
     expect(PAGE_SOURCE).toMatch(/requestedClientId/);
     expect(PAGE_SOURCE).toContain("from './useWorkoutPlannerClientState'");
-    expect(CLIENT_STATE_SOURCE).toMatch(/pickWorkoutPlannerClientId\(clients, requestedClientId\)/);
-    expect(CLIENT_STATE_SOURCE).toMatch(/setSelectedClientId\(pickWorkoutPlannerClientId\(clients, requestedClientId\)\)/);
+    expect(CLIENT_STATE_SOURCE).toMatch(/const requestedOrSelfClientId = requestedClientId \?\? selfClient\?\.id \?\? null;/);
+    expect(CLIENT_STATE_SOURCE).toMatch(/setSelectedClientId\(pickWorkoutPlannerClientId\(clients, requestedOrSelfClientId\)\)/);
   });
 
   it('carries clientSource into branded generated-plan PDF exports', () => {

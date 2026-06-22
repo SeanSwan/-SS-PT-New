@@ -168,6 +168,7 @@ export const HeaderSection = styled.div`
 
 export const ContentArea = styled.div`
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -178,6 +179,10 @@ export const DetailScrollWrap = styled.div`
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
 `;
 
 export const CardGrid = styled.div`
@@ -189,6 +194,8 @@ export const CardGrid = styled.div`
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;

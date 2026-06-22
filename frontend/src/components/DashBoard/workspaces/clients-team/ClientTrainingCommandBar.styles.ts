@@ -26,6 +26,67 @@ export const Shell = styled.section`
   }
 `;
 
+export const CommandDisclosure = styled.div`
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+export const CommandToggleButton = styled.button<{ $open: boolean }>`
+  ${swanClientActionButton}
+  --swan-action-border: ${({ $open }) =>
+    $open
+      ? 'var(--accent-secondary, #8B5CF6)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'};
+  --swan-action-bg: ${({ $open }) =>
+    $open
+      ? 'color-mix(in srgb, var(--surface-accent, #003080) 76%, transparent)'
+      : 'color-mix(in srgb, var(--bg-elevated, #1A1A24) 90%, transparent)'};
+  --swan-action-fg: var(--text-primary, #E0ECF4);
+
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: left;
+
+  svg:last-child {
+    margin-left: auto;
+    transform: ${({ $open }) => ($open ? 'rotate(180deg)' : 'rotate(0deg)')};
+    transition: transform 160ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    svg:last-child {
+      transition: none;
+    }
+  }
+`;
+
+export const CommandToggleCopy = styled.span`
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  small {
+    color: var(--text-muted, rgba(224, 236, 244, 0.72));
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+`;
+
+export const CommandPanel = styled.div`
+  &[hidden] {
+    display: none;
+  }
+`;
+
 export const Badge = styled.div`
   ${swanPill}
 

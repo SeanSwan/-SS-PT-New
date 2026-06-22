@@ -28,7 +28,7 @@ export const SearchInput = styled.input`
   padding: 0.6rem 1rem 0.6rem 36px;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   min-height: 44px;
   box-sizing: border-box;
 
@@ -64,7 +64,7 @@ export const RolodexStatusRail = styled.div`
 export const RolodexStatusText = styled.span`
   color: var(--text-secondary, rgba(224, 236, 244, 0.72));
   font-family: 'Sora', sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   line-height: 1.4;
 `;
 
@@ -80,7 +80,7 @@ export const ClearFiltersButton = styled.button`
   color: var(--text-primary, #E0ECF4);
   cursor: pointer;
   font-family: 'Sora', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 700;
 
   &:hover {
@@ -115,12 +115,14 @@ export const Chip = styled.button<{ $active?: boolean }>`
     : 'rgba(255, 255, 255, 0.03)'};
   color: ${({ $active }) => $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
   font-family: 'Sora', sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
   min-width: 44px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   ${({ $active }) => $active ? 'box-shadow: 0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);' : ''}
 
@@ -140,7 +142,7 @@ export const Chip = styled.button<{ $active?: boolean }>`
 
   @media (max-width: 430px) {
     padding: 5px 10px;
-    font-size: 0.65rem;
+    font-size: 0.78rem;
     min-height: 44px;
   }
 `;

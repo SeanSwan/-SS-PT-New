@@ -32,6 +32,7 @@ export interface ExerciseSlim {
   source?: string;
   description?: string;
   videoUrl?: string | null;
+  previewVideoUrl?: string | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
   catalogVideoSample?: {

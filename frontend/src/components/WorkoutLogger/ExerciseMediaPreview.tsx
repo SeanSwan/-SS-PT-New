@@ -19,6 +19,7 @@ import {
 
 interface ExerciseMediaPreviewProps {
   exercise: ExerciseSlim;
+  variant?: 'interactive' | 'thumbnail';
 }
 
 const VIDEO_FILE_PATTERN = /\.(mp4|webm|ogg)(?:[?#].*)?$/i;
@@ -31,19 +32,25 @@ const isHostedVideo = (url?: string | null): url is string => (
   typeof url === 'string' && (VIDEO_FILE_PATTERN.test(url) || url.includes('/video/'))
 );
 
-const ExerciseMediaPreview: React.FC<ExerciseMediaPreviewProps> = ({ exercise }) => {
+const ExerciseMediaPreview: React.FC<ExerciseMediaPreviewProps> = ({
+  exercise,
+  variant = 'interactive',
+}) => {
   const poster = getPoster(exercise);
+  const playableVideoUrl = exercise.previewVideoUrl || exercise.videoUrl;
 
-  if (isHostedVideo(exercise.videoUrl)) {
+  if (isHostedVideo(playableVideoUrl)) {
     return (
       <MediaFrame>
         <MediaVideo
           aria-label={`${exercise.name} exercise demo media`}
-          controls
+          controls={variant === 'interactive'}
+          muted={variant === 'thumbnail'}
           playsInline
           preload="metadata"
           poster={poster}
-          src={exercise.videoUrl}
+          src={playableVideoUrl}
+          tabIndex={variant === 'thumbnail' ? -1 : undefined}
         />
       </MediaFrame>
     );
