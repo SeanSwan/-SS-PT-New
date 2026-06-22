@@ -103,6 +103,48 @@ describe('ClientNutritionEstimateReviewPanel', () => {
     expect(screen.queryByText('meal 6')).not.toBeInTheDocument();
   });
 
+  it('does not render estimates returned for clients outside the visible roster', async () => {
+    const today = formatLocalCalendarDate();
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        entries: [
+          {
+            id: 77,
+            userId: 101,
+            date: today,
+            mealType: 'lunch',
+            description: 'chicken bowl',
+            calories: 620,
+            protein: 44,
+            fiber: 9,
+            source: 'photo',
+            verified: false,
+          },
+          {
+            id: 88,
+            userId: 999,
+            date: today,
+            mealType: 'dinner',
+            description: 'outside roster meal',
+            calories: 500,
+            protein: 30,
+            fiber: 6,
+            source: 'voice',
+            verified: false,
+          },
+        ],
+      },
+    });
+
+    render(<ClientNutritionEstimateReviewPanel clients={clients} />);
+
+    expect(await screen.findByText('1 pending')).toBeInTheDocument();
+    expect(screen.getByText('Alpha Client')).toBeInTheDocument();
+    expect(screen.queryByText('Client 999')).not.toBeInTheDocument();
+    expect(screen.queryByText('outside roster meal')).not.toBeInTheDocument();
+  });
+
   it('uses safe fixed copy for load and verify failures', async () => {
     const today = formatLocalCalendarDate();
     apiGetMock.mockResolvedValue({

@@ -31,4 +31,20 @@ describe('ClientNutritionEstimateReviewPanel logic', () => {
       sourceLabel: 'Photo estimate',
     });
   });
+
+  it('drops estimates for clients outside the visible roster instead of rendering fallback identities', () => {
+    const rows = buildNutritionEstimateReviewRows(clients, [{
+      id: 78,
+      userId: 999,
+      mealType: 'dinner',
+      description: 'outside roster meal',
+      calories: 500,
+      protein: 30,
+      fiber: 6,
+      source: 'voice',
+      verified: false,
+    }]);
+
+    expect(rows).toEqual([]);
+  });
 });

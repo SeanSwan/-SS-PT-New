@@ -69,10 +69,10 @@ export const buildNutritionEstimateReviewRows = (
   const clientNames = new Map(clients.map((client) => [Number(client.id), client.displayName]));
 
   return entries
-    .filter((entry) => !entry.verified)
+    .filter((entry) => !entry.verified && clientNames.has(Number(entry.userId)))
     .map((entry) => ({
       id: entry.id,
-      clientName: clientNames.get(Number(entry.userId)) || `Client ${entry.userId}`,
+      clientName: clientNames.get(Number(entry.userId)) || 'Client',
       mealTitle: titleCase(entry.mealType || 'meal'),
       description: entry.description?.trim() || 'Macro estimate',
       macroLine: `${rounded(entry.calories)} cal - ${rounded(entry.protein)}g protein - ${rounded(entry.fiber)}g fiber`,
