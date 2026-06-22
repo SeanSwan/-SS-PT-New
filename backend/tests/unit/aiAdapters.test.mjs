@@ -10,10 +10,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Mock SDK factories ──────────────────────────────────────────────────────
 
-const { mockOpenAICreate, mockAnthropicCreate, mockGeminiGenerate } = vi.hoisted(() => ({
+const { mockOpenAICreate, mockAnthropicCreate, mockGeminiGenerate, mockGeminiConstructor } = vi.hoisted(() => ({
   mockOpenAICreate: vi.fn(),
   mockAnthropicCreate: vi.fn(),
   mockGeminiGenerate: vi.fn(),
+  mockGeminiConstructor: vi.fn(),
 }));
 
 vi.mock('openai', () => ({
@@ -34,7 +35,9 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 vi.mock('@google/generative-ai', () => ({
   GoogleGenerativeAI: class MockGoogleGenerativeAI {
-    constructor() {}
+    constructor(apiKey) {
+      mockGeminiConstructor(apiKey);
+    }
     getGenerativeModel() {
       return { generateContent: mockGeminiGenerate };
     }
@@ -491,7 +494,10 @@ describe('geminiAdapter', () => {
 
   beforeEach(async () => {
     vi.stubEnv('GOOGLE_API_KEY', 'test-key');
+    vi.stubEnv('GEMINI_API_KEY', '');
+    vi.stubEnv('GOOGLE_AI_API_KEY', '');
     mockGeminiGenerate.mockReset();
+    mockGeminiConstructor.mockReset();
     const mod = await import('../../services/ai/adapters/geminiAdapter.mjs');
     geminiAdapter = mod.default;
   });
@@ -509,6 +515,27 @@ describe('geminiAdapter', () => {
 
     it('should return false when GOOGLE_API_KEY is missing', () => {
       vi.stubEnv('GOOGLE_API_KEY', '');
+      expect(geminiAdapter.isConfigured()).toBe(false);
+    });
+
+    it('should return true when only GEMINI_API_KEY is set', () => {
+      vi.stubEnv('GOOGLE_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', 'gemini-only-key');
+      vi.stubEnv('GOOGLE_AI_API_KEY', '');
+      expect(geminiAdapter.isConfigured()).toBe(true);
+    });
+
+    it('should return true when only GOOGLE_AI_API_KEY is set', () => {
+      vi.stubEnv('GOOGLE_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', '');
+      vi.stubEnv('GOOGLE_AI_API_KEY', 'google-ai-key');
+      expect(geminiAdapter.isConfigured()).toBe(true);
+    });
+
+    it('should ignore blank key aliases when checking configuration', () => {
+      vi.stubEnv('GOOGLE_API_KEY', '   ');
+      vi.stubEnv('GEMINI_API_KEY', '');
+      vi.stubEnv('GOOGLE_AI_API_KEY', '');
       expect(geminiAdapter.isConfigured()).toBe(false);
     });
   });
@@ -562,6 +589,40 @@ describe('geminiAdapter', () => {
       expect(result.tokenUsage.estimatedCostUsd).toBeTypeOf('number');
       expect(result.tokenUsage.estimatedCostUsd).toBeGreaterThan(0);
     });
+
+    it('should initialize the SDK with GEMINI_API_KEY when GOOGLE_API_KEY is absent', async () => {
+      vi.stubEnv('GOOGLE_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', 'gemini-only-key');
+      vi.stubEnv('GOOGLE_AI_API_KEY', '');
+      mockGeminiGenerate.mockResolvedValue({
+        response: {
+          text: () => 'output',
+          candidates: [{ finishReason: 'STOP' }],
+          usageMetadata: {},
+        },
+      });
+
+      await geminiAdapter.generateWorkoutDraft(makeCtx());
+
+      expect(mockGeminiConstructor).toHaveBeenCalledWith('gemini-only-key');
+    });
+
+    it('should skip blank GOOGLE_API_KEY and initialize the SDK with GEMINI_API_KEY', async () => {
+      vi.stubEnv('GOOGLE_API_KEY', '   ');
+      vi.stubEnv('GEMINI_API_KEY', 'gemini-only-key');
+      vi.stubEnv('GOOGLE_AI_API_KEY', '');
+      mockGeminiGenerate.mockResolvedValue({
+        response: {
+          text: () => 'output',
+          candidates: [{ finishReason: 'STOP' }],
+          usageMetadata: {},
+        },
+      });
+
+      await geminiAdapter.generateWorkoutDraft(makeCtx());
+
+      expect(mockGeminiConstructor).toHaveBeenCalledWith('gemini-only-key');
+    });
   });
 
   // ── Error normalization ─────────────────────────────────────────────────
@@ -569,6 +630,8 @@ describe('geminiAdapter', () => {
   describe('generateWorkoutDraft — errors', () => {
     it('should throw PROVIDER_AUTH when API key missing', async () => {
       vi.stubEnv('GOOGLE_API_KEY', '');
+      vi.stubEnv('GEMINI_API_KEY', '');
+      vi.stubEnv('GOOGLE_AI_API_KEY', '');
       try {
         await geminiAdapter.generateWorkoutDraft(makeCtx());
         expect.unreachable('Should have thrown');

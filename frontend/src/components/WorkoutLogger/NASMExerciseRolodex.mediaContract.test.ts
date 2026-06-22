@@ -20,6 +20,7 @@ describe('NASMExerciseRolodex media and mobile preview contract', () => {
   it('carries exercise media and logging defaults through ExerciseSlim', () => {
     for (const field of [
       'videoUrl',
+      'previewVideoUrl',
       'imageUrl',
       'thumbnailUrl',
       'catalogVideoSample',
@@ -52,5 +53,20 @@ describe('NASMExerciseRolodex media and mobile preview contract', () => {
     expect(rolodexSource).toMatch(/setPreviewExercise\(filteredResults\[0\] \|\| null\)/);
     expect(rolodexSource).not.toContain('hover to preview');
     expect(rolodexStylesSource).toMatch(/@media \(max-width: 600px\)[\s\S]*order: -1;/);
+  });
+
+  it('keeps Rolodex scrolling bounded and stable inside the embedded logger', () => {
+    expect(rolodexStylesSource).toContain('max-height: min(760px, calc(100dvh - 168px))');
+    expect(rolodexStylesSource).toContain('overflow-y: auto');
+    expect(rolodexStylesSource).toContain('overscroll-behavior: contain');
+    expect(rolodexStylesSource).toContain('scrollbar-gutter: stable');
+    expect(rolodexStylesSource).toContain('scroll-behavior: smooth');
+  });
+
+  it('raises Rolodex row and preview readability on QHD and 4K screens', () => {
+    expect(rolodexStylesSource).toContain('@media (min-width: 2560px)');
+    expect(rolodexStylesSource).toContain('font-size: 0.98rem');
+    expect(rolodexStylesSource).toContain('@media (min-width: 3840px)');
+    expect(rolodexStylesSource).toContain('font-size: 1.05rem');
   });
 });

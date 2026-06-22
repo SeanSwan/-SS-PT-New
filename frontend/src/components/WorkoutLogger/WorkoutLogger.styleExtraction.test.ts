@@ -50,4 +50,23 @@ describe('WorkoutLogger style extraction', () => {
     expect(source).not.toContain('rgba(20, 20, 25, 0.68)');
     expect(source).not.toContain('rgba(224, 236, 244, 0.72)');
   });
+
+  it('keeps the embedded logger scrollable without forcing nested viewport height', () => {
+    const source = read('WorkoutLogger.styles.ts');
+
+    expect(source).toContain('min-height: min(100%, 100dvh)');
+    expect(source).toContain('scrollbar-gutter: stable');
+    expect(source).toContain('overscroll-behavior: contain');
+    expect(source).toContain('scroll-behavior: smooth');
+  });
+
+  it('raises the logger readability floor on QHD and 4K screens without viewport font scaling', () => {
+    const source = read('WorkoutLogger.styles.ts');
+
+    expect(source).toContain('@media (min-width: 2560px)');
+    expect(source).toContain('font-size: 1.0625rem');
+    expect(source).toContain('@media (min-width: 3840px)');
+    expect(source).toContain('font-size: 1.125rem');
+    expect(source).not.toMatch(/font-size:\s*[^;]*vw/);
+  });
 });

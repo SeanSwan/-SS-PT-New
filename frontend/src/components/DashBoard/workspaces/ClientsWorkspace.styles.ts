@@ -10,19 +10,23 @@ import styled from 'styled-components';
 import { swanSectionBackdrop } from './clients-team/clientCardSystem';
 
 export const HubContainer = styled.div`
+  --client-hub-density-scale: 1;
   ${swanSectionBackdrop}
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
   color: var(--text-primary, #E0ECF4);
   overflow: hidden;
+  font-size: calc(1rem * var(--client-hub-density-scale));
 
   @media (min-width: 2560px) {
+    --client-hub-density-scale: 1.08;
     max-width: 2200px;
     margin: 0 auto;
   }
 
   @media (min-width: 3840px) {
+    --client-hub-density-scale: 1.16;
     max-width: 3000px;
   }
 `;
@@ -86,25 +90,23 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
     $variant === 'primary'
       ? 'var(--accent-secondary, #8B5CF6)'
       : $variant === 'danger'
-        ? 'var(--color-error, #EF4444)'
-      : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
+        ? 'var(--color-error, #DC2626)'
+      : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent)'};
   background: ${({ $variant }) =>
     $variant === 'primary'
-      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
       : $variant === 'danger'
-        ? 'color-mix(in srgb, var(--color-error, #EF4444) 10%, transparent)'
-      : 'transparent'};
+        ? 'var(--color-error, #DC2626)'
+      : 'var(--bg-base, #0A0A0F)'};
   color: ${({ $variant }) =>
-    $variant === 'primary'
-      ? 'var(--accent-secondary, #8B5CF6)'
-      : $variant === 'danger'
-        ? 'var(--color-error, #EF4444)'
+    $variant === 'primary' || $variant === 'danger'
+      ? 'var(--button-text, #FFFFFF)'
       : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
   text-align: center;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -120,10 +122,16 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
   &:hover {
     background: ${({ $variant }) =>
       $variant === 'primary'
-        ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)'
+        ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
         : $variant === 'danger'
-          ? 'color-mix(in srgb, var(--color-error, #EF4444) 16%, transparent)'
-        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
+          ? 'var(--color-error, #DC2626)'
+        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, #0A0A0F)'};
+    box-shadow: ${({ $variant }) =>
+      $variant === 'primary'
+        ? '0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent)'
+        : $variant === 'danger'
+          ? '0 0 16px color-mix(in srgb, var(--color-error, #DC2626) 35%, transparent)'
+        : '0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)'};
   }
 
   &:focus-visible {
@@ -180,9 +188,10 @@ export const DetailScrollWrap = styled.div`
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 `;
 
 export const CardGrid = styled.div`
@@ -193,8 +202,10 @@ export const CardGrid = styled.div`
   gap: 16px;
   padding: 20px;
   overflow-y: auto;
-  flex: 1;
   overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  flex: 1;
   -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {

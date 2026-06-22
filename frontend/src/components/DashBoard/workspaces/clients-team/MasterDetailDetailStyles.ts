@@ -11,6 +11,9 @@ export const DetailContentWrapper = styled.div`
   @media (max-width: 768px) {
     padding: 14px 12px 18px;
   }
+
+  @media (min-width: 2560px) { padding: 30px; }
+  @media (min-width: 3840px) { padding: 36px; }
 `;
 
 export const DetailHeader = styled.div`
@@ -76,8 +79,9 @@ export const DetailTabBar = styled.nav`
 
   @media (max-width: 640px) {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, calc((100% - 6px) / 3)));
-    gap: 3px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(48px, auto);
+    gap: 6px;
     border-bottom: none;
     margin-bottom: 16px;
     overflow: visible;
@@ -123,10 +127,12 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
     outline-offset: -2px;
   }
 
+  @media (min-width: 2560px) { padding: 14px 24px; font-size: 13px; }
+  @media (min-width: 3840px) { padding: 16px 28px; font-size: 14px; }
+
   @media (max-width: 640px) {
-    box-sizing: border-box; flex-direction: column;
-    min-width: 0;
-    gap: 2px; padding: 6px 3px;
+    box-sizing: border-box; flex-direction: row; min-width: 0; width: 100%;
+    gap: 6px; padding: 8px 10px;
     border: 1px solid ${({ $active }) => (
       $active
         ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 65%, transparent)'
@@ -135,12 +141,12 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
     border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(224, 236, 244, 0.08))')};
     border-radius: 8px;
     box-shadow: none;
-    font-size: 9px; line-height: 1; letter-spacing: 0;
-    overflow: hidden; white-space: nowrap;
+    font-size: 11px; line-height: 1.15; letter-spacing: 0;
+    overflow: visible; white-space: normal;
 
     svg {
       flex: 0 0 auto;
-      width: 12px; height: 12px;
+      width: 14px; height: 14px;
     }
   }
 `;
@@ -148,6 +154,7 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
 export const DetailTabLabel = styled.span`
   min-width: 0;
   overflow-wrap: anywhere;
+  line-height: 1.15;
   text-align: center;
 `;
 
@@ -184,7 +191,6 @@ export const PlaceholderText = styled.p`
   margin: 0;
 `;
 
-
 export const EmptyStateContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -217,7 +223,6 @@ export const EmptyStateSubtext = styled.p`
   line-height: 1.6;
 `;
 
-
 export const MobileBackButton = styled.button`
   display: none;
   align-items: center;
@@ -241,7 +246,6 @@ export const MobileBackButton = styled.button`
     outline-offset: 2px;
   }
 `;
-
 
 export const PillarContentArea = styled.div`
   flex: 1;
