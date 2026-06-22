@@ -35,7 +35,7 @@ const GOLF_PRESETS = {
       'Whole wheat toast with peanut butter + Greek yogurt',
       'Rice bowl with grilled chicken and light teriyaki',
     ],
-    hydration: '16-20 oz water. Keep caffeine moderate if it supports focus without jitters.',
+    hydration: 'Begin the round comfortably hydrated. Keep caffeine moderate if it supports focus without jitters.',
     avoid: ['Large high-fat meals', 'Very high-fiber meals', 'Excess caffeine', 'Alcohol close to tee time', 'New/unfamiliar foods'],
   },
   'on-course': {
@@ -50,7 +50,7 @@ const GOLF_PRESETS = {
       'Energy bar (200-250 cal, <5g fiber)',
       'Turkey and cheese wrap (half portion)',
     ],
-    hydration: '4-8 oz water every 2-3 holes. Electrolyte mix if >80°F or high humidity.',
+    hydration: 'Sip steadily between holes. Consider electrolytes when heat, humidity, sweat, or round length make plain water feel insufficient.',
     avoid: ['Large heavy sandwiches', 'High-sugar snacks without protein/fat pairing', 'Beer during play', 'Soda without water pairing'],
   },
   'post-round': {
@@ -64,13 +64,13 @@ const GOLF_PRESETS = {
       'Salmon with sweet potato and steamed vegetables',
       'Protein shake + whole grain wrap with lean meat',
     ],
-    hydration: '24-32 oz water within first hour. Replace electrolytes if played in heat.',
+    hydration: 'Rehydrate gradually after the round and pair fluids with food. Consider electrolytes after hot or especially sweaty rounds.',
     avoid: ['Skipping the post-round meal', 'Alcohol before rehydrating', 'Large high-fat meals right after play'],
   },
   'tournament-day': {
     name: 'Tournament Day Protocol',
     timing: 'Full day plan — early tee to 19th hole',
-    description: 'Competition-level nutrition for peak mental and physical performance over 4-5 hours.',
+    description: 'Competition-day nutrition for steady mental and physical output over 4-5 hours.',
     macroSplit: { carbPct: 50, proteinPct: 25, fatPct: 25 },
     calorieRange: '2200-2800 total',
     sampleMeals: [
@@ -80,7 +80,7 @@ const GOLF_PRESETS = {
       'Post-round: Lean protein + complex carbs + vegetables',
       'Evening: Normal balanced dinner, extra hydration',
     ],
-    hydration: 'Minimum 80-100 oz total for the day. Start hydrating the night before. Electrolyte mix during play.',
+    hydration: 'Build hydration across the day and the night before. Bring water and electrolytes so intake can follow thirst, sweat, heat, and round length.',
     avoid: ['Alcohol before/during play', 'Trying new foods on competition day', 'Skipping meals', 'Heavy cream-based sauces'],
   },
 };

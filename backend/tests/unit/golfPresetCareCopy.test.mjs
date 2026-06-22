@@ -17,8 +17,14 @@ describe('golf nutrition preset care-first copy', () => {
       readRepoFile('backend/services/mealPlanService.mjs'),
       readRepoFile('frontend/src/components/FoodTracker/MealPlanTab.sections.tsx'),
     ].join('\n');
+    const hydrationCopy = [...source.matchAll(/hydration:\s*'([^']*)'/g)]
+      .map((match) => match[1])
+      .join('\n');
 
     expect(source).not.toMatch(/sugar crash|fast food \(inflammatory\)/i);
+    expect(hydrationCopy).not.toMatch(/\b\d{1,3}\s*-\s*\d{1,3}\s*oz\b/i);
+    expect(hydrationCopy).not.toMatch(/\bminimum\s+\d{1,3}\s*-\s*\d{1,3}\s*oz\b/i);
+    expect(hydrationCopy).not.toMatch(/\bevery\s+\d{1,2}\s*-\s*\d{1,2}\s+holes\b/i);
     expect(source).not.toContain('<PresetSection><PresetLabel>Avoid</PresetLabel>');
     expect(source).toMatch(/Plan Around|pair|large high-fat meals|hydration/i);
   });
