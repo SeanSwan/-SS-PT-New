@@ -7,6 +7,7 @@ import multer from 'multer';
 import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
 import {
   uploadProfilePhoto,
+  uploadClientPhoto,
   getUserProfile,
   updateUserProfile,
   getUserStats,
@@ -64,6 +65,20 @@ router.post(
     next();
   },
   uploadProfilePhoto
+);
+
+/**
+ * @route   POST /api/profile/clients/:clientId/photo
+ * @desc    Upload/replace a CLIENT's profile photo (admin or assigned trainer)
+ * @access  Private — fail-closed via checkClientAccess inside the controller
+ * @limits  Rate limited to prevent abuse
+ */
+router.post(
+  '/clients/:clientId/photo',
+  protect,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 20 }), // 20 uploads per 15 minutes
+  upload.single('profilePhoto'),
+  uploadClientPhoto
 );
 
 /**
