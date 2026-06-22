@@ -1,8 +1,3 @@
-/**
- * FILE: VerticalReels.styles.ts
- * PURPOSE: Theme-aware presentation layer for the Social Reels viewer.
- */
-
 import styled from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
@@ -25,6 +20,19 @@ export const ReelsContainer = styled.div<{ $frame: ReelsFrame }>`
     0 24px 70px color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent),
     inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   touch-action: pan-y;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 82%, transparent),
+      0 24px 70px color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent),
+      inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
+  }
+
+  @media (min-width: 2560px) {
+    max-width: ${({ $frame }) => ($frame === 'dashboard' ? 'min(100%, 840px)' : '560px')};
+  }
+  @media (min-width: 3840px) { max-width: ${({ $frame }) => ($frame === 'dashboard' ? 'min(100%, 920px)' : '600px')}; }
 
   @media (max-width: 768px) {
     max-width: 100%;
@@ -45,6 +53,10 @@ export const ReelSlide = styled.div<{ $active: boolean; $direction: 'up' | 'down
     $active ? 'translateY(0)' :
     $direction === 'up' ? 'translateY(-100%)' : 'translateY(100%)'};
   z-index: ${({ $active }) => $active ? 2 : 1};
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 export const VideoWrapper = styled.div`
@@ -58,7 +70,7 @@ export const VideoWrapper = styled.div`
   video {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
   }
 `;
 
@@ -203,6 +215,11 @@ export const ActionButton = styled.button<{ $active?: boolean }>`
     font-weight: 700;
     text-shadow: 0 1px 3px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
 `;
 
 export const MuteButton = styled.button`
@@ -221,6 +238,7 @@ export const MuteButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 3px; }
 `;
 
 export const NavHints = styled.div`
@@ -238,8 +256,8 @@ export const NavHints = styled.div`
 `;
 
 export const NavHintBtn = styled.button`
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 18%, transparent);
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 45%, transparent);
@@ -250,21 +268,8 @@ export const NavHintBtn = styled.button`
   justify-content: center;
 
   &:hover { opacity: 1; background: color-mix(in srgb, var(--bg-base, #0A0A0F) 68%, transparent); }
-`;
-
-export const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--text-muted, rgba(224, 236, 244, 0.6));
-  text-align: center;
-  padding: 40px;
-  gap: 16px;
-
-  h3 { color: var(--text-primary, #E0ECF4); margin: 0; }
-  p { margin: 0; font-size: 14px; }
+  &:disabled { cursor: not-allowed; opacity: 0.36; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 3px; }
 `;
 
 export const ProgressDots = styled.div`
@@ -283,4 +288,8 @@ export const Dot = styled.div<{ $active: boolean }>`
   border-radius: 3px;
   background: ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 38%, transparent)'};
   transition: width 0.3s, background 0.3s;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
