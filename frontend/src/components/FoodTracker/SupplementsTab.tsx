@@ -131,9 +131,9 @@ const SupplementsTab: React.FC = () => {
       )}
 
       <GapSection>
-        <SectionTitle><TrendingDown size={18} /> Your Nutrition Gaps</SectionTitle>
+        <SectionTitle><TrendingDown size={18} /> Nutrition Support Signals</SectionTitle>
         <SectionDesc>
-          AI analyzes your logged meals to identify nutritional deficiencies and recommend targeted supplements.
+          Review logged meal patterns for possible micronutrient or hydration-support gaps before discussing supplement options with your coach.
         </SectionDesc>
         {!gapAnalysis && !gapLoading && (
           <AnalyzeBtn onClick={analyzeGaps} whileHover={reduceMotion ? undefined : { scale: 1.02 }} whileTap={reduceMotion ? undefined : { scale: 0.98 }}>
