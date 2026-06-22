@@ -31,6 +31,7 @@ import { createInterface } from 'node:readline';
 export const PRICING = {
   'anthropic/claude-sonnet-4.6': { in: 3.0, out: 15.0 },
   'minimax/minimax-m2.7':        { in: 0.30, out: 1.20 },
+  'z-ai/glm-5.2':                { in: 1.20, out: 4.10 },  // design-debate lead (verified 2026-06-20)
   'gemini-3.1-pro-preview':      { in: 2.0, out: 12.0 },
 };
 

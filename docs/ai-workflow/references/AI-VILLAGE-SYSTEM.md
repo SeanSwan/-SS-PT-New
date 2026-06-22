@@ -55,7 +55,8 @@ node scripts/validation-orchestrator.mjs --staged
 - **Phase 2:** Specialty recursive debates (max 5 rounds each):
   - **Security Debate:** Step 3.5 Flash:free ↔ Nvidia Nemotron 3 Super:free (FREE)
   - **Code Quality Debate:** Claude Sonnet 4.6 ↔ Qwen 3.6 Plus:free (~$0.05)
-  - **UX/UI Design Debate:** Gemini 3.1 Pro (CTO) ↔ MiniMax M2.5:free (~$0.03)
+  - **UX/UI Design Debate:** GLM 5.2 (Lead Designer, final say) ↔ Gemini 3.1 Pro (Reviewer) — design slot only; GLM on-test from 2026-06-20
+    > ⚠ The Phase-1/2/3 model names elsewhere in this doc (Step 3.5 Flash, Qwen 3.6, MiniMax M2.5/M2.1, Mercury 2) are STALE vs the live `validation-orchestrator.mjs` (post-2026-04 privacy audit + drift-fix). Treat the orchestrator's `MODELS` map + `config/MODEL_VERSIONS.md` as source of truth. Full doc reconciliation is a separate hygiene pass.
 - **Phase 3: CEO Review + Smart Escalation:**
   - Gemini 3.1 Pro reviews ALL Phase 2 debate conclusions
   - **Smart Gate:** IF any debate has CRITICAL findings OR no consensus → Mercury 2 ($0.25/$0.75/M) and MiniMax M2.7 ($0.30/$1.20/M) enter as cross-validators

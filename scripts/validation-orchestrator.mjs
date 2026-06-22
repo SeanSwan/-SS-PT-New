@@ -22,9 +22,9 @@
  * ║     Claude = final authority on code decisions                  ║
  * ║                                                                  ║
  * ║  Phase 3 — RECURSIVE UX/UI DESIGN DEBATE:                      ║
- * ║  11. Gemini 3.1 Pro (Creative Dir) ↔ Claude (Collaborator)     ║
+ * ║  11. GLM 5.2 (Lead Designer) ↔ Gemini 3.1 Pro (Reviewer)       ║
  * ║     Loop until CONSENSUS REACHED or MAX_ROUNDS (5)              ║
- * ║     Gemini = final authority on design decisions                ║
+ * ║     GLM 5.2 = final authority on design (on test 2026-06-20)    ║
  * ║                                                                  ║
  * ║  Architecture: Gemini + Claude = recursive co-orchestrators     ║
  * ║  They DEBATE until consensus. No single-pass reviews.           ║
@@ -67,7 +67,8 @@ const ROOT = join(__dirname, '..');
 const MODELS = {
   // ── VERIFIED FREE — US/EU COMPANIES ONLY (Privacy audit 2026-04-06) ──
   // Policy: No Chinese models for sensitive roles (security, competitive intel, user research)
-  // Remaining Chinese model: MiniMax M2.7 (design debates only — lowest sensitivity, no free US equivalent)
+  // Remaining Chinese model: GLM 5.2 (design debate LEAD only — lowest sensitivity, no PII/security/code).
+  //   MiniMax M2.7 retired from the design slot 2026-06-20 (replaced by GLM 5.2 per Sean).
   gemini25Flash:  'google/gemini-2.5-flash',              // FREE — Google/US — UX analysis + competitive intel (2nd instance)
   gemini3Flash:   'google/gemini-3-flash-preview-20251217', // FREE — Google/US — performance review
   gemini31Flash:  'google/gemini-3.1-flash-lite-preview',  // FREE — Google/US — frontend UX patterns
@@ -76,8 +77,12 @@ const MODELS = {
   trinityLarge:   'arcee-ai/trinity-large-preview:free',    // FREE — Arcee AI/US — 400B MoE, full-stack integration
   // ── PAID models — US ONLY ──
   claudeSonnet46: 'anthropic/claude-sonnet-4.6',            // $3/$15 per M — Anthropic/US — premium code quality + data safety
-  // ── DESIGN DEBATE (only Chinese model remaining — lowest sensitivity role) ──
-  minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — design debate partner only
+  // ── DESIGN DEBATE (lowest-sensitivity role — the ONLY slot where a Chinese-provider model is policy-allowed) ──
+  // Sean 2026-06-20: GLM 5.2 is the LEAD designer (Creative Director / final say) in the Phase 2C design debate,
+  // opposite Gemini 3.1 Pro as reviewer. On test ("supposed to be really good at this"). Slug + pricing verified
+  // via openrouter.ai/z-ai/glm-5.2 on 2026-06-20 ($1.20 in / $4.10 out per M, 1M ctx).
+  glm52:          'z-ai/glm-5.2',                          // $1.20/$4.10 per M — Z.ai/China — design debate LEAD (Creative Director). Design slot ONLY.
+  minimaxM27:     'minimax/minimax-m2.7',                  // $0.30/$1.20 per M — MiniMax/China — RETIRED from design 2026-06-20 (superseded by GLM 5.2). Kept defined for cost-tracking back-compat + quick rollback; not wired into any active code path.
   // ── SMART ESCALATION (only triggered for CRITICAL findings or stalled debates) ──
   escalation1:    'nvidia/nemotron-3-nano-30b-a3b:free',   // FREE — NVIDIA/US — replaces GLM-4.7 (was Z-AI/China)
   escalation2:    'nvidia/nemotron-3-super-120b-a12b:free', // FREE — NVIDIA/US — CRITICAL escalation deep-dive (was MiniMax M2.7, removed by ORCHESTRATOR-DRIFT-FIX 2026-04-22 Site C — escalation receives the most sensitive findings, worst place for a Chinese model)
@@ -324,7 +329,7 @@ function formatCodeBundle(files) {
 
 function buildValidatorTracks(codeBundle, fileList) {
   const fileNames = fileList.map(f => f.path).join(', ');
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
+  const ctx = `${getProjectContext()} You are reviewing actual code files; derive the feature from the code itself — do NOT assume any particular feature. Files under review: ${fileNames}`;
 
   const tracks = [
     {
@@ -692,8 +697,34 @@ ${codeBundle}`,
 // Document Validator Tracks (for --document mode)
 // ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+// Portable project context (env-overridable for cross-app reuse)
+// ─────────────────────────────────────────────
+// This is the ONLY place project-specific brand/stack/palette context lives.
+// Every prompt below must DERIVE feature-specific detail (surfaces, components,
+// endpoints, data) from the plan/document/code under review — NEVER from a
+// hardcoded assumption about a particular feature. (Fix 2026-06-21: planning &
+// document prompts had been hardcoded to past tasks, so the Village mis-designed
+// whatever it was actually given. See scripts/test/villagePromptGenericity.test.mjs.)
+// Override per-app via SWAN_VILLAGE_PROJECT_CONTEXT (inline string) or
+// SWAN_VILLAGE_PROJECT_CONTEXT_FILE (path to a text file). Default = SwanStudios.
+const DEFAULT_PROJECT_CONTEXT = `This is a production SaaS platform. Default project = SwanStudios: a personal training SaaS (React + TypeScript + styled-components frontend; Node.js + Express + Sequelize + PostgreSQL backend). Theme: "Enchanted Apex: Crystalline Swan" — dark-first, 18 swappable themes via a theme toggle, so EVERY color must be a CSS custom property with a brand fallback (var(--token, #fallback)) — never hardcode hex except as the fallback. Palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B (gold), Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Dual-Button Glow: blue bg -> purple glow, purple bg -> cyan glow. RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — never use. Stack rules: styled-components only (NO Material-UI); Victory charts only; 44px min touch targets; max 300 lines/file; WCAG 4.5:1. Production: sswanstudios.com.`;
+
+function getProjectContext() {
+  const inline = process.env.SWAN_VILLAGE_PROJECT_CONTEXT;
+  if (inline && inline.trim()) return inline.trim();
+  const filePath = process.env.SWAN_VILLAGE_PROJECT_CONTEXT_FILE;
+  if (filePath) {
+    try {
+      const resolved = resolve(ROOT, filePath);
+      if (existsSync(resolved)) return readFileSync(resolved, 'utf-8').trim();
+    } catch { /* fall through to default */ }
+  }
+  return DEFAULT_PROJECT_CONTEXT;
+}
+
 function buildDocumentValidatorTracks(documentContent, documentPath) {
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Key differentiators: NASM OPT 5-phase periodization, voice-first AI workout logging, Octalysis gamification, 4-dashboard architecture (Admin/Trainer/Client/Social), 840+ exercise database, social fitness platform. Production: sswanstudios.com. Document: ${documentPath}`;
+  const ctx = `${getProjectContext()} Document under review: ${documentPath}`;
 
   return [
     {
@@ -743,12 +774,12 @@ ${documentContent}`,
       model: MODELS.gemini31Flash,
       prompt: `You are a UX/UI design expert reviewing a QA report for a luxury fitness platform. ${ctx}
 
-Review this document for UX/DESIGN accuracy:
-1. **Gap validity** — Are the identified UI gaps real? (e.g., "no visible recording state" on voice — is that actually missing?)
-2. **Priority accuracy** — Are the UX fixes correctly prioritized? Voice logging is flagged as #1 — do you agree?
-3. **Missing UX issues** — What UX problems does the report NOT mention? (mobile responsiveness, accessibility, loading states, etc.)
-4. **Design recommendations** — Are the strategic design suggestions (wearables, AI form analysis, etc.) the right ones?
-5. **Crystalline Swan compliance** — Does the report correctly assess theme adherence?
+Review this document for UX/DESIGN accuracy (derive its claims from the content; do not assume a prior report):
+1. **Gap validity** — Are the UI/UX gaps the document identifies real? Verify each against what it describes.
+2. **Priority accuracy** — Are the UX fixes correctly prioritized? Do you agree with the document's top priority?
+3. **Missing UX issues** — What UX problems does the document NOT mention? (mobile responsiveness, accessibility, loading/empty/error states, etc.)
+4. **Design recommendations** — Are the document's strategic design suggestions the right ones?
+5. **Brand compliance** — Does the document correctly assess theme/brand adherence?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown.
@@ -762,13 +793,13 @@ ${documentContent}`,
       model: MODELS.gemini25Flash,
       prompt: `You are a fitness industry business analyst. ${ctx}
 
-Review this vision alignment report for BUSINESS ACCURACY:
-1. **Market positioning** — Is the "hybrid B2C/B2B" positioning valid? Is the competitive moat real?
-2. **Monetization gaps** — Does the report correctly identify revenue opportunities? What's missing?
-3. **Client onboarding** — The report scores onboarding at 7/10. Is that fair given the 2-tier (SwanStudios/Move Fitness) model?
-4. **Pricing strategy** — Does the report address pricing optimization? Premium vs freemium?
+Review this document for BUSINESS ACCURACY (derive its claims from the content):
+1. **Market positioning** — Is the positioning the document argues valid? Is the competitive moat real?
+2. **Monetization gaps** — Does the document correctly identify revenue opportunities? What's missing?
+3. **Onboarding / activation** — Are the document's onboarding/activation assessments fair?
+4. **Pricing strategy** — Does the document address pricing optimization (premium vs freemium)?
 5. **Growth blockers** — What growth blockers are missing from the analysis?
-6. **White-label viability** — Is the white-label recommendation realistic for this stage?
+6. **Feasibility** — Are the document's business recommendations realistic for this stage?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown.
@@ -782,13 +813,13 @@ ${documentContent}`,
       model: MODELS.nemotron3Nano,
       prompt: `You are a gamification and user engagement specialist. The platform uses the Octalysis Framework with 5 tiers (Bronze Forge → Crystalline Swan), 6 skill trees, and badge rarity system. ${ctx}
 
-Review this document's gamification assessment:
-1. **Score accuracy** — Gamification is scored 6/10 PARTIAL. Is this fair? What specific features ARE working vs missing?
-2. **Octalysis implementation** — The report says core drives aren't surfaced in UI. Which drives ARE present (even implicitly)?
-3. **Social-gamification link** — Is the integration between social features and gamification correctly assessed?
-4. **Engagement recommendations** — Are the suggested improvements (badges, streaks, achievements) the RIGHT priorities?
-5. **Retention mechanics** — What retention loops exist that the report doesn't mention?
-6. **Competitor comparison** — How does the gamification compare to Duolingo, Strava, Nike Run Club specifically?
+Review this document's engagement/gamification assessment (derive its claims from the content):
+1. **Assessment accuracy** — If the document assesses engagement/gamification, is it fair? What's working vs missing?
+2. **Framework implementation** — For any engagement framework the document references, what's present vs absent?
+3. **Cross-feature links** — Are integrations between engagement and other features correctly assessed?
+4. **Engagement recommendations** — Are the suggested improvements the RIGHT priorities?
+5. **Retention mechanics** — What retention loops does the document miss?
+6. **Competitor comparison** — How does it compare to best-in-class engagement patterns (e.g. Duolingo, Strava)?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown.
@@ -802,13 +833,13 @@ ${documentContent}`,
       model: MODELS.gemini3Flash,
       prompt: `You are a certified fitness professional and exercise science reviewer. ${ctx}
 
-Review this document for FITNESS SCIENCE accuracy:
-1. **NASM OPT Protocol** — The report scores AI workout generation 9/10. Validate the OPT phase descriptions are accurate.
-2. **Exercise database** — The report says 840+ exercises aren't browsable. Is the admin exercise command center not counted? What about the exercise autocomplete in the workout builder?
-3. **Periodization accuracy** — Are the tempo, rep ranges, and rest period descriptions in the report correct?
-4. **Voice logging** — Is voice-first workout logging truly the #1 differentiator? Or is NASM AI more important?
-5. **Nutrition integration** — Does the report accurately assess the nutrition-workout connection?
-6. **Recovery & mobility** — Are there recovery features the report misses?
+Review this document for FITNESS-SCIENCE accuracy (derive its claims from the content):
+1. **Protocol accuracy** — For any training-protocol claims (e.g. NASM OPT phases, periodization), validate they are accurate.
+2. **Feature-existence accuracy** — Does the document under- or over-count capabilities that actually exist (or don't)?
+3. **Programming accuracy** — Are any tempo, rep-range, or rest-period descriptions correct?
+4. **Differentiator framing** — Does the document correctly rank the training differentiators?
+5. **Nutrition integration** — Does it accurately assess any nutrition-training connection?
+6. **Recovery & mobility** — Are there training/recovery aspects the document misses?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown.
@@ -842,13 +873,13 @@ ${documentContent}`,
       model: MODELS.nemotron3Super,
       prompt: `You are a principal engineer reviewing a QA gap analysis. ${ctx}
 
-Review this document for ARCHITECTURE & IMPLEMENTATION accuracy:
-1. **Built vs visible** — The conclusion says "make the invisible visible." Which features are truly built but not surfaced vs not built at all?
-2. **Exercise database UI** — Report says 5/10. But there IS an AdminExerciseCommandCenter with search/filter. Is this a false gap?
-3. **Voice pipeline** — DictationOrb scored 4/10. Is the backend pipeline (Gemini Flash transcription → GPT-4o-mini parsing) built even if UI feedback is missing?
-4. **Gamification backend** — Is the Octalysis engine backend complete even if UI is partial?
-5. **Content Studio** — Scored 5/10. Are Remotion templates actually built? What's the real state?
-6. **Social platform** — The "0 posts vs 8 posts" data mismatch — is this a real bug or a caching issue?
+Review this document for ARCHITECTURE & IMPLEMENTATION accuracy (verify its claims; do not assume a prior report):
+1. **Built vs visible** — Which capabilities the document discusses are truly built but not surfaced, vs not built at all?
+2. **False gaps** — Does the document claim gaps for things that actually exist? Cross-check its claims against reality.
+3. **Backend vs UI** — For any "partial" feature, is the backend complete even where the UI is missing (or vice versa)?
+4. **Real state** — For each capability the document scores, what is the actual implementation state?
+5. **Data mismatches** — For any data discrepancy the document flags, is it a real bug or an artifact (caching, env, stale data)?
+6. **Architecture soundness** — Are the document's architecture/implementation claims technically correct?
 
 For each finding provide severity and specific corrections.
 
@@ -881,25 +912,25 @@ ${documentContent}`,
 // Document-mode debate prompt builders
 
 function buildDocDebateCodePrompt(documentContent, ctx, phase1Summary) {
-  return `You are the CTO (Chief Technology Officer) reviewing a Vision Alignment QA Report for SwanStudios. ${ctx}
+  return `You are the CTO (Chief Technology Officer) reviewing the document below. ${ctx}
 
 ## YOUR ROLE — CTO (Technical Authority)
 
-A QA report has been generated comparing the live SwanStudios application against the product vision. You must evaluate whether the report's technical assessments are accurate and the priority recommendations are correct.
+DERIVE what kind of document this is (plan, spec, audit, QA report, etc.) and what it claims FROM its content — do NOT assume any particular feature or prior report. Evaluate whether its technical assessments/claims are accurate and its recommendations are correct.
 
 The CEO will challenge your findings. Defend with evidence or concede.
 
-## Phase 1 Context (9 document validators already ran)
+## Phase 1 Context (document validators already ran)
 
 ${phase1Summary}
 
 ## Your Analysis — Round 1
 
-For each assessment in the QA report:
-- **Agree/Disagree:** Do you agree with the score?
-- **Correction:** What should the score or assessment be?
-- **Priority Reorder:** Should any recommendations move up or down in priority?
-- **Missing Items:** What does the report miss entirely?
+For each significant claim/assessment/recommendation in the document:
+- **Agree/Disagree:** Is it accurate?
+- **Correction:** What should it say instead?
+- **Priority Reorder:** Should any recommendation move up or down?
+- **Missing Items:** What does the document miss entirely?
 
 Focus on technical accuracy, implementation feasibility, and business impact.
 
@@ -908,31 +939,27 @@ ${documentContent}`;
 }
 
 function buildDocDebateDesignPrompt(documentContent, ctx, phase1UXReport) {
-  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+  return `You are the Creative Director — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
 
 ## YOUR ROLE — Creative Director (Design Authority)
 
-A QA report has assessed the visual and UX quality of the SwanStudios platform. You must evaluate whether the design-related assessments are accurate and the design recommendations are the right ones.
+DERIVE the design-related claims/assessments/recommendations FROM the document below — do NOT assume any particular feature or prior report. Evaluate whether its design assessments are accurate and its design recommendations are the right ones.
 
-## Crystalline Swan Design Tokens (MANDATORY)
-- Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0
-- Wing Purple #8B5CF6, Gilded Fern #C6A84B, Frost White #E0ECF4
-- Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24
-- Dual-Button Glow: Blue → Purple glow. Purple → Cyan glow.
+## Brand design constraints (from the project context above)
+Honor the project's palette, dark-first default, and theme-token discipline (every color a CSS custom property with a brand fallback — never hardcode hex except as the fallback), Dual-Button Glow rule, 44px min touch targets, WCAG 4.5:1.
 
 ## UX Phase 1 Report
 ${phase1UXReport || '_No Phase 1 UX report available._'}
 
 ## Your Analysis — Round 1
 
-Evaluate the QA report's design assessments:
-- **Voice logging UI (4/10)** — Is the recording state really missing? What should it look like?
-- **Client dashboard sidebar** — Is the sidebar complaint valid? What's the ideal navigation?
-- **Gamification UI** — What should the badge gallery and tier progression look like?
-- **Exercise library** — How should 840+ exercises be browsed? Card grid? Virtual list?
-- **Overall design impression** — Does the report capture the Crystalline Swan aesthetic accurately?
+For each design assessment/recommendation in the document:
+- Is the identified gap real? If so, what should the fix look like (exact specs)?
+- Is the recommendation the right one, and correctly prioritized?
+- What design issues does the document miss?
+- Does it capture the brand aesthetic accurately?
 
-Provide specific pixel measurements, color codes, animation specs for all recommendations.
+Provide specific pixel measurements, token names, color codes, and animation specs for all recommendations. Reference only what the document actually covers.
 
 DOCUMENT UNDER REVIEW:
 ${documentContent}`;
@@ -943,7 +970,7 @@ ${documentContent}`;
 // ─────────────────────────────────────────────
 
 function buildPlanningValidatorTracks(planContent, planPath) {
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Key differentiators: NASM OPT 5-phase periodization, voice-first AI coach, Octalysis gamification, 840+ exercise database, social fitness platform. Target market: wealthy golf clients, working professionals 30-55, NASM-certified trainer with 25+ years experience. Production: sswanstudios.com. Plan document: ${planPath}`;
+  const ctx = `${getProjectContext()} You are reviewing a PLAN document; derive every feature-specific detail from the plan content provided — do NOT assume any particular feature. Plan document: ${planPath}`;
 
   return [
     {
@@ -976,8 +1003,8 @@ ${planContent}`,
 
 Review this PLAN for architectural soundness:
 1. **Component decomposition** — Are the proposed files/components correctly scoped? Any that should be split further or merged?
-2. **State management** — Is the hook composition (useCoachAssistant → useAIChat → useConversationSidebar) correct? Any circular dependencies or prop drilling?
-3. **Data flow** — Trace the conversation loading flow: sidebar click → loadConversation → messages render. Any race conditions or stale state risks?
+2. **State management** — Is the proposed state/hook composition sound for the surfaces THIS plan describes? Any circular dependencies or prop drilling?
+3. **Data flow** — Trace the plan's primary data flows (load → transform → render → mutate). Any race conditions or stale-state risks?
 4. **React patterns** �� Are React.memo, useMemo, useCallback used where needed? Any unnecessary re-renders from the proposed design?
 5. **File budget** — Will each proposed file stay under 300 lines? Flag any that will likely exceed.
 6. **Hook design** — Are custom hooks properly separated (data fetching vs UI state vs business logic)?
@@ -995,14 +1022,14 @@ ${planContent}`,
       model: MODELS.nemotron3Nano,
       prompt: `You are a security engineer reviewing a feature plan for a platform that handles personal health data. CRITICAL: This platform has a ZERO PII TO LLMs policy — no client names, emails, or personal data may reach external AI providers. ${ctx}
 
-Review this PLAN for security implications:
-1. **PII exposure in new features** — Conversation history could contain PII in titles/previews. Is it properly sanitized?
-2. **File attachment risks** — Image uploads to R2 for AI analysis. Malicious file upload vectors? SSRF via image URLs?
-3. **Voice data privacy** — Audio recordings sent to Gemini for transcription. Are recordings stored? For how long? Privacy policy implications?
-4. **Conversation data at rest** — JSONB messages in PostgreSQL. Encryption? Access controls? Who can see whose conversations?
-5. **RBAC enforcement** — Admin sees all conversations. Trainer sees only assigned clients. Client sees only own. Is this enforced in the plan?
-6. **MediaRecorder API risks** — Browser microphone access. Permission handling, stream cleanup, data leak prevention.
-7. **Markdown rendering XSS** — react-markdown with user-generated content. XSS vectors through markdown injection?
+Review this PLAN for security implications. Derive the actual data, surfaces, and integrations from the plan — assess only what it introduces:
+1. **PII / sensitive-data exposure** — Does any new surface store or display PII? Is anything sent to an external LLM properly de-identified (zero-PII policy)?
+2. **Upload / file / media risks** — If the plan adds uploads or media, assess malicious-file vectors, SSRF via URLs, and storage-path safety.
+3. **Audio/video/biometric privacy** — If the plan captures audio/video/biometric data, where does it go, is it stored, for how long, and what are the privacy-policy implications?
+4. **Data at rest** — For any new persisted data, assess encryption, access controls, and who can read whose records.
+5. **AuthZ / RBAC enforcement** — For each role (admin/trainer/client/etc.), is access correctly scoped? Any IDOR or cross-tenant leak?
+6. **Browser-API / permission risks** — For any new device/permission API the plan uses, assess permission handling, stream cleanup, and data-leak prevention.
+7. **Injection / XSS** — For any user-generated or rendered content the plan introduces, assess injection/XSS vectors and sanitization.
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with specific mitigations.
@@ -1016,15 +1043,15 @@ ${planContent}`,
       model: MODELS.gemini3Flash,
       prompt: `You are a web performance engineer reviewing a feature plan. ${ctx}
 
-Review this PLAN for performance impact:
-1. **Bundle size** — react-markdown (~50KB gzip), remark-gfm, rehype-highlight. Total added weight? Should they be lazy-loaded?
-2. **Render performance** — Conversation sidebar re-renders on every message. React.memo strategy? Virtual scrolling needed?
-3. **Voice recording memory** — MediaRecorder audio buffers. Memory management during long recordings?
-4. **Markdown parsing** — Parsing markdown on every render vs memoizing parsed output. Cost analysis.
-5. **Network waterfall** — Loading conversation list + conversation messages. Parallel or sequential? Caching strategy?
-6. **Image attachments** — Image preview generation. Canvas-based thumbnails vs CSS object-fit? Memory for large images?
+Review this PLAN for performance impact. Derive the new dependencies, components, and data flows from the plan — assess only what it introduces:
+1. **Bundle size** — Tally any new libraries the plan adds (with realistic gzip weights). Which should be lazy-loaded / code-split?
+2. **Render performance** — Which new lists/surfaces re-render often? React.memo strategy? Virtualization needed for long lists?
+3. **Memory** — Any new buffers, media streams, or large in-memory structures? Cleanup/lifecycle risks?
+4. **Expensive computation** — Any parsing/derivation done on every render that should be memoized? Cost analysis.
+5. **Network waterfall** — How do the new data fetches sequence? Parallel vs sequential, a BFF/aggregate endpoint, caching/invalidation strategy?
+6. **Media handling** — If the plan handles images/video, assess thumbnail/preview generation and memory for large assets.
 7. **Code splitting** — Which new components should be React.lazy()? Proposed split boundaries.
-8. **Animation budget** — New thinking indicator, voice orb amplitude viz, sidebar slide animation. GPU-composited only?
+8. **Animation budget** — For each new animation the plan adds, is it GPU-composited (transform/opacity only) with a reduced-motion fallback?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with specific optimizations.
@@ -1066,13 +1093,13 @@ Target personas:
 - **Working Professional:** 30-50, busy, needs quick sessions, values efficiency, mobile-first
 - **Move Fitness Client:** Free tier, basic tracking, may convert to SwanStudios paid
 
-Review this plan through each persona's eyes:
-1. **Sean at the gym** — Can he voice-log a client's workout between sets? Load a previous conversation to check last session's notes? How many taps?
-2. **Golf client onboarding** — Will the Coach Assistant feel premium enough? Does the conversation history look sophisticated or basic?
-3. **Working professional** — They have 5 minutes to check their program. Is the sidebar fast? Can they search for "leg day" in past conversations?
-4. **Accessibility for 40-60 year olds** — Font sizes, touch targets, voice UX — will this work for the less tech-savvy demographic?
-5. **Trust signals** — Does the thinking indicator + provider badge build trust? Or create confusion about "which AI am I talking to?"
-6. **Emotional response** — Does the dark-theme Crystalline Swan aesthetic feel premium and motivating? Or cold and intimidating?
+Review THIS plan's actual surfaces/flows through each persona's eyes (derive the flows from the plan):
+1. **Sean at the gym** — Walk his real-world flow for what this plan introduces. How many taps? Any friction between sets?
+2. **Golf client** — Does the new surface feel premium and trustworthy for a high-income, possibly less-tech-savvy user?
+3. **Working professional** — They have 5 minutes. Is the new flow fast and efficient? Any blockers?
+4. **Accessibility for 40-60 year olds** — Font sizes, touch targets, and interaction model — will the new surfaces work for the less tech-savvy demographic?
+5. **Trust signals** — Do the plan's new affordances build trust, or create confusion? (clarity, honesty, expectation-setting)
+6. **Emotional response** — Does the dark-first Crystalline Swan aesthetic feel premium and motivating on these surfaces, or cold/intimidating?
 
 Output as structured markdown with persona-specific recommendations.
 
@@ -1087,15 +1114,15 @@ ${planContent}`,
       model: MODELS.nemotron3Nano,
       prompt: `You are a project manager and risk assessor for a software project. ${ctx}
 
-Review this implementation plan for risks and feasibility:
-1. **Dependency risks** — Which phases block other phases? What happens if Phase 4 (voice) takes longer than expected?
-2. **Technical unknowns** — Gemini SDK version for voice, MediaRecorder browser compatibility, react-markdown bundle size accuracy
-3. **Scope creep indicators** — Which features are most likely to expand beyond estimates? (markdown rendering with all edge cases? voice with all browsers?)
-4. **Effort accuracy** — 22 new files, 300 lines max each. Are the line count estimates realistic? Which files will likely exceed?
-5. **Testing gaps** — What's the testing strategy? Unit tests for hooks? E2E for sidebar? Visual regression for markdown?
-6. **Rollback plan** — If any phase breaks production, can it be feature-flagged off?
-7. **Database migration risks** — Any schema changes needed? The plan says "zero backend work" for Phase 1 — verify this claim.
-8. **Phase ordering** — Is the proposed order (0→1→2→3→4→5) optimal? Could anything be reordered for faster value delivery?
+Review this implementation plan for risks and feasibility. Derive the phases, dependencies, and file counts from the plan itself:
+1. **Dependency risks** — Which phases block others? What happens if the riskiest phase slips?
+2. **Technical unknowns** — Which APIs/SDKs/browser features does the plan rely on whose behavior or compatibility is uncertain?
+3. **Scope creep indicators** — Which parts are most likely to expand beyond estimates (edge cases, cross-browser, etc.)?
+4. **Effort accuracy** — Are the plan's file/line-count estimates realistic? Which files will likely exceed the 300-line budget?
+5. **Testing gaps** — What's the testing strategy for the new surfaces? Unit (hooks/logic), integration, E2E, visual regression?
+6. **Rollback plan** — If any phase breaks production, can it be feature-flagged off? Is each phase independently revertible?
+7. **Database / backend risks** — Does the plan need schema changes, new endpoints, or migrations? Verify any "no backend changes" claim against the plan's actual data needs.
+8. **Phase ordering** — Is the proposed order optimal? Could anything be reordered for faster, safer value delivery?
 
 Rate each risk: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with mitigations for each risk.
@@ -1109,15 +1136,15 @@ ${planContent}`,
       model: MODELS.gemini31Flash,
       prompt: `You are a React specialist reviewing a component architecture plan. ${ctx}
 
-Review the proposed component structure:
-1. **Styled-components organization** — Splitting SwanCoachStyles.ts into 5 sub-files with barrel re-export. Good pattern? Any issues?
-2. **Hook composition** — useCoachAssistant wraps useAIChat wraps useState. Is this nesting depth okay? Alternatives?
-3. **Markdown component customization** — Custom react-markdown components for code blocks, tables, links. Performance of custom component map?
-4. **Animation strategy** — framer-motion AnimatePresence for sidebar, CSS keyframes for thinking indicator. Mixing animation libraries — good or bad?
-5. **Responsive patterns** — Desktop sidebar (280px fixed) vs mobile drawer (85vw). CSS approach vs JS approach?
-6. **Form handling** — Rename input in ConversationItem, search input in sidebar. Controlled vs uncontrolled? Debounce strategy?
-7. **Code block component** — Syntax highlighting with rehype-highlight. Should code blocks be their own lazy-loaded component?
-8. **Touch gestures** — Swipe-to-reveal actions on mobile conversation items. CSS-only or need a gesture library?
+Review the proposed component structure (derive the actual components/hooks/styles from the plan):
+1. **Styled-components organization** — Are the plan's style-file splits / barrel re-exports a good pattern? Any issues?
+2. **Hook composition** — For the plan's proposed hooks, is the nesting/composition depth healthy? Better alternatives?
+3. **Render customization** — For any custom render maps or component overrides the plan adds, what's the performance cost?
+4. **Animation strategy** — Which animation approaches does the plan mix (framer-motion vs CSS keyframes)? Is the mix justified, GPU-safe, reduced-motion-aware?
+5. **Responsive patterns** — For the plan's responsive surfaces, is the CSS-vs-JS approach right across the breakpoint matrix?
+6. **Form handling** — For any inputs the plan adds, controlled vs uncontrolled? Debounce strategy?
+7. **Lazy boundaries** — Which heavy components should be their own React.lazy()-loaded chunks?
+8. **Touch gestures** — For any mobile gestures the plan introduces, CSS-only or a gesture library? Accessibility of the gesture?
 
 Output as structured markdown with implementation-ready recommendations.
 
@@ -1132,15 +1159,15 @@ ${planContent}`,
 
 TREAT EVERY FINDING AS IF IT COULD AFFECT REAL USER DATA IN PRODUCTION.
 
-Review this plan for data safety:
-1. **Conversation JSONB growth** — Messages stored as JSONB array. With file attachments, how large can this get? PostgreSQL JSONB size limits?
-2. **Soft delete integrity** — Plan uses existing soft-delete (status='deleted'). Are deleted conversations properly excluded from sidebar listing?
-3. **R2 storage for attachments** — New file uploads to ai-chat/ bucket path. Cleanup strategy when conversations are deleted?
-4. **Voice recording storage** — Audio sent to Gemini for transcription then discarded? Or stored? Privacy implications?
-5. **Migration safety** — Plan claims "zero backend changes" for Phase 1. Verify: does the existing API handle all sidebar operations without schema changes?
-6. **Concurrent access** — Two browser tabs sending messages to the same conversation. Race condition on JSONB messages array?
-7. **Token usage tracking** — Already exists in message metadata. Any data integrity risk from the new features?
-8. **Rate limiting adequacy** — Existing rate limiter for messages. New sidebar list/load calls — do they need separate rate limiting?
+Review this plan for data safety. Derive the actual tables, columns, and write paths from the plan:
+1. **Unbounded growth** — Does any new data structure (JSONB arrays, blobs, logs) grow without bound? Size limits / pagination?
+2. **Soft-delete integrity** — If the plan relies on soft-delete, are deleted rows correctly excluded from every read path?
+3. **Storage cleanup** — For any new file/media storage, what's the cleanup strategy when the parent record is deleted?
+4. **Sensitive-data retention** — For any captured audio/video/transcripts, is it stored or discarded? For how long? Privacy implications?
+5. **Migration safety** — Does the plan need schema changes or new endpoints? Verify any "no backend changes" claim against the plan's actual data writes. Flag schema-drift risk (model vs real DB columns, FK targets).
+6. **Concurrent access** — Any new write path with concurrent-mutation / race-condition risk? Optimistic-update or claim-lock needed?
+7. **Data integrity** — Any new denormalized counts, aggregates, or cached values that can drift from source of truth?
+8. **Rate limiting** — Do the plan's new read/write operations need their own rate limits?
 
 Rate each finding: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with specific database-safe recommendations.
@@ -1154,15 +1181,15 @@ ${planContent}`,
       model: MODELS.nemotron3Super,
       prompt: `You are a backend API architect reviewing a feature plan. ${ctx}
 
-Review the plan's API surface:
-1. **Existing API sufficiency** — Plan claims Phase 1 needs zero backend changes. Verify: GET /api/ai-chat/conversations returns enough data for sidebar (title, context, messageCount, lastMessageAt)?
-2. **Search endpoint** — Plan uses client-side filtering of 20 conversations. Is this adequate? When should server-side search (ILIKE on title + JSONB content) be added?
-3. **File attachment endpoint** — Plan proposes POST /api/ai-chat/conversations/:id/attachments. REST design correct? Multipart form data handling?
-4. **Multimodal message API** — Sending images with messages to Gemini. How should the message API change? New field in request body? Separate upload-then-reference flow?
-5. **Rate limiting for new operations** — Sidebar list (every page load), conversation rename, file upload — appropriate rate limits?
-6. **WebSocket integration** — Plan mentions Socket.io exists. Should conversation updates be pushed via WebSocket instead of polling?
-7. **Response contract** — Are the existing API response shapes adequate for the sidebar (ConversationSummary type)?
-8. **Caching strategy** — 5-minute cache on conversation list. Appropriate? Should it invalidate on new message?
+Review the plan's API surface. Derive the actual endpoints (existing + new) from the plan:
+1. **Existing API sufficiency** — For each surface, does an existing endpoint already return enough data, or is a new endpoint required? Verify any "no backend changes" claim against the data each surface consumes.
+2. **Search / query needs** — Where the plan filters client-side, is that adequate at scale, or is server-side search/pagination needed (and when)?
+3. **New endpoint design** — For each new endpoint the plan proposes, is the REST shape correct (verbs, resource nesting, payload, multipart if uploads)?
+4. **Multimodal / large payloads** — If the plan sends images/audio/large bodies, how should the contract handle them (inline field vs upload-then-reference)?
+5. **Rate limiting** — For each new operation, what rate limits are appropriate?
+6. **Realtime vs polling** — Should any new updates be pushed (WebSocket/SSE) instead of polled?
+7. **Response contracts** — Are response shapes/types adequate and stable for the consumers the plan describes?
+8. **Caching strategy** — For each cached read, is the TTL appropriate, and what invalidates it on write?
 
 Output as structured markdown with specific API design recommendations.
 
@@ -1177,17 +1204,14 @@ ${planContent}`,
 
 MANDATORY CONSTRAINT: No file may exceed 300 lines of code (excluding comments and blank lines).
 
-Review this plan's file organization:
-1. **22 new files** — Is this the right decomposition? Any files that should be merged? Any that are too thin?
-2. **styles/ directory** — 5 style files from the split + 4 new style files = 9 total. Too many? Consolidation opportunities?
-3. **hooks/ directory** — useCoachAssistant, useConversationSidebar, useVoiceRecorder, useGeminiTranscription, useFileAttachment = 5 hooks. Proper separation of concerns?
-4. **300-line budget** — Given the estimated line counts, which files are at risk of exceeding 300 lines? Specifically:
-   - ConversationSidebar.tsx (est. 250) — includes search, list, actions
-   - MarkdownRenderer.tsx (est. 180) — includes 8+ custom components
-   - CoachInputBar.tsx (will grow to est. 295) — voice + attachments + input
-5. **Import graph** — Draw the dependency tree. Any circular risks? Deep import chains?
-6. **Barrel exports** — SwanCoachStyles.ts becomes a barrel. Should other directories (hooks/, styles/) also have index.ts barrels?
-7. **Shared vs local** — useAIChat is in shared hooks. New hooks are local to coach-assistant. Is this the right boundary?
+Review this plan's file organization. Derive the actual proposed files/folders/hooks from the plan:
+1. **Decomposition** — Is the plan's file breakdown right? Any files that should be merged, or that are too thin?
+2. **styles/ organization** — Are the proposed style files / barrels well-organized, or over-fragmented?
+3. **hooks/ separation** — For the plan's proposed hooks, is the separation of concerns clean (data-fetch vs UI-state vs business-logic)?
+4. **300-line budget** — Based on the plan's described responsibilities, which files are at risk of exceeding 300 lines? Name them and propose the split.
+5. **Import graph** — Sketch the dependency tree the plan implies. Any circular risks or deep import chains?
+6. **Barrel exports** — Where do barrels help vs hurt? Any directory that should/shouldn't have an index.ts?
+7. **Shared vs local** — For each new module, is the shared-vs-feature-local boundary correct?
 
 Output as structured markdown with a proposed file tree and line budget.
 
@@ -1203,17 +1227,17 @@ ${planContent}`,
 MANDATORY: 10-breakpoint responsive matrix: 320px, 375px, 430px, 768px, 1024px, 1280px, 1440px, 1920px, 2560px, 3840px
 MANDATORY: 44px min touch targets (56px on mobile <768px)
 
-Review this plan for mobile and edge cases:
-1. **Sidebar on 320px** — 85vw = 272px. Is this enough for conversation titles + timestamps + action buttons? Layout squeeze risk?
-2. **Voice recording on iOS Safari** — MediaRecorder support? WebKit prefix requirements? Auto-play policy for TTS?
-3. **Keyboard on mobile** — When chat input is focused, does the sidebar get pushed off screen? Virtual keyboard height management?
-4. **Offline/slow network** — What happens when conversations list fails to load? Empty state UX?
-5. **Long conversation titles** — Auto-generated from first message. Truncation strategy? 2 lines max with ellipsis?
-6. **Large message history** — Conversation with 100+ messages. Virtual scrolling needed? Memory impact?
-7. **RTL languages** — Not immediately needed but: does the sidebar flip correctly? CSS logical properties used?
-8. **Reduced motion** — Voice orb pulsing, sidebar slide, thinking indicator. All respect prefers-reduced-motion?
-9. **Screen reader** — Sidebar landmark, conversation list navigation, message bubble roles, voice recording status announcements?
-10. **4K ultrawide** — Max-width constraints on sidebar and chat area? Or full-width stretch?
+Review this plan for mobile and edge cases. Derive the actual surfaces from the plan and test each against the matrix:
+1. **Narrow-width squeeze (320px)** — Do the plan's densest surfaces fit? Layout-squeeze / clipping risk?
+2. **iOS Safari quirks** — For any device/media API the plan uses, assess WebKit support, prefixes, and autoplay/permission policies.
+3. **Mobile keyboard** — When an input is focused, does any surface get pushed off-screen? Virtual-keyboard height handling.
+4. **Offline / slow network** — For each new fetch, what's the failure + empty-state UX?
+5. **Long/overflowing text** — Truncation/wrap strategy for any new dynamic text (titles, labels)?
+6. **Large lists** — For any list that can grow large, is virtualization needed? Memory impact?
+7. **RTL** — Do the new layouts flip correctly? CSS logical properties used?
+8. **Reduced motion** — Does every animation the plan adds respect prefers-reduced-motion?
+9. **Screen reader** — Landmarks, list navigation, control roles, and live-region announcements for the new surfaces?
+10. **4K / ultrawide** — Max-width constraints vs full-bleed stretch for the new layouts?
 
 Rate each: CRITICAL / HIGH / MEDIUM / LOW
 Output as structured markdown with specific CSS/React solutions.
@@ -1313,36 +1337,37 @@ ${planContent}`,
 // ─────────────────────────────────────────────
 
 function buildPlanDebateSecurityPrompt(planContent, ctx, phase1Summary) {
-  return `You are the PRIMARY security auditor reviewing a feature implementation plan. ${ctx}
+  return `You are the PRIMARY security auditor reviewing a feature/implementation plan. ${ctx}
 
 ## YOUR ROLE — Security Lead
 
-A plan for upgrading the AI Coach Assistant has been analyzed by 12 planning specialists. Review their findings and debate security implications.
+A plan has been analyzed by 12 planning specialists. DERIVE the actual surfaces, data, flows, and endpoints FROM the plan content below — do NOT assume any particular feature. Review the plan's security implications.
 
 ## Phase 1 Context (12 planning validators already ran)
 ${phase1Summary}
 
 ## Your Analysis — Round 1
 
-Focus on:
-- PII risks in conversation history, voice recordings, file attachments
-- XSS vectors in markdown rendering
-- RBAC enforcement gaps
-- File upload attack vectors
-- Voice data privacy concerns
+For the specific surfaces/data/flows THIS plan introduces, focus on:
+- PII / sensitive-data exposure — especially anything sent to external LLMs (zero-PII policy)
+- Injection / XSS vectors in any user-generated or rendered content
+- AuthZ / RBAC enforcement gaps (who can read/write what; IDOR / cross-tenant access)
+- Upload / file / media attack vectors, if the plan introduces them
+- Privacy of any audio/video/biometric data, if present
+- Entitlement / access-control leaks (server-enforced vs client-only)
 
-Provide specific mitigations for each risk.
+Provide specific, plan-grounded mitigations for each risk you identify.
 
 PLAN UNDER REVIEW:
 ${planContent}`;
 }
 
 function buildPlanDebateArchPrompt(planContent, ctx, phase1Summary) {
-  return `You are a Senior Code Quality Lead reviewing a feature implementation plan. ${ctx}
+  return `You are a Senior Code Quality / Architecture Lead reviewing a feature/implementation plan. ${ctx}
 
 ## YOUR ROLE — Architecture Authority
 
-Review the component decomposition, state management, and hook design proposed in this plan. The plan has been analyzed by 12 specialists.
+DERIVE the proposed components, hooks, services, state, and files FROM the plan content below — do NOT assume any particular feature or file count. The plan has been analyzed by 12 specialists.
 
 ## Phase 1 Context (12 planning validators already ran)
 ${phase1Summary}
@@ -1350,12 +1375,13 @@ ${phase1Summary}
 ## Your Analysis — Round 1
 
 Focus on:
-- Is the hook composition (useCoachAssistant → useAIChat → useConversationSidebar) correct?
-- Are the 22 proposed files the right decomposition? Over-engineering? Under-engineering?
-- State management: single source of truth vs duplicated state risks
+- Component/module decomposition: correctly scoped? over- or under-engineered?
+- State management: single source of truth vs duplicated/derived state risks
+- Hook/service design: data-fetching vs UI-state vs business-logic separation; circular deps
 - React performance: memoization strategy, re-render prevention
-- File budget: which files will exceed 300 lines?
-- Error handling: where do error boundaries go?
+- File budget: which proposed files will exceed 300 lines, and how to split them
+- Shared-path integrity: if the plan exposes the same action to BOTH a UI and an AI/automation layer, is there ONE service path (no parallel/duplicate API family)?
+- Error handling: where do error boundaries belong?
 
 For each finding: severity, specific component, issue, fix.
 
@@ -1364,33 +1390,27 @@ ${planContent}`;
 }
 
 function buildPlanDebateDesignPrompt(planContent, ctx, phase1UXReport) {
-  return `You are the Creative Director for SwanStudios — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
+  return `You are the Creative Director — the FINAL AUTHORITY on all UX/UI design decisions. ${ctx}
 
 ## YOUR ROLE — Creative Director (Design Authority)
 
-Design the visual specification for the Coach Assistant upgrade. Create from your OWN design vision. Be bold, opinionated, and prescriptive.
+Design the visual specification for the EXACT surfaces/components described in the plan below. CRITICAL: DERIVE the list of surfaces to design FROM the plan content — do NOT assume any particular feature. Do not design a chat/assistant, a sidebar, a dashboard, a video library, or any surface unless the plan actually describes it. Create from your OWN bold, opinionated, prescriptive design vision, within the brand constraints.
 
-## Crystalline Swan Design Tokens (MANDATORY)
-- Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0
-- Wing Purple #8B5CF6, Gilded Fern #C6A84B, Frost White #E0ECF4
-- Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24
-- Dual-Button Glow: Blue → Purple glow. Purple → Cyan glow.
-- RETIRED: Galaxy-Swan (#0a0a1a, #00FFFF, #7851A9) — NEVER USE
+## Brand design constraints (from the project context above)
+Honor the project's palette, dark-first default, and theme-token discipline: every color is a CSS custom property with a brand fallback (var(--token, #fallback)) — never hardcode hex except as the fallback, because the theme is swappable across many themes. Honor the Dual-Button Glow rule, 44px min touch targets, and WCAG 4.5:1. If the plan names its own design system or token contract, OBEY it and reconcile to the brand tokens rather than inventing a parallel token namespace.
 
 ## UX Research from Phase 1
 ${phase1UXReport || '_No Phase 1 UX report available._'}
 
 ## Your Analysis — Round 1
 
-For EACH new component in the plan, provide EXACT design specs:
-1. **Conversation Sidebar** — width, bg color, item height, hover state, active state, transition timing, mobile drawer animation
-2. **Markdown Renderer** — code block bg, syntax highlighting colors, table style, blockquote border, heading sizes
-3. **Thinking Indicator** — bubble shape, shimmer animation spec, timing, easing
-4. **Voice Recording Overlay** — orb size, amplitude ring specs, duration label style, color transitions
-5. **Provider Badge** — size, font, color, placement relative to message
-6. **Attachment Preview** — thumbnail size, border radius, remove button placement
+For EACH surface/component the plan ACTUALLY introduces, provide EXACT design specs:
+- dimensions, spacing, and layout per breakpoint (mobile-first, up through 4K/ultrawide)
+- background / surface / text / accent tokens (with brand fallbacks) and every state: default / hover / active / focus-visible / disabled / loading / empty / error
+- motion spec + a prefers-reduced-motion fallback (durations, easing curves)
+- accessibility (keyboard traversal, ARIA roles, contrast)
 
-Include: exact pixel values, hex colors, animation durations, easing curves, CSS custom property names.
+Include exact pixel values, token names, animation durations, and easing curves. Reference ONLY components that exist in the plan.
 
 PLAN UNDER REVIEW:
 ${planContent}`;
@@ -1638,13 +1658,17 @@ async function runValidator(apiKey, track, index) {
     } else if (track.model === MODELS.minimaxM27) {
       costUSD = (result.inputTokens / 1_000_000 * 0.30) +
                 (result.outputTokens / 1_000_000 * 1.20);
+    } else if (track.model === MODELS.glm52) {
+      // GLM 5.2: $1.20/M input, $4.10/M output (verified openrouter.ai/z-ai/glm-5.2 2026-06-20)
+      costUSD = (result.inputTokens / 1_000_000 * 1.20) +
+                (result.outputTokens / 1_000_000 * 4.10);
     } else if (track.model === MODELS.gemini31Pro) {
       // Gemini 3.1 Pro: $2/M input, $12/M output (estimate)
       costUSD = (result.inputTokens / 1_000_000 * 2.0) +
                 (result.outputTokens / 1_000_000 * 12.0);
     }
     // Safety: warn if a "free" model somehow reports cost
-    const paidModels = [MODELS.claudeSonnet46, MODELS.escalation1, MODELS.minimaxM27, MODELS.gemini31Pro];
+    const paidModels = [MODELS.claudeSonnet46, MODELS.escalation1, MODELS.minimaxM27, MODELS.glm52, MODELS.gemini31Pro];
     if (!paidModels.includes(track.model) && costUSD > 0.01) {
       console.warn(`    ⚠️  WARNING: "${track.name}" cost $${costUSD.toFixed(4)} — may not be free anymore!`);
     }
@@ -1842,7 +1866,7 @@ ${extractFindings(results, 'HIGH')}
 
 *SwanStudios 15-Brain Recursive Consensus System v14.0*
 *Phase 1: 13 parallel — Gemini 2.5 Flash + Claude Sonnet 4.6 + Nemotron 3 Nano + Gemini 3 Flash + Gemini 3.1 Flash + Nemotron 3 Nano + Gemini 2.5 Flash + Nemotron 3 Super (Architecture/Bug Hunter) + Gemini 3.1 Flash + Claude Sonnet 4.6 (Data Safety) + Nemotron 3 Super + Nemotron 3 Super + Nemotron 3 Nano (Bug Hunter II) + Trinity Large 400B*
-*Phase 2: 3 Specialty Debates — Security (Nemotron Nano ↔ Nemotron Super) + Code Quality (Claude ↔ Nemotron Super) + UX/UI (Gemini 3.1 Pro ↔ MiniMax M2.7, design role only)*
+*Phase 2: 3 Specialty Debates — Security (Nemotron Nano ↔ Nemotron Super) + Code Quality (Claude ↔ Nemotron Super) + UX/UI (GLM 5.2 ↔ Gemini 3.1 Pro, design role only)*
 *Phase 3: Smart Escalation — Nemotron Nano + Nemotron Super (CRITICAL only)*
 `;
 
@@ -1897,7 +1921,7 @@ async function main() {
     console.log('  ║    Phase 2: 3 Specialty Recursive Debates              ║');
     console.log('  ║    A. Security: Nemotron Nano ↔ Nemotron Super (FREE)  ║');
     console.log('  ║    B. Code: Claude Sonnet 4.6 ↔ Nemotron 3 Super       ║');
-    console.log('  ║    C. UX/UI: Gemini 3.1 Pro ↔ MiniMax M2.7 (design only)║');
+    console.log('  ║    C. UX/UI: GLM 5.2 ↔ Gemini 3.1 Pro (design only)    ║');
     console.log('  ║                                                          ║');
     console.log('  ║    Phase 3: Smart Escalation (CRITICAL only)           ║');
     console.log('  ║    Nemotron Nano + Nemotron Super — skip if not needed ║');
@@ -1942,7 +1966,7 @@ async function main() {
     console.log('');
 
     const files = [{ path: opts.document, content: documentContent }];
-    const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Production: sswanstudios.com. Document: ${opts.document}`;
+    const ctx = `${getProjectContext()} Document under review: ${opts.document}`;
     const tracks = buildDocumentValidatorTracks(documentContent, opts.document);
     const phase1Tracks = tracks;
 
@@ -2026,15 +2050,17 @@ async function main() {
       // ── Phase 3: Design Gap Debate ──
       console.log('');
       console.log('  ── Phase 3: Design Gap Recursive Debate ──');
-      console.log('  Gemini 3.1 Pro (Creative Director) ↔ Claude Sonnet 4.6 (Collaborator)');
+      console.log('  GLM 5.2 (Lead Designer) ↔ Gemini 3.1 Pro (Reviewer)');
       console.log('');
 
       try {
         const p3Start = Date.now();
         const p3Result = await runRecursiveConsensus({
           topic: 'Document Design Gap Assessment',
-          modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director' },
-          modelB: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'Design Collaborator' },
+          // Sean 2026-06-20: GLM 5.2 is the LEAD designer (final say). Policy exception — design slot is the
+          // only place a Chinese-provider model is allowed (see MODELS comment). Gemini 3.1 Pro now reviews.
+          modelA: { name: 'GLM 5.2', model: MODELS.glm52, provider: 'openrouter', role: 'Creative Director (Lead Design Authority)' },
+          modelB: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Design Reviewer & Implementation Challenger' },
           finalAuthority: 'A',
           initialPrompt: buildDocDebateDesignPrompt(documentContent, ctx, uxReport),
           callModel: callModelForDebate,
@@ -2045,15 +2071,17 @@ async function main() {
         phase3DebateLog = p3Result.debateLog;
         console.log(`    [${p3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 3 — ${p3Result.rounds.length} rounds, ${((Date.now() - p3Start) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`,
+          name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`,
           status: 'SUCCESS', text: p3Result.finalVerdict,
           inputTokens: p3Result.totalTokens.input, outputTokens: p3Result.totalTokens.output,
-          costUSD: (p3Result.totalTokens.input / 1_000_000 * 2.0) + (p3Result.totalTokens.output / 1_000_000 * 12.0),
+          // Blended estimate: GLM 5.2 ($1.20/$4.10) + Gemini 3.1 Pro ($2/$12). recursive-consensus returns
+          // combined tokens, not a per-model split, so this is a mid-point approximation.
+          costUSD: (p3Result.totalTokens.input / 1_000_000 * 1.6) + (p3Result.totalTokens.output / 1_000_000 * 8.0),
           durationMs: Date.now() - p3Start, debateLog: p3Result.debateLog, consensusReached: p3Result.consensusReached,
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 3: ${err.message}`);
-        debateResults.push({ name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.claudeSonnet46}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'UX/UI Design Debate (Phase 3)', model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
     }
 
@@ -2126,7 +2154,7 @@ async function main() {
     console.log('');
 
     const files = [{ path: opts.document, content: planContent }];
-    const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme. Active palette: Midnight Sapphire #002060, Royal Depth #003080, Ice Wing #60C0F0, Arctic Cyan #50A0F0, Gilded Fern #C6A84B, Frost White #E0ECF4, Swan Lavender #4070C0, Wing Purple #8B5CF6, Obsidian Black #0A0A0F, Carbon #141419, Graphite #1A1A24. Production: sswanstudios.com. Plan: ${opts.document}`;
+    const ctx = `${getProjectContext()} You are reviewing a PLAN; derive every feature-specific detail from the plan content — do NOT assume any particular feature. Plan: ${opts.document}`;
     const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
 
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
@@ -2141,7 +2169,7 @@ async function main() {
       console.log(`  Phase 2: 3 Planning Specialty Debates...`);
       console.log(`    A. Security Planning: Nemotron Nano ↔ Nemotron 3 Super (both FREE)`);
       console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Nemotron 3 Super`);
-      console.log(`    C. UX/UI Design: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7`);
+      console.log(`    C. UX/UI Design: GLM 5.2 (Lead) ↔ Gemini 3.1 Pro`);
       console.log(`  Phase 3: Smart Escalation (only if CRITICAL gaps or stalled debates)`);
     }
     console.log('');
@@ -2252,18 +2280,19 @@ async function main() {
       // ── Phase 2C: UX/UI Design Planning Debate ──
       console.log('');
       console.log('  ── Phase 2C: UX/UI Design Planning Debate ──');
-      console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.7');
+      console.log('  GLM 5.2 (Lead Designer) ↔ Gemini 3.1 Pro (Reviewer)');
       console.log('');
 
       try {
         const p2cStart = Date.now();
         const p2cResult = await runRecursiveConsensus({
           topic: 'UX/UI Design Specification',
-          modelA: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Creative Director (Lead Design Authority)' },
-          // Policy exception: Phase 2C is UX/UI design review, where MiniMax M2.7 is allowed.
-          // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally
-          // does NOT scan this code path — see policy comment at MODELS definition (line 67-68).
-          modelB: { name: 'MiniMax M2.7', model: MODELS.minimaxM27, provider: 'openrouter', role: 'Design Implementation Reviewer' },
+          // Policy exception: Phase 2C is the UX/UI design slot — the only place a Chinese-provider model is allowed.
+          // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally does NOT
+          // scan this code path — see policy comment at the MODELS definition.
+          // Sean 2026-06-20: GLM 5.2 is now the LEAD designer (final say); Gemini 3.1 Pro reviews.
+          modelA: { name: 'GLM 5.2', model: MODELS.glm52, provider: 'openrouter', role: 'Creative Director (Lead Design Authority)' },
+          modelB: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Design Reviewer & Implementation Challenger' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateDesignPrompt(planContent, ctx, uxReport),
           callModel: callModelForDebate,
@@ -2274,16 +2303,17 @@ async function main() {
         designDebateLog = p2cResult.debateLog;
         console.log(`    [${p2cResult.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${p2cResult.rounds.length} rounds, ${((Date.now() - p2cStart) / 1000).toFixed(1)}s`);
         debateResults.push({
-          name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`,
+          name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`,
           status: 'SUCCESS', text: p2cResult.finalVerdict,
           inputTokens: p2cResult.totalTokens.input, outputTokens: p2cResult.totalTokens.output,
-          costUSD: (p2cResult.totalTokens.input / 1_000_000 * 1.0) + (p2cResult.totalTokens.output / 1_000_000 * 6.0),
+          // Blended estimate: GLM 5.2 ($1.20/$4.10) + Gemini 3.1 Pro ($2/$12). Combined tokens, not per-model split.
+          costUSD: (p2cResult.totalTokens.input / 1_000_000 * 1.6) + (p2cResult.totalTokens.output / 1_000_000 * 8.0),
           durationMs: Date.now() - p2cStart,
           debateLog: p2cResult.debateLog, consensusReached: p2cResult.consensusReached,
         });
       } catch (err) {
         console.error(`    [FAIL] Phase 2C: ${err.message}`);
-        debateResults.push({ name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+        debateResults.push({ name: 'UX/UI Design Planning Debate (Phase 2C)', model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
       }
 
       // ── Phase 3: Smart Escalation ──
@@ -2375,7 +2405,7 @@ async function main() {
     }
     const designVerdict = debateResults.find(r => r.name.includes('UX/UI Design Planning'));
     if (designVerdict?.status === 'SUCCESS') {
-      const designSpec = `# Design Specification Consensus\n\n> Phase 2C: Gemini 3.1 Pro (CTO) ↔ MiniMax M2.7\n> Consensus: ${designVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${designVerdict.text}\n`;
+      const designSpec = `# Design Specification Consensus\n\n> Phase 2C: GLM 5.2 (Lead Designer) ↔ Gemini 3.1 Pro (Reviewer)\n> Consensus: ${designVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${designVerdict.text}\n`;
       writeFileSync(join(outputPaths.latestDir, 'design-specification.md'), designSpec, 'utf-8');
       writeFileSync(join(outputPaths.archiveDir, 'design-specification.md'), designSpec, 'utf-8');
     }
@@ -2434,7 +2464,7 @@ async function main() {
 
   const codeBundle = formatCodeBundle(files);
   const fileNames = files.map(f => f.path).join(', ');
-  const ctx = `SwanStudios is a personal training SaaS platform (React + TypeScript + styled-components frontend, Node.js + Express + Sequelize + PostgreSQL backend). Enchanted Apex: Crystalline Swan theme (frozen enchanted forest + deep-ocean luxury vault + competitive arena). Active palette: Midnight Sapphire #002060 (Primary), Royal Depth #003080 (Surface), Ice Wing #60C0F0 (Gaming Accent), Arctic Cyan #50A0F0 (Glow Accent — buttons, hovers, animations), Gilded Fern #C6A84B (Luxury Accent), Frost White #E0ECF4 (Background), Swan Lavender #4070C0 (Tertiary), Wing Purple #8B5CF6 (Secondary Accent). Typography: Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI/gaming). RETIRED Galaxy-Swan theme (#0a0a1a, #00FFFF, #7851A9) — do NOT use. Production: sswanstudios.com. Files: ${fileNames}`;
+  const ctx = `${getProjectContext()} You are reviewing actual code files; derive the feature from the code itself — do NOT assume any particular feature. Files under review: ${fileNames}`;
   const tracks = buildValidatorTracks(codeBundle, files);
 
   // All tracks are Phase 1 now — Phase 2+3 are recursive debates
@@ -2582,30 +2612,31 @@ async function main() {
     // ── Phase 2C: UX/UI Design Specialty Debate ──
     console.log('');
     console.log('  ── Phase 2C: UX/UI Design Specialty Debate ──');
-    console.log('  Gemini 3.1 Pro (Creative Dir) ↔ MiniMax M2.7');
-    console.log('  Max 5 rounds · Gemini = final authority on design');
+    console.log('  GLM 5.2 (Lead Designer) ↔ Gemini 3.1 Pro (Reviewer)');
+    console.log('  Max 5 rounds · GLM 5.2 = final authority on design');
     console.log('');
 
     try {
       const p2cStart = Date.now();
       const phase3Result = await runRecursiveConsensus({
         topic: 'UX/UI Design Quality',
+        // Policy exception: Phase 2C is the UX/UI design slot — the only place a Chinese-provider model is allowed.
+        // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally does NOT
+        // scan this code path — see policy comment at the MODELS definition.
+        // Sean 2026-06-20: GLM 5.2 is now the LEAD designer (final say); Gemini 3.1 Pro reviews.
         modelA: {
+          name: 'GLM 5.2',
+          model: MODELS.glm52,
+          provider: 'openrouter',
+          role: 'Creative Director (Lead Design Authority)',
+        },
+        modelB: {
           name: 'Gemini 3.1 Pro',
           model: MODELS.gemini31Pro,
           provider: 'gemini-direct',
-          role: 'Creative Director (Lead Design Authority)',
+          role: 'Design Reviewer & Implementation Challenger',
         },
-        // Policy exception: Phase 2C is UX/UI design review, where MiniMax M2.7 is allowed.
-        // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally
-        // does NOT scan this code path — see policy comment at MODELS definition (line 67-68).
-        modelB: {
-          name: 'MiniMax M2.7',
-          model: MODELS.minimaxM27,
-          provider: 'openrouter',
-          role: 'Design Implementation Reviewer',
-        },
-        finalAuthority: 'A', // Gemini = Creative Director = final say on design
+        finalAuthority: 'A', // GLM 5.2 = Creative Director = final say on design
         initialPrompt: buildPhase3DesignPrompt(codeBundle, ctx, uxReport),
         callModel: callModelForDebate,
         onRound: (round, speaker, text) => {
@@ -2617,15 +2648,16 @@ async function main() {
       console.log(`    [${phase3Result.consensusReached ? 'CONSENSUS' : 'AUTHORITY'}] Phase 2C — ${phase3Result.rounds.length} rounds, ${(p2cDuration / 1000).toFixed(1)}s`);
       debateResults.push({
         name: 'UX/UI Design Debate (Phase 2C)',
-        model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`,
+        model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`,
         status: 'SUCCESS', text: phase3Result.finalVerdict,
         inputTokens: phase3Result.totalTokens.input, outputTokens: phase3Result.totalTokens.output,
-        costUSD: (phase3Result.totalTokens.input / 1_000_000 * 1.0) + (phase3Result.totalTokens.output / 1_000_000 * 6.0), // Only Gemini costs, M2.5 is free
+        // Blended estimate: GLM 5.2 ($1.20/$4.10) + Gemini 3.1 Pro ($2/$12). Combined tokens, not per-model split.
+        costUSD: (phase3Result.totalTokens.input / 1_000_000 * 1.6) + (phase3Result.totalTokens.output / 1_000_000 * 8.0),
         durationMs: p2cDuration, debateLog: phase3Result.debateLog, consensusReached: phase3Result.consensusReached,
       });
     } catch (err) {
       console.error(`    [FAIL] Phase 2C: ${err.message}`);
-      debateResults.push({ name: 'UX/UI Design Debate (Phase 2C)', model: `${MODELS.gemini31Pro} ↔ ${MODELS.minimaxM27}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
+      debateResults.push({ name: 'UX/UI Design Debate (Phase 2C)', model: `${MODELS.glm52} ↔ ${MODELS.gemini31Pro}`, status: 'ERROR', text: `Error: ${err.message}`, inputTokens: 0, outputTokens: 0, costUSD: 0, durationMs: 0 });
     }
 
     // ── Phase 3: Smart Escalation (only for CRITICAL findings or stalled debates) ──
@@ -2717,7 +2749,7 @@ async function main() {
   // ── Write design-recommendations.md (actionable from Phase 2C UX/UI consensus) ──
   const phase2cVerdict = debateResults.find(r => r.name.includes('UX/UI'));
   if (phase2cVerdict?.status === 'SUCCESS') {
-    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 2C specialty debate (Gemini 3.1 Pro ↔ MiniMax M2.7)\n> Consensus: ${phase2cVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2cVerdict.text}\n`;
+    const designRecs = `# Design Recommendations — UX/UI Consensus\n\n> Generated from Phase 2C specialty debate (GLM 5.2 Lead Designer ↔ Gemini 3.1 Pro Reviewer)\n> Consensus: ${phase2cVerdict.consensusReached ? 'YES' : 'Final authority decided'}\n\n---\n\n${phase2cVerdict.text}\n`;
     writeFileSync(join(outputPaths.latestDir, 'design-recommendations.md'), designRecs, 'utf-8');
     writeFileSync(join(outputPaths.archiveDir, 'design-recommendations.md'), designRecs, 'utf-8');
   }
@@ -2928,7 +2960,7 @@ Each track has its own file — read only the ones relevant to your task:
 | \`12-bug-hunter-nemotron.md\` | Bug Hunter II — Nemotron Nano edge cases / race conditions |
 | \`13-security-debate.md\` | Phase 2A: Security debate (Nemotron Nano ↔ Nemotron Super) |
 | \`14-code-quality-debate.md\` | Phase 2B: Code quality debate (Claude ↔ Nemotron Super) |
-| \`15-design-debate.md\` | Phase 2C: UX/UI debate (Gemini ↔ M2.5:free) |
+| \`15-design-debate.md\` | Phase 2C: UX/UI debate (GLM 5.2 ↔ Gemini 3.1 Pro) |
 | \`debate-log.md\` | Full Phase 2B code quality debate transcript |
 | \`design-debate-log.md\` | Full Phase 2C design debate transcript |
 | \`fix-instructions.md\` | Actionable code fixes from Phase 2B consensus |
