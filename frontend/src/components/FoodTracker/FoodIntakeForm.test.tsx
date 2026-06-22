@@ -132,6 +132,7 @@ describe('FoodIntakeForm edit-after-save flow', () => {
 
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledTimes(1));
     expect(mocks.patch).toHaveBeenCalledWith('/api/macros/42', expect.objectContaining({
+      date: '2026-06-20',
       mealType: 'lunch',
       description: 'Greek yogurt (1 cup)',
       calories: 160,

@@ -160,7 +160,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       return;
     }
 
-    const payload = buildMacroPayload(mealType, foodItems);
+    const payload = buildMacroPayload(mealType, foodItems, editing && savedEntry?.date ? savedEntry.date : undefined);
     setLoading(true);
     setError(null);
     try {
