@@ -67,6 +67,31 @@ describe('NUTRITION_LOG proposal classification (Slice 1.2)', () => {
     expect(result.payload.clientId).toBe(42);
   });
 
+  it('rejects malformed nutrition_log dates before clear-text summaries can persist them', () => {
+    expect(classifyActionBlock(
+      {
+        action: 'coach_action_proposal',
+        proposal_type: 'nutrition_log',
+        payload: {
+          date: 'Jackie Smith phone 555-0101',
+          meals: [{ description: 'oatmeal with berries', calories: 300 }],
+        },
+      },
+      convo,
+      opts,
+    )).toBeNull();
+
+    expect(classifyActionBlock(
+      {
+        action: 'import_nutrition_log',
+        date: '2026-02-31',
+        meals: [{ description: 'oatmeal with berries', calories: 300 }],
+      },
+      convo,
+      opts,
+    )).toBeNull();
+  });
+
   it('requires encrypted detail-review before approval (same gate as workout_log)', () => {
     expect(proposalRequiresDetailReview('nutrition_log')).toBe(true);
     expect(proposalRequiresDetailReview('workout_log')).toBe(true);
