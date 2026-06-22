@@ -90,6 +90,11 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
       mealType: 'dinner',
       verified: false,
     }));
+    expect(await screen.findByRole('button', { name: /chicken breast added to dinner/i })).toBeDisabled();
+
+    await user.selectOptions(screen.getByLabelText(/add to/i), 'breakfast');
+    expect(screen.getByRole('button', { name: /chicken breast added to dinner/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /chicken breast added to breakfast/i })).not.toBeInTheDocument();
   });
 
   it('does not save malformed external macro fields as credible nutrition values', async () => {
@@ -171,6 +176,7 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     fireEvent.click(addBtn); // second tap before the first resolves
 
     expect(apiMocks.post).toHaveBeenCalledTimes(1); // savingRef guard: no duplicate write
+    expect(await screen.findByRole('button', { name: /adding chicken breast to snack/i })).toHaveAttribute('aria-busy', 'true');
     pending.forEach((resolve) => resolve());
     await screen.findByRole('button', { name: /chicken breast added to snack/i });
   });

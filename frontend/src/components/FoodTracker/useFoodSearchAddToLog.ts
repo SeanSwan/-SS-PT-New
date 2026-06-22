@@ -13,6 +13,7 @@ export const formatMealLabel = (mealType: string) => mealType.charAt(0).toUpperC
 export const useFoodSearchAddToLog = (onDataSent?: (success: boolean) => void) => {
   const [mealType, setMealType] = useState('snack');
   const [addedIds, setAddedIds] = useState<Set<FoodSearchId>>(() => new Set());
+  const [addedMealTypes, setAddedMealTypes] = useState<Map<FoodSearchId, string>>(() => new Map());
   const [savingId, setSavingId] = useState<FoodSearchId | null>(null);
   const [addError, setAddError] = useState('');
   const savingRef = useRef(false);
@@ -22,9 +23,11 @@ export const useFoodSearchAddToLog = (onDataSent?: (success: boolean) => void) =
     savingRef.current = true;
     setSavingId(food.id);
     setAddError('');
+    const selectedMealType = mealType;
     try {
-      await apiService.post('/api/macros', buildSearchMacroPayload(food, { mealType }));
+      await apiService.post('/api/macros', buildSearchMacroPayload(food, { mealType: selectedMealType }));
       setAddedIds((prev) => new Set(prev).add(food.id));
+      setAddedMealTypes((prev) => new Map(prev).set(food.id, selectedMealType));
       onDataSent?.(true);
     } catch {
       setAddError('Could not add that food to your log. Please try again.');
@@ -38,6 +41,7 @@ export const useFoodSearchAddToLog = (onDataSent?: (success: boolean) => void) =
     addError,
     addToLog,
     addedIds,
+    addedMealTypes,
     mealType,
     savingId,
     setMealType,

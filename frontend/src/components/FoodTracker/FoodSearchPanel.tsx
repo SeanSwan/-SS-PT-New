@@ -88,7 +88,7 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
   const [allResults, setAllResults] = useState<FoodResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const { addError, addToLog, addedIds, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
+  const { addError, addToLog, addedIds, addedMealTypes, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doSearch = useCallback(async (rawQuery: string) => {
@@ -163,7 +163,8 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
         <Grid>
           {filteredResults.map((food, index) => {
             const added = addedIds.has(food.id);
-            const currentMeal = formatMealLabel(mealType);
+            const saving = savingId === food.id;
+            const currentMeal = formatMealLabel((added && addedMealTypes.get(food.id)) || mealType);
             return (
               <Card key={food.id ?? index} $healthRating={food.healthRating} style={{ animationDelay: `${index * 50}ms` }}>
                 <Header>
@@ -188,13 +189,20 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
                   <Macro $c={foodTheme.gold}><div className="v">{formatMacroValue(food.fat, 'g')}</div><div className="l">Fat</div></Macro>
                 </Macros>
                 <AddBtn
-                  aria-label={added ? `${food.name} added to ${currentMeal}` : `Add ${food.name} to ${currentMeal}`}
+                  aria-busy={saving}
+                  aria-label={
+                    added
+                      ? `${food.name} added to ${currentMeal}`
+                      : saving
+                        ? `Adding ${food.name} to ${currentMeal}`
+                        : `Add ${food.name} to ${currentMeal}`
+                  }
                   disabled={savingId != null || added}
                   onClick={() => addToLog(food)}
                 >
                   {added
                     ? <><Check size={18} /> Added</>
-                    : savingId === food.id
+                    : saving
                       ? <><Spin size={18} /> Adding...</>
                       : <><Plus size={18} /> Add to {currentMeal}</>}
                 </AddBtn>
