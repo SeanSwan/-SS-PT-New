@@ -16,15 +16,10 @@ export const HubContainer = styled.div`
   height: calc(100vh - 64px);
   color: var(--text-primary, #E0ECF4);
   overflow: hidden;
-
-  @media (min-width: 2560px) {
-    max-width: 2200px;
-    margin: 0 auto;
-  }
-
-  @media (min-width: 3840px) {
-    max-width: 3000px;
-  }
+  /* Fill the full panel edge-to-edge on large/4K displays. The card grid
+     (CardGrid) caps individual card width via clamp(), so no container-level
+     max-width island is needed — cards grow comfortably instead of floating
+     in dead side-gutters. */
 `;
 
 export const TopBar = styled.div`
@@ -187,11 +182,14 @@ export const DetailScrollWrap = styled.div`
 
 export const CardGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  /* Cards scale with the viewport: never narrower than fits the column,
+     comfortably ~340-560px, growing toward fewer/bigger cards on 4K. The
+     clamp keeps them readable on a dense display instead of pinned at 360px. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr));
   grid-auto-rows: 1fr;
   align-items: stretch;
-  gap: 16px;
-  padding: 20px;
+  gap: clamp(16px, 1.2vw, 28px);
+  padding: clamp(16px, 1.4vw, 32px);
   overflow-y: auto;
   flex: 1;
   overscroll-behavior: contain;
