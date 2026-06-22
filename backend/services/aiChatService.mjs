@@ -1944,7 +1944,7 @@ export async function sendChatMessage(messages, options = {}) {
         failoverTrace,
       };
     } catch (err) {
-      failoverTrace.push(`${provider.name}:${err.message}`);
+      failoverTrace.push(`${provider.name}:provider_error`);
       logger.warn(`[AIChatService] ${provider.name} failed: ${err.message}`);
       continue;
     }
@@ -1961,6 +1961,46 @@ export async function sendChatMessage(messages, options = {}) {
     provider: 'fallback',
     failoverTrace,
   };
+}
+
+const SAFE_TRACE_CODES = new Set([
+  'success',
+  'provider_error',
+  'not_configured',
+  'not_registered',
+  'budget_exhausted',
+  'circuit_open',
+  'PROVIDER_AUTH',
+  'PROVIDER_NETWORK',
+  'PROVIDER_RATE_LIMIT',
+  'PROVIDER_TIMEOUT',
+  'PROVIDER_UNAVAILABLE',
+]);
+
+export function sanitizeAiFailoverTrace(trace) {
+  if (!Array.isArray(trace)) return [];
+
+  return trace.reduce((safeTrace, entry) => {
+    if (typeof entry !== 'string') return safeTrace;
+    const separatorIndex = entry.indexOf(':');
+    if (separatorIndex <= 0) return safeTrace;
+
+    const provider = entry.slice(0, separatorIndex).trim().replace(/[^a-zA-Z0-9_-]/g, '');
+    const code = entry.slice(separatorIndex + 1).trim();
+    if (!provider) return safeTrace;
+
+    safeTrace.push(`${provider}:${SAFE_TRACE_CODES.has(code) ? code : 'provider_error'}`);
+    return safeTrace;
+  }, []);
+}
+
+export function sanitizeAiChatMetadataForClient(metadata) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {};
+  const sanitized = { ...metadata };
+  if (Object.prototype.hasOwnProperty.call(sanitized, 'failoverTrace')) {
+    sanitized.failoverTrace = sanitizeAiFailoverTrace(sanitized.failoverTrace);
+  }
+  return sanitized;
 }
 
 function getAvailableProviders() {

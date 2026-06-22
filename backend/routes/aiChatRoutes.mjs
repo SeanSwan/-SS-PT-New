@@ -51,7 +51,15 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { requireSubscription } from '../middleware/requireSubscription.mjs';
 import AiConversation from '../models/AiConversation.mjs';
-import { getSystemPrompt, buildPromptMessages, sendChatMessage, enrichWithUserData, getAIChatDiagnostics } from '../services/aiChatService.mjs';
+import {
+  getSystemPrompt,
+  buildPromptMessages,
+  sendChatMessage,
+  enrichWithUserData,
+  getAIChatDiagnostics,
+  sanitizeAiChatMetadataForClient,
+  sanitizeAiFailoverTrace,
+} from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
@@ -434,7 +442,7 @@ router.get('/conversations/:id', async (req, res) => {
         status: conversation.status,
         messages: conversation.messages,
         messageCount: conversation.messageCount,
-        metadata: conversation.metadata,
+        metadata: sanitizeAiChatMetadataForClient(conversation.metadata),
         lastMessageAt: conversation.lastMessageAt,
         createdAt: conversation.createdAt,
       },
@@ -760,12 +768,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
 
     // Update conversation
     const updatedMessages = [...conversation.messages, userMsg, assistantMsg];
-    const updatedMetadata = {
+    const safeFailoverTrace = sanitizeAiFailoverTrace(aiResult.failoverTrace);
+    const updatedMetadata = sanitizeAiChatMetadataForClient({
       ...conversation.metadata,
       lastProvider: aiResult.provider,
       lastModel: aiResult.model,
-      failoverTrace: aiResult.failoverTrace,
-    };
+      failoverTrace: safeFailoverTrace,
+    });
 
     await conversation.update({
       messages: updatedMessages,
