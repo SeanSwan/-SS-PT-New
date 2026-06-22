@@ -1,4 +1,5 @@
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
+import { sanitizeNutritionProposalMeal } from './coachNutritionProposalCareCopy.mjs';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
 
 const displayTimeZone = () => process.env.SWAN_DISPLAY_TZ || 'America/Los_Angeles';
@@ -18,6 +19,11 @@ const formatDisplayDate = (date = new Date()) => {
   }
   return date.toISOString().slice(0, 10);
 };
+
+const sanitizeMealForMacroWrite = (meal) => ({
+  ...sanitizeNutritionProposalMeal(meal, { descriptionMax: 500 }),
+  verified: false,
+});
 
 export async function approveNutritionLogProposal({
   id,
@@ -65,7 +71,7 @@ export async function approveNutritionLogProposal({
   // carrying verified:true cannot persist as a coach-verified macro. AI macros
   // stay honest estimates until a coach/USDA verifies (care-first; Decision #5).
   // createMacroEntries also pins source:'ai_chat'. [Hostile-review PRIV-2/TEST-6]
-  const safeMeals = meals.map((meal) => ({ ...meal, verified: false }));
+  const safeMeals = meals.map(sanitizeMealForMacroWrite);
   let result;
   try {
     result = await createMacroEntries(safeMeals, { clientId: access.clientId, date: payload.date || formatDisplayDate() });

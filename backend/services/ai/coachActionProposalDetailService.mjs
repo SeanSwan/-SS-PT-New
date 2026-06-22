@@ -6,6 +6,7 @@
 import { decryptPayload } from '../plaudCipherService.mjs';
 import { summarizeOnboardingDraftForReview } from '../coachClientOnboardingApprovalService.mjs';
 import { COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
+import { sanitizeNutritionProposalMeal } from './coachNutritionProposalCareCopy.mjs';
 import { sanitizeSplitCandidate } from './coachSplitPlanApprovalService.mjs';
 
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
@@ -113,17 +114,20 @@ export function sanitizeProposalDetail({ row, proposal }) {
         date: payload.date || null,
         mealCount: meals.length,
         totalCalories: Math.round(totalCalories),
-        meals: meals.slice(0, 20).map((m) => ({
-          mealType: typeof m?.mealType === 'string' ? m.mealType : 'snack',
-          description: typeof m?.description === 'string' ? m.description.slice(0, 160) : '',
-          calories: round(m?.calories),
-          protein: round(m?.protein),
-          carbs: round(m?.carbs),
-          fat: round(m?.fat),
-          confidence: Number.isFinite(Number(m?.confidence))
-            ? Math.max(0, Math.min(1, Number(m.confidence)))
-            : null,
-        })),
+        meals: meals.slice(0, 20).map((m) => {
+          const safeMeal = sanitizeNutritionProposalMeal(m, { descriptionMax: 160 });
+          return {
+            mealType: typeof safeMeal?.mealType === 'string' ? safeMeal.mealType : 'snack',
+            description: safeMeal.description,
+            calories: round(safeMeal?.calories),
+            protein: round(safeMeal?.protein),
+            carbs: round(safeMeal?.carbs),
+            fat: round(safeMeal?.fat),
+            confidence: Number.isFinite(Number(safeMeal?.confidence))
+              ? Math.max(0, Math.min(1, Number(safeMeal.confidence)))
+              : null,
+          };
+        }),
       },
     });
   }

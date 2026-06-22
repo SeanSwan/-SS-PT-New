@@ -15,6 +15,8 @@ import { proposalRequiresDetailReview } from '../../services/ai/coachProposalRev
 
 const opts = { proposalTypes: COACH_PROPOSAL_TYPE, schemaVersion: '2026-05-07', routeContext: null };
 const convo = { targetUserId: 42 };
+const unsafeCopyPattern =
+  /\b(cutting|bulking?|caloric deficit|cheat meal|clean eating|dirty bulk|sugar crash|inflammatory|deficien(?:t|cy|cies)|zero sugar|no sugar|guilt|spike insulin|wasted macros)\b/i;
 
 describe('NUTRITION_LOG proposal classification (Slice 1.2)', () => {
   it('classifies a structured nutrition_log coach_action_proposal with meals + client scope', () => {
@@ -38,6 +40,41 @@ describe('NUTRITION_LOG proposal classification (Slice 1.2)', () => {
     expect(result.payload.meals).toHaveLength(2);
     expect(result.payload.clientId).toBe(42);
     expect(result.payload.proposalMeta.requiresConfirmation).toBe(true);
+  });
+
+  it('scrubs generated nutrition_log meal descriptions during classification', () => {
+    const structured = classifyActionBlock(
+      {
+        action: 'coach_action_proposal',
+        proposal_type: 'nutrition_log',
+        payload: {
+          date: '2026-06-19',
+          meals: [{
+            mealType: 'lunch',
+            description: 'Clean eating cheat meal bowl with zero sugar sauce',
+            calories: 650,
+            items: [{ name: 'Zero sugar chicken', serving: '1 guilt-free bowl' }],
+          }],
+        },
+      },
+      convo,
+      opts,
+    );
+    const legacy = classifyActionBlock(
+      {
+        action: 'import_nutrition_log',
+        meals: [{
+          description: 'No sugar snack with guilt-free macros',
+          calories: 300,
+          items: [{ name: 'Clean eating oats', serving: 'no sugar cup' }],
+        }],
+      },
+      convo,
+      opts,
+    );
+
+    expect(JSON.stringify(structured.payload.meals)).not.toMatch(unsafeCopyPattern);
+    expect(JSON.stringify(legacy.payload.meals)).not.toMatch(unsafeCopyPattern);
   });
 
   it('rejects a nutrition_log proposal with no meals', () => {
