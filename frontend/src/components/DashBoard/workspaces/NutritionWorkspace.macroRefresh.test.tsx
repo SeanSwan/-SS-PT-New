@@ -144,6 +144,7 @@ vi.mock('../../Charts/charts/radar/NutritionBalanceRadar', () => ({
     fat,
     fiber,
     hydrationMl,
+    hydrationTargetMl,
     loading,
   }: {
     protein?: number;
@@ -151,6 +152,7 @@ vi.mock('../../Charts/charts/radar/NutritionBalanceRadar', () => ({
     fat?: number;
     fiber?: number;
     hydrationMl?: number;
+    hydrationTargetMl?: number;
     loading?: boolean;
   }) => (
     <output
@@ -160,6 +162,7 @@ vi.mock('../../Charts/charts/radar/NutritionBalanceRadar', () => ({
       data-fat={String(fat)}
       data-fiber={String(fiber)}
       data-hydration-ml={String(hydrationMl)}
+      data-hydration-target-ml={String(hydrationTargetMl)}
       data-loading={String(Boolean(loading))}
     >
       Nutrition radar
@@ -294,6 +297,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
     expect(radar).toHaveAttribute('data-fat', '22');
     expect(radar).toHaveAttribute('data-fiber', '9');
     expect(radar).toHaveAttribute('data-hydration-ml', '1183');
+    expect(radar).toHaveAttribute('data-hydration-target-ml', '2366');
   });
 
   it('keeps the nutrition radar loading until persisted hydration is known', async () => {

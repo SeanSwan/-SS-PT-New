@@ -95,8 +95,9 @@ const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/Nutri
 const OUNCES_TO_ML = 29.5735;
 
 const MacroChartsPanel: React.FC<{ summary: MacroSummary | null; loading: boolean; gentleMode: boolean }> = ({ summary, loading, gentleMode }) => {
-  const { filled: hydrationGlasses, glassOz, loading: hydrationLoading } = useHydration();
+  const { filled: hydrationGlasses, dailyGoal: hydrationGoalGlasses, glassOz, loading: hydrationLoading } = useHydration();
   const hydrationMl = Math.round(hydrationGlasses * glassOz * OUNCES_TO_ML);
+  const hydrationTargetMl = Math.round(hydrationGoalGlasses * glassOz * OUNCES_TO_ML);
 
   if (gentleMode) {
     return (
@@ -125,6 +126,7 @@ const MacroChartsPanel: React.FC<{ summary: MacroSummary | null; loading: boolea
         fat={summary?.totalFat}
         fiber={summary?.totalFiber}
         hydrationMl={hydrationMl}
+        hydrationTargetMl={hydrationTargetMl}
         loading={loading || hydrationLoading}
       />
     </MacroGrid>

@@ -18,6 +18,18 @@ describe('NutritionBalanceRadar', () => {
     ]);
   });
 
+  it('uses the persisted hydration goal when the mounted workspace provides one', () => {
+    expect(buildNutritionRadarData({
+      hydrationMl: 1893,
+      hydrationTargetMl: 1893,
+    })[4]).toEqual({ x: 4, y: 100 });
+
+    expect(buildNutritionRadarData({
+      hydrationMl: 946,
+      hydrationTargetMl: 1893,
+    })[4]).toEqual({ x: 4, y: 50 });
+  });
+
   it('rejects coercive nutrition values before rendering credible radar progress', () => {
     expect(buildNutritionRadarData({
       protein: ['150'] as unknown as number,
@@ -25,6 +37,7 @@ describe('NutritionBalanceRadar', () => {
       fat: '1e2' as unknown as number,
       fiber: { valueOf: () => 30 } as unknown as number,
       hydrationMl: [2500] as unknown as number,
+      hydrationTargetMl: { valueOf: () => 2500 } as unknown as number,
     })).toEqual([
       { x: 0, y: 0 },
       { x: 1, y: 0 },

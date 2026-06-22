@@ -6,8 +6,7 @@ import {
 } from '../../chartTheme';
 import { useReducedMotion } from '../../../../hooks/useReducedMotion';
 
-// Default daily targets (grams)
-const TARGETS = { protein: 150, carbs: 250, fat: 65, fiber: 30, hydration: 2500 };
+const DEFAULT_REFERENCES = { protein: 150, carbs: 250, fat: 65, fiber: 30, hydrationMl: 2500 };
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 interface NutritionBalanceRadarProps {
@@ -16,6 +15,7 @@ interface NutritionBalanceRadarProps {
   fat?: number;
   fiber?: number;
   hydrationMl?: number;
+  hydrationTargetMl?: number;
   loading?: boolean;
 }
 
@@ -56,27 +56,28 @@ const pct = (value: unknown, target: number) => {
 };
 
 export const buildNutritionRadarData = ({
-  protein, carbs, fat, fiber, hydrationMl, loading,
+  protein, carbs, fat, fiber, hydrationMl, hydrationTargetMl, loading,
 }: NutritionBalanceRadarProps): NutritionRadarDatum[] => {
   if (loading) return emptyRadarData();
+  const hydrationReference = cleanPositiveNumber(hydrationTargetMl) || DEFAULT_REFERENCES.hydrationMl;
 
   return [
-    { x: 0, y: pct(protein, TARGETS.protein) },
-    { x: 1, y: pct(carbs, TARGETS.carbs) },
-    { x: 2, y: pct(fat, TARGETS.fat) },
-    { x: 3, y: pct(fiber, TARGETS.fiber) },
-    { x: 4, y: pct(hydrationMl, TARGETS.hydration) },
+    { x: 0, y: pct(protein, DEFAULT_REFERENCES.protein) },
+    { x: 1, y: pct(carbs, DEFAULT_REFERENCES.carbs) },
+    { x: 2, y: pct(fat, DEFAULT_REFERENCES.fat) },
+    { x: 3, y: pct(fiber, DEFAULT_REFERENCES.fiber) },
+    { x: 4, y: pct(hydrationMl, hydrationReference) },
   ];
 };
 
 const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
-  protein, carbs, fat, fiber, hydrationMl, loading,
+  protein, carbs, fat, fiber, hydrationMl, hydrationTargetMl, loading,
 }) => {
   const isLoading = Boolean(loading);
   const prefersReducedMotion = useReducedMotion();
   const data = useMemo(
-    () => buildNutritionRadarData({ protein, carbs, fat, fiber, hydrationMl, loading: isLoading }),
-    [protein, carbs, fat, fiber, hydrationMl, isLoading],
+    () => buildNutritionRadarData({ protein, carbs, fat, fiber, hydrationMl, hydrationTargetMl, loading: isLoading }),
+    [protein, carbs, fat, fiber, hydrationMl, hydrationTargetMl, isLoading],
   );
 
   return (
@@ -86,12 +87,12 @@ const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
     aria-busy={isLoading}
     tabIndex={0}
   >
-    <ChartHeader>
-      <div>
-        <ChartTitle>Nutrition Balance</ChartTitle>
-        <ChartSubtitle>Macro & hydration reference coverage (%)</ChartSubtitle>
-      </div>
-    </ChartHeader>
+      <ChartHeader>
+        <div>
+          <ChartTitle>Nutrition Balance</ChartTitle>
+          <ChartSubtitle>Macro references & hydration goal coverage (%)</ChartSubtitle>
+        </div>
+      </ChartHeader>
     <ChartContainer>
       <VictoryChart
         polar

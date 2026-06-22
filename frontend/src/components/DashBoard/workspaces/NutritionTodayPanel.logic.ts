@@ -54,8 +54,7 @@ export interface RepeatMacroEntry {
 }
 
 const allowedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-const PROTEIN_SUPPORT_THRESHOLD_GRAMS = 130;
-const FIBER_SUPPORT_THRESHOLD_GRAMS = 22;
+const PROTEIN_SUPPORT_THRESHOLD_GRAMS = 130, FIBER_SUPPORT_THRESHOLD_GRAMS = 22;
 const MAX_HYDRATION_GLASSES = 30;
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
