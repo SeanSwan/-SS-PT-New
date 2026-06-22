@@ -73,8 +73,8 @@ function sanitizeAiNovaGroup(value) {
   if (typeof value === 'string' && value.trim() === '') return null;
 
   const parsed = parsePlainDecimalNumber(value);
-  if (parsed === null || !Number.isInteger(parsed)) return null;
-  return Math.max(1, Math.min(4, parsed));
+  if (parsed === null || !Number.isInteger(parsed) || parsed < 1 || parsed > 4) return null;
+  return parsed;
 }
 
 /**

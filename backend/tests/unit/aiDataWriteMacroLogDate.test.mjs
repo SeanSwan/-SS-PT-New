@@ -152,6 +152,23 @@ describe('aiDataWriteService macro_log date fallback', () => {
     });
   });
 
+  it.each([0, '0', 5, '5'])('does not clamp impossible NOVA group %s into a real processing classification', async (novaGroup) => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({
+      novaGroup,
+    })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements).toMatchObject({
+      novaGroup: null,
+      flagProcessed: false,
+      verified: false,
+      source: 'ai_chat',
+    });
+  });
+
   it('rejects impossible explicit macro_log dates before any SQL write', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));
