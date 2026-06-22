@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
+import NutritionTriageCard from './NutritionTriageCard';
 import { getClientSessionSignal } from '../clientSessionSignal';
 import { getNumericClientId } from './clientTabId';
 import {
@@ -243,6 +244,7 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
           )}
         </BentoCard>
       ))}
+      <NutritionTriageCard clientId={clientId} />
     </BentoGrid>
   );
 });
