@@ -109,7 +109,7 @@ const mapUSDA = (item: USDAFood): FoodResult => {
 };
 
 const mapOFF = (item: OFFProduct): FoodResult | null => {
-  if (!item.product_name || !item.nutriments) return null;
+  if (!item._id || !item.product_name || !item.nutriments) return null;
   const nutrients = item.nutriments;
 
   return {

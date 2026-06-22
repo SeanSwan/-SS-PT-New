@@ -163,6 +163,37 @@ describe('FoodSearchPanel add-to-log (Slice 1.5)', () => {
     expect(screen.queryByText('0g')).not.toBeInTheDocument();
   });
 
+  it('does not render packaged foods without a stable external id', async () => {
+    vi.stubGlobal('fetch', vi.fn((url: string | URL) => {
+      const u = String(url);
+      if (u.includes('nal.usda.gov')) {
+        return Promise.resolve({ ok: true, json: async () => ({ foods: [] }) } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          products: [{
+            product_name: 'Mystery Packaged Chicken',
+            nutriments: {
+              'energy-kcal_100g': 90,
+              proteins_100g: 18,
+              fat_100g: 2,
+              carbohydrates_100g: 3,
+            },
+          }],
+        }),
+      } as Response);
+    }));
+    const user = userEvent.setup();
+
+    render(<FoodSearchPanel onDataSent={vi.fn()} />);
+    await user.type(screen.getByPlaceholderText(/search foods/i), 'mystery chicken');
+
+    expect(await screen.findByText(/no foods found/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add mystery packaged chicken/i })).not.toBeInTheDocument();
+    expect(apiMocks.post).not.toHaveBeenCalled();
+  });
+
   it('blocks a rapid double-tap from double-logging the same searched food', async () => {
     const pending: Array<() => void> = [];
     apiMocks.post.mockImplementation(() => new Promise((resolve) => { pending.push(() => resolve({ data: { success: true } })); }));
