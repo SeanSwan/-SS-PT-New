@@ -17,6 +17,7 @@
 import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
 import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
+import { sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
 import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
 import {
   attachGeneratedWorkoutPlanPdf,
@@ -290,7 +291,8 @@ async function insertClientNote(userId, trainerId, data, sequelize) {
 }
 
 async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = {}) {
-  if (!data.description) throw new Error('Food description is required');
+  const safeDescription = sanitizeNutritionCopy(data.description, '', 500);
+  if (!safeDescription) throw new Error('Food description is required');
 
   const sodium = sanitizeAiMacroNumber(data.sodium);
   const addedSugar = sanitizeAiMacroNumber(data.addedSugar);
@@ -311,7 +313,7 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
     userId,
     date: resolveNutritionWriteDate(data.date),
     mealType: data.mealType || 'snack',
-    description: data.description,
+    description: safeDescription,
     calories: sanitizeAiMacroNumber(data.calories),
     protein: sanitizeAiMacroNumber(data.protein),
     carbs: sanitizeAiMacroNumber(data.carbs),
@@ -324,8 +326,8 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
     transFat: transFat || null,
     cholesterol: cholesterol || null,
     novaGroup,
-    brandName: data.brandName ? String(data.brandName).slice(0, 200) : null,
-    mealSource: data.source || data.mealSource || null,
+    brandName: sanitizeNutritionCopy(data.brandName, '', 200) || null,
+    mealSource: sanitizeNutritionCopy(data.source || data.mealSource, '', 200) || null,
     flagSodium,
     flagSugar,
     flagCholesterol,
@@ -354,7 +356,7 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
     { replacements, type: sequelize.QueryTypes.INSERT }
   );
 
-  logger.info('[AIDataWrite] Macro log added for user %d: %s', userId, data.description);
+  logger.info('[AIDataWrite] Macro log added for user %d: %s', userId, safeDescription);
 }
 
 async function updateProgressLevel(userId, data, sequelize) {

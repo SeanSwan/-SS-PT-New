@@ -16,6 +16,8 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 const { processAIDataUpdates } = await import('../../services/aiDataWriteService.mjs');
+const unsafeNutritionCopyPattern =
+  /\b(cutting|bulking?|caloric deficit|cheat meal|clean eating|dirty bulk|sugar crash|inflammatory|deficien(?:t|cy|cies)|zero sugar|no sugar|guilt|spike insulin|wasted macros)\b/i;
 
 function makeMacroCaptureSequelize(capture) {
   return {
@@ -71,6 +73,26 @@ describe('aiDataWriteService macro_log date fallback', () => {
     const result = await processAIDataUpdates(42, [macroUpdate({ source: 'barcode' })], 7, sequelize);
 
     expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements?.source).toBe('ai_chat');
+  });
+
+  it('scrubs generated macro_log display copy before persistence', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({
+      description: 'Clean eating cheat meal bowl with zero sugar sauce',
+      brandName: 'No sugar clean eating cafe',
+      mealSource: 'guilt-free model estimate',
+    })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(JSON.stringify({
+      description: capture.replacements?.description,
+      brandName: capture.replacements?.brandName,
+      mealSource: capture.replacements?.mealSource,
+    })).not.toMatch(unsafeNutritionCopyPattern);
+    expect(capture.replacements?.verified).toBe(false);
     expect(capture.replacements?.source).toBe('ai_chat');
   });
 
