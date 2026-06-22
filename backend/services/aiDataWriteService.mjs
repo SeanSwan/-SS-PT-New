@@ -39,6 +39,13 @@ const TRUSTED_MACRO_SOURCE_MAP = {
   'food-scanner': 'photo',
   manual: 'manual',
 };
+const TRUSTED_MACRO_MEAL_TYPES = new Set(['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']);
+
+function trustedMacroMealType(value) {
+  if (typeof value !== 'string') return 'snack';
+  const trimmed = value.trim();
+  return TRUSTED_MACRO_MEAL_TYPES.has(trimmed) ? trimmed : 'snack';
+}
 
 function normalizeUpdateType(type) {
   if (typeof type !== 'string') return 'unknown';
@@ -312,7 +319,7 @@ async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = 
   const replacements = {
     userId,
     date: resolveNutritionWriteDate(data.date),
-    mealType: data.mealType || 'snack',
+    mealType: trustedMacroMealType(data.mealType),
     description: safeDescription,
     calories: sanitizeAiMacroNumber(data.calories),
     protein: sanitizeAiMacroNumber(data.protein),
