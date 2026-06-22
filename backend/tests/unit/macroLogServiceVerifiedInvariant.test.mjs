@@ -54,4 +54,21 @@ describe('macroLogService verified invariant', () => {
       fat: 4.5,
     }));
   });
+
+  it('does not persist impossible rollover dates through the shared macro row builder', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'));
+    try {
+      const row = buildMacroRow({
+        date: '2026-02-31',
+        mealType: 'lunch',
+        description: 'Burrito bowl',
+        calories: 620,
+      }, { userId: 42, source: 'ai_chat' });
+
+      expect(row.date).toBe('2026-06-20');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

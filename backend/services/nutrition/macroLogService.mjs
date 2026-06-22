@@ -62,8 +62,12 @@ const sanitizeNumber = (val) => {
 };
 
 const isValidDate = (str) => {
-  if (!DATE_REGEX.test(str)) return false;
-  return !isNaN(new Date(str + 'T00:00:00Z').getTime());
+  if (typeof str !== 'string' || !DATE_REGEX.test(str)) return false;
+  const [year, month, day] = str.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
 };
 
 /**
