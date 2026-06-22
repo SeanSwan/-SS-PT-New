@@ -21,6 +21,7 @@ vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
 vi.mock('../../models/DailyMacroLog.mjs', () => ({
   default: {
     findAll: vi.fn(),
+    findOne: vi.fn(),
     findByPk: vi.fn(),
   },
 }));
@@ -66,6 +67,7 @@ describe('POST /api/macros local-date guard', () => {
     mocks.createSingleMacroEntry.mockImplementation(async (entry) => ({ id: 777, ...entry }));
     DailyMacroLog.findAll.mockReset();
     DailyMacroLog.findAll.mockResolvedValue([]);
+    DailyMacroLog.findOne.mockReset();
   });
 
   afterEach(() => {
@@ -142,5 +144,56 @@ describe('POST /api/macros local-date guard', () => {
     expect(response.body.error).toBe('Date must be a real YYYY-MM-DD calendar date.');
     expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
     expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
+  it('patch ignores client date/source/provenance drift and forces verified false', async () => {
+    const savedEntry = {
+      id: 777,
+      userId: 42,
+      date: '2026-06-20',
+      mealType: 'breakfast',
+      description: 'Original breakfast',
+      calories: 210,
+      source: 'manual',
+      aiConversationId: 'server-owned-thread',
+      verified: true,
+    };
+    const update = vi.fn(async (updates) => {
+      Object.assign(savedEntry, updates);
+      return savedEntry;
+    });
+    savedEntry.update = update;
+    DailyMacroLog.findOne.mockResolvedValue(savedEntry);
+
+    const response = await request(makeApp())
+      .patch('/api/macros/777')
+      .send({
+        date: '2026-06-22',
+        mealType: 'lunch',
+        description: 'Greek yogurt bowl',
+        calories: '321.24',
+        source: 'ai-chat',
+        aiConversationId: 'client-supplied-thread',
+        verified: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(DailyMacroLog.findOne).toHaveBeenCalledWith({
+      where: { id: 777, userId: 42 },
+    });
+    expect(update).toHaveBeenCalledWith({
+      mealType: 'lunch',
+      description: 'Greek yogurt bowl',
+      calories: 321.2,
+      verified: false,
+    });
+    const updateKeys = Object.keys(update.mock.calls[0][0]);
+    expect(updateKeys).not.toContain('date');
+    expect(updateKeys).not.toContain('source');
+    expect(updateKeys).not.toContain('aiConversationId');
+    expect(response.body.entry.date).toBe('2026-06-20');
+    expect(response.body.entry.source).toBe('manual');
+    expect(response.body.entry.aiConversationId).toBe('server-owned-thread');
+    expect(response.body.entry.verified).toBe(false);
   });
 });

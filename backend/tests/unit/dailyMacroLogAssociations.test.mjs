@@ -7,10 +7,11 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const repoRoot = process.cwd();
-const associationsPath = path.join(repoRoot, 'models', 'associations.mjs');
+const backendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const associationsPath = path.join(backendRoot, 'models', 'associations.mjs');
 
 describe('DailyMacroLog association contract', () => {
   it('links DailyMacroLog to User through the canonical userId field', () => {
