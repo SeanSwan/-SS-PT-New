@@ -29,4 +29,18 @@ describe('goal challenge templates', () => {
     expect(getGoalRecordCategory('muscle_gain')).toBe('strength');
     expect(getGoalRecordCategory('flexibility')).toBe('fitness');
   });
+
+  it('keeps nutrition challenges care-first instead of rewarding calorie-target streaks', () => {
+    const goals = ['lose weight', 'build muscle'];
+    const nutritionTemplates = goals.flatMap((goal) =>
+      getTemplatesForGoal(goal).templates.filter((template) => template.category === 'nutrition')
+    );
+
+    expect(nutritionTemplates.length).toBeGreaterThan(0);
+    nutritionTemplates.forEach((template) => {
+      const copy = `${template.title} ${template.description}`;
+      expect(copy).not.toMatch(/\bcalorie target\b|\bhit your daily\b|\brestriction\b|\bpenalty\b/i);
+      expect(template.description).toMatch(/\b(log|check-in|consistency|support|learning)\b/i);
+    });
+  });
 });

@@ -21,8 +21,8 @@ export const GOAL_CHALLENGE_MAP = {
       progressUnit: 'weeks',
     },
     {
-      title: 'Daily Calorie Target',
-      description: 'Hit your daily calorie target for 7 consecutive days.',
+      title: 'Nutrition Check-In Rhythm',
+      description: 'Log one honest nutrition check-in for 7 days; consistency and review matter more than perfect numbers.',
       challengeType: 'weekly',
       category: 'nutrition',
       difficulty: 2,
@@ -53,8 +53,8 @@ export const GOAL_CHALLENGE_MAP = {
       progressUnit: 'percent',
     },
     {
-      title: 'Protein Intake Streak',
-      description: 'Hit your daily protein target for 14 consecutive days.',
+      title: 'Protein Support Rhythm',
+      description: 'Log a protein-supporting meal or coach-reviewed check-in for 14 days without treating the number as a pass/fail score.',
       challengeType: 'weekly',
       category: 'nutrition',
       difficulty: 2,
