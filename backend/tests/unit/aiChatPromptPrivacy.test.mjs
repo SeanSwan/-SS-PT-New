@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   HISTORY_MESSAGE_WITHHELD,
+  RESPONSE_MESSAGE_WITHHELD,
   sanitizePromptHistory,
 } from '../../services/ai/aiChatPromptPrivacy.mjs';
 
@@ -64,5 +65,9 @@ describe('aiChatPromptPrivacy', () => {
 
     expect(result.messages[0].content).toBe('General programming question');
     expect(result.identitiesStripped).toBe(0);
+  });
+
+  it('exports the response-withheld placeholder for mounted route fail-closed behavior', () => {
+    expect(RESPONSE_MESSAGE_WITHHELD).toBe('[Response withheld: identity redaction unavailable.]');
   });
 });

@@ -23,17 +23,33 @@ describe('AI chat nutrition care-copy route guard', () => {
     expect(routeSource).not.toContain('Continue with original message');
   });
 
+  it('fails closed instead of returning raw assistant text if response PII stripping fails', () => {
+    const catchIndex = routeSource.indexOf("logger.warn('[AIChatRoutes] Response PII stripping failed");
+    const withheldIndex = routeSource.indexOf('aiContent = RESPONSE_MESSAGE_WITHHELD');
+    const privacyIndex = routeSource.indexOf('piiStripped = true', withheldIndex);
+
+    expect(routeSource).toContain('RESPONSE_MESSAGE_WITHHELD');
+    expect(withheldIndex).toBeGreaterThan(catchIndex);
+    expect(privacyIndex).toBeGreaterThan(withheldIndex);
+  });
+
   it('sanitizes human-facing nutrition chat output after PII stripping and before storage', () => {
     const stripIndex = routeSource.indexOf('stripIdentityFromResponse(aiContent');
+    const responsePrivacyIndex = routeSource.indexOf('if (responseStrip.identitiesStripped > 0) piiStripped = true');
     const careCopyIndex = routeSource.indexOf('aiContent = sanitizeNutritionChatCopy(aiContent');
     const assistantIndex = routeSource.indexOf('const assistantMsg = {');
+    const proposalContentIndex = routeSource.indexOf('const proposalContent = aiContent === RESPONSE_MESSAGE_WITHHELD');
     const proposalIndex = routeSource.indexOf('createCoachActionProposalsFromAiResponse({');
 
     expect(routeSource).toContain("import { sanitizeNutritionChatCopy } from '../services/nutrition/nutritionCareCopy.mjs'");
+    expect(responsePrivacyIndex).toBeGreaterThan(stripIndex);
     expect(careCopyIndex).toBeGreaterThan(stripIndex);
     expect(assistantIndex).toBeGreaterThan(careCopyIndex);
+    expect(proposalContentIndex).toBeGreaterThan(assistantIndex);
     expect(proposalIndex).toBeGreaterThan(assistantIndex);
     expect(routeSource).toContain('message: sanitizedMessage');
+    expect(routeSource).toContain('content: proposalContent');
+    expect(routeSource).not.toContain('content: aiResult.content');
     expect(routeSource).toContain('maxLength: AI_CHAT_MESSAGE_MAX_CHARS');
   });
 

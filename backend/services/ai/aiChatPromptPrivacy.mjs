@@ -6,6 +6,7 @@ import {
 
 export const CURRENT_MESSAGE_WITHHELD = '[Message withheld: identity redaction unavailable.]';
 export const HISTORY_MESSAGE_WITHHELD = '[Previous message withheld: identity redaction unavailable.]';
+export const RESPONSE_MESSAGE_WITHHELD = '[Response withheld: identity redaction unavailable.]';
 
 export async function sanitizePromptHistory({
   messages,

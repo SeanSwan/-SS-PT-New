@@ -57,6 +57,7 @@ import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import {
   CURRENT_MESSAGE_WITHHELD,
+  RESPONSE_MESSAGE_WITHHELD,
   sanitizePromptHistory,
 } from '../services/ai/aiChatPromptPrivacy.mjs';
 import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
@@ -726,8 +727,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       try {
         const responseStrip = await stripIdentityFromResponse(aiContent, enrichUserId, sequelize);
         aiContent = responseStrip.sanitizedResponse;
+        if (responseStrip.identitiesStripped > 0) piiStripped = true;
       } catch (stripErr) {
         logger.warn('[AIChatRoutes] Response PII stripping failed (non-fatal):', stripErr.message);
+        aiContent = RESPONSE_MESSAGE_WITHHELD;
+        piiStripped = true;
       }
     }
     aiContent = sanitizeNutritionChatCopy(aiContent, {
@@ -773,10 +777,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
 
     let proposalResult = { proposals: [], frontendActions: [] };
     let proposalError = null;
-    if (aiResult.content) {
+    const proposalContent = aiContent === RESPONSE_MESSAGE_WITHHELD ? '' : aiContent;
+    if (proposalContent) {
       try {
         proposalResult = await createCoachActionProposalsFromAiResponse({
-          content: aiResult.content,
+          content: proposalContent,
           user: req.user,
           conversation,
           sourceMessageId: assistantMsg.timestamp,
