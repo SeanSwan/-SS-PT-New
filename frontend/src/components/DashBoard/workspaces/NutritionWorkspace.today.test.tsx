@@ -25,6 +25,9 @@ const mocks = vi.hoisted(() => ({
     error: null as string | null,
     refetch: vi.fn(),
   },
+  workoutSessions: {
+    data: [] as unknown[],
+  },
 }));
 
 vi.mock('../../../hooks/useMacroSummary', () => ({
@@ -43,6 +46,10 @@ vi.mock('../../../hooks/useHydration', () => ({
     updateFilled: mocks.updateFilled,
     resetToday: vi.fn(),
   }),
+}));
+
+vi.mock('../../../hooks/useDashboardQueries', () => ({
+  useWorkoutSessions: () => mocks.workoutSessions,
 }));
 
 vi.mock('../../../services/api.service', () => ({
@@ -72,6 +79,7 @@ describe('NutritionWorkspace Today landing', () => {
     mocks.macroSummary.loading = false;
     mocks.macroSummary.error = null;
     mocks.macroSummary.refetch.mockClear();
+    mocks.workoutSessions.data = [];
   });
 
   it('defaults to Today and lets the Today panel route into existing tabs', async () => {
@@ -102,5 +110,20 @@ describe('NutritionWorkspace Today landing', () => {
 
     await user.click(screen.getByRole('tab', { name: /my macros/i }));
     expect(await screen.findByRole('alert', { name: /nutrition totals unavailable/i })).toHaveTextContent(/Macro summary unavailable/i);
+  });
+
+  it('feeds real same-day workout sessions into training-day nutrition insights', async () => {
+    mocks.macroSummary.summary = {
+      ...mocks.defaultSummary,
+      totalProtein: 60,
+      totalFiber: 24,
+      mealCount: 3,
+    };
+    mocks.workoutSessions.data = [{ id: 'workout-1', date: '2026-06-20T18:00:00.000Z' }];
+
+    render(<NutritionWorkspace />);
+
+    expect(await screen.findByText(/training-day support/i)).toBeInTheDocument();
+    expect(screen.getByText(/protein-forward meal and a water check-in/i)).toBeInTheDocument();
   });
 });

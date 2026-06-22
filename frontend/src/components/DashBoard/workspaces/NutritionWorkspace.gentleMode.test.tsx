@@ -46,6 +46,10 @@ vi.mock('../../../hooks/useHydration', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/useDashboardQueries', () => ({
+  useWorkoutSessions: () => ({ data: [] }),
+}));
+
 vi.mock('../../../services/api.service', () => ({
   default: {
     get: mocks.apiGet,

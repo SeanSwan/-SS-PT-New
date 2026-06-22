@@ -37,9 +37,11 @@ import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useHydration } from '../../../hooks/useHydration';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
+import { useWorkoutSessions } from '../../../hooks/useDashboardQueries';
 import { useSubscription } from '../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
+import { hasWorkoutLoggedOnDate } from './NutritionTodayPanel.trainingDay';
 import {
   ContentArea,
   Header,
@@ -158,6 +160,8 @@ const NutritionWorkspace: React.FC = () => {
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
+  const workoutSessions = useWorkoutSessions({ limit: 50 });
+  const trainingDay = hasWorkoutLoggedOnDate(workoutSessions.data, summary?.date);
   const reduceMotion = Boolean(useReducedMotion());
   const handleMealLogResult = useCallback((success: boolean) => {
     if (success) {
@@ -240,6 +244,7 @@ const NutritionWorkspace: React.FC = () => {
                 onLogged={refetchMacroSummary}
                 gentleMode={gentleMode}
                 onAskCoach={handleGentleCoach}
+                trainingDay={trainingDay}
               />
             ))}
             {activeTab === 'log' && <FoodIntakeForm onDataSent={handleMealLogResult} />}

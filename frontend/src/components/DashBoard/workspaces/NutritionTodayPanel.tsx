@@ -1,9 +1,6 @@
 /**
  * FILE: NutritionTodayPanel.tsx
  * PURPOSE: Phase 2.1 client nutrition Today diary surface.
- *
- * Shows real logged macro totals, hydration state, a nutrition streak, and
- * one-tap paths into existing log/search/voice/hydration tabs.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Droplets, HeartPulse, Mic, PieChart, RefreshCw, Search, Utensils } from 'lucide-react';
@@ -72,6 +69,7 @@ interface NutritionTodayPanelProps {
   onLogged?: () => void;
   gentleMode?: boolean;
   onAskCoach?: () => void;
+  trainingDay?: boolean;
 }
 const ringDash = 283;
 const insightIcons = { hydration: Droplets, log: Utensils, macros: PieChart, search: Search, voice: Mic };
@@ -83,6 +81,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
   onLogged,
   gentleMode = false,
   onAskCoach,
+  trainingDay = false,
 }) => {
   const [streakDays, setStreakDays] = useState(0);
   const [latestEntry, setLatestEntry] = useState<RepeatMacroEntry | null>(null);
@@ -99,7 +98,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
   const meals = cleanWholeNumber(activeSummary?.mealCount);
   const nextAction = getNextNutritionAction(activeSummary, hydrationForGuidance);
   const macroMetrics = getMacroMetrics(activeSummary);
-  const insights = loading ? [] : buildNutritionInsights({ summary: activeSummary, hydration: hydrationForGuidance, weekDays, gentleMode });
+  const insights = loading ? [] : buildNutritionInsights({ summary: activeSummary, hydration: hydrationForGuidance, weekDays, gentleMode, trainingDay });
   const careMilestone = getNutritionCareMilestone({ gentleMode, hydration: hydrationForGuidance, meals, streakDays });
   const { heroText, heroTitle, hydrationText, primaryTarget, rhythmText } = getNutritionTodayViewModel({
     gentleMode,

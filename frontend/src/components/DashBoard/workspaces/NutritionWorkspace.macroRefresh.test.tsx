@@ -49,6 +49,10 @@ vi.mock('../../../hooks/useHydration', () => ({
   useHydration: () => mocks.useHydration(),
 }));
 
+vi.mock('../../../hooks/useDashboardQueries', () => ({
+  useWorkoutSessions: () => ({ data: [] }),
+}));
+
 vi.mock('../../Shared/CosmicSuspenseLoader', () => ({
   default: () => <div>Loading nutrition panel</div>,
 }));
