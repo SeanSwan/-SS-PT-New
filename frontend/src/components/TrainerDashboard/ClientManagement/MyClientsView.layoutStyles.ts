@@ -11,8 +11,8 @@ import { swanSectionBackdrop } from '../../DashBoard/workspaces/clients-team/cli
 export const ClientsContainer = styled(motion.div)`
   ${swanSectionBackdrop}
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 1rem;
   border-radius: 18px;
 
@@ -256,10 +256,10 @@ export const StatCard = styled.div<{
 export const ClientsGrid = styled(motion.div)`
   --client-card-desktop-row: 520px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr));
   grid-auto-rows: var(--client-card-desktop-row);
   align-items: stretch;
-  gap: 1.5rem;
+  gap: clamp(1rem, 1.2vw, 1.75rem);
 
   @media (min-width: 2560px) { --client-card-desktop-row: 560px; }
   @media (min-width: 3840px) { --client-card-desktop-row: 620px; }

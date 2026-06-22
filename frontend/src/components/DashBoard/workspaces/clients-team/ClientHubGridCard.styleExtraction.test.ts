@@ -11,6 +11,16 @@ describe('ClientHubGridCard style extraction', () => {
     expect(componentSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
 
+
+  it('keeps client-card internals responsive to card width instead of viewport width', () => {
+    expect(stylesSource).toContain('container: clientcard / inline-size');
+    expect(stylesSource).toContain('@container clientcard (min-width: 420px)');
+    expect(stylesSource).toContain('@container clientcard (max-width: 300px)');
+    expect(stylesSource).toContain('@container clientcard (max-width: 280px)');
+    expect(stylesSource).toContain('font-size: clamp(17px, 3.4cqi, 21px)');
+    expect(stylesSource).not.toContain('@media (max-width: 430px)');
+    expect(stylesSource).not.toContain('@media (max-width: 360px)');
+  });
   it('keeps local styled-components outside the active client card shell', () => {
     expect(componentSource).toContain("from './ClientHubGridCard.styles'");
     expect(componentSource).not.toContain('const CardShell = styled.');

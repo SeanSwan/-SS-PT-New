@@ -44,6 +44,7 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
 
     expect(cardGridBlock).toContain('--client-card-desktop-row: 520px');
     expect(cardGridBlock).toContain('grid-auto-rows: var(--client-card-desktop-row)');
+    expect(cardGridBlock).toContain('grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr))');
     expect(cardGridBlock).toContain('@media (min-width: 2560px)');
     expect(cardGridBlock).toContain('--client-card-desktop-row: 560px');
     expect(cardGridBlock).toContain('@media (min-width: 3840px)');
@@ -56,5 +57,7 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
     expect(styles).toContain('--client-hub-density-scale: 1.08');
     expect(styles).toContain('@media (min-width: 3840px)');
     expect(styles).toContain('--client-hub-density-scale: 1.16');
+    expect(styles).not.toContain('max-width: 2200px');
+    expect(styles).not.toContain('max-width: 3000px');
   });
 });

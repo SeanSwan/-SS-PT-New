@@ -21,13 +21,10 @@ export const HubContainer = styled.div`
 
   @media (min-width: 2560px) {
     --client-hub-density-scale: 1.08;
-    max-width: 2200px;
-    margin: 0 auto;
   }
 
   @media (min-width: 3840px) {
     --client-hub-density-scale: 1.16;
-    max-width: 3000px;
   }
 `;
 
@@ -197,11 +194,11 @@ export const DetailScrollWrap = styled.div`
 export const CardGrid = styled.div`
   --client-card-desktop-row: 520px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr));
   grid-auto-rows: var(--client-card-desktop-row);
   align-items: stretch;
-  gap: 16px;
-  padding: 20px;
+  gap: clamp(16px, 1.2vw, 28px);
+  padding: clamp(16px, 1.4vw, 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;

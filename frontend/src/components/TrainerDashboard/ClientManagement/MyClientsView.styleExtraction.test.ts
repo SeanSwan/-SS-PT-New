@@ -61,6 +61,7 @@ describe('MyClientsView style extraction', () => {
 
     expect(clientsGridBlock).toContain('--client-card-desktop-row: 520px');
     expect(clientsGridBlock).toContain('grid-auto-rows: var(--client-card-desktop-row)');
+    expect(clientsGridBlock).toContain('grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr))');
     expect(clientsGridBlock).toContain('@media (min-width: 2560px)');
     expect(clientsGridBlock).toContain('--client-card-desktop-row: 560px');
     expect(clientsGridBlock).toContain('@media (min-width: 3840px)');
