@@ -21,6 +21,9 @@ const KG_TO_LB = 2.2046226218;
 
 const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 const roundInt = (value) => (isFiniteNumber(value) ? Math.round(value) : null);
+const sumPresent = (...values) => (
+  values.some(isFiniteNumber) ? values.reduce((sum, value) => sum + (isFiniteNumber(value) ? value : 0), 0) : null
+);
 
 const isValidDate = (value) => {
   if (typeof value !== 'string' || !DATE_REGEX.test(value)) return false;
@@ -99,7 +102,7 @@ const parsers = {
       steps: s.steps,
       distanceMeters: s.distances?.find(d => d.activity === 'total')?.distance * 1609.34 || null,
       floorsClimbed: s.floors,
-      activeMinutes: (s.fairlyActiveMinutes || 0) + (s.veryActiveMinutes || 0),
+      activeMinutes: sumPresent(s.fairlyActiveMinutes, s.veryActiveMinutes),
       caloriesBurned: s.caloriesOut,
       activeCalories: s.activityCalories,
       restingHeartRate: s.restingHeartRate,
@@ -189,7 +192,7 @@ const parsers = {
       steps: raw.totalSteps,
       distanceMeters: raw.totalDistanceMeters,
       floorsClimbed: raw.floorsAscended,
-      activeMinutes: (raw.moderateIntensityMinutes || 0) + (raw.vigorousIntensityMinutes || 0),
+      activeMinutes: sumPresent(raw.moderateIntensityMinutes, raw.vigorousIntensityMinutes),
       caloriesBurned: raw.totalKilocalories,
       activeCalories: raw.activeKilocalories,
       restingHeartRate: raw.restingHeartRate,

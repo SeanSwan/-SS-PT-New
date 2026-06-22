@@ -15,6 +15,10 @@ import {
   normalizeWearableData,
   resolveWearableRecordDate,
 } from '../services/wearableDataInterop.mjs';
+import {
+  WEARABLE_METRIC_REQUIRED,
+  hasWearableMetrics,
+} from '../services/wearableDataMetrics.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
@@ -59,12 +63,15 @@ router.post('/sync', protect, async (req, res) => {
       if (resolvedDate.error) {
         return res.status(400).json({ success: false, message: resolvedDate.error });
       }
-      items.push({ item, recordDate: resolvedDate.recordDate });
+      const parsed = normalizeWearableData(deviceType, item);
+      if (!hasWearableMetrics(parsed)) {
+        return res.status(400).json({ success: false, message: WEARABLE_METRIC_REQUIRED });
+      }
+      items.push({ item, parsed, recordDate: resolvedDate.recordDate });
     }
 
     const results = [];
-    for (const { item, recordDate: safeRecordDate } of items) {
-      const parsed = normalizeWearableData(deviceType, item);
+    for (const { item, parsed, recordDate: safeRecordDate } of items) {
       const record = {
         ...parsed,
         userId: req.user.id,
