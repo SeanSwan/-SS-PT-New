@@ -59,6 +59,11 @@ describe('GET /api/macros/roster-triage', () => {
     expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 101);
     expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 202);
     expect(mocks.dailyMacroLogFindAll).toHaveBeenCalledTimes(1);
+    const query = mocks.dailyMacroLogFindAll.mock.calls[0][0];
+    expect(query.attributes).toEqual(expect.arrayContaining([
+      'userId', 'date', 'mealType', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'createdAt',
+    ]));
+    expect(query.attributes).not.toContain('addedSugar');
     expect(response.body.clients).toEqual([
       expect.objectContaining({
         userId: 101,

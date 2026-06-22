@@ -60,6 +60,12 @@ describe('coach-only nutrition review routes', () => {
 
     expect(response.status).toBe(200);
     expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 101);
+    const query = mocks.dailyMacroLogFindAll.mock.calls[0][0];
+    expect(query.attributes).toEqual(expect.arrayContaining([
+      'id', 'userId', 'date', 'mealType', 'description', 'calories', 'protein',
+      'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'source', 'verified', 'createdAt',
+    ]));
+    expect(query.attributes).not.toContain('addedSugar');
     expect(response.body.entries).toEqual([
       expect.objectContaining({
         id: 77,
@@ -94,12 +100,49 @@ describe('coach-only nutrition review routes', () => {
       .patch('/api/macros/client-timeline/77/verify');
 
     expect(response.status).toBe(200);
+    const query = mocks.dailyMacroLogFindOne.mock.calls[0][0];
+    expect(query.attributes).toEqual(expect.arrayContaining(['id', 'userId', 'verified', 'createdAt']));
+    expect(query.attributes).not.toContain('addedSugar');
     expect(mocks.assertAssignmentOrAdmin).toHaveBeenCalledWith(9001, 'admin', 101);
     expect(update).toHaveBeenCalledWith({ verified: true });
     expect(response.body.entry).toEqual(expect.objectContaining({
       id: 77,
       verified: true,
     }));
+  });
+
+  it('returns estimate review queue entries with a schema-tolerant column set', async () => {
+    mocks.dailyMacroLogFindAll.mockResolvedValue([{
+      id: 77,
+      userId: 101,
+      date: '2026-06-20',
+      mealType: 'lunch',
+      description: 'chicken bowl',
+      calories: 620,
+      protein: 44,
+      source: 'photo',
+      verified: false,
+      createdAt: '2026-06-20T19:00:00.000Z',
+    }]);
+
+    const response = await request(makeApp())
+      .get('/api/macros/review-queue?date=2026-06-20&userIds=101');
+
+    expect(response.status).toBe(200);
+    const query = mocks.dailyMacroLogFindAll.mock.calls[0][0];
+    expect(query.attributes).toEqual(expect.arrayContaining([
+      'id', 'userId', 'date', 'mealType', 'description', 'calories', 'protein',
+      'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'source', 'verified', 'createdAt',
+    ]));
+    expect(query.attributes).not.toContain('addedSugar');
+    expect(response.body.entries).toEqual([
+      expect.objectContaining({
+        id: 77,
+        userId: 101,
+        source: 'photo',
+        verified: false,
+      }),
+    ]);
   });
 
   it('returns safe fixed copy when the estimate review queue query fails', async () => {

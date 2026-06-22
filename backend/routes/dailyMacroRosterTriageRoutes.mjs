@@ -23,6 +23,13 @@ const router = express.Router();
 router.use(protect);
 
 const NUTRITION_REVIEW_ROLES = new Set(['admin', 'trainer']);
+const TRIAGE_MACRO_ATTRIBUTES = [
+  'userId', 'date', 'mealType', 'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar', 'sodium', 'createdAt',
+];
+const REVIEW_MACRO_ATTRIBUTES = [
+  'id', 'userId', 'date', 'mealType', 'description', 'calories', 'protein', 'carbs', 'fat',
+  'fiber', 'sugar', 'sodium', 'source', 'verified', 'createdAt',
+];
 
 const requireNutritionReviewer = (req, res, next) => {
   if (!NUTRITION_REVIEW_ROLES.has(req.user?.role)) {
@@ -51,6 +58,7 @@ router.get('/roster-triage', requireNutritionReviewer, async (req, res) => {
 
     const weekStart = daysBefore(date, 6);
     const rows = await DailyMacroLog.findAll({
+      attributes: TRIAGE_MACRO_ATTRIBUTES,
       where: {
         userId: { [Op.in]: userIds },
         date: { [Op.between]: [weekStart, date] },
@@ -90,7 +98,10 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
       return res.status(400).json({ success: false, error: 'Invalid entryId' });
     }
 
-    const entry = await DailyMacroLog.findOne({ where: { id: entryId } });
+    const entry = await DailyMacroLog.findOne({
+      attributes: REVIEW_MACRO_ATTRIBUTES,
+      where: { id: entryId },
+    });
     if (!entry || !Number.isSafeInteger(Number(entry.userId))) {
       return res.status(404).json({ success: false, error: 'Macro data not found' });
     }
@@ -133,6 +144,7 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
 
     const startDate = daysBefore(date, days - 1);
     const rows = await DailyMacroLog.findAll({
+      attributes: REVIEW_MACRO_ATTRIBUTES,
       where: {
         userId: { [Op.in]: userIds },
         date: { [Op.between]: [startDate, date] },
@@ -173,6 +185,7 @@ router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
     }
 
     const rows = await DailyMacroLog.findAll({
+      attributes: REVIEW_MACRO_ATTRIBUTES,
       where: { userId, date },
       order: [['createdAt', 'ASC']],
       limit: 100,
