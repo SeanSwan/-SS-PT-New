@@ -599,6 +599,21 @@ const AdminWorkoutPlansRedirect: React.FC = () => {
   return <Navigate to={`/dashboard/admin/workout-planner?${params.toString()}`} replace />;
 };
 
+// Folds the standalone admin /log-workout surface into the canonical
+// Clients & Team hub's training -> logger section so admins log workouts in
+// one place (with the client already in context). Any incoming deep-link
+// query (clientId, loadPlan, sessionId, sessionDate, source, etc.) is
+// preserved and the training/logger tab params are added. Trainer and client
+// /log-workout routes are intentionally untouched — they keep their own
+// loggers.
+const AdminLogWorkoutRedirect: React.FC = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set('tab', 'training');
+  params.set('trainingSection', 'logger');
+  return <Navigate to={`/dashboard/admin/client-management?${params.toString()}`} replace />;
+};
+
 // === ROLE CONFIGURATION ===
 interface RoleConfig {
   routes: Array<{
@@ -672,7 +687,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
 
       // 💪 WORKOUT LOGGING (admin can log workouts too)
-      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
+      { path: '/log-workout', component: AdminLogWorkoutRedirect, title: 'Log Client Workout', description: 'Redirects the standalone logger into the canonical Clients & Team hub logger' },
       { path: '/log-my-workout', component: AdminPersonalWorkoutLogger, title: 'Log My Workout', description: 'Owner personal workout logger' },
       { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
 
