@@ -144,7 +144,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
 
   const addWater = () => {
     if (hydrationLoading) return;
-    updateFilled(Math.min(hydration.dailyGoal, hydration.filled + 1));
+    updateFilled(hydration.filled + 1);
   };
 
   const repeatLatestMeal = async () => {

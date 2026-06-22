@@ -127,6 +127,21 @@ describe('NutritionTodayPanel', () => {
     await waitFor(() => expect(screen.getByText(/2-day nutrition logging streak/i)).toBeInTheDocument());
   });
 
+  it('preserves over-goal hydration counts while capping meter progress', async () => {
+    const user = userEvent.setup();
+    mocks.hydration.filled = 9;
+    mocks.hydration.dailyGoal = 8;
+
+    render(<NutritionTodayPanel summary={{ ...summary, mealCount: 1 }} onNavigate={vi.fn()} />);
+
+    expect(screen.getByRole('progressbar', { name: /hydration progress/i })).toHaveAttribute('aria-valuenow', '100');
+    expect(screen.getByText('9 of 8 glasses (72 oz)')).toBeInTheDocument();
+    expect(screen.queryByText(/Add a water check-in before the next meal/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /add water/i }));
+    expect(mocks.updateFilled).toHaveBeenCalledWith(10);
+  });
+
   it('shows a safe care milestone without restriction or calorie-target rewards', async () => {
     render(<NutritionTodayPanel summary={summary} onNavigate={vi.fn()} />);
 

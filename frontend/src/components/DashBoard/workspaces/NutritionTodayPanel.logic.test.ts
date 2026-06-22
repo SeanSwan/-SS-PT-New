@@ -73,6 +73,13 @@ describe('NutritionTodayPanel logic', () => {
       percent: 38,
       ounces: 30,
     });
+
+    expect(getHydrationProgress({ filled: 9, dailyGoal: 8 })).toEqual({
+      filled: 9,
+      dailyGoal: 8,
+      percent: 100,
+      ounces: 72,
+    });
   });
 
   it('rejects non-primitive or non-decimal macro values instead of rendering credible totals', () => {
@@ -92,6 +99,7 @@ describe('NutritionTodayPanel logic', () => {
   it('selects the next nutrition action from real logged state', () => {
     expect(getNextNutritionAction({ mealCount: 0 }, { filled: 0, dailyGoal: 8 }).target).toBe('log');
     expect(getNextNutritionAction({ mealCount: 1 }, { filled: 3, dailyGoal: 8 }).target).toBe('hydration');
+    expect(getNextNutritionAction({ mealCount: 1 }, { filled: 9, dailyGoal: 8 }).target).toBe('voice');
     expect(getNextNutritionAction({ mealCount: 2 }, { filled: 8, dailyGoal: 8 }).target).toBe('voice');
     expect(getNextNutritionAction({ mealCount: 3 }, { filled: 8, dailyGoal: 8 }).target).toBe('macros');
   });

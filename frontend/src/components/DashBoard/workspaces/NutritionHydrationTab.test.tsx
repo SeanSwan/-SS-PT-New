@@ -35,6 +35,18 @@ describe('NutritionHydrationTab', () => {
     expect(screen.getByText('3 of 8 glasses (36 oz)')).toBeInTheDocument();
   });
 
+  it('caps over-goal ring progress without hiding the logged glass count', () => {
+    mocks.hydration.filled = 9;
+    mocks.hydration.dailyGoal = 8;
+
+    const { container } = render(<NutritionHydrationTab />);
+    const progressCircle = container.querySelector('circle[stroke-dasharray]');
+
+    expect(screen.getByText('9 of 8 glasses (108 oz)')).toBeInTheDocument();
+    expect(screen.getByText('100%+')).toBeInTheDocument();
+    expect(progressCircle).toHaveAttribute('stroke-dasharray', '264 0');
+  });
+
   it('keeps hydration tips supportive instead of fear or peak-performance framed', () => {
     render(<NutritionHydrationTab />);
 

@@ -54,8 +54,8 @@ export interface RepeatMacroEntry {
 }
 
 const allowedMealTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-const PROTEIN_TARGET_GRAMS = 150;
-const FIBER_TARGET_GRAMS = 30;
+const PROTEIN_TARGET_GRAMS = 150; const FIBER_TARGET_GRAMS = 30;
+const MAX_HYDRATION_GLASSES = 30;
 const DECIMAL_NUMBER_PATTERN = /^\d+(?:\.\d+)?$/;
 
 export const todayIso = (date: Date = new Date()) => formatLocalCalendarDate(date);
@@ -113,13 +113,13 @@ export const getMacroMetrics = (summary: NutritionTodaySummary | null | undefine
 
 export const getHydrationProgress = ({ filled, dailyGoal, glassOz }: HydrationState) => {
   const goal = Math.max(1, cleanWholeCount(dailyGoal) || 8);
-  const glasses = Math.min(goal, Math.max(0, cleanWholeCount(filled)));
+  const glasses = Math.min(MAX_HYDRATION_GLASSES, Math.max(0, cleanWholeCount(filled)));
   const glassSize = cleanNonNegativeNumber(glassOz);
   const ouncesPerGlass = glassSize !== null && glassSize > 0 ? glassSize : 8;
   return {
     filled: glasses,
     dailyGoal: goal,
-    percent: Math.round((glasses / goal) * 100),
+    percent: Math.min(100, Math.round((glasses / goal) * 100)),
     ounces: Math.round(glasses * ouncesPerGlass * 10) / 10,
   };
 };

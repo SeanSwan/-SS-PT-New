@@ -43,6 +43,8 @@ const NutritionHydrationTab: React.FC = () => {
   }, [filled, loading, updateFilled]);
 
   const pct = Math.round((filled / DAILY_GOAL) * 100);
+  const ringPct = Math.min(100, Math.max(0, pct));
+  const progressDash = ringPct * 2.64;
   const goalMet = filled >= DAILY_GOAL;
   const ounces = Math.round(filled * glassOz * 10) / 10;
 
@@ -63,11 +65,11 @@ const NutritionHydrationTab: React.FC = () => {
             <ProgressCircle cx="50" cy="50" r="42" fill="none"
               stroke={goalMet ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)'}
               strokeWidth="6" strokeLinecap="round"
-              strokeDasharray={`${pct * 2.64} ${264 - pct * 2.64}`}
+              strokeDasharray={`${progressDash} ${264 - progressDash}`}
               strokeDashoffset="66"
             />
           </svg>
-          <RingLabel>{pct}%</RingLabel>
+          <RingLabel>{pct > 100 ? '100%+' : `${ringPct}%`}</RingLabel>
         </ProgressRing>
       </HeroCard>
 

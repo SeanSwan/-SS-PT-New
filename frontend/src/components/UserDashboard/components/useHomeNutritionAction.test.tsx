@@ -76,6 +76,20 @@ describe('useHomeNutritionAction', () => {
     });
   });
 
+  it('does not ask for hydration when persisted hydration is already above goal', () => {
+    mocks.hydration.filled = 9;
+    mocks.hydration.dailyGoal = 8;
+
+    const { result } = renderHook(() => useHomeNutritionAction());
+
+    expect(result.current).toMatchObject({
+      title: 'Capture the next meal while it is fresh.',
+      target: 'voice',
+      label: 'Open Nutrition Today',
+    });
+    expect(result.current?.copy).not.toMatch(/water check-in/i);
+  });
+
   it('withholds nutrition guidance while macro or hydration truth is loading', () => {
     mocks.hydration.loading = true;
 
