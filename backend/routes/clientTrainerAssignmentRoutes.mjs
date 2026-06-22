@@ -554,7 +554,8 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
             'clientSource',
             'phone',
             'fitnessGoal',
-            'trainingExperience'
+            'trainingExperience',
+            'photo'
           ],
           required: false
         },

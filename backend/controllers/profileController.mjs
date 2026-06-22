@@ -12,6 +12,7 @@ import UserAchievement from '../models/UserAchievement.mjs';
 import Achievement from '../models/Achievement.mjs';
 import logger from '../utils/logger.mjs';
 import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
+import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import { sanitizeImageUrl } from '../utils/imageUrl.mjs';
 
 // Get directory name in ES modules context
@@ -25,6 +26,67 @@ const __dirname = path.dirname(__filename);
  * @desc    Upload and update user profile photo
  * @access  Private
  */
+/**
+ * Upload/replace a CLIENT's profile photo (admin or assigned trainer only).
+ * Authorization is FAIL-CLOSED via checkClientAccess BEFORE any upload work:
+ *   admin → any client · trainer → assigned client only · others → denied.
+ * This is defense-in-depth on top of the route's `protect` middleware, and the
+ * authoritative gate behind the client-card "add photo" affordance.
+ */
+export const uploadClientPhoto = async (req, res) => {
+  const clientId = Number(req.params.clientId);
+  try {
+    if (!Number.isSafeInteger(clientId) || clientId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid client id' });
+    }
+
+    // Authorization gate FIRST — never touch storage/DB for an unauthorized actor.
+    const access = await checkClientAccess(req.user, clientId, User.sequelize);
+    if (!access.allowed) {
+      logger.warn('Client photo upload DENIED (fail-closed)', {
+        actorId: req.user?.id, role: req.user?.role, clientId, reason: access.reason,
+      });
+      return res.status(403).json({ success: false, message: CLIENT_ACCESS_DENIED_MESSAGE });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (!allowedExtensions.includes(fileExt)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type. Only JPG, JPEG, PNG, GIF, and WEBP files are allowed.',
+      });
+    }
+
+    const client = await User.findByPk(clientId);
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    const { url: photoUrl, storageKey } = await uploadPhoto(req.file.buffer, {
+      userId: clientId,
+      category: 'profiles',
+      originalFilename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
+
+    if (client.photo) {
+      await deletePhoto(client.photo); // best-effort old-photo cleanup
+    }
+    await client.update({ photo: photoUrl });
+    logger.info('Client photo updated', { actorId: req.user.id, via: access.via, clientId, photoUrl, storageKey });
+
+    return res.status(200).json({ success: true, message: 'Client photo uploaded successfully', photoUrl });
+  } catch (error) {
+    logger.error('Error uploading client photo', { error: error.message, actorId: req.user?.id, clientId });
+    return res.status(500).json({ success: false, message: 'Server error uploading client photo' });
+  }
+};
+
 export const uploadProfilePhoto = async (req, res) => {
   try {
     // If no file was uploaded
