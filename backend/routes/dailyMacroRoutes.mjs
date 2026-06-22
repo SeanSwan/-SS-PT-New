@@ -37,6 +37,13 @@ import {
 } from './dailyMacroRoutes.utils.mjs';
 
 const router = express.Router();
+const ENTRY_ID_REGEX = /^[1-9]\d*$/;
+
+const parseEntryId = (value) => {
+  if (typeof value !== 'string' || !ENTRY_ID_REGEX.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 router.use(protect);
 
@@ -232,10 +239,10 @@ router.get('/weekly', async (req, res) => {
   }
 });
 
-router.patch('/:id(\\d+)', async (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = parseEntryId(req.params.id);
+    if (id === null) {
       return res.status(400).json({ success: false, error: 'Invalid entry ID' });
     }
 
@@ -258,10 +265,10 @@ router.patch('/:id(\\d+)', async (req, res) => {
   }
 });
 
-router.delete('/:id(\\d+)', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = parseEntryId(req.params.id);
+    if (id === null) {
       return res.status(400).json({ success: false, error: 'Invalid entry ID' });
     }
 

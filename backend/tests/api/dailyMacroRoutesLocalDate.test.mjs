@@ -274,4 +274,18 @@ describe('POST /api/macros local-date guard', () => {
     expect(response.body.entry.aiConversationId).toBe('server-owned-thread');
     expect(response.body.entry.verified).toBe(false);
   });
+
+  it('rejects malformed entry IDs before macro update/delete lookups', async () => {
+    const updateResponse = await request(makeApp())
+      .patch('/api/macros/777abc')
+      .send({ description: 'Partial id attack' });
+    const deleteResponse = await request(makeApp())
+      .delete('/api/macros/777abc');
+
+    expect(updateResponse.status).toBe(400);
+    expect(deleteResponse.status).toBe(400);
+    expect(updateResponse.body.error).toBe('Invalid entry ID');
+    expect(deleteResponse.body.error).toBe('Invalid entry ID');
+    expect(DailyMacroLog.findOne).not.toHaveBeenCalled();
+  });
 });
