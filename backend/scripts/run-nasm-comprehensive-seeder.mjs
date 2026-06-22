@@ -12,6 +12,16 @@ import sequelize from '../database.mjs';
 import { up } from '../seeders/20260228-seed-nasm-comprehensive-exercises.mjs';
 
 const start = Date.now();
+const originalWarn = console.warn;
+
+console.warn = (...args) => {
+  const message = args.map((arg) => String(arg)).join(' ');
+  if (message.includes('Skipped "') && message.includes('Validation error')) {
+    console.log(...args);
+    return;
+  }
+  originalWarn(...args);
+};
 
 try {
   await sequelize.authenticate();
@@ -28,5 +38,6 @@ try {
   }
   process.exitCode = 1;
 } finally {
+  console.warn = originalWarn;
   await sequelize.close().catch(() => {});
 }
