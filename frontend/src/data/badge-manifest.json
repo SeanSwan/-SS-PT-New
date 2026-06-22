@@ -2665,8 +2665,8 @@
       }
     },
     "gallon_a_day": {
-      "title": "Gallon Gang",
-      "description": "Drink a gallon of water in a single day",
+      "title": "Hydration Check-In",
+      "description": "Log a hydration check-in for one day",
       "emoji": "💧",
       "skillTree": "free_spirit",
       "category": "hidden",
