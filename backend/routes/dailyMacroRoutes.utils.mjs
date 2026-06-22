@@ -7,6 +7,7 @@ export const MAX_DESCRIPTION_LENGTH = 500;
 export const MAX_ITEMS_COUNT = 50;
 export const MAX_WEEKLY_RANGE_DAYS = 90;
 export const MACRO_DATE_ERROR = 'Date must be a real YYYY-MM-DD calendar date.';
+export const MACRO_FUTURE_DATE_ERROR = 'Date cannot be a future date.';
 
 const MAX_MACRO_VALUE = 99999;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -57,6 +58,10 @@ export const resolveOptionalMacroDate = (rawValue, fallbackDate = serverDisplayD
 
   if (typeof rawValue !== 'string' || !isValidDate(rawValue)) {
     return { status: 400, error: MACRO_DATE_ERROR };
+  }
+
+  if (rawValue > serverUtcDateOnly(1)) {
+    return { status: 400, error: MACRO_FUTURE_DATE_ERROR };
   }
 
   return { date: rawValue };

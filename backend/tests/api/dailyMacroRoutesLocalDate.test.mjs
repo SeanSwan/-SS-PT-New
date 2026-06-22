@@ -170,6 +170,16 @@ describe('POST /api/macros local-date guard', () => {
     expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
   });
 
+  it('rejects future entry read dates before querying macro rows', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros')
+      .query({ date: '2026-06-22' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/future date/i);
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
   it('rejects impossible summary dates before target assignment or macro queries', async () => {
     const response = await request(makeApp())
       .get('/api/macros/summary')
@@ -181,6 +191,17 @@ describe('POST /api/macros local-date guard', () => {
     expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
   });
 
+  it('rejects future summary dates before target assignment or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/summary')
+      .query({ date: '2026-06-22', userId: '101' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/future date/i);
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
   it('rejects impossible weekly range dates before target assignment or macro queries', async () => {
     const response = await request(makeApp())
       .get('/api/macros/weekly')
@@ -188,6 +209,17 @@ describe('POST /api/macros local-date guard', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('Date must be a real YYYY-MM-DD calendar date.');
+    expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects future weekly range dates before target assignment or macro queries', async () => {
+    const response = await request(makeApp())
+      .get('/api/macros/weekly')
+      .query({ start: '2026-06-20', end: '2026-06-22', userId: '101' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/future date/i);
     expect(mocks.assertAssignmentOrAdmin).not.toHaveBeenCalled();
     expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
   });
