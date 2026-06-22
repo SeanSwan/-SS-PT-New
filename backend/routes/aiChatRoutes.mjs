@@ -15,6 +15,7 @@
 import express from 'express';
 import multer from 'multer';
 import { Op } from 'sequelize';
+import { parsePlainDecimalNumber } from '../services/nutrition/numericInputValidation.mjs';
 
 // Allowlist sanitizer — prevents prompt injection via foodContext fields
 const FOOD_CONTEXT_ALLOWED_KEYS = new Set([
@@ -33,8 +34,8 @@ function sanitizeFoodContext(raw) {
   for (const key of FOOD_CONTEXT_ALLOWED_KEYS) {
     if (!(key in raw)) continue;
     if (FOOD_CONTEXT_NUMERIC_KEYS.has(key)) {
-      const n = Number(raw[key]);
-      clean[key] = Number.isFinite(n) ? n : null;
+      const n = parsePlainDecimalNumber(raw[key]);
+      clean[key] = n !== null && n >= 0 ? n : null;
     } else {
       // Two-pass: strip control chars + backticks, then restrict to food-safe chars
       const s = String(raw[key] ?? '')

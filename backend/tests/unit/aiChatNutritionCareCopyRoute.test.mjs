@@ -57,4 +57,13 @@ describe('AI chat nutrition care-copy route guard', () => {
     expect(serviceSource).toContain("import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs'");
     expect(serviceSource).toMatch(/const NUTRITION_REFERENCE = `[\s\S]*\$\{NUTRITION_CARE_COPY_RULES\}/);
   });
+
+  it('does not coerce foodContext macro values before adding them to the AI prompt context', () => {
+    const sanitizerBlock = routeSource.match(/function sanitizeFoodContext\(raw\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+
+    expect(routeSource).toContain("import { parsePlainDecimalNumber } from '../services/nutrition/numericInputValidation.mjs'");
+    expect(sanitizerBlock).toContain('parsePlainDecimalNumber(raw[key])');
+    expect(sanitizerBlock).toContain('n !== null && n >= 0 ? n : null');
+    expect(sanitizerBlock).not.toMatch(/const\s+n\s*=\s*Number\(raw\[key\]\)/);
+  });
 });

@@ -29,6 +29,15 @@ import logger from '../utils/logger.mjs';
 const router = Router();
 
 const FTC_DISCLOSURE = 'This page contains affiliate links. SwanStudios may earn a commission on purchases made through these links at no additional cost to you. All recommendations are based on genuine trainer experience and NASM-aligned nutrition science.';
+const DAYS_QUERY_PATTERN = /^[1-9]\d*$/;
+
+const parseGapDays = (value) => {
+  if (value === undefined) return 7;
+  if (typeof value !== 'string' || !DAYS_QUERY_PATTERN.test(value.trim())) return null;
+
+  const parsed = Number(value.trim());
+  return Number.isSafeInteger(parsed) ? Math.min(Math.max(parsed, 1), 90) : null;
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Public Routes (no auth needed)
@@ -101,7 +110,10 @@ router.get('/product/:id', (req, res) => {
 router.get('/gaps', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
+    const days = parseGapDays(req.query.days);
+    if (!days) {
+      return res.status(400).json({ success: false, message: 'Invalid days' });
+    }
 
     const result = await analyzeNutritionGaps(userId, days);
 

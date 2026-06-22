@@ -468,12 +468,10 @@ const FoodScannerPage: React.FC = () => {
 
     try {
       setLogLoading(true);
-      const today = new Date().toISOString().split('T')[0];
 
       await authAxios.post('/api/food-scanner/log-scan', {
         barcode: scannedProduct.barcode,
         mealType,
-        date: today,
         servingSizeGrams: 100,
       });
 

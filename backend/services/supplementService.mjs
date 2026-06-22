@@ -18,6 +18,7 @@ import { Op } from 'sequelize';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
 import { SUPPLEMENT_CATALOG, CATEGORIES } from './supplementData.mjs';
+import { formatDisplayDate } from './nutrition/displayDate.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Daily Value References (FDA 2020)
@@ -51,11 +52,12 @@ const pctRemainingWithinLimit = (actual, limit) =>
 export async function analyzeNutritionGaps(userId, days = 7) {
   const since = new Date();
   since.setDate(since.getDate() - days);
+  const sinceDate = formatDisplayDate(since);
 
   const logs = await DailyMacroLog.findAll({
     where: {
       userId,
-      date: { [Op.gte]: since.toISOString().split('T')[0] },
+      date: { [Op.gte]: sinceDate },
     },
     order: [['date', 'ASC']],
     raw: true,

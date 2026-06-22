@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Op } from 'sequelize';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const dailyMacroLogMock = vi.hoisted(() => ({
@@ -81,5 +82,32 @@ describe('supplement care-first copy', () => {
     expect(severityColorSource).not.toContain("s === 'high') return 'var(--accent-error");
     expect(gapCardSource).not.toContain("$severity === 'high'     ? 'var(--accent-error-border");
     expect(stylesSource).toMatch(/export const ErrorText[\s\S]*var\(--accent-error/);
+  });
+
+  it('uses the nutrition display date for the supplement lookback window', async () => {
+    const originalTz = process.env.SWAN_DISPLAY_TZ;
+    process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-22T06:30:00Z'));
+    dailyMacroLogMock.findAll.mockResolvedValue([]);
+
+    try {
+      const { analyzeNutritionGaps } = await import('../../services/supplementService.mjs');
+      await analyzeNutritionGaps(42, 7);
+
+      expect(dailyMacroLogMock.findAll.mock.calls[0][0].where.date[Op.gte]).toBe('2026-06-14');
+    } finally {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.SWAN_DISPLAY_TZ;
+      else process.env.SWAN_DISPLAY_TZ = originalTz;
+    }
+  });
+
+  it('does not partially parse malformed supplement gap day windows', () => {
+    const routeSource = readRepoFile('backend/routes/supplementRoutes.mjs');
+
+    expect(routeSource).toContain('const parseGapDays = (value) => {');
+    expect(routeSource).toContain("return res.status(400).json({ success: false, message: 'Invalid days' });");
+    expect(routeSource).not.toContain('parseInt(req.query.days)');
   });
 });
