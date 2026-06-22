@@ -27,8 +27,8 @@ export const CardShell = styled.article`
   ${swanDataCardShell}
   display: flex;
   flex-direction: column;
-  align-self: stretch;
-  height: 100%;
+  align-self: start;
+  height: auto;
   min-height: 320px;
 
   > * + * {

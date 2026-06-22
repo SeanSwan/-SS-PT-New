@@ -14,9 +14,9 @@ export const HubContainer = styled.div`
   ${swanSectionBackdrop}
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 64px);
+  min-height: calc(100dvh - 64px);
   color: var(--text-primary, #E0ECF4);
-  overflow: hidden;
+  overflow: visible;
   font-size: calc(1rem * var(--client-hub-density-scale));
 
   @media (min-width: 2560px) {
@@ -175,9 +175,9 @@ export const HeaderSection = styled.div`
 `;
 
 export const ContentArea = styled.div`
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 `;
@@ -197,16 +197,14 @@ export const DetailScrollWrap = styled.div`
 export const CardGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-  grid-auto-rows: 1fr;
-  align-items: stretch;
+  grid-auto-rows: auto;
+  align-items: start;
   gap: 16px;
   padding: 20px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: visible;
+  overscroll-behavior: auto;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
-  flex: 1;
-  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;

@@ -30,6 +30,16 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
     expect(styles).toContain('padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px))');
   });
 
+  it('keeps the client directory grid content-sized instead of adding a second vertical scrollbar', () => {
+    const gridBlock = styles.match(/export const CardGrid[\s\S]*?`;/)?.[0] ?? '';
+
+    expect(gridBlock).toContain('grid-auto-rows: auto');
+    expect(gridBlock).toContain('align-items: start');
+    expect(gridBlock).toContain('overflow: visible');
+    expect(gridBlock).not.toContain('overflow-y: auto');
+    expect(gridBlock).not.toContain('grid-auto-rows: 1fr');
+  });
+
   it('raises the Client Hub readability floor on 4K monitor-class screens', () => {
     expect(styles).toContain('@media (min-width: 2560px)');
     expect(styles).toContain('--client-hub-density-scale: 1.08');

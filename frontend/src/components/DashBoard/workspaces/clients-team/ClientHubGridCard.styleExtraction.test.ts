@@ -37,7 +37,7 @@ describe('ClientHubGridCard style extraction', () => {
     expect(metricNoteBlock).not.toContain('text-overflow: ellipsis');
   });
 
-  it('uses a stretchable trainer-style shell so admin cards keep equal grid height', () => {
+  it('uses a content-sized shell so variable-height admin cards do not clip in the grid', () => {
     const shellBlock = stylesSource.slice(
       stylesSource.indexOf('export const CardShell'),
       stylesSource.indexOf('export const CardButton')
@@ -45,10 +45,10 @@ describe('ClientHubGridCard style extraction', () => {
 
     expect(shellBlock).toContain('display: flex');
     expect(shellBlock).toContain('flex-direction: column');
-    expect(shellBlock).toContain('align-self: stretch');
-    expect(shellBlock).toContain('height: 100%');
+    expect(shellBlock).toContain('align-self: start');
+    expect(shellBlock).toContain('height: auto');
     expect(shellBlock).not.toContain('height: max-content');
-    expect(shellBlock).not.toContain('align-self: start');
+    expect(shellBlock).not.toContain('height: 100%');
   });
 
   it('keeps contact identity and metric facts readable on phone-width cards', () => {

@@ -86,6 +86,25 @@ describe('ContactNotifications active surface truth contract', () => {
     expect(controlButtonBlock).toContain('min-width: 44px');
   });
 
+  it('lets mobile Business Intelligence Alerts use page flow instead of nested list scrolling', () => {
+    const listBlock = stylesSource.match(/export const NotificationsList[\s\S]*?`;/)?.[0] ?? '';
+
+    expect(listBlock).toContain('overflow: visible');
+    expect(listBlock).not.toContain('max-height: 400px');
+    expect(listBlock).not.toContain('overflow-y: auto');
+  });
+
+  it('keeps alert rows from overlapping long messages and action badges on phones', () => {
+    const contentBlock = stylesSource.match(/export const NotificationContent[\s\S]*?`;/)?.[0] ?? '';
+    const messageBlock = stylesSource.match(/export const NotificationMessage[\s\S]*?`;/)?.[0] ?? '';
+
+    expect(contentBlock).toContain('grid-template-columns: auto minmax(0, 1fr) auto');
+    expect(stylesSource).toContain('@media (max-width: 700px)');
+    expect(stylesSource).toContain('grid-column: 2 / -1');
+    expect(messageBlock).toContain('overflow-wrap: anywhere');
+    expect(itemSource).not.toContain('whileHover={{ scale:');
+  });
+
   it('uses Crystalline Swan theme tokens for priority alert visuals', () => {
     expect(combinedSource).toContain('Crystalline Swan-themed professional aesthetics');
     expect(combinedSource).toContain('type NotificationPriority =');
