@@ -1,32 +1,26 @@
 /**
- * ============================================================================
  * FILE: dispatchers/nutritionDispatchers.mjs
  * PURPOSE: Dispatcher handlers for nutrition-domain AI commands
  * OWNER: Claude Sonnet 4.6 | CREATED: 2026-04-11
- * ============================================================================
- *
  * WHAT THIS FILE DOES: Houses the three nutrition-domain command handlers.
  * Extracted from commandDispatcher.mjs (exec-substrate-v14) when that file
  * reached the 300-line ceiling.
- *
  * COMMANDS:
  *   E01: viewNutritionLog  (v4) — DailyMacroLog.findAll today (flat daily summary)
  *   E02: viewMacroTrends   (v4) — DailyMacroLog.findAll 7-day (averaged flat summary)
  *   E03: logMeals          (v5) — macroLogService.createMacroEntries (atomic batch)
- *
  * GRACEFUL ERROR CONTRACT:
  *   Both read commands catch SequelizeDatabaseError for missing table and return
  *   honest empty results rather than crashing. This matches the production safety
  *   pattern established in exec-substrate-v4.
- *
  * FLAT RESULT CONTRACT:
  *   All handlers return primitive scalars only — no nested objects, no arrays.
  *   Shapes are identical to the inline versions they replaced (no behavior change).
- * ============================================================================
  */
 
 import { Op } from 'sequelize';
 import { createMacroEntries } from '../../nutrition/macroLogService.mjs';
+import { resolveNutritionWriteDate } from '../../nutrition/displayDate.mjs';
 import foodScannerService from '../../foodScannerService.mjs';
 import DailyMacroLog from '../../../models/DailyMacroLog.mjs';
 import logger from '../../../utils/logger.mjs';
@@ -216,8 +210,6 @@ const buildFoodSummary = (product, searchMode, counts) => {
   };
 };
 
-const todayDate = () => formatDisplayDate();
-
 const emptySodiumSummary = (clientId, date, sodiumLimit, mealSodiumLimit) => ({
   clientId,
   date,
@@ -234,7 +226,7 @@ const emptySodiumSummary = (clientId, date, sodiumLimit, mealSodiumLimit) => ({
 
 export async function dispatchFlagSodiumIntake(params = {}, ctx = {}) {
   const clientId = resolveCommandClientId(params, ctx);
-  const date = params.date || todayDate();
+  const date = resolveNutritionWriteDate(params.date);
   const sodiumLimit = toWholeNumber(params.sodiumLimit) || 2300;
   const mealSodiumLimit = toWholeNumber(params.mealSodiumLimit) || 800;
 

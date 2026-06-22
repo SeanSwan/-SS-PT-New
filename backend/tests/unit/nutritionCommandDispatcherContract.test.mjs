@@ -212,6 +212,20 @@ describe('Swan Coach nutrition command dispatchers', () => {
     expect(result.clientId).toBe(42);
   });
 
+  it('rejects impossible sodium command dates before querying macro rows', async () => {
+    const { dispatch, DailyMacroLog } = await loadDispatcher();
+
+    await expect(dispatch('flag_sodium_intake', {
+      clientId: 42,
+      date: '2026-02-31',
+    }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    })).rejects.toThrow('Date must be a real YYYY-MM-DD calendar date');
+
+    expect(DailyMacroLog.findAll).not.toHaveBeenCalled();
+  });
+
   it('uses the studio display timezone for default nutrition read dates', async () => {
     process.env.SWAN_DISPLAY_TZ = 'America/Los_Angeles';
     vi.useFakeTimers();
