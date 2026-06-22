@@ -28,10 +28,10 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByRole('button', { name: /New client \/ conversation/i })).toBeInTheDocument();
 
     // Section tabs (heavy ops moved off the default view)
-    expect(screen.getByRole('button', { name: /^Chat$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Intake/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^PLAUD/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^History/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Chat$/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^Intake/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^PLAUD/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /^History/i })).toBeInTheDocument();
 
     // No ops-dashboard banner / duplicate command-center title
     expect(screen.queryByText(/review-gated operator console/i)).not.toBeInTheDocument();
@@ -58,10 +58,10 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^Intake/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Intake/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^PLAUD/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^PLAUD/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 

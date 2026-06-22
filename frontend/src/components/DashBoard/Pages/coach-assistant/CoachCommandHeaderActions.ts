@@ -45,7 +45,7 @@ export function buildCoachHeaderQuickActions({
       detail: scopeLabel,
       href: workoutLoggerRoute,
       icon: 'log',
-      label: scopeLabel === 'My workout log' ? 'Self Log' : 'Log',
+      label: scopeLabel === 'My workout log' ? 'Self Log' : 'Log Workout',
       tone: 'primary',
     });
   } else if (!isClientMode) {
@@ -54,7 +54,7 @@ export function buildCoachHeaderQuickActions({
       detail: 'Client first',
       href: clientPickerRoute,
       icon: 'client',
-      label: 'Pick',
+      label: 'Pick Client',
       tone: 'primary',
     });
   }
@@ -75,7 +75,7 @@ export function buildCoachHeaderQuickActions({
       detail: 'Client',
       href: clientPickerRoute,
       icon: 'client',
-      label: 'Pick',
+      label: 'Pick Client',
     });
   }
 

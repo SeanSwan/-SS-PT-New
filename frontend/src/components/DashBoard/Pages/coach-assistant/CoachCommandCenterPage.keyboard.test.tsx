@@ -39,4 +39,14 @@ describe('CoachCommandCenterPage keyboard submit', () => {
 
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
   });
+
+  it('does not submit while IME composition is using Enter to choose text', () => {
+    renderPage();
+
+    const composer = composerInput();
+    fireEvent.change(composer, { target: { value: 'ちゃず' } });
+    fireEvent.keyDown(composer, { key: 'Enter', code: 'Enter', isComposing: true });
+
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+  });
 });

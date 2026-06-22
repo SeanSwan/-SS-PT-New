@@ -94,11 +94,12 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
           type="button"
           className="ops-button"
           onClick={onOpenOps}
+          aria-controls="coach-command-ops"
           aria-haspopup="dialog"
           aria-expanded={opsOpen}
         >
           <Settings2 size={18} aria-hidden="true" />
-          <span>Actions</span>
+          <span>Operations</span>
         </button>
       ) : null}
     </div>

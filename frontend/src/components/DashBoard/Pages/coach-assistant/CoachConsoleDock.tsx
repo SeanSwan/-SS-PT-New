@@ -121,15 +121,19 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
         onChange={(event) => onCommandTextChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key !== 'Enter') return;
+          if (event.nativeEvent.isComposing) return;
           if (event.shiftKey && !event.metaKey && !event.ctrlKey) return;
 
           event.preventDefault();
           event.currentTarget.form?.requestSubmit();
         }}
         placeholder="Talk or type to Swan Coach…"
-        aria-describedby="coach-dock-status"
+        aria-describedby="coach-dock-status coach-dock-trust"
         rows={2}
       />
+      <span id="coach-dock-trust" className="dock-trust-line">
+        Actions are prepared for review and saved only after confirmation.
+      </span>
       <div className="dock-actions">
         <div className="dock-actions-left">
           <button type="button" className="dock-action" onClick={onAttach} aria-label="Attach">

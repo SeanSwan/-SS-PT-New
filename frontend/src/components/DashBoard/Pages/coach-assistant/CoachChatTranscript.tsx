@@ -70,6 +70,12 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
               Dictate a client's workout, onboard a new client, or pick up a past conversation. Swan Coach
               prepares each action and waits for your confirmation before anything is saved.
             </p>
+            <ul className="transcript-empty-actions" aria-label="Suggested coach prompts">
+              <li>Log workout</li>
+              <li>Onboard client</li>
+              <li>Update log</li>
+              <li>Recall</li>
+            </ul>
           </div>
         )}
       </div>

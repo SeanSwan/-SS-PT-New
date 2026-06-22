@@ -144,7 +144,7 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         </Link>
 
         {workflowReturnTo && workflowReturnLabel ? (
-          <Link className="workout-command-card route" to={workflowReturnTo} aria-label={`Resume workflow - ${workflowReturnLabel}`}>
+          <Link className="workout-command-card route" to={workflowReturnTo} aria-label="Resume workflow">
             <ActionBody icon={<ArrowLeft size={18} aria-hidden="true" />} title="Resume workflow" note={workflowReturnLabel} />
           </Link>
         ) : null}

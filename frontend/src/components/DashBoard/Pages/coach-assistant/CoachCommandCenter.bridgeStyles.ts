@@ -18,6 +18,7 @@ import styled, { css } from 'styled-components';
 
 import { coachCommandDockStyles } from './CoachCommandCenter.bridgeDockStyles';
 import { coachCommandBridgeMobileDockStyles } from './CoachCommandCenter.bridgeMobileDockStyles';
+import { coachCommandCrystallineFocusStyles } from './CoachCommandCenter.crystallineFocusStyles';
 import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationStyles';
 import { coachCommandHeaderActionStyles } from './CoachCommandCenter.headerActionStyles';
 import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
@@ -35,8 +36,11 @@ export const coachCommandBridgeStyles = css`
     width: 100%;
     max-width: 880px;
     margin: 0 auto;
-    height: calc(100dvh - 48px);
-    min-height: 480px;
+    /* Use min-height (not a fixed height) so the shell adapts to the dashboard
+       content area, whose vertical padding varies by breakpoint (24px desktop,
+       128px+ top on mobile/tablet). A fixed 100dvh height overflowed that
+       padding and crushed the transcript into a sliver. */
+    min-height: max(480px, calc(100dvh - 48px));
   }
 
   /* ── Client bar (signature focal point) ───────────────────────────── */
@@ -243,4 +247,5 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandBridgeMobileDockStyles}
   ${coachCommandOpsStyles}
   ${coachCommandOpsMissionStyles}
+  ${coachCommandCrystallineFocusStyles}
 `;

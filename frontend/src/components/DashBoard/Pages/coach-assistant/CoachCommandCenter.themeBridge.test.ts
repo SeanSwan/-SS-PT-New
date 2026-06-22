@@ -13,4 +13,22 @@ describe('CoachCommandCenter theme bridge', () => {
     expect(logicSource).toContain("accent: 'var(--accent-gold, #c6a84b)'");
     expect(logicSource).toContain("accent: 'var(--error, #ff6d85)'");
   });
+
+  it('keeps Crystalline Focus wired to the universal header theme variables', () => {
+    const focusSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.crystallineFocusStyles.ts'), 'utf8');
+    const headerActionsSource = readFileSync(resolve(__dirname, '../../../Header/components/ActionIcons.tsx'), 'utf8');
+    const themeUtilsSource = readFileSync(resolve(__dirname, '../../../../utils/theme/themeUtils.ts'), 'utf8');
+
+    expect(headerActionsSource).toContain("import UniversalThemeToggle from '../../../context/ThemeContext/UniversalThemeToggle'");
+    expect(headerActionsSource).toContain('<UniversalThemeToggle size="medium" />');
+    expect(themeUtilsSource).toContain('export const injectThemeVariables = (themeId: ThemeId): void => {');
+    expect(themeUtilsSource).toContain('--bg-base: ${theme.background.primary};');
+    expect(themeUtilsSource).toContain('--accent-primary: ${theme.colors.primary};');
+    expect(focusSource).toContain('--coach-focus-canvas: var(--bg-base, #070b12);');
+    expect(focusSource).toContain('--coach-focus-surface: var(--bg-surface, #0b111a);');
+    expect(focusSource).toContain('--coach-focus-elevated: var(--bg-elevated, #0e1723);');
+    expect(focusSource).toContain('--coach-focus-text: var(--text-primary, #f4f7fb);');
+    expect(focusSource).toContain('--coach-focus-accent: var(--accent-primary, #69d7d0);');
+    expect(focusSource).not.toContain('--coach-crystalline-');
+  });
 });

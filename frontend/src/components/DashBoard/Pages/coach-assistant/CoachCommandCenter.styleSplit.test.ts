@@ -11,6 +11,7 @@ const STYLE_FILES = [
   'CoachCommandCenter.composerStyles.ts',
   'CoachCommandCenter.bridgeDockStyles.ts',
   'CoachCommandCenter.bridgeMobileDockStyles.ts',
+  'CoachCommandCenter.crystallineFocusStyles.ts',
   'CoachCommandCenter.opsStyles.ts',
   'CoachCommandCenter.opsMissionStyles.ts',
   'CoachCommandCenter.responsiveStyles.ts',

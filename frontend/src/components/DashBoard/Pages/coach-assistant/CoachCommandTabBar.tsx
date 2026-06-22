@@ -39,7 +39,7 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
   intakeCount,
   plaudCount,
 }) => (
-  <nav className="tab-bar" aria-label="Swan Coach sections">
+  <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
     {TABS.filter((tab) => !tabs || tabs.includes(tab.id)).map(({ id, label, Icon }) => {
       const badge = tabBadge(id, intakeCount, plaudCount);
       return (
@@ -48,8 +48,12 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
           key={id}
           className={`tab-button ${activeTab === id ? 'is-active' : ''}`}
           aria-label={badge ? `${label}, ${badge} pending` : label}
+          aria-controls={`coach-tabpanel-${id}`}
           aria-pressed={activeTab === id}
+          aria-selected={activeTab === id}
+          id={`coach-tab-${id}`}
           onClick={() => onTabChange(id)}
+          role="tab"
         >
           <Icon size={18} aria-hidden="true" />
           <span className="tab-label">{label}</span>

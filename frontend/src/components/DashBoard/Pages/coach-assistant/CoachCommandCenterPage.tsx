@@ -175,18 +175,20 @@ const CoachCommandCenterPage: React.FC = () => {
 
         <div className="tab-content">
           {activeTab === 'chat' ? (
-            <CoachChatTranscript
-              logs={commandCenter.logs}
-              onCancelCommand={commandCenter.handleCancelCommand}
-              onConfirmCommand={commandCenter.handleConfirmCommand}
-              onReset={commandCenter.resetLogs}
-              workoutLoggerRoute={workoutLoggerRoute}
-              workoutLoggerScopeLabel={workoutLoggerScopeLabel}
-            />
+            <div className="chat-panel" id="coach-tabpanel-chat" role="tabpanel" aria-labelledby="coach-tab-chat">
+              <CoachChatTranscript
+                logs={commandCenter.logs}
+                onCancelCommand={commandCenter.handleCancelCommand}
+                onConfirmCommand={commandCenter.handleConfirmCommand}
+                onReset={commandCenter.resetLogs}
+                workoutLoggerRoute={workoutLoggerRoute}
+                workoutLoggerScopeLabel={workoutLoggerScopeLabel}
+              />
+            </div>
           ) : null}
 
           {!isClientMode && activeTab === 'intake' ? (
-            <div className="tab-scroll">
+            <div className="tab-scroll" id="coach-tabpanel-intake" role="tabpanel" aria-labelledby="coach-tab-intake">
               <CoachIntakeWorkspace
                 userRole={userRole}
                 selectedClientName={selectedDisplayLabel}
@@ -198,23 +200,20 @@ const CoachCommandCenterPage: React.FC = () => {
           ) : null}
 
           {!isClientMode && activeTab === 'plaud' ? (
-            <div className="tab-scroll">
+            <div className="tab-scroll" id="coach-tabpanel-plaud" role="tabpanel" aria-labelledby="coach-tab-plaud">
               <article
                 className="panel plaud-review-panel"
                 ref={commandCenter.plaudReviewRef}
                 tabIndex={-1}
                 aria-label="PLAUD audio merge review"
               >
-                <PlaudMergeWorkspace
-                  embedded
-                  initialReviewMergeRequestId={commandCenter.initialReviewMergeRequestId}
-                />
+                <PlaudMergeWorkspace embedded initialReviewMergeRequestId={commandCenter.initialReviewMergeRequestId} />
               </article>
             </div>
           ) : null}
 
           {activeTab === 'history' ? (
-            <div className="tab-scroll">
+            <div className="tab-scroll" id="coach-tabpanel-history" role="tabpanel" aria-labelledby="coach-tab-history">
               <CoachCommandLeftRail
                 activeThreadId={commandCenter.activeThreadId}
                 clientContextTiles={commandCenter.clientContextTiles}

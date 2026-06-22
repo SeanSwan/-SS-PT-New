@@ -45,14 +45,17 @@ export function useCoachCommandCenterDrawerEffects({
 
     [leftRail, rightRail].forEach((rail) => {
       if (!rail) return;
-      const isMobile = typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 860px)').matches;
+      const isDrawerViewport =
+        typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1279px)').matches;
       const railSide = rail.dataset.drawer as DrawerSide | undefined;
       const isActiveDrawer = drawer === railSide;
-      const isClosedRightDrawer = railSide === 'right' && !isActiveDrawer;
-      rail.setAttribute('role', 'dialog');
-      rail.setAttribute('aria-modal', isActiveDrawer ? 'true' : 'false');
+      const isInlineRightRail = railSide === 'right' && !isDrawerViewport;
+      const isClosedRightDrawer = railSide === 'right' && !isActiveDrawer && !isInlineRightRail;
+      rail.setAttribute('role', isInlineRightRail ? 'complementary' : 'dialog');
+      if (isInlineRightRail) rail.removeAttribute('aria-modal');
+      else rail.setAttribute('aria-modal', isActiveDrawer ? 'true' : 'false');
       rail.setAttribute('aria-hidden', isClosedRightDrawer ? 'true' : 'false');
-      rail.inert = isClosedRightDrawer || (drawer ? !isActiveDrawer : isMobile);
+      rail.inert = isInlineRightRail ? false : isClosedRightDrawer || (drawer ? !isActiveDrawer : isDrawerViewport);
     });
 
     if (main) {

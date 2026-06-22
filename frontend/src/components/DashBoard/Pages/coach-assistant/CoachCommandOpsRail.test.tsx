@@ -8,7 +8,7 @@ import {
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Actions$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -42,7 +42,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
   });
 
-  it('stages a workout-log prompt and opens PLAUD from Actions without submitting chat', async () => {
+  it('stages a workout-log prompt and opens PLAUD from Operations without submitting chat', async () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
@@ -84,10 +84,10 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
   });
 
-  it('shows an explicit drawer header close control that collapses Actions', () => {
+  it('shows an explicit drawer header close control that collapses Operations', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
-    const opsTrigger = screen.getByRole('button', { name: /^Actions$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^Operations$/i });
     const opsRail = openOpsRail();
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(within(opsRail).getByLabelText('Coach Actions target and safety')).toHaveTextContent('Client #42');
