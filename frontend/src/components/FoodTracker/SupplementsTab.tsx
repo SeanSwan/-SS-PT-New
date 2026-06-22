@@ -60,8 +60,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 const severityColor = (s: string) => {
-  if (s === 'high') return 'var(--accent-error, #C92A54)';
-  if (s === 'moderate') return 'var(--accent-gold, #C6A84B)';
+  if (s === 'high') return 'var(--accent-gold, #C6A84B)';
+  if (s === 'moderate') return 'var(--accent-secondary, #8B5CF6)';
   return 'var(--accent-primary, #60C0F0)';
 };
 

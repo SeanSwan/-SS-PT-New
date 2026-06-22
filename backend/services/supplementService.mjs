@@ -5,8 +5,9 @@
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-08
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Analyzes user macro logs to identify nutritional gaps
- *   and recommends supplements. Catalog/category data lives in supplementData.mjs.
+ * WHAT THIS FILE DOES: Analyzes user macro logs for nutrition support signals
+ *   and returns coach-review supplement discussion cues. Catalog/category data
+ *   lives in supplementData.mjs.
  *
  * HOW IT FITS IN THE APP: supplementRoutes → supplementService → DailyMacroLog
  * KEY DECISIONS: Static catalog (no DB) for affiliate products — they're external.
@@ -33,13 +34,16 @@ const DAILY_VALUES = {
   saturatedFat: 20,  // grams
 };
 
+const pctRemainingWithinLimit = (actual, limit) =>
+  Math.max(0, Math.round(100 - ((actual - limit) / limit) * 100));
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Gap Analysis Engine
 // ─────────────────────────────────────────────────────────────
 
 /**
  * Analyzes a user's macro logs over the last N days and identifies
- * nutritional gaps with supplement recommendations.
+ * nutrition support signals with supplement discussion cues.
  * @param {number} userId
  * @param {number} days - lookback window (default 7)
  * @returns {{ gaps: Array, summary: object, daysAnalyzed: number }}
@@ -111,7 +115,7 @@ export async function analyzeNutritionGaps(userId, days = 7) {
       target: `${DAILY_VALUES.protein}g`,
       percentMet: Math.round(proteinPct),
       severity: proteinPct < 50 ? 'high' : 'moderate',
-      recommendation: 'Consider a protein supplement to close the gap, especially post-workout.',
+      recommendation: 'If this reflects a typical training week, a protein option can make the coach-set target easier to reach, especially after training.',
       suggestedSupplements: ['whey-protein', 'plant-protein', 'collagen'],
     });
   }
@@ -124,7 +128,7 @@ export async function analyzeNutritionGaps(userId, days = 7) {
       target: `${DAILY_VALUES.fiber}g`,
       percentMet: Math.round(fiberPct),
       severity: fiberPct < 50 ? 'high' : 'moderate',
-      recommendation: 'Increase whole grains, vegetables, and legumes. A greens supplement can help.',
+      recommendation: 'Emphasize whole grains, vegetables, and legumes first. A greens option can be convenience support when meals are limited.',
       suggestedSupplements: ['ag1'],
     });
   }
@@ -133,36 +137,36 @@ export async function analyzeNutritionGaps(userId, days = 7) {
   const processedPct = (processedFlags / logs.length) * 100;
   if (processedPct > 40) {
     gaps.push({
-      nutrient: 'Micronutrients (inferred)',
+      nutrient: 'Meal Variety Support (inferred)',
       avgDaily: `${Math.round(processedPct)}% ultra-processed meals`,
-      target: '<25% ultra-processed',
+      target: 'More whole-food meals across the week',
       percentMet: Math.round(100 - processedPct),
       severity: processedPct > 60 ? 'high' : 'moderate',
-      recommendation: 'High processed food intake suggests micronutrient gaps. A greens formula covers blind spots.',
+      recommendation: 'This pattern may reflect limited meal variety. Rotate whole-food meals when possible; a greens option can be discussed with your coach.',
       suggestedSupplements: ['ag1', 'probiotic'],
     });
   }
 
   if (avg.sugar > DAILY_VALUES.sugar) {
     gaps.push({
-      nutrient: 'Added Sugar (excess)',
+      nutrient: 'Added Sugar Context',
       avgDaily: `${avg.sugar}g`,
       target: `<${DAILY_VALUES.sugar}g`,
-      percentMet: Math.round(100 - ((avg.sugar - DAILY_VALUES.sugar) / DAILY_VALUES.sugar) * 100),
+      percentMet: pctRemainingWithinLimit(avg.sugar, DAILY_VALUES.sugar),
       severity: avg.sugar > DAILY_VALUES.sugar * 1.5 ? 'high' : 'moderate',
-      recommendation: 'Elevated sugar intake stresses gut health and insulin sensitivity. Consider a probiotic.',
+      recommendation: 'Use this as a context cue for meal timing and label review. A probiotic is optional, not a substitute for food and hydration basics.',
       suggestedSupplements: ['probiotic'],
     });
   }
 
   if (avg.sodium > DAILY_VALUES.sodium) {
     gaps.push({
-      nutrient: 'Sodium (excess)',
+      nutrient: 'Sodium Context',
       avgDaily: `${avg.sodium}mg`,
       target: `<${DAILY_VALUES.sodium}mg`,
-      percentMet: Math.round(100 - ((avg.sodium - DAILY_VALUES.sodium) / DAILY_VALUES.sodium) * 100),
+      percentMet: pctRemainingWithinLimit(avg.sodium, DAILY_VALUES.sodium),
       severity: avg.sodium > DAILY_VALUES.sodium * 1.3 ? 'high' : 'moderate',
-      recommendation: 'High sodium increases blood pressure and water retention. Potassium-rich electrolytes help balance.',
+      recommendation: 'Use this as a cue to review packaged or restaurant meals and hydration context with your coach. Electrolytes can support training-day hydration when sweat losses are high.',
       suggestedSupplements: ['electrolytes'],
     });
   }
@@ -173,7 +177,7 @@ export async function analyzeNutritionGaps(userId, days = 7) {
     target: 'Active lifestyle',
     percentMet: null,
     severity: 'info',
-    recommendation: 'Active individuals benefit from omega-3s for inflammation, magnesium for sleep, and vitamin D for immune support.',
+    recommendation: 'For active clients, omega-3s, magnesium, and vitamin D can be discussion starters for recovery support based on diet, labs, medications, and clinician guidance.',
     suggestedSupplements: ['omega3', 'magnesium', 'vitamin-d3'],
   });
 

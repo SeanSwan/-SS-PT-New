@@ -174,8 +174,8 @@ export const GapCard = styled.div<{ $severity: string }>`
   padding: 14px;
   background: var(--bg-surface-90, rgba(26, 26, 36, 0.90));
   border: 1px solid ${p =>
-    p.$severity === 'high'     ? 'var(--accent-error-border, rgba(201, 42, 84, 0.25))' :
-    p.$severity === 'moderate' ? 'var(--accent-gold-border, rgba(198, 168, 75, 0.20))' :
+    p.$severity === 'high'     ? 'var(--accent-gold-border, rgba(198, 168, 75, 0.25))' :
+    p.$severity === 'moderate' ? 'var(--accent-secondary-border, rgba(139, 92, 246, 0.20))' :
     'var(--border-soft, rgba(96, 192, 240, 0.08))'};
   border-radius: 8px;
 `;
