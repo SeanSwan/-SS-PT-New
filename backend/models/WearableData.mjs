@@ -8,8 +8,7 @@
 
 import { DataTypes } from 'sequelize';
 import sequelize from '../database.mjs';
-
-const DEVICE_TYPES = ['fitbit', 'apple_health', 'garmin', 'samsung_health', 'whoop', 'oura', 'polar', 'coros', 'manual'];
+import { DEVICE_TYPES } from '../services/wearableDataInterop.mjs';
 
 const WearableData = sequelize.define('WearableData', {
   id: {

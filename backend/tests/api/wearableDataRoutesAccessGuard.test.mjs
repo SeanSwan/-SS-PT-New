@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/wearableDataRoutes.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const modelSource = readFileSync(resolve(__dirname, '../../models/WearableData.mjs'), 'utf8');
+const interopSource = readFileSync(resolve(__dirname, '../../services/wearableDataInterop.mjs'), 'utf8');
 
 describe('wearable data route access guard', () => {
   it('keeps client wearable reads behind assignment-or-self access', () => {
@@ -30,5 +32,12 @@ describe('wearable data route access guard', () => {
     expect(routeSource).toContain('return Number.isInteger(parsed) && parsed > 0 ? parsed : null;');
     expect(routeSource).toContain('const recordId = parsePositiveInt(req.params.id);');
     expect(routeSource).toContain('if (Number(record.userId) !== Number(req.user.id) && req.user.role !==');
+  });
+
+  it('keeps Health Connect support aligned between device metadata and model validation', () => {
+    expect(modelSource).toContain("import { DEVICE_TYPES } from '../services/wearableDataInterop.mjs';");
+    expect(interopSource).toContain("'health_connect'");
+    expect(routeSource).toContain('DEVICE_METADATA');
+    expect(routeSource).toContain('devices: DEVICE_METADATA');
   });
 });
