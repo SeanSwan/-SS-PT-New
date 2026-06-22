@@ -64,6 +64,27 @@ describe('aiDataWriteService macro_log date fallback', () => {
     expect(capture.replacements?.source).toBe('ai_chat');
   });
 
+  it('does not trust AI-provided macro_log source provenance', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate({ source: 'barcode' })], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements?.source).toBe('ai_chat');
+  });
+
+  it('honors a server-owned macro source override for non-AI nutrition callers', async () => {
+    const capture = {};
+    const sequelize = makeMacroCaptureSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [macroUpdate()], 7, sequelize, { macroSource: 'barcode' });
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(capture.replacements?.source).toBe('barcode');
+    expect(capture.replacements?.verified).toBe(false);
+  });
+
   it('preserves explicit macro_log dates', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-22T02:30:00.000Z'));

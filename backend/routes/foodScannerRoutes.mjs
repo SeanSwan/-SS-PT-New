@@ -504,10 +504,17 @@ router.post('/log-scan', protect, async (req, res) => {
       transFat: scaledNutritionValueOrRaw(multiplier, nutri['trans-fat_100g'], nutri.transFat),
       novaGroup,
       brandName: product.brand || null,
+      source: 'barcode',
       mealSource: 'packaged',
     };
 
-    const result = await processAIDataUpdates(userId, [{ type: 'macro_log', data: macroLogData }], userId, sequelizeInstance);
+    const result = await processAIDataUpdates(
+      userId,
+      [{ type: 'macro_log', data: macroLogData }],
+      userId,
+      sequelizeInstance,
+      { macroSource: 'barcode' },
+    );
     if (!result || Number(result.successful || 0) < 1) {
       logger.warn('[FoodScannerRoutes] log-scan macro write failed', {
         userId,

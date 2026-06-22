@@ -100,6 +100,9 @@ describe('POST /api/food-scanner/log-scan date fallback', () => {
     const update = mocks.processAIDataUpdates.mock.calls[0][1][0];
     expect(update.type).toBe('macro_log');
     expect(update.data.date).toBe('2026-06-21');
+    expect(update.data.source).toBe('barcode');
+    expect(response.body.macroLog.source).toBe('barcode');
+    expect(mocks.processAIDataUpdates.mock.calls[0][4]).toEqual({ macroSource: 'barcode' });
   });
 
   it('rejects future scanner log dates before product lookup or macro write', async () => {

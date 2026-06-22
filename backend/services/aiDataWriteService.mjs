@@ -28,6 +28,16 @@ const AI_DATA_WRITE_FAILED_CODE = 'AI_DATA_WRITE_FAILED';
 const AI_DATA_WRITE_FAILED_MESSAGE = 'Swan Coach could not apply that update. No data was changed.';
 const AI_DATA_WRITE_UNKNOWN_TYPE_CODE = 'AI_DATA_WRITE_UNKNOWN_TYPE';
 const AI_DATA_WRITE_UNKNOWN_TYPE_MESSAGE = 'Swan Coach does not support that update type yet. No data was changed.';
+const TRUSTED_MACRO_SOURCE_MAP = {
+  'ai-chat': 'ai_chat',
+  ai_chat: 'ai_chat',
+  voice: 'voice',
+  barcode: 'barcode',
+  usda_lookup: 'usda_lookup',
+  photo: 'photo',
+  'food-scanner': 'photo',
+  manual: 'manual',
+};
 
 function normalizeUpdateType(type) {
   if (typeof type !== 'string') return 'unknown';
@@ -77,16 +87,23 @@ function sanitizeAiNovaGroup(value) {
   return parsed;
 }
 
+function trustedMacroSource(source) {
+  if (typeof source !== 'string') return 'ai_chat';
+  return TRUSTED_MACRO_SOURCE_MAP[source.trim().toLowerCase()] || 'ai_chat';
+}
+
 /**
  * Process an array of data update operations from the AI.
  * @param {number} targetUserId - The client whose data is being updated
  * @param {Array} updates - Array of {type, data} objects
  * @param {number} performedBy - The admin/trainer user who initiated the AI conversation
  * @param {object} sequelize - Sequelize instance for raw queries
+ * @param {{ macroSource?: string }} [options] - Server-owned provenance override for non-AI callers.
  * @returns {object} - { successful: number, errors: Array<{type, code, message}> }
  */
-export async function processAIDataUpdates(targetUserId, updates, performedBy, sequelize) {
+export async function processAIDataUpdates(targetUserId, updates, performedBy, sequelize, options = {}) {
   const results = { successful: 0, errors: [] };
+  const macroSource = trustedMacroSource(options?.macroSource);
 
   if (!Array.isArray(updates) || updates.length === 0) {
     return results;
@@ -117,7 +134,7 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
           break;
 
         case 'macro_log':
-          await insertMacroLog(targetUserId, updateData, sequelize);
+          await insertMacroLog(targetUserId, updateData, sequelize, { source: macroSource });
           results.successful++;
           break;
 
@@ -272,7 +289,7 @@ async function insertClientNote(userId, trainerId, data, sequelize) {
   logger.info('[AIDataWrite] Client note added for user %d by trainer %d', userId, trainerId);
 }
 
-async function insertMacroLog(userId, data, sequelize) {
+async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = {}) {
   if (!data.description) throw new Error('Food description is required');
 
   const sodium = sanitizeAiMacroNumber(data.sodium);
@@ -315,7 +332,7 @@ async function insertMacroLog(userId, data, sequelize) {
     flagSaturatedFat,
     flagTransFat,
     flagProcessed,
-    source: 'ai_chat',
+    source: trustedMacroSource(source),
     verified: false,
   };
 
