@@ -232,8 +232,8 @@ function sanitizePlan(raw) {
           name: sanitizeNutritionCopy(m.name, 'Meal', 150),
           foods: Array.isArray(m.foods)
             ? m.foods.slice(0, 10).map(f => ({
-                name: typeof f.name === 'string' ? f.name.slice(0, 150) : '',
-                serving: typeof f.serving === 'string' ? f.serving.slice(0, 50) : '',
+                name: sanitizeNutritionCopy(f.name, '', 150),
+                serving: sanitizeNutritionCopy(f.serving, '', 50),
                 calories: clamp(f.calories, 0, 3000),
                 protein: clamp(f.protein, 0, 200),
                 carbs: clamp(f.carbs, 0, 500),
@@ -241,11 +241,15 @@ function sanitizePlan(raw) {
               }))
             : [],
           totalCalories: clamp(m.totalCalories, 0, 3000),
-          prepTime: typeof m.prepTime === 'string' ? m.prepTime.slice(0, 30) : '',
+          prepTime: sanitizeNutritionCopy(m.prepTime, '', 30),
         }))
       : [],
     groceryList: Array.isArray(raw.groceryList)
-      ? raw.groceryList.filter(i => typeof i === 'string').slice(0, 40).map(i => i.slice(0, 100))
+      ? raw.groceryList
+          .filter(i => typeof i === 'string')
+          .slice(0, 40)
+          .map(i => sanitizeNutritionCopy(i, '', 100))
+          .filter(Boolean)
       : [],
     nasmNote: sanitizeNutritionCopy(raw.nasmNote, '', 300),
     tips: Array.isArray(raw.tips)
