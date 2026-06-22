@@ -139,5 +139,8 @@ describe('AI-generated nutrition copy care guard', () => {
     expect(macroPrompt).not.toMatch(/Rate the product: GOOD|clean ingredients|toxic ingredients|Track compliance trends/i);
     expect(simpleStylePrompt).toContain('direct but neutral language');
     expect(simpleStylePrompt).not.toMatch(/Use "good" and "bad" language|This is bad for you|fake sugar|belly fat/i);
+    expect(aiChatServiceSource).toContain('lower-fuel phase');
+    expect(aiChatServiceSource).toContain('low nutrient status');
+    expect(aiChatServiceSource).not.toMatch(/\b(caloric deficit|deficiency|no sugarcoating)\b/i);
   });
 });
