@@ -11,6 +11,9 @@ const requiredDashboardAliases = [
   'button-primary-text',
   'button-secondary-bg',
   'button-secondary-text',
+  'button-text',
+  'text-on-accent',
+  'button-text-on-accent',
   'accent-luxury',
   'accent-purple',
   'accent-success',
@@ -80,12 +83,13 @@ describe('theme CSS variable bridge aliases', () => {
     }
   });
 
-  it('does not override broad legacy text aliases with one global button color', () => {
+  it('keeps legacy button text aliases tied to the computed primary button text', () => {
     for (const themeId of themeCycle) {
       const css = generateCSSVariables(themeId as ThemeId);
 
-      expect(cssValue(css, 'button-text'), `${themeId} legacy --button-text`).toBe('');
-      expect(cssValue(css, 'text-on-accent'), `${themeId} legacy --text-on-accent`).toBe('');
+      expect(cssValue(css, 'button-text'), `${themeId} legacy --button-text`).toBe(cssValue(css, 'button-primary-text'));
+      expect(cssValue(css, 'text-on-accent'), `${themeId} legacy --text-on-accent`).toBe(cssValue(css, 'button-primary-text'));
+      expect(cssValue(css, 'button-text-on-accent'), `${themeId} legacy --button-text-on-accent`).toBe(cssValue(css, 'button-primary-text'));
     }
   });
 });

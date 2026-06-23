@@ -201,6 +201,9 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --button-primary-text: ${buttonPrimaryText};
     --button-secondary-bg: ${theme.colors.secondary};
     --button-secondary-text: ${buttonSecondaryText};
+    --button-text: ${buttonPrimaryText};
+    --text-on-accent: ${buttonPrimaryText};
+    --button-text-on-accent: ${buttonPrimaryText};
     --accent-purple: ${theme.colors.secondary};
     --accent-success: ${theme.colors.success};
     --accent-error: ${theme.colors.error};

@@ -55,8 +55,8 @@ const nutritionControlCss = css`
 const nutritionAccentButtonCss = css`
   ${nutritionControlCss}
   border-color: transparent;
-  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
-  color: var(--text-inverse, #0F172A);
+  background: var(--button-primary-bg, #002060);
+  color: var(--button-primary-text, #030712);
   box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
 `;
 

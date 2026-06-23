@@ -71,6 +71,29 @@ describe('UserDashboard theme-token audit', () => {
     expect(swanCoachActionLauncher).toContain('background: var(--button-primary-bg, #002060);');
     expect(swanCoachActionLauncher).toContain('color: var(--button-primary-text, #030712);');
   });
+  it('keeps shared user-dashboard and nutrition filled controls on contrast-aware button tokens', () => {
+    const sectionChrome = readFileSync(
+      resolve(process.cwd(), 'src/components/UserDashboard/components/UserDashboardSectionChrome.styles.ts'),
+      'utf8',
+    );
+    const nutritionWorkspace = readFileSync(
+      resolve(process.cwd(), 'src/components/DashBoard/workspaces/NutritionWorkspace.styles.ts'),
+      'utf8',
+    );
+    const nutritionTodayPanel = readFileSync(
+      resolve(process.cwd(), 'src/components/DashBoard/workspaces/NutritionTodayPanel.styles.ts'),
+      'utf8',
+    );
+
+    for (const source of [sectionChrome, nutritionWorkspace, nutritionTodayPanel]) {
+      expect(source).toContain('var(--button-primary-bg, #002060)');
+      expect(source).toContain('var(--button-primary-text, #030712)');
+    }
+
+    expect(sectionChrome).not.toContain('color: var(--text-inverse, #0F172A);');
+    expect(nutritionWorkspace).not.toContain('color: var(--text-inverse, #0F172A);');
+    expect(nutritionTodayPanel).not.toContain("? 'var(--text-inverse, #0F172A)'");
+  });
   it('keeps dashboard chrome raw colors limited to token fallbacks and neutral overlays', () => {
     const unresolved: string[] = [];
 

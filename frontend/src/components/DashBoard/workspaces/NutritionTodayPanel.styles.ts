@@ -136,9 +136,9 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent)')};
   border-radius: 12px;
   background: ${({ $primary }) => ($primary
-    ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'
+    ? 'var(--button-primary-bg, #002060)'
     : 'color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent)')};
-  color: ${({ $primary }) => ($primary ? 'var(--text-inverse, #0F172A)' : 'var(--text-primary, #E0ECF4)')};
+  color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #030712)' : 'var(--text-primary, #E0ECF4)')};
   font: 900 0.8rem/1 var(--font-ui, 'Sora', sans-serif);
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease;
