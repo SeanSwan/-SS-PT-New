@@ -254,14 +254,19 @@ export const StatCard = styled.div<{
 `;
 
 export const ClientsGrid = styled(motion.div)`
+  --client-card-desktop-row: 520px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  grid-auto-rows: 1fr;
+  grid-auto-rows: var(--client-card-desktop-row);
   align-items: stretch;
   gap: 1.5rem;
 
+  @media (min-width: 2560px) { --client-card-desktop-row: 560px; }
+  @media (min-width: 3840px) { --client-card-desktop-row: 620px; }
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    grid-auto-rows: auto;
     gap: 1rem;
   }
 `;
