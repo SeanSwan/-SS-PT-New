@@ -45,8 +45,8 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
               <ClientProfileHero {...props} />
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
-                <TrainingFocusCard {...props} />
                 <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
+                <TrainingFocusCard {...props} />
                 <NextSessionCard sessionPreview={props.sessionPreview} onNavigate={props.onNavigate} />
               </ThreeColumnGrid>
               <TwoColumnGrid>

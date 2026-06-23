@@ -141,6 +141,10 @@ export const ThreeColumnGrid = styled.div`
   @media (max-width: 1120px) {
     grid-template-columns: 1fr;
   }
+
+  @media (max-width: 600px) {
+    order: -1;
+  }
 `;
 
 export const MetricGrid = styled.div`
