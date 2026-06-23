@@ -133,10 +133,10 @@ const crystallineDefault = {
 
 /**
  * ARCTIC DAWN THEME — "Arctic Dawn"
- * Icy professional light theme with subtle glass effects.
- * Background: #F4F7FB (icy off-white, not pure white — preserves glass effect)
- * Primary accent: #00B4D8 (brighter, icier cyan)
- * Legacy accent: #8B5CF6 (Wing Purple nod to roots)
+ * Premium icy light theme with readable slate text and platinum glass.
+ * Background: #E6EEF5 (blue-tinted platinum, not whiteout)
+ * Primary accent: #0284C7 (controlled icy blue)
+ * Legacy accent: #6D28D9 (Wing Purple nod to roots)
  * Gold accent: #C6A84B
  */
 const crystallineLight = {
@@ -150,80 +150,80 @@ const crystallineLight = {
     borderGlow: false,
   },
   colors: {
-    deepSpace: '#F4F7FB',
-    stardust: '#EDF1F7',
-    void: '#FAFBFC',
+    deepSpace: '#E6EEF5',
+    stardust: '#D6E4EF',
+    void: '#0B1726',
 
-    primary: '#00B4D8',
-    primaryBlue: '#0EA5E9',
-    primaryDeep: '#0284C7',
+    primary: '#0284C7',
+    primaryBlue: '#0369A1',
+    primaryDeep: '#075985',
     primaryLight: '#38BDF8',
-    primaryNeon: '#00B4D8',
+    primaryNeon: '#0EA5E9',
 
-    secondary: '#4070C0',
-    secondaryLight: '#6090D0',
-    secondaryDeep: '#002060',
+    secondary: '#345B9A',
+    secondaryLight: '#5F82C4',
+    secondaryDeep: '#102A56',
 
     accent: '#C6A84B',
     accentLight: '#D8C478',
-    accentWarm: '#A88A30',
+    accentWarm: '#8A6A1F',
 
-    wingPurple: '#7C3AED',
+    wingPurple: '#6D28D9',
     wingPurpleLight: '#8B5CF6',
-    wingPurpleDeep: '#6D28D9',
+    wingPurpleDeep: '#4C1D95',
 
-    white: '#FFFFFF',
-    silver: '#F0F4F8',
-    muted: 'rgba(15, 23, 42, 0.5)',
+    white: '#F8FBFF',
+    silver: '#E6EEF5',
+    muted: 'rgba(15, 23, 42, 0.68)',
     error: '#DC2626',
-    success: '#16A34A',
-    warning: '#D97706',
+    success: '#15803D',
+    warning: '#A16207',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #7C3AED, #00B4D8)',
-    secondary: 'linear-gradient(135deg, #F4F7FB, #FFFFFF)',
-    cosmic: 'linear-gradient(135deg, #7C3AED, #0284C7)',
-    hero: 'linear-gradient(135deg, #00B4D8 0%, #0EA5E9 50%, #38BDF8 100%)',
-    card: 'rgba(255, 255, 255, 0.7)',
-    accent: 'linear-gradient(135deg, #C6A84B, #D8C478)',
-    stellar: 'linear-gradient(45deg, #00B4D8 0%, #C6A84B 100%)',
-    swanCosmic: 'linear-gradient(135deg, #00B4D8, #4070C0)',
-    glass: 'rgba(255, 255, 255, 0.7)',
+    primary: 'linear-gradient(135deg, #075985, #0284C7)',
+    secondary: 'linear-gradient(135deg, #D6E4EF, #F8FBFF)',
+    cosmic: 'linear-gradient(135deg, #6D28D9, #075985)',
+    hero: 'linear-gradient(135deg, #E6EEF5 0%, #D6E4EF 48%, #C9DCEB 100%)',
+    card: 'linear-gradient(135deg, rgba(248, 251, 255, 0.96), rgba(214, 228, 239, 0.74))',
+    accent: 'linear-gradient(135deg, #8A6A1F, #C6A84B)',
+    stellar: 'linear-gradient(45deg, #075985 0%, #C6A84B 100%)',
+    swanCosmic: 'linear-gradient(135deg, #075985, #345B9A)',
+    glass: 'linear-gradient(135deg, rgba(248, 251, 255, 0.94), rgba(214, 228, 239, 0.68))',
   },
   shadows: {
-    primary: '0 2px 8px rgba(0, 180, 216, 0.12)',
-    secondary: '0 1px 3px rgba(0, 32, 96, 0.06)',
-    cosmic: '0 4px 16px rgba(0, 32, 96, 0.1), 0 1px 4px rgba(0, 180, 216, 0.08)',
-    accent: '0 2px 8px rgba(198, 168, 75, 0.2)',
-    elevation: '0 8px 24px rgba(0, 32, 96, 0.08)',
+    primary: '0 3px 14px rgba(2, 132, 199, 0.16)',
+    secondary: '0 2px 8px rgba(16, 42, 86, 0.1)',
+    cosmic: '0 14px 42px rgba(16, 42, 86, 0.16), 0 2px 10px rgba(2, 132, 199, 0.12)',
+    accent: '0 3px 12px rgba(198, 168, 75, 0.24)',
+    elevation: '0 14px 36px rgba(16, 42, 86, 0.14)',
     glow: '0 0 0 transparent',
-    glass: '0 8px 32px rgba(0, 0, 0, 0.06)',
-    button: '0 2px 12px rgba(124, 58, 237, 0.3)',
+    glass: '0 12px 34px rgba(16, 42, 86, 0.12)',
+    button: '0 4px 18px rgba(109, 40, 217, 0.22)',
   },
   borders: {
-    subtle: 'rgba(0, 180, 216, 0.1)',
-    elegant: '#CBD5E1',
-    prominent: '#94A3B8',
-    glass: '1px solid rgba(255, 255, 255, 0.8)',
-    card: '1px solid rgba(255, 255, 255, 0.8)',
-    focus: '2px solid #7C3AED',
-    glow: '1px solid rgba(124, 58, 237, 0.2)',
+    subtle: 'rgba(7, 89, 133, 0.18)',
+    elegant: '#9AB6CA',
+    prominent: '#6F94AF',
+    glass: '1px solid rgba(7, 89, 133, 0.18)',
+    card: '1px solid rgba(7, 89, 133, 0.16)',
+    focus: '2px solid #6D28D9',
+    glow: '1px solid rgba(109, 40, 217, 0.22)',
   },
   background: {
-    primary: '#F4F7FB',
-    secondary: '#EDF1F7',
-    surface: 'rgba(255, 255, 255, 0.7)',
-    elevated: 'rgba(255, 255, 255, 0.85)',
+    primary: '#E6EEF5',
+    secondary: '#D6E4EF',
+    surface: 'rgba(248, 251, 255, 0.94)',
+    elevated: 'rgba(241, 247, 252, 0.98)',
   },
   text: {
-    primary: '#0F172A',
-    secondary: '#475569',
-    muted: '#94A3B8',
-    heading: '#0F172A',
-    subheading: '#1E293B',
-    body: '#475569',
-    label: '#64748B',
-    accent: '#00B4D8',
+    primary: '#0B1726',
+    secondary: '#243447',
+    muted: '#334155',
+    heading: '#0B1726',
+    subheading: '#172033',
+    body: '#243447',
+    label: '#334155',
+    accent: '#0369A1',
   },
 };
 
