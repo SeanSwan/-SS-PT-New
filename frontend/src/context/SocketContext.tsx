@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { logger } from '@/utils/logger';
+import { isUnsignedJwtToken } from '@/utils/jwtTokenShape';
 import {
   resolveRealtimeSocketTransportOptions,
   resolveRealtimeSocketUrl,
@@ -16,25 +17,6 @@ const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
 });
-
-const decodeJwtHeader = (value: string): Record<string, unknown> | null => {
-  const [encodedHeader] = value.split('.');
-  if (!encodedHeader) return null;
-
-  try {
-    const normalized = encodedHeader.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
-    const decoded = JSON.parse(atob(padded));
-    return decoded && typeof decoded === 'object' ? decoded : null;
-  } catch {
-    return null;
-  }
-};
-
-const isUnsignedJwtToken = (value: string) => {
-  const header = decodeJwtHeader(value);
-  return String(header?.alg || '').toLowerCase() === 'none';
-};
 
 const getSocketBaseUrl = () => resolveRealtimeSocketUrl();
 

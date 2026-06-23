@@ -30,6 +30,7 @@ import {
   resolveRealtimeSocketTransportOptions,
   resolveRealtimeSocketUrl,
 } from '@/utils/realtimeSocketUrl';
+import { isUnsignedJwtToken } from '@/utils/jwtTokenShape';
 import { ProductionTokenManager } from '../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ const notify = () => listeners.forEach((l) => l());
 
 function startSocket(): void {
   const token = ProductionTokenManager.getToken();
-  if (!token || sharedSocket) return;
+  if (!token || sharedSocket || isUnsignedJwtToken(token)) return;
 
   const socketUrl = resolveRealtimeSocketUrl();
   const transportOptions = resolveRealtimeSocketTransportOptions(socketUrl);

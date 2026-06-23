@@ -10,6 +10,9 @@ vi.mock('socket.io-client', () => ({
   io: ioMock,
 }));
 
+const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+const jwtWithAlg = (alg: string) => [encode({ alg, typ: 'JWT' }), encode({ sub: '101' }), 'signature'].join('.');
+
 function createSocketMock() {
   const handlers = new Map<string, Set<(...args: any[]) => void>>();
 
@@ -41,6 +44,14 @@ describe('useActivityTicker', () => {
   });
 
   it('does not open a socket connection without an auth token', () => {
+    renderHook(() => useActivityTicker());
+
+    expect(ioMock).not.toHaveBeenCalled();
+  });
+
+  it('does not open a socket for unsigned mock-auth JWTs', () => {
+    localStorage.setItem('token', jwtWithAlg('none'));
+
     renderHook(() => useActivityTicker());
 
     expect(ioMock).not.toHaveBeenCalled();
