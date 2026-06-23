@@ -53,7 +53,7 @@ router.post('/test-feature', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Accessibility test failed',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -89,7 +89,7 @@ router.get('/report', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to generate accessibility report',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -131,7 +131,7 @@ router.post('/validate-compliance',
       res.status(500).json({
         success: false,
         message: 'Compliance validation failed',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -165,16 +165,11 @@ router.get('/test-config', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve accessibility configuration',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
 
-/**
- * @route   POST /api/master-prompt/accessibility/save-config
- * @desc    Save accessibility test configuration files
- * @access  Private (Admin)
- */
 router.post('/save-config',
   requirePermissionWithAccessibility('system_monitoring'),
   async (req, res) => {
@@ -202,17 +197,12 @@ router.post('/save-config',
       res.status(500).json({
         success: false,
         message: 'Failed to save accessibility configuration',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
 );
 
-/**
- * @route   GET /api/master-prompt/accessibility/user-permissions
- * @desc    Get user permissions with accessibility context
- * @access  Private
- */
 router.get('/user-permissions', async (req, res) => {
   try {
     const userRole = req.user?.role || 'user';
@@ -241,16 +231,11 @@ router.get('/user-permissions', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve user permissions',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
 
-/**
- * @route   POST /api/master-prompt/accessibility/check-permission
- * @desc    Check specific permission with accessibility context
- * @access  Private
- */
 router.post('/check-permission', async (req, res) => {
   try {
     const { feature } = req.body;
@@ -305,7 +290,7 @@ router.post('/check-permission', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Permission check failed',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });

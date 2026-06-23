@@ -7,6 +7,7 @@ import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretG
 
 // Global socket.io instance
 let io = null;
+const GAMIFICATION_ROOM = 'gamification';
 
 // Track active connections and rooms for analytics
 const connectionMetrics = {
@@ -362,7 +363,7 @@ async function joinRoleBasedRooms(socket, userRole, userId) {
  * Join user to dashboard-specific rooms
  */
 async function joinDashboardRooms(socket, userRole) {
-  const dashboardRooms = [];
+  const dashboardRooms = [GAMIFICATION_ROOM];
   
   switch (String(userRole || '').toUpperCase()) {
     case 'ADMIN':

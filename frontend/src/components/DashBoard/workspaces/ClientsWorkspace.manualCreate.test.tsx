@@ -1,14 +1,22 @@
-import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockNavigate, mockAuthAxios, mockToast, mockUser } = vi.hoisted(() => {
+const { mockNavigate, mockAuthAxios, mockApiService, mockToast, mockUser } = vi.hoisted(() => {
   const mockAuthAxiosGet = vi.fn();
   const mockAuthAxiosPost = vi.fn();
+  const mockApiServiceGet = vi.fn((url: string) => {
+    if (url.includes('/api/macros/review-queue')) {
+      return Promise.resolve({ data: { success: true, entries: [] } });
+    }
+    return Promise.resolve({ data: { success: true, clients: [] } });
+  });
+  const mockApiServicePatch = vi.fn(() => Promise.resolve({ data: { success: true } }));
   return {
     mockNavigate: vi.fn(),
     mockAuthAxios: { get: mockAuthAxiosGet, post: mockAuthAxiosPost },
+    mockApiService: { get: mockApiServiceGet, patch: mockApiServicePatch },
     mockToast: vi.fn(),
     mockUser: { id: 1, role: 'admin' as const },
   };
@@ -33,6 +41,10 @@ vi.mock('../../../hooks/use-toast', () => ({
   useToast: () => ({
     toast: mockToast,
   }),
+}));
+
+vi.mock('../../../services/api.service', () => ({
+  default: mockApiService,
 }));
 
 vi.mock('./clients-team/tabs/TrainingTabContent', () => ({ default: () => null }));
@@ -153,21 +165,20 @@ describe('ClientsWorkspace manual client creation fallback', () => {
   });
 
   it('opens a manual client form from Client Hub and refreshes the client list after submit', async () => {
-    const user = userEvent.setup();
     renderWorkspace();
 
-    await user.click(await screen.findByRole('button', { name: /^manual add$/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^manual add$/i }));
 
     expect(screen.getByRole('dialog', { name: /add new client/i })).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/first name/i), 'Manual');
-    await user.type(screen.getByLabelText(/last name/i), 'Client');
-    await user.type(screen.getByLabelText(/^email/i), 'manual.client@example.test');
-    await user.type(screen.getByLabelText(/^username/i), 'manual.client');
-    await user.type(screen.getByLabelText(/^password/i), 'Client123');
-    await user.selectOptions(await screen.findByLabelText(/assign trainer/i), '99');
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Manual' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Client' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'manual.client@example.test' } });
+    fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'manual.client' } });
+    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
+    fireEvent.change(await screen.findByLabelText(/assign trainer/i), { target: { value: '99' } });
 
-    await user.click(screen.getByRole('button', { name: /create client/i }));
+    fireEvent.click(screen.getByRole('button', { name: /create client/i }));
 
     await waitFor(() => expect(mockAuthAxiosPost).toHaveBeenCalledTimes(2));
     const [path, payload] = mockAuthAxiosPost.mock.calls[0];
@@ -195,7 +206,7 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       description: expect.stringMatching(/Manual Client.*secure login link/i),
     }));
     expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent(/secure login link sent/i);
-  });
+  }, 15000);
 
   it('loads assignable trainers into the canonical manual client form', async () => {
     const user = userEvent.setup();

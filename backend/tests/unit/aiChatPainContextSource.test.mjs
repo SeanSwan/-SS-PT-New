@@ -15,6 +15,18 @@ function createPainAwareSequelize() {
     QueryTypes: { SELECT: 'SELECT' },
     query: vi.fn(async (sql) => {
       if (
+        sql.includes('SELECT "firstName", "lastName", email, phone FROM "Users"')
+        && sql.includes('WHERE id = :userId LIMIT 1')
+      ) {
+        return [{
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'client@example.invalid',
+          phone: '555-0100',
+        }];
+      }
+
+      if (
         sql.includes('FROM client_pain_entries WHERE "userId" = :userId AND "isActive" = true')
         && sql.includes('"bodyRegion" AS region')
         && sql.includes('"painLevel" AS pain_level')

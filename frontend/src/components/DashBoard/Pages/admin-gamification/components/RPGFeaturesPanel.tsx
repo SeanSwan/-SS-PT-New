@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useState } from 'react';
 
 import { useAuth } from '../../../../../context/AuthContext';
+import { getSafeGamificationUserSegment } from '../../../../AdvancedGamification/utils/gamificationPath';
 import { RPG_FEATURES } from './RPGFeaturesPanel.data';
 import {
   Container,
@@ -36,7 +37,8 @@ const GhostModeBanner = lazy(() =>
 const RPGFeaturesPanel: React.FC = () => {
   const { user } = useAuth();
   const [previewFeature, setPreviewFeature] = useState<string | null>(null);
-  const userId = user?.id ? Number(user.id) : undefined;
+  const safeUserId = getSafeGamificationUserSegment(user?.id);
+  const previewUserId = safeUserId ? Number(safeUserId) : null;
 
   return (
     <Container>
@@ -74,15 +76,15 @@ const RPGFeaturesPanel: React.FC = () => {
         ))}
       </FeatureGrid>
 
-      {previewFeature && userId !== undefined && userId !== null && (
+      {previewFeature && previewUserId !== null && (
         <PreviewSection>
           <PreviewTitle>Live Preview</PreviewTitle>
           <Suspense fallback={<PreviewLoading>Loading preview...</PreviewLoading>}>
             {previewFeature === 'aegis-hud' && (
-              <AegisHud userId={userId} showMoodlet />
+              <AegisHud userId={previewUserId} showMoodlet />
             )}
             {previewFeature === 'ghost-mode' && (
-              <GhostModeBanner userId={userId} />
+              <GhostModeBanner userId={previewUserId} />
             )}
             {previewFeature === 'streak-fortress' && (
               <PreviewLoading>
@@ -90,10 +92,10 @@ const RPGFeaturesPanel: React.FC = () => {
               </PreviewLoading>
             )}
             {previewFeature === 'job-classes' && (
-              <JobClassSelector userId={userId} currentJobClass={null} />
+              <JobClassSelector userId={previewUserId} currentJobClass={null} />
             )}
             {previewFeature === 'companion-pet' && (
-              <CompanionPet userId={userId} size={180} showControls />
+              <CompanionPet userId={previewUserId} size={180} showControls />
             )}
             {previewFeature === 'vault-decryption' && (
               <PreviewLoading>

@@ -12,7 +12,6 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const adminGamificationSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts');
-const adminGamificationCatalogActionsSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationCatalogActions.ts');
 const useGamificationDataSource = readFrontend('src/hooks/gamification/useGamificationData.ts');
 
 const functionSource = (name, nextName) => {
@@ -45,10 +44,9 @@ describe('gamification rewards controller security hardening', () => {
     expect(routeSource).toContain("router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController.deleteReward)");
     expect(routeSource).toContain("router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, pointActionLimiter, authorizeResourceAccess('userId'), gamificationController.redeemReward)");
     expect(adminGamificationSource).toContain("authAxios.get('/api/v1/gamification/rewards')");
-    expect(adminGamificationCatalogActionsSource).toContain("authAxios.post('/api/v1/gamification/rewards', reward)");
-    expect(adminGamificationCatalogActionsSource).toContain("mutationPathFor('rewards', id)");
-    expect(adminGamificationCatalogActionsSource).toContain('authAxios.put(path, updatedFields)');
-    expect(adminGamificationCatalogActionsSource).toContain('authAxios.delete(path)');
+    expect(adminGamificationSource).toContain("authAxios.post('/api/v1/gamification/rewards', reward)");
+    expect(adminGamificationSource).toContain('authAxios.put(`/api/v1/gamification/rewards/${id}`, updatedFields)');
+    expect(adminGamificationSource).toContain('authAxios.delete(`/api/v1/gamification/rewards/${id}`)');
     expect(useGamificationDataSource).toContain('authAxios.post(`/api/v1/gamification/users/${userIdSegment}/rewards/${rewardIdSegment}/redeem`)');
   });
 

@@ -10,12 +10,8 @@ const readSource = (path: string): string => readFileSync(resolve(__dirname, pat
 
 const SOURCE = readSource('./ClientObservatoryWidgets.tsx');
 const PREVIEW_SOURCE = readSource('./ClientObservatoryWidgets.preview.ts');
-const ROUTES_SOURCE = readFileSync(
-  resolve(__dirname, '../../../UniversalDashboardLayout.routes.tsx'),
-  'utf8',
-);
-const ROUTE_COMPONENTS_SOURCE = readFileSync(
-  resolve(__dirname, '../../../UniversalDashboardLayout.routeComponents.tsx'),
+const DASHBOARD_LAYOUT_SOURCE = readFileSync(
+  resolve(__dirname, '../../../UniversalDashboardLayout.tsx'),
   'utf8',
 );
 const CLIENT_HOME_SOURCE = readSource('../ClientHomeTab.tsx');
@@ -23,10 +19,8 @@ const OBSERVATORY_HOME_SOURCE = readSource('./ClientObservatoryHome.tsx');
 
 describe('ClientObservatoryWidgets mounted source contract', () => {
   it('is mounted on the client overview observatory route', () => {
-    expect(ROUTE_COMPONENTS_SOURCE).toContain(
-      "export const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))",
-    );
-    expect(ROUTES_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
+    expect(DASHBOARD_LAYOUT_SOURCE).toContain("const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
+    expect(DASHBOARD_LAYOUT_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
     expect(CLIENT_HOME_SOURCE).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
     expect(CLIENT_HOME_SOURCE).toContain('<ClientObservatoryHome />');
     expect(OBSERVATORY_HOME_SOURCE).toContain("import ClientObservatoryWidgets from './ClientObservatoryWidgets'");

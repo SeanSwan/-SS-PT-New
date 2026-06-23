@@ -11,35 +11,47 @@ const harnessMocks = vi.hoisted(() => {
   const mockAuthAxiosGet = vi.fn();
   const mockAuthAxiosDelete = vi.fn();
   const mockAuthAxiosPut = vi.fn();
+  const mockApiServiceGet = vi.fn((url: string) => {
+    if (url.includes('/api/macros/review-queue')) {
+      return Promise.resolve({ data: { success: true, entries: [] } });
+    }
+    return Promise.resolve({ data: { success: true, clients: [] } });
+  });
+  const mockApiServicePatch = vi.fn(() => Promise.resolve({ data: { success: true } }));
   return {
     mockNavigate: vi.fn(),
     mockAuthAxios: { get: mockAuthAxiosGet, delete: mockAuthAxiosDelete, put: mockAuthAxiosPut },
+    mockApiService: { get: mockApiServiceGet, patch: mockApiServicePatch },
     mockToast: vi.fn(),
     mockUser: { id: 1, role: 'admin' as const },
   };
 });
 
-export const { mockNavigate, mockAuthAxios, mockToast, mockUser } = harnessMocks;
+export const { mockNavigate, mockAuthAxios, mockApiService, mockToast, mockUser } = harnessMocks;
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
-    useNavigate: () => mockNavigate,
+    useNavigate: () => harnessMocks.mockNavigate,
   };
 });
 
 vi.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({
-    authAxios: mockAuthAxios,
-    user: mockUser,
+    authAxios: harnessMocks.mockAuthAxios,
+    user: harnessMocks.mockUser,
   }),
 }));
 
 vi.mock('../../../hooks/use-toast', () => ({
   useToast: () => ({
-    toast: mockToast,
+    toast: harnessMocks.mockToast,
   }),
+}));
+
+vi.mock('../../../services/api.service', () => ({
+  default: harnessMocks.mockApiService,
 }));
 
 // Tab content components trigger heavy imports in JSDOM; stub them so the CTA

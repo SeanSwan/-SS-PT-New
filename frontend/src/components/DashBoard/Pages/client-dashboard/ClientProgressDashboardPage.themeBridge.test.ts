@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const pagePath = resolve(__dirname, './ClientProgressDashboardPage.tsx');
+const recapPath = resolve(__dirname, './ClientProgressDashboardPage.recap.ts');
 const stylesPath = resolve(__dirname, './ClientProgressDashboardPage.styles.ts');
 const layoutPath = resolve(__dirname, '../../UniversalDashboardLayout.tsx');
 
@@ -27,10 +28,15 @@ describe('ClientProgressDashboardPage theme bridge', () => {
 
   it('preserves the client-safe chart grid and progress API endpoints', () => {
     const source = read(pagePath);
+    const recapSource = read(recapPath);
 
     expect(source).toContain("import('./CanonicalProgressChartsGrid')");
-    expect(source).toContain('authAxios.get(`/api/gamification/users/${user.id}/weekly-recap`)');
+    expect(source).toContain('const weeklyRecapUserIdSegment = getSafeGamificationIdSegment(user.id);');
+    expect(source).toContain('loadClientWeeklyRecap(authAxios, weeklyRecapUserIdSegment)');
+    expect(source).toContain('const companionPetUserIdSegment = getSafeGamificationIdSegment(user?.id);');
+    expect(recapSource).toContain('authAxios.get(');
+    expect(recapSource).toContain('`/api/gamification/users/${weeklyRecapUserIdSegment}/weekly-recap`');
     expect(source).toContain('authAxios.get(`/api/client/analytics/personal-records`)');
-    expect(source).toContain('<CanonicalProgressChartsGrid userId={user.id} />');
+    expect(source).toContain('<CanonicalProgressChartsGrid />');
   });
 });

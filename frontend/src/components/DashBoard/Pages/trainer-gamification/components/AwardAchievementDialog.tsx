@@ -1,27 +1,5 @@
-/**
- * ============================================================================
- * FILE: AwardAchievementDialog.tsx
- * PURPOSE: Dialog for trainers to award a specific achievement to a client
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
- * AI VILLAGE VALIDATED: 2026-03-23
- * ============================================================================
- *
- * WHAT THIS FILE DOES:
- * Renders a modal dialog allowing trainers to select an achievement from a
- * dropdown and award it to a specific client. Shows the selected achievement's
- * icon, description, and XP reward before confirmation.
- *
- * HOW IT FITS IN THE APP:
- * trainer-gamification-view -> AwardAchievementDialog (modal, opened on button click)
- * Calls parent's onAward callback which triggers gamification API.
- *
- * KEY DECISIONS:
- * - Uses ui/primitives Dialog components (legacy MUI shim layer)
- * - Icon mapping consistent with AchievementGrid and AchievementManager
- */
 import React from 'react';
 import {
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -30,33 +8,15 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Typography
 } from '../../../../ui/primitives/components';
-import { Award, Gift, TrendingUp, Trophy, Star, Dumbbell, Heart, Target, Zap, Calendar, Clock, Medal, CheckCircle, Users, Edit } from 'lucide-react';
-
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  photo?: string;
-  points: number;
-  level: number;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
-  streakDays: number;
-}
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  pointValue: number;
-  requirementType: string;
-  requirementValue: number;
-  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
-  isActive: boolean;
-}
+import { Star } from 'lucide-react';
+import type { Achievement, Client } from '../hooks/useTrainerGamification';
+import {
+  DetailPanel,
+  DetailRow,
+  DetailText,
+  DialogStack,
+} from './trainer-gamification-components.styles';
 
 interface AwardAchievementDialogProps {
   open: boolean;
@@ -69,10 +29,6 @@ interface AwardAchievementDialogProps {
   awarding: boolean;
 }
 
-/**
- * AwardAchievementDialog Component
- * Modal dialog for awarding achievements to a client
- */
 const AwardAchievementDialog: React.FC<AwardAchievementDialogProps> = ({
   open,
   onClose,
@@ -81,84 +37,38 @@ const AwardAchievementDialog: React.FC<AwardAchievementDialogProps> = ({
   selectedAchievement,
   setSelectedAchievement,
   achievements,
-  awarding
+  awarding,
 }) => {
+  const achievement = achievements.find(row => row.id === selectedAchievement);
+
   return (
-    <Dialog
-      open={open}
-      onClose={() => {
-        if (!awarding) {
-          onClose();
-        }
-      }}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        Award Achievement to {client?.firstName} {client?.lastName}
-      </DialogTitle>
+    <Dialog open={open} onClose={() => { if (!awarding) onClose(); }} maxWidth="sm" fullWidth>
+      <DialogTitle>Award Achievement to {client?.firstName} {client?.lastName}</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 16 }}>
-          Select an achievement to award to this client. The points associated with the achievement will be automatically credited to their account.
-        </Typography>
+        <DialogStack>
+          <DetailText>Select an achievement to award. The associated points are credited automatically.</DetailText>
+          <FormControl fullWidth>
+            <InputLabel>Select Achievement</InputLabel>
+            <Select value={selectedAchievement} onChange={(event) => setSelectedAchievement(event.target.value)} fullWidth data-testid="achievement-select">
+              <option value="">Select an achievement</option>
+              {achievements.map((row) => (
+                <option key={row.id} value={row.id}>{row.name} - {row.pointValue} pts ({row.tier.toUpperCase()})</option>
+              ))}
+            </Select>
+          </FormControl>
 
-        <FormControl fullWidth style={{ marginTop: 16 }}>
-          <InputLabel>Select Achievement</InputLabel>
-          <Select
-            value={selectedAchievement}
-            onChange={(e) => setSelectedAchievement(e.target.value)}
-            fullWidth
-            data-testid="achievement-select"
-          >
-            <option value="">Select an achievement</option>
-            {achievements.map((achievement) => (
-              <option key={achievement.id} value={achievement.id}>
-                {achievement.name} — {achievement.pointValue} pts ({achievement.tier.toUpperCase()})
-              </option>
-            ))}
-          </Select>
-        </FormControl>
-
-        {selectedAchievement && (
-          <Box style={{ marginTop: 24, padding: 16, background: 'rgba(0, 0, 0, 0.15)', borderRadius: 4 }}>
-            <Typography variant="body2" style={{ marginBottom: 8 }}>
-              Achievement Details:
-            </Typography>
-
-            {(() => {
-              const achievement = achievements.find(a => a.id === selectedAchievement);
-              if (!achievement) return null;
-
-              return (
-                <Box>
-                  <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: 8 }}>
-                    {achievement.description}
-                  </Typography>
-                  <Box style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
-                    <Star size={16} color="#FFC107" />
-                    <Typography variant="body2" style={{ fontWeight: 'bold' }}>
-                      {achievement.pointValue} points will be awarded
-                    </Typography>
-                  </Box>
-                </Box>
-              );
-            })()}
-          </Box>
-        )}
+          {achievement && (
+            <DetailPanel>
+              <DetailText>Achievement Details:</DetailText>
+              <DetailText>{achievement.description}</DetailText>
+              <DetailRow><Star size={16} /> {achievement.pointValue} points will be awarded</DetailRow>
+            </DetailPanel>
+          )}
+        </DialogStack>
       </DialogContent>
       <DialogActions>
-        <Button
-          onClick={onClose}
-          disabled={awarding}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={onAward}
-          disabled={!selectedAchievement || awarding}
-          data-testid="award-achievement-button"
-        >
+        <Button onClick={onClose} disabled={awarding}>Cancel</Button>
+        <Button variant="contained" onClick={onAward} disabled={!selectedAchievement || awarding} data-testid="award-achievement-button">
           {awarding ? 'Awarding...' : 'Award Achievement'}
         </Button>
       </DialogActions>

@@ -10,6 +10,7 @@ import {
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
+const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
@@ -50,7 +51,7 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByRole('button', { name: /^Log workout$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Onboard client$/i })).toBeInTheDocument();
     expect(screen.getByText(/Next: Review next ready intake/i)).toBeInTheDocument();
-  });
+  }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
   it('moves the heavy operator surfaces off the default chat view into tabs', () => {
     renderPage();

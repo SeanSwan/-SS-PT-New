@@ -10,8 +10,7 @@ const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
-const routeRegistrySource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
+const dashboardLayoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
 const backendMountSource = read('../../../../backend/core/routes.mjs');
 const badgeRoutesSource = read('../../../../backend/routes/badgeCreatorRoutes.mjs');
 
@@ -58,8 +57,8 @@ const expectSharedTransport = (source: string) => {
 
 describe('BadgeCreator auth pipeline', () => {
   it('is mounted as an admin dashboard surface backed by admin-only badge creator routes', () => {
-    expect(routeComponentsSource).toMatch(/export const BadgeCreatorPage = React\.lazy\(\(\) => import\('\.\.\/BadgeCreator\/BadgeCreatorPage'\)\)/);
-    expect(routeRegistrySource).toMatch(/path: '\/badge-creator', component: BadgeCreatorPage/);
+    expect(dashboardLayoutSource).toMatch(/const BadgeCreatorPage = React\.lazy\(\(\) => import\('\.\.\/BadgeCreator\/BadgeCreatorPage'\)\)/);
+    expect(dashboardLayoutSource).toMatch(/path: '\/badge-creator', component: BadgeCreatorPage/);
     expect(backendMountSource).toMatch(/app\.use\('\/api\/admin\/badge-creator', badgeCreatorRoutes\)/);
     expect(badgeRoutesSource).toMatch(/import\s+\{\s*protect,\s*adminOnly\s*\}\s+from\s+['"]\.\.\/middleware\/authMiddleware\.mjs['"]/);
     expect(badgeRoutesSource).toMatch(/router\.use\(protect,\s*adminOnly\)/);

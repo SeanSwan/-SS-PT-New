@@ -24,7 +24,9 @@ describe('LoadingSpinner retry contract', () => {
     expect(workoutLoggerSource).toContain("import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view'");
     expect(workoutLoggerSource).toContain('onRetry={loadClientData}');
     expect(workoutLoggerViewSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
-    expect(clientsViewSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
+    expect(clientsViewSource).toContain('aria-busy="true"');
+    expect(clientsViewSource).toContain('aria-label="Loading your clients"');
+    expect(clientsViewSource).toContain('onClick={handleRefresh}');
 
     expect(spinnerSource).not.toContain('window.location.reload()');
     expect(spinnerSource).toContain('const [retryNonce, setRetryNonce] = useState(0);');

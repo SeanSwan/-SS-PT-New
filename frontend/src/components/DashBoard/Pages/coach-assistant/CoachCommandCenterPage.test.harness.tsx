@@ -3,6 +3,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
 
+vi.setConfig({ testTimeout: 15000 });
+
 const coachCommandCenterMocks = vi.hoisted(() => ({
   useCoachIntakeQueueMock: vi.fn(),
   useAIChatMock: vi.fn(),

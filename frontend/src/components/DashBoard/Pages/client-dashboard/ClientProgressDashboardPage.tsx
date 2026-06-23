@@ -65,8 +65,9 @@ const ClientProgressDashboardPage: React.FC = () => {
   const { profile } = useGamificationData();
   const { isPro, isElite } = useSubscription();
   const hasAdvancedAccess = isPro || isElite;
-  const companionPetUserId = Number(user?.id);
-  const canRenderCompanionPet = Number.isInteger(companionPetUserId) && companionPetUserId > 0;
+  const companionPetUserIdSegment = getSafeGamificationIdSegment(user?.id);
+  const companionPetUserId = companionPetUserIdSegment ? Number(companionPetUserIdSegment) : null;
+  const canRenderCompanionPet = companionPetUserId !== null;
   const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
   const [weeklyRecapSettled, setWeeklyRecapSettled] = useState(false);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordView[]>([]);

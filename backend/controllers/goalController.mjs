@@ -8,6 +8,7 @@
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
@@ -99,7 +100,7 @@ const goalController = {
         });
       }
 
-      // Build where clause — exclude soft-deleted goals by default
+      // Build where clause â€” exclude soft-deleted goals by default
       const whereClause = { userId, status: { [Op.ne]: 'deleted' } };
 
       if (status && status !== 'all') whereClause.status = status;
@@ -196,7 +197,7 @@ const goalController = {
         });
       }
 
-      // Authorization check — owner, trainer (assigned), admin, or public goal
+      // Authorization check â€” owner, trainer (assigned), admin, or public goal
       await assertGoalAccess(goal, req.user, { allowPublic: true });
 
       // Calculate additional metrics
@@ -406,7 +407,7 @@ const goalController = {
    */
   updateGoalProgress: async (req, res) => {
     const models = await getModels();
-    const { Goal, User, PointTransaction } = models;
+    const { Goal } = models;
 
     if (!Goal) {
       return res.status(503).json({ success: false, message: 'Goals feature is not yet available' });
@@ -439,7 +440,7 @@ const goalController = {
         });
       }
 
-      // Check authorization — owner, admin, or assigned trainer
+      // Check authorization â€” owner, admin, or assigned trainer
       await assertGoalAccess(goal, req.user, { transaction });
 
       if (goal.status !== 'active') {
@@ -457,7 +458,7 @@ const goalController = {
       const progressPercentage = Math.min(100, (newValue / safeTargetValue) * 100);
       const wasCompleted = progressPercentage >= 100 && goal.status === 'active';
 
-      // Update progress history — cap at 100 entries to prevent unbounded growth
+      // Update progress history â€” cap at 100 entries to prevent unbounded growth
       const MAX_HISTORY = 100;
       const existingHistory = goal.progressHistory || [];
       const progressHistory = [...existingHistory.slice(-(MAX_HISTORY - 1)), {
@@ -495,59 +496,39 @@ const goalController = {
 
       await goal.update(updatedFields, { transaction });
 
-      // Award XP for milestones and completion with correct running balance
-      // Use SELECT FOR UPDATE to prevent concurrent XP corruption
+      // Award XP for milestones and completion through the central ledger path.
       let totalXpAwarded = 0;
-      const user = await User.findByPk(goal.userId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE
-      });
 
-      if (user) {
-        let runningBalance = Number(user.points) || 0;
-
-        // Award milestone XP
-        for (const milestone of milestonesAchieved) {
-          if (milestone.xpBonus > 0) {
-            runningBalance += milestone.xpBonus;
-            totalXpAwarded += milestone.xpBonus;
-
-            await PointTransaction.create({
-              userId: goal.userId,
-              points: milestone.xpBonus,
-              balance: runningBalance,
-              transactionType: 'earn',
-              source: 'goal_milestone',
-              sourceId: goal.id,
-              description: `Goal Milestone: ${goal.title} (${milestone.percentage}%)`,
-              metadata: { goalId: goal.id, milestonePercentage: milestone.percentage }
-            }, { transaction });
-          }
+      for (const milestone of milestonesAchieved) {
+        if (milestone.xpBonus > 0) {
+          const result = await GamificationPointsService.recordLedgerEntry({
+            userId: goal.userId,
+            points: milestone.xpBonus,
+            transactionType: 'earn',
+            source: 'goal_milestone',
+            description: `Goal Milestone: ${goal.title} (${milestone.percentage}%)`,
+            metadata: { goalId: goal.id, milestonePercentage: milestone.percentage },
+            idempotencyKey: `goal-milestone:${goal.userId}:${goal.id}:${milestone.percentage}`,
+            maxPoints: 5000
+          }, transaction);
+          totalXpAwarded += result.pointsAwarded || 0;
         }
+      }
 
-        // Award completion XP
-        if (wasCompleted) {
-          const completionXp = goal.xpReward + goal.completionBonus;
-          if (completionXp > 0) {
-            runningBalance += completionXp;
-            totalXpAwarded += completionXp;
-
-            await PointTransaction.create({
-              userId: goal.userId,
-              points: completionXp,
-              balance: runningBalance,
-              transactionType: 'earn',
-              source: 'goal_completed',
-              sourceId: goal.id,
-              description: `Goal Completed: ${goal.title}`,
-              metadata: { goalId: goal.id }
-            }, { transaction });
-          }
-        }
-
-        // Update user points to final running balance
-        if (totalXpAwarded > 0) {
-          await user.update({ points: runningBalance }, { transaction });
+      if (wasCompleted) {
+        const completionXp = goal.xpReward + goal.completionBonus;
+        if (completionXp > 0) {
+          const result = await GamificationPointsService.recordLedgerEntry({
+            userId: goal.userId,
+            points: completionXp,
+            transactionType: 'earn',
+            source: 'goal_completed',
+            description: `Goal Completed: ${goal.title}`,
+            metadata: { goalId: goal.id },
+            idempotencyKey: `goal-completed:${goal.userId}:${goal.id}`,
+            maxPoints: 60000
+          }, transaction);
+          totalXpAwarded += result.pointsAwarded || 0;
         }
       }
 
@@ -596,7 +577,7 @@ const goalController = {
       transaction = await db.transaction();
 
       const { id } = req.params;
-      // Whitelist allowed fields — never allow userId injection
+      // Whitelist allowed fields â€” never allow userId injection
       const allowedGoalFields = [
         'title', 'description', 'goal', 'targetValue', 'currentValue',
         'category', 'deadline', 'status', 'priority', 'notes',
@@ -613,7 +594,7 @@ const goalController = {
         return res.status(404).json({ success: false, message: 'Goal not found' });
       }
 
-      // Check authorization — owner or admin only (trainers cannot edit goals)
+      // Check authorization â€” owner or admin only (trainers cannot edit goals)
       if (goal.userId !== req.user.id && req.user.role !== 'admin') {
         await transaction.rollback();
         return res.status(403).json({ success: false, message: 'Not authorized to update this goal' });
@@ -697,11 +678,20 @@ const goalController = {
         });
       }
 
-      // Void related point transactions (preserve audit trail — never hard-delete)
+      // Void related point transactions (preserve audit trail â€” never hard-delete)
+      const numericGoalId = parsePositiveInteger(id);
+      const goalLedgerMatchers = [
+        { source: 'goal_milestone', metadata: { [Op.contains]: { goalId: id } } },
+        { source: 'goal_completed', metadata: { [Op.contains]: { goalId: id } } },
+        { source: 'goal_milestone', idempotencyKey: { [Op.like]: `goal-milestone:${goal.userId}:${id}:%` } },
+        { source: 'goal_completed', idempotencyKey: `goal-completed:${goal.userId}:${id}` }
+      ];
+      if (numericGoalId) {
+        goalLedgerMatchers.push({ source: ['goal_milestone', 'goal_completed'], sourceId: numericGoalId });
+      }
       const txnsToVoid = await PointTransaction.findAll({
         where: {
-          source: ['goal_milestone', 'goal_completed'],
-          sourceId: id,
+          [Op.or]: goalLedgerMatchers,
           status: { [Op.ne]: 'voided' }
         },
         transaction
@@ -759,7 +749,7 @@ const goalController = {
         });
       }
 
-      // Authorization check — owner, assigned trainer, or admin
+      // Authorization check â€” owner, assigned trainer, or admin
       await assertGoalAccess(goal, req.user);
 
       // Generate comprehensive analytics
@@ -847,10 +837,10 @@ const goalController = {
   generateGoalRecommendations: (goal) => generateGoalRecommendations(goal)
 };
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // STANDALONE HELPER FUNCTIONS
 // Extracted from object literal to avoid fragile `this` binding in ESM
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function calculateEstimatedCompletion(goal, daysElapsed) {
   if (goal.progressPercentage === 0) return null;

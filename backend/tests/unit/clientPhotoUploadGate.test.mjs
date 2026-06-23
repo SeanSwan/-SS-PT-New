@@ -11,11 +11,15 @@
  *   - an authorized actor (admin) passes the gate, then 400s on a missing file.
  *
  * Run: node --test backend/tests/unit/clientPhotoUploadGate.test.mjs
+ * Also runs under the backend Vitest suite.
  */
-import { test } from 'node:test';
+import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
 import { uploadClientPhoto } from '../../controllers/profileController.mjs';
 import User from '../../models/User.mjs';
+
+const isVitest = Boolean(process.env.VITEST || process.env.VITEST_WORKER_ID);
+const test = isVitest ? (await import('vitest')).it : nodeTest;
 
 function mockRes() {
   return {

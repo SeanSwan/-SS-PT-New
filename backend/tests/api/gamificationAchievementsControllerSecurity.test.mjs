@@ -12,7 +12,6 @@ const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend'
 const controllerSource = readBackend('../../controllers/gamificationController.mjs');
 const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
 const adminGamificationSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationController.ts');
-const adminGamificationCatalogActionsSource = readFrontend('src/components/DashBoard/Pages/admin-gamification/useAdminGamificationCatalogActions.ts');
 const trainerGamificationSource = readFrontend('src/components/DashBoard/Pages/trainer-gamification/hooks/useTrainerGamification.ts');
 
 const functionSource = (name, nextName) => {
@@ -44,7 +43,7 @@ describe('gamification achievements controller security hardening', () => {
     expect(routeSource).toContain("router.post('/users/:userId/achievements/:achievementId', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.awardAchievement)");
     expect(routeSource).toContain("router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.updateAchievementProgress)");
     expect(adminGamificationSource).toContain("authAxios.get('/api/v1/gamification/achievements')");
-    expect(adminGamificationCatalogActionsSource).toContain("authAxios.post('/api/v1/gamification/achievements', achievement)");
+    expect(adminGamificationSource).toContain("authAxios.post('/api/v1/gamification/achievements', achievement)");
     expect(trainerGamificationSource).toContain("authAxios.get('/api/v1/gamification/achievements')");
     expect(trainerGamificationSource).toContain('authAxios.post(`/api/v1/gamification/users/${clientId}/achievements/${achievementId}`)');
   });

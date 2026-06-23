@@ -25,8 +25,8 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'HomeStyles.tsx', path: '../pages/HomePage/components/shared/HomeStyles.tsx' },
   // ── Wave 2 (this PR): Phase-4 wider sweep ──────────────────────────────
   // Social cluster
-  { label: 'FriendSuggestions.tsx', path: '../components/Social/Friends/FriendSuggestions.tsx' },
-  { label: 'FriendsList.tsx', path: '../components/Social/Friends/FriendsList.tsx' },
+  { label: 'FriendSuggestionRows.tsx', path: '../components/Social/Friends/FriendSuggestionRows.tsx' },
+  { label: 'FriendsListRows.tsx', path: '../components/Social/Friends/FriendsListRows.tsx' },
   { label: 'FriendRequests.tsx', path: '../components/Social/Friends/FriendRequests.tsx' },
   { label: 'ExploreStyles.ts', path: '../components/Social/Explore/ExploreStyles.ts' },
   { label: 'PostCardStyles.ts', path: '../components/Social/Feed/styles/PostCardStyles.ts' },

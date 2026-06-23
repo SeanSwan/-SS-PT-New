@@ -2,11 +2,19 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockNavigate, mockAuthAxios, mockToast, mockUser } = vi.hoisted(() => {
+const { mockNavigate, mockAuthAxios, mockApiService, mockToast, mockUser } = vi.hoisted(() => {
   const mockAuthAxiosGet = vi.fn();
+  const mockApiServiceGet = vi.fn((url: string) => {
+    if (url.includes('/api/macros/review-queue')) {
+      return Promise.resolve({ data: { success: true, entries: [] } });
+    }
+    return Promise.resolve({ data: { success: true, clients: [] } });
+  });
+  const mockApiServicePatch = vi.fn(() => Promise.resolve({ data: { success: true } }));
   return {
     mockNavigate: vi.fn(),
     mockAuthAxios: { get: mockAuthAxiosGet },
+    mockApiService: { get: mockApiServiceGet, patch: mockApiServicePatch },
     mockToast: vi.fn(),
     mockUser: { id: 1, role: 'admin' as const },
   };
@@ -31,6 +39,10 @@ vi.mock('../../../hooks/use-toast', () => ({
   useToast: () => ({
     toast: mockToast,
   }),
+}));
+
+vi.mock('../../../services/api.service', () => ({
+  default: mockApiService,
 }));
 
 vi.mock('./clients-team/tabs/TrainingTabContent', () => ({ default: () => null }));

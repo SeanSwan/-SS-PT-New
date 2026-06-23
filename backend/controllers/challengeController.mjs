@@ -10,7 +10,7 @@ import db from '../database.mjs';
 
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
-import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
+import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 
 const INTERNAL_ERROR = 'Internal server error';
 
@@ -428,7 +428,7 @@ const challengeController = {
     
     try {
       const models = await getModels();
-      const { Challenge, ChallengeParticipant, User, PointTransaction } = models;
+      const { Challenge, ChallengeParticipant } = models;
       
       const { id } = req.params;
       const { progress, notes } = req.body;
@@ -493,28 +493,20 @@ const challengeController = {
 
       // Award XP if completed
       if (wasCompleted) {
-        const user = await User.findByPk(userId, { transaction });
         const totalXpReward = challenge.xpReward + (challenge.bonusXpReward || 0);
         
-        if (user && totalXpReward > 0) {
-          const newBalance = user.points + totalXpReward;
-          const newLevel = calculateLevel(newBalance);
-          const newTier = getTier(newLevel);
-          
-          // Create point transaction
-          await PointTransaction.create({
+        if (totalXpReward > 0) {
+          await GamificationPointsService.recordLedgerEntry({
             userId,
             points: totalXpReward,
-            balance: newBalance,
             transactionType: 'earn',
             source: 'challenge_completion',
             sourceId: challenge.id,
             description: `Challenge Completed: ${challenge.title}`,
-            metadata: { challengeId: challenge.id }
-          }, { transaction });
-          
-          // Update user progression fields together so visible level/tier stay in sync.
-          await user.update({ points: newBalance, level: newLevel, tier: newTier }, { transaction });
+            metadata: { challengeId: challenge.id },
+            idempotencyKey: `challenge:${userId}:${id}`,
+            maxPoints: Math.max(totalXpReward, 500)
+          }, transaction);
         }
 
         // Update challenge completion stats

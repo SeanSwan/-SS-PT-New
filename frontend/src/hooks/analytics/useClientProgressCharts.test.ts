@@ -281,6 +281,6 @@ describe('Phase 14 — ClientProgressDashboardPage wires the canonical grid', ()
   });
 
   it('renders <CanonicalProgressChartsGrid /> inside a Suspense fallback', () => {
-    expect(PAGE_SOURCE).toMatch(/<CanonicalProgressChartsGrid\s+userId=\{user\.id\}\s*\/>/);
+    expect(PAGE_SOURCE).toMatch(/<CanonicalProgressChartsGrid\s*\/>/);
   });
 });

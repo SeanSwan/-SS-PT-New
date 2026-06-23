@@ -1,7 +1,6 @@
 /**
  * Phase 18.C.1B.1R — ClientsWorkspace "View As" CTA navigation tests
  *   - Clicking the CTA with a selected client navigates to the correct
- *     canonical URL (regression guard against the CTA pointing at
  *     /dashboard/people/view-as/:userId, the dead path).
  */
 import { screen, cleanup, within } from '@testing-library/react';
@@ -23,6 +22,11 @@ const mockAuthAxiosDelete = mockAuthAxios.delete as ReturnType<typeof vi.fn>;
 const mockAuthAxiosPut = mockAuthAxios.put as ReturnType<typeof vi.fn>;
 const CLIENT_HUB_LOGGER_ROUTE =
   `/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}&tab=training&trainingSection=logger`;
+
+const openTrainingDetails = async (user = userEvent.setup()) => {
+  await user.click(await screen.findByRole('button', { name: /^details$/i }));
+  await screen.findByText(/daily training flow/i);
+};
 
 describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   beforeEach(() => {
@@ -68,10 +72,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     const user = userEvent.setup();
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
-    // Auto-selects fixture client from URL param (ClientsWorkspace.tsx
-    // auto-select branch). Button accessible name comes from text content
     // ("View As"), not the title attribute (which becomes the tooltip).
-    // The Eye icon is decorative.
     const viewAsBtn = await screen.findByRole('button', { name: /view fixture client as admin/i });
 
     await user.click(viewAsBtn);
@@ -81,8 +82,6 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
       `/dashboard/admin/client-management/view-as/${FIXTURE_CLIENT_ID}`
     );
 
-    // Regression guard: the click must NOT navigate to the dead legacy path
-    // that Phase 19 cleanup unmounted.
     const navCalls = mockNavigate.mock.calls.map((args) => args[0] as string);
     expect(navCalls.some((u) => u.startsWith('/dashboard/people/'))).toBe(false);
   });
@@ -90,11 +89,11 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   it('renders the daily training cockpit actions for the selected client', async () => {
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
-    expect(await screen.findByText(/daily training flow/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /log today for fixture client/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /log today for fixture client/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /plan next for fixture client/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /view fixture client progress/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i })).toBeInTheDocument();
+    await openTrainingDetails();
   });
 
   it('keeps Log Today inside the selected-client Client Hub training logger', async () => {
@@ -114,6 +113,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     });
 
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+    await openTrainingDetails();
 
     const dailyStrip = await screen.findByRole('region', {
       name: /fixture client daily training actions/i,
@@ -126,7 +126,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   it('does not show a fake 50 percent onboarding bar for a completed client', async () => {
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
-    expect(await screen.findByText(/daily training flow/i)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /log today for fixture client/i })).toBeInTheDocument();
     expect(screen.queryByText(/onboarding:\s*50%/i)).not.toBeInTheDocument();
   });
 
@@ -280,16 +280,9 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   it('does not render the View As button when no client is selected', async () => {
     renderWorkspace('/dashboard/admin/client-management');
 
-    // Wait for the client fetch to resolve so the "no client selected"
-    // state is stable, not a pre-fetch render.
     await screen.findByText(/client.*hub/i).catch(() => {
-      // ClientHeaderCard / heading may differ; fall back to polling for
-      // absence directly. Either approach is fine — the absence assertion
-      // below is the authoritative check.
     });
 
-    // The CTA is gated on `selectedClient && ...`. With no ?clientId in the
-    // URL, selectedClient stays null and the button must not render.
     const maybeBtn = screen.queryByRole('button', { name: /^view as$/i });
     expect(maybeBtn).toBeNull();
   });

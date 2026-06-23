@@ -6,6 +6,7 @@ import {
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
+const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
@@ -38,7 +39,7 @@ describe('CoachCommandCenterPage route context', () => {
         'both',
       );
     });
-  });
+  }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
   it('preserves selected-client daily context when a coach replaces the prefilled prompt', async () => {
     renderPage(

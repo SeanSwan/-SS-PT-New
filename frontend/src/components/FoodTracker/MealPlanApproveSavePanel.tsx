@@ -17,12 +17,10 @@ interface MealPlanApproveSavePanelProps {
   onSaved?: (success: boolean) => void;
   source?: MealPlanMacroSource;
 }
-
 const todayIso = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const labelFor = (mealType: string) => mealType.charAt(0).toUpperCase() + mealType.slice(1);
 const isSafeLogDate = (value: string, today = todayIso()) => /^\d{4}-\d{2}-\d{2}$/.test(value) && value <= today;
 const macroFields = ['calories', 'protein', 'carbs', 'fat'] as const;
-
 const MealPlanApproveSavePanel: React.FC<MealPlanApproveSavePanelProps> = ({ plan, onSaved, source = 'ai-chat' }) => {
   const [drafts, setDrafts] = useState<MealPlanMacroDraft[]>(() => buildMacroDraftsFromMealPlan(plan));
   const [date, setDate] = useState(todayIso());

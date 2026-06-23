@@ -19,7 +19,7 @@ describe('movement analysis controller security hardening', () => {
     expect(coreRoutesSource).toContain("app.use('/api/movement-analysis', movementAnalysisRoutes)");
     expect(wizardSource).toContain('`/api/movement-analysis/${id}`');
     expect(wizardSource).toContain("authAxios.post<MovementAnalysisCreateResponse>('/api/movement-analysis', payload)");
-    expect(trainerAssessmentsSource).toContain("authAxios.post('/api/movement-analysis', payload)");
+    expect(trainerAssessmentsSource).toContain("authAxios.post('/api/movement-analysis', buildPayload(parsedClientId))");
     expect(trainerAssessmentsSource).toContain("authAxios.get('/api/movement-analysis')");
   });
 

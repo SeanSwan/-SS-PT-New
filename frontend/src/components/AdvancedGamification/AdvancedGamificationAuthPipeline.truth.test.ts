@@ -10,8 +10,7 @@ const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const dashboardRouteComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
-const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
+const dashboardLayoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
 const clientProfileSource = read('../DashBoard/Pages/client-dashboard/ClientProfilePage.tsx');
 const clientProgressSource = read('../DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.tsx');
 const adminRpgSource = read('../DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.tsx');
@@ -60,8 +59,8 @@ const expectSharedTransport = (source: string) => {
 
 describe('advanced gamification auth pipeline', () => {
   it('covers mounted companion pet, Aegis HUD, and job-class surfaces', () => {
-    expect(dashboardRouteComponentsSource).toContain("export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'))");
-    expect(dashboardRoutesSource).toContain("{ path: '/gamification', component: AdminGamificationView");
+    expect(dashboardLayoutSource).toContain("const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'))");
+    expect(dashboardLayoutSource).toContain("{ path: '/gamification', component: AdminGamificationView");
     expect(clientProfileSource).toContain("import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')");
     expect(clientProgressSource).toContain("import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')");
     expect(adminRpgSource).toContain("import('../../../../AdvancedGamification/components/AegisHud')");
@@ -100,8 +99,7 @@ describe('advanced gamification auth pipeline', () => {
   });
 
   it('classifies Vault Decryption as staged outside the mounted dashboard route tree', () => {
-    expect(dashboardRouteComponentsSource).not.toContain('VaultDecryption');
-    expect(dashboardRoutesSource).not.toContain('VaultDecryption');
+    expect(dashboardLayoutSource).not.toContain('VaultDecryption');
     expect(adminRpgSource).not.toContain('VaultDecryption');
     expect(clientProfileSource).not.toContain('VaultDecryption');
     expect(clientProgressSource).not.toContain('VaultDecryption');

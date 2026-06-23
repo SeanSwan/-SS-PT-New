@@ -142,6 +142,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           source: String(ex?.source ?? 'swanstudios'),
           description: (ex?.description as string) || undefined,
           videoUrl: toOptionalString(ex?.videoUrl),
+          previewVideoUrl: toOptionalString(ex?.previewVideoUrl),
           imageUrl: toOptionalString(ex?.imageUrl),
           thumbnailUrl: toOptionalString(ex?.thumbnailUrl),
           catalogVideoSample: toCatalogVideoSample(ex?.catalogVideoSample),

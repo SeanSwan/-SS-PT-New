@@ -52,7 +52,7 @@ router.post('/review-workout', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Ethical review failed',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -91,7 +91,7 @@ router.post('/review-nutrition', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Ethical review failed',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -131,7 +131,7 @@ router.post('/run-pipeline',
       res.status(500).json({
         success: false,
         message: 'Ethical AI pipeline failed',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -167,7 +167,7 @@ router.get('/pipeline-config',
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve pipeline configuration',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -212,7 +212,7 @@ router.post('/generate-pipeline',
       res.status(500).json({
         success: false,
         message: 'Pipeline generation failed',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }

@@ -54,8 +54,17 @@ const SOURCE = [
   readFileSync(resolve(__dirname, '../services/adminUserAnalyticsService.mjs'), 'utf8'),
 ].join('\n');
 
+const dateKeyDaysAgo = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+};
+
 describe('admin user analytics truth handling', () => {
+  let activityDate;
+
   beforeEach(() => {
+    activityDate = dateKeyDaysAgo(7);
     userCount.mockReset();
     userFindAll.mockReset();
     sessionCount.mockReset();
@@ -72,14 +81,14 @@ describe('admin user analytics truth handling', () => {
     userFindAll.mockImplementation(({ attributes }) => {
       const aliases = JSON.stringify(attributes);
       if (aliases.includes('activeUsers')) {
-        return Promise.resolve([{ date: '2026-05-20', activeUsers: '4' }]);
+        return Promise.resolve([{ date: activityDate, activeUsers: '4' }]);
       }
       if (aliases.includes('newUsers')) {
-        return Promise.resolve([{ date: '2026-05-20', newUsers: '2' }]);
+        return Promise.resolve([{ date: activityDate, newUsers: '2' }]);
       }
       return Promise.resolve([]);
     });
-    sessionFindAll.mockResolvedValue([{ date: '2026-05-20', sessions: '3' }]);
+    sessionFindAll.mockResolvedValue([{ date: activityDate, sessions: '3' }]);
   });
 
   it('derives overview and history from User and Session rows instead of random activity', async () => {
@@ -97,7 +106,7 @@ describe('admin user analytics truth handling', () => {
       engagementScore: 0,
     });
     expect(res.body.data.userActivity).toContainEqual({
-      date: '2026-05-20',
+      date: activityDate,
       activeUsers: 4,
       newUsers: 2,
       sessions: 3,
