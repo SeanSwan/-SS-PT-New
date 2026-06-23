@@ -127,6 +127,30 @@ ASSETS NEEDED: [Seedance brief required? Y/N — if Y, produce brief per SWAN-AS
 
 No design code before this receipt.
 
+## 2026 surface standard (hard gate)
+
+Before implementation, every major UI/redesign task must pass this gate in the task thread. If any item is unknown, inspect the live surface before coding.
+
+```
+PRIMARY JOB: [one sentence: what the user came here to finish]
+PRIMARY ACTION: [the one action that should be most visually and functionally prominent]
+SECONDARY ACTIONS: [max 3 visible priority actions; extras move to menu/drawer/toolbar; each must execute, navigate, open a real detail surface, or toggle state]
+DEAD-CONTROL SWEEP: [Y/N - every button/icon/tab has a wired handler, route, or state change]
+DESKTOP SCALE PLAN: [how 1440, 1920, 2560/4K avoid tiny centered islands]
+SCROLL MODEL: [one page scroll | one panel scroll | justified nested scroll; name sticky regions]
+MOBILE COLLISION PLAN: [tabs/actions wrap, scroll, collapse, or become menu; no overlap]
+REAL-DATA STRESS CASE: [longest labels, empty state, error state, high count, low count]
+```
+
+Hard rules:
+- Dashboard content must use monitor-class space intentionally. On 2560px+ widths, do not leave the primary task trapped in a small low-density island unless the surrounding canvas has a real information job.
+- Primary dashboard body text must remain readable at desktop scale: normal labels generally 15-18px, key status 18-28px, hero/decision copy larger. Do not solve density by shrinking text below professional operator-console readability.
+- One primary scroll owner per region. Nested scrollbars are rejected unless the inner scroll is a deliberate virtualized list, transcript, code/log panel, or table with a stated reason and tested wheel/touch behavior.
+- Every interactive element must have a purpose. Buttons without handlers, routes, state transitions, or disabled explanations are removed or rendered as plain status text.
+- Tabs and segmented controls must preserve 44px targets and cannot depend on a single no-wrap row on mobile. Use wrap, horizontal scroll with snap, or an overflow/menu pattern.
+- Cards must not clip their own content at common data lengths. If equal-height cards are used, lock the grid rhythm with min/max constraints and test long labels; if content meaning differs, use intentional hierarchy instead of false uniformity.
+- A "premium" dashboard is not more chrome. It is clear information architecture, crisp scale, disciplined actions, responsive states, and one memorable visual decision.
+
 ## Swan binding rules this router enforces
 
 ### Palette (from CLAUDE.md)
@@ -169,6 +193,12 @@ The router actively rejects these outputs even if an underlying reference librar
 8. **Decorative motion without an information job** — rejected, every motion beat must communicate
 9. **Galaxy-Swan color tokens** — hard rejected, retired theme
 10. **Purple button glow banned by LILA BAN** — rejected, Dual-Button Glow rule wins
+11. **Tiny desktop command centers** - rejected when 4K/fullscreen turns the workflow into a miniature widget with empty dead space around it
+12. **Nested scrollbar mazes** - rejected unless each scroll container has a named job and was wheel/touch tested
+13. **Dead or vague controls** - rejected; every button must do something concrete or be removed
+14. **Mobile tab collisions** - rejected; tabs/actions must wrap, scroll, collapse, or overflow without overlap
+15. **Equal-card cargo culting** - rejected when uniform cards hide hierarchy, clip content, or create fake parity between unlike items
+16. **Unreadable operator density** - rejected when primary dashboard labels, status text, or actions are too small to read comfortably on QHD/4K
 
 ## Pattern library (C1-C12 quick reference)
 
@@ -212,6 +242,7 @@ Per CLAUDE.md rule 24, verify layouts at:
 - `1440px` desktop
 - `1920px` 1080p desktop
 - `2560px` QHD / scaled 4K
+- `3840px` native 4K when Sean reports fullscreen/4K defects or when a dashboard/command center is redesigned
 - `3440px` ultrawide
 
 ## Dual-pass design critique (required, CLAUDE.md rule 23)
@@ -226,6 +257,7 @@ After the first-pass build, run the hostile design critique checklist from CLAUD
 - motion that feels dead, noisy, or excessive
 - weak contrast or muddy dark-mode presentation
 - acceptable-but-not-premium components
+- 2026 surface gate failures: tiny 4K scale, inert controls, nested scroll traps, mobile tab collisions, clipped cards, fake equal-card grids
 
 Fix the weakest areas before closeout. Report what was improved and which viewport widths were actually checked.
 

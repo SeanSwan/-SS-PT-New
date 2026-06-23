@@ -64,6 +64,19 @@ Hostile review checklist:
   [ ] happy-path-only logic
 For each checked item: state what was verified or why not applicable.
 
+Design/product hostile review for UI work:
+  [ ] Primary job is obvious in the first viewport
+  [ ] Primary action is visually dominant and wired to a real handler/route/state change
+  [ ] Secondary actions are limited, purposeful, and not competing with the primary action
+  [ ] No inert buttons, decorative controls, fake tabs, or mystery icon buttons
+  [ ] Desktop/QHD/4K scale is professional, not a tiny centered widget
+  [ ] Mobile tabs/actions do not overlap, clip, or require hover
+  [ ] Scroll ownership is deliberate; no nested scrollbar maze without a named reason
+  [ ] Cards/lists do not clip long realistic content or hide required details
+  [ ] Empty/loading/error states preserve the same layout quality
+  [ ] One named signature visual/information decision is present; generic admin-template structure is not the dominant impression
+For every unchecked item: fix it, narrow the claim, or mark STATUS: FAIL.
+
 === SECTION 4 — Substantive Code Review Checklist (inherited from retired requesting-code-review) ===
 
 4.1 Security vulnerabilities:
@@ -111,6 +124,10 @@ Typecheck: [command and result, or "not run — reason"]
 Build: [command and result, or "not run — reason"]
 Manual verification: [what you clicked / loaded / observed]
 Real caller path checked: [file:line of the actual caller, not an isolated component]
+Visual evidence for UI work: [screenshots, Playwright viewport checks, CSS/source contracts, or "not run - reason"]
+Viewport evidence for UI work: [320/375/414/768/1024/1280/1440/1920/2560/3440 plus 3840 when 4K was in scope]
+Action evidence for UI work: [primary/secondary/dead-control sweep results]
+Scroll evidence for UI work: [page/panel scroll owner, nested-scroll justification, wheel/touch result]
 
 === SECTION 6 — Post-Task Hygiene Check (rule 38) ===
 Did this work create:
@@ -159,6 +176,6 @@ The `requesting-code-review` file itself remains on disk until Phase 3 quarantin
 ## Non-goals
 
 - This skill does not run tests (that's the task's own responsibility, using TDD + verification-before-completion)
-- This skill does not perform design reviews (that's `swan-design-router` during the task, not at closeout)
+- This skill does not replace `swan-design-router`'s first-pass design review; it verifies the final UI evidence and blocks weak visual/product claims at closeout
 - This skill does not fix bugs found during the checklist — it reports them back as blockers
 - This skill does not dispatch a separate review subagent by default. If Sean wants a second-pair-of-eyes Agent call for a specific high-stakes commit, he can request it explicitly.
