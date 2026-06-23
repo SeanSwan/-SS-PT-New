@@ -14,9 +14,9 @@ export const HubContainer = styled.div`
   ${swanSectionBackdrop}
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - 64px);
+  height: calc(100dvh - 64px);
   color: var(--text-primary, #E0ECF4);
-  overflow: visible;
+  overflow: hidden;
   font-size: calc(1rem * var(--client-hub-density-scale));
 
   @media (min-width: 2560px) {
@@ -175,9 +175,9 @@ export const HeaderSection = styled.div`
 `;
 
 export const ContentArea = styled.div`
-  flex: 1 1 auto;
+  flex: 1;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 `;
@@ -195,18 +195,30 @@ export const DetailScrollWrap = styled.div`
 `;
 
 export const CardGrid = styled.div`
+  --client-card-desktop-row: 520px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-  grid-auto-rows: auto;
-  align-items: start;
+  grid-auto-rows: var(--client-card-desktop-row);
+  align-items: stretch;
   gap: 16px;
   padding: 20px;
-  overflow: visible;
-  overscroll-behavior: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
+  flex: 1;
+  min-height: 0;
+
+  @media (min-width: 2560px) {
+    --client-card-desktop-row: 560px;
+  }
+
+  @media (min-width: 3840px) {
+    --client-card-desktop-row: 620px;
+  }
 
   @media (max-width: 768px) {
+    grid-auto-rows: auto;
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 12px;
