@@ -179,7 +179,7 @@ test('gamification hub renders live gamification API data', async ({ page }, tes
   await page.goto('/gamification', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByRole('heading', { name: /xp, rewards, and milestones/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /train, level, rally/i })).toBeVisible();
   await expect(page.getByText('4,321')).toBeVisible();
   await expect(page.getByText('8').first()).toBeVisible();
   await expect(page.getByText('2nd')).toBeVisible();
