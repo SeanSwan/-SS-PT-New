@@ -55,7 +55,8 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     renderPage();
 
     const operationsRail = openOpsRail();
-    expect(within(operationsRail).getByRole('heading', { name: /Operator controls/i })).toBeInTheDocument();
+    expect(within(operationsRail).getByText(/Coach Actions/i)).toBeInTheDocument();
+    expect(within(operationsRail).queryByRole('heading', { name: /Operator controls/i })).not.toBeInTheDocument();
     expect(within(operationsRail).getByRole('heading', { name: /Queue snapshot/i })).toBeInTheDocument();
     expect(within(operationsRail).queryByText(/Use Nutrition Context/i)).not.toBeInTheDocument();
     expect(within(operationsRail).queryByRole('heading', { name: /Next operator action/i })).not.toBeInTheDocument();

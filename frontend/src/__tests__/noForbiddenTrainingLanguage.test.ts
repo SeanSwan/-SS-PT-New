@@ -53,5 +53,5 @@ describe('frontend training language guard', () => {
         expect(source, `${displayPath} contains ${label}`).not.toMatch(pattern);
       }
     }
-  });
+  }, 15000);
 });

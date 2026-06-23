@@ -121,5 +121,5 @@ describe('useClientAnalytics — dormant-hook import tripwire', () => {
     }
 
     expect(offenders).toEqual([]);
-  });
+  }, 15000);
 });

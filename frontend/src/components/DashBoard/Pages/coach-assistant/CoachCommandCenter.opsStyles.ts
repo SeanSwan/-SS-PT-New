@@ -1,11 +1,5 @@
 /**
- * FILE: CoachCommandCenter.opsStyles.ts
- * PURPOSE: Drawer-specific command styling for the admin Swan Coach operations rail.
- *
- * Keeps the slide-in Ops drawer useful on phone and desktop without expanding the
- * main bridge/dock style fragments past the 300-line cap. Actions are route-safe:
- * navigation cards require an active client route; prompt and PLAUD actions do not
- * perform workout writes.
+ * Drawer styles for the admin Swan Coach operations rail.
  */
 
 import { css } from 'styled-components';
@@ -26,9 +20,7 @@ export const coachCommandOpsStyles = css`
 
   .ops-rail-header {
     align-items: center;
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--coach-sapphire) 38%, transparent), transparent 72%),
-      color-mix(in srgb, var(--coach-bg) 88%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--coach-sapphire) 38%, transparent), transparent 72%), color-mix(in srgb, var(--coach-bg) 88%, transparent);
     border: 1px solid color-mix(in srgb, var(--coach-cyan) 24%, var(--coach-line));
     border-radius: 16px;
     box-shadow: 0 16px 44px color-mix(in srgb, var(--coach-bg) 38%, transparent);
@@ -91,9 +83,7 @@ export const coachCommandOpsStyles = css`
   }
 
   .workout-command-panel {
-    background:
-      linear-gradient(145deg, color-mix(in srgb, var(--coach-sapphire) 28%, transparent), transparent 60%),
-      var(--coach-card);
+    background: linear-gradient(145deg, color-mix(in srgb, var(--coach-sapphire) 28%, transparent), transparent 60%), var(--coach-card);
     border-color: color-mix(in srgb, var(--coach-cyan) 34%, var(--coach-line));
   }
 
@@ -119,9 +109,7 @@ export const coachCommandOpsStyles = css`
   }
 
   .workout-command-card.mission {
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--coach-sapphire) 84%, transparent), color-mix(in srgb, var(--coach-purple) 38%, transparent)),
-      var(--coach-sapphire);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--coach-sapphire) 84%, transparent), color-mix(in srgb, var(--coach-purple) 38%, transparent)), var(--coach-sapphire);
     border-color: color-mix(in srgb, var(--coach-purple) 42%, transparent);
     box-shadow: 0 14px 34px color-mix(in srgb, var(--coach-purple) 22%, transparent);
     min-height: 72px;
@@ -177,9 +165,7 @@ export const coachCommandOpsStyles = css`
 
   .teach-mode-toggle {
     align-items: center;
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 12%, transparent), transparent 64%),
-      color-mix(in srgb, var(--coach-soft) 90%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 12%, transparent), transparent 64%), color-mix(in srgb, var(--coach-soft) 90%, transparent);
     border: 1px solid var(--coach-line);
     border-radius: 14px;
     color: var(--coach-text);
@@ -194,9 +180,7 @@ export const coachCommandOpsStyles = css`
   }
 
   .teach-mode-toggle.is-on {
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 18%, transparent), transparent 62%),
-      color-mix(in srgb, var(--coach-cyan) 10%, var(--coach-soft));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 18%, transparent), transparent 62%), color-mix(in srgb, var(--coach-cyan) 10%, var(--coach-soft));
     border-color: color-mix(in srgb, var(--coach-purple) 38%, var(--coach-line-strong));
   }
 
@@ -226,9 +210,7 @@ export const coachCommandOpsStyles = css`
   }
 
   .teach-mode-panel {
-    background:
-      linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 12%, transparent), transparent 68%),
-      var(--coach-card);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 12%, transparent), transparent 68%), var(--coach-card);
   }
 
   .teach-mode-panel-actions {
