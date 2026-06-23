@@ -673,6 +673,59 @@ async function migrateSocialPostMediaType() {
 }
 
 /**
+ * Migration 14: Ensure PointTransactions has idempotencyKey.
+ * Render safe-migrate only executes .cjs/.js files, so this also repairs
+ * environments where the earlier .mjs social-points migration was skipped.
+ */
+async function migratePointTransactionIdempotencyKey() {
+  try {
+    const [tables] = await sequelize.query(
+      `SELECT tablename FROM pg_tables WHERE tablename = 'PointTransactions';`
+    );
+    if (!tables || tables.length === 0) {
+      logger.info('[Migration] PointTransactions table does not exist yet, skipping idempotencyKey fix');
+      return;
+    }
+
+    try {
+      await sequelize.query(`
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_PointTransactions_source') THEN
+            ALTER TYPE "enum_PointTransactions_source" ADD VALUE IF NOT EXISTS 'social_engagement';
+            ALTER TYPE "enum_PointTransactions_source" ADD VALUE IF NOT EXISTS 'goal_milestone';
+            ALTER TYPE "enum_PointTransactions_source" ADD VALUE IF NOT EXISTS 'goal_completed';
+          END IF;
+        END
+        $$;
+      `);
+    } catch (enumError) {
+      logger.warn(`[Migration] PointTransactions source enum update skipped: ${enumError.message}`);
+    }
+
+    const [cols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'PointTransactions' AND column_name = 'idempotencyKey';`
+    );
+
+    if (!cols || cols.length === 0) {
+      logger.info('[Migration] Adding PointTransactions.idempotencyKey...');
+      await sequelize.query(
+        `ALTER TABLE "PointTransactions" ADD COLUMN "idempotencyKey" VARCHAR(128);`
+      );
+      logger.info('[Migration] PointTransactions.idempotencyKey added successfully');
+    }
+
+    await sequelize.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "point_transactions_user_source_idempotency_key"
+      ON "PointTransactions" ("userId", "source", "idempotencyKey")
+      WHERE "idempotencyKey" IS NOT NULL;
+    `);
+  } catch (error) {
+    logger.warn(`[Migration] PointTransactions.idempotencyKey fix failed (non-critical): ${error.message}`);
+  }
+}
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -693,6 +746,7 @@ export async function runStartupMigrations() {
     await migrateExercisesTable();
     await migrateAiConversationTargetUserId();
     await migrateSocialPostMediaType();
+    await migratePointTransactionIdempotencyKey();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;

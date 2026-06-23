@@ -425,6 +425,28 @@ const SAFE_USER_ACHIEVEMENT_ATTRS = [
   'pointsAwarded', 'notificationSent', 'createdAt', 'updatedAt'
 ];
 
+const POINT_TRANSACTION_PUBLIC_ATTRIBUTES = Object.freeze([
+  'id',
+  'userId',
+  'points',
+  'balance',
+  'transactionType',
+  'source',
+  'sourceId',
+  'description',
+  'metadata',
+  'awardedBy',
+  'createdAt',
+  'updatedAt'
+]);
+
+const POINT_TRANSACTION_FEED_ATTRIBUTES = Object.freeze([
+  'id',
+  'points',
+  'source',
+  'description',
+  'createdAt'
+]);
 const weeklyRecapWorkoutSources = ['workout_completion', 'workout_completed'];
 
 const getAchievementPointValue = (achievement) => {
@@ -966,6 +988,7 @@ const gamificationController = {
       // Get recent point transactions
       const recentTransactions = await PointTransaction.findAll({
         where: { userId: normalizedUserId },
+        attributes: POINT_TRANSACTION_PUBLIC_ATTRIBUTES,
         limit: 10,
         order: [['createdAt', 'DESC']]
       });
@@ -2521,6 +2544,7 @@ const gamificationController = {
       
       const transactions = await PointTransaction.findAll({
         where: whereClause,
+        attributes: POINT_TRANSACTION_PUBLIC_ATTRIBUTES,
         order: [['createdAt', 'DESC']],
         limit: normalizedLimit,
         offset
@@ -3221,6 +3245,7 @@ const gamificationController = {
 
       const feed = await PointTransaction.findAll({
         where: whereClause,
+        attributes: POINT_TRANSACTION_FEED_ATTRIBUTES,
         order: [['createdAt', 'DESC']],
         limit: normalizedLimit,
         include: [{
