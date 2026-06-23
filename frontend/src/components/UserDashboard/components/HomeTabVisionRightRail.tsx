@@ -57,12 +57,9 @@ import {
   RailHeader,
   SceneFrame,
   SoftParagraph,
-  TagName,
   TransformationGrid,
-  TrendingGrid,
-  TrendingRow,
 } from './HomeTabVisionRightRail.styles';
-import { Sparkline } from './HomeTabVisionScenes';
+import HomeTabTrendingPanel from './HomeTabTrendingPanel';
 
 const TransformationImage = styled.img`
   width: 100%;
@@ -230,24 +227,10 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
         tab — renders nothing while no factions exist (honest gate). */}
     <HomeTabFactionPanel factions={factions} />
 
-    <Panel>
-      <Eyebrow>Trending</Eyebrow>
-      {trendingTags.length ? (
-        <TrendingGrid>
-          {trendingTags.map((tag, index) => (
-            <TrendingRow key={tag.name}>
-              <div>
-                <TagName>#{tag.name}</TagName>
-                <MutedTiny>{tag.count ? `${compactNumber(tag.count)} posts` : 'new'}</MutedTiny>
-              </div>
-              <Sparkline seed={index + 1} />
-            </TrendingRow>
-          ))}
-        </TrendingGrid>
-      ) : (
-        <EmptyState>{trendingLoading ? 'Loading trend signals.' : 'No trending tags yet.'}</EmptyState>
-      )}
-    </Panel>
+    <HomeTabTrendingPanel
+      trendingTags={trendingTags}
+      trendingLoading={trendingLoading}
+    />
 
     <Panel>
       <RailHeader $spaced>

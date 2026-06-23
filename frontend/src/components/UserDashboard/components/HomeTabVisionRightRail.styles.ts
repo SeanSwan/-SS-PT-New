@@ -97,22 +97,101 @@ export const BadgeImage = styled.img`
 
 export const TrendingGrid = styled.div`
   display: grid;
-  gap: 0.6rem;
+  gap: 0.65rem;
   margin-top: 0.8rem;
 `;
 
 export const TrendingRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.8rem;
+  grid-template-columns: 2.05rem minmax(0, 1fr) max-content;
+  gap: 0.68rem;
   align-items: center;
+  min-height: 54px;
+  padding: 0.68rem 0.72rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--surface-elevated, #003080) 34%, transparent),
+      color-mix(in srgb, var(--bg-surface, #141419) 74%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent);
+`;
+
+export const TrendRank = styled.span`
+  width: 2.05rem;
+  height: 2.05rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--accent-gold, #C6A84B);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 32%, transparent);
+  font-size: 0.7rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+`;
+
+export const TrendCopy = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0.28rem;
 `;
 
 export const TagName = styled.strong`
-  color: var(--accent-primary, #60C0F0);
-  font-size: 0.82rem;
+  min-width: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
+export const TrendSignal = styled.span`
+  color: var(--text-muted, rgba(224,236,244,0.64));
+  font-size: 0.68rem;
+  font-weight: 800;
+`;
+
+export const TrendMeter = styled.div`
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-muted, rgba(224,236,244,0.55)) 12%, transparent);
+`;
+
+export const TrendMeterFill = styled.span<{ $pct: number; $active: boolean }>`
+  display: block;
+  width: ${({ $pct }) => `${Math.min(Math.max($pct, 0), 100)}%`};
+  height: 100%;
+  border-radius: inherit;
+  background: ${({ $active }) => ($active
+    ? 'linear-gradient(90deg, var(--accent-gold, #C6A84B), var(--accent-primary, #60C0F0))'
+    : 'transparent')};
+  box-shadow: ${({ $active }) => ($active ? '0 0 14px color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent)' : 'none')};
+  transition: width 180ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+export const TrendCount = styled.span`
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.72rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  span {
+    color: var(--text-muted, rgba(224,236,244,0.64));
+    font-size: 0.62rem;
+    font-weight: 800;
+  }
+`;
 export const MomentumLayout = styled.div`
   display: grid;
   grid-template-columns: 92px 1fr;
