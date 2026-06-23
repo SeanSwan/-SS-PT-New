@@ -20,6 +20,10 @@ const dashboardFiles = [
   'src/components/UserDashboard/components/SwanCoachActionLauncher.styles.ts',
   'src/components/UserDashboard/components/SwanCoachDock.styles.ts',
   'src/components/UserDashboard/components/SwanCoachDockTeaser.styles.ts',
+  'src/components/DashBoard/workspaces/NutritionWorkspace.styles.ts',
+  'src/components/DashBoard/workspaces/NutritionTodayPanel.styles.ts',
+  'src/components/Social/Notifications/SocialNotificationsPanel.styles.ts',
+  'src/components/Social/Notifications/SocialNotificationsPanel.tsx',
 ];
 
 const rawColorPattern =
@@ -51,6 +55,22 @@ function isAllowedResidual(value: string, line: string, index: number): boolean 
 }
 
 describe('UserDashboard theme-token audit', () => {
+
+  it('pairs home primary action backgrounds with the computed button text token', () => {
+    const dailyHealthLoop = readFileSync(
+      resolve(process.cwd(), 'src/components/UserDashboard/components/DailyHealthLoop.styles.ts'),
+      'utf8',
+    );
+    const swanCoachActionLauncher = readFileSync(
+      resolve(process.cwd(), 'src/components/UserDashboard/components/SwanCoachActionLauncher.styles.ts'),
+      'utf8',
+    );
+
+    expect(dailyHealthLoop).toContain('background: var(--button-primary-bg, #002060);');
+    expect(dailyHealthLoop).toContain('color: var(--button-primary-text, #030712);');
+    expect(swanCoachActionLauncher).toContain('background: var(--button-primary-bg, #002060);');
+    expect(swanCoachActionLauncher).toContain('color: var(--button-primary-text, #030712);');
+  });
   it('keeps dashboard chrome raw colors limited to token fallbacks and neutral overlays', () => {
     const unresolved: string[] = [];
 

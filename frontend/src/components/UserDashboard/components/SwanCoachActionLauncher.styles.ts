@@ -189,7 +189,7 @@ export const PrimaryButton = styled.button`
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
   border-radius: 13px;
   background: var(--button-primary-bg, #002060);
-  color: var(--text-primary, #E0ECF4);
+  color: var(--button-primary-text, #030712);
   box-shadow: 0 0 20px color-mix(in srgb, var(--accent-purple, #8B5CF6) 22%, transparent);
   font-family: 'Sora', sans-serif;
   font-weight: 800;

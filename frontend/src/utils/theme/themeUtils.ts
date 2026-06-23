@@ -20,6 +20,50 @@
 
 import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContext';
 
+const DARK_TEXT_ON_ACCENT = '#030712';
+const LIGHT_TEXT_ON_ACCENT = '#FFFFFF';
+
+const parseHexColor = (hex: string): [number, number, number] | null => {
+  const clean = hex.replace('#', '').trim();
+  if (!/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(clean)) return null;
+
+  const full = clean.length === 3
+    ? clean.split('').map((char) => `${char}${char}`).join('')
+    : clean;
+  const value = Number.parseInt(full, 16);
+
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+};
+
+const relativeLuminance = (hex: string): number | null => {
+  const rgb = parseHexColor(hex);
+  if (!rgb) return null;
+
+  const [red, green, blue] = rgb.map((channel) => {
+    const normalized = channel / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+const contrastRatio = (foreground: string, background: string): number => {
+  const fg = relativeLuminance(foreground);
+  const bg = relativeLuminance(background);
+  if (fg === null || bg === null) return 0;
+
+  const lighter = Math.max(fg, bg);
+  const darker = Math.min(fg, bg);
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
+const getReadableAccentText = (background: string): string => {
+  const darkContrast = contrastRatio(DARK_TEXT_ON_ACCENT, background);
+  const lightContrast = contrastRatio(LIGHT_TEXT_ON_ACCENT, background);
+  return darkContrast >= lightContrast ? DARK_TEXT_ON_ACCENT : LIGHT_TEXT_ON_ACCENT;
+};
 // === CSS CUSTOM PROPERTIES GENERATION ===
 
 /**
@@ -28,7 +72,9 @@ import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContex
  */
 export const generateCSSVariables = (themeId: ThemeId): string => {
   const theme = themes[themeId] || themes['crystalline-default'];
-
+  const buttonPrimaryBg = theme.colors.primary;
+  const buttonPrimaryText = getReadableAccentText(buttonPrimaryBg);
+  const buttonSecondaryText = getReadableAccentText(theme.colors.secondary);
   return `
     /* === FOUNDATION COLORS === */
     --color-deep-space: ${theme.colors.deepSpace};
@@ -141,7 +187,28 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --accent-purple: ${theme.colors.secondary};
     --data-cyan: ${theme.colors.primaryLight || theme.colors.primary};
     --gradient-cosmic-nebula: linear-gradient(135deg, ${theme.colors.secondary} 0%, ${theme.colors.primary} 100%);
-    --gradient-vault-glass: linear-gradient(180deg, rgba(20, 20, 25, 0.8) 0%, rgba(10, 10, 15, 0.9) 100%);
+    --gradient-vault-glass: linear-gradient(180deg, ${theme.background.elevated} 0%, ${theme.background.surface} 100%);
+
+    /* === LEGACY DASHBOARD ALIASES === */
+    /* Mounted dashboard surfaces still consume these aliases. Keep them mapped
+       to active theme values so they never fall back to static blue/gold/purple. */
+    --surface-primary: ${theme.background.secondary};
+    --surface-secondary: ${theme.background.elevated};
+    --surface-tertiary: ${theme.background.surface};
+    --bg-card: ${theme.background.elevated};
+    --button-primary: ${buttonPrimaryBg};
+    --button-primary-bg: ${buttonPrimaryBg};
+    --button-primary-text: ${buttonPrimaryText};
+    --button-secondary-bg: ${theme.colors.secondary};
+    --button-secondary-text: ${buttonSecondaryText};
+    --accent-purple: ${theme.colors.secondary};
+    --accent-success: ${theme.colors.success};
+    --accent-error: ${theme.colors.error};
+    --accent-glow: ${theme.colors.primary};
+    --primary: ${theme.colors.primaryDeep || theme.colors.primary};
+    --tertiary: ${theme.colors.secondary};
+    --arctic-cyan: ${theme.colors.primaryLight || theme.colors.primary};
+    --cyan-glow: ${theme.colors.primaryNeon || theme.colors.primary};
   `;
 };
 
@@ -385,7 +452,6 @@ export const getGlowButtonVariant = (themeId: ThemeId): string => {
  */
 export const getIconColor = (themeId: ThemeId, type: 'primary' | 'secondary' | 'accent' = 'primary'): string => {
   const theme = themes[themeId] || themes['crystalline-default'];
-
   switch (type) {
     case 'primary':
       return theme.colors.primary;

@@ -159,7 +159,7 @@ export const PrimaryAction = styled.button`
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
   border-radius: 14px;
   background: var(--button-primary-bg, #002060);
-  color: var(--text-primary, #E0ECF4);
+  color: var(--button-primary-text, #030712);
   box-shadow: 0 0 22px color-mix(in srgb, var(--accent-purple, #8B5CF6) 24%, transparent);
   font-family: 'Sora', sans-serif;
   font-size: 0.86rem;
@@ -207,5 +207,5 @@ export const MicroSub = styled.span`
 `;
 
 export const Arrow = styled(ArrowRight)`
-  color: var(--text-muted, #64748b);
+  color: currentColor;
 `;
