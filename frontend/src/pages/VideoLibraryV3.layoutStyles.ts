@@ -87,17 +87,28 @@ export const HeroSubtitle = styled.p`
 
 export const StickyBar = styled.div`
   position: sticky;
-  top: 0;
+  top: 12px;
   z-index: 100;
-  padding: 1rem 0;
-  background: ${({ theme }) => theme.background.primary};
-  border-bottom: ${({ theme }) => theme.borders.subtle};
-  margin-bottom: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--surface-primary, #003080) 74%, transparent),
+    color-mix(in srgb, var(--bg-base, #030712) 88%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  border-radius: 18px;
+  box-shadow:
+    0 18px 44px color-mix(in srgb, var(--bg-base, #030712) 38%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
+  margin: -2rem 0 2rem;
 
   ${({ theme }) => theme.effects.glassmorphism && css`
-    background: color-mix(in srgb, ${({ theme }) => theme.background.primary} 92%, transparent);
     backdrop-filter: blur(16px);
   `}
+
+  @media (max-width: 640px) {
+    position: relative;
+    top: auto;
+    margin-top: -1rem;
+  }
 `;
 
 export const BarInner = styled.div`
@@ -186,7 +197,7 @@ export const StatusBanner = styled.div`
 
 export const SectionHeading = styled.h2`
   font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 1.25rem;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
   font-weight: 600;
   color: ${({ theme }) => theme.text.heading};
   margin: 0 0 1rem;
@@ -198,8 +209,16 @@ export const SectionHeading = styled.h2`
 `;
 
 export const ResultCount = styled.div`
-  font-size: 0.85rem;
-  color: ${({ theme }) => theme.text.muted};
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--surface-primary, #003080) 34%, transparent);
+  font-size: 0.82rem;
+  font-weight: 800;
   margin-bottom: 1rem;
 `;
 
@@ -227,7 +246,7 @@ export const EmptyState = styled.div`
 
 export const EmptyTitle = styled.h3`
   font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 1.25rem;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
   color: ${({ theme }) => theme.text.heading};
   margin: 1rem 0 0.5rem;
 `;

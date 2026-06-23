@@ -166,12 +166,13 @@ export const VideoGrid = styled.div`
 export const VideoCard = styled.button`
   ${resetButton}
   width: 100%;
-  background: ${({ theme }) => theme.background.surface};
-  border: ${({ theme }) => theme.borders.card};
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface-primary, #003080) 64%, transparent), color-mix(in srgb, var(--bg-elevated, #141419) 92%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   border-radius: 16px;
   overflow: hidden;
   color: inherit;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
   ${focusRing}
   ${reducedMotion}
@@ -182,14 +183,11 @@ export const VideoCard = styled.button`
 
   &:hover:not(:disabled) {
     transform: translateY(-4px);
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 34%, transparent);
-    box-shadow: ${({ theme }) => theme.shadows.elevation};
+    border-color: color-mix(in srgb, var(--accent-gold, #C6A84B) 46%, transparent);
+    box-shadow: ${({ theme }) => theme.shadows.elevation}, 0 0 26px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   }
 
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.58;
-  }
+  &:disabled { cursor: not-allowed; opacity: 0.58; }
 `;
 
 export const ThumbnailWrap = styled.div`

@@ -27,6 +27,7 @@ const sourceFiles = {
   types: 'VideoLibraryV3.types.ts',
   layoutStyles: 'VideoLibraryV3.layoutStyles.ts',
   controlStyles: 'VideoLibraryV3.controlStyles.ts',
+  heroStyles: 'VideoLibraryV3.heroStyles.ts',
   cardStyles: 'VideoLibraryV3.cardStyles.ts',
 };
 
@@ -52,6 +53,8 @@ describe('VideoLibraryV3 hardening contracts', () => {
     expect(page).toContain('type="button"');
     expect(page).toContain('SearchButton');
     expect(page).toContain('ClearFiltersButton');
+    expect(page).toContain('Training Video Vault');
+    expect(page).toContain('HeroStats');
     expect(page).toContain('Previous page');
     expect(page).toContain('Next page');
     expect(page).toContain('aria-live="polite"');

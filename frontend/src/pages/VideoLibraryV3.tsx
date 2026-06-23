@@ -33,6 +33,7 @@ import {
   CollectionArrow, CollectionBody, CollectionCard, CollectionImage,
   CollectionMeta, CollectionThumb, CollectionTitle, CollectionsGrid, VideoGrid,
 } from './VideoLibraryV3.cardStyles';
+import { HeroKicker, HeroStat, HeroStats } from './VideoLibraryV3.heroStyles';
 import VideoCardItem from './VideoLibraryV3.VideoCardItem';
 
 const VideoLibraryV3: React.FC = () => {
@@ -141,8 +142,14 @@ const VideoLibraryV3: React.FC = () => {
       <NoiseOverlay aria-hidden="true" />
 
       <ParallaxHero imageSrc="/images/parallax/video-library-bg.png" overlayOpacity={0.75} minHeight="50vh">
+        <HeroKicker>Training Video Vault</HeroKicker>
         <HeroTitle text="Video Library" forwardedAs="h1" speed={55} />
-        <HeroSubtitle>Browse movement demos, education, and member training content.</HeroSubtitle>
+        <HeroSubtitle>Find the right movement demo, coaching lesson, or member story before the next set starts.</HeroSubtitle>
+        <HeroStats aria-label="Video library highlights">
+          <HeroStat><strong>{pagination.total}</strong><span>Published Videos</span></HeroStat>
+          <HeroStat><strong>{collections.length}</strong><span>Collections</span></HeroStat>
+          <HeroStat><strong>{contentLabel}</strong><span>Current Filter</span></HeroStat>
+        </HeroStats>
       </ParallaxHero>
 
       <SectionDivider />
