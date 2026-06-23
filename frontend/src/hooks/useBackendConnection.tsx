@@ -27,6 +27,8 @@ const getApiUrl = () => {
   return 'http://localhost:10000';
 };
 
+const HEALTH_CHECK_PATH = '/api/health';
+
 // Default configuration - PRODUCTION SAFE
 const DEFAULT_CONFIG = {
   maxRetries: 1, // Reduced to 1 for production safety - prevents infinite loops
@@ -178,8 +180,8 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
     }
 
     try {
-      logger.log(`Checking backend health at: ${fullConfig.apiUrl}/health`);
-      const response = await apiInstance.get('/health');
+      logger.log(`Checking backend health at: ${fullConfig.apiUrl}${HEALTH_CHECK_PATH}`);
+      const response = await apiInstance.get(HEALTH_CHECK_PATH);
       if (response.status === 200) {
         logger.log('âœ… Backend health check SUCCESS - server is running');
         setConnectionState(CONNECTION_STATES.CONNECTED);
@@ -195,7 +197,7 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       setLastError(errorObj);
       return false;
     } catch (error) {
-      const errorObj = handleApiError(error, '/health');
+      const errorObj = handleApiError(error, HEALTH_CHECK_PATH);
 
       // Special handling for blocked by client - immediately give up
       if (errorObj.blockedByClient) {
