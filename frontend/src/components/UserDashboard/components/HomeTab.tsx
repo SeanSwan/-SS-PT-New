@@ -57,6 +57,7 @@ interface HomeTabProps {
   followStats: FollowStats | null;
   displayNameOverride: string;
   usernameOverride: string;
+  embedded?: boolean;
 }
 
 const featureWorkoutImage = '/images/parallax/video-library-bg.png';
@@ -66,6 +67,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   profile,
   displayNameOverride,
   usernameOverride,
+  embedded = false,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -173,6 +175,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   return (
     <>
       <ClientDashboardHome
+        embedded={embedded}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}
         featureImageSrc={featureWorkoutImage}

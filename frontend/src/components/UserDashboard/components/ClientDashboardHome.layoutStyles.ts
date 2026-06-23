@@ -4,7 +4,7 @@
  */
 import styled from 'styled-components';
 
-export const ClientDashboardShell = styled.div`
+export const ClientDashboardShell = styled.div<{ $embedded?: boolean }>`
   --client-bg: var(--bg-base, #030712);
   --client-panel: var(--surface-primary, #06142a);
   --client-panel-strong: var(--surface-elevated, #0a1f3d);
@@ -21,7 +21,9 @@ export const ClientDashboardShell = styled.div`
   --client-gold: var(--accent-gold, #c6a84b);
   --client-success: var(--success-color, #19d27e);
   --client-black: var(--shadow-color, #000000);
-  min-height: 100vh;
+  min-height: ${({ $embedded }) => ($embedded ? 'auto' : '100vh')};
+  border: ${({ $embedded }) => ($embedded ? '1px solid color-mix(in srgb, var(--client-teal) 16%, transparent)' : '0')};
+  border-radius: ${({ $embedded }) => ($embedded ? '18px' : '0')};
   background:
     radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--client-teal) 16%, transparent), transparent 28rem),
     radial-gradient(circle at 86% 6%, color-mix(in srgb, var(--client-blue) 18%, transparent), transparent 34rem),
@@ -198,19 +200,19 @@ export const UserMenuButton = styled.button`
   }
 `;
 
-export const DashboardFrame = styled.div`
+export const DashboardFrame = styled.div<{ $embedded?: boolean }>`
   display: grid;
-  grid-template-columns: 242px minmax(0, 1fr);
-  min-height: calc(100vh - 58px);
+  grid-template-columns: ${({ $embedded }) => ($embedded ? 'minmax(0, 1fr)' : '242px minmax(0, 1fr)')};
+  min-height: ${({ $embedded }) => ($embedded ? 'auto' : 'calc(100vh - 58px)')};
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-export const MainCanvas = styled.main`
+export const MainCanvas = styled.main<{ $embedded?: boolean }>`
   min-width: 0;
-  padding: 18px 24px 26px;
+  padding: ${({ $embedded }) => ($embedded ? '18px 18px 22px' : '18px 24px 26px')};
 
   @media (max-width: 760px) {
     padding: 14px 12px 22px;

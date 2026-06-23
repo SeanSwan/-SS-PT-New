@@ -40,6 +40,7 @@ export interface ClientDashboardAction {
 }
 
 export interface ClientDashboardHomeProps {
+  embedded?: boolean;
   logoSrc: string;
   swanHeroSrc: string;
   featureImageSrc: string;

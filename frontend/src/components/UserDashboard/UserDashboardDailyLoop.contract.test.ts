@@ -73,14 +73,14 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('mounts the V3 Observatory at /user-dashboard (workstream N), never the client dashboard', () => {
     // Workstream N (2026-06-11, Sean's direction): the V3 Observatory IS the
     // main hub at /user-dashboard with URL-driven tabs; /social is a redirect
-    // alias into it. The contract's original intent holds — the hub must
+    // alias into it. The contract's original intent holds Ã¢â‚¬â€ the hub must
     // never collapse into the PT client dashboard.
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
     expect(routeSource).toContain("path: 'user-dashboard/:tab'");
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    // Workstream O: the feed tab folded into Home — /social lands on Home.
+    // Workstream O: the feed tab folded into Home Ã¢â‚¬â€ /social lands on Home.
     expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routeSource).toContain('<SocialTabRedirect />');
     expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
@@ -172,12 +172,19 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(composerSource).toContain('setPendingProofSessionId(latestSessionId)');
     expect(composerSource).toContain('workoutSessionId: pendingProofSessionId');
   });
-  it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
+  it('mounts the premium client home inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
+    const dashboardSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.tsx');
+    const layoutSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.layoutStyles.ts');
 
-    expect(clientHomeSource).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
-    expect(clientHomeSource).toContain('<ClientObservatoryHome />');
-    expect(clientHomeSource).not.toContain("../../../UserDashboard/components/HomeTab");
+    expect(clientHomeSource).toContain("import HomeTab from '../../../UserDashboard/components/HomeTab'");
+    expect(clientHomeSource).toContain('<HomeTab');
+    expect(clientHomeSource).toContain('embedded');
+    expect(clientHomeSource).toContain("progress: '/dashboard/client/progress'");
+    expect(clientHomeSource).toContain("nutrition: '/dashboard/client/meal-planner'");
+    expect(clientHomeSource).not.toContain('ClientObservatoryHome');
+    expect(dashboardSource).toContain('{!embedded && <ClientSidebar');
+    expect(layoutSource).toContain('grid-template-columns: ${({ $embedded }) => ($embedded ?');
   });
 
   it('keeps Social Hub off the client dashboard implementation', () => {
@@ -224,7 +231,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('keeps every phone tab reachable in the bottom bar via snap scrolling (O3 supersedes the wrap-grid)', () => {
     const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
-    // O3: the <=430px wrap-grid retired with the fixed bottom bar — tabs are
+    // O3: the <=430px wrap-grid retired with the fixed bottom bar Ã¢â‚¬â€ tabs are
     // a snap-scrolling row, so no entry can be clipped or orphaned.
     expect(stylesSource).toContain('scroll-snap-type: x proximity');
     expect(stylesSource).toContain('overscroll-behavior-x: contain');
@@ -269,7 +276,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     const lensesSource = readSource('src/components/UserDashboard/components/UserDashboardStudioLenses.tsx');
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
 
-    // Bar/rail entries — Studio's id is 'creative' (the group's landing lens).
+    // Bar/rail entries Ã¢â‚¬â€ Studio's id is 'creative' (the group's landing lens).
     // Workstream O: 'feed' left the bar (panel unmounted; Home absorbed it).
     const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
     barTabs.forEach((tabId) => {
@@ -292,11 +299,11 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(tabsSource).toContain('<TabPanel id="profile"');
     expect(controllerSource).toContain("setActiveTab('profile')");
 
-    // Community is unmounted (duplicate launcher) — no orphan panel.
+    // Community is unmounted (duplicate launcher) Ã¢â‚¬â€ no orphan panel.
     expect(tabsSource).not.toContain('<TabPanel id="community"');
 
-    // Feed is unmounted (workstream O — duplicated Home; Faction War moved
-    // to the Home right rail) — no orphan panel, no stale nav entries.
+    // Feed is unmounted (workstream O Ã¢â‚¬â€ duplicated Home; Faction War moved
+    // to the Home right rail) Ã¢â‚¬â€ no orphan panel, no stale nav entries.
     expect(tabsSource).not.toContain('<TabPanel id="feed"');
     expect(tabBarSource).not.toContain("id: 'feed'");
     expect(adapterSource).not.toContain("id: 'feed'");
@@ -387,7 +394,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(commentsSource).toContain('isCoachRole(comment.user.role)');
     expect(commentsSource).toContain('<CoachChip');
 
-    // Comment threads LOAD on first open — feed payloads carry counts only,
+    // Comment threads LOAD on first open Ã¢â‚¬â€ feed payloads carry counts only,
     // so coach answers would otherwise never render.
     expect(hookSource).toContain('const loadComments = useCallback(async (postId: string)');
     expect(cardSource).toContain('onLoadComments');
@@ -416,7 +423,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(navStyles).toMatch(/@media \(max-width: 768px\) \{[\s\S]*?position: fixed;[\s\S]*?bottom: 0;/);
     expect(navStyles).toContain('env(safe-area-inset-bottom');
     expect(wrapperSource).toContain('env(safe-area-inset-bottom');
-    // Home mounts the bar too — same nav on every dashboard surface.
+    // Home mounts the bar too Ã¢â‚¬â€ same nav on every dashboard surface.
     expect(dashboardSource.match(/<UserDashboardTabBarV3/g)?.length).toBe(2);
     // Top-bar actions with a destination navigate; no dead buttons.
     expect(centerSource).toContain('onClick={target ? () => onAction(target) : undefined}');
@@ -480,7 +487,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(coverHeroSource).toContain('useHomeCoverBanner()');
     expect(coverHeroSource).toContain('aria-label="Edit cover"');
     expect(coverHeroSource).toContain('aria-label="Edit profile"');
-    // Settings is the ONLY entry into the profile panel (N5 contract) — the
+    // Settings is the ONLY entry into the profile panel (N5 contract) Ã¢â‚¬â€ the
     // hero must keep carrying it now that the old header is unmounted.
     expect(coverHeroSource).toContain('aria-label="Open settings"');
     expect(dashboardSource).toContain('onSettings={dashboard.handleSettings}');
@@ -521,6 +528,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('routes user dashboard workout actions through mounted role dashboards', () => {
     const touchedActionFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',
+      'src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx',
       'src/components/UserDashboard/components/DailyHealthLoop.tsx',
       'src/components/UserDashboard/components/ObservatoryShellAdapter.ts',
       'src/components/UserDashboard/components/SwanCoachDock.tsx',
@@ -562,6 +570,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('keeps touched dashboard home files free of corrupted mojibake text', () => {
     const touchedHomeFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',
+      'src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx',
       'src/components/UserDashboard/components/DailyHealthLoop.tsx',
       'src/components/UserDashboard/components/SwanCoachActionLauncher.tsx',
       'src/components/UserDashboard/components/SwanCoachDock.tsx',
