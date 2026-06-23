@@ -24,6 +24,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, ReactNo
 import { ThemeProvider as StyledThemeProvider, type DefaultTheme } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
 import { swanStudiosTheme } from '../../core/theme';
+import { premiumThemeAdditions } from './UniversalThemePremiumThemes';
 
 // === TYPOGRAPHY STACKS ===
 const fonts = {
@@ -1526,7 +1527,7 @@ const obsidianAurora = {
 };
 
 /**
- * CARBON FIBER THEME — Dark carbon with subtle texture feel, silver/platinum + cyan accents
+ * CARBON FIBER THEME — Dark carbon with subtle texture feel and platinum controls.
  */
 const carbonFiber = {
   id: 'carbon-fiber' as const,
@@ -1535,36 +1536,36 @@ const carbonFiber = {
   effects: { glassmorphism: false, glowIntensity: 'subtle' as const, cardStyle: 'solid' as const, borderGlow: false },
   colors: {
     deepSpace: '#121212', stardust: '#1E1E1E', void: '#0A0A0A',
-    primary: '#60C0F0', primaryBlue: '#50A0F0', primaryDeep: '#1A6EB0', primaryLight: '#7DD3FC', primaryNeon: '#60C0F0',
-    secondary: '#C0C0C0', secondaryLight: '#D4D4D4', secondaryDeep: '#8A8A8A',
+    primary: '#D8DEE6', primaryBlue: '#A7B0BC', primaryDeep: '#596574', primaryLight: '#F4F7FA', primaryNeon: '#E5EAF0',
+    secondary: '#A7B0BC', secondaryLight: '#D8DEE6', secondaryDeep: '#596574',
     accent: '#C6A84B', accentLight: '#D4B85C', accentWarm: '#B8972E',
-    wingPurple: '#C0C0C0', wingPurpleLight: '#D4D4D4', wingPurpleDeep: '#8A8A8A',
-    white: '#E8E8E8', silver: '#C0C0C0', muted: 'rgba(232, 232, 232, 0.5)',
+    wingPurple: '#A7B0BC', wingPurpleLight: '#D8DEE6', wingPurpleDeep: '#596574',
+    white: '#F4F7FA', silver: '#D8DEE6', muted: 'rgba(216, 222, 230, 0.62)',
     error: '#F87171', success: '#4ADE80', warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #60C0F0, #C0C0C0)', secondary: 'linear-gradient(135deg, #1E1E1E, #60C0F0)',
-    cosmic: 'linear-gradient(135deg, #C0C0C0, #60C0F0)', hero: 'radial-gradient(ellipse at 30% 40%, rgba(96,192,240,0.05) 0%, transparent 50%), radial-gradient(ellipse at center, #1E1E1E 0%, #121212 70%)',
+    primary: 'linear-gradient(135deg, #596574, #D8DEE6)', secondary: 'linear-gradient(135deg, #101010, #596574)',
+    cosmic: 'linear-gradient(135deg, #A7B0BC, #F4F7FA)', hero: 'radial-gradient(ellipse at 30% 40%, rgba(216,222,230,0.08) 0%, transparent 50%), radial-gradient(ellipse at center, #1E1E1E 0%, #121212 70%)',
     card: 'rgba(30, 30, 30, 0.8)', accent: 'linear-gradient(135deg, #121212, #C6A84B)',
-    stellar: 'linear-gradient(45deg, #60C0F0 0%, #C0C0C0 100%)', swanCosmic: 'linear-gradient(135deg, #60C0F0, #C0C0C0)',
-    glass: 'linear-gradient(135deg, rgba(30, 30, 30, 0.8), rgba(96, 192, 240, 0.02))',
+    stellar: 'linear-gradient(45deg, #D8DEE6 0%, #C6A84B 100%)', swanCosmic: 'linear-gradient(135deg, #D8DEE6, #A7B0BC)',
+    glass: 'linear-gradient(135deg, rgba(30, 30, 30, 0.8), rgba(216, 222, 230, 0.04))',
   },
   shadows: {
-    primary: '0 0 15px rgba(96, 192, 240, 0.12)', secondary: '0 0 15px rgba(192, 192, 192, 0.1)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 192, 240, 0.08)', accent: '0 0 15px rgba(198, 168, 75, 0.2)',
+    primary: '0 0 15px rgba(216, 222, 230, 0.14)', secondary: '0 0 15px rgba(167, 176, 188, 0.12)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 30px rgba(216, 222, 230, 0.08)', accent: '0 0 15px rgba(198, 168, 75, 0.2)',
     elevation: '0 15px 35px rgba(0, 0, 0, 0.6)', glow: '0 0 15px currentColor',
-    glass: '0 8px 32px rgba(18, 18, 18, 0.5)', button: '0 4px 15px rgba(96, 192, 240, 0.15)',
+    glass: '0 8px 32px rgba(18, 18, 18, 0.5)', button: '0 4px 15px rgba(216, 222, 230, 0.14)',
   },
   borders: {
     subtle: 'rgba(192, 192, 192, 0.1)', elegant: 'rgba(192, 192, 192, 0.2)', prominent: 'rgba(192, 192, 192, 0.35)',
     glass: '1px solid rgba(192, 192, 192, 0.12)', card: '1px solid rgba(192, 192, 192, 0.1)',
-    focus: '2px solid #60C0F0', glow: '1px solid rgba(96, 192, 240, 0.15)',
+    focus: '2px solid #D8DEE6', glow: '1px solid rgba(216, 222, 230, 0.16)',
   },
   background: { primary: '#121212', secondary: '#1E1E1E', surface: 'rgba(30, 30, 30, 0.8)', elevated: '#262626' },
   text: {
-    primary: '#E8E8E8', secondary: 'rgba(232, 232, 232, 0.8)', muted: 'rgba(192, 192, 192, 0.6)',
-    heading: '#E8E8E8', subheading: 'rgba(232, 232, 232, 0.9)', body: 'rgba(232, 232, 232, 0.85)',
-    label: 'rgba(192, 192, 192, 0.65)', accent: '#60C0F0',
+    primary: '#F4F7FA', secondary: 'rgba(244, 247, 250, 0.82)', muted: 'rgba(216, 222, 230, 0.62)',
+    heading: '#F4F7FA', subheading: 'rgba(244, 247, 250, 0.9)', body: 'rgba(244, 247, 250, 0.85)',
+    label: 'rgba(216, 222, 230, 0.68)', accent: '#D8DEE6',
   },
 };
 
@@ -1588,6 +1589,7 @@ export const themes = {
   'deep-ocean': deepOcean,
   'obsidian-aurora': obsidianAurora,
   'carbon-fiber': carbonFiber,
+  ...premiumThemeAdditions,
 } as const;
 
 export type ThemeId = keyof typeof themes;
