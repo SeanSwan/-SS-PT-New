@@ -1019,6 +1019,33 @@ export const refreshToken = async (req, res) => {
       });
     }
 
+    if (user.isActive === false) {
+      logger.warn('Refresh attempt on inactive account', { userId: user.id });
+      await user.update({ refreshTokenHash: null }).catch((revokeError) => {
+        logger.warn('Unable to revoke inactive account refresh token', {
+          userId: user.id,
+          error: revokeError.message,
+        });
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Account is inactive. Please contact support.'
+      });
+    }
+
+    if (user.isLocked) {
+      logger.warn('Refresh attempt on locked account', { userId: user.id });
+      await user.update({ refreshTokenHash: null }).catch((revokeError) => {
+        logger.warn('Unable to revoke locked account refresh token', {
+          userId: user.id,
+          error: revokeError.message,
+        });
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Account is locked. Please contact support.'
+      });
+    }
     // Verify refresh token hash
     if (!user.refreshTokenHash) {
       return res.status(401).json({

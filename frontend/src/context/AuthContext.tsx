@@ -9,6 +9,7 @@ import sessionService from '../services/session-service';
 import { useBackendConnection } from '../hooks/useBackendConnection';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
+import { clearAdminImpersonationState, restoreAdminSessionFromImpersonation } from '../utils/adminImpersonationSession';
 import { readAcquisitionParams } from '../utils/acquisitionAttribution';
 import { logger } from '@/utils/logger';
 
@@ -268,6 +269,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           }
 
           if (!token) {
+            const restoredAdmin = restoreAdminSessionFromImpersonation();
+            if (restoredAdmin) {
+              window.location.assign(restoredAdmin.redirectPath || '/dashboard/admin/overview');
+              return;
+            }
             logger.log('No valid token found');
             if (isMounted) {
               setUser(null);
@@ -287,6 +293,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             const refreshed = await refreshToken();
             
             if (!refreshed) {
+              const restoredAdmin = restoreAdminSessionFromImpersonation();
+              if (restoredAdmin) {
+                window.location.assign(restoredAdmin.redirectPath || '/dashboard/admin/overview');
+                return;
+              }
               logger.log('Token refresh failed, logging out');
               if (isMounted) logout();
               return;
@@ -414,6 +425,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     
     // Clear all stored data using cleanup utility
     tokenCleanup.cleanupAllTokens();
+    clearAdminImpersonationState();
     
     // Clear API auth
     apiService.setAuthToken(null);

@@ -342,6 +342,15 @@ export const protect = async (req, res, next) => {
           message: 'Account is inactive. Please contact support.'
         });
       }
+
+      // Check if user is locked so admin account blocks stop live access tokens too.
+      if (user.isLocked) {
+        logger.warn('Locked user attempted access', { userId: user.id });
+        return res.status(403).json({
+          success: false,
+          message: 'Account is locked. Please contact support.'
+        });
+      }
       
       // Attach user to request - ensure ID is a string for consistent comparison
       req.user = {
@@ -351,11 +360,24 @@ export const protect = async (req, res, next) => {
         email: user.email,
         subscriptionTier: user.subscriptionTier || 'free',
       };
+
+      if (
+        decoded.impersonation === true &&
+        decoded.impersonatedBy &&
+        decoded.impersonationActorRole === 'admin'
+      ) {
+        req.impersonation = {
+          actorId: toStringId(decoded.impersonatedBy),
+          targetUserId: toStringId(user.id),
+          targetRole: user.role,
+        };
+      }
       
       // Log successful authentication
       logger.info('User authenticated', { 
         userId: user.id, 
-        role: user.role, 
+        role: user.role,
+        impersonatedBy: req.impersonation?.actorId,
         path: req.path,
         method: req.method
       });

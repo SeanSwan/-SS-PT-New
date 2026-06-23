@@ -119,6 +119,7 @@ const setupAssociations = async () => {
     // AI Privacy Models (Phase 1)
     const AiPrivacyProfileModule = await import('./AiPrivacyProfile.mjs');
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
+    const AdminAccountAuditLogModule = await import('./AdminAccountAuditLog.mjs');
     const AiCommandAuditLogModule = await import('./AiCommandAuditLog.mjs');
 
     // AI Monitoring Models (Phase 10)
@@ -322,6 +323,7 @@ const setupAssociations = async () => {
     // AI Privacy Models
     const AiPrivacyProfile = AiPrivacyProfileModule.default;
     const AiInteractionLog = AiInteractionLogModule.default;
+    const AdminAccountAuditLog = AdminAccountAuditLogModule.default;
     const AiCommandAuditLog = AiCommandAuditLogModule.default;
 
     // AI Monitoring Models (Phase 10)
@@ -484,7 +486,7 @@ const setupAssociations = async () => {
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
-        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog,
+        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog,
         // AI Monitoring Models (Phase 10)
         AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
@@ -1046,6 +1048,10 @@ const setupAssociations = async () => {
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiCommandAuditLog, { foreignKey: 'userId', as: 'aiCommandAuditLogs' });
     AiCommandAuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(AdminAccountAuditLog, { foreignKey: 'actorUserId', as: 'adminAccountActions' });
+    AdminAccountAuditLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
+    User.hasMany(AdminAccountAuditLog, { foreignKey: 'targetUserId', as: 'adminAccountAuditTargets' });
+    AdminAccountAuditLog.belongsTo(User, { foreignKey: 'targetUserId', as: 'target' });
 
     // Long-Horizon Planning Associations (Phase 5C)
     User.hasMany(LongTermProgramPlan, { foreignKey: 'userId', as: 'programPlans' });
@@ -1386,6 +1392,8 @@ const setupAssociations = async () => {
       // AI Privacy Models
       AiPrivacyProfile,
       AiInteractionLog,
+      AiCommandAuditLog,
+      AdminAccountAuditLog,
 
       // AI Monitoring Models (Phase 10)
       AiMetricsBucket,

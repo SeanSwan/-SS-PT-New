@@ -320,6 +320,14 @@ import {
   forgotPassword,
   resetPassword
 } from '../controllers/authController.mjs';
+import {
+  getAdminImpersonationTargets,
+  startAdminImpersonation
+} from '../controllers/adminImpersonationController.mjs';
+import {
+  getAdminAccountCommandTargets,
+  runAdminAccountCommand
+} from '../controllers/adminAccountCommandController.mjs';
 import { 
   protect, 
   adminOnly, 
@@ -332,6 +340,8 @@ import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const adminAccountListLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 120 });
+const adminAccountCommandLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
 
 /**
  * @route   POST /api/auth/register
@@ -392,6 +402,46 @@ router.get('/validate-token', validateToken);
  * @access  Private
  */
 router.get('/me', protect, getProfile);
+
+/**
+ * @route   GET /api/auth/admin/impersonation/targets
+ * @desc    Admin-only list of active non-admin accounts that can be tested
+ * @access  Private (Admin Only)
+ */
+router.get('/admin/impersonation/targets', protect, adminOnly, getAdminImpersonationTargets);
+
+/**
+ * @route   POST /api/auth/admin/impersonation/start
+ * @desc    Mint a short-lived target access token for admin account testing
+ * @access  Private (Admin Only)
+ */
+router.post('/admin/impersonation/start', protect, adminOnly, startAdminImpersonation);
+
+/**
+ * @route   GET /api/auth/admin/accounts/targets
+ * @desc    Owner-gated list of non-admin accounts for testing and lifecycle controls
+ * @access  Private (Admin + owner allowlist)
+ */
+router.get(
+  '/admin/accounts/targets',
+  protect,
+  adminOnly,
+  adminAccountListLimiter,
+  getAdminAccountCommandTargets
+);
+
+/**
+ * @route   POST /api/auth/admin/accounts/:targetUserId/:command
+ * @desc    Owner-gated account command: block, deactivate, reactivate, force-logout
+ * @access  Private (Admin + owner allowlist)
+ */
+router.post(
+  '/admin/accounts/:targetUserId/:command(block|deactivate|reactivate|force-logout)',
+  protect,
+  adminOnly,
+  adminAccountCommandLimiter,
+  runAdminAccountCommand
+);
 
 /**
  * NOTE: Profile routes have been moved to profileRoutes.mjs

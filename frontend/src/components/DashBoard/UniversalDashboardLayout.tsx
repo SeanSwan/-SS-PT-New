@@ -32,6 +32,7 @@ import { X } from 'lucide-react';
 // viewing a non-admin dashboard (trainer or client).
 import ViewAsBanner from './components/ViewAsBanner';
 import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
+import AdminAccountSwitcher from '../Admin/AdminAccountSwitcher';
 import { useAuth } from '../../context/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
@@ -1039,6 +1040,9 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
               Only renders when they disagree AND the authenticated user
               is admin. Writes still audit to the real admin (no JWT swap).
             */}
+            {userRole === 'admin' && activeRole === 'admin' && (
+              <AdminAccountSwitcher />
+            )}
             {userRole === 'admin' && (activeRole === 'trainer' || activeRole === 'client') && (
               <ViewAsBanner activeRole={activeRole} />
             )}

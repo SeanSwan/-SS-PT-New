@@ -6,6 +6,7 @@ import {
   shouldFailClosedForExpiredSession,
 } from './authRequestPolicy';
 import { ProductionTokenManager } from './productionTokenManager';
+import { restoreAdminSessionFromImpersonation } from '../utils/adminImpersonationSession';
 
 type PaywallTriggerFn = (featureName: string, data?: Record<string, unknown>) => void;
 
@@ -23,6 +24,17 @@ const redirectToLoginOnce = () => {
 
   authRedirectStarted = true;
   window.location.href = '/login';
+};
+
+const restoreAdminSessionOnce = () => {
+  if (typeof window === 'undefined') return false;
+  const restored = restoreAdminSessionFromImpersonation();
+  if (!restored) return false;
+  if (!authRedirectStarted) {
+    authRedirectStarted = true;
+    window.location.href = restored.redirectPath || '/dashboard/admin/overview';
+  }
+  return true;
 };
 
 export const createProductionApiClient = (
@@ -49,6 +61,9 @@ export const createProductionApiClient = (
 
           const hasRefreshToken = !!ProductionTokenManager.getRefreshToken();
           if (shouldFailClosedForExpiredSession(config.url, true, hasRefreshToken)) {
+            if (restoreAdminSessionOnce()) {
+              return Promise.reject(createAuthSessionExpiredError(config));
+            }
             ProductionTokenManager.clearAuthData();
             redirectToLoginOnce();
             return Promise.reject(createAuthSessionExpiredError(config));
@@ -59,6 +74,9 @@ export const createProductionApiClient = (
           if (newToken) {
             config.headers.Authorization = `Bearer ${newToken}`;
           } else {
+            if (restoreAdminSessionOnce()) {
+              return Promise.reject(createAuthSessionExpiredError(config));
+            }
             redirectToLoginOnce();
             return Promise.reject(createAuthSessionExpiredError(config));
           }
@@ -112,6 +130,9 @@ export const createProductionApiClient = (
             return client(originalRequest);
           }
 
+          if (restoreAdminSessionOnce()) {
+            return Promise.reject(createAuthSessionExpiredError(originalRequest));
+          }
           ProductionTokenManager.clearAuthData();
           redirectToLoginOnce();
           return Promise.reject(createAuthSessionExpiredError(originalRequest));
