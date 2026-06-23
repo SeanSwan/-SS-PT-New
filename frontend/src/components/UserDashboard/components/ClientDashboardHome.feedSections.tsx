@@ -113,7 +113,7 @@ export function QuickPostCard(props: Pick<ClientDashboardHomeProps,
 export function CommunityFeedCard({ latestPost, feedLoading, feedError, avatarSrc, displayName }: Pick<ClientDashboardHomeProps,
   'latestPost' | 'feedLoading' | 'feedError' | 'avatarSrc' | 'displayName'>) {
   return (
-    <PanelCard>
+    <PanelCard aria-label="Community feed preview">
       <PanelHeader><Kicker><MessageCircle size={13} /> Community feed</Kicker>{feedLoading && <TinyText>Loading</TinyText>}</PanelHeader>
       {latestPost ? (
         <FeedPost>

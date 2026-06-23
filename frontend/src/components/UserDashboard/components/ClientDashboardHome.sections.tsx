@@ -267,7 +267,7 @@ export function TodaySnapshotCard({ todaySnapshot }: Pick<ClientDashboardHomePro
 
 export function TodaysAssignmentCard({ assignment, onNavigate }: Pick<ClientDashboardHomeProps, 'assignment' | 'onNavigate'>) {
   return (
-    <PanelCard>
+    <PanelCard data-testid="current-workout-card" aria-label="Today's training priority">
       <PanelHeader><div><Kicker>{assignment.kicker}</Kicker><CardTitle>{assignment.title}</CardTitle><MutedText>{assignment.meta}</MutedText></div></PanelHeader>
       <CardBody>
         <ListStack>

@@ -100,8 +100,9 @@ export const TopNavLinks = styled.nav`
 
 export const TopNavLink = styled.button<{ $active?: boolean }>`
   position: relative;
+  min-width: 44px;
   min-height: 54px;
-  padding: 0 2px;
+  padding: 0 8px;
   border: 0;
   background: transparent;
   color: ${({ $active }) => ($active ? 'var(--client-text)' : 'var(--client-muted)')};
