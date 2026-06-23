@@ -1,0 +1,241 @@
+/**
+ * FILE: ClientDashboardHome.layoutStyles.ts
+ * PURPOSE: Shell, navigation, hero, and responsive layout styles.
+ */
+import styled from 'styled-components';
+
+export const ClientDashboardShell = styled.div`
+  --client-bg: var(--bg-base, #030712);
+  --client-panel: var(--surface-primary, #06142a);
+  --client-panel-strong: var(--surface-elevated, #0a1f3d);
+  --client-panel-soft: var(--card-bg, #08162b);
+  --client-text: var(--text-primary, #e0ecf4);
+  --client-muted: var(--text-secondary, #9db4c8);
+  --client-faint: var(--text-muted, #6f849a);
+  --client-line: color-mix(in srgb, var(--accent-primary, #60c0f0) 20%, transparent);
+  --client-line-strong: color-mix(in srgb, var(--accent-primary, #60c0f0) 42%, transparent);
+  --client-teal: var(--accent-primary, #60c0f0);
+  --client-mint: var(--accent-secondary, #21e6c1);
+  --client-blue: var(--accent-tertiary, #4070c0);
+  --client-purple: var(--accent-purple, #8b5cf6);
+  --client-gold: var(--accent-gold, #c6a84b);
+  --client-success: var(--success-color, #19d27e);
+  --client-black: var(--shadow-color, #000000);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--client-teal) 16%, transparent), transparent 28rem),
+    radial-gradient(circle at 86% 6%, color-mix(in srgb, var(--client-blue) 18%, transparent), transparent 34rem),
+    linear-gradient(180deg, var(--client-bg), color-mix(in srgb, var(--client-bg) 86%, var(--client-black)));
+  color: var(--client-text);
+  font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
+  overflow-x: hidden;
+`;
+
+export const ClientTopNav = styled.header`
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 58px;
+  padding: 0 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--client-line) 78%, transparent);
+  background: color-mix(in srgb, var(--client-bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+
+  @media (max-width: 1120px) {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr auto;
+    padding: 10px 14px;
+  }
+`;
+
+export const ClientBrand = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  width: fit-content;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--client-text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+
+  img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+  }
+
+  span {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.05rem;
+  }
+`;
+
+export const TopNavLinks = styled.nav`
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 0;
+  gap: 20px;
+
+  @media (max-width: 1180px) {
+    gap: 12px;
+  }
+
+  @media (max-width: 920px) {
+    display: none;
+  }
+`;
+
+export const TopNavLink = styled.button<{ $active?: boolean }>`
+  position: relative;
+  min-height: 54px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: ${({ $active }) => ($active ? 'var(--client-text)' : 'var(--client-muted)')};
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: ${({ $active }) => ($active ? 800 : 600)};
+  white-space: nowrap;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 999px;
+    background: ${({ $active }) => ($active ? 'var(--client-mint)' : 'transparent')};
+    box-shadow: ${({ $active }) => ($active ? '0 0 14px var(--client-mint)' : 'none')};
+  }
+`;
+
+export const TopActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+`;
+
+export const IconButton = styled.button`
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--client-muted);
+  cursor: pointer;
+
+  &:not(:disabled):hover,
+  &:focus-visible {
+    color: var(--client-text);
+    border-color: var(--client-line-strong);
+    background: color-mix(in srgb, var(--client-panel-strong) 78%, transparent);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
+export const ActionCount = styled.span`
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--client-mint);
+  color: var(--client-bg);
+  font-size: 0.62rem;
+  font-weight: 900;
+`;
+
+export const UserMenuButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--client-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+
+  img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--client-mint);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--client-mint) 46%, transparent);
+  }
+
+  @media (max-width: 520px) {
+    span {
+      display: none;
+    }
+  }
+`;
+
+export const DashboardFrame = styled.div`
+  display: grid;
+  grid-template-columns: 242px minmax(0, 1fr);
+  min-height: calc(100vh - 58px);
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const MainCanvas = styled.main`
+  min-width: 0;
+  padding: 18px 24px 26px;
+
+  @media (max-width: 760px) {
+    padding: 14px 12px 22px;
+  }
+`;
+
+export const ContentGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 326px;
+  gap: 20px;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const PrimaryStack = styled.div`
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+`;
+
+export const RightRail = styled.aside`
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+`;

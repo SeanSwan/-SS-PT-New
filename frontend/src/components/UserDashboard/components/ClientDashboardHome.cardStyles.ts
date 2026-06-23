@@ -1,0 +1,189 @@
+/**
+ * FILE: ClientDashboardHome.cardStyles.ts
+ * PURPOSE: Card, form, feed, and dashboard widget styles.
+ */
+import styled from 'styled-components';
+
+export const PanelCard = styled.section`
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--client-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--client-panel-strong) 72%, transparent), transparent),
+    color-mix(in srgb, var(--client-panel) 92%, var(--client-black));
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--client-black) 34%, transparent);
+  overflow: hidden;
+`;
+
+export const CardBody = styled.div`
+  padding: 16px;
+`;
+
+export const PanelHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px 0;
+`;
+
+export const Kicker = styled.p`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--client-mint);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+`;
+
+export const CardTitle = styled.h3`
+  margin: 6px 0 0;
+  color: var(--client-text);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.06rem;
+  line-height: 1.18;
+`;
+
+export const MutedText = styled.p`
+  margin: 0;
+  color: var(--client-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+`;
+
+export const TinyText = styled.span`
+  color: var(--client-faint);
+  font-size: 0.72rem;
+  line-height: 1.35;
+`;
+
+export const ProgressTrack = styled.div`
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--client-line) 48%, transparent);
+  overflow: hidden;
+`;
+
+export const ProgressFill = styled.div<{ $pct: number }>`
+  width: ${({ $pct }) => `${Math.max(0, Math.min(100, $pct))}%`};
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--client-mint), var(--client-blue));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--client-mint) 58%, transparent);
+`;
+
+export const QuickActionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ActionButton = styled.button<{ $primary?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'var(--client-line)')};
+  border-radius: 8px;
+  background: ${({ $primary }) => (
+    $primary ? 'linear-gradient(135deg, var(--client-mint), var(--client-blue))' : 'color-mix(in srgb, var(--client-panel-soft) 72%, transparent)'
+  )};
+  color: ${({ $primary }) => ($primary ? 'var(--client-bg)' : 'var(--client-text)')};
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
+    border-color: var(--client-line-strong);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    transform: none;
+  }
+`;
+
+export const TwoColumnGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 14px;
+
+  @media (max-width: 1000px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ThreeColumnGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+
+  @media (max-width: 1120px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const MetricGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+`;
+
+export const MetricTile = styled.div`
+  min-height: 74px;
+  padding: 11px;
+  border: 1px solid var(--client-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--client-panel-soft) 72%, transparent);
+`;
+
+export const ListStack = styled.div`
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+`;
+
+export const RowItem = styled.div`
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--client-line) 58%, transparent);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+`;
+
+export const StatusDot = styled.span<{ $complete?: boolean }>`
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: ${({ $complete }) => ($complete ? 'var(--client-success)' : 'var(--client-teal)')};
+  border: 1px solid currentColor;
+`;

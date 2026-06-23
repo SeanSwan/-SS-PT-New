@@ -1,18 +1,14 @@
 /**
  * FILE: HomeTab.tsx
- * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
+ * PURPOSE: Source-of-truth client dashboard Home tab for /user-dashboard.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { useHomeCoverBanner } from './useHomeCoverBanner';
-import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
-import { useFaction } from '../../../hooks/social/useFaction';
-// O3 feed unification: ONE stateful feed mount powers the community stream,
-// the Quick Post composer, the latest-post spotlight, and the live widgets.
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
+import { useMacroSummary } from '../../../hooks/useMacroSummary';
 import {
   useMessageSummary,
   useNotificationSummary,
@@ -20,33 +16,19 @@ import {
 } from '../../../hooks/useDashboardQueries';
 import fallbackAvatar from '../../../assets/logo.svg';
 import brandLogo from '../../../assets/Logo.png';
+import crystalSwan from '../../../assets/crystal-swan.png';
 import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-import DailyHealthLoop from './DailyHealthLoop';
-import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
-import SwanCoachActionLauncher from './SwanCoachActionLauncher';
-import SwanCoachDock from './SwanCoachDock';
-import { DockSkeleton } from './HomeTabActions.styles';
 import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 import {
   USER_HOME_TRAINING_PROMPT,
   buildUserDashboardTeachCoachRoute,
 } from '../UserDashboardTeachCoachRoute';
-import HomeTabVisionCenter from './HomeTabVisionCenter';
-import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
-import HomeTabVisionRightRail from './HomeTabVisionRightRail';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
-import {
-  clampPercent,
-  type VisionTarget,
-} from './HomeTabVision.data';
-import HomeTabTrainingProof from './HomeTabTrainingProof';
+import { clampPercent } from './HomeTabVision.data';
 import useHomeComposer from './useHomeComposer';
-import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
-  assessStreakRisk,
-  buildCreatorStats,
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
@@ -54,13 +36,19 @@ import {
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
+import ClientDashboardHome from './ClientDashboardHome';
+import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
-  CenterColumn,
-  CreatorPage,
-  CreatorShell,
-  Panel,
-  SupportShell,
-} from './HomeTabVision.styles';
+  buildAssignmentView,
+  buildInsights,
+  buildPerformanceScore,
+  buildSessionPreview,
+  buildTodaySnapshot,
+  findClientRank,
+} from './ClientDashboardHome.viewModel';
+import { useCurrentClientWorkout } from '../../DashBoard/Pages/client-dashboard/observatory/useCurrentClientWorkout';
+import { useUpcomingClientSession } from './useUpcomingClientSession';
+
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -70,46 +58,42 @@ interface HomeTabProps {
   displayNameOverride: string;
   usernameOverride: string;
 }
+
+const featureWorkoutImage = '/images/parallax/video-library-bg.png';
+
 const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
-  displayStats,
-  profilePosts,
-  followStats,
   displayNameOverride,
   usernameOverride,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
-  // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
-  const { factions } = useFaction();
-  const { isElite, loading: subLoading } = useSubscription();
+  const { isElite } = useSubscription();
+  const { summary: macroSummary, loading: macroSummaryLoading } = useMacroSummary();
   const communityFeed = useSocialFeed();
   const notificationSummary = useNotificationSummary();
-  // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
-  const messageSummary = useMessageSummary({
-    enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
-  });
-  const [activeLens, setActiveLens] = useState('reels');
+  const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
+  const messageSummary = useMessageSummary({ enabled: hasEliteAccess });
+  const workoutSessions = useWorkoutSessions({ limit: 50 });
+  const currentWorkoutState = useCurrentClientWorkout(user?.id);
+  const upcomingSessionState = useUpcomingClientSession(user?.id);
+
   const posts = communityFeed.posts;
-  const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
-  const handle = `@${usernameOverride || user?.username || 'swancreator'}`;
+  const displayName = displayNameOverride || user?.firstName || user?.username || 'Swan Member';
+  const handle = `@${usernameOverride || user?.username || 'swanmember'}`;
   const avatarSrc = resolveHomeAvatarSrc({
     profilePhoto: sanitizeImageUrl(profile?.photo),
     authPhoto: sanitizeImageUrl(user?.profileImageUrl),
     fallbackAvatar,
   });
-  const creatorStats = useMemo(() => buildCreatorStats({
-    profileStats: displayStats,
-    profilePosts,
-    feedPosts: posts,
-    followStats,
-  }), [displayStats, followStats, posts, profilePosts]);
+
   const topBarActions = useMemo(() => buildHomeTopBarActions({
     inboxUnread: sumUnreadConversations(messageSummary.data),
     notificationUnread: parseUnreadNotificationCount(notificationSummary.data),
   }), [messageSummary.data, notificationSummary.data]);
+
   const level = levelProgress?.level ?? gamProfile?.data?.level ?? 1;
   const points = gamProfile?.data?.points ?? 0;
   const progressPercent = clampPercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
@@ -117,36 +101,20 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const streakDays = gamProfile?.data?.streakDays ?? 0;
   const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
-  const nutritionAction = useHomeNutritionAction();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
-  const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
-  // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
-  const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
-  // Workstream N4: real training proof from logged workout sessions.
-  const workoutSessions = useWorkoutSessions({ limit: 50 });
+
   const trainingProof = useMemo(
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
-  // O3 streak rescue: live streak + no session today + evening = escalate.
-  const streakAtRisk = useMemo(
-    () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
-    [streakDays, workoutSessions.data],
-  );
-  // O3: Quick Post composer (extracted hook) — "Share my week" arms the
-  // workout-proof attachment with the latest REAL session link.
+
   const composer = useHomeComposer({
     createPost: communityFeed.createPost,
     isCreatingPost: communityFeed.isCreatingPost,
     latestSessionId: trainingProof.latestSessionId,
   });
+
   const latestPostView = useMemo(() => buildLatestPostView(posts, Date.now()), [posts]);
-  const transformationPhotoUrls = useMemo(
-    () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null)
-      .map((photo) => sanitizeImageUrl(photo.url))
-      .filter((url): url is string => !!url),
-    [profile],
-  );
   const liveWidgets = useHomeTabLiveWidgets({
     displayName,
     feedPosts: posts,
@@ -155,143 +123,118 @@ const HomeTab: React.FC<HomeTabProps> = ({
     currentUserPoints: points,
   });
 
-  const runAction = (target: VisionTarget) => {
-    if (target === 'challenges') {
-      // Challenges is a first-class dashboard tab post-merge (workstream N).
-      onTabChange('challenges');
-      return;
-    }
-    setActiveLens(target);
-    onTabChange(target);
+  const todaySnapshot = useMemo(() => buildTodaySnapshot({
+    sessions: workoutSessions.data,
+    proof: trainingProof,
+    macroSummary,
+    macroLoading: macroSummaryLoading,
+  }), [macroSummary, macroSummaryLoading, trainingProof, workoutSessions.data]);
+
+  const assignment = useMemo(() => buildAssignmentView(currentWorkoutState), [currentWorkoutState]);
+  const sessionPreview = useMemo(() => buildSessionPreview(upcomingSessionState), [upcomingSessionState]);
+  const insights = useMemo(
+    () => buildInsights(trainingProof, progressPercent, streakDays),
+    [progressPercent, streakDays, trainingProof],
+  );
+  const performanceScore = useMemo(
+    () => buildPerformanceScore(trainingProof, progressPercent, streakDays),
+    [progressPercent, streakDays, trainingProof],
+  );
+  const rankLabel = useMemo(
+    () => findClientRank(liveWidgets.leaderboardRows, points, displayName),
+    [displayName, liveWidgets.leaderboardRows, points],
+  );
+
+  const quickActions = useMemo<ClientDashboardAction[]>(() => [
+    { label: 'Log Workout', path: logWorkoutPath },
+    { label: 'Ask Coach', path: homeTrainingCoachPath },
+    { label: 'View Progress', target: 'progress' },
+    { label: 'Book Session', path: '/dashboard/client/schedule' },
+  ], [homeTrainingCoachPath, logWorkoutPath]);
+
+  const handleTarget = (target: ClientDashboardTarget) => {
+    if (target === 'dashboard') onTabChange('home');
+    if (target === 'progress') onTabChange('progress');
+    if (target === 'nutrition') onTabChange('nutrition');
+    if (target === 'challenges') onTabChange('challenges');
+    if (target === 'notifications') onTabChange('notifications');
+    if (target === 'profile') onTabChange('profile');
+    if (target === 'workouts') navigate('/dashboard/client/workouts');
+    if (target === 'coach') navigate(homeTrainingCoachPath);
+    if (target === 'sessions') navigate('/dashboard/client/schedule');
+  };
+
+  const shareProgress = () => {
+    composer.handleShareProgress(
+      trainingProof.shareLine || 'Building my SwanStudios progress one session at a time.',
+    );
   };
 
   return (
-    <CreatorPage data-testid="creator-observatory-home">
-      <HomeTrainingCommandStrip
-        coachPath={homeTrainingCoachPath}
-        logWorkoutPath={logWorkoutPath}
+    <>
+      <ClientDashboardHome
+        logoSrc={brandLogo}
+        swanHeroSrc={crystalSwan}
+        featureImageSrc={featureWorkoutImage}
+        avatarSrc={avatarSrc}
+        fallbackAvatarSrc={fallbackAvatar}
+        displayName={displayName}
+        handle={handle}
+        tierName={tierName}
+        level={level}
+        points={points}
+        rankLabel={rankLabel}
+        streakDays={streakDays}
+        progressPercent={progressPercent}
+        pointsToNext={pointsToNext}
+        hasEliteAccess={hasEliteAccess}
+        topBarActions={topBarActions}
+        quickActions={quickActions}
+        todaySnapshot={todaySnapshot}
+        assignment={assignment}
+        sessionPreview={sessionPreview}
+        trainingProof={trainingProof}
+        insights={insights}
+        performanceScore={performanceScore}
+        macroSummary={macroSummary}
+        macroLoading={macroSummaryLoading}
+        activeChallenge={liveWidgets.activeChallenge}
+        challengeLoading={liveWidgets.challengeLoading}
+        badges={liveWidgets.badges}
+        leaderboardRows={liveWidgets.leaderboardRows}
+        trendingTags={liveWidgets.trendingTags}
+        trendingLoading={liveWidgets.trendingLoading}
+        liveActivityItems={liveWidgets.liveActivityItems}
+        liveActivityConnected={liveWidgets.liveActivityConnected}
+        latestPost={latestPostView}
+        feedPosts={posts}
+        feedLoading={communityFeed.isLoading}
+        feedError={communityFeed.error}
+        postText={composer.postText}
+        activeMood={composer.activeMood}
+        selectedMediaName={composer.selectedMedia?.name}
+        mediaError={null}
+        proofAttached={composer.proofAttached}
+        postIntentLabel={composer.postIntentPreview?.label}
+        postIntentTags={composer.postIntentPreview?.hashtags || []}
+        canPost={composer.canPost}
+        isPosting={communityFeed.isCreatingPost}
+        onSetMood={composer.setActiveMood}
+        onAddMediaClick={() => composer.mediaInputRef.current?.click()}
+        onPostTextChange={composer.setPostText}
+        onSubmitPost={composer.submitPost}
         onNavigate={navigate}
-        onProgress={() => onTabChange('progress')}
+        onTarget={handleTarget}
+        onShareProgress={shareProgress}
       />
-
-      <CreatorShell>
-        <HomeTabVisionLeftRail
-          logoSrc={brandLogo}
-          level={level}
-          points={points}
-          pointsToNext={pointsToNext}
-          progressPercent={progressPercent}
-          streakDays={streakDays}
-          activeId={activeLens}
-          onAction={runAction}
-        />
-
-        <HomeTabVisionCenter
-          avatarSrc={avatarSrc}
-          fallbackAvatarSrc={fallbackAvatar}
-          displayName={displayName}
-          handle={handle}
-          tierName={tierName}
-          level={level}
-          points={points}
-          postsCount={creatorStats.posts}
-          followersCount={creatorStats.followers}
-          followingCount={creatorStats.following}
-          activeLens={activeLens}
-          postText={composer.postText}
-          activeMood={composer.activeMood}
-          selectedMediaName={composer.selectedMedia?.name}
-          communityFeed={communityFeed}
-          proofAttached={composer.proofAttached}
-          bannerLayer={bannerLayer}
-          onEditCover={toggleCoverEditor}
-          coverEditorSlot={coverEditorSlot}
-          postIntentPreview={composer.postIntentPreview}
-          latestPost={latestPostView}
-          canPost={composer.canPost}
-          isPosting={communityFeed.isCreatingPost}
-          onAction={runAction}
-          onSetMood={composer.setActiveMood}
-          onAddMediaClick={() => composer.mediaInputRef.current?.click()}
-          onPostTextChange={composer.setPostText}
-          onSubmitPost={composer.submitPost}
-          topBarActions={topBarActions}
-        />
-        <input
-          ref={composer.mediaInputRef}
-          type="file"
-          accept="image/*,video/*"
-          onChange={composer.handleMediaSelect}
-          hidden
-        />
-
-        <HomeTabVisionRightRail
-          progressPercent={progressPercent}
-          liveActivityItems={liveWidgets.liveActivityItems}
-          liveActivityConnected={liveWidgets.liveActivityConnected}
-          activeChallenge={liveWidgets.activeChallenge}
-          challengeLoading={liveWidgets.challengeLoading}
-          badges={liveWidgets.badges}
-          leaderboardRows={liveWidgets.leaderboardRows}
-          trendingTags={liveWidgets.trendingTags}
-          trendingLoading={liveWidgets.trendingLoading}
-          factions={factions}
-          transformationPhotoUrls={transformationPhotoUrls}
-          streakAtRisk={streakAtRisk}
-          streakDays={streakDays}
-          onAction={runAction}
-          onLogWorkout={() => navigate(logWorkoutPath)}
-        />
-      </CreatorShell>
-
-      <SupportShell>
-        <CenterColumn>
-          {/* Workstream N4: the Product Core Loop on Home — real progress
-              proof from logged workouts, one tap from a shareable post. */}
-          <Panel>
-            <HomeTabTrainingProof
-              proof={trainingProof}
-              onShareProgress={composer.handleShareProgress}
-            />
-          </Panel>
-
-          <Panel>
-            <DailyHealthLoop
-              streakDays={streakDays}
-              level={level}
-              progressPercent={progressPercent}
-              tierName={tierName}
-              logWorkoutPath={logWorkoutPath}
-              nutritionAction={nutritionAction}
-              onOpenNutrition={() => onTabChange('nutrition')}
-            />
-          </Panel>
-
-          {subLoading ? (
-            <DockSkeleton aria-hidden="true" />
-          ) : (
-            <Panel>
-              <SwanCoachDock
-                isElite={hasEliteAccess}
-                userName={displayName}
-                userRole={user?.role}
-                streakDays={streakDays}
-                level={level}
-                tierName={tierName}
-              />
-              {hasEliteAccess && (
-                <SwanCoachActionLauncher
-                  userName={displayName}
-                  userRole={user?.role}
-                  streakDays={streakDays}
-                  level={level}
-                />
-              )}
-            </Panel>
-          )}
-        </CenterColumn>
-      </SupportShell>
-    </CreatorPage>
+      <input
+        ref={composer.mediaInputRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={composer.handleMediaSelect}
+        hidden
+      />
+    </>
   );
 };
 

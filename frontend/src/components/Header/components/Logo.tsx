@@ -195,6 +195,7 @@ const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
       role="button"
       aria-label="Go to homepage"
       tabIndex={0}
+      style={{ minWidth: 44, minHeight: 44 }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           onLogoClick();

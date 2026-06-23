@@ -114,7 +114,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(universalLayoutSource).toContain("const userRole = rawRole === 'user' ? 'client' : rawRole;");
   });
 
-  it('keeps Home as the daily return surface with the health loop and coach action launcher', () => {
+  it('keeps Home as the daily return surface with the client dashboard shell and coach paths', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
@@ -123,94 +123,55 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(controllerSource).toContain("const [activeTab, setActiveTab] = useState<TabId>('home')");
     expect(dashboardSource).toContain("dashboard.activeTab === 'home'");
     expect(tabsSource).toContain('<HomeTab onTabChange');
-    expect(homeSource).toContain('<DailyHealthLoop');
-    expect(homeSource).toContain('<SwanCoachActionLauncher');
+    expect(homeSource).toContain('<ClientDashboardHome');
+    expect(homeSource).toContain('getPersonalLogWorkoutDashboardPath()');
+    expect(homeSource).toContain('buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT)');
   });
-
-  it('keeps the Home tab honest — real cover layer, real latest post, no fabricated data (workstream N2)', () => {
+  it('keeps the rebuilt Home tab honest with real data and no fabricated engagement', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
-    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
-    const railSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
-    const moodsSource = readSource('src/components/UserDashboard/components/HomeTabVision.data.ts');
+    const shellSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.tsx');
+    const sectionsSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.sections.tsx');
+    const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
+    const viewModelSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.viewModel.ts');
 
-    // The identity header carries the user's REAL cover (photo/collage/carousel)
-    // via the extracted useHomeCoverBanner hook (N4 refactor).
-    const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
-    expect(homeSource).toContain('useHomeCoverBanner');
-    expect(coverHookSource).toContain('useSocialCoverBanner');
-    expect(coverHookSource).toContain('UserDashboardBannerMediaLayer');
-    expect(centerSource).toContain('bannerLayer');
-
-    // Latest-post card + spotlight read real data; fabricated engagement is gone.
-    expect(homeSource).toContain('buildLatestPostView');
-    expect(centerSource).not.toContain('1.3K likes');
-    expect(centerSource).not.toContain('86 comments');
-    expect(centerSource).not.toContain('Rise Through');
-    expect(centerSource).not.toContain('just now');
-    expect(centerSource).not.toContain('+25 XP');
-
-    // Quick Post offers three core moods (least-clicks mandate).
-    expect(moodsSource).not.toContain("{ id: 'music'");
-    expect(moodsSource).not.toContain("{ id: 'art'");
-    expect(moodsSource).not.toContain("{ id: 'challenge', label: 'Challenge'");
-    expect(moodsSource).not.toContain("{ id: 'transformation'");
-
-    // Right rail: pretend-features and fake charts removed; real actions wired.
-    expect(railSource).not.toContain('Stories from the Garden');
-    expect(railSource).not.toContain('[38, 52, 60, 70, 78, 86, 100]');
-    expect(railSource).toContain('transformationPhotoUrls');
-    expect(railSource).toContain('onLogWorkout');
+    expect(homeSource).toContain('buildLatestPostView(posts, Date.now())');
+    expect(homeSource).toContain('useMacroSummary()');
+    expect(homeSource).toContain('useCurrentClientWorkout(user?.id)');
+    expect(homeSource).toContain('useUpcomingClientSession(user?.id)');
+    expect(shellSource).toContain('<ClientTopNavigation');
+    expect(sectionsSource).toContain('UniversalThemeToggle');
+    expect(feedSource).not.toContain('1.3K likes');
+    expect(feedSource).not.toContain('86 comments');
+    expect(feedSource).not.toContain('just now');
+    expect(viewModelSource).toContain('return null');
   });
-
-  it('gives Home the full cover editor, the smart-hashtag truth-line, and a tier-gated inbox poll (workstream N3)', () => {
+  it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on rebuilt Home', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
-    const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
-    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
-    const heroSource = readSource('src/components/UserDashboard/components/HomeTabHeroHeader.tsx');
+    const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
     const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
 
-    // Edit Cover on the hero opens the SAME embedded editor as the feed tab,
-    // and closing it refreshes the live cover (machinery lives in the hook).
-    expect(heroSource).toContain('EditCoverButton');
-    expect(homeSource).toContain('useHomeCoverBanner()');
-    expect(coverHookSource).toContain("lazy(() => import('../../Social/Feed/components/SocialCoverEditor'))");
-    expect(coverHookSource).toContain('useSocialCoverBanner(coverRefreshKey)');
-    expect(coverHookSource).toContain('setCoverRefreshKey((key) => key + 1)');
-
-    // Quick Post shows the live smart type + hashtags from the same
-    // inference path the payload uses.
     expect(homeSource).toContain('useHomeComposer({');
     expect(composerSource).toContain('previewHomePostIntent(postText, activeMood)');
-    expect(centerSource).toContain('postIntentPreview.hashtags.map');
-
-    // Free tiers never poll the elite-gated messaging endpoint (402 by design).
+    expect(feedSource).toContain('postIntentTags.map');
+    expect(feedSource).toContain('Workout proof attached');
     expect(queriesSource).toContain('options.enabled ?? true');
-    expect(homeSource).toMatch(/useMessageSummary\(\{\s*\/\/[^\n]*\n\s*enabled: isElite|useMessageSummary\(\{\s*enabled: isElite/);
+    expect(homeSource).toContain('useMessageSummary({ enabled: hasEliteAccess })');
   });
-
   it('puts real training proof from logged workouts on Home, one tap from a shareable post (workstream N4)', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
-    const proofSource = readSource('src/components/UserDashboard/components/HomeTabTrainingProof.tsx');
+    const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
 
-    // The strip reads REAL sessions through the dashboard query layer.
     expect(homeSource).toContain('useWorkoutSessions({ limit: 50 })');
     expect(homeSource).toContain('buildHomeTrainingProof(workoutSessions.data');
-    expect(homeSource).toContain('<HomeTabTrainingProof');
-    // O3: "Share my week" prefills the composer AND arms the workout-proof
-    // attachment — the post ships typed workout with the real session link.
-    expect(homeSource).toContain('onShareProgress={composer.handleShareProgress}');
+    expect(homeSource).toContain('trainingProof={trainingProof}');
+    expect(feedSource).toContain('trainingProof.shareLine');
+    expect(feedSource).toContain('trainingProof.thisWeekCount');
+    expect(homeSource).toContain('onShareProgress={shareProgress}');
     expect(composerSource).toContain('setPendingProofSessionId(latestSessionId)');
     expect(composerSource).toContain('workoutSessionId: pendingProofSessionId');
-    expect(proofSource).toContain('onShareProgress(proof.shareLine!)');
-    // Honest empty state, no fabricated trend.
-    expect(proofSource).toContain('No logged workouts yet');
-    expect(proofSource).toContain('proof.weeklyCounts.map');
-    // O3 weekly recap: the real week-over-week delta is displayed, never faked.
-    expect(proofSource).toContain('proof.weekDelta');
   });
-
   it('mounts ClientObservatoryHome inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
 
@@ -434,17 +395,17 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(feedSource).toContain('onLoadComments={feed.loadComments}');
   });
 
-  it('escalates Home to streak rescue from real session data (workstream O3)', () => {
+  it('keeps Home momentum cards driven by real session, level, and streak data', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
-    const nbaSource = readSource('src/components/UserDashboard/components/HomeTabNextBestAction.tsx');
-    const railSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
+    const viewModelSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.viewModel.ts');
+    const sectionsSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.sections.tsx');
 
-    expect(homeSource).toContain('assessStreakRisk(workoutSessions.data, streakDays');
-    expect(railSource).toContain('<HomeTabNextBestAction');
-    expect(nbaSource).toContain('streak ends tonight without a logged workout');
-    expect(nbaSource).toContain('Save my ${streakDays}-day streak');
+    expect(homeSource).toContain('buildInsights(trainingProof, progressPercent, streakDays)');
+    expect(homeSource).toContain('buildPerformanceScore(trainingProof, progressPercent, streakDays)');
+    expect(viewModelSource).toContain('proof.weeklyCounts');
+    expect(viewModelSource).toContain('Math.min(streakDays, 30)');
+    expect(sectionsSource).toContain('Day Streak');
   });
-
   it('ships the phone app-shell: fixed bottom nav on every dashboard surface (workstream O3)', () => {
     const navStyles = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
