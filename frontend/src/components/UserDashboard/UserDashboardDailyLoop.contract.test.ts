@@ -73,14 +73,14 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('mounts the V3 Observatory at /user-dashboard (workstream N), never the client dashboard', () => {
     // Workstream N (2026-06-11, Sean's direction): the V3 Observatory IS the
     // main hub at /user-dashboard with URL-driven tabs; /social is a redirect
-    // alias into it. The contract's original intent holds Ã¢â‚¬â€ the hub must
+    // alias into it. The contract's original intent holds ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â the hub must
     // never collapse into the PT client dashboard.
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toMatch(/path: 'user-dashboard',\s*element: \(\s*<ProtectedRoute>/);
     expect(routeSource).toContain("path: 'user-dashboard/:tab'");
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
-    // Workstream O: the feed tab folded into Home Ã¢â‚¬â€ /social lands on Home.
+    // Workstream O: the feed tab folded into Home ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â /social lands on Home.
     expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routeSource).toContain('<SocialTabRedirect />');
     expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
@@ -114,7 +114,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(universalLayoutSource).toContain("const userRole = rawRole === 'user' ? 'client' : rawRole;");
   });
 
-  it('keeps Home as the daily return surface with the client dashboard shell and coach paths', () => {
+  it('keeps Home as the daily return surface with the creator observatory and coach paths', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
@@ -123,21 +123,24 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(controllerSource).toContain("const [activeTab, setActiveTab] = useState<TabId>('home')");
     expect(dashboardSource).toContain("dashboard.activeTab === 'home'");
     expect(tabsSource).toContain('<HomeTab onTabChange');
-    expect(homeSource).toContain('<ClientDashboardHome');
+    expect(homeSource).toContain('data-testid="creator-observatory-home"');
+    expect(homeSource).toContain('<HomeTabVisionCenter');
+    expect(homeSource).not.toContain('<ClientDashboardHome');
+    expect(homeSource).not.toContain('ClientDashboardHomeTab');
     expect(homeSource).toContain('getPersonalLogWorkoutDashboardPath()');
     expect(homeSource).toContain('buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT)');
   });
-  it('keeps the rebuilt Home tab honest with real data and no fabricated engagement', () => {
-    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+  it('keeps the premium client home honest with real data and no fabricated engagement', () => {
+    const clientHomeTabSource = readSource('src/components/UserDashboard/components/ClientDashboardHomeTab.tsx');
     const shellSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.tsx');
     const sectionsSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.sections.tsx');
     const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
     const viewModelSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.viewModel.ts');
 
-    expect(homeSource).toContain('buildLatestPostView(posts, Date.now())');
-    expect(homeSource).toContain('useMacroSummary()');
-    expect(homeSource).toContain('useCurrentClientWorkout(user?.id)');
-    expect(homeSource).toContain('useUpcomingClientSession(user?.id)');
+    expect(clientHomeTabSource).toContain('buildLatestPostView(posts, Date.now())');
+    expect(clientHomeTabSource).toContain('useMacroSummary()');
+    expect(clientHomeTabSource).toContain('useCurrentClientWorkout(user?.id)');
+    expect(clientHomeTabSource).toContain('useUpcomingClientSession(user?.id)');
     expect(shellSource).toContain('<ClientTopNavigation');
     expect(sectionsSource).toContain('UniversalThemeToggle');
     expect(feedSource).not.toContain('1.3K likes');
@@ -145,44 +148,44 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(feedSource).not.toContain('just now');
     expect(viewModelSource).toContain('return null');
   });
-  it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on rebuilt Home', () => {
+  it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on user Home', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
-    const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
     const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
 
     expect(homeSource).toContain('useHomeComposer({');
     expect(composerSource).toContain('previewHomePostIntent(postText, activeMood)');
-    expect(feedSource).toContain('postIntentTags.map');
-    expect(feedSource).toContain('Workout proof attached');
+    expect(homeSource).toContain('postIntentPreview={composer.postIntentPreview}');
+    expect(homeSource).toContain('onSubmitPost={composer.submitPost}');
     expect(queriesSource).toContain('options.enabled ?? true');
-    expect(homeSource).toContain('useMessageSummary({ enabled: hasEliteAccess })');
+    expect(homeSource).toContain("enabled: isElite || user?.role === 'admin'");
   });
-  it('puts real training proof from logged workouts on Home, one tap from a shareable post (workstream N4)', () => {
+  it('puts real training proof from logged workouts on user Home, one tap from a shareable post (workstream N4)', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
-    const feedSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.feedSections.tsx');
 
     expect(homeSource).toContain('useWorkoutSessions({ limit: 50 })');
     expect(homeSource).toContain('buildHomeTrainingProof(workoutSessions.data');
-    expect(homeSource).toContain('trainingProof={trainingProof}');
-    expect(feedSource).toContain('trainingProof.shareLine');
-    expect(feedSource).toContain('trainingProof.thisWeekCount');
-    expect(homeSource).toContain('onShareProgress={shareProgress}');
+    expect(homeSource).toContain('<HomeTabTrainingProof');
+    expect(homeSource).toContain('proof={trainingProof}');
+    expect(homeSource).toContain('onShareProgress={composer.handleShareProgress}');
     expect(composerSource).toContain('setPendingProofSessionId(latestSessionId)');
     expect(composerSource).toContain('workoutSessionId: pendingProofSessionId');
   });
   it('mounts the premium client home inside the canonical client overview route', () => {
     const clientHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx');
+    const clientHomeTabSource = readSource('src/components/UserDashboard/components/ClientDashboardHomeTab.tsx');
     const dashboardSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.tsx');
     const layoutSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.layoutStyles.ts');
 
-    expect(clientHomeSource).toContain("import HomeTab from '../../../UserDashboard/components/HomeTab'");
-    expect(clientHomeSource).toContain('<HomeTab');
+    expect(clientHomeSource).toContain("import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab'");
+    expect(clientHomeSource).toContain('<ClientDashboardHomeTab');
     expect(clientHomeSource).toContain('embedded');
     expect(clientHomeSource).toContain("progress: '/dashboard/client/progress'");
     expect(clientHomeSource).toContain("nutrition: '/dashboard/client/meal-planner'");
     expect(clientHomeSource).not.toContain('ClientObservatoryHome');
+    expect(clientHomeSource).not.toContain('components/HomeTab');
+    expect(clientHomeTabSource).toContain('<ClientDashboardHome');
     expect(dashboardSource).toContain('{!embedded && <ClientSidebar');
     expect(layoutSource).toContain('grid-template-columns: ${({ $embedded }) => ($embedded ?');
   });
@@ -231,7 +234,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('keeps every phone tab reachable in the bottom bar via snap scrolling (O3 supersedes the wrap-grid)', () => {
     const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
-    // O3: the <=430px wrap-grid retired with the fixed bottom bar Ã¢â‚¬â€ tabs are
+    // O3: the <=430px wrap-grid retired with the fixed bottom bar ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â tabs are
     // a snap-scrolling row, so no entry can be clipped or orphaned.
     expect(stylesSource).toContain('scroll-snap-type: x proximity');
     expect(stylesSource).toContain('overscroll-behavior-x: contain');
@@ -276,7 +279,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     const lensesSource = readSource('src/components/UserDashboard/components/UserDashboardStudioLenses.tsx');
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
 
-    // Bar/rail entries Ã¢â‚¬â€ Studio's id is 'creative' (the group's landing lens).
+    // Bar/rail entries ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Studio's id is 'creative' (the group's landing lens).
     // Workstream O: 'feed' left the bar (panel unmounted; Home absorbed it).
     const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
     barTabs.forEach((tabId) => {
@@ -299,11 +302,11 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(tabsSource).toContain('<TabPanel id="profile"');
     expect(controllerSource).toContain("setActiveTab('profile')");
 
-    // Community is unmounted (duplicate launcher) Ã¢â‚¬â€ no orphan panel.
+    // Community is unmounted (duplicate launcher) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â no orphan panel.
     expect(tabsSource).not.toContain('<TabPanel id="community"');
 
-    // Feed is unmounted (workstream O Ã¢â‚¬â€ duplicated Home; Faction War moved
-    // to the Home right rail) Ã¢â‚¬â€ no orphan panel, no stale nav entries.
+    // Feed is unmounted (workstream O ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â duplicated Home; Faction War moved
+    // to the Home right rail) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â no orphan panel, no stale nav entries.
     expect(tabsSource).not.toContain('<TabPanel id="feed"');
     expect(tabBarSource).not.toContain("id: 'feed'");
     expect(adapterSource).not.toContain("id: 'feed'");
@@ -394,7 +397,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(commentsSource).toContain('isCoachRole(comment.user.role)');
     expect(commentsSource).toContain('<CoachChip');
 
-    // Comment threads LOAD on first open Ã¢â‚¬â€ feed payloads carry counts only,
+    // Comment threads LOAD on first open ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â feed payloads carry counts only,
     // so coach answers would otherwise never render.
     expect(hookSource).toContain('const loadComments = useCallback(async (postId: string)');
     expect(cardSource).toContain('onLoadComments');
@@ -402,13 +405,13 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(feedSource).toContain('onLoadComments={feed.loadComments}');
   });
 
-  it('keeps Home momentum cards driven by real session, level, and streak data', () => {
-    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+  it('keeps premium client home momentum cards driven by real session, level, and streak data', () => {
+    const clientHomeTabSource = readSource('src/components/UserDashboard/components/ClientDashboardHomeTab.tsx');
     const viewModelSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.viewModel.ts');
     const sectionsSource = readSource('src/components/UserDashboard/components/ClientDashboardHome.sections.tsx');
 
-    expect(homeSource).toContain('buildInsights(trainingProof, progressPercent, streakDays)');
-    expect(homeSource).toContain('buildPerformanceScore(trainingProof, progressPercent, streakDays)');
+    expect(clientHomeTabSource).toContain('buildInsights(trainingProof, progressPercent, streakDays)');
+    expect(clientHomeTabSource).toContain('buildPerformanceScore(trainingProof, progressPercent, streakDays)');
     expect(viewModelSource).toContain('proof.weeklyCounts');
     expect(viewModelSource).toContain('Math.min(streakDays, 30)');
     expect(sectionsSource).toContain('Day Streak');
@@ -423,7 +426,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(navStyles).toMatch(/@media \(max-width: 768px\) \{[\s\S]*?position: fixed;[\s\S]*?bottom: 0;/);
     expect(navStyles).toContain('env(safe-area-inset-bottom');
     expect(wrapperSource).toContain('env(safe-area-inset-bottom');
-    // Home mounts the bar too Ã¢â‚¬â€ same nav on every dashboard surface.
+    // Home mounts the bar too ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â same nav on every dashboard surface.
     expect(dashboardSource.match(/<UserDashboardTabBarV3/g)?.length).toBe(2);
     // Top-bar actions with a destination navigate; no dead buttons.
     expect(centerSource).toContain('onClick={target ? () => onAction(target) : undefined}');
@@ -487,7 +490,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(coverHeroSource).toContain('useHomeCoverBanner()');
     expect(coverHeroSource).toContain('aria-label="Edit cover"');
     expect(coverHeroSource).toContain('aria-label="Edit profile"');
-    // Settings is the ONLY entry into the profile panel (N5 contract) Ã¢â‚¬â€ the
+    // Settings is the ONLY entry into the profile panel (N5 contract) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â the
     // hero must keep carrying it now that the old header is unmounted.
     expect(coverHeroSource).toContain('aria-label="Open settings"');
     expect(dashboardSource).toContain('onSettings={dashboard.handleSettings}');
@@ -528,6 +531,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('routes user dashboard workout actions through mounted role dashboards', () => {
     const touchedActionFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',
+      'src/components/UserDashboard/components/ClientDashboardHomeTab.tsx',
       'src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx',
       'src/components/UserDashboard/components/DailyHealthLoop.tsx',
       'src/components/UserDashboard/components/ObservatoryShellAdapter.ts',
@@ -570,6 +574,7 @@ describe('UserDashboard V3 daily loop contract', () => {
   it('keeps touched dashboard home files free of corrupted mojibake text', () => {
     const touchedHomeFiles = [
       'src/components/UserDashboard/components/HomeTab.tsx',
+      'src/components/UserDashboard/components/ClientDashboardHomeTab.tsx',
       'src/components/DashBoard/Pages/client-dashboard/ClientHomeTab.tsx',
       'src/components/UserDashboard/components/DailyHealthLoop.tsx',
       'src/components/UserDashboard/components/SwanCoachActionLauncher.tsx',
