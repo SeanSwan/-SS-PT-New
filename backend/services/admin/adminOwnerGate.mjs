@@ -25,29 +25,42 @@ export const parseOwnerAllowlist = (env = process.env) => ({
 
 const hasAllowlist = ({ emails, ids }) => emails.length > 0 || ids.length > 0;
 
-export const isOwnerAdmin = (actor, env = process.env) => {
-  if (!actor || actor.role !== 'admin') return false;
+export const getOwnerAdminAccess = (actor, env = process.env) => {
   const allowlist = parseOwnerAllowlist(env);
-  if (!hasAllowlist(allowlist)) return false;
+  const configured = hasAllowlist(allowlist);
+  if (!configured || !actor || actor.role !== 'admin') {
+    return {
+      configured,
+      ownerAdmin: false,
+      code: configured ? 'OWNER_GATE_DENIED' : 'OWNER_GATE_NOT_CONFIGURED',
+    };
+  }
 
   const actorEmail = String(actor.email || '').trim().toLowerCase();
   const actorId = String(actor.id ?? '').trim();
-  return (
+  const ownerAdmin = (
     Boolean(actorEmail && allowlist.emails.includes(actorEmail)) ||
     Boolean(actorId && allowlist.ids.includes(actorId))
   );
+  return {
+    configured,
+    ownerAdmin,
+    code: ownerAdmin ? 'OWNER_GATE_ALLOWED' : 'OWNER_GATE_DENIED',
+  };
 };
 
+export const isOwnerAdmin = (actor, env = process.env) => getOwnerAdminAccess(actor, env).ownerAdmin;
+
 export const requireOwnerAdmin = (actor, env = process.env) => {
-  const allowlist = parseOwnerAllowlist(env);
-  if (!hasAllowlist(allowlist)) {
+  const access = getOwnerAdminAccess(actor, env);
+  if (!access.configured) {
     throw new AdminOwnerGateError(
       'Owner admin allowlist is not configured.',
       503,
       'OWNER_GATE_NOT_CONFIGURED'
     );
   }
-  if (!isOwnerAdmin(actor, env)) {
+  if (!access.ownerAdmin) {
     throw new AdminOwnerGateError('Owner admin access required.', 403, 'OWNER_GATE_DENIED');
   }
   return true;
@@ -55,6 +68,7 @@ export const requireOwnerAdmin = (actor, env = process.env) => {
 
 export default {
   parseOwnerAllowlist,
+  getOwnerAdminAccess,
   isOwnerAdmin,
   requireOwnerAdmin,
 };

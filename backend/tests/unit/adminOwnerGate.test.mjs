@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AdminOwnerGateError,
+  getOwnerAdminAccess,
   isOwnerAdmin,
   requireOwnerAdmin,
 } from '../../services/admin/adminOwnerGate.mjs';
@@ -30,5 +31,22 @@ describe('adminOwnerGate', () => {
   it('rejects allowlisted non-admin actors', () => {
     const env = { OWNER_ADMIN_EMAILS: 'trainer@example.com', OWNER_ADMIN_IDS: '3' };
     expect(isOwnerAdmin({ id: 3, role: 'trainer', email: 'trainer@example.com' }, env)).toBe(false);
+  });
+
+  it('reports owner-gate status without throwing so the dashboard can avoid noisy target fetches', () => {
+    expect(getOwnerAdminAccess({ id: 1, role: 'admin', email: 'sean@example.com' }, {})).toEqual({
+      configured: false,
+      ownerAdmin: false,
+      code: 'OWNER_GATE_NOT_CONFIGURED',
+    });
+
+    expect(getOwnerAdminAccess({ id: 2, role: 'admin', email: 'helper@example.com' }, { OWNER_ADMIN_IDS: '1' })).toEqual({
+      configured: true,
+      ownerAdmin: false,
+      code: 'OWNER_GATE_DENIED',
+    });
+
+    expect(getOwnerAdminAccess({ id: 2, role: 'admin', email: 'owner@example.com' }, { OWNER_ADMIN_EMAILS: 'owner@example.com' }).code)
+      .toBe('OWNER_GATE_ALLOWED');
   });
 });

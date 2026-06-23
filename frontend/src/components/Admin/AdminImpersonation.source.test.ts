@@ -34,7 +34,10 @@ describe('admin impersonation UI wiring', () => {
     const authContextSource = readMaybe('frontend/src/context/AuthContext.tsx');
     const authRoutesSource = readMaybe('backend/routes/authRoutes.mjs');
 
+    expect(switcherSource).toContain('/api/auth/admin/accounts/access');
     expect(switcherSource).toContain('/api/auth/admin/accounts/targets');
+    expect(switcherSource).toContain('canListTargets');
+    expect(switcherSource).toContain('!visible || !accountControl.ready || !accountControl.enabled');
     expect(switcherSource).toContain('/api/auth/admin/impersonation/start');
     expect(switcherSource).toContain('startAdminImpersonationSession');
     expect(switcherSource).toContain('requestSeqRef');
@@ -48,7 +51,9 @@ describe('admin impersonation UI wiring', () => {
     expect(bannerSource).toContain('restoreAdminSessionFromImpersonation');
     expect(apiFactorySource).toContain('restoreAdminSessionFromImpersonation');
     expect(authContextSource).toContain('clearAdminImpersonationState');
+    expect(authRoutesSource).toContain('/admin/accounts/access');
     expect(authRoutesSource).toContain('/admin/accounts/targets');
+    expect(authRoutesSource).toContain('getAdminAccountCommandAccess');
     expect(authRoutesSource).toContain('/admin/impersonation/targets');
     expect(authRoutesSource).toContain('/admin/impersonation/start');
     expect(authRoutesSource).toContain('/admin/accounts/:targetUserId/:command(block|deactivate|reactivate|force-logout)');

@@ -10,7 +10,7 @@ import {
   listAccountCommandTargets,
   reactivateAccount,
 } from '../services/admin/adminAccountCommandService.mjs';
-import { AdminOwnerGateError } from '../services/admin/adminOwnerGate.mjs';
+import { AdminOwnerGateError, getOwnerAdminAccess } from '../services/admin/adminOwnerGate.mjs';
 import logger from '../utils/logger.mjs';
 
 const COMMANDS = {
@@ -27,6 +27,21 @@ const sendError = (res, error) => {
     success: false,
     code: isKnown ? error.code : 'ACCOUNT_COMMAND_SERVER_ERROR',
     message: isKnown ? error.message : 'Unable to complete account command.',
+  });
+};
+
+export const getAdminAccountCommandAccess = (req, res) => {
+  const access = getOwnerAdminAccess(req.user);
+  const ownerAllowed = access.ownerAdmin === true;
+  return res.status(200).json({
+    success: true,
+    accountControl: {
+      configured: access.configured === true,
+      ownerAllowed,
+      canListTargets: ownerAllowed,
+      canRunCommands: ownerAllowed,
+      code: access.code,
+    },
   });
 };
 
@@ -84,6 +99,7 @@ export const runAdminAccountCommand = async (req, res) => {
 };
 
 export default {
+  getAdminAccountCommandAccess,
   getAdminAccountCommandTargets,
   runAdminAccountCommand,
 };

@@ -50,6 +50,21 @@ interface ImpersonationTarget extends AdminCommandTarget {
   accountRetentionUntil?: string | null;
 }
 
+interface AccountControlAccess {
+  configured?: boolean;
+  ownerAllowed?: boolean;
+  canListTargets?: boolean;
+  canRunCommands?: boolean;
+  code?: string;
+}
+
+interface AccountControlState {
+  ready: boolean;
+  enabled: boolean;
+  error: boolean;
+  message: string;
+}
+
 const roles: Array<{ label: string; value: 'all' | AdminImpersonationRole }> = [
   { label: 'All', value: 'all' },
   { label: 'Clients', value: 'client' },
@@ -77,6 +92,12 @@ const AdminAccountSwitcher: React.FC = () => {
   const [starting, setStarting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [accountControl, setAccountControl] = useState<AccountControlState>({
+    ready: false,
+    enabled: false,
+    error: false,
+    message: 'Checking owner account controls...',
+  });
 
   const visible = user?.role === 'admin' && !isAdminImpersonationActive();
   const selectedTarget = useMemo(
@@ -85,7 +106,46 @@ const AdminAccountSwitcher: React.FC = () => {
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setAccountControl({ ready: false, enabled: false, error: false, message: 'Checking owner account controls...' });
+      return;
+    }
+
+    let mounted = true;
+    setAccountControl({ ready: false, enabled: false, error: false, message: 'Checking owner account controls...' });
+    apiService.get<{ accountControl?: AccountControlAccess }>('/api/auth/admin/accounts/access')
+      .then((response) => {
+        if (!mounted) return;
+        const control = response.data?.accountControl;
+        const enabled = control?.canListTargets === true && control?.canRunCommands === true;
+        const message = enabled
+          ? 'Owner account controls are available.'
+          : control?.code === 'OWNER_GATE_NOT_CONFIGURED'
+            ? 'Owner account controls need backend allowlist configuration.'
+            : 'Owner account controls are limited to allowlisted owner admins.';
+        setAccountControl({ ready: true, enabled, error: !enabled, message });
+        if (!enabled) {
+          setTargets([]);
+          setSelectedId('');
+        }
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAccountControl({
+          ready: true,
+          enabled: false,
+          error: true,
+          message: 'Unable to check owner account controls.',
+        });
+        setTargets([]);
+        setSelectedId('');
+      });
+
+    return () => { mounted = false; };
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !accountControl.ready || !accountControl.enabled) return;
 
     const requestId = requestSeqRef.current + 1;
     requestSeqRef.current = requestId;
@@ -118,7 +178,7 @@ const AdminAccountSwitcher: React.FC = () => {
     }, 220);
 
     return () => window.clearTimeout(timer);
-  }, [role, search, visible, refreshKey]);
+  }, [role, search, visible, accountControl.ready, accountControl.enabled, refreshKey]);
 
   if (!visible) return null;
 
@@ -139,11 +199,14 @@ const AdminAccountSwitcher: React.FC = () => {
     }
   };
 
-  const statusText = loading
-    ? 'Refreshing account list...'
-    : selectedTarget
-      ? `${targets.length} matching account${targets.length === 1 ? '' : 's'} available. ${selectedTarget.canImpersonate ? `Temporary access opens as ${selectedTarget.displayName}.` : 'Account controls are available, but dashboard testing is disabled until the account is active and unlocked.'}`
-      : 'Change the role or search term to find an account.';
+  const controlsAvailable = accountControl.ready && accountControl.enabled;
+  const statusText = !accountControl.ready || !accountControl.enabled
+    ? accountControl.message
+    : loading
+      ? 'Refreshing account list...'
+      : selectedTarget
+        ? `${targets.length} matching account${targets.length === 1 ? '' : 's'} available. ${selectedTarget.canImpersonate ? `Temporary access opens as ${selectedTarget.displayName}.` : 'Account controls are available, but dashboard testing is disabled until the account is active and unlocked.'}`
+        : 'Change the role or search term to find an account.';
 
   return (
     <SwitcherShell aria-label="Admin account testing switcher">
@@ -167,7 +230,7 @@ const AdminAccountSwitcher: React.FC = () => {
           <FieldLabel as="span">Role</FieldLabel>
           <RoleSegment role="group" aria-label="Filter test accounts by role">
             {roles.map((item) => (
-              <RoleButton key={item.value} type="button" $active={role === item.value} aria-pressed={role === item.value} onClick={() => setRole(item.value)}>
+              <RoleButton key={item.value} type="button" $active={role === item.value} aria-pressed={role === item.value} disabled={!controlsAvailable} onClick={() => setRole(item.value)}>
                 {item.label}
               </RoleButton>
             ))}
@@ -177,9 +240,9 @@ const AdminAccountSwitcher: React.FC = () => {
           <FieldLabel htmlFor="admin-account-test-search">Find</FieldLabel>
           <SearchBox>
             <Search size={17} aria-hidden="true" focusable="false" />
-            <input id="admin-account-test-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, username, email" />
+            <input id="admin-account-test-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, username, email" disabled={!controlsAvailable} />
             {search && (
-              <ClearSearchButton type="button" onClick={() => setSearch('')} aria-label="Clear account search">
+              <ClearSearchButton type="button" onClick={() => setSearch('')} aria-label="Clear account search" disabled={!controlsAvailable}>
                 <X size={17} aria-hidden="true" focusable="false" />
               </ClearSearchButton>
             )}
@@ -187,11 +250,11 @@ const AdminAccountSwitcher: React.FC = () => {
         </Field>
         <Field>
           <FieldLabel htmlFor="admin-account-test-select">Account</FieldLabel>
-          <NativeSelect id="admin-account-test-select" value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={loading || targets.length === 0}>
+          <NativeSelect id="admin-account-test-select" value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={!controlsAvailable || loading || targets.length === 0}>
             {targets.map((target) => <option key={target.id} value={String(target.id)}>{target.displayName} ({target.role}, {statusLabelFor(target)})</option>)}
           </NativeSelect>
         </Field>
-        <StartButton type="button" onClick={startTesting} disabled={!selectedTarget || !selectedTarget.canImpersonate || starting || loading} aria-label={selectedTarget ? `Start test session as ${selectedTarget.displayName}` : 'Select an account to test'}>
+        <StartButton type="button" onClick={startTesting} disabled={!controlsAvailable || !selectedTarget || !selectedTarget.canImpersonate || starting || loading} aria-label={selectedTarget ? `Start test session as ${selectedTarget.displayName}` : 'Select an account to test'}>
           <LogIn size={18} aria-hidden="true" focusable="false" />
           {starting ? 'Opening...' : 'Open Dashboard'}
           <ArrowRight size={17} aria-hidden="true" focusable="false" />
@@ -219,11 +282,11 @@ const AdminAccountSwitcher: React.FC = () => {
 
       <AdminAccountCommandPanel
         target={selectedTarget}
-        disabled={loading}
+        disabled={!controlsAvailable || loading}
         onCommandComplete={() => setRefreshKey((current) => current + 1)}
       />
 
-      <StatusLine $error={Boolean(error)} role={error ? 'alert' : 'status'} aria-live="polite">
+      <StatusLine $error={Boolean(error) || accountControl.error} role={Boolean(error) || accountControl.error ? 'alert' : 'status'} aria-live="polite">
         {error || statusText}
       </StatusLine>
     </SwitcherShell>

@@ -325,6 +325,7 @@ import {
   startAdminImpersonation
 } from '../controllers/adminImpersonationController.mjs';
 import {
+  getAdminAccountCommandAccess,
   getAdminAccountCommandTargets,
   runAdminAccountCommand
 } from '../controllers/adminAccountCommandController.mjs';
@@ -416,6 +417,13 @@ router.get('/admin/impersonation/targets', protect, adminOnly, getAdminImpersona
  * @access  Private (Admin Only)
  */
 router.post('/admin/impersonation/start', protect, adminOnly, startAdminImpersonation);
+
+/**
+ * @route   GET /api/auth/admin/accounts/access
+ * @desc    Admin-only owner-gate status for account testing controls
+ * @access  Private (Admin Only)
+ */
+router.get('/admin/accounts/access', protect, adminOnly, getAdminAccountCommandAccess);
 
 /**
  * @route   GET /api/auth/admin/accounts/targets
