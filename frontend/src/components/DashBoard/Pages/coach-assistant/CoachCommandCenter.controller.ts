@@ -72,7 +72,7 @@ export function useCoachCommandCenterController({
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
   const [threadSearch, setThreadSearch] = useState('');
   const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS);
-  const [teachMode, setTeachMode] = useState(true);
+  const [teachMode, setTeachMode] = useState(false);
   const [drawer, setDrawer] = useState<DrawerSide | null>(null);
   const [quickClientName, setQuickClientName] = useState('');
   const [quickClientSource, setQuickClientSource] = useState<CoachCommandClientSource>('move_fitness');

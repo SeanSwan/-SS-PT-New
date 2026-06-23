@@ -175,6 +175,72 @@ export const coachCommandOpsStyles = css`
     width: 38px;
   }
 
+  .teach-mode-toggle {
+    align-items: center;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 12%, transparent), transparent 64%),
+      color-mix(in srgb, var(--coach-soft) 90%, transparent);
+    border: 1px solid var(--coach-line);
+    border-radius: 14px;
+    color: var(--coach-text);
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    min-height: 54px;
+    padding: 8px 10px;
+    text-align: left;
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    width: 100%;
+  }
+
+  .teach-mode-toggle.is-on {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 18%, transparent), transparent 62%),
+      color-mix(in srgb, var(--coach-cyan) 10%, var(--coach-soft));
+    border-color: color-mix(in srgb, var(--coach-purple) 38%, var(--coach-line-strong));
+  }
+
+  .teach-mode-toggle:hover,
+  .teach-mode-toggle:focus-visible {
+    border-color: var(--coach-line-strong);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--coach-cyan) 14%, transparent);
+    outline: none;
+    transform: translateY(-1px);
+  }
+
+  .teach-mode-toggle strong,
+  .teach-mode-toggle small {
+    display: block;
+    line-height: 1.18;
+  }
+
+  .teach-mode-toggle strong {
+    font-size: 13px;
+    font-weight: 820;
+  }
+
+  .teach-mode-toggle small {
+    color: var(--coach-muted);
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  .teach-mode-panel {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--coach-purple) 12%, transparent), transparent 68%),
+      var(--coach-card);
+  }
+
+  .teach-mode-panel-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .teach-mode-panel-actions .secondary-button {
+    min-height: 44px;
+    width: 100%;
+  }
+
   .workout-command-card strong,
   .workout-command-card small {
     display: block;
@@ -230,14 +296,17 @@ export const coachCommandOpsStyles = css`
 
   @media (prefers-reduced-motion: reduce) {
     .ops-rail-close,
-    .workout-command-card {
+    .workout-command-card,
+    .teach-mode-toggle {
       transition: none;
     }
 
     .ops-rail-close:hover,
     .ops-rail-close:focus-visible,
     .workout-command-card:hover,
-    .workout-command-card:focus-visible {
+    .workout-command-card:focus-visible,
+    .teach-mode-toggle:hover,
+    .teach-mode-toggle:focus-visible {
       transform: none;
     }
   }

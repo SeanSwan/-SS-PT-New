@@ -8,6 +8,7 @@ import {
   OperatorControlsPanel,
   QueueSnapshotPanel,
   QuickClientPanel,
+  TeachModeToggleButton,
 } from './CoachCommandOpsRailPanels';
 
 type CoachCommandOpsRailProps = {
@@ -128,6 +129,7 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
         onOpenPlaud={onOpenPlaud}
         onStageWorkoutLog={onStageWorkoutLog}
       />
+      <TeachModeToggleButton teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <OperatorControlsPanel teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <QuickClientPanel
         quickClientBusy={quickClientBusy}
