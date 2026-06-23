@@ -15,7 +15,10 @@ describe('CoachCommandCenter theme bridge', () => {
   });
 
   it('keeps Crystalline Focus wired to the universal header theme variables', () => {
+    const shellSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.shellStyles.ts'), 'utf8');
+    const bridgeSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.bridgeStyles.ts'), 'utf8');
     const focusSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.crystallineFocusStyles.ts'), 'utf8');
+    const mobileDockSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.bridgeMobileDockStyles.ts'), 'utf8');
     const headerActionsSource = readFileSync(resolve(__dirname, '../../../Header/components/ActionIcons.tsx'), 'utf8');
     const themeUtilsSource = readFileSync(resolve(__dirname, '../../../../utils/theme/themeUtils.ts'), 'utf8');
 
@@ -24,11 +27,18 @@ describe('CoachCommandCenter theme bridge', () => {
     expect(themeUtilsSource).toContain('export const injectThemeVariables = (themeId: ThemeId): void => {');
     expect(themeUtilsSource).toContain('--bg-base: ${theme.background.primary};');
     expect(themeUtilsSource).toContain('--accent-primary: ${theme.colors.primary};');
+    expect(themeUtilsSource).toContain('--accent-sapphire: ${theme.colors.primaryDeep || theme.colors.primary};');
+    expect(shellSource).toContain('--coach-sapphire: var(--brand-primary, var(--accent-secondary, #4070c0));');
+    expect(bridgeSource).not.toContain('--coach-sapphire: var(--accent-sapphire, #002060);');
     expect(focusSource).toContain('--coach-focus-canvas: var(--bg-base, #070b12);');
     expect(focusSource).toContain('--coach-focus-surface: var(--bg-surface, #0b111a);');
     expect(focusSource).toContain('--coach-focus-elevated: var(--bg-elevated, #0e1723);');
     expect(focusSource).toContain('--coach-focus-text: var(--text-primary, #f4f7fb);');
     expect(focusSource).toContain('--coach-focus-accent: var(--accent-primary, #69d7d0);');
+    expect(focusSource).toContain('--coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));');
+    expect(mobileDockSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(mobileDockSource).toContain('.tab-button {');
+    expect(mobileDockSource).toContain('min-width: 0;');
     expect(focusSource).not.toContain('--coach-crystalline-');
   });
 });

@@ -10,20 +10,20 @@ const __dirname = dirname(__filename);
 const source = readFileSync(resolve(__dirname, './AdminStellarSidebar.tsx'), 'utf8');
 
 describe('AdminStellarSidebar workout-first navigation', () => {
-  it('surfaces daily workout logging inside Clients & Ops', () => {
+  it('keeps daily workout logging inside the single Clients & Team workspace', () => {
     const clientsOps = WORKSPACE_CONFIG.filter((item) => item.section === 'clients');
-    expect(clientsOps.map((item) => item.label).slice(0, 2)).toEqual([
-      'Clients & Team',
-      'Log Workout',
-    ]);
+    const clientHub = clientsOps.find((item) => item.id === 'people');
 
-    expect(clientsOps[1].prefix).toBe('/dashboard/admin/client-management?intent=log_workout');
+    expect(clientsOps.map((item) => item.label)).not.toContain('Log Workout');
+    expect(WORKSPACE_CONFIG.some((item) => item.id === 'log-workout')).toBe(false);
+    expect(clientHub?.prefix).toBe('/dashboard/admin/client-management');
+    expect(clientHub?.description).toContain('workout logging');
   });
 
-  it('understands query-backed workspace routes so log-workout intent can be active by itself', () => {
+  it('keeps Clients & Team active for log-workout intent routes', () => {
     expect(source).toContain("const [basePath, query = ''] = prefix.split('?');");
     expect(source).toContain("currentParams.get(key) === value");
-    expect(source).toContain("currentParams.get('intent') === 'log_workout'");
+    expect(source).not.toContain("currentParams.get('intent') === 'log_workout'");
   });
 
   it('keeps deprecated workout-plan config pointed at the client-first planner flow', () => {

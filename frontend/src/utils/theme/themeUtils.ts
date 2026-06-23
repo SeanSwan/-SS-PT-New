@@ -125,6 +125,8 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --accent-primary: ${theme.colors.primary};
     --accent-secondary: ${theme.colors.secondary};
     --accent-gold: ${theme.colors.accent};
+    --accent-luxury: ${theme.colors.accent};
+    --accent-sapphire: ${theme.colors.primaryDeep || theme.colors.primary};
     --success: ${theme.colors.success};
     --warning: ${theme.colors.warning};
     --danger: ${theme.colors.error};

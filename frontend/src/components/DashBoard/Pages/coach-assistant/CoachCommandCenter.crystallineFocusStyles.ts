@@ -17,7 +17,7 @@ export const coachCommandCrystallineFocusStyles = css`
   --coach-focus-line: var(--border-subtle, rgba(184, 207, 232, 0.13));
   --coach-focus-line-active: var(--border-active, var(--border-focus, rgba(105, 215, 208, 0.34)));
   --coach-focus-accent: var(--accent-primary, #69d7d0);
-  --coach-focus-blue: var(--accent-secondary, #7ea5ff);
+  --coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));
 
   .bridge-shell { gap: 14px; max-width: 1320px; }
   .client-bar {

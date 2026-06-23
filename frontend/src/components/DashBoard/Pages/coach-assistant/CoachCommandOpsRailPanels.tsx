@@ -3,7 +3,7 @@
  * PURPOSE: Panel-level pieces for the Coach Command Center operations rail.
  */
 import React from 'react';
-import { Activity, FileCheck2, ShieldCheck, UserPlus } from 'lucide-react';
+import { Activity, BookOpenCheck, FileCheck2, ShieldCheck, UserPlus } from 'lucide-react';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import type { QueueHealthRow } from './CoachCommandCenter.types';
 
@@ -33,31 +33,53 @@ function QuickClientNote({ message, tone }: { message: string | null; tone: 'suc
   return <p className={`quick-client-note ${tone}`}>{message}</p>;
 }
 
-export function OperatorControlsPanel({ teachMode, onTeachModeToggle }: OperatorControlsPanelProps) {
+export function TeachModeToggleButton({ teachMode, onTeachModeToggle }: OperatorControlsPanelProps) {
   return (
-    <section className="panel">
+    <button
+      type="button"
+      className={`teach-mode-toggle ${teachMode ? 'is-on' : ''}`}
+      aria-controls="coach-teach-mode-panel"
+      aria-expanded={teachMode}
+      aria-pressed={teachMode}
+      onClick={onTeachModeToggle}
+    >
+      <span className="workout-command-icon" aria-hidden="true">
+        <BookOpenCheck size={17} />
+      </span>
+      <span>
+        <strong>{teachMode ? 'Teach Mode active' : 'Teach Mode'}</strong>
+        <small>Review guidance</small>
+      </span>
+    </button>
+  );
+}
+
+export function OperatorControlsPanel({ teachMode, onTeachModeToggle }: OperatorControlsPanelProps) {
+  if (!teachMode) return null;
+
+  return (
+    <section className="panel teach-mode-panel" id="coach-teach-mode-panel" aria-label="Teach Mode review guidance">
       <div className="section-title-row">
         <div>
-          <h2 className="panel-title">Operator controls</h2>
+          <h2 className="panel-title">Teach Mode</h2>
           <p className="panel-subtitle">Review-gated settings for Swan Coach output.</p>
         </div>
         <ShieldCheck size={19} aria-hidden="true" />
       </div>
-      <div className="item-row">
-        <span>Teach Mode</span>
+      <div className="teach-mode-panel-actions">
+        <p className="small-copy">
+          Review blockers, confirm selected client context, then approve, revise, or hold the prepared recommendation.
+        </p>
         <button
           type="button"
-          className={`switch ${teachMode ? 'is-on' : ''}`}
-          aria-label="Toggle Teach Mode"
+          className="secondary-button"
+          aria-label="Hide Teach Mode guidance"
           aria-pressed={teachMode}
           onClick={onTeachModeToggle}
         >
-          <span />
+          Hide
         </button>
       </div>
-      <p className="small-copy">
-        Review blockers, confirm selected client context, then approve, revise, or hold the prepared recommendation.
-      </p>
     </section>
   );
 }

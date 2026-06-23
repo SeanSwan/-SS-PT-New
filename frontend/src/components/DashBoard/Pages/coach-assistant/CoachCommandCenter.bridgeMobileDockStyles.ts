@@ -22,13 +22,29 @@ export const coachCommandBridgeMobileDockStyles = css`
 
     .tab-bar {
       border-radius: 14px;
+      display: grid;
       gap: 4px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
       padding: 4px;
     }
 
     .tab-button {
       font-size: 12px;
+      justify-content: center;
       min-height: 48px;
+      min-width: 0;
+      padding: 0 8px;
+      white-space: normal;
+    }
+
+    .client-action-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+    }
+
+    .client-action-button {
+      min-height: 64px;
     }
 
     .transcript-top {
@@ -145,6 +161,11 @@ export const coachCommandBridgeMobileDockStyles = css`
   }
 
   @media (max-width: 380px) {
+    .tab-bar,
+    .client-action-strip {
+      grid-template-columns: 1fr;
+    }
+
     .dock-actions {
       grid-template-columns: minmax(0, 1fr) 112px;
     }

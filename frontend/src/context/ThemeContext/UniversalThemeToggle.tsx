@@ -472,6 +472,16 @@ export const themeToggleMetadata: Record<ThemeId, {
   'deep-ocean': { description: 'Deep Ocean', icon: 'waves' },
   'obsidian-aurora': { description: 'Obsidian Aurora', icon: 'orbit' },
   'carbon-fiber': { description: 'Carbon Fiber', icon: 'layers' },
+  'ruby-forge': { description: 'Ruby Forge', icon: 'flame' },
+  'emerald-vault': { description: 'Emerald Vault', icon: 'leaf' },
+  'solar-gold': { description: 'Solar Gold', icon: 'sun' },
+  'amethyst-night': { description: 'Amethyst Night', icon: 'gem' },
+  'rose-quartz': { description: 'Rose Quartz', icon: 'flower' },
+  'copper-patina': { description: 'Copper Patina', icon: 'contrast' },
+  'aqua-abyss': { description: 'Aqua Abyss', icon: 'waves' },
+  'graphite-luxe': { description: 'Graphite Luxe', icon: 'layers' },
+  'pearl-noir': { description: 'Pearl Noir', icon: 'moon' },
+  'circuit-lime': { description: 'Circuit Lime', icon: 'zap' },
 };
 
 // === THEME ICON MAPPING ===

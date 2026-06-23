@@ -26,8 +26,6 @@ import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 
 export const coachCommandBridgeStyles = css`
-  --coach-sapphire: var(--accent-sapphire, #002060);
-
   /* ── Shell: phone-first single column ─────────────────────────────── */
   .bridge-shell {
     display: flex;

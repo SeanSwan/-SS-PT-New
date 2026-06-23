@@ -52,7 +52,6 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
       role="button"
       tabIndex={0}
       transition={{ duration: 0.3, delay: index * 0.05 }}
-      whileHover={{ scale: 1.02 }}
     >
       <NotificationContent>
         <NotificationIcon $color={priorityColor}>{getTypeIcon(notification.type)}</NotificationIcon>

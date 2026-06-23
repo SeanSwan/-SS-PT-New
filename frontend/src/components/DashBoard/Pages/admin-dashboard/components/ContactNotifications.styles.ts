@@ -51,6 +51,8 @@ export const NotificationsContainer = styled(motion.div)`
 export const NotificationHeader = styled.div`
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   justify-content: space-between;
   margin-bottom: 1.5rem;
 `;
@@ -63,6 +65,7 @@ export const HeaderTitle = styled.h3`
   font-weight: 600;
   gap: 0.5rem;
   margin: 0;
+  min-width: 0;
 `;
 
 export const HeaderControls = styled.div`
@@ -118,18 +121,8 @@ export const NotificationBadge = styled.div`
 export const NotificationsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  max-height: 400px;
-  overflow-y: auto;
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track {
-    background: color-mix(in srgb, ${TEXT_PRIMARY} 10%, transparent);
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, ${ACCENT_TERTIARY} 50%, transparent);
-    border-radius: 3px;
-  }
+  gap: 0.75rem;
+  overflow: visible;
 `;
 
 export const NotificationItemShell = styled(motion.div)<{ $priorityColor?: string }>`
@@ -138,13 +131,13 @@ export const NotificationItemShell = styled(motion.div)<{ $priorityColor?: strin
   border-left: 4px solid ${props => props.$priorityColor || PRIORITY_MEDIUM};
   border-radius: 8px;
   cursor: pointer;
+  min-width: 0;
   padding: 1rem;
   position: relative;
   transition: all 0.3s ease;
   &:hover {
     background: color-mix(in srgb, ${TEXT_PRIMARY} 8%, transparent);
     border-color: ${props => props.$priorityColor || PRIORITY_MEDIUM};
-    transform: translateX(4px);
   }
   &:focus-visible { outline: 2px solid ${ACCENT_PRIMARY}; outline-offset: 2px; }
   &.unread {
@@ -159,16 +152,21 @@ export const NotificationItemShell = styled(motion.div)<{ $priorityColor?: strin
 
 export const NotificationContent = styled.div`
   align-items: flex-start;
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  @media (max-width: 700px) {
+    gap: 0.7rem;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
 `;
 
 export const NotificationIcon = styled.div<{ $color?: string }>`
   background: color-mix(in srgb, ${({ $color }) => $color || PRIORITY_MEDIUM} 18%, transparent);
   border-radius: 8px;
   color: ${({ $color }) => $color || PRIORITY_MEDIUM};
-  display: flex;
-  flex-shrink: 0;
+  display: flex; flex-shrink: 0;
   justify-content: center;
   padding: 0.5rem;
 `;
@@ -182,7 +180,9 @@ export const NotificationTitle = styled.div`
   color: ${TEXT_PRIMARY};
   font-size: 0.9rem;
   font-weight: 600;
+  line-height: 1.25;
   margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
 `;
 
 export const NotificationMessage = styled.div`
@@ -190,6 +190,7 @@ export const NotificationMessage = styled.div`
   font-size: 0.85rem;
   line-height: 1.4;
   margin-bottom: 0.5rem;
+  overflow-wrap: anywhere;
 `;
 
 export const NotificationMeta = styled.div`
@@ -197,6 +198,8 @@ export const NotificationMeta = styled.div`
   color: ${TEXT_MUTED};
   display: flex;
   font-size: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   justify-content: space-between;
 `;
 
@@ -256,14 +259,23 @@ export const MessageToggle = styled.button`
 `;
 
 export const ActionRequiredBadge = styled.div`
+  align-items: center;
   background: color-mix(in srgb, ${PRIORITY_HIGH} 20%, transparent);
   border: 1px solid color-mix(in srgb, ${PRIORITY_HIGH} 30%, transparent);
   border-radius: 6px;
   color: ${PRIORITY_HIGH};
+  display: inline-flex;
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 500;
+  justify-self: end;
+  min-height: 34px;
   padding: 0.25rem 0.5rem;
+  @media (max-width: 700px) {
+    grid-column: 2 / -1;
+    justify-self: start;
+    min-height: 32px;
+  }
 `;
 
 export const EmptyCheckIcon = styled(CheckCircle)`

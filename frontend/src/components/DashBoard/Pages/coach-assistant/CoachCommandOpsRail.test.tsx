@@ -84,6 +84,30 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
   });
 
+  it('keeps Teach Mode guidance collapsed behind a compact toggle', () => {
+    renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
+
+    const opsRail = openOpsRail();
+    const teachToggle = within(opsRail).getByRole('button', { name: /teach mode/i });
+
+    expect(teachToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(teachToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(opsRail).queryByLabelText('Teach Mode review guidance')).not.toBeInTheDocument();
+    expect(within(opsRail).queryByText(/Review blockers/i)).not.toBeInTheDocument();
+
+    fireEvent.click(teachToggle);
+
+    expect(teachToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(teachToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(opsRail).getByLabelText('Teach Mode review guidance')).toHaveTextContent(/Review blockers/i);
+
+    fireEvent.click(within(opsRail).getByRole('button', { name: /hide teach mode guidance/i }));
+
+    expect(teachToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(teachToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(opsRail).queryByLabelText('Teach Mode review guidance')).not.toBeInTheDocument();
+  });
+
   it('shows an explicit drawer header close control that collapses Operations', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 

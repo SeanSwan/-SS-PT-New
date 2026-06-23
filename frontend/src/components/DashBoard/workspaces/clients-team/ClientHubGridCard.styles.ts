@@ -29,7 +29,10 @@ export const CardShell = styled.article`
   flex-direction: column;
   align-self: stretch;
   height: 100%;
-  min-height: 320px;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 
   > * + * {
     margin-top: 14px;
@@ -42,10 +45,9 @@ export const CardShell = styled.article`
   @media (max-width: 430px) {
     --swan-card-padding: 14px;
     min-height: auto;
-
-    > * + * {
-      margin-top: 12px;
-    }
+    max-height: none;
+    overflow: visible;
+    > * + * { margin-top: 12px; }
   }
 `;
 
@@ -113,6 +115,8 @@ export const TopLine = styled.span`
 
 export const Name = styled.span`
   min-width: 0;
+  display: -webkit-box; overflow: hidden;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   color: var(--text-heading, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 17px;
@@ -126,8 +130,10 @@ export const Pill = styled.span`
 `;
 
 export const ContactLine = styled.span`
-  display: block;
+  display: -webkit-box;
   margin: -2px 0 8px;
+  overflow: hidden;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;

@@ -195,9 +195,10 @@ export const DetailScrollWrap = styled.div`
 `;
 
 export const CardGrid = styled.div`
+  --client-card-desktop-row: 520px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
-  grid-auto-rows: 1fr;
+  grid-auto-rows: var(--client-card-desktop-row);
   align-items: stretch;
   gap: 16px;
   padding: 20px;
@@ -206,9 +207,18 @@ export const CardGrid = styled.div`
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
   flex: 1;
-  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+
+  @media (min-width: 2560px) {
+    --client-card-desktop-row: 560px;
+  }
+
+  @media (min-width: 3840px) {
+    --client-card-desktop-row: 620px;
+  }
 
   @media (max-width: 768px) {
+    grid-auto-rows: auto;
     grid-template-columns: 1fr;
     padding: 12px;
     gap: 12px;

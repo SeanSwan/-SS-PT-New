@@ -7,15 +7,16 @@ import { css } from 'styled-components';
 
 export const coachCommandShellStyles = css`
   --coach-bg: var(--bg-base, #030712);
-  --coach-bg-2: var(--surface-base, #07101f);
-  --coach-surface: var(--surface-card, rgba(14, 24, 42, 0.84));
-  --coach-surface-strong: var(--surface-elevated, rgba(20, 32, 56, 0.94));
+  --coach-bg-2: var(--bg-secondary, #07101f);
+  --coach-surface: var(--bg-surface, rgba(14, 24, 42, 0.84));
+  --coach-surface-strong: var(--bg-elevated, rgba(20, 32, 56, 0.94));
   --coach-soft: var(--surface-soft, rgba(255, 255, 255, 0.06));
   --coach-line: var(--border-subtle, rgba(188, 220, 255, 0.18));
-  --coach-line-strong: var(--border-active, rgba(96, 192, 240, 0.38));
+  --coach-line-strong: var(--border-strong, rgba(96, 192, 240, 0.38));
   --coach-text: var(--text-primary, #e0ecf4);
   --coach-text-soft: var(--text-secondary, #dbe8f7);
   --coach-muted: var(--text-muted, #9eb0c7);
+  --coach-sapphire: var(--brand-primary, var(--accent-secondary, #4070c0));
   --coach-cyan: var(--accent-primary, #60c0f0);
   --coach-purple: var(--accent-secondary, #8b5cf6);
   --coach-gold: var(--accent-gold, #c6a84b);

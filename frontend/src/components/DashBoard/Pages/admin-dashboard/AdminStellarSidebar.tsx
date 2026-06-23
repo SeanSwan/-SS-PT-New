@@ -163,10 +163,6 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
       return Array.from(expectedParams.entries()).every(([key, value]) => currentParams.get(key) === value);
     }
 
-    if (basePath === '/dashboard/admin/client-management') {
-      return currentParams.get('intent') === 'log_workout' ? false : true;
-    }
-
     return true;
   }, [location.pathname, location.search]);
 

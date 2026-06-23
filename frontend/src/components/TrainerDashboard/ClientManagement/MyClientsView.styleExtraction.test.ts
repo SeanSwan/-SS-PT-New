@@ -52,6 +52,22 @@ describe('MyClientsView style extraction', () => {
     expect(source).toContain('overflow-wrap: anywhere');
   });
 
+  it('keeps trainer desktop client cards on the same fixed row rhythm as admin Client Hub cards', () => {
+    const layoutSource = readFileSync(layoutPath, 'utf8');
+    const clientsGridBlock = layoutSource.slice(
+      layoutSource.indexOf('export const ClientsGrid'),
+      layoutSource.indexOf('export const EmptyState')
+    );
+
+    expect(clientsGridBlock).toContain('--client-card-desktop-row: 520px');
+    expect(clientsGridBlock).toContain('grid-auto-rows: var(--client-card-desktop-row)');
+    expect(clientsGridBlock).toContain('@media (min-width: 2560px)');
+    expect(clientsGridBlock).toContain('--client-card-desktop-row: 560px');
+    expect(clientsGridBlock).toContain('@media (min-width: 3840px)');
+    expect(clientsGridBlock).toContain('--client-card-desktop-row: 620px');
+    expect(clientsGridBlock).toMatch(/@media \(max-width: 768px\)[\s\S]*grid-auto-rows: auto/);
+  });
+
   it('keeps trainer card identity compact and filter controls wrapping on mobile', () => {
     const cardSource = readFileSync(cardPath, 'utf8');
     const clientCardSource = readFileSync(clientCardPath, 'utf8');

@@ -47,8 +47,26 @@ describe('ClientHubGridCard style extraction', () => {
     expect(shellBlock).toContain('flex-direction: column');
     expect(shellBlock).toContain('align-self: stretch');
     expect(shellBlock).toContain('height: 100%');
+    expect(shellBlock).toContain('min-height: 0');
+    expect(shellBlock).toContain('overflow: hidden');
     expect(shellBlock).not.toContain('height: max-content');
     expect(shellBlock).not.toContain('align-self: start');
+  });
+
+  it('caps volatile desktop text so one client cannot stretch the card taller than its row', () => {
+    const nameBlock = stylesSource.slice(
+      stylesSource.indexOf('export const Name'),
+      stylesSource.indexOf('export const Pill')
+    );
+    const contactLineBlock = stylesSource.slice(
+      stylesSource.indexOf('export const ContactLine'),
+      stylesSource.indexOf('export const GoalLine')
+    );
+
+    expect(nameBlock).toContain('-webkit-line-clamp: 2');
+    expect(nameBlock).toContain('overflow: hidden');
+    expect(contactLineBlock).toContain('-webkit-line-clamp: 2');
+    expect(contactLineBlock).toContain('-webkit-box-orient: vertical');
   });
 
   it('keeps contact identity and metric facts readable on phone-width cards', () => {
