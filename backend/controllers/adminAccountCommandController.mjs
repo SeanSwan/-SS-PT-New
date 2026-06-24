@@ -20,6 +20,17 @@ const COMMANDS = {
   'force-logout': forceLogoutAccount,
 };
 
+const buildAccountControlAccess = (access) => {
+  const ownerAllowed = access.ownerAdmin === true;
+  return {
+    configured: access.configured === true,
+    ownerAllowed,
+    canListTargets: ownerAllowed,
+    canRunCommands: ownerAllowed,
+    code: access.code,
+  };
+};
+
 const sendError = (res, error) => {
   const isKnown = error instanceof AdminAccountCommandError || error instanceof AdminOwnerGateError;
   const statusCode = isKnown ? error.statusCode || 400 : 500;
@@ -32,16 +43,9 @@ const sendError = (res, error) => {
 
 export const getAdminAccountCommandAccess = (req, res) => {
   const access = getOwnerAdminAccess(req.user);
-  const ownerAllowed = access.ownerAdmin === true;
   return res.status(200).json({
     success: true,
-    accountControl: {
-      configured: access.configured === true,
-      ownerAllowed,
-      canListTargets: ownerAllowed,
-      canRunCommands: ownerAllowed,
-      code: access.code,
-    },
+    accountControl: buildAccountControlAccess(access),
   });
 };
 
@@ -53,6 +57,14 @@ export const getAdminAccountCommandTargets = async (req, res) => {
     });
     return res.status(200).json(result);
   } catch (error) {
+    if (error instanceof AdminOwnerGateError && error.code === 'OWNER_GATE_NOT_CONFIGURED') {
+      return res.status(200).json({
+        success: true,
+        targets: [],
+        accountControl: buildAccountControlAccess(getOwnerAdminAccess(req.user)),
+      });
+    }
+
     logger.warn('[adminAccountCommand] list_failed', {
       actorId: req.user?.id,
       code: error.code,
