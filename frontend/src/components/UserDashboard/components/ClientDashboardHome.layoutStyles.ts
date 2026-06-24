@@ -51,7 +51,9 @@ export const ClientTopNav = styled.header`
   }
 
   @media (max-width: 760px) {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 8px;
     padding: 10px 14px;
   }
 `;
@@ -60,7 +62,10 @@ export const ClientBrand = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 11px;
+  position: relative;
+  z-index: 2;
   width: fit-content;
+  max-width: 100%;
   min-width: 44px;
   min-height: 44px;
   border: 0;
@@ -79,6 +84,17 @@ export const ClientBrand = styled.button`
   span {
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-size: 1.05rem;
+  }
+
+  @media (max-width: 760px) {
+    width: 100%;
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 `;
 
@@ -130,6 +146,26 @@ export const TopActions = styled.div`
   align-items: center;
   justify-content: flex-end;
   gap: 9px;
+  min-width: 0;
+
+  @media (max-width: 760px) {
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    > * {
+      flex: 0 0 auto;
+    }
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 `;
 
 export const IconButton = styled.button`
