@@ -190,7 +190,13 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(layoutSource).toContain('grid-template-columns: ${({ $embedded }) => ($embedded ?');
     expect(layoutSource).toContain('grid-template-columns: minmax(0, 1fr);');
     expect(layoutSource).toContain('overflow-x: auto;');
+    expect(layoutSource).toContain('gap: 6px;');
+    expect(layoutSource).toContain('width: 44px;');
+    expect(layoutSource).toContain('height: 44px;');
+    expect(layoutSource).toContain('padding: 0;');
     expect(layoutSource).toContain('flex: 0 0 auto;');
+    expect(layoutSource).toContain('flex: 0 0 44px;');
+    expect(layoutSource).toContain('justify-content: center;');
   });
 
   it('keeps Social Hub off the client dashboard implementation', () => {

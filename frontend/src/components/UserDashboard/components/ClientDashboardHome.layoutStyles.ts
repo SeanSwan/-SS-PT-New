@@ -70,6 +70,7 @@ export const ClientBrand = styled.button`
   min-height: 44px;
   border: 0;
   background: transparent;
+  padding: 0;
   color: var(--client-text);
   font: inherit;
   font-weight: 800;
@@ -154,6 +155,7 @@ export const TopActions = styled.div`
     max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
+    gap: 6px;
     padding-bottom: 2px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -174,6 +176,9 @@ export const IconButton = styled.button`
   place-items: center;
   min-width: 44px;
   min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   border: 1px solid transparent;
   border-radius: 12px;
   background: transparent;
@@ -216,6 +221,7 @@ export const UserMenuButton = styled.button`
   min-height: 44px;
   border: 0;
   background: transparent;
+  padding: 0;
   color: var(--client-text);
   font: inherit;
   font-weight: 700;
@@ -228,6 +234,24 @@ export const UserMenuButton = styled.button`
     object-fit: cover;
     border: 2px solid var(--client-mint);
     box-shadow: 0 0 18px color-mix(in srgb, var(--client-mint) 46%, transparent);
+  }
+
+  @media (max-width: 760px) {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    gap: 0;
+
+    img {
+      width: 34px;
+      height: 34px;
+    }
+
+    span,
+    svg {
+      display: none;
+    }
   }
 
   @media (max-width: 520px) {
