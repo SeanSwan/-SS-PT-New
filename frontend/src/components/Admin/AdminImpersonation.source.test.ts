@@ -18,12 +18,16 @@ describe('admin impersonation UI wiring', () => {
     expect(appSource.indexOf('<AdminImpersonationBanner />')).toBeLessThan(appSource.indexOf('<RouterProvider router={router} />'));
   });
 
-  it('mounts the admin account switcher inside the live dashboard shell', () => {
+  it('scopes the admin account switcher to the admin Coach Command Center route', () => {
     const shellSource = readMaybe('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const coachSource = readMaybe('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx');
 
-    expect(shellSource).toContain("import AdminAccountSwitcher from '../Admin/AdminAccountSwitcher'");
-    expect(shellSource).toContain("userRole === 'admin' && activeRole === 'admin'");
-    expect(shellSource).toContain('<AdminAccountSwitcher />');
+    expect(shellSource).not.toContain("import AdminAccountSwitcher from '../Admin/AdminAccountSwitcher'");
+    expect(shellSource).not.toContain('<AdminAccountSwitcher />');
+    expect(coachSource).toContain("import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher'");
+    expect(coachSource).toContain("location.pathname.startsWith('/dashboard/admin/coach-assistant')");
+    expect(coachSource).toContain("userRole === 'admin'");
+    expect(coachSource).toContain('<AdminAccountSwitcher />');
   });
 
   it('uses the new auth impersonation endpoints and restores admin session on expiry', () => {

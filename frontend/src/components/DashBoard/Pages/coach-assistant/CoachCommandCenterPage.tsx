@@ -13,9 +13,10 @@
  * Review-gated: Swan Coach prepares operator drafts; final writes need approval.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../hooks/useAuth';
 import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
+import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { buildCoachHeaderQuickActions } from './CoachCommandHeaderActions';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
@@ -46,6 +47,7 @@ const RECENT_CLIENT_LIMIT = 12;
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);
+  const location = useLocation();
   const commandCenter = useCoachCommandCenterController({ userRole });
   const [searchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
@@ -53,6 +55,8 @@ const CoachCommandCenterPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const handledPlaudUploadRequestRef = useRef(0);
+  const showAdminAccountSwitcher = userRole === 'admin'
+    && location.pathname.startsWith('/dashboard/admin/coach-assistant');
 
   useCoachCommandCenterDrawerEffects({
     commandFormRef: commandCenter.commandFormRef,
@@ -150,6 +154,8 @@ const CoachCommandCenterPage: React.FC = () => {
             onClick={() => commandCenter.closeDrawer()}
           />
         )}
+
+        {showAdminAccountSwitcher ? <AdminAccountSwitcher /> : null}
 
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
