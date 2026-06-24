@@ -535,7 +535,7 @@ export const setupRoutes = async (app) => {
       const { category, userId, yearMonth, filename } = req.params;
       const objectKey = `photos/${category}/${userId}/${yearMonth}/${filename}`;
 
-      if (!['profiles', 'banners', 'banner-collage', 'measurements', 'social-photos', 'social-videos', 'products'].includes(category) ||
+      if (!['profiles', 'banners', 'banner-collage', 'measurements', 'social', 'social-photos', 'social-videos', 'products'].includes(category) ||
           !/^\d+$/.test(userId) ||
           !/^\d{4}-\d{2}$/.test(yearMonth) ||
           !/^[\w-]+\.\w+$/.test(filename)) {
@@ -746,7 +746,7 @@ export const setupRoutes = async (app) => {
       const objectKey = `photos/${category}/${userId}/${yearMonth}/${filename}`;
 
       // Validate parameters
-      if (!['profiles', 'banners', 'banner-collage', 'measurements'].includes(category) ||
+      if (!['profiles', 'banners', 'banner-collage', 'measurements', 'social', 'social-photos', 'social-videos'].includes(category) ||
           !/^\d+$/.test(userId) ||
           !/^\d{4}-\d{2}$/.test(yearMonth) ||
           !/^[\w-]+\.\w+$/.test(filename)) {

@@ -705,7 +705,7 @@ router.post('/', upload.single('media'), async (req, res) => {
         const isVideo = req.file.mimetype.startsWith('video/');
         const result = await uploadPhoto(req.file.buffer, {
           userId: req.user.id,
-          category: isVideo ? 'social-videos' : 'social',
+          category: isVideo ? 'social-videos' : 'social-photos',
           originalFilename: req.file.originalname,
           contentType: req.file.mimetype,
         });

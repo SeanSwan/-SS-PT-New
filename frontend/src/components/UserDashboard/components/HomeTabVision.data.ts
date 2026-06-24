@@ -55,9 +55,10 @@ export const HERO_LENSES: VisionAction[] = [
    anything else from the text (the Feed tab's full composer retired with the
    tab in workstream O). */
 export const POST_MOODS = [
-  { id: 'workout', label: 'Workout', Icon: Dumbbell },
-  { id: 'achievement', label: 'Achievement', Icon: Trophy },
-  { id: 'community', label: 'Community', Icon: Users },
+  { id: 'community', label: 'Auto tag', Icon: Users },
+  { id: 'workout', label: 'Training', Icon: Dumbbell },
+  { id: 'transformation', label: 'Progress photo', Icon: Camera },
+  { id: 'achievement', label: 'Win', Icon: Trophy },
 ] as const;
 
 export function compactNumber(value: number | undefined): string {

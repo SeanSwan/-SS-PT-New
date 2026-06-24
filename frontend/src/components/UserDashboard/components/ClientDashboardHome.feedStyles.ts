@@ -52,6 +52,59 @@ export const MoodChip = styled.button<{ $active?: boolean }>`
   cursor: pointer;
 `;
 
+export const MediaPreviewShell = styled.div`
+  display: grid;
+  grid-template-columns: minmax(92px, 128px) minmax(0, 1fr) minmax(132px, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--client-line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--client-panel-strong) 48%, transparent), transparent),
+    color-mix(in srgb, var(--client-panel-soft) 78%, transparent);
+
+  @media (max-width: 620px) {
+    grid-template-columns: 92px minmax(0, 1fr);
+
+    button {
+      grid-column: 1 / -1;
+    }
+  }
+`;
+
+export const MediaPreviewFrame = styled.div`
+  min-height: 74px;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--client-black) 48%, transparent);
+  border: 1px solid var(--client-line-strong);
+
+  img,
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+`;
+
+export const MediaPreviewCopy = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--client-text);
+    font-size: 0.82rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
 export const ComposerFooter = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -43,6 +43,7 @@ import {
   SpotlightVideo,
   SpreadButtonRow,
 } from './HomeTabVisionCenter.styles';
+import HomeTabSelectedMediaPreview from './HomeTabSelectedMediaPreview';
 import {
   LensButton,
   LensPuck,
@@ -67,6 +68,9 @@ interface HomeTabVisionCenterProps {
   postText: string;
   activeMood: string;
   selectedMediaName?: string;
+  selectedMediaPreviewUrl?: string | null;
+  selectedMediaType?: string;
+  mediaError?: string | null;
   /** O3: the single stateful feed mount (owned by HomeTab) — powers the
       community stream below the composer. */
   communityFeed: SocialFeedApi;
@@ -87,6 +91,7 @@ interface HomeTabVisionCenterProps {
   onAction: (target: VisionTarget) => void;
   onSetMood: (mood: string) => void;
   onAddMediaClick: () => void;
+  onClearMedia: () => void;
   onPostTextChange: (value: string) => void;
   onSubmitPost: (event: React.FormEvent<HTMLFormElement>) => void;
   topBarActions: ReadonlyArray<HomeTopBarAction>;
@@ -107,6 +112,9 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   postText,
   activeMood,
   selectedMediaName,
+  selectedMediaPreviewUrl,
+  selectedMediaType,
+  mediaError,
   communityFeed,
   proofAttached,
   bannerLayer,
@@ -119,6 +127,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   onAction,
   onSetMood,
   onAddMediaClick,
+  onClearMedia,
   onPostTextChange,
   onSubmitPost,
   topBarActions,
@@ -241,6 +250,19 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
               <IntentTag key={tag}>{tag}</IntentTag>
             ))}
           </IntentPreview>
+        )}
+        {mediaError && (
+          <IntentPreview role="alert">
+            <span>{mediaError}</span>
+          </IntentPreview>
+        )}
+        {selectedMediaPreviewUrl && (
+          <HomeTabSelectedMediaPreview
+            previewUrl={selectedMediaPreviewUrl}
+            mediaType={selectedMediaType}
+            fileName={selectedMediaName}
+            onClear={onClearMedia}
+          />
         )}
         <ComposerActions>
           <GlassButton

@@ -42,7 +42,7 @@ import {
   type VisionTarget,
 } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
-import useHomeComposer from './useHomeComposer';
+import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
@@ -201,6 +201,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
           postText={composer.postText}
           activeMood={composer.activeMood}
           selectedMediaName={composer.selectedMedia?.name}
+          selectedMediaPreviewUrl={composer.selectedMediaPreviewUrl}
+          selectedMediaType={composer.selectedMedia?.type}
+          mediaError={composer.mediaError}
           communityFeed={communityFeed}
           proofAttached={composer.proofAttached}
           bannerLayer={bannerLayer}
@@ -213,6 +216,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           onAction={runAction}
           onSetMood={composer.setActiveMood}
           onAddMediaClick={() => composer.mediaInputRef.current?.click()}
+          onClearMedia={composer.clearSelectedMedia}
           onPostTextChange={composer.setPostText}
           onSubmitPost={composer.submitPost}
           topBarActions={topBarActions}
@@ -220,7 +224,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
         <input
           ref={composer.mediaInputRef}
           type="file"
-          accept="image/*,video/*"
+          accept={HOME_COMPOSER_ACCEPT}
           onChange={composer.handleMediaSelect}
           hidden
         />

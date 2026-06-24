@@ -10,21 +10,26 @@
  *          values feed HomeTabVisionCenter's composer panel.
  * ============================================================================
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+import { validateHomeComposerMediaFile } from './HomeComposerMediaPolicy';
 import { buildHomePostPayload, previewHomePostIntent } from './HomeTabViewModel';
+
+export { HOME_COMPOSER_ACCEPT } from './HomeComposerMediaPolicy';
 
 interface UseHomeComposerInput {
   createPost: SocialFeedApi['createPost'];
   isCreatingPost: boolean;
-  /** Newest logged session id from the training proof — null when unlogged. */
+  /** Newest logged session id from the training proof - null when unlogged. */
   latestSessionId: string | null;
 }
 
 function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHomeComposerInput) {
   const [postText, setPostText] = useState('');
-  const [activeMood, setActiveMood] = useState('achievement');
+  const [activeMood, setActiveMood] = useState('community');
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
+  const [selectedMediaPreviewUrl, setSelectedMediaPreviewUrl] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   // O3 workout-proof share: the latest logged session rides the next post as
   // a REAL workout link (workoutSessionId) when armed by "Share my week".
   const [pendingProofSessionId, setPendingProofSessionId] = useState<string | null>(null);
@@ -32,19 +37,47 @@ function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHom
 
   const canPost = postText.trim().length >= 3 && !isCreatingPost;
 
+  useEffect(() => {
+    if (!selectedMedia) {
+      setSelectedMediaPreviewUrl(null);
+      return undefined;
+    }
+
+    if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+      setSelectedMediaPreviewUrl(null);
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedMedia);
+    setSelectedMediaPreviewUrl(previewUrl);
+
+    return () => {
+      if (typeof URL !== 'undefined' && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [selectedMedia]);
+
   const postIntentPreview = useMemo(
     () => (postText.trim().length >= 3 ? previewHomePostIntent(postText, activeMood) : null),
     [activeMood, postText],
   );
 
+  const clearSelectedMedia = useCallback(() => {
+    setSelectedMedia(null);
+    setMediaError(null);
+  }, []);
+
   const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0] || null;
-    setSelectedMedia(file);
+    const validation = validateHomeComposerMediaFile(file);
+    setSelectedMedia(validation.accepted ? file : null);
+    setMediaError(validation.error);
     event.currentTarget.value = '';
   };
 
   // O3: "Share my week" prefills the composer AND arms the workout-proof
-  // attachment — the post ships typed 'workout' with the real session link.
+  // attachment - the post ships typed 'workout' with the real session link.
   const handleShareProgress = useCallback((line: string) => {
     setPostText(line);
     setActiveMood('workout');
@@ -63,6 +96,7 @@ function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHom
     if (!created) return;
     setPostText('');
     setSelectedMedia(null);
+    setMediaError(null);
     setPendingProofSessionId(null);
   };
 
@@ -72,10 +106,13 @@ function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHom
     activeMood,
     setActiveMood,
     selectedMedia,
+    selectedMediaPreviewUrl,
+    mediaError,
     mediaInputRef,
     proofAttached: !!pendingProofSessionId,
     canPost,
     postIntentPreview,
+    clearSelectedMedia,
     handleMediaSelect,
     handleShareProgress,
     submitPost,

@@ -81,6 +81,8 @@ export interface ClientDashboardHomeProps {
   postText: string;
   activeMood: string;
   selectedMediaName?: string;
+  selectedMediaPreviewUrl?: string | null;
+  selectedMediaType?: string;
   mediaError?: string | null;
   proofAttached: boolean;
   postIntentLabel?: string | null;
@@ -89,6 +91,7 @@ export interface ClientDashboardHomeProps {
   isPosting: boolean;
   onSetMood: (mood: string) => void;
   onAddMediaClick: () => void;
+  onClearMedia: () => void;
   onPostTextChange: (value: string) => void;
   onSubmitPost: (event: FormEvent<HTMLFormElement>) => void;
   onNavigate: (path: string) => void;

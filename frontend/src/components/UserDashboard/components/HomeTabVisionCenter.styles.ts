@@ -122,3 +122,65 @@ export const SpotlightVideo = styled.video`
   height: 100%;
   object-fit: cover;
 `;
+export const SelectedMediaPreview = styled.div`
+  display: grid;
+  grid-template-columns: minmax(96px, 132px) minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid var(--vision-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), transparent),
+    color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent);
+
+  @media (max-width: 620px) {
+    grid-template-columns: 96px minmax(0, 1fr);
+
+    button {
+      grid-column: 1 / -1;
+    }
+  }
+`;
+
+export const SelectedMediaFrame = styled.div`
+  min-height: 74px;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 64%, transparent);
+
+  img,
+  video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+export const SelectedMediaCopy = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+
+  span {
+    color: var(--vision-soft);
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-primary, #E0ECF4);
+    font-size: 0.86rem;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;

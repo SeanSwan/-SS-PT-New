@@ -15,6 +15,7 @@ import {
   Send,
   Share2,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import {
   ActionButton,
@@ -38,6 +39,9 @@ import {
   FeedPost,
   InsightGrid,
   InsightTile,
+  MediaPreviewCopy,
+  MediaPreviewFrame,
+  MediaPreviewShell,
   MoodChip,
   PostHeader,
   PostMedia,
@@ -48,11 +52,11 @@ import {
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 
 const moodOptions = [
+  ['community', 'Auto tag'],
   ['workout', 'Training'],
-  ['achievement', 'Progress'],
-  ['community', 'Community'],
+  ['transformation', 'Progress photo'],
   ['achievement', 'Win'],
-  ['community', 'Nutrition'],
+  ['challenge', 'Challenge'],
 ] as const;
 
 export function TrainingFocusCard({ featureImageSrc, trainingProof, onNavigate }: Pick<ClientDashboardHomeProps,
@@ -75,9 +79,11 @@ export function TrainingFocusCard({ featureImageSrc, trainingProof, onNavigate }
 }
 
 export function QuickPostCard(props: Pick<ClientDashboardHomeProps,
-  'postText' | 'activeMood' | 'selectedMediaName' | 'mediaError' | 'proofAttached' | 'postIntentLabel' |
-  'postIntentTags' | 'canPost' | 'isPosting' | 'onSetMood' | 'onAddMediaClick' | 'onPostTextChange' |
-  'onSubmitPost' | 'onShareProgress'>) {
+  'postText' | 'activeMood' | 'selectedMediaName' | 'selectedMediaPreviewUrl' | 'selectedMediaType' |
+  'mediaError' | 'proofAttached' | 'postIntentLabel' | 'postIntentTags' | 'canPost' | 'isPosting' |
+  'onSetMood' | 'onAddMediaClick' | 'onClearMedia' | 'onPostTextChange' | 'onSubmitPost' | 'onShareProgress'>) {
+  const selectedMediaIsVideo = !!props.selectedMediaType?.startsWith('video/');
+
   return (
     <PanelCard>
       <PanelHeader><Kicker><Camera size={13} /> Quick post</Kicker><TinyText>{props.proofAttached ? 'Workout proof attached' : 'Community feed'}</TinyText></PanelHeader>
@@ -95,6 +101,24 @@ export function QuickPostCard(props: Pick<ClientDashboardHomeProps,
             </MoodChip>
           ))}
         </ChipRow>
+        {props.selectedMediaPreviewUrl && (
+          <MediaPreviewShell>
+            <MediaPreviewFrame>
+              {selectedMediaIsVideo ? (
+                <video src={props.selectedMediaPreviewUrl} controls muted playsInline preload="metadata" aria-label="Selected media preview" />
+              ) : (
+                <img src={props.selectedMediaPreviewUrl} alt="Selected media preview" />
+              )}
+            </MediaPreviewFrame>
+            <MediaPreviewCopy>
+              <TinyText>Selected media preview</TinyText>
+              <strong>{props.selectedMediaName || 'Media ready'}</strong>
+            </MediaPreviewCopy>
+            <ActionButton type="button" onClick={props.onClearMedia} aria-label="Remove selected media">
+              <X size={16} /> Remove media
+            </ActionButton>
+          </MediaPreviewShell>
+        )}
         <ComposerFooter>
           <TinyText>
             {props.mediaError || props.selectedMediaName || props.postIntentLabel || props.postIntentTags.map((tag) => `#${tag}`).join(' ') || 'Posts publish to the live community feed.'}

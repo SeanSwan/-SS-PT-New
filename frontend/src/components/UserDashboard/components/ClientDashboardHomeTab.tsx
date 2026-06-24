@@ -27,7 +27,7 @@ import {
 } from '../UserDashboardTeachCoachRoute';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import { clampPercent } from './HomeTabVision.data';
-import useHomeComposer from './useHomeComposer';
+import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import {
   buildHomeTopBarActions,
   buildHomeTrainingProof,
@@ -216,7 +216,9 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         postText={composer.postText}
         activeMood={composer.activeMood}
         selectedMediaName={composer.selectedMedia?.name}
-        mediaError={null}
+        selectedMediaPreviewUrl={composer.selectedMediaPreviewUrl}
+        selectedMediaType={composer.selectedMedia?.type}
+        mediaError={composer.mediaError}
         proofAttached={composer.proofAttached}
         postIntentLabel={composer.postIntentPreview?.label}
         postIntentTags={composer.postIntentPreview?.hashtags || []}
@@ -224,6 +226,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         isPosting={communityFeed.isCreatingPost}
         onSetMood={composer.setActiveMood}
         onAddMediaClick={() => composer.mediaInputRef.current?.click()}
+        onClearMedia={composer.clearSelectedMedia}
         onPostTextChange={composer.setPostText}
         onSubmitPost={composer.submitPost}
         onNavigate={navigate}
@@ -233,7 +236,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
       <input
         ref={composer.mediaInputRef}
         type="file"
-        accept="image/*,video/*"
+        accept={HOME_COMPOSER_ACCEPT}
         onChange={composer.handleMediaSelect}
         hidden
       />
