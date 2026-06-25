@@ -18,7 +18,7 @@ const API_BASE_URL =
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type NewsletterStatus = 'idle' | 'loading' | 'success' | 'error';
+export type NewsletterStatus = 'idle' | 'loading' | 'success' | 'warning' | 'error';
 
 export interface SubscribeArgs {
   email: string;
@@ -55,8 +55,11 @@ export function useNewsletterSubscribe(source: string = 'website') {
           source,
           ...readAcquisitionParams(),
         });
-        setStatus('success');
-        setMessage(res?.data?.message || 'Almost there — check your email to confirm your subscription.');
+        const deliveryFailed = res?.data?.emailDelivery === 'failed';
+        setStatus(deliveryFailed ? 'warning' : 'success');
+        setMessage(res?.data?.message || (deliveryFailed
+          ? 'Your subscription request was saved, but the confirmation email could not be sent right now.'
+          : 'Almost there - check your email to confirm your subscription.'));
         return { ok: true };
       } catch (err: any) {
         setStatus('error');

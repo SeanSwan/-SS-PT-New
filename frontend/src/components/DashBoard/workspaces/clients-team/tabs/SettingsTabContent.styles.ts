@@ -201,3 +201,52 @@ export const TogglePill = styled.div<{ $on?: boolean }>`
     }
   }
 `;
+
+export const ToggleButton = styled.button<{ $on?: boolean }>`
+  width: 44px;
+  min-width: 44px;
+  height: 28px;
+  border-radius: 14px;
+  background: ${({ $on }) =>
+    $on
+      ? 'var(--accent-secondary, #8B5CF6)'
+      : 'var(--bg-elevated, #1A1A24)'};
+  border: 1px solid ${({ $on }) =>
+    $on
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--border-soft, rgba(224, 236, 244, 0.12))'};
+  position: relative;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: ${({ $on }) => ($on ? '22px' : '4px')};
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--text-primary, #E0ECF4);
+    transition: left 200ms ease;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &::after {
+      transition: none;
+    }
+  }
+`;

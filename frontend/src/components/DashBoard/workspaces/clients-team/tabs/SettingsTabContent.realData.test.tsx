@@ -1,15 +1,21 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsTabContent from './SettingsTabContent';
 
-const { mockAuthAxios } = vi.hoisted(() => ({
+const { mockAuthAxios, updateClientMock } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
   },
+  updateClientMock: vi.fn(),
 }));
 
 vi.mock('../../../../../context/AuthContext', () => ({
   useAuth: () => ({ authAxios: mockAuthAxios }),
+}));
+
+vi.mock('../../../../../services/adminClientService', () => ({
+  default: { updateClient: updateClientMock },
+  adminClientService: { updateClient: updateClientMock },
 }));
 
 const CLIENT_RESPONSE = {
@@ -26,6 +32,7 @@ const CLIENT_RESPONSE = {
         trainingExperience: 'intermediate',
         availableSessions: 8,
         clientSource: 'swanstudios',
+        sessionBillingMode: 'paid_sessions',
         healthConcerns: 'Left knee soreness after jumping.',
         emergencyContact: 'Mia Stone - 555-0199',
         isActive: true,
@@ -42,6 +49,7 @@ describe('SettingsTabContent real client details', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthAxios.get.mockResolvedValue(CLIENT_RESPONSE);
+    updateClientMock.mockResolvedValue({ data: { success: true } });
   });
 
   it('loads and renders real client settings from the admin client detail API', async () => {
@@ -61,6 +69,24 @@ describe('SettingsTabContent real client details', () => {
     expect(screen.getByText(/deduct after completed logged workouts/i)).toBeInTheDocument();
   });
 
+
+  it('toggles SwanStudios no-pay mode through the admin update API', async () => {
+    const onClientUpdated = vi.fn();
+    render(<SettingsTabContent clientId={424242} clientName="Ava Stone" onClientUpdated={onClientUpdated} />);
+
+    const toggle = await screen.findByRole('switch', { name: /no-pay training mode/i });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(updateClientMock).toHaveBeenCalledWith('424242', { sessionBillingMode: 'no_session_required' });
+    });
+    expect(onClientUpdated).toHaveBeenCalledWith({ sessionBillingMode: 'no_session_required' });
+    expect(screen.getByRole('switch', { name: /no-pay training mode/i })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByDisplayValue('SwanStudios no-pay')).toBeInTheDocument();
+    expect(screen.getByText(/no paid-session balance required/i)).toBeInTheDocument();
+  });
   it('exposes read-only privacy switches with explicit on/off state', async () => {
     render(<SettingsTabContent clientId={424242} clientName="Placeholder Person" />);
 

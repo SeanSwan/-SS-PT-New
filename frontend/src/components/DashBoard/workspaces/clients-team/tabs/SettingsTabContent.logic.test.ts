@@ -11,7 +11,10 @@ describe('SettingsTabContent client-source policy contract', () => {
       label: 'SwanStudios paid',
       note: 'Deduct after completed logged workouts.',
     });
-    expect(getClientSourcePolicy('move_fitness')).toEqual({
+    expect(getClientSourcePolicy('swanstudios', 'no_session_required')).toEqual({
+      label: 'SwanStudios no-pay',
+      note: 'No session balance required; scheduling and training do not deduct paid credits.',
+    });    expect(getClientSourcePolicy('move_fitness')).toEqual({
       label: 'Move Fitness free tracking',
       note: 'Free tracking - no deduction.',
     });

@@ -13,39 +13,7 @@
  * KEY DECISIONS: Read-only first, form submission added later. Styled inputs match
  * the Crystalline Swan dark-first aesthetic with subtle border glow on focus.
  */
-
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: SettingsTabContent                                ║
- * ║  PURPOSE: Read-only client settings 2-column form view        ║
- * ║  OWNER: Claude Opus 4.6 (CEO)                                ║
- * ║  LAST VALIDATED: 2026-03-25                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────┬────────────────────────┐
- * │ Profile Info            │ Training Config         │
- * │ - First/Last name       │ - OPT Phase (dropdown) │
- * │ - Email                 │ - Goal (dropdown)       │
- * │ - Phone                 │ - Sessions/week         │
- * │ - Profile photo         │ - Difficulty level      │
- * ├────────────────────────┼────────────────────────┤
- * │ Privacy & Permissions   │ Notes                   │
- * │ - Chart visibility      │ - Trainer notes         │
- * │ - Profile visibility    │ - Internal notes        │
- * └────────────────────────┴────────────────────────┘
- *
- * DATA FLOW:
- * Props In:  { clientId, clientName? }
- * State:     real client details (read-only display)
- * API Calls: GET /api/admin/clients/:id
- * Children:  SettingsSection, FieldRow (styled)
- *
- * CLICK-OUTCOME FLOWCHART:
- * [All fields] → read-only mirror of GET /api/admin/clients/:id
- */
-
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   User, Dumbbell, ShieldCheck, FileText,
 } from 'lucide-react';
@@ -61,10 +29,13 @@ import {
   StyledInput,
   StyledSelect,
   StyledTextarea,
+  ToggleButton,
   ToggleLabel,
   TogglePill,
   ToggleRow,
 } from './SettingsTabContent.styles';
+import adminClientService from '../../../../../services/adminClientService';
+import { normalizeSessionBillingMode } from '../clientSessionSignal';
 import { useClientSettingsDetails } from './useClientSettingsDetails';
 import { getClientSourcePolicy, type SettingsTabContentProps } from './SettingsTabContent.logic';
 
@@ -73,29 +44,40 @@ const getReadOnlySwitchProps = (label: string, isOn: boolean) => ({
   'aria-label': `${label}: ${isOn ? 'on' : 'off'}`,
 });
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// PURPOSE: Component props
-// ─────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// PURPOSE: 2-column form layout and form field primitives
-// WHY: Consistent dark-first form styling with Ice Wing focus glow
-// ─────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// PURPOSE: Renders the 2-column read-only settings form
-// ─────────────────────────────────────────────────────────────
 
-const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clientId, clientName }) => {
-  const { details: settings } = useClientSettingsDetails(clientId, clientName);
-  const clientSourcePolicy = getClientSourcePolicy(settings.clientSource);
+const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clientId, clientName, onClientUpdated }) => {
+  const { details: settings, mergeDetails } = useClientSettingsDetails(clientId, clientName);
+  const [billingSaving, setBillingSaving] = useState(false);
+  const [billingError, setBillingError] = useState('');
+  const noPayEnabled = normalizeSessionBillingMode(settings.sessionBillingMode) === 'no_session_required';
+  const clientSourcePolicy = useMemo(
+    () => getClientSourcePolicy(settings.clientSource, settings.sessionBillingMode),
+    [settings.clientSource, settings.sessionBillingMode],
+  );
+
+  const handleNoPayToggle = useCallback(async () => {
+    const nextMode = noPayEnabled ? 'paid_sessions' : 'no_session_required';
+    setBillingSaving(true);
+    setBillingError('');
+
+    try {
+      await adminClientService.updateClient(String(clientId), { sessionBillingMode: nextMode });
+      mergeDetails({
+        sessionBillingMode: nextMode,
+        availableSessions: nextMode === 'no_session_required' ? 0 : settings.availableSessions,
+      });
+      onClientUpdated?.({ sessionBillingMode: nextMode });
+    } catch {
+      setBillingError('Billing mode could not be updated.');
+    } finally {
+      setBillingSaving(false);
+    }
+  }, [clientId, mergeDetails, noPayEnabled, onClientUpdated, settings.availableSessions]);
 
   return (
     <SettingsGrid>
-      {/* Profile Info */}
       <SettingsSection>
         <SectionHeader>
           <SectionIcon $color="var(--accent-primary, #60C0F0)">
@@ -149,7 +131,6 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </FieldGroup>
       </SettingsSection>
 
-      {/* Training Config */}
       <SettingsSection>
         <SectionHeader>
           <SectionIcon $color="var(--accent-secondary, #8B5CF6)">
@@ -207,6 +188,27 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </FieldGroup>
 
         <FieldGroup>
+          <ToggleRow>
+            <ToggleLabel>No-Pay / Free Sessions</ToggleLabel>
+            <ToggleButton
+              type="button"
+              $on={noPayEnabled}
+              role="switch"
+              aria-checked={noPayEnabled}
+              aria-label="No-pay training mode"
+              disabled={billingSaving}
+              onClick={handleNoPayToggle}
+            />
+          </ToggleRow>
+          <PolicyNote>
+            {noPayEnabled
+              ? 'No paid-session balance required for this SwanStudios client.'
+              : 'Paid SwanStudios sessions deduct from the client balance.'}
+          </PolicyNote>
+          {billingError ? <PolicyNote role="alert">{billingError}</PolicyNote> : null}
+        </FieldGroup>
+
+        <FieldGroup>
           <FieldLabel htmlFor={`training-experience-${clientId}`}>Training Experience</FieldLabel>
           <StyledTextarea
             id={`training-experience-${clientId}`}
@@ -216,7 +218,6 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </FieldGroup>
       </SettingsSection>
 
-      {/* Privacy & Permissions */}
       <SettingsSection>
         <SectionHeader>
           <SectionIcon $color="var(--accent-gold, #C6A84B)">
@@ -263,7 +264,6 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </ToggleRow>
       </SettingsSection>
 
-      {/* Notes */}
       <SettingsSection>
         <SectionHeader>
           <SectionIcon $color="var(--accent-primary, #60C0F0)">

@@ -22,6 +22,7 @@ interface ClientDailyActionStripProps {
   workoutCount: number;
   sessionsLeft: number;
   clientSource?: string;
+  sessionBillingMode?: string;
   onLogToday: () => void;
   onPlanNext: () => void;
   onViewProgress: () => void;
@@ -175,12 +176,13 @@ const ClientDailyActionStrip: React.FC<ClientDailyActionStripProps> = ({
   workoutCount,
   sessionsLeft,
   clientSource,
+  sessionBillingMode,
   onLogToday,
   onPlanNext,
   onViewProgress,
   onDictateAI,
 }) => {
-  const sessionSignal = getClientSessionSignal({ clientSource, availableSessions: sessionsLeft });
+  const sessionSignal = getClientSessionSignal({ clientSource, sessionBillingMode, availableSessions: sessionsLeft });
 
   return (
     <Strip aria-label={`${clientName} daily training actions`}>

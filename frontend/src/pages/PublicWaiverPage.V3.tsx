@@ -6,7 +6,7 @@
  * Same form logic and validation as V2.
  */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import SignaturePad, { type SignaturePadHandle } from '../components/SignatureCapture/SignaturePad';
 import {
@@ -24,6 +24,7 @@ import TypewriterText from '../components/ui-kit/cinematic/TypewriterText';
 import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
 import GlowButton from '../components/ui/buttons/GlowButton';
 import logoImg from '../assets/Logo.png';
+import { useAuth } from '../context/AuthContext';
 
 // ── Activity display names ───────────────────────────────────
 const ACTIVITY_OPTIONS: { value: ActivityType; label: string }[] = [
@@ -398,6 +399,8 @@ type PageState = 'form' | 'submitting' | 'success' | 'error';
 
 export default function PublicWaiverPageV3() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
   const waiverSource: WaiverSource = searchParams.get('source') === 'qr' ? 'qr' : 'header_waiver';
 
   // Form state
@@ -505,6 +508,21 @@ export default function PublicWaiverPageV3() {
       });
 
       if (result.success) {
+        const role = String(user?.role || '').toLowerCase();
+        const shouldRouteToDashboard = result.status === 'linked' && (role === 'client' || role === 'user');
+
+        if (shouldRouteToDashboard) {
+          try {
+            const refreshed = await refreshUser();
+            if (refreshed?.success !== false) {
+              navigate('/user-dashboard', { replace: true });
+              return;
+            }
+          } catch {
+            // Keep the submitted-waiver receipt visible if the auth refresh cannot complete.
+          }
+        }
+
         setSubmitResult(result);
         setPageState('success');
       } else {
@@ -610,7 +628,7 @@ export default function PublicWaiverPageV3() {
                 )}
                 <WaiverTextContainer>
                   {relevantVersions.map((v) => (
-                    <div key={v.id}>
+                    <div key={v.id ?? `${v.waiverType}-${v.activityType ?? 'core'}-${v.textHash}` }>
                       <WaiverVersionTitle>{v.title}</WaiverVersionTitle>
                       {v.displayText ? (
                         containsHtmlTags(v.displayText) ? (

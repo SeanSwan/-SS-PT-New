@@ -1,11 +1,12 @@
-import { isNonDeductingClientSource } from '../../../../utils/clientSource';
-export { isNonDeductingClientSource, normalizeClientSource } from '../../../../utils/clientSource';
-export type { ClientSource } from '../../../../utils/clientSource';
+import { isNonDeductingClientAccount, isNonDeductingClientSource, normalizeSessionBillingMode } from '../../../../utils/clientSource';
+export { isNonDeductingClientAccount, isNonDeductingClientSource, normalizeClientSource, normalizeSessionBillingMode } from '../../../../utils/clientSource';
+export type { ClientSource, SessionBillingMode } from '../../../../utils/clientSource';
 
 export type ClientSessionSignalTone = 'default' | 'gold' | 'warning' | 'neutral';
 
 export interface ClientSessionSignalInput {
   clientSource?: string | null;
+  sessionBillingMode?: string | null;
   availableSessions?: number | string | null;
 }
 
@@ -23,8 +24,10 @@ export const normalizeAvailableSessions = (availableSessions?: number | string |
 
 export const getClientSessionSignal = (client: ClientSessionSignalInput): ClientSessionSignal => {
   const sessions = normalizeAvailableSessions(client.availableSessions);
-  if (isNonDeductingClientSource(client.clientSource)) {
-    return { label: 'free tracking', note: 'no deduction', tone: 'neutral' };
+  if (isNonDeductingClientAccount(client)) {
+    return normalizeSessionBillingMode(client.sessionBillingMode) === 'no_session_required'
+      ? { label: 'no-pay training', note: 'no session deduction', tone: 'neutral' }
+      : { label: 'free tracking', note: 'no deduction', tone: 'neutral' };
   }
 
   return {

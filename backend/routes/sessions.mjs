@@ -30,7 +30,7 @@ import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import User from "../models/User.mjs";
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyticsFavoriteExercisesService.mjs';
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
@@ -851,7 +851,7 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'availableSessions', 'clientSource']
+      attributes: ['id', 'firstName', 'lastName', 'availableSessions', 'clientSource', 'sessionBillingMode']
     });
 
     if (!user) {
@@ -861,10 +861,10 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       return res.status(409).json({
         success: false,
-        message: 'Manual paid-session allocation is disabled for free-tracking clients'
+        message: 'Manual paid-session allocation is disabled for no-pay/free-tracking clients'
       });
     }
 
@@ -925,7 +925,7 @@ router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'availableSessions', 'clientSource']
+      attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode']
     });
 
     if (!user) {
@@ -941,7 +941,7 @@ router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
       Session.count({ where: { userId, status: 'cancelled' } })
     ]);
 
-    const available = NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)
+    const available = isNonDeductingClient(user)
       ? 0
       : Number(user.availableSessions || 0);
 
@@ -1045,7 +1045,7 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: "Client not found" });
     }
 
-    const shouldDeductPaidCredit = !NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);
+    const shouldDeductPaidCredit = !isNonDeductingClient(client);
 
     if (shouldDeductPaidCredit && (!client.availableSessions || client.availableSessions <= 0)) {
       await transaction.rollback();
@@ -2727,7 +2727,7 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
         return res.status(404).json({ success: false, message: 'Client not found for session' });
       }
 
-      if (!NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      if (!isNonDeductingClient(client)) {
         deductionResult = await processSessionDeduction(session, client, transaction);
         if (!deductionResult?.success) {
           await transaction.rollback();
@@ -2990,7 +2990,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'sessionBillingMode']
         }
       ]
     });
@@ -3048,11 +3048,12 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored && session.userId) {
       const client = await User.findByPk(session.userId);
       if (client) {
-        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
-          logger.info('Skipped cancellation waiver credit restore for non-deducting client source', {
+        if (isNonDeductingClient(client)) {
+          logger.info('Skipped cancellation waiver credit restore for non-deducting client account', {
             sessionId: session.id,
             userId: client.id,
-            clientSource: client.clientSource
+            clientSource: client.clientSource,
+            sessionBillingMode: client.sessionBillingMode
           });
         } else {
           await client.update({ availableSessions: Number(client.availableSessions || 0) + 1 });

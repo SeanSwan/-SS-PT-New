@@ -5,7 +5,7 @@
  */
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Send, CheckCircle2 } from 'lucide-react';
+import { Send, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNewsletterSubscribe } from '../../hooks/useNewsletterSubscribe';
 
 const Wrap = styled.div`
@@ -69,19 +69,24 @@ const Btn = styled.button`
   &:disabled { opacity: 0.6; cursor: progress; }
 `;
 
-const Msg = styled.p<{ $error?: boolean }>`
+const Msg = styled.p<{ $error?: boolean; $warning?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.8rem;
   margin: 0;
-  color: ${({ $error }) => ($error ? 'var(--error, #F87171)' : 'var(--accent-primary, #60C0F0)')};
+  color: ${({ $error, $warning }) => {
+    if ($error) return 'var(--error, #F87171)';
+    if ($warning) return 'var(--warning, #FBBF24)';
+    return 'var(--accent-primary, #60C0F0)';
+  }};
 `;
 
 const FooterNewsletter: React.FC = () => {
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState(''); // honeypot
   const { status, message, subscribe } = useNewsletterSubscribe('footer');
+  const isWarning = status === 'warning';
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,8 +96,11 @@ const FooterNewsletter: React.FC = () => {
   return (
     <Wrap>
       <Title>Stay in the loop</Title>
-      {status === 'success' ? (
-        <Msg role="status"><CheckCircle2 size={14} aria-hidden /> {message}</Msg>
+      {status === 'success' || isWarning ? (
+        <Msg role={isWarning ? 'alert' : 'status'} $warning={isWarning}>
+          {isWarning ? <AlertTriangle size={14} aria-hidden /> : <CheckCircle2 size={14} aria-hidden />}
+          {message}
+        </Msg>
       ) : (
         <>
           <Row onSubmit={onSubmit} noValidate>
