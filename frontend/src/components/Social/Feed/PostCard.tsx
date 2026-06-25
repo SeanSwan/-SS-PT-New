@@ -32,6 +32,7 @@ import {
   ToastCloseBtn,
 } from './styles/PostCardStyles';
 import { logger } from '@/utils/logger';
+import { buildSocialPostShareUrl } from '../../../utils/socialPostShareUrl';
 
 const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost, onLoadComments }) => {
   const { triggerFromResult } = useCelebrationTriggers();
@@ -125,7 +126,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   };
 
   const handleCopyLink = useCallback(() => {
-    const url = `${window.location.origin}/social/posts/${post.id}`;
+    const url = buildSocialPostShareUrl(post.id);
     navigator.clipboard.writeText(url).catch(() => {
       // Fallback silent
     });

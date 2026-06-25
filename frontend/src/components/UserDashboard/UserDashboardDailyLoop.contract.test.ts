@@ -82,6 +82,8 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
     // Workstream O: the feed tab folded into Home ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â /social lands on Home.
     expect(routeSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
+    expect(routeSource).toContain("path: 'social/posts/:postId'");
+    expect(routeSource).toContain('<SocialPostRedirect />');
     expect(routeSource).toContain('<SocialTabRedirect />');
     expect(routeSource).not.toMatch(/path: 'user-dashboard',\s*element: <Navigate to="\/dashboard\/client\/overview" replace \/>/);
     // The retired social page ships no lazy chunk of its own.
@@ -214,11 +216,11 @@ describe('UserDashboard V3 daily loop contract', () => {
   });
 
   it('keeps client observatory lenses inside the client dashboard instead of reopening Social Hub', () => {
-    const universalLayoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const universalLayoutRoutesSource = readSource('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
     const observatoryHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome.tsx');
 
-    expect(universalLayoutSource).toContain("path: '/overview/:tab'");
+    expect(universalLayoutRoutesSource).toContain("path: '/overview/:tab'");
     expect(observatoryHomeSource).toContain("const lensFromRoute = (tab?: string): LensId =>");
 
     expect(observatoryDataSource).toContain("path: '/dashboard/client/overview'");

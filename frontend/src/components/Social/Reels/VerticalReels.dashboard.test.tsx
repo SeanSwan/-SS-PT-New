@@ -109,7 +109,7 @@ describe('VerticalReels dashboard frame', () => {
     expect(likePost).toHaveBeenCalledWith('reel-1');
     expect(loadComments).toHaveBeenCalledWith('reel-1');
     expect(screen.getByText('Loading comments...')).toBeInTheDocument();
-    expect(clipboardWriteMock).toHaveBeenCalledWith(expect.stringContaining('/social/posts/reel-1'));
+    expect(clipboardWriteMock).toHaveBeenCalledWith(`${window.location.origin}/social/posts/reel-1`);
   });
 
   it('removes an existing Swan reaction instead of double-liking an active reel', () => {

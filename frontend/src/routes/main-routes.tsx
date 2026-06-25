@@ -14,6 +14,7 @@ import ErrorBoundary from './error-boundary';
 import ProtectedRoute from './protected-route';
 
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
+import { buildSocialPostDashboardRedirect } from '../utils/socialPostShareUrl';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -277,6 +278,11 @@ const UserDashboardV3 = lazyLoadWithErrorHandling(
 const SocialTabRedirect: React.FC = () => {
   const { tab } = useParams<{ tab?: string }>();
   return <Navigate to={tab && tab !== 'feed' ? `/user-dashboard/${tab}` : '/user-dashboard'} replace />;
+};
+
+const SocialPostRedirect: React.FC = () => {
+  const { postId } = useParams<{ postId?: string }>();
+  return <Navigate to={postId ? buildSocialPostDashboardRedirect(postId) : '/user-dashboard'} replace />;
 };
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
@@ -761,6 +767,10 @@ const MainRoutes: RouteObject = {
     {
       path: 'social',
       element: <Navigate to="/user-dashboard" replace />
+    },
+    {
+      path: 'social/posts/:postId',
+      element: <SocialPostRedirect />
     },
     {
       path: 'social/:tab',

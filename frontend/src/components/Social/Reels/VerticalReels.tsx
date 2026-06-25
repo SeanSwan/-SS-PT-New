@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp, Loader2, Play, Volume2, VolumeX } from 'lucide-react';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useToast } from '../../../hooks/use-toast';
+import { buildSocialPostShareUrl } from '../../../utils/socialPostShareUrl';
 import {
   Avatar,
   ContentLeft,
@@ -135,7 +136,7 @@ const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) =
   };
 
   const handleShare = (postId: string) => {
-    const shareUrl = `${window.location.origin}/social/posts/${postId}`;
+    const shareUrl = buildSocialPostShareUrl(postId);
     void (async () => {
       try {
         if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');

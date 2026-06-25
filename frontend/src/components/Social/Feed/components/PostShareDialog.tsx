@@ -10,6 +10,7 @@ import {
   Overlay,
   PlainButton,
 } from '../styles/PostCardStyles';
+import { buildSocialPostShareUrl } from '../../../../utils/socialPostShareUrl';
 
 interface PostShareDialogProps {
   postId: string;
@@ -18,7 +19,7 @@ interface PostShareDialogProps {
   onRepost: () => void;
 }
 
-const postUrl = (postId: string) => `https://swanstudios.com/social/posts/${postId}`;
+const postUrl = (postId: string) => buildSocialPostShareUrl(postId);
 
 const PostShareDialog: React.FC<PostShareDialogProps> = ({
   postId,
