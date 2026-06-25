@@ -255,7 +255,6 @@ export function useCoachCommandCenterController({
     handleSubmit: actions.handleSubmit,
     handleThreadSelect: actions.handleThreadSelect,
     handleVoice,
-    handleWorkflowSelect: actions.handleWorkflowSelect,
     initialReviewMergeRequestId,
     intakeStates,
     leftRailRef,

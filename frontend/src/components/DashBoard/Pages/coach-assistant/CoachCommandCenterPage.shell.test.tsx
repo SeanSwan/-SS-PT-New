@@ -68,12 +68,13 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
-  it('keeps user composer text untouched when intake workflow buttons are clicked', () => {
+  it('keeps user composer text untouched when the intake tab is opened', () => {
     renderPage();
 
     fireEvent.change(composerInput(), { target: { value: 'Manual coach draft stays mine.' } });
     fireEvent.click(screen.getByRole('tab', { name: /^Intake/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Mock queue command/i }));
+
+    expect(screen.queryByRole('button', { name: /Mock queue command/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: /^Chat$/i }));
 
     expect(composerInput()).toHaveValue('Manual coach draft stays mine.');

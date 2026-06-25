@@ -68,7 +68,6 @@ function RoutedCoachIntakeWorkspace({ queue }: { queue: ReturnType<typeof makeQu
     <CoachIntakeWorkspace
       userRole="admin"
       selectedClientName={null}
-      onCommandPrompt={vi.fn()}
       queue={queue}
       activeIntakeId={activeIntakeId}
     />
@@ -105,7 +104,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     render(
       <MemoryRouter>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -219,7 +218,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -277,7 +276,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -327,7 +326,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -364,7 +363,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -388,7 +387,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     render(
       <MemoryRouter>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -443,7 +442,7 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     const { rerender } = render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -458,14 +457,14 @@ describe('CoachIntakeWorkspace post-action flow', () => {
 
     rerender(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-2']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={refreshedQueue} activeIntakeId="item-2" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={refreshedQueue} activeIntakeId="item-2" />
       </MemoryRouter>,
     );
     expect(await screen.findByText(/Workout log applied/i)).toBeInTheDocument();
 
     rerender(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-3']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={refreshedQueue} activeIntakeId="item-3" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={refreshedQueue} activeIntakeId="item-3" />
       </MemoryRouter>,
     );
 

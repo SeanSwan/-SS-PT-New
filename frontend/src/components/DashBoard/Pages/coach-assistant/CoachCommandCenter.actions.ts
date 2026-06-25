@@ -89,10 +89,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     void props.chat.loadConversation(thread.id);
   };
 
-  const handleWorkflowSelect = (prompt: string) => {
-    closeDrawer(false);
-    props.setSelectedStatus(prompt ? 'Coach workflow selected - choose the next real action' : 'Coach workflow selected');
-  };
 
   const handleStartPlaudUpload = () => {
     closeDrawer(false);
@@ -292,7 +288,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     handleStartPlaudUpload,
     handleSubmit,
     handleThreadSelect,
-    handleWorkflowSelect,
     openDrawer,
     resetLogs: () => props.setLogs(INITIAL_COMMAND_LOGS),
   };

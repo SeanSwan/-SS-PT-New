@@ -30,11 +30,12 @@ describe('SwanCoachAssistantPage audio-intake navigation split', () => {
     expect(NAVIGATION_SOURCE).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
   });
 
-  it('page still wires the hook outputs into workspace and message receipt controls', () => {
+  it('page wires real review navigation while keeping prompt shortcuts out of intake workspace', () => {
     expect(PAGE_SOURCE).toMatch(
-      /const\s+\{\s*audioReviewNextPending[\s\S]*handleAudioIntakeReviewNext[\s\S]*handleIntakeCommand[\s\S]*\}\s*=\s*useSwanCoachAudioIntakeNavigation/,
+      /const\s+\{\s*audioReviewNextPending[\s\S]*handleAudioIntakeReviewNext[\s\S]*\}\s*=\s*useSwanCoachAudioIntakeNavigation/,
     );
-    expect(PAGE_SOURCE).toMatch(/onCommandPrompt=\{handleIntakeCommand\}/);
+    expect(PAGE_SOURCE).not.toMatch(/handleIntakeCommand[\s\S]*=\s*useSwanCoachAudioIntakeNavigation/);
+    expect(PAGE_SOURCE).not.toMatch(/onCommandPrompt=\{handleIntakeCommand\}/);
     expect(PAGE_SOURCE).toMatch(/onAudioIntakeReviewNext=\{handleAudioIntakeReviewNext\}/);
     expect(PAGE_SOURCE).toMatch(/audioReviewNextPending=\{audioReviewNextPending\}/);
     expect(MESSAGES_PANEL_SOURCE).toMatch(/audioIntakeReviewNextPending=\{audioReviewNextPending\}/);

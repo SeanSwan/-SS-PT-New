@@ -22,7 +22,6 @@ function summary(overrides: Partial<PlaudIntakeSummary> = {}): PlaudIntakeSummar
 
 describe('CoachIntakeWorkspaceHeader', () => {
   it('turns the intake header into one obvious next move before secondary actions', () => {
-    const onCommandPrompt = vi.fn();
     const onRefresh = vi.fn();
 
     render(
@@ -33,7 +32,6 @@ describe('CoachIntakeWorkspaceHeader', () => {
           workspaceHref="/dashboard/admin/coach-assistant?workspace=plaud"
           scope="needs_client"
           summary={summary({ needsClient: 2, readyReview: 0 })}
-          onCommandPrompt={onCommandPrompt}
           onRefresh={onRefresh}
         />
       </MemoryRouter>,
@@ -44,9 +42,8 @@ describe('CoachIntakeWorkspaceHeader', () => {
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=next');
     expect(screen.getByText(/confirm the client before any draft can write/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /ask coach about resolve client hold/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringMatching(/resolve Coach intake client hold/i));
 
+    expect(screen.queryByRole('button', { name: /ask coach/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /refresh queue/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open plaud/i })).toBeInTheDocument();
   });
@@ -60,7 +57,6 @@ describe('CoachIntakeWorkspaceHeader', () => {
           workspaceHref="/dashboard/admin/coach-assistant?workspace=plaud"
           scope="actionable"
           summary={summary({ readyReview: 2 })}
-          onCommandPrompt={vi.fn()}
           onRefresh={vi.fn()}
         />
       </MemoryRouter>,
@@ -71,7 +67,7 @@ describe('CoachIntakeWorkspaceHeader', () => {
 
     expect(nextMove.compareDocumentPosition(tools) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(tools).getByRole('button', { name: /refresh queue/i })).toBeInTheDocument();
-    expect(within(tools).getByRole('button', { name: /inspect audio/i })).toBeInTheDocument();
+    expect(within(tools).queryByRole('button', { name: /inspect audio/i })).not.toBeInTheDocument();
     expect(within(tools).getByRole('link', { name: /open plaud/i })).toBeInTheDocument();
   });
 });

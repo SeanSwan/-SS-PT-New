@@ -199,7 +199,6 @@ const CoachCommandCenterPage: React.FC = () => {
               <CoachIntakeWorkspace
                 userRole={userRole}
                 selectedClientName={selectedDisplayLabel}
-                onCommandPrompt={commandCenter.handleWorkflowSelect}
                 queue={commandCenter.coachQueue}
                 activeIntakeId={commandCenter.activeIntakeId}
               />

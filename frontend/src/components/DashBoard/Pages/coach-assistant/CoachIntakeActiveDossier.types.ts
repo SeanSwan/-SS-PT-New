@@ -11,10 +11,7 @@ export interface CoachIntakeActiveDossierProps {
   statusText: string;
   reviewHref: string;
   focusRef?: React.Ref<HTMLElement>;
-  onAskCoach: () => void;
-  onInspectAudio: () => void;
   onConfirmAudioOrder: () => void;
-  onPrepareDraftReview: () => void;
   onReviewPreparedDraft: () => void;
   confirmAudioOrderStatus?: string | null;
   isConfirmingAudioOrder?: boolean;

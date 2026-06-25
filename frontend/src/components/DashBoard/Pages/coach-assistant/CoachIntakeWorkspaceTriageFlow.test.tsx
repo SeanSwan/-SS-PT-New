@@ -60,7 +60,6 @@ describe('CoachIntakeWorkspace triage flow', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
           activeIntakeId="item-1"
         />
@@ -70,7 +69,7 @@ describe('CoachIntakeWorkspace triage flow', () => {
     const activeTarget = screen.getByLabelText(/Active review target/i);
     const activeActions = Array.from(activeTarget.querySelectorAll('[data-coach-active-action]'));
     expect(activeActions.map((node) => node.getAttribute('data-coach-active-action')).slice(0, 3))
-      .toEqual(['confirm-audio', 'review-draft', 'ask-coach']);
+      .toEqual(['confirm-audio', 'review-draft', 'open-target']);
 
     expect(screen.getByLabelText('Coach intake quick snapshot')).toBeInTheDocument();
     expect(screen.queryByLabelText('Coach intake summary')).toBeNull();

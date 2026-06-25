@@ -3,7 +3,7 @@
  * PURPOSE: Branch-light summary panels for the Coach Command Center overview.
  */
 import React from 'react';
-import { AlertTriangle, Brain, ShieldCheck, Volume2 } from 'lucide-react';
+import { AlertTriangle, Brain, Volume2 } from 'lucide-react';
 import type {
   CoachQueueSummaryView,
   DossierTile,
@@ -13,7 +13,6 @@ import type {
 
 type CommandBannerProps = {
   nextActionLabel: string;
-  onCommandPrompt: (prompt: string) => void;
   onReadback: () => void;
   onToggleTeachMode: () => void;
 };
@@ -41,7 +40,7 @@ export function parsingProgress(processing: number) {
   return '8%';
 }
 
-export function CommandBanner({ nextActionLabel, onCommandPrompt, onReadback, onToggleTeachMode }: CommandBannerProps) {
+export function CommandBanner({ nextActionLabel, onReadback, onToggleTeachMode }: CommandBannerProps) {
   return (
     <section className="command-banner glass">
       <div className="banner-content">
@@ -70,12 +69,8 @@ export function CommandBanner({ nextActionLabel, onCommandPrompt, onReadback, on
           <span className="panel-subtitle">Operator next workflow</span>
           <strong>{nextActionLabel}</strong>
           <p className="small-copy">
-            Stage the next review in the composer, then revise or approve from the command log. This does not write client data by itself.
+Open the intake queue or prepared-draft review, then approve only from the review panel. This does not write client data by itself.
           </p>
-          <button type="button" className="primary-button" onClick={() => onCommandPrompt(nextActionLabel)}>
-            <ShieldCheck size={17} aria-hidden="true" />
-            Stage next review
-          </button>
         </aside>
       </div>
     </section>

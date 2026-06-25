@@ -4,15 +4,14 @@
  * Compact queue row for Coach intake work items.
  */
 import React from 'react';
-import { Brain, GitBranch } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
 import { safeActionableGate, safeAudioConfidenceLabel, safeCommandActionLabel } from './CoachIntakeOperationalText.logic';
 import { AudioPuzzleLabel, AudioPuzzleRow } from './CoachIntakeWorkspaceAudio.styles';
-import { ActionButton, ChipColumn, ItemCard, ItemTitle, QueueActions, QueueMetaChips, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
+import { ChipColumn, ItemCard, ItemTitle, QueueActions, QueueMetaChips, SourceChip, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { HoldReasonFact, HoldReasonFacts, HoldReasonLabel, HoldReasonTitle, QueueHoldReasonPreview } from './CoachIntakeWorkspaceHoldReason.styles';
 import {
-  activeCoachActionPrompt,
   itemDisplayTitle,
   itemMeta,
   itemReviewHref,
@@ -26,7 +25,6 @@ interface CoachIntakeQueueItemCardProps {
   item: CoachIntakeItem;
   active: boolean;
   coachWorkspaceHref: string;
-  onCommandPrompt?: (message: string) => void;
   queueScope?: string;
 }
 
@@ -38,7 +36,6 @@ export function CoachIntakeQueueItemCard({
   item,
   active,
   coachWorkspaceHref,
-  onCommandPrompt,
   queueScope,
 }: CoachIntakeQueueItemCardProps): JSX.Element {
   const audioPuzzle = visibleAudioPuzzle(item.audioPuzzle);
@@ -63,18 +60,12 @@ export function CoachIntakeQueueItemCard({
           <SourceChip>{itemSourceLabel(item)}</SourceChip>
           {active && <SourceChip $tone="gold">Selected intake</SourceChip>}
           {gate && <SourceChip $tone="gold">{gate}</SourceChip>}
-          {nextActionLabel && !onCommandPrompt ? <SourceChip $tone="purple">{nextActionLabel}</SourceChip> : null}
+          {nextActionLabel ? <SourceChip $tone="purple">{nextActionLabel}</SourceChip> : null}
         </QueueMetaChips>
         <QueueActions aria-label="Queue item next actions">
           <WorkspaceLink to={queueScopedHref(itemReviewHref(item, coachWorkspaceHref), queueScope)} aria-label={`Review intake ${displayTitle}`} $primary>
             Review
           </WorkspaceLink>
-          {nextActionLabel && onCommandPrompt ? (
-            <ActionButton type="button" onClick={() => onCommandPrompt(activeCoachActionPrompt(item))}>
-              <Brain size={14} aria-hidden="true" />
-              {nextActionLabel}
-            </ActionButton>
-          ) : null}
         </QueueActions>
       </ChipColumn>
       {item.holdReason && holdReasonLabel ? (

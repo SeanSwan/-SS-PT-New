@@ -68,7 +68,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
 
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={makeQueue()} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -99,7 +99,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
 
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?proposal=proposal-standalone-1']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId={null} />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} activeIntakeId={null} />
       </MemoryRouter>,
     );
 
@@ -111,7 +111,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
   it('shows a stale-link warning instead of fetching a mismatched proposal id', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={makeQueue()} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 
@@ -137,7 +137,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
     try {
       render(
         <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
-          <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+          <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={makeQueue()} activeIntakeId="item-1" />
         </MemoryRouter>,
       );
 
@@ -175,7 +175,7 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>
         <LocationProbe />
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={makeQueue()} activeIntakeId="item-1" />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={makeQueue()} activeIntakeId="item-1" />
       </MemoryRouter>,
     );
 

@@ -64,7 +64,6 @@ describe('CoachIntakeWorkspace outcome receipt', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
           activeIntakeId="item-1"
         />

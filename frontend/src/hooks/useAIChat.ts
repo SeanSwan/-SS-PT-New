@@ -191,6 +191,7 @@ export function useAIChat() {
   const [lastErrorRetryable, setLastErrorRetryable] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
   const convCacheTimeRef = useRef<number>(0);
+  const loadConversationRequestRef = useRef(0);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -264,20 +265,24 @@ export function useAIChat() {
    * Load a specific conversation with full message history
    */
   const loadConversation = useCallback(async (id: number) => {
+    const requestId = loadConversationRequestRef.current + 1;
+    loadConversationRequestRef.current = requestId;
     setLoading(true);
     setError(null);
     try {
       const res = await apiService.get(`/api/ai-chat/conversations/${id}`);
       const data = res.data;
       if (!data.success) throw buildAiApiError(data, 'Failed to load conversation', res.status);
-      setActiveConversation(data.conversation);
+      if (loadConversationRequestRef.current === requestId) {
+        setActiveConversation(data.conversation);
+      }
       return data.conversation;
     } catch (err: unknown) {
       const msg = toAiApiError(err, 'Failed to load conversation').message;
-      setError(msg);
+      if (loadConversationRequestRef.current === requestId) setError(msg);
       return null;
     } finally {
-      setLoading(false);
+      if (loadConversationRequestRef.current === requestId) setLoading(false);
     }
   }, []);
 

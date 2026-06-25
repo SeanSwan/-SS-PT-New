@@ -22,7 +22,7 @@ describe('Coach intake responsive contract', () => {
     expect(headerStyles).toMatch(/ActionRow[\s\S]*@media \(max-width:\s*1080px\)[\s\S]*width:\s*100%/);
     expect(headerStyles).toMatch(/FirstMovePanel[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(220px,\s*0\.64fr\)/);
     expect(headerStyles).toMatch(/FirstMovePanel[\s\S]*@media \(max-width:\s*640px\)[\s\S]*grid-template-columns:\s*1fr/);
-    expect(headerStyles).toMatch(/FirstMoveActions[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+    expect(headerStyles).toMatch(/FirstMoveActions[\s\S]*grid-template-columns:\s*1fr/);
     expect(headerStyles).toMatch(/FirstMoveActions[\s\S]*@media \(max-width:\s*520px\)[\s\S]*grid-template-columns:\s*1fr/);
     expect(headerStyles).toMatch(/SecondaryActionGroup[\s\S]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*150px\),\s*1fr\)\)/);
     expect(headerStyles).toMatch(/SecondaryActionGroup[\s\S]*@media \(max-width:\s*520px\)[\s\S]*grid-template-columns:\s*1fr/);
@@ -60,7 +60,7 @@ describe('Coach intake responsive contract', () => {
 
   it('adds a quick snapshot before the teach guide and work queue', () => {
     const snapshotIndex = workspace.indexOf('<CoachIntakeSummaryStats summary={summary} label="Coach intake quick snapshot" />');
-    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />');
+    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe />');
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
 
     expect(snapshotIndex).toBeGreaterThan(-1);
@@ -71,7 +71,7 @@ describe('Coach intake responsive contract', () => {
   });
 
   it('puts the automatically staged dossier before helper content and the work queue', () => {
-    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />');
+    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe />');
     const activeTargetIndex = workspace.indexOf('<CoachIntakeWorkspaceActiveTarget');
     const healthIndex = workspace.indexOf('<CoachIntakeHealthStrip');
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');

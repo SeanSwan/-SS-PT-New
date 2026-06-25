@@ -55,7 +55,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -73,7 +72,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={clarificationQueue}
         />
       </MemoryRouter>,
@@ -90,7 +88,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={duplicateQueue}
         />
       </MemoryRouter>,
@@ -110,7 +107,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -132,7 +128,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -153,7 +148,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -187,7 +181,6 @@ describe('CoachIntakeWorkspace scope URL sync', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,

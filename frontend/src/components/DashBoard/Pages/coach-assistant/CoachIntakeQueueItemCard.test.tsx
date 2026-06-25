@@ -3,9 +3,9 @@
  * =================================
  * Locks per-item gate/action visibility in the Coach intake queue.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 
 describe('CoachIntakeQueueItemCard', () => {
@@ -44,14 +44,11 @@ describe('CoachIntakeQueueItemCard', () => {
   });
 
   it('renders gate and next-action chips from backend queue metadata', () => {
-    const onCommandPrompt = vi.fn();
-
     render(
       <MemoryRouter>
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
-          onCommandPrompt={onCommandPrompt}
           queueScope="failed"
           item={{
             id: 'item-1',
@@ -75,15 +72,13 @@ describe('CoachIntakeQueueItemCard', () => {
 
     const card = screen.getByLabelText(/Queue item Coach voice note/i);
     expect(within(card).getByText(/Client confirmation required/i)).toBeInTheDocument();
-    expect(within(card).getByText(/Ask Coach to resolve client/i)).toBeInTheDocument();
-    fireEvent.click(within(card).getByRole('button', { name: /ask coach to resolve client/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-1');
+    expect(within(card).getByText(/Resolve client hold/i)).toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: /resolve client/i })).not.toBeInTheDocument();
     expect(within(card).getByRole('link', { name: /review intake Coach voice note/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&scope=failed');
   });
 
-  it('sends specific safe prompts for clarification and duplicate-hold actions', () => {
-    const onCommandPrompt = vi.fn();
+  it('shows specific safe next-action chips for clarification and duplicate-hold actions without prompt buttons', () => {
     const baseItem = {
       id: 'item-2',
       entityId: 'item-2',
@@ -103,7 +98,6 @@ describe('CoachIntakeQueueItemCard', () => {
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
-          onCommandPrompt={onCommandPrompt}
           item={{
             ...baseItem,
             queueStatus: 'needs_clarification',
@@ -121,19 +115,15 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /answer coach clarification/i }));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Answer Coach clarification for intake item-2.'));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Gate reason: Client confirmation needed.'));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Safe gate facts: 2 candidates, Medium confidence.'));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.not.stringContaining('private@example.com'));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
+    expect(screen.getByText(/Answer Coach clarification/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /answer coach clarification/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /review intake Long Coach note/i })).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
-          onCommandPrompt={onCommandPrompt}
           item={{
             ...baseItem,
             queueStatus: 'duplicate_hold',
@@ -145,11 +135,9 @@ describe('CoachIntakeQueueItemCard', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /review duplicate risk/i }));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Review duplicate risk for intake item-2.'));
-    expect(onCommandPrompt).toHaveBeenLastCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
+    expect(screen.getByText(/Review duplicate risk/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /review duplicate risk/i })).not.toBeInTheDocument();
   });
-
   it('previews safe hold-reason facts without exposing detail text in the queue card', () => {
     render(
       <MemoryRouter>
@@ -224,14 +212,11 @@ describe('CoachIntakeQueueItemCard', () => {
   });
 
   it('does not render arbitrary gate or action labels from queue metadata', () => {
-    const onCommandPrompt = vi.fn();
-
     render(
       <MemoryRouter>
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
-          onCommandPrompt={onCommandPrompt}
           item={{
             id: 'item-5',
             entityId: 'item-5',
@@ -257,7 +242,6 @@ describe('CoachIntakeQueueItemCard', () => {
     expect(within(card).queryByText(/private@example\.com/i)).toBeNull();
     expect(within(card).queryByText(/Email Marcus/i)).toBeNull();
     expect(within(card).queryByRole('button')).toBeNull();
-    expect(onCommandPrompt).not.toHaveBeenCalled();
   });
 
   it('does not render arbitrary audio confidence labels from queue metadata', () => {

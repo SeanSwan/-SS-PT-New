@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+﻿import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -90,6 +90,10 @@ describe('admin impersonation UI wiring', () => {
     expect(switcherStyles).toContain('@container (max-width: 1120px)');
     expect(switcherStyles).toContain('@container (max-width: 700px)');
     expect(switcherStyles).toContain('> * {');
+    expect(switcherStyles).toContain('grid-template-columns: minmax(390px, 1.1fr)');
+    expect(switcherStyles).toContain('grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));');
+    expect(switcherStyles).toContain('padding: 0 0.55rem;');
+    expect(switcherStyles).not.toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
     expect(switcherStyles).toContain('white-space: normal');
     expect(previewStyles).toContain('overflow: hidden');
     expect(previewStyles).toContain('max-width: 100%');
@@ -98,3 +102,5 @@ describe('admin impersonation UI wiring', () => {
     expect(commandStyles).toContain('white-space: normal');
   });
 });
+
+

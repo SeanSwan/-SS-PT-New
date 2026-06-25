@@ -3,7 +3,7 @@
  * ==========================
  * PII-safe operator health snapshot for Swan Coach intake.
  */
-import { Activity, AlertTriangle, Brain, ShieldCheck } from 'lucide-react';
+import { Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type {
   CoachIntakeHealth,
   CoachIntakeQueueScope,
@@ -14,7 +14,6 @@ import { CoachIntakeRetentionCandidates } from './CoachIntakeRetentionCandidates
 import { CoachIntakeRetentionPurgePlan } from './CoachIntakeRetentionPurgePlan';
 import { safeOperatorActionLabel } from './CoachIntakeOperationalText.logic';
 import {
-  HealthActionButton,
   HealthBlock,
   HealthLabel,
   HealthPill,
@@ -28,7 +27,6 @@ interface CoachIntakeHealthStripProps {
   health?: CoachIntakeHealth | null;
   retention?: CoachIntakeRetention | null;
   retentionPurgePlan?: RetentionPurgePlan | null;
-  onCommandPrompt?: (message: string) => void;
   onScopeChange?: (scope: CoachIntakeQueueScope) => void;
 }
 
@@ -36,13 +34,6 @@ function statusLabel(status: CoachIntakeHealth['status']): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-function promptForActionKey(key: string): string {
-  if (key === 'review_ready_drafts' || key === 'review_next') return 'review next Coach intake';
-  if (key === 'resolve_clients') return 'show my Coach intake queue';
-  if (key === 'answer_clarifications') return 'show Coach intake clarification holds';
-  if (key === 'review_duplicate_holds') return 'show Coach intake duplicate holds';
-  return 'show Coach intake health';
-}
 
 function scopeControl({
   label,
@@ -74,20 +65,15 @@ export function CoachIntakeHealthStrip({
   health,
   retention,
   retentionPurgePlan,
-  onCommandPrompt,
   onScopeChange,
 }: CoachIntakeHealthStripProps): JSX.Element | null {
   if (!health) return null;
 
   const counts = health.counts;
-  const actionPrompt = promptForActionKey(health.nextOperatorAction.key);
   const healthActionLabel = safeOperatorActionLabel(
     health.nextOperatorAction.key,
     health.nextOperatorAction.label,
   );
-  const retentionActionLabel = retention
-    ? safeOperatorActionLabel(retention.nextOperatorAction.key, retention.nextOperatorAction.label)
-    : null;
   const attentionIcon = health.status === 'healthy'
     ? <ShieldCheck size={14} aria-hidden="true" />
     : <AlertTriangle size={14} aria-hidden="true" />;
@@ -110,17 +96,7 @@ export function CoachIntakeHealthStrip({
             </HealthPill>
           </HealthStatRow>
           <CoachIntakeRetentionCandidates retention={retention} />
-          <CoachIntakeRetentionPurgePlan plan={retentionPurgePlan} onCommandPrompt={onCommandPrompt} />
-          {onCommandPrompt && (
-            <HealthActionButton
-              type="button"
-              aria-label={`Ask Coach: ${retentionActionLabel}`}
-              onClick={() => onCommandPrompt('show Coach intake retention')}
-            >
-              <Brain size={14} aria-hidden="true" />
-              Ask Coach
-            </HealthActionButton>
-          )}
+          <CoachIntakeRetentionPurgePlan plan={retentionPurgePlan} />
         </HealthBlock>
       )}
       <HealthBlock>
@@ -138,16 +114,6 @@ export function CoachIntakeHealthStrip({
       <HealthBlock>
         <HealthLabel>Next operator action</HealthLabel>
         <HealthValue>{healthActionLabel}</HealthValue>
-        {onCommandPrompt && (
-          <HealthActionButton
-            type="button"
-            aria-label={`Ask Coach: ${healthActionLabel}`}
-            onClick={() => onCommandPrompt(actionPrompt)}
-          >
-            <Brain size={14} aria-hidden="true" />
-            Ask Coach
-          </HealthActionButton>
-        )}
       </HealthBlock>
     </HealthStrip>
   );

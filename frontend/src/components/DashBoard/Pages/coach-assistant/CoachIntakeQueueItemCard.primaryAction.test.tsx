@@ -5,17 +5,16 @@
  */
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 
 describe('CoachIntakeQueueItemCard primary action flow', () => {
-  it('promotes the direct review link before the Coach prompt inside one action group', () => {
+  it('keeps the direct review link as the only queue-row action control', () => {
     render(
       <MemoryRouter>
         <CoachIntakeQueueItemCard
           active={false}
           coachWorkspaceHref="/dashboard/admin/coach-assistant"
-          onCommandPrompt={vi.fn()}
           queueScope="actionable"
           item={{
             id: 'item-primary',
@@ -39,7 +38,8 @@ describe('CoachIntakeQueueItemCard primary action flow', () => {
     const card = screen.getByLabelText(/Queue item Coach voice note/i);
     const actions = within(card).getByLabelText('Queue item next actions');
     const controls = Array.from(actions.querySelectorAll('a, button'));
+    expect(controls).toHaveLength(1);
     expect(controls[0]).toHaveAccessibleName(/review intake Coach voice note/i);
-    expect(controls[1]).toHaveAccessibleName(/ask coach to resolve client/i);
+    expect(within(card).getByText(/Resolve client hold/i)).toBeInTheDocument();
   });
 });

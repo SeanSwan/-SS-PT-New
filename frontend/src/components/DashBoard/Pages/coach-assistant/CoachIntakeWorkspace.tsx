@@ -35,9 +35,6 @@ import {
   SourceChip,
 } from './CoachIntakeWorkspace.styles';
 import {
-  activeAudioPrompt,
-  activeCoachActionPrompt,
-  activeDraftReviewPrompt,
   actionableItemsAfter,
   isActiveItem,
   itemEntityId,
@@ -57,7 +54,6 @@ type CoachRole = 'admin' | 'trainer' | 'client';
 interface CoachIntakeWorkspaceProps {
   userRole: CoachRole;
   selectedClientName: string | null;
-  onCommandPrompt: (message: string) => void;
   queue: CoachIntakeQueueState;
   activeIntakeId?: string | null;
 }
@@ -71,7 +67,6 @@ interface ReviewOutcomeState {
 export function CoachIntakeWorkspace({
   userRole,
   selectedClientName,
-  onCommandPrompt,
   queue,
   activeIntakeId = null,
 }: CoachIntakeWorkspaceProps): JSX.Element | null {
@@ -191,7 +186,6 @@ export function CoachIntakeWorkspace({
         workspaceHref={workspaceHref}
         scope={queue.scope}
         summary={summary}
-        onCommandPrompt={onCommandPrompt}
         onRefresh={refresh}
       />
 
@@ -205,10 +199,7 @@ export function CoachIntakeWorkspace({
           item={activeItem}
           statusText={statusLabel(activeItem.queueStatus)}
           reviewHref={queueScopedHref(itemReviewHref(activeItem, coachWorkspaceHref), queue.scope)}
-          onAskCoach={() => onCommandPrompt(activeCoachActionPrompt(activeItem))}
-          onInspectAudio={() => onCommandPrompt(activeAudioPrompt(activeItem))}
           onConfirmAudioOrder={() => audioOrderConfirmation.confirmAudioOrder(itemEntityId(activeItem))}
-          onPrepareDraftReview={() => onCommandPrompt(activeDraftReviewPrompt(activeItem))}
           onReviewPreparedDraft={() => {
             const proposalId = activeItem.latestProposalId || null;
             setReviewingProposalId(proposalId);
@@ -237,7 +228,7 @@ export function CoachIntakeWorkspace({
         />
       ) : null}
 
-      <CoachIntakeTeachMe onCommandPrompt={onCommandPrompt} />
+      <CoachIntakeTeachMe />
 
       <ItemList aria-label="Coach intake work queue" aria-live="polite">
         <CoachIntakeQueueScopeTabs
@@ -262,7 +253,6 @@ export function CoachIntakeWorkspace({
               item={item}
               active={active}
               coachWorkspaceHref={coachWorkspaceHref}
-              onCommandPrompt={onCommandPrompt}
               queueScope={queue.scope}
             />
           );
@@ -273,7 +263,6 @@ export function CoachIntakeWorkspace({
         health={queue.health}
         retention={queue.retention}
         retentionPurgePlan={queue.retentionPurgePlan}
-        onCommandPrompt={onCommandPrompt}
         onScopeChange={handleScopeChange}
       />
     </Panel>

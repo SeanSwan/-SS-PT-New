@@ -18,10 +18,7 @@ const CoachIntakeWorkspaceActiveTarget = ({
   statusText,
   reviewHref,
   focusRef,
-  onAskCoach,
-  onInspectAudio,
   onConfirmAudioOrder,
-  onPrepareDraftReview,
   onReviewPreparedDraft,
   confirmAudioOrderStatus = null,
   isConfirmingAudioOrder = false,
@@ -49,10 +46,7 @@ const CoachIntakeWorkspaceActiveTarget = ({
         item={item}
         statusText={statusText}
         reviewHref={reviewHref}
-        onAskCoach={onAskCoach}
-        onInspectAudio={onInspectAudio}
         onConfirmAudioOrder={onConfirmAudioOrder}
-        onPrepareDraftReview={onPrepareDraftReview}
         onReviewPreparedDraft={onReviewPreparedDraft}
         confirmAudioOrderStatus={confirmAudioOrderStatus}
         isConfirmingAudioOrder={isConfirmingAudioOrder}

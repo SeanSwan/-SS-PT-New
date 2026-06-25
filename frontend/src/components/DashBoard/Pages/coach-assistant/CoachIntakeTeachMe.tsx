@@ -1,10 +1,5 @@
-import React from 'react';
 import styled from 'styled-components';
 import TeachMeToggle from '../../../Shared/TeachMeToggle';
-
-interface CoachIntakeTeachMeProps {
-  onCommandPrompt: (message: string) => void;
-}
 
 const Shell = styled.div`
   display: grid;
@@ -65,25 +60,20 @@ const intakeGuide = (
     <GuideList>
       <li><strong>Review next intake first.</strong> Let the queue pick the highest-risk item so you are not hunting through tabs.</li>
       <li><strong>Resolve client, date, and audio order.</strong> Do that before trusting the prepared workout or session note.</li>
-      <li><strong>Ask Coach to inspect pieces.</strong> Use the command buttons when a clip bundle, client match, or duplicate risk needs a second pass.</li>
+      <li><strong>Use the review target and PLAUD tools.</strong> Inspect clip bundles, client holds, and duplicate risk from the dossier before approving any draft.</li>
       <li><strong>Review the prepared draft.</strong> Approve, reject, or hold it from the review panel after the intake facts are clean.</li>
       <li><strong>Final writes stay approval-gated.</strong> The workspace can prepare the log, but it does not silently save client history.</li>
     </GuideList>
   </>
 );
 
-export function CoachIntakeTeachMe({ onCommandPrompt }: CoachIntakeTeachMeProps): JSX.Element {
-  const askCoach = React.useCallback(() => {
-    onCommandPrompt('teach me how to process Coach intake safely');
-  }, [onCommandPrompt]);
-
+export function CoachIntakeTeachMe(): JSX.Element {
   return (
     <Shell>
       <TeachMeToggle
         sectionId="coach-intake-hive-mind"
         title="Hive mind intake review"
         content={intakeGuide}
-        onAskAI={askCoach}
         defaultOpen={false}
       />
     </Shell>

@@ -54,7 +54,6 @@ describe('CoachIntakeWorkspace route recovery', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
           activeIntakeId="missing-intake"
         />
@@ -73,7 +72,6 @@ describe('CoachIntakeWorkspace route recovery', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue([])}
           activeIntakeId="missing-intake"
         />

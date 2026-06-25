@@ -29,7 +29,6 @@ describe('CoachIntakeWorkspace quick snapshot', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
         />
       </MemoryRouter>,
