@@ -35,7 +35,6 @@ type CoachCommandOpsRailProps = {
   onQuickClientNameChange: (value: string) => void;
   onQuickClientSourceChange: (value: CoachCommandClientSource) => void;
   onQuickClientSubmit: (event: React.FormEvent) => void;
-  onStageWorkoutLog: () => void;
   onTeachModeToggle: () => void;
 };
 
@@ -51,7 +50,7 @@ function opsRailDescription({
   const scopeLabel = (workoutLoggerScopeLabel || selectedClientLabel || '').trim();
 
   if (scopeLabel === 'My workout log') {
-    return 'Review intake, draft your workout, or open your own logger from one place.';
+    return 'Review intake, import audio, or open your own logger from one place.';
   }
 
   if (workoutLoggerRoute && scopeLabel) {
@@ -85,7 +84,6 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
   onQuickClientNameChange,
   onQuickClientSourceChange,
   onQuickClientSubmit,
-  onStageWorkoutLog,
   onTeachModeToggle,
 }) => {
   const headerDescription = opsRailDescription({
@@ -127,7 +125,6 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
         workflowReturnTo={workflowReturnTo}
         onOpenIntake={onOpenIntake}
         onOpenPlaud={onOpenPlaud}
-        onStageWorkoutLog={onStageWorkoutLog}
       />
       <TeachModeToggleButton teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <OperatorControlsPanel teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />

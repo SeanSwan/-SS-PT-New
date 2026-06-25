@@ -22,7 +22,6 @@ import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachComman
 import type { CoachCommandRouteContext, CoachScheduledSessionRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
 type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
-
 type CoachCommandQueue = { refresh: () => unknown };
 
 type CoachCommandActionProps = {
@@ -48,7 +47,9 @@ type CoachCommandActionProps = {
   routeContextPrompt: string | null;
   routeRequestContext: CoachScheduledSessionRouteContext | null;
   onThreadSelectRoute: (thread: ConversationSummary) => void;
+  onNewThreadRoute: () => void;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
+  setAutoSelectSuppressed: Dispatch<SetStateAction<boolean>>;
   setCommandText: Dispatch<SetStateAction<string>>;
   setDrawer: Dispatch<SetStateAction<DrawerSide | null>>;
   setLogs: Dispatch<SetStateAction<CommandLogEntry[]>>;
@@ -81,6 +82,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const title = getConversationTitle(thread);
     const status = `${title} - thread loaded`;
     props.onThreadSelectRoute(thread);
+    props.setAutoSelectSuppressed(false);
     props.setActiveThreadId(thread.id);
     props.setSelectedStatus(status);
     closeDrawer(false);
@@ -89,7 +91,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
 
   const handleWorkflowSelect = (prompt: string) => {
     closeDrawer(false);
-    focusComposer(prompt, `${props.activeThreadTitle} - command staged`);
+    props.setSelectedStatus(prompt ? 'Coach workflow selected - choose the next real action' : 'Coach workflow selected');
   };
 
   const handleStartPlaudUpload = () => {
@@ -110,10 +112,13 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
 
   const handleNewThread = () => {
     props.chat.newChat();
+    props.onNewThreadRoute();
+    props.setAutoSelectSuppressed(true);
     props.setActiveThreadId(null);
     closeDrawer(false);
-    const prompt = props.clientFacing ? 'Start a new coach chat for my training today.' : 'Start a new review-gated coach thread for the selected client.';
-    focusComposer(prompt, props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
+    props.setCommandText('');
+    props.setSelectedStatus(props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
+    focusComposer();
   };
 
   const handleQuickClientSubmit = async (event: FormEvent) => {
@@ -140,7 +145,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         body: `${createdName} is ready for staged PLAUD/workout review. No workout log was written and final writes still require operator approval.`,
         attachments: result.claimUrl ? ['claim link ready'] : ['client profile ready'],
       });
-      focusComposer(`Continue ${createdName} with review-gated context.`, status);
+      props.setSelectedStatus(status);
       void props.coachQueue.refresh();
     } catch (error: any) {
       props.setQuickClientError(error?.message || 'Client could not be added.');

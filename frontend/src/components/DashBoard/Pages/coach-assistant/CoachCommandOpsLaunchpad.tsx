@@ -7,18 +7,17 @@
  * [Workout command center heading]
  * [Active scope + "Nothing logs until you save in Logger" safety copy]
  * [Primary Log/Pick action]
- * [Builder] [Review intake] [Draft in chat] [PLAUD]
+ * [Builder] [Review intake] [PLAUD]
  *
  * DATA FLOW:
  * Props: selectedClientLabel, Logger/Planner routes, and event handlers.
  * State/API: none. This component does not fetch, mutate, or write workouts.
- * Children: route Links and prompt/review buttons.
+ * Children: route Links and review buttons.
  *
  * CLICK OUTCOMES:
  * Log/Pick: navigates to Logger or Client Hub.
  * Builder: navigates to Workout Planner.
  * Review intake: switches the parent to the Intake tab.
- * Draft in chat: stages a prompt in the Coach composer.
  * PLAUD: switches to the PLAUD tab and opens the uploader.
  *
  * ARCHITECTURE:
@@ -26,7 +25,7 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarCheck, ClipboardList, Dumbbell, FileAudio, Inbox, MessageSquareText, UserPlus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarCheck, ClipboardList, Dumbbell, FileAudio, Inbox, UserPlus } from 'lucide-react';
 
 type CoachCommandOpsLaunchpadProps = {
   clientPickerRoute: string;
@@ -38,7 +37,6 @@ type CoachCommandOpsLaunchpadProps = {
   workflowReturnTo: string | null;
   onOpenIntake: () => void;
   onOpenPlaud: () => void;
-  onStageWorkoutLog: () => void;
 };
 
 type ActionBodyProps = {
@@ -85,7 +83,6 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   workflowReturnTo,
   onOpenIntake,
   onOpenPlaud,
-  onStageWorkoutLog,
 }) => {
   const scopeLabel = workoutLoggerRoute ? (workoutLoggerScopeLabel || selectedClientLabel) : 'No client locked';
   const hasLoggerRoute = Boolean(workoutLoggerRoute);
@@ -104,7 +101,7 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
       <div className="section-title-row">
         <div>
           <h2 className="panel-title">Workout command center</h2>
-          <p className="panel-subtitle">Pick one move: log, build, review intake, draft in chat, or import PLAUD. Logger is the only save point.</p>
+          <p className="panel-subtitle">Pick one move: log, build, review intake, or import PLAUD. Logger is the only save point.</p>
         </div>
         <Dumbbell size={19} aria-hidden="true" />
       </div>
@@ -163,10 +160,6 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
 
         <button type="button" className="workout-command-card" onClick={onOpenIntake} aria-label="Review next intake">
           <ActionBody icon={<Inbox size={18} aria-hidden="true" />} title="Review intake" note="Open queue" />
-        </button>
-
-        <button type="button" className="workout-command-card" onClick={onStageWorkoutLog} aria-label="Draft in chat">
-          <ActionBody icon={<MessageSquareText size={18} aria-hidden="true" />} title="Draft in chat" note="Stage prompt only" />
         </button>
 
         <button type="button" className="workout-command-card" onClick={onOpenPlaud} aria-label="Import PLAUD audio">

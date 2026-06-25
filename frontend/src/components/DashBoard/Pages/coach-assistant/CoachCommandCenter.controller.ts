@@ -46,6 +46,7 @@ export function useCoachCommandCenterController({
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
   const [activeThreadId, setActiveThreadId] = useState<number | null>(initialRouteThreadId);
+  const [autoSelectSuppressed, setAutoSelectSuppressed] = useState(false);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
   const [threadSearch, setThreadSearch] = useState('');
@@ -93,8 +94,8 @@ export function useCoachCommandCenterController({
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
   const autoSelectedThread = useMemo(
-    () => pickAutoSelectedThread(allCoachThreads, routeIntent, routeClientId, activeThreadId),
-    [activeThreadId, allCoachThreads, routeClientId, routeIntent],
+    () => autoSelectSuppressed ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, routeClientId, activeThreadId),
+    [activeThreadId, allCoachThreads, autoSelectSuppressed, routeClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath')),
@@ -198,7 +199,9 @@ export function useCoachCommandCenterController({
     routeIntent,
     routeRequestContext: scheduledSessionContext,
     onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
+    onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, null, null), { replace: true }),
     setActiveThreadId,
+    setAutoSelectSuppressed,
     setCommandText,
     setDrawer,
     setLogs,

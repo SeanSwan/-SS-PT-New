@@ -36,7 +36,11 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Import PLAUD/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Onboard client$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Log today$/i })).toBeInTheDocument();
+    const workoutActions = screen.getByLabelText('Workout surfaces');
+    expect(within(workoutActions).getByRole('link', { name: /^Open workout logger$/i }))
+      .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
+    expect(within(workoutActions).getByRole('link', { name: /^Open workout planner$/i }))
+      .toHaveAttribute('href', '/dashboard/client/workouts');
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });
 

@@ -288,7 +288,6 @@ const CoachCommandCenterPage: React.FC = () => {
             onQuickClientNameChange={commandCenter.setQuickClientName}
             onQuickClientSourceChange={commandCenter.setQuickClientSource}
             onQuickClientSubmit={commandCenter.handleQuickClientSubmit}
-            onStageWorkoutLog={() => commandCenter.handleWorkflowSelect('Log a workout for the selected client: ')}
             onTeachModeToggle={commandCenter.toggleTeachMode}
           />
         ) : null}
