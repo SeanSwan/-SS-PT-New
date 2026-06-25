@@ -12,6 +12,7 @@
 import {
   Aperture,
   Bell,
+  Camera,
   Dumbbell,
   Home,
   Trophy,
@@ -24,10 +25,7 @@ import type { TransformationPhoto, PhotoVisibility } from './TransformationPhoto
 import type { ObservatoryNavItem } from './ObservatoryShellTypes';
 import { STUDIO_TAB_IDS } from '../types/UserDashboardTypes';
 
-/* Workstream N5 (tab compaction): 14 → 9 entries, mirroring the tab bar.
-   Creative groups Creative/Photos/About/Activity; Profile + Community keep
-   their panels + URLs but leave the nav.
-   Workstream O: Feed left the nav — Home absorbed its unique widgets. */
+/* Workstream N5/O: Photos is a first-class library entry. Creative groups About/Activity; Profile and Community keep their panels and URLs but leave the nav. Feed left the nav because Home absorbed its unique widgets. */
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',          label: 'Home',          Icon: Home },
   { id: 'progress',      label: 'Progress',      Icon: Dumbbell },
@@ -36,6 +34,7 @@ export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'challenges',    label: 'Challenges',    Icon: Trophy },
   { id: 'notifications', label: 'Alerts',        Icon: Bell },
   { id: 'nutrition',     label: 'Nutrition',     Icon: Utensils },
+  { id: 'photos',        label: 'Photos',        Icon: Camera },
   { id: 'creative',      label: 'Creative',      Icon: Aperture, matches: STUDIO_TAB_IDS },
 ];
 

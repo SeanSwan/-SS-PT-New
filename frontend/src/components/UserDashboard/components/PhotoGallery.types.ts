@@ -1,12 +1,12 @@
 export type PhotoCategory = 'All' | 'Fitness' | 'Nutrition' | 'Dance' | 'Progress' | 'Community';
 
 export interface PhotoGalleryPost {
-  id?: string;
-  content?: string;
-  mediaUrl?: string;
-  likesCount?: number;
-  commentsCount?: number;
-  createdAt?: string;
+  id?: unknown;
+  content?: unknown;
+  mediaUrl?: unknown;
+  likesCount?: unknown;
+  commentsCount?: unknown;
+  createdAt?: unknown;
 }
 
 export interface PhotoItem {

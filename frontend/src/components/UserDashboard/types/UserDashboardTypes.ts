@@ -95,12 +95,12 @@ export type TabId =
   | 'profile';
 
 /**
- * Workstream N5 (tab compaction): the Creative group — four media/identity
- * lenses that share ONE visible nav entry. Each remains a real tab with its
- * own URL; an in-panel lens strip switches between them.
+ * Workstream N5/O: the Creative group keeps profile/story lenses behind one
+ * visible nav entry. Photos is a first-class library tab with its own route.
+ * Each grouped lens remains a real tab with its own URL.
  */
 // Profile is included for grouped nav active state; it is not shown in the lens strip.
-export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'photos', 'about', 'activity', 'profile'];
+export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'about', 'activity', 'profile'];
 
 /**
  * Canonical tab list — used for /user-dashboard/:tab URL validation (merge N1).

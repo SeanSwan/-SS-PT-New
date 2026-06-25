@@ -60,6 +60,7 @@ import {
   TransformationGrid,
 } from './HomeTabVisionRightRail.styles';
 import HomeTabTrendingPanel from './HomeTabTrendingPanel';
+import HomePhotoLibraryPreview from './HomePhotoLibraryPreview';
 
 const TransformationImage = styled.img`
   width: 100%;

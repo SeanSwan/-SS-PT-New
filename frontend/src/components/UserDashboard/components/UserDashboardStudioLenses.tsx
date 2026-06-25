@@ -1,15 +1,13 @@
 /**
  * ============================================================================
  * FILE: UserDashboardStudioLenses.tsx
- * PURPOSE: In-panel lens strip for the Creative tab group (workstream N5 — tab
- *          compaction). Creative / Photos / About / Activity share one entry
- *          in the main tab bar; this strip switches between them inside the
- *          panel, so every lens keeps its own URL and deep links keep working.
+ * PURPOSE: In-panel lens strip for the Creative tab group. Creative, About,
+ *          and Activity share one main-tab entry while each keeps a URL.
  * ============================================================================
  */
 import React from 'react';
 import styled from 'styled-components';
-import { Activity, Aperture, Camera, Info, type LucideIcon } from 'lucide-react';
+import { Activity, Aperture, Info, type LucideIcon } from 'lucide-react';
 import type { TabId } from '../types/UserDashboardTypes';
 import { getNextRovingTabIndex } from './UserDashboardRovingTabs';
 
@@ -51,7 +49,6 @@ const LensChip = styled.button<{ $active: boolean }>`
 
 const STUDIO_LENSES: Array<{ id: TabId; label: string; Icon: LucideIcon }> = [
   { id: 'creative', label: 'Creative', Icon: Aperture },
-  { id: 'photos', label: 'Photos', Icon: Camera },
   { id: 'about', label: 'About', Icon: Info },
   { id: 'activity', label: 'Activity', Icon: Activity },
 ];
@@ -80,7 +77,7 @@ const UserDashboardStudioLenses: React.FC<UserDashboardStudioLensesProps> = ({
   }, [onTabChange]);
 
   return (
-    <LensRow role="tablist" aria-label="Creative sections">
+    <LensRow role="tablist" aria-label="Creative profile sections">
       {STUDIO_LENSES.map(({ id, label, Icon }, index) => {
         const isActive = activeTab === id;
         return (

@@ -290,7 +290,7 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     // Bar/rail entries ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Creative's id is 'creative' (the group's landing lens).
     // Workstream O: 'feed' left the bar (panel unmounted; Home absorbed it).
-    const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
+    const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'photos', 'creative'];
     barTabs.forEach((tabId) => {
       expect(tabsSource, `${tabId} panel must exist before navigation can expose it`)
         .toContain(`<TabPanel id="${tabId}"`);
@@ -301,7 +301,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     });
 
     // Creative lenses are reachable via the in-panel strip.
-    ['photos', 'about', 'activity'].forEach((tabId) => {
+    ['about', 'activity'].forEach((tabId) => {
       expect(tabsSource, `${tabId} panel must exist`).toContain(`<TabPanel id="${tabId}"`);
       expect(lensesSource, `${tabId} must be reachable from the Creative lens strip`)
         .toContain(`id: '${tabId}'`);
@@ -331,7 +331,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     [tabBarSource, adapterSource].forEach((source) => {
       expect(source).toContain("label: 'Creative'");
       expect(source).toContain('matches: STUDIO_TAB_IDS');
-      expect(source).not.toContain("label: 'Photos'");
+      expect(source).toContain("label: 'Photos'");
       expect(source).not.toContain("label: 'About'");
       expect(source).not.toContain("label: 'Activity'");
       // Profile (Settings flow) and Community leave the bar but keep panels.
@@ -345,8 +345,8 @@ describe('UserDashboard V3 daily loop contract', () => {
     ['creative', 'photos', 'about', 'activity', 'profile'].forEach((id) => {
       expect(tabsSource).toContain(`<TabPanel id="${id}"`);
     });
-    // The four studio panels carry the in-panel lens strip.
-    expect(tabsSource.match(/<StudioLenses activeTab={activeTab} onTabChange={onTabChange} \/>/g)).toHaveLength(4);
+    // The three Creative/profile panels carry the in-panel lens strip; Photos stands alone.
+    expect(tabsSource.match(/<StudioLenses activeTab={activeTab} onTabChange={onTabChange} \/>/g)).toHaveLength(3);
   });
 
   it('keeps Progress immediately after Home in user-dashboard navigation', () => {
@@ -639,6 +639,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(cardStylesSource).toContain('min-width: min(100%, 7.6rem);');
     expect(cardStylesSource).toContain('text-overflow: ellipsis;');
 
+    expect(rightRailSource).toContain('HomePhotoLibraryPreview');
     expect(rightRailSource).toContain('LeaderboardRow');
     expect(rightRailStylesSource).toContain('grid-template-columns: 26px minmax(0, 1fr) max-content;');
     expect(rightRailStylesSource).toContain('text-overflow: ellipsis;');

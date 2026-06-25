@@ -46,7 +46,7 @@ describe('UserDashboard roving tab keyboard model', () => {
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
 
     expect(typesSource).toContain(
-      "export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'photos', 'about', 'activity', 'profile'];",
+      "export const STUDIO_TAB_IDS: readonly TabId[] = ['creative', 'about', 'activity', 'profile'];",
     );
     expect(tabsSource).toContain("const labelledBy = id === 'profile' ? 'tab-studio' : `tab-${id}`;");
     expect(tabsSource).toContain('aria-labelledby={labelledBy}');

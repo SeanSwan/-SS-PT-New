@@ -58,17 +58,17 @@ export const refineUserGuide = (
   }
 
   if (includesAny(path, ['photos'])) {
-    const primaryAction = { label: 'Open Photos', to: '/user-dashboard/photos' };
+    const primaryAction = { label: 'Open Photo Library', to: '/user-dashboard/photos' };
     return applyPatch(base, {
-      title: 'Photos proof flow',
-      summary: 'Use Photos to keep transformation evidence organized after the workout proof is current.',
-      focus: 'Tie photos to real training progress so the visual story stays useful, not random.',
+      title: 'Photo library flow',
+      summary: 'Use the Photo Library to browse uploaded photos once, then reuse them across profile, progress, and creative posts.',
+      focus: 'Keep uploaded photos easy to find, then tie the useful ones back to real training progress.',
       primaryAction,
       actions: actionRail(primaryAction, { label: 'Open Creative', to: '/user-dashboard/creative' }),
-      primaryPrompt: 'teach me the user photos workflow for tying progress photos to logged workouts',
+      primaryPrompt: 'teach me the user photo library workflow for finding uploaded photos and reusing them with logged workout proof',
       fastPath: [
-        'Pick the progress photo.',
-        'Connect it to the training proof.',
+        'Open the uploaded photo.',
+        'Reuse it where it supports the profile or training proof.',
         'Share only the useful milestone.',
       ],
     });
@@ -81,7 +81,7 @@ export const refineUserGuide = (
       summary: 'Use Creative after the training proof exists so creative posts reinforce the real transformation.',
       focus: 'Package progress, photos, and creative expression after the workout story is current.',
       primaryAction,
-      actions: actionRail(primaryAction, { label: 'Open Photos', to: '/user-dashboard/photos' }),
+      actions: actionRail(primaryAction, { label: 'Open Photo Library', to: '/user-dashboard/photos' }),
       primaryPrompt: 'teach me the user creative workflow for turning logged progress into clean creative proof',
       fastPath: [
         'Confirm the training proof.',

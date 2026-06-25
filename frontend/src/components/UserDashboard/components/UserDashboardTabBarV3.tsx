@@ -12,6 +12,7 @@ import React from 'react';
 import {
   Aperture,
   Bell,
+  Camera,
   Dumbbell,
   Home,
   Trophy,
@@ -29,12 +30,7 @@ interface UserDashboardTabBarV3Props {
   onTabChange: (tab: TabId) => void;
 }
 
-/* Workstream N5 (tab compaction, vision brief): 14 → 9 visible entries.
-   Creative groups Creative/Photos/About/Activity behind one entry (in-panel
-   lens strip switches between them). Profile (Settings flow) and Community
-   keep their panels + URLs but leave the bar.
-   Workstream O: Feed left the bar too — Home absorbed its unique widgets
-   (Faction War on the right rail); everything else was a duplicate of Home. */
+/* Workstream N5/O: Photos is a first-class library entry. Creative groups About/Activity behind one in-panel lens strip. Profile and Community keep their panels and URLs but leave the bar. Feed left the bar because Home absorbed its unique widgets. */
 const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon; matches?: readonly TabId[] }> = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'progress', label: 'Progress', Icon: Dumbbell },
@@ -43,6 +39,7 @@ const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon; matches
   { id: 'challenges', label: 'Challenges', Icon: Trophy },
   { id: 'notifications', label: 'Alerts', Icon: Bell },
   { id: 'nutrition', label: 'Nutrition', Icon: Utensils },
+  { id: 'photos', label: 'Photos', Icon: Camera },
   { id: 'creative', label: 'Creative', Icon: Aperture, matches: STUDIO_TAB_IDS },
 ];
 

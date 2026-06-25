@@ -42,7 +42,7 @@ describe('PhotoGallery', () => {
         {
           id: 'photo-1',
           content: 'Fitness progress after training',
-          mediaUrl: 'https://example.test/progress.jpg',
+          mediaUrl: '/uploads/progress.jpg',
           likesCount: 8,
           commentsCount: 2,
           createdAt: '2026-05-09T00:00:00.000Z',
@@ -50,7 +50,7 @@ describe('PhotoGallery', () => {
         {
           id: 'photo-2',
           content: 'Nutrition meal prep',
-          mediaUrl: 'https://example.test/meal.png',
+          mediaUrl: '/uploads/meal.png',
           likesCount: 4,
           commentsCount: 1,
           createdAt: '2026-05-09T00:00:00.000Z',
@@ -83,6 +83,7 @@ describe('PhotoGallery', () => {
       expect(mockCreatePost).toHaveBeenCalledWith({
         content: expect.stringContaining('#Transformation'),
         type: 'transformation',
+        visibility: 'friends',
         media: file,
       });
     });
@@ -103,14 +104,32 @@ describe('PhotoGallery', () => {
 });
 
 describe('PhotoGallery data helpers', () => {
+  it('normalizes malformed post fields and removes unsafe photo URLs', () => {
+    const rows = mapPostsToPhotoItems([
+      { id: 42, content: { body: 'Progress photo' }, mediaUrl: '/uploads/progress.jpg', likesCount: Number.POSITIVE_INFINITY, commentsCount: -2 },
+      { id: 'unsafe', content: 'Unsafe photo', mediaUrl: 'javascript:alert(1)', likesCount: 1, commentsCount: 1 },
+    ] as unknown as Parameters<typeof mapPostsToPhotoItems>[0]);
+
+    expect(rows).toEqual([
+      {
+        id: '42',
+        url: '/uploads/progress.jpg',
+        title: 'Photo',
+        likes: 0,
+        comments: 0,
+        createdAt: undefined,
+        category: 'Fitness',
+      },
+    ]);
+  });
   it('filters out video posts and assigns deterministic fallback ids', () => {
     expect(mapPostsToPhotoItems([
-      { content: 'clip', mediaUrl: 'https://example.test/video.mp4', likesCount: 1, commentsCount: 0 },
-      { content: 'Progress check', mediaUrl: 'https://example.test/photo.jpg', likesCount: 3, commentsCount: 2 },
+      { content: 'clip', mediaUrl: '/uploads/video.mp4', likesCount: 1, commentsCount: 0 },
+      { content: 'Progress check', mediaUrl: '/uploads/photo.jpg', likesCount: 3, commentsCount: 2 },
     ])).toEqual([
       {
         id: 'photo-0',
-        url: 'https://example.test/photo.jpg',
+        url: '/uploads/photo.jpg',
         title: 'Progress check',
         likes: 3,
         comments: 2,
@@ -122,8 +141,8 @@ describe('PhotoGallery data helpers', () => {
 
   it('filters by search and category using the mapped photo category', () => {
     const photos = mapPostsToPhotoItems([
-      { id: 'one', content: 'Nutrition meal prep', mediaUrl: 'https://example.test/meal.png', likesCount: 1, commentsCount: 0 },
-      { id: 'two', content: 'Community challenge', mediaUrl: 'https://example.test/team.png', likesCount: 1, commentsCount: 0 },
+      { id: 'one', content: 'Nutrition meal prep', mediaUrl: '/uploads/meal.png', likesCount: 1, commentsCount: 0 },
+      { id: 'two', content: 'Community challenge', mediaUrl: '/uploads/team.png', likesCount: 1, commentsCount: 0 },
     ]);
 
     expect(filterPhotoItems(photos, 'meal', 'Nutrition')).toHaveLength(1);

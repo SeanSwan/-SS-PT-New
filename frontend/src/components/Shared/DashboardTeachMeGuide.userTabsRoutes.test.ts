@@ -43,7 +43,7 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
       ['challenges', 'Open Challenges'],
       ['notifications', 'Open Notifications'],
       ['creative', 'Open Creative'],
-      ['photos', 'Open Photos'],
+      ['photos', 'Open Photo Library'],
       ['about', 'Open About'],
       ['activity', 'Review Activity'],
       ['nutrition', 'Open Nutrition'],

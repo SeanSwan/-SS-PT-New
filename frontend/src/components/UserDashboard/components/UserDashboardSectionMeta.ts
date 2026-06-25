@@ -79,8 +79,8 @@ export const sectionMeta: Record<Exclude<TabId, 'home'>, SectionMetaEntry> = {
   },
   photos: {
     eyebrow: 'Visual Proof',
-    title: 'Photos',
-    copy: 'Progress photos, transformation media, and gallery uploads in one focused view.',
+    title: 'Photo Library',
+    copy: 'Uploaded photos, albums, progress proof, and reusable profile media in one focused view.',
     tone: 'cyan',
     Icon: Camera,
   },

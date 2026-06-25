@@ -1,3 +1,4 @@
+import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import type { PhotoCategory, PhotoGalleryPost, PhotoItem } from './PhotoGallery.types';
 
 const VIDEO_EXTENSION_PATTERN = /\.(mp4|webm|mov|m4v)(\?.*)?$/i;
@@ -12,6 +13,16 @@ export const PHOTO_GALLERY_CATEGORIES: PhotoCategory[] = [
   'Progress',
   'Community',
 ];
+
+function normalizePhotoText(value: unknown): string {
+  if (typeof value === 'string') return value.trim().replace(/\s+/g, ' ');
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return '';
+}
+
+function normalizePhotoCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
+}
 
 export function validatePhotoFile(file: File): string | null {
   if (!file.type.startsWith('image/')) {
@@ -28,20 +39,26 @@ export function validatePhotoFile(file: File): string | null {
 export function mapPostsToPhotoItems(posts: PhotoGalleryPost[] | null | undefined): PhotoItem[] {
   if (!posts?.length) return [];
 
-  return posts
-    .filter((post) => Boolean(post.mediaUrl) && !VIDEO_EXTENSION_PATTERN.test(post.mediaUrl ?? ''))
-    .map((post, index) => {
-      const title = formatPhotoTitle(post.content);
-      return {
-        id: post.id || `photo-${index}`,
-        url: post.mediaUrl ?? '',
-        title,
-        likes: post.likesCount || 0,
-        comments: post.commentsCount || 0,
-        createdAt: post.createdAt,
-        category: inferPhotoCategory(title),
-      };
+  return posts.reduce<PhotoItem[]>((items, post) => {
+    const safeUrl = sanitizeImageUrl(typeof post.mediaUrl === 'string' ? post.mediaUrl : null);
+    if (!safeUrl || VIDEO_EXTENSION_PATTERN.test(safeUrl)) return items;
+
+    const title = formatPhotoTitle(post.content);
+    const id = normalizePhotoText(post.id);
+    const createdAt = typeof post.createdAt === 'string' ? normalizePhotoText(post.createdAt) : undefined;
+
+    items.push({
+      id: id || `photo-${items.length}`,
+      url: safeUrl,
+      title,
+      likes: normalizePhotoCount(post.likesCount),
+      comments: normalizePhotoCount(post.commentsCount),
+      createdAt,
+      category: inferPhotoCategory(title),
     });
+
+    return items;
+  }, []);
 }
 
 export function filterPhotoItems(
@@ -58,8 +75,8 @@ export function filterPhotoItems(
   });
 }
 
-function formatPhotoTitle(content?: string): string {
-  const title = content?.trim();
+function formatPhotoTitle(content?: unknown): string {
+  const title = normalizePhotoText(content);
   if (!title) return 'Photo';
   return title.length > TITLE_LIMIT ? title.substring(0, TITLE_LIMIT) : title;
 }

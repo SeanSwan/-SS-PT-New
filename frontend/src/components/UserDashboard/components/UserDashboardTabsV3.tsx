@@ -172,8 +172,7 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           <DashboardNotificationsTab />
         </SectionChrome>
       </TabPanel>
-      {/* Workstream N5: the Creative group — one bar entry, four lenses.
-          Each lens keeps its own TabId + URL; the strip switches in place. */}
+      {/* Photos is a first-class library; Creative keeps the profile/story lenses. */}
       <TabPanel id="creative" activeTab={activeTab}>
         <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="creative">
@@ -181,7 +180,6 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
         </SectionChrome>
       </TabPanel>
       <TabPanel id="photos" activeTab={activeTab}>
-        <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />
         <SectionChrome id="photos">
           <TabStack>
             <TransformationPhotoShowcase
