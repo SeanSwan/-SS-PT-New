@@ -11,7 +11,6 @@ import { Brain, ClipboardCheck, Users, Calendar } from 'lucide-react';
 import { AICommandBar } from '../../../Shared/AICommandBar';
 import { sanitizeImageUrl } from '../../../../utils/imageUrl';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
-
 // Animations
 
 const SWAN_COACH_DOCK_THEME = {
@@ -44,6 +43,10 @@ const DockWrap = styled.div`
   border: 1px solid ${SWAN_COACH_DOCK_THEME.accentBorder};
   border-radius: 20px;
   padding: 1.25rem 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   /* Static, confident dual-glow (Wing Purple border + Ice Wing glow) replaces the
      5s box-shadow pulse, which read like a loading/error state and pulled focus. */
   box-shadow: 0 0 20px ${SWAN_COACH_DOCK_THEME.accentGlowCyan};
@@ -54,6 +57,9 @@ const DockWrap = styled.div`
 
 const DockSkeleton = styled.div`
   min-height: 215px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border: 1px solid ${SWAN_COACH_DOCK_THEME.skeletonBorder};
   border-radius: 20px;
   background: linear-gradient(90deg,
@@ -111,6 +117,7 @@ const CoachAvatar = styled.div`
 
 const CoachText = styled.div`
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 `;
 
@@ -145,11 +152,15 @@ const CoachMeta = styled.p`
 
 const ChipRow = styled.div`
   display: flex; gap: 0.625rem; flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   margin-bottom: 1rem;
   align-items: stretch;
 
   > button {
     flex: 1 1 10rem;
+    min-width: 0;
   }
 
   @media (max-width: 520px) {

@@ -2,14 +2,19 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { describe, expect, it } from 'vitest';
 
-const stylesSource = readFileSync(resolve(__dirname, 'TrainerHomeTab.styles.ts'), 'utf8');
-const layoutStylesSource = readFileSync(resolve(__dirname, 'TrainerHomeTab.layoutStyles.ts'), 'utf8');
-const componentSource = readFileSync(resolve(__dirname, 'TrainerHomeTab.tsx'), 'utf8');
-const nextActionStylesSource = readFileSync(
-  resolve(__dirname, 'TrainerHomeNextActionCard.styles.ts'),
-  'utf8',
-);
-const coachDockSource = readFileSync(resolve(__dirname, 'SwanCoachDockTrainer.tsx'), 'utf8');
+const source = (file: string) => readFileSync(resolve(__dirname, file), 'utf8');
+
+const stylesSource = source('TrainerHomeTab.styles.ts');
+const layoutStylesSource = source('TrainerHomeTab.layoutStyles.ts');
+const componentSource = source('TrainerHomeTab.tsx');
+const nextActionStylesSource = source('TrainerHomeNextActionCard.styles.ts');
+const quickActionsStylesSource = source('TrainerHomeQuickActions.styles.ts');
+const coachDockSource = source('SwanCoachDockTrainer.tsx');
+const heroSource = source('TrainerHomeObservatoryHero.tsx');
+const heroStylesSource = source('TrainerHomeObservatoryHero.styles.ts');
+const widgetsSource = source('TrainerHomeObservatoryWidgets.tsx');
+const widgetsStylesSource = source('TrainerHomeObservatoryWidgets.styles.ts');
+const dataSource = source('TrainerHomeObservatoryData.ts');
 
 describe('TrainerHomeTab responsive contract', () => {
   it('stacks today session rows on phone widths so Coach, Plan, and Log do not squeeze the client name', () => {
@@ -29,9 +34,11 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(nextActionStylesSource).toContain('word-break: normal');
   });
 
-  it('renders a real trainer profile photo slot on the trainer hero dock', () => {
+  it('renders a real trainer profile photo slot through the trainer observatory hero dock', () => {
     expect(componentSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');
     expect(componentSource).toContain('trainerHandle={trainerHandle}');
+    expect(heroSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');
+    expect(heroSource).toContain('trainerHandle={trainerHandle}');
     expect(coachDockSource).toContain("import { sanitizeImageUrl } from '../../../../utils/imageUrl'");
     expect(coachDockSource).toContain('trainerPhotoUrl?: string | null');
     expect(coachDockSource).toContain('<img src={safePhoto} alt={`${trainerName} profile`} />');
@@ -43,41 +50,57 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(coachDockSource).toContain('flex: 1 1 10rem');
     expect(coachDockSource).toContain('justify-content: center');
     expect(coachDockSource).toContain('<CoachMeta>{sessLabel} - Lv.{level}</CoachMeta>');
-    expect(coachDockSource).not.toContain('&nbsp;·&nbsp;');
+    expect(coachDockSource).not.toContain('&nbsp;');
   });
 
-  it('uses a client-observatory inspired trainer command layout instead of the narrow stacked home column', () => {
-    expect(componentSource).toContain('TrainerHomeHeroGrid');
-    expect(componentSource).toContain('TrainerHomeMainGrid');
+  it('uses a client-observatory inspired trainer command layout instead of the old narrow stack', () => {
+    expect(componentSource).toContain('TrainerHomeObservatoryHero');
+    expect(componentSource).toContain('TrainerHomeObservatoryWidgets');
+    expect(componentSource).toContain('TrainerHomePageShell');
     expect(componentSource).toContain('TrainerHomePrimaryColumn');
     expect(componentSource).toContain('TrainerHomeSideColumn');
+    expect(componentSource).not.toContain('PageWrap');
+    expect(heroSource).toContain('TrainerHomeHeroGrid');
     expect(layoutStylesSource).toContain('max-width: 1720px');
     expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.28fr) minmax(340px, 0.72fr)');
     expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr)');
     expect(stylesSource).not.toContain('max-width: 860px');
   });
 
+  it('declares trainer-specific observatory lenses and phone dock actions', () => {
+    expect(componentSource).toContain('TRAINER_OBSERVATORY_LENSES');
+    expect(heroSource).toContain('Trainer observatory lenses');
+    expect(widgetsSource).toContain('TRAINER_OBSERVATORY_MOBILE_DOCK');
+    expect(widgetsStylesSource).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
+    expect(dataSource).toContain("label: 'Today'");
+    expect(dataSource).toContain("label: 'Clients'");
+    expect(dataSource).toContain("label: 'Progress'");
+    expect(dataSource).toContain("label: 'Coach'");
+    expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');
+  });
+
   it('keeps compact trainer-home labels readable on the dark command surface', () => {
     const combinedSource = [
       stylesSource,
-      readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      quickActionsStylesSource,
       nextActionStylesSource,
       coachDockSource,
+      heroStylesSource,
+      widgetsStylesSource,
     ].join('\n');
 
     expect(combinedSource).not.toContain('rgba(');
-    // Updated 2026-06-20 (GLM 5.2 Finding 1, accepted by Gemini): muted text must mix with the
-    // SOLID card surface, not `transparent` — mixing with transparent makes contrast depend on
-    // whatever sits behind the text (WCAG risk). Mixing with --bg-elevated guarantees the ratio.
     expect(combinedSource).toContain('color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, var(--bg-elevated, #141419))');
   });
 
   it('uses fixed-format trainer-home type and explicit motion', () => {
     const combinedSource = [
       stylesSource,
-      readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      quickActionsStylesSource,
       nextActionStylesSource,
       coachDockSource,
+      heroStylesSource,
+      widgetsStylesSource,
     ].join('\n');
 
     expect(combinedSource).not.toContain('clamp(');
@@ -91,11 +114,16 @@ describe('TrainerHomeTab responsive contract', () => {
       stylesSource,
       layoutStylesSource,
       nextActionStylesSource,
-      readFileSync(resolve(__dirname, 'TrainerHomeQuickActions.styles.ts'), 'utf8'),
+      quickActionsStylesSource,
       coachDockSource,
-    ].forEach((source) => {
-      expect(source).not.toMatch(/[^\x00-\x7F]/);
-      expect(source.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
+      heroSource,
+      heroStylesSource,
+      widgetsSource,
+      widgetsStylesSource,
+      dataSource,
+    ].forEach((fileSource) => {
+      expect(fileSource).not.toMatch(/[^\x00-\x7F]/);
+      expect(fileSource.trimEnd().split(/\r?\n/).length).toBeLessThanOrEqual(300);
     });
   });
 

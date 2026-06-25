@@ -8,6 +8,23 @@
 
 import styled from 'styled-components';
 
+export const TrainerHomePageShell = styled.div`
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+
+  @media (max-width: 414px) {
+    padding: 1rem;
+    gap: 0.875rem;
+  }
+
+  @media (max-width: 375px) { padding: 0.875rem; }
+`;
+
 export const TrainerHomeHeroGrid = styled.section`
   width: 100%;
   max-width: 1720px;

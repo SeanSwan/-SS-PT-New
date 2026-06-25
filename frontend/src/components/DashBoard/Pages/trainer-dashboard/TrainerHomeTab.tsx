@@ -1,7 +1,7 @@
 /**
  * FILE: TrainerHomeTab.tsx
- * PURPOSE: Default trainer landing surface and command cockpit.
- * FLOW: auth/profile/session data -> hero dock, next action, KPIs, sessions, quick actions.
+ * PURPOSE: Canonical trainer landing observatory for coaching work.
+ * FLOW: auth/profile/session data -> observatory hero, next action, KPIs, sessions, widgets.
  * REPLACES: TrainerOverviewPage at /dashboard/trainer/overview.
  */
 
@@ -19,8 +19,10 @@ import {
   getSessionStartDate,
   useTrainerTodaySessions,
 } from '../../../../hooks/useTrainerTodaySessions';
-import SwanCoachDockTrainer from './SwanCoachDockTrainer';
 import TrainerHomeNextActionCard from './TrainerHomeNextActionCard';
+import TrainerHomeObservatoryHero from './TrainerHomeObservatoryHero';
+import TrainerHomeObservatoryWidgets from './TrainerHomeObservatoryWidgets';
+import { TRAINER_OBSERVATORY_LENSES } from './TrainerHomeObservatoryData';
 import {
   buildTrainerHomeCoachPath,
   TRAINER_HOME_QUICK_ACTIONS,
@@ -42,7 +44,6 @@ import {
   KpiLabel,
   KpiStrip,
   KpiValue,
-  PageWrap,
   SessionsCard,
   SessionsHeading,
   SessionClient,
@@ -56,14 +57,11 @@ import {
   StatusBadge,
 } from './TrainerHomeTab.styles';
 import {
-  TrainerHeroPanel,
-  TrainerHomeHeroGrid,
   TrainerHomeMainGrid,
+  TrainerHomePageShell,
   TrainerHomePrimaryColumn,
   TrainerHomeSideColumn,
 } from './TrainerHomeTab.layoutStyles';
-
-// Constants
 
 const KPI_COLORS = [
   'var(--accent-primary, #60C0F0)',
@@ -73,8 +71,6 @@ const KPI_COLORS = [
 ] as const;
 
 const MAX_TRAINER_HOME_SESSIONS = 5;
-
-// Component
 
 const TrainerHomeTab: React.FC = () => {
   const navigate = useNavigate();
@@ -98,39 +94,38 @@ const TrainerHomeTab: React.FC = () => {
     completionRate: stats.completionRate,
     hasNextActionableSession: Boolean(nextActionableSession),
   }), [nextActionableSession, stats.clientsToday, stats.completionRate, stats.sessionsToday]);
+  const nextClientName = nextActionableSession ? getClientName(nextActionableSession) : null;
 
   const kpiData = [
-    { value: loading ? '-' : stats.clientsToday,               label: 'Clients Today', Icon: Users,        color: KPI_COLORS[0] },
-    { value: loading ? '-' : stats.sessionsToday,              label: 'Sessions',      Icon: CalendarDays, color: KPI_COLORS[1] },
-    { value: loading ? '-' : stats.hoursLogged.toFixed(1),     label: 'Hours Logged',  Icon: Clock,        color: KPI_COLORS[2] },
-    { value: loading ? '-' : `${stats.completionRate}%`,       label: 'Completion',    Icon: CheckCircle,  color: KPI_COLORS[3] },
+    { value: loading ? '-' : stats.clientsToday, label: 'Clients Today', Icon: Users, color: KPI_COLORS[0] },
+    { value: loading ? '-' : stats.sessionsToday, label: 'Sessions', Icon: CalendarDays, color: KPI_COLORS[1] },
+    { value: loading ? '-' : stats.hoursLogged.toFixed(1), label: 'Hours Logged', Icon: Clock, color: KPI_COLORS[2] },
+    { value: loading ? '-' : `${stats.completionRate}%`, label: 'Completion', Icon: CheckCircle, color: KPI_COLORS[3] },
   ];
 
   return (
-    <PageWrap>
-      <TrainerHomeHeroGrid>
-        <TrainerHeroPanel>
-          <SwanCoachDockTrainer
-            trainerName={trainerName}
-            sessionCount={stats.sessionsToday}
-            level={level}
-            trainerHandle={trainerHandle}
-            trainerPhotoUrl={trainerPhotoUrl}
-            loading={loading}
-            coachPath={trainerHomeCoachPath}
-            onNavigate={navigate}
-          />
-        </TrainerHeroPanel>
-
-        <TrainerHomeNextActionCard
-          session={nextActionableSession}
-          coachPath={trainerHomeCoachPath}
-          onNavigate={navigate}
-        />
-      </TrainerHomeHeroGrid>
+    <TrainerHomePageShell>
+      <TrainerHomeObservatoryHero
+        trainerName={trainerName}
+        trainerHandle={trainerHandle}
+        trainerPhotoUrl={trainerPhotoUrl}
+        level={level}
+        loading={loading}
+        stats={stats}
+        nextClientName={nextClientName}
+        coachPath={trainerHomeCoachPath}
+        lenses={TRAINER_OBSERVATORY_LENSES}
+        onNavigate={navigate}
+      />
 
       <TrainerHomeMainGrid>
         <TrainerHomePrimaryColumn>
+          <TrainerHomeNextActionCard
+            session={nextActionableSession}
+            coachPath={trainerHomeCoachPath}
+            onNavigate={navigate}
+          />
+
           <KpiStrip aria-label="Today's key metrics">
             {kpiData.map(({ value, label, Icon, color }, i) => (
               <KpiCard key={label} $index={i}>
@@ -156,11 +151,7 @@ const TrainerHomeTab: React.FC = () => {
             ) : sessions.length === 0 ? (
               <EmptyState>
                 No sessions scheduled today.
-                <BookBtn
-                  type="button"
-                  onClick={() => navigate('/dashboard/trainer/schedule')}
-                  aria-label="Open schedule"
-                >
+                <BookBtn type="button" onClick={() => navigate('/dashboard/trainer/schedule')} aria-label="Open schedule">
                   <Calendar size={15} aria-hidden="true" />
                   Open Schedule
                 </BookBtn>
@@ -181,45 +172,25 @@ const TrainerHomeTab: React.FC = () => {
                       <div>
                         <SessionClient>{getClientName(s)}</SessionClient>
                         <SessionTime>
-                          {startDate
-                            ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : 'TBD'}
+                          {startDate ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}
                         </SessionTime>
                       </div>
                       <SessionActions>
                         <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
                         {canDictate && (
-                          <SessionLogButton
-                            type="button"
-                            onClick={() => {
-                              if (coachRoute) navigate(coachRoute);
-                            }}
-                            aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
-                          >
+                          <SessionLogButton type="button" onClick={() => coachRoute && navigate(coachRoute)} aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}>
                             <Brain size={14} aria-hidden="true" />
                             Coach
                           </SessionLogButton>
                         )}
                         {canPlan && (
-                          <SessionLogButton
-                            type="button"
-                            onClick={() => {
-                              if (plannerRoute) navigate(plannerRoute);
-                            }}
-                            aria-label={`Plan workout for ${getClientName(s)}`}
-                          >
+                          <SessionLogButton type="button" onClick={() => plannerRoute && navigate(plannerRoute)} aria-label={`Plan workout for ${getClientName(s)}`}>
                             <ClipboardList size={14} aria-hidden="true" />
                             Plan
                           </SessionLogButton>
                         )}
                         {canLog && (
-                          <SessionLogButton
-                            type="button"
-                            onClick={() => {
-                              if (logRoute) navigate(logRoute);
-                            }}
-                            aria-label={`Log workout for ${getClientName(s)}`}
-                          >
+                          <SessionLogButton type="button" onClick={() => logRoute && navigate(logRoute)} aria-label={`Log workout for ${getClientName(s)}`}>
                             <Dumbbell size={14} aria-hidden="true" />
                             Log
                           </SessionLogButton>
@@ -230,14 +201,8 @@ const TrainerHomeTab: React.FC = () => {
                 })}
                 {hiddenSessionCount > 0 && (
                   <SessionsOverflow>
-                    <SessionsOverflowNote>
-                      Showing {visibleSessions.length} of {sessions.length} sessions
-                    </SessionsOverflowNote>
-                    <BookBtn
-                      type="button"
-                      onClick={() => navigate('/dashboard/trainer/schedule')}
-                      aria-label={`View all ${sessions.length} sessions`}
-                    >
+                    <SessionsOverflowNote>Showing {visibleSessions.length} of {sessions.length} sessions</SessionsOverflowNote>
+                    <BookBtn type="button" onClick={() => navigate('/dashboard/trainer/schedule')} aria-label={`View all ${sessions.length} sessions`}>
                       <Calendar size={15} aria-hidden="true" />
                       View all {sessions.length} sessions
                     </BookBtn>
@@ -249,21 +214,20 @@ const TrainerHomeTab: React.FC = () => {
         </TrainerHomePrimaryColumn>
 
         <TrainerHomeSideColumn>
+          <TrainerHomeObservatoryWidgets
+            stats={stats}
+            loading={loading}
+            nextSession={nextActionableSession}
+            coachPath={trainerHomeCoachPath}
+            onNavigate={navigate}
+          />
           <SectionHeading>Quick Actions</SectionHeading>
           <QuickGrid>
             {TRAINER_HOME_QUICK_ACTIONS.map(({ label, detail, overline, primary, Icon, path, tone, i }) => {
               const actionPath = label === 'Ask Coach' ? trainerHomeCoachPath : path;
 
               return (
-                <ActionCard
-                  key={label}
-                  type="button"
-                  $tone={tone}
-                  $primary={primary}
-                  $index={i}
-                  onClick={() => navigate(actionPath)}
-                  aria-label={primary ? `Primary trainer action: ${label}` : label}
-                >
+                <ActionCard key={label} type="button" $tone={tone} $primary={primary} $index={i} onClick={() => navigate(actionPath)} aria-label={primary ? `Primary trainer action: ${label}` : label}>
                   <ActionIcon $tone={tone} $primary={primary} aria-hidden="true"><Icon size={18} /></ActionIcon>
                   <ActionText>
                     {overline && <ActionOverline>{overline}</ActionOverline>}
@@ -276,7 +240,7 @@ const TrainerHomeTab: React.FC = () => {
           </QuickGrid>
         </TrainerHomeSideColumn>
       </TrainerHomeMainGrid>
-    </PageWrap>
+    </TrainerHomePageShell>
   );
 };
 
