@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-06-10 (whole-app vision re-grill: MASTER-PROMPT.md created, FULL-VISION.md expanded)
+**Last updated:** 2026-06-25 (social Try This Workout flow indexed; whole-app vision references retained)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -35,6 +35,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `SWANSTUDIOS-FUNNEL-ACTIVATION-SURFACE-MAP-2026-05-20.md` - canonical acquisition-to-client-dashboard funnel map with active/dormant route ownership and backend mount notes
 - `oracle-requests/ADMIN-CLIENT-TRAINING-FLOW-ORACLE-PACKET-2026-05-25.md` - GPT Pro/Oracle packet and working vision for the admin client-first training flow across Coach Command Center, Clients & Team, and Workouts
 - `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` - parked broad redesign/polish backlog for dashboards, media header, social feed, theme sync, Bootcamp, workout UX, and separate command-dispatcher extraction debt
+- `SOCIAL-TRY-WORKOUT-FLOW-2026-06-25.md` - canonical receipt, wireframe, data contract, and phased flow for making workout-tagged feed posts actionable without colliding with the active chart lane
 - `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the latest Coach selected-client command push
 
 - `USER-DASHBOARD-N-SERIES-AUDIT-RECORD-2026-06-12.md` - rule-48 audit record for workstream N (M7+N1-N5): V3 Observatory as the canonical /user-dashboard hub, social absorbed, Home truth pass, cover editor, training proof, tab compaction
