@@ -8,6 +8,7 @@ const STRING_LIMITS = {
   caloriesBurned: 24,
   notes: 500,
   name: 120,
+  sourceExerciseId: 80,
   sets: 24,
   reps: 32,
   weight: 32,
@@ -25,7 +26,7 @@ const WORKOUT_FIELDS = [
   'notes',
 ];
 
-const EXERCISE_FIELDS = ['name', 'sets', 'reps', 'weight', 'duration', 'rest', 'notes'];
+const EXERCISE_FIELDS = ['name', 'sourceExerciseId', 'sets', 'reps', 'weight', 'duration', 'rest', 'notes'];
 
 function parseObject(value) {
   if (!value) return null;

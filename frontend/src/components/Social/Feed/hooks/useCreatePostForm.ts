@@ -1,46 +1,30 @@
 /**
  * ============================================================================
  * FILE: useCreatePostForm.ts
- * PURPOSE: Custom hook extracting file handling, workout history, and submission
- *          logic from CreatePostCard orchestrator
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
- * AI VILLAGE VALIDATED: 2026-03-22
+ * PURPOSE: State and submission logic for the Social Feed create-post card
+ * AUTHOR: Claude Opus 4.6 | UPDATED BY: Codex | LAST MODIFIED: 2026-06-25
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Manages all mutable state and side-effect callbacks for
- * the CreatePostCard feature — file uploads (general + transformation before/after),
- * workout history fetching/selection, form reset, and post submission with
- * gamification celebration triggers.
+ * WHAT THIS FILE DOES: Manages the shared composer state, media upload previews,
+ * category inference, and post submission. Workout-specific details are delegated
+ * to useWorkoutAttachmentBuilder so the feed CTA can open real workout details.
  *
- * HOW IT FITS IN THE APP: CreatePostCard.tsx imports this hook and spreads its
- * return value into presentational sub-components (CreatePostForm,
- * CreatePostMediaUpload, etc.).
+ * HOW IT FITS IN THE APP: CreatePostCard consumes this hook and passes the return
+ * values into the presentational Social Feed composer components.
  *
- * KEY DECISIONS: Extracted from CreatePostCard.tsx to satisfy the 300-line
- * no-monolith rule. All state that was local to CreatePostCard now lives here;
- * the component becomes a thin render shell.
+ * KEY DECISIONS: Keep this hook as the thin orchestrator. The workout builder
+ * owns workout stats, history selection, Rolodex exercises, and workoutData shape.
  */
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useSocialFeed } from '../../../../hooks/social/useSocialFeed';
 import { useCelebrationTriggers } from '../../../../hooks/useCelebrationTriggers';
 import { useToast } from '../../../../hooks/use-toast';
 
-import type {
-  PostType, Visibility, WorkoutSession, WorkoutSessionsResponse, WorkoutStats,
-  CategorySuggestion,
-} from '../types/CreatePostTypes';
+import type { CategorySuggestion, PostType, Visibility } from '../types/CreatePostTypes';
 import { appendHashtag, inferSmartPostIntent } from '../utils/postIntentInference';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Constants
-// PURPOSE: Default state values reused on reset
-// ─────────────────────────────────────────────────────────────
-
-const EMPTY_WORKOUT_STATS: WorkoutStats = {
-  duration: '', exerciseCount: '', totalWeight: '', caloriesBurned: '',
-};
+import { useWorkoutAttachmentBuilder } from './useWorkoutAttachmentBuilder';
 
 const CORE_SUGGESTION_TYPES = new Set<PostType>([
   'workout',
@@ -49,18 +33,12 @@ const CORE_SUGGESTION_TYPES = new Set<PostType>([
   'challenge',
 ]);
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// PURPOSE: All state + callbacks for the create-post form
-// ─────────────────────────────────────────────────────────────
-
 export function useCreatePostForm() {
   const { user, authAxios } = useAuth();
   const { createPost, isCreatingPost } = useSocialFeed();
   const { triggerFromResult } = useCelebrationTriggers();
   const { error: toastError } = useToast();
 
-  // Core form state
   const [postContent, setPostContent] = useState('');
   const [media, setMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -68,35 +46,42 @@ export function useCreatePostForm() {
   const [postType, setPostType] = useState<PostType>('general');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
 
-  // Transformation state
   const [beforeImage, setBeforeImage] = useState<File | null>(null);
   const [afterImage, setAfterImage] = useState<File | null>(null);
   const [beforePreview, setBeforePreview] = useState<string | null>(null);
   const [afterPreview, setAfterPreview] = useState<string | null>(null);
 
-  // Workout state
-  const [workoutStats, setWorkoutStats] = useState<WorkoutStats>(EMPTY_WORKOUT_STATS);
-  const [showWorkoutHistory, setShowWorkoutHistory] = useState(false);
-  const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-
-  // Refs
   const createCardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const beforeImageRef = useRef<HTMLInputElement>(null);
   const afterImageRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup blob URLs + pending fetches on unmount (Issue #1: Memory Leak)
+  const workoutAttachment = useWorkoutAttachmentBuilder(authAxios, setPostContent);
+  const {
+    workoutStats,
+    setWorkoutStats,
+    showWorkoutHistory,
+    workoutHistory,
+    isLoadingHistory,
+    workoutExercises,
+    hasWorkoutDraft,
+    fetchWorkoutHistory,
+    selectWorkoutFromHistory,
+    addWorkoutExercise,
+    addCustomWorkoutExercise,
+    updateWorkoutExercise,
+    removeWorkoutExercise,
+    buildWorkoutData,
+    resetWorkoutAttachment,
+  } = workoutAttachment;
+
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
-      [mediaPreview, beforePreview, afterPreview].forEach(url => {
+      [mediaPreview, beforePreview, afterPreview].forEach((url) => {
         if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
       });
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mediaPreview, beforePreview, afterPreview]);
 
   const smartIntent = useMemo(
     () => inferSmartPostIntent(postContent, postType),
@@ -111,6 +96,7 @@ export function useCreatePostForm() {
     ) {
       return null;
     }
+
     return {
       suggested: smartIntent.submissionType,
       confidence: smartIntent.confidence,
@@ -119,166 +105,175 @@ export function useCreatePostForm() {
   }, [postType, smartIntent]);
 
   const addHashtagToContent = useCallback((hashtag: string) => {
-    setPostContent(current => appendHashtag(current, hashtag));
+    setPostContent((current) => appendHashtag(current, hashtag));
   }, []);
 
-  // ── Workout History ─────────────────────────────────────────
-  const fetchWorkoutHistory = useCallback(async () => {
-    if (workoutHistory.length > 0) { setShowWorkoutHistory(true); return; }
-    abortControllerRef.current?.abort();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    setIsLoadingHistory(true);
-    try {
-      const res = await authAxios.get<WorkoutSessionsResponse>(
-        '/api/v1/workouts/sessions',
-        { params: { limit: 20, status: 'completed' }, signal: controller.signal }
-      );
-      setWorkoutHistory(res.data.data);
-      setShowWorkoutHistory(true);
-    } catch (err: any) {
-      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
-      console.error('Failed to fetch workout history:', err);
-      setWorkoutHistory([]);
-      setShowWorkoutHistory(true);
-    } finally { setIsLoadingHistory(false); }
-  }, [authAxios, workoutHistory.length]);
-
-  const selectWorkoutFromHistory = useCallback((workout: WorkoutSession) => {
-    const dur = workout.duration || workout.durationMinutes || '';
-    const exercises = workout.exerciseCount || workout.exercises?.length || '';
-    const weight = workout.totalWeight || workout.volumeLoad || '';
-    const calories = workout.caloriesBurned || workout.calories || '';
-    setWorkoutStats({
-      duration: String(dur), exerciseCount: String(exercises),
-      totalWeight: String(weight), caloriesBurned: String(calories),
-    });
-    const date = workout.date || workout.sessionDate || workout.createdAt;
-    const dateStr = date ? new Date(date).toLocaleDateString() : '';
-    const workoutName = workout.name || workout.workoutName || workout.title || 'Workout';
-    setPostContent(
-      `Just completed: ${workoutName}${dateStr ? ` on ${dateStr}` : ''}! ` +
-      `${dur ? `${dur} min` : ''} ${exercises ? `| ${exercises} exercises` : ''} ` +
-      `${weight ? `| ${weight} lbs lifted` : ''}`
-    );
-    setShowWorkoutHistory(false);
-  }, []);
-
-  // ── File Handling ───────────────────────────────────────────
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files?.length) return;
     const file = event.target.files[0];
     const isVideo = file.type.startsWith('video/');
     const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) { toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`); return; }
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) { toastError('Only image and video files are allowed'); return; }
+
+    if (file.size > maxSize) {
+      toastError(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
+      return;
+    }
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      toastError('Only image and video files are allowed');
+      return;
+    }
+
     if (mediaPreview?.startsWith('blob:')) URL.revokeObjectURL(mediaPreview);
     setMedia(file);
-    if (isVideo) { setMediaPreview(URL.createObjectURL(file)); }
-    else { const r = new FileReader(); r.onload = () => setMediaPreview(r.result as string); r.readAsDataURL(file); }
+
+    if (isVideo) {
+      setMediaPreview(URL.createObjectURL(file));
+    } else {
+      const reader = new FileReader();
+      reader.onload = () => setMediaPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   }, [mediaPreview, toastError]);
 
   const handleRemoveMedia = useCallback(() => {
     if (mediaPreview?.startsWith('blob:')) URL.revokeObjectURL(mediaPreview);
-    setMedia(null); setMediaPreview(null);
+    setMedia(null);
+    setMediaPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [mediaPreview]);
 
-  const handleBeforeImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    setBeforeImage(e.target.files[0]);
-    const r = new FileReader(); r.onload = () => setBeforePreview(r.result as string); r.readAsDataURL(e.target.files[0]);
+  const handleBeforeImageSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
+    setBeforeImage(event.target.files[0]);
+    const reader = new FileReader();
+    reader.onload = () => setBeforePreview(reader.result as string);
+    reader.readAsDataURL(event.target.files[0]);
   }, []);
 
-  const handleAfterImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    setAfterImage(e.target.files[0]);
-    const r = new FileReader(); r.onload = () => setAfterPreview(r.result as string); r.readAsDataURL(e.target.files[0]);
+  const handleAfterImageSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
+    setAfterImage(event.target.files[0]);
+    const reader = new FileReader();
+    reader.onload = () => setAfterPreview(reader.result as string);
+    reader.readAsDataURL(event.target.files[0]);
   }, []);
 
   const handleRemoveBeforeImage = useCallback(() => {
     if (beforePreview?.startsWith('blob:')) URL.revokeObjectURL(beforePreview);
-    setBeforeImage(null); setBeforePreview(null);
+    setBeforeImage(null);
+    setBeforePreview(null);
     if (beforeImageRef.current) beforeImageRef.current.value = '';
   }, [beforePreview]);
 
   const handleRemoveAfterImage = useCallback(() => {
     if (afterPreview?.startsWith('blob:')) URL.revokeObjectURL(afterPreview);
-    setAfterImage(null); setAfterPreview(null);
+    setAfterImage(null);
+    setAfterPreview(null);
     if (afterImageRef.current) afterImageRef.current.value = '';
   }, [afterPreview]);
 
-  // ── Reset + Submit ──────────────────────────────────────────
   const resetForm = useCallback(() => {
-    [mediaPreview, beforePreview, afterPreview].forEach(url => {
+    [mediaPreview, beforePreview, afterPreview].forEach((url) => {
       if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
     });
-    setPostContent(''); setMedia(null); setMediaPreview(null);
-    setBeforeImage(null); setAfterImage(null); setBeforePreview(null); setAfterPreview(null);
-    setPostType('general'); setWorkoutStats(EMPTY_WORKOUT_STATS); setShowCreateOptions(false);
-    [fileInputRef, beforeImageRef, afterImageRef].forEach(ref => { if (ref.current) ref.current.value = ''; });
-  }, [mediaPreview, beforePreview, afterPreview]);
+    setPostContent('');
+    setMedia(null);
+    setMediaPreview(null);
+    setBeforeImage(null);
+    setAfterImage(null);
+    setBeforePreview(null);
+    setAfterPreview(null);
+    setPostType('general');
+    resetWorkoutAttachment();
+    setShowCreateOptions(false);
+    [fileInputRef, beforeImageRef, afterImageRef].forEach((ref) => {
+      if (ref.current) ref.current.value = '';
+    });
+  }, [mediaPreview, beforePreview, afterPreview, resetWorkoutAttachment]);
 
   const handleCreatePost = useCallback(async () => {
-    // Validation
     if (postType === 'transformation' && !postContent.trim() && !beforeImage && !afterImage) return;
-    else if (postType === 'workout' && !postContent.trim() && !Object.values(workoutStats).some(s => s.trim())) return;
-    else if (postType !== 'transformation' && postType !== 'workout' && !postContent.trim() && !media) return;
+    if (postType === 'workout' && !postContent.trim() && !hasWorkoutDraft) return;
+    if (postType !== 'transformation' && postType !== 'workout' && !postContent.trim() && !media) return;
 
     const typeForSubmit = postType === 'general' ? smartIntent.submissionType : postType;
     const postData: any = { content: postContent, type: typeForSubmit, visibility };
+
     if (postType === 'transformation') {
       if (beforeImage) postData.media = beforeImage;
       postData.transformationData = { hasBeforeImage: !!beforeImage, hasAfterImage: !!afterImage };
     } else if (postType === 'workout') {
       if (media) postData.media = media;
-      postData.workoutData = workoutStats;
-    } else {
-      if (media) postData.media = media;
+      postData.workoutData = buildWorkoutData(postContent);
+    } else if (media) {
+      postData.media = media;
     }
 
     const result = await createPost(postData);
     if (result?.pointsAwarded) triggerFromResult(result);
     resetForm();
-  }, [postType, smartIntent.submissionType, postContent, beforeImage, afterImage, workoutStats, media, visibility, createPost, triggerFromResult, resetForm]);
+  }, [
+    postType,
+    postContent,
+    beforeImage,
+    afterImage,
+    hasWorkoutDraft,
+    media,
+    smartIntent.submissionType,
+    visibility,
+    buildWorkoutData,
+    createPost,
+    triggerFromResult,
+    resetForm,
+  ]);
 
-  // ── Derived: is submit disabled? ───────────────────────────
   const isSubmitDisabled = isCreatingPost || (
     postType === 'transformation' ? (!postContent.trim() && !beforeImage && !afterImage) :
-    postType === 'workout' ? (!postContent.trim() && !Object.values(workoutStats).some(s => s.trim())) :
+    postType === 'workout' ? (!postContent.trim() && !hasWorkoutDraft) :
     (!postContent.trim() && !media)
   );
 
   return {
-    // Auth
     user,
-    // Core form state
-    postContent, setPostContent,
+    postContent,
+    setPostContent,
     media,
     mediaPreview,
-    visibility, setVisibility,
-    postType, setPostType,
-    showCreateOptions, setShowCreateOptions,
-    // Transformation
-    beforePreview, afterPreview,
-    // Workout
-    workoutStats, setWorkoutStats,
-    showWorkoutHistory, workoutHistory,
+    visibility,
+    setVisibility,
+    postType,
+    setPostType,
+    showCreateOptions,
+    setShowCreateOptions,
+    beforePreview,
+    afterPreview,
+    workoutStats,
+    setWorkoutStats,
+    showWorkoutHistory,
+    workoutHistory,
     isLoadingHistory,
-    // Category
+    workoutExercises,
     categorySuggestion,
     smartIntent,
     addHashtagToContent,
-    // Refs
-    createCardRef, fileInputRef, beforeImageRef, afterImageRef,
-    // Submission
-    isCreatingPost, isSubmitDisabled,
+    createCardRef,
+    fileInputRef,
+    beforeImageRef,
+    afterImageRef,
+    isCreatingPost,
+    isSubmitDisabled,
     handleCreatePost,
-    // File handlers
-    handleFileSelect, handleRemoveMedia,
-    handleBeforeImageSelect, handleAfterImageSelect,
-    handleRemoveBeforeImage, handleRemoveAfterImage,
-    // Workout handlers
-    fetchWorkoutHistory, selectWorkoutFromHistory,
+    handleFileSelect,
+    handleRemoveMedia,
+    handleBeforeImageSelect,
+    handleAfterImageSelect,
+    handleRemoveBeforeImage,
+    handleRemoveAfterImage,
+    fetchWorkoutHistory,
+    selectWorkoutFromHistory,
+    addWorkoutExercise,
+    addCustomWorkoutExercise,
+    updateWorkoutExercise,
+    removeWorkoutExercise,
   };
 }

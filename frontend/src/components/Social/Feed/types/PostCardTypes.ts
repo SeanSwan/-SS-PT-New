@@ -42,6 +42,7 @@ export const isCoachRole = (role?: string): boolean =>
 
 export interface WorkoutPostExercise {
   name?: string;
+  sourceExerciseId?: string;
   sets?: string;
   reps?: string;
   weight?: string;
