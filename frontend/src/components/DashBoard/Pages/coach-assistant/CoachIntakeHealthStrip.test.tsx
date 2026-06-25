@@ -76,6 +76,53 @@ describe('CoachIntakeHealthStrip', () => {
     expect(within(cleanupPlan).getByText(/2 would purge/i)).toBeInTheDocument();
   });
 
+  it('renders sparse health payloads without crashing the command center', () => {
+    render(
+      <CoachIntakeHealthStrip
+        health={{
+          schemaReady: true,
+          healthy: true,
+          counts: {
+            active: 0,
+            ready: 0,
+            needsClient: 1,
+            failed: 1,
+          },
+          nextOperatorAction: {
+            label: 'Ask Coach about this intake',
+          },
+        } as any}
+      />,
+    );
+
+    const health = screen.getByLabelText(/Coach intake health/i);
+    expect(within(health).getByText(/Healthy/i)).toBeInTheDocument();
+    expect(within(health).getByText(/0 active/i)).toBeInTheDocument();
+    expect(within(health).getByText(/0 ready/i)).toBeInTheDocument();
+    expect(within(health).getByText(/1 need client/i)).toBeInTheDocument();
+    expect(within(health).getByText(/1 failed/i)).toBeInTheDocument();
+    expect(within(health).getByText(/Review Coach intake health/i)).toBeInTheDocument();
+  });
+
+  it('defaults missing health counts to zero', () => {
+    render(
+      <CoachIntakeHealthStrip
+        health={{
+          schemaReady: true,
+          status: 'healthy',
+          nextOperatorAction: {
+            key: 'review_next_coach_intake',
+            label: 'Review next intake',
+          },
+        } as any}
+      />,
+    );
+
+    const health = screen.getByLabelText(/Coach intake health/i);
+    expect(within(health).getByText(/0 active/i)).toBeInTheDocument();
+    expect(within(health).getByText(/0 ready/i)).toBeInTheDocument();
+    expect(within(health).getByText(/0 stuck/i)).toBeInTheDocument();
+  });
   it('lets operator drill into worklist scopes from health counts', () => {
     const onScopeChange = vi.fn();
 

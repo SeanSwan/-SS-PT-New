@@ -22,8 +22,10 @@ const COACH_QUEUE_SCOPES = new Set<CoachIntakeQueueScope>([
   'failed',
 ]);
 
-export function statusLabel(status: string): string {
-  return status
+export function statusLabel(status?: string | null): string {
+  const safeStatus = String(status || '').trim();
+  if (!safeStatus) return 'Pending';
+  return safeStatus
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
