@@ -3,8 +3,16 @@ import styled from 'styled-components';
 export const SwitcherShell = styled.section`
   display: grid;
   gap: 0.9rem;
+  grid-area: account;
+  grid-column: 1 / 2;
+  flex: 0 0 auto;
   margin: 0 0 1.15rem;
+  order: 5;
+  min-width: 0;
+  overflow: hidden;
   padding: clamp(0.9rem, 1.8vw, 1.2rem);
+  width: 100%;
+  container-type: inline-size;
   border: 1px solid var(--border-accent, rgba(96, 192, 240, 0.3));
   border-radius: 8px;
   background:
@@ -92,15 +100,20 @@ export const TrustPill = styled.span`
 
 export const ControlGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 1.1fr) minmax(220px, 1fr) minmax(260px, 1.15fr) minmax(190px, auto);
+  grid-template-columns: minmax(220px, 1.05fr) minmax(200px, 0.9fr) minmax(220px, 1fr) minmax(168px, 0.72fr);
   gap: 0.8rem;
   align-items: end;
+  min-width: 0;
 
-  @media (max-width: 1180px) {
+  > * {
+    min-width: 0;
+  }
+
+  @container (max-width: 1120px) {
     grid-template-columns: 1fr 1fr;
   }
 
-  @media (max-width: 680px) {
+  @container (max-width: 700px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -132,6 +145,10 @@ export const RoleSegment = styled.div`
   @media (max-width: 420px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  @container (max-width: 430px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 `;
 
 export const RoleButton = styled.button<{ $active: boolean }>`
@@ -159,6 +176,7 @@ export const RoleButton = styled.button<{ $active: boolean }>`
 
 export const SearchBox = styled.div`
   position: relative;
+  min-width: 0;
   display: flex;
   align-items: center;
 
@@ -171,6 +189,7 @@ export const SearchBox = styled.div`
 
   input {
     width: 100%;
+    min-width: 0;
     min-height: 44px;
     border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.22));
     border-radius: 8px;
@@ -200,6 +219,7 @@ export const ClearSearchButton = styled.button`
 
 export const NativeSelect = styled.select`
   width: 100%;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.22));
   border-radius: 8px;
@@ -210,6 +230,8 @@ export const NativeSelect = styled.select`
 `;
 
 export const StartButton = styled.button`
+  width: 100%;
+  min-width: 0;
   min-height: 44px;
   border: 1px solid var(--accent-secondary, #8b5cf6);
   border-radius: 8px;
@@ -219,10 +241,12 @@ export const StartButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0 1rem;
+  padding: 0 0.85rem;
   font-weight: 900;
   cursor: pointer;
-  white-space: nowrap;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
 
   &:disabled {
     opacity: 0.55;

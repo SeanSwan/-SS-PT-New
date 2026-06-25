@@ -66,6 +66,9 @@ describe('CoachCommandCenter style split', () => {
     expect(mobileDockSource).toContain('env(safe-area-inset-bottom)');
     expect(mobileDockSource).toMatch(/\.dock-actions[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
     expect(mobileDockSource).toMatch(/\.dock-actions-left[\s\S]*?overflow-x:\s*auto;/);
+    expect(mobileDockSource).toMatch(/\.quick-intents[\s\S]*?flex-wrap:\s*wrap;/);
+    expect(mobileDockSource).toMatch(/\.quick-intent[\s\S]*?flex:\s*1 1 148px;/);
+    expect(mobileDockSource).toMatch(/\.quick-intent[\s\S]*?white-space:\s*normal;/);
     expect(mobileDockSource).toMatch(/\.dock-action \.dock-action-label[\s\S]*?display:\s*none;/);
     expect(mobileDockSource).toMatch(/\.dock-mic,\s*\.dock-send[\s\S]*?min-width:\s*54px;[\s\S]*?min-height:\s*54px;/);
     expect(dockComponentSource).toContain('aria-label="Attach"');

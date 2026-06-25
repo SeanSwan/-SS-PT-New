@@ -2,6 +2,9 @@ import styled from 'styled-components';
 
 export const TargetPreview = styled.div<{ $empty: boolean }>`
   min-height: 74px;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: ${({ $empty }) => ($empty ? '1fr' : '44px minmax(0, 1fr)')};
   gap: 0.75rem;
@@ -55,6 +58,7 @@ export const RoleBadge = styled.span`
 
 export const MetaGrid = styled.div`
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-top: 0.45rem;
@@ -62,6 +66,7 @@ export const MetaGrid = styled.div`
 
 export const MetaChip = styled.span`
   min-height: 28px;
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   border-radius: 8px;
@@ -75,10 +80,12 @@ export const MetaChip = styled.span`
 
 export const EmptyPreview = styled.div`
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 0.5rem;
   color: var(--text-muted, rgba(224, 236, 244, 0.58));
   font-size: 0.86rem;
+  overflow-wrap: anywhere;
 `;
 
 export const StatusLine = styled.p<{ $error: boolean }>`

@@ -82,6 +82,13 @@ export const coachCommandBridgeMobileDockStyles = css`
       scrollbar-width: none;
     }
 
+    .quick-intents {
+      flex-wrap: wrap;
+      overflow-x: visible;
+      padding-bottom: 0;
+      scrollbar-width: none;
+    }
+
     .workout-route-actions::-webkit-scrollbar,
     .dock-actions-left::-webkit-scrollbar {
       display: none;
@@ -93,6 +100,14 @@ export const coachCommandBridgeMobileDockStyles = css`
       min-width: max-content;
     }
 
+    .quick-intent {
+      flex: 1 1 148px;
+      min-width: 0;
+      min-height: 48px;
+      padding: 0 10px;
+      line-height: 1.15;
+      white-space: normal;
+    }
 
     .dock-form {
       border-radius: 20px;

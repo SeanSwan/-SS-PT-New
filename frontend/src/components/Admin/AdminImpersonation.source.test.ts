@@ -78,4 +78,23 @@ describe('admin impersonation UI wiring', () => {
     expect(serviceSource).toContain('isLocked: false');
     expect(serviceSource).toContain('IMPERSONATION_INVALID_ROLE');
   });
+  it('keeps account controls responsive inside the Coach Command Center grid', () => {
+    const switcherStyles = readMaybe('frontend/src/components/Admin/AdminAccountSwitcher.styles.ts');
+    const previewStyles = readMaybe('frontend/src/components/Admin/AdminAccountSwitcherPreview.styles.ts');
+    const commandStyles = readMaybe('frontend/src/components/Admin/AdminAccountCommandPanel.styles.ts');
+
+    expect(switcherStyles).toContain('grid-area: account');
+    expect(switcherStyles).toContain('flex: 0 0 auto');
+    expect(switcherStyles).toContain('order: 5');
+    expect(switcherStyles).toContain('container-type: inline-size');
+    expect(switcherStyles).toContain('@container (max-width: 1120px)');
+    expect(switcherStyles).toContain('@container (max-width: 700px)');
+    expect(switcherStyles).toContain('> * {');
+    expect(switcherStyles).toContain('white-space: normal');
+    expect(previewStyles).toContain('overflow: hidden');
+    expect(previewStyles).toContain('max-width: 100%');
+    expect(commandStyles).toContain('repeat(auto-fit, minmax(154px, 1fr))');
+    expect(commandStyles).toContain('@container (max-width: 360px)');
+    expect(commandStyles).toContain('white-space: normal');
+  });
 });

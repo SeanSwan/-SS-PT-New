@@ -3,6 +3,9 @@ import styled from 'styled-components';
 export const CommandShell = styled.section`
   display: grid;
   gap: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+  container-type: inline-size;
   padding: 0.8rem;
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.22));
   border-radius: 8px;
@@ -14,6 +17,7 @@ export const CommandHeader = styled.div`
   justify-content: space-between;
   gap: 0.75rem;
   align-items: flex-start;
+  min-width: 0;
 
   strong {
     display: block;
@@ -37,6 +41,7 @@ export const CommandHeader = styled.div`
 
 export const StatusBadge = styled.span<{ $tone?: 'ready' | 'blocked' }>`
   min-height: 32px;
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   border: 1px solid ${({ $tone }) => ($tone === 'blocked' ? 'var(--status-warning, #c6a84b)' : 'var(--accent-primary, #60c0f0)')};
@@ -45,6 +50,8 @@ export const StatusBadge = styled.span<{ $tone?: 'ready' | 'blocked' }>`
   color: ${({ $tone }) => ($tone === 'blocked' ? 'var(--status-warning, #c6a84b)' : 'var(--accent-primary, #60c0f0)')};
   font-size: 0.72rem;
   font-weight: 900;
+  line-height: 1.15;
+  text-align: center;
   text-transform: uppercase;
 `;
 
@@ -73,20 +80,18 @@ export const ReasonField = styled.label`
 
 export const CommandGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(154px, 1fr));
   gap: 0.55rem;
+  min-width: 0;
 
-  @media (max-width: 860px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 460px) {
+  @container (max-width: 360px) {
     grid-template-columns: 1fr;
   }
 `;
 
 export const CommandButton = styled.button<{ $danger?: boolean }>`
   min-height: 44px;
+  min-width: 0;
   border: 1px solid ${({ $danger }) => ($danger ? 'var(--status-error, #fca5a5)' : 'var(--border-accent, rgba(96, 192, 240, 0.32))')};
   border-radius: 8px;
   background: ${({ $danger }) => ($danger ? 'rgba(127, 29, 29, 0.28)' : 'rgba(0, 32, 96, 0.56)')};
@@ -100,7 +105,8 @@ export const CommandButton = styled.button<{ $danger?: boolean }>`
   font-size: 0.8rem;
   font-weight: 900;
   cursor: pointer;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
 
   &:disabled {
     opacity: 0.46;

@@ -19,7 +19,7 @@ export const coachCommandCrystallineFocusStyles = css`
   --coach-focus-accent: var(--accent-primary, #69d7d0);
   --coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));
 
-  .bridge-shell { gap: 14px; max-width: 1320px; }
+  .bridge-shell { gap: 14px; max-width: min(100%, 1680px); width: 100%; }
   .client-bar {
     background: linear-gradient(180deg, color-mix(in srgb, var(--coach-focus-elevated) 92%, transparent), var(--coach-focus-surface)), var(--coach-focus-surface);
     border-color: var(--coach-focus-line);
@@ -204,8 +204,8 @@ export const coachCommandCrystallineFocusStyles = css`
       align-items: start;
       display: grid;
       gap: 16px 18px;
-      grid-template-areas: 'header header' 'tabs ops' 'content ops' 'dock ops';
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 316px);
+      grid-template-areas: 'header header' 'tabs ops' 'content ops' 'dock ops' 'account ops';
+      grid-template-columns: minmax(0, 1fr) minmax(336px, clamp(336px, 23vw, 392px));
     }
     .client-bar { display: grid; grid-area: header; grid-template-columns: minmax(0, 1fr) auto; }
     .client-bar-top,
@@ -223,6 +223,7 @@ export const coachCommandCrystallineFocusStyles = css`
       grid-area: ops;
       height: auto;
       max-height: calc(100dvh - 32px);
+      min-width: 0;
       padding: 12px;
       position: sticky;
       right: auto;
@@ -235,7 +236,7 @@ export const coachCommandCrystallineFocusStyles = css`
   }
 
   @media (max-width: 1279px) {
-    .bridge-shell { max-width: 1040px; }
+    .bridge-shell { max-width: 1040px; width: 100%; }
   }
 
   @media (max-width: 768px) {

@@ -1,7 +1,3 @@
-/**
- * Drawer styles for the admin Swan Coach operations rail.
- */
-
 import { css } from 'styled-components';
 
 export const coachCommandOpsStyles = css`
@@ -9,14 +5,14 @@ export const coachCommandOpsStyles = css`
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-width: 0;
     overscroll-behavior: contain;
+    container-type: inline-size;
     width: min(520px, 94vw);
     z-index: 10050;
   }
 
-  .drawer-scrim {
-    z-index: 10040;
-  }
+  .drawer-scrim { z-index: 10040; }
 
   .ops-rail-header {
     align-items: center;
@@ -28,6 +24,7 @@ export const coachCommandOpsStyles = css`
     gap: 12px;
     justify-content: space-between;
     min-height: 64px;
+    min-width: 0;
     padding: 10px 10px 10px 12px;
     position: sticky;
     top: 0;
@@ -90,7 +87,8 @@ export const coachCommandOpsStyles = css`
   .workout-command-primary-grid {
     display: grid;
     gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    min-width: 0;
   }
 
   .workout-command-card {
@@ -102,6 +100,8 @@ export const coachCommandOpsStyles = css`
     display: flex;
     gap: 10px;
     min-height: 66px;
+    min-width: 0;
+    overflow: hidden;
     padding: 10px;
     text-align: left;
     text-decoration: none;
@@ -196,6 +196,7 @@ export const coachCommandOpsStyles = css`
   .teach-mode-toggle small {
     display: block;
     line-height: 1.18;
+    overflow-wrap: anywhere;
   }
 
   .teach-mode-toggle strong {
@@ -227,6 +228,7 @@ export const coachCommandOpsStyles = css`
   .workout-command-card small {
     display: block;
     line-height: 1.18;
+    overflow-wrap: anywhere;
   }
 
   .workout-command-card strong {
@@ -240,7 +242,7 @@ export const coachCommandOpsStyles = css`
     margin-top: 3px;
   }
 
-  @media (max-width: 420px) {
+  @container (max-width: 330px) {
     .workout-command-primary-grid {
       grid-template-columns: 1fr;
     }

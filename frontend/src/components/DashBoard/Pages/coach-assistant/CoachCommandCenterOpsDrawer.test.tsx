@@ -11,6 +11,7 @@ import {
 
 const PLACEHOLDER = 'Talk or type to Swan Coach…';
 const opsStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.opsStyles.ts'), 'utf8');
+const crystallineStylesSource = readFileSync(resolve(__dirname, 'CoachCommandCenter.crystallineFocusStyles.ts'), 'utf8');
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
@@ -27,6 +28,16 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(opsStylesSource).toMatch(/@media\s*\(max-width:\s*640px\)[\s\S]*\.right-rail\s*\{[\s\S]*max-height:\s*760px;/);
   });
 
+  it('keeps the wide Coach Command Center layout from crowding account controls and ops cards', () => {
+    expect(crystallineStylesSource).toContain("grid-template-areas: 'header header' 'tabs ops' 'content ops' 'dock ops' 'account ops'");
+    expect(crystallineStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(336px, clamp(336px, 23vw, 392px))');
+    expect(crystallineStylesSource).toContain('max-width: min(100%, 1680px)');
+    expect(crystallineStylesSource).toMatch(/\.right-rail\s*\{[\s\S]*min-width:\s*0;/);
+    expect(opsStylesSource).toMatch(/\.right-rail\s*\{[\s\S]*container-type:\s*inline-size;/);
+    expect(opsStylesSource).toContain('repeat(auto-fit, minmax(150px, 1fr))');
+    expect(opsStylesSource).toContain('@container (max-width: 330px)');
+    expect(opsStylesSource).toMatch(/\.workout-command-card\s*\{[\s\S]*overflow:\s*hidden;/);
+  });
   it('opens and closes the operator drawer with aria-expanded and Escape handling', () => {
     renderPage();
 
