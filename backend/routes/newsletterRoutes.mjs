@@ -21,6 +21,19 @@ const SITE_URL = process.env.FRONTEND_URL || 'https://sswanstudios.com';
 const API_URL = process.env.API_BASE_URL || SITE_URL;
 const CONFIRM_EMAIL_SENT_MESSAGE = 'Almost there - check your email to confirm your subscription.';
 const CONFIRM_EMAIL_FAILED_MESSAGE = 'Your subscription request was saved, but the confirmation email could not be sent right now. Please try again later or contact SwanStudios.';
+const normalizeDisplayName = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+};
+
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const escapeHtmlAttribute = escapeHtml;
 
 const page = (heading, message, cta = null) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${heading} · SwanStudios</title></head>
@@ -33,12 +46,17 @@ const page = (heading, message, cta = null) => `<!doctype html>
 async function sendWelcomeEmail(subscriber) {
   const bookUrl = `${SITE_URL}/contact`;
   const unsubUrl = `${API_URL}/api/newsletter/unsubscribe/${subscriber.unsubscribeToken}`;
-  const hi = subscriber.firstName ? `Hi ${subscriber.firstName}, ` : 'Hi, ';
+  const displayFirstName = normalizeDisplayName(subscriber.firstName);
+  const hi = displayFirstName ? `Hi ${displayFirstName}, ` : 'Hi, ';
+  const htmlHi = escapeHtml(hi);
+  const safeBookUrl = escapeHtmlAttribute(bookUrl);
+  const safeUnsubUrl = escapeHtmlAttribute(unsubUrl);
+
   await sendGridEmail({
     to: subscriber.email,
     subject: 'Welcome to SwanStudios 🦢',
     text: `${hi}you're confirmed! Get coaching tips and updates from SwanStudios. Ready to start? Book a free assessment: ${bookUrl}\n\nUnsubscribe anytime: ${unsubUrl}`,
-    html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a"><h2 style="color:#002060">Welcome to SwanStudios 🦢</h2><p>${hi}you're confirmed. You'll get coaching tips, programming insights, and member updates — no spam.</p><p style="margin:24px 0"><a href="${bookUrl}" style="display:inline-block;background:#002060;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Book your free assessment</a></p><p style="color:#888;font-size:12px;margin-top:28px">You're receiving this because you confirmed your SwanStudios subscription. <a href="${unsubUrl}" style="color:#888">Unsubscribe</a>.</p></div>`,
+    html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a"><h2 style="color:#002060">Welcome to SwanStudios 🦢</h2><p>${htmlHi}you're confirmed. You'll get coaching tips, programming insights, and member updates — no spam.</p><p style="margin:24px 0"><a href="${safeBookUrl}" style="display:inline-block;background:#002060;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Book your free assessment</a></p><p style="color:#888;font-size:12px;margin-top:28px">You're receiving this because you confirmed your SwanStudios subscription. <a href="${safeUnsubUrl}" style="color:#888">Unsubscribe</a>.</p></div>`,
   });
 }
 

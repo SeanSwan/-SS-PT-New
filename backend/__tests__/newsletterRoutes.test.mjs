@@ -97,6 +97,24 @@ describe('newsletterRoutes (Tier 1.1)', () => {
     expect(mail.html).toContain('/api/newsletter/unsubscribe/utok'); // one-click unsubscribe in welcome
   });
 
+  it('confirm: escapes subscriber display name before rendering welcome email HTML', async () => {
+    confirm.mockResolvedValue({
+      ok: true,
+      action: 'confirmed',
+      subscriber: {
+        email: 'a@b.com',
+        firstName: '<img src=x onerror="alert(1)">',
+        unsubscribeToken: 'utok',
+      },
+    });
+
+    const res = await request(app).get('/api/newsletter/confirm/ctok');
+
+    expect(res.status).toBe(200);
+    const mail = sendGridEmail.mock.calls[0][0];
+    expect(mail.html).not.toContain('<img');
+    expect(mail.html).toContain('Hi &lt;img src=x onerror=&quot;alert(1)&quot;&gt;,');
+  });
   it('confirm: still 200 if the welcome email send fails (non-blocking)', async () => {
     sendGridEmail.mockRejectedValue(new Error('sg down'));
     const res = await request(app).get('/api/newsletter/confirm/ctok');
