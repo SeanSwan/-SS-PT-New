@@ -20,9 +20,8 @@ import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { buildCoachHeaderQuickActions } from './CoachCommandHeaderActions';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
-import { getConversationTitle } from './CoachCommandCenter.logic';
 import CoachChatTranscript from './CoachChatTranscript';
-import CoachClientBar, { type RecentCoachClient } from './CoachClientBar';
+import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsRail from './CoachCommandOpsRail';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
@@ -41,7 +40,6 @@ import {
   routeForcedTabForRole,
 } from './CoachCommandCenter.roleConfig';
 
-const RECENT_CLIENT_LIMIT = 12;
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);
@@ -65,16 +63,6 @@ const CoachCommandCenterPage: React.FC = () => {
     rightRailRef: commandCenter.rightRailRef,
     shellRef: commandCenter.shellRef,
   });
-
-  const recentClients: RecentCoachClient[] = useMemo(
-    () =>
-      commandCenter.coachThreads.slice(0, RECENT_CLIENT_LIMIT).map((thread) => ({
-        id: thread.id,
-        label: getConversationTitle(thread),
-        active: thread.id === commandCenter.activeThreadId,
-      })),
-    [commandCenter.activeThreadId, commandCenter.coachThreads],
-  );
 
   const nextActionLabel =
     isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
@@ -104,10 +92,6 @@ const CoachCommandCenterPage: React.FC = () => {
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
     commandCenter.handleThreadSelect(thread);
     setActiveTab('chat');
-  };
-  const handleSelectClient = (id: number) => {
-    const thread = commandCenter.coachThreads.find((item) => item.id === id);
-    if (thread) handleOpenThread(thread);
   };
   useEffect(() => {
     if (routeForcedTab) setActiveTab(routeForcedTab);
@@ -159,14 +143,11 @@ const CoachCommandCenterPage: React.FC = () => {
 
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
-          recentClients={recentClients}
           quickActions={headerQuickActions}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
           newConversationLabel={isClientMode ? 'New coach chat' : 'New client / conversation'}
-          recentLabel={isClientMode ? 'Recent coach chats' : 'Recent client conversations'}
-          onSelectClient={handleSelectClient}
           onNewConversation={commandCenter.handleNewThread}
           onOpenOps={(event) => commandCenter.openDrawer('right', event)}
         />

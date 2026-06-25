@@ -241,7 +241,6 @@ export const coachCommandDockStyles = css`
     .right-rail,
     .drawer-scrim,
     .new-client-button,
-    .recent-chip,
     .tab-button {
       transition: none;
     }

@@ -2,33 +2,24 @@
  * COMPONENT: CoachClientBar
  * PURPOSE: The signature focal point of the Swan Coach terminal — fast client switching.
  *
- * Shows the client currently being coached (large, floor-legible), a one-tap rail of
- * recent client conversations, and a primary "new client / conversation" action.
- * Switching a recent chip loads that client's conversation context (Rule 62: jump to
- * the trainee's next-best-action fast). Presentation only; handlers come from the page.
+ * Shows the client currently being coached, the primary new-conversation action,
+ * and route-safe quick actions. Thread reopening stays in the History tab so the
+ * command header remains uncluttered.
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarCheck, ClipboardList, FileAudio, Inbox, Plus, Settings2, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { CalendarCheck, ClipboardList, FileAudio, Inbox, Plus, Settings2, UserPlus, type LucideIcon } from 'lucide-react';
 
 import type { CoachHeaderQuickAction, CoachHeaderQuickActionIcon } from './CoachCommandHeaderActions';
 
-export type RecentCoachClient = {
-  id: number;
-  label: string;
-  active: boolean;
-};
 
 type CoachClientBarProps = {
   selectedClientLabel: string;
-  recentClients: RecentCoachClient[];
   quickActions?: CoachHeaderQuickAction[];
   opsOpen: boolean;
   showOps?: boolean;
   contextLabel?: string;
   newConversationLabel?: string;
-  recentLabel?: string;
-  onSelectClient: (id: number) => void;
   onNewConversation: () => void;
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
@@ -75,14 +66,11 @@ function QuickActionControl({ action }: { action: CoachHeaderQuickAction }) {
 
 const CoachClientBar: React.FC<CoachClientBarProps> = ({
   selectedClientLabel,
-  recentClients,
   quickActions = [],
   opsOpen,
   showOps = true,
   contextLabel = 'Now coaching',
   newConversationLabel = 'New client / conversation',
-  recentLabel = 'Recent client conversations',
-  onSelectClient,
   onNewConversation,
   onOpenOps,
 }) => (
@@ -122,25 +110,6 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
         ))}
       </div>
     ) : null}
-
-    <div className="recent-rail" role="group" aria-label={recentLabel}>
-      {recentClients.length ? (
-        recentClients.map((client) => (
-          <button
-            type="button"
-            key={client.id}
-            className={`recent-chip ${client.active ? 'is-active' : ''}`}
-            aria-current={client.active ? 'true' : undefined}
-            onClick={() => onSelectClient(client.id)}
-          >
-            <Users size={14} aria-hidden="true" />
-            <span className="recent-chip-label">{client.label}</span>
-          </button>
-        ))
-      ) : (
-        <span className="recent-empty">No recent clients yet — start a new conversation.</span>
-      )}
-    </div>
   </header>
 );
 

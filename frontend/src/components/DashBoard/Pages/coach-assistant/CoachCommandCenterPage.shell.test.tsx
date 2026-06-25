@@ -167,15 +167,19 @@ describe('CoachCommandCenterPage shell', () => {
     clickSpy.mockRestore();
   });
 
-  it('uses real conversation threads as one-tap client switches that update the dock and status', () => {
+  it('keeps thread switching in History instead of duplicating recent chips in the header', async () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Friday intake cleanup/i }));
+    expect(screen.queryByRole('group', { name: /recent client conversations/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: /^History/i }));
+    const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
+    fireEvent.click(within(historyPanel).getByRole('button', { name: /Friday intake cleanup/i }));
 
     expect(composerInput()).toHaveValue('');
     expect(loadConversationMock).toHaveBeenCalledWith(101);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /^Chat$/i })).toHaveAttribute('aria-selected', 'true'));
     expect(screen.getAllByText(/Friday intake cleanup - thread loaded/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Friday intake cleanup/i })).toHaveAttribute('aria-current', 'true');
   });
 
   it('opens a history thread into chat without staging a prompt in the composer', async () => {

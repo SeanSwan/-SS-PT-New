@@ -33,10 +33,8 @@ describe('CoachCommandCenter selected thread target routes', () => {
     renderPage('/dashboard/admin/coach-assistant');
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Ava Stone weekly training/i })).toHaveAttribute(
-        'aria-current',
-        'true',
-      );
+      const header = screen.getByRole('region', { name: /active coach thread/i });
+      expect(within(header).getByText('Ava Stone weekly training')).toBeInTheDocument();
     });
 
     const opsRail = openOpsRail();
@@ -66,7 +64,7 @@ describe('CoachCommandCenter selected thread target routes', () => {
     });
   });
 
-  it('rebases stale routed client context when a recent thread is selected', async () => {
+  it('rebases stale routed client context when a History thread is selected', async () => {
     setCoachCommandCenterConversations([
       {
         id: 201,
@@ -99,7 +97,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Ava Stone weekly training/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^History/i }));
+    const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
+    fireEvent.click(within(historyPanel).getByRole('button', { name: /Ava Stone weekly training/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(

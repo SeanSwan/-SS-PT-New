@@ -96,21 +96,6 @@ export const coachCommandCrystallineFocusStyles = css`
     transform: translateY(-2px);
   }
 
-  .recent-rail { gap: 6px; }
-  .recent-chip {
-    background: color-mix(in srgb, var(--coach-focus-interactive) 68%, transparent);
-    border-color: var(--coach-focus-line);
-    color: var(--coach-focus-soft);
-    font-size: 13px;
-    max-width: 180px;
-    min-height: 44px;
-    padding: 0 12px;
-  }
-  .recent-chip.is-active {
-    background: color-mix(in srgb, var(--coach-focus-accent) 10%, transparent);
-    border-color: var(--coach-focus-line-active);
-    color: var(--coach-focus-text);
-  }
 
   .tab-bar {
     background: var(--coach-focus-surface);
@@ -209,8 +194,7 @@ export const coachCommandCrystallineFocusStyles = css`
     }
     .client-bar { display: grid; grid-area: header; grid-template-columns: minmax(0, 1fr) auto; }
     .client-bar-top,
-    .client-action-strip,
-    .recent-rail { grid-column: 1 / -1; }
+    .client-action-strip { grid-column: 1 / -1; }
     .new-client-button { align-self: end; grid-column: 2; grid-row: 2; }
     .tab-bar { grid-area: tabs; }
     .tab-content { grid-area: content; }

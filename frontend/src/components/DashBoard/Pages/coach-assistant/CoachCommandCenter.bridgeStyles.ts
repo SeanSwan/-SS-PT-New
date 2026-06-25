@@ -124,44 +124,6 @@ export const coachCommandBridgeStyles = css`
     width: 100%;
   }
 
-  .recent-rail {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-  }
-  .recent-rail::-webkit-scrollbar { display: none; }
-
-  .recent-chip {
-    align-items: center;
-    background: var(--coach-soft);
-    border: 1px solid var(--coach-line);
-    border-radius: 999px;
-    color: var(--coach-text);
-    display: inline-flex;
-    flex: 0 0 auto;
-    font-size: 15px;
-    font-weight: 720;
-    gap: 8px;
-    max-width: 200px;
-    min-height: 48px;
-    padding: 0 16px;
-  }
-  .recent-chip .recent-chip-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .recent-chip.is-active {
-    background: color-mix(in srgb, var(--coach-cyan) 16%, transparent);
-    border-color: var(--coach-line-strong);
-  }
-  .recent-empty {
-    color: var(--coach-muted);
-    font-size: 14px;
-    padding: 6px 2px;
-  }
 
   /* ── Section tabs ─────────────────────────────────────────────────── */
   .tab-bar {
