@@ -8,10 +8,12 @@ const {
   mockCreatePost,
   mockUseExerciseSearch,
   mockSetQuery,
+  mockAuthGet,
 } = vi.hoisted(() => ({
   mockCreatePost: vi.fn(),
   mockUseExerciseSearch: vi.fn(),
   mockSetQuery: vi.fn(),
+  mockAuthGet: vi.fn(),
 }));
 
 vi.mock('../../../context/AuthContext', () => ({
@@ -23,7 +25,7 @@ vi.mock('../../../context/AuthContext', () => ({
       photo: '',
     },
     authAxios: {
-      get: vi.fn(),
+      get: mockAuthGet,
     },
   }),
 }));
@@ -55,6 +57,7 @@ describe('CreatePostCard workout attachment builder', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreatePost.mockResolvedValue({ id: 'post-1', pointsAwarded: 0 });
+    mockAuthGet.mockResolvedValue({ data: { data: [] } });
     mockUseExerciseSearch.mockReturnValue({
       results: [
         {
@@ -78,6 +81,39 @@ describe('CreatePostCard workout attachment builder', () => {
       category: null,
       refresh: vi.fn(),
     });
+  });
+
+  it('loads workout history from the mounted workout session API', async () => {
+    const user = userEvent.setup();
+    mockAuthGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          sessions: [{
+            id: 'history-1',
+            title: 'Push Session',
+            duration: 42,
+            exerciseCount: 4,
+            totalWeight: 6200,
+            date: '2026-06-20',
+          }],
+        },
+      },
+    });
+    render(<CreatePostCard />);
+
+    await user.click(screen.getAllByRole('button', { name: /more options/i }).find(button => button.textContent?.includes('More Options'))!);
+    await user.click(screen.getByRole('button', { name: /^workout$/i }));
+    await user.click(screen.getByRole('button', { name: /pull from workout history/i }));
+
+    await waitFor(() => expect(mockAuthGet).toHaveBeenCalledWith(
+      '/api/workout/sessions',
+      expect.objectContaining({
+        params: { limit: 20, status: 'completed' },
+        signal: expect.any(AbortSignal),
+      }),
+    ));
+    expect(await screen.findByText('Push Session')).toBeInTheDocument();
   });
 
   it('lets a workout post attach Rolodex exercises before publishing', async () => {

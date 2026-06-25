@@ -53,9 +53,13 @@ describe('PostContent Try This Workout action', () => {
 
     render(<PostContent post={workoutPost} transformationSliderValue={50} />);
 
-    await user.click(screen.getByRole('button', { name: /try this workout/i }));
+    const trigger = screen.getByRole('button', { name: /try this workout/i });
+    trigger.focus();
+    await user.click(trigger);
 
     const dialog = screen.getByRole('dialog', { name: /try this workout/i });
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(within(dialog).getByRole('button', { name: /close workout details/i })).toHaveFocus();
     expect(within(dialog).getByText('Upper Push Builder')).toBeInTheDocument();
     expect(within(dialog).getByText('Chest and triceps')).toBeInTheDocument();
     expect(within(dialog).getByText('Incline Dumbbell Press')).toBeInTheDocument();
@@ -68,6 +72,8 @@ describe('PostContent Try This Workout action', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: /try this workout/i })).not.toBeInTheDocument();
     });
+    expect(document.body.style.overflow).toBe('');
+    expect(trigger).toHaveFocus();
   });
 
   it('explains when an auto-tagged workout post has no attached workout details', async () => {

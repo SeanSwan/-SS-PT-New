@@ -88,7 +88,9 @@ export interface WorkoutSession {
 }
 
 export interface WorkoutSessionsResponse {
-  data: WorkoutSession[];
+  data?: WorkoutSession[] | { sessions?: WorkoutSession[]; workouts?: WorkoutSession[] };
+  sessions?: WorkoutSession[];
+  workouts?: WorkoutSession[];
   meta?: { total: number; page: number };
 }
 

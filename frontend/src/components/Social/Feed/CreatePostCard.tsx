@@ -44,7 +44,7 @@
  * DATA FLOW:
  * Props In:  (none — uses auth context via useCreatePostForm hook)
  * State:     All state managed by useCreatePostForm hook
- * API Calls: POST /api/social/posts, GET /api/v1/workouts/sessions
+ * API Calls: POST /api/social/posts, GET /api/workout/sessions
  * Events:    createPost (via useSocialFeed), triggerFromResult (celebration)
  * Children:  CreatePostTypeSelector, CategoryOverrideSelector,
  *            CreatePostForm, CreatePostMediaUpload

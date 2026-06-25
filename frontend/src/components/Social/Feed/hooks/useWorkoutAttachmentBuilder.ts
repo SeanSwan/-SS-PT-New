@@ -92,6 +92,18 @@ const exerciseFromSession = (raw: unknown, index: number): WorkoutAttachmentExer
   };
 };
 
+const extractWorkoutSessions = (payload: WorkoutSessionsResponse): WorkoutSession[] => {
+  const root = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+  if (Array.isArray(root.data)) return root.data as WorkoutSession[];
+  if (Array.isArray(root.sessions)) return root.sessions as WorkoutSession[];
+  if (Array.isArray(root.workouts)) return root.workouts as WorkoutSession[];
+
+  const data = root.data && typeof root.data === 'object' ? root.data as Record<string, unknown> : {};
+  if (Array.isArray(data.sessions)) return data.sessions as WorkoutSession[];
+  if (Array.isArray(data.workouts)) return data.workouts as WorkoutSession[];
+  return [];
+};
+
 const stripEmptyExerciseFields = (exercise: WorkoutAttachmentExercise): WorkoutPostExercise | null => {
   const cleaned: WorkoutPostExercise = {};
   const fields: WorkoutAttachmentExerciseField[] = [
@@ -142,10 +154,10 @@ export function useWorkoutAttachmentBuilder(
 
     try {
       const res = await authAxios.get<WorkoutSessionsResponse>(
-        '/api/v1/workouts/sessions',
+        '/api/workout/sessions',
         { params: { limit: 20, status: 'completed' }, signal: controller.signal },
       );
-      setWorkoutHistory(res.data.data);
+      setWorkoutHistory(extractWorkoutSessions(res.data));
       setShowWorkoutHistory(true);
     } catch (err: any) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;

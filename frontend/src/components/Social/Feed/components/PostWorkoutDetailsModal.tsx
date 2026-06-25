@@ -73,6 +73,7 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
   onClose,
 }) => {
   const titleId = React.useId();
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const hasDetails = hasAttachedWorkoutDetails(workoutData);
   const exercises = workoutData?.exercises?.filter(exercise => hasText(exercise.name)) ?? [];
   const exerciseCount = workoutData?.exerciseCount || (exercises.length ? String(exercises.length) : undefined);
@@ -80,12 +81,21 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
   React.useEffect(() => {
     if (!open) return undefined;
 
+    const previousOverflow = document.body.style.overflow;
+    const returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+      if (returnFocusTo?.isConnected) returnFocusTo.focus();
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -115,7 +125,7 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
                 : 'Details unavailable'}
             </ModalSubtitle>
           </HeaderCopy>
-          <CloseButton type="button" aria-label="Close workout details" onClick={onClose}>
+          <CloseButton ref={closeButtonRef} type="button" aria-label="Close workout details" onClick={onClose}>
             <X size={20} />
           </CloseButton>
         </ModalHeader>
