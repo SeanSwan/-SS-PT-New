@@ -69,6 +69,54 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     expect(onNavigate).toHaveBeenCalledWith(coachPath);
   });
 
+  it('renders the trainer profile photo and handle when auth provides them', () => {
+    render(
+      <SwanCoachDockTrainer
+        trainerName="Sean Swan"
+        trainerHandle="@sean"
+        trainerPhotoUrl="https://sswanstudios.com/uploads/sean.jpg"
+        sessionCount={2}
+        level={4}
+        onNavigate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByAltText('Sean Swan profile')).toHaveAttribute(
+      'src',
+      'https://sswanstudios.com/uploads/sean.jpg',
+    );
+    expect(screen.getByText('@sean')).toBeInTheDocument();
+  });
+
+  it('falls back to trainer initials when the profile photo URL is unsafe', () => {
+    render(
+      <SwanCoachDockTrainer
+        trainerName="Sean Swan"
+        trainerHandle="@sean"
+        trainerPhotoUrl="javascript:alert(1)"
+        sessionCount={2}
+        level={4}
+        onNavigate={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByAltText('Sean Swan profile')).toBeNull();
+    expect(screen.getByText('SS')).toBeInTheDocument();
+  });
+
+  it('uses an ASCII trainer-day separator to avoid encoded bullet artifacts', () => {
+    render(
+      <SwanCoachDockTrainer
+        trainerName="Coach"
+        sessionCount={1}
+        level={4}
+        onNavigate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('1 session today - Lv.4')).toBeInTheDocument();
+  });
+
   it('keeps Log Workout direct even when the parent provides a live Coach path', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();

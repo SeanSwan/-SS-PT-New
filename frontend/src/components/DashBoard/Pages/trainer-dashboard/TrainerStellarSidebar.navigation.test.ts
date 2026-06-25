@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
 import { trainerNavConfig } from './TrainerStellarSidebar';
 
-const dashboardLayoutSource = readFileSync(resolve(__dirname, '../../UniversalDashboardLayout.tsx'), 'utf8');
+const routeRegistrySource = readFileSync(resolve(__dirname, '../../UniversalDashboardLayout.routes.tsx'), 'utf8');
 
 function trainerRoutesBlock(): string {
-  const roleConfigurationsStart = dashboardLayoutSource.indexOf('const roleConfigurations');
-  const start = dashboardLayoutSource.indexOf('  trainer: {', roleConfigurationsStart);
-  const end = dashboardLayoutSource.indexOf('  client: {', start);
+  const roleConfigurationsStart = routeRegistrySource.indexOf('export const roleConfigurations');
+  const start = routeRegistrySource.indexOf('  trainer: {', roleConfigurationsStart);
+  const end = routeRegistrySource.indexOf('  client: {', start);
   expect(roleConfigurationsStart).toBeGreaterThan(-1);
   expect(start).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(start);
-  return dashboardLayoutSource.slice(start, end);
+  return routeRegistrySource.slice(start, end);
 }
 
 describe('TrainerStellarSidebar navigation priority', () => {
