@@ -32,9 +32,9 @@ const unifiedRouteSlice = (startMarker, endMarker) => {
 
 describe('session booking clientSource boundary', () => {
   it('defines every non-booking client source in one shared boundary', () => {
-    expect(routeSource).toContain("import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
-    expect(routeSource).toContain('const NON_BOOKING_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;');
-    expect(routeSource).not.toContain("const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external'])");
+    expect(routeSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
+    expect(routeSource).not.toContain('NON_DEDUCTING_CLIENT_SOURCES');
+    expect(routeSource).not.toContain('const NON_BOOKING_CLIENT_SOURCES');
   });
 
   it('blocks every non-booking client source from the user-id self-service booking route', () => {
@@ -42,7 +42,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
   });
 
   it('blocks every non-booking client source from the session-id self-service booking route', () => {
@@ -50,7 +50,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
   });
 
   it('blocks every non-booking client source from the unified client booking service', () => {
@@ -119,7 +119,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
   });
 
   it('serves the active client recurring booking route from the unified router', () => {
@@ -220,7 +220,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('isNonDeductingClient(client)');
   });
 
   it('blocks every non-booking client source from the no-user-id self-service booking route', () => {
@@ -228,7 +228,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('isNonDeductingClient(client)');
   });
 
   it('blocks every non-booking client source from admin-created bookings', () => {
@@ -236,7 +236,7 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('isNonDeductingClient(client)');
   });
 
   it('serves admin-created schedule bookings while only deducting paid SwanStudios clients', () => {

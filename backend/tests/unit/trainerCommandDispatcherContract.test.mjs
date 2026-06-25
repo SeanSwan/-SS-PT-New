@@ -101,7 +101,7 @@ describe('trainer command dispatchers', () => {
       include: [{
         model: User,
         as: 'client',
-        attributes: ['id', 'availableSessions', 'clientSource', 'accountStatus'],
+        attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode', 'accountStatus'],
         required: false,
       }],
       order: [['createdAt', 'DESC']],

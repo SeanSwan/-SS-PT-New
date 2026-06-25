@@ -242,7 +242,7 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
     expect(result.deduction).toMatchObject({
       deducted: false,
       creditsDeducted: 0,
-      reason: 'non_deducting_client_source'
+      reason: 'non_deducting_client_account'
     });
   });
 

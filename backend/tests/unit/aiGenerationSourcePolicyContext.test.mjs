@@ -22,7 +22,9 @@ describe('AI generation source-policy context', () => {
   it('centralizes client-source policy for free-tracking clients', () => {
     expect(moveFitnessPolicy()).toEqual({
       clientSource: 'move_fitness',
+      sessionBillingMode: 'paid_sessions',
       isFreeTracking: true,
+      isNoSessionRequired: false,
       shouldDeductPaidSessions: false,
       sessionBalancePolicy: 'free_tracking_no_session_deduction',
     });

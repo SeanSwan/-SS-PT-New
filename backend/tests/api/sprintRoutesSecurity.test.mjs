@@ -14,11 +14,11 @@ const coreRoutesSource = readBackend('../../core/routes.mjs');
 
 describe('sprint routes security hardening', () => {
   it('locks the mounted Sprint Planner API and active frontend consumer', () => {
-    const layoutSource = readFrontend('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardRoutesSource = readFrontend('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const hookSource = readFrontend('src/hooks/useSprintAPI.ts');
 
     expect(coreRoutesSource).toContain("app.use('/api/bootcamp/sprints', sprintRoutes)");
-    expect(layoutSource).toContain("{ path: '/sprint-planner', component: SprintPlannerPage");
+    expect(dashboardRoutesSource).toContain("{ path: '/sprint-planner', component: SprintPlannerPage");
     expect(hookSource).toContain("apiService.post('/api/bootcamp/sprints'");
     expect(hookSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate`');
     expect(routeSource).toContain("router.post('/:id/generate'");
