@@ -114,6 +114,7 @@ Core reference set (most frequently used):
 - `REPO-HYGIENE-PROTOCOL.md` (NEW 2026-04-12)
 - `SWAN-CINEMATIC-DESIGN-SYSTEM.md` (NEW 2026-04-12)
 - `SWAN-ASSET-STORYBOARDING.md` (NEW 2026-04-12)
+- `docs/ai-workflow/coach-brain/` (NEW 2026-06-24) - active Obsidian-compatible Swan Coach Cortex brain vault for Sean-style workout doctrine, guided generation, privacy, full-plan PDF rules, and future Hermes ingestion.
 
 Full topic → file table lives in `CLAUDE.md` under **Reference Docs**. Do not duplicate here.
 
