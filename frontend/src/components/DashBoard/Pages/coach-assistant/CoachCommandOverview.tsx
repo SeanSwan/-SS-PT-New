@@ -26,7 +26,6 @@ type CoachCommandOverviewProps = {
   selectedClientLabel: string;
   statusMetrics: QueueMetric[];
   summary: CoachQueueSummaryView;
-  onCommandPrompt: (prompt: string) => void;
   onReadback: () => void;
   onToggleTeachMode: () => void;
 };
@@ -41,7 +40,6 @@ const CoachCommandOverview: React.FC<CoachCommandOverviewProps> = ({
   selectedClientLabel,
   statusMetrics,
   summary,
-  onCommandPrompt,
   onReadback,
   onToggleTeachMode,
 }) => {
@@ -52,7 +50,6 @@ const CoachCommandOverview: React.FC<CoachCommandOverviewProps> = ({
     <>
       <CommandBanner
         nextActionLabel={nextActionLabel}
-        onCommandPrompt={onCommandPrompt}
         onReadback={onReadback}
         onToggleTeachMode={onToggleTeachMode}
       />
@@ -79,7 +76,6 @@ const CoachCommandOverview: React.FC<CoachCommandOverviewProps> = ({
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={selectedClientLabel}
-          onCommandPrompt={onCommandPrompt}
           queue={coachQueue}
           activeIntakeId={activeIntakeId}
         />

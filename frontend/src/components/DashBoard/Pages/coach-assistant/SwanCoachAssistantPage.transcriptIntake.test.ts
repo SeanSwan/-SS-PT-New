@@ -472,10 +472,10 @@ describe('CoachMessage — audio intake receipt branch', () => {
     expect(COACH_MESSAGE_SOURCE).toMatch(/min-height:\s*44px/);
   });
 
-  it('page delegates direct intake navigation and command fallback to the audio-intake hook', () => {
+  it('page delegates direct intake navigation to the audio-intake hook without prompt fallback wiring', () => {
     expect(PAGE_SOURCE).toMatch(/useSwanCoachAudioIntakeNavigation/);
     expect(PAGE_SOURCE).toMatch(
-      /const\s+\{\s*audioReviewNextPending[\s\S]*handleAudioIntakeReviewNext[\s\S]*handleIntakeCommand[\s\S]*\}\s*=\s*useSwanCoachAudioIntakeNavigation/,
+      /const\s+\{\s*audioReviewNextPending[\s\S]*handleAudioIntakeReviewNext[\s\S]*\}\s*=\s*useSwanCoachAudioIntakeNavigation/,
     );
     expect(PAGE_SOURCE).not.toMatch(/const\s+navigate\s*=\s*useNavigate\(\)/);
     expect(PAGE_SOURCE).not.toMatch(/const\s+handleAudioIntakeReviewNext\s*=\s*useCallback/);

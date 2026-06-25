@@ -92,7 +92,7 @@ export const TrustPill = styled.span`
 
 export const ControlGrid = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 1.1fr) minmax(220px, 1fr) minmax(260px, 1.15fr) minmax(190px, auto);
+  grid-template-columns: minmax(390px, 1.1fr) minmax(220px, 1fr) minmax(260px, 1.15fr) minmax(190px, auto);
   gap: 0.8rem;
   align-items: end;
 
@@ -121,17 +121,13 @@ export const FieldLabel = styled.label`
 
 export const RoleSegment = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 0.35rem;
   min-height: 44px;
   padding: 0.25rem;
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.22));
   border-radius: 8px;
   background: rgba(10, 10, 15, 0.6);
-
-  @media (max-width: 420px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 `;
 
 export const RoleButton = styled.button<{ $active: boolean }>`
@@ -144,6 +140,8 @@ export const RoleButton = styled.button<{ $active: boolean }>`
   font: inherit;
   font-size: 0.82rem;
   font-weight: 900;
+  padding: 0 0.55rem;
+  min-width: 0;
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
 
   &:hover:not(:disabled) {

@@ -4,7 +4,7 @@
  * Header actions for the Coach voice intake workspace.
  */
 import React from 'react';
-import { Brain, FileAudio, GitBranch, ListChecks, RefreshCcw } from 'lucide-react';
+import { Brain, FileAudio, ListChecks, RefreshCcw } from 'lucide-react';
 import type { PlaudIntakeSummary } from '../../../../services/plaudIntakeService';
 import { buildCoachIntakeNextMove } from './CoachIntakeNextMove.logic';
 import CoachIntakeScopeStatus from './CoachIntakeScopeStatus';
@@ -29,7 +29,6 @@ interface CoachIntakeWorkspaceHeaderProps {
   workspaceHref: string;
   scope?: string;
   summary: PlaudIntakeSummary;
-  onCommandPrompt: (message: string) => void;
   onRefresh: () => void | Promise<unknown>;
 }
 
@@ -39,7 +38,6 @@ export function CoachIntakeWorkspaceHeader({
   workspaceHref,
   scope,
   summary,
-  onCommandPrompt,
   onRefresh,
 }: CoachIntakeWorkspaceHeaderProps): JSX.Element {
   const nextMove = buildCoachIntakeNextMove(summary, scope);
@@ -64,14 +62,7 @@ export function CoachIntakeWorkspaceHeader({
               <ListChecks size={16} aria-hidden="true" />
               {nextMove.label}
             </WorkspaceLink>
-            <ActionButton
-              type="button"
-              aria-label={`Ask Coach about ${nextMove.label}`}
-              onClick={() => onCommandPrompt(nextMove.prompt)}
-            >
-              <Brain size={16} aria-hidden="true" />
-              Ask Coach
-            </ActionButton>
+
           </FirstMoveActions>
         </FirstMovePanel>
         <SecondaryActionGroup role="group" aria-label="Queue tools">
@@ -79,10 +70,7 @@ export function CoachIntakeWorkspaceHeader({
             <RefreshCcw size={16} aria-hidden="true" />
             Refresh queue
           </ActionButton>
-          <ActionButton type="button" onClick={() => onCommandPrompt('inspect pending Coach audio pieces')}>
-            <GitBranch size={16} aria-hidden="true" />
-            Inspect audio
-          </ActionButton>
+
           <WorkspaceLink to={workspaceHref}>
             <FileAudio size={16} aria-hidden="true" />
             Open PLAUD

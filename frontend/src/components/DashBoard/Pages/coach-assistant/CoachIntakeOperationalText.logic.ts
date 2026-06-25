@@ -20,13 +20,13 @@ const SAFE_NEXT_ACTIONS = new Set([
   'Review failed intake',
   'Wait for processing',
   'Confirm audio order',
-  'Ask Coach to resolve client',
+  'Resolve client hold', 'Ask Coach to resolve client',
   'Answer Coach clarification',
   'Review duplicate risk',
   'Review prepared draft',
   'Prepare draft review',
   'Inspect intake audio',
-  'Ask Coach about this intake',
+  'Review intake', 'Ask Coach about this intake',
   'Review next intake',
 ]);
 
@@ -38,7 +38,7 @@ const SAFE_COMMAND_HINTS = new Set([
   'Open the Swan Coach workspace to review retention candidates before any purge job is enabled.',
   'This is a dry-run cleanup plan. No raw artifacts are purged from a Swan Coach command.',
   'Open the active Coach intake dossier and choose Review prepared draft. Final writes still require approval.',
-  'Ask Swan Coach to prepare a structured draft review for this intake before any final write.',
+  'Prepare a structured draft review from the active intake before any final write.',
   'Use the Coach workspace to review audio ordering before approving any generated workout draft.',
   'That intake is not in the current actionable audio queue. Open the Coach workspace and refresh the intake list.',
   'Open the PLAUD workspace and continue with the next intake item.',
@@ -163,7 +163,10 @@ export function safeActionableGate(value: unknown): string | null {
 
 export function safeCommandActionLabel(value: unknown): string | null {
   const text = compactText(value);
-  return text && SAFE_NEXT_ACTIONS.has(text) ? text : null;
+  if (!text || !SAFE_NEXT_ACTIONS.has(text)) return null;
+  if (text === 'Ask Coach to resolve client') return 'Resolve client hold';
+  if (text === 'Ask Coach about this intake') return 'Review intake';
+  return text;
 }
 
 export function safeCommandHint(value: unknown): string | null {

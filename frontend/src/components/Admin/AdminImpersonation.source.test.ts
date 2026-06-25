@@ -78,4 +78,13 @@ describe('admin impersonation UI wiring', () => {
     expect(serviceSource).toContain('isLocked: false');
     expect(serviceSource).toContain('IMPERSONATION_INVALID_ROLE');
   });
+
+  it('keeps the account-switcher role segment readable at narrow control widths', () => {
+    const stylesSource = readMaybe('frontend/src/components/Admin/AdminAccountSwitcher.styles.ts');
+
+    expect(stylesSource).toContain('grid-template-columns: minmax(390px, 1.1fr)');
+    expect(stylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));');
+    expect(stylesSource).toContain('min-width: 0;');
+    expect(stylesSource).not.toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
+  });
 });

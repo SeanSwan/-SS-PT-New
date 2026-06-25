@@ -18,7 +18,6 @@ import {
 import { TargetBody, TargetPanel } from './CoachIntakeWorkspaceTarget.styles';
 import {
   audioPieceCount,
-  canPrepareDraftReview,
   hasReviewablePreparedDraft,
   needsAudioOrderConfirmation,
   nextAction,
@@ -34,17 +33,13 @@ const CoachIntakeActiveDossier: React.FC<CoachIntakeActiveDossierProps> = ({
   statusText,
   reviewHref,
   focusRef,
-  onAskCoach,
-  onInspectAudio,
   onConfirmAudioOrder,
-  onPrepareDraftReview,
   onReviewPreparedDraft,
   confirmAudioOrderStatus = null,
   isConfirmingAudioOrder = false,
 }) => {
   const pieces = audioPieceCount(item);
   const next = nextAction(item);
-  const askCoachLabel = next.actionId === 'ask-coach' ? next.label : 'Ask Coach about this intake';
   const holdLabel = safeHoldReasonLabel(item);
 
   return (
@@ -74,20 +69,13 @@ const CoachIntakeActiveDossier: React.FC<CoachIntakeActiveDossierProps> = ({
         <CoachIntakePlaudClipPlayback item={item} />
       </TargetBody>
       <DossierActionRail
-        askCoachLabel={askCoachLabel}
         confirmAudioOrderStatus={confirmAudioOrderStatus}
         isConfirmingAudioOrder={isConfirmingAudioOrder}
-        item={item}
         nextActionId={next.actionId}
-        onAskCoach={onAskCoach}
         onConfirmAudioOrder={onConfirmAudioOrder}
-        onInspectAudio={onInspectAudio}
-        onPrepareDraftReview={onPrepareDraftReview}
         onReviewPreparedDraft={onReviewPreparedDraft}
         reviewHref={reviewHref}
         showConfirmAudioOrder={needsAudioOrderConfirmation(item)}
-        showInspectAudio={pieces > 0}
-        showPrepareDraftReview={canPrepareDraftReview(item)}
         showReviewPreparedDraft={hasReviewablePreparedDraft(item)}
       />
     </TargetPanel>

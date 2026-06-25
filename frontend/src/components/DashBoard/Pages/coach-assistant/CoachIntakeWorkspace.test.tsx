@@ -55,14 +55,12 @@ function makeQueue() {
 
 describe('CoachIntakeWorkspace', () => {
   it('renders the PLAUD intake bridge for trainer/admin roles with one-click review and Coach command support', () => {
-    const onCommandPrompt = vi.fn();
 
     render(
       <MemoryRouter>
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={onCommandPrompt}
         queue={makeQueue()}
           activeIntakeId="item-1"
         />
@@ -80,11 +78,9 @@ describe('CoachIntakeWorkspace', () => {
     expect(screen.getByRole('link', { name: /review ready draft/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1');
     expect(screen.getAllByText(/review target/i).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: /ask coach about review ready draft/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringMatching(/Review ready Coach intake draft/i));
+    expect(screen.queryByRole('button', { name: /ask coach/i })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /inspect audio/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('inspect pending Coach audio pieces');
+    expect(screen.queryByRole('button', { name: /inspect audio/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open plaud/i }))
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?workspace=plaud');
   });
@@ -105,7 +101,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -116,7 +111,6 @@ describe('CoachIntakeWorkspace', () => {
   });
 
   it('shows a dedicated active review target when an intake id is selected', () => {
-    const onCommandPrompt = vi.fn();
     const queue = makeQueue();
     queue.items.push({
       ...queue.items[0],
@@ -136,7 +130,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={onCommandPrompt}
           queue={queue}
           activeIntakeId="item-2"
         />
@@ -153,12 +146,10 @@ describe('CoachIntakeWorkspace', () => {
     expect(within(target).getByText(/Ordering review required/i)).toBeInTheDocument();
     expect(within(target).getByText(/Draft prepared for approval/i)).toBeInTheDocument();
     expect(within(target).getByText(/3 audio pieces/i)).toBeInTheDocument();
-
-    fireEvent.click(within(target).getByRole('button', { name: /^ask coach about this intake$/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('review Coach intake item-2');
-
-    fireEvent.click(within(target).getByRole('button', { name: /^inspect intake audio$/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('inspect Coach intake item-2 audio pieces');
+    expect(within(target).queryByRole('button', { name: /ask coach/i })).not.toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /^inspect intake audio$/i })).not.toBeInTheDocument();
+    expect(within(target).getByRole('link', { name: /^open target$/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-2');
   });
 
   it('confirms active intake audio order and refreshes the queue without final writes', async () => {
@@ -179,7 +170,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -212,7 +202,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -254,7 +243,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
         />
       </MemoryRouter>,
@@ -276,7 +264,6 @@ describe('CoachIntakeWorkspace', () => {
         <CoachIntakeWorkspace
           userRole="client"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
         />
       </MemoryRouter>,

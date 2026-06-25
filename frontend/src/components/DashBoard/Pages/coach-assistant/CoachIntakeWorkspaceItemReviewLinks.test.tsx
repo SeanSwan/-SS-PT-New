@@ -65,7 +65,6 @@ describe('CoachIntakeWorkspace item review links', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
         />
       </MemoryRouter>,
@@ -88,7 +87,7 @@ describe('CoachIntakeWorkspace item review links', () => {
 
     render(
       <MemoryRouter>
-        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} />
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} queue={queue} />
       </MemoryRouter>,
     );
 
@@ -102,7 +101,6 @@ describe('CoachIntakeWorkspace item review links', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
           activeIntakeId="coach-1"
         />

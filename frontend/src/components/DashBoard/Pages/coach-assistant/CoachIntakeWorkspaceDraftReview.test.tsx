@@ -1,8 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
-import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 
 vi.mock('./CoachIntakeEventTrail', () => ({
   default: () => null,
@@ -48,15 +47,12 @@ function makeQueue({ needsOrderingReview = false, needsClient = false } = {}) {
 }
 
 describe('CoachIntakeWorkspace draft review bridge', () => {
-  it('prompts Coach to prepare a structured proposal after audio order is clear', () => {
-    const onCommandPrompt = vi.fn();
-
+  it('does not expose a prompt-only draft preparation button after audio order is clear', () => {
     render(
       <MemoryRouter>
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={onCommandPrompt}
           queue={makeQueue()}
           activeIntakeId="77777777-7777-4777-9777-777777777777"
         />
@@ -64,16 +60,11 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
     );
 
     const target = screen.getByLabelText(/Active review target/i);
-    fireEvent.click(within(target).getByRole('button', { name: /^prepare draft review$/i }));
-
-    expect(onCommandPrompt).toHaveBeenCalledTimes(1);
-    const prompt = onCommandPrompt.mock.calls[0][0];
-    expect(prompt).toContain('Prepare structured Coach draft review for intake 77777777-7777-4777-9777-777777777777');
-    expect(prompt).toContain('"intake_id": "77777777-7777-4777-9777-777777777777"');
-    expect(prompt).toContain('coach_action_proposal clarification');
-    expect(prompt).toContain('split_plan or workout_log draft');
-    expect(prompt).toContain('Do not write');
-    expect(isCommandLaneCandidate(prompt)).toBe(false);
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText(/Prepare draft review/i)).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
+    expect(within(target).getByRole('link', { name: /^open target$/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=77777777-7777-4777-9777-777777777777');
   });
 
   it('does not offer draft preparation before audio order is confirmed', () => {
@@ -82,7 +73,6 @@ describe('CoachIntakeWorkspace draft review bridge', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue({ needsOrderingReview: true })}
           activeIntakeId="77777777-7777-4777-9777-777777777777"
         />

@@ -145,7 +145,6 @@ const SwanCoachAssistantPage: React.FC = () => {
   const {
     audioReviewNextPending,
     handleAudioIntakeReviewNext,
-    handleIntakeCommand,
   } = useSwanCoachAudioIntakeNavigation({
     coachIntakeItems,
     coachIntakeScope,
@@ -235,7 +234,6 @@ const SwanCoachAssistantPage: React.FC = () => {
           userRole={userRole}
           activeIntakeId={searchParams.get('intake')}
           selectedClientName={selectedClientName}
-          onCommandPrompt={handleIntakeCommand}
           queue={coachIntakeQueue}
         />
 

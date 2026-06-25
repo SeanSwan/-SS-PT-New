@@ -53,6 +53,9 @@ interface DossierStatusSectionProps {
   statusText: string;
 }
 
+function canFocusDossierAction(actionId: string): boolean {
+  return actionId === 'confirm-audio' || actionId === 'review-draft';
+}
 function focusDossierAction(actionId: string): void {
   const target = activeActionElement(actionId);
   if (!target) return;
@@ -99,13 +102,15 @@ export const DossierStatusSection: React.FC<DossierStatusSectionProps> = ({
     <StatusRibbonItem>
       <StatusRibbonLabel>Next action</StatusRibbonLabel>
       <StatusRibbonValue>{nextActionLabel}</StatusRibbonValue>
-      <StatusRibbonAction
-        type="button"
-        aria-label={`Focus next action: ${nextActionLabel}`}
-        onClick={() => focusDossierAction(nextActionId)}
-      >
-        Focus next action
-      </StatusRibbonAction>
+      {canFocusDossierAction(nextActionId) ? (
+        <StatusRibbonAction
+          type="button"
+          aria-label={`Focus next action: ${nextActionLabel}`}
+          onClick={() => focusDossierAction(nextActionId)}
+        >
+          Focus next action
+        </StatusRibbonAction>
+      ) : null}
     </StatusRibbonItem>
   </StatusRibbon>
 );

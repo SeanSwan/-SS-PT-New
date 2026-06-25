@@ -1,9 +1,9 @@
 /**
  * CoachIntakeWorkspaceFailedRecovery.test.tsx
  * ===========================================
- * Locks the operator recovery prompt for failed Coach intake items.
+ * Locks the operator recovery path for failed Coach intake items.
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
@@ -34,15 +34,12 @@ function makeFailedQueue() {
 }
 
 describe('CoachIntakeWorkspace failed intake recovery', () => {
-  it('turns the failed intake next action into a recovery prompt without final writes', async () => {
-    const onCommandPrompt = vi.fn();
-
+  it('routes failed intake recovery to the real target review link without prompt buttons', async () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=failed-1']}>
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={onCommandPrompt}
           queue={makeFailedQueue()}
           activeIntakeId="failed-1"
         />
@@ -50,11 +47,10 @@ describe('CoachIntakeWorkspace failed intake recovery', () => {
     );
 
     const target = await screen.findByLabelText(/Active review target/i);
-    expect(within(target).getByRole('button', { name: /^review failed intake$/i })).toBeInTheDocument();
-
-    fireEvent.click(within(target).getByRole('button', { name: /^review failed intake$/i }));
-
-    expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringContaining('Review failed Coach intake failed-1'));
-    expect(onCommandPrompt).toHaveBeenCalledWith(expect.stringContaining('Do not write, create, update, log, or submit'));
+    const ribbon = within(target).getByLabelText('Active item status');
+    expect(within(ribbon).getByText('Review failed intake')).toBeInTheDocument();
+    expect(within(target).queryByRole('button', { name: /^review failed intake$/i })).toBeNull();
+    expect(within(target).getByRole('link', { name: /^open target$/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=failed-1');
   });
 });

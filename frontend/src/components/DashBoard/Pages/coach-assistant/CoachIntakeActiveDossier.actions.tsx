@@ -8,31 +8,21 @@
  */
 import React from 'react';
 import {
-  Brain,
   CheckCircle2,
   Eye,
-  GitBranch,
   ListChecks,
 } from 'lucide-react';
-import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import { ActionButton, WorkspaceLink } from './CoachIntakeWorkspace.styles';
 import { TargetActions, TargetNotice } from './CoachIntakeWorkspaceTarget.styles';
 
 interface DossierActionRailProps {
-  askCoachLabel: string;
   confirmAudioOrderStatus: string | null;
   isConfirmingAudioOrder: boolean;
-  item: CoachIntakeItem;
   nextActionId: string;
-  onAskCoach: () => void;
   onConfirmAudioOrder: () => void;
-  onInspectAudio: () => void;
-  onPrepareDraftReview: () => void;
   onReviewPreparedDraft: () => void;
   reviewHref: string;
   showConfirmAudioOrder: boolean;
-  showInspectAudio: boolean;
-  showPrepareDraftReview: boolean;
   showReviewPreparedDraft: boolean;
 }
 
@@ -70,62 +60,17 @@ const ReviewDraftAction: React.FC<{ onClick: () => void; primary: boolean; visib
   );
 };
 
-const PrepareDraftAction: React.FC<{
-  item: CoachIntakeItem;
-  onClick: () => void;
-  primary: boolean;
-  visible: boolean;
-}> = ({ item, onClick, primary, visible }) => {
-  if (!visible) return null;
-  return (
-    <ActionButton type="button" onClick={onClick} $primary={primary} data-coach-active-action="prepare-draft">
-      <ListChecks size={16} aria-hidden="true" />
-      {item.latestProposalId ? 'Prepare updated draft review' : 'Prepare draft review'}
-    </ActionButton>
-  );
-};
-
-const InspectAudioAction: React.FC<{ onClick: () => void; primary: boolean; visible: boolean }> = ({
-  onClick,
-  primary,
-  visible,
-}) => {
-  if (!visible) return null;
-  return (
-    <ActionButton type="button" onClick={onClick} $primary={primary} data-coach-active-action="inspect-audio">
-      <GitBranch size={16} aria-hidden="true" />
-      Inspect intake audio
-    </ActionButton>
-  );
-};
-
 export const DossierActionRail: React.FC<DossierActionRailProps> = ({
-  askCoachLabel,
   confirmAudioOrderStatus,
   isConfirmingAudioOrder,
-  item,
   nextActionId,
-  onAskCoach,
   onConfirmAudioOrder,
-  onInspectAudio,
-  onPrepareDraftReview,
   onReviewPreparedDraft,
   reviewHref,
   showConfirmAudioOrder,
-  showInspectAudio,
-  showPrepareDraftReview,
   showReviewPreparedDraft,
 }) => {
   const actionNodes = [
-    {
-      id: 'ask-coach',
-      node: (
-        <ActionButton type="button" onClick={onAskCoach} $primary={nextActionId === 'ask-coach'} data-coach-active-action="ask-coach">
-          <Brain size={16} aria-hidden="true" />
-          {askCoachLabel}
-        </ActionButton>
-      ),
-    },
     {
       id: 'confirm-audio',
       node: (
@@ -148,27 +93,6 @@ export const DossierActionRail: React.FC<DossierActionRailProps> = ({
       ),
     },
     {
-      id: 'prepare-draft',
-      node: (
-        <PrepareDraftAction
-          item={item}
-          onClick={onPrepareDraftReview}
-          primary={nextActionId === 'prepare-draft'}
-          visible={showPrepareDraftReview}
-        />
-      ),
-    },
-    {
-      id: 'inspect-audio',
-      node: (
-        <InspectAudioAction
-          onClick={onInspectAudio}
-          primary={nextActionId === 'inspect-audio'}
-          visible={showInspectAudio}
-        />
-      ),
-    },
-    {
       id: 'open-target',
       node: (
         <WorkspaceLink to={reviewHref} $primary={nextActionId === 'open-target'} data-coach-active-action="open-target">
@@ -178,7 +102,7 @@ export const DossierActionRail: React.FC<DossierActionRailProps> = ({
       ),
     },
   ];
-  const order = [nextActionId, 'review-draft', 'confirm-audio', 'prepare-draft', 'ask-coach', 'inspect-audio', 'open-target'];
+  const order = [nextActionId, 'review-draft', 'confirm-audio', 'open-target'];
   const ranked = [...actionNodes].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 
   return (

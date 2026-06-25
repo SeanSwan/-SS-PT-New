@@ -105,33 +105,33 @@ export function intakeTitleLabel(item: CoachIntakeItem): string {
 
 function actionIdForActionKey(actionKey?: string | null): string | null {
   if (actionKey === 'confirm_audio_order') return 'confirm-audio';
-  if (actionKey === 'resolve_client') return 'ask-coach';
+  if (actionKey === 'resolve_client') return 'open-target';
   if (actionKey === 'review_prepared_draft') return 'review-draft';
-  if (actionKey === 'prepare_draft_review') return 'prepare-draft';
-  if (actionKey === 'review_failed_intake') return 'ask-coach';
+  if (actionKey === 'prepare_draft_review') return 'open-target';
+  if (actionKey === 'review_failed_intake') return 'open-target';
   if (actionKey === 'wait_for_processing') return 'open-target';
-  if (actionKey === 'inspect_audio') return 'inspect-audio';
-  if (actionKey === 'answer_clarification') return 'ask-coach';
-  if (actionKey === 'review_duplicate_hold') return 'ask-coach';
+  if (actionKey === 'inspect_audio') return 'open-target';
+  if (actionKey === 'answer_clarification') return 'open-target';
+  if (actionKey === 'review_duplicate_hold') return 'open-target';
   return null;
 }
 
 export function nextAction(item: CoachIntakeItem): DossierAction {
   const safeBackendAction = safeCommandActionLabel(item.nextActionLabel);
   if (safeBackendAction) {
-    const actionId = actionIdForActionKey(item.nextActionKey) || 'ask-coach';
+    const actionId = actionIdForActionKey(item.nextActionKey) || 'open-target';
     return { label: safeBackendAction, actionId };
   }
-  if (item.queueStatus === 'failed') return { label: 'Review failed intake', actionId: 'ask-coach' };
+  if (item.queueStatus === 'failed') return { label: 'Review failed intake', actionId: 'open-target' };
   if (item.queueStatus === 'processing') return { label: 'Wait for processing', actionId: 'open-target' };
   if (needsAudioOrderConfirmation(item)) return { label: 'Confirm audio order', actionId: 'confirm-audio' };
-  if (item.needsClient) return { label: 'Ask Coach to resolve client', actionId: 'ask-coach' };
-  if (item.queueStatus === 'needs_clarification') return { label: 'Answer Coach clarification', actionId: 'ask-coach' };
-  if (item.queueStatus === 'duplicate_hold') return { label: 'Review duplicate risk', actionId: 'ask-coach' };
+  if (item.needsClient) return { label: 'Resolve client hold', actionId: 'open-target' };
+  if (item.queueStatus === 'needs_clarification') return { label: 'Answer Coach clarification', actionId: 'open-target' };
+  if (item.queueStatus === 'duplicate_hold') return { label: 'Review duplicate risk', actionId: 'open-target' };
   if (hasReviewablePreparedDraft(item)) return { label: 'Review prepared draft', actionId: 'review-draft' };
-  if (canPrepareDraftReview(item)) return { label: 'Prepare draft review', actionId: 'prepare-draft' };
-  if (audioPieceCount(item) > 0) return { label: 'Inspect intake audio', actionId: 'inspect-audio' };
-  return { label: 'Ask Coach about this intake', actionId: 'ask-coach' };
+  if (canPrepareDraftReview(item)) return { label: 'Prepare draft review', actionId: 'open-target' };
+  if (audioPieceCount(item) > 0) return { label: 'Inspect intake audio', actionId: 'open-target' };
+  return { label: 'Review intake', actionId: 'open-target' };
 }
 
 export function activeReason(item: CoachIntakeItem, statusText: string): string {

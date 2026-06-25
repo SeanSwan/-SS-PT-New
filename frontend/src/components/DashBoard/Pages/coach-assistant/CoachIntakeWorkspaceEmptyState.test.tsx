@@ -49,7 +49,6 @@ describe('CoachIntakeWorkspace empty states', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={{
             ...makeEmptyQueue('actionable'),
             error: new Error('Token expired: do-not-render-private-queue-detail'),
@@ -68,7 +67,6 @@ describe('CoachIntakeWorkspace empty states', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeEmptyQueue('failed')}
         />
       </MemoryRouter>,
@@ -84,7 +82,6 @@ describe('CoachIntakeWorkspace empty states', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeEmptyQueue('toString')}
         />
       </MemoryRouter>,
@@ -100,7 +97,6 @@ describe('CoachIntakeWorkspace empty states', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeEmptyQueue('needs_clarification')}
         />
       </MemoryRouter>,
@@ -114,7 +110,6 @@ describe('CoachIntakeWorkspace empty states', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeEmptyQueue('duplicate_hold')}
         />
       </MemoryRouter>,

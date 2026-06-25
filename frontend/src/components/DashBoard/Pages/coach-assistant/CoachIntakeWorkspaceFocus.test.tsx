@@ -65,7 +65,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
           <CoachIntakeWorkspace
             userRole="admin"
             selectedClientName={null}
-            onCommandPrompt={vi.fn()}
             queue={makeQueue()}
             activeIntakeId="item-1"
           />
@@ -111,7 +110,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -150,7 +148,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -178,7 +175,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -205,7 +201,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -232,7 +227,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -265,7 +259,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -298,7 +291,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -329,7 +321,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -339,7 +330,7 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     const target = await screen.findByLabelText(/Active review target/i);
     const ribbon = within(target).getByLabelText('Active item status');
     expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
-    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Resolve client hold')).toBeInTheDocument();
     expect(within(target).queryByRole('button', { name: /prepare draft review/i })).toBeNull();
   });
 
@@ -358,7 +349,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -368,7 +358,7 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     const target = await screen.findByLabelText(/Active review target/i);
     const ribbon = within(target).getByLabelText('Active item status');
     expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
-    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Resolve client hold')).toBeInTheDocument();
   });
 
   it('does not render unsafe backend gate metadata in the active status ribbon', async () => {
@@ -386,7 +376,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -398,7 +387,7 @@ describe('CoachIntakeWorkspace focus handoff', () => {
     expect(within(ribbon).queryByText(/Marcus/i)).toBeNull();
     expect(within(ribbon).queryByText(/private@example\.com/i)).toBeNull();
     expect(within(ribbon).getByText('Client confirmation required')).toBeInTheDocument();
-    expect(within(ribbon).getByText('Ask Coach to resolve client')).toBeInTheDocument();
+    expect(within(ribbon).getByText('Resolve client hold')).toBeInTheDocument();
   });
 
   it('does not expose draft preparation for clarification or duplicate-hold fallbacks', async () => {
@@ -421,7 +410,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={clarificationQueue}
           activeIntakeId="item-1"
         />
@@ -454,7 +442,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={duplicateQueue}
           activeIntakeId="item-1"
         />
@@ -487,7 +474,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={clarificationQueue}
           activeIntakeId="item-1"
         />
@@ -516,7 +502,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={duplicateQueue}
           activeIntakeId="item-1"
         />
@@ -548,7 +533,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -578,7 +562,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -608,7 +591,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />
@@ -637,7 +619,6 @@ describe('CoachIntakeWorkspace focus handoff', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={queue}
           activeIntakeId="item-1"
         />

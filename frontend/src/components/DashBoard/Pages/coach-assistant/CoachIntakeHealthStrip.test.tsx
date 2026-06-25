@@ -1,8 +1,8 @@
 /**
  * CoachIntakeHealthStrip.test.tsx
  * ===============================
- * Focused coverage for the PII-safe Coach intake health and retention command
- * controls rendered inside the Swan Coach workspace.
+ * Focused coverage for the PII-safe Coach intake health and retention controls
+ * rendered inside the Swan Coach workspace.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -31,9 +31,7 @@ describe('CoachIntakeHealthStrip', () => {
     },
   };
 
-  it('shows queue, retention, and cleanup-plan command prompts without artifact details', () => {
-    const onCommandPrompt = vi.fn();
-
+  it('shows queue, retention, and cleanup-plan status without prompt-only buttons or artifact details', () => {
     render(
       <CoachIntakeHealthStrip
         health={baseHealth}
@@ -59,7 +57,6 @@ describe('CoachIntakeHealthStrip', () => {
           purged: 0,
           skippedReason: 'disabled',
         }}
-        onCommandPrompt={onCommandPrompt}
       />,
     );
 
@@ -72,17 +69,11 @@ describe('CoachIntakeHealthStrip', () => {
     expect(within(health).getByText(/Privacy retention/i)).toBeInTheDocument();
     expect(within(health).getByText(/2 purge ready/i)).toBeInTheDocument();
     expect(within(health).getByText(/1 review/i)).toBeInTheDocument();
+    expect(within(health).queryByRole('button', { name: /ask coach/i })).not.toBeInTheDocument();
 
     const cleanupPlan = within(health).getByLabelText(/Retention cleanup plan/i, { selector: 'div' });
     expect(within(cleanupPlan).getByText(/^Cleanup plan$/i)).toBeInTheDocument();
     expect(within(cleanupPlan).getByText(/2 would purge/i)).toBeInTheDocument();
-
-    fireEvent.click(within(health).getByRole('button', { name: /ask coach: inspect stuck processing intake/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake health');
-    fireEvent.click(within(health).getByRole('button', { name: /ask coach: review raw artifact purge candidates/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake retention');
-    fireEvent.click(within(health).getByRole('button', { name: /ask coach: show retention cleanup plan/i }));
-    expect(onCommandPrompt).toHaveBeenCalledWith('show Coach intake cleanup plan');
   });
 
   it('lets operator drill into worklist scopes from health counts', () => {
@@ -108,9 +99,7 @@ describe('CoachIntakeHealthStrip', () => {
     expect(onScopeChange).toHaveBeenCalledWith('processing');
   });
 
-  it('does not render arbitrary next-operator labels in visible text or button names', () => {
-    const onCommandPrompt = vi.fn();
-
+  it('does not render arbitrary next-operator labels in visible text', () => {
     render(
       <CoachIntakeHealthStrip
         health={{
@@ -134,16 +123,11 @@ describe('CoachIntakeHealthStrip', () => {
             label: 'Send raw audio to private@example.com',
           },
         }}
-        onCommandPrompt={onCommandPrompt}
       />,
     );
 
     const health = screen.getByLabelText(/Coach intake health/i);
     expect(within(health).getByText(/Inspect stuck processing intake/i)).toBeInTheDocument();
-    expect(within(health).getByRole('button', { name: /ask coach: inspect stuck processing intake/i }))
-      .toBeInTheDocument();
-    expect(within(health).getByRole('button', { name: /ask coach: review raw artifact purge candidates/i }))
-      .toBeInTheDocument();
     expect(screen.queryByText(/Marcus/i)).toBeNull();
     expect(screen.queryByText(/private@example\.com/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /private@example\.com/i })).toBeNull();

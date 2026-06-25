@@ -92,7 +92,6 @@ describe('CoachIntakeWorkspace PLAUD playback', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
           activeIntakeId="11111111-1111-4111-8111-111111111111"
         />

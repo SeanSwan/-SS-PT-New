@@ -7,6 +7,7 @@ import {
   holdReasonFacts,
   safeAttachmentSourceLabel,
   safeAudioReviewPlanRationale,
+  safeCommandActionLabel,
   safeTranscriptFailureReason,
 } from './CoachIntakeOperationalText.logic';
 
@@ -29,6 +30,12 @@ describe('CoachIntakeOperationalText PII-safe helper contract', () => {
     expect(safeAttachmentSourceLabel('private-client-name-notes.pdf')).toBe('Transcript file');
   });
 
+  it('normalizes legacy prompt-only action labels to simplified operator labels', () => {
+    expect(safeCommandActionLabel('Ask Coach to resolve client')).toBe('Resolve client hold');
+    expect(safeCommandActionLabel('Ask Coach about this intake')).toBe('Review intake');
+    expect(safeCommandActionLabel('Resolve client hold')).toBe('Resolve client hold');
+    expect(safeCommandActionLabel('Email Marcus private@example.com')).toBeNull();
+  });
   it('normalizes hold-reason facts without retaining unsafe text', () => {
     expect(
       holdReasonFacts({

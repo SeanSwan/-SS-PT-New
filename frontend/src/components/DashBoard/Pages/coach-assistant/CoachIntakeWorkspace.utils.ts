@@ -1,7 +1,7 @@
 /**
  * CoachIntakeWorkspace.utils.ts
  * =============================
- * Small pure helpers for the Coach intake workspace queue and prompt wiring.
+ * Small pure helpers for the Coach intake workspace queue and routing.
  */
 import type {
   CoachAudioPuzzleSummary,
@@ -9,10 +9,8 @@ import type {
   CoachIntakeQueueScope,
 } from '../../../../services/coachIntakeService';
 import type { CoachActionProposal } from './SwanCoachTypes';
-import { holdReasonFacts, safeHoldReasonLabel } from './CoachIntakeHoldReason.logic';
 import { safeCoachIntakeSourceLabel } from './CoachIntakeOperationalText.logic';
 
-const COACH_INTAKE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const COACH_QUEUE_SCOPES = new Set<CoachIntakeQueueScope>([
   'actionable',
   'ready_review',
@@ -181,70 +179,4 @@ export function isActiveItem(item: CoachIntakeItem, activeIntakeId?: string | nu
   if (!activeIntakeId) return false;
   const clean = activeIntakeId.replace(/^coach:/, '');
   return itemEntityId(item) === clean || item.id === activeIntakeId;
-}
-
-export function activeItemPrompt(item: CoachIntakeItem): string {
-  return `review Coach intake ${itemEntityId(item) || item.id}`;
-}
-
-function safeHoldReasonPromptParts(item: CoachIntakeItem): string[] {
-  const label = safeHoldReasonLabel(item);
-  if (!label) return [];
-  const facts = holdReasonFacts(item);
-  return [
-    `Gate reason: ${label}.`,
-    ...(facts.length > 0 ? [`Safe gate facts: ${facts.join(', ')}.`] : []),
-  ];
-}
-
-export function activeCoachActionPrompt(item: CoachIntakeItem): string {
-  const intakeId = itemEntityId(item) || item.id;
-  if (item.nextActionKey === 'review_failed_intake' || item.queueStatus === 'failed') {
-    const parts = [
-      `Review failed Coach intake ${intakeId}.`,
-      'Inspect only PII-safe intake metadata, event history, and artifact status.',
-      'Recommend the next recovery step: retry processing, upload transcript manually, hold, or discard.',
-      'Do not write, create, update, log, or submit any client or workout record.',
-    ];
-    if (item.errorCode) parts.splice(1, 0, `Error code: ${item.errorCode}.`);
-    return parts.join(' ');
-  }
-  if (item.nextActionKey === 'answer_clarification' || item.queueStatus === 'needs_clarification') {
-    return [
-      `Answer Coach clarification for intake ${intakeId}.`,
-      ...safeHoldReasonPromptParts(item),
-      'Inspect only PII-safe intake metadata, pending proposal metadata, and evidence references.',
-      'Ask one narrow question or summarize the exact clarification needed before draft approval.',
-      'Do not write, create, update, log, or submit any client or workout record.',
-    ].join(' ');
-  }
-  if (item.nextActionKey === 'review_duplicate_hold' || item.queueStatus === 'duplicate_hold') {
-    return [
-      `Review duplicate risk for intake ${intakeId}.`,
-      ...safeHoldReasonPromptParts(item),
-      'Inspect only PII-safe intake metadata, duplicate-risk metadata, and existing workout summary references.',
-      'Recommend whether to keep holding, compare manually, discard, or proceed to explicit operator approval.',
-      'Do not write, create, update, log, or submit any client or workout record.',
-    ].join(' ');
-  }
-  return activeItemPrompt(item);
-}
-
-export function activeAudioPrompt(item: CoachIntakeItem): string {
-  return `inspect Coach intake ${itemEntityId(item) || item.id} audio pieces`;
-}
-
-export function activeDraftReviewPrompt(item: CoachIntakeItem): string {
-  const intakeId = itemEntityId(item) || item.id;
-  const intakeLinkInstruction = COACH_INTAKE_UUID_RE.test(intakeId)
-    ? `Include top-level "intake_id": "${intakeId}" in the JSON block.`
-    : 'Omit intake_id unless the active intake id is a UUID.';
-  return [
-    `Prepare structured Coach draft review for intake ${intakeId}.`,
-    intakeLinkInstruction,
-    'Use only the active Coach intake context and compact evidence_refs.',
-    'If client, date, or workout details are missing, return a coach_action_proposal clarification.',
-    'If enough evidence exists, return a coach_action_proposal split_plan or workout_log draft.',
-    'Do not write, create, update, log, or submit any client or workout record.',
-  ].join(' ');
 }

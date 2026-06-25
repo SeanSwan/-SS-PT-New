@@ -56,7 +56,6 @@ describe('CoachIntakeWorkspace automatic target staging', () => {
         <CoachIntakeWorkspace
           userRole="admin"
           selectedClientName={null}
-          onCommandPrompt={vi.fn()}
           queue={makeQueue()}
         />
       </MemoryRouter>,
