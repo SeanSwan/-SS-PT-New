@@ -30,6 +30,7 @@ import {
 } from './ClientDashboardHome.feedSections';
 import { ThreeColumnGrid, TwoColumnGrid } from './ClientDashboardHome.cardStyles';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
+import SocialProgressAnalyticsPreview from './SocialProgressAnalyticsPreview';
 
 const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
   const embedded = !!props.embedded;
@@ -44,6 +45,7 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
             <PrimaryStack>
               <ClientProfileHero {...props} />
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
+              <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <ThreeColumnGrid>
                 <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
                 <TrainingFocusCard {...props} />

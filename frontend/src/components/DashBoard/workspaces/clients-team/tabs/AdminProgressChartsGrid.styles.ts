@@ -98,7 +98,7 @@ export const AdminPulseStrip = styled.div<{ $tone: ProgressChartPulseTone }>`
 
 export const AdminPulseLabel = styled.span`
   min-width: 0;
-  color: var(--text-muted, rgba(224, 236, 244, 0.62));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent));
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -121,7 +121,7 @@ export const AdminPulseValue = styled.strong`
 export const AdminPulseDetail = styled.span`
   grid-column: 1 / -1;
   min-width: 0;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent));
   font-size: 0.66rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -153,7 +153,7 @@ export const AdminShareButton = styled.button`
 export const Empty = styled.div`
   text-align: center;
   padding: 1rem 0.5rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   overflow-wrap: anywhere;
@@ -199,7 +199,7 @@ export const BarRow = styled.li`
 `;
 
 export const BarLabel = styled.span`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
   min-width: 0;
   overflow-wrap: anywhere;
 `;
@@ -208,7 +208,7 @@ export const BarTrack = styled.div`
   position: relative;
   height: 8px;
   border-radius: 4px;
-  background: var(--accent-primary-soft, rgba(96, 192, 240, 0.08));
+  background: var(--accent-primary-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   overflow: hidden;
   min-width: 0;
 
@@ -240,7 +240,7 @@ export const BarValue = styled.span`
 export const LoadingStrip = styled.div`
   padding: 1rem;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
   overflow-wrap: anywhere;
@@ -273,7 +273,7 @@ export const AttendancePercent = styled.div`
 `;
 
 export const AttendanceMeta = styled.div`
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   min-width: 0;

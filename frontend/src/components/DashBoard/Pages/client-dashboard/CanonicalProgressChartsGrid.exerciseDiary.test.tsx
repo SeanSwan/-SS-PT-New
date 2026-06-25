@@ -62,7 +62,7 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
   });
 
   it('mounts a full ranked exercise diary for the client progress route', () => {
-    render(<CanonicalProgressChartsGrid userId={424242} />);
+    render(<CanonicalProgressChartsGrid />);
 
     const diary = screen.getByRole('region', { name: /client exercise mega stats/i });
     const rows = within(diary).getAllByRole('listitem');
@@ -76,7 +76,7 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
   });
 
   it('refetches canonical charts when a workout log succeeds', () => {
-    render(<CanonicalProgressChartsGrid userId={424242} />);
+    render(<CanonicalProgressChartsGrid />);
 
     act(() => {
       window.dispatchEvent(new Event('swan:workout-logged'));

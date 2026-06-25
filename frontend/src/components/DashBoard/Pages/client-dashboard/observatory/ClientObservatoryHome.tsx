@@ -13,15 +13,11 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useGamificationData } from '../../../../../hooks/gamification/useGamificationData';
-import {
-  useCreatePost,
-  useLeaderboard,
-  useSocialChallenges,
-  useSocialFeed,
-} from '../../../../../hooks/useDashboardQueries';
+import { useCreatePost, useLeaderboard, useSocialChallenges, useSocialFeed } from '../../../../../hooks/useDashboardQueries';
 import ProtectedPlanPdfDialog from '../../../shared/plan-pdf/ProtectedPlanPdfDialog';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
 import ClientObservatoryHero from './ClientObservatoryHero';
+import ClientObservatoryProgressCube from './ClientObservatoryProgressCube';
 import ClientObservatoryWidgets from './ClientObservatoryWidgets';
 import { useCurrentClientWorkout } from './useCurrentClientWorkout';
 import { useClientPlanPdfViewer } from './useClientPlanPdfViewer';
@@ -258,6 +254,7 @@ const ClientObservatoryHome: React.FC = () => {
 
       <MainGrid>
         <PrimaryColumn>
+          <ClientObservatoryProgressCube />
           {primaryContent}
         </PrimaryColumn>
 

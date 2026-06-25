@@ -12,6 +12,10 @@ import ProgressProofCockpit from '../../../progress-proof/ProgressProofCockpit';
 import type { ProgressChartLensId } from '../../../progress-proof/progressChartLens';
 import { AdminProgressChartDeck } from './AdminProgressChartsGrid.cards';
 import ClientExerciseMegaStats from '../../../progress/ClientExerciseMegaStats';
+import ExerciseCodexMatrix from '../../../progress/ExerciseCodexMatrix';
+import ProgressChartCube from '../../../progress/ProgressChartCube';
+import ProgressChartRecoveryObservatory from '../../../progress/ProgressChartRecoveryObservatory';
+import ProgressChartWarRoomBoard from '../../../progress/ProgressChartWarRoomBoard';
 import {
   ErrorLoadingStrip,
   LoadingStrip,
@@ -55,6 +59,17 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <TrendingUp size={13} />
         <span>{clientName} - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
       </SummaryLine>
+      <ProgressChartCube
+        charts={charts}
+        nonEmptyChartCount={nonEmptyChartCount}
+        unavailableChartCount={unavailableChartCount}
+      />
+      <ProgressChartWarRoomBoard
+        charts={charts}
+        storageKey={`swan-progress-war-room-board-admin-${clientId}`}
+      />
+      <ProgressChartRecoveryObservatory charts={charts} />
+      <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <AdminProgressChartDeck charts={charts} activeLensId={activeLensId} />
     </div>

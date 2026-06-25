@@ -10,6 +10,10 @@ import { useClientProgressCharts } from '../../../../hooks/analytics/useClientPr
 import { getProgressProofStatusText } from '../../../../utils/progressProofStatusText';
 import { WORKOUT_LOGGED_EVENT } from '../../../../utils/workoutLoggedEvent';
 import ClientExerciseMegaStats from '../../progress/ClientExerciseMegaStats';
+import ExerciseCodexMatrix from '../../progress/ExerciseCodexMatrix';
+import ProgressChartCube from '../../progress/ProgressChartCube';
+import ProgressChartRecoveryObservatory from '../../progress/ProgressChartRecoveryObservatory';
+import ProgressChartWarRoomBoard from '../../progress/ProgressChartWarRoomBoard';
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
 import {
   isProgressChartVisible,
@@ -40,11 +44,7 @@ import {
   SectionHeader,
 } from './CanonicalProgressChartsGrid.styles';
 
-interface CanonicalProgressChartsGridProps {
-  userId?: number | string;
-}
-
-const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = () => {
+const CanonicalProgressChartsGrid: React.FC = () => {
   const { charts, isLoading, error, refetch, nonEmptyChartCount, unavailableChartCount } = useClientProgressCharts();
   const [activeLensId, setActiveLensId] = useState<ProgressChartLensId>('all');
 
@@ -70,10 +70,18 @@ const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = 
         unavailableChartCount={unavailableChartCount}
         onLensChange={setActiveLensId}
       />
+      <ProgressChartCube
+        charts={charts}
+        nonEmptyChartCount={nonEmptyChartCount}
+        unavailableChartCount={unavailableChartCount}
+      />
+      <ProgressChartWarRoomBoard charts={charts} />
+      <ProgressChartRecoveryObservatory charts={charts} />
       <SectionHeader>
         <TrendingUp size={13} />
         <span>Progress overview - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
       </SectionHeader>
+      <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>
         {isProgressChartVisible(activeLensId, 'workoutFrequency') && <WorkoutFrequencyCard data={charts.workoutFrequency} />}

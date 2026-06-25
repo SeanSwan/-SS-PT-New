@@ -1,18 +1,8 @@
 /**
- * ┌─── TAB: ProgressTabContent ───────────────────────────────┐
- * │ PARENT: ClientDetailView (Clients & Team)                  │
- * │ PURPOSE: Truthful 12-chart canonical progress view for the │
- * │          selected client in the admin/trainer context.      │
- * │ OWNER: Claude Opus 4.6 | CREATED: 2026-04-16 (Phase 15.3) │
- * │                                                              │
- * │ Reuses the same Phase 14 chart cards from                   │
- * │ CanonicalProgressChartsGrid, but wired to the admin-scoped  │
- * │ hook (useAdminClientProgressCharts) which fetches from       │
- * │ /api/analytics/:userId/chart-* instead of the JWT-derived   │
- * │ client-safe path.                                            │
- * │                                                              │
- * │ Props: { clientId, clientName }                              │
- * └──────────────────────────────────────────────────────────────┘
+ * TAB: ProgressTabContent
+ * PARENT: ClientDetailView (Clients & Team)
+ * PURPOSE: Truthful 12-chart canonical progress view for the selected client.
+ * DATA: admin-scoped useAdminClientProgressCharts, not the JWT-derived client path.
  */
 
 import React, { Suspense } from 'react';
@@ -31,7 +21,7 @@ interface ProgressTabContentProps {
 const FallbackWrap = styled.div`
   padding: 2rem;
   text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
 `;

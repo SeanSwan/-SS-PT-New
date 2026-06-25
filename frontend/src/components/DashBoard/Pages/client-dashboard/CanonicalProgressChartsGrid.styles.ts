@@ -62,7 +62,7 @@ export const CardTitle = styled.h3`
 
 export const CardSubtitle = styled.span`
   margin-left: auto;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.68rem;
   letter-spacing: 0.06em;
@@ -84,19 +84,19 @@ export const EmptyState = styled.div`
   justify-content: center;
   gap: 0.4rem;
   padding: 1.5rem 0.5rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   text-align: center;
 `;
 
 export const EmptyLabel = styled.span`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
   font-size: 0.82rem;
 `;
 
 export const EmptyHint = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-size: 0.7rem;
 `;
 
@@ -106,7 +106,7 @@ export const SectionHeader = styled.div`
   gap: 0.5rem;
   padding-top: 0.25rem;
   margin-bottom: 0.25rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
@@ -135,7 +135,7 @@ export const BarRow = styled.li`
 
 export const BarLabel = styled.span`
   overflow: hidden;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -185,7 +185,7 @@ export const RingNumber = styled.div`
 
 export const RingLabel = styled.div`
   margin-top: 0.25rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.68rem;
   letter-spacing: 0.06em;
@@ -216,7 +216,7 @@ export const StatPillValue = styled.span<{ $color?: string }>`
 `;
 
 export const StatPillLabel = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.6rem;
   letter-spacing: 0.05em;
@@ -231,7 +231,7 @@ export const RecoveryAlertIcon = styled(AlertTriangle)`
 
 export const LoadingStrip = styled.div`
   padding: 1rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
   text-align: center;

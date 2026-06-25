@@ -95,7 +95,7 @@ export const InsightLabel = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 78%, transparent));
   font-family: 'Fira Code', monospace;
   font-size: 0.68rem;
   font-weight: 800;
@@ -170,7 +170,7 @@ export const Bar = styled.span`
   grid-column: 2 / 4;
   height: 7px;
   border-radius: 999px;
-  background: var(--chart-track-bg, rgba(96, 192, 240, 0.08));
+  background: var(--chart-track-bg, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   overflow: hidden;
 
   @media (max-width: 520px) {
@@ -194,7 +194,7 @@ export const Fill = styled.span<{ $pct: number }>`
 `;
 
 export const Value = styled.span`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 78%, transparent));
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
   justify-self: end;
@@ -211,7 +211,7 @@ export const Empty = styled.div`
   min-height: 90px;
   display: grid;
   place-items: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.56));
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 56%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.84rem;
   text-align: center;
