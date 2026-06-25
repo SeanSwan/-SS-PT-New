@@ -15,7 +15,8 @@ const readDashboardFile = (fileName: string) =>
 
 describe('CoachMessage workout import identity contract', () => {
   it('keeps legacy Swan Coach assistant message modules wired for backward-compatible transcripts', () => {
-    const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readDashboardFile('UniversalDashboardLayout.routeComponents.tsx');
+    const routesSource = readDashboardFile('UniversalDashboardLayout.routes.tsx');
     const pageSource = readCoachFile('SwanCoachAssistantPage.tsx');
     const panelSource = readCoachFile('SwanCoachMessagesPanel.tsx');
     const messageSource = readCoachFile('CoachMessage.tsx');
@@ -23,8 +24,8 @@ describe('CoachMessage workout import identity contract', () => {
     const backendRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
     const aiChatRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/aiChatRoutes.mjs'), 'utf8');
 
-    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain('const chat = useAIChat()');
     expect(pageSource).toContain('<SwanCoachMessagesPanel');
     expect(panelSource).toContain('<CoachMessage');

@@ -13,7 +13,8 @@ const readDashboardFile = (fileName: string) =>
 
 describe('CoachActionProposalSplitPlanPanel identity contract', () => {
   it('keeps legacy Swan Coach proposal review modules wired for backward-compatible transcripts', () => {
-    const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readDashboardFile('UniversalDashboardLayout.routeComponents.tsx');
+    const routesSource = readDashboardFile('UniversalDashboardLayout.routes.tsx');
     const pageSource = readCoachFile('SwanCoachAssistantPage.tsx');
     const messagesSource = readCoachFile('SwanCoachMessagesPanel.tsx');
     const messageSource = readCoachFile('CoachMessage.tsx');
@@ -23,8 +24,8 @@ describe('CoachActionProposalSplitPlanPanel identity contract', () => {
       'utf8',
     );
 
-    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain('<SwanCoachMessagesPanel');
     expect(messagesSource).toContain('<CoachMessage');
     expect(messageSource).toContain('<CoachActionProposalCard key={proposal.id}');

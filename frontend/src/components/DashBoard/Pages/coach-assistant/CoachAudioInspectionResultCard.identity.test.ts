@@ -13,7 +13,8 @@ const readDashboardFile = (fileName: string) =>
 
 describe('CoachAudioInspectionResultCard identity contract', () => {
   it('stays wired into the canonical Swan Coach command-result route chain', () => {
-    const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readDashboardFile('UniversalDashboardLayout.routeComponents.tsx');
+    const routesSource = readDashboardFile('UniversalDashboardLayout.routes.tsx');
     const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const hookSource = readCoachFile('hooks/useCoachAssistant.ts');
     const commandHookSource = readFileSync(
@@ -27,8 +28,8 @@ describe('CoachAudioInspectionResultCard identity contract', () => {
     const routeSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/aiCommandRoutes.mjs'), 'utf8');
     const coreRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
 
-    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(transcriptSource).toContain('<CoachCommandLogEntry');
     expect(logEntrySource).toContain('<ExecutionResultCard');

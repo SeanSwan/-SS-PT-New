@@ -6,8 +6,9 @@ const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage
 const LOGIC_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePage.logic.ts'), 'utf8');
 const PANELS_SRC = readFileSync(resolve(__dirname, 'PlaudIntelligenceWorkspacePanels.tsx'), 'utf8');
 const SNAPSHOT_STYLES_SRC = readFileSync(resolve(__dirname, 'PlaudIntakeSnapshot.styles.ts'), 'utf8');
-const LAYOUT_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
-const DASHBOARD_ROUTE_SRC = LAYOUT_SRC;
+const DASHBOARD_ROUTE_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.routes.tsx'), 'utf8');
+const DASHBOARD_ROUTE_COMPONENTS_SRC = readFileSync(resolve(__dirname, '../../components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'), 'utf8');
+const DASHBOARD_ROUTE_CONTRACT_SRC = `${DASHBOARD_ROUTE_SRC}\n${DASHBOARD_ROUTE_COMPONENTS_SRC}`;
 const DASHBOARD_TABS_SRC = readFileSync(resolve(__dirname, '../../config/dashboard-tabs.ts'), 'utf8');
 const PENDING_REVIEWS_SRC = readFileSync(
   resolve(__dirname, '../../components/PlaudClipMerge/PlaudPendingReviewsList.tsx'),
@@ -27,11 +28,11 @@ const TRAINER_SIDEBAR_SRC = readFileSync(
 );
 
 function roleBlock(role: 'admin' | 'trainer'): string {
-  const routeConfigStart = LAYOUT_SRC.indexOf('const roleConfigurations');
-  const start = LAYOUT_SRC.indexOf(`  ${role}: {`, routeConfigStart);
+  const routeConfigStart = DASHBOARD_ROUTE_SRC.indexOf('export const roleConfigurations');
+  const start = DASHBOARD_ROUTE_SRC.indexOf(`  ${role}: {`, routeConfigStart);
   const nextRole = role === 'admin' ? '  trainer: {' : '  client: {';
-  const end = LAYOUT_SRC.indexOf(nextRole, start);
-  return LAYOUT_SRC.slice(start, end);
+  const end = DASHBOARD_ROUTE_SRC.indexOf(nextRole, start);
+  return DASHBOARD_ROUTE_SRC.slice(start, end);
 }
 
 describe('PlaudIntelligenceWorkspacePage source contract', () => {
@@ -54,9 +55,9 @@ describe('PlaudIntelligenceWorkspacePage source contract', () => {
   });
 
   it('merges admin PLAUD into the command center while preserving the trainer PLAUD workspace', () => {
-    expect(DASHBOARD_ROUTE_SRC).toMatch(/PlaudIntelligenceWorkspacePage/);
-    expect(DASHBOARD_ROUTE_SRC).toMatch(/AdminPlaudCommandCenterRedirect/);
-    expect(DASHBOARD_ROUTE_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
+    expect(DASHBOARD_ROUTE_CONTRACT_SRC).toMatch(/PlaudIntelligenceWorkspacePage/);
+    expect(DASHBOARD_ROUTE_CONTRACT_SRC).toMatch(/AdminPlaudCommandCenterRedirect/);
+    expect(DASHBOARD_ROUTE_CONTRACT_SRC).toMatch(/\/dashboard\/admin\/coach-assistant\?workspace=plaud/);
     expect(roleBlock('admin')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}AdminPlaudCommandCenterRedirect/);
     expect(roleBlock('trainer')).toMatch(/path:\s*['"]\/plaud['"][\s\S]{0,140}PlaudIntelligenceWorkspacePage/);
   });

@@ -11,12 +11,13 @@ const readDashboardFile = (fileName: string) =>
 
 describe('CoachCommandLogEntry canonical command-center contract', () => {
   it('stays wired into the admin Coach Command Center route chain', () => {
-    const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readDashboardFile('UniversalDashboardLayout.routeComponents.tsx');
+    const routesSource = readDashboardFile('UniversalDashboardLayout.routes.tsx');
     const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const transcriptSource = readCoachFile('CoachChatTranscript.tsx');
 
-    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain("import CoachChatTranscript from './CoachChatTranscript'");
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('logs={commandCenter.logs}');

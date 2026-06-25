@@ -13,14 +13,15 @@ const readDashboardFile = (fileName: string) =>
 
 describe('CoachIntakeRetentionCandidates identity contract', () => {
   it('stays wired into the canonical Coach intake retention surface', () => {
-    const layoutSource = readDashboardFile('UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readDashboardFile('UniversalDashboardLayout.routeComponents.tsx');
+    const routesSource = readDashboardFile('UniversalDashboardLayout.routes.tsx');
     const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const workspaceSource = readCoachFile('CoachIntakeWorkspace.tsx');
     const healthStripSource = readCoachFile('CoachIntakeHealthStrip.tsx');
     const serviceSource = readFileSync(resolve(__dirname, '../../../../services/coachIntakeService.ts'), 'utf8');
 
-    expect(layoutSource).toContain("const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(layoutSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
+    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(pageSource).toContain('<CoachIntakeWorkspace');
     expect(workspaceSource).toContain('retention={queue.retention}');
     expect(healthStripSource).toContain('<CoachIntakeRetentionCandidates retention={retention} />');

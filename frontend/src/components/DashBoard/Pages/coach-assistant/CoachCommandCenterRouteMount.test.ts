@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 const layoutPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  '../../UniversalDashboardLayout.tsx',
+  '../../UniversalDashboardLayout.routes.tsx',
 );
 
 function routeBlockFor(role: 'client' | 'trainer' | 'admin'): string {
@@ -13,7 +13,7 @@ function routeBlockFor(role: 'client' | 'trainer' | 'admin'): string {
   const roleMarker = `  ${role}: {\n    routes: [`;
   const start = source.indexOf(roleMarker);
   expect(start).toBeGreaterThan(0);
-  const endMarker = role === 'client' ? '\n  }\n};' : '\n  },\n  client:';
+  const endMarker = role === 'client' ? '\n  },\n};' : role === 'admin' ? '\n  },\n  trainer:' : '\n  },\n  client:';
   const end = source.indexOf(endMarker, start);
   expect(end).toBeGreaterThan(start);
   return source.slice(start, end);

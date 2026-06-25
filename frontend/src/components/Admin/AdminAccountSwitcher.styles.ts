@@ -1,4 +1,4 @@
-﻿import styled from 'styled-components';
+import styled from 'styled-components';
 
 export const SwitcherShell = styled.section`
   display: grid;
@@ -260,6 +260,3 @@ export const StartButton = styled.button`
     outline-offset: 3px;
   }
 `;
-
-
-
