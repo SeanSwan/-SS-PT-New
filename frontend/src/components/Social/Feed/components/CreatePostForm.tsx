@@ -1,97 +1,83 @@
 /**
- * ┌─── SUB-COMPONENT: CreatePostForm ──────────────────────────┐
- * │ PARENT: CreatePostCard                                      │
- * │ PURPOSE: Text input area, workout stats form, and workout   │
- * │          history pull-in feature                            │
- * │ WIREFRAME:                                                  │
- * │ ┌──────────────────────────────────────────────────────┐    │
- * │ │ (avatar) [ textarea: "What's on your mind?" ]        │    │
- * │ │          [Pull from Workout History]                  │    │
- * │ │          ┌───────────┐ ┌───────────┐                 │    │
- * │ │          │Duration   │ │Exercises  │                 │    │
- * │ │          │Weight     │ │Calories   │                 │    │
- * │ │          └───────────┘ └───────────┘                 │    │
- * │ └──────────────────────────────────────────────────────┘    │
- * │ Props: CreatePostFormProps                                  │
- * │ CLICK-OUTCOMES:                                             │
- * │ [textarea] -> updates postContent state                     │
- * │ [Pull History] -> GET /api/v1/workouts/sessions ->          │
- * │   shows history list -> click item auto-fills stats         │
- * │ [stat input] -> updates workoutStats on parent              │
- * │ GAMIFICATION: Workout posts earn 25pts                      │
- * └────────────────────────────────────────────────────────────┘
- */
-
-/**
  * ============================================================================
  * FILE: CreatePostForm.tsx
- * PURPOSE: Core text input, workout stats grid, and workout history selector
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
- * AI VILLAGE VALIDATED: 2026-03-22
+ * PURPOSE: Core text input, workout stats, history pull-in, and attachments
+ * AUTHOR: Claude Opus 4.6 | UPDATED BY: Codex | LAST MODIFIED: 2026-06-25
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Renders the main textarea, avatar, and — when post
- * type is "workout" — a 2x2 stats grid (duration, exercises, weight, calories)
- * plus a "Pull from Workout History" button that fetches recent sessions and
- * auto-fills the stats fields.
+ * WHAT THIS FILE DOES: Renders the main post textarea and, for workout posts,
+ * the completed-workout history selector, summary stats, and Rolodex-backed
+ * workout attachment builder.
  *
- * HOW IT FITS IN THE APP: CreatePostCard -> CreatePostForm
- * KEY DECISIONS: Workout history list items are NOT wrapped in React.memo
- * because the list is capped at 10 items and re-renders only when toggled.
+ * HOW IT FITS IN THE APP: CreatePostCard -> CreatePostForm -> optional workout
+ * details panel. All mutable state is owned by useCreatePostForm.
+ *
+ * KEY DECISIONS: The workout builder stays visible only in expanded workout
+ * mode so quick posts remain lightweight, while structured details are one tap
+ * away for posts that should power Try This Workout.
  */
 
 import React from 'react';
-import { Dumbbell, History, ChevronDown } from 'lucide-react';
+import { ChevronDown, Dumbbell, History } from 'lucide-react';
 import {
   AvatarCircle,
-  PostInputWrapper,
   FlexColumn,
-  StyledTextarea,
+  InputLabel,
+  PostInputWrapper,
   StyledInput,
   StyledInputGroup,
-  InputLabel,
-  WorkoutHistoryBtnRow,
+  StyledTextarea,
   WorkoutHistoryBtn,
-  WorkoutHistoryList,
-  WorkoutHistoryItem,
-  WorkoutHistoryInfo,
-  WorkoutHistoryName,
+  WorkoutHistoryBtnRow,
   WorkoutHistoryDate,
   WorkoutHistoryEmpty,
+  WorkoutHistoryInfo,
+  WorkoutHistoryItem,
+  WorkoutHistoryList,
+  WorkoutHistoryName,
   WorkoutStatsContainer,
 } from '../styles/CreatePostStyles';
-import type { CreatePostFormProps, WorkoutSession } from '../types/CreatePostTypes';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Placeholder text map
-// PURPOSE: Returns context-aware placeholder for the textarea
-// ─────────────────────────────────────────────────────────────
+import type { CreatePostFormProps, WorkoutSession, WorkoutStats } from '../types/CreatePostTypes';
+import CreateWorkoutAttachmentPanel from './CreateWorkoutAttachmentPanel';
 
 const getPlaceholder = (postType: string, userName?: string): string => {
   switch (postType) {
-    case 'workout':      return 'Share your workout achievements...';
-    case 'transformation': return 'Tell your transformation story...';
-    case 'achievement':  return 'What milestone did you reach?';
-    case 'challenge':    return 'Describe your challenge...';
-    default:             return `What's on your mind, ${userName || 'there'}?`;
+    case 'workout':
+      return 'Share your workout achievements...';
+    case 'transformation':
+      return 'Tell your transformation story...';
+    case 'achievement':
+      return 'What milestone did you reach?';
+    case 'challenge':
+      return 'Describe your challenge...';
+    default:
+      return `What's on your mind, ${userName || 'there'}?`;
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Workout History Sub-Section
-// PURPOSE: Button to fetch history + scrollable list of sessions
-// ─────────────────────────────────────────────────────────────
+const workoutStatFields: Array<{
+  field: keyof WorkoutStats;
+  label: string;
+  ariaLabel: string;
+}> = [
+  { field: 'duration', label: 'Duration (min)', ariaLabel: 'Workout duration in minutes' },
+  { field: 'exerciseCount', label: 'Exercises', ariaLabel: 'Workout exercise count' },
+  { field: 'totalWeight', label: 'Total Weight (lbs)', ariaLabel: 'Workout total weight in pounds' },
+  { field: 'caloriesBurned', label: 'Calories Burned', ariaLabel: 'Workout calories burned' },
+];
+
+const workoutLabelId = (field: keyof WorkoutStats): string => `workout-stat-${field}`;
 
 const WorkoutHistorySection: React.FC<{
   onFetch: () => void;
   isLoading: boolean;
   show: boolean;
   history: WorkoutSession[];
-  onSelect: (w: WorkoutSession) => void;
+  onSelect: (workout: WorkoutSession) => void;
 }> = ({ onFetch, isLoading, show, history, onSelect }) => (
   <>
     <WorkoutHistoryBtnRow>
-      <WorkoutHistoryBtn onClick={onFetch} disabled={isLoading}>
+      <WorkoutHistoryBtn type="button" onClick={onFetch} disabled={isLoading}>
         <History size={16} />
         {isLoading ? 'Loading...' : 'Pull from Workout History'}
       </WorkoutHistoryBtn>
@@ -102,21 +88,32 @@ const WorkoutHistorySection: React.FC<{
         {history.length === 0 ? (
           <WorkoutHistoryEmpty>No completed workouts found</WorkoutHistoryEmpty>
         ) : (
-          history.slice(0, 10).map((w, i) => {
-            const name = w.name || w.workoutName || w.title || 'Workout Session';
-            const date = w.date || w.sessionDate || w.createdAt;
+          history.slice(0, 10).map((workout, index) => {
+            const name = workout.name || workout.workoutName || workout.title || 'Workout Session';
+            const date = workout.date || workout.sessionDate || workout.createdAt;
             const dateStr = date ? new Date(date).toLocaleDateString() : '';
+            const handleSelect = () => onSelect(workout);
+
             return (
-              <WorkoutHistoryItem key={w.id || i} onClick={() => onSelect(w)}>
-                <Dumbbell size={16} style={{ flexShrink: 0, color: '#60C0F0' }} />
+              <WorkoutHistoryItem
+                key={workout.id || index}
+                role="button"
+                tabIndex={0}
+                onClick={handleSelect}
+                style={{ minHeight: 44 }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleSelect();
+                  }
+                }}
+              >
+                <Dumbbell size={16} style={{ flexShrink: 0 }} />
                 <WorkoutHistoryInfo>
                   <WorkoutHistoryName>{name}</WorkoutHistoryName>
                   {dateStr && <WorkoutHistoryDate>{dateStr}</WorkoutHistoryDate>}
                 </WorkoutHistoryInfo>
-                <ChevronDown
-                  size={14}
-                  style={{ transform: 'rotate(-90deg)', color: 'rgba(255,255,255,0.3)' }}
-                />
+                <ChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} />
               </WorkoutHistoryItem>
             );
           })
@@ -126,59 +123,26 @@ const WorkoutHistorySection: React.FC<{
   </>
 );
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Workout Stats Grid
-// PURPOSE: 2x2 grid of numeric inputs for workout metadata
-// ─────────────────────────────────────────────────────────────
-
 const WorkoutStatsGrid: React.FC<{
-  stats: CreatePostFormProps['workoutStats'];
-  onChange: (field: string, value: string) => void;
+  stats: WorkoutStats;
+  onChange: (field: keyof WorkoutStats, value: string) => void;
 }> = ({ stats, onChange }) => (
   <WorkoutStatsContainer>
-    <StyledInputGroup>
-      <InputLabel>Duration (min)</InputLabel>
-      <StyledInput
-        value={stats.duration}
-        onChange={(e) => onChange('duration', e.target.value)}
-        type="number"
-        placeholder="0"
-      />
-    </StyledInputGroup>
-    <StyledInputGroup>
-      <InputLabel>Exercises</InputLabel>
-      <StyledInput
-        value={stats.exerciseCount}
-        onChange={(e) => onChange('exerciseCount', e.target.value)}
-        type="number"
-        placeholder="0"
-      />
-    </StyledInputGroup>
-    <StyledInputGroup>
-      <InputLabel>Total Weight (lbs)</InputLabel>
-      <StyledInput
-        value={stats.totalWeight}
-        onChange={(e) => onChange('totalWeight', e.target.value)}
-        type="number"
-        placeholder="0"
-      />
-    </StyledInputGroup>
-    <StyledInputGroup>
-      <InputLabel>Calories Burned</InputLabel>
-      <StyledInput
-        value={stats.caloriesBurned}
-        onChange={(e) => onChange('caloriesBurned', e.target.value)}
-        type="number"
-        placeholder="0"
-      />
-    </StyledInputGroup>
+    {workoutStatFields.map(({ field, label, ariaLabel }) => (
+      <StyledInputGroup key={field}>
+        <InputLabel htmlFor={workoutLabelId(field)}>{label}</InputLabel>
+        <StyledInput
+          id={workoutLabelId(field)}
+          value={stats[field]}
+          onChange={(event) => onChange(field, event.target.value)}
+          type="number"
+          placeholder="0"
+          aria-label={ariaLabel}
+        />
+      </StyledInputGroup>
+    ))}
   </WorkoutStatsContainer>
 );
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Main Export — CreatePostForm
-// PURPOSE: Assembles avatar + textarea + conditional workout UI
-// ─────────────────────────────────────────────────────────────
 
 const CreatePostForm: React.FC<CreatePostFormProps> = ({
   postContent,
@@ -190,50 +154,55 @@ const CreatePostForm: React.FC<CreatePostFormProps> = ({
   userPhoto,
   workoutStats,
   onWorkoutStatsChange,
+  workoutExercises,
+  onAddWorkoutExercise,
+  onAddCustomWorkoutExercise,
+  onWorkoutExerciseChange,
+  onRemoveWorkoutExercise,
   onFetchWorkoutHistory,
   isLoadingHistory,
   showWorkoutHistory,
   workoutHistory,
   onSelectWorkout,
-}) => {
-  return (
-    <PostInputWrapper>
-      <AvatarCircle>
-        {userPhoto ? (
-          <img src={userPhoto} alt={userName || 'User'} />
-        ) : (
-          userName?.[0] || 'U'
-        )}
-      </AvatarCircle>
+}) => (
+  <PostInputWrapper>
+    <AvatarCircle>
+      {userPhoto ? <img src={userPhoto} alt={userName || 'User'} /> : userName?.[0] || 'U'}
+    </AvatarCircle>
 
-      <FlexColumn>
-        <StyledTextarea
-          $rows={showCreateOptions ? 4 : 3}
-          placeholder={getPlaceholder(postType, userName)}
-          value={postContent}
-          onChange={(e) => onContentChange(e.target.value)}
-          disabled={isCreatingPost}
-        />
+    <FlexColumn>
+      <StyledTextarea
+        $rows={showCreateOptions ? 4 : 3}
+        placeholder={getPlaceholder(postType, userName)}
+        value={postContent}
+        onChange={(event) => onContentChange(event.target.value)}
+        disabled={isCreatingPost}
+      />
 
-        {/* Workout-specific: history pull + stats grid */}
-        {showCreateOptions && postType === 'workout' && (
-          <>
-            <WorkoutHistorySection
-              onFetch={onFetchWorkoutHistory}
-              isLoading={isLoadingHistory}
-              show={showWorkoutHistory}
-              history={workoutHistory}
-              onSelect={onSelectWorkout}
-            />
-            <WorkoutStatsGrid
-              stats={workoutStats}
-              onChange={onWorkoutStatsChange}
-            />
-          </>
-        )}
-      </FlexColumn>
-    </PostInputWrapper>
-  );
-};
+      {showCreateOptions && postType === 'workout' && (
+        <>
+          <WorkoutHistorySection
+            onFetch={onFetchWorkoutHistory}
+            isLoading={isLoadingHistory}
+            show={showWorkoutHistory}
+            history={workoutHistory}
+            onSelect={onSelectWorkout}
+          />
+          <WorkoutStatsGrid
+            stats={workoutStats}
+            onChange={onWorkoutStatsChange}
+          />
+          <CreateWorkoutAttachmentPanel
+            exercises={workoutExercises}
+            onAddExercise={onAddWorkoutExercise}
+            onAddCustomExercise={onAddCustomWorkoutExercise}
+            onExerciseChange={onWorkoutExerciseChange}
+            onRemoveExercise={onRemoveWorkoutExercise}
+          />
+        </>
+      )}
+    </FlexColumn>
+  </PostInputWrapper>
+);
 
 export default React.memo(CreatePostForm);

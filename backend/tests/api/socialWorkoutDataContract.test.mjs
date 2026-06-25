@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { sanitizeWorkoutPostData } from '../../routes/social/socialWorkoutData.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,5 +29,25 @@ describe('social workout post data contract', () => {
     expect(routeSource).toContain('attachWorkoutDataToPost(postObj)');
     expect(routeSource).toContain('attachWorkoutDataToPost(post.toJSON())');
     expect(routeSource).toContain('attachWorkoutDataToPost(fullPost.toJSON())');
+  });
+  it('keeps Rolodex exercise identity while dropping unapproved exercise fields', () => {
+    const sanitized = sanitizeWorkoutPostData({
+      title: 'Upper Push Builder',
+      exercises: [{
+        name: 'Bench Press',
+        sourceExerciseId: 'bench-press',
+        sets: '4',
+        reps: '8',
+        unsafePrivateNote: 'do not store',
+      }],
+    });
+
+    expect(sanitized.exercises).toEqual([{
+      name: 'Bench Press',
+      sourceExerciseId: 'bench-press',
+      sets: '4',
+      reps: '8',
+    }]);
+    expect(JSON.stringify(sanitized)).not.toContain('unsafePrivateNote');
   });
 });

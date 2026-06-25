@@ -177,6 +177,11 @@ const CreatePostCard: React.FC = () => {
             userPhoto={form.user?.photo}
             workoutStats={form.workoutStats}
             onWorkoutStatsChange={(field, value) => form.setWorkoutStats(prev => ({ ...prev, [field]: value }))}
+            workoutExercises={form.workoutExercises}
+            onAddWorkoutExercise={form.addWorkoutExercise}
+            onAddCustomWorkoutExercise={form.addCustomWorkoutExercise}
+            onWorkoutExerciseChange={form.updateWorkoutExercise}
+            onRemoveWorkoutExercise={form.removeWorkoutExercise}
             onFetchWorkoutHistory={form.fetchWorkoutHistory}
             isLoadingHistory={form.isLoadingHistory}
             showWorkoutHistory={form.showWorkoutHistory}

@@ -19,6 +19,8 @@
  */
 
 import { ReactNode } from 'react';
+import type { WorkoutPostExercise } from './PostCardTypes';
+import type { ExerciseSlim } from '../../../WorkoutLogger/useExerciseSearch';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Post Type Definitions
@@ -97,6 +99,13 @@ export interface WorkoutStats {
   caloriesBurned: string;
 }
 
+export interface WorkoutAttachmentExercise extends WorkoutPostExercise {
+  id: string;
+  sourceExerciseId?: string;
+}
+
+export type WorkoutAttachmentExerciseField = Exclude<keyof WorkoutAttachmentExercise, 'id'>;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Category Override (AI Village mandate)
 // PURPOSE: AI suggests a category; user can manually override
@@ -122,7 +131,12 @@ export interface CreatePostFormProps {
   userName?: string;
   userPhoto?: string;
   workoutStats: WorkoutStats;
-  onWorkoutStatsChange: (field: string, value: string) => void;
+  onWorkoutStatsChange: (field: keyof WorkoutStats, value: string) => void;
+  workoutExercises: WorkoutAttachmentExercise[];
+  onAddWorkoutExercise: (exercise: ExerciseSlim) => void;
+  onAddCustomWorkoutExercise: (name: string) => void;
+  onWorkoutExerciseChange: (index: number, field: WorkoutAttachmentExerciseField, value: string) => void;
+  onRemoveWorkoutExercise: (index: number) => void;
   onFetchWorkoutHistory: () => void;
   isLoadingHistory: boolean;
   showWorkoutHistory: boolean;
