@@ -321,7 +321,7 @@
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -421,7 +421,7 @@ export const promoteToClient = async (req, res) => {
       });
     }
 
-    if (requestedAvailableSessions > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (requestedAvailableSessions > 0 && isNonDeductingClient(user)) {
       await transaction.rollback();
       return res.status(409).json({
         success: false,
@@ -586,7 +586,7 @@ export const updateUser = async (req, res) => {
 
     if (requestedAvailableSessions !== undefined
       && requestedAvailableSessions > 0
-      && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      && isNonDeductingClient(user)) {
       await transaction.rollback();
       return res.status(409).json({
         success: false,

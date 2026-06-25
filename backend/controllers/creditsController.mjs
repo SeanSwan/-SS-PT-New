@@ -1,6 +1,6 @@
 import { getUser, getModel } from '../models/index.mjs';
 import sequelize from '../database.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 import { countCompletedPaidTrainingSessions } from '../services/creditGrantLoyaltyService.mjs';
 
 const getCreditsModels = () => ({
@@ -195,8 +195,9 @@ const creditsController = {
       // 12. **INSTANT CREDIT GRANT** - Add sessions to client
       const newCreditsBalance = (client.availableSessions || 0) + sessionsGranted;
       const clientCreditUpdate = { availableSessions: newCreditsBalance };
-      if (sessionsGranted > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      if (sessionsGranted > 0 && isNonDeductingClient(client)) {
         clientCreditUpdate.clientSource = 'swanstudios';
+        clientCreditUpdate.sessionBillingMode = 'paid_sessions';
       }
       await client.update(clientCreditUpdate, { transaction });
 

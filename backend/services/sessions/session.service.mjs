@@ -38,7 +38,7 @@ import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
-import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
 
@@ -1483,7 +1483,7 @@ class UnifiedSessionService {
         throw new Error('Client not found');
       }
 
-        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        if (isNonDeductingClient(client)) {
           throw new Error('This client account does not have session booking access. Use the Workout Logger to track training.');
         }
 
@@ -2577,14 +2577,18 @@ class UnifiedSessionService {
    */
   async updateUserSessionBalance(user, sessionCount, transaction) {
     try {
-      if (sessionCount > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
-        user.clientSource = 'swanstudios';
-      }
+      const billingPolicyUpdate = sessionCount > 0 && isNonDeductingClient(user)
+        ? { clientSource: 'swanstudios', sessionBillingMode: 'paid_sessions' }
+        : null;
 
       // Update user's available sessions count atomically (handles +grant and
       // -deduction; the DB computes the new balance in one UPDATE to avoid lost
       // updates if balance changes race).
       await user.increment('availableSessions', { by: sessionCount, transaction });
+      if (billingPolicyUpdate) {
+        await user.update(billingPolicyUpdate, { transaction });
+        Object.assign(user, billingPolicyUpdate);
+      }
       // in-memory sync only — the atomic increment above is the source of truth.
       user.availableSessions = (user.availableSessions || 0) + sessionCount;
       

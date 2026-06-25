@@ -16,7 +16,7 @@ import Order from '../models/Order.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
 
 export const SESSION_PACKAGE_CHECKOUT_SOURCE = 'session_package_checkout';
 
@@ -171,8 +171,9 @@ export async function fulfillSessionPackageCheckoutSession(session) {
     if (user.role === 'user') {
       userPackageUpdate.role = 'client';
     }
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       userPackageUpdate.clientSource = 'swanstudios';
+      userPackageUpdate.sessionBillingMode = 'paid_sessions';
     }
     await user.update(userPackageUpdate, { transaction });
 

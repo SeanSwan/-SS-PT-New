@@ -17,12 +17,12 @@ describe('legacy session allocation clientSource boundary', () => {
 
     expect(apiRouteSource).toContain("router.use('/sessions', sessionRoutes)");
     expect(routeSource).toContain("router.post('/add-to-user', protect, adminOnly");
-    expect(serviceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';");
+    expect(serviceSource).toContain("import { isNonDeductingClient } from './sessionBillingPolicy.mjs';");
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('Manual paid-session allocation is disabled for free-tracking clients');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(source.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(source.indexOf('user.availableSessions ='));
   });
 });

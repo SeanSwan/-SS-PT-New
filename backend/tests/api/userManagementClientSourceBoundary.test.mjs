@@ -19,13 +19,13 @@ describe('user management clientSource boundary', () => {
 
     expect(coreRoutesSource).toContain("app.use('/api/admin', adminRoutes)");
     expect(adminRouteSource).toContain("router.put('/users/:id', userManagementController.updateUser)");
-    expect(controllerSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(controllerSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
     expect(controllerSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(source.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(source.indexOf('updateData.availableSessions'));
   });
 
@@ -35,13 +35,13 @@ describe('user management clientSource boundary', () => {
     const source = routeSource.slice(start, end);
 
     expect(coreRoutesSource).toContain("app.use('/api/auth', userManagementRoutes)");
-    expect(routeSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(routeSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
     expect(routeSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(source.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(source.indexOf('user.availableSessions ='));
   });
 
@@ -56,13 +56,13 @@ describe('user management clientSource boundary', () => {
     expect(adminRouteSource).toContain("router.post('/promote-client', userManagementController.promoteToClient)");
     expect(controllerSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
     expect(routeSource).toContain('Admin user management cannot assign paid credits to free-tracking clients');
-    expect(controllerSlice).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(controllerSlice).toContain('isNonDeductingClient(user)');
     expect(controllerSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
-    expect(controllerSlice.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(controllerSlice.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(controllerSlice.indexOf('availableSessions: requestedAvailableSessions'));
-    expect(routeSlice).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(routeSlice).toContain('isNonDeductingClient(user)');
     expect(routeSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
-    expect(routeSlice.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(routeSlice.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(routeSlice.indexOf('user.availableSessions ='));
   });
 

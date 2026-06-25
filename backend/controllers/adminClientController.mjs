@@ -1341,7 +1341,7 @@ class AdminClientController {
         });
       }
 
-      if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      if (isNonDeductingClient(client)) {
         await transaction.rollback();
         return res.status(409).json({
           success: false,

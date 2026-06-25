@@ -191,6 +191,7 @@ describe('SessionGrantService', () => {
     expect(user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         clientSource: 'swanstudios',
+        sessionBillingMode: 'paid_sessions',
         hasPurchasedBefore: true,
         lastPurchaseDate: expect.any(Date),
       }),

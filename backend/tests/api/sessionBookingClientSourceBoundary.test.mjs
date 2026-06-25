@@ -32,7 +32,7 @@ const unifiedRouteSlice = (startMarker, endMarker) => {
 
 describe('session booking clientSource boundary', () => {
   it('defines every non-booking client source in one shared boundary', () => {
-    expect(routeSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(routeSource).toContain("import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
     expect(routeSource).toContain('const NON_BOOKING_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;');
     expect(routeSource).not.toContain("const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external'])");
   });
@@ -60,8 +60,8 @@ describe('session booking clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(unifiedServiceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(unifiedServiceSource).toContain("import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';");
+    expect(source).toContain('isNonDeductingClient(client)');
     expect(unifiedRouteSource).toContain("normalizedMessage.includes('booking access')");
   });
 
@@ -131,7 +131,7 @@ describe('session booking clientSource boundary', () => {
     expect(end).toBeGreaterThan(start);
     expect(source).toContain('const requestedSessionIds = Array.isArray(req.body?.sessionIds)');
     expect(source).toContain('parseStrictPositiveInteger(sessionId)');
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('isNonDeductingClient(client)');
     expect(source).toContain('processSessionDeduction(session, client, transaction)');
     expect(source).toContain('recurringGroupId');
     expect(source).toContain('return res.status(200).json');
@@ -141,7 +141,7 @@ describe('session booking clientSource boundary', () => {
     const start = unifiedRouteSource.indexOf('router.post("/request", protect');
     const end = unifiedRouteSource.indexOf('// ==================== UPCOMING', start);
     const source = unifiedRouteSource.slice(start, end);
-    const guard = source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    const guard = source.indexOf('isNonDeductingClient(client)');
     const createSession = source.indexOf('Session.create({');
 
     expect(start).toBeGreaterThan(-1);
@@ -183,7 +183,7 @@ describe('session booking clientSource boundary', () => {
       success: true,
       deducted: false,
       creditsDeducted: 0,
-      message: 'No credits required for this client source',
+      message: 'No credits required for this client account',
     });
     expect(client.availableSessions).toBe(9);
     expect(session.sessionDeducted).toBe(true);
@@ -246,7 +246,7 @@ describe('session booking clientSource boundary', () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     expect(start).toBeLessThan(dynamicRoute);
-    expect(source).toContain('const shouldDeductPaidCredit = !NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);');
+    expect(source).toContain('const shouldDeductPaidCredit = !isNonDeductingClient(client);');
     expect(source).not.toContain('This client account does not have session booking. They track training via the Workout Logger.');
     expect(source).toContain('if (shouldDeductPaidCredit && (!client.availableSessions || client.availableSessions <= 0))');
     expect(source).toContain('let deductionResult = null;');

@@ -27,10 +27,11 @@ describe('gallery VIP payment fulfillment contract', () => {
     expect(webhookSource).toContain('fulfillGalleryVipSession');
 
     expect(fulfillmentSource).toContain('processed_stripe_sessions');
-    expect(fulfillmentSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';");
+    expect(fulfillmentSource).toContain("import { isNonDeductingClient } from './sessionBillingPolicy.mjs';");
     expect(fulfillmentSource).toContain("increment('availableSessions'");
-    expect(fulfillmentSource).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(fulfillmentSource).toContain('isNonDeductingClient(user)');
     expect(fulfillmentSource).toContain("clientSource: 'swanstudios'");
+    expect(fulfillmentSource).toContain("sessionBillingMode: 'paid_sessions'");
     expect(fulfillmentSource).toContain("role: 'client'");
 
     expect(modalSource).toContain("params.get('session_id')");

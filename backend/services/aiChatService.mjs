@@ -16,7 +16,7 @@ import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
 import {
-  NON_DEDUCTING_CLIENT_SOURCES,
+  isNonDeductingClient,
   normalizeClientSource,
   normalizePaidSessionCount,
 } from './sessionBillingPolicy.mjs';
@@ -35,7 +35,7 @@ export function getCoachRosterClientSourceLabel(clientSource) {
 }
 
 export function getCoachRosterClientSessionsLabel(client = {}) {
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+  if (isNonDeductingClient(client)) {
     return 'free tracking/no paid-session deduction';
   }
   const sessions = normalizePaidSessionCount(client.availableSessions);
@@ -54,7 +54,7 @@ export function getCoachClientProfileSourceLabel(clientSource) {
 }
 
 export function getCoachClientProfileSessionsLabel(client = {}) {
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+  if (isNonDeductingClient(client)) {
     return 'Free tracking/no paid-session deduction';
   }
   return String(normalizePaidSessionCount(client.availableSessions));

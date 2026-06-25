@@ -10,7 +10,7 @@ import express from 'express';
 import User from '../models/User.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 
@@ -62,7 +62,7 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       return res.status(409).json({
         success: false,
         message: 'Manual paid-session grants are disabled for free-tracking clients'
@@ -128,7 +128,7 @@ router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       return res.status(409).json({
         success: false,
         message: 'Test session grants are disabled for free-tracking clients'

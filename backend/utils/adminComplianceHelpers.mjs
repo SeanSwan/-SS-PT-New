@@ -1,5 +1,5 @@
 import {
-  NON_DEDUCTING_CLIENT_SOURCES,
+  isNonDeductingClient,
   normalizePaidSessionCount,
 } from '../services/sessionBillingPolicy.mjs';
 
@@ -28,6 +28,7 @@ export function buildAtRiskComplianceQuery({ user, limit = 50 } = {}) {
         u.photo,
         u."availableSessions",
         u."clientSource",
+        u."sessionBillingMode",
         MAX(ws.date) AS "lastWorkoutDate",
         COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
         COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
@@ -53,7 +54,8 @@ export function buildAtRiskComplianceClient(c, nowMs = Date.now()) {
   const compliance7d = Math.min(100, Math.round((w7d / 3) * 100));
   const compliance30d = Math.min(100, Math.round((w30d / 12) * 100));
   const clientSource = c.clientSource || 'swanstudios';
-  const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
+  const sessionBillingMode = c.sessionBillingMode || null;
+  const isFreeTracking = isNonDeductingClient({ clientSource, sessionBillingMode });
   const sessions = isFreeTracking ? 0 : normalizePaidSessionCount(c.availableSessions);
 
   let riskLevel = 'watch';
@@ -81,6 +83,7 @@ export function buildAtRiskComplianceClient(c, nowMs = Date.now()) {
     lastName: c.lastName,
     photo: c.photo || null,
     clientSource,
+    sessionBillingMode,
     isFreeTracking,
     riskLevel,
     reason,

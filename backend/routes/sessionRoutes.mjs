@@ -31,7 +31,7 @@ import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 
@@ -145,7 +145,7 @@ async function restoreSessionCredit(session, User, options = {}) {
     return { restored: false, newBalance: null, reason: 'client_not_found' };
   }
 
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+  if (isNonDeductingClient(client)) {
     if (log) {
       log.info(`[CreditRestore] Session ${session.id} belongs to non-deducting client source ${client.clientSource}, skipping restore`);
     }
@@ -1702,7 +1702,7 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
       transaction
     });
 
-    const shouldRestoreRecurringCredits = !NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource);
+    const shouldRestoreRecurringCredits = !isNonDeductingClient(user);
 
     // Cancel sessions and restore only credits that were actually deducted.
     let sessionsRestored = 0;
@@ -4855,7 +4855,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored) {
       const client = await User.findByPk(session.userId);
       if (client) {
-        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        if (isNonDeductingClient(client)) {
           logger.info(`Skipped waived cancellation credit restore for non-deducting client source ${client.clientSource}`, {
             sessionId: session.id,
             userId: client.id

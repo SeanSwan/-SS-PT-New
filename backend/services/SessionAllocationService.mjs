@@ -25,7 +25,7 @@ import {
   getSession,
   getFinancialTransaction 
 } from '../models/index.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from './orderSessionExtraction.mjs';
 
 class SessionAllocationService {
@@ -319,7 +319,7 @@ class SessionAllocationService {
       }
 
       // 🚨 CRITICAL FIX: Update user.availableSessions for consistency with store purchases
-      if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      if (isNonDeductingClient(user)) {
         throw new Error('Manual paid-session allocation is disabled for free-tracking clients');
       }
 

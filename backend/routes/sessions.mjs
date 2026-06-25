@@ -30,7 +30,7 @@ import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import User from "../models/User.mjs";
-import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyticsFavoriteExercisesService.mjs';
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
@@ -639,7 +639,7 @@ router.post("/request", protect, async (req, res) => {
       });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       return res.status(403).json({
         success: false,
         message: 'This client account does not have custom session request access. Use the Workout Logger to track training.'
@@ -2250,7 +2250,7 @@ router.post("/book-recurring", protect, async (req, res) => {
       });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,

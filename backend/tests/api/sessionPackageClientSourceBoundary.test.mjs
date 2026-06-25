@@ -24,8 +24,8 @@ describe('session package clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(packageManualGrantRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(packageManualGrantRouteSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('Manual paid-session grants are disabled for free-tracking clients');
   });
 
@@ -37,12 +37,12 @@ describe('session package clientSource boundary', () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     expect(adminClientControllerSource).toContain('normalizePaidSessionCount');
-    expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']");
-    expect(source).toContain('const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);');
+    expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'sessionBillingMode']");
+    expect(source).toContain('const clientIsNonDeducting = isNonDeductingClient(client);');
     expect(source).toContain('const sessionsRemaining = normalizePaidSessionCount(client.availableSessions);');
     expect(source).toContain('clientSource: client.clientSource');
-    expect(source).toContain('sessionsRemaining: isNonDeductingClient ? 0 : sessionsRemaining');
-    expect(source).not.toContain('sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0)');
+    expect(source).toContain('sessionsRemaining: clientIsNonDeducting ? 0 : sessionsRemaining');
+    expect(source).not.toContain('sessionsRemaining: clientIsNonDeducting ? 0 : (client.availableSessions || 0)');
   });
 
   it('blocks production test-session grants for non-deducting client sources', () => {
@@ -54,7 +54,7 @@ describe('session package clientSource boundary', () => {
     expect(end).toBeGreaterThan(start);
     expect(source).toContain("router.post('/add-test-sessions', protect, adminOnly");
     expect(source).toContain("process.env.NODE_ENV === 'production'");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('Test session grants are disabled for free-tracking clients');
   });
 
@@ -67,7 +67,8 @@ describe('session package clientSource boundary', () => {
     expect(packageFulfillmentSource).toContain('lastPurchaseDate: fulfilledAt');
     expect(packageFulfillmentSource).toContain("userPackageUpdate.role = 'client';");
     expect(packageFulfillmentSource).toContain("userPackageUpdate.clientSource = 'swanstudios';");
-    expect(packageFulfillmentSource).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(packageFulfillmentSource).toContain("userPackageUpdate.sessionBillingMode = 'paid_sessions';");
+    expect(packageFulfillmentSource).toContain('isNonDeductingClient(user)');
     expect(packageFulfillmentSource).toContain('await user.update(userPackageUpdate, { transaction });');
   });
 });

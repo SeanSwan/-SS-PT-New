@@ -27,7 +27,7 @@ import {
   createCartOrderIfPossible,
   loadOptionalFulfillmentModels,
 } from './cartCheckoutFulfillmentService.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
 
 export function getStorefrontSessionCredits(storefrontItem) {
   const directSessions = Number(storefrontItem?.sessions || 0);
@@ -120,8 +120,9 @@ function buildUserPurchaseUpdate(user, sessionsToAdd) {
     userPurchaseUpdate.role = 'client';
   }
 
-  if (sessionsToAdd > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+  if (sessionsToAdd > 0 && isNonDeductingClient(user)) {
     userPurchaseUpdate.clientSource = 'swanstudios';
+    userPurchaseUpdate.sessionBillingMode = 'paid_sessions';
   }
 
   return userPurchaseUpdate;

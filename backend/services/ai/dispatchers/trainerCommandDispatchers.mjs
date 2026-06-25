@@ -13,7 +13,7 @@ import { Op } from 'sequelize';
 import { getAllModels } from '../../../models/index.mjs';
 import { CRITICAL_PERMISSIONS, PERMISSION_TYPES } from '../../../models/TrainerPermissions.mjs';
 import {
-  NON_DEDUCTING_CLIENT_SOURCES,
+  isNonDeductingClient,
   normalizeClientSource,
   normalizePaidSessionCount,
 } from '../../sessionBillingPolicy.mjs';
@@ -33,7 +33,7 @@ const sourceCounts = (clients) => clients.reduce((counts, client) => {
 const toRecord = (row) => (row?.toJSON ? row.toJSON() : row);
 
 const paidSessionCount = (client) => {
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(client?.clientSource)) return 0;
+  if (isNonDeductingClient(client)) return 0;
   return normalizePaidSessionCount(client?.availableSessions);
 };
 
@@ -149,7 +149,7 @@ export async function dispatchViewTrainerClients(params) {
     include: [{
       model: User,
       as: 'client',
-      attributes: ['id', 'availableSessions', 'clientSource', 'accountStatus'],
+      attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode', 'accountStatus'],
       required: false,
     }],
     order: [['createdAt', 'DESC']],

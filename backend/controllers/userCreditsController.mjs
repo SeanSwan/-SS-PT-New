@@ -14,7 +14,7 @@
  */
 import User from '../models/User.mjs';
 import {
-  NON_DEDUCTING_CLIENT_SOURCES,
+  isNonDeductingClient,
   normalizePaidSessionCount,
 } from '../services/sessionBillingPolicy.mjs';
 import logger from '../utils/logger.mjs';

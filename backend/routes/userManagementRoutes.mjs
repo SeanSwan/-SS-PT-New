@@ -343,7 +343,7 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import User from '../models/User.mjs';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 const PAID_CREDIT_FREE_TRACKING_MESSAGE = 'Admin user management cannot assign paid credits to free-tracking clients';
@@ -624,7 +624,7 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
 
     if (requestedAvailableSessions !== undefined
       && requestedAvailableSessions > 0
-      && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      && isNonDeductingClient(user)) {
       return res.status(409).json({
         success: false,
         message: PAID_CREDIT_FREE_TRACKING_MESSAGE
@@ -782,7 +782,7 @@ router.post('/promote-client', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (requestedAvailableSessions > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (requestedAvailableSessions > 0 && isNonDeductingClient(user)) {
       return res.status(409).json({
         success: false,
         message: PAID_CREDIT_FREE_TRACKING_MESSAGE

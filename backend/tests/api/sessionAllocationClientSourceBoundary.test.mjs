@@ -32,10 +32,10 @@ describe('session allocation clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(unifiedRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
-    expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'availableSessions', 'clientSource']");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
-    expect(source).toContain('Manual paid-session allocation is disabled for free-tracking clients');
+    expect(unifiedRouteSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'availableSessions', 'clientSource', 'sessionBillingMode']");
+    expect(source).toContain('isNonDeductingClient(user)');
+    expect(source).toContain('Manual paid-session allocation is disabled for no-pay/free-tracking clients');
   });
 
   it('masks user-summary paid inventory for non-deducting client sources', () => {
@@ -45,10 +45,10 @@ describe('session allocation clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain("attributes: ['id', 'availableSessions', 'clientSource']");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
-    expect(source).toContain('const available = NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(source).toContain("attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode']");
+    expect(source).toContain('isNonDeductingClient(user)');
+    expect(source).toContain('const available = isNonDeductingClient(user)');
+    expect(source.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(source.indexOf('return res.status(200).json'));
   });
 
@@ -63,12 +63,13 @@ describe('session allocation clientSource boundary', () => {
     expect(routeStart).toBeGreaterThan(-1);
     expect(routeEnd).toBeGreaterThan(routeStart);
     expect(routeSource).toContain('unifiedSessionService.allocateSessionsFromOrder(orderId, userId)');
-    expect(unifiedServiceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';");
+    expect(unifiedServiceSource).toContain("import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';");
     expect(serviceStart).toBeGreaterThan(-1);
     expect(serviceEnd).toBeGreaterThan(serviceStart);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
-    expect(source).toContain("user.clientSource = 'swanstudios';");
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
+    expect(source).toContain('isNonDeductingClient(user)');
+    expect(source).toContain("{ clientSource: 'swanstudios', sessionBillingMode: 'paid_sessions' }");
+    expect(source).toContain('await user.update(billingPolicyUpdate, { transaction });');
+    expect(source.indexOf('isNonDeductingClient(user)'))
       .toBeLessThan(source.indexOf('user.availableSessions ='));
   });
 });

@@ -19,12 +19,13 @@ describe('credits purchase-and-grant clientSource boundary', () => {
     expect(coreRoutesSource).toContain("app.use('/api', creditsRoutes)");
     expect(creditsRoutesSource).toContain("'/admin/credits/purchase-and-grant'");
     expect(creditsRoutesSource).toContain("'/trainer/credits/purchase-and-grant'");
-    expect(controllerSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(controllerSource).toContain("import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';");
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('isNonDeductingClient(client)');
     expect(source).toContain("clientCreditUpdate.clientSource = 'swanstudios';");
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+    expect(source).toContain("clientCreditUpdate.sessionBillingMode = 'paid_sessions';");
+    expect(source.indexOf('isNonDeductingClient(client)'))
       .toBeLessThan(source.indexOf('await client.update(clientCreditUpdate'));
     expect(source).not.toContain('await client.update({ availableSessions: newCreditsBalance }');
   });

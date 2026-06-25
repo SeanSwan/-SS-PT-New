@@ -16,7 +16,7 @@ import {
   sortAtRiskClients,
 } from '../../../utils/adminComplianceHelpers.mjs';
 import {
-  NON_DEDUCTING_CLIENT_SOURCES,
+  isNonDeductingClient,
   normalizeClientSource,
   normalizePaidSessionCount,
 } from '../../sessionBillingPolicy.mjs';
@@ -129,7 +129,7 @@ const riskResultFrom = (atRisk) => ({
 const findBillingClient = ({ User, clientId }) => (
   User.findOne({
     where: { id: clientId, role: 'client' },
-    attributes: ['id', 'availableSessions', 'clientSource'],
+    attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode'],
   })
 );
 
@@ -225,9 +225,7 @@ export const dispatchListActiveClients = async (params = {}, ctx = {}) => {
     returnedCount: clients.length,
     activeCount: clients.filter((client) => client.isActive !== false).length,
     inactiveCount: clients.filter((client) => client.isActive === false).length,
-    swanStudiosCount: clients.filter((client) => (
-      !NON_DEDUCTING_CLIENT_SOURCES.has(sourceFor(client))
-    )).length,
+    swanStudiosCount: clients.filter((client) => sourceFor(client) === 'swanstudios').length,
     moveFitnessCount: clients.filter((client) => sourceFor(client) === 'move_fitness').length,
     externalCount: clients.filter((client) => sourceFor(client) === 'external').length,
     firstClientId: clientIds[0] ?? null,
@@ -271,7 +269,7 @@ export const dispatchClientBillingOverview = async (params = {}, ctx = {}) => {
 
   const data = rowData(client);
   const clientSource = normalizeClientSource(data.clientSource);
-  const deductsSessions = !NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
+  const deductsSessions = !isNonDeductingClient(data);
   const billingRows = await loadBillingRows({ Order, Session, clientId });
   return billingResultFrom({ clientId, clientSource, deductsSessions, data, billingRows });
 };

@@ -325,7 +325,7 @@ describe('Swan Coach client command dispatchers', () => {
 
     expect(findOne).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 42, role: 'client' },
-      attributes: ['id', 'availableSessions', 'clientSource'],
+      attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode'],
     }));
     expect(orderFindOne).toHaveBeenCalledWith(expect.objectContaining({
       where: { userId: 42, status: 'completed' },

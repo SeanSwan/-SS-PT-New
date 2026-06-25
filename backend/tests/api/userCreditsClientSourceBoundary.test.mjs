@@ -10,8 +10,9 @@ const controllerSource = readFileSync(resolve(__dirname, '../../controllers/user
 
 describe('user credits clientSource boundary', () => {
   it('returns clientSource with session credits so client schedule copy can respect source policy', () => {
-    expect(controllerSource).toContain("attributes: ['id', 'availableSessions', 'clientSource', 'masterPromptJson']");
+    expect(controllerSource).toContain("attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode', 'masterPromptJson']");
     expect(controllerSource).toContain('clientSource: user.clientSource');
+    expect(controllerSource).toContain('sessionBillingMode: user.sessionBillingMode');
   });
 
   it('masks stale paid credits for free-tracking clients in the client schedule credits endpoint', () => {
@@ -23,6 +24,12 @@ describe('user credits clientSource boundary', () => {
     expect(getSourceAwareSessionsRemaining({
       clientSource: 'external',
       availableSessions: 6,
+    })).toBe(0);
+
+    expect(getSourceAwareSessionsRemaining({
+      clientSource: 'swanstudios',
+      sessionBillingMode: 'no_session_required',
+      availableSessions: 12,
     })).toBe(0);
 
     expect(getSourceAwareSessionsRemaining({

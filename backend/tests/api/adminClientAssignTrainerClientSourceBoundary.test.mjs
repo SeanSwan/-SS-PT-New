@@ -78,10 +78,10 @@ describe('admin client assign-trainer clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(controllerSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(controllerSource).toContain('isNonDeductingClient,');
+    expect(source).toContain('isNonDeductingClient(client)');
     expect(source).toContain('Trainer session assignment is disabled for free-tracking clients');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)')).toBeLessThan(
+    expect(source.indexOf('isNonDeductingClient(client)')).toBeLessThan(
       source.indexOf("client.increment('availableSessions'")
     );
   });

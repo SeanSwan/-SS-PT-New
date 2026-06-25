@@ -40,8 +40,8 @@ describe('session cancellation clientSource restore boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+    expect(source).toContain('isNonDeductingClient(client)');
+    expect(source.indexOf('isNonDeductingClient(client)'))
       .toBeLessThan(source.indexOf('client.availableSessions ='));
   });
 
@@ -54,8 +54,8 @@ describe('session cancellation clientSource restore boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+    expect(source).toContain('isNonDeductingClient(client)');
+    expect(source.indexOf('isNonDeductingClient(client)'))
       .toBeLessThan(source.indexOf('availableSessions: Number(client.availableSessions || 0) + 1'));
   });
 
@@ -68,9 +68,9 @@ describe('session cancellation clientSource restore boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(aiCancelServiceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+    expect(aiCancelServiceSource).toContain("import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';");
+    expect(source).toContain('isNonDeductingClient(client)');
+    expect(source.indexOf('isNonDeductingClient(client)'))
       .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
   });
 
@@ -83,9 +83,9 @@ describe('session cancellation clientSource restore boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(legacyRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
-    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+    expect(legacyRouteSource).toContain("import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain('isNonDeductingClient(client)');
+    expect(source.indexOf('isNonDeductingClient(client)'))
       .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
   });
 
@@ -98,7 +98,7 @@ describe('session cancellation clientSource restore boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain('const shouldRestoreRecurringCredits = !NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource);');
+    expect(source).toContain('const shouldRestoreRecurringCredits = !isNonDeductingClient(user);');
     expect(source).toContain('session.sessionDeducted &&');
     expect(source).toContain('!session.sessionCreditRestored &&');
     expect(source).toContain('shouldRestoreRecurringCredits');

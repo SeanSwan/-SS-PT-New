@@ -39,7 +39,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 vi.mock('../../services/sessionBillingPolicy.mjs', () => ({
-  NON_DEDUCTING_CLIENT_SOURCES: new Set(['movefitness']),
+  isNonDeductingClient: (user) => user?.clientSource === 'movefitness' || user?.sessionBillingMode === 'no_session_required',
 }));
 
 const {
@@ -142,6 +142,7 @@ describe('session package checkout fulfillment service', () => {
       lastPurchaseDate: expect.any(Date),
       role: 'client',
       clientSource: 'swanstudios',
+      sessionBillingMode: 'paid_sessions',
     }), { transaction: mocks.transaction });
   });
 
