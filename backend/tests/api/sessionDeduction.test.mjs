@@ -390,10 +390,16 @@ describe('SessionDeductionService', () => {
         FinancialTransaction: { create: vi.fn() },
       };
 
-      await expect(applyPackagePayment(baseParams)).rejects.toMatchObject({
-        code: 'NON_BILLABLE_CLIENT_SOURCE',
-        message: 'Paid session credits are disabled for free-tracking clients',
+      let caughtError;
+      await applyPackagePayment(baseParams).catch((error) => {
+        caughtError = error;
       });
+
+      expect(caughtError).toMatchObject({ code: 'NON_BILLABLE_CLIENT_SOURCE' });
+      expect(caughtError).toHaveProperty(
+        'message',
+        'Paid session credits are disabled for no-pay/free-tracking clients'
+      );
       expect(freeTrackingClient.increment).not.toHaveBeenCalled();
       expect(orderCreate).not.toHaveBeenCalled();
       expect(mockTransaction.rollback).toHaveBeenCalled();
@@ -793,10 +799,16 @@ describe('SessionDeductionService', () => {
       const freeTrackingClient = makeClient(4, { clientSource: 'external' });
       mockUserModel.findByPk.mockResolvedValue(freeTrackingClient);
 
-      await expect(applyPaymentCredits(4, 7)).rejects.toMatchObject({
-        code: 'NON_BILLABLE_CLIENT_SOURCE',
-        message: 'Paid session credits are disabled for free-tracking clients',
+      let caughtError;
+      await applyPaymentCredits(4, 7).catch((error) => {
+        caughtError = error;
       });
+
+      expect(caughtError).toMatchObject({ code: 'NON_BILLABLE_CLIENT_SOURCE' });
+      expect(caughtError).toHaveProperty(
+        'message',
+        'Paid session credits are disabled for no-pay/free-tracking clients'
+      );
       expect(freeTrackingClient.increment).not.toHaveBeenCalled();
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });

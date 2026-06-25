@@ -31,13 +31,12 @@ import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
-import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 
 const MAX_RECURRING_OCCURRENCES = 52;
 const MAX_RECURRING_MONTHS = 12;
-const NON_BOOKING_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;
 
 const parseNotificationPreferences = (user) => {
   if (!user) return {};
@@ -961,7 +960,7 @@ router.post("/book/:userId", protect, async (req, res) => {
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
-    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       return res.status(403).json({
         success: false,
         message: "This client account does not have session booking access. Use the Workout Logger to track training."
@@ -1153,7 +1152,7 @@ router.post("/:sessionId/book", protect, async (req, res) => {
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
-    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -1361,7 +1360,7 @@ router.post("/book-recurring", protect, async (req, res) => {
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
-    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+    if (isNonDeductingClient(user)) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -1815,7 +1814,7 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     if (hoursDiff < 24 && req.user.role !== 'admin') {
       // Check if client has available sessions
       const client = await User.findByPk(session.userId);
-      if (client && NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
+      if (client && isNonDeductingClient(client)) {
         logger.info(`Late reschedule credit deduction skipped for non-deducting client source ${client.clientSource}`, {
           sessionId,
           clientId: session.userId
@@ -4306,7 +4305,7 @@ router.post("/book", protect, async (req, res) => {
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
-    if (NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       return res.status(403).json({
         success: false,
         message: "This client account does not have session booking access. Use the Workout Logger to track training."
@@ -5275,7 +5274,7 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     }
 
     // External/free-tier clients track workouts without SwanStudios booking.
-    if (NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -5444,5 +5443,4 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
 
 export { restoreSessionCredit };
 export default router;
-
 
