@@ -21,9 +21,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const RAW_SOURCE = readFileSync(
-  resolve(__dirname, './UniversalDashboardLayout.tsx'),
+  resolve(__dirname, './UniversalDashboardLayout.shell.tsx'),
   'utf8',
 );
+const CONTROLLER_SOURCE = stripComments(readFileSync(
+  resolve(__dirname, './UniversalDashboardLayout.tsx'),
+  'utf8',
+));
 
 function stripComments(src: string): string {
   return src
@@ -67,9 +71,9 @@ describe('UniversalDashboardLayout — Phase 18.A view-as banner gate', () => {
   });
 
   it('does not block dashboard route rendering on schedule prefetch', () => {
-    const initStart = SOURCE.indexOf('const initializeUserContext = async () => {');
-    const initEnd = SOURCE.indexOf('const handleToggleCollapse');
-    const initSource = SOURCE.slice(initStart, initEnd);
+    const initStart = CONTROLLER_SOURCE.indexOf('const initializeUserContext = async () => {');
+    const initEnd = CONTROLLER_SOURCE.indexOf('const handleToggleCollapse');
+    const initSource = CONTROLLER_SOURCE.slice(initStart, initEnd);
 
     expect(initStart).toBeGreaterThan(-1);
     expect(initEnd).toBeGreaterThan(initStart);

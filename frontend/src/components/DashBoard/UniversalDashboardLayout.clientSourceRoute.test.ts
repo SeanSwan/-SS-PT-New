@@ -6,7 +6,11 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const source = readFileSync(resolve(__dirname, './UniversalDashboardLayout.tsx'), 'utf8');
+const source = [
+  readFileSync(resolve(__dirname, './UniversalDashboardLayout.tsx'), 'utf8'),
+  readFileSync(resolve(__dirname, './UniversalDashboardLayout.shell.tsx'), 'utf8'),
+  readFileSync(resolve(__dirname, './UniversalDashboardLayout.shellPieces.tsx'), 'utf8'),
+].join('\n');
 
 const SOURCE = source;
 

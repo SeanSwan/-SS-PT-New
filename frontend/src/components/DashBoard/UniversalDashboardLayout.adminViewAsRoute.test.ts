@@ -30,13 +30,21 @@ import { join } from 'path';
 import { describe, it, expect } from 'vitest';
 
 const REPO_ROOT = join(__dirname, '..', '..', '..', '..');
-const LAYOUT_FILE = join(
+const ROUTES_FILE = join(
   REPO_ROOT,
   'frontend',
   'src',
   'components',
   'DashBoard',
-  'UniversalDashboardLayout.tsx'
+  'UniversalDashboardLayout.routes.tsx'
+);
+const ROUTE_COMPONENTS_FILE = join(
+  REPO_ROOT,
+  'frontend',
+  'src',
+  'components',
+  'DashBoard',
+  'UniversalDashboardLayout.routeComponents.tsx'
 );
 
 const EXPECTED_ROUTE = '/client-management/view-as/:userId';
@@ -46,10 +54,14 @@ const FORBIDDEN_LEGACY = '/dashboard/people/view-as';
 
 describe('UniversalDashboardLayout — Phase 18.C.1B.1R canonical AdminViewAsWrapper route guard', () => {
   it('source file exists at the expected canonical path', () => {
-    expect(existsSync(LAYOUT_FILE)).toBe(true);
+    expect(existsSync(ROUTES_FILE)).toBe(true);
+    expect(existsSync(ROUTE_COMPONENTS_FILE)).toBe(true);
   });
 
-  const source = existsSync(LAYOUT_FILE) ? readFileSync(LAYOUT_FILE, 'utf-8') : '';
+  const source = [
+    existsSync(ROUTES_FILE) ? readFileSync(ROUTES_FILE, 'utf-8') : '',
+    existsSync(ROUTE_COMPONENTS_FILE) ? readFileSync(ROUTE_COMPONENTS_FILE, 'utf-8') : '',
+  ].join('\n');
 
   it('contains the route object pattern for AdminViewAsWrapper (path key + literal, not just a stray string)', () => {
     // Escape for regex; match `path:` (with optional whitespace) immediately
@@ -59,7 +71,7 @@ describe('UniversalDashboardLayout — Phase 18.C.1B.1R canonical AdminViewAsWra
     const pattern = new RegExp(`path:\\s*['"\`]${escaped}['"\`]`);
     expect(
       pattern.test(source),
-      `Missing route object pattern \`path: '${EXPECTED_ROUTE}'\` in UniversalDashboardLayout.tsx. The canonical AdminViewAsWrapper mount was added in Phase 18.C.1B.1R after Phase 19 unmounted the previous UnifiedAdminRoutes-backed route. Removing this entry without updating tests re-triggers the "production route silently dead" regression.`
+      `Missing route object pattern \`path: '${EXPECTED_ROUTE}'\` in UniversalDashboardLayout.routes.tsx. Removing this entry without updating tests re-triggers the production route silently dead regression.`
     ).toBe(true);
   });
 
