@@ -6,6 +6,7 @@ import {
   executeCommandMock,
   listConversationsMock,
   loadConversationMock,
+  newChatMock,
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
@@ -67,6 +68,17 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
+  it('keeps user composer text untouched when intake workflow buttons are clicked', () => {
+    renderPage();
+
+    fireEvent.change(composerInput(), { target: { value: 'Manual coach draft stays mine.' } });
+    fireEvent.click(screen.getByRole('tab', { name: /^Intake/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Mock queue command/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Chat$/i }));
+
+    expect(composerInput()).toHaveValue('Manual coach draft stays mine.');
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+  });
   it.each([
     {
       label: 'no route hint',
@@ -177,6 +189,16 @@ describe('CoachCommandCenterPage shell', () => {
     expect(composerInput()).toHaveValue('');
   });
 
+  it('starts a new conversation without inserting canned composer text', () => {
+    renderPage();
+
+    fireEvent.change(composerInput(), { target: { value: 'Keep this user-authored draft out of new chat.' } });
+    fireEvent.click(screen.getByRole('button', { name: /New client \/ conversation/i }));
+
+    expect(newChatMock).toHaveBeenCalled();
+    expect(composerInput()).toHaveValue('');
+    expect(screen.getAllByText(/New Coach Thread ready/i).length).toBeGreaterThan(0);
+  });
   it('renders loaded history messages in the conversation transcript', () => {
     setCoachCommandCenterActiveConversation();
     renderPage();

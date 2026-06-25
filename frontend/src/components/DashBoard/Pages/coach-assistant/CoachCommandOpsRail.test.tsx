@@ -42,17 +42,20 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
   });
 
-  it('stages a workout-log prompt and opens PLAUD from Operations without submitting chat', async () => {
+  it('opens Intake and PLAUD from Operations without staging prompt text or submitting chat', async () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
     let opsRail = openOpsRail();
-    fireEvent.click(within(opsRail).getByRole('button', { name: /draft in chat/i }));
-    await waitFor(() => {
-      expect((composerInput() as HTMLInputElement).value).toContain('Log a workout for the selected client');
-    });
+    expect(within(opsRail).queryByRole('button', { name: /draft in chat/i })).not.toBeInTheDocument();
+    fireEvent.change(composerInput(), { target: { value: 'User-written note stays untouched.' } });
+    fireEvent.click(within(opsRail).getByRole('button', { name: /review next intake/i }));
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Talk or type to Swan Coach/i)).not.toBeInTheDocument();
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
 
+    fireEvent.click(screen.getByRole('tab', { name: /^Chat$/i }));
+    expect(composerInput()).toHaveValue('User-written note stays untouched.');
     opsRail = openOpsRail();
     fireEvent.click(within(opsRail).getByRole('button', { name: /import plaud audio/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();

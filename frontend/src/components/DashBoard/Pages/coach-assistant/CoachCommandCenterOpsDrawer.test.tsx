@@ -116,7 +116,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
       'href',
       '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
-    expect(within(priorityActions).getByRole('button', { name: /Draft in chat/i })).toBeInTheDocument();
+    expect(within(priorityActions).queryByRole('button', { name: /Draft in chat/i })).not.toBeInTheDocument();
     fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));
     expect(screen.getByRole('button', { name: /^Operations$/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
@@ -138,7 +138,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     );
   });
 
-  it('adds a client from the operator drawer with human-facing copy and stages approved follow-up', async () => {
+  it('adds a client from the operator drawer with human-facing copy without staging canned composer text', async () => {
     renderPage();
     const operationsRail = openOpsRail();
 
@@ -153,7 +153,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
       expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({ fullName: 'Ava Stone', clientSource: 'external' });
     });
 
-    expect(composerInput()).toHaveValue('Continue Ava Stone with review-gated context.');
+    expect(composerInput()).toHaveValue('');
     expect(screen.getAllByText(/Ava Stone - client ready/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
   });
