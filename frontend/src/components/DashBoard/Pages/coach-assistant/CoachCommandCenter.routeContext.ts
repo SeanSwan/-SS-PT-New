@@ -18,6 +18,13 @@ export function parseRouteClientId(rawClientId: string | null): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+export function parseRouteThreadId(rawThreadId: string | null): number | null {
+  const trimmedThreadId = rawThreadId?.trim();
+  if (!trimmedThreadId || !/^[1-9]\d*$/.test(trimmedThreadId)) return null;
+  const parsed = Number(trimmedThreadId);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
 function parsePositiveIntegerString(rawValue: string | null): string | null {
   const trimmed = rawValue?.trim();
   if (!trimmed || !/^[1-9]\d*$/.test(trimmed)) return null;
@@ -114,12 +121,16 @@ const THREAD_SELECTION_STALE_KEYS = [
 export function buildThreadSelectionSearchParams(
   currentParams: URLSearchParams,
   rawTargetUserId: number | string | null | undefined,
+  rawThreadId: number | string | null | undefined,
 ): URLSearchParams {
   const nextParams = new URLSearchParams(currentParams);
   THREAD_SELECTION_STALE_KEYS.forEach((key) => nextParams.delete(key));
   const threadClientId = parseRouteClientId(rawTargetUserId == null ? null : String(rawTargetUserId));
+  const threadId = parseRouteThreadId(rawThreadId == null ? null : String(rawThreadId));
   if (threadClientId) nextParams.set('clientId', String(threadClientId));
   else nextParams.delete('clientId');
+  if (threadId) nextParams.set('threadId', String(threadId));
+  else nextParams.delete('threadId');
   return nextParams;
 }
 

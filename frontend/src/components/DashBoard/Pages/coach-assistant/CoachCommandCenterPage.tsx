@@ -183,6 +183,7 @@ const CoachCommandCenterPage: React.FC = () => {
           {activeTab === 'chat' ? (
             <div className="chat-panel" id="coach-tabpanel-chat" role="tabpanel" aria-labelledby="coach-tab-chat">
               <CoachChatTranscript
+                activeThread={commandCenter.activeThread}
                 logs={commandCenter.logs}
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}

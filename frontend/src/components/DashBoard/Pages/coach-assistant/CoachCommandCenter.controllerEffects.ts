@@ -4,7 +4,7 @@
  * Small hooks extracted from the main controller so route hydration, thread
  * selection, and PLAUD scrolling stay independently reviewable.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import { getConversationTitle } from './CoachCommandCenter.logic';
@@ -30,6 +30,31 @@ export function useAutoSelectCoachThread(
     setActiveThreadId(autoSelectedThread.id);
     setSelectedStatus(`${getConversationTitle(autoSelectedThread)} - thread ready`);
   }, [autoSelectedThread, setActiveThreadId, setSelectedStatus]);
+}
+
+export function useLoadRoutedCoachThread(
+  routeThreadId: number | null,
+  coachThreads: ConversationSummary[],
+  chat: { loadConversation: (id: number) => unknown },
+  setActiveThreadId: Dispatch<SetStateAction<number | null>>,
+  setSelectedStatus: Dispatch<SetStateAction<string>>,
+) {
+  const lastLoadedThreadIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!routeThreadId) {
+      lastLoadedThreadIdRef.current = null;
+      return;
+    }
+
+    const thread = coachThreads.find((item) => item.id === routeThreadId) ?? null;
+    setActiveThreadId(routeThreadId);
+    if (thread) setSelectedStatus(`${getConversationTitle(thread)} - thread loaded`);
+
+    if (lastLoadedThreadIdRef.current === routeThreadId) return;
+    lastLoadedThreadIdRef.current = routeThreadId;
+    void chat.loadConversation(routeThreadId);
+  }, [chat, coachThreads, routeThreadId, setActiveThreadId, setSelectedStatus]);
 }
 
 export function useApplyRouteContextPrompt(

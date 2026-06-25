@@ -7,6 +7,7 @@ import {
   getScheduledSessionRouteContextFromSearchParams,
   normalizeCommandCenterReturnTo,
   parseRouteClientId,
+  parseRouteThreadId,
 } from './CoachCommandCenter.routeContext';
 
 describe('CoachCommandCenter route client parsing', () => {
@@ -77,9 +78,10 @@ describe('CoachCommandCenter thread selection route binding', () => {
       workspace: 'plaud',
     });
 
-    const next = buildThreadSelectionSearchParams(params, 424242);
+    const next = buildThreadSelectionSearchParams(params, 424242, 9001);
 
     expect(next.get('clientId')).toBe('424242');
+    expect(next.get('threadId')).toBe('9001');
     expect(next.get('intent')).toBeNull();
     expect(next.get('source')).toBeNull();
     expect(next.get('returnTo')).toBeNull();
@@ -92,10 +94,19 @@ describe('CoachCommandCenter thread selection route binding', () => {
   });
 
   it('clears route client context when the selected thread has no safe target client', () => {
-    const next = buildThreadSelectionSearchParams(new URLSearchParams('clientId=42&intent=log_workout'), null);
+    const next = buildThreadSelectionSearchParams(new URLSearchParams('clientId=42&intent=log_workout&threadId=9'), null, null);
 
     expect(next.get('clientId')).toBeNull();
+    expect(next.get('threadId')).toBeNull();
     expect(next.get('intent')).toBeNull();
+  });
+
+  it('accepts only complete positive integer thread ids', () => {
+    expect(parseRouteThreadId('102')).toBe(102);
+    expect(parseRouteThreadId(' 102 ')).toBe(102);
+    expect(parseRouteThreadId('102junk')).toBeNull();
+    expect(parseRouteThreadId('0')).toBeNull();
+    expect(parseRouteThreadId(null)).toBeNull();
   });
 });
 
