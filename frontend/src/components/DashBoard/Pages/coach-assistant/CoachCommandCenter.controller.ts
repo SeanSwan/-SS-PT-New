@@ -7,12 +7,7 @@ import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
-import {
-  useApplyRouteContextPrompt,
-  useAutoSelectCoachThread,
-  useLoadCoachConversations,
-  usePlaudReviewScroll,
-} from './CoachCommandCenter.controllerEffects';
+import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildConversationLogs, mergeTranscriptLogs } from './CoachCommandCenter.chatLogs';
 import {
@@ -35,30 +30,11 @@ import {
   shouldScrollPlaudReview,
   toggleBoolean,
 } from './CoachCommandCenter.logic';
-import {
-  buildCommandRouteContext,
-  buildEffectiveRouteContext,
-  buildRouteContext,
-  buildRouteClientLabel,
-  buildThreadSelectionSearchParams,
-  buildWorkflowReturnLabel,
-  getScheduledSessionRouteContextFromSearchParams,
-  normalizeCommandCenterReturnTo,
-  parseRouteClientId,
-  readHistoricalImportRouteDraft,
-} from './CoachCommandCenter.routeContext';
+import { buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
 import type { DrawerSide } from './CoachCommandCenter.types';
-
-function resolveVoiceCommandText(next: SetStateAction<string>, current: string): string {
-  const nextValue = typeof next === 'function' ? next(current) : next;
-  return nextValue === '' ? current : nextValue;
-}
-
-function capturedVoiceText(current: string, captured: string): string {
-  return current.trim() ? current : captured;
-}
+import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
 
 export function useCoachCommandCenterController({
   userRole = 'admin',
@@ -68,7 +44,8 @@ export function useCoachCommandCenterController({
   const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
   const operatorEnabled = userRole !== 'client';
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
-  const [activeThreadId, setActiveThreadId] = useState<number | null>(null);
+  const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
+  const [activeThreadId, setActiveThreadId] = useState<number | null>(initialRouteThreadId);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
   const [threadSearch, setThreadSearch] = useState('');
@@ -94,14 +71,19 @@ export function useCoachCommandCenterController({
     () => buildCoachThreads(chat.conversations, threadSearch),
     [chat.conversations, threadSearch],
   );
+  const allCoachThreads = useMemo(
+    () => buildCoachThreads(chat.conversations, ''),
+    [chat.conversations],
+  );
 
   const activeThread = useMemo(
-    () => coachThreads.find((thread) => thread.id === activeThreadId) ?? null,
-    [activeThreadId, coachThreads],
+    () => allCoachThreads.find((thread) => thread.id === activeThreadId) ?? null,
+    [activeThreadId, allCoachThreads],
   );
   const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
   const routeClientId = useMemo(() => parseRouteClientId(searchParams.get('clientId')), [searchKey]);
+  const routeThreadId = useMemo(() => parseRouteThreadId(searchParams.get('threadId')), [searchKey]);
   const activeThreadClientId = useMemo(
     () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
     [activeThread?.targetUserId],
@@ -111,8 +93,8 @@ export function useCoachCommandCenterController({
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
   const autoSelectedThread = useMemo(
-    () => pickAutoSelectedThread(coachThreads, routeIntent, routeClientId, activeThreadId),
-    [activeThreadId, coachThreads, routeClientId, routeIntent],
+    () => pickAutoSelectedThread(allCoachThreads, routeIntent, routeClientId, activeThreadId),
+    [activeThreadId, allCoachThreads, routeClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath')),
@@ -215,7 +197,7 @@ export function useCoachCommandCenterController({
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
     routeRequestContext: scheduledSessionContext,
-    onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId), { replace: true }),
+    onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
     setActiveThreadId,
     setCommandText,
     setDrawer,
@@ -236,6 +218,7 @@ export function useCoachCommandCenterController({
   }, [speech.cancelPillVisible, speech.handleCancelSend, speech.speechSupported, speech.toggleListening]);
 
   useLoadCoachConversations(chat);
+  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
   useAutoSelectCoachThread(autoSelectedThread, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
   usePlaudReviewScroll(
@@ -248,6 +231,7 @@ export function useCoachCommandCenterController({
 
   return {
     activeIntakeId: searchParams.get('intake'),
+    activeThread,
     activeThreadId,
     clientContextTiles,
     coachQueue,

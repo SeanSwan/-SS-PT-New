@@ -34,6 +34,37 @@ Verification for this addendum:
 - `npx tsc --noEmit` - pass.
 - `npm run build` - pass.
 
+## 2026-06-24 Pro review follow-up - thread identity + history provenance
+Status: built and verified in isolated Codex worktree, pending review/merge.
+
+Flow contract added:
+- Active thread identity is now visible above the transcript. Empty state says no thread is selected; loaded state shows thread title, bound client id, message count, status, and last-activity summary.
+- History and recent-thread selection now preserve `threadId` in the URL alongside safe `clientId`, so a copied or refreshed Coach Command Center route can reopen the same conversation.
+- Direct `?threadId=<id>` routes load the matching conversation into the chat stream once, without rewriting the composer or relying on hidden hook state.
+- Loaded history bubbles carry a small `Loaded thread history` provenance label so remembered conversation context is visually separate from brand-new commands.
+
+Minimal wireframe:
+
+```text
+[Teach Me: Open guide]
+[Coach header + recent threads]
+[Chat | Intake | PLAUD | History]
+[Active thread: title | Client #id | History count | Status | Last activity]
+[Transcript: live command bubbles + loaded-history bubbles]
+[Next action chip] [Logger] [Planner]
+[Composer]
+```
+
+Verification for this addendum:
+- `npx vitest run src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.logic.test.ts src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.shell.test.tsx src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.threadIdentity.test.tsx --reporter verbose` - 30/30 pass.
+- `npm run type-check` - pass.
+- `npm run build` - pass.
+
+Next planned slices:
+- Thread search/filter should become an operations inbox with unread/follow-up state, not just a list.
+- Client-bound thread labels should use safe client display names once the backend returns an explicit client-thread binding.
+- Draft command recovery belongs near the active-thread header, but only after the composer has a real saved-draft contract.
+
 ## Summary
 Sean reports the admin Coach Command Center is overloaded with unnecessary buttons. Prior declutter work done "with Codex" never landed in git (verified: not on any branch, worktree, stash, or reflog). The current admin page IS the newest version and must be re-decluttered from scratch. This doc captures the intent pass + the agreed cut list before any rebuild.
 

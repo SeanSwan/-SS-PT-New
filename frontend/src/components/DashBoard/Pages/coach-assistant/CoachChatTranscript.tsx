@@ -10,10 +10,13 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 
+import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CommandLogConfirmation, CommandLogEntry } from './CoachCommandCenter.data';
 import CoachCommandLogEntry from './CoachCommandLogEntry';
+import CoachActiveThreadHeader from './CoachActiveThreadHeader';
 
 type CoachChatTranscriptProps = {
+  activeThread: ConversationSummary | null;
   logs: CommandLogEntry[];
   onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
   onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
@@ -23,6 +26,7 @@ type CoachChatTranscriptProps = {
 };
 
 const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
+  activeThread,
   logs,
   onCancelCommand,
   onConfirmCommand,
@@ -49,6 +53,8 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
           <span>Clear</span>
         </button>
       </div>
+
+      <CoachActiveThreadHeader thread={activeThread} />
 
       <div className="transcript-stream" ref={streamRef} aria-live="polite">
         {ordered.length ? (

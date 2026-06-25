@@ -24,6 +24,7 @@ import { coachCommandHeaderActionStyles } from './CoachCommandCenter.headerActio
 import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
 import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
+import { coachCommandThreadHeaderStyles } from './CoachCommandCenter.threadHeaderStyles';
 
 export const coachCommandBridgeStyles = css`
   /* ── Shell: phone-first single column ─────────────────────────────── */
@@ -241,6 +242,7 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandFoundationStyles}
   ${coachCommandBridgeStyles}
   ${coachCommandHeaderActionStyles}
+  ${coachCommandThreadHeaderStyles}
   ${coachCommandDockStyles}
   ${coachCommandBridgeMobileDockStyles}
   ${coachCommandOpsStyles}
