@@ -4,11 +4,11 @@
  * Extracts structured exercise data from AI assistant free-text responses.
  * Supports multiple formats: numbered lists, markdown tables, JSON blocks.
  *
- * Used by: AIAssistantDrawer "Apply to Logger" button
+ * Used by: assistant workout-plan handoffs into the logger
  * Consumed by: WorkoutLogger via custom event / sessionStorage
  */
 
-// ── Transfer types (shared between AI drawer and Logger) ──
+// ── Transfer types (shared between assistant handoffs and Logger) ──
 
 export interface WorkoutExerciseTransfer {
   exerciseName: string;

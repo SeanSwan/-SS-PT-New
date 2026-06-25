@@ -64,7 +64,7 @@ export interface AICommandBarProps {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Context Mapping Utility
 // PURPOSE: Shared AICommandContext → useAIChat AIContext mapping
-// WHY: Was duplicated in AICommandBar.tsx and AIPersistentPanel.tsx — now canonical
+// WHY: Keeps command-bar context mapping canonical for dashboard AI surfaces
 // ─────────────────────────────────────────────────────────────
 
 import type { AIContext } from '../../../hooks/useAIChat';

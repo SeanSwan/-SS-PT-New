@@ -10,8 +10,8 @@
  * brief confirmations for actions ("Done!"), full readback for queries.
  * Trainer can toggle TTS on/off. Respects system preferences.
  *
- * HOW IT FITS IN THE APP: Used by AITerminalPanel and OmniTerminal to
- * speak AI responses when voice mode is active.
+ * HOW IT FITS IN THE APP: Used by voice-enabled assistant surfaces to speak
+ * AI responses when voice mode is active.
  *
  * KEY DECISIONS: Web Speech Synthesis API (zero-dependency, works offline).
  * Rate/pitch tuned for gym environment (slightly slower, clearer).

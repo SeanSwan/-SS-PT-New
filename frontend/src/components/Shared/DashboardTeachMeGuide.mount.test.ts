@@ -4,13 +4,18 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8');
 
+const readDashboardShellSource = () => [
+  read('src/components/DashBoard/UniversalDashboardLayout.tsx'),
+  read('src/components/DashBoard/UniversalDashboardLayout.shell.tsx'),
+].join('\n');
+
 describe('DashboardTeachMeGuide mounts', () => {
   it('mounts the shared guide on role dashboards and the public user dashboard', () => {
-    const universalLayout = read('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardShellSource = readDashboardShellSource();
     const userDashboard = read('src/components/UserDashboard/UserDashboard.V3.tsx');
 
-    expect(universalLayout).toContain('DashboardTeachMeGuide');
-    expect(universalLayout).toContain('role={activeRole}');
+    expect(dashboardShellSource).toContain('DashboardTeachMeGuide');
+    expect(dashboardShellSource).toContain('role={activeRole}');
     expect(userDashboard).toContain('DashboardTeachMeGuide');
     expect(userDashboard).toContain('role="user"');
     expect(userDashboard).toContain('const teachMePathname');
@@ -18,20 +23,21 @@ describe('DashboardTeachMeGuide mounts', () => {
     expect(userDashboard).toContain('onAskCoach={handleTeachMeCoachPrompt}');
   });
 
-  it('wires admin and trainer Teach Me prompts into one-click Coach drawer sends', () => {
+  it('routes admin and trainer Teach Me prompts into Coach Command Center', () => {
     const universalLayout = read('src/components/DashBoard/UniversalDashboardLayout.tsx');
 
-    expect(universalLayout).toContain('const [omniTerminalSendInitialPrompt, setOmniTerminalSendInitialPrompt]');
-    expect(universalLayout).toContain('setOmniTerminalSendInitialPrompt(true)');
-    expect(universalLayout).toContain('initialPromptSendImmediately={omniTerminalSendInitialPrompt}');
-    expect(universalLayout).toContain('setOmniTerminalSendInitialPrompt(false)');
+    expect(universalLayout).toContain('new URLSearchParams({ teachPrompt: trimmedPrompt })');
+    expect(universalLayout).toContain('navigate(`/dashboard/${activeRole}/coach-assistant?${params.toString()}`);');
+    expect(universalLayout).not.toContain('omniTerminalSendInitialPrompt');
+    expect(universalLayout).not.toContain('setOmniTerminalOpen(true)');
   });
 
   it('does not hide Teach Me Coach help from client dashboard routes', () => {
-    const universalLayout = read('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardShellSource = readDashboardShellSource();
 
-    expect(universalLayout).toContain('onAskCoach={handleTeachMeCoachPrompt}');
-    expect(universalLayout).toContain('teachPrompt');
-    expect(universalLayout).not.toContain('onAskCoach={\n                activeRole');
+    expect(dashboardShellSource).toContain('onTeachMeCoachPrompt={handleTeachMeCoachPrompt}');
+    expect(dashboardShellSource).toContain('onAskCoach={onTeachMeCoachPrompt}');
+    expect(dashboardShellSource).toContain('teachPrompt');
+    expect(dashboardShellSource).not.toContain('onAskCoach={\n                activeRole');
   });
 });
