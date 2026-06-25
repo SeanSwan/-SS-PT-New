@@ -88,8 +88,55 @@ const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> 
     if (guide.primaryPrompt && onAskCoach) onAskCoach(guide.primaryPrompt);
   };
 
+  const quickStrip = (
+    <GuideQuickStrip>
+      <QuickIntro>
+        <QuickEyebrow>Teach Me</QuickEyebrow>
+        <QuickTitle>{guide.title}</QuickTitle>
+      </QuickIntro>
+      <QuickPathPreview aria-label={`${guide.title} visible fast path`}>
+        {guide.fastPath.map((step, index) => (
+          <li key={step}>
+            <span>{index + 1}</span>
+            {step}
+          </li>
+        ))}
+      </QuickPathPreview>
+      <QuickActionGroup aria-label={`${guide.title} first move shortcuts`}>
+        {onNavigate ? (
+          <QuickPrimaryButton
+            type="button"
+            aria-label={startNowLabel}
+            onClick={() => onNavigate(guide.primaryAction.to)}
+          >
+            {startNowLabel}
+            <ArrowRight size={14} aria-hidden="true" />
+          </QuickPrimaryButton>
+        ) : (
+          <QuickPrimaryAnchor
+            href={guide.primaryAction.to}
+            aria-label={startNowLabel}
+          >
+            {startNowLabel}
+            <ArrowRight size={14} aria-hidden="true" />
+          </QuickPrimaryAnchor>
+        )}
+        {canAskCoach && (
+          <QuickCoachButton
+            type="button"
+            aria-label={coachShortcutLabel}
+            onClick={askCoach}
+          >
+            Ask Coach
+            <MessageCircle size={14} aria-hidden="true" />
+          </QuickCoachButton>
+        )}
+      </QuickActionGroup>
+    </GuideQuickStrip>
+  );
   const content = (
     <GuideContent>
+      {quickStrip}
       <GuideKicker>
         <Compass size={14} aria-hidden="true" />
         {guide.eyebrow}
@@ -161,50 +208,6 @@ const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> 
 
   return (
     <GuideShell aria-label={`${guide.title} teach me guide`}>
-      <GuideQuickStrip>
-        <QuickIntro>
-          <QuickEyebrow>Teach Me</QuickEyebrow>
-          <QuickTitle>{guide.title}</QuickTitle>
-        </QuickIntro>
-        <QuickPathPreview aria-label={`${guide.title} visible fast path`}>
-          {guide.fastPath.map((step, index) => (
-            <li key={step}>
-              <span>{index + 1}</span>
-              {step}
-            </li>
-          ))}
-        </QuickPathPreview>
-        <QuickActionGroup aria-label={`${guide.title} first move shortcuts`}>
-          {onNavigate ? (
-            <QuickPrimaryButton
-              type="button"
-              aria-label={startNowLabel}
-              onClick={() => onNavigate(guide.primaryAction.to)}
-            >
-              {startNowLabel}
-              <ArrowRight size={14} aria-hidden="true" />
-            </QuickPrimaryButton>
-          ) : (
-            <QuickPrimaryAnchor
-              href={guide.primaryAction.to}
-              aria-label={startNowLabel}
-            >
-              {startNowLabel}
-              <ArrowRight size={14} aria-hidden="true" />
-            </QuickPrimaryAnchor>
-          )}
-          {canAskCoach && (
-            <QuickCoachButton
-              type="button"
-              aria-label={coachShortcutLabel}
-              onClick={askCoach}
-            >
-              Ask Coach
-              <MessageCircle size={14} aria-hidden="true" />
-            </QuickCoachButton>
-          )}
-        </QuickActionGroup>
-      </GuideQuickStrip>
       <TeachMeToggle
         sectionId={sectionIdFor(normalizedRole, `${pathname}${effectiveSearch}`)}
         title={guide.title}

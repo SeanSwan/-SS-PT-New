@@ -160,6 +160,36 @@ export function setCoachCommandCenterConversations(conversations = defaultCoachC
   });
 }
 
+export function setCoachCommandCenterActiveConversation() {
+  const current = useAIChatMock.getMockImplementation()?.() || {};
+  const activeConversation = {
+    id: 101,
+    title: 'Friday intake cleanup',
+    context: 'coach_assistant',
+    role: 'admin',
+    status: 'active',
+    messageCount: 2,
+    lastMessageAt: '2026-05-14T11:30:00.000Z',
+    createdAt: '2026-05-14T10:00:00.000Z',
+    messages: [
+      {
+        role: 'user',
+        content: 'We reviewed Ava squat pattern and left knee note.',
+        timestamp: '2026-05-14T10:10:00.000Z',
+      },
+      {
+        role: 'assistant',
+        content: 'Keep the next workout review gated and check pain before loading.',
+        timestamp: '2026-05-14T10:11:00.000Z',
+      },
+    ],
+  };
+  useAIChatMock.mockReturnValue({
+    ...current,
+    activeConversation,
+    messages: activeConversation.messages,
+  });
+}
 export function resetCoachCommandCenterMocks() {
   listConversationsMock.mockReset();
   loadConversationMock.mockReset();

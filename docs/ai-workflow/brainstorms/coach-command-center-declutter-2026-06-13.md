@@ -8,6 +8,32 @@ Picked direction **Command Bridge** (recent-client rail always visible, collapse
 Owner: Claude (Sean-assigned; Coach is normally Codex's lane — cross-lane reservation in `.ai-workflow/coordination/claude.lane.md`, Codex hostile review to follow)
 Surface: ADMIN `/dashboard/admin/coach-assistant` → `CoachCommandCenterPage`
 
+## 2026-06-24 UX repair addendum - History + Teach Me compact mode
+Status: built in isolated Codex worktree, verified locally, pending review/commit.
+
+Flow contract now enforced:
+- Recent-thread chips and History thread rows are open-thread controls, not prompt templates. Selecting a thread loads `/api/ai-chat/conversations/:id`, switches back to Chat, marks the thread active, and leaves the composer empty.
+- Loaded `useAIChat` messages render inside the conversation transcript via `CoachCommandCenter.chatLogs.ts`, so a remembered thread is visible instead of silently updating hidden hook state.
+- Always-visible quick prompt chips were removed from `CoachConsoleDock`; the `Next:` item is now a non-clickable recommendation chip, and the dock holds only real route/actions plus the primary composer.
+- The shared `DashboardTeachMeGuide` keeps only the `Open guide` toggle while closed. The 1-2-3 path, Start Now, and Ask Coach shortcuts render only inside the opened guide panel.
+
+Minimal wireframe:
+
+```text
+[Teach Me: Open guide]        (closed, no Start Now / Ask Coach strip)
+[Coach header: current scope, real route actions, recent thread chips]
+[Chat | Intake | PLAUD | History]
+[Conversation transcript: command logs + loaded thread messages]
+[Next action chip] [Logger] [Planner]
+[Composer: Attach / PLAUD / Readback / Mic / Send]
+```
+
+Verification for this addendum:
+- `npx vitest run src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.shell.test.tsx --reporter verbose` - 18/18 pass.
+- `npx vitest run src/components/Shared/DashboardTeachMeGuide.test.tsx --reporter verbose` - 6/6 pass.
+- `npx tsc --noEmit` - pass.
+- `npm run build` - pass.
+
 ## Summary
 Sean reports the admin Coach Command Center is overloaded with unnecessary buttons. Prior declutter work done "with Codex" never landed in git (verified: not on any branch, worktree, stash, or reflog). The current admin page IS the newest version and must be re-decluttered from scratch. This doc captures the intent pass + the agreed cut list before any rebuild.
 

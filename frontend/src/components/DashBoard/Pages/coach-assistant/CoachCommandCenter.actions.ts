@@ -85,7 +85,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.setSelectedStatus(status);
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);
-    focusComposer(`Continue ${title} with review-gated context.`, status);
   };
 
   const handleWorkflowSelect = (prompt: string) => {

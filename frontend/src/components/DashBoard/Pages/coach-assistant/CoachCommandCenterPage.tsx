@@ -33,13 +33,11 @@ import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute'
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
 import {
   CLIENT_NEXT_ACTION_LABEL,
-  CLIENT_NEXT_ACTION_PROMPT,
   CLIENT_WORKOUTS_ROUTE,
   coachTabsForRole,
   coerceCoachTabForRole,
   isClientCoachRole,
   normalizeCoachCommandRole,
-  quickIntentsForRole,
   routeForcedTabForRole,
 } from './CoachCommandCenter.roleConfig';
 
@@ -84,7 +82,6 @@ const CoachCommandCenterPage: React.FC = () => {
   const plaudCount = isClientMode ? 0 : commandCenter.summary.readyReview;
   const availableTabs = coachTabsForRole(userRole);
   const selectedDisplayLabel = isClientMode ? 'My training' : commandCenter.selectedClientLabel;
-  const quickIntents = quickIntentsForRole(userRole);
   const workoutLoggerRoute = useMemo(
     () => buildSwanCoachWorkoutLoggerRoute({ userRole, selectedClientId: commandCenter.routeClientId, searchParams }),
     [commandCenter.routeClientId, searchParams, userRole],
@@ -104,11 +101,14 @@ const CoachCommandCenterPage: React.FC = () => {
   const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';
   const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
 
+  const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
+    commandCenter.handleThreadSelect(thread);
+    setActiveTab('chat');
+  };
   const handleSelectClient = (id: number) => {
     const thread = commandCenter.coachThreads.find((item) => item.id === id);
-    if (thread) commandCenter.handleThreadSelect(thread);
+    if (thread) handleOpenThread(thread);
   };
-
   useEffect(() => {
     if (routeForcedTab) setActiveTab(routeForcedTab);
     else setActiveTab((current) => coerceCoachTabForRole(current, userRole));
@@ -230,7 +230,7 @@ const CoachCommandCenterPage: React.FC = () => {
                 threadSearch={commandCenter.threadSearch}
                 onNewThread={commandCenter.handleNewThread}
                 onThreadSearchChange={commandCenter.setThreadSearch}
-                onThreadSelect={commandCenter.handleThreadSelect}
+                onThreadSelect={handleOpenThread}
               />
             </div>
           ) : null}
@@ -242,7 +242,6 @@ const CoachCommandCenterPage: React.FC = () => {
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
             nextActionLabel={nextActionLabel}
-            quickIntents={quickIntents}
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceSupported={commandCenter.voiceSupported}
@@ -255,8 +254,6 @@ const CoachCommandCenterPage: React.FC = () => {
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
             onCommandTextChange={commandCenter.setCommandText}
-            onStageNextAction={() => commandCenter.handleWorkflowSelect(isClientMode ? CLIENT_NEXT_ACTION_PROMPT : nextActionLabel)}
-            onQuickIntent={commandCenter.handleWorkflowSelect}
             onAttach={commandCenter.handleAttach}
             onStartPlaudUpload={handleStartPlaudUpload}
             onReadback={commandCenter.handleReadback}

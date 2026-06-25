@@ -14,6 +14,7 @@ import {
   usePlaudReviewScroll,
 } from './CoachCommandCenter.controllerEffects';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
+import { buildConversationLogs, mergeTranscriptLogs } from './CoachCommandCenter.chatLogs';
 import {
   buildCoachThreads,
   buildClientContextTiles,
@@ -141,6 +142,14 @@ export function useCoachCommandCenterController({
   const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
   const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
   const clientContextTiles = useMemo(() => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)), [activeThread, effectiveClientId]);
+  const conversationLogs = useMemo(
+    () => buildConversationLogs(chat.activeConversation?.id, chat.messages),
+    [chat.activeConversation?.id, chat.messages],
+  );
+  const transcriptLogs = useMemo(
+    () => mergeTranscriptLogs(logs, conversationLogs),
+    [conversationLogs, logs],
+  );
 
   const rawMergeRequestId = searchParams.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
@@ -263,7 +272,7 @@ export function useCoachCommandCenterController({
     initialReviewMergeRequestId,
     intakeStates,
     leftRailRef,
-    logs,
+    logs: transcriptLogs,
     openDrawer: actions.openDrawer,
     plaudReviewRef,
     queueHealthRows,
