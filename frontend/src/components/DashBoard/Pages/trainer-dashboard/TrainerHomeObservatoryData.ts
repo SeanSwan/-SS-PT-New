@@ -1,12 +1,25 @@
 import type { LucideIcon } from 'lucide-react';
-import { BarChart3, Brain, CalendarDays, Dumbbell, MessageSquare, Users } from 'lucide-react';
+import {
+  BarChart3,
+  Brain,
+  CalendarDays,
+  ClipboardList,
+  Dumbbell,
+  MessageSquare,
+  Users,
+  Zap,
+} from 'lucide-react';
+
+import heroSwan from '../../../../assets/crystal-swan.png';
+import profileMark from '../../../../assets/logo.svg';
+import trainingArt from '../../../../assets/swan-paint-3.png';
 import {
   TRAINER_HOME_COACH_PATH,
   TRAINER_HOME_LOG_WORKOUT_PATH,
 } from './TrainerHomeQuickActions.config';
 
 export interface TrainerObservatoryLens {
-  id: 'today' | 'clients' | 'progress' | 'coach';
+  id: 'today' | 'clients' | 'progress' | 'schedule' | 'forge' | 'coach';
   label: string;
   detail: string;
   path: string;
@@ -21,33 +34,52 @@ export interface TrainerObservatoryDockAction {
   primary?: boolean;
 }
 
+export const TRAINER_OBSERVATORY_ASSETS = {
+  heroSwan,
+  profileMark,
+  trainingArt,
+};
 
 export const TRAINER_OBSERVATORY_LENSES: readonly TrainerObservatoryLens[] = [
   {
     id: 'today',
     label: 'Today',
-    detail: 'Sessions, proof, and the next client action.',
+    detail: 'Sessions and next client action.',
     path: '/dashboard/trainer/overview',
     Icon: CalendarDays,
   },
   {
     id: 'clients',
     label: 'Clients',
-    detail: 'Assigned roster, readiness, and follow-ups.',
+    detail: 'Assigned roster and readiness.',
     path: '/dashboard/trainer/clients',
     Icon: Users,
   },
   {
     id: 'progress',
     label: 'Progress',
-    detail: 'Logged trends and client proof points.',
+    detail: 'Logged trends and proof points.',
     path: '/dashboard/trainer/client-progress',
     Icon: BarChart3,
   },
   {
+    id: 'schedule',
+    label: 'Schedule',
+    detail: 'Plan the coaching day.',
+    path: '/dashboard/trainer/schedule',
+    Icon: ClipboardList,
+  },
+  {
+    id: 'forge',
+    label: 'Forge',
+    detail: 'Build the next workout.',
+    path: '/dashboard/trainer/workout-planner',
+    Icon: Zap,
+  },
+  {
     id: 'coach',
     label: 'Coach',
-    detail: 'Ask Swan Coach for session triage.',
+    detail: 'Ask Swan Coach for triage.',
     path: TRAINER_HOME_COACH_PATH,
     Icon: Brain,
   },

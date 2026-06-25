@@ -1,58 +1,42 @@
 /**
  * FILE: TrainerHomeTab.layoutStyles.ts
- * PURPOSE: Wide command-surface layout for the canonical trainer home.
+ * PURPOSE: Client-observatory parity layout for the canonical trainer home.
  *
- * Keeps the TrainerHomeTab component under the project line cap while giving
- * the trainer dashboard the same observatory-grade composition as client home.
+ * Mirrors the client dashboard shell: wide page frame, full hero, primary work
+ * column, and right rail. Trainer-specific workflow lives in child modules.
  */
 
 import styled from 'styled-components';
 
-export const TrainerHomePageShell = styled.div`
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-
-  @media (max-width: 414px) {
-    padding: 1rem;
-    gap: 0.875rem;
-  }
-
-  @media (max-width: 375px) { padding: 0.875rem; }
-`;
-
-export const TrainerHomeHeroGrid = styled.section`
+export const TrainerHomePageShell = styled.section`
   width: 100%;
   max-width: 1720px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.28fr) minmax(340px, 0.72fr);
-  gap: 1rem;
-  align-items: stretch;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background:
+    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), transparent 34%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 9%, transparent), transparent 32%);
 
-  @media (max-width: 1120px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 768px) {
+    padding: 1rem;
   }
-`;
 
-export const TrainerHeroPanel = styled.div`
-  min-width: 0;
-  display: grid;
-  align-content: stretch;
+  @media (max-width: 414px) {
+    padding: 0.85rem;
+    gap: 1rem;
+  }
 `;
 
 export const TrainerHomeMainGrid = styled.section`
-  width: 100%;
-  max-width: 1720px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr);
+  gap: 1.35rem;
   align-items: start;
 
-  @media (max-width: 1120px) {
+  @media (max-width: 1180px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -66,11 +50,5 @@ export const TrainerHomePrimaryColumn = styled.div`
 export const TrainerHomeSideColumn = styled.aside`
   min-width: 0;
   display: grid;
-  gap: 0.75rem;
-  position: sticky;
-  top: 1rem;
-
-  @media (max-width: 1120px) {
-    position: static;
-  }
+  gap: 1rem;
 `;

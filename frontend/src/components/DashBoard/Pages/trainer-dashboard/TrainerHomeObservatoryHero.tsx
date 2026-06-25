@@ -1,26 +1,41 @@
 import React from 'react';
-import { BarChart3, Brain, Dumbbell } from 'lucide-react';
-import SwanCoachDockTrainer from './SwanCoachDockTrainer';
+import { BarChart3, Brain, CalendarDays, CheckCircle, Dumbbell, Users } from 'lucide-react';
+import { sanitizeImageUrl } from '../../../../utils/imageUrl';
 import type { TrainerObservatoryLens } from './TrainerHomeObservatoryData';
+import { TRAINER_OBSERVATORY_ASSETS } from './TrainerHomeObservatoryData';
 import { TRAINER_HOME_LOG_WORKOUT_PATH } from './TrainerHomeQuickActions.config';
-import { TrainerHeroPanel, TrainerHomeHeroGrid } from './TrainerHomeTab.layoutStyles';
 import {
+  ArtworkBadge,
+  ArtworkMeta,
+  ArtworkPanel,
+  ArtworkShade,
+  ArtworkTitle,
   HeroActionButton,
-  HeroActionRow,
-  HeroCommandPanel,
+  HeroActions,
+  HeroArtwork,
+  HeroAvatar,
+  HeroCard,
   HeroCopy,
+  HeroGrid,
+  HeroHandle,
+  HeroIdentity,
   HeroKicker,
-  HeroMeta,
-  HeroMetric,
-  HeroMetricLabel,
-  HeroMetricValue,
-  HeroStatGrid,
+  HeroStatCard,
+  HeroStatLabel,
+  HeroStats,
+  HeroStatValue,
+  HeroSubline,
   HeroTitle,
   LensButton,
   LensDetail,
   LensIcon,
   LensLabel,
   LensRail,
+  ProfileRow,
+  ProgressFill,
+  ProgressTrack,
+  TierMeta,
+  TierRow,
 } from './TrainerHomeObservatoryHero.styles';
 
 interface TrainerHomeHeroStats {
@@ -58,98 +73,124 @@ const TrainerHomeObservatoryHero: React.FC<TrainerHomeObservatoryHeroProps> = ({
   onNavigate,
 }) => {
   const completion = Math.max(0, Math.min(100, Math.round(stats.completionRate)));
+  const safePhoto = sanitizeImageUrl(trainerPhotoUrl) || TRAINER_OBSERVATORY_ASSETS.profileMark;
+  const handleLabel = trainerHandle || 'Trainer Command';
   const nextCue = nextClientName
-    ? `Next up: ${nextClientName}. Prime, log, and turn the session into progress proof.`
-    : 'No booked client is waiting. Build the day from roster, schedule, or Swan Coach triage.';
+    ? `Next up: ${nextClientName}. Prime the session, log the proof, then review the progress signal.`
+    : 'No booked client is waiting. Build the day from roster, schedule, workout planner, or Swan Coach triage.';
+
+  const heroActions = [
+    { label: 'Log Workout', Icon: Dumbbell, path: TRAINER_HOME_LOG_WORKOUT_PATH, primary: true },
+    { label: 'Ask Coach', Icon: Brain, path: coachPath, primary: false },
+    { label: 'View Clients', Icon: Users, path: '/dashboard/trainer/clients', primary: false },
+    { label: 'Progress', Icon: BarChart3, path: '/dashboard/trainer/client-progress', primary: false },
+    { label: 'Schedule', Icon: CalendarDays, path: '/dashboard/trainer/schedule', primary: false },
+  ] as const;
 
   return (
-    <TrainerHomeHeroGrid aria-label="Trainer command observatory">
-      <TrainerHeroPanel>
-        <SwanCoachDockTrainer
-          trainerName={trainerName}
-          sessionCount={stats.sessionsToday}
-          level={level}
-          trainerHandle={trainerHandle}
-          trainerPhotoUrl={trainerPhotoUrl}
-          loading={loading}
-          coachPath={coachPath}
-          onNavigate={onNavigate}
-        />
-      </TrainerHeroPanel>
-
-      <HeroCommandPanel>
+    <HeroCard aria-label="Trainer dashboard observatory">
+      <HeroGrid>
         <HeroCopy>
-          <HeroKicker>Trainer command observatory</HeroKicker>
-          <HeroTitle>Coach the next client, log proof, and move progress forward.</HeroTitle>
-          <HeroMeta>{nextCue}</HeroMeta>
-        </HeroCopy>
+          <ProfileRow>
+            <HeroAvatar src={safePhoto} alt={`${trainerName} profile`} />
+            <HeroIdentity>
+              <HeroKicker>Welcome back, Coach</HeroKicker>
+              <HeroTitle>{trainerName}</HeroTitle>
+              <HeroHandle>{handleLabel}</HeroHandle>
+            </HeroIdentity>
+          </ProfileRow>
 
-        <HeroStatGrid aria-label="Trainer home momentum metrics">
-          <HeroMetric>
-            <HeroMetricValue>
-              <Dumbbell size={18} aria-hidden="true" />
-              {metricValue(loading, stats.sessionsToday)}
-            </HeroMetricValue>
-            <HeroMetricLabel>Sessions today</HeroMetricLabel>
-          </HeroMetric>
-          <HeroMetric>
-            <HeroMetricValue>
-              <BarChart3 size={18} aria-hidden="true" />
-              {metricValue(loading, `${completion}%`)}
-            </HeroMetricValue>
-            <HeroMetricLabel>Completion</HeroMetricLabel>
-          </HeroMetric>
-          <HeroMetric>
-            <HeroMetricValue>
-              <Brain size={18} aria-hidden="true" />
-              {metricValue(loading, stats.hoursLogged.toFixed(1))}
-            </HeroMetricValue>
-            <HeroMetricLabel>Hours coached</HeroMetricLabel>
-          </HeroMetric>
-        </HeroStatGrid>
+          <HeroSubline>{nextCue}</HeroSubline>
 
-        <HeroActionRow aria-label="Trainer command actions">
-          <HeroActionButton
-            type="button"
-            $primary
-            onClick={() => onNavigate(TRAINER_HOME_LOG_WORKOUT_PATH)}
-            aria-label="Open trainer client roster to log a workout"
-          >
-            <Dumbbell size={16} aria-hidden="true" />
-            Log Workout
-          </HeroActionButton>
-          <HeroActionButton
-            type="button"
-            onClick={() => onNavigate(coachPath)}
-            aria-label="Ask Swan Coach for trainer command triage"
-          >
-            <Brain size={16} aria-hidden="true" />
-            Ask Coach
-          </HeroActionButton>
-        </HeroActionRow>
+          <HeroStats aria-label="Trainer home momentum metrics">
+            <HeroStatCard>
+              <HeroStatValue>
+                <Users size={18} aria-hidden="true" />
+                {metricValue(loading, stats.clientsToday)}
+              </HeroStatValue>
+              <HeroStatLabel>Clients today</HeroStatLabel>
+            </HeroStatCard>
+            <HeroStatCard>
+              <HeroStatValue>
+                <Dumbbell size={18} aria-hidden="true" />
+                {metricValue(loading, stats.sessionsToday)}
+              </HeroStatValue>
+              <HeroStatLabel>Sessions</HeroStatLabel>
+            </HeroStatCard>
+            <HeroStatCard>
+              <HeroStatValue>
+                <CheckCircle size={18} aria-hidden="true" />
+                {metricValue(loading, `${completion}%`)}
+              </HeroStatValue>
+              <HeroStatLabel>Completion</HeroStatLabel>
+            </HeroStatCard>
+          </HeroStats>
 
-        <LensRail aria-label="Trainer observatory lenses">
-          {lenses.map(({ label, detail, path, Icon }) => {
-            const lensPath = label === 'Coach' ? coachPath : path;
+          <TierRow>
+            <TierMeta>
+              <span>Trainer Level {level}</span>
+              <span>{metricValue(loading, stats.hoursLogged.toFixed(1))} hours coached today</span>
+            </TierMeta>
+            <ProgressTrack aria-label={`Trainer day completion ${completion}%`}>
+              <ProgressFill $value={loading ? 0 : completion} />
+            </ProgressTrack>
+          </TierRow>
 
-            return (
-              <LensButton
+          <HeroActions aria-label="Trainer command actions">
+            {heroActions.map(({ label, Icon, path, primary }) => (
+              <HeroActionButton
                 key={label}
                 type="button"
-                onClick={() => onNavigate(lensPath)}
-                aria-label={`Trainer lens: ${label}`}
+                $primary={primary}
+                onClick={() => onNavigate(path)}
+                aria-label={label}
               >
-                <LensIcon aria-hidden="true"><Icon size={17} /></LensIcon>
-                <span>
-                  <LensLabel>{label}</LensLabel>
-                  <LensDetail>{detail}</LensDetail>
-                </span>
-              </LensButton>
-            );
-          })}
-        </LensRail>
-      </HeroCommandPanel>
-    </TrainerHomeHeroGrid>
+                <Icon size={16} aria-hidden="true" />
+                {label}
+              </HeroActionButton>
+            ))}
+          </HeroActions>
+        </HeroCopy>
+
+        <ArtworkPanel aria-label="Trainer observatory artwork">
+          <HeroArtwork src={TRAINER_OBSERVATORY_ASSETS.heroSwan} alt="Crystalline Swan trainer observatory" />
+          <ArtworkShade>
+            <ArtworkBadge>
+              <Brain size={14} aria-hidden="true" />
+              Trainer Command Observatory
+            </ArtworkBadge>
+            <div>
+              <ArtworkTitle>{nextClientName || 'Build the day'}</ArtworkTitle>
+              <ArtworkMeta>
+                Roster, Coach, planner, schedule, and progress proof stay one move from home.
+              </ArtworkMeta>
+            </div>
+          </ArtworkShade>
+        </ArtworkPanel>
+      </HeroGrid>
+
+      <LensRail aria-label="Trainer observatory lenses">
+        {lenses.map(({ id, label, detail, path, Icon }) => {
+          const lensPath = id === 'coach' ? coachPath : path;
+
+          return (
+            <LensButton
+              key={id}
+              type="button"
+              $active={id === 'today'}
+              onClick={() => onNavigate(lensPath)}
+              aria-label={`Trainer lens: ${label}`}
+            >
+              <LensIcon aria-hidden="true"><Icon size={17} /></LensIcon>
+              <span>
+                <LensLabel>{label}</LensLabel>
+                <LensDetail>{detail}</LensDetail>
+              </span>
+            </LensButton>
+          );
+        })}
+      </LensRail>
+    </HeroCard>
   );
 };
 

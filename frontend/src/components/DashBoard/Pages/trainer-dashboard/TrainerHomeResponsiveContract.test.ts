@@ -9,7 +9,6 @@ const layoutStylesSource = source('TrainerHomeTab.layoutStyles.ts');
 const componentSource = source('TrainerHomeTab.tsx');
 const nextActionStylesSource = source('TrainerHomeNextActionCard.styles.ts');
 const quickActionsStylesSource = source('TrainerHomeQuickActions.styles.ts');
-const coachDockSource = source('SwanCoachDockTrainer.tsx');
 const heroSource = source('TrainerHomeObservatoryHero.tsx');
 const heroStylesSource = source('TrainerHomeObservatoryHero.styles.ts');
 const widgetsSource = source('TrainerHomeObservatoryWidgets.tsx');
@@ -24,46 +23,46 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(stylesSource).toContain('justify-content: flex-start');
   });
 
-  it('stacks the next-client command card before the flow rail and actions can overlap', () => {
-    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr)');
-    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(7.4rem, 1fr))');
-    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr))');
+  it('uses a client-style proof board with responsive flow rail and actions', () => {
+    expect(nextActionStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr)');
+    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(nextActionStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr))');
     expect(nextActionStylesSource).toContain('export const NextActionFlow');
-    expect(nextActionStylesSource).toContain('@media (max-width: 380px)');
+    expect(nextActionStylesSource).toContain('@media (max-width: 520px)');
     expect(nextActionStylesSource).not.toContain('overflow-wrap: anywhere');
     expect(nextActionStylesSource).toContain('word-break: normal');
   });
 
-  it('renders a real trainer profile photo slot through the trainer observatory hero dock', () => {
+  it('renders the trainer profile directly in the client-parity hero', () => {
     expect(componentSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');
     expect(componentSource).toContain('trainerHandle={trainerHandle}');
-    expect(heroSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');
-    expect(heroSource).toContain('trainerHandle={trainerHandle}');
-    expect(coachDockSource).toContain("import { sanitizeImageUrl } from '../../../../utils/imageUrl'");
-    expect(coachDockSource).toContain('trainerPhotoUrl?: string | null');
-    expect(coachDockSource).toContain('<img src={safePhoto} alt={`${trainerName} profile`} />');
-    expect(coachDockSource).toContain('{trainerHandle && <CoachHandle>{trainerHandle}</CoachHandle>}');
+    expect(heroSource).toContain("import { sanitizeImageUrl } from '../../../../utils/imageUrl'");
+    expect(heroSource).toContain('const safePhoto = sanitizeImageUrl(trainerPhotoUrl)');
+    expect(heroSource).toContain('<HeroAvatar src={safePhoto} alt={`${trainerName} profile`} />');
+    expect(heroSource).toContain('<HeroHandle>{handleLabel}</HeroHandle>');
   });
 
-  it('keeps the trainer hero chips and meta text mobile-safe', () => {
-    expect(coachDockSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
-    expect(coachDockSource).toContain('flex: 1 1 10rem');
-    expect(coachDockSource).toContain('justify-content: center');
-    expect(coachDockSource).toContain('<CoachMeta>{sessLabel} - Lv.{level}</CoachMeta>');
-    expect(coachDockSource).not.toContain('&nbsp;');
+  it('keeps the trainer hero action rail and lens rail mobile-safe', () => {
+    expect(heroStylesSource).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
+    expect(heroStylesSource).toContain('@media (max-width: 860px)');
+    expect(heroStylesSource).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
+    expect(heroStylesSource).toContain('overflow-x: auto');
+    expect(heroStylesSource).toContain('flex: 0 0 13rem');
   });
 
-  it('uses a client-observatory inspired trainer command layout instead of the old narrow stack', () => {
+  it('uses the client-observatory hero anatomy instead of the old narrow dock stack', () => {
     expect(componentSource).toContain('TrainerHomeObservatoryHero');
     expect(componentSource).toContain('TrainerHomeObservatoryWidgets');
     expect(componentSource).toContain('TrainerHomePageShell');
     expect(componentSource).toContain('TrainerHomePrimaryColumn');
     expect(componentSource).toContain('TrainerHomeSideColumn');
     expect(componentSource).not.toContain('PageWrap');
-    expect(heroSource).toContain('TrainerHomeHeroGrid');
+    expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
+    expect(heroSource).toContain('<HeroGrid>');
+    expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
+    expect(heroSource).not.toContain('SwanCoachDockTrainer');
     expect(layoutStylesSource).toContain('max-width: 1720px');
-    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.28fr) minmax(340px, 0.72fr)');
-    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr)');
+    expect(layoutStylesSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr)');
     expect(stylesSource).not.toContain('max-width: 860px');
   });
 
@@ -75,6 +74,8 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(dataSource).toContain("label: 'Today'");
     expect(dataSource).toContain("label: 'Clients'");
     expect(dataSource).toContain("label: 'Progress'");
+    expect(dataSource).toContain("label: 'Schedule'");
+    expect(dataSource).toContain("label: 'Forge'");
     expect(dataSource).toContain("label: 'Coach'");
     expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');
   });
@@ -84,7 +85,6 @@ describe('TrainerHomeTab responsive contract', () => {
       stylesSource,
       quickActionsStylesSource,
       nextActionStylesSource,
-      coachDockSource,
       heroStylesSource,
       widgetsStylesSource,
     ].join('\n');
@@ -98,7 +98,6 @@ describe('TrainerHomeTab responsive contract', () => {
       stylesSource,
       quickActionsStylesSource,
       nextActionStylesSource,
-      coachDockSource,
       heroStylesSource,
       widgetsStylesSource,
     ].join('\n');
@@ -115,7 +114,6 @@ describe('TrainerHomeTab responsive contract', () => {
       layoutStylesSource,
       nextActionStylesSource,
       quickActionsStylesSource,
-      coachDockSource,
       heroSource,
       heroStylesSource,
       widgetsSource,
@@ -127,9 +125,9 @@ describe('TrainerHomeTab responsive contract', () => {
     });
   });
 
-  it('keeps trainer coach dock chips as explicit non-submit buttons', () => {
-    expect(coachDockSource).toContain('<Chip');
-    expect(coachDockSource).toContain('type="button"');
+  it('keeps trainer lens controls as explicit non-submit buttons', () => {
+    expect(heroSource).toContain('<LensButton');
+    expect(heroSource).toContain('type="button"');
   });
 
   it('keeps the mounted trainer home component free of inline styles', () => {

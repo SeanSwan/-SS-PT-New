@@ -9,6 +9,8 @@ describe('Trainer home observatory parity', () => {
   it('uses a client-home observatory composition with trainer-specific modules', () => {
     const componentSource = source('TrainerHomeTab.tsx');
     const layoutSource = source('TrainerHomeTab.layoutStyles.ts');
+    const heroSource = source('TrainerHomeObservatoryHero.tsx');
+    const heroStylesSource = source('TrainerHomeObservatoryHero.styles.ts');
 
     expect(componentSource).toContain('TrainerHomeObservatoryHero');
     expect(componentSource).toContain('TrainerHomeObservatoryWidgets');
@@ -20,7 +22,12 @@ describe('Trainer home observatory parity', () => {
 
     expect(layoutSource).toContain('TrainerHomePageShell');
     expect(layoutSource).toContain('max-width: 1720px');
-    expect(layoutSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr)');
+    expect(layoutSource).toContain('grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.7fr)');
+    expect(heroSource).toContain('<HeroCard aria-label="Trainer dashboard observatory">');
+    expect(heroSource).toContain('<HeroGrid>');
+    expect(heroSource).toContain('<ArtworkPanel aria-label="Trainer observatory artwork">');
+    expect(heroStylesSource).toContain('grid-template-columns: minmax(0, 0.88fr) minmax(260px, 0.55fr)');
+    expect(heroStylesSource).toContain('grid-template-columns: repeat(6, minmax(0, 1fr))');
   });
 
   it('declares trainer lenses and mobile dock actions instead of reusing client copy', () => {
@@ -33,6 +40,8 @@ describe('Trainer home observatory parity', () => {
     expect(dataSource).toContain("label: 'Today'");
     expect(dataSource).toContain("label: 'Clients'");
     expect(dataSource).toContain("label: 'Progress'");
+    expect(dataSource).toContain("label: 'Schedule'");
+    expect(dataSource).toContain("label: 'Forge'");
     expect(dataSource).toContain("label: 'Coach'");
     expect(dataSource).toContain('TRAINER_OBSERVATORY_MOBILE_DOCK');
     expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');
