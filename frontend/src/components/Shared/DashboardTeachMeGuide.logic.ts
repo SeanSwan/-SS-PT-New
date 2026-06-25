@@ -78,9 +78,9 @@ const userFocus = (path: string): string => {
     return 'Progress and activity should tell the story from real training logs before social proof or profile polish.';
   }
   if (includesAny(path, ['creative', 'photos', 'friends', 'challenges'])) {
-    return 'Use Studio and community after the training proof exists, so sharing reinforces the real journey.';
+    return 'Use Creative and community after the training proof exists, so sharing reinforces the real journey.';
   }
-  return 'Home is the launch point: train first, check proof, then move into Studio, community, and profile tools.';
+  return 'Home is the launch point: train first, check proof, then move into Creative, community, and profile tools.';
 };
 
 const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGuideCopy> = {
@@ -165,7 +165,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
   user: (path) => ({
     eyebrow: 'Teach the personal hub',
     title: 'User dashboard tour',
-    summary: 'Use the public dashboard as the personal proof hub: Home, training proof, Studio, community, and profile all stay connected.',
+    summary: 'Use the public dashboard as the personal proof hub: Home, training proof, Creative, community, and profile all stay connected.',
     focus: userFocus(path),
     primaryAction: { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
     fastPath: [
@@ -176,7 +176,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
     steps: [
       'Start on Home for the daily snapshot and the fastest path back into training.',
       'Use Progress and Activity to inspect proof from real logged workouts before making decisions.',
-      'Use Studio and Photos to package transformation evidence after the work is logged.',
+      'Use Creative and Photos to package transformation evidence after the work is logged.',
       'Use Friends and Challenges to share meaningful milestones without burying the training loop.',
     ],
     actions: [
@@ -184,7 +184,7 @@ const guides: Record<DashboardTeachMeRole, (path: string) => DashboardTeachMeGui
       { label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' },
       { label: 'Ask Coach', to: '/dashboard/client/coach-assistant' },
       { label: 'Progress', to: '/user-dashboard/progress' },
-      { label: 'Studio', to: '/user-dashboard/creative' },
+      { label: 'Creative', to: '/user-dashboard/creative' },
       { label: 'Friends', to: '/user-dashboard/friends' },
     ],
     primaryPrompt: 'teach me the user dashboard training workflow',

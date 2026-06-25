@@ -13,15 +13,23 @@ import {
 
 interface CreativeGalleryUploadCardProps {
   onUpload: () => void;
+  disabled?: boolean;
 }
 
-const CreativeGalleryUploadCard: React.FC<CreativeGalleryUploadCardProps> = ({ onUpload }) => (
-  <UploadCard type="button" onClick={onUpload} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-    <UploadIcon>
-      <Plus size={32} />
+const CreativeGalleryUploadCard: React.FC<CreativeGalleryUploadCardProps> = ({ disabled = false, onUpload }) => (
+  <UploadCard
+    type="button"
+    aria-label="Share creative media"
+    disabled={disabled}
+    onClick={onUpload}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    <UploadIcon aria-hidden="true">
+      <Plus size={32} aria-hidden="true" />
     </UploadIcon>
-    <UploadText>Share Your Creativity</UploadText>
-    <UploadSubtext>
+    <UploadText as="span" aria-hidden="true">Share Your Creativity</UploadText>
+    <UploadSubtext as="span" aria-hidden="true">
       Upload your dance moves, workout videos, or musical performances to inspire the community
     </UploadSubtext>
   </UploadCard>

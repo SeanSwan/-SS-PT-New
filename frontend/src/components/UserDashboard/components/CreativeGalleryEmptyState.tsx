@@ -6,11 +6,21 @@ import React from 'react';
 import { Upload } from 'lucide-react';
 import { EmptyState } from './CreativeGalleryCard.styles';
 
-const CreativeGalleryEmptyState: React.FC = () => (
-  <EmptyState>
-    <Upload size={48} />
-    <h3>No media yet</h3>
-    <p>Share photos and videos to build your creative gallery</p>
+const EMPTY_STATE_TITLE_ID = 'creative-gallery-empty-title';
+
+interface CreativeGalleryEmptyStateProps {
+  title?: string;
+  description?: string;
+}
+
+const CreativeGalleryEmptyState: React.FC<CreativeGalleryEmptyStateProps> = ({
+  title = 'No media yet',
+  description = 'Share photos and videos to build your creative gallery',
+}) => (
+  <EmptyState role="region" aria-labelledby={EMPTY_STATE_TITLE_ID}>
+    <Upload size={48} aria-hidden="true" />
+    <h3 id={EMPTY_STATE_TITLE_ID}>{title}</h3>
+    <p>{description}</p>
   </EmptyState>
 );
 

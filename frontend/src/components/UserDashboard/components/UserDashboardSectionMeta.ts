@@ -43,7 +43,7 @@ export const sectionMeta: Record<Exclude<TabId, 'home'>, SectionMetaEntry> = {
     Icon: MessageCircle,
   },
   reels: {
-    eyebrow: 'Short-Form Studio',
+    eyebrow: 'Short-Form Creative',
     title: 'Reels',
     copy: 'Training clips, transformations, and creator highlights in the same crystalline dashboard language.',
     tone: 'violet',

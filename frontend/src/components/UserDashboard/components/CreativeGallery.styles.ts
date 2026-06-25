@@ -56,6 +56,11 @@ export const UploadButton = styled(motion.button)`
   ${visionAccentButtonCss}
   cursor: pointer;
 
+  &:disabled {
+    cursor: progress;
+    opacity: 0.72;
+  }
+
   @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
@@ -98,4 +103,10 @@ export const GalleryGrid = styled.div`
 
 export const HiddenFileInput = styled.input`
   display: none;
+`;
+
+export const UploadStatus = styled.p`
+  margin: -1rem 0 1.25rem;
+  color: var(--text-secondary, #B8C7D9);
+  font: 700 0.86rem/1.45 var(--font-ui, 'Sora', sans-serif);
 `;

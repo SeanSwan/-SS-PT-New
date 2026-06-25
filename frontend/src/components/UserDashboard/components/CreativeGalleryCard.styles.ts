@@ -73,10 +73,34 @@ export const VideoTitle = styled.h3`
   line-height: 1.3;
 `;
 
+export const CategoryStampRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.65rem;
+`;
+
+export const CategoryStamp = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  max-width: 100%;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, var(--bg-elevated, #003080));
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+`;
+
 export const VideoStats = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  gap: 0.7rem 1rem;
   color: var(--text-muted, #64748b);
   font-size: 0.875rem;
 `;
@@ -105,6 +129,16 @@ export const UploadCard = styled(motion.button)`
     border-color: var(--accent-primary, #60C0F0);
     background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
     transform: translateY(-2px);
+  }
+
+  &:disabled {
+    cursor: progress;
+    opacity: 0.72;
+  }
+
+  &:disabled:hover {
+    border-color: var(--border-soft, rgba(255, 255, 255, 0.08));
+    transform: none;
   }
 
   &:focus-visible {

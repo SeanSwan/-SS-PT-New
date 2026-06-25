@@ -25,7 +25,7 @@ import type { ObservatoryNavItem } from './ObservatoryShellTypes';
 import { STUDIO_TAB_IDS } from '../types/UserDashboardTypes';
 
 /* Workstream N5 (tab compaction): 14 → 9 entries, mirroring the tab bar.
-   Studio groups Creative/Photos/About/Activity; Profile + Community keep
+   Creative groups Creative/Photos/About/Activity; Profile + Community keep
    their panels + URLs but leave the nav.
    Workstream O: Feed left the nav — Home absorbed its unique widgets. */
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
@@ -36,7 +36,7 @@ export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'challenges',    label: 'Challenges',    Icon: Trophy },
   { id: 'notifications', label: 'Alerts',        Icon: Bell },
   { id: 'nutrition',     label: 'Nutrition',     Icon: Utensils },
-  { id: 'creative',      label: 'Studio',        Icon: Aperture, matches: STUDIO_TAB_IDS },
+  { id: 'creative',      label: 'Creative',      Icon: Aperture, matches: STUDIO_TAB_IDS },
 ];
 
 export function getTransformationPhotos(

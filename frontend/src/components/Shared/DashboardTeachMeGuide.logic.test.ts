@@ -144,7 +144,7 @@ describe('getDashboardTeachMeGuide', () => {
       expect.objectContaining({ label: 'Log Workout', to: '/dashboard/client/log-workout?loadPlan=today' }),
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       expect.objectContaining({ label: 'Progress', to: '/user-dashboard/progress' }),
-      expect.objectContaining({ label: 'Studio', to: '/user-dashboard/creative' }),
+      expect.objectContaining({ label: 'Creative', to: '/user-dashboard/creative' }),
     ]));
   });
 

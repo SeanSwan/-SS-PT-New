@@ -288,7 +288,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     const lensesSource = readSource('src/components/UserDashboard/components/UserDashboardStudioLenses.tsx');
     const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
 
-    // Bar/rail entries ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Studio's id is 'creative' (the group's landing lens).
+    // Bar/rail entries ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Creative's id is 'creative' (the group's landing lens).
     // Workstream O: 'feed' left the bar (panel unmounted; Home absorbed it).
     const barTabs = ['home', 'progress', 'reels', 'friends', 'challenges', 'notifications', 'nutrition', 'creative'];
     barTabs.forEach((tabId) => {
@@ -300,10 +300,10 @@ describe('UserDashboard V3 daily loop contract', () => {
         .toContain(`id: '${tabId}'`);
     });
 
-    // Studio lenses are reachable via the in-panel strip.
+    // Creative lenses are reachable via the in-panel strip.
     ['photos', 'about', 'activity'].forEach((tabId) => {
       expect(tabsSource, `${tabId} panel must exist`).toContain(`<TabPanel id="${tabId}"`);
-      expect(lensesSource, `${tabId} must be reachable from the Studio lens strip`)
+      expect(lensesSource, `${tabId} must be reachable from the Creative lens strip`)
         .toContain(`id: '${tabId}'`);
     });
 
@@ -321,15 +321,15 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(adapterSource).not.toContain("id: 'feed'");
   });
 
-  it('compacts the tab bar to the Studio group without breaking deep links (workstream N5)', () => {
+  it('compacts the tab bar to the Creative group without breaking deep links (workstream N5)', () => {
     const tabBarSource = readSource('src/components/UserDashboard/components/UserDashboardTabBarV3.tsx');
     const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
     const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
     const leftRailSource = readSource('src/components/UserDashboard/components/ObservatoryLeftRail.tsx');
 
-    // One Studio entry replaces Creative/Photos/About/Activity in BOTH navs.
+    // One Creative entry replaces Creative/Photos/About/Activity in BOTH navs.
     [tabBarSource, adapterSource].forEach((source) => {
-      expect(source).toContain("label: 'Studio'");
+      expect(source).toContain("label: 'Creative'");
       expect(source).toContain('matches: STUDIO_TAB_IDS');
       expect(source).not.toContain("label: 'Photos'");
       expect(source).not.toContain("label: 'About'");
@@ -338,7 +338,7 @@ describe('UserDashboard V3 daily loop contract', () => {
       expect(source).not.toContain("id: 'profile'");
       expect(source).not.toContain("id: 'community'");
     });
-    // Grouped active state highlights Studio for every lens.
+    // Grouped active state highlights Creative for every lens.
     expect(tabBarSource).toContain('matches.includes(activeTab)');
     expect(leftRailSource).toContain('matches.includes(activeTab)');
     // Every lens + the Settings-flow profile keep their panels (URL-routable).

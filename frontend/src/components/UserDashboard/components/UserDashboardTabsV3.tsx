@@ -81,12 +81,24 @@ interface TabPanelProps {
 const TabPanel: React.FC<TabPanelProps> = ({ id, activeTab, children }) => {
   if (activeTab !== id) return null;
 
+  const labelledBy = id === 'profile' ? 'tab-studio' : `tab-${id}`;
+
   return (
-    <div role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`}>
+    <div role="tabpanel" id={`panel-${id}`} aria-labelledby={labelledBy}>
       {children}
     </div>
   );
 };
+
+const TabLoadingFallback = () => (
+  <LoadingContainer
+    role="status"
+    aria-label="Loading dashboard section"
+    aria-live="polite"
+  >
+    <LoadingSpinner aria-hidden="true" />
+  </LoadingContainer>
+);
 
 interface UserDashboardTabsV3Props {
   activeTab: TabId;
@@ -118,7 +130,7 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.8, delay: 0.4 }}
   >
-    <Suspense fallback={<LoadingContainer><LoadingSpinner /></LoadingContainer>}>
+    <Suspense fallback={<TabLoadingFallback />}>
       <TabPanel id="home" activeTab={activeTab}>
         <HomeTab onTabChange={(tab) => onTabChange(tab as TabId)}
           profile={homeProfile}
@@ -160,7 +172,7 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           <DashboardNotificationsTab />
         </SectionChrome>
       </TabPanel>
-      {/* Workstream N5: the Studio group — one bar entry, four lenses.
+      {/* Workstream N5: the Creative group — one bar entry, four lenses.
           Each lens keeps its own TabId + URL; the strip switches in place. */}
       <TabPanel id="creative" activeTab={activeTab}>
         <StudioLenses activeTab={activeTab} onTabChange={onTabChange} />

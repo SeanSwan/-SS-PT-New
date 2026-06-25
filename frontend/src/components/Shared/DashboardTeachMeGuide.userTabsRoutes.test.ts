@@ -7,7 +7,7 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
       role: 'user',
       pathname: '/user-dashboard/creative#creative',
     }).primaryAction).toEqual({
-      label: 'Open Studio',
+      label: 'Open Creative',
       to: '/user-dashboard/creative',
     });
 
@@ -42,7 +42,7 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
       ['friends', 'Open Friends'],
       ['challenges', 'Open Challenges'],
       ['notifications', 'Open Notifications'],
-      ['creative', 'Open Studio'],
+      ['creative', 'Open Creative'],
       ['photos', 'Open Photos'],
       ['about', 'Open About'],
       ['activity', 'Review Activity'],
@@ -62,7 +62,7 @@ describe('DashboardTeachMeGuide public user tab routes', () => {
         expect.objectContaining(guide.primaryAction),
         expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/client/coach-assistant' }),
       ]));
-      expect(guide.primaryPrompt).toContain(tab === 'creative' ? 'studio' : tab);
+      expect(guide.primaryPrompt).toContain(tab);
       expect(guide.primaryPrompt).not.toBe('teach me the user dashboard training workflow');
     });
   });

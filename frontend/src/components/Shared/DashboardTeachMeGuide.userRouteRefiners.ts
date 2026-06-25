@@ -1,6 +1,6 @@
 /**
  * SHARED LOGIC: Public user dashboard Teach Me route refiners.
- * PURPOSE: Keeps Studio, community, and profile teaching tied to real training
+ * PURPOSE: Keeps Creative, community, and profile teaching tied to real training
  * proof instead of turning the public dashboard into disconnected social tabs.
  */
 
@@ -51,9 +51,9 @@ export const refineUserGuide = (
         'Step 1: use HomeTrainingCommandStrip to start Log Workout instead of hunting through tabs.',
         'Step 2: open Progress and Training Proof to see whether the story is current or missing a saved workout.',
         'Step 3: ask Coach for a quick next-action check, but do not treat Coach text as a logged workout.',
-        'Use Studio or share proof only after the workout is saved and the progress story is truthful.',
+        'Use Creative or share proof only after the workout is saved and the progress story is truthful.',
       ],
-      actions: actionRail(logWorkout, { label: 'Studio', to: '/user-dashboard/creative' }),
+      actions: actionRail(logWorkout, { label: 'Creative', to: '/user-dashboard/creative' }),
     });
   }
 
@@ -64,7 +64,7 @@ export const refineUserGuide = (
       summary: 'Use Photos to keep transformation evidence organized after the workout proof is current.',
       focus: 'Tie photos to real training progress so the visual story stays useful, not random.',
       primaryAction,
-      actions: actionRail(primaryAction, { label: 'Open Studio', to: '/user-dashboard/creative' }),
+      actions: actionRail(primaryAction, { label: 'Open Creative', to: '/user-dashboard/creative' }),
       primaryPrompt: 'teach me the user photos workflow for tying progress photos to logged workouts',
       fastPath: [
         'Pick the progress photo.',
@@ -75,14 +75,14 @@ export const refineUserGuide = (
   }
 
   if (includesAny(path, ['creative', 'studio'])) {
-    const primaryAction = { label: 'Open Studio', to: '/user-dashboard/creative' };
+    const primaryAction = { label: 'Open Creative', to: '/user-dashboard/creative' };
     return applyPatch(base, {
-      title: 'Studio proof flow',
-      summary: 'Use Studio after the training proof exists so creative posts reinforce the real transformation.',
+      title: 'Creative proof flow',
+      summary: 'Use Creative after the training proof exists so creative posts reinforce the real transformation.',
       focus: 'Package progress, photos, and creative expression after the workout story is current.',
       primaryAction,
       actions: actionRail(primaryAction, { label: 'Open Photos', to: '/user-dashboard/photos' }),
-      primaryPrompt: 'teach me the user studio workflow for turning logged progress into clean creative proof',
+      primaryPrompt: 'teach me the user creative workflow for turning logged progress into clean creative proof',
       fastPath: [
         'Confirm the training proof.',
         'Pick the media or creative piece.',
@@ -166,7 +166,7 @@ export const refineUserGuide = (
       summary: 'Use Reels to share a clear training moment after the proof is logged.',
       focus: 'Keep the clip tied to a real workout, progress marker, or coaching lesson.',
       primaryAction,
-      actions: actionRail(primaryAction, { label: 'Open Studio', to: '/user-dashboard/creative' }),
+      actions: actionRail(primaryAction, { label: 'Open Creative', to: '/user-dashboard/creative' }),
       primaryPrompt: 'teach me the user reels workflow for turning a training moment into useful proof',
       fastPath: [
         'Pick the training moment.',
