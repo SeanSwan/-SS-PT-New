@@ -1,192 +1,190 @@
 /**
- * ┌─── SUB-COMPONENT: PartyHPBar ──────────────────────────────┐
- * │ PARENT: SocialFeed sidebar / UserProfilePage                │
- * │ PURPOSE: Shared HP bar for party/linkshell groups           │
- * │ WIREFRAME:                                                  │
- * │ ┌──────────────────────────────────┐                        │
- * │ │ ♥ Iron Wolves    72/100 HP       │                        │
- * │ │ ████████████████░░░░░            │                        │
- * │ │ 3/5 members  Code: A1B2C3D4     │                        │
- * │ └──────────────────────────────────┘                        │
- * │ Props: { party, myRole, onLeave, onCopyCode }               │
- * │ CLICK-OUTCOMES:                                             │
- * │ [Copy Code] → clipboard copy invite code                    │
- * │ [Leave] → POST /api/social/parties/leave                    │
- * └─────────────────────────────────────────────────────────────┘
+ * SUB-COMPONENT: PartyHPBar
+ * Parent: SocialFeed sidebar, UserProfilePage, and mounted Community Party section
+ * Purpose: Shows shared squad HP, invite-code actions, party member count, and leave/disband controls.
+ * Click outcomes:
+ * - Copy invite code -> writes the invite code to the clipboard when browser support is available.
+ * - Leave/disband -> calls the parent party hook action and reports only generic error copy.
  */
 
-import React, { memo, useState } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import React, { memo, useRef, useState } from 'react';
 import { Heart, Copy, LogOut, Users } from 'lucide-react';
 import type { Party } from '../../../hooks/social/useParty';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
+import {
+  ActionError,
+  ActionRow,
+  CopyStatus,
+  HPFill,
+  HPPulse,
+  HPText,
+  HPTrack,
+  HP_TONE_COLORS,
+  MetaRow,
+  PartyFooter,
+  PartyHeader,
+  PartyName,
+  PartyWrap,
+  SmallBtn,
+  type HpTone,
+} from './PartyHPBar.styles';
 
 interface PartyHPBarProps {
   party: Party;
   myRole: string | null;
-  onLeave: () => void;
+  onLeave: () => Promise<unknown> | void;
   frameless?: boolean;
 }
 
-const PartyHPBar: React.FC<PartyHPBarProps> = memo(({ party, myRole, onLeave, frameless = false }) => {
-  const [copied, setCopied] = useState(false);
-  const hpPct = Math.round((party.currentHP / party.maxHP) * 100);
-  const hpColor = hpPct > 60 ? '#4ade80' : hpPct > 30 ? '#fbbf24' : '#ef4444';
+const clampNumber = (value: number, min: number, max: number) => (
+  Math.min(Math.max(value, min), max)
+);
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(party.inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+const normalizePartyHp = (currentHP: number, maxHP: number) => {
+  const safeMax = Number.isFinite(maxHP) && maxHP > 0 ? Math.round(maxHP) : 0;
+
+  if (safeMax <= 0) {
+    return { current: 0, max: 0, pct: 0 };
+  }
+
+  const safeCurrent = Number.isFinite(currentHP)
+    ? clampNumber(Math.round(currentHP), 0, safeMax)
+    : 0;
+
+  return {
+    current: safeCurrent,
+    max: safeMax,
+    pct: clampNumber(Math.round((safeCurrent / safeMax) * 100), 0, 100),
+  };
+};
+
+const hpToneFor = (pct: number): HpTone => {
+  if (pct > 60) return 'strong';
+  if (pct > 30) return 'warning';
+  return 'critical';
+};
+
+const PartyHPBar: React.FC<PartyHPBarProps> = memo(({
+  party,
+  myRole,
+  onLeave,
+  frameless = false,
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [copyMessage, setCopyMessage] = useState('');
+  const [leaveError, setLeaveError] = useState('');
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [confirmDisband, setConfirmDisband] = useState(false);
+  const leavingRef = useRef(false);
+
+  const hp = normalizePartyHp(party.currentHP, party.maxHP);
+  const hpTone = hpToneFor(hp.pct);
+  const hpColor = HP_TONE_COLORS[hpTone];
+  const isLeader = myRole === 'leader';
+  const isConfirmingDisband = isLeader && confirmDisband;
+  const leaveLabel = isLeader
+    ? (isConfirmingDisband ? 'Confirm disband party' : 'Disband party')
+    : 'Leave party';
+  const maxMembers = Number.isFinite(party.maxMembers) && party.maxMembers > 0
+    ? Math.round(party.maxMembers)
+    : 1;
+  const memberCount = clampNumber(party.members?.length || 1, 1, maxMembers);
+
+  const copyCode = async () => {
+    if (!navigator.clipboard?.writeText) {
+      setCopied(false);
+      setCopyMessage('Copy unavailable. Select the invite code manually.');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(party.inviteCode);
+      setCopied(true);
+      setCopyMessage('Invite code copied.');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+      setCopyMessage('Copy unavailable. Select the invite code manually.');
+    }
+  };
+
+  const handleLeave = async () => {
+    if (isLeader && !confirmDisband) {
+      setLeaveError('');
+      setConfirmDisband(true);
+      return;
+    }
+
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    setLeaveError('');
+    setIsLeaving(true);
+
+    try {
+      await onLeave();
+    } catch {
+      setLeaveError('Unable to update party. Please try again later.');
+    } finally {
+      leavingRef.current = false;
+      setIsLeaving(false);
+      setConfirmDisband(false);
+    }
   };
 
   return (
     <PartyWrap $frameless={frameless}>
       <PartyHeader>
-        <Heart size={14} color={hpColor} />
+        <Heart size={14} color={hpColor} aria-hidden="true" />
         <PartyName>{party.name}</PartyName>
-        <HPText $color={hpColor}>{party.currentHP}/{party.maxHP} HP</HPText>
+        <HPText $tone={hpTone}>{hp.current}/{hp.max} HP</HPText>
       </PartyHeader>
 
-      <HPTrack>
-        <HPFill $color={hpColor} $pct={hpPct} />
-        {hpPct <= 20 && <HPPulse $color={hpColor} />}
+      <HPTrack
+        role="progressbar"
+        aria-label={`${party.name} squad HP`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={hp.pct}
+        aria-valuetext={`${hp.current} of ${hp.max} HP`}
+      >
+        <HPFill $tone={hpTone} $pct={hp.pct} />
+        {hp.max > 0 && hp.pct <= 20 && <HPPulse $tone={hpTone} />}
       </HPTrack>
 
       <PartyFooter>
-        <MetaRow>
-          <Users size={12} />
-          <span>{party.members?.length || 1}/{party.maxMembers}</span>
+        <MetaRow aria-label={`${memberCount} of ${maxMembers} party members`}>
+          <Users size={12} aria-hidden="true" />
+          <span>{memberCount}/{maxMembers}</span>
         </MetaRow>
 
         <ActionRow>
-          <SmallBtn onClick={copyCode} title="Copy invite code">
-            <Copy size={12} />
+          <SmallBtn
+            type="button"
+            onClick={copyCode}
+            title="Copy invite code"
+            aria-label={`Copy invite code ${party.inviteCode}`}
+          >
+            <Copy size={12} aria-hidden="true" />
             {copied ? 'Copied!' : party.inviteCode}
           </SmallBtn>
-          <SmallBtn onClick={onLeave} title={myRole === 'leader' ? 'Disband party' : 'Leave party'}>
-            <LogOut size={12} />
+          <SmallBtn
+            type="button"
+            onClick={handleLeave}
+            title={leaveLabel}
+            aria-label={leaveLabel}
+            aria-busy={isLeaving}
+            disabled={isLeaving}
+          >
+            <LogOut size={12} aria-hidden="true" />
+            {isConfirmingDisband && <span>Confirm</span>}
           </SmallBtn>
         </ActionRow>
       </PartyFooter>
+
+      {leaveError && <ActionError role="alert">{leaveError}</ActionError>}
+      <CopyStatus role="status" aria-live="polite">{copyMessage}</CopyStatus>
     </PartyWrap>
   );
 });
 
 PartyHPBar.displayName = 'PartyHPBar';
 export default PartyHPBar;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Animations
-// ─────────────────────────────────────────────────────────────
-
-const pulse = keyframes`
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
-
-const PartyWrap = styled.div<{ $frameless?: boolean }>`
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  margin: 12px 0;
-
-  ${({ $frameless }) => $frameless && css`
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    margin: 0;
-  `}
-`;
-
-const PartyHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-`;
-
-const PartyName = styled.span`
-  flex: 1;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const HPText = styled.span<{ $color: string }>`
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  color: ${({ $color }) => $color};
-`;
-
-const HPTrack = styled.div`
-  position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--bg-base, #030712);
-  overflow: hidden;
-`;
-
-const HPFill = styled.div<{ $color: string; $pct: number }>`
-  height: 100%;
-  width: ${({ $pct }) => $pct}%;
-  border-radius: 4px;
-  background: ${({ $color }) => $color};
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-`;
-
-const HPPulse = styled.div<{ $color: string }>`
-  position: absolute;
-  inset: 0;
-  background: ${({ $color }) => $color};
-  animation: ${pulse} 1s ease-in-out infinite;
-  border-radius: 4px;
-`;
-
-const PartyFooter = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-`;
-
-const MetaRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.35));
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  gap: 4px;
-`;
-
-const SmallBtn = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  min-height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: var(--bg-base, #030712);
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  cursor: pointer;
-  transition: color 0.15s ease;
-
-  &:hover { color: var(--accent-primary, #60C0F0); }
-`;
