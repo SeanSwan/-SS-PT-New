@@ -2,11 +2,13 @@
  * Session Billing Policy
  * ======================
  *
- * Centralizes SwanStudios client-source billing rules so workout logging,
- * scheduling, and future Swan Coach actions do not drift apart.
+ * Centralizes SwanStudios client-source and per-account billing rules so workout
+ * logging, scheduling, and future Swan Coach actions do not drift apart.
  */
 
 export const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+export const SESSION_BILLING_MODES = new Set(['paid_sessions', 'no_session_required']);
+
 export const parseClientSource = (clientSource) => {
   if (typeof clientSource !== 'string') return null;
 
@@ -21,6 +23,34 @@ export const parseClientSource = (clientSource) => {
   return null;
 };
 
+export const parseSessionBillingMode = (sessionBillingMode) => {
+  if (typeof sessionBillingMode !== 'string') return 'paid_sessions';
+
+  const normalized = sessionBillingMode
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+  if (normalized === 'paid' || normalized === 'paid_session' || normalized === 'paid_sessions') {
+    return 'paid_sessions';
+  }
+
+  if (
+    normalized === 'no_pay'
+    || normalized === 'nopay'
+    || normalized === 'free_session'
+    || normalized === 'free_sessions'
+    || normalized === 'free_training'
+    || normalized === 'no_session'
+    || normalized === 'no_sessions'
+    || normalized === 'no_session_required'
+  ) {
+    return 'no_session_required';
+  }
+
+  return 'paid_sessions';
+};
+
 class NormalizedClientSourceSet extends Set {
   has(clientSource) {
     const source = parseClientSource(clientSource);
@@ -28,7 +58,14 @@ class NormalizedClientSourceSet extends Set {
   }
 }
 
+class NormalizedSessionBillingModeSet extends Set {
+  has(sessionBillingMode) {
+    return super.has(parseSessionBillingMode(sessionBillingMode));
+  }
+}
+
 export const NON_DEDUCTING_CLIENT_SOURCES = new NormalizedClientSourceSet(['move_fitness', 'external']);
+export const NO_SESSION_REQUIRED_BILLING_MODES = new NormalizedSessionBillingModeSet(['no_session_required']);
 
 export const CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES = Object.freeze([
   'available',
@@ -52,17 +89,39 @@ export const isNonDeductingClientSource = (clientSource) => (
   NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)
 );
 
-export function buildClientSourcePolicy(clientSource) {
+export const isNoSessionRequiredBillingMode = (sessionBillingMode) => (
+  NO_SESSION_REQUIRED_BILLING_MODES.has(sessionBillingMode)
+);
+
+export const isNonDeductingClient = (clientOrSource, sessionBillingMode) => {
+  const clientSource = typeof clientOrSource === 'object' && clientOrSource !== null
+    ? clientOrSource.clientSource
+    : clientOrSource;
+  const billingMode = typeof clientOrSource === 'object' && clientOrSource !== null
+    ? clientOrSource.sessionBillingMode
+    : sessionBillingMode;
+
+  return isNonDeductingClientSource(clientSource) || isNoSessionRequiredBillingMode(billingMode);
+};
+
+export function buildClientSourcePolicy(clientSource, sessionBillingMode) {
   const normalizedSource = normalizeClientSource(clientSource);
-  const isFreeTracking = isNonDeductingClientSource(normalizedSource);
+  const normalizedBillingMode = parseSessionBillingMode(sessionBillingMode) || 'paid_sessions';
+  const isSourceNonDeducting = isNonDeductingClientSource(normalizedSource);
+  const isNoSessionRequired = isNoSessionRequiredBillingMode(normalizedBillingMode);
+  const isFreeTracking = isSourceNonDeducting || isNoSessionRequired;
 
   return {
     clientSource: normalizedSource,
+    sessionBillingMode: normalizedBillingMode,
     isFreeTracking,
+    isNoSessionRequired,
     shouldDeductPaidSessions: !isFreeTracking,
-    sessionBalancePolicy: isFreeTracking
-      ? 'free_tracking_no_session_deduction'
-      : 'paid_sessions_deduct_on_billable_training',
+    sessionBalancePolicy: isNoSessionRequired
+      ? 'no_session_required_no_paid_session_deduction'
+      : isSourceNonDeducting
+        ? 'free_tracking_no_session_deduction'
+        : 'paid_sessions_deduct_on_billable_training',
   };
 }
 
@@ -75,7 +134,7 @@ const normalizeCreditsRequired = (value) => {
 };
 
 export function buildWorkoutSessionBillingDecision(client, options = {}) {
-  const shouldDeduct = !isNonDeductingClientSource(client?.clientSource);
+  const shouldDeduct = !isNonDeductingClient(client);
   const availableSessions = normalizePaidSessionCount(client?.availableSessions);
   const creditsRequired = normalizeCreditsRequired(options.creditsRequired);
 

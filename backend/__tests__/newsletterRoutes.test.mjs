@@ -36,6 +36,7 @@ describe('newsletterRoutes (Tier 1.1)', () => {
     const res = await request(app).post('/api/newsletter/subscribe').send({ email: 'a@b.com', firstName: 'A', source: 'footer' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(res.body.emailDelivery).toBe('sent');
     expect(subscribe).toHaveBeenCalledTimes(1);
     expect(sendGridEmail).toHaveBeenCalledTimes(1);
     const mail = sendGridEmail.mock.calls[0][0];
@@ -64,11 +65,22 @@ describe('newsletterRoutes (Tier 1.1)', () => {
     expect(sendGridEmail).not.toHaveBeenCalled();
   });
 
-  it('subscribe: stays 200 if the confirm email send throws (non-blocking)', async () => {
+  it('subscribe: stays 200 but reports when the confirm email send throws', async () => {
     sendGridEmail.mockRejectedValue(new Error('sg down'));
     const res = await request(app).post('/api/newsletter/subscribe').send({ email: 'a@b.com' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(res.body.emailDelivery).toBe('failed');
+    expect(res.body.message).toMatch(/confirmation email could not be sent/i);
+  });
+
+  it('subscribe: reports SendGrid result failure without pretending the email was sent', async () => {
+    sendGridEmail.mockResolvedValue({ success: false, error: new Error('SendGrid service not configured') });
+    const res = await request(app).post('/api/newsletter/subscribe').send({ email: 'a@b.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.emailDelivery).toBe('failed');
+    expect(res.body.message).toMatch(/confirmation email could not be sent/i);
   });
 
   it('confirm: valid token -> 200, creates CRM lead + sends welcome email (w/ unsubscribe) + booking CTA', async () => {

@@ -19,6 +19,8 @@ const router = express.Router();
 
 const SITE_URL = process.env.FRONTEND_URL || 'https://sswanstudios.com';
 const API_URL = process.env.API_BASE_URL || SITE_URL;
+const CONFIRM_EMAIL_SENT_MESSAGE = 'Almost there - check your email to confirm your subscription.';
+const CONFIRM_EMAIL_FAILED_MESSAGE = 'Your subscription request was saved, but the confirmation email could not be sent right now. Please try again later or contact SwanStudios.';
 
 const page = (heading, message, cta = null) => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${heading} · SwanStudios</title></head>
@@ -45,7 +47,7 @@ router.post('/subscribe', rateLimiter({ windowMs: 60 * 60 * 1000, max: 20 }), as
   try {
     const { email, firstName, lastName, source, website, utmSource, utmMedium, utmCampaign, referrer } = req.body || {};
     if (website) {
-      return res.status(200).json({ success: true, message: 'Almost there — check your email to confirm your subscription.' });
+      return res.status(200).json({ success: true, emailDelivery: 'not_required', message: CONFIRM_EMAIL_SENT_MESSAGE });
     }
 
     // Attribute the acquisition channel (YouTube / TikTok / IG / search / referral / direct)
@@ -70,22 +72,35 @@ router.post('/subscribe', rateLimiter({ windowMs: 60 * 60 * 1000, max: 20 }), as
       return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
     }
 
+    let emailDelivery = result.confirmToken ? 'not_sent' : 'not_required';
+    let responseMessage = CONFIRM_EMAIL_SENT_MESSAGE;
+
     if (result.confirmToken) {
       try {
         const confirmUrl = `${API_URL}/api/newsletter/confirm/${result.confirmToken}`;
-        await sendGridEmail({
+        const mailResult = await sendGridEmail({
           to: result.subscriber.email,
           subject: 'Confirm your SwanStudios subscription',
           text: `Welcome to SwanStudios! Confirm your subscription: ${confirmUrl}`,
-          html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto"><h2 style="color:#002060">Confirm your subscription</h2><p>Tap below to confirm you'd like SwanStudios updates.</p><p><a href="${confirmUrl}" style="display:inline-block;background:#002060;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Confirm subscription</a></p><p style="color:#666;font-size:13px">If you didn't request this, ignore this email — you won't be added.</p></div>`,
+          html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto"><h2 style="color:#002060">Confirm your subscription</h2><p>Tap below to confirm you would like SwanStudios updates.</p><p><a href="${confirmUrl}" style="display:inline-block;background:#002060;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">Confirm subscription</a></p><p style="color:#666;font-size:13px">If you did not request this, ignore this email - you will not be added.</p></div>`,
         });
+        if (mailResult?.success) {
+          emailDelivery = 'sent';
+        } else {
+          const errorMessage = mailResult?.error?.message || 'SendGrid returned an unsuccessful result';
+          logger.warn(`[Newsletter] confirm email failed: ${errorMessage}`);
+          emailDelivery = 'failed';
+          responseMessage = CONFIRM_EMAIL_FAILED_MESSAGE;
+        }
       } catch (mailErr) {
         logger.warn(`[Newsletter] confirm email failed: ${mailErr.message}`);
+        emailDelivery = 'failed';
+        responseMessage = CONFIRM_EMAIL_FAILED_MESSAGE;
       }
     }
 
-    // Generic success regardless of new/existing/already-confirmed — don't reveal who is on the list.
-    return res.status(200).json({ success: true, message: 'Almost there — check your email to confirm your subscription.' });
+    // Generic success regardless of new/existing/already-confirmed - don't reveal who is on the list.
+    return res.status(200).json({ success: true, emailDelivery, message: responseMessage });
   } catch (err) {
     logger.error(`[Newsletter] subscribe error: ${err.message}`);
     return res.status(500).json({ success: false, message: 'Could not process your subscription. Please try again.' });

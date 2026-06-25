@@ -20,14 +20,14 @@ import {
 import logger from '../utils/logger.mjs';
 
 export const getSourceAwareSessionsRemaining = (user) => {
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(user?.clientSource)) return 0;
+  if (isNonDeductingClient(user)) return 0;
   return normalizePaidSessionCount(user?.availableSessions);
 };
 
 export const getUserCredits = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'availableSessions', 'clientSource', 'masterPromptJson']
+      attributes: ['id', 'availableSessions', 'clientSource', 'sessionBillingMode', 'masterPromptJson']
     });
 
     if (!user) {
@@ -46,6 +46,7 @@ export const getUserCredits = async (req, res) => {
       data: {
         sessionsRemaining: getSourceAwareSessionsRemaining(user),
         clientSource: user.clientSource,
+        sessionBillingMode: user.sessionBillingMode,
         packageName,
         expiresAt
       }

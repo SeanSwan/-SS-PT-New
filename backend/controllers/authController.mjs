@@ -364,6 +364,7 @@ const sanitizeUser = (user) => {
   if (user.availableSessions !== undefined) sanitized.availableSessions = user.availableSessions;
   // Include client source so frontend can adapt UI (move_fitness vs swanstudios)
   if (user.clientSource) sanitized.clientSource = user.clientSource;
+  if (user.sessionBillingMode) sanitized.sessionBillingMode = user.sessionBillingMode;
 
   return sanitized;
 };

@@ -3,6 +3,8 @@ import styled, { keyframes, createGlobalStyle } from "styled-components";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import ReactDOM from 'react-dom';
+import { useAuth } from '../../context/AuthContext';
+import { isNonDeductingClientAccount } from '../../utils/clientSource';
 
 // Import the logo (ensure the path is correct)
 import Logo from "../../assets/Logo.png";
@@ -60,17 +62,17 @@ const ModalOverlay = styled(motion.div)`
   background: rgba(13, 12, 34, 0.95); /* Deep blue-purple with high opacity */
   backdrop-filter: blur(8px);
   overflow-y: auto;
-  
+
   /* Improved scrollbar styling */
   &::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: linear-gradient(to bottom, #60C0F0, #8B5CF6);
     border-radius: 4px;
@@ -86,12 +88,12 @@ const ContentContainer = styled.div`
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  
+
   @media (max-width: 768px) {
     padding: 10px;
     max-height: 100vh;
   }
-  
+
   @media (max-width: 480px) {
     padding: 5px;
   }
@@ -108,13 +110,13 @@ const ModalContainer = styled(motion.div)`
   padding: 2rem 2rem 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   margin: auto 0;
-  
+
   @media (max-width: 768px) {
     padding: 1.25rem;
     border-radius: 10px;
     margin: 5px 0;
   }
-  
+
   @media (max-width: 480px) {
     padding: 1rem 0.75rem;
     margin: 0;
@@ -144,7 +146,7 @@ const CloseButton = styled(motion.button)`
     color: white;
     animation: ${glow} 2s infinite;
   }
-  
+
   @media (max-width: 480px) {
     width: 30px;
     height: 30px;
@@ -160,7 +162,7 @@ const FormHeader = styled(motion.div)`
   align-items: center;
   margin-bottom: 20px;
   position: relative;
-  
+
   @media (max-width: 480px) {
     margin-bottom: 15px;
   }
@@ -178,7 +180,7 @@ const LogoCircle = styled(motion.div)`
   position: relative;
   z-index: 1;
   animation: ${float} 6s ease-in-out infinite;
-  
+
   @media (max-width: 480px) {
     width: 60px;
     height: 60px;
@@ -202,7 +204,7 @@ const FormTitle = styled(motion.h2)`
   font-weight: 300;
   position: relative;
   letter-spacing: 1px;
-  
+
   &:after {
     content: "";
     position: absolute;
@@ -218,11 +220,11 @@ const FormTitle = styled(motion.h2)`
       rgba(139, 92, 246, 0)
     );
   }
-  
+
   @media (max-width: 480px) {
     font-size: 1.3rem;
     margin-bottom: 1.25rem;
-    
+
     &:after {
       bottom: -6px;
       width: 50px;
@@ -238,7 +240,7 @@ const ErrorMessage = styled(motion.p)`
   background: rgba(255, 0, 0, 0.1);
   border-radius: 8px;
   border: 1px solid rgba(255, 0, 0, 0.2);
-  
+
   @media (max-width: 480px) {
     padding: 0.5rem;
     margin-bottom: 0.75rem;
@@ -250,11 +252,11 @@ const Form = styled(motion.form)`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
-  
+
   @media (max-width: 768px) {
     gap: 1rem;
   }
-  
+
   @media (max-width: 480px) {
     gap: 0.75rem;
   }
@@ -270,7 +272,7 @@ const FormGroup = styled(motion.div)`
     color: rgba(255, 255, 255, 0.9);
     letter-spacing: 0.5px;
     font-size: 0.95rem;
-    
+
     @media (max-width: 480px) {
       margin-bottom: 0.25rem;
       font-size: 0.85rem;
@@ -296,11 +298,11 @@ const FormGroup = styled(motion.div)`
       box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
       background: rgba(30, 30, 60, 0.5);
     }
-    
+
     &::placeholder {
       color: rgba(255, 255, 255, 0.4);
     }
-    
+
     @media (max-width: 480px) {
       padding: 0.6rem;
       font-size: 0.9rem;
@@ -321,28 +323,28 @@ const FormGroup = styled(motion.div)`
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.6);
     font-style: italic;
-    
+
     @media (max-width: 480px) {
       font-size: 0.7rem;
       margin-top: 0.2rem;
     }
   }
-  
+
   /* Adjust the size of textarea */
   textarea {
     height: auto;
-    
+
     &#healthInfo {
       height: 80px;
-      
+
       @media (max-width: 480px) {
         height: 70px;
       }
     }
-    
+
     &#trainingGoals {
       height: 70px;
-      
+
       @media (max-width: 480px) {
         height: 60px;
       }
@@ -363,22 +365,22 @@ const WaiverSection = styled(motion.div)`
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.5rem;
   position: relative;
-  
+
   /* Stylized scrollbar */
   &::-webkit-scrollbar {
     width: 5px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
     border-radius: 3px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: linear-gradient(to bottom, #60C0F0, #8B5CF6);
     border-radius: 3px;
   }
-  
+
   /* Gradient fade at the bottom to indicate scrollable content */
   &:after {
     content: "";
@@ -392,7 +394,7 @@ const WaiverSection = styled(motion.div)`
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
   }
-  
+
   @media (max-width: 480px) {
     padding: 0.75rem;
     font-size: 0.75rem;
@@ -417,12 +419,12 @@ const SubmitButton = styled(motion.button)`
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
-  
+
   &:hover {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
     transform: translateY(-3px);
   }
-  
+
   @media (max-width: 480px) {
     padding: 0.6rem 1.25rem;
     font-size: 0.95rem;
@@ -440,18 +442,18 @@ const SuccessMessage = styled(motion.div)`
   position: relative;
   background: rgba(139, 92, 246, 0.05);
   border: 1px solid rgba(139, 92, 246, 0.2);
-  
+
   p {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
   }
-  
+
   span {
     display: block;
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
   }
-  
+
   &:before {
     content: "✓";
     position: absolute;
@@ -469,20 +471,20 @@ const SuccessMessage = styled(motion.div)`
     color: white;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
-  
+
   @media (max-width: 480px) {
     padding: 1rem;
     margin: 1rem 0 0.5rem;
-    
+
     p {
       font-size: 0.95rem;
       margin-bottom: 0.3rem;
     }
-    
+
     span {
       font-size: 0.8rem;
     }
-    
+
     &:before {
       width: 35px;
       height: 35px;
@@ -496,7 +498,7 @@ const ScheduleLinkContainer = styled(motion.div)`
   text-align: center;
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
-  
+
   @media (max-width: 480px) {
     margin-top: 0.5rem;
   }
@@ -511,12 +513,12 @@ const ScheduleLink = styled(Link)`
   padding: 0.4rem 0.75rem;
   border-radius: 6px;
   font-size: 0.9rem;
-  
+
   &:hover {
     color: white;
     background: rgba(139, 92, 246, 0.1);
   }
-  
+
   &:after {
     content: "";
     position: absolute;
@@ -531,7 +533,7 @@ const ScheduleLink = styled(Link)`
       rgba(139, 92, 246, 0)
     );
   }
-  
+
   @media (max-width: 480px) {
     font-size: 0.85rem;
     padding: 0.3rem 0.6rem;
@@ -542,6 +544,7 @@ const ScheduleLink = styled(Link)`
 
 const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStore = false }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -554,15 +557,16 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const controls = useAnimation();
-  
+  const existingClientAccount = user?.role === 'client' || isNonDeductingClientAccount(user as any);
+
   // Store the scroll position when the form opens
   const scrollPositionRef = useRef(0);
-  
+
   // Save scroll position and prevent scrolling when modal opens
   useEffect(() => {
     scrollPositionRef.current = window.scrollY;
     document.body.classList.add('orientation-modal-open');
-    
+
     return () => {
       document.body.classList.remove('orientation-modal-open');
       // Restore scroll position when form closes
@@ -574,31 +578,44 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
   const handleClose = () => {
     // First remove the body class to restore scrolling
     document.body.classList.remove('orientation-modal-open');
-    
+
     // Then call the provided onClose function
     if (onClose) {
       onClose();
     }
-    
+
     // If returnToStore is true, navigate back to the store page
     if (returnToStore) {
       navigate('/store');
     }
-    
+
     // Restore the scroll position
+    window.scrollTo(0, scrollPositionRef.current);
+  };
+
+  const handleGoToUserDashboard = () => {
+    document.body.classList.remove('orientation-modal-open');
+    onClose?.();
+    window.scrollTo(0, scrollPositionRef.current);
+    navigate('/user-dashboard');
+  };
+
+  const handleScheduleLinkClick = () => {
+    document.body.classList.remove('orientation-modal-open');
+    onClose?.();
     window.scrollTo(0, scrollPositionRef.current);
   };
 
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.4, ease: "easeOut" }
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       y: 20,
       transition: { duration: 0.3, ease: "easeIn" }
     }
@@ -606,7 +623,7 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
 
   const contentVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
       transition: {
         delayChildren: 0.3,
@@ -617,8 +634,8 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
 
   const itemVariants = {
     hidden: { opacity: 0, y: 10 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.4 }
     }
@@ -678,7 +695,7 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
       const result = await response.json();
       logger.log("Orientation form submitted:", result);
       setSubmitted(true);
-      
+
     } catch (apiError) {
       setError(apiError.message || "An error occurred while submitting the form. Please try again.");
       console.error("Orientation form submission error:", apiError);
@@ -689,13 +706,13 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
   return ReactDOM.createPortal(
     <AnimatePresence>
       <GlobalStyle />
-      <ModalOverlay 
+      <ModalOverlay
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
         <ContentContainer>
-          <ModalContainer 
+          <ModalContainer
             variants={containerVariants}
             initial="hidden"
             animate={controls}
@@ -716,32 +733,47 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
               </LogoCircle>
             </FormHeader>
 
-            <FormTitle 
-              initial={{ opacity: 0, y: 10 }} 
-              animate={{ opacity: 1, y: 0 }} 
+            <FormTitle
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
               Orientation Signup
             </FormTitle>
-            
-            {submitted ? (
-              <SuccessMessage 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+
+            {existingClientAccount ? (
+              <SuccessMessage
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <p>Client account is ready.</p>
+                <span>Use your dashboard to schedule sessions and continue training.</span>
+                <SubmitButton type="button" onClick={handleGoToUserDashboard}>
+                  Go to User Dashboard
+                </SubmitButton>
+                <ScheduleLinkContainer>
+                  <ScheduleLink to="/schedule" onClick={handleScheduleLinkClick}>Open Schedule</ScheduleLink>
+                </ScheduleLinkContainer>
+              </SuccessMessage>
+            ) : submitted ? (
+              <SuccessMessage
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
                 <p>Thank you for signing up!</p>
                 <span>We will contact you shortly to schedule your orientation.</span>
               </SuccessMessage>
             ) : (
-              <Form 
+              <Form
                 onSubmit={handleSubmit}
                 variants={contentVariants}
                 initial="hidden"
                 animate="visible"
               >
                 {error && (
-                  <ErrorMessage 
+                  <ErrorMessage
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}

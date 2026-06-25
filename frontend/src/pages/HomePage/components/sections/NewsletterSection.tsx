@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Send, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Send, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNewsletterSubscribe } from '../../../../hooks/useNewsletterSubscribe';
 
 type AnimationTier = 'full' | 'balanced' | 'essential';
@@ -124,7 +124,7 @@ const StatusMsg = styled.p<{ $error?: boolean }>`
   color: ${({ $error }) => ($error ? 'var(--error, #F87171)' : 'var(--accent-primary, #60C0F0)')};
 `;
 
-const Success = styled.div`
+const Success = styled.div<{ $warning?: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -176,10 +176,11 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
   const [website, setWebsite] = useState(''); // honeypot
   const [submittedOnce, setSubmittedOnce] = useState(false);
   const { status, message, subscribe } = useNewsletterSubscribe('homepage');
+  const isWarning = status === 'warning';
   const animate = tier !== 'essential';
 
   // Stay on the success screen across a resend (status briefly flips to 'loading').
-  useEffect(() => { if (status === 'success') setSubmittedOnce(true); }, [status]);
+  useEffect(() => { if (status === 'success' || status === 'warning') setSubmittedOnce(true); }, [status]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,8 +198,12 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
       >
         <Heading id="newsletter-heading">Train smarter — straight to your inbox</Heading>
         {submittedOnce ? (
-          <Success role="status">
-            <CheckCircle2 size={40} aria-hidden color="var(--accent-primary, #60C0F0)" />
+          <Success role={isWarning ? 'alert' : 'status'} $warning={isWarning}>
+            {isWarning ? (
+              <AlertTriangle size={40} aria-hidden color="var(--warning, #FBBF24)" />
+            ) : (
+              <CheckCircle2 size={40} aria-hidden color="var(--accent-primary, #60C0F0)" />
+            )}
             <p style={{ margin: 0, fontSize: '1.05rem' }}>{message || 'Almost there — check your email to confirm your subscription.'}</p>
             <SuccessActions>
               <CtaLink href="/contact">Book your free assessment</CtaLink>

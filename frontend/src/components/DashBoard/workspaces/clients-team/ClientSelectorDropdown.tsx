@@ -43,6 +43,7 @@ export interface ClientOption {
   lastName: string;
   email: string;
   clientSource?: string;
+  sessionBillingMode?: string;
   isActive?: boolean;
   availableSessions?: number;
   workoutCount?: number;

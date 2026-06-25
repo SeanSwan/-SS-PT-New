@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildWorkoutSessionBillingDecision,
   CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
+  isNonDeductingClient,
   NON_DEDUCTING_CLIENT_SOURCES,
 } from '../../services/sessionBillingPolicy.mjs';
 
@@ -35,6 +36,22 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
     });
   });
 
+  it('lets SwanStudios no-session-required clients train without paid credit depletion', () => {
+    const client = {
+      clientSource: 'swanstudios',
+      sessionBillingMode: 'no_session_required',
+      availableSessions: 0,
+    };
+
+    expect(isNonDeductingClient(client)).toBe(true);
+    expect(buildWorkoutSessionBillingDecision(client)).toEqual({
+      shouldDeduct: false,
+      canLogWorkout: true,
+      sessionDeducted: false,
+      creditsToDeduct: 0,
+      message: 'Workout logged successfully without session deduction',
+    });
+  });
   it('fails closed when a paid client session balance is malformed or below one full session', () => {
     for (const availableSessions of ['unknown', Number.NaN, 0.5]) {
       expect(buildWorkoutSessionBillingDecision({

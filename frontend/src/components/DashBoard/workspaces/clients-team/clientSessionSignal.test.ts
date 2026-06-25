@@ -44,6 +44,18 @@ describe('getClientSessionSignal', () => {
     });
   });
 
+
+  it('reports SwanStudios no-pay clients as no-session-deduction accounts', () => {
+    expect(getClientSessionSignal({
+      clientSource: 'swanstudios',
+      sessionBillingMode: 'no_session_required',
+      availableSessions: 0,
+    })).toEqual({
+      label: 'no-pay training',
+      note: 'no session deduction',
+      tone: 'neutral',
+    });
+  });
   it('treats malformed paid-session balances as zero instead of rendering NaN', () => {
     expect(getClientSessionSignal({ clientSource: 'swanstudios', availableSessions: 'not-a-number' as any })).toEqual({
       label: '0 paid sessions',

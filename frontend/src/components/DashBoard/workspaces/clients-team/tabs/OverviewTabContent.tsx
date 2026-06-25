@@ -14,9 +14,9 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
-import NutritionTriageCard from './NutritionTriageCard';
 import { getClientSessionSignal } from '../clientSessionSignal';
 import { getNumericClientId } from './clientTabId';
+import NutritionTriageCard from './NutritionTriageCard';
 import {
   BentoCard,
   BentoGrid,
@@ -44,6 +44,7 @@ interface ClientOverviewData {
   streakDays: number;
   sessionsRemaining: number;
   clientSource: string;
+  sessionBillingMode: string;
   totalRevenue: number;
   lastWorkoutDate: string | null;
   nextSessionDate: string | null;
@@ -82,6 +83,7 @@ function useClientOverview(clientId: number | string) {
           streakDays: c.streakDays || 0,
           sessionsRemaining: Number.isFinite(Number(availableSessions)) ? Number(availableSessions) : 0,
           clientSource: typeof c.clientSource === 'string' ? c.clientSource : 'swanstudios',
+          sessionBillingMode: typeof c.sessionBillingMode === 'string' ? c.sessionBillingMode : 'paid_sessions',
           totalRevenue: c.totalRevenue || c.revenue || 0,
           lastWorkoutDate: c.lastWorkoutDate || c.lastActiveDate || null,
           nextSessionDate: c.nextSessionDate || null,
@@ -131,6 +133,7 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
     const sessionSignal = data
       ? getClientSessionSignal({
           clientSource: data.clientSource,
+          sessionBillingMode: data.sessionBillingMode,
           availableSessions: data.sessionsRemaining,
         })
       : null;

@@ -1,8 +1,9 @@
-import { normalizeClientSource } from '../clientSessionSignal';
+import { normalizeClientSource, normalizeSessionBillingMode } from '../clientSessionSignal';
 
 export interface SettingsTabContentProps {
   clientId: number | string;
   clientName?: string;
+  onClientUpdated?: (updates: { sessionBillingMode?: string }) => void;
 }
 
 export const CLIENT_SOURCE_POLICIES = {
@@ -20,8 +21,17 @@ export const CLIENT_SOURCE_POLICIES = {
   },
 } as const;
 
+export const NO_PAY_POLICY = {
+  label: 'SwanStudios no-pay',
+  note: 'No session balance required; scheduling and training do not deduct paid credits.',
+} as const;
+
 type ClientSourceKey = keyof typeof CLIENT_SOURCE_POLICIES;
 
-export const getClientSourcePolicy = (source: string) => {
+export const getClientSourcePolicy = (source: string, sessionBillingMode?: string) => {
+  if (normalizeSessionBillingMode(sessionBillingMode) === 'no_session_required') {
+    return NO_PAY_POLICY;
+  }
+
   return CLIENT_SOURCE_POLICIES[normalizeClientSource(source) as ClientSourceKey];
 };

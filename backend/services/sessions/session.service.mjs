@@ -38,7 +38,7 @@ import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
+import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
 
@@ -688,9 +688,9 @@ class UnifiedSessionService {
       // Clients should never see other client's contact info
       // Trainers only see full contact info for their assigned clients
       const clientAttributes = user.role === 'admin'
-        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
+        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource', 'sessionBillingMode']
         : user.role === 'trainer'
-          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource'] // Trainer sees their clients
+          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource', 'sessionBillingMode'] // Trainer sees their clients
           : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal info
 
       const trainerAttributes = user.role === 'client'
@@ -1502,9 +1502,10 @@ class UnifiedSessionService {
           }
         }
 
+        const bypassesPaidCredits = isNonDeductingClient(client);
         const rawAvailableSessions = Number(client.availableSessions ?? 0);
         const availableSessionCount = Number.isFinite(rawAvailableSessions) ? rawAvailableSessions : 0;
-        if (shouldDeduct && creditsRequired > 0 && availableSessionCount < creditsRequired) {
+        if (shouldDeduct && creditsRequired > 0 && !bypassesPaidCredits && availableSessionCount < creditsRequired) {
           throw new Error(`Insufficient session credits (need ${creditsRequired}, have ${availableSessionCount})`);
         }
 
@@ -1561,8 +1562,9 @@ class UnifiedSessionService {
         await session.save({ transaction });
 
       // Process session deduction if needed (this handles balance updates)
+        let deductionResult = null;
         if (shouldDeduct) {
-          const deductionResult = await processSessionDeduction(session, client, transaction);
+          deductionResult = await processSessionDeduction(session, client, transaction);
           if (!deductionResult?.success) {
             throw new Error(deductionResult?.message || 'Failed to deduct session credits');
           }
@@ -1572,7 +1574,7 @@ class UnifiedSessionService {
 
       // Send notifications (async, after successful transaction — ARCH-1 pattern)
       this.sendBookingNotifications(session, client);
-      if (shouldDeduct) {
+      if (deductionResult?.deducted) {
         sendDeductionNotification(session, client).catch(err =>
           logger.error('[bookSession] Deduction notification failed:', err)
         );
@@ -1713,8 +1715,8 @@ class UnifiedSessionService {
           lock: transaction.LOCK.UPDATE
         });
         if (client) {
-          if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
-            logger.info(`[UnifiedSessionService] Skipped credit restore for non-deducting client source ${client.clientSource}`, {
+          if (isNonDeductingClient(client)) {
+            logger.info(`[UnifiedSessionService] Skipped credit restore for non-deducting client account /${client.clientSource}`, {
               sessionId: session.id,
               userId: client.id
             });
@@ -1883,7 +1885,7 @@ class UnifiedSessionService {
           {
             model: this.User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource']
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource', 'sessionBillingMode']
           },
           {
             model: this.User,
@@ -1964,13 +1966,13 @@ class UnifiedSessionService {
       const shouldDeductCompletionCredit = deductSessionCredit === true;
       let deductionResult = null;
       if (!session.sessionDeducted && session.userId && session.client) {
-        if (NON_DEDUCTING_CLIENT_SOURCES.has(session.client.clientSource)) {
+        if (isNonDeductingClient(session.client)) {
           deductionResult = {
             success: true,
             deducted: false,
             creditsDeducted: 0,
             remainingSessions: session.client.availableSessions ?? null,
-            reason: 'non_deducting_client_source'
+            reason: 'non_deducting_client_account'
           };
         } else if (!shouldDeductCompletionCredit) {
           deductionResult = {
@@ -2387,7 +2389,7 @@ class UnifiedSessionService {
       if (user.role === 'admin') {
         const clients = await this.User.findAll({
           where: { role: 'client' },
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource', 'sessionBillingMode']
         });
         return clients;
       }
@@ -2422,7 +2424,7 @@ class UnifiedSessionService {
           id: { [Op.in]: clientIds },
           role: 'client'
         },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource', 'sessionBillingMode']
       });
 
       logger.info(`[UnifiedSessionService] Trainer ${user.id} viewing ${clients.length} assigned clients`);

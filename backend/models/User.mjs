@@ -405,6 +405,15 @@ User.init(
       },
       comment: 'Client origin: swanstudios (package holder), move_fitness (gym client), external (other)'
     },
+    sessionBillingMode: {
+      type: DataTypes.STRING(40),
+      allowNull: false,
+      defaultValue: 'paid_sessions',
+      validate: {
+        isIn: [['paid_sessions', 'no_session_required']]
+      },
+      comment: 'Per-account billing mode: paid_sessions deducts credits; no_session_required bypasses paid-session depletion'
+    },
 
     // ========== ACCOUNT STATUS & CLAIM TOKEN (Crystalline Link Protocol) ==========
     accountStatus: {

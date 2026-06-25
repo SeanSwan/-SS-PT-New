@@ -271,9 +271,13 @@ import { sendGridEmail } from '../services/sendgridService.mjs';
 import { getMeasurementStatus } from '../services/measurementScheduleService.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
 import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
-import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
-import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
+import {
+  isNonDeductingClient,
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+  parseClientSource,
+  parseSessionBillingMode,
+} from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
@@ -372,6 +376,7 @@ const CLIENT_EXPORT_FIELDS = [
   'email',
   'phone',
   'clientSource',
+  'sessionBillingMode',
   'availableSessions',
   'fitnessGoal',
   'isActive',
@@ -854,6 +859,7 @@ class AdminClientController {
         availableSessions = 0,
         trainerId,
         clientSource = 'swanstudios',
+        sessionBillingMode = 'paid_sessions',
         forcePasswordChange = true // Default true for admin-created accounts
       } = req.body;
 
@@ -866,6 +872,15 @@ class AdminClientController {
         });
       }
 
+      const normalizedSessionBillingMode = parseSessionBillingMode(sessionBillingMode);
+      if (!normalizedSessionBillingMode) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid sessionBillingMode. Must be one of: paid_sessions, no_session_required'
+        });
+      }
+
       const requestedAvailableSessions = parseNonNegativeSessionCount(availableSessions);
       if (requestedAvailableSessions === null) {
         await transaction.rollback();
@@ -875,7 +890,7 @@ class AdminClientController {
         });
       }
 
-      const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource)
+      const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource) || normalizedSessionBillingMode === 'no_session_required'
         ? 0
         : requestedAvailableSessions;
 
@@ -955,6 +970,7 @@ class AdminClientController {
         emergencyContact,
         availableSessions: normalizedAvailableSessions,
         clientSource: normalizedClientSource,
+        sessionBillingMode: normalizedSessionBillingMode,
         forcePasswordChange,
         role: 'client',
         isActive: true
@@ -1030,6 +1046,9 @@ class AdminClientController {
             firstName: newClient.firstName,
             lastName: newClient.lastName,
             email: newClient.email,
+            clientSource: newClient.clientSource,
+            sessionBillingMode: newClient.sessionBillingMode,
+            availableSessions: newClient.availableSessions,
             forcePasswordChange
           },
           temporaryPassword: effectivePassword,
@@ -1069,6 +1088,17 @@ class AdminClientController {
         }
         updates.clientSource = normalizedClientSource;
       }
+      if (updates.sessionBillingMode !== undefined) {
+        const normalizedSessionBillingMode = parseSessionBillingMode(updates.sessionBillingMode);
+        if (!normalizedSessionBillingMode) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid sessionBillingMode. Must be one of: paid_sessions, no_session_required'
+          });
+        }
+        updates.sessionBillingMode = normalizedSessionBillingMode;
+      }
       if (updates.isLocked !== undefined && typeof updates.isLocked !== 'boolean') {
         await transaction.rollback();
         return res.status(400).json({
@@ -1087,7 +1117,7 @@ class AdminClientController {
       const allowedFields = [
         'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender',
         'weight', 'height', 'fitnessGoal', 'trainingExperience',
-        'healthConcerns', 'emergencyContact', 'clientSource', 'accountStatus',
+        'healthConcerns', 'emergencyContact', 'clientSource', 'sessionBillingMode', 'accountStatus',
         'canGenerateWorkoutPlans', 'isLocked',
       ];
       const safeUpdates = {};
@@ -1516,7 +1546,7 @@ class AdminClientController {
       // Get client with session credits
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'sessionBillingMode']
       });
 
       if (!client) {
@@ -1525,7 +1555,7 @@ class AdminClientController {
           message: 'Client not found'
         });
       }
-      const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);
+      const clientIsNonDeducting = isNonDeductingClient(client);
       const sessionsRemaining = normalizePaidSessionCount(client.availableSessions);
 
       // Get last completed order (most recent purchase)
@@ -1593,9 +1623,10 @@ class AdminClientController {
             id: client.id,
             name: `${client.firstName} ${client.lastName}`,
             email: client.email,
-            clientSource: client.clientSource
+            clientSource: client.clientSource,
+            sessionBillingMode: client.sessionBillingMode
           },
-          sessionsRemaining: isNonDeductingClient ? 0 : sessionsRemaining,
+          sessionsRemaining: clientIsNonDeducting ? 0 : sessionsRemaining,
           lastPurchase: lastPurchase ? {
             id: lastPurchase.id,
             packageName: lastPurchase.orderNumber || 'Session Package',  // Use orderNumber as fallback

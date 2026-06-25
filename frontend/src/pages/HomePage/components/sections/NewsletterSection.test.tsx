@@ -52,6 +52,22 @@ describe('NewsletterSection (Tier 1.2 homepage)', () => {
     expect(axios.post).not.toHaveBeenCalled();
   });
 
+  it('shows a warning if the subscription is saved but confirmation email delivery fails', async () => {
+    (axios.post as any).mockResolvedValue({
+      data: {
+        success: true,
+        emailDelivery: 'failed',
+        message: 'Your subscription request was saved, but the confirmation email could not be sent right now.',
+      },
+    });
+    render(<NewsletterSection tier="essential" />);
+    fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'jane@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /subscribe/i }));
+    await screen.findByRole('alert');
+    expect(screen.getByText(/confirmation email could not be sent/i)).toBeTruthy();
+    expect(screen.queryByText(/check your email to confirm/i)).toBeNull();
+  });
+
   it('surfaces an error if the API call fails', async () => {
     (axios.post as any).mockRejectedValue({ response: { data: { message: 'Could not subscribe right now. Please try again.' } } });
     render(<NewsletterSection tier="essential" />);
@@ -64,6 +80,24 @@ describe('NewsletterSection (Tier 1.2 homepage)', () => {
 
 describe('FooterNewsletter (Tier 1.2 footer)', () => {
   beforeEach(() => { vi.clearAllMocks(); });
+
+  it('shows a warning when the footer subscription is saved but confirmation email delivery fails', async () => {
+    (axios.post as any).mockResolvedValue({
+      data: {
+        success: true,
+        emailDelivery: 'failed',
+        message: 'Your subscription request was saved, but the confirmation email could not be sent right now.',
+      },
+    });
+    render(<FooterNewsletter />);
+
+    fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'bob@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: /subscribe to newsletter/i }));
+
+    await screen.findByRole('alert');
+    expect(screen.getByText(/confirmation email could not be sent/i)).toBeTruthy();
+    expect(screen.queryByText(/check your email to confirm/i)).toBeNull();
+  });
 
   it('POSTs with source=footer and shows confirmation', async () => {
     (axios.post as any).mockResolvedValue({ data: { success: true, message: 'Almost there — check your email to confirm your subscription.' } });

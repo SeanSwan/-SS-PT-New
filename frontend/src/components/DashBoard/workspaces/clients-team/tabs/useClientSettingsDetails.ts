@@ -3,9 +3,9 @@
  * PURPOSE: Loads real client profile, training, and privacy values for the
  * Clients & Team Settings tab without adding fetch logic to the legacy view.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../../../context/AuthContext';
-import { isNonDeductingClientSource, normalizeAvailableSessions } from '../clientSessionSignal';
+import { isNonDeductingClientAccount, normalizeAvailableSessions } from '../clientSessionSignal';
 import { getNumericClientId } from './clientTabId';
 
 export interface ClientSettingsDetails {
@@ -17,6 +17,7 @@ export interface ClientSettingsDetails {
   trainingExperience: string;
   availableSessions: number | '';
   clientSource: string;
+  sessionBillingMode: string;
   healthConcerns: string;
   emergencyContact: string;
   isActive: boolean;
@@ -63,6 +64,7 @@ const buildFallback = (clientName?: string): ClientSettingsDetails => {
     trainingExperience: '',
     availableSessions: '',
     clientSource: '',
+    sessionBillingMode: 'paid_sessions',
     healthConcerns: '',
     emergencyContact: '',
     isActive: true,
@@ -97,6 +99,7 @@ export const useClientSettingsDetails = (clientId: number | string, clientName?:
         if (cancelled) return;
         const client = unwrapClient(response.data);
         const clientSource = textValue(client.clientSource);
+        const sessionBillingMode = textValue(client.sessionBillingMode, 'paid_sessions');
         setDetails({
           firstName: textValue(client.firstName, buildFallback(clientName).firstName),
           lastName: textValue(client.lastName, buildFallback(clientName).lastName),
@@ -104,8 +107,9 @@ export const useClientSettingsDetails = (clientId: number | string, clientName?:
           phone: textValue(client.phone),
           fitnessGoal: normalizeGoal(client.fitnessGoal),
           trainingExperience: textValue(client.trainingExperience),
-          availableSessions: isNonDeductingClientSource(clientSource) ? 0 : coerceSessions(client.availableSessions),
+          availableSessions: isNonDeductingClientAccount({ clientSource, sessionBillingMode }) ? 0 : coerceSessions(client.availableSessions),
           clientSource,
+          sessionBillingMode,
           healthConcerns: textValue(client.healthConcerns),
           emergencyContact: textValue(client.emergencyContact),
           isActive: client.isActive !== false,
@@ -127,5 +131,9 @@ export const useClientSettingsDetails = (clientId: number | string, clientName?:
     };
   }, [authAxios, clientId, clientName]);
 
-  return useMemo(() => ({ details, loading }), [details, loading]);
+  const mergeDetails = useCallback((updates: Partial<ClientSettingsDetails>) => {
+    setDetails((current) => ({ ...current, ...updates }));
+  }, []);
+
+  return useMemo(() => ({ details, loading, mergeDetails }), [details, loading, mergeDetails]);
 };

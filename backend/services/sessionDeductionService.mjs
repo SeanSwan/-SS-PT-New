@@ -9,7 +9,7 @@ import { getClientTrainerAssignment, getSession, getUser, Op } from '../models/i
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateRecoveryOrderNumber } from '../utils/orderNumber.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 import {
   VALID_PAYMENT_METHODS,
   METHODS_REQUIRING_REFERENCE,
@@ -87,7 +87,7 @@ export async function processSessionDeductions() {
         model: User,
         as: 'client',
         required: true, // INNER JOIN — required for FOR UPDATE (PostgreSQL rejects FOR UPDATE on outer joins)
-        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'sessionBillingMode']
       }],
       lock: transaction.LOCK.UPDATE,
       transaction
@@ -130,13 +130,13 @@ export async function processSessionDeductions() {
           continue;
         }
 
-        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        if (isNonDeductingClient(client)) {
           for (const session of group.sessions) {
             session.status = 'completed';
             session.sessionDeducted = false;
             session.notes = appendNoteOnce(
               session.notes,
-              '[Auto] No paid session credit required for this client source'
+              '[Auto] No paid session credit required for this client account'
             );
             await session.save({ transaction });
           }
@@ -242,7 +242,8 @@ export async function getClientsNeedingPayment(requester = {}) {
     const where = {
       role: { [Op.in]: ['client', 'user'] },
       availableSessions: { [Op.lte]: 0 },
-      clientSource: { [Op.notIn]: Array.from(NON_DEDUCTING_CLIENT_SOURCES) }
+      clientSource: { [Op.notIn]: Array.from(NON_DEDUCTING_CLIENT_SOURCES) },
+      sessionBillingMode: { [Op.ne]: 'no_session_required' }
     };
 
     if (requesterRole === 'trainer') {
@@ -268,7 +269,7 @@ export async function getClientsNeedingPayment(requester = {}) {
 
     const clients = await User.findAll({
       where,
-      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource', 'sessionBillingMode'],
       include: [{
         model: Session,
         as: 'clientSessions',
@@ -289,6 +290,7 @@ export async function getClientsNeedingPayment(requester = {}) {
       phone: client.phone,
       availableSessions: client.availableSessions,
       clientSource: client.clientSource,
+      sessionBillingMode: client.sessionBillingMode,
       upcomingSessions: client.clientSessions.length,
       nextSession: client.clientSessions[0]?.sessionDate
     }));
@@ -328,9 +330,9 @@ export async function applyPaymentCredits(clientId, sessionsToAdd, paymentNote =
       throw serviceError('User is not a client or user', 'INVALID_ROLE');
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       throw serviceError(
-        'Paid session credits are disabled for free-tracking clients',
+        'Paid session credits are disabled for no-pay/free-tracking clients',
         'NON_BILLABLE_CLIENT_SOURCE'
       );
     }
@@ -553,9 +555,9 @@ export async function applyPackagePayment({
     }
 
     // 2. Advisory lock — serialize concurrent requests for same client+package
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (isNonDeductingClient(client)) {
       throw serviceError(
-        'Paid session credits are disabled for free-tracking clients',
+        'Paid session credits are disabled for no-pay/free-tracking clients',
         'NON_BILLABLE_CLIENT_SOURCE'
       );
     }

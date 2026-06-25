@@ -4,7 +4,7 @@
 
 import type { ClientOption } from './ClientSelectorDropdown';
 import type { MiniCardClient } from './ClientMiniCard';
-import { isNonDeductingClientSource, normalizeAvailableSessions } from './clientSessionSignal';
+import { isNonDeductingClientAccount, normalizeAvailableSessions } from './clientSessionSignal';
 
 export const normalizeClientOptionId = (value: unknown): number | null => {
   if (typeof value === 'number') {
@@ -35,6 +35,7 @@ export const mapAdminClientToClientOption = (client: any): ClientOption | null =
     lastName: client.lastName || '',
     email: client.email || '',
     clientSource: client.clientSource || 'swanstudios',
+    sessionBillingMode: client.sessionBillingMode || 'paid_sessions',
     isActive: client.isActive !== false,
     availableSessions: normalizeAvailableSessions(client.availableSessions),
     workoutCount: normalizeWorkoutCount(client.totalWorkouts),
@@ -52,7 +53,7 @@ export const mapAdminClientToClientOption = (client: any): ClientOption | null =
 export const toMiniCardClient = (client: ClientOption | null): MiniCardClient | null => {
   if (!client) return null;
 
-  const sessionsLeft = isNonDeductingClientSource(client.clientSource)
+  const sessionsLeft = isNonDeductingClientAccount(client)
     ? 0
     : normalizeAvailableSessions(client.availableSessions);
 
