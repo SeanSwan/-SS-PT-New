@@ -17,10 +17,10 @@ export interface CreativeMediaItem {
 }
 
 export interface ProfileMediaPost {
-  id?: string;
-  content?: string;
-  type?: string;
-  mediaUrl?: string;
-  likesCount?: number;
-  createdAt?: string;
+  id?: unknown;
+  content?: unknown;
+  type?: unknown;
+  mediaUrl?: unknown;
+  likesCount?: unknown;
+  createdAt?: unknown;
 }

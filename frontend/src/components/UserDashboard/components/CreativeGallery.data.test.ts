@@ -64,6 +64,33 @@ describe('mapPostsToCreativeMedia', () => {
     ]);
   });
 
+  it('guards runtime non-string post fields before deriving cards', () => {
+    const malformedPosts = [
+      {
+        id: 42,
+        content: { body: 'Training drop' },
+        type: { category: 'workout' },
+        mediaUrl: '/uploads/media.png',
+        createdAt: 12345,
+      },
+    ] as unknown as Parameters<typeof mapPostsToCreativeMedia>[0];
+
+    expect(() => mapPostsToCreativeMedia(malformedPosts)).not.toThrow();
+    expect(mapPostsToCreativeMedia(malformedPosts)).toEqual([
+      {
+        id: '42',
+        title: 'Media',
+        thumbnail: '/uploads/media.png',
+        sourceUrl: '/uploads/media.png',
+        mediaKind: 'image',
+        tags: [],
+        duration: '',
+        views: 0,
+        createdAt: undefined,
+      },
+    ]);
+  });
+
   it('filters unsafe media URLs before Creative Gallery cards render thumbnails', () => {
     expect(mapPostsToCreativeMedia([
       { id: 'unsafe-js', content: 'bad', mediaUrl: 'javascript:alert(1)', likesCount: 4 },

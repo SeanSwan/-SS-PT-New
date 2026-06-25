@@ -71,6 +71,12 @@ const CREATIVE_CATEGORY_RULES: Array<{ tag: CreativeGalleryCategory; patterns: R
   },
 ];
 
+function normalizeCreativeText(value: unknown): string {
+  if (typeof value === 'string') return value.trim().replace(/\s+/g, ' ');
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return '';
+}
+
 function getCreativeMediaExtension(filename: string): string {
   const cleanName = filename.split(/[?#]/, 1)[0];
   const dotIndex = cleanName.lastIndexOf('.');
@@ -81,12 +87,13 @@ function getCreativeMediaKind(url: string): CreativeMediaItem['mediaKind'] {
   return CREATIVE_GALLERY_VIDEO_EXTENSIONS.has(getCreativeMediaExtension(url)) ? 'video' : 'image';
 }
 
-function isPostType(value?: string | null): value is PostType {
-  return !!value && CREATIVE_POST_TYPES.has(value as PostType);
+function normalizeCreativePostType(value: unknown): PostType | null {
+  const normalized = normalizeCreativeText(value).toLowerCase();
+  return CREATIVE_POST_TYPES.has(normalized as PostType) ? normalized as PostType : null;
 }
 
-function getCreativeCategoryHaystack(caption: string, postType?: string | null): string {
-  const selectedType = isPostType(postType) ? postType : 'general';
+function getCreativeCategoryHaystack(caption: string, postType?: unknown): string {
+  const selectedType = normalizeCreativePostType(postType) ?? 'general';
   const smartIntent = inferSmartPostIntent(caption, selectedType);
 
   return [
@@ -98,18 +105,18 @@ function getCreativeCategoryHaystack(caption: string, postType?: string | null):
   ].join(' ');
 }
 
-export function normalizeCreativeMediaTitle(value?: string | null): string {
-  const normalized = value?.trim().replace(/\s+/g, ' ') ?? '';
+export function normalizeCreativeMediaTitle(value?: unknown): string {
+  const normalized = normalizeCreativeText(value);
   return normalized || CREATIVE_GALLERY_FALLBACK_TITLE;
 }
 
-export function normalizeCreativeMetricCount(value?: number | null): number {
-  return Number.isFinite(value) ? Math.max(0, Math.round(value ?? 0)) : 0;
+export function normalizeCreativeMetricCount(value?: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
 }
 
-export function getCreativeMediaTags(value?: string | null, postType?: string | null): string[] {
-  const caption = value?.trim() ?? '';
-  if (!caption && !isPostType(postType)) return [];
+export function getCreativeMediaTags(value?: unknown, postType?: unknown): string[] {
+  const caption = normalizeCreativeText(value);
+  if (!caption && !normalizeCreativePostType(postType)) return [];
 
   const haystack = getCreativeCategoryHaystack(caption, postType);
 
@@ -139,19 +146,23 @@ export function mapPostsToCreativeMedia(posts?: ProfileMediaPost[] | null): Crea
   if (!posts || posts.length === 0) return [];
 
   return posts.reduce<CreativeMediaItem[]>((items, post) => {
-    const safeUrl = sanitizeImageUrl(post.mediaUrl);
+    const safeUrl = sanitizeImageUrl(typeof post.mediaUrl === 'string' ? post.mediaUrl : null);
     if (!safeUrl) return items;
 
+    const content = normalizeCreativeText(post.content);
+    const id = normalizeCreativeText(post.id);
+    const createdAt = typeof post.createdAt === 'string' ? normalizeCreativeText(post.createdAt) : '';
+
     items.push({
-      id: post.id?.trim() || `media-${items.length}`,
-      title: normalizeCreativeMediaTitle(post.content?.substring(0, 40)),
+      id: id || `media-${items.length}`,
+      title: normalizeCreativeMediaTitle(content.slice(0, 40)),
       thumbnail: safeUrl,
       sourceUrl: safeUrl,
       mediaKind: getCreativeMediaKind(safeUrl),
-      tags: getCreativeMediaTags(post.content, post.type),
+      tags: getCreativeMediaTags(content, post.type),
       duration: '',
       views: normalizeCreativeMetricCount(post.likesCount),
-      createdAt: post.createdAt,
+      createdAt: createdAt || undefined,
     });
 
     return items;
