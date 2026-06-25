@@ -31,24 +31,26 @@ describe('DashboardTeachMeGuide', () => {
       .toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: /teach me: admin coach command terminal.*first move: open coach/i }))
       .toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByRole('button', { name: /^start now: open coach$/i }))
-      .toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^ask swan coach: admin coach command terminal$/i }))
-      .toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^start now: open coach$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^ask swan coach: admin coach command terminal$/i }))
+      .not.toBeInTheDocument();
     expect(screen.getByText('Open guide')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: /admin coach command terminal visible fast path/i }))
+      .not.toBeInTheDocument();
+    expect(screen.queryByText(/Start with Coach or Client Hub/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }));
+
     const visibleFastPath = screen.getByRole('list', { name: /admin coach command terminal visible fast path/i });
     expect(visibleFastPath).toHaveTextContent(/Confirm the client scope or owner self context/i);
     expect(visibleFastPath).toHaveTextContent(/Ask Coach for the specific draft/i);
     expect(visibleFastPath).toHaveTextContent(/Review the staged action/i);
-    expect(screen.queryByText(/Start with Coach or Client Hub/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^start now: open coach$/i }));
     expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/coach-assistant');
 
     fireEvent.click(screen.getByRole('button', { name: /^ask swan coach: admin coach command terminal$/i }));
     expect(onAskCoach).toHaveBeenCalledWith('teach me the admin Coach command terminal workflow for client and owner workout actions');
-
-    fireEvent.click(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }));
 
     expect(screen.getByRole('button', { name: /^first move: open coach$/i })).toBeInTheDocument();
     const expandedFastPath = screen.getByRole('list', { name: /^Admin Coach command terminal fast path$/i });
@@ -67,7 +69,6 @@ describe('DashboardTeachMeGuide', () => {
     fireEvent.click(screen.getByRole('button', { name: /client hub training/i }));
     expect(onNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?tab=training');
   });
-
   it('keeps the client guide useful without rendering an unavailable Coach action', () => {
     render(
       <DashboardTeachMeGuide
@@ -76,14 +77,15 @@ describe('DashboardTeachMeGuide', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /start now: review progress/i })).toHaveAttribute(
-      'href',
-      '/dashboard/client/progress',
-    );
+    expect(screen.queryByRole('link', { name: /start now: review progress/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^ask swan coach:/i })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /teach me: client progress proof/i }));
 
+    expect(screen.getByRole('link', { name: /start now: review progress/i })).toHaveAttribute(
+      'href',
+      '/dashboard/client/progress',
+    );
     expect(screen.getByRole('link', { name: /first move: review progress/i })).toHaveAttribute(
       'href',
       '/dashboard/client/progress',
@@ -100,7 +102,6 @@ describe('DashboardTeachMeGuide', () => {
     );
     expect(screen.queryByRole('button', { name: /ask swan coach for help/i })).toBeNull();
   });
-
   it('can hand client Teach Me prompts to the dashboard shell when Coach is available', () => {
     const onAskCoach = vi.fn();
 
@@ -112,15 +113,16 @@ describe('DashboardTeachMeGuide', () => {
       />,
     );
 
+    expect(screen.queryByRole('button', { name: /ask swan coach: client progress proof/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /teach me: client progress proof/i }));
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach: client progress proof/i }));
     expect(onAskCoach).toHaveBeenCalledWith('teach me the client progress workflow');
 
-    fireEvent.click(screen.getByRole('button', { name: /teach me: client progress proof/i }));
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
 
     expect(onAskCoach).toHaveBeenCalledTimes(2);
   });
-
   it('uses router search so admin self planner routes teach the owner workflow', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/workout-planner?self=1&source=swan-coach']}>
@@ -131,8 +133,7 @@ describe('DashboardTeachMeGuide', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: /teach me: admin self workout planning/i }))
-      .toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /teach me: admin self workout planning/i }));
     expect(screen.getByRole('link', { name: /^start now: plan my workout$/i }))
       .toHaveAttribute('href', '/dashboard/admin/workout-planner?self=1');
   });

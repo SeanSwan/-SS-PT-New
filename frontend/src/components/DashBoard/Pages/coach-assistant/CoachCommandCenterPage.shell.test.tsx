@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelCommandMock,
@@ -9,6 +9,7 @@ import {
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
+  setCoachCommandCenterActiveConversation,
 } from './CoachCommandCenterPage.test.harness';
 const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 
@@ -47,9 +48,9 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByRole('button', { name: /voice dictation/i })).toBeInTheDocument();
     expect(sendButton()).toBeInTheDocument();
 
-    // Quick intents + next-best-action
-    expect(screen.getByRole('button', { name: /^Log workout$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Onboard client$/i })).toBeInTheDocument();
+    // Prompt templates stay behind Teach Me; the dock keeps only real actions.
+    expect(screen.queryByRole('button', { name: /^Log workout$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Onboard client$/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Next: Review next ready intake/i)).toBeInTheDocument();
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
@@ -158,12 +159,31 @@ describe('CoachCommandCenterPage shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Friday intake cleanup/i }));
 
-    expect(composerInput()).toHaveValue('Continue Friday intake cleanup with review-gated context.');
+    expect(composerInput()).toHaveValue('');
     expect(loadConversationMock).toHaveBeenCalledWith(101);
     expect(screen.getAllByText(/Friday intake cleanup - thread loaded/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Friday intake cleanup/i })).toHaveAttribute('aria-current', 'true');
   });
 
+  it('opens a history thread into chat without staging a prompt in the composer', async () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('tab', { name: /^History/i }));
+    const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
+    fireEvent.click(within(historyPanel).getByRole('button', { name: /Client confirmation holds/i }));
+
+    expect(loadConversationMock).toHaveBeenCalledWith(102);
+    await waitFor(() => expect(screen.getByRole('tab', { name: /^Chat$/i })).toHaveAttribute('aria-selected', 'true'));
+    expect(composerInput()).toHaveValue('');
+  });
+
+  it('renders loaded history messages in the conversation transcript', () => {
+    setCoachCommandCenterActiveConversation();
+    renderPage();
+
+    expect(screen.getByText(/We reviewed Ava squat pattern and left knee note/i)).toBeInTheDocument();
+    expect(screen.getByText(/check pain before loading/i)).toBeInTheDocument();
+  });
   it('submits the command dock through the real coach conversation API', async () => {
     renderPage();
 

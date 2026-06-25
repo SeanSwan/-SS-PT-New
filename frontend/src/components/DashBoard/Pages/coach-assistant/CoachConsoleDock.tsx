@@ -2,23 +2,20 @@
  * COMPONENT: CoachConsoleDock
  * PURPOSE: Bottom command dock for the chat-first Swan Coach terminal.
  *
- * Voice-forward, floor-legible input: a slim next-best-action chip, one-tap quick
- * intents (log workout / onboard / update / recall), a large dictation/typing box,
- * and big mic + send targets. Talking is the primary action (the trainer is on the
+ * Voice-forward, floor-legible input: a slim next-best-action chip, real route
+ * links, a large dictation/typing box, and big mic + send targets. Talking is
+ * the primary action (the trainer is on the
  * floor, phone discouraged), so the mic is a first-class 56px control.
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUp, ClipboardList, Dumbbell, FileAudio, Mic, Paperclip, Volume2 } from 'lucide-react';
 
-export type CoachQuickIntent = { label: string; prompt: string };
-
 type CoachConsoleDockProps = {
   commandFormRef: React.RefObject<HTMLFormElement>;
   commandText: string;
   commandTextRef: React.RefObject<HTMLTextAreaElement>;
   nextActionLabel?: string | null;
-  quickIntents: CoachQuickIntent[];
   selectedStatus: string;
   voiceActive: boolean;
   voiceSupported: boolean;
@@ -32,8 +29,6 @@ type CoachConsoleDockProps = {
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
   onCommandTextChange: (value: string) => void;
-  onStageNextAction: () => void;
-  onQuickIntent: (prompt: string) => void;
   onAttach: () => void;
   onStartPlaudUpload: () => void;
   onReadback: () => void;
@@ -46,7 +41,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   commandText,
   commandTextRef,
   nextActionLabel,
-  quickIntents,
   selectedStatus,
   voiceActive,
   voiceSupported,
@@ -60,8 +54,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   workflowReturnLabel,
   workflowReturnTo,
   onCommandTextChange,
-  onStageNextAction,
-  onQuickIntent,
   onAttach,
   onStartPlaudUpload,
   onReadback,
@@ -77,12 +69,11 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     ) : null}
 
     {nextActionLabel ? (
-      <button type="button" className="next-action-chip" onClick={onStageNextAction}>
-        <span aria-hidden="true">▸</span>
+      <div className="next-action-chip" role="status" aria-label="Recommended coach action">
+        <span aria-hidden="true">&gt;</span>
         <span className="next-action-text">Next: {nextActionLabel}</span>
-      </button>
+      </div>
     ) : null}
-
     {(workoutLoggerRoute || workoutPlannerRoute) ? (
       <div className="workout-route-actions" role="group" aria-label="Workout surfaces">
         {workoutLoggerRoute ? (
@@ -99,19 +90,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
         ) : null}
       </div>
     ) : null}
-
-    <div className="quick-intents" role="group" aria-label="Quick coach actions">
-      {quickIntents.map((intent) => (
-        <button
-          type="button"
-          key={intent.label}
-          className="quick-intent"
-          onClick={() => onQuickIntent(intent.prompt)}
-        >
-          {intent.label}
-        </button>
-      ))}
-    </div>
 
     <form className="dock-form" ref={commandFormRef} onSubmit={onSubmit} aria-label="Talk to Swan Coach">
       <textarea

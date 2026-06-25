@@ -99,13 +99,6 @@ export const coachCommandDockStyles = css`
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .quick-intents {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .quick-intents::-webkit-scrollbar { display: none; }
   .workout-route-actions {
     display: flex;
     flex-wrap: wrap;
@@ -126,17 +119,6 @@ export const coachCommandDockStyles = css`
     min-height: 44px;
     padding: 0 14px;
     text-decoration: none;
-  }
-  .quick-intent {
-    background: var(--coach-soft);
-    border: 1px solid var(--coach-line);
-    border-radius: 12px;
-    color: var(--coach-text);
-    flex: 0 0 auto;
-    font-size: 14px;
-    font-weight: 720;
-    min-height: 44px;
-    padding: 0 14px;
   }
   .dock-form {
     background: color-mix(in srgb, var(--coach-surface-strong) 86%, transparent);
