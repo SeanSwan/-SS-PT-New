@@ -2,7 +2,8 @@
  * Swan Coach planning signal formatter for workout-plan PDFs.
  *
  * Converts the safe planning fingerprint into printable labels. Raw client
- * identity fields from the fingerprint are intentionally ignored.
+ * identity fields and private medical-history wording are intentionally
+ * ignored or generalized for client-facing PDFs.
  */
 
 const toRecord = (value: unknown): Record<string, unknown> =>
@@ -14,21 +15,46 @@ const toStringArray = (value: unknown): string[] =>
 const firstString = (value: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : '';
 
+const PRIVATE_HISTORY_PATTERN =
+  /\b(surgery|diagnosis|diagnosed|arthritis|replacement|medical history|injury history|procedure|medication|doctor|physician|injury|injured|tendonitis|sprain|strain|fracture|tear|torn|rehab|post-op|operation|medical clearance)\b/i;
+
+const safeSignalText = (value: unknown, fallback: string) => {
+  const cleaned = firstString(value).replace(/\s+/g, ' ').slice(0, 180);
+  if (!cleaned) return '';
+  if (PRIVATE_HISTORY_PATTERN.test(cleaned)) return fallback;
+  return cleaned;
+};
+
+const safeSignalArray = (value: unknown, fallback: string, limit: number): string => {
+  const seen = new Set<string>();
+  const safeValues = toStringArray(value)
+    .map(item => safeSignalText(item, fallback))
+    .filter(Boolean)
+    .filter(item => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+  return safeValues.join(', ');
+};
+
 export const buildPlanningSignalLines = (planData: unknown): string[] => {
   const planning = toRecord(toRecord(planData).swanCoachPlanning);
   if (Object.keys(planning).length === 0) return [];
 
   const safetyGate = toRecord(planning.safetyGate);
   const lines = [
-    ['Data used', toStringArray(planning.dataCategoriesUsed).slice(0, 8).join(', ')],
-    ['Missing data', toStringArray(planning.missingDataCategories).slice(0, 6).join(', ')],
-    ['NASM domains', toStringArray(planning.nasmDomainsApplied).slice(0, 8).join(', ')],
-    ['Review gate', firstString(safetyGate.status)],
+    ['Data used', safeSignalArray(planning.dataCategoriesUsed, 'readiness profile', 8)],
+    ['Missing data', safeSignalArray(planning.missingDataCategories, 'readiness detail', 6)],
+    ['NASM domains', safeSignalArray(planning.nasmDomainsApplied, 'NASM readiness framework', 8)],
+    ['Review gate', safeSignalText(safetyGate.status, 'review_required')],
   ]
     .filter(([, value]) => value)
     .map(([label, value]) => `${label}: ${value}`);
 
-  const reviewMessage = firstString(safetyGate.reviewMessage);
+  const reviewMessage = safeSignalText(safetyGate.reviewMessage, 'Coach review required before assignment.');
   if (reviewMessage) lines.push(reviewMessage);
   return lines;
 };

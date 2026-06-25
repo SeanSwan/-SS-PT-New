@@ -73,7 +73,7 @@ describe('workout planner PDF source adapter', () => {
       'Total sessions: 78',
       'IN PARTNERSHIP WITH MOVE FITNESS',
       '- Progress only when tempo is consistent.',
-      'Split Squat - 3 sets x 8-12',
+      'Split Squat - Sets: 3 | Reps: 8-12 | Tempo: - | Rest: - | Notes: -',
     ]));
   });
 
@@ -104,7 +104,7 @@ describe('workout planner PDF source adapter', () => {
       'Duration: 1 weeks',
       'Primary goal: fat_loss',
       'Starting NASM phase: Phase 2',
-      'Step Up - 3 sets x 10',
+      'Step Up - Sets: 3 | Reps: 10 | Tempo: - | Rest: - | Notes: -',
     ]));
   });
 
@@ -129,7 +129,7 @@ describe('workout planner PDF source adapter', () => {
           nasmDomainsApplied: ['OPT', 'Corrective Exercise', 'Behavior Change'],
           safetyGate: {
             status: 'review_required',
-            reviewMessage: 'Coach review required before assignment.',
+            reviewMessage: 'Shoulder surgery history needs coach review before assignment.',
           },
           clientName: 'Private Person',
           email: 'private@example.test',
@@ -139,13 +139,13 @@ describe('workout planner PDF source adapter', () => {
 
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
       'Swan Coach Planning Signals',
-      'Data used: workout history, pain/injury entries, movement analysis',
+      'Data used: workout history, readiness profile, movement analysis',
       'Missing data: nutrition/macros',
       'NASM domains: OPT, Corrective Exercise, Behavior Change',
       'Review gate: review_required',
       'Coach review required before assignment.',
     ]));
-    expect(mocks.pdfText.join('\n')).not.toMatch(/Private Person|private@example\.test/i);
+    expect(mocks.pdfText.join('\n')).not.toMatch(/Private Person|private@example\.test|surgery|injury/i);
   });
 
   it('returns null when saved planData has no printable weeks', async () => {
@@ -158,5 +158,89 @@ describe('workout planner PDF source adapter', () => {
     })).resolves.toBeNull();
 
     expect(mocks.pdfText).toEqual([]);
+  });
+
+  it('prints every exercise with tempo and privacy-safe client recommendations', async () => {
+    await buildPlanPdfFileFromPlanData({
+      selectedClient,
+      goal: 'strength',
+      nasmPhase: 2,
+      durationWeeks: 1,
+      planData: {
+        planSummary: {
+          durationWeeks: 1,
+          sessionsPerWeek: 1,
+          totalSessions: 1,
+          primaryGoal: 'strength',
+          startingPhase: 2,
+        },
+        recommendations: [
+          'Because of your shoulder surgery and arthritis history, avoid overhead pressing.',
+          'Based on your readiness profile, use controlled tempo before adding load.',
+        ],
+        weeks: [{
+          weekNumber: 1,
+          days: [{
+            dayNumber: 1,
+            name: 'Week 1 Day 1',
+            exercises: Array.from({ length: 16 }, (_, index) => ({
+              exerciseName: `Exercise ${index + 1}`,
+              sets: 3,
+              targetReps: `${index + 8}`,
+              tempo: '3-1-1',
+              restSeconds: 45,
+              notes: index === 15 ? 'Keep shoulder packed and smooth.' : undefined,
+            })),
+          }],
+        }],
+      },
+    });
+
+    const text = mocks.pdfText.join('\n');
+    expect(text).toContain('Exercise 16');
+    expect(text).toContain('Tempo: 3-1-1');
+    expect(text).toContain('Notes: Keep shoulder packed and smooth.');
+    expect(text).toContain('Based on your readiness profile');
+    expect(text).not.toMatch(/surgery|arthritis|history/i);
+    expect(text).not.toContain('+ 4 more exercises');
+  });
+  it('sanitizes private history outside recommendations and renders plans beyond 52 weeks', async () => {
+    await buildPlanPdfFileFromPlanData({
+      selectedClient,
+      goal: 'post-surgery strength',
+      nasmPhase: 2,
+      durationWeeks: 53,
+      planData: {
+        planSummary: {
+          durationWeeks: 53,
+          sessionsPerWeek: 1,
+          totalSessions: 53,
+          primaryGoal: 'post-surgery strength',
+          startingPhase: 2,
+        },
+        recommendations: [],
+        weeks: Array.from({ length: 53 }, (_, index) => ({
+          weekNumber: index + 1,
+          focus: index === 52 ? 'arthritis rehab focus' : `Week ${index + 1} strength`,
+          days: [{
+            dayNumber: 1,
+            name: index === 52 ? 'Shoulder surgery day' : `Week ${index + 1} Day 1`,
+            exercises: [{
+              exerciseName: index === 52 ? 'Arthritis rehab press' : `Exercise ${index + 1}`,
+              sets: 3,
+              targetReps: '10',
+              tempo: '3-1-1',
+              restSeconds: 45,
+              readinessNote: 'Diagnosis history requires conservative loading.',
+            }],
+          }],
+        })),
+      },
+    });
+
+    const text = mocks.pdfText.join('\n');
+    expect(text).toContain('Week 53');
+    expect(text).toContain('Trainer modification noted.');
+    expect(text).not.toMatch(/surgery|arthritis|injury|diagnosis|history|rehab/i);
   });
 });

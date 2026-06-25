@@ -6,62 +6,18 @@
  * stale UI preview snapshot.
  */
 import type { jsPDF as PdfDoc } from 'jspdf';
-import type { PlannerClient } from './WorkoutPlannerTypes';
 import { normalizeClientSource } from '../../../../utils/clientSource';
-import { toPositiveInteger, toRecord } from '../../../../utils/objectValueGuards';
 import { workoutPlanHorizonForKey } from '../../../../utils/workoutPlanHorizonTokens';
-import { buildPlanningSignalLines, renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
-interface PdfPlanFallbacks {
-  goal: string;
-  nasmPhase: number;
-  durationWeeks: number;
-}
-
-interface BuildPlanPdfFileInput extends PdfPlanFallbacks {
-  planData: unknown;
-  selectedClient: PlannerClient | null | undefined;
-  horizonKey?: string | null;
-}
-
-interface PrintableExercise {
-  exerciseName?: string;
-  name?: string;
-  sets?: number | unknown[];
-  reps?: string | number;
-  targetReps?: string | number;
-  tempo?: string;
-  restTime?: number;
-  restSeconds?: number;
-}
-
-interface PrintableDay {
-  dayNumber?: number;
-  name?: string;
-  dayName?: string;
-  focus?: string;
-  exercises?: PrintableExercise[];
-}
-
-interface PrintableWeek {
-  weekNumber?: number;
-  focus?: string;
-  days?: PrintableDay[];
-  sessions?: PrintableDay[];
-}
-
-interface PrintablePlan {
-  planSummary: {
-    durationWeeks: number;
-    sessionsPerWeek: number;
-    totalSessions: number;
-    primaryGoal: string;
-    startingPhase: number;
-  };
-  weeks: PrintableWeek[];
-  recommendations: string[];
-  planningSignalLines: string[];
-}
-
+import type { BuildPlanPdfFileInput, PrintablePlan } from './workoutPlannerPlanPdfData';
+import {
+  buildPdfPlanFromPlanData,
+  clientSafePdfString,
+  getClientDisplayName,
+  getExerciseDose,
+  getExerciseName,
+  safeFilenamePart,
+} from './workoutPlannerPlanPdfData';
+import { renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
 const BRAND = {
   midnight: [0, 32, 96] as [number, number, number],
   royal: [0, 48, 128] as [number, number, number],
@@ -71,77 +27,6 @@ const BRAND = {
   ink: [31, 41, 55] as [number, number, number],
   muted: [91, 103, 122] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
-};
-
-const toStringArray = (value: unknown): string[] =>
-  Array.isArray(value) ? value.map(String).filter(Boolean) : [];
-
-const getWeekDays = (week: unknown): unknown[] => {
-  const raw = toRecord(week);
-  if (Array.isArray(raw.days)) return raw.days;
-  if (Array.isArray(raw.sessions)) return raw.sessions;
-  return [];
-};
-
-const countSessions = (weeks: unknown[]): number =>
-  weeks.reduce<number>((total, week) => total + getWeekDays(week).length, 0);
-
-const inferSessionsPerWeek = (weeks: unknown[]) =>
-  Math.max(1, ...weeks.map((week) => getWeekDays(week).length));
-
-const getClientDisplayName = (selectedClient: PlannerClient | null | undefined) => {
-  if (!selectedClient) return 'Client';
-  return `${selectedClient.firstName} ${selectedClient.lastName}`.trim() || 'Client';
-};
-
-const safeFilenamePart = (value: string) =>
-  value.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'Client';
-
-const getExerciseName = (exercise: PrintableExercise) =>
-  exercise.exerciseName || exercise.name || 'Exercise';
-
-const getExerciseSetCount = (exercise: PrintableExercise) =>
-  Array.isArray(exercise.sets) ? exercise.sets.length : toPositiveInteger(exercise.sets, 3);
-
-// fallow-ignore-next-line complexity
-const getExerciseDose = (exercise: PrintableExercise) => {
-  const sets = getExerciseSetCount(exercise);
-  const reps = exercise.targetReps ?? exercise.reps ?? '8-12';
-  const doseDetails = [
-    exercise.restSeconds ?? exercise.restTime ? `${exercise.restSeconds ?? exercise.restTime}s rest` : '',
-    exercise.tempo ? `tempo ${exercise.tempo}` : '',
-  ].filter(Boolean);
-  return `${sets} sets x ${reps}${doseDetails.length > 0 ? `, ${doseDetails.join(', ')}` : ''}`;
-};
-
-// fallow-ignore-next-line complexity
-const buildPdfPlanFromPlanData = (
-  planData: unknown,
-  fallback: PdfPlanFallbacks,
-): PrintablePlan | null => {
-  const raw = toRecord(planData);
-  const weeks = Array.isArray(raw.weeks) ? raw.weeks : [];
-  if (weeks.length === 0) return null;
-
-  const summary = toRecord(raw.planSummary);
-  const durationWeeks = toPositiveInteger(summary.durationWeeks, fallback.durationWeeks);
-  const sessionsPerWeek = toPositiveInteger(summary.sessionsPerWeek, inferSessionsPerWeek(weeks));
-  const totalSessions = toPositiveInteger(summary.totalSessions, countSessions(weeks));
-  const primaryGoal = String(summary.primaryGoal || raw.goal || fallback.goal || 'general_fitness');
-  const startingPhase = toPositiveInteger(summary.startingPhase, fallback.nasmPhase);
-
-  return {
-    planSummary: {
-      durationWeeks,
-      sessionsPerWeek,
-      totalSessions,
-      primaryGoal,
-      startingPhase,
-    },
-    weeks: weeks as PrintableWeek[],
-    recommendations: toStringArray(raw.recommendations),
-    planningSignalLines: buildPlanningSignalLines(raw),
-  };
 };
 
 const addPageIfNeeded = (doc: PdfDoc, y: number, needed = 12) => {
@@ -234,7 +119,7 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
     doc.setFontSize(8);
     doc.setTextColor(...BRAND.ink);
     // fallow-ignore-next-line complexity
-    plan.recommendations.slice(0, 8).forEach((recommendation) => {
+    plan.recommendations.forEach((recommendation) => {
       y = addPageIfNeeded(doc, y, 10);
       y = addWrappedText(doc, `- ${recommendation}`, 18, y, pageW - 36, 4.5);
     });
@@ -249,7 +134,8 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...BRAND.purple);
-    y = addWrappedText(doc, `Week ${weekNumber}${week.focus ? ` - ${week.focus}` : ''}`, 16, y, pageW - 32, 5);
+    const weekFocus = clientSafePdfString(week.focus, '', 120);
+    y = addWrappedText(doc, `Week ${weekNumber}${weekFocus ? ` - ${weekFocus}` : ''}`, 16, y, pageW - 32, 5);
 
     const days = (week.days?.length ? week.days : week.sessions) || [];
     // fallow-ignore-next-line complexity
@@ -258,7 +144,7 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(...BRAND.royal);
-      const dayName = day.name || day.dayName || `Day ${day.dayNumber || dayIndex + 1}`;
+      const dayName = clientSafePdfString(day.name || day.dayName, `Day ${day.dayNumber || dayIndex + 1}`, 140);
       y = addWrappedText(doc, dayName, 18, y, pageW - 36, 4.5);
 
       doc.setFont('helvetica', 'normal');
@@ -266,13 +152,10 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
       doc.setTextColor(...BRAND.ink);
       const exercises = Array.isArray(day.exercises) ? day.exercises : [];
       // fallow-ignore-next-line complexity
-      exercises.slice(0, 12).forEach((exercise) => {
+      exercises.forEach((exercise) => {
         y = addPageIfNeeded(doc, y, 9);
         y = addWrappedText(doc, `${getExerciseName(exercise)} - ${getExerciseDose(exercise)}`, 22, y, pageW - 42, 4.5);
       });
-      if (exercises.length > 12) {
-        y = addWrappedText(doc, `+ ${exercises.length - 12} more exercises`, 22, y, pageW - 42, 4.5);
-      }
       y += 1;
     });
   });
