@@ -16,7 +16,7 @@
  * │ └────────────────────────────────────────────────────────┘  │
  * │ Props: PostContentProps                                     │
  * │ CLICK-OUTCOMES:                                             │
- * │ [Try This Workout] -> console.log (future: opens generator) │
+ * │ [Try This Workout] -> opens workout details modal              │
  * │ GAMIFICATION: None directly (parent handles point awards)   │
  * └─────────────────────────────────────────────────────────────┘
  */
@@ -24,6 +24,7 @@
 import React from 'react';
 import { Clock, Dumbbell, Weight, Flame, Zap, Trophy, Star, Play } from 'lucide-react';
 import type { PostContentProps } from '../types/PostCardTypes';
+import PostWorkoutDetailsModal from './PostWorkoutDetailsModal';
 import ProofFeedCard from './ProofFeedCard';
 import {
   PostContentArea,
@@ -44,7 +45,6 @@ import {
   AchievementSummaryDetails,
   PointsChip,
 } from '../styles/PostCardStyles';
-import { logger } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Workout Stats Renderer
@@ -57,7 +57,7 @@ const WorkoutStats: React.FC<{ workoutData: NonNullable<PostContentProps['post']
     { icon: Dumbbell, label: 'Exercises', value: workoutData.exerciseCount, unit: '' },
     { icon: Weight, label: 'Total Weight', value: workoutData.totalWeight, unit: 'lbs' },
     { icon: Flame, label: 'Calories', value: workoutData.caloriesBurned, unit: '' },
-  ].filter(stat => stat.value && stat.value.trim());
+  ].filter(stat => stat.value && String(stat.value).trim());
 
   if (stats.length === 0) return null;
 
@@ -65,7 +65,7 @@ const WorkoutStats: React.FC<{ workoutData: NonNullable<PostContentProps['post']
     <WorkoutStatsContainer>
       {stats.map(({ icon: Icon, label, value, unit }) => (
         <WorkoutStatItem key={label}>
-          <Icon size={20} color="#60C0F0" />
+          <Icon size={20} color="var(--accent-primary, #60C0F0)" />
           <StatValue>{value}{unit}</StatValue>
           <StatLabel>{label}</StatLabel>
         </WorkoutStatItem>
@@ -152,50 +152,61 @@ TransformationImages.displayName = 'TransformationImages';
 // ─────────────────────────────────────────────────────────────
 
 const PostContent: React.FC<PostContentProps> = React.memo(({ post, transformationSliderValue }) => {
+  const [workoutDetailsOpen, setWorkoutDetailsOpen] = React.useState(false);
+
   const handleTryWorkout = () => {
-    // Future: integrate with workout generator
-    logger.log('Opening workout generator with this workout as template...');
+    setWorkoutDetailsOpen(true);
   };
 
   return (
-    <PostContentArea>
-      {/* Achievement Badge */}
-      {post.type === 'achievement' && post.achievementData && (
-        <AchievementBadgeBlock achievementData={post.achievementData} />
-      )}
+    <>
+      <PostContentArea>
+        {/* Achievement Badge */}
+        {post.type === 'achievement' && post.achievementData && (
+          <AchievementBadgeBlock achievementData={post.achievementData} />
+        )}
 
-      {post.type === 'milestone' ? (
-        <ProofFeedCard post={post} />
-      ) : (
-        <PostText>{post.content}</PostText>
-      )}
+        {post.type === 'milestone' ? (
+          <ProofFeedCard post={post} />
+        ) : (
+          <PostText>{post.content}</PostText>
+        )}
 
-      {/* Workout Stats */}
-      {post.type === 'workout' && post.workoutData && (
-        <WorkoutStats workoutData={post.workoutData} />
-      )}
+        {/* Workout Stats */}
+        {post.type === 'workout' && post.workoutData && (
+          <WorkoutStats workoutData={post.workoutData} />
+        )}
 
-      {/* Transformation Images */}
-      {post.type === 'transformation' && post.transformationData && (
-        <TransformationImages
-          transformationData={post.transformationData}
-          sliderValue={transformationSliderValue}
+        {/* Transformation Images */}
+        {post.type === 'transformation' && post.transformationData && (
+          <TransformationImages
+            transformationData={post.transformationData}
+            sliderValue={transformationSliderValue}
+          />
+        )}
+
+        {/* Try Workout CTA */}
+        {post.type === 'workout' && (
+          <CenteredFlex>
+            <TryWorkoutButton type="button" aria-haspopup="dialog" onClick={handleTryWorkout}>
+              <Zap size={16} />
+              Try This Workout
+            </TryWorkoutButton>
+          </CenteredFlex>
+        )}
+      </PostContentArea>
+
+      {post.type === 'workout' && (
+        <PostWorkoutDetailsModal
+          open={workoutDetailsOpen}
+          workoutData={post.workoutData}
+          postContent={post.content}
+          onClose={() => setWorkoutDetailsOpen(false)}
         />
       )}
-
-      {/* Try Workout CTA */}
-      {post.type === 'workout' && (
-        <CenteredFlex>
-          <TryWorkoutButton onClick={handleTryWorkout}>
-            <Zap size={16} />
-            Try This Workout
-          </TryWorkoutButton>
-        </CenteredFlex>
-      )}
-    </PostContentArea>
+    </>
   );
 });
-
 PostContent.displayName = 'PostContent';
 
 export default PostContent;

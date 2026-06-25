@@ -40,11 +40,26 @@ export interface Comment {
 export const isCoachRole = (role?: string): boolean =>
   role === 'trainer' || role === 'admin';
 
+export interface WorkoutPostExercise {
+  name?: string;
+  sets?: string;
+  reps?: string;
+  weight?: string;
+  duration?: string;
+  rest?: string;
+  notes?: string;
+}
+
 export interface WorkoutPostData {
+  title?: string;
+  focus?: string;
+  source?: 'manual' | 'logger' | 'plan' | 'pdf' | string;
   duration?: string;
   exerciseCount?: string;
   totalWeight?: string;
   caloriesBurned?: string;
+  notes?: string;
+  exercises?: WorkoutPostExercise[];
 }
 
 export interface TransformationPostData {

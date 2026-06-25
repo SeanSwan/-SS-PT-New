@@ -15,6 +15,7 @@ import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs
 import { cleanupSocialPostDeletionSideEffects } from '../../services/social/socialPostDeletionCleanupService.mjs';
 import { getIO } from '../../socket/socketManager.mjs';
 import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
+import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
 
 const router = express.Router();
 
@@ -71,7 +72,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
     const mediaItems = Array.isArray(post.mediaItems) ? post.mediaItems : [];
     const firstMedia = mediaItems[0];
 
-    return {
+    return attachWorkoutDataToPost({
       id: post.id,
       userId: post.userId,
       content: post.content,
@@ -84,7 +85,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
       createdAt: post.publishedAt || post.createdAt,
       updatedAt: post.updatedAt,
       user: userMap.get(String(post.userId)) || null
-    };
+    });
   });
 
   return {
@@ -391,7 +392,7 @@ router.get('/feed', async (req, res) => {
       postObj.reactionCounts = reactionCountsMap[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
       postObj.userReactions = userReactionsMap[post.id] || [];
 
-      return postObj;
+      return attachWorkoutDataToPost(postObj);
     });
 
     return res.status(200).json({
@@ -472,7 +473,7 @@ router.get('/trending', async (req, res) => {
 
       return res.json({
         success: true,
-        posts: posts.rows.map(p => ({
+        posts: posts.rows.map(p => attachWorkoutDataToPost({
           ...p.toJSON(),
           user: userMap.get(p.userId) || null,
           isLiked: likedSet.has(p.id),
@@ -515,7 +516,7 @@ router.get('/trending', async (req, res) => {
 
       return res.json({
         success: true,
-        posts: posts.map(p => ({
+        posts: posts.map(p => attachWorkoutDataToPost({
           id: p.id,
           userId: p.userId,
           content: p.content,
@@ -652,7 +653,7 @@ router.get('/user/:userId', async (req, res) => {
       postObj.reactionCounts = reactionCountsMap2[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
       postObj.userReactions = userReactionsMap2[post.id] || [];
       
-      return postObj;
+      return attachWorkoutDataToPost(postObj);
     });
     
     return res.status(200).json({
@@ -731,6 +732,14 @@ router.post('/', upload.single('media'), async (req, res) => {
     if (req.body.userAchievementId) postData.userAchievementId = req.body.userAchievementId;
     if (req.body.challengeId) postData.challengeId = req.body.challengeId;
 
+    const sanitizedWorkoutData = sanitizeWorkoutPostData(req.body.workoutData);
+    if (sanitizedWorkoutData) {
+      postData.metadata = {
+        ...(postData.metadata || {}),
+        workoutData: sanitizedWorkoutData
+      };
+    }
+
     // ── Transaction: post creation only ──
     // Hashtag linking deliberately runs AFTER commit (see below). 2026-06-11
     // incident: when the hashtag tables were missing in production, the failed
@@ -805,7 +814,7 @@ router.post('/', upload.single('media'), async (req, res) => {
     const responseData = {
       success: true,
       message: 'Post created successfully',
-      post: fullPost,
+      post: attachWorkoutDataToPost(fullPost.toJSON()),
       hashtags: linkedHashtags.map(h => ({ id: h.id, name: h.name, slug: h.slug }))
     };
 
@@ -918,7 +927,7 @@ router.get('/:postId', async (req, res) => {
     });
     
     // Format response
-    const postData = post.toJSON();
+    const postData = attachWorkoutDataToPost(post.toJSON());
     postData.comments = comments;
     postData.isLiked = !!userLike;
     
