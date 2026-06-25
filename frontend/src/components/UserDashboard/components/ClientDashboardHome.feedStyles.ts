@@ -105,6 +105,7 @@ export const MediaPreviewCopy = styled.div`
     white-space: nowrap;
   }
 `;
+
 export const ComposerFooter = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -152,6 +153,31 @@ export const PostMedia = styled.div`
     min-height: 188px;
     object-fit: cover;
     display: block;
+  }
+`;
+
+export const PostMediaButton = styled.button`
+  position: relative;
+  width: 100%;
+  min-height: 188px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--client-panel-soft) 78%, transparent);
+  cursor: zoom-in;
+
+  img {
+    width: 100%;
+    height: 100%;
+    min-height: 188px;
+    object-fit: cover;
+    display: block;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--client-mint);
+    outline-offset: 2px;
   }
 `;
 

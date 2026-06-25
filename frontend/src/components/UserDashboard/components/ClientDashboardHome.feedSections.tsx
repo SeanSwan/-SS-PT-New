@@ -3,6 +3,8 @@
  * PURPOSE: Feed, composer, workout, and insight sections for client Home.
  */
 import React from 'react';
+import PostMediaLightbox from '../../Social/Feed/components/PostMediaLightbox';
+import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import {
   Activity,
   Apple,
@@ -45,6 +47,7 @@ import {
   MoodChip,
   PostHeader,
   PostMedia,
+  PostMediaButton,
   SocialStats,
   SparkBar,
   Sparkline,
@@ -136,6 +139,10 @@ export function QuickPostCard(props: Pick<ClientDashboardHomeProps,
 
 export function CommunityFeedCard({ latestPost, feedLoading, feedError, avatarSrc, displayName }: Pick<ClientDashboardHomeProps,
   'latestPost' | 'feedLoading' | 'feedError' | 'avatarSrc' | 'displayName'>) {
+  const [lightboxOpen, setLightboxOpen] = React.useState(false);
+  const safeMediaUrl = latestPost?.mediaUrl ? sanitizeImageUrl(latestPost.mediaUrl) : null;
+  const imageAlt = `Latest post image: ${latestPost?.caption || 'Community post'}`;
+
   return (
     <PanelCard aria-label="Community feed preview">
       <PanelHeader><Kicker><MessageCircle size={13} /> Community feed</Kicker>{feedLoading && <TinyText>Loading</TinyText>}</PanelHeader>
@@ -143,8 +150,16 @@ export function CommunityFeedCard({ latestPost, feedLoading, feedError, avatarSr
         <FeedPost>
           <PostHeader><img src={avatarSrc} alt="" /><div><CardTitle>{displayName}</CardTitle><TinyText>{latestPost.timeAgo}</TinyText></div></PostHeader>
           <MutedText>{latestPost.caption || 'Shared a community update.'}</MutedText>
-          {latestPost.mediaUrl && (
-            <PostMedia>{latestPost.isVideo ? <video src={latestPost.mediaUrl} controls /> : <img src={latestPost.mediaUrl} alt="" />}</PostMedia>
+          {safeMediaUrl && latestPost.isVideo && (
+            <PostMedia><video src={safeMediaUrl} controls muted playsInline preload="metadata" /></PostMedia>
+          )}
+          {safeMediaUrl && !latestPost.isVideo && (
+            <>
+              <PostMediaButton type="button" aria-label="View latest post image" onClick={() => setLightboxOpen(true)}>
+                <img src={safeMediaUrl} alt={imageAlt} loading="lazy" />
+              </PostMediaButton>
+              <PostMediaLightbox src={safeMediaUrl} alt={imageAlt} open={lightboxOpen} onClose={() => setLightboxOpen(false)} />
+            </>
           )}
           <SocialStats><span><Heart size={14} /> {latestPost.likes}</span><span><MessageCircle size={14} /> {latestPost.comments}</span></SocialStats>
         </FeedPost>
