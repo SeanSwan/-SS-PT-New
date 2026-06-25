@@ -215,7 +215,7 @@ describe('ClientPicker — canonical source consumption', () => {
   });
 
   it('still accepts the legacy userRole prop for backward compat without crashing', () => {
-    // Kept as an optional prop so AIAssistantDrawer and any other caller
+    // Kept as an optional prop so legacy and gradual-migration callers
     // can still pass it during a gradual migration window.
     mockUseGlobalClient.mockReturnValue({
       activeClient: null,

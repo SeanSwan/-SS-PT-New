@@ -2,7 +2,7 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: ClientPicker                                      ║
  * ║  PURPOSE: Searchable client dropdown for AI context targeting ║
- * ║  PARENT: AIAssistantDrawer, SwanCoachAssistantPage            ║
+ * ║  PARENT: SwanCoachAssistantPage                               ║
  * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-04-15         ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
@@ -30,7 +30,7 @@
  * ARCHITECTURE:
  * graph TD
  *   Provider[GlobalClientProvider] -->|clientList| Picker[ClientPicker]
- *   Parent[SwanCoachAssistantPage / AIAssistantDrawer] --> Picker
+ *   Parent[SwanCoachAssistantPage] --> Picker
  *   Picker -->|onSelect| Parent
  */
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -188,7 +188,7 @@ interface ClientPickerProps {
   onSelectClient: (client: ClientInfo | null) => void;
   /**
    * Kept for backward compat with existing call sites in
-   * SwanCoachAssistantPage and AIAssistantDrawer, but no longer consumed
+   * SwanCoachAssistantPage, but no longer consumed
    * inside the picker. Role-aware endpoint selection happens in
    * GlobalClientContext. Safe to omit.
    */

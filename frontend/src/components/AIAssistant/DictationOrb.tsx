@@ -2,7 +2,7 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: DictationOrb — Voice-First Input (V3)            ║
  * ║  PURPOSE: Voice-to-text via Web Speech API for AI chat input  ║
- * ║  PARENT: AIAssistantDrawer (InputArea)                        ║
+ * ║  PARENT: Coach assistant input surfaces                      ║
  * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
@@ -36,9 +36,9 @@
  *
  * ARCHITECTURE:
  * graph TD
- *   Drawer[AIAssistantDrawer] --> Orb[DictationOrb]
+ *   AssistantInput[Coach assistant input] --> Orb[DictationOrb]
  *   Orb -->|Web Speech API| Browser
- *   Orb -->|onTranscript| Drawer
+ *   Orb -->|onTranscript| AssistantInput
  *
  * V3 Fixes:
  * - Memory leak: nullify recognitionRef + clean all handlers on unmount
