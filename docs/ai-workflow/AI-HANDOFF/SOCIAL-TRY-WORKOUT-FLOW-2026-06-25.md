@@ -2,7 +2,11 @@
 
 ## Scope
 
-Make workout-tagged feed posts actionable without colliding with the current chart lane. The first slice turned the existing `Try This Workout` button from a no-op into a details modal. The next slice adds a workout attachment builder to the canonical Social Feed composer so workout posts can carry structured routine data at publish time.
+Make workout-tagged feed posts actionable without colliding with the current chart lane. Hostile review on 2026-06-25 split the surface truth:
+
+- Active shipped surface: `/user-dashboard` Home lazy-loads `HomeCommunityFeed -> PostCard -> PostContent`, so the `Try This Workout` card/detail modal is live.
+- Active composer surface: `/user-dashboard` Home uses `HomeTabVisionCenter -> useHomeComposer`; it attaches the latest real workout session via `workoutSessionId` when `Share my week` is armed.
+- Legacy/unmounted surface: `SocialFeed -> CreatePostCard` still has the structured workout attachment builder, but `/social` redirects to `/user-dashboard`, so that builder is not currently user-visible.
 
 ## Canonical Surface Receipt
 
@@ -10,9 +14,10 @@ Make workout-tagged feed posts actionable without colliding with the current cha
 |---|---|
 | User dashboard route | `frontend/src/routes/main-routes.tsx` mounts `/user-dashboard` and `/user-dashboard/:tab` to `UserDashboardV3`. |
 | Dashboard home feed | `UserDashboard.V3.tsx` renders `UserDashboardTabsV3`; `UserDashboardTabsV3.tsx` renders `HomeTab`; `HomeTab.tsx` calls `useSocialFeed()` and passes posts into the home feed. |
-| Composer owner | `frontend/src/components/Social/Feed/CreatePostCard.tsx` renders `CreatePostForm` and submits through `useCreatePostForm`. |
-| Workout attachment builder | `CreatePostForm.tsx` renders `CreateWorkoutAttachmentPanel` when expanded post type is `workout`. |
-| Exercise library source | `CreateWorkoutAttachmentPanel.tsx` uses `useExerciseSearch`, which loads the authenticated `/api/exercises/library` Swan exercise library. |
+| Active composer owner | `frontend/src/components/UserDashboard/components/HomeTab.tsx` mounts `useHomeComposer`; `HomeTabVisionCenter.tsx` renders the Quick Post form; `useHomeComposer.ts` submits through the stateful `useSocialFeed.createPost`. |
+| Active workout attachment | `useHomeComposer.ts` attaches the latest real workout by `workoutSessionId` after `HomeTabTrainingProof` arms `handleShareProgress`; it does not expose the structured exercise builder. |
+| Legacy composer owner | `frontend/src/components/Social/Feed/CreatePostCard.tsx` renders `CreatePostForm` and `CreateWorkoutAttachmentPanel`, but this is behind `SocialFeedReady`, and the route file marks `SocialPage.V3 / SocialPage` as unmounted legacy. |
+| Legacy exercise library source | `CreateWorkoutAttachmentPanel.tsx` uses `useExerciseSearch`, which loads the authenticated `/api/exercises/library` Swan exercise library. |
 | Feed card content | `frontend/src/components/Social/Feed/PostCard.tsx` renders `PostContent` for each post. |
 | CTA owner | `frontend/src/components/Social/Feed/components/PostContent.tsx` renders `Try This Workout` whenever `post.type === 'workout'`. |
 | Frontend API | `frontend/src/hooks/social/useSocialFeed.ts` reads `GET /api/social/posts/feed` and appends `workoutData` to `POST /api/social/posts` when present. |
@@ -53,16 +58,14 @@ Click [Try This Workout]
 
 ## Flow
 
-1. User writes a post and expands `More Options`.
-2. User chooses `Workout`, or the existing smart intent can still classify workout-style copy.
-3. In explicit workout mode, the composer can pull recent completed workout stats or attach exercises from the Swan exercise library.
-4. Selected Rolodex exercises keep `sourceExerciseId`; custom exercises stay post-local until the future admin-review queue exists.
-5. `useCreatePostForm` submits `workoutData` with `source: 'composer'`, the caption title, stats, and up to 12 exercises.
-6. The backend sanitizes the limited payload and stores it in `SocialPost.metadata.workoutData`.
-7. Feed reads attach `workoutData` back onto the post DTO.
-8. `Try This Workout` opens the details modal.
-9. If `workoutData` exists, the modal shows the shared workout.
-10. If a post is only auto-tagged as workout, the modal explains that no workout details were attached.
+1. On the active Home composer, `HomeTabTrainingProof` can arm `useHomeComposer.handleShareProgress` with the latest real session id.
+2. `useHomeComposer.submitPost` submits through `useSocialFeed.createPost` with `workoutSessionId` when proof is armed.
+3. The backend links the post to the workout session and can still sanitize optional structured `workoutData` when a mounted caller provides it.
+4. Feed reads attach `workoutData` back onto the post DTO when present.
+5. `Try This Workout` opens the details modal from the active `HomeCommunityFeed` card.
+6. If `workoutData` exists, the modal shows the shared workout details.
+7. If a post is only typed as workout or only linked by session id without embedded details, the modal explains that no workout details were attached.
+8. The structured `CreatePostCard` builder remains implemented but legacy/unmounted until a future route intentionally reactivates it or ports it into the Home composer.
 
 ## Data Contract
 
@@ -94,17 +97,18 @@ type WorkoutPostData = {
 | Phase | Status | Notes |
 |---|---|---|
 | Try This Workout modal | Implemented | CTA opens a keyboard-accessible modal with attached and no-details states. |
-| Composer attach | Implemented | Expanded workout composer now creates structured workoutData. |
-| Rolodex picker | Implemented, bounded | Uses existing `/api/exercises/library` search; does not duplicate the Rolodex or create exercise records. |
-| Workout-history truth | Partial | Existing completed-workout pull fills stats and can carry exercise names when the API response includes them. A normalized workout share table is still future work. |
+| Active Home proof attach | Implemented | `Share my week` submits the latest real `workoutSessionId` through the active Home composer. |
+| Legacy structured composer attach | Implemented, not mounted | `CreatePostCard` can create structured `workoutData`, but this path is behind legacy `SocialFeed` and is not currently user-visible. |
+| Rolodex picker | Implemented, not mounted | Uses existing `/api/exercises/library` search; keep it dormant until ported into the active Home composer or a new mounted Social route. |
+| Workout-history truth | Partial | Active Home proof uses the latest real workout session id. Embedded modal details still depend on `metadata.workoutData` until a normalized workout-share table/session expansion exists. |
 | PDF upload | Deferred | Needs file safety, preview, and clear distinction between uploaded file and structured exercises. |
 | Exercise suggestion | Deferred | Queue for admin review before adding to the Rolodex. |
 | Chart card | Deferred | Integrate after the current chart lane stabilizes; current DTO fields are reserved for that lane. |
 
 ## Definition Of Done For Current Slice
 
-- Composer workout mode has a keyboard-accessible workout attachment builder.
-- Rolodex-selected exercises are included in `workoutData.exercises` with `sourceExerciseId` preserved.
-- Backend sanitizer keeps only approved workout/exercise fields and drops arbitrary payload fields.
+- Active `/user-dashboard` Home feed loads the `Try This Workout` modal from `HomeCommunityFeed`.
+- Active Home composer can publish workout proof with a real `workoutSessionId`.
+- Backend sanitizer keeps only approved workout/exercise fields and drops arbitrary payload fields when structured `workoutData` is provided.
 - Existing Try This Workout modal still opens attached and no-details states.
-- Tests cover composer attachment, modal behavior, feed display contract, and backend sanitizer contract.
+- Tests cover the legacy composer attachment, modal behavior, feed display contract, and backend sanitizer contract; future active-composer builder work must add Home composer coverage before shipping.
