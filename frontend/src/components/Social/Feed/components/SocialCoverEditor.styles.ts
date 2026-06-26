@@ -81,7 +81,7 @@ export const EditorButton = styled.button`
 
 /* Live preview of the composition, scaled down. position:relative is the
    anchor for the absolute banner media layers. */
-export const PreviewFrame = styled.div`
+export const PreviewFrame = styled.div<{ $draggable?: boolean }>`
   position: relative;
   height: clamp(140px, 24vw, 220px);
   margin-bottom: 12px;
@@ -89,6 +89,13 @@ export const PreviewFrame = styled.div`
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   background: var(--bg-surface, #141419);
+  cursor: ${({ $draggable }) => ($draggable ? 'grab' : 'default')};
+  touch-action: ${({ $draggable }) => ($draggable ? 'none' : 'auto')};
+  user-select: none;
+
+  &:active {
+    cursor: ${({ $draggable }) => ($draggable ? 'grabbing' : 'default')};
+  }
 `;
 
 /* The shared reposition panel content was authored for a dashboard popover;

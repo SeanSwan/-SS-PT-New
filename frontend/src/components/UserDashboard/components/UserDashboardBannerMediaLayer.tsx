@@ -376,6 +376,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
             data-testid="banner-sticky-carousel"
             data-layout={bannerCollageLayout}
             aria-hidden="true"
+            style={positionStyle}
           >
             <BannerStickyCarouselTrack style={carouselDurationStyle}>
               {displayPhotos.map((photo, index) => (

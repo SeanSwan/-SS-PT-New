@@ -91,17 +91,21 @@ export function LayoutSection({
   coverType,
   layoutOptions,
   selectedLayout,
+  stickyCarousel,
   onLayoutCommit,
+  onStickyCarouselChange,
 }: {
   coverType: CoverType;
   layoutOptions: BannerCollageLayout[];
   selectedLayout: BannerCollageLayout;
+  stickyCarousel: boolean;
   onLayoutCommit: (layout: BannerCollageLayout) => void;
+  onStickyCarouselChange: (sticky: boolean) => void;
 }) {
   if (coverType === 'single') return null;
   return (
     <div>
-      <SectionLabel><span className="num">02</span> {coverType === 'stage' ? 'Stage layout' : 'Collage pattern'}</SectionLabel>
+      <SectionLabel><span className="num">02</span> {coverType === 'stage' ? 'Stage layout' : coverType === 'carousel' ? 'Carousel layout' : 'Collage pattern'}</SectionLabel>
       {coverType === 'stage' && (
         <SectionHelp><b>Atrium</b> is our pick - a coverflow gallery with depth and a hero frame in focus.</SectionHelp>
       )}
@@ -121,10 +125,19 @@ export function LayoutSection({
           </DirTile>
         ))}
       </DirGrid>
+      {coverType === 'carousel' && (
+        <Seg role="group" aria-label="Carousel follow behavior" style={{ marginTop: 10 }}>
+          <SegButton type="button" $active={!stickyCarousel} onClick={() => onStickyCarouselChange(false)}>
+            In cover
+          </SegButton>
+          <SegButton type="button" $active={stickyCarousel} onClick={() => onStickyCarouselChange(true)}>
+            Sticky strip
+          </SegButton>
+        </Seg>
+      )}
     </div>
   );
 }
-
 function MediaPreview({ url }: { url: string }) {
   if (isBannerVideoUrl(url)) {
     return (

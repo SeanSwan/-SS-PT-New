@@ -96,18 +96,35 @@ export const CoverIdentity = styled.div`
 export const CoverAvatarButton = styled.button`
   position: relative;
   flex: 0 0 auto;
-  width: clamp(56px, 6vw, 76px);
-  height: clamp(56px, 6vw, 76px);
+  width: clamp(112px, 8vw, 152px);
+  height: clamp(112px, 8vw, 152px);
   border-radius: 50%;
-  padding: 3px;
+  padding: 4px;
   border: 0;
   cursor: pointer;
   background: conic-gradient(from 90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-primary, #60C0F0));
-  box-shadow: 0 0 26px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 38%, transparent);
+  box-shadow: 0 0 34px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 42%, transparent);
 
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 3px;
+  }
+
+  @media (max-width: 768px) {
+    width: clamp(58px, 17vw, 78px);
+    height: clamp(58px, 17vw, 78px);
+    padding: 3px;
+    box-shadow: 0 0 26px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 38%, transparent);
+  }
+
+  @media (min-width: 2560px) {
+    width: clamp(148px, 5.2vw, 176px);
+    height: clamp(148px, 5.2vw, 176px);
+  }
+
+  @media (min-width: 3840px) {
+    width: clamp(160px, 4.6vw, 192px);
+    height: clamp(160px, 4.6vw, 192px);
   }
 `;
 
@@ -131,8 +148,8 @@ export const CoverAvatarCameraBadge = styled.span`
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 24px;
-  height: 24px;
+  width: clamp(24px, 2.2vw, 32px);
+  height: clamp(24px, 2.2vw, 32px);
   border-radius: 50%;
   display: flex;
   align-items: center;

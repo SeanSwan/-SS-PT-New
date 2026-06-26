@@ -501,6 +501,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
     const coverHeroSource = readSource('src/components/UserDashboard/components/ObservatoryCoverHero.tsx');
+    const coverHeroStylesSource = readSource('src/components/UserDashboard/components/ObservatoryCoverHero.styles.ts');
     const layoutSource = readSource('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
     const wrapperSource = readSource('src/components/UserDashboard/styles/DashboardV3LayoutStyles.ts');
 
@@ -522,6 +523,8 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(dashboardSource).toContain('onSettings={dashboard.handleSettings}');
     expect(coverHeroSource).toContain('aria-label="Share profile"');
     expect(coverHeroSource).toContain('aria-label="Change profile photo"');
+    expectStyleBlockContains(coverHeroStylesSource, 'CoverAvatarButton', 'width: clamp(112px, 8vw, 152px);');
+    expectStyleBlockContains(coverHeroStylesSource, 'CoverAvatarButton', '@media (max-width: 768px)');
 
     // The rail clearance machinery is retired with the overlay banner.
     expect(shellSource).not.toContain('profileHeaderVisible');

@@ -96,9 +96,9 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('data-testid="banner-sticky-carousel"');
     expect(mediaLayer).toContain('!bannerStickyCarousel');
     expect(mediaLayer).toContain('data-testid="banner-sticky-carousel-image"');
-    // 2026-06-11 flaw fix: sticky carousel media is cover-fill (was contain,
-    // which letterboxed photos with black bars).
-    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-fit: cover;/);
+    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-fit: contain;/);
+    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-position: var\(--banner-object-position, center center\);/);
+    expect(mediaLayer).toContain('style={positionStyle}');
     expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_PHOTOS = 12');
     expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_VIDEOS = 3');
     expect(compositionHook).toContain('MAX_BANNER_COLLAGE_VIDEOS');

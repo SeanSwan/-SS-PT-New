@@ -35,12 +35,14 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   bannerFrameHeight,
   bannerCollagePhotos,
   bannerCollageLayout,
+  bannerStickyCarousel,
   bannerPresets,
   onBannerCropPreview,
   onBannerCropCommit,
   onBannerCollageFiles,
   onBannerCollageRemove,
   onBannerCollageLayoutCommit,
+  onBannerStickyCarouselCommit,
   onBannerPresetSave,
   onBannerPresetApply,
   onBannerPresetRemove,
@@ -83,7 +85,9 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
         coverType={coverType}
         layoutOptions={layoutOptions}
         selectedLayout={bannerCollageLayout}
+        stickyCarousel={bannerStickyCarousel}
         onLayoutCommit={onBannerCollageLayoutCommit}
+        onStickyCarouselChange={onBannerStickyCarouselCommit}
       />
       <MediaLibrarySection
         coverType={coverType}

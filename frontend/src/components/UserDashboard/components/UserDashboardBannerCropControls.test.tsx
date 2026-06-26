@@ -198,6 +198,7 @@ describe('UserDashboardBannerCropControls', () => {
     });
 
     expect(screen.getByTestId('banner-sticky-carousel')).toBeInTheDocument();
+    expect(screen.getByTestId('banner-sticky-carousel')).toHaveStyle('--banner-object-position: 50% 50%');
     expect(screen.getAllByTestId('banner-sticky-carousel-image')).toHaveLength(4);
     expect(screen.queryAllByTestId('banner-collage-image')).toHaveLength(0);
   });

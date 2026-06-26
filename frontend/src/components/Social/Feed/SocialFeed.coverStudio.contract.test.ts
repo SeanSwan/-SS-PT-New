@@ -12,6 +12,9 @@ const postStreamSource = readSource('./components/SocialFeedPostStream.tsx');
 const stateSource = readSource('./components/SocialFeedState.tsx');
 const panelsSource = readSource('./components/SocialFeedPanels.tsx');
 const studioSource = readSource('./components/FeedCoverStudio.tsx');
+const coverEditorSource = readSource('./components/SocialCoverEditor.tsx');
+const coverPanelSource = readSource('./components/CoverStudioPanel.tsx');
+const coverPanelTypesSource = readSource('./components/CoverStudioPanel.types.ts');
 const studioStylesSource = readSource('./components/FeedCoverStudio.styles.ts');
 const identityStylesSource = readSource('./components/FeedCoverIdentity.styles.ts');
 const viewModelSource = readSource('./hooks/useSocialFeedViewModel.ts');
@@ -81,12 +84,18 @@ describe('SocialFeed cover studio contract', () => {
   });
 
   it('embeds the cover editor on the hub, now canonical at /user-dashboard (merge M7)', () => {
-    const editorSource = readSource('./components/SocialCoverEditor.tsx');
+    const editorSource = coverEditorSource;
     const routesSource = readSource('../../../routes/main-routes.tsx');
-    // The editor reuses the battle-tested banner machinery — no forks.
+    // The editor reuses the banner machinery - no forks, and now makes drag
+    // repositioning the primary way to save the focal point.
     expect(editorSource).toContain('useBannerCompositionState');
-    expect(editorSource).toContain('UserDashboardBannerRepositionPanelContent');
+    expect(editorSource).toContain('CoverStudioPanel');
     expect(editorSource).toContain('uploadBannerPhoto');
+    expect(editorSource).toContain('onPointerDown={handlePreviewPointerDown}');
+    expect(editorSource).toContain('handleBannerCropCommit(next)');
+    expect(coverPanelTypesSource).toContain("export type CoverType = 'single' | 'stage' | 'carousel' | 'collage'");
+    expect(coverPanelTypesSource).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
+    expect(coverPanelSource).toContain('bannerStickyCarousel');
     // The cover exposes the entry; sections lazy-mount the editor and refresh
     // the live cover when it closes.
     expect(studioSource).toContain('onEditCover');
@@ -99,7 +108,6 @@ describe('SocialFeed cover studio contract', () => {
     expect(routesSource).toMatch(/path: 'social',\s*element: <Navigate to="\/user-dashboard" replace \/>/);
     expect(routesSource).toContain("import('../components/UserDashboard/UserDashboard.V3')");
   });
-
   it('keeps the crossfade layout in lockstep across frontend and backend (drift guard)', () => {
     const compositionSource = readSource('../../../services/profileBannerComposition.ts');
     const backendController = readSource(
