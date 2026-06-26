@@ -4,9 +4,21 @@ import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMessaging } from './useMessaging';
 
+const apiServiceMocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+}));
+
 const socketMocks = vi.hoisted(() => ({
   emit: vi.fn(),
   on: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('../../../services/api.service', () => ({
+  default: apiServiceMocks,
 }));
 
 vi.mock('../../../hooks/useSocket', () => ({
@@ -22,7 +34,7 @@ const source = (file: string) => readFileSync(resolve(__dirname, file), 'utf8');
 
 describe('useMessaging tier gate', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    Object.values(apiServiceMocks).forEach((mock) => mock.mockReset());
     socketMocks.emit.mockClear();
     socketMocks.on.mockClear();
   });
@@ -34,7 +46,7 @@ describe('useMessaging tier gate', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(fetch).not.toHaveBeenCalled();
+    expect(apiServiceMocks.get).not.toHaveBeenCalled();
     expect(socketMocks.emit).not.toHaveBeenCalled();
   });
 
@@ -46,13 +58,11 @@ describe('useMessaging tier gate', () => {
   });
 
   it('returns raw live search arrays from the mounted hook as visible users', async () => {
-    const fetchMock = vi.fn(async (url: string) => ({
-      ok: true,
-      json: async () => url.includes('/users/search')
+    apiServiceMocks.get.mockImplementation((url: string) => Promise.resolve({
+      data: url.includes('/users/search')
         ? [{ id: 88, name: 'Sean Swan', username: 'sean', role: 'admin', photo: null }]
         : [],
     }));
-    vi.stubGlobal('fetch', fetchMock);
 
     const { result } = renderHook(() => useMessaging(103, { enabled: true }));
 

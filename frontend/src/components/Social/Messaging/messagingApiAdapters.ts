@@ -7,7 +7,7 @@
  * The production controller has returned both raw arrays and wrapped objects
  * over time. These adapters keep the UI stable while backend contracts converge.
  */
-import type { ConversationData, MessageData, MessageParticipant, SearchUserResult } from './MessagingTypes';
+import type { ConversationData, GroupRole, MessageData, MessageParticipant, SearchUserResult } from './MessagingTypes';
 
 type AnyRecord = Record<string, unknown>;
 
@@ -20,18 +20,44 @@ const asString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 
 const asNumber = (value: unknown, fallback = 0): number => {
-  const next = Number(value);
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value !== 'string' || value.trim() === '') return fallback;
+  const next = Number(value.trim());
   return Number.isFinite(next) ? next : fallback;
 };
 
+const asBoolean = (value: unknown, fallback = false): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value > 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return fallback;
+};
+
 const asId = (value: unknown): number | string => {
-  const next = Number(value);
-  return Number.isFinite(next) && value !== '' && value !== null ? next : asString(value);
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : '';
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (/^[1-9]\d*$/.test(trimmed)) return Number(trimmed);
+  return trimmed;
+};
+
+const asPositiveNumberId = (value: unknown): number => {
+  const id = asId(value);
+  return typeof id === 'number' ? id : 0;
 };
 
 const normalizeRole = (value: unknown): string => {
   const role = asString(value, 'client').toLowerCase();
   return role === 'user' ? 'client' : role;
+};
+
+const normalizeGroupRole = (value: unknown): GroupRole | undefined => {
+  const role = asString(value).toLowerCase();
+  return role === 'owner' || role === 'admin' || role === 'member' ? role : undefined;
 };
 
 const splitName = (raw: AnyRecord): { firstName: string; lastName: string; displayName: string } => {
@@ -63,17 +89,21 @@ export const participantDisplayName = (participant: Pick<MessageParticipant, 'fi
     || 'SwanStudios Member';
 };
 
+export const encodeMessagingPathSegment = (value: string | number): string =>
+  encodeURIComponent(String(value));
+
 export const normalizeParticipant = (value: unknown): MessageParticipant => {
   const raw = isRecord(value) ? value : {};
   const names = splitName(raw);
 
   return {
-    id: asNumber(raw.id),
+    id: asPositiveNumberId(raw.id),
     firstName: names.firstName,
     lastName: names.lastName,
     username: asString(raw.username, names.displayName),
     photo: asString(raw.photo, '') || null,
     role: normalizeRole(raw.role),
+    groupRole: normalizeGroupRole(raw.groupRole ?? raw.group_role ?? raw.participantRole ?? raw.participant_role),
     displayName: names.displayName,
     lastActive: asString(raw.lastActive, asString(raw.lastLogin, '')) || null,
   };
@@ -100,6 +130,8 @@ export const normalizeConversation = (value: unknown): ConversationData | null =
     .map(normalizeParticipant)
     .filter((participant) => participant.id > 0);
 
+  const viewerRole = normalizeGroupRole(value.viewerRole ?? value.viewer_role);
+
   return {
     id: asId(value.id),
     type: asString(value.type, 'direct'),
@@ -109,6 +141,9 @@ export const normalizeConversation = (value: unknown): ConversationData | null =
     lastMessage: normalizeLastMessage(value.lastMessage),
     participants,
     unreadCount: asNumber(value.unreadCount),
+    viewerRole,
+    canManage: asBoolean(value.canManage ?? value.can_manage, viewerRole === 'owner' || viewerRole === 'admin'),
+    memberCount: asNumber(value.memberCount ?? value.member_count, participants.length),
   };
 };
 
@@ -116,7 +151,7 @@ export const normalizeMessage = (value: unknown): MessageData | null => {
   if (!isRecord(value)) return null;
   const id = asId(value.id);
   const conversationId = asId(value.conversation_id ?? value.conversationId);
-  const senderId = asNumber(value.sender_id, asNumber(value.senderId));
+  const senderId = asPositiveNumberId(value.sender_id ?? value.senderId);
   const content = asString(value.content);
 
   if (!id || !conversationId || !senderId || !content) return null;

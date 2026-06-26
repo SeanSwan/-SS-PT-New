@@ -1,10 +1,6 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: MessagingView                                     ║
- * ║  PURPOSE: Full DM interface — real-time via Socket.IO         ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-29         ║
- * ║  AI VILLAGE: 11-Brain Consensus fixes applied                 ║
- * ╚══════════════════════════════════════════════════════════════╝
+ * FILE: MessagingView.tsx
+ * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
@@ -16,10 +12,7 @@ import ConversationListPanel from './ConversationListPanel';
 import MessageThread from './MessageThread';
 import NewConversationModal from './NewConversationModal';
 import { useMessaging } from './useMessaging';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
+import type { CreateConversationRequest } from './MessagingTypes';
 
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
@@ -41,6 +34,10 @@ const MessagingView: React.FC = () => {
     error,
     sendMessage,
     createConversation,
+    renameConversation,
+    addConversationParticipants,
+    updateParticipantRole,
+    removeConversationParticipant,
     selectConversation,
     searchUsers,
     getOtherParticipant,
@@ -54,7 +51,7 @@ const MessagingView: React.FC = () => {
   } = useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading });
 
   const activeConversation = useMemo(
-    () => conversations.find(c => c.id === activeConversationId) || null,
+    () => conversations.find(c => String(c.id) === String(activeConversationId)) || null,
     [conversations, activeConversationId]
   );
 
@@ -79,18 +76,15 @@ const MessagingView: React.FC = () => {
     setActiveConversationId(null);
   }, [setActiveConversationId]);
 
-  const handleNewConversation = useCallback(async (userId: number) => {
-    await createConversation(userId);
+  const handleNewConversation = useCallback(async (request: number | CreateConversationRequest) => {
+    await createConversation(request);
   }, [createConversation]);
 
-  // Guard: no user ID = show nothing meaningful
   if (!currentUserId || (subscriptionLoading && !isStaffRole)) {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'rgba(224,236,244,0.5)', fontSize: '0.9rem' }}>
-            Loading...
-          </div>
+          <CenteredMessage>Loading...</CenteredMessage>
         </MessagingContainer>
       </MessagingShell>
     );
@@ -100,9 +94,7 @@ const MessagingView: React.FC = () => {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'rgba(224,236,244,0.65)', fontSize: '0.95rem', padding: '2rem', textAlign: 'center' }}>
-            SwanStudios messaging is available with Crystalline Swan access.
-          </div>
+          <CenteredMessage>SwanStudios messaging is available with Crystalline Swan access.</CenteredMessage>
         </MessagingContainer>
       </MessagingShell>
     );
@@ -137,6 +129,7 @@ const MessagingView: React.FC = () => {
           messages={messages}
           currentUserId={currentUserId}
           participant={activeParticipant}
+          conversation={activeConversation}
           onSend={sendMessage}
           onBack={handleBack}
           onTyping={emitTyping}
@@ -150,6 +143,11 @@ const MessagingView: React.FC = () => {
           conversationId={activeConversationId}
           error={error}
           pendingMessages={pendingMessages}
+          searchUsers={searchUsers}
+          onRenameConversation={renameConversation}
+          onAddParticipants={addConversationParticipants}
+          onUpdateParticipantRole={updateParticipantRole}
+          onRemoveParticipant={removeConversationParticipant}
         />
 
         <NewConversationModal
@@ -170,6 +168,17 @@ const MessagingShell = styled.div`
   min-height: min(840px, calc(100vh - 96px));
   flex-direction: column;
   gap: 1rem;
+`;
+
+const CenteredMessage = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted, rgba(224, 236, 244, 0.68));
+  font-size: 0.95rem;
+  padding: 2rem;
+  text-align: center;
 `;
 
 const MessagingSummary = styled.header`
@@ -218,21 +227,18 @@ const SummaryMetric = styled.div<{ $accent?: boolean; $live?: boolean }>`
   min-height: 56px;
   border-radius: 8px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--bg-surface, #1A1A24) 88%, var(--accent-primary, #60C0F0) 8%),
-      var(--bg-base, #0A0A0F));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--bg-surface, #1A1A24) 88%, var(--accent-primary, #60C0F0) 8%),
+    var(--bg-base, #0A0A0F));
   padding: 0.7rem 0.85rem;
 
   strong {
     display: block;
-    color: ${({ $accent, $live }) => (
-      $accent
-        ? 'var(--accent-secondary, #8B5CF6)'
-        : $live
-          ? 'var(--success, #4ECDC4)'
-          : 'var(--text-primary, #E0ECF4)'
-    )};
+    color: ${({ $accent, $live }) => ($accent
+      ? 'var(--accent-secondary, #8B5CF6)'
+      : $live
+        ? 'var(--success, #4ECDC4)'
+        : 'var(--text-primary, #E0ECF4)')};
     font-family: 'Sora', sans-serif;
     font-size: 1rem;
   }

@@ -6,9 +6,11 @@
  * ============================================================================
  */
 
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Core Types
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+export type GroupRole = 'owner' | 'admin' | 'member';
 
 export interface MessageParticipant {
   id: number;
@@ -17,6 +19,7 @@ export interface MessageParticipant {
   username: string;
   photo: string | null;
   role: string;
+  groupRole?: GroupRole;
   displayName?: string;
   lastActive?: string | null;
 }
@@ -45,6 +48,16 @@ export interface ConversationData {
   };
   participants: MessageParticipant[];
   unreadCount: number;
+  viewerRole?: GroupRole;
+  canManage?: boolean;
+  memberCount?: number;
+}
+
+export interface CreateConversationRequest {
+  type?: 'direct' | 'group';
+  participantIds: number[];
+  name?: string;
+  adminIds?: number[];
 }
 
 export interface SearchUserResult {
@@ -54,13 +67,20 @@ export interface SearchUserResult {
   username: string;
   photo: string | null;
   role: string;
+  groupRole?: GroupRole;
   displayName?: string;
   lastActive?: string | null;
 }
 
-// ─────────────────────────────────────────────────────────────
+export interface TypingUser {
+  userId: number;
+  userName: string;
+  conversationId: string | number;
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SECTION: Component Props
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ConversationListProps {
   conversations: ConversationData[];
@@ -85,5 +105,5 @@ export interface ComposeMessageProps {
 export interface NewConversationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartConversation: (userId: number) => void;
+  onStartConversation: (request: number | CreateConversationRequest) => void | Promise<unknown>;
 }
