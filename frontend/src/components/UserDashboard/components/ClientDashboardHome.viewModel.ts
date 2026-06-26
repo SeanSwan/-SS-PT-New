@@ -30,6 +30,7 @@ export interface AssignmentView {
   meta: string;
   rows: Array<{ label: string; meta: string; complete: boolean }>;
   actionPath: string;
+  actionLabel: string;
   empty: boolean;
   loading: boolean;
   error: boolean;
@@ -109,6 +110,8 @@ export function buildTodaySnapshot({
 }
 
 function assignmentPath(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) return '/dashboard/client/schedule';
+
   const params = new URLSearchParams({ loadPlan: 'today' });
   if (workout?.assignmentKey) params.set('assignmentKey', workout.assignmentKey);
   if (workout?.assignmentType) params.set('assignmentType', workout.assignmentType);
@@ -139,12 +142,19 @@ export function buildAssignmentView({
         { label: 'Progress proof', meta: complete ? 'Logged today' : 'Save after training', complete },
       ]
     : [];
+  const actionLabel = !workout
+    ? 'View Workouts'
+    : workout.assignmentType === 'trainer_session' && !workout.isLoggable
+      ? 'View Schedule'
+      : workout.ctaLabel || (complete ? 'Review Workout' : 'Open Workout');
+
   return {
     kicker: workout?.assignmentType === 'trainer_session' ? 'Trainer session' : "Today's assignment",
     title: loading ? 'Loading assignment' : workout?.title || (error ? 'Assignment unavailable' : 'Plan pending'),
     meta: workout ? [workout.primaryPlanLabel, workout.weekNumber ? `Week ${workout.weekNumber}` : '', workout.dayNumber ? `Day ${workout.dayNumber}` : ''].filter(Boolean).join(' / ') || 'Ready now' : 'Your trainer has not assigned a live plan yet.',
     rows,
     actionPath: assignmentPath(workout),
+    actionLabel,
     empty: !loading && !error && !workout,
     loading: !!loading,
     error: !!error,

@@ -42,8 +42,14 @@ vi.mock('../../../../../services/api.service', () => ({
   default: {
     get: mockApiGet,
   },
+  ProductionTokenManager: {
+    getToken: () => null,
+  },
 }));
 
+vi.mock('../../../../../context/ThemeContext', () => ({
+  UniversalThemeToggle: () => null,
+}));
 vi.mock('../../../../../hooks/gamification/useGamificationData', () => ({
   useGamificationData: () => ({
     profile: {
@@ -64,21 +70,31 @@ vi.mock('../../../../../hooks/gamification/useGamificationData', () => ({
 }));
 
 vi.mock('../../../../../hooks/useDashboardQueries', () => ({
+  useMessageSummary: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useNotificationSummary: () => ({
+    data: { notifications: [] },
+    isLoading: false,
+  }),
+  useWorkoutSessions: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useTrendingHashtags: () => ({
+    data: [],
+    isLoading: false,
+  }),
+}));
+
+vi.mock('../../../../../hooks/social/useSocialFeed', () => ({
   useSocialFeed: () => ({
-    data: [],
+    posts: [],
     isLoading: false,
-  }),
-  useSocialChallenges: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useLeaderboard: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useCreatePost: () => ({
-    mutateAsync: mockCreatePostMutate,
-    isPending: false,
+    error: null,
+    createPost: mockCreatePostMutate,
+    isCreatingPost: false,
   }),
 }));
 
@@ -130,12 +146,14 @@ describe('ClientObservatoryHome profile metric truth', () => {
       expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
     });
 
-    const profileMomentum = screen.getByLabelText('Profile momentum');
-    expect(within(profileMomentum).getByText('0')).toBeInTheDocument();
-    expect(within(profileMomentum).getByText('1')).toBeInTheDocument();
-    expect(within(profileMomentum).getByText('0d')).toBeInTheDocument();
-    expect(screen.getByText('Level 1 orbit, 100% toward the next unlock.')).toBeInTheDocument();
-    expect(screen.getByText('0 day streak')).toBeInTheDocument();
+    const pointsMetric = screen.getByText('Swan Points').parentElement as HTMLElement;
+    const levelMetric = screen.getByText('Momentum Tier').parentElement as HTMLElement;
+    const streakMetric = screen.getByText('Day Streak').parentElement as HTMLElement;
+
+    expect(within(pointsMetric).getByText('0')).toBeInTheDocument();
+    expect(within(levelMetric).getByText('Level 1')).toBeInTheDocument();
+    expect(within(streakMetric).getByText('0')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute('aria-valuenow', '100');
 
     expect(document.body.textContent).not.toMatch(/NaN|Infinity|-500/);
   });
@@ -153,7 +171,7 @@ describe('ClientObservatoryHome profile metric truth', () => {
       expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
     });
 
-    await user.type(screen.getByLabelText('Create a community post'), 'Logged a milestone today');
+    await user.type(screen.getByLabelText('Write a community post'), 'Logged a milestone today');
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 
     await waitFor(() => {

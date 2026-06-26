@@ -25,4 +25,13 @@ describe('useTrainerGamification real data contract', () => {
     expect(source).toContain("/api/v1/gamification/achievements");
     expect(source).toContain("/api/v1/gamification/users/${clientId}/points");
   });
+
+  it('delegates response normalization to the hardened shared mapper', () => {
+    const source = hookSource();
+
+    expect(source).toContain("from '../trainerGamificationData'");
+    expect(source).toContain('getTrainerPointBalanceFallback(response.data?.newBalance)');
+    expect(source).not.toContain('const valueAsNumber');
+    expect(source).not.toContain('Number(value)');
+  });
 });

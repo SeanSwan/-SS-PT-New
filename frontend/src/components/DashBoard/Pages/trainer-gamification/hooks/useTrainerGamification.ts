@@ -9,130 +9,17 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
-
-type TrainerTier = 'bronze' | 'silver' | 'gold' | 'platinum';
-
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  photo?: string;
-  points: number;
-  level: number;
-  tier: TrainerTier;
-  streakDays: number;
-}
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  pointValue: number;
-  requirementType: string;
-  requirementValue: number;
-  tier: TrainerTier;
-  isActive: boolean;
-}
-
-interface PointReason {
-  id: string;
-  name: string;
-  description: string;
-  pointValue: number;
-  icon: string;
-}
-
-const POINT_REASONS: PointReason[] = [
-  { id: 'workout_completion', name: 'Workout Completion', description: 'Completed a workout session', pointValue: 50, icon: 'CheckCircle' },
-  { id: 'exercise_completion', name: 'Exercise Completion', description: 'Completed an exercise', pointValue: 10, icon: 'Dumbbell' },
-  { id: 'streak_bonus', name: 'Streak Bonus', description: 'Maintained a workout streak', pointValue: 20, icon: 'Zap' },
-  { id: 'assessment_completion', name: 'Assessment Completion', description: 'Completed a fitness assessment', pointValue: 100, icon: 'Target' },
-  { id: 'referral_bonus', name: 'Referral Bonus', description: 'Referred a new client', pointValue: 200, icon: 'Users' },
-  { id: 'special_achievement', name: 'Special Achievement', description: 'Earned a special achievement', pointValue: 150, icon: 'Award' },
-  { id: 'custom', name: 'Custom Reason', description: 'Custom reason for points', pointValue: 0, icon: 'Edit' }
-];
-
-const asArray = (payload: any): any[] => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.clients)) return payload.clients;
-  if (Array.isArray(payload?.achievements)) return payload.achievements;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.clients)) return payload.data.clients;
-  if (Array.isArray(payload?.data?.achievements)) return payload.data.achievements;
-  return [];
-};
-
-const unwrapProfile = (payload: any): any => (
-  payload?.profile ?? payload?.data?.profile ?? payload?.data ?? payload ?? {}
-);
-
-const valueAsNumber = (...values: any[]): number => {
-  for (const value of values) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return 0;
-};
-
-const valueAsString = (...values: any[]): string => {
-  for (const value of values) {
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    if (typeof value === 'number') return String(value);
-  }
-  return '';
-};
-
-const normalizeTier = (tier: any): TrainerTier => {
-  const key = String(tier || '').toLowerCase();
-  if (key.includes('platinum') || key.includes('obsidian') || key.includes('crystalline')) return 'platinum';
-  if (key.includes('gold') || key.includes('titanium')) return 'gold';
-  if (key.includes('silver')) return 'silver';
-  return 'bronze';
-};
-
-const usernameFromClient = (raw: any, profile: any, id: string): string => {
-  const explicit = valueAsString(profile.username, raw.username);
-  if (explicit) return explicit;
-
-  const email = valueAsString(raw.email, profile.email);
-  if (email.includes('@')) return email.split('@')[0];
-
-  return `client-${id}`;
-};
-
-const mapClient = (raw: any, profilePayload?: any): Client => {
-  const profile = unwrapProfile(profilePayload);
-  const id = valueAsString(profile.id, profile.userId, raw.id, raw.userId);
-  const firstName = valueAsString(profile.firstName, raw.firstName, 'Client');
-  const lastName = valueAsString(profile.lastName, raw.lastName, id);
-
-  return {
-    id,
-    firstName,
-    lastName,
-    username: usernameFromClient(raw, profile, id),
-    photo: valueAsString(profile.photo, raw.photo) || undefined,
-    points: valueAsNumber(profile.points, raw.points),
-    level: Math.max(1, valueAsNumber(profile.level, raw.level, 1)),
-    tier: normalizeTier(profile.tier ?? raw.tier),
-    streakDays: valueAsNumber(profile.streakDays, raw.streakDays)
-  };
-};
-
-const mapAchievement = (raw: any): Achievement => ({
-  id: valueAsString(raw.id, raw.achievementId),
-  name: valueAsString(raw.name, raw.title, 'Achievement'),
-  description: valueAsString(raw.description, raw.summary),
-  icon: valueAsString(raw.icon, raw.iconEmoji, 'Award'),
-  pointValue: valueAsNumber(raw.pointValue, raw.xpReward, raw.pointsAwarded),
-  requirementType: valueAsString(raw.requirementType, raw.category, 'custom'),
-  requirementValue: valueAsNumber(raw.requirementValue, raw.requiredPoints, raw.maxProgress, 1),
-  tier: normalizeTier(raw.tier, raw.rarity),
-  isActive: raw.isActive !== false
-});
-
+import {
+  POINT_REASONS,
+  asArray,
+  getTrainerPointBalanceFallback,
+  mapAchievement,
+  mapClient,
+  valueAsString,
+  type Achievement,
+  type Client,
+  type PointReason,
+} from '../trainerGamificationData';
 export const useTrainerGamification = () => {
   const { authAxios } = useAuth();
   const { toast } = useToast();
@@ -185,14 +72,15 @@ export const useTrainerGamification = () => {
       const rows = asArray(response.data);
 
       const mapped = await Promise.all(rows.map(async (client) => {
-        const clientId = valueAsString(client.id, client.userId);
-        if (!clientId) return mapClient(client);
+        const rawClient = client as Record<string, unknown>;
+        const clientId = valueAsString(rawClient.id, rawClient.userId);
+        if (!clientId) return mapClient(rawClient);
 
         try {
           const profile = await fetchClientProfile(clientId);
-          return mapClient(client, profile);
+          return mapClient(rawClient, profile);
         } catch {
-          return mapClient(client);
+          return mapClient(rawClient);
         }
       }));
 
@@ -231,7 +119,7 @@ export const useTrainerGamification = () => {
         idempotencyKey: `trainer-award:${clientId}:${reason}:${Date.now()}`
       });
 
-      await refreshClient(clientId, { points: valueAsNumber(response.data?.newBalance) });
+      await refreshClient(clientId, getTrainerPointBalanceFallback(response.data?.newBalance));
       const client = clients.find(c => c.id === clientId);
 
       toast({

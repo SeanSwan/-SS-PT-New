@@ -26,12 +26,13 @@ import {
   buildUserDashboardTeachCoachRoute,
 } from '../UserDashboardTeachCoachRoute';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
-import { clampPercent } from './HomeTabVision.data';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import {
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
+  normalizeHomePercent,
+  normalizeHomeWholeNumber,
   parseUnreadNotificationCount,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
@@ -46,6 +47,7 @@ import {
   buildTodaySnapshot,
   findClientRank,
 } from './ClientDashboardHome.viewModel';
+import { canBookSwanStudiosSessions } from '../../DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData';
 import { useCurrentClientWorkout } from '../../DashBoard/Pages/client-dashboard/observatory/useCurrentClientWorkout';
 import { useUpcomingClientSession } from './useUpcomingClientSession';
 
@@ -81,6 +83,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const currentWorkoutState = useCurrentClientWorkout(user?.id);
   const upcomingSessionState = useUpcomingClientSession(user?.id);
+  const canBookSessions = canBookSwanStudiosSessions((user as { clientSource?: string } | null | undefined)?.clientSource);
 
   const posts = communityFeed.posts;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'Swan Member';
@@ -96,12 +99,12 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     notificationUnread: parseUnreadNotificationCount(notificationSummary.data),
   }), [messageSummary.data, notificationSummary.data]);
 
-  const level = levelProgress?.level ?? gamProfile?.data?.level ?? 1;
-  const points = gamProfile?.data?.points ?? 0;
-  const progressPercent = clampPercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
+  const level = normalizeHomeWholeNumber(levelProgress?.level ?? gamProfile?.data?.level, 1, 1);
+  const points = normalizeHomeWholeNumber(gamProfile?.data?.points, 0, 0);
+  const progressPercent = normalizeHomePercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
   const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
-  const streakDays = gamProfile?.data?.streakDays ?? 0;
-  const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
+  const streakDays = normalizeHomeWholeNumber(gamProfile?.data?.streakDays, 0, 0);
+  const pointsToNext = normalizeHomeWholeNumber(levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints, 0, 0);
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
 
@@ -151,8 +154,8 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     { label: 'Log Workout', path: logWorkoutPath },
     { label: 'Ask Coach', path: homeTrainingCoachPath },
     { label: 'View Progress', target: 'progress' },
-    { label: 'Book Session', path: '/dashboard/client/schedule' },
-  ], [homeTrainingCoachPath, logWorkoutPath]);
+    ...(canBookSessions ? [{ label: 'Book Session', path: '/dashboard/client/schedule' }] : []),
+  ], [canBookSessions, homeTrainingCoachPath, logWorkoutPath]);
 
   const handleTarget = (target: ClientDashboardTarget) => {
     if (target === 'dashboard') onTabChange('home');
@@ -191,6 +194,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         progressPercent={progressPercent}
         pointsToNext={pointsToNext}
         hasEliteAccess={hasEliteAccess}
+        canBookSessions={canBookSessions}
         topBarActions={topBarActions}
         quickActions={quickActions}
         todaySnapshot={todaySnapshot}
@@ -236,6 +240,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
       <input
         ref={composer.mediaInputRef}
         type="file"
+        aria-label="Attach media to quick post"
         accept={HOME_COMPOSER_ACCEPT}
         onChange={composer.handleMediaSelect}
         hidden

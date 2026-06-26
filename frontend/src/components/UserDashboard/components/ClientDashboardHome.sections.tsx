@@ -275,22 +275,25 @@ export function TodaysAssignmentCard({ assignment, onNavigate }: Pick<ClientDash
             <RowItem key={row.label}><StatusDot $complete={row.complete}>{row.complete && <Check size={13} />}</StatusDot><span>{row.label}</span><TinyText>{row.meta}</TinyText></RowItem>
           ))}
         </ListStack>
-        <ActionButton type="button" onClick={() => onNavigate(assignment.actionPath)}>{assignment.empty ? 'View Workouts' : 'Open Workout'}</ActionButton>
+        <ActionButton type="button" onClick={() => onNavigate(assignment.actionPath)}>{assignment.actionLabel}</ActionButton>
       </CardBody>
     </PanelCard>
   );
 }
 
 export function NextSessionCard({ sessionPreview, onNavigate }: Pick<ClientDashboardHomeProps, 'sessionPreview' | 'onNavigate'>) {
+  const actionLabel = sessionPreview.empty ? 'Book Session' : 'View Details';
+  const actionAriaLabel = sessionPreview.empty ? 'Book a session' : 'View session details';
+
   return (
-    <PanelCard>
+    <PanelCard data-testid="next-session-card">
       <PanelHeader><Kicker><CalendarDays size={13} /> Next session</Kicker>{sessionPreview.loading && <TinyText>Loading</TinyText>}</PanelHeader>
       <CardBody>
         <CardTitle>{sessionPreview.title}</CardTitle>
         <MutedText>{sessionPreview.date}</MutedText>
         <MutedText>{sessionPreview.time}</MutedText>
         <ListStack><RowItem><UserRound size={16} /><span>{sessionPreview.coach}</span><TinyText>{sessionPreview.error ? 'Unavailable' : 'Coach'}</TinyText></RowItem></ListStack>
-        <ActionButton type="button" onClick={() => onNavigate(sessionPreview.path)} $primary={!sessionPreview.empty}>View Details</ActionButton>
+        <ActionButton type="button" aria-label={actionAriaLabel} onClick={() => onNavigate(sessionPreview.path)} $primary={!sessionPreview.empty}>{actionLabel}</ActionButton>
       </CardBody>
     </PanelCard>
   );

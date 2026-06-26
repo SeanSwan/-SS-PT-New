@@ -56,6 +56,7 @@ export interface ClientDashboardHomeProps {
   progressPercent: number;
   pointsToNext: number;
   hasEliteAccess: boolean;
+  canBookSessions: boolean;
   topBarActions: HomeTopBarAction[];
   quickActions: ClientDashboardAction[];
   todaySnapshot: TodaySnapshot;

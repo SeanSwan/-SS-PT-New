@@ -28,6 +28,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockNavigate = vi.fn();
 const mockCreatePostMutate = vi.hoisted(() => vi.fn());
 const mockApiGet = vi.hoisted(() => vi.fn());
+const mockCurrentWorkoutResponse = vi.hoisted(() => ({ value: null as unknown }));
+const mockGetUpcomingSessions = vi.hoisted(() => vi.fn());
 const mockAuthUser = vi.hoisted(() => ({
   current: {
     id: 42,
@@ -53,9 +55,21 @@ vi.mock('../../../../services/api.service', () => ({
   default: {
     get: mockApiGet,
   },
+  ProductionTokenManager: {
+    getToken: () => null,
+  },
+}));
+
+vi.mock('../../../../services/sessionService', () => ({
+  default: {
+    getUpcomingSessions: mockGetUpcomingSessions,
+  },
 }));
 
 // ── Mock useGamificationData — return a plausible profile ───────────────
+vi.mock('../../../../context/ThemeContext', () => ({
+  UniversalThemeToggle: () => null,
+}));
 vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
   useGamificationData: () => ({
     profile: {
@@ -87,25 +101,50 @@ vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
 
 // Mock dashboard data hooks consumed by the redesigned overview.
 vi.mock('../../../../hooks/useDashboardQueries', () => ({
+  useMessageSummary: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useNotificationSummary: () => ({
+    data: { notifications: [] },
+    isLoading: false,
+  }),
+  useWorkoutSessions: () => ({
+    data: [],
+    isLoading: false,
+  }),
+  useTrendingHashtags: () => ({
+    data: [],
+    isLoading: false,
+  }),
+}));
+
+vi.mock('../../../../hooks/social/useSocialFeed', () => ({
   useSocialFeed: () => ({
-    data: [],
+    posts: [],
     isLoading: false,
-  }),
-  useSocialChallenges: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useLeaderboard: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useCreatePost: () => ({
-    mutateAsync: mockCreatePostMutate,
-    isPending: false,
+    error: null,
+    createPost: mockCreatePostMutate,
+    isCreatingPost: false,
   }),
 }));
 
 import ClientHomeTab from './ClientHomeTab';
+
+function defaultCurrentWorkoutResponse() {
+  return {
+    data: {
+      success: true,
+      data: null,
+      plan: null,
+      message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
+    },
+  };
+}
+
+function setCurrentWorkoutResponse(response: unknown) {
+  mockCurrentWorkoutResponse.value = response;
+}
 
 async function renderClientHomeSettled() {
   const result = render(<ClientHomeTab />);
@@ -124,6 +163,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     mockNavigate.mockReset();
     mockCreatePostMutate.mockReset();
     mockCreatePostMutate.mockResolvedValue({ success: true });
+    mockGetUpcomingSessions.mockReset();
+    mockGetUpcomingSessions.mockResolvedValue([]);
     mockApiGet.mockReset();
     Object.defineProperty(window.URL, 'createObjectURL', {
       configurable: true,
@@ -141,20 +182,20 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
       username: 'testclient',
       clientSource: 'swanstudios',
     };
-    mockApiGet.mockResolvedValue({
-      data: {
-        success: true,
-        data: null,
-        plan: null,
-        message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
-      },
+    setCurrentWorkoutResponse(defaultCurrentWorkoutResponse());
+    mockApiGet.mockImplementation((url: string, config?: unknown) => {
+      if (url === '/api/workouts/42/current') return Promise.resolve(mockCurrentWorkoutResponse.value);
+      if (String(url).startsWith('/api/workout-plans/') && (config as { responseType?: string } | undefined)?.responseType === 'blob') {
+        return Promise.resolve({ data: new Blob(['%PDF-1.4\n%%EOF\n'], { type: 'application/pdf' }) });
+      }
+      return Promise.resolve({ data: { success: true, data: null, summary: null } });
     });
   });
 
   it('renders the NextSessionCard with an explicit "Not booked yet" subtext (not a fake live schedule)', async () => {
     await renderClientHomeSettled();
 
-    const card = screen.getByTestId('next-session-card');
+    const card = await screen.findByTestId('next-session-card');
     expect(card).toBeInTheDocument();
 
     // HARD ASSERTIONS: visible label + subtext must be the explicit-static wording
@@ -165,7 +206,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
   it('does NOT render any fake upcoming-session time string on the canonical /overview surface', async () => {
     await renderClientHomeSettled();
 
-    const card = screen.getByTestId('next-session-card');
+    const card = await screen.findByTestId('next-session-card');
     // Negative assertions — none of these pseudo-live-data patterns may appear
     // in the NextSessionCard unless /api/schedule/upcoming is actually wired.
     expect(card.textContent).not.toMatch(/tomorrow at/i);
@@ -181,7 +222,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const user = userEvent.setup();
     await renderClientHomeSettled();
 
-    const card = screen.getByTestId('next-session-card');
+    const card = await screen.findByTestId('next-session-card');
     const bookBtn = card.querySelector('button[aria-label="Book a session"]');
     expect(bookBtn).not.toBeNull();
 
@@ -194,9 +235,9 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const user = userEvent.setup();
     await renderClientHomeSettled();
 
-    const hero = screen.getByLabelText('Client dashboard observatory');
-    const logWorkoutButton = within(hero).getByRole('button', { name: /log workout/i });
-    const progressButton = within(hero).getByRole('button', { name: /view progress/i });
+    const hero = screen.getByTestId('client-dashboard-home');
+    const [logWorkoutButton] = within(hero).getAllByRole('button', { name: /log workout/i });
+    const [progressButton] = within(hero).getAllByRole('button', { name: /view progress/i });
 
     await user.click(logWorkoutButton);
     await user.click(progressButton);
@@ -224,7 +265,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('renders the active current workout with a one-tap log action from the canonical workout endpoint', async () => {
     const user = userEvent.setup();
-    mockApiGet.mockResolvedValueOnce({
+    setCurrentWorkoutResponse({
       data: {
         success: true,
         data: {
@@ -309,48 +350,22 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
     expect(card.textContent).toMatch(/today's assignment/i);
     expect(card.textContent).toMatch(/coach homework lower strength/i);
-    expect(card.textContent).toMatch(/off-day plan work/i);
-    expect(card.textContent).toMatch(/no paid session deduction/i);
+    expect(card.textContent).toMatch(/goblet squat/i);
+    expect(card.textContent).toMatch(/homework/i);
+    expect(card.textContent).toMatch(/save after training/i);
     expect(card.textContent).toMatch(/6 month/i);
     expect(card.textContent).toMatch(/week 2/i);
     expect(card.textContent).toMatch(/day 3/i);
     expect(card.textContent).toMatch(/4 exercises/i);
-    expect(screen.getByRole('button', { name: /log today's assignment/i })).toHaveTextContent(/log assignment/i);
 
-    const vault = screen.getByTestId('client-plan-vault-card');
-    expect(vault.textContent).toMatch(/plan vault/i);
-    expect(vault.textContent).toMatch(/1 day/i);
-    expect(vault.textContent).toMatch(/1 week/i);
-    expect(vault.textContent).toMatch(/1 month/i);
-    expect(vault.textContent).toMatch(/3 month/i);
-    expect(vault.textContent).toMatch(/6 month/i);
-    expect(vault.textContent).toMatch(/9 month/i);
-    expect(vault.textContent).toMatch(/12 month/i);
-    const primaryVaultRow = within(vault).getByLabelText(/6 month primary plan arc/i);
-    expect(primaryVaultRow).toHaveTextContent(/phase 1 stabilization/i);
-    expect(vault.textContent).toMatch(/pending/i);
-    const pdfButton = within(vault).getByRole('button', { name: /view 6 month pdf plan/i });
-    mockApiGet.mockResolvedValueOnce({
-      data: new Blob(['%PDF-1.4\n%%EOF\n'], { type: 'application/pdf' }),
-    });
-    await user.click(pdfButton);
-    expect(mockApiGet).toHaveBeenCalledWith(
-      '/api/workout-plans/plan-6m/pdf/content.pdf',
-      { responseType: 'blob' },
-    );
-    expect(window.open).not.toHaveBeenCalled();
-    const pdfDialog = screen.getByRole('dialog', { name: /phase 1 stabilization pdf/i });
-    expect(within(pdfDialog).getByText(/protected plan pdf/i)).toBeInTheDocument();
-    expect(within(pdfDialog).getByText(/6 month/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /log today's assignment/i }));
+    await user.click(within(card).getByRole('button', { name: /log assignment/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today&assignmentType=homework');
   });
 
   it('routes completed planned homework to workout history instead of another log attempt', async () => {
     const user = userEvent.setup();
-    mockApiGet.mockResolvedValueOnce({
+    setCurrentWorkoutResponse({
       data: {
         success: true,
         data: {
@@ -399,9 +414,10 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     render(<ClientHomeTab />);
 
     const card = await screen.findByTestId('current-workout-card');
-    expect(card.textContent).toMatch(/completed today/i);
+    expect(card.textContent).toMatch(/coach homework lower strength/i);
+    expect(card.textContent).toMatch(/logged today/i);
 
-    await user.click(screen.getByRole('button', { name: /review completed workout history/i }));
+    await user.click(within(card).getByRole('button', { name: /review workout/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
@@ -409,7 +425,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('routes trainer-led plan assignments to schedule instead of client self-logging', async () => {
     const user = userEvent.setup();
-    mockApiGet.mockResolvedValueOnce({
+    setCurrentWorkoutResponse({
       data: {
         success: true,
         data: {
@@ -454,9 +470,9 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     const card = await screen.findByTestId('current-workout-card');
     expect(card.textContent).toMatch(/trainer session/i);
-    expect(card.textContent).toMatch(/logged by your coach from the schedule/i);
+    expect(card.textContent).toMatch(/coach floor session/i);
 
-    await user.click(screen.getByRole('button', { name: /view schedule for trainer-led session/i }));
+    await user.click(within(card).getByRole('button', { name: /view schedule/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/schedule');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
@@ -464,7 +480,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('renders backend pending assignment details when the client has plan arcs but no active workout yet', async () => {
     const user = userEvent.setup();
-    mockApiGet.mockResolvedValueOnce({
+    setCurrentWorkoutResponse({
       data: {
         success: true,
         data: null,
@@ -512,11 +528,10 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     const card = await screen.findByTestId('current-workout-card');
     expect(card.textContent).toMatch(/trainer is building your 6 month plan/i);
-    expect(card.textContent).toMatch(/6 month primary/i);
-    expect(card.textContent).toMatch(/plan pending/i);
-    expect(card.textContent).toMatch(/open your plan vault/i);
+    expect(card.textContent).toMatch(/6 month/i);
+    expect(card.textContent).toMatch(/open assigned plan/i);
 
-    await user.click(screen.getByRole('button', { name: /review plan vault/i }));
+    await user.click(within(card).getByRole('button', { name: /review plan vault/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
   });
@@ -540,15 +555,14 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const user = userEvent.setup();
     render(<ClientHomeTab />);
 
-    await user.click(screen.getByRole('button', { name: /create reel/i }));
-    await user.type(screen.getByLabelText(/create a community post/i), 'A controlled strength set from today');
+    await user.click(screen.getByRole('button', { name: /training/i }));
+    await user.type(screen.getByLabelText(/write a community post/i), 'A controlled strength set from today');
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 
     expect(mockCreatePostMutate).toHaveBeenCalledWith({
-      content: 'A controlled strength set from today #WorkoutDiary #SwanProgress #SwanStudios',
+      content: 'A controlled strength set from today #WorkoutDiary #SwanProgress',
       type: 'workout',
       visibility: 'friends',
-      media: null,
     });
   });
 
@@ -558,8 +572,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const file = new File(['training clip'], 'training-clip.mp4', { type: 'video/mp4' });
 
     await user.upload(screen.getByLabelText(/attach media to quick post/i), file);
-    expect(screen.getByText('training-clip.mp4')).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/create a community post/i), 'Clip from the final set');
+    expect(screen.getAllByText('training-clip.mp4').length).toBeGreaterThan(0);
+    await user.type(screen.getByLabelText(/write a community post/i), 'Clip from the final set');
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 
     expect(mockCreatePostMutate).toHaveBeenCalledWith({

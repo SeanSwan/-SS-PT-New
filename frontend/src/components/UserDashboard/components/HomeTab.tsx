@@ -13,11 +13,7 @@ import { useFaction } from '../../../hooks/social/useFaction';
 // the Quick Post composer, the latest-post spotlight, and the live widgets.
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
-import {
-  useMessageSummary,
-  useNotificationSummary,
-  useWorkoutSessions,
-} from '../../../hooks/useDashboardQueries';
+import { useMessageSummary, useNotificationSummary, useWorkoutSessions } from '../../../hooks/useDashboardQueries';
 import fallbackAvatar from '../../../assets/logo.svg';
 import brandLogo from '../../../assets/Logo.png';
 import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
@@ -29,18 +25,12 @@ import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
 import { DockSkeleton } from './HomeTabActions.styles';
 import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
-import {
-  USER_HOME_TRAINING_PROMPT,
-  buildUserDashboardTeachCoachRoute,
-} from '../UserDashboardTeachCoachRoute';
+import { USER_HOME_TRAINING_PROMPT, buildUserDashboardTeachCoachRoute } from '../UserDashboardTeachCoachRoute';
 import HomeTabVisionCenter from './HomeTabVisionCenter';
 import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
 import HomeTabVisionRightRail from './HomeTabVisionRightRail';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
-import {
-  clampPercent,
-  type VisionTarget,
-} from './HomeTabVision.data';
+import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
@@ -50,17 +40,13 @@ import {
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
+  normalizeHomePercent,
+  normalizeHomeWholeNumber,
   parseUnreadNotificationCount,
   resolveHomeAvatarSrc,
   sumUnreadConversations,
 } from './HomeTabViewModel';
-import {
-  CenterColumn,
-  CreatorPage,
-  CreatorShell,
-  Panel,
-  SupportShell,
-} from './HomeTabVision.styles';
+import { CenterColumn, CreatorPage, CreatorShell, Panel, SupportShell } from './HomeTabVision.styles';
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -110,12 +96,12 @@ const HomeTab: React.FC<HomeTabProps> = ({
     inboxUnread: sumUnreadConversations(messageSummary.data),
     notificationUnread: parseUnreadNotificationCount(notificationSummary.data),
   }), [messageSummary.data, notificationSummary.data]);
-  const level = levelProgress?.level ?? gamProfile?.data?.level ?? 1;
-  const points = gamProfile?.data?.points ?? 0;
-  const progressPercent = clampPercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
+  const level = normalizeHomeWholeNumber(levelProgress?.level ?? gamProfile?.data?.level, 1, 1);
+  const points = normalizeHomeWholeNumber(gamProfile?.data?.points, 0, 0);
+  const progressPercent = normalizeHomePercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
   const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
-  const streakDays = gamProfile?.data?.streakDays ?? 0;
-  const pointsToNext = levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints ?? 0;
+  const streakDays = normalizeHomeWholeNumber(gamProfile?.data?.streakDays, 0, 0);
+  const pointsToNext = normalizeHomeWholeNumber(levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints, 0, 0);
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();
   const nutritionAction = useHomeNutritionAction();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
@@ -224,6 +210,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
         <input
           ref={composer.mediaInputRef}
           type="file"
+          aria-label="Attach media to quick post"
           accept={HOME_COMPOSER_ACCEPT}
           onChange={composer.handleMediaSelect}
           hidden

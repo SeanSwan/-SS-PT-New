@@ -75,6 +75,24 @@ function toSafeCount(value: CountValue): number {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
 }
 
+function parseFiniteHomeNumber(value: unknown): number | null {
+  if (typeof value !== 'number' && typeof value !== 'string') return null;
+  const parsed = typeof value === 'string' && !value.trim() ? Number.NaN : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function normalizeHomeWholeNumber(value: unknown, fallback = 0, floor = 0): number {
+  const parsed = parseFiniteHomeNumber(value);
+  if (parsed === null) return Math.max(floor, fallback);
+  return Math.max(floor, Math.trunc(parsed));
+}
+
+export function normalizeHomePercent(value: unknown): number {
+  const parsed = parseFiniteHomeNumber(value);
+  if (parsed === null) return 0;
+  return Math.min(Math.max(Math.round(parsed), 0), 100);
+}
+
 function hasCount(value: CountValue): boolean {
   return value !== undefined && value !== null && value !== '';
 }

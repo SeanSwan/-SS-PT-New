@@ -49,7 +49,7 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
               <ThreeColumnGrid>
                 <TodaysAssignmentCard assignment={props.assignment} onNavigate={props.onNavigate} />
                 <TrainingFocusCard {...props} />
-                <NextSessionCard sessionPreview={props.sessionPreview} onNavigate={props.onNavigate} />
+                {props.canBookSessions && <NextSessionCard sessionPreview={props.sessionPreview} onNavigate={props.onNavigate} />}
               </ThreeColumnGrid>
               <TwoColumnGrid>
                 <CommunityFeedCard {...props} />
