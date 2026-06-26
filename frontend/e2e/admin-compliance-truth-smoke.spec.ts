@@ -141,7 +141,7 @@ test('admin recent activity feed shows unavailable state instead of demo platfor
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/Recent activity could not be loaded\./i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^Retry$/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Retry recent activity$/i })).toBeVisible();
   await expect(page.getByText(/Payment received.*186|Daily backup completed|Training session scheduled/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
