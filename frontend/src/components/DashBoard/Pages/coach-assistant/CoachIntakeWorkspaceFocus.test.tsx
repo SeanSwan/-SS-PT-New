@@ -72,7 +72,7 @@ describe('CoachIntakeWorkspace focus handoff', () => {
       );
 
       await waitFor(() => {
-        expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+        expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'center' });
         expect(focus).toHaveBeenCalledWith({ preventScroll: true });
       });
 
