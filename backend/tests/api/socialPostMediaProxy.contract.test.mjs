@@ -30,4 +30,18 @@ describe('social post media proxy contract', () => {
       expect(middlewareSpaPhotoProxy).toContain(category);
     }
   });
+  it('keeps served MIME maps aligned with Quick Post image and video extensions', () => {
+    for (const source of [coreRoutes, middlewareRoutes]) {
+      for (const expectedMime of [
+        "heic: 'image/heic'",
+        "heif: 'image/heif'",
+        "mp4: 'video/mp4'",
+        "mov: 'video/quicktime'",
+        "webm: 'video/webm'",
+        "m4v: 'video/x-m4v'",
+      ]) {
+        expect(source).toContain(expectedMime);
+      }
+    }
+  });
 });
