@@ -90,17 +90,11 @@ export const WorkoutPlannerExerciseRow: React.FC<WorkoutPlannerExerciseRowProps>
   return (
     <div style={style}>
       <ExerciseItem
-        role="button"
-        tabIndex={0}
+        role="group"
+        aria-label={`${exerciseDisplayName} exercise`}
         $selected={selected}
         onClick={handleSelect}
         onDoubleClick={handleAdd}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleAdd();
-          }
-        }}
       >
         <PlannerMediaThumb aria-hidden="true">
           <ExerciseMediaPreview exercise={exercise} variant="thumbnail" />
