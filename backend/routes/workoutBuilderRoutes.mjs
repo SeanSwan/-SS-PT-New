@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
+import { createWorkoutCandidatesHandler } from './workoutBuilderCandidateRouteHandler.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import { normalizeTrainingStyle } from '../services/workoutBuilderTrainingStyle.mjs';
 import { getCorrectiveExercisesForCompensations } from '../services/ai/correctiveExerciseService.mjs';
@@ -162,7 +163,7 @@ router.post('/generate', async (req, res) => {
   try {
     const {
       clientId, category, equipmentProfileId, exerciseCount, rotationPattern,
-      primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod,
+      primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod, readinessCheck,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -198,6 +199,7 @@ router.post('/generate', async (req, res) => {
       nasmPhase: safePhase,
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
+      readinessCheck,
     });
 
     return res.json({ success: true, workout });
@@ -222,7 +224,7 @@ router.post('/plan', async (req, res) => {
   try {
     const {
       clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
-      startingPhaseOverride, trainingIntensityMode, hardcoreMethod,
+      startingPhaseOverride, trainingIntensityMode, hardcoreMethod, readinessCheck,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -253,6 +255,7 @@ router.post('/plan', async (req, res) => {
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
+      readinessCheck,
     });
 
     return res.json({ success: true, plan });
@@ -265,6 +268,11 @@ router.post('/plan', async (req, res) => {
     });
   }
 });
+
+router.post('/candidates', createWorkoutCandidatesHandler({
+  enforceWorkoutGenAccess,
+  safeWorkoutBuilderDetails,
+}));
 
 /**
  * POST /api/workout-builder/corrective-recommendations  (V3c.2)

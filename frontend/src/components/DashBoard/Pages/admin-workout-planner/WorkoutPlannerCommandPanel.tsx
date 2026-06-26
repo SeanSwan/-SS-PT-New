@@ -14,7 +14,9 @@ import type {
   TrainingIntensityMode,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 import WorkoutPlannerTrainingStyleSection from './WorkoutPlannerTrainingStyleSection';
+import WorkoutPlannerGenerationModeSection from './WorkoutPlannerGenerationModeSection';
 import {
   WorkoutPlannerControlsSection,
   WorkoutPlannerHeaderSection,
@@ -36,6 +38,7 @@ interface WorkoutPlannerCommandPanelProps {
   sessionsPerWeek: number;
   trainingIntensityMode: TrainingIntensityMode;
   hardcoreMethod: HardcoreTrainingMethod;
+  generationMode: SwanCoachGenerationMode;
   equipmentProfiles: PlannerEquipmentProfile[];
   equipmentProfilesLoading: boolean;
   selectedEquipmentProfileId: number | null;
@@ -55,6 +58,7 @@ interface WorkoutPlannerCommandPanelProps {
   onSessionsPerWeekChange: (sessionsPerWeek: number) => void;
   onTrainingIntensityModeChange: (mode: TrainingIntensityMode) => void;
   onHardcoreMethodChange: (method: HardcoreTrainingMethod) => void;
+  onGenerationModeChange: (mode: SwanCoachGenerationMode) => void;
   onGenerateSingle: () => void;
   onGeneratePlan: () => void;
 }
@@ -73,6 +77,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   sessionsPerWeek,
   trainingIntensityMode,
   hardcoreMethod,
+  generationMode,
   equipmentProfiles,
   equipmentProfilesLoading,
   selectedEquipmentProfileId,
@@ -92,6 +97,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   onSessionsPerWeekChange,
   onTrainingIntensityModeChange,
   onHardcoreMethodChange,
+  onGenerationModeChange,
   onGenerateSingle,
   onGeneratePlan,
 }) => (
@@ -116,6 +122,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
       generating={generating}
       generatingPlan={generatingPlan}
       clientGenBlocked={clientGenBlocked}
+      generationMode={generationMode}
       onClientSelectionChange={onClientSelectionChange}
       onPhaseNumberChange={onPhaseNumberChange}
       onCategoryChange={onCategoryChange}
@@ -135,6 +142,10 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
       sessionsPerWeek={sessionsPerWeek}
       onPlanDurationChange={onPlanDurationChange}
       onSessionsPerWeekChange={onSessionsPerWeekChange}
+    />
+    <WorkoutPlannerGenerationModeSection
+      generationMode={generationMode}
+      onGenerationModeChange={onGenerationModeChange}
     />
     <WorkoutPlannerTrainingStyleSection
       trainingIntensityMode={trainingIntensityMode}

@@ -49,6 +49,14 @@ import {
   trainingStyleRecommendationDetail,
 } from './workoutBuilderTrainingStyle.mjs';
 import { buildSwanCoachPlanningFingerprint } from './swanCoachPlanningContextService.mjs';
+import {
+  applySwanCoachReadinessToExercises,
+  buildSwanCoachReadinessContext,
+  buildSwanCoachReadinessExplanation,
+  buildSwanCoachReadinessRationaleLine,
+  buildSwanCoachReadinessRecommendationDetail,
+  scoreExerciseForSwanCoachReadiness,
+} from './swanCoachCortexService.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
@@ -311,7 +319,7 @@ function expandScheduleCategoryToMovementCategories(category) {
   }
 }
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null) {
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
@@ -348,6 +356,10 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
     const aBiasScore = scoreExerciseForGoalBias(a, goalBias);
     const bBiasScore = scoreExerciseForGoalBias(b, goalBias);
     if (aBiasScore !== bBiasScore) return bBiasScore - aBiasScore;
+
+    const aReadinessScore = scoreExerciseForSwanCoachReadiness(a, swanCoachReadiness);
+    const bReadinessScore = scoreExerciseForSwanCoachReadiness(b, swanCoachReadiness);
+    if (aReadinessScore !== bReadinessScore) return bReadinessScore - aReadinessScore;
 
     const aLevelDiff = Math.abs((a.nasmLevel || 2) - targetLevel);
     const bLevelDiff = Math.abs((b.nasmLevel || 2) - targetLevel);
@@ -427,6 +439,7 @@ export async function generateWorkout(options) {
     nasmPhase: phaseOverride,
     trainingIntensityMode,
     hardcoreMethod,
+    readinessCheck = null,
   } = options;
 
   if (!clientId) throw new Error('clientId is required');
@@ -467,6 +480,12 @@ export async function generateWorkout(options) {
     contextPhase: context.constraints.nasmPhase || 2,
   });
   const goalBias = getGoalOptBias({ primaryGoal, phase: nasmPhase });
+  const swanCoachReadiness = await buildSwanCoachReadinessContext({
+    clientContext: context,
+    readinessCheck,
+    category,
+    primaryGoal,
+  });
 
   // Get equipment for selected location
   let equipmentItems = [];
@@ -490,7 +509,7 @@ export async function generateWorkout(options) {
   for (const moveCat of movementCategories) {
     const catExercises = selectExercises(
       registry, moveCat, exercisesPerCategory,
-      context.constraints, equipmentItems, nasmPhase, goalBias
+      context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness
     );
     selectedExercises.push(...catExercises);
   }
@@ -629,10 +648,13 @@ export async function generateWorkout(options) {
       }
     }
   }
-  const styledWorkoutExercises = applyTrainingStyleToExercises(
-    workoutExercises,
-    trainingStyle,
-    context.pain?.warnings,
+  const styledWorkoutExercises = applySwanCoachReadinessToExercises(
+    applyTrainingStyleToExercises(
+      workoutExercises,
+      trainingStyle,
+      context.pain?.warnings,
+    ),
+    swanCoachReadiness,
   );
 
   const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
@@ -704,6 +726,7 @@ export async function generateWorkout(options) {
   if (trainingStyle.mode === 'hardcore') {
     explanations.push(trainingStyleExplanation(trainingStyle));
   }
+  explanations.push(buildSwanCoachReadinessExplanation(swanCoachReadiness));
 
   if (context.goals?.primaryGoal && context.goals.primaryGoal !== primaryGoal) {
     explanations.push({
@@ -749,6 +772,7 @@ export async function generateWorkout(options) {
     `Set bias: ${goalBias.setBias}, rep bias: ${goalBias.repBias}, rest bias: ${goalBias.restBias}, intensity bias: ${goalBias.intensityBias}.`,
     `Exercise selection priority: ${goalBias.exerciseBias.join(' > ')}.`,
     `Training style: ${trainingStyle.label}. ${trainingStyle.cue}`,
+    buildSwanCoachReadinessRationaleLine(swanCoachReadiness),
   ];
 
   return {
@@ -764,6 +788,7 @@ export async function generateWorkout(options) {
     nasmPhase,
     primaryGoal,
     trainingStyle,
+    swanCoachReadiness,
     goalBias,
     rationale,
     phaseParams: {
@@ -793,6 +818,7 @@ export async function generateWorkout(options) {
       recentWorkouts: context.workouts.sessionsLast2Weeks,
       avgFormRating: context.workouts.avgFormRating,
       equipmentProfileId,
+      readinessLevel: swanCoachReadiness.level,
     },
 
     // Deep client intelligence (for Coach AI display)
@@ -840,6 +866,7 @@ export async function generatePlan(options) {
     // omit this; getExerciseRegistryFromDB() is used.
     trainingIntensityMode,
     hardcoreMethod,
+    readinessCheck = null,
     registryOverride = null,
   } = options;
 
@@ -858,6 +885,12 @@ export async function generatePlan(options) {
   const startingPhase = resolveStartingPhase({
     startingPhaseOverride,
     contextPhase: context.constraints.nasmPhase || 1,
+  });
+  const swanCoachReadiness = await buildSwanCoachReadinessContext({
+    clientContext: context,
+    readinessCheck,
+    category: 'long_horizon_plan',
+    primaryGoal,
   });
 
   // Extract equipment items for plan context
@@ -944,6 +977,7 @@ export async function generatePlan(options) {
     `Mesocycle phase sequence (${mesocycleCount} blocks of 4 weeks): ${phaseSequenceSummary}.`,
     `Plan length: ${durationWeeks} weeks at ${sessionsPerWeek} sessions/week.`,
     `Training style: ${trainingStyle.label}. ${trainingStyle.cue}`,
+    buildSwanCoachReadinessRationaleLine(swanCoachReadiness),
   ];
 
   // ── L1 (2026-05-01): per-day populator ───────────────────────────────
@@ -1029,7 +1063,7 @@ export async function generatePlan(options) {
       const exerciseCount = recoveryOverride?.exerciseCount ?? 6;
       const selected = selectExercises(
         registry, cat, exerciseCount,
-        constraintsForDay, equipmentItems, phase, goalBias
+        constraintsForDay, equipmentItems, phase, goalBias, swanCoachReadiness
       );
 
       // Detect rotation fallback: if pool size < 7 distinct AND any selected
@@ -1065,10 +1099,13 @@ export async function generatePlan(options) {
           ...(rotationFallbackForThisDay ? { rotationFallback: true } : {}),
         };
       });
-      const exercises = applyTrainingStyleToExercises(
-        baseExercises,
-        trainingStyle,
-        context.pain?.warnings,
+      const exercises = applySwanCoachReadinessToExercises(
+        applyTrainingStyleToExercises(
+          baseExercises,
+          trainingStyle,
+          context.pain?.warnings,
+        ),
+        swanCoachReadiness,
       );
 
       // Update sliding window with this day's exercises.
@@ -1109,6 +1146,7 @@ export async function generatePlan(options) {
 
   // L1 (2026-05-01): recommendationDetails[] mirrors recommendations[]
   // with structured type + sourceCitation (SCHEMA-PATH only — rule 8).
+  const readinessRecommendationDetail = buildSwanCoachReadinessRecommendationDetail(swanCoachReadiness);
   const buildRecommendationDetails = () => {
     const details = [];
     if (context.criticalDataUnavailable) {
@@ -1171,6 +1209,7 @@ export async function generatePlan(options) {
     if (trainingStyle.mode === 'hardcore') {
       details.push(trainingStyleRecommendationDetail(trainingStyle));
     }
+    details.push(readinessRecommendationDetail);
     return details;
   };
   const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
@@ -1189,6 +1228,7 @@ export async function generatePlan(options) {
     planningSystem: 'swan_coach_planning',
     swanCoachPlanning,
     trainingStyle,
+    swanCoachReadiness,
 
     planSummary: {
       durationWeeks,
@@ -1198,6 +1238,7 @@ export async function generatePlan(options) {
       startingPhase,
       equipmentProfileId,
       trainingStyle,
+      readinessLevel: swanCoachReadiness.level,
     },
 
     rationale,
@@ -1243,6 +1284,7 @@ export async function generatePlan(options) {
       trainingStyle.mode === 'hardcore'
         ? `${trainingStyle.label}: ${trainingStyle.cue}`
         : null,
+      readinessRecommendationDetail.text,
     ].filter(Boolean),
 
     // Deep client intelligence for plan review

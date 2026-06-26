@@ -549,7 +549,7 @@ export const setupRoutes = async (app) => {
         const client = getR2Client();
 
         const ext = filename.split('.').pop().toLowerCase();
-        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' };
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', m4v: 'video/x-m4v' };
 
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
@@ -594,7 +594,7 @@ export const setupRoutes = async (app) => {
         const client = getR2Client();
 
         const ext = filename.split('.').pop().toLowerCase();
-        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' };
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', m4v: 'video/x-m4v' };
 
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
@@ -760,7 +760,7 @@ export const setupRoutes = async (app) => {
         const client = getR2Client();
 
         const ext = filename.split('.').pop().toLowerCase();
-        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' };
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', m4v: 'video/x-m4v' };
 
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,

@@ -24,6 +24,8 @@ import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansS
 import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
+import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
+
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +45,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [category, setCategory] = useState<WorkoutCategory>('full_body');
   const [goal, setGoal] = useState<PlanGoal>('general_fitness');
   const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
+  const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>('auto');
   const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
@@ -114,9 +117,13 @@ const WorkoutPlannerPage: React.FC = () => {
     degradedIntelligence,
     explanations,
     showExplanations,
+    guidedCandidates,
+    generatingCandidates,
     clearExplanations,
+    clearGuidedCandidates,
     handleSwanCoachWorkoutGenerate,
     handleGeneratePlan,
+    handleSelectGuidedCandidate,
     handleToggleExplanations,
   } = useWorkoutPlannerGenerationActions({
     authAxios,
@@ -128,6 +135,7 @@ const WorkoutPlannerPage: React.FC = () => {
     selectedEquipmentProfileId,
     trainingIntensityMode,
     hardcoreMethod,
+    generationMode,
     setPlanExercises,
     setGeneratedPlan,
     setPhaseNumber,
@@ -161,24 +169,10 @@ const WorkoutPlannerPage: React.FC = () => {
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
 
   const {
-    savedPlans,
-    savedPlansLoading,
-    fetchSavedPlans,
-    archiveBlockedFor,
-    handleCardActivate,
-    handlePlanSetPrimary,
-    handleCardRename,
-    handleCardDuplicate,
-    handleCardArchive,
-    pdfDialogPlan,
-    pdfDialogMode,
-    pdfSaving,
-    pdfOpening,
-    handlePlanPdfView,
-    handlePlanPdfUpdate,
-    handlePlanPdfSave,
-    handlePlanPdfUpload,
-    closePlanPdfDialog,
+    savedPlans, savedPlansLoading, fetchSavedPlans, archiveBlockedFor,
+    handleCardActivate, handlePlanSetPrimary, handleCardRename, handleCardDuplicate, handleCardArchive,
+    pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening,
+    handlePlanPdfView, handlePlanPdfUpdate, handlePlanPdfSave, handlePlanPdfUpload, closePlanPdfDialog,
   } = useWorkoutPlannerSavedPlansState({
     authAxios,
     selectedClientId,
@@ -218,6 +212,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setLoadedPlanName,
     setStatusMsg,
   });
+
   const { handleCreateBuilderPdf } = useWorkoutPlannerPdfActions({ selectedClient, planExercisesLength: planExercises.length, hasGeneratedHorizonPlan, planDuration, userRole: user?.role, goal, phaseNumber, buildPlanData, setStatusMsg });
 
   const { loadPlanIntoBuilder } = useWorkoutPlannerLoadPlanActions({
@@ -267,18 +262,19 @@ const WorkoutPlannerPage: React.FC = () => {
 
   return <WorkoutPlannerPageLayout {...{
     plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient, phaseNumber, category,
-    goal, planDuration, sessionsPerWeek, equipmentProfiles, trainingIntensityMode, hardcoreMethod, equipmentProfilesLoading,
+    goal, planDuration, sessionsPerWeek, equipmentProfiles, trainingIntensityMode, hardcoreMethod, generationMode, equipmentProfilesLoading,
     selectedEquipmentProfileId, generating, generatingPlan, clientGenBlocked, clientSelfGenStatus, isViewerClient, statusMsg, degradedIntelligence,
     filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery, filterCategory, sourceFilter,
     exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer, saving, planExercises,
     hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
-    generatedPlan, selectedMesoDay, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
+    generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
     teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber },
     onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
     onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
     onPlanDurationChange: handlePlanDurationChange, onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestSwanCoachWorkoutForSelectedClient,
     onTrainingIntensityModeChange: handleTrainingIntensityModeChange, onHardcoreMethodChange: setHardcoreMethod,
+    onGenerationModeChange: setGenerationMode,
     onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan,
     onDismissStatus: () => setStatusMsg(null), onSearchQueryChange: setSearchQuery,
     onFilterCategoryChange: setFilterCategory, onSourceFilterChange: setSourceFilter,
@@ -288,7 +284,8 @@ const WorkoutPlannerPage: React.FC = () => {
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
     onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onCreatePdf: handleCreateBuilderPdf, onSelectExercise: setSelectedExercise,
     onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
-    onToggleExplanations: handleToggleExplanations, onSelectedMesoDayChange: setSelectedMesoDay,
+    onToggleExplanations: handleToggleExplanations, onSelectGuidedCandidate: handleSelectGuidedCandidate,
+    onClearGuidedCandidates: clearGuidedCandidates, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
     onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onSetPrimary: handlePlanSetPrimary,
     pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening, onViewPdf: handlePlanPdfView, onUpdatePdf: handlePlanPdfUpdate,

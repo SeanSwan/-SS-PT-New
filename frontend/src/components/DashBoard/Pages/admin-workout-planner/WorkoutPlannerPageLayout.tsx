@@ -35,20 +35,20 @@ type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps &
 const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
   phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
-  trainingIntensityMode, hardcoreMethod,
+  trainingIntensityMode, hardcoreMethod, generationMode,
   equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
   clientGenBlocked, clientSelfGenStatus, isViewerClient, onReturnToClientHub, onTeachModeToggle,
   onClientSelectionChange, onPhaseNumberChange, onCategoryChange, onGoalChange, onPlanDurationChange,
   onEquipmentProfileChange, onSessionsPerWeekChange, onTrainingIntensityModeChange,
-  onHardcoreMethodChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
+  onHardcoreMethodChange, onGenerationModeChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
   hasPlanExercises, onDismissStatus, filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
   filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer,
   onSearchQueryChange, onFilterCategoryChange, onSourceFilterChange, onExerciseTypeFilterChange,
   onEquipmentFilterChange, onImpactFilterChange, onClearFilters, saving, planExercises, hasGeneratedHorizonPlan,
   loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations, onSaveDraft,
   onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onCreatePdf, onSelectExercise,
-  onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onToggleExplanations, teachModeProps,
-  generatedPlan, selectedMesoDay, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
+  onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onSelectGuidedCandidate, onClearGuidedCandidates, onToggleExplanations, teachModeProps,
+  generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
   pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
 }) => {
@@ -82,6 +82,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         sessionsPerWeek={sessionsPerWeek}
         trainingIntensityMode={trainingIntensityMode}
         hardcoreMethod={hardcoreMethod}
+        generationMode={generationMode}
         equipmentProfiles={equipmentProfiles}
         equipmentProfilesLoading={equipmentProfilesLoading}
         selectedEquipmentProfileId={selectedEquipmentProfileId}
@@ -101,6 +102,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onSessionsPerWeekChange={onSessionsPerWeekChange}
         onTrainingIntensityModeChange={onTrainingIntensityModeChange}
         onHardcoreMethodChange={onHardcoreMethodChange}
+        onGenerationModeChange={onGenerationModeChange}
         onGenerateSingle={onGenerateSingle}
         onGeneratePlan={onGeneratePlan}
       />
@@ -144,6 +146,9 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           savedPlans={savedPlans}
           isDirty={isDirty}
           generating={generating}
+          generatingCandidates={generatingCandidates}
+          guidedCandidates={guidedCandidates}
+          generationMode={generationMode}
           phase={phase}
           explanations={explanations}
           showExplanations={showExplanations}
@@ -162,6 +167,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
           onUpdateExercise={onUpdateExercise}
           onRemoveExercise={onRemoveExercise}
           onBrowseAddExercise={onBrowseAddExercise}
+          onSelectGuidedCandidate={onSelectGuidedCandidate}
+          onClearGuidedCandidates={onClearGuidedCandidates}
           onToggleExplanations={onToggleExplanations}
           onSelectedMesoDayChange={onSelectedMesoDayChange}
           onPhaseNumberChange={onPhaseNumberChange}

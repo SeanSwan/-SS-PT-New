@@ -20,6 +20,7 @@ import type {
   PlannerClient,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 import {
   OPT_PHASES,
   PLAN_DURATIONS,
@@ -69,6 +70,7 @@ interface ControlsSectionProps {
   category: WorkoutCategory;
   goal: PlanGoal;
   planDuration: PlanDuration;
+  generationMode: SwanCoachGenerationMode;
   equipmentProfiles: PlannerEquipmentProfile[];
   equipmentProfilesLoading: boolean;
   selectedEquipmentProfileId: number | null;
@@ -160,6 +162,7 @@ export const WorkoutPlannerControlsSection: React.FC<ControlsSectionProps> = ({
   category,
   goal,
   planDuration,
+  generationMode,
   equipmentProfiles,
   equipmentProfilesLoading,
   selectedEquipmentProfileId,
@@ -229,7 +232,7 @@ export const WorkoutPlannerControlsSection: React.FC<ControlsSectionProps> = ({
         title={generationTitle(clientGenBlocked)}
       >
         {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-        {generationLabel(isGenerating, planDuration)}
+        {generationLabel(isGenerating, planDuration, generationMode)}
       </ActionBtn>
     </ControlRow>
   );
