@@ -19,15 +19,24 @@ describe('admin impersonation UI wiring', () => {
   });
 
   it('scopes the admin account switcher to the admin Coach Command Center route', () => {
-    const shellSource = readMaybe('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const shellSource = readMaybe('frontend/src/components/DashBoard/UniversalDashboardLayout.shell.tsx');
     const coachSource = readMaybe('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx');
+    const opsRailSource = readMaybe('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandOpsRail.tsx');
+    const opsRailPanelsSource = readMaybe('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandOpsRailPanels.tsx');
 
     expect(shellSource).not.toContain("import AdminAccountSwitcher from '../Admin/AdminAccountSwitcher'");
     expect(shellSource).not.toContain('<AdminAccountSwitcher />');
-    expect(coachSource).toContain("import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher'");
-    expect(coachSource).toContain("location.pathname.startsWith('/dashboard/admin/coach-assistant')");
+    expect(coachSource).not.toContain("import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher'");
+    expect(coachSource).not.toContain("location.pathname.startsWith('/dashboard/admin/coach-assistant')");
     expect(coachSource).toContain("userRole === 'admin'");
-    expect(coachSource).toContain('<AdminAccountSwitcher />');
+    expect(coachSource).toContain('accountControlsOpen');
+    expect(coachSource).toContain('setAccountControlsOpen');
+    expect(opsRailSource).toContain("import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher'");
+    expect(opsRailSource).toContain('accountControlsOpen ? <AdminAccountSwitcher /> : null');
+    expect(opsRailPanelsSource).toContain('AccountControlsToggleButton');
+    expect(opsRailPanelsSource).toContain('aria-controls="coach-owner-account-controls"');
+    expect(opsRailPanelsSource).toContain('aria-expanded={accountControlsOpen}');
+    expect(opsRailPanelsSource).toContain('aria-pressed={accountControlsOpen}');
   });
 
   it('uses the new auth impersonation endpoints and restores admin session on expiry', () => {
@@ -83,9 +92,12 @@ describe('admin impersonation UI wiring', () => {
     const previewStyles = readMaybe('frontend/src/components/Admin/AdminAccountSwitcherPreview.styles.ts');
     const commandStyles = readMaybe('frontend/src/components/Admin/AdminAccountCommandPanel.styles.ts');
 
-    expect(switcherStyles).toContain('grid-area: account');
+    expect(switcherStyles).toContain('box-sizing: border-box;');
+    expect(switcherStyles).toContain('grid-area: auto;');
+    expect(switcherStyles).toContain('grid-column: auto;');
     expect(switcherStyles).toContain('flex: 0 0 auto');
-    expect(switcherStyles).toContain('order: 5');
+    expect(switcherStyles).not.toContain('order: 5');
+    expect(switcherStyles).toContain('margin: 0;');
     expect(switcherStyles).toContain('container-type: inline-size');
     expect(switcherStyles).toContain('@container (max-width: 1120px)');
     expect(switcherStyles).toContain('@container (max-width: 700px)');

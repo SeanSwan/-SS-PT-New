@@ -12,6 +12,11 @@ type OperatorControlsPanelProps = {
   onTeachModeToggle: () => void;
 };
 
+type AccountControlsToggleButtonProps = {
+  accountControlsOpen: boolean;
+  onAccountControlsToggle: () => void;
+};
+
 type QuickClientPanelProps = {
   quickClientBusy: boolean;
   quickClientError: string | null;
@@ -49,6 +54,30 @@ export function TeachModeToggleButton({ teachMode, onTeachModeToggle }: Operator
       <span>
         <strong>{teachMode ? 'Teach Mode active' : 'Teach Mode'}</strong>
         <small>Review guidance</small>
+      </span>
+    </button>
+  );
+}
+
+export function AccountControlsToggleButton({
+  accountControlsOpen,
+  onAccountControlsToggle,
+}: AccountControlsToggleButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`account-controls-toggle ${accountControlsOpen ? 'is-on' : ''}`}
+      aria-controls="coach-owner-account-controls"
+      aria-expanded={accountControlsOpen}
+      aria-pressed={accountControlsOpen}
+      onClick={onAccountControlsToggle}
+    >
+      <span className="workout-command-icon" aria-hidden="true">
+        <ShieldCheck size={17} />
+      </span>
+      <span>
+        <strong>{accountControlsOpen ? 'Owner Controls open' : 'Owner Controls'}</strong>
+        <small>Test accounts + lifecycle</small>
       </span>
     </button>
   );

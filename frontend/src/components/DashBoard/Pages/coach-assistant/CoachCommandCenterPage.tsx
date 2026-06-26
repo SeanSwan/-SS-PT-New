@@ -13,10 +13,9 @@
  * Review-gated: Swan Coach prepares operator drafts; final writes need approval.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../hooks/useAuth';
 import { PlaudMergeWorkspace } from '../../../PlaudClipMerge/PlaudMergeWorkspace';
-import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { buildCoachHeaderQuickActions } from './CoachCommandHeaderActions';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
@@ -43,16 +42,14 @@ import {
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);
-  const location = useLocation();
   const commandCenter = useCoachCommandCenterController({ userRole });
   const [searchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
   const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
   const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
+  const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const handledPlaudUploadRequestRef = useRef(0);
-  const showAdminAccountSwitcher = userRole === 'admin'
-    && location.pathname.startsWith('/dashboard/admin/coach-assistant');
 
   useCoachCommandCenterDrawerEffects({
     commandFormRef: commandCenter.commandFormRef,
@@ -99,6 +96,12 @@ const CoachCommandCenterPage: React.FC = () => {
   }, [routeForcedTab, userRole]);
 
   useEffect(() => {
+    if (userRole !== 'admin' && accountControlsOpen) {
+      setAccountControlsOpen(false);
+    }
+  }, [accountControlsOpen, userRole]);
+
+  useEffect(() => {
     if (
       activeTab !== 'plaud' ||
       plaudUploadRequest === 0 ||
@@ -111,6 +114,10 @@ const CoachCommandCenterPage: React.FC = () => {
   const handleStartPlaudUpload = () => {
     setActiveTab('plaud');
     setPlaudUploadRequest((count) => count + 1);
+  };
+
+  const handleAccountControlsToggle = () => {
+    setAccountControlsOpen((current) => !current);
   };
 
   const handleOpenIntakeFromOps = () => {
@@ -139,7 +146,6 @@ const CoachCommandCenterPage: React.FC = () => {
           />
         )}
 
-        {showAdminAccountSwitcher ? <AdminAccountSwitcher /> : null}
 
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
@@ -245,6 +251,7 @@ const CoachCommandCenterPage: React.FC = () => {
 
         {!isClientMode ? (
           <CoachCommandOpsRail
+            accountControlsOpen={accountControlsOpen}
             clientPickerRoute={clientPickerRoute}
             drawer={commandCenter.drawer}
             quickClientBusy={commandCenter.quickClientBusy}
@@ -262,6 +269,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutPlannerRoute={workoutPlannerRoute}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
+            showAccountControls={userRole === 'admin'}
+            onAccountControlsToggle={handleAccountControlsToggle}
             onClose={commandCenter.closeDrawer}
             onOpenIntake={handleOpenIntakeFromOps}
             onOpenPlaud={handleStartPlaudUpload}

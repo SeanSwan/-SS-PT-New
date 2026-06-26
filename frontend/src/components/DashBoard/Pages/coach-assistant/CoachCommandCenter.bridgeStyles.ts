@@ -23,6 +23,7 @@ import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationSty
 import { coachCommandHeaderActionStyles } from './CoachCommandCenter.headerActionStyles';
 import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
 import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
+import { coachCommandOwnerControlsStyles } from './CoachCommandCenter.ownerControlsStyles';
 import { coachCommandShellStyles } from './CoachCommandCenter.shellStyles';
 import { coachCommandThreadHeaderStyles } from './CoachCommandCenter.threadHeaderStyles';
 
@@ -208,6 +209,7 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandDockStyles}
   ${coachCommandBridgeMobileDockStyles}
   ${coachCommandOpsStyles}
+  ${coachCommandOwnerControlsStyles}
   ${coachCommandOpsMissionStyles}
   ${coachCommandCrystallineFocusStyles}
 `;

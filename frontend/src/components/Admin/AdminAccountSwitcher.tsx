@@ -119,10 +119,10 @@ const AdminAccountSwitcher: React.FC = () => {
         const control = response.data?.accountControl;
         const enabled = control?.canListTargets === true && control?.canRunCommands === true;
         const message = enabled
-          ? 'Owner account controls are available.'
+          ? 'Owner account controls are ready for audited test sessions and lifecycle commands.'
           : control?.code === 'OWNER_GATE_NOT_CONFIGURED'
-            ? 'Owner account controls need backend allowlist configuration.'
-            : 'Owner account controls are limited to allowlisted owner admins.';
+            ? 'Backend owner allowlist is missing. Set OWNER_ADMIN_EMAILS or OWNER_ADMIN_IDS on the Render backend.'
+            : 'This admin is not on the owner allowlist for account controls.';
         setAccountControl({ ready: true, enabled, error: !enabled, message });
         if (!enabled) {
           setTargets([]);
@@ -135,7 +135,7 @@ const AdminAccountSwitcher: React.FC = () => {
           ready: true,
           enabled: false,
           error: true,
-          message: 'Unable to check owner account controls.',
+          message: 'Unable to verify owner account controls. Check the backend route and Render env before using this module.',
         });
         setTargets([]);
         setSelectedId('');
@@ -203,19 +203,19 @@ const AdminAccountSwitcher: React.FC = () => {
   const statusText = !accountControl.ready || !accountControl.enabled
     ? accountControl.message
     : loading
-      ? 'Refreshing account list...'
+      ? 'Refreshing owner account list...'
       : selectedTarget
         ? `${targets.length} matching account${targets.length === 1 ? '' : 's'} available. ${selectedTarget.canImpersonate ? `Temporary access opens as ${selectedTarget.displayName}.` : 'Account controls are available, but dashboard testing is disabled until the account is active and unlocked.'}`
         : 'Change the role or search term to find an account.';
 
   return (
-    <SwitcherShell aria-label="Admin account testing switcher">
+    <SwitcherShell aria-label="Admin account testing switcher" data-owner-account-controls="true">
       <SwitcherHeader>
         <HeaderIdentity>
           <HeaderIcon><ShieldCheck size={20} aria-hidden="true" focusable="false" /></HeaderIcon>
           <HeaderText>
-            <strong>Test and control accounts</strong>
-            <span>Open dashboards, force logout, block, deactivate, or reactivate non-admin accounts.</span>
+            <strong>Test accounts and lifecycle controls</strong>
+            <span>Use audited dashboard access or force logout, block, deactivate, and reactivate commands.</span>
           </HeaderText>
         </HeaderIdentity>
         <TrustStrip aria-label="Account testing safeguards">

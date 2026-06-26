@@ -6,6 +6,10 @@ import {
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
 
+vi.mock('../../../Admin/AdminAccountSwitcher', () => ({
+  default: () => <section aria-label="Admin account testing switcher">Mock owner account controls</section>,
+}));
+
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
@@ -85,6 +89,32 @@ describe('CoachCommandOpsRail workout command panel', () => {
       'href',
       '/dashboard/admin/client-management?intent=log_workout',
     );
+  });
+
+  it('keeps owner account controls collapsed behind an admin-only toggle', () => {
+    renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
+
+    const opsRail = openOpsRail();
+    const ownerToggle = within(opsRail).getByRole('button', { name: /owner controls/i });
+
+    expect(ownerToggle).toHaveAttribute('aria-controls', 'coach-owner-account-controls');
+    expect(ownerToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(ownerToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(opsRail).queryByLabelText('Admin account testing switcher')).not.toBeInTheDocument();
+
+    fireEvent.click(ownerToggle);
+
+    expect(ownerToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(ownerToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(opsRail).getByLabelText('Admin account testing switcher')).toHaveTextContent('Mock owner account controls');
+  });
+
+  it('hides owner account controls for trainer mode', () => {
+    renderPage('/dashboard/trainer/coach-assistant', 'trainer');
+
+    const trainerRail = openOpsRail();
+
+    expect(within(trainerRail).queryByRole('button', { name: /owner controls/i })).not.toBeInTheDocument();
   });
 
   it('keeps Teach Mode guidance collapsed behind a compact toggle', () => {

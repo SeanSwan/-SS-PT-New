@@ -2,12 +2,12 @@ import styled from 'styled-components';
 
 export const SwitcherShell = styled.section`
   display: grid;
+  box-sizing: border-box;
   gap: 0.9rem;
-  grid-area: account;
-  grid-column: 1 / 2;
+  grid-area: auto;
+  grid-column: auto;
   flex: 0 0 auto;
-  margin: 0 0 1.15rem;
-  order: 5;
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   padding: clamp(0.9rem, 1.8vw, 1.2rem);

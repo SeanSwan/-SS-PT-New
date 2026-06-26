@@ -6,7 +6,6 @@ import { X } from 'lucide-react';
 import { GlobalClientProvider } from '../../context/GlobalClientContext';
 import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
 import ViewAsBanner from './components/ViewAsBanner';
-import AdminAccountSwitcher from '../Admin/AdminAccountSwitcher';
 import { MobileBackBtn } from './UniversalDashboardLayout.controls';
 import type { DashboardRouteDefinition } from './UniversalDashboardLayout.routes';
 import {
@@ -117,9 +116,6 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
             animate={{ opacity: 1, x: 0 }}
             transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, ease: 'easeOut' }}
           >
-            {userRole === 'admin' && activeRole === 'admin' && (
-              <AdminAccountSwitcher />
-            )}
             {userRole === 'admin' && (activeRole === 'trainer' || activeRole === 'client') && (
               <ViewAsBanner activeRole={activeRole} />
             )}

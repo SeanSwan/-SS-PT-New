@@ -1,10 +1,12 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
+import AdminAccountSwitcher from '../../../Admin/AdminAccountSwitcher';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import type { DrawerSide, QueueHealthRow } from './CoachCommandCenter.types';
 import CoachCommandOpsLaunchpad from './CoachCommandOpsLaunchpad';
 import {
+  AccountControlsToggleButton,
   OperatorControlsPanel,
   QueueSnapshotPanel,
   QuickClientPanel,
@@ -12,6 +14,7 @@ import {
 } from './CoachCommandOpsRailPanels';
 
 type CoachCommandOpsRailProps = {
+  accountControlsOpen: boolean;
   clientPickerRoute: string;
   drawer: DrawerSide | null;
   quickClientBusy: boolean;
@@ -23,12 +26,14 @@ type CoachCommandOpsRailProps = {
   railRef: React.RefObject<HTMLElement>;
   rightRailItems: string[];
   selectedClientLabel: string;
+  showAccountControls?: boolean;
   teachMode: boolean;
   workoutLoggerRoute: string | null;
   workoutLoggerScopeLabel?: string | null;
   workoutPlannerRoute: string | null;
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
+  onAccountControlsToggle: () => void;
   onClose: () => void;
   onOpenIntake: () => void;
   onOpenPlaud: () => void;
@@ -61,6 +66,7 @@ function opsRailDescription({
 }
 
 const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
+  accountControlsOpen,
   clientPickerRoute,
   drawer,
   quickClientBusy,
@@ -72,12 +78,14 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
   railRef,
   rightRailItems,
   selectedClientLabel,
+  showAccountControls = false,
   teachMode,
   workoutLoggerRoute,
   workoutLoggerScopeLabel = null,
   workoutPlannerRoute,
   workflowReturnLabel = null,
   workflowReturnTo = null,
+  onAccountControlsToggle,
   onClose,
   onOpenIntake,
   onOpenPlaud,
@@ -126,6 +134,17 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
         onOpenIntake={onOpenIntake}
         onOpenPlaud={onOpenPlaud}
       />
+      {showAccountControls ? (
+        <>
+          <AccountControlsToggleButton
+            accountControlsOpen={accountControlsOpen}
+            onAccountControlsToggle={onAccountControlsToggle}
+          />
+          <div id="coach-owner-account-controls" className="owner-account-controls-panel">
+            {accountControlsOpen ? <AdminAccountSwitcher /> : null}
+          </div>
+        </>
+      ) : null}
       <TeachModeToggleButton teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <OperatorControlsPanel teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <QuickClientPanel
