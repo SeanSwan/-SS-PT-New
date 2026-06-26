@@ -35,8 +35,8 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
 );
-const dashboardLayoutSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const coreRoutesSource = readFileSync(resolve(process.cwd(), '../backend/core/routes.mjs'), 'utf8');
@@ -64,11 +64,11 @@ describe('ContactNotifications active surface truth contract', () => {
   });
 
   it('routes notification actions to canonical admin dashboard destinations', () => {
-    expect(dashboardLayoutSource).toContain("path: '/revenue'");
-    expect(dashboardLayoutSource).toContain("path: '/pending-orders'");
-    expect(dashboardLayoutSource).toContain("path: '/security'");
-    expect(dashboardLayoutSource).toContain("path: '/messages'");
-    expect(dashboardLayoutSource).toContain("path: '/client-management'");
+    expect(dashboardRoutesSource).toContain("path: '/revenue'");
+    expect(dashboardRoutesSource).toContain("path: '/pending-orders'");
+    expect(dashboardRoutesSource).toContain("path: '/security'");
+    expect(dashboardRoutesSource).toContain("path: '/messages'");
+    expect(dashboardRoutesSource).toContain("path: '/client-management'");
 
     expect(combinedSource).not.toMatch(/\/dashboard\/(?:home|analytics|store|system)/);
     expect(combinedSource).not.toContain('window.open');
@@ -86,6 +86,9 @@ describe('ContactNotifications active surface truth contract', () => {
     expect(controlButtonBlock).toContain('min-width: 44px');
   });
 
+  it('uses property-scoped transitions for the alert surface', () => {
+    expect(stylesSource).not.toContain('transition: all');
+  });
   it('lets mobile Business Intelligence Alerts use page flow instead of nested list scrolling', () => {
     const listBlock = stylesSource.match(/export const NotificationsList[\s\S]*?`;/)?.[0] ?? '';
 

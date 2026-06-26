@@ -86,7 +86,7 @@ export const ControlButton = styled(motion.button)`
   min-height: 44px;
   min-width: 44px;
   padding: 0.5rem;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   &:hover {
     background: color-mix(in srgb, ${ACCENT_TERTIARY} 20%, transparent);
     border-color: color-mix(in srgb, ${ACCENT_TERTIARY} 50%, transparent);
@@ -134,7 +134,7 @@ export const NotificationItemShell = styled(motion.div)<{ $priorityColor?: strin
   min-width: 0;
   padding: 1rem;
   position: relative;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, border-left-width 0.3s ease;
   &:hover {
     background: color-mix(in srgb, ${TEXT_PRIMARY} 8%, transparent);
     border-color: ${props => props.$priorityColor || PRIORITY_MEDIUM};
