@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import {
   normalizeConversationPayload,
   normalizeConversationsPayload,
@@ -29,15 +29,6 @@ describe('messaging API adapters', () => {
         role: 'client',
       }),
     ]);
-  });
-
-  it('does not coerce malformed boolean IDs into real user or conversation IDs', () => {
-    const conversations = normalizeConversationsPayload([{ id: true, participants: [{ id: true, name: 'Bad Payload' }] }]);
-    const messages = normalizeMessagesPayload([{ id: true, conversation_id: true, sender_id: true, content: 'Bad', created_at: '' }]);
-
-    expect(conversations[0].id).toBe('');
-    expect(conversations[0].participants).toEqual([]);
-    expect(messages).toEqual([]);
   });
 
   it('normalizes raw conversation arrays with legacy participant names', () => {

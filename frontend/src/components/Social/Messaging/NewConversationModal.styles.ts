@@ -98,14 +98,9 @@ export const QuickChip = styled.button<{ $selected?: boolean }>`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.8rem;
 
-  &:hover:not(:disabled) {
+  &:hover {
     background: var(--accent-primary-10, rgba(96, 192, 240, 0.1));
     border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
   }
 
   &:focus-visible {
@@ -146,7 +141,7 @@ export const RoleBadge = styled.span<{ $role: string }>`
   font-size: 0.6rem;
 `;
 
-export const SelectableUserItem = styled.div<{ $selected?: boolean }>`
+export const SelectableUserItem = styled.button<{ $selected?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -161,7 +156,6 @@ export const SelectableUserItem = styled.div<{ $selected?: boolean }>`
   color: inherit;
   cursor: pointer;
   text-align: left;
-  user-select: none;
 
   &:hover {
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
@@ -188,13 +182,6 @@ export const SelectMark = styled.span<{ $selected?: boolean }>`
   justify-content: center;
   color: ${({ $selected }) => ($selected ? 'var(--text-primary, #E0ECF4)' : 'transparent')};
   background: ${({ $selected }) => ($selected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
-`;
-
-export const SkeletonStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0.5rem;
 `;
 
 export const FooterBar = styled.div`
@@ -246,4 +233,14 @@ export const AdminToggle = styled.button<{ $active?: boolean }>`
   cursor: pointer;
   font-size: 0.68rem;
   padding: 0 0.75rem;
+`;
+
+
+
+
+export const LoadingResults = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0.5rem;
 `;

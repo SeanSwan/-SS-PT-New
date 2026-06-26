@@ -9,6 +9,7 @@ import type { MessagingErrorState as ErrorState } from './messagingSafeErrors';
 import { participantDisplayName } from './messagingApiAdapters';
 import { getSafeMessagingErrorMessage } from './messagingSafeErrors';
 import GroupManagementPanel from './GroupManagementPanel';
+import GroupMessageBubble from './GroupMessageBubble';
 import { formatDateLabel, formatMessageTime, getInitials, groupByDate } from './MessageThread.logic';
 import {
   ErrorMessageText,
@@ -111,6 +112,9 @@ const MessageThread: React.FC<Props> = ({
   const dateGroups = useMemo(() => groupByDate(messages), [messages]);
   const safeErrorMessage = useMemo(() => getSafeMessagingErrorMessage(error), [error]);
   const isGroupConversation = conversation?.type === 'group';
+  const participantById = useMemo(() => new Map(
+    (conversation?.participants || []).map(member => [Number(member.id), member])
+  ), [conversation?.participants]);
   const threadTitle = isGroupConversation
     ? (conversation?.name || 'Swan Family')
     : (participant ? participantDisplayName(participant) : 'Loading...');
@@ -120,6 +124,8 @@ const MessageThread: React.FC<Props> = ({
   const activeTypers = useMemo(() => typingUsers.filter(t =>
     String(t.conversationId) === String(conversationId) && t.userId !== currentUserId
   ), [conversationId, currentUserId, typingUsers]);
+  const composerLabel = isGroupConversation ? `Message ${threadTitle}` : 'Message input';
+  const composerPlaceholder = isGroupConversation ? `Message ${threadTitle}...` : 'Type a message...';
 
   if (!hasConversation) {
     return (
@@ -194,6 +200,19 @@ const MessageThread: React.FC<Props> = ({
                 {group.messages.map(msg => {
                   const isMine = msg.sender_id === currentUserId;
                   const isRead = isMine && msg.readBy && msg.readBy.length > 0;
+                  const sender = msg.sender || participantById.get(Number(msg.sender_id)) || null;
+                  if (isGroupConversation) {
+                    return (
+                      <GroupMessageBubble
+                        key={msg.id}
+                        message={msg}
+                        sender={sender}
+                        currentUserId={currentUserId}
+                        isRead={Boolean(isRead)}
+                        timeLabel={formatMessageTime(msg.created_at)}
+                      />
+                    );
+                  }
                   return (
                     <MessageBubble key={msg.id} $isMine={isMine}>
                       <MessageText>{msg.content}</MessageText>
@@ -229,8 +248,8 @@ const MessageThread: React.FC<Props> = ({
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
-          aria-label="Message input"
+          placeholder={composerPlaceholder}
+          aria-label={composerLabel}
           rows={1}
         />
         <SendButton type="submit" disabled={!inputValue.trim()} aria-label="Send message"><Send size={18} /></SendButton>

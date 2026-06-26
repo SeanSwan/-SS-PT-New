@@ -20,9 +20,7 @@ const asString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' && value.trim().length > 0 ? value : fallback;
 
 const asNumber = (value: unknown, fallback = 0): number => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
-  if (typeof value !== 'string' || value.trim() === '') return fallback;
-  const next = Number(value.trim());
+  const next = Number(value);
   return Number.isFinite(next) ? next : fallback;
 };
 
@@ -38,16 +36,8 @@ const asBoolean = (value: unknown, fallback = false): boolean => {
 };
 
 const asId = (value: unknown): number | string => {
-  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : '';
-  if (typeof value !== 'string') return '';
-  const trimmed = value.trim();
-  if (/^[1-9]\d*$/.test(trimmed)) return Number(trimmed);
-  return trimmed;
-};
-
-const asPositiveNumberId = (value: unknown): number => {
-  const id = asId(value);
-  return typeof id === 'number' ? id : 0;
+  const next = Number(value);
+  return Number.isFinite(next) && value !== '' && value !== null ? next : asString(value);
 };
 
 const normalizeRole = (value: unknown): string => {
@@ -97,7 +87,7 @@ export const normalizeParticipant = (value: unknown): MessageParticipant => {
   const names = splitName(raw);
 
   return {
-    id: asPositiveNumberId(raw.id),
+    id: asNumber(raw.id),
     firstName: names.firstName,
     lastName: names.lastName,
     username: asString(raw.username, names.displayName),
@@ -151,7 +141,7 @@ export const normalizeMessage = (value: unknown): MessageData | null => {
   if (!isRecord(value)) return null;
   const id = asId(value.id);
   const conversationId = asId(value.conversation_id ?? value.conversationId);
-  const senderId = asPositiveNumberId(value.sender_id ?? value.senderId);
+  const senderId = asNumber(value.sender_id, asNumber(value.senderId));
   const content = asString(value.content);
 
   if (!id || !conversationId || !senderId || !content) return null;

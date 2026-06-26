@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: GroupManagementPanel.tsx
  * PURPOSE: Group chat rename, member, and role controls for messaging threads.
  */

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Socket.IO Server Initialization
  * ===============================
  *
@@ -11,41 +11,19 @@ import { QueryTypes } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
-import { toStrictPositiveInt } from '../services/messagingGroupPolicy.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
 
-const toPositiveInt = toStrictPositiveInt;
-
+const toPositiveInt = (value) => {
+  const next = Number(value);
+  return Number.isInteger(next) && next > 0 ? next : null;
+};
 
 const normalizeConversationIds = (conversationIds) => {
   if (!Array.isArray(conversationIds)) return [];
   return [...new Set(conversationIds.map(toPositiveInt).filter(Boolean))];
 };
-
-export function removeUserFromMessagingRoom(conversationId, userId) {
-  const normalizedConversationId = toPositiveInt(conversationId);
-  const normalizedUserId = toPositiveInt(userId);
-  if (!normalizedConversationId || !normalizedUserId) return 0;
-
-  const managedIO = getManagedSocketIO();
-  if (!managedIO) return 0;
-
-  const io = managedIO.of('/messaging');
-  const roomName = String(normalizedConversationId);
-  let removedCount = 0;
-
-  io.sockets.forEach((clientSocket) => {
-    if (toPositiveInt(clientSocket.user?.id) !== normalizedUserId) return;
-    if (!clientSocket.rooms.has(roomName)) return;
-    clientSocket.emit('conversation_removed', { conversationId: normalizedConversationId });
-    clientSocket.leave(roomName);
-    removedCount += 1;
-  });
-
-  return removedCount;
-}
 
 async function isActiveParticipant(conversationId, userId) {
   const [participant] = await sequelize.query(
@@ -66,10 +44,9 @@ const socketAuthMiddleware = async (socket, next) => {
 
   try {
     const decoded = jwt.verify(token, getJwtSecret());
-    const userId = toPositiveInt(decoded.userId ?? decoded.id);
-    if (!userId) return next(new Error('Authentication error: Invalid token'));
+    const userId = decoded.userId ?? decoded.id;
     const [user] = await sequelize.query(
-      'SELECT id, role, "firstName", "lastName", username, photo FROM "Users" WHERE id = :id AND ("isActive" = true OR "isActive" IS NULL) AND "deletedAt" IS NULL',
+      'SELECT id, role, "firstName", "lastName", username, photo FROM "Users" WHERE id = :id AND "isActive" = true AND "deletedAt" IS NULL',
       { replacements: { id: userId }, type: QueryTypes.SELECT }
     );
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: conversationController.mjs
  * PURPOSE: Conversation list, creation, and self-hide/leave handlers.
  */
@@ -10,7 +10,6 @@ import {
   normalizeGroupRole,
   normalizeParticipantIds,
   participantRoleForInsert,
-  toStrictPositiveInt,
 } from '../../services/messagingGroupPolicy.mjs';
 import {
   createConversationRecord,
@@ -27,7 +26,6 @@ import {
   touchConversation,
   upsertConversationParticipant,
 } from '../../services/messagingRepository.mjs';
-import { removeUserFromMessagingRoom } from '../../socket/socket.mjs';
 
 const CREATE_CONVERSATION_FAILED_MESSAGE = 'Failed to create conversation.';
 const FETCH_CONVERSATIONS_FAILED_MESSAGE = 'Failed to fetch conversations.';
@@ -41,8 +39,10 @@ const requestHasValidationErrors = (req, res) => {
   return true;
 };
 
-const toPositiveInt = toStrictPositiveInt;
-
+const toPositiveInt = (value) => {
+  const next = Number(value);
+  return Number.isInteger(next) && next > 0 ? next : null;
+};
 
 async function assertActiveParticipants(userIds) {
   const activeIds = await fetchActiveUserIds(userIds);
@@ -88,10 +88,7 @@ export const createConversation = async (req, res) => {
     if (requestedType === 'direct' && otherParticipantIds.length === 1) {
       const existing = await findDirectConversation(creatorId, otherParticipantIds[0]);
       if (existing) {
-        for (const participantId of allParticipantIds) {
-          await reviveParticipant(existing.id, participantId);
-        }
-        await touchConversation(existing.id);
+        await reviveParticipant(existing.id, creatorId);
         const existingConversation = await getConversationForViewer(existing.id, creatorId);
         return res.status(200).json(existingConversation);
       }
@@ -144,7 +141,6 @@ export const deleteConversation = async (req, res) => {
 
     await softDeleteParticipant(conversationId, userId);
     await touchConversation(conversationId);
-    removeUserFromMessagingRoom(conversationId, userId);
     return res.json({ success: true, message: membership.type === 'group' ? 'You left the group.' : 'Conversation hidden.' });
   } catch (error) {
     console.error('Error deleting conversation:', error);

@@ -1,10 +1,9 @@
-/**
+﻿/**
  * FILE: messageController.mjs
  * PURPOSE: Message history, send fallback, and user search handlers.
  */
 
 import { QueryTypes } from 'sequelize';
-import { toStrictPositiveInt } from '../../services/messagingGroupPolicy.mjs';
 import {
   createMessageRecord,
   ensureMessagingTables,
@@ -19,8 +18,10 @@ const FETCH_MESSAGES_FAILED_MESSAGE = 'Failed to fetch messages.';
 const SEARCH_USERS_FAILED_MESSAGE = 'Failed to search for users.';
 const MAX_MESSAGE_LENGTH = 5000;
 
-const toPositiveInt = toStrictPositiveInt;
-
+const toPositiveInt = (value) => {
+  const next = Number(value);
+  return Number.isInteger(next) && next > 0 ? next : null;
+};
 
 export const getMessagesForConversation = async (req, res) => {
   const conversationId = toPositiveInt(req.params.id);

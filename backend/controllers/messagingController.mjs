@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: messagingController.mjs
  * PURPOSE: Public controller facade for /api/messaging routes.
  */

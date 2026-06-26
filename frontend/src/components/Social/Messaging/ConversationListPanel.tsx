@@ -1,25 +1,9 @@
 /**
- * ┌─── SUB-COMPONENT: ConversationListPanel ───────────────────┐
- * │ PARENT: MessagingView                                       │
- * │ PURPOSE: Left panel showing conversation list + new chat    │
- * │ WIREFRAME:                                                  │
- * │ ┌────────────────────────────┐                              │
- * │ │ Messages          [+ New]  │                              │
- * │ ├────────────────────────────┤                              │
- * │ │ [Avatar] Sean Swan    2m   │                              │
- * │ │          Hey, great wo...  │                              │
- * │ │ [Avatar] Jane Doe    1h   │                              │
- * │ │          Thanks!      (2) │                              │
- * │ └────────────────────────────┘                              │
- * │ Props: { conversations, activeId, currentUserId, ... }      │
- * │ CLICK-OUTCOMES:                                             │
- * │ [ConversationItem] -> onSelectConversation(id)              │
- * │ [+ New] -> onNewConversation() opens modal                  │
- * └─────────────────────────────────────────────────────────────┘
+ * FILE: ConversationListPanel.tsx
+ * PURPOSE: Messaging inbox list with direct-thread and group-thread affordances.
  */
 import React, { useMemo, useState } from 'react';
-import { PenSquare, MessageCircle, Search } from 'lucide-react';
-import styled, { css } from 'styled-components';
+import { PenSquare, MessageCircle, Search, Users } from 'lucide-react';
 import type { ConversationListProps, ConversationData, MessageParticipant } from './MessagingTypes';
 import { participantDisplayName } from './messagingApiAdapters';
 import {
@@ -29,10 +13,25 @@ import {
   ConversationMeta, TimeStamp, UnreadBadge, EmptyState,
   EmptyIcon, EmptyTitle, EmptySubtext, SkeletonLine,
 } from './MessagingStyles';
+import {
+  FilterButton,
+  FilterRow,
+  HeaderCopy,
+  HeaderKicker,
+  InboxSearch,
+  InboxTools,
+  MetricPill,
+  MetricRow,
+  RoleLine,
+  SearchBox,
+  SkeletonAvatar,
+  SkeletonConversationRow,
+  SkeletonStack,
+} from './ConversationListPanel.styles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Helpers
-// ─────────────────────────────────────────────────────────────
+type ConversationFilter = 'all' | 'groups' | 'admin' | 'trainer' | 'client';
+
+const FILTERS: ConversationFilter[] = ['all', 'groups', 'client', 'trainer', 'admin'];
 
 function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
@@ -65,27 +64,23 @@ function getOtherParticipant(conv: ConversationData, currentUserId: number): Mes
   return conv.participants.find(p => p.id !== currentUserId) || conv.participants[0] || null;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Loading Skeleton
-// ─────────────────────────────────────────────────────────────
+function getMemberCount(conv: ConversationData): number {
+  return conv.memberCount || conv.participants.length;
+}
 
 const ConversationSkeleton: React.FC = () => (
   <>
     {[1, 2, 3, 4].map(i => (
-      <div key={i} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', alignItems: 'center' }}>
-        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(96,192,240,0.06)' }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <SkeletonConversationRow key={i}>
+        <SkeletonAvatar />
+        <SkeletonStack>
           <SkeletonLine $width="60%" />
           <SkeletonLine $width="80%" />
-        </div>
-      </div>
+        </SkeletonStack>
+      </SkeletonConversationRow>
     ))}
   </>
 );
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 
 const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: boolean }> = ({
   conversations,
@@ -97,7 +92,7 @@ const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: b
   mobileHidden,
 }) => {
   const [query, setQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'trainer' | 'client'>('all');
+  const [roleFilter, setRoleFilter] = useState<ConversationFilter>('all');
 
   const unreadTotal = useMemo(
     () => conversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
@@ -107,11 +102,16 @@ const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: b
   const filteredConversations = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return conversations.filter((conversation) => {
+      const isGroup = conversation.type === 'group';
       const other = getOtherParticipant(conversation, currentUserId);
       const role = other?.role === 'user' ? 'client' : other?.role;
-      const matchesRole = roleFilter === 'all' || role === roleFilter;
+      const matchesRole = roleFilter === 'all'
+        || (roleFilter === 'groups' ? isGroup : !isGroup && role === roleFilter);
+      const participantNames = conversation.participants.map(participantDisplayName).join(' ');
       const searchable = [
         getDisplayName(conversation, currentUserId),
+        isGroup ? 'group' : 'direct',
+        participantNames,
         other?.username,
         other?.role,
         conversation.lastMessage?.content,
@@ -148,15 +148,15 @@ const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: b
           />
         </SearchBox>
         <FilterRow aria-label="Filter conversations by role">
-          {(['all', 'client', 'trainer', 'admin'] as const).map((role) => (
+          {FILTERS.map((filter) => (
             <FilterButton
-              key={role}
+              key={filter}
               type="button"
-              $active={roleFilter === role}
-              aria-pressed={roleFilter === role}
-              onClick={() => setRoleFilter(role)}
+              $active={roleFilter === filter}
+              aria-pressed={roleFilter === filter}
+              onClick={() => setRoleFilter(filter)}
             >
-              {role}
+              {filter}
             </FilterButton>
           ))}
         </FilterRow>
@@ -167,43 +167,44 @@ const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: b
           <ConversationSkeleton />
         ) : filteredConversations.length === 0 ? (
           <EmptyState>
-            <EmptyIcon>
-              <MessageCircle size={32} />
-            </EmptyIcon>
+            <EmptyIcon><MessageCircle size={32} /></EmptyIcon>
             <EmptyTitle>{conversations.length === 0 ? 'No conversations yet' : 'No matching threads'}</EmptyTitle>
             <EmptySubtext>{conversations.length === 0 ? 'Start a conversation to connect with your trainer or fellow members' : 'Try a different name, role, or message keyword'}</EmptySubtext>
           </EmptyState>
         ) : (
           filteredConversations.map(conv => {
+            const isGroup = conv.type === 'group';
             const other = getOtherParticipant(conv, currentUserId);
+            const displayName = getDisplayName(conv, currentUserId);
+            const memberCount = getMemberCount(conv);
             return (
               <ConversationItem
                 key={conv.id}
                 $active={conv.id === activeConversationId}
                 onClick={() => onSelectConversation(conv.id)}
-                aria-label={`Conversation with ${getDisplayName(conv, currentUserId)}${conv.unreadCount > 0 ? `, ${conv.unreadCount} unread` : ''}`}
+                aria-label={`${isGroup ? 'Group conversation' : 'Conversation with'} ${displayName}${conv.unreadCount > 0 ? `, ${conv.unreadCount} unread` : ''}`}
               >
-                <Avatar>
-                  {other?.photo ? (
+                <Avatar data-testid={isGroup ? `conversation-group-avatar-${conv.id}` : undefined}>
+                  {isGroup ? (
+                    <Users size={18} aria-hidden="true" />
+                  ) : other?.photo ? (
                     <img src={other.photo} alt={other ? `${other.firstName} ${other.lastName} profile` : ''} />
                   ) : (
                     getInitials(other)
                   )}
                 </Avatar>
                 <ConversationInfo>
-                  <ConversationName>{getDisplayName(conv, currentUserId)}</ConversationName>
-                  {other?.role && <RoleLine>{other.role}</RoleLine>}
-                  <ConversationPreview>
-                    {conv.lastMessage?.content || 'No messages yet'}
-                  </ConversationPreview>
+                  <ConversationName>{displayName}</ConversationName>
+                  {isGroup ? (
+                    <RoleLine $group data-testid={`conversation-group-badge-${conv.id}`}>Group - {memberCount} members</RoleLine>
+                  ) : other?.role ? (
+                    <RoleLine>{other.role}</RoleLine>
+                  ) : null}
+                  <ConversationPreview>{conv.lastMessage?.content || 'No messages yet'}</ConversationPreview>
                 </ConversationInfo>
                 <ConversationMeta>
-                  {conv.lastMessage?.created_at && (
-                    <TimeStamp>{formatTime(conv.lastMessage.created_at)}</TimeStamp>
-                  )}
-                  {conv.unreadCount > 0 && (
-                    <UnreadBadge>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</UnreadBadge>
-                  )}
+                  {conv.lastMessage?.created_at && <TimeStamp>{formatTime(conv.lastMessage.created_at)}</TimeStamp>}
+                  {conv.unreadCount > 0 && <UnreadBadge>{conv.unreadCount > 99 ? '99+' : conv.unreadCount}</UnreadBadge>}
                 </ConversationMeta>
               </ConversationItem>
             );
@@ -215,111 +216,3 @@ const ConversationListPanel: React.FC<ConversationListProps & { mobileHidden?: b
 };
 
 export default React.memo(ConversationListPanel);
-
-const HeaderCopy = styled.div`
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-`;
-
-const HeaderKicker = styled.span`
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.65rem;
-`;
-
-const InboxTools = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
-`;
-
-const MetricRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-`;
-
-const MetricPill = styled.div<{ $urgent?: boolean }>`
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.14));
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, var(--accent-primary, #60C0F0) 8%);
-  color: var(--text-muted, rgba(224, 236, 244, 0.72));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  font-size: 0.72rem;
-
-  strong {
-    color: ${({ $urgent }) => ($urgent ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-primary, #E0ECF4)')};
-    font-family: 'Sora', sans-serif;
-    font-size: 0.95rem;
-  }
-`;
-
-const SearchBox = styled.label`
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background: var(--bg-base, #0A0A0F);
-  color: var(--accent-primary, #60C0F0);
-  padding: 0 0.75rem;
-`;
-
-const InboxSearch = styled.input`
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8rem;
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  }
-`;
-
-const FilterRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.35rem;
-`;
-
-const FilterButton = styled.button<{ $active?: boolean }>`
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.14));
-  background: transparent;
-  color: var(--text-muted, rgba(224, 236, 244, 0.7));
-  cursor: pointer;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.7rem;
-  text-transform: capitalize;
-
-  ${({ $active }) => $active && css`
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
-    color: var(--text-primary, #E0ECF4);
-    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
-  `}
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  }
-`;
-
-const RoleLine = styled.div`
-  color: var(--accent-primary, #60C0F0);
-  font-size: 0.65rem;
-  margin-top: 2px;
-  text-transform: capitalize;
-`;

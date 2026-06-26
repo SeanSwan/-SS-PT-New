@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import {
   GROUP_ROLES,
   canManageGroup,
@@ -7,24 +7,12 @@ import {
   normalizeAdminIds,
   normalizeGroupName,
   normalizeParticipantIds,
-  normalizeUserIds,
   participantRoleForInsert,
-  toStrictPositiveInt,
 } from '../../services/messagingGroupPolicy.mjs';
 
 describe('messaging group policy', () => {
   it('dedupes numeric participants while keeping the creator in the member set', () => {
     expect(normalizeParticipantIds([7, '7', '8', null, 'bad', 0], 5)).toEqual([5, 7, 8]);
-  });
-
-  it('rejects boolean, decimal, blank, and malformed IDs instead of coercing them', () => {
-    expect(toStrictPositiveInt(true)).toBeNull();
-    expect(toStrictPositiveInt('1.5')).toBeNull();
-    expect(toStrictPositiveInt('42abc')).toBeNull();
-    expect(toStrictPositiveInt('003')).toBeNull();
-    expect(toStrictPositiveInt('')).toBeNull();
-    expect(normalizeUserIds([true, false, '2', '003', '4.0'])).toEqual([2]);
-    expect(normalizeParticipantIds([true, '7'], '5')).toEqual([5, 7]);
   });
 
   it('names blank group chats as Swan Family and trims long custom names', () => {

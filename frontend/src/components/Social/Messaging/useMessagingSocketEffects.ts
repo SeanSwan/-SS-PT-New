@@ -15,7 +15,6 @@ interface UseMessagingSocketEffectsParams {
   mountedRef: MutableRefObject<boolean>;
   on: SocketOn;
   setConversations: Dispatch<SetStateAction<ConversationData[]>>;
-  setActiveConversationId: Dispatch<SetStateAction<string | number | null>>;
   setMessages: Dispatch<SetStateAction<MessageData[]>>;
   setOnlineUserIds: Dispatch<SetStateAction<Set<number>>>;
   setPendingMessages: Dispatch<SetStateAction<string[]>>;
@@ -33,7 +32,6 @@ export function useMessagingSocketEffects({
   mountedRef,
   on,
   setConversations,
-  setActiveConversationId,
   setMessages,
   setOnlineUserIds,
   setPendingMessages,
@@ -151,28 +149,6 @@ export function useMessagingSocketEffects({
     const cleanup = on('messages_read', handleRead);
     return cleanup;
   }, [connected, on, enabled, activeConvRef, setMessages]);
-
-  useEffect(() => {
-    if (!enabled || !connected) return;
-
-    const handleConversationRemoved = (...args: unknown[]) => {
-      const data = args[0] as Record<string, unknown>;
-      if (!data?.conversationId) return;
-      const removedConversationId = String(data.conversationId);
-
-      setConversations(prev => prev.filter(conv => String(conv.id) !== removedConversationId));
-      if (String(activeConvRef.current) === removedConversationId) {
-        activeConvRef.current = null;
-        setActiveConversationId(null);
-        setMessages([]);
-        setTypingUsers(prev => prev.filter(user => String(user.conversationId) !== removedConversationId));
-        setPendingMessages([]);
-      }
-    };
-
-    const cleanup = on('conversation_removed', handleConversationRemoved);
-    return cleanup;
-  }, [activeConvRef, connected, enabled, on, setActiveConversationId, setConversations, setMessages, setPendingMessages, setTypingUsers]);
 
   useEffect(() => {
     if (!enabled || !connected) return;

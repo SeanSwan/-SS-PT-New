@@ -42,29 +42,6 @@ describe('Messaging safe-error source contract', () => {
     expect(threadSource).not.toContain('{error.message}');
   });
 
-  it('clears removed group conversations from socket state immediately', () => {
-    const hookSource = source('./useMessaging.ts');
-    const socketEffectsSource = source('./useMessagingSocketEffects.ts');
-
-    expect(hookSource).toContain('setActiveConversationId,');
-    expect(socketEffectsSource).toContain("on('conversation_removed'");
-    expect(socketEffectsSource).toContain('setConversations(prev => prev.filter');
-    expect(socketEffectsSource).toContain('setActiveConversationId(null)');
-    expect(socketEffectsSource).toContain('setMessages([])');
-  });
-
-  it('keeps group creation rows free of nested buttons and inline styles', () => {
-    const modalSource = source('./NewConversationModal.tsx');
-    const modalStylesSource = source('./NewConversationModal.styles.ts');
-
-    expect(modalSource).toContain("role={mode === 'group' ? 'checkbox' : 'button'}");
-    expect(modalSource).toContain('onKeyDown={(event) => handleUserKeyDown(event, user.id)}');
-    expect(modalSource).not.toContain('style={{');
-    expect(modalStylesSource).toContain('export const SelectableUserItem = styled.div');
-    expect(modalStylesSource).toContain('export const SkeletonStack = styled.div');
-    expect(modalStylesSource).not.toContain('export const SelectableUserItem = styled.button');
-  });
-
   it('centralizes approved user-facing messaging error copy', () => {
     const helperSource = source('./messagingSafeErrors.ts');
 
@@ -81,6 +58,12 @@ describe('Messaging safe-error source contract', () => {
       './useMessagingLifecycleEffects.ts',
       './messagingApiFetch.ts',
       './MessageThread.styles.ts',
+      './ConversationListPanel.tsx',
+      './ConversationListPanel.styles.ts',
+      './ConversationListPanel.groupThread.test.tsx',
+      './GroupMessageBubble.tsx',
+      './GroupMessageBubble.styles.ts',
+      './MessageThread.groupIdentity.test.tsx',
     ].forEach((file) => {
       const lines = source(file).split(/\r?\n/).filter(Boolean).length;
       expect(lines, file).toBeLessThanOrEqual(300);

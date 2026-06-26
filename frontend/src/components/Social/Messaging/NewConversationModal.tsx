@@ -20,6 +20,7 @@ import {
   GroupNameInput,
   ModeTab,
   ModeTabs,
+  LoadingResults,
   QuickChip,
   QuickLabel,
   QuickRow,
@@ -28,7 +29,6 @@ import {
   SelectableUserItem,
   SelectMark,
   SelectionSummary,
-  SkeletonStack,
   UserText,
 } from './NewConversationModal.styles';
 
@@ -162,17 +162,6 @@ const NewConversationModal: React.FC<Props> = ({
     onClose();
   }, [adminIds, groupName, onClose, onStartConversation, selectedIds]);
 
-  const activateUser = useCallback((userId: number) => {
-    if (saving) return;
-    mode === 'group' ? toggleSelected(userId) : startDirect(userId);
-  }, [mode, saving, startDirect, toggleSelected]);
-
-  const handleUserKeyDown = useCallback((event: React.KeyboardEvent, userId: number) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    activateUser(userId);
-  }, [activateUser]);
-
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (event: KeyboardEvent) => {
@@ -190,8 +179,7 @@ const NewConversationModal: React.FC<Props> = ({
       <QuickChip
         key={user.friendshipId || user.id}
         $selected={selected}
-        disabled={saving}
-        onClick={() => activateUser(user.id)}
+        onClick={() => (mode === 'group' ? toggleSelected(user.id) : startDirect(user.id))}
       >
         <ChipAvatar>{user.photo ? <img src={user.photo} alt="" /> : getInitials(user)}</ChipAvatar>
         {label}
@@ -254,9 +242,9 @@ const NewConversationModal: React.FC<Props> = ({
 
         <UserList>
           {loading ? (
-            <SkeletonStack>
+            <LoadingResults>
               {[1, 2, 3].map(i => <SkeletonLine key={i} $width={`${44 + i * 12}%`} />)}
-            </SkeletonStack>
+            </LoadingResults>
           ) : users.length === 0 ? (
             <EmptyState><EmptySubtext>{query ? `No users found for "${query}"` : 'No users available'}</EmptySubtext></EmptyState>
           ) : users.map(user => {
@@ -265,12 +253,7 @@ const NewConversationModal: React.FC<Props> = ({
               <SelectableUserItem
                 key={user.id}
                 $selected={selected}
-                role={mode === 'group' ? 'checkbox' : 'button'}
-                aria-checked={mode === 'group' ? selected : undefined}
-                aria-disabled={saving || undefined}
-                tabIndex={0}
-                onClick={() => activateUser(user.id)}
-                onKeyDown={(event) => handleUserKeyDown(event, user.id)}
+                onClick={() => (mode === 'group' ? toggleSelected(user.id) : startDirect(user.id))}
               >
                 <Avatar $size={40}>{user.photo ? <img src={user.photo} alt={`${user.firstName} ${user.lastName} profile`} /> : getInitials(user)}</Avatar>
                 <UserText>

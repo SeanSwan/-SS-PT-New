@@ -12,7 +12,6 @@ import {
   normalizeGroupName,
   normalizeGroupRole,
   normalizeUserIds,
-  toStrictPositiveInt,
 } from '../../services/messagingGroupPolicy.mjs';
 import {
   ensureMessagingTables,
@@ -27,7 +26,6 @@ import {
   updateParticipantRoleRecord,
   upsertConversationParticipant,
 } from '../../services/messagingRepository.mjs';
-import { removeUserFromMessagingRoom } from '../../socket/socket.mjs';
 
 const UPDATE_CONVERSATION_FAILED_MESSAGE = 'Failed to update conversation.';
 const ADD_PARTICIPANTS_FAILED_MESSAGE = 'Failed to add participants.';
@@ -46,8 +44,10 @@ const requestHasValidationErrors = (req, res) => {
   return true;
 };
 
-const toPositiveInt = toStrictPositiveInt;
-
+const toPositiveInt = (value) => {
+  const next = Number(value);
+  return Number.isInteger(next) && next > 0 ? next : null;
+};
 
 async function assertActiveParticipants(userIds) {
   const activeIds = await fetchActiveUserIds(userIds);
@@ -183,7 +183,6 @@ export const removeConversationParticipant = async (req, res) => {
 
     await softDeleteParticipant(conversationId, targetUserId);
     await touchConversation(conversationId);
-    removeUserFromMessagingRoom(conversationId, targetUserId);
     if (sameUser) return res.json({ success: true, message: 'You left the group.' });
 
     const conversation = await getConversationForViewer(conversationId, actorId);

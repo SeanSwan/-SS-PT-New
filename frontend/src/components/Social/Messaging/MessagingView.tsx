@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FILE: MessagingView.tsx
  * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */

@@ -229,7 +229,6 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     currentUserId,
     mountedRef,
     typingClearTimers,
-    setActiveConversationId,
     setMessages,
     setPendingMessages,
     setConversations,
