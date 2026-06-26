@@ -64,7 +64,7 @@ describe('RecentActivityFeed truth handling', () => {
     render(<RecentActivityFeed />);
 
     await waitFor(() => expect(screen.getByText('Recent activity could not be loaded.')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry recent activity/i })).toBeInTheDocument();
     expect(screen.queryByText('Payment received - $186.00')).not.toBeInTheDocument();
     expect(screen.queryByText('Daily backup completed')).not.toBeInTheDocument();
   });

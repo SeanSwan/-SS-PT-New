@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import {
   buildExerciseCodexMatrix,
   extractExerciseCatalogPayload,
 } from './ExerciseCodexMatrix.logic';
+
+const STYLES_SOURCE = fs.readFileSync(path.resolve(__dirname, 'ExerciseCodexMatrix.styles.ts'), 'utf8');
+
+const getExportedStyledBlock = (source: string, exportName: string): string => {
+  const start = source.indexOf(`export const ${exportName}`);
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  const rest = source.slice(start);
+  const nextExport = rest.search(/\r?\n\r?\nexport const /);
+  return nextExport === -1 ? rest : rest.slice(0, nextExport);
+};
 
 describe('buildExerciseCodexMatrix', () => {
   it('merges the logged diary with the full Rolodex so untouched exercises stay visible', () => {
@@ -67,6 +80,13 @@ describe('buildExerciseCodexMatrix', () => {
     expect(result.summary.totalExercises).toBe(1);
     expect(result.summary.loggedExercises).toBe(1);
     expect(result.rows[0]).toMatchObject({ name: 'Band Row', sessions: 3, sets: 9, status: 'trained' });
+  });
+
+  it('keeps status filter buttons at the project 44px minimum in both dimensions', () => {
+    const filterButtonSource = getExportedStyledBlock(STYLES_SOURCE, 'FilterButton');
+
+    expect(filterButtonSource).toMatch(/min-height:\s*44px/);
+    expect(filterButtonSource).toMatch(/min-width:\s*44px/);
   });
 
   it('builds coverage groups from body parts, movement patterns, and difficulty bands', () => {

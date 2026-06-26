@@ -155,12 +155,18 @@ const FeatureDescription = styled.p`
 `;
 
 const ConfigureButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Sora', sans-serif;
   font-weight: 600;
   font-size: 14px;
-  height: 44px;
+  line-height: 1.2;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0 24px;
   border-radius: 8px;
+  text-align: center;
   background: linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%);
   color: #E0ECF4;
   border: none;

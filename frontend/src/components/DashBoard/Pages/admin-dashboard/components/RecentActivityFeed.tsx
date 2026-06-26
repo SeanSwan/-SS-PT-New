@@ -113,8 +113,8 @@ const RecentActivityFeed: React.FC = () => {
           <ErrorState role="alert">
             <AlertTriangle size={16} />
             <span>{error}</span>
-            <RetryInline type="button" onClick={fetchFeed}>
-              <RefreshCw size={14} />
+            <RetryInline type="button" onClick={fetchFeed} aria-label="Retry recent activity">
+              <RefreshCw size={14} aria-hidden="true" />
               Retry
             </RetryInline>
           </ErrorState>

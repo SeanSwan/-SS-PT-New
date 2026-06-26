@@ -151,6 +151,7 @@ export const FilterRow = styled.div`
 
 export const FilterButton = styled.button<{ $active: boolean }>`
   min-height: 44px;
+  min-width: 44px;
   padding: 0 0.75rem;
   color: ${({ $active }) => ($active ? 'var(--bg-base, #030712)' : 'var(--text-primary, #E0ECF4)')};
   background: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--bg-surface, #1A1A24)')};

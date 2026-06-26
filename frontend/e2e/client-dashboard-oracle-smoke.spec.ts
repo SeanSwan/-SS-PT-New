@@ -20,6 +20,8 @@ const demoUser = {
 const stableRoutes = [
   { path: '/user-dashboard', expectedPaths: ['/user-dashboard', '/dashboard/client/overview'] },
   { path: '/dashboard/client/overview', expectedPaths: ['/dashboard/client/overview'] },
+  { path: '/dashboard/client/progress', expectedPaths: ['/dashboard/client/progress'] },
+  { path: '/dashboard/client/progress/detailed', expectedPaths: ['/dashboard/client/progress/detailed'] },
   { path: '/dashboard/client/community', expectedPaths: ['/dashboard/client/community'] },
   { path: '/dashboard/client/rewards', expectedPaths: ['/dashboard/client/rewards'] },
   {
