@@ -38,6 +38,9 @@ const WORKSPACE_HEADER_SRC = readFileSync(
 const WORKSPACE_UTILS_SRC = readFileSync(
   resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntakeWorkspace.utils.ts'), 'utf8',
 );
+const AUDIO_INTAKE_NAVIGATION_SRC = readFileSync(
+  resolve(__dirname, '../../../frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useSwanCoachAudioIntakeNavigation.ts'), 'utf8',
+);
 
 describe('Unified Coach intake command registry source contract', () => {
   it('registers unified Coach intake commands and dispatchers', () => {
@@ -69,11 +72,13 @@ describe('Unified Coach intake command registry source contract', () => {
     expect(DISPATCHER_INDEX_SRC).toMatch(/\['inspect_plaud_audio_pieces',\s*dispatchInspectPlaudAudioPieces\]/);
   });
 
-  it('makes the Coach workspace ask the unified intake command, not the PLAUD-only command', () => {
-    expect(WORKSPACE_HEADER_SRC).toMatch(/onCommandPrompt\(nextMove\.prompt\)/);
+  it('keeps Coach intake navigation unified without PLAUD-only prompt shortcuts', () => {
     expect(WORKSPACE_HEADER_SRC).toMatch(/buildCoachIntakeNextMove/);
-    expect(WORKSPACE_SRC).toMatch(/activeAudioPrompt\(activeItem\)/);
-    expect(WORKSPACE_UTILS_SRC).toMatch(/inspect Coach intake/);
+    expect(WORKSPACE_HEADER_SRC).toMatch(/reviewNextHref/);
+    expect(WORKSPACE_HEADER_SRC).not.toMatch(/onCommandPrompt/);
+    expect(WORKSPACE_SRC).toMatch(/reviewNextHref=\{reviewNextHref\}/);
+    expect(WORKSPACE_UTILS_SRC).toMatch(/export function itemReviewHref/);
+    expect(AUDIO_INTAKE_NAVIGATION_SRC).toMatch(/handleIntakeCommand\(['"]review next coach intake['"]\)/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);
     expect(WORKSPACE_HEADER_SRC).not.toMatch(/onCommandPrompt\('review next PLAUD intake'\)/);
     expect(WORKSPACE_SRC).not.toMatch(/onCommandPrompt\('inspect pending PLAUD audio pieces'\)/);

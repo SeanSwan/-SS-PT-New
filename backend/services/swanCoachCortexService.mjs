@@ -247,7 +247,7 @@ export function buildSwanCoachReadinessRecommendationDetail(readiness) {
   return {
     type: 'swan_coach_readiness',
     text: `${readiness.label}: ${readiness.trainerNote}`,
-    sourceCitation: 'swanCoachCortex.readiness',
+    sourceCitation: 'context.swanCoachReadiness',
   };
 }
 

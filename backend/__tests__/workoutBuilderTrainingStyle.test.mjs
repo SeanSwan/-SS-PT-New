@@ -82,6 +82,8 @@ describe('workoutBuilder training style policy', () => {
   });
 
   it('applies hardcore density cues only to eligible single-workout exercises', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { exclusions: [], warnings: [] } }));
+
     const workout = await generateWorkout({
       clientId: 1,
       trainerId: 99,
@@ -126,6 +128,8 @@ describe('workoutBuilder training style policy', () => {
   });
 
   it('adds hardcore method metadata and review guidance to long-horizon plans', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({ pain: { exclusions: [], warnings: [] } }));
+
     const plan = await generatePlan({
       clientId: 1,
       trainerId: 99,
