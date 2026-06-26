@@ -13,22 +13,32 @@ const HUB_FILE = join(
   'content-studio',
   'ContentStudioHub.tsx',
 );
-const LAYOUT_FILE = join(
+const ROUTE_COMPONENTS_FILE = join(
   REPO_ROOT,
   'frontend',
   'src',
   'components',
   'DashBoard',
-  'UniversalDashboardLayout.tsx',
+  'UniversalDashboardLayout.routeComponents.tsx',
+);
+const ROUTES_FILE = join(
+  REPO_ROOT,
+  'frontend',
+  'src',
+  'components',
+  'DashBoard',
+  'UniversalDashboardLayout.routes.tsx',
 );
 
 describe('ContentStudioHub creation boundary contract', () => {
   const hubSource = readFileSync(HUB_FILE, 'utf-8');
-  const layoutSource = readFileSync(LAYOUT_FILE, 'utf-8');
+  const routeComponentsSource = readFileSync(ROUTE_COMPONENTS_FILE, 'utf-8');
+  const routesSource = readFileSync(ROUTES_FILE, 'utf-8');
 
   it('is mounted as the admin Content Studio route', () => {
-    expect(layoutSource).toContain("path: '/content'");
-    expect(layoutSource).toContain('component: ContentStudioHub');
+    expect(routeComponentsSource).toContain("export const ContentStudioHub = React.lazy(() => import('./Pages/content-studio/ContentStudioHub'))");
+    expect(routesSource).toContain("path: '/content'");
+    expect(routesSource).toContain('component: ContentStudioHub');
   });
 
   it('states that Content Studio creates assets while Marketing handles distribution', () => {

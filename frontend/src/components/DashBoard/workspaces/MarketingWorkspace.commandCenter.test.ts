@@ -12,13 +12,21 @@ const WORKSPACE_FILE = join(
   'workspaces',
   'MarketingWorkspace.tsx',
 );
-const LAYOUT_FILE = join(
+const DASHBOARD_ROUTES_FILE = join(
   REPO_ROOT,
   'frontend',
   'src',
   'components',
   'DashBoard',
-  'UniversalDashboardLayout.tsx',
+  'UniversalDashboardLayout.routes.tsx',
+);
+const DASHBOARD_SHELL_PIECES_FILE = join(
+  REPO_ROOT,
+  'frontend',
+  'src',
+  'components',
+  'DashBoard',
+  'UniversalDashboardLayout.shellPieces.tsx',
 );
 const CALENDAR_FILE = join(
   REPO_ROOT,
@@ -137,7 +145,8 @@ const APPROVAL_QUEUE_FILES = [
 
 describe('MarketingWorkspace command-center contract', () => {
   const workspaceSource = readFileSync(WORKSPACE_FILE, 'utf-8');
-  const layoutSource = readFileSync(LAYOUT_FILE, 'utf-8');
+  const dashboardRoutesSource = readFileSync(DASHBOARD_ROUTES_FILE, 'utf-8');
+  const dashboardShellPiecesSource = readFileSync(DASHBOARD_SHELL_PIECES_FILE, 'utf-8');
   const calendarSource = readFileSync(CALENDAR_FILE, 'utf-8');
   const calendarApiSource = readFileSync(CALENDAR_API_FILE, 'utf-8');
   const calendarStylesSource = readFileSync(CALENDAR_STYLES_FILE, 'utf-8');
@@ -155,12 +164,11 @@ describe('MarketingWorkspace command-center contract', () => {
   const nativePublishingSource = `${socialAnalyticsSource}\n${socialConnectPanelSource}`;
 
   it('is mounted as the admin marketing route', () => {
-    expect(layoutSource).toContain("path: '/marketing'");
-    expect(layoutSource).toContain('component: MarketingWorkspace');
+    expect(dashboardRoutesSource).toContain("{ path: '/marketing', component: MarketingWorkspace");
   });
 
   it('renders dashboard route-table paths relative to the active role route', () => {
-    expect(layoutSource).toContain("path={path.replace(/^\\//, '')}");
+    expect(dashboardShellPiecesSource).toContain("path={path.replace(/^\\//, '')}");
   });
 
   it('keeps the top-level command-center workflow to five operational views', () => {

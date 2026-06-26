@@ -9,8 +9,12 @@ const __dirname = dirname(__filename);
 const readSource = (path: string): string => readFileSync(resolve(__dirname, path), 'utf8');
 
 const SHELL_SOURCE = readSource('./ClientObservatoryShell.styles.ts');
-const DASHBOARD_LAYOUT_SOURCE = readFileSync(
-  resolve(__dirname, '../../../UniversalDashboardLayout.tsx'),
+const DASHBOARD_ROUTE_COMPONENTS_SOURCE = readFileSync(
+  resolve(__dirname, '../../../UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const DASHBOARD_ROUTES_SOURCE = readFileSync(
+  resolve(__dirname, '../../../UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const CLIENT_HOME_SOURCE = readSource('../ClientHomeTab.tsx');
@@ -21,11 +25,12 @@ const WIDGETS_SOURCE = readSource('./ClientObservatoryWidgets.tsx');
 const forbiddenFragments = ['cl' + 'amp(', 'rg' + 'ba(', 'transition:' + ' all'];
 
 describe('ClientObservatoryShell mounted source contract', () => {
-  it('is shared by the canonical client overview observatory route', () => {
-    expect(DASHBOARD_LAYOUT_SOURCE).toContain("const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
-    expect(DASHBOARD_LAYOUT_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
-    expect(CLIENT_HOME_SOURCE).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
-    expect(CLIENT_HOME_SOURCE).toContain('<ClientObservatoryHome />');
+  it('is shared by observatory sources while the canonical overview route mounts the client home wrapper', () => {
+    expect(DASHBOARD_ROUTE_COMPONENTS_SOURCE).toContain("export const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
+    expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
+    expect(CLIENT_HOME_SOURCE).toContain("import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab'");
+    expect(CLIENT_HOME_SOURCE).toContain('<ClientDashboardHomeTab');
+    expect(CLIENT_HOME_SOURCE).not.toContain('ClientObservatoryHome');
     expect(OBSERVATORY_HOME_SOURCE).toContain("from './ClientObservatoryShell.styles'");
     expect(HERO_SOURCE).toContain("from './ClientObservatoryShell.styles'");
     expect(FEED_SOURCE).toContain("from './ClientObservatoryShell.styles'");

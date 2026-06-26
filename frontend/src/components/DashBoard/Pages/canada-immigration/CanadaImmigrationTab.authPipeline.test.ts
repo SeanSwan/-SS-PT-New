@@ -6,15 +6,16 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const layoutSource = read('src/components/DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const pageSource = stripComments(read('src/components/DashBoard/Pages/canada-immigration/CanadaImmigrationTab.tsx'));
 const backendMountSource = read('../backend/core/routes.mjs');
 const immigrationRoutesSource = read('../backend/routes/immigrationRoutes.mjs');
 
 describe('CanadaImmigrationTab auth pipeline', () => {
   it('is the mounted dashboard immigration surface backed by protected admin routes', () => {
-    expect(layoutSource).toContain("const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'))");
-    expect(layoutSource).toContain("{ path: '/immigration', component: CanadaImmigrationTab");
+    expect(routeComponentsSource).toContain("export const CanadaImmigrationTab = React.lazy(() => import('./Pages/canada-immigration/CanadaImmigrationTab'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/immigration', component: CanadaImmigrationTab");
     expect(backendMountSource).toContain("app.use('/api/immigration', immigrationRoutes)");
     expect(immigrationRoutesSource).toContain('router.use(protect)');
     expect(immigrationRoutesSource).toContain("req.user?.role !== 'admin'");

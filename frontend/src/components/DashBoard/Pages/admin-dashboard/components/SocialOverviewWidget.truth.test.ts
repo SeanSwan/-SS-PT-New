@@ -13,8 +13,8 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
 );
-const layoutSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const moderationRouteSource = readFileSync(
@@ -40,7 +40,7 @@ describe('SocialOverviewWidget active surface truth contract', () => {
   it('routes the command button to the active admin content surface', () => {
     expect(source).toContain("navigate('/dashboard/admin/content')");
     expect(source).not.toContain("navigate('/dashboard/admin/client-management')");
-    expect(layoutSource).toContain("{ path: '/content'");
+    expect(dashboardRoutesSource).toContain("{ path: '/content'");
   });
 
   it('keeps widget buttons at the required minimum touch target size', () => {

@@ -9,7 +9,8 @@ const __dirname = dirname(__filename);
 const readLocal = (relativePath: string) =>
   readFileSync(resolve(__dirname, relativePath), 'utf8');
 
-const routeSource = readLocal('../../../UniversalDashboardLayout.tsx');
+const routeComponentsSource = readLocal('../../../UniversalDashboardLayout.routeComponents.tsx');
+const routesSource = readLocal('../../../UniversalDashboardLayout.routes.tsx');
 const workspaceSource = readLocal('../../ClientsWorkspace.tsx');
 const workspaceTabsSource = readLocal('../../ClientsWorkspaceTabs.tsx');
 const detailViewSource = readLocal('../ClientDetailView.tsx');
@@ -31,9 +32,10 @@ const mountedProgressSources = [
 
 describe('AdminProgressChartsGrid mounted source contract', () => {
   it('locks the canonical admin client progress route chain', () => {
-    expect(routeSource).toContain("{ path: '/client-management'");
-    expect(routeSource).toContain(
-      "component: React.lazy(() => import('./workspaces/ClientsWorkspace'))"
+    expect(routesSource).toContain("{ path: '/client-management'");
+    expect(routesSource).toContain('component: ClientsWorkspace');
+    expect(routeComponentsSource).toContain(
+      "export const ClientsWorkspace = React.lazy(() => import('./workspaces/ClientsWorkspace'))"
     );
     expect(workspaceSource).toContain('useClientsWorkspaceTabRenderers');
     expect(workspaceSource).toContain('renderProgress={renderProgress}');

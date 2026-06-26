@@ -6,15 +6,16 @@ import { adminSessionRowItems, adminSessionRowKey } from './AdminSessionsRowIden
 const dataHookSource = readFileSync(resolve(__dirname, './useAdminSessionsData.ts'), 'utf8');
 const tablePanelSource = readFileSync(resolve(__dirname, './AdminSessionsTablePanel.tsx'), 'utf8');
 const serviceSource = readFileSync(resolve(__dirname, '../../../../services/sessionService.ts'), 'utf8');
-const layoutSource = readFileSync(resolve(__dirname, '../../UniversalDashboardLayout.tsx'), 'utf8');
+const routeComponentsSource = readFileSync(resolve(__dirname, '../../UniversalDashboardLayout.routeComponents.tsx'), 'utf8');
+const dashboardRoutesSource = readFileSync(resolve(__dirname, '../../UniversalDashboardLayout.routes.tsx'), 'utf8');
 const backendRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
 const backendSessionsSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/sessions.mjs'), 'utf8');
 const backendSessionModelSource = readFileSync(resolve(__dirname, '../../../../../../backend/models/Session.mjs'), 'utf8');
 
 describe('Admin sessions row identity', () => {
   it('stays anchored to the canonical admin sessions route and sessions API surface', () => {
-    expect(layoutSource).toContain("React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'))");
-    expect(layoutSource).toContain("path: '/admin-sessions'");
+    expect(routeComponentsSource).toContain("export const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'))");
+    expect(dashboardRoutesSource).toContain("path: '/admin-sessions'");
     expect(dataHookSource).toContain('services.sessionService.getSessions()');
     expect(serviceSource).toContain('const url = `/api/sessions${queryString ? `?${queryString}` : \'\'}`;');
     expect(backendRoutesSource).toContain("app.use('/api/sessions/deductions', sessionDeductionRoutes)");

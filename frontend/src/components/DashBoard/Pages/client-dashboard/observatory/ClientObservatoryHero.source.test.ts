@@ -10,19 +10,24 @@ const readSource = (path: string): string => readFileSync(resolve(__dirname, pat
 
 const SOURCE = readSource('./ClientObservatoryHero.tsx');
 const STYLES_SOURCE = readSource('./ClientObservatoryHero.styles.ts');
-const DASHBOARD_LAYOUT_SOURCE = readFileSync(
-  resolve(__dirname, '../../../UniversalDashboardLayout.tsx'),
+const DASHBOARD_ROUTE_COMPONENTS_SOURCE = readFileSync(
+  resolve(__dirname, '../../../UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const DASHBOARD_ROUTES_SOURCE = readFileSync(
+  resolve(__dirname, '../../../UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const CLIENT_HOME_SOURCE = readSource('../ClientHomeTab.tsx');
 const OBSERVATORY_HOME_SOURCE = readSource('./ClientObservatoryHome.tsx');
 
-describe('ClientObservatoryHero mounted style contract', () => {
-  it('is the mounted first-screen hero on the client overview route', () => {
-    expect(DASHBOARD_LAYOUT_SOURCE).toContain("const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
-    expect(DASHBOARD_LAYOUT_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
-    expect(CLIENT_HOME_SOURCE).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
-    expect(CLIENT_HOME_SOURCE).toContain('<ClientObservatoryHome />');
+describe('ClientObservatoryHero style contract', () => {
+  it('keeps the observatory hero aligned with the mounted client overview wrapper', () => {
+    expect(DASHBOARD_ROUTE_COMPONENTS_SOURCE).toContain("export const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'))");
+    expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: ClientHomeTab");
+    expect(CLIENT_HOME_SOURCE).toContain("import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab'");
+    expect(CLIENT_HOME_SOURCE).toContain('<ClientDashboardHomeTab');
+    expect(CLIENT_HOME_SOURCE).not.toContain('ClientObservatoryHome');
     expect(OBSERVATORY_HOME_SOURCE).toContain("import ClientObservatoryHero from './ClientObservatoryHero'");
     expect(OBSERVATORY_HOME_SOURCE).toContain('<ClientObservatoryHero');
     expect(SOURCE).toContain('<HeroCard aria-label="Client dashboard observatory">');

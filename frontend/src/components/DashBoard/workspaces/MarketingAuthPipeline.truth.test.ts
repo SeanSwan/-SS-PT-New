@@ -10,14 +10,21 @@ const readSource = (relativePath: string) =>
 describe('marketing workspace auth pipeline', () => {
   it('covers the mounted marketing workspace and backend publishing/calendar APIs', () => {
     const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource(
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx',
+    );
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const workspaceSource = readSource('frontend/src/components/DashBoard/workspaces/MarketingWorkspace.tsx');
     const analyticsSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/SocialAnalyticsDashboard.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const socialRoutesSource = readSource('backend/routes/adminSocialPublishingRoutes.mjs');
     const calendarRoutesSource = readSource('backend/routes/adminMarketingCalendarRoutes.mjs');
 
-    expect(layoutSource).toContain("const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'))");
-    expect(layoutSource).toContain("{ path: '/marketing', component: MarketingWorkspace");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain(
+      "export const MarketingWorkspace = React.lazy(() => import('./workspaces/MarketingWorkspace'))",
+    );
+    expect(dashboardRoutesSource).toContain("{ path: '/marketing', component: MarketingWorkspace");
     expect(workspaceSource).toContain("const SocialPostGenerator = lazy(() => import('./marketing/SocialPostGenerator'))");
     expect(workspaceSource).toContain("const MarketingCalendar = lazy(() => import('./marketing/MarketingCalendar'))");
     expect(workspaceSource).toContain("const SocialAnalyticsDashboard = lazy(() => import('./marketing/SocialAnalyticsDashboard'))");

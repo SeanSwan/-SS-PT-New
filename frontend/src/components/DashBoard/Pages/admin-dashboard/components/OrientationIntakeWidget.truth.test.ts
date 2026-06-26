@@ -18,8 +18,8 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
 );
-const layoutSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const routeSource = readFileSync(
@@ -39,7 +39,7 @@ describe('OrientationIntakeWidget active surface truth contract', () => {
 
   it('routes the queue button to an active admin dashboard path', () => {
     expect(source).toContain("navigate('/dashboard/admin/unified-onboarding')");
-    expect(layoutSource).toContain("{ path: '/unified-onboarding'");
+    expect(dashboardRoutesSource).toContain("{ path: '/unified-onboarding'");
   });
 
   it('does not present load failures as an empty orientation queue', () => {

@@ -7,6 +7,14 @@ const layoutSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const notesManagerSource = readFileSync(resolve(__dirname, './NotesManager.tsx'), 'utf8');
 const photoManagerSource = readFileSync(resolve(__dirname, './PhotoManager.tsx'), 'utf8');
@@ -15,10 +23,11 @@ const photosHookSource = readFileSync(resolve(repoRoot, 'frontend/src/hooks/useC
 
 describe('admin notes and photos auth pipeline', () => {
   it('covers mounted notes/photos routes and backend mounts', () => {
-    expect(layoutSource).toContain("const NotesManager = React.lazy(() => import('../Admin/NotesManager'))");
-    expect(layoutSource).toContain("{ path: '/notes/:clientId?', component: NotesManager");
-    expect(layoutSource).toContain("const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'))");
-    expect(layoutSource).toContain("{ path: '/photos/:clientId?', component: PhotoManager");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const NotesManager = React.lazy(() => import('../Admin/NotesManager'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/notes/:clientId?', component: NotesManager");
+    expect(routeComponentsSource).toContain("export const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/photos/:clientId?', component: PhotoManager");
     expect(coreRoutes).toContain("app.use('/api/notes', clientNoteRoutes)");
     expect(coreRoutes).toContain("app.use('/api/photos', clientPhotoRoutes)");
   });

@@ -9,15 +9,16 @@ const readSource = (relativePath: string) =>
 
 describe('useFormAnalysisAPI auth pipeline', () => {
   it('is consumed by mounted form assessment surfaces backed by form-analysis APIs', () => {
-    const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const uploadSource = readSource('frontend/src/components/FormAnalysis/UploadTab.tsx');
     const historySource = readSource('frontend/src/components/FormAnalysis/HistoryTab.tsx');
     const profileSource = readSource('frontend/src/components/FormAnalysis/MovementProfilePage.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const formRoutesSource = readSource('backend/routes/formAnalysisRoutes.mjs');
 
-    expect(layoutSource).toContain("const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'))");
-    expect(layoutSource).toContain("{ path: '/assessments', component: TrainerAssessmentsPage");
+    expect(routeComponentsSource).toContain("const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/assessments', component: TrainerAssessmentsPage");
     expect(uploadSource).toContain("import { useFormAnalysisAPI } from '../../hooks/useFormAnalysisAPI'");
     expect(historySource).toContain("import { useFormAnalysisAPI } from '../../hooks/useFormAnalysisAPI'");
     expect(profileSource).toContain("import { useFormAnalysisAPI } from '../../hooks/useFormAnalysisAPI'");

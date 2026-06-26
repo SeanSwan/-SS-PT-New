@@ -7,8 +7,12 @@ const source = readFileSync(
   'utf8'
 );
 
-const routeSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const routeComponentsSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8'
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8'
 );
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
@@ -16,8 +20,8 @@ const lineCount = (text: string) => text.split(/\r?\n/).length;
 
 describe('TrainersManagementSection legacy route truth contract', () => {
   it('is mounted only as the legacy admin trainer route', () => {
-    expect(routeSource).toContain("React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'))");
-    expect(routeSource).toContain("path: '/trainer-management-legacy'");
+    expect(routeComponentsSource).toContain("React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'))");
+    expect(dashboardRoutesSource).toContain("path: '/trainer-management-legacy'");
   });
 
   it('does not fall back to invented trainer records when the API fails', () => {

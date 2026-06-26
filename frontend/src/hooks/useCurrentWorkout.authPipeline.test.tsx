@@ -14,8 +14,12 @@ vi.mock('../services/api.service', () => ({
 
 const source = readFileSync(resolve(__dirname, './useCurrentWorkout.ts'), 'utf8');
 const repoRoot = resolve(__dirname, '../../..');
-const layoutSource = readFileSync(
-  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
@@ -41,10 +45,10 @@ describe('useCurrentWorkout auth pipeline', () => {
   });
 
   it('keeps legacy admin workout routes redirected while current-workout API remains mounted', () => {
-    expect(layoutSource).not.toContain("import('../Admin/WorkoutPlanBuilder')");
-    expect(layoutSource).toContain('const AdminWorkoutPlansRedirect');
-    expect(layoutSource).toContain("{ path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect");
-    expect(layoutSource).toContain("`/dashboard/admin/workout-planner?${params.toString()}`");
+    expect(routeComponentsSource).not.toContain("import('../Admin/WorkoutPlanBuilder')");
+    expect(routeComponentsSource).toContain('const AdminWorkoutPlansRedirect');
+    expect(dashboardRoutesSource).toContain("{ path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect");
+    expect(routeComponentsSource).toContain("`/dashboard/admin/workout-planner?${params.toString()}`");
     expect(coreRoutes).toContain("app.use('/api/workouts', clientWorkoutRoutes)");
   });
 

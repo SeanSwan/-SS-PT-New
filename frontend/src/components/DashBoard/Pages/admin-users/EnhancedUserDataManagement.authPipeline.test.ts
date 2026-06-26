@@ -6,7 +6,8 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const layoutSource = read('src/components/DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const pageSource = stripComments(read('src/components/DashBoard/Pages/admin-users/EnhancedUserDataManagement.tsx'));
 const backendMountSource = read('../backend/core/routes.mjs');
 const adminRoutesSource = read('../backend/routes/adminRoutes.mjs');
@@ -14,8 +15,8 @@ const modalSource = read('src/components/DashBoard/Pages/admin-users/EnhancedUse
 
 describe('EnhancedUserDataManagement auth pipeline', () => {
   it('is the mounted admin user-management dashboard surface backed by protected admin routes', () => {
-    expect(layoutSource).toContain("const EnhancedUserDataManagement = React.lazy(() => import('./Pages/admin-users/EnhancedUserDataManagement'))");
-    expect(layoutSource).toContain("{ path: '/user-management', component: EnhancedUserDataManagement");
+    expect(routeComponentsSource).toContain("export const EnhancedUserDataManagement = React.lazy(() => import('./Pages/admin-users/EnhancedUserDataManagement'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/user-management', component: EnhancedUserDataManagement");
     expect(backendMountSource).toContain("app.use('/api/admin', adminRoutes)");
     expect(adminRoutesSource).toContain('router.use(authenticateToken)');
     expect(adminRoutesSource).toContain('router.use(authorizeAdmin)');

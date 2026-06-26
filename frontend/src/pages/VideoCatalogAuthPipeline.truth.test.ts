@@ -12,6 +12,7 @@ const stripComments = (source: string) =>
 
 const routeSource = read('../routes/main-routes.tsx');
 const dashboardSource = read('../components/DashBoard/UniversalDashboardLayout.tsx');
+const dashboardRoutesSource = read('../components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const backendMountSource = read('../../../backend/core/routes.mjs');
 const publicRoutesSource = read('../../../backend/routes/videoCatalogPublicRoutes.mjs');
 const memberRoutesSource = read('../../../backend/routes/videoCatalogMemberRoutes.mjs');
@@ -42,7 +43,8 @@ describe('Video catalog auth and playback pipeline', () => {
     expect(routeSource).toMatch(/path:\s*'watch\/:slug'/);
     expect(routeSource).toMatch(/path:\s*'collections\/:slug'/);
     expect(routeSource).toMatch(/path:\s*'members\/videos'/);
-    expect(dashboardSource).toMatch(/path:\s*'\/videos', component: VideoLibraryPage/);
+    expect(dashboardSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(dashboardRoutesSource).toMatch(/path:\s*'\/videos', component: VideoLibraryPage/);
 
     expect(backendMountSource).toMatch(/app\.use\('\/api\/v2\/videos', videoCatalogPublicRoutes\)/);
     expect(backendMountSource).toMatch(/app\.use\('\/api\/v2\/videos', videoCatalogMemberRoutes\)/);

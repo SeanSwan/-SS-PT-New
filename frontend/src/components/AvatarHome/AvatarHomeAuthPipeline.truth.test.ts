@@ -12,6 +12,8 @@ const stripComments = (source: string) =>
 const lineCount = (source: string) => source.trimEnd().split(/\r?\n/).length;
 
 const dashboardLayoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const backendMountSource = read('../../../../backend/core/routes.mjs');
 const avatarRoutesSource = read('../../../../backend/routes/avatarHomeRoutes.mjs');
 const gamificationRoutesSource = read('../../../../backend/routes/gamificationV1Routes.mjs');
@@ -41,8 +43,9 @@ const expectSharedTransport = (source: string) => {
 
 describe('Avatar Home auth pipeline', () => {
   it('is mounted for dashboard users with protected avatar-home and pet routes', () => {
-    expect(dashboardLayoutSource).toMatch(/const AvatarHomePage = React\.lazy\(\(\) => import\('\.\.\/AvatarHome\/AvatarHomePage'\)\)/);
-    const dashboardRouteMatches = dashboardLayoutSource.match(/path: '\/my-home', component: AvatarHomePage/g) || [];
+    expect(dashboardLayoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toMatch(/export const AvatarHomePage = React\.lazy\(\(\) => import\('\.\.\/AvatarHome\/AvatarHomePage'\)\)/);
+    const dashboardRouteMatches = dashboardRoutesSource.match(/path: '\/my-home', component: AvatarHomePage/g) || [];
     expect(dashboardRouteMatches.length).toBeGreaterThanOrEqual(3);
 
     expect(backendMountSource).toMatch(/app\.use\('\/api\/avatar-home', avatarHomeRoutes\)/);

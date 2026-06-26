@@ -4,7 +4,7 @@ import { resolve } from 'path';
 const pagePath = resolve(__dirname, './ClientProgressDashboardPage.tsx');
 const recapPath = resolve(__dirname, './ClientProgressDashboardPage.recap.ts');
 const stylesPath = resolve(__dirname, './ClientProgressDashboardPage.styles.ts');
-const layoutPath = resolve(__dirname, '../../UniversalDashboardLayout.tsx');
+const dashboardRoutesPath = resolve(__dirname, '../../UniversalDashboardLayout.routes.tsx');
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const lineCount = (source: string) => source.split(/\r?\n/).length;
@@ -12,10 +12,10 @@ const lineCount = (source: string) => source.split(/\r?\n/).length;
 describe('ClientProgressDashboardPage theme bridge', () => {
   it('keeps the canonical progress page wired to extracted theme styles', () => {
     const source = read(pagePath);
-    const layoutSource = read(layoutPath);
+    const dashboardRoutesSource = read(dashboardRoutesPath);
     const styleSource = existsSync(stylesPath) ? read(stylesPath) : '';
 
-    expect(layoutSource).toContain("path: '/progress', component: ClientProgressDashboardPage");
+    expect(dashboardRoutesSource).toContain("path: '/progress', component: ClientProgressDashboardPage");
     expect(source).toContain("from './ClientProgressDashboardPage.styles'");
     expect(source).not.toMatch(/styled\./);
     expect(source).not.toContain('keyframes`');

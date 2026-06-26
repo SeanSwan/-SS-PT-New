@@ -31,6 +31,14 @@ const layoutSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const analyticsHookSource = readFileSync(
   resolve(process.cwd(), 'src/hooks/analytics/useWorkoutAnalytics.ts'),
   'utf8',
@@ -46,8 +54,9 @@ const backendWorkoutRoutesSource = readFileSync(
 
 describe('WorkoutHistoryPanel button semantics', () => {
   it('is mounted by the canonical Clients & Team training history surface', () => {
-    expect(layoutSource).toContain("path: '/client-management'");
-    expect(layoutSource).toContain("import('./workspaces/ClientsWorkspace')");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const ClientsWorkspace = React.lazy(() => import('./workspaces/ClientsWorkspace'))");
+    expect(dashboardRoutesSource).toContain("path: '/client-management'");
     expect(workspaceTabsSource).toContain("lazy(() => import('./clients-team/tabs/TrainingTabContent'))");
     expect(trainingSource).toContain("import TrainingTabSectionContent");
     expect(trainingSectionContentSource).toContain("import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')");

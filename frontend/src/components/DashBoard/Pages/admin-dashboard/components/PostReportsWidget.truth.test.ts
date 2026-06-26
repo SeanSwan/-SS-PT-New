@@ -10,8 +10,8 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
 );
-const layoutSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const routeSource = readFileSync(
@@ -29,7 +29,7 @@ describe('PostReportsWidget active surface truth contract', () => {
 
   it('routes View All to an active admin dashboard content path', () => {
     expect(source).toContain("navigate('/dashboard/admin/content')");
-    expect(layoutSource).toContain("{ path: '/content'");
+    expect(dashboardRoutesSource).toContain("{ path: '/content'");
   });
 
   it('reads the nested backend reports response instead of treating it as an empty array', () => {

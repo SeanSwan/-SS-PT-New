@@ -10,16 +10,19 @@ const readSource = (relativePath: string) =>
 describe('bootcamp and sprint planner auth pipeline', () => {
   it('covers mounted bootcamp and sprint planner routes backed by bootcamp APIs', () => {
     const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const bootcampPageSource = readSource('frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx');
     const sprintPageSource = readSource('frontend/src/components/SprintPlanner/SprintPlannerPage.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const bootcampRoutesSource = readSource('backend/routes/bootcampRoutes.mjs');
     const sprintRoutesSource = readSource('backend/routes/sprintRoutes.mjs');
 
-    expect(layoutSource).toContain("const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'))");
-    expect(layoutSource).toContain("const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'))");
-    expect(layoutSource).toContain("{ path: '/bootcamp', component: BootcampBuilderPage");
-    expect(layoutSource).toContain("{ path: '/sprint-planner', component: SprintPlannerPage");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'))");
+    expect(routeComponentsSource).toContain("export const SprintPlannerPage = React.lazy(() => import('../SprintPlanner/SprintPlannerPage'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/bootcamp', component: BootcampBuilderPage");
+    expect(dashboardRoutesSource).toContain("{ path: '/sprint-planner', component: SprintPlannerPage");
     expect(bootcampPageSource).toContain('useBootcampAPI()');
     expect(sprintPageSource).toContain('useSprintAPI()');
 

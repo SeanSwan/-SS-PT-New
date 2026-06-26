@@ -7,31 +7,34 @@ const lineCount = (source: string) => source.split(/\r?\n/).length;
 
 describe('dashboard theme synchronization contract', () => {
   it('locks the canonical dashboard routes for the themed surfaces', () => {
-    const layout = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponents = readSource('src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const routes = readSource('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
 
-    expect(layout).toContain("import UniversalSchedule from '../Schedule/UniversalSchedule'");
-    expect(layout).toContain("const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'))");
-    expect(layout).toContain("const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'))");
-    expect(layout).toContain("const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'))");
-    expect(layout).toContain("const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'))");
-    expect(layout).toContain("{ path: '/master-schedule', component: UniversalSchedule");
-    expect(layout).toContain("{ path: '/admin-packages', component: AdminPackagesView");
-    expect(layout).toContain("{ path: '/revenue', component: RevenueAnalyticsPanel");
-    expect(layout).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
-    expect(layout).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
+    expect(routeComponents).toContain("import UniversalSchedule from '../Schedule/UniversalSchedule'");
+    expect(routeComponents).toContain("export const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'))");
+    expect(routeComponents).toContain("export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'))");
+    expect(routeComponents).toContain("export const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'))");
+    expect(routeComponents).toContain("export const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'))");
+    expect(routes).toContain("{ path: '/master-schedule', component: UniversalSchedule");
+    expect(routes).toContain("{ path: '/admin-packages', component: AdminPackagesView");
+    expect(routes).toContain("{ path: '/revenue', component: RevenueAnalyticsPanel");
+    expect(routes).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
+    expect(routes).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
   });
 
   it('keeps shared dashboard shell controls on theme variables', () => {
-    const universalLayout = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const universalStyles = readSource('src/components/DashBoard/UniversalDashboardLayout.styles.ts');
+    const universalControls = readSource('src/components/DashBoard/UniversalDashboardLayout.controls.ts');
+    const universalShell = [universalStyles, universalControls].join('\n');
     const adminLayout = readSource('src/components/DashBoard/AdminLayout.styles.ts');
 
-    expect(universalLayout).toContain('var(--shadow-focus, 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent))');
-    expect(universalLayout).toContain('var(--shadow-subtle, 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent))');
-    expect(universalLayout).toContain('var(--shadow-accent-lift, 0 4px 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent))');
-    expect(universalLayout).toContain('var(--text-on-accent, #FFFFFF)');
-    expect(universalLayout).toContain('var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent))');
-    expect(universalLayout).toContain('var(--border-accent-soft');
-    expect(universalLayout).toContain('var(--border-accent-medium');
+    expect(universalStyles).toContain('var(--shadow-focus, 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent))');
+    expect(universalControls).toContain('var(--shadow-subtle, 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent))');
+    expect(universalControls).toContain('var(--shadow-accent, 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent))');
+    expect(universalControls).toContain('var(--text-on-accent, #FFFFFF)');
+    expect(universalControls).toContain('var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent))');
+    expect(universalControls).toContain('var(--border-accent-soft');
+    expect(universalControls).toContain('var(--border-accent-medium');
     expect(adminLayout).toContain('var(--text-on-accent, #FFFFFF)');
     expect(adminLayout).toContain('var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4))');
 
@@ -50,7 +53,7 @@ describe('dashboard theme synchronization contract', () => {
       'var(--shadow-primary-soft, 0 0 12px rgba(96, 192, 240, 0.2))',
       'var(--shadow-primary, 0 0 20px rgba(96, 192, 240, 0.3))',
     ].forEach((rawDeclaration) => {
-      expect(universalLayout).not.toContain(rawDeclaration);
+      expect(universalShell).not.toContain(rawDeclaration);
     });
 
     [

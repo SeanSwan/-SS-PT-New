@@ -14,6 +14,14 @@ const layoutSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const dashboardViewSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx'),
   'utf8',
@@ -25,8 +33,11 @@ const coreRoutesSource = readFileSync(
 
 describe('AdminOverviewPanel analytics resilience contract', () => {
   it('is mounted by the canonical admin overview route', () => {
-    expect(layoutSource).toContain("const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
-    expect(layoutSource).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain(
+      "export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))",
+    );
+    expect(dashboardRoutesSource).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(dashboardViewSource).toContain("import AdminOverviewPanel from './overview/AdminOverviewPanel'");
     expect(dashboardViewSource).toContain('<AdminOverviewPanel />');
   });

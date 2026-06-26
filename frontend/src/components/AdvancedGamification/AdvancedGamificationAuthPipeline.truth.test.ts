@@ -11,6 +11,8 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const dashboardLayoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const clientProfileSource = read('../DashBoard/Pages/client-dashboard/ClientProfilePage.tsx');
 const clientProgressSource = read('../DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.tsx');
 const adminRpgSource = read('../DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.tsx');
@@ -59,8 +61,9 @@ const expectSharedTransport = (source: string) => {
 
 describe('advanced gamification auth pipeline', () => {
   it('covers mounted companion pet, Aegis HUD, and job-class surfaces', () => {
-    expect(dashboardLayoutSource).toContain("const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'))");
-    expect(dashboardLayoutSource).toContain("{ path: '/gamification', component: AdminGamificationView");
+    expect(dashboardLayoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/gamification', component: AdminGamificationView");
     expect(clientProfileSource).toContain("import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')");
     expect(clientProgressSource).toContain("import('../../../AdvancedGamification/components/CompanionPet/CompanionPet')");
     expect(adminRpgSource).toContain("import('../../../../AdvancedGamification/components/AegisHud')");

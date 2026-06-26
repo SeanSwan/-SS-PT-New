@@ -18,6 +18,14 @@ const SOURCE = readFileSync(
   'utf8',
 );
 const LAYOUT_SOURCE = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
+const ROUTE_COMPONENTS_SOURCE = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const DASHBOARD_ROUTES_SOURCE = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const OVERVIEW_SOURCE = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
@@ -94,8 +102,9 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
   });
 
   it('is mounted by the canonical admin overview route', () => {
-    expect(LAYOUT_SOURCE).toContain("const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
-    expect(LAYOUT_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(LAYOUT_SOURCE).toContain("from './UniversalDashboardLayout.routes'");
+    expect(ROUTE_COMPONENTS_SOURCE).toContain("export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
+    expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(OVERVIEW_SOURCE).toContain("import PendingPaymentsWidget from '../components/PendingPaymentsWidget'");
     expect(OVERVIEW_SOURCE).toContain('<BentoHalf><PendingPaymentsWidget /></BentoHalf>');
     expect(SOURCE).toContain("authAxios.get('/api/orders'");

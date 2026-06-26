@@ -10,7 +10,8 @@ const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const layoutSource = read('../../../UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../../../UniversalDashboardLayout.routeComponents.tsx');
+const routesSource = read('../../../UniversalDashboardLayout.routes.tsx');
 const clientsWorkspaceSource = read('../../ClientsWorkspace.tsx');
 const clientsWorkspaceTabsSource = read('../../ClientsWorkspaceTabs.tsx');
 const clientDetailSource = read('../ClientDetailView.tsx');
@@ -20,7 +21,11 @@ const adminClientRoutesSource = read('../../../../../../../backend/routes/adminC
 
 describe('OverviewTabContent auth pipeline', () => {
   it('is mounted through the canonical admin client-management workspace overview tab', () => {
-    expect(layoutSource).toMatch(/path: '\/client-management', component: React\.lazy\(\(\) => import\('\.\/workspaces\/ClientsWorkspace'\)\)/);
+    expect(routeComponentsSource).toContain(
+      "export const ClientsWorkspace = React.lazy(() => import('./workspaces/ClientsWorkspace'))",
+    );
+    expect(routesSource).toContain("{ path: '/client-management'");
+    expect(routesSource).toContain('component: ClientsWorkspace');
     expect(clientsWorkspaceSource).toMatch(
       /useClientsWorkspaceTabRenderers\(\s*selectedClient,\s*getClientTrainingSectionFromSearchParams\(searchParams\),\s*handleViewProgress,\s*scheduleLoggerContext\s*\)/,
     );

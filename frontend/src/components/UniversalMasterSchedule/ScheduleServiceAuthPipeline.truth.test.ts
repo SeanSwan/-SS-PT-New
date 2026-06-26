@@ -10,14 +10,17 @@ const readSource = (relativePath: string) =>
 describe('universal schedule service auth pipeline', () => {
   it('covers mounted schedule routes backed by sessions and user credit APIs', () => {
     const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const sessionsRoutesSource = readSource('backend/routes/sessions.mjs');
     const userRoutesSource = readSource('backend/routes/userRoutes.mjs');
 
-    expect(layoutSource).toContain("import UniversalSchedule from '../Schedule/UniversalSchedule'");
-    expect(layoutSource).toContain("{ path: '/master-schedule', component: UniversalSchedule");
-    expect(layoutSource).toContain("{ path: '/schedule', component: UniversalSchedule");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("import UniversalSchedule from '../Schedule/UniversalSchedule'");
+    expect(dashboardRoutesSource).toContain("{ path: '/master-schedule', component: UniversalSchedule");
+    expect(dashboardRoutesSource).toContain("{ path: '/schedule', component: UniversalSchedule");
     expect(scheduleSource).toContain("import { universalMasterScheduleService } from '../../services/universal-master-schedule-service'");
     expect(scheduleSource).toContain("import { useSessionCredits } from './hooks/useSessionCredits'");
 

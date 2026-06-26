@@ -9,7 +9,8 @@ const __dirname = dirname(__filename);
 const readLocal = (relativePath: string) =>
   readFileSync(resolve(__dirname, relativePath), 'utf8');
 
-const routeSource = readLocal('../../UniversalDashboardLayout.tsx');
+const routeComponentsSource = readLocal('../../UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = readLocal('../../UniversalDashboardLayout.routes.tsx');
 const pageSource = readLocal('./ClientProgressDashboardPage.tsx');
 const gridSource = readLocal('./CanonicalProgressChartsGrid.tsx');
 const stylesSource = readLocal('./CanonicalProgressChartsGrid.styles.ts');
@@ -33,11 +34,11 @@ const mountedProgressSources = [
 
 describe('CanonicalProgressChartsGrid mounted source contract', () => {
   it('locks the canonical client progress route chain', () => {
-    expect(routeSource).toContain('const ClientProgressDashboardPage = React.lazy(');
-    expect(routeSource).toContain(
+    expect(routeComponentsSource).toContain('export const ClientProgressDashboardPage = React.lazy(');
+    expect(routeComponentsSource).toContain(
       "() => import('./Pages/client-dashboard/ClientProgressDashboardPage')"
     );
-    expect(routeSource).toContain(
+    expect(dashboardRoutesSource).toContain(
       "{ path: '/progress', component: ClientProgressDashboardPage"
     );
     expect(pageSource).toContain("const CanonicalProgressChartsGrid = React.lazy(");

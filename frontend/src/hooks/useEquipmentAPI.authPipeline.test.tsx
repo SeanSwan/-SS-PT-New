@@ -9,13 +9,14 @@ const readSource = (relativePath: string) =>
 
 describe('useEquipmentAPI auth pipeline', () => {
   it('is consumed by mounted equipment manager routes backed by equipment profile APIs', () => {
-    const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const pageSource = readSource('frontend/src/components/EquipmentManager/EquipmentManagerPage.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const equipmentRoutesSource = readSource('backend/routes/equipmentRoutes.mjs');
 
-    expect(layoutSource).toContain("const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'))");
-    expect(layoutSource).toContain("{ path: '/equipment', component: EquipmentManagerPage");
+    expect(routeComponentsSource).toContain("const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/equipment', component: EquipmentManagerPage");
     expect(pageSource).toContain("useEquipmentAPI,");
     expect(coreRoutesSource).toContain("app.use('/api/equipment-profiles', equipmentRoutes)");
     expect(equipmentRoutesSource).toContain("router.get('/'");

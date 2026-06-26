@@ -7,21 +7,32 @@ const layoutSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const nutritionBuilderSource = readFileSync(resolve(__dirname, './NutritionPlanBuilder.tsx'), 'utf8');
 
 describe('admin workout and nutrition builder route contracts', () => {
   it('redirects the legacy raw-client-id workout route into the canonical planner flow', () => {
-    expect(layoutSource).not.toContain("import('../Admin/WorkoutPlanBuilder')");
-    expect(layoutSource).toContain('const AdminWorkoutPlansRedirect');
-    expect(layoutSource).toContain("{ path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect");
-    expect(layoutSource).toContain("'/dashboard/admin/client-management?intent=plan_next'");
-    expect(layoutSource).toContain("`/dashboard/admin/workout-planner?${params.toString()}`");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).not.toContain("import('../Admin/WorkoutPlanBuilder')");
+    expect(routeComponentsSource).toContain('export const AdminWorkoutPlansRedirect');
+    expect(dashboardRoutesSource).toContain("{ path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect");
+    expect(routeComponentsSource).toContain('to="/dashboard/admin/client-management?intent=plan_next"');
+    expect(routeComponentsSource).toContain("`/dashboard/admin/workout-planner?${params.toString()}`");
   });
 
   it('covers mounted nutrition builder route and backend mounts', () => {
-    expect(layoutSource).toContain("const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'))");
-    expect(layoutSource).toContain("{ path: '/nutrition/:clientId?', component: NutritionPlanBuilder");
+    expect(routeComponentsSource).toContain(
+      "export const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'))",
+    );
+    expect(dashboardRoutesSource).toContain("{ path: '/nutrition/:clientId?', component: NutritionPlanBuilder");
     expect(coreRoutes).toContain("app.use('/api/workout/plans', workoutPlanRoutes)");
     expect(coreRoutes).toContain("app.use('/api/nutrition', clientNutritionRoutes)");
   });

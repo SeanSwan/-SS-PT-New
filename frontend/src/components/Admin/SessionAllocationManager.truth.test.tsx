@@ -33,6 +33,14 @@ const layoutSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const sessionsRoutes = readFileSync(resolve(repoRoot, 'backend/routes/sessions.mjs'), 'utf8');
 
@@ -81,8 +89,9 @@ describe('SessionAllocationManager active admin contract', () => {
   });
 
   it('is the mounted admin allocation surface backed by mounted session compatibility routes', () => {
-    expect(layoutSource).toContain("const SessionAllocationManager = React.lazy(() => import('../Admin/SessionAllocationManager'))");
-    expect(layoutSource).toContain("{ path: '/session-allocation', component: SessionAllocationManager");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const SessionAllocationManager = React.lazy(() => import('../Admin/SessionAllocationManager'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/session-allocation', component: SessionAllocationManager");
     expect(coreRoutes).toContain("app.use('/api/sessions', sessionsRoutes)");
     expect(sessionsRoutes).toContain('router.get("/users/clients"');
     expect(sessionsRoutes).toContain('router.get("/user-summary/:userId"');

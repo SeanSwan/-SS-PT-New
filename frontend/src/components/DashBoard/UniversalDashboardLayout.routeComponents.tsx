@@ -151,6 +151,14 @@ export const AdminClientDetailsRedirect: React.FC = () => {
   return <Navigate to={`/dashboard/admin/client-management${location.search}`} replace />;
 };
 
+export const AdminLogWorkoutRedirect: React.FC = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  params.set('tab', 'training');
+  params.set('trainingSection', 'logger');
+  return <Navigate to={`/dashboard/admin/client-management?${params.toString()}`} replace />;
+};
+
 export const AdminWorkoutPlansRedirect: React.FC = () => {
   const { clientId } = useParams<{ clientId?: string }>();
   const location = useLocation();

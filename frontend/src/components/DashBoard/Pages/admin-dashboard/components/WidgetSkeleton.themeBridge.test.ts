@@ -6,12 +6,12 @@ const readSource = (relativePath: string) =>
 
 describe('WidgetSkeleton active admin overview theme bridge', () => {
   it('proves WidgetSkeleton is mounted by the canonical admin overview loading states', () => {
-    const universalLayout = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardRoutesSource = readSource('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const adminDashboardView = readSource('src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx');
     const adminOverviewPanel = readSource('src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx');
     const upcomingChecks = readSource('src/components/DashBoard/Pages/admin-dashboard/components/UpcomingChecksWidget.tsx');
 
-    expect(universalLayout).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(dashboardRoutesSource).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(adminDashboardView).toContain('<AdminOverviewPanel />');
     expect(adminOverviewPanel).toContain("import UpcomingChecksWidget from '../components/UpcomingChecksWidget'");
     expect(adminOverviewPanel).toContain('<BentoHalf><UpcomingChecksWidget /></BentoHalf>');

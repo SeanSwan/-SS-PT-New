@@ -20,8 +20,8 @@ vi.mock('../../../../../context/AuthContext', () => ({
 
 const source = readFileSync(resolve(__dirname, './AdminFulfillmentQueue.tsx'), 'utf8');
 const pendingOrdersSource = readFileSync(resolve(__dirname, './PendingOrdersAdminPanel.tsx'), 'utf8');
-const layoutSource = readFileSync(
-  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const adminOrderRoutes = readFileSync(resolve(repoRoot, 'backend/routes/adminOrdersRoutes.mjs'), 'utf8');
@@ -68,7 +68,7 @@ describe('AdminFulfillmentQueue', () => {
   });
 
   it('is wired into the mounted pending-orders admin surface and mounted backend route', () => {
-    expect(layoutSource).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
+    expect(dashboardRoutesSource).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
     expect(pendingOrdersSource).toContain("import AdminFulfillmentQueue from './AdminFulfillmentQueue'");
     expect(pendingOrdersSource).toContain('<AdminFulfillmentQueue />');
     expect(source).toContain("'/api/admin/orders/fulfillment'");

@@ -23,6 +23,14 @@ const layoutSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const adminOrdersRoutes = readFileSync(resolve(repoRoot, 'backend/routes/adminOrdersRoutes.mjs'), 'utf8');
 
@@ -74,8 +82,9 @@ describe('PendingOrdersAdminPanel truth handling', () => {
   });
 
   it('is mounted by the admin dashboard and backed by mounted admin order routes', () => {
-    expect(layoutSource).toContain("const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'))");
-    expect(layoutSource).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
     expect(coreRoutes).toContain("app.use('/api/admin', adminOrdersRoutes)");
     expect(adminOrdersRoutes).toContain("router.get('/orders/pending'");
     expect(adminOrdersRoutes).toContain("router.get('/orders/completed'");

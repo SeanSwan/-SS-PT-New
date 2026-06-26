@@ -11,14 +11,17 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const layoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const pageSource = stripComments(read('./VirtualOlympicsPage.tsx'));
 const backendMountSource = read('../../../../backend/core/routes.mjs');
 const olympicRoutesSource = read('../../../../backend/routes/olympicRoutes.mjs');
 
 describe('VirtualOlympicsPage auth pipeline', () => {
   it('is mounted for dashboard users and backed by authenticated olympics routes', () => {
-    expect(layoutSource).toMatch(/const VirtualOlympicsPage = React\.lazy\(\(\) => import\('\.\.\/VirtualOlympics\/VirtualOlympicsPage'\)\)/);
-    const dashboardRouteMatches = layoutSource.match(/path: '\/virtual-olympics', component: VirtualOlympicsPage/g) || [];
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toMatch(/export const VirtualOlympicsPage = React\.lazy\(\(\) => import\('\.\.\/VirtualOlympics\/VirtualOlympicsPage'\)\)/);
+    const dashboardRouteMatches = dashboardRoutesSource.match(/path: '\/virtual-olympics', component: VirtualOlympicsPage/g) || [];
     expect(dashboardRouteMatches.length).toBeGreaterThanOrEqual(3);
 
     expect(backendMountSource).toMatch(/app\.use\('\/api\/olympics', olympicRoutes\)/);

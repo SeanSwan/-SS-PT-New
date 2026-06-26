@@ -11,6 +11,8 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const layout = read('../DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const enhancedLogger = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx');
 const enhancedLoggerIdentity = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.identity.ts');
 const enhancedLoggerView = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx');
@@ -25,10 +27,11 @@ const ghostRow = stripComments(ghostRowRaw);
 
 describe('WorkoutLogger ghost history auth pipeline', () => {
   it('is an active dashboard surface with a mounted admin workout history route', () => {
-    expect(layout).toMatch(/const WorkoutLogger = React\.lazy\(\(\) => import\('\.\.\/WorkoutLogger\/WorkoutLogger'\)\)/);
-    expect(layout).toMatch(/const EnhancedWorkoutLogger = React\.lazy\(\(\) => import\('\.\.\/TrainerDashboard\/WorkoutLogging'\)\)/);
-    expect(layout).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
-    expect(layout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
+    expect(layout).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toMatch(/export const WorkoutLogger = React\.lazy\(\(\) => import\('\.\.\/WorkoutLogger\/WorkoutLogger'\)\)/);
+    expect(routeComponentsSource).toMatch(/export const EnhancedWorkoutLogger = React\.lazy\(\(\) => import\('\.\.\/TrainerDashboard\/WorkoutLogging'\)\)/);
+    expect(dashboardRoutesSource).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
+    expect(dashboardRoutesSource).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
     expect(enhancedLogger).toMatch(/import EnhancedWorkoutLoggerView from '\.\/EnhancedWorkoutLogger\.view'/);
     expect(enhancedLogger).toMatch(
       /import\s+\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerSessionId[\s\S]*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/,

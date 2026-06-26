@@ -56,8 +56,12 @@ const EXERCISE_ROUTES_SOURCE = readFileSync(
   resolve(__dirname, '../../../../backend/routes/exerciseRoutes.mjs'),
   'utf8',
 );
-const UNIVERSAL_DASHBOARD_SOURCE = readFileSync(
-  resolve(__dirname, '../DashBoard/UniversalDashboardLayout.tsx'),
+const DASHBOARD_ROUTE_COMPONENTS_SOURCE = readFileSync(
+  resolve(__dirname, '../DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const DASHBOARD_ROUTES_SOURCE = readFileSync(
+  resolve(__dirname, '../DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 
@@ -228,10 +232,10 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
 
 describe('Phase 16.2 - admin owner personal logger route', () => {
   it('mounts AdminPersonalWorkoutLogger on /dashboard/admin/log-my-workout', () => {
-    expect(UNIVERSAL_DASHBOARD_SOURCE).toMatch(
-      /const\s+AdminPersonalWorkoutLogger\s*=\s*React\.lazy\(\(\)\s*=>\s*import\('\.\.\/WorkoutLogger\/AdminPersonalWorkoutLogger'\)\)/,
+    expect(DASHBOARD_ROUTE_COMPONENTS_SOURCE).toMatch(
+      /export const\s+AdminPersonalWorkoutLogger\s*=\s*React\.lazy\(\(\)\s*=>\s*import\('\.\.\/WorkoutLogger\/AdminPersonalWorkoutLogger'\)\)/,
     );
-    expect(UNIVERSAL_DASHBOARD_SOURCE).toMatch(
+    expect(DASHBOARD_ROUTES_SOURCE).toMatch(
       /path:\s*['"]\/log-my-workout['"][\s\S]*?component:\s*AdminPersonalWorkoutLogger/,
     );
   });

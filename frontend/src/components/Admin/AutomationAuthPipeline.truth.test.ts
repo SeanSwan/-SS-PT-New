@@ -10,12 +10,19 @@ const readSource = (relativePath: string) =>
 describe('admin automation auth pipeline', () => {
   it('covers mounted automation route and backend automation/SMS routes', () => {
     const dashboardSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource(
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx',
+    );
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const automationRoutesSource = readSource('backend/routes/automationRoutes.mjs');
     const smsRoutesSource = readSource('backend/routes/smsRoutes.mjs');
 
-    expect(dashboardSource).toContain("const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'))");
-    expect(dashboardSource).toContain("{ path: '/automation', component: AutomationManager");
+    expect(dashboardSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain(
+      "export const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'))",
+    );
+    expect(dashboardRoutesSource).toContain("{ path: '/automation', component: AutomationManager");
     expect(coreRoutesSource).toContain("app.use('/api/automation', automationRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/sms', smsRoutes)");
     expect(automationRoutesSource).toContain("router.get('/sequences'");

@@ -10,6 +10,8 @@ const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 
 const dataHookSource = read('./useAdminSessionsData.ts');
 const dashboardLayoutSource = read('../../UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../../UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../../UniversalDashboardLayout.routes.tsx');
 const socketManagerSource = read('../../../../../../backend/socket/socketManager.mjs');
 const stripeWebhookSource = read('../../../../../../backend/webhooks/stripeWebhook.mjs');
 const notificationServiceSource = read('../../../../../../backend/services/notificationService.mjs');
@@ -17,7 +19,11 @@ const realTimeScheduleServiceSource = read('../../../../../../backend/services/r
 
 describe('admin sessions realtime socket pipeline', () => {
   it('covers the active admin sessions route', () => {
-    expect(dashboardLayoutSource).toContain("{ path: '/admin-sessions', component: EnhancedAdminSessionsView");
+    expect(dashboardLayoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain(
+      "export const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'))",
+    );
+    expect(dashboardRoutesSource).toContain("{ path: '/admin-sessions', component: EnhancedAdminSessionsView");
   });
 
   it('uses the authenticated Socket.IO context instead of the retired raw ws endpoint', () => {

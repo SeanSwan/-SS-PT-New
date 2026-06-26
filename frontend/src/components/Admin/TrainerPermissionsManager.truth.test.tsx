@@ -31,6 +31,14 @@ const layoutSource = readFileSync(
   resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8',
 );
+const routeComponentsSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx'),
+  'utf8',
+);
+const dashboardRoutesSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
+  'utf8',
+);
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const trainerPermissionsRoutes = readFileSync(
   resolve(repoRoot, 'backend/routes/trainerPermissionsRoutes.mjs'),
@@ -115,8 +123,9 @@ describe('TrainerPermissionsManager active admin contract', () => {
   });
 
   it('is the mounted admin trainer permissions surface backed by mounted trainer permission routes', () => {
-    expect(layoutSource).toContain("const TrainerPermissionsManager = React.lazy(() => import('../Admin/TrainerPermissionsManager'))");
-    expect(layoutSource).toContain("{ path: '/trainer-permissions', component: TrainerPermissionsManager");
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const TrainerPermissionsManager = React.lazy(() => import('../Admin/TrainerPermissionsManager'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/trainer-permissions', component: TrainerPermissionsManager");
     expect(coreRoutes).toContain("app.use('/api/trainer-permissions', trainerPermissionsRoutes)");
     expect(trainerPermissionsRoutes).toContain("router.get('/trainer/:trainerId'");
     expect(trainerPermissionsRoutes).toContain("router.post('/grant'");

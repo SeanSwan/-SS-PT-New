@@ -107,6 +107,8 @@ describe('ClientRewardsPage gamification truth', () => {
 
   it('is the mounted client rewards surface backed by the v1 gamification profile hook', () => {
     const dashboardLayoutSource = readSource('../../UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('../../UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('../../UniversalDashboardLayout.routes.tsx');
     const sidebarSource = readSource('./ClientStellarSidebar.tsx');
     const hookSource = readSource('../../../../hooks/gamification/useGamificationData.ts');
     const routesSource = readFileSync(
@@ -114,8 +116,9 @@ describe('ClientRewardsPage gamification truth', () => {
       'utf-8'
     );
 
-    expect(dashboardLayoutSource).toContain("const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'))");
-    expect(dashboardLayoutSource).toContain("{ path: '/rewards', component: ClientRewardsPage");
+    expect(dashboardLayoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/rewards', component: ClientRewardsPage");
     expect(sidebarSource).toContain("path: '/dashboard/client/rewards'");
     expect(hookSource).toContain("authAxios.get('/api/v1/gamification/profile')");
     expect(routesSource).toContain("const requireProfileReader = requireAnyRole('user', 'client', 'trainer', 'admin');");

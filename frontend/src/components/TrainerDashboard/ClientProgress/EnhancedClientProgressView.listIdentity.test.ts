@@ -19,11 +19,11 @@ const readSource = (relativePath: string) => readFileSync(
 
 describe('EnhancedClientProgressView list identity locks', () => {
   it('keeps the analytics panels mounted from the canonical trainer progress route', () => {
-    const layoutSource = readSource('../../DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardRoutesSource = readSource('../../DashBoard/UniversalDashboardLayout.routes.tsx');
     const viewSource = readSource('./EnhancedClientProgressView.tsx');
     const shellSource = readSource('./EnhancedClientProgressViewShell.tsx');
 
-    expect(layoutSource).toContain("path: '/client-progress', component: EnhancedClientProgressView");
+    expect(dashboardRoutesSource).toContain("{ path: '/client-progress', component: EnhancedClientProgressView");
     expect(viewSource).toContain('<EnhancedClientProgressViewShell');
     expect(shellSource).toContain('<ComparisonAnalytics');
     expect(shellSource).toContain('<InjuryRiskAssessment');

@@ -32,6 +32,12 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(nextActionStylesSource).not.toContain('overflow-wrap: anywhere');
     expect(nextActionStylesSource).toContain('word-break: normal');
   });
+  it('keeps quick actions balanced across desktop, tablet, and phone widths', () => {
+    expect(quickActionsStylesSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
+    expect(quickActionsStylesSource).toContain('@media (max-width: 700px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
+    expect(quickActionsStylesSource).toContain('@media (max-width: 520px) { grid-template-columns: 1fr; }');
+  });
+
 
   it('renders the trainer profile directly in the client-parity hero', () => {
     expect(componentSource).toContain('trainerPhotoUrl={trainerPhotoUrl}');

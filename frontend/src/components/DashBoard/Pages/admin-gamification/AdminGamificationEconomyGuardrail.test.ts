@@ -48,11 +48,11 @@ function readSource(path: string) {
 
 describe('admin gamification economy guardrail contract', () => {
   it('keeps the live admin route on AdminGamificationView instead of the dormant workspace wrapper', () => {
-    const layoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const dashboardRoutesSource = readSource('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
 
-    expect(layoutSource).toContain("path: '/gamification'");
-    expect(layoutSource).toContain('component: AdminGamificationView');
-    expect(layoutSource).not.toContain('component: GamificationWorkspace');
+    expect(dashboardRoutesSource).toContain("path: '/gamification'");
+    expect(dashboardRoutesSource).toContain('component: AdminGamificationView');
+    expect(dashboardRoutesSource).not.toContain('component: GamificationWorkspace');
   });
 
   it('renders a reward economy guardrail on the canonical admin surface', () => {

@@ -11,7 +11,8 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const hookSource = stripComments(read('./useExerciseTeachData.ts'));
-const layoutSource = read('../../../components/DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../../../components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../../../components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const workoutPlannerSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx');
 const workoutPlannerLayoutSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPageLayout.tsx');
 const plannerSidebarSource = read('../../../components/DashBoard/Pages/admin-workout-planner/TeachModeSidebar.tsx');
@@ -22,10 +23,10 @@ const exerciseRoutesSource = read('../../../../../backend/routes/exerciseRoutes.
 
 describe('useExerciseTeachData auth pipeline', () => {
   it('is consumed by active workout planner and legacy coach teach-mode surfaces', () => {
-    expect(layoutSource).toMatch(/const WorkoutPlannerPage = React\.lazy\(\(\) => import\('\.\/Pages\/admin-workout-planner\/WorkoutPlannerPage'\)\)/);
-    expect(layoutSource).toMatch(/const CoachCommandCenterPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/CoachCommandCenterPage'\)\)/);
-    expect(layoutSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
-    expect(layoutSource).toMatch(/path: '\/coach-assistant', component: CoachCommandCenterPage/);
+    expect(routeComponentsSource).toMatch(/export const WorkoutPlannerPage = React\.lazy\(\(\) => import\('\.\/Pages\/admin-workout-planner\/WorkoutPlannerPage'\)\)/);
+    expect(routeComponentsSource).toMatch(/export const CoachCommandCenterPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/CoachCommandCenterPage'\)\)/);
+    expect(dashboardRoutesSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
+    expect(dashboardRoutesSource).toMatch(/path: '\/coach-assistant', component: CoachCommandCenterPage/);
     expect(workoutPlannerSource).toMatch(/teachModeProps:\s*\{\s*exercise:\s*selectedExercise,\s*phaseNumber,\s*onPhaseChange:\s*setPhaseNumber\s*\}/);
     expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);
     expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar \{\.\.\.teachModeProps\} onClose=\{onTeachModeToggle\} \/>/);

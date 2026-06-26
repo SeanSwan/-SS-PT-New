@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   AdminClientDetailsRedirect,
+  AdminLogWorkoutRedirect,
   AdminClientProgressView,
   AdminGamificationView,
   AdminPackagesView,
@@ -121,7 +122,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
       { path: '/feature-access', component: FeatureAccessPage, title: 'Feature Access', description: 'Per-user feature flag management' },
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
-      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM workout logging' },
+      { path: '/log-workout', component: AdminLogWorkoutRedirect, title: 'Log Client Workout', description: 'Redirects to the Client Hub workout logger' },
       { path: '/log-my-workout', component: AdminPersonalWorkoutLogger, title: 'Log My Workout', description: 'Owner personal workout logger' },
       { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },

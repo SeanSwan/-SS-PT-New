@@ -15,8 +15,8 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
 );
-const layoutSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
+const dashboardRoutesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.routes.tsx'),
   'utf8',
 );
 const routeSource = readFileSync(
@@ -46,7 +46,7 @@ describe('WaiverSummaryWidget active surface truth contract', () => {
 
   it('routes every row and the command button to the active waiver manager', () => {
     expect(source).toContain("navigate('/dashboard/admin/waivers')");
-    expect(layoutSource).toContain("{ path: '/waivers'");
+    expect(dashboardRoutesSource).toContain("{ path: '/waivers'");
   });
 
   it('does not present waiver fetch failures as a clean empty queue', () => {

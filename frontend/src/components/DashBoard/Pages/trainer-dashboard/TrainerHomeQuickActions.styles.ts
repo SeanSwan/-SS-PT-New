@@ -13,10 +13,10 @@ export const SectionHeading = styled.h3`
 
 export const QuickGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 
-  @media (max-width: 700px) { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 700px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 520px) { grid-template-columns: 1fr; }
 `;
 

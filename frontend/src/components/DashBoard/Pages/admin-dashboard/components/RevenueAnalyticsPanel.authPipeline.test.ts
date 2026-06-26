@@ -6,15 +6,16 @@ const lineCount = (source: string) => source.split(/\r?\n/).length;
 
 describe('RevenueAnalyticsPanel auth pipeline', () => {
   it('is mounted as the admin revenue analytics route and backed by finance APIs', () => {
-    const dashboardLayoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource('src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+    const dashboardRoutesSource = readSource('src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const backendMounts = readSource('../backend/core/routes.mjs');
     const analyticsRoutes = readSource('../backend/routes/admin/analyticsRevenueRoutes.mjs');
     const financeRoutes = readSource('../backend/routes/admin/adminFinanceRoutes.mjs');
 
-    expect(dashboardLayoutSource).toContain(
-      "const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'))"
+    expect(routeComponentsSource).toContain(
+      "export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'))"
     );
-    expect(dashboardLayoutSource).toContain("{ path: '/revenue', component: RevenueAnalyticsPanel");
+    expect(dashboardRoutesSource).toContain("{ path: '/revenue', component: RevenueAnalyticsPanel");
     expect(backendMounts).toContain("app.use('/api/admin/analytics', analyticsRevenueRoutes)");
     expect(backendMounts).toContain("app.use('/api/admin/finance', adminFinanceRoutes)");
     expect(analyticsRoutes).toContain("router.get('/revenue'");

@@ -11,6 +11,8 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const layoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const backendMountSource = read('../../../../backend/core/routes.mjs');
 const videoSessionRoutesSource = read('../../../../backend/routes/videoSessionRoutes.mjs');
 
@@ -30,8 +32,9 @@ const expectSharedTransport = (source: string) => {
 
 describe('Video Call auth pipeline', () => {
   it('is mounted as dashboard video-call and backed by protected video session routes', () => {
-    expect(layoutSource).toMatch(/const VideoCallPage = React\.lazy\(\(\) => import\('\.\.\/VideoChat\/VideoCallPage'\)\)/);
-    const routeMatches = layoutSource.match(/path: '\/video-call', component: VideoCallPage/g) || [];
+    expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toMatch(/export const VideoCallPage = React\.lazy\(\(\) => import\('\.\.\/VideoChat\/VideoCallPage'\)\)/);
+    const routeMatches = dashboardRoutesSource.match(/path: '\/video-call', component: VideoCallPage/g) || [];
     expect(routeMatches.length).toBeGreaterThanOrEqual(2);
     expect(backendMountSource).toMatch(/app\.use\('\/api\/video-sessions', videoSessionRoutes\)/);
     expect(videoSessionRoutesSource).toMatch(/router\.use\(protect\)/);

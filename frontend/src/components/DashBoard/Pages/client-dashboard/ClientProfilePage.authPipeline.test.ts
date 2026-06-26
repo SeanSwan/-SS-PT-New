@@ -11,15 +11,16 @@ const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
 const pageSource = stripComments(read('./ClientProfilePage.tsx'));
-const layoutSource = read('../../UniversalDashboardLayout.tsx');
+const routeComponentsSource = read('../../UniversalDashboardLayout.routeComponents.tsx');
+const dashboardRoutesSource = read('../../UniversalDashboardLayout.routes.tsx');
 const sidebarSource = read('./ClientStellarSidebar.tsx');
 const backendMountSource = read('../../../../../../backend/core/routes.mjs');
 const profileRoutesSource = read('../../../../../../backend/routes/profileRoutes.mjs');
 
 describe('ClientProfilePage auth pipeline', () => {
   it('is mounted as the client profile/settings dashboard surface backed by protected profile routes', () => {
-    expect(layoutSource).toMatch(/const ClientProfilePage = React\.lazy\(\(\) => import\('\.\/Pages\/client-dashboard\/ClientProfilePage'\)\)/);
-    expect(layoutSource).toMatch(/path:\s*'\/profile', component: ClientProfilePage/);
+    expect(routeComponentsSource).toMatch(/export const ClientProfilePage = React\.lazy\(\(\) => import\('\.\/Pages\/client-dashboard\/ClientProfilePage'\)\)/);
+    expect(dashboardRoutesSource).toMatch(/path:\s*'\/profile', component: ClientProfilePage/);
     expect(sidebarSource).toContain("path: '/dashboard/client/profile'");
     expect(backendMountSource).toContain("app.use('/api/profile', profileRoutes)");
     expect(profileRoutesSource).toContain("router.get('/', protect, getUserProfile)");

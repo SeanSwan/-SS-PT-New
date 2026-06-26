@@ -10,11 +10,16 @@ const readSource = (relativePath: string) =>
 describe('admin SMS logs auth pipeline', () => {
   it('covers mounted SMS logs route and backend SMS routes', () => {
     const dashboardSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const routeComponentsSource = readSource(
+      'frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx',
+    );
+    const dashboardRoutesSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const smsRoutesSource = readSource('backend/routes/smsRoutes.mjs');
 
-    expect(dashboardSource).toContain("const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'))");
-    expect(dashboardSource).toContain("{ path: '/sms-logs', component: SMSLogsPanel");
+    expect(dashboardSource).toContain("from './UniversalDashboardLayout.routes'");
+    expect(routeComponentsSource).toContain("export const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'))");
+    expect(dashboardRoutesSource).toContain("{ path: '/sms-logs', component: SMSLogsPanel");
     expect(coreRoutesSource).toContain("app.use('/api/sms', smsRoutes)");
     expect(smsRoutesSource).toContain("router.get('/logs'");
     expect(smsRoutesSource).toContain("router.post('/send'");
