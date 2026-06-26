@@ -12,6 +12,27 @@ const parsePositiveInt = (value) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
+const normalizeText = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const normalizeOptionalText = (value) => {
+  const normalized = normalizeText(value);
+  return normalized || null;
+};
+
+const normalizeEmail = (value) => normalizeText(value).toLowerCase();
+
+const genericPublicOrientationSuccess = {
+  message: 'Orientation submitted successfully. We will contact you soon!'
+};
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[char]));
+
 /**
  * orientationSignup Controller
  *
@@ -98,46 +119,48 @@ export const orientationSubmit = async (req, res) => {
       healthInfo,
       waiverInitials,
       trainingGoals,
-      experienceLevel,
-      status = 'pending',
-      source = 'website'
+      experienceLevel
     } = req.body;
 
+    const normalizedFullName = normalizeText(fullName);
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedPhone = normalizeText(phone);
+    const normalizedHealthInfo = normalizeText(healthInfo);
+    const normalizedWaiverInitials = normalizeText(waiverInitials);
+
     // Basic validation: ensure required fields are provided.
-    if (!fullName || !email || !phone || !healthInfo || !waiverInitials) {
+    if (!normalizedFullName || !normalizedEmail || !normalizedPhone || !normalizedHealthInfo || !normalizedWaiverInitials) {
       logger.warn('Orientation submission validation failed');
       return res.status(400).json({ message: 'Please fill in all required fields.' });
     }
 
     // Check if an orientation already exists for this email
     const existingOrientation = await Orientation.findOne({
-      where: { email }
+      where: sqlWhere(fn('LOWER', col('email')), normalizedEmail)
     });
 
     if (existingOrientation) {
-      logger.warn(`Orientation already exists for email: ${email}`);
-      return res.status(409).json({ 
-        message: 'An orientation has already been submitted for this email.',
-        existingOrientation: {
-          id: existingOrientation.id,
-          status: existingOrientation.status,
-          submittedAt: existingOrientation.createdAt
-        }
-      });
+      logger.warn('Duplicate public orientation submission received');
+      return successResponse(
+        res,
+        genericPublicOrientationSuccess,
+        'Orientation submitted successfully',
+        200
+      );
     }
 
     // Create a new orientation record without a userId
     const orientation = await Orientation.create({
-      fullName,
-      email,
-      phone,
-      healthInfo,
-      waiverInitials,
-      trainingGoals: trainingGoals || null,
-      experienceLevel: experienceLevel || null,
+      fullName: normalizedFullName,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+      healthInfo: normalizedHealthInfo,
+      waiverInitials: normalizedWaiverInitials,
+      trainingGoals: normalizeOptionalText(trainingGoals),
+      experienceLevel: normalizeOptionalText(experienceLevel),
       userId: null, // No user association for public submissions
-      status,
-      source
+      status: 'pending',
+      source: 'website'
     });
 
     logger.info(`Public orientation record created: ${orientation.id}`);
@@ -146,14 +169,12 @@ export const orientationSubmit = async (req, res) => {
     await sendOrientationNotifications(orientation, req.body);
 
     // Return successful response
-    return successResponse(res, {
-      message: 'Orientation submitted successfully. We will contact you soon!',
-      orientation: {
-        id: orientation.id,
-        status: orientation.status,
-        submittedAt: orientation.createdAt
-      }
-    }, 'Orientation submitted successfully', 201);
+    return successResponse(
+      res,
+      genericPublicOrientationSuccess,
+      'Orientation submitted successfully',
+      201
+    );
     
   } catch (error) {
     logger.error('Error in orientationSubmit:', error.message, { stack: error.stack });
@@ -165,7 +186,18 @@ export const orientationSubmit = async (req, res) => {
  * Helper function to send orientation notifications
  */
 const sendOrientationNotifications = async (orientation, formData) => {
-  const { fullName, email, phone, healthInfo, trainingGoals, experienceLevel } = formData;
+  const fullName = normalizeText(formData.fullName);
+  const email = normalizeEmail(formData.email);
+  const phone = normalizeText(formData.phone);
+  const healthInfo = normalizeText(formData.healthInfo);
+  const trainingGoals = normalizeOptionalText(formData.trainingGoals);
+  const experienceLevel = normalizeOptionalText(formData.experienceLevel);
+  const safeFullName = escapeHtml(fullName);
+  const safeEmail = escapeHtml(email);
+  const safePhone = escapeHtml(phone);
+  const safeHealthInfo = escapeHtml(healthInfo);
+  const safeTrainingGoals = escapeHtml(trainingGoals || 'Not specified');
+  const safeExperienceLevel = escapeHtml(experienceLevel || 'Not specified');
   
   // Prepare confirmation email for the user
   const userEmailText = `
@@ -192,9 +224,9 @@ const sendOrientationNotifications = async (orientation, formData) => {
       
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0;">
         <h3 style="margin-top: 0; color: #555;">Your Details:</h3>
-        <p><strong>Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
+        <p><strong>Name:</strong> ${safeFullName}</p>
+        <p><strong>Email:</strong> ${safeEmail}</p>
+        <p><strong>Phone:</strong> ${safePhone}</p>
       </div>
       
       <p>If you have any questions, please don't hesitate to contact us.</p>
@@ -242,17 +274,17 @@ const sendOrientationNotifications = async (orientation, formData) => {
       
       <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 15px 0;">
         <h3 style="margin-top: 0; color: #555;">Client Details:</h3>
-        <p><strong>Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Experience Level:</strong> ${experienceLevel || 'Not specified'}</p>
+        <p><strong>Name:</strong> ${safeFullName}</p>
+        <p><strong>Email:</strong> ${safeEmail}</p>
+        <p><strong>Phone:</strong> ${safePhone}</p>
+        <p><strong>Experience Level:</strong> ${safeExperienceLevel}</p>
       </div>
       
       <h3 style="color: #555;">Health Information:</h3>
-      <p>${healthInfo}</p>
+      <p>${safeHealthInfo}</p>
       
       <h3 style="color: #555;">Training Goals:</h3>
-      <p>${trainingGoals || 'Not specified'}</p>
+      <p>${safeTrainingGoals}</p>
       
       <p>Please log in to the admin dashboard to view the complete details.</p>
     </div>

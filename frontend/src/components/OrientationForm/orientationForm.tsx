@@ -25,6 +25,14 @@ interface OrientationFormProps {
   returnToStore?: boolean;
 }
 
+interface OrientationReadyAccount {
+  message: string;
+  detail: string;
+  buttonLabel: string;
+  dashboardPath: string;
+  showScheduleLink?: boolean;
+}
+
 /* -------------------- Animations -------------------- */
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -542,9 +550,45 @@ const ScheduleLink = styled(Link)`
 
 /* -------------------- OrientationForm Component -------------------- */
 
+const getOrientationReadyAccount = (user: any): OrientationReadyAccount | null => {
+  if (!user) return null;
+
+  const role = typeof user.role === 'string' ? user.role.toLowerCase() : '';
+
+  if (role === 'admin') {
+    return {
+      message: 'Admin account is ready.',
+      detail: 'Use your admin dashboard to manage clients, scheduling, and operations.',
+      buttonLabel: 'Go to Admin Dashboard',
+      dashboardPath: '/dashboard/admin'
+    };
+  }
+
+  if (role === 'trainer') {
+    return {
+      message: 'Trainer account is ready.',
+      detail: 'Use your trainer dashboard to manage client training and scheduling.',
+      buttonLabel: 'Go to Trainer Dashboard',
+      dashboardPath: '/dashboard/trainer/overview'
+    };
+  }
+
+  if (role === 'client' || isNonDeductingClientAccount(user)) {
+    return {
+      message: 'Client account is ready.',
+      detail: 'Use your dashboard to schedule sessions and continue training.',
+      buttonLabel: 'Go to User Dashboard',
+      dashboardPath: '/user-dashboard',
+      showScheduleLink: true
+    };
+  }
+
+  return null;
+};
+
 const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStore = false }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, authAxios } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -557,7 +601,7 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const controls = useAnimation();
-  const existingClientAccount = user?.role === 'client' || isNonDeductingClientAccount(user as any);
+  const orientationReadyAccount = getOrientationReadyAccount(user);
 
   // Store the scroll position when the form opens
   const scrollPositionRef = useRef(0);
@@ -593,11 +637,11 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose, returnToStor
     window.scrollTo(0, scrollPositionRef.current);
   };
 
-  const handleGoToUserDashboard = () => {
+  const handleGoToDashboard = () => {
     document.body.classList.remove('orientation-modal-open');
     onClose?.();
     window.scrollTo(0, scrollPositionRef.current);
-    navigate('/user-dashboard');
+    navigate(orientationReadyAccount?.dashboardPath ?? '/user-dashboard');
   };
 
   const handleScheduleLinkClick = () => {
@@ -673,29 +717,41 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
     }
 
     try {
-      // API call to submit orientation
-      const response = await fetch('/api/orientation/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          submittedAt: new Date().toISOString(),
-          status: 'pending',
-          source: 'website'
-        }),
-      });
+      const payload = {
+        ...formData,
+        submittedAt: new Date().toISOString(),
+        status: 'pending'
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit orientation');
+      if (user?.id) {
+        const response = await authAxios.post('/api/orientation/signup', {
+          ...payload,
+          source: 'authenticated'
+        });
+
+        logger.log("Orientation form submitted:", response.data);
+      } else {
+        const response = await fetch('/api/orientation/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...payload,
+            source: 'website'
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to submit orientation');
+        }
+
+        const result = await response.json();
+        logger.log("Orientation form submitted:", result);
       }
 
-      const result = await response.json();
-      logger.log("Orientation form submitted:", result);
       setSubmitted(true);
-
     } catch (apiError) {
       setError(apiError.message || "An error occurred while submitting the form. Please try again.");
       console.error("Orientation form submission error:", apiError);
@@ -741,20 +797,22 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
               Orientation Signup
             </FormTitle>
 
-            {existingClientAccount ? (
+            {orientationReadyAccount ? (
               <SuccessMessage
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
               >
-                <p>Client account is ready.</p>
-                <span>Use your dashboard to schedule sessions and continue training.</span>
-                <SubmitButton type="button" onClick={handleGoToUserDashboard}>
-                  Go to User Dashboard
+                <p>{orientationReadyAccount.message}</p>
+                <span>{orientationReadyAccount.detail}</span>
+                <SubmitButton type="button" onClick={handleGoToDashboard}>
+                  {orientationReadyAccount.buttonLabel}
                 </SubmitButton>
-                <ScheduleLinkContainer>
-                  <ScheduleLink to="/schedule" onClick={handleScheduleLinkClick}>Open Schedule</ScheduleLink>
-                </ScheduleLinkContainer>
+                {orientationReadyAccount.showScheduleLink && (
+                  <ScheduleLinkContainer>
+                    <ScheduleLink to="/schedule" onClick={handleScheduleLinkClick}>Open Schedule</ScheduleLink>
+                  </ScheduleLinkContainer>
+                )}
               </SuccessMessage>
             ) : submitted ? (
               <SuccessMessage
