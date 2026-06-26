@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import rateLimit from 'express-rate-limit';
 import { generateWorkout, generatePlan } from '../services/workoutBuilderService.mjs';
+import { createWorkoutCandidatesHandler } from './workoutBuilderCandidateRouteHandler.mjs';
 import { ALLOWED_GOALS } from '../services/workoutBuilderGoalConfig.mjs';
 import { normalizeTrainingStyle } from '../services/workoutBuilderTrainingStyle.mjs';
 import { getCorrectiveExercisesForCompensations } from '../services/ai/correctiveExerciseService.mjs';
@@ -267,6 +268,11 @@ router.post('/plan', async (req, res) => {
     });
   }
 });
+
+router.post('/candidates', createWorkoutCandidatesHandler({
+  enforceWorkoutGenAccess,
+  safeWorkoutBuilderDetails,
+}));
 
 /**
  * POST /api/workout-builder/corrective-recommendations  (V3c.2)

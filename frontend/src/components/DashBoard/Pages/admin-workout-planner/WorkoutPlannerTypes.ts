@@ -79,6 +79,21 @@ export interface GeneratedWorkout {
     intensityMethod?: HardcoreTrainingMethod;
     coachingCue?: string;
     trainingStyleGuardrail?: string;
+    readinessNote?: string;
+    readinessIntensityGuardrail?: string;
+    videoUrl?: string | null;
+    previewVideoUrl?: string | null;
+    imageUrl?: string | null;
+    thumbnailUrl?: string | null;
+    defaultTempo?: string | null;
+    defaultRestSeconds?: number | null;
+    recommendedSets?: number | null;
+    recommendedReps?: number | null;
+    recommendedDuration?: number | null;
+    exerciseType?: string | null;
+    bodyPartCategory?: string | null;
+    secondaryMuscles?: string[];
+    difficulty?: number | null;
   }[];
   swapSuggestions: { original: string; replacements: string[] }[];
   cooldown: { name: string; duration?: string; sets?: number; reps?: number }[];
@@ -149,6 +164,7 @@ export interface GeneratedPlan {
     startingPhase: number;
     equipmentProfileId?: number | null;
     trainingStyle?: TrainingStyleMetadata;
+    readinessLevel?: string;
   };
   mesocycles: {
     mesocycle: number;

@@ -63,6 +63,7 @@ const renderGenerationHook = (overrides: Record<string, unknown> = {}) => {
     sessionsPerWeek: 3,
     trainingIntensityMode: 'base',
     hardcoreMethod: 'standard',
+    generationMode: 'auto',
     selectedEquipmentProfileId: null,
     ...setters,
     ...overrides,

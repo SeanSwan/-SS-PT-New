@@ -379,8 +379,24 @@ export function getRotationPatterns() {
 /**
  * Get exercise registry from DB (840+ exercises).
  * Falls back to hardcoded 81 if DB is unavailable.
- * Returns array of { key, name, muscles, category, equipment, nasmLevel, movementPattern }.
+ * Returns registry entries with variation metadata plus Rolodex media/default fields when present.
  */
+const DB_REGISTRY_ATTRIBUTES = [
+  'id', 'name', 'exercise_key', 'exerciseType', 'bodyPartCategory',
+  'primaryMuscles', 'secondaryMuscles', 'equipmentNeeded',
+  'difficulty', 'nasmMovementPattern', 'force', 'source',
+  'videoUrl', 'previewVideoUrl', 'imageUrl', 'thumbnailUrl',
+  'defaultTempo', 'defaultRestSeconds', 'recommendedSets', 'recommendedReps',
+  'recommendedDuration', 'restInterval',
+];
+
+function availableRegistryAttributes(Exercise) {
+  const rawAttributes = Exercise?.rawAttributes;
+  if (!rawAttributes) return DB_REGISTRY_ATTRIBUTES;
+  const available = new Set(Object.keys(rawAttributes));
+  return DB_REGISTRY_ATTRIBUTES.filter(attribute => available.has(attribute));
+}
+
 export async function getExerciseRegistryFromDB() {
   const Exercise = safeGetExerciseModel();
   if (!Exercise) {
@@ -391,11 +407,7 @@ export async function getExerciseRegistryFromDB() {
   try {
     const exercises = await Exercise.findAll({
       where: { isActive: true },
-      attributes: [
-        'id', 'name', 'exercise_key', 'exerciseType', 'bodyPartCategory',
-        'primaryMuscles', 'secondaryMuscles', 'equipmentNeeded',
-        'difficulty', 'nasmMovementPattern', 'force', 'source',
-      ],
+      attributes: availableRegistryAttributes(Exercise),
       raw: true,
     });
 
@@ -410,6 +422,8 @@ export async function getExerciseRegistryFromDB() {
       try { muscles = typeof ex.primaryMuscles === 'string' ? JSON.parse(ex.primaryMuscles) : (ex.primaryMuscles || []); } catch { muscles = []; }
       let equipment = [];
       try { equipment = typeof ex.equipmentNeeded === 'string' ? JSON.parse(ex.equipmentNeeded) : (ex.equipmentNeeded || []); } catch { equipment = []; }
+      let secondaryMuscles = [];
+      try { secondaryMuscles = typeof ex.secondaryMuscles === 'string' ? JSON.parse(ex.secondaryMuscles) : (ex.secondaryMuscles || []); } catch { secondaryMuscles = []; }
 
       // Map difficulty (0-1000) to NASM level (1-5)
       const nasmLevel = ex.difficulty <= 200 ? 1
@@ -426,14 +440,29 @@ export async function getExerciseRegistryFromDB() {
       };
 
       return {
+        id: ex.id,
         key: ex.exercise_key || `db-${ex.id}`,
         name: ex.name,
         muscles: Array.isArray(muscles) ? muscles : [],
+        secondaryMuscles: Array.isArray(secondaryMuscles) ? secondaryMuscles : [],
         category: categoryMap[(ex.bodyPartCategory || '').toLowerCase()] || ex.force || 'compound',
         equipment: Array.isArray(equipment) ? equipment : [],
         nasmLevel,
         movementPattern: ex.nasmMovementPattern || null,
+        nasmMovementPattern: ex.nasmMovementPattern || null,
+        exerciseType: ex.exerciseType || null,
+        bodyPartCategory: ex.bodyPartCategory || null,
+        difficulty: ex.difficulty ?? null,
         source: ex.source || 'unknown',
+        videoUrl: ex.videoUrl || null,
+        previewVideoUrl: ex.previewVideoUrl || null,
+        imageUrl: ex.imageUrl || null,
+        thumbnailUrl: ex.thumbnailUrl || null,
+        defaultTempo: ex.defaultTempo || null,
+        defaultRestSeconds: ex.defaultRestSeconds ?? ex.restInterval ?? null,
+        recommendedSets: ex.recommendedSets ?? null,
+        recommendedReps: ex.recommendedReps ?? null,
+        recommendedDuration: ex.recommendedDuration ?? null,
       };
     });
   } catch (err) {

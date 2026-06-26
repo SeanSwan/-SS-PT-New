@@ -200,6 +200,8 @@ const generatedExerciseNotes = (exercise: GeneratedExercise) => {
       : null,
     exercise.coachingCue || null,
     exercise.trainingStyleGuardrail || null,
+    exercise.readinessNote || null,
+    exercise.readinessIntensityGuardrail || null,
   ];
   return notes.filter(Boolean).join(' ');
 };
@@ -208,10 +210,21 @@ const generatedExerciseSlim = (exercise: GeneratedExercise) => ({
   id: exercise.exerciseKey,
   name: exercise.exerciseName,
   exerciseKey: exercise.exerciseKey,
-  exerciseType: generatedExerciseType(exercise),
-  bodyPartCategory: generatedExercisePrimaryBodyPart(exercise),
+  exerciseType: exercise.exerciseType || generatedExerciseType(exercise),
+  bodyPartCategory: exercise.bodyPartCategory || generatedExercisePrimaryBodyPart(exercise),
   primaryMuscles: generatedExerciseMuscles(exercise),
-  difficulty: 300,
+  secondaryMuscles: exercise.secondaryMuscles || [],
+  difficulty: exercise.difficulty ?? 300,
+  equipment: exercise.equipment || [],
+  videoUrl: exercise.videoUrl ?? null,
+  previewVideoUrl: exercise.previewVideoUrl ?? null,
+  imageUrl: exercise.imageUrl ?? null,
+  thumbnailUrl: exercise.thumbnailUrl ?? null,
+  defaultTempo: exercise.defaultTempo ?? null,
+  defaultRestSeconds: exercise.defaultRestSeconds ?? null,
+  recommendedSets: exercise.recommendedSets ?? null,
+  recommendedReps: exercise.recommendedReps ?? null,
+  recommendedDuration: exercise.recommendedDuration ?? null,
 });
 
 const mapGeneratedExerciseToPlanExercise = (

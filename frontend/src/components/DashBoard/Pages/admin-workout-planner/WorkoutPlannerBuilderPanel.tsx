@@ -7,8 +7,14 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import type { OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
+import type {
+  SwanCoachGenerationMode,
+  WorkoutGuidedCandidateExercise,
+  WorkoutGuidedCandidatesResponse,
+} from './WorkoutPlannerGuidedCandidateTypes';
 import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
+import WorkoutPlannerGuidedCandidatesPanel from './WorkoutPlannerGuidedCandidatesPanel';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import { PanelBody, PanelHeader, PanelTitle } from './WorkoutPlannerStyles';
 import { DegradedPanel } from './WorkoutPlannerPage.styles';
@@ -34,6 +40,9 @@ interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   savedPlans: SavedPlanSummary[];
   isDirty: boolean;
   generating: boolean;
+  generatingCandidates: boolean;
+  guidedCandidates: WorkoutGuidedCandidatesResponse | null;
+  generationMode: SwanCoachGenerationMode;
   phase: OPTPhaseParams;
   explanations: WorkoutPlannerBuilderExplanation[];
   showExplanations: boolean;
@@ -47,6 +56,8 @@ interface WorkoutPlannerBuilderPanelProps extends GeneratedPlanSectionProps {
   onUpdateExercise: (id: string, field: keyof PlanExercise, value: unknown) => void;
   onRemoveExercise: (id: string) => void;
   onBrowseAddExercise: () => void;
+  onSelectGuidedCandidate: (candidate: WorkoutGuidedCandidateExercise) => void;
+  onClearGuidedCandidates: () => void;
   onToggleExplanations: () => void;
 }
 
@@ -59,6 +70,9 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   savedPlans,
   isDirty,
   generating,
+  generatingCandidates,
+  guidedCandidates,
+  generationMode,
   phase,
   explanations,
   showExplanations,
@@ -77,6 +91,8 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
   onUpdateExercise,
   onRemoveExercise,
   onBrowseAddExercise,
+  onSelectGuidedCandidate,
+  onClearGuidedCandidates,
   onToggleExplanations,
   onSelectedMesoDayChange,
   onPhaseNumberChange,
@@ -121,6 +137,13 @@ const WorkoutPlannerBuilderPanel: React.FC<WorkoutPlannerBuilderPanelProps> = ({
           />
         ) : (
           <>
+            <WorkoutPlannerGuidedCandidatesPanel
+              candidates={guidedCandidates}
+              generationMode={generationMode}
+              generatingCandidates={generatingCandidates}
+              onSelectCandidate={onSelectGuidedCandidate}
+              onClearCandidates={onClearGuidedCandidates}
+            />
             <BuilderWorkoutContent
               generating={generating}
               planExercises={planExercises}

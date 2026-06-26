@@ -10,6 +10,7 @@ import type {
   PlannerClient,
   PlannerEquipmentProfile,
 } from './WorkoutPlannerTypes';
+import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 
 export type ClientSelfGenerationStatus = 'enabled' | 'disabled' | 'unknown';
 
@@ -43,9 +44,14 @@ export const generationTitle = (clientGenBlocked: boolean): string | undefined =
     : undefined
 );
 
-export const generationLabel = (isGenerating: boolean, planDuration: PlanDuration): string => {
+export const generationLabel = (
+  isGenerating: boolean,
+  planDuration: PlanDuration,
+  generationMode: SwanCoachGenerationMode,
+): string => {
   if (isGenerating) return 'Planning...';
-  return planDuration === 'single' ? 'Swan Coach Generate' : 'Swan Coach Plan';
+  if (planDuration !== 'single') return 'Swan Coach Plan';
+  return generationMode === 'auto' ? 'Swan Coach Generate' : 'Get Options';
 };
 
 export const generationHandler = (

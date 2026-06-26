@@ -17,6 +17,7 @@ import type {
   TrainingIntensityMode,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
 import {
   buildPlanGenerationRequest,
   buildWorkoutGenerationRequest,
@@ -32,6 +33,8 @@ import {
   workoutGenerationErrorMessage,
 } from './workoutPlannerGenerationActions.helpers';
 import type { GeneratedWorkoutPayload } from './workoutPlannerGenerationActions.helpers';
+import { isGuidedGenerationMode } from './workoutPlannerGuidedCandidates.helpers';
+import { useWorkoutPlannerGuidedCandidateActions } from './useWorkoutPlannerGuidedCandidateActions';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 
 interface PlannerAuthClient {
@@ -48,6 +51,7 @@ interface WorkoutPlannerGenerationActionsInput {
   selectedEquipmentProfileId: number | null;
   trainingIntensityMode: TrainingIntensityMode;
   hardcoreMethod: HardcoreTrainingMethod;
+  generationMode: SwanCoachGenerationMode;
   setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setPhaseNumber: Dispatch<SetStateAction<number>>;
@@ -68,13 +72,6 @@ interface WorkoutApplicationInput {
 
 interface PlanApplicationInput {
   plan: GeneratedPlan;
-  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
-  setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-}
-
-interface VerifiedPlanApplicationInput {
-  data: unknown;
   setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
@@ -107,36 +104,6 @@ const verifiedGeneratedPlan = (
   return null;
 };
 
-const applyGeneratedWorkoutDegradedState = (
-  workout: GeneratedWorkoutPayload,
-  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>,
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
-) => {
-  const isDegraded = workout.context?.criticalDataUnavailable === true;
-  setDegradedIntelligence(isDegraded);
-  if (!isDegraded) return;
-  setStatusMsg({ type: 'error', text: generatedWorkoutSafetyWarning(workout) });
-};
-
-const applyGeneratedWorkoutPhase = (
-  workout: GeneratedWorkoutPayload,
-  setPhaseNumber: Dispatch<SetStateAction<number>>,
-) => {
-  if (!workout.nasmPhase) return;
-  setPhaseNumber(workout.nasmPhase);
-};
-
-const applyGeneratedWorkoutExplanations = (
-  workout: GeneratedWorkoutPayload,
-  setExplanations: Dispatch<SetStateAction<WorkoutPlannerBuilderExplanation[]>>,
-  setShowExplanations: Dispatch<SetStateAction<boolean>>,
-) => {
-  const explanations = workout.explanations ?? [];
-  if (explanations.length === 0) return;
-  setExplanations(explanations);
-  setShowExplanations(true);
-};
-
 const applyGeneratedWorkout = ({
   workout,
   setDegradedIntelligence,
@@ -147,11 +114,17 @@ const applyGeneratedWorkout = ({
   setStatusMsg,
   resetLoadedPlanState,
 }: WorkoutApplicationInput) => {
-  applyGeneratedWorkoutDegradedState(workout, setDegradedIntelligence, setStatusMsg);
-  applyGeneratedWorkoutPhase(workout, setPhaseNumber);
+  const isDegraded = workout.context?.criticalDataUnavailable === true;
+  setDegradedIntelligence(isDegraded);
+  if (isDegraded) setStatusMsg({ type: 'error', text: generatedWorkoutSafetyWarning(workout) });
+  if (workout.nasmPhase) setPhaseNumber(workout.nasmPhase);
   setPlanExercises(mapGeneratedWorkoutToPlanExercises(workout));
   resetLoadedPlanState();
-  applyGeneratedWorkoutExplanations(workout, setExplanations, setShowExplanations);
+  const explanations = workout.explanations ?? [];
+  if (explanations.length > 0) {
+    setExplanations(explanations);
+    setShowExplanations(true);
+  }
 };
 
 const applyGeneratedPlan = ({
@@ -168,17 +141,6 @@ const applyGeneratedPlan = ({
     : { type: 'success', text: `${plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
 };
 
-const applyVerifiedGeneratedPlan = ({
-  data,
-  setDegradedIntelligence,
-  setGeneratedPlan,
-  setStatusMsg,
-}: VerifiedPlanApplicationInput) => {
-  const plan = verifiedGeneratedPlan(data, setStatusMsg);
-  if (!plan) return;
-  applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
-};
-
 export const useWorkoutPlannerGenerationActions = ({
   authAxios,
   category,
@@ -189,6 +151,7 @@ export const useWorkoutPlannerGenerationActions = ({
   selectedEquipmentProfileId,
   trainingIntensityMode,
   hardcoreMethod,
+  generationMode,
   setPlanExercises,
   setGeneratedPlan,
   setPhaseNumber,
@@ -200,22 +163,44 @@ export const useWorkoutPlannerGenerationActions = ({
   const [degradedIntelligence, setDegradedIntelligence] = useState(false);
   const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
+  const {
+    guidedCandidates,
+    generatingCandidates,
+    clearGuidedCandidates,
+    handleGuidedCandidateGenerate,
+    handleSelectGuidedCandidate,
+  } = useWorkoutPlannerGuidedCandidateActions({
+    authAxios,
+    category,
+    goal,
+    phaseNumber,
+    selectedEquipmentProfileId,
+    trainingIntensityMode,
+    hardcoreMethod,
+    generationMode,
+    setPlanExercises,
+    setGeneratedPlan,
+    setStatusMsg,
+    resetLoadedPlanState,
+  });
 
-  const clearExplanations = useCallback(() => {
-    setExplanations([]);
-  }, []);
-
-  const handleToggleExplanations = useCallback(() => {
-    setShowExplanations(value => !value);
-  }, []);
+  const clearExplanations = useCallback(() => setExplanations([]), []);
+  const handleToggleExplanations = useCallback(() => setShowExplanations(value => !value), []);
 
   const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
+    if (isGuidedGenerationMode(generationMode)) {
+      setGenerating(true);
+      await handleGuidedCandidateGenerate(selectedClientId);
+      setGenerating(false);
+      return;
+    }
     if (!selectedClientId) return;
     setGenerating(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
     setExplanations([]);
     setShowExplanations(false);
+    clearGuidedCandidates();
     try {
       const res = await authAxios.post('/api/workout-builder/generate', buildWorkoutGenerationRequest({
         selectedClientId,
@@ -245,7 +230,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, clearGuidedCandidates, generationMode, goal, handleGuidedCandidateGenerate, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
@@ -254,6 +239,7 @@ export const useWorkoutPlannerGenerationActions = ({
     setStatusMsg(null);
     setGeneratedPlan(null);
     setPlanExercises([]);
+    clearGuidedCandidates();
     resetLoadedPlanState();
     try {
       const res = await authAxios.post('/api/workout-builder/plan', buildPlanGenerationRequest({
@@ -266,29 +252,29 @@ export const useWorkoutPlannerGenerationActions = ({
         trainingIntensityMode,
         hardcoreMethod,
       }));
-      applyVerifiedGeneratedPlan({
-        data: res.data,
-        setDegradedIntelligence,
-        setGeneratedPlan,
-        setStatusMsg,
-      });
+      const plan = verifiedGeneratedPlan(res.data, setStatusMsg);
+      if (plan) applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
     } catch (err: unknown) {
       logApiError('Plan generation failed', err);
       setStatusMsg(planGenerationErrorMessage(err));
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   return {
     generating,
     generatingPlan,
+    generatingCandidates,
+    guidedCandidates,
     degradedIntelligence,
     explanations,
     showExplanations,
     clearExplanations,
+    clearGuidedCandidates,
     handleSwanCoachWorkoutGenerate,
     handleGeneratePlan,
+    handleSelectGuidedCandidate,
     handleToggleExplanations,
   };
 };
