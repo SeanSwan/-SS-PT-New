@@ -57,7 +57,7 @@ export const HOME_DASHBOARD_SEARCH_ITEMS: DashboardSearchEntry[] = [
   { label: 'About', detail: 'Profile story and details', keywords: 'about bio profile story', Icon: Info, target: 'about' },
   { label: 'Activity', detail: 'Recent profile activity', keywords: 'activity timeline updates', Icon: Activity, target: 'activity' },
   { label: 'Schedule', detail: 'Book or review sessions', keywords: 'schedule booking sessions calendar', Icon: CalendarDays, path: '/dashboard/client/schedule' },
-  { label: 'Log Workout', detail: 'Open the workout logger', keywords: 'log workout training diary session', Icon: Dumbbell, path: '/dashboard/client/workouts' },
+  { label: 'Log Workout', detail: 'Open the workout logger', keywords: 'log workout training diary session', Icon: Dumbbell, path: '/dashboard/client/log-workout?loadPlan=today' },
   { label: 'Store', detail: 'SwanStudios gear and offers', keywords: 'store shop gear products', Icon: Store, path: '/store' },
   { label: 'Camera', detail: 'Photos and transformation media', keywords: 'camera upload photo media', Icon: Camera, target: 'photos' },
 ];
