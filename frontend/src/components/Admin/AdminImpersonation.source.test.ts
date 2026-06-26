@@ -92,6 +92,7 @@ describe('admin impersonation UI wiring', () => {
     expect(switcherStyles).toContain('> * {');
     expect(switcherStyles).toContain('grid-template-columns: minmax(390px, 1.1fr)');
     expect(switcherStyles).toContain('grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));');
+    expect(switcherStyles).not.toContain('<<');
     expect(switcherStyles).toContain('padding: 0 0.55rem;');
     expect(switcherStyles).not.toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
     expect(switcherStyles).toContain('white-space: normal');

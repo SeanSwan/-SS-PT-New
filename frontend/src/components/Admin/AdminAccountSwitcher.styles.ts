@@ -141,7 +141,7 @@ export const RoleSegment = styled.div`
   border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.22));
   border-radius: 8px;
   background: rgba(10, 10, 15, 0.6);
-<<
+
   @media (max-width: 420px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
