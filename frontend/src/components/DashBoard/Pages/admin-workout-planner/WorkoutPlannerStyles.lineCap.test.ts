@@ -29,7 +29,8 @@ describe('WorkoutPlannerStyles module split', () => {
     const modules = [
       ['WorkoutPlannerShell.styles.ts', ['export const Page', 'export const PanelBody']],
       ['WorkoutPlannerRolodex.styles.ts', ['export const SearchWrapper', 'export const Chip']],
-      ['WorkoutPlannerExercise.styles.ts', ['export const ExerciseItem', 'export const PhaseBadge']],
+      ['WorkoutPlannerRolodexCard.styles.ts', ['export const ExerciseItem', 'export const PlannerMediaThumb']],
+      ['WorkoutPlannerExercise.styles.ts', ['export {', 'export const PhaseBadge']],
       ['WorkoutPlannerFeedback.styles.ts', ['export const SkeletonBlock', 'export const TeachToggle']],
       ['WorkoutPlannerPlanning.styles.ts', ['export const PlanModeBar', 'export const MesocycleCard']],
       ['WorkoutPlannerSchedule.styles.ts', ['export const ScheduleRow', 'export const ExportPdfBtn']],

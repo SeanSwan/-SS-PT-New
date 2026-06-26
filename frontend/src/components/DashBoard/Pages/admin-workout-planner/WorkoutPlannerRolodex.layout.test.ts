@@ -10,10 +10,10 @@ const CLIENT_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlanner
 const ROLODEX_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerRolodexState.tsx'), 'utf8');
 const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
 const ROLODEX_STYLE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodex.styles.ts'), 'utf8');
+const EXERCISE_CARD_STYLE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexCard.styles.ts'), 'utf8');
 const GENERATED_PLAN_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerGeneratedPlanSection.tsx'), 'utf8');
 const BUILDER_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerBuilderPanel.tsx'), 'utf8');
 const BUILDER_PANEL_SECTIONS_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerBuilderPanel.sections.tsx'), 'utf8');
-const EXERCISE_STYLE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExercise.styles.ts'), 'utf8');
 const ROW_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExerciseRow.tsx'), 'utf8');
 const TYPES_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerTypes.ts'), 'utf8');
 
@@ -21,16 +21,19 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
     expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 156;');
     expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?display:\s*flex/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?justify-content:\s*center/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?display:\s*grid/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/grid-template-columns:\s*clamp\(72px, 24%, 96px\) minmax\(0, 1fr\) 44px/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?display:\s*flex/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseRowContent[\s\S]*?justify-content:\s*center/);
   });
 
   it('keeps exercise names and meta chips contained inside the row card', () => {
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?box-sizing:\s*border-box/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*132px/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*54px/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?line-height:\s*1\.25/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?box-sizing:\s*border-box/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*132px/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?height:\s*calc\(100% - 8px\)/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*48px/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?line-height:\s*1\.25/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
   });
 
   it('renders compact impact labels so High/Medium badges cannot cover exercise names', () => {
@@ -39,21 +42,26 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(ROW_SOURCE).toMatch(/function formatImpactLabel\(impact: string\): string/);
     expect(ROW_SOURCE).toMatch(/formatImpactLabel\(impact\)/);
     expect(PAGE_SOURCE).not.toMatch(/<MetaTag \$impact=\{getJointImpact\(ex\)\}>\{getJointImpact\(ex\)\}<\/MetaTag>/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?max-width:\s*14ch/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?max-width:\s*min\(16ch, 100%\)/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?letter-spacing:\s*0/);
   });
 
   it('uses the shared logger media preview in non-interactive thumbnail mode', () => {
     expect(ROW_SOURCE).toContain("import ExerciseMediaPreview from '../../../WorkoutLogger/ExerciseMediaPreview';");
     expect(ROW_SOURCE).toMatch(/<ExerciseMediaPreview exercise=\{exercise\} variant="thumbnail" \/>/);
-    expect(EXERCISE_STYLE_SOURCE).toContain('export const PlannerMediaThumb');
+    expect(EXERCISE_CARD_STYLE_SOURCE).toContain('export const PlannerMediaThumb');
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/PlannerMediaThumb[\s\S]*?aspect-ratio:\s*auto/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/PlannerMediaThumb[\s\S]*?\[role='img'\][\s\S]*?-webkit-line-clamp:\s*2/);
   });
 
   it('keeps the mobile add control a real 44px keyboard-visible button', () => {
-    expect(EXERCISE_STYLE_SOURCE).not.toContain('width: 32px');
-    expect(EXERCISE_STYLE_SOURCE).not.toContain('height: 32px');
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?width:\s*44px/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?height:\s*44px/);
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?&:focus-visible/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('width: 32px');
+    expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('height: 32px');
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?width:\s*44px/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?height:\s*44px/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).toMatch(/ExerciseAddBtn[\s\S]*?&:focus-visible/);
+    expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('scale(1.1)');
+    expect(EXERCISE_CARD_STYLE_SOURCE).not.toContain('translateX(');
     expect(ROW_SOURCE).toMatch(/<ExerciseAddBtn[\s\S]*?type="button"/);
   });
 
