@@ -16,7 +16,7 @@ export const TargetPanel = styled.section`
   border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 32%, transparent);
   background: color-mix(in srgb, var(--accent-gold, #C6A84B) 7%, var(--bg-base, #030712));
   box-shadow: 0 0 18px color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
-  scroll-margin-block: 108px var(--mobile-dock-space, 232px);
+  scroll-margin-block: 132px max(132px, var(--mobile-dock-space, 160px));
 
   &:focus {
     outline: 2px solid var(--glow-accent, #8B5CF6);

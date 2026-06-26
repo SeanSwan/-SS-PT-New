@@ -57,8 +57,8 @@ const LoadButton = styled.button`
   gap: 0.45rem;
   min-height: 44px;
   width: 100%;
-  scroll-margin-top: 96px;
-  scroll-margin-bottom: max(120px, var(--mobile-dock-space, 160px));
+  scroll-margin-top: 132px;
+  scroll-margin-bottom: max(132px, var(--mobile-dock-space, 160px));
   padding: 0 0.875rem;
   border: 1px solid rgba(96,192,240,0.28);
   border-radius: 10px;

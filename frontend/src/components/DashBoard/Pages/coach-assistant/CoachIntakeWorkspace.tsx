@@ -125,7 +125,7 @@ export function CoachIntakeWorkspace({
     if (!panel) return undefined;
     const timer = window.setTimeout(() => {
       if (typeof panel.scrollIntoView === 'function') {
-        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        panel.scrollIntoView({ behavior: 'auto', block: 'center' });
       }
       if (typeof panel.focus === 'function') {
         panel.focus({ preventScroll: true });

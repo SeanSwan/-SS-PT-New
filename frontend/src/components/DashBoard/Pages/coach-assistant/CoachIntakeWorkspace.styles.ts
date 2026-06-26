@@ -8,6 +8,8 @@ export const Panel = styled.section`
   padding: clamp(10px, 1.6vw, 14px);
   box-sizing: border-box;
   overflow-x: hidden;
+  scroll-padding-top: 132px;
+  scroll-padding-bottom: max(132px, var(--mobile-dock-space, 160px));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   border-radius: 12px;
   background:

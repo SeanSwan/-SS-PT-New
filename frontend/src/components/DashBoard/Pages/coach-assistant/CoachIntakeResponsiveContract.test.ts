@@ -56,8 +56,11 @@ describe('Coach intake responsive contract', () => {
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(96px,\s*calc\(env\(safe-area-inset-bottom\) \+ 96px\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-top:\s*96px/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
-    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-top:\s*96px/);
-    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
+    expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-top:\s*132px/);
+    expect(workspaceStyles).toMatch(/Panel[\s\S]*scroll-padding-bottom:\s*max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
+    expect(targetStyles).toMatch(/scroll-margin-block:\s*132px\s+max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
+    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-top:\s*132px/);
+    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-bottom:\s*max\(132px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
   });
 
   it('keeps the work queue as the only post-snapshot triage rail', () => {
