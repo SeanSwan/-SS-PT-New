@@ -36,6 +36,12 @@ import type {
 } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
 
+const INVALID_SESSIONS_RESPONSE_MESSAGE = 'Invalid sessions response from /api/sessions.';
+
+const isInvalidSessionsResponseError = (error: unknown): boolean => (
+  error instanceof Error && error.message.startsWith(INVALID_SESSIONS_RESPONSE_MESSAGE)
+);
+
 const normalizeSessionsResponse = (payload: unknown): Session[] => {
   if (Array.isArray(payload)) {
     return payload as Session[];
@@ -49,11 +55,12 @@ const normalizeSessionsResponse = (payload: unknown): Session[] => {
     }
 
     const detail = typeof response.message === 'string' ? ` ${response.message}` : '';
-    throw new Error(`Invalid sessions response from /api/sessions.${detail}`);
+    throw new Error(`${INVALID_SESSIONS_RESPONSE_MESSAGE}${detail}`);
   }
 
-  throw new Error('Invalid sessions response from /api/sessions.');
+  throw new Error(INVALID_SESSIONS_RESPONSE_MESSAGE);
 };
+
 /**
  * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
  * Handles all scheduling operations with role-based access using the unified backend
@@ -88,7 +95,11 @@ class UniversalMasterScheduleService {
       const response: AxiosResponse<unknown> = await this.api.get(`/api/sessions?${params.toString()}`);
       return normalizeSessionsResponse(response.data);
     } catch (error: any) {
-      console.error('Error fetching sessions:', error);
+      if (isInvalidSessionsResponseError(error)) {
+        logger.warn('Sessions endpoint returned an invalid list response:', error);
+      } else {
+        console.error('Error fetching sessions:', error);
+      }
       throw error;
     }
   }
