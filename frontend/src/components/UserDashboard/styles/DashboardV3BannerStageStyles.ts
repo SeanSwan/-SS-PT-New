@@ -37,8 +37,9 @@ const stageMediaCss = css`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: var(--banner-object-position, center center);
+  background: transparent;
   user-select: none;
   -webkit-user-drag: none;
 `;

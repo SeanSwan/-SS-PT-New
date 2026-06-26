@@ -5,26 +5,19 @@
  * AUTHOR: Claude Fable 5 | CREATED: 2026-06-11
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Stacked full-bleed slides that fade through with a slow
- * Ken-Burns drift — the modern flagship-app cover. The active index is driven
- * by the media layer (JS interval, adaptive to photo count); these styles own
- * the fade, the drift, the legibility scrim, and the progress dots.
+ * WHAT THIS FILE DOES: Stacked full-image slides that fade through without
+ * crop drift. The active index is driven by the media layer (JS interval,
+ * adaptive to photo count); these styles own the fade, the legibility scrim,
+ * and the progress dots.
  *
  * KEY DECISIONS:
  * - Crossfade via opacity transition on stacked slides (no marquee track —
  *   the loop-seam class of bugs cannot exist here).
- * - Ken-Burns drift only on the ACTIVE slide, killed by prefers-reduced-motion
- *   (reduced-motion users get a clean static photo).
- * - Rule 43: the keyframes object is interpolated inside a css`` block.
  * - Scrim is a Crystalline gradient so overlaid identity/chips stay legible.
  */
 
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css } from 'styled-components';
 
-const kenBurns = keyframes`
-  from { transform: scale(1) translate3d(0, 0, 0); }
-  to { transform: scale(1.07) translate3d(-1.2%, -1%, 0); }
-`;
 
 export const BannerCrossfadeLayer = styled.div`
   position: absolute;
@@ -40,24 +33,17 @@ const crossfadeSlideCss = css<{ $active: boolean }>`
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: var(--banner-object-position, center center);
   opacity: ${({ $active }) => ($active ? 1 : 0)};
   transition: opacity 1600ms ease;
+  background: transparent;
   user-select: none;
   -webkit-user-drag: none;
 
-  @media (prefers-reduced-motion: no-preference) {
-    ${({ $active }) =>
-      $active &&
-      css`
-        animation: ${kenBurns} 8s ease-out forwards;
-      `}
-  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-    animation: none;
   }
 `;
 

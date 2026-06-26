@@ -92,10 +92,11 @@ const collageMediaCss = css`
   width: 100%;
   height: 100%;
   min-width: 0;
-  object-fit: cover;
+  object-fit: contain;
   object-position: var(--banner-object-position, center center);
   transition: object-position 140ms ease;
   border-radius: inherit;
+  background: transparent;
   user-select: none;
   -webkit-user-drag: none;
 

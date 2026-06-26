@@ -110,7 +110,7 @@ describe('UserDashboard banner crop contract', () => {
 
   it('keeps tile media whole and removes carousel frame containers below photos', () => {
     expect(compositionStyles).toMatch(/export const BannerTileImage[\s\S]*?object-fit: contain;/);
-    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: cover;/);
+    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
     expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?data-layout\^='carousel-'[\s\S]*?object-fit: contain;/);
     expect(compositionStyles).toMatch(/BannerCollageLayer[\s\S]*?data-layout='stream'[\s\S]*?display: grid;/);
     expect(compositionStyles).toContain("${BannerCollageLayer}[data-layout='stream'] &,");
@@ -185,8 +185,17 @@ describe('UserDashboard banner crop contract', () => {
     // reduced motion (matches the M5a/M5b accessibility discipline)
     expect(stageStyles).toContain('export const BannerStageAtrium');
     expect(stageStyles).toContain('export const BannerStageVitrine');
+    expect(stageStyles).toMatch(/const stageMediaCss[\s\S]*?object-fit: contain;/);
     expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: no-preference\)[\s\S]*?will-change: transform/);
     expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition: none/);
+  });
+
+  it('keeps crossfade hero slides whole instead of re-cropping with cover or zoom drift', () => {
+    const crossfadeStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCrossfadeStyles.ts');
+
+    expect(crossfadeStyles).toMatch(/const crossfadeSlideCss[\s\S]*?object-fit: contain;/);
+    expect(crossfadeStyles).not.toContain('scale(1.07)');
+    expect(crossfadeStyles).not.toContain('kenBurns');
   });
 
   it('keeps cover controls away from the desktop right-rail tier cards', () => {
