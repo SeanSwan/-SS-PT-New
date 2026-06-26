@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 const coachPath = (...parts: string[]) => join(process.cwd(), 'src/components/DashBoard/Pages/coach-assistant', ...parts);
 
 const workspaceStyles = readFileSync(coachPath('CoachIntakeWorkspace.styles.ts'), 'utf8');
+const bridgeMobileDockStyles = readFileSync(coachPath('CoachCommandCenter.bridgeMobileDockStyles.ts'), 'utf8');
+const plaudAudioPreview = readFileSync(join(process.cwd(), 'src/components/PlaudClipMerge/PlaudClipAudioPreview.tsx'), 'utf8');
 const headerStyles = readFileSync(coachPath('CoachIntakeWorkspaceHeader.styles.ts'), 'utf8');
 const queueStyles = readFileSync(coachPath('CoachIntakeWorkspaceQueue.styles.ts'), 'utf8');
 const healthStyles = readFileSync(coachPath('CoachIntakeHealthStrip.styles.ts'), 'utf8');
@@ -48,6 +50,14 @@ describe('Coach intake responsive contract', () => {
     expect(queueTabs).toMatch(/MoreFiltersButton[\s\S]*min-height:\s*44px/);
     expect(queueTabs).toMatch(/SecondaryTabs[\s\S]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
     expect(queueTabs).toMatch(/@media \(max-width:\s*380px\)[\s\S]*grid-template-columns:\s*1fr/);
+  });
+
+  it('keeps mobile intake playback controls scrollable away from fixed app chrome', () => {
+    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(96px,\s*calc\(env\(safe-area-inset-bottom\) \+ 96px\)\)/);
+    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-top:\s*96px/);
+    expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
+    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-top:\s*96px/);
+    expect(plaudAudioPreview).toMatch(/const LoadButton[\s\S]*scroll-margin-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);
   });
 
   it('keeps the work queue as the only post-snapshot triage rail', () => {

@@ -47,6 +47,12 @@ export const coachCommandBridgeMobileDockStyles = css`
       min-height: 64px;
     }
 
+    .tab-scroll {
+      padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
+      scroll-padding-top: 96px;
+      scroll-padding-bottom: max(120px, var(--mobile-dock-space, 160px));
+    }
+
     .transcript-top {
       display: none;
     }
