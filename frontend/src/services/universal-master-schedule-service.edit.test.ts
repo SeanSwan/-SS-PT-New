@@ -18,6 +18,43 @@ describe('UniversalMasterScheduleService editable session updates', () => {
     vi.clearAllMocks();
   });
 
+  it('normalizes wrapped session list responses from GET /api/sessions', async () => {
+    const sessions = [
+      {
+        id: '42',
+        status: 'confirmed',
+        sessionDate: '2026-06-26T15:00:00.000Z',
+      },
+    ];
+
+    apiMock.get.mockResolvedValue({
+      data: {
+        success: true,
+        sessions,
+      },
+    });
+
+    const service = new UniversalMasterScheduleService();
+
+    await expect(service.getSessions({ status: 'confirmed' })).resolves.toEqual(sessions);
+    expect(apiMock.get).toHaveBeenCalledWith('/api/sessions?status=confirmed');
+  });
+
+  it('rejects non-list session responses before Redux stats filtering', async () => {
+    apiMock.get.mockResolvedValue({
+      data: {
+        success: false,
+        message: 'Server error fetching sessions',
+      },
+    });
+
+    const service = new UniversalMasterScheduleService();
+
+    await expect(service.getSessions()).rejects.toThrow(
+      /Invalid sessions response from \/api\/sessions/
+    );
+  });
+
   it('sends editable session detail fields through PUT /api/sessions/:id', async () => {
     apiMock.put.mockResolvedValue({
       data: {

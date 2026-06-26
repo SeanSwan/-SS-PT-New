@@ -36,6 +36,24 @@ import type {
 } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
 
+const normalizeSessionsResponse = (payload: unknown): Session[] => {
+  if (Array.isArray(payload)) {
+    return payload as Session[];
+  }
+
+  if (payload && typeof payload === 'object') {
+    const response = payload as { sessions?: unknown; message?: unknown };
+
+    if (Array.isArray(response.sessions)) {
+      return response.sessions as Session[];
+    }
+
+    const detail = typeof response.message === 'string' ? ` ${response.message}` : '';
+    throw new Error(`Invalid sessions response from /api/sessions.${detail}`);
+  }
+
+  throw new Error('Invalid sessions response from /api/sessions.');
+};
 /**
  * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
  * Handles all scheduling operations with role-based access using the unified backend
@@ -67,8 +85,8 @@ class UniversalMasterScheduleService {
       // MindBody Parity: Admin view scope toggle ('my' = my schedule only, 'global' = all trainers)
       if (filters?.adminScope) params.append('adminScope', filters.adminScope);
       
-      const response: AxiosResponse<Session[]> = await this.api.get(`/api/sessions?${params.toString()}`);
-      return response.data;
+      const response: AxiosResponse<unknown> = await this.api.get(`/api/sessions?${params.toString()}`);
+      return normalizeSessionsResponse(response.data);
     } catch (error: any) {
       console.error('Error fetching sessions:', error);
       throw error;
