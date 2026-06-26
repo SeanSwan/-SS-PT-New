@@ -91,7 +91,7 @@ const railGroups: RailGroup[] = [
       ['Feed', 'dashboard', MessageSquare],
       ['Challenges', 'challenges', Trophy],
       ['Leaderboard', 'challenges', Award],
-      ['Messages', 'notifications', Bell],
+      ['Messages', 'messages', Bell],
     ],
   },
   { label: 'Account',
@@ -132,8 +132,8 @@ export function ClientTopNavigation({
             key={label}
             type="button"
             aria-label={label}
-            disabled={!target && label !== 'Search dashboard'}
-            title={!target && label !== 'Search dashboard' ? 'This dashboard destination is not wired yet.' : label}
+            disabled={!target}
+            title={!target ? 'This dashboard destination is not wired yet.' : label}
             onClick={() => (target ? onTarget(target) : undefined)}
           >
             <Icon size={18} aria-hidden="true" />

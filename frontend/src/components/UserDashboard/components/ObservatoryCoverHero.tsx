@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FILE: ObservatoryCoverHero.tsx
- * PURPOSE: Full-width top cover for non-home /user-dashboard tabs
+ * PURPOSE: Full-width top cover for all /user-dashboard tabs
  *          (workstream O — every tab meets the Home standard). Renders the
  *          user's REAL cover composition (photo / collage / carousel /
  *          crossfade) through the same media layer + embedded editor Home
@@ -9,7 +9,7 @@
  *          Edit Cover / Edit Profile / Share actions that previously lived on
  *          the retired UserDashboardProfileHeaderV3.
  * HOW IT FITS: Mounted by UserDashboard.V3 ABOVE ContentWrapper on every
- *          non-home tab — genuinely edge-to-edge at the very top of the page.
+ *          tab — genuinely edge-to-edge at the very top of the page.
  *          No 100vw negative-margin tricks, no observatory rail clearance
  *          offsets, no 3rem banner margins: the strip sits in normal flow and
  *          the grid starts right under it.

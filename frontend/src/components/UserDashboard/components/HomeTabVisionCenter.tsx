@@ -11,9 +11,8 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react';
-import type { HomeLatestPostView, HomeTopBarAction } from './HomeTabViewModel';
+import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
-import HomeTabHeroHeader from './HomeTabHeroHeader';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
@@ -54,16 +53,7 @@ import {
 const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
 
 interface HomeTabVisionCenterProps {
-  avatarSrc: string;
-  fallbackAvatarSrc: string;
-  displayName: string;
-  handle: string;
-  tierName: string;
-  level: number;
   points: number;
-  postsCount: number;
-  followersCount: number;
-  followingCount: number;
   activeLens: string;
   postText: string;
   activeMood: string;
@@ -76,12 +66,6 @@ interface HomeTabVisionCenterProps {
   communityFeed: SocialFeedApi;
   /** O3: true while "Share my week" has armed the workout-proof attachment. */
   proofAttached: boolean;
-  /** Real cover composition (photo/collage/carousel) — null keeps the decorative backdrop. */
-  bannerLayer: React.ReactNode | null;
-  /** Opens the embedded cover editor (photo/collage/layouts/presets). */
-  onEditCover: () => void;
-  /** Lazy-mounted SocialCoverEditor instance while editing — renders under the hero. */
-  coverEditorSlot: React.ReactNode | null;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
   postIntentPreview: { type: string; label: string | null; hashtags: string[] } | null;
   /** Real latest feed post — null renders honest empty states. */
@@ -89,6 +73,7 @@ interface HomeTabVisionCenterProps {
   canPost: boolean;
   isPosting: boolean;
   onAction: (target: VisionTarget) => void;
+  onUtilityAction: (target: HomeTopBarTarget) => void;
   onSetMood: (mood: string) => void;
   onAddMediaClick: () => void;
   onClearMedia: () => void;
@@ -98,16 +83,7 @@ interface HomeTabVisionCenterProps {
 }
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
-  avatarSrc,
-  fallbackAvatarSrc,
-  displayName,
-  handle,
-  tierName,
-  level,
   points,
-  postsCount,
-  followersCount,
-  followingCount,
   activeLens,
   postText,
   activeMood,
@@ -117,14 +93,12 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   mediaError,
   communityFeed,
   proofAttached,
-  bannerLayer,
-  onEditCover,
-  coverEditorSlot,
   postIntentPreview,
   latestPost,
   canPost,
   isPosting,
   onAction,
+  onUtilityAction,
   onSetMood,
   onAddMediaClick,
   onClearMedia,
@@ -138,14 +112,13 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         <strong>SwanStudios</strong>
         <span>Crystalline Observatory</span>
       </MobileBrandText>
-      {/* O3: actions with a target NAVIGATE (no dead buttons) — the rest stay
-          passive status counters until their surface ships. */}
+      {/* Utility actions route to real dashboard surfaces. */}
       {topBarActions.map(({ label, Icon, count, target }) => (
         <IconButton
           key={label}
           type="button"
           aria-label={label}
-          onClick={target ? () => onAction(target) : undefined}
+          onClick={target ? () => onUtilityAction(target) : undefined}
         >
           <Icon size={18} aria-hidden="true" />
           {count > 0 && <NotifyDot>{count}</NotifyDot>}
@@ -156,22 +129,6 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         {points.toLocaleString()} XP
       </XpPill>
     </TopBar>
-
-    <HomeTabHeroHeader
-      avatarSrc={avatarSrc}
-      fallbackAvatarSrc={fallbackAvatarSrc}
-      displayName={displayName}
-      handle={handle}
-      tierName={tierName}
-      level={level}
-      points={points}
-      postsCount={postsCount}
-      followersCount={followersCount}
-      followingCount={followingCount}
-      bannerLayer={bannerLayer}
-      onEditCover={onEditCover}
-    />
-    {coverEditorSlot}
 
     <LensStrip aria-label="Creator dashboard sections">
       {HERO_LENSES.map(({ id, label, Icon, target }) => (

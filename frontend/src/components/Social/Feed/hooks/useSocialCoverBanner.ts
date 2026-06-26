@@ -15,10 +15,9 @@
  * KEY DECISIONS:
  * - Deliberately NOT useProfile (that hook carries posts/stats/achievements/
  *   upload machinery — far too heavy for a backdrop read).
- * - Sticky-carousel is intentionally NOT exposed: the fixed-position sticky
- *   strip collides with the /social page chrome, so the feed never renders it.
- * - Read-only. Editing stays on the dashboard banner editor (M6 decides its
- *   long-term home).
+ * - Sticky-carousel is normalized for dashboard consumers. Public /social
+ *   sections still pass bannerStickyCarousel={false} so the fixed mini strip
+ *   never collides with social page chrome.
  */
 
 import { useEffect, useState } from 'react';
@@ -29,6 +28,7 @@ import profileService, {
   normalizeBannerCollagePhotos,
   normalizeBannerImageScale,
   normalizeBannerObjectPosition,
+  normalizeBannerStickyCarousel,
   type BannerCollageLayout,
   type BannerObjectFit,
   type BannerObjectPosition,
@@ -41,6 +41,7 @@ export interface SocialCoverBanner {
   bannerImageScale: number;
   bannerCollagePhotos: string[];
   bannerCollageLayout: BannerCollageLayout;
+  bannerStickyCarousel: boolean;
 }
 
 export function useSocialCoverBanner(refreshKey = 0): SocialCoverBanner | null {
@@ -77,6 +78,7 @@ export function useSocialCoverBanner(refreshKey = 0): SocialCoverBanner | null {
           bannerImageScale: normalizeBannerImageScale(profile.bannerImageScale),
           bannerCollagePhotos,
           bannerCollageLayout: normalizeBannerCollageLayout(profile.bannerCollageLayout),
+          bannerStickyCarousel: normalizeBannerStickyCarousel(profile.bannerStickyCarousel),
         });
       } catch {
         // Fetch failure -> decorative fallback; the cover never errors.

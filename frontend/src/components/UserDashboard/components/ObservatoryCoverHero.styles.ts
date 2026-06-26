@@ -1,8 +1,8 @@
 /**
  * ============================================================================
  * FILE: ObservatoryCoverHero.styles.ts
- * PURPOSE: Styles for the full-width top cover on non-home /user-dashboard
- *          tabs (workstream O). Edge-to-edge cover strip carrying the user's
+ * PURPOSE: Styles for the full-width top cover on all /user-dashboard tabs.
+ *          Edge-to-edge cover strip carrying the user's
  *          REAL cover composition (photo / collage / carousel / crossfade),
  *          a compact identity strip, and the Edit Cover / Edit Profile /
  *          Share action cluster.

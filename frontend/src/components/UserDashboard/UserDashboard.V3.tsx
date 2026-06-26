@@ -78,26 +78,23 @@ const UserDashboardV3: React.FC = () => {
       >
         <NoiseOverlay />
         <MainContentZWrapper>
-          {/* Workstream O: the cover carousel sits at the VERY top of every
-              non-home tab, edge-to-edge in normal flow — it replaces the
-              retired full-bleed profile header (banner + bulky identity
-              block + rail clearance offsets). Same media layer + embedded
-              editor as Home's hero (one cover system). */}
-          {!isHomeTab && (
-            <ObservatoryCoverHero
-              displayName={dashboard.getDisplayName()}
-              username={dashboard.getUsernameForDisplay()}
-              userInitials={dashboard.getUserInitials()}
-              tierName={dashboard.observatoryTierName}
-              level={dashboard.observatoryLevel}
-              profilePhoto={dashboard.profile?.photo}
-              onEditProfile={dashboard.handleEditProfile}
-              onSettings={dashboard.handleSettings}
-              onShare={dashboard.handleShare}
-              onAvatarClick={dashboard.handleProfileImageClick}
-            />
-          )}
-          <ContentWrapper data-user-dashboard-scroll-root $belowCover={!isHomeTab}>
+          {/* The cover carousel is the full-width dashboard header on every tab,
+              including Home. Sticky behavior lives in the cover editor's mini
+              carousel option, so the full hero does not permanently consume
+              desktop scroll space by default. */}
+          <ObservatoryCoverHero
+            displayName={dashboard.getDisplayName()}
+            username={dashboard.getUsernameForDisplay()}
+            userInitials={dashboard.getUserInitials()}
+            tierName={dashboard.observatoryTierName}
+            level={dashboard.observatoryLevel}
+            profilePhoto={dashboard.profile?.photo}
+            onEditProfile={dashboard.handleEditProfile}
+            onSettings={dashboard.handleSettings}
+            onShare={dashboard.handleShare}
+            onAvatarClick={dashboard.handleProfileImageClick}
+          />
+          <ContentWrapper data-user-dashboard-scroll-root $belowCover>
             {isHomeTab ? (
               <>
               {/* O3 app-shell nav: the tab bar mounts on Home too — phones get

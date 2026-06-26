@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
 
 describe('HomeTrainingCommandStrip', () => {
-  it('keeps training, progress, and coach actions one click from user Home', () => {
+  it('keeps the training command strip collapsed until the user asks for it', () => {
     const navigate = vi.fn();
     const onProgress = vi.fn();
 
@@ -15,6 +15,13 @@ describe('HomeTrainingCommandStrip', () => {
         onProgress={onProgress}
       />,
     );
+
+    const toggle = screen.getByRole('button', { name: /show training actions/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('list', { name: /user training today flow/i })).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     const flow = screen.getByRole('list', { name: /user training today flow/i });
     const steps = within(flow).getAllByRole('listitem');

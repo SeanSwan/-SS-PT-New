@@ -163,6 +163,8 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     if (target === 'nutrition') onTabChange('nutrition');
     if (target === 'challenges') onTabChange('challenges');
     if (target === 'notifications') onTabChange('notifications');
+    if (target === 'messages') navigate('/dashboard/client/messages');
+    if (target === 'search') navigate('/dashboard/client/overview');
     if (target === 'profile') onTabChange('profile');
     if (target === 'workouts') navigate('/dashboard/client/workouts');
     if (target === 'coach') navigate(homeTrainingCoachPath);

@@ -54,13 +54,14 @@ interface AvatarInput {
   fallbackAvatar: string;
 }
 
+export type HomeTopBarTarget = 'search' | 'messages' | 'notifications';
+
 export interface HomeTopBarAction {
   label: string;
   Icon: LucideIcon;
   count: number;
-  /** Dashboard tab this action opens (workstream O3 — no dead buttons).
-      Actions without a target render as passive status counters. */
-  target?: 'notifications';
+  /** Dashboard utility action this button opens. */
+  target: HomeTopBarTarget;
 }
 
 export interface HomePostPayload {
@@ -130,8 +131,8 @@ export function buildHomeTopBarActions({
   notificationUnread: number;
 }): HomeTopBarAction[] {
   return [
-    { label: 'Search dashboard', Icon: Search, count: 0 },
-    { label: 'Open inbox', Icon: Mail, count: toSafeCount(inboxUnread) },
+    { label: 'Search dashboard', Icon: Search, count: 0, target: 'search' },
+    { label: 'Open inbox', Icon: Mail, count: toSafeCount(inboxUnread), target: 'messages' },
     // O3: alerts navigate to the real Alerts tab — count + destination agree.
     { label: 'View notifications', Icon: Radio, count: toSafeCount(notificationUnread), target: 'notifications' },
   ];

@@ -5,7 +5,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { useHomeCoverBanner } from './useHomeCoverBanner';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useFaction } from '../../../hooks/social/useFaction';
@@ -14,11 +13,11 @@ import { useFaction } from '../../../hooks/social/useFaction';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
 import { useMessageSummary, useNotificationSummary, useWorkoutSessions } from '../../../hooks/useDashboardQueries';
-import fallbackAvatar from '../../../assets/logo.svg';
 import brandLogo from '../../../assets/Logo.png';
 import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
+import HomeDashboardSearchPanel from './HomeDashboardSearchPanel';
 import DailyHealthLoop from './DailyHealthLoop';
 import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
@@ -36,15 +35,14 @@ import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
-  buildCreatorStats,
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
   normalizeHomePercent,
   normalizeHomeWholeNumber,
   parseUnreadNotificationCount,
-  resolveHomeAvatarSrc,
   sumUnreadConversations,
+  type HomeTopBarTarget,
 } from './HomeTabViewModel';
 import { CenterColumn, CreatorPage, CreatorShell, Panel, SupportShell } from './HomeTabVision.styles';
 interface HomeTabProps {
@@ -59,11 +57,7 @@ interface HomeTabProps {
 const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
-  displayStats,
-  profilePosts,
-  followStats,
   displayNameOverride,
-  usernameOverride,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -78,20 +72,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
   });
   const [activeLens, setActiveLens] = useState('reels');
+  const [searchOpen, setSearchOpen] = useState(false);
   const posts = communityFeed.posts;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
-  const handle = `@${usernameOverride || user?.username || 'swancreator'}`;
-  const avatarSrc = resolveHomeAvatarSrc({
-    profilePhoto: sanitizeImageUrl(profile?.photo),
-    authPhoto: sanitizeImageUrl(user?.profileImageUrl),
-    fallbackAvatar,
-  });
-  const creatorStats = useMemo(() => buildCreatorStats({
-    profileStats: displayStats,
-    profilePosts,
-    feedPosts: posts,
-    followStats,
-  }), [displayStats, followStats, posts, profilePosts]);
   const topBarActions = useMemo(() => buildHomeTopBarActions({
     inboxUnread: sumUnreadConversations(messageSummary.data),
     notificationUnread: parseUnreadNotificationCount(notificationSummary.data),
@@ -106,8 +89,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const nutritionAction = useHomeNutritionAction();
   const homeTrainingCoachPath = buildUserDashboardTeachCoachRoute(USER_HOME_TRAINING_PROMPT);
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
-  // Workstream N2/N3: the header's REAL cover + embedded editor (extracted hook).
-  const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
   // Workstream N4: real training proof from logged workout sessions.
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const trainingProof = useMemo(
@@ -151,6 +132,17 @@ const HomeTab: React.FC<HomeTabProps> = ({
     onTabChange(target);
   };
 
+  const runUtilityAction = (target: HomeTopBarTarget) => {
+    if (target === 'search') {
+      setSearchOpen(true);
+      return;
+    }
+    if (target === 'messages') {
+      navigate('/dashboard/client/messages');
+      return;
+    }
+    onTabChange('notifications');
+  };
   return (
     <CreatorPage data-testid="creator-observatory-home">
       <HomeTrainingCommandStrip
@@ -173,16 +165,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
         />
 
         <HomeTabVisionCenter
-          avatarSrc={avatarSrc}
-          fallbackAvatarSrc={fallbackAvatar}
-          displayName={displayName}
-          handle={handle}
-          tierName={tierName}
-          level={level}
           points={points}
-          postsCount={creatorStats.posts}
-          followersCount={creatorStats.followers}
-          followingCount={creatorStats.following}
           activeLens={activeLens}
           postText={composer.postText}
           activeMood={composer.activeMood}
@@ -192,20 +175,30 @@ const HomeTab: React.FC<HomeTabProps> = ({
           mediaError={composer.mediaError}
           communityFeed={communityFeed}
           proofAttached={composer.proofAttached}
-          bannerLayer={bannerLayer}
-          onEditCover={toggleCoverEditor}
-          coverEditorSlot={coverEditorSlot}
           postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}
           canPost={composer.canPost}
           isPosting={communityFeed.isCreatingPost}
           onAction={runAction}
+          onUtilityAction={runUtilityAction}
           onSetMood={composer.setActiveMood}
           onAddMediaClick={() => composer.mediaInputRef.current?.click()}
           onClearMedia={composer.clearSelectedMedia}
           onPostTextChange={composer.setPostText}
           onSubmitPost={composer.submitPost}
           topBarActions={topBarActions}
+        />
+        <HomeDashboardSearchPanel
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          onTarget={(target) => {
+            setSearchOpen(false);
+            runAction(target);
+          }}
+          onNavigate={(path) => {
+            setSearchOpen(false);
+            navigate(path);
+          }}
         />
         <input
           ref={composer.mediaInputRef}

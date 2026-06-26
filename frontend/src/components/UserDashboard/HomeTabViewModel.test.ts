@@ -59,13 +59,13 @@ describe('HomeTabViewModel', () => {
     expect(resolveHomeAvatarSrc({ fallbackAvatar: '/fallback.svg' })).toBe('/fallback.svg');
   });
 
-  it('builds top bar actions from unread inbox and notification counts', () => {
+  it('builds top bar actions from unread inbox and notification counts with real targets', () => {
     const actions = buildHomeTopBarActions({ inboxUnread: 4, notificationUnread: 8 });
 
-    expect(actions.map((action) => [action.label, action.count])).toEqual([
-      ['Search dashboard', 0],
-      ['Open inbox', 4],
-      ['View notifications', 8],
+    expect(actions.map((action) => [action.label, action.target, action.count])).toEqual([
+      ['Search dashboard', 'search', 0],
+      ['Open inbox', 'messages', 4],
+      ['View notifications', 'notifications', 8],
     ]);
   });
 

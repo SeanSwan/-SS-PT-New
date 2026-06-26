@@ -30,7 +30,9 @@ export type ClientDashboardTarget =
   | 'profile'
   | 'nutrition'
   | 'challenges'
-  | 'notifications';
+  | 'notifications'
+  | 'messages'
+  | 'search';
 
 export interface ClientDashboardAction {
   label: string;

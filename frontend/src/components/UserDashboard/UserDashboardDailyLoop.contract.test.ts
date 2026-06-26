@@ -124,9 +124,14 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     expect(controllerSource).toContain("const [activeTab, setActiveTab] = useState<TabId>('home')");
     expect(dashboardSource).toContain("dashboard.activeTab === 'home'");
+    expect(dashboardSource).toContain('<ObservatoryCoverHero');
+    expect(dashboardSource).not.toContain('{!isHomeTab && (');
+    expect(dashboardSource).toContain('<ContentWrapper data-user-dashboard-scroll-root $belowCover>');
     expect(tabsSource).toContain('<HomeTab onTabChange');
     expect(homeSource).toContain('data-testid="creator-observatory-home"');
     expect(homeSource).toContain('<HomeTabVisionCenter');
+    expect(homeSource).toContain('<HomeDashboardSearchPanel');
+    expect(homeSource).toContain("navigate('/dashboard/client/messages')");
     expect(homeSource).not.toContain('<ClientDashboardHome');
     expect(homeSource).not.toContain('ClientDashboardHomeTab');
     expect(homeSource).toContain('getPersonalLogWorkoutDashboardPath()');
@@ -149,6 +154,16 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(feedSource).not.toContain('86 comments');
     expect(feedSource).not.toContain('just now');
     expect(viewModelSource).toContain('return null');
+  });
+  it('uses one full-width cover system on Home and honors the sticky-carousel setting', () => {
+    const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+    const coverHookSource = readSource('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
+
+    expect(dashboardSource).toContain('<ObservatoryCoverHero');
+    expect(centerSource).not.toContain('<HomeTabHeroHeader');
+    expect(coverHookSource).toContain('bannerStickyCarousel={coverBanner.bannerStickyCarousel}');
+    expect(coverHookSource).not.toContain('bannerStickyCarousel={false}');
   });
   it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on user Home', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
@@ -440,7 +455,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     // Home mounts the bar too ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â same nav on every dashboard surface.
     expect(dashboardSource.match(/<UserDashboardTabBarV3/g)?.length).toBe(2);
     // Top-bar actions with a destination navigate; no dead buttons.
-    expect(centerSource).toContain('onClick={target ? () => onAction(target) : undefined}');
+    expect(centerSource).toContain('onClick={target ? () => onUtilityAction(target) : undefined}');
   });
 
   it('gives the party squad widgets a real home on the Challenges tab (workstream O2)', () => {
@@ -482,7 +497,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(reelsStylesSource).toContain("$frame === 'dashboard'");
   });
 
-  it('puts the full-width cover hero at the top of non-home tabs with no rail clearance hacks (workstream O)', () => {
+  it('puts the full-width cover hero at the top of every user-dashboard tab with no rail clearance hacks', () => {
     const dashboardSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
     const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
     const coverHeroSource = readSource('src/components/UserDashboard/components/ObservatoryCoverHero.tsx');
@@ -491,10 +506,10 @@ describe('UserDashboard V3 daily loop contract', () => {
 
     // The cover hero mounts ABOVE ContentWrapper (true edge-to-edge, normal
     // flow) and the retired full-bleed ProfileHeader is gone from the shell.
-    expect(dashboardSource).toContain('{!isHomeTab && (');
+    expect(dashboardSource).not.toContain('{!isHomeTab && (');
     expect(dashboardSource).toContain('<ObservatoryCoverHero');
     expect(dashboardSource).not.toContain('UserDashboardProfileHeaderV3');
-    expect(dashboardSource).toContain('$belowCover={!isHomeTab}');
+    expect(dashboardSource).toContain('<ContentWrapper data-user-dashboard-scroll-root $belowCover>');
     expect(wrapperSource).toContain('$belowCover');
 
     // One cover system: the hero reuses Home's media-layer + embedded editor.

@@ -32,7 +32,7 @@ export function useHomeCoverBanner(): {
       bannerImageScale={coverBanner.bannerImageScale}
       bannerCollagePhotos={coverBanner.bannerCollagePhotos}
       bannerCollageLayout={coverBanner.bannerCollageLayout}
-      bannerStickyCarousel={false}
+      bannerStickyCarousel={coverBanner.bannerStickyCarousel}
     />
   ) : null;
 

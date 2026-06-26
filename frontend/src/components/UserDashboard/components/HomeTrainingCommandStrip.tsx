@@ -1,11 +1,11 @@
 /**
  * FILE: HomeTrainingCommandStrip.tsx
- * PURPOSE: First-screen training command strip for /user-dashboard Home.
+ * PURPOSE: Collapsible first-screen training command strip for /user-dashboard Home.
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { BarChart3, Dumbbell, MessageCircle, ShieldCheck } from 'lucide-react';
+import { BarChart3, ChevronDown, Dumbbell, MessageCircle, ShieldCheck } from 'lucide-react';
 import { Eyebrow, Panel } from './HomeTabVision.styles';
 
 interface HomeTrainingCommandStripProps {
@@ -42,6 +42,8 @@ const HomeTrainingCommandStrip: React.FC<HomeTrainingCommandStripProps> = ({
   onNavigate,
   onProgress,
 }) => {
+  const [expanded, setExpanded] = React.useState(false);
+
   const handleAction = (key: (typeof ACTIONS)[number]['key']) => {
     if (key === 'log') onNavigate(logWorkoutPath);
     if (key === 'progress') onProgress();
@@ -57,25 +59,36 @@ const HomeTrainingCommandStrip: React.FC<HomeTrainingCommandStripProps> = ({
         </Eyebrow>
         <LeadCopy>Log the work, inspect proof, then ask Coach.</LeadCopy>
       </StripLead>
-      <ActionGrid aria-label="User training today flow">
-        {ACTIONS.map(({ key, label, detail, Icon }, index) => (
-          <ActionStep key={key}>
-            <CommandButton
-              type="button"
-              $primary={key === 'log'}
-              onClick={() => handleAction(key)}
-              aria-label={`Step ${index + 1}: ${label}`}
-            >
-              <IconWrap><Icon size={18} aria-hidden="true" /></IconWrap>
-              <span>
-                <ActionOverline>Step {index + 1}</ActionOverline>
-                <strong>{label}</strong>
-                <small>{detail}</small>
-              </span>
-            </CommandButton>
-          </ActionStep>
-        ))}
-      </ActionGrid>
+      <ToggleButton
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="home-training-command-actions"
+        onClick={() => setExpanded((open) => !open)}
+      >
+        {expanded ? 'Hide training actions' : 'Show training actions'}
+        <ChevronDown size={16} aria-hidden="true" />
+      </ToggleButton>
+      {expanded && (
+        <ActionGrid id="home-training-command-actions" aria-label="User training today flow">
+          {ACTIONS.map(({ key, label, detail, Icon }, index) => (
+            <ActionStep key={key}>
+              <CommandButton
+                type="button"
+                $primary={key === 'log'}
+                onClick={() => handleAction(key)}
+                aria-label={`Step ${index + 1}: ${label}`}
+              >
+                <IconWrap><Icon size={18} aria-hidden="true" /></IconWrap>
+                <span>
+                  <ActionOverline>Step {index + 1}</ActionOverline>
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                </span>
+              </CommandButton>
+            </ActionStep>
+          ))}
+        </ActionGrid>
+      )}
     </StripShell>
   );
 };
@@ -84,12 +97,12 @@ const StripShell = styled(Panel)`
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 2fr);
+  grid-template-columns: minmax(180px, 1fr) auto;
   margin: 0 auto 1rem;
   max-width: 1760px;
   z-index: 1;
 
-  @media (max-width: 900px) {
+  @media (max-width: 680px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -106,9 +119,49 @@ const LeadCopy = styled.p`
   line-height: 1.35;
 `;
 
+const ToggleButton = styled.button`
+  align-items: center;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, var(--bg-elevated, #141419));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent);
+  border-radius: 999px;
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  display: inline-flex;
+  font: 800 0.78rem/1 var(--font-ui, 'Sora', sans-serif);
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.95rem;
+  white-space: nowrap;
+
+  svg {
+    transition: transform 0.2s ease;
+  }
+
+  &[aria-expanded='true'] svg {
+    transform: rotate(180deg);
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: var(--accent-primary, #60C0F0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    svg { transition: none; }
+  }
+`;
+
 const ActionGrid = styled.ol`
   display: grid;
   gap: 10px;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
@@ -149,6 +202,7 @@ const CommandButton = styled.button<{ $primary?: boolean }>`
       : 'none'
   )};
   text-align: left;
+  width: 100%;
 
   strong,
   small {
