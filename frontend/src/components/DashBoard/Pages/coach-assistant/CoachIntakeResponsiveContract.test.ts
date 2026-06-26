@@ -6,6 +6,7 @@ const coachPath = (...parts: string[]) => join(process.cwd(), 'src/components/Da
 
 const workspaceStyles = readFileSync(coachPath('CoachIntakeWorkspace.styles.ts'), 'utf8');
 const bridgeMobileDockStyles = readFileSync(coachPath('CoachCommandCenter.bridgeMobileDockStyles.ts'), 'utf8');
+const pageSource = readFileSync(coachPath('CoachCommandCenterPage.tsx'), 'utf8');
 const plaudAudioPreview = readFileSync(join(process.cwd(), 'src/components/PlaudClipMerge/PlaudClipAudioPreview.tsx'), 'utf8');
 const headerStyles = readFileSync(coachPath('CoachIntakeWorkspaceHeader.styles.ts'), 'utf8');
 const queueStyles = readFileSync(coachPath('CoachIntakeWorkspaceQueue.styles.ts'), 'utf8');
@@ -53,6 +54,11 @@ describe('Coach intake responsive contract', () => {
   });
 
   it('keeps mobile intake playback controls scrollable away from fixed app chrome', () => {
+    expect(pageSource).toContain("activeTab === 'chat' ? 'is-chat-tab' : 'is-workspace-tab'");
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*calc\(100dvh - max\(12px,\s*env\(safe-area-inset-bottom\)\)\)/);
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab[\s\S]*height:\s*auto/);
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-content[\s\S]*flex:\s*0\s+0\s+auto/);
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-scroll[\s\S]*overflow:\s*visible/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*padding-bottom:\s*max\(96px,\s*calc\(env\(safe-area-inset-bottom\) \+ 96px\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-top:\s*96px/);
     expect(bridgeMobileDockStyles).toMatch(/\.tab-scroll[\s\S]*scroll-padding-bottom:\s*max\(120px,\s*var\(--mobile-dock-space,\s*160px\)\)/);

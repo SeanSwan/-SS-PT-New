@@ -129,7 +129,7 @@ const CoachCommandCenterPage: React.FC = () => {
 
   return (
     <CommandBridgeShell ref={commandCenter.shellRef}>
-      <div className="bridge-shell">
+      <div className={`bridge-shell ${activeTab === 'chat' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
         {isClientMode ? null : (
           <button
             type="button"

@@ -10,8 +10,26 @@ export const coachCommandBridgeMobileDockStyles = css`
   @media (max-width: 720px) {
     .bridge-shell {
       gap: 8px;
-      height: calc(100dvh - max(12px, env(safe-area-inset-bottom)));
       min-height: 0;
+    }
+
+    .bridge-shell.is-chat-tab {
+      height: calc(100dvh - max(12px, env(safe-area-inset-bottom)));
+    }
+
+    .bridge-shell.is-workspace-tab {
+      height: auto;
+      overflow: visible;
+    }
+
+    .bridge-shell.is-workspace-tab .tab-content {
+      flex: 0 0 auto;
+      min-height: auto;
+    }
+
+    .bridge-shell.is-workspace-tab .tab-scroll {
+      flex: 0 0 auto;
+      overflow: visible;
     }
 
     .client-bar {
