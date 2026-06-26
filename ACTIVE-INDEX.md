@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-06-25 (social Try This Workout flow indexed; whole-app vision references retained)
+**Last updated:** 2026-06-26 (global AI entrypoint archive indexed; social Try This Workout flow retained)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -199,6 +199,7 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | `archive/pending-deletion/2026-05-17/legacy-live-login-e2e/` | Retired non-canonical root-level frontend E2E specs/helpers removed from active `frontend/e2e/` |
 | `archive/pending-deletion/2026-05-17/backend-secret-scan-blockers/` | Retired direct-production backend repair script sanitized after blocking secret scan |
 | `archive/pending-deletion/2026-05-17/backend-root-oneoff-scripts/` | Retired backend root one-off repair/debug/test scripts that had no non-archive references |
+| `archive/pending-deletion/2026-06-25/global-ai-entrypoints/` | Retired global bottom-right AI launcher, persistent AI panel, and inline AICommandBar code after Coach Command Center became the active AI surface |
 | `archive/pending-deletion/` | Staged for deletion, includes historical cleanup subfolders |
 | `docs/archive/` | ~27 superseded fix/complete summaries (ACCESSIBILITY, ADMIN_DASHBOARD_RESTORED, CONNECTION_FIX_COMPLETE, …) |
 | `docs/ai-workflow/archive/` | 6 subfolders: `design/`, `homepage-refactor/`, `master-plans/`, `old-versions/`, `phase-0/`, `week-reports/` |

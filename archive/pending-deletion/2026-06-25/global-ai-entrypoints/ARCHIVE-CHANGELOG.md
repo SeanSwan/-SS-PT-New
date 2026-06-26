@@ -1,6 +1,6 @@
 # Global AI Entrypoints Archive
 
-Archived on 2026-06-25.
+Archived on 2026-06-25. Updated on 2026-06-26 to include the inline `AICommandBar` retirement.
 
 ## Why
 
@@ -11,6 +11,7 @@ The global bottom-right AI launcher is retired. Swan Coach Command Center is the
 - Removed the shared dashboard shell import/render path for `OmniTerminal` and `OmniTerminalFAB`.
 - Removed the dashboard-shell `OmniTerminalFAB` styled control from the active controls file.
 - Routed `DashboardTeachMeGuide` prompts to `/dashboard/{role}/coach-assistant?teachPrompt=...` instead of the retired drawer.
+- Removed inline `AICommandBar` mounts from Workouts workspace, trainer overview, Content Studio, and the dormant trainer dock component.
 
 ## Kept Active
 
@@ -27,6 +28,7 @@ Those are still used by Coach Command Center or current logging flows.
 - `frontend/src/components/Shared/OmniTerminal.tsx`
 - `frontend/src/components/Shared/OmniTerminal.styles.ts`
 - `frontend/src/components/Shared/AIPersistentPanel/`
+- `frontend/src/components/Shared/AICommandBar/`
 - `frontend/src/components/AIAssistant/AIAssistantFAB.tsx`
 - `frontend/src/components/AIAssistant/AIAssistantDrawer.tsx`
 - `frontend/src/components/AIAssistant/AIDrawerStyles.ts`

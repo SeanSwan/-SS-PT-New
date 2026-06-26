@@ -1,14 +1,13 @@
 /**
  * Blueprint: SwanCoachDockTrainer
  * Purpose: always-available Swan Coach dock for the trainer Home surface.
- * States: loading skeleton, ready greeting, action chips, and AICommandBar.
+ * States: loading skeleton, ready greeting, and action chips.
  * Privacy: trainerName renders locally only and is never sent to an API.
  */
 
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Brain, ClipboardCheck, Users, Calendar } from 'lucide-react';
-import { AICommandBar } from '../../../Shared/AICommandBar';
 import { sanitizeImageUrl } from '../../../../utils/imageUrl';
 import { TRAINER_HOME_COACH_PATH } from './TrainerHomeQuickActions.config';
 // Animations
@@ -200,11 +199,6 @@ const Chip = styled.button`
   @media (prefers-reduced-motion: reduce) { transition: none; }
 `;
 
-const CommandDivider = styled.div`
-  border-top: 1px solid ${SWAN_COACH_DOCK_THEME.accentPulseLow};
-  margin-bottom: 0.75rem;
-`;
-
 // Helpers
 
 function getGreeting(name: string): string {
@@ -289,9 +283,6 @@ const SwanCoachDockTrainer: React.FC<SwanCoachDockTrainerProps> = ({
           </Chip>
         ))}
       </ChipRow>
-
-      <CommandDivider />
-      <AICommandBar context="workout_generation" />
     </DockWrap>
   );
 };

@@ -7,9 +7,6 @@ import {
   TRAINER_HOME_LOG_WORKOUT_PATH,
 } from './TrainerHomeQuickActions.config';
 
-vi.mock('../../../Shared/AICommandBar', () => ({
-  AICommandBar: () => <div data-testid="ai-command-bar" />,
-}));
 
 describe('SwanCoachDockTrainer workout-first actions', () => {
   it('routes the primary Log Workout chip straight to the client picker', async () => {

@@ -17,7 +17,7 @@
  * KEY DECISIONS:
  *   Removed client-drawer dependency — all remaining tabs are admin/trainer
  *   tools that operate globally, not on a specific client.
- *   AI Command Bar embedded at top for context-aware AI assistance.
+ *   Swan Coach Command Center owns AI assistance; this workspace stays focused on global training tools.
  */
 
 import React, { Suspense } from 'react';
@@ -25,7 +25,6 @@ import styled from 'styled-components';
 import { Users, Camera, Apple, Calendar, Zap } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
-import { AICommandBar } from '../../Shared/AICommandBar';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Tab Configuration
@@ -54,10 +53,6 @@ const WorkoutsWorkspace: React.FC = () => {
 
   return (
     <WorkspaceRoot>
-      {/* AI Command Bar */}
-      <AICommandBarWrapper>
-        <AICommandBar context="workout_generation" />
-      </AICommandBarWrapper>
 
       {/* Tab Navigation */}
       <TabBar>
@@ -100,10 +95,6 @@ const WorkspaceRoot = styled.div`
   color: var(--text-primary, #E0ECF4);
 `;
 
-const AICommandBarWrapper = styled.div`
-  padding: 12px 16px 0;
-  flex-shrink: 0;
-`;
 
 const TabBar = styled.div`
   padding: 0 16px;

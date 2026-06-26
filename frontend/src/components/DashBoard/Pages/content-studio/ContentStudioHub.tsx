@@ -24,7 +24,6 @@ import {
   Video, Mic2, Hexagon, Sparkles, FileText, Film,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import { AICommandBar } from '../../../Shared/AICommandBar';
 import ContentStudioStorageMeter from './ContentStudioStorageMeter';
 import {
   Page, Header, TitleGroup, HeaderIcon, Title, TierBadge,
@@ -102,7 +101,6 @@ const ContentStudioHub: React.FC = () => {
           Move publishing, distribution, lead capture, and performance tracking through the Marketing Command Center.
         </StudioBrief>
       </Header>
-      <div style={{ padding: '16px 24px 0' }}><AICommandBar context="content" /></div>
       <ContentStudioStorageMeter />
       <TabBar role="tablist">
         {visibleTabs.map(tab => (

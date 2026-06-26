@@ -1,58 +1,15 @@
 /**
- * ============================================================================
- * FILE: TrainerOverviewPage.tsx
- * PURPOSE: Trainer dashboard overview with stats, today's schedule, and quick actions
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
- * AI VILLAGE VALIDATED: 2026-03-24
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Displays a trainer's at-a-glance dashboard including
- * key performance stats, today's upcoming sessions, and shortcut actions.
- * HOW IT FITS IN THE APP: Trainer Dashboard → Overview tab (default landing)
- * KEY DECISIONS: Dark-first Crystalline Swan theme, CSS custom properties for theme compat
- *
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: TrainerOverviewPage                               ║
- * ║  PURPOSE: At-a-glance trainer dashboard with stats + schedule ║
- * ║  OWNER: Claude Opus 4.6                                       ║
- * ║  LAST VALIDATED: 2026-03-24                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────────────────────────────────────────┐
- * │ Trainer Overview                                           │
- * ├────────┬────────┬────────┬────────┐                        │
- * │ Active │ Today  │ Hours  │ Compl  │  ← StatCards           │
- * │Clients │Sessions│  Week  │  Rate  │                        │
- * └────────┴────────┴────────┴────────┘                        │
- * ┌──────────────────────────┬─────────────────────────────────┤
- * │ Today's Sessions         │ Quick Actions                   │
- * │ ┌──────────────────────┐ │ [View Clients] [Schedule]       │
- * │ │ 9:00 AM — Client A   │ │ [Workout Forge] [Videos]        │
- * │ │ 10:30 AM — Client B  │ │                                 │
- * │ └──────────────────────┘ │                                 │
- * └──────────────────────────┴─────────────────────────────────┘
- *
- * DATA FLOW:
- * Props In:  None (page-level component)
- * State:     { sessions, stats, loading }
- * API Calls: GET /api/sessions?trainerId=me&date=today
- * Events:    Quick action clicks → navigate to other tabs
- * Children:  StatCard (×4), SessionList, QuickActionGrid
- *
- * CLICK-OUTCOMES:
- * [StatCard]        → Visual only (no click action)
- * [Session row]     → Navigate to session detail (future)
- * [Quick Action]    → Navigate to respective dashboard tab
- *
- * GAMIFICATION: None — trainer view, no direct XP triggers
+ * Blueprint: TrainerOverviewPage
+ * Purpose: trainer overview with stats, today's schedule, and quick actions.
+ * Mounted by the trainer dashboard overview route.
+ * Data: loads today's sessions through the authenticated API client.
  */
+
 import React, { useEffect, useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Eye, Calendar } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import { AICommandBar } from '../../../Shared/AICommandBar';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -279,9 +236,6 @@ const TrainerOverviewPage: React.FC = () => {
 
   return (
     <PageWrapper>
-      {/* SwanStudios Coach's Assistant — embedded at top */}
-      <AICommandBar context="workout_generation" />
-
       <WelcomeHeader>
         Welcome back, <AccentSpan>{trainerName}</AccentSpan>
       </WelcomeHeader>
