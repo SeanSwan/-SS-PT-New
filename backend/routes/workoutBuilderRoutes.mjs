@@ -162,7 +162,7 @@ router.post('/generate', async (req, res) => {
   try {
     const {
       clientId, category, equipmentProfileId, exerciseCount, rotationPattern,
-      primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod,
+      primaryGoal, nasmPhase, trainingIntensityMode, hardcoreMethod, readinessCheck,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -198,6 +198,7 @@ router.post('/generate', async (req, res) => {
       nasmPhase: safePhase,
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
+      readinessCheck,
     });
 
     return res.json({ success: true, workout });
@@ -222,7 +223,7 @@ router.post('/plan', async (req, res) => {
   try {
     const {
       clientId, durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId,
-      startingPhaseOverride, trainingIntensityMode, hardcoreMethod,
+      startingPhaseOverride, trainingIntensityMode, hardcoreMethod, readinessCheck,
     } = req.body;
 
     const parsedClientId = parseInt(clientId, 10);
@@ -253,6 +254,7 @@ router.post('/plan', async (req, res) => {
       equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
       trainingIntensityMode: safeTrainingStyle.mode,
       hardcoreMethod: safeTrainingStyle.method,
+      readinessCheck,
     });
 
     return res.json({ success: true, plan });
