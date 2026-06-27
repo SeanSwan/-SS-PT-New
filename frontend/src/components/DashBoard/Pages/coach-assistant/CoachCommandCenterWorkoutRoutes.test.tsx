@@ -12,7 +12,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it('offers Sean/admin personal Logger and Planner when no route client is loaded', () => {
-    renderPage('/dashboard/admin/coach-assistant');
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.getByRole('link', { name: /open workout logger/i })).toHaveAttribute(
       'href',
@@ -138,7 +138,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
       timestamp: '2026-06-14T07:40:00.000Z',
     });
 
-    renderPage('/dashboard/admin/coach-assistant');
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     await user.type(screen.getByPlaceholderText(/talk or type to swan coach/i), 'Write my workout');
     await user.click(screen.getByRole('button', { name: /send to swan coach/i }));
@@ -173,7 +173,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
       },
     ]);
 
-    renderPage('/dashboard/admin/coach-assistant');
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     await waitFor(() => {
       const header = screen.getByRole('region', { name: /active coach thread/i });

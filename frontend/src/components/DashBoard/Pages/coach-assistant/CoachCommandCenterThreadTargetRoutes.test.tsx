@@ -30,7 +30,7 @@ describe('CoachCommandCenter selected thread target routes', () => {
       },
     ]);
 
-    renderPage('/dashboard/admin/coach-assistant');
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     await waitFor(() => {
       const header = screen.getByRole('region', { name: /active coach thread/i });

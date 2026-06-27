@@ -36,14 +36,13 @@ describe('CoachIntakeWorkspace quick snapshot', () => {
 
     const quickSnapshot = screen.getByLabelText('Coach intake quick snapshot');
     const workQueue = screen.getByLabelText('Coach intake work queue');
-    const teachToggle = screen.getByRole('button', { name: /teach me: hive mind intake review/i });
 
     expect(within(quickSnapshot).getByText('Actionable').closest('div')).toHaveTextContent('2');
     expect(within(quickSnapshot).getByText('Ready').closest('div')).toHaveTextContent('3');
     expect(within(quickSnapshot).getByText('Needs client').closest('div')).toHaveTextContent('4');
     expect(within(quickSnapshot).getByText('Failed').closest('div')).toHaveTextContent('1');
     expect(screen.queryByLabelText('Coach intake summary')).toBeNull();
+    expect(screen.queryByRole('button', { name: /teach me: hive mind intake review/i })).not.toBeInTheDocument();
     expect(quickSnapshot.compareDocumentPosition(workQueue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(teachToggle.compareDocumentPosition(workQueue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

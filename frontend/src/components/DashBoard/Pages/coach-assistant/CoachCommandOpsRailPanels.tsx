@@ -17,6 +17,11 @@ type AccountControlsToggleButtonProps = {
   onAccountControlsToggle: () => void;
 };
 
+type ClientSetupToggleButtonProps = {
+  clientSetupOpen: boolean;
+  onClientSetupToggle: () => void;
+};
+
 type QuickClientPanelProps = {
   quickClientBusy: boolean;
   quickClientError: string | null;
@@ -83,6 +88,30 @@ export function AccountControlsToggleButton({
   );
 }
 
+export function ClientSetupToggleButton({
+  clientSetupOpen,
+  onClientSetupToggle,
+}: ClientSetupToggleButtonProps) {
+  return (
+    <button
+      type="button"
+      className={`client-setup-toggle teach-mode-toggle ${clientSetupOpen ? 'is-on' : ''}`}
+      aria-controls="coach-client-setup-panel"
+      aria-expanded={clientSetupOpen}
+      aria-pressed={clientSetupOpen}
+      onClick={onClientSetupToggle}
+    >
+      <span className="workout-command-icon" aria-hidden="true">
+        <UserPlus size={17} />
+      </span>
+      <span>
+        <strong>{clientSetupOpen ? 'Client setup open' : 'Client setup'}</strong>
+        <small>Stage a quick client</small>
+      </span>
+    </button>
+  );
+}
+
 export function OperatorControlsPanel({ teachMode, onTeachModeToggle }: OperatorControlsPanelProps) {
   if (!teachMode) return null;
 
@@ -124,7 +153,7 @@ export function QuickClientPanel({
   onQuickClientSubmit,
 }: QuickClientPanelProps) {
   return (
-    <section className="panel">
+    <section className="panel" id="coach-client-setup-panel">
       <div className="section-title-row">
         <div>
           <h2 className="panel-title">Add client fast</h2>

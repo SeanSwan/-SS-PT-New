@@ -139,9 +139,18 @@ describe('CoachCommandCenterPage Operations drawer', () => {
   });
 
   it('adds a client from the operator drawer with human-facing copy without staging canned composer text', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
     const operationsRail = openOpsRail();
+    const setupToggle = within(operationsRail).getByRole('button', { name: /client setup/i });
 
+    expect(setupToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(setupToggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(operationsRail).queryByRole('heading', { name: /Add client fast/i })).not.toBeInTheDocument();
+
+    fireEvent.click(setupToggle);
+
+    expect(setupToggle).toHaveAttribute('aria-pressed', 'true');
+    expect(setupToggle).toHaveAttribute('aria-expanded', 'true');
     expect(within(operationsRail).getByRole('heading', { name: /Add client fast/i })).toBeInTheDocument();
     expect(within(operationsRail).queryByText(/stub/i)).not.toBeInTheDocument();
     expect(within(within(operationsRail).getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();

@@ -77,30 +77,25 @@ describe('Coach intake responsive contract', () => {
     expect(workspace).not.toMatch(/<CoachIntakeSummaryStats summary={summary} \/>/);
   });
 
-  it('adds a quick snapshot before the teach guide and work queue', () => {
+  it('keeps the quick snapshot before the work queue without hard-mounting Teach Me', () => {
     const snapshotIndex = workspace.indexOf('<CoachIntakeSummaryStats summary={summary} label="Coach intake quick snapshot" />');
-    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe />');
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
 
     expect(snapshotIndex).toBeGreaterThan(-1);
-    expect(teachIndex).toBeGreaterThan(-1);
     expect(queueIndex).toBeGreaterThan(-1);
-    expect(snapshotIndex).toBeLessThan(teachIndex);
+    expect(workspace).not.toContain('<CoachIntakeTeachMe />');
+    expect(workspace).not.toContain("from './CoachIntakeTeachMe'");
     expect(snapshotIndex).toBeLessThan(queueIndex);
   });
 
-  it('puts the automatically staged dossier before helper content and the work queue', () => {
-    const teachIndex = workspace.indexOf('<CoachIntakeTeachMe />');
+  it('puts the automatically staged dossier before the work queue and health strip', () => {
     const activeTargetIndex = workspace.indexOf('<CoachIntakeWorkspaceActiveTarget');
     const healthIndex = workspace.indexOf('<CoachIntakeHealthStrip');
     const queueIndex = workspace.indexOf('<ItemList aria-label="Coach intake work queue"');
 
-    expect(teachIndex).toBeGreaterThan(-1);
     expect(activeTargetIndex).toBeGreaterThan(-1);
     expect(healthIndex).toBeGreaterThan(-1);
     expect(queueIndex).toBeGreaterThan(-1);
-    expect(activeTargetIndex).toBeLessThan(teachIndex);
-    expect(teachIndex).toBeLessThan(queueIndex);
     expect(activeTargetIndex).toBeLessThan(healthIndex);
     expect(activeTargetIndex).toBeLessThan(queueIndex);
   });

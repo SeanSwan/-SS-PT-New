@@ -40,7 +40,7 @@ describe('CoachCommandCenterPage thread identity', () => {
   });
 
   it('opens a history thread with an explicit active-thread identity header', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.click(screen.getByRole('tab', { name: /^History/i }));
     const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
@@ -66,7 +66,7 @@ describe('CoachCommandCenterPage thread identity', () => {
 
   it('labels loaded conversation messages as thread history provenance', () => {
     setCoachCommandCenterActiveConversation();
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.getAllByText('Loaded thread history').length).toBeGreaterThan(0);
   });

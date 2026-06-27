@@ -1,15 +1,6 @@
 /**
  * FILE: CoachCommandCenterPage.tsx
- * PURPOSE: Admin Swan Coach terminal — chat-first "Command Bridge" layout.
- *
- * Floor-first redesign (2026-06-13): the default view is a ChatGPT-style coach
- * conversation with a persistent, fast client switcher (the focal point), a big
- * voice-forward command dock, and a slim next-best-action. The heavy operator
- * surfaces — unified intake queue, PLAUD merge review, operator controls — move
- * off the default screen into tabs + a slide-in Ops drawer.
- *
- * No data rewire: the controller, command execution, voice, intake, and PLAUD
- * wiring are reused exactly; this file only reshapes the presentation.
+ * PURPOSE: Mounted Swan Coach command shell for chat, intake, PLAUD, history, and ops tools.
  * Review-gated: Swan Coach prepares operator drafts; final writes need approval.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -34,6 +25,7 @@ import {
   CLIENT_WORKOUTS_ROUTE,
   coachTabsForRole,
   coerceCoachTabForRole,
+  hasCoachOperatorRouteContext,
   isClientCoachRole,
   normalizeCoachCommandRole,
   routeForcedTabForRole,
@@ -46,7 +38,10 @@ const CoachCommandCenterPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
   const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
-  const [activeTab, setActiveTab] = useState<CoachTab>(() => routeForcedTab || 'chat');
+  const hasOperatorRouteContext = hasCoachOperatorRouteContext(searchParams);
+  const initialTab = routeForcedTab || (!isClientMode && !hasOperatorRouteContext && commandCenter.summary.actionable > 0 ? 'intake' : 'chat');
+  const [activeTab, setActiveTab] = useState<CoachTab>(() => coerceCoachTabForRole(initialTab, userRole));
+  const [operatorTouchedTab, setOperatorTouchedTab] = useState(false);
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const handledPlaudUploadRequestRef = useRef(0);
@@ -88,12 +83,22 @@ const CoachCommandCenterPage: React.FC = () => {
 
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
     commandCenter.handleThreadSelect(thread);
+    setOperatorTouchedTab(true);
     setActiveTab('chat');
   };
   useEffect(() => {
-    if (routeForcedTab) setActiveTab(routeForcedTab);
-    else setActiveTab((current) => coerceCoachTabForRole(current, userRole));
-  }, [routeForcedTab, userRole]);
+    if (routeForcedTab) {
+      setOperatorTouchedTab(false);
+      setActiveTab(routeForcedTab);
+      return;
+    }
+
+    setActiveTab((current) => {
+      const coerced = coerceCoachTabForRole(current, userRole);
+      if (!operatorTouchedTab && !isClientMode && !hasOperatorRouteContext && intakeCount > 0) return 'intake';
+      return coerced;
+    });
+  }, [hasOperatorRouteContext, intakeCount, isClientMode, routeForcedTab, userRole]);
 
   useEffect(() => {
     if (userRole !== 'admin' && accountControlsOpen) {
@@ -112,6 +117,7 @@ const CoachCommandCenterPage: React.FC = () => {
   }, [activeTab, commandCenter, plaudUploadRequest]);
 
   const handleStartPlaudUpload = () => {
+    setOperatorTouchedTab(true);
     setActiveTab('plaud');
     setPlaudUploadRequest((count) => count + 1);
   };
@@ -121,6 +127,7 @@ const CoachCommandCenterPage: React.FC = () => {
   };
 
   const handleOpenIntakeFromOps = () => {
+    setOperatorTouchedTab(true);
     setActiveTab('intake');
     commandCenter.closeDrawer(false);
   };
@@ -160,7 +167,10 @@ const CoachCommandCenterPage: React.FC = () => {
 
         <CoachCommandTabBar
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(coerceCoachTabForRole(tab, userRole))}
+          onTabChange={(tab) => {
+            setOperatorTouchedTab(true);
+            setActiveTab(coerceCoachTabForRole(tab, userRole));
+          }}
           tabs={availableTabs}
           intakeCount={intakeCount}
           plaudCount={plaudCount}

@@ -22,7 +22,7 @@ describe('CoachCommandCenterPage shell', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it('renders the chat-first command bridge: client switcher, tabs, dock, and welcome', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
 
@@ -56,7 +56,7 @@ describe('CoachCommandCenterPage shell', () => {
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
   it('moves the heavy operator surfaces off the default chat view into tabs', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('CoachCommandCenterPage shell', () => {
   });
 
   it('keeps user composer text untouched when the intake tab is opened', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Manual coach draft stays mine.' } });
     fireEvent.click(screen.getByRole('tab', { name: /^Intake/i }));
@@ -82,8 +82,14 @@ describe('CoachCommandCenterPage shell', () => {
   });
   it.each([
     {
-      label: 'no route hint',
+      label: 'no route hint with actionable intake',
       route: '/dashboard/admin/coach-assistant',
+      tab: 'intake',
+      activeIntakeId: 'none',
+    },
+    {
+      label: 'explicit chat workspace',
+      route: '/dashboard/admin/coach-assistant?workspace=chat',
       tab: 'chat',
     },
     {
@@ -145,7 +151,7 @@ describe('CoachCommandCenterPage shell', () => {
         '1. **Get Him Moving Gently:** Start with assisted mobility and controlled tempo work. 2. **Iron Out the Kinks:** Add stability work before loading. {"action":"coach_action_proposal","schema_version":"2026-05-07","proposal_type":"client_onboarding"}',
       timestamp: '2026-05-14T12:00:00.000Z',
     });
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Prepare readable review.' } });
     fireEvent.click(sendButton());
@@ -158,7 +164,7 @@ describe('CoachCommandCenterPage shell', () => {
 
   it('opens the PLAUD upload lane from the dock PLAUD action', async () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Import PLAUD$/i }));
@@ -168,7 +174,7 @@ describe('CoachCommandCenterPage shell', () => {
   });
 
   it('keeps thread switching in History instead of duplicating recent chips in the header', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.queryByRole('group', { name: /recent client conversations/i })).not.toBeInTheDocument();
 
@@ -183,7 +189,7 @@ describe('CoachCommandCenterPage shell', () => {
   });
 
   it('opens a history thread into chat without staging a prompt in the composer', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.click(screen.getByRole('tab', { name: /^History/i }));
     const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
@@ -195,7 +201,7 @@ describe('CoachCommandCenterPage shell', () => {
   });
 
   it('starts a new conversation without inserting canned composer text', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Keep this user-authored draft out of new chat.' } });
     fireEvent.click(screen.getByRole('button', { name: /New client \/ conversation/i }));
@@ -206,13 +212,13 @@ describe('CoachCommandCenterPage shell', () => {
   });
   it('renders loaded history messages in the conversation transcript', () => {
     setCoachCommandCenterActiveConversation();
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.getByText(/We reviewed Ava squat pattern and left knee note/i)).toBeInTheDocument();
     expect(screen.getByText(/check pain before loading/i)).toBeInTheDocument();
   });
   it('submits the command dock through the real coach conversation API', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Prepare today intake review.' } });
     fireEvent.click(sendButton());
@@ -235,7 +241,7 @@ describe('CoachCommandCenterPage shell', () => {
       result: { totalCount: 2, returnedCount: 2, swanStudiosCount: 1, moveFitnessCount: 1 },
       client: null,
     });
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'List active clients' } });
     fireEvent.click(sendButton());
@@ -266,7 +272,7 @@ describe('CoachCommandCenterPage shell', () => {
       },
       client: null,
     });
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Create external client Ava Stone' } });
     fireEvent.click(sendButton());
@@ -295,7 +301,7 @@ describe('CoachCommandCenterPage shell', () => {
       result: { sessionId: 42, refundIssued: true },
       command: 'cancel_session',
     });
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Cancel session 42' } });
     fireEvent.click(sendButton());
@@ -320,7 +326,7 @@ describe('CoachCommandCenterPage shell', () => {
       details: null,
       isDestructive: true,
     });
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     fireEvent.change(composerInput(), { target: { value: 'Cancel session 43' } });
     fireEvent.click(sendButton());

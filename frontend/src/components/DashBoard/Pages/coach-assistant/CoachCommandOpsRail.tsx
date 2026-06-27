@@ -7,6 +7,7 @@ import type { DrawerSide, QueueHealthRow } from './CoachCommandCenter.types';
 import CoachCommandOpsLaunchpad from './CoachCommandOpsLaunchpad';
 import {
   AccountControlsToggleButton,
+  ClientSetupToggleButton,
   OperatorControlsPanel,
   QueueSnapshotPanel,
   QuickClientPanel,
@@ -94,6 +95,7 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
   onQuickClientSubmit,
   onTeachModeToggle,
 }) => {
+  const [clientSetupOpen, setClientSetupOpen] = React.useState(false);
   const headerDescription = opsRailDescription({
     selectedClientLabel,
     workoutLoggerRoute,
@@ -147,16 +149,22 @@ const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({
       ) : null}
       <TeachModeToggleButton teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
       <OperatorControlsPanel teachMode={teachMode} onTeachModeToggle={onTeachModeToggle} />
-      <QuickClientPanel
-        quickClientBusy={quickClientBusy}
-        quickClientError={quickClientError}
-        quickClientMessage={quickClientMessage}
-        quickClientName={quickClientName}
-        quickClientSource={quickClientSource}
-        onQuickClientNameChange={onQuickClientNameChange}
-        onQuickClientSourceChange={onQuickClientSourceChange}
-        onQuickClientSubmit={onQuickClientSubmit}
+      <ClientSetupToggleButton
+        clientSetupOpen={clientSetupOpen}
+        onClientSetupToggle={() => setClientSetupOpen((current) => !current)}
       />
+      {clientSetupOpen ? (
+        <QuickClientPanel
+          quickClientBusy={quickClientBusy}
+          quickClientError={quickClientError}
+          quickClientMessage={quickClientMessage}
+          quickClientName={quickClientName}
+          quickClientSource={quickClientSource}
+          onQuickClientNameChange={onQuickClientNameChange}
+          onQuickClientSourceChange={onQuickClientSourceChange}
+          onQuickClientSubmit={onQuickClientSubmit}
+        />
+      ) : null}
       <QueueSnapshotPanel queueHealthRows={queueHealthRows} rightRailItems={rightRailItems} />
     </aside>
   );

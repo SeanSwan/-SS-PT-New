@@ -64,7 +64,8 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it.each([
-    ['default chat', '/dashboard/admin/coach-assistant', 'chat'],
+    ['default actionable intake', '/dashboard/admin/coach-assistant', 'intake'],
+    ['explicit chat workspace', '/dashboard/admin/coach-assistant?workspace=chat', 'chat'],
     ['direct intake', '/dashboard/admin/coach-assistant?intake=clip-111', 'intake', 'clip-111'],
     ['direct proposal', '/dashboard/admin/coach-assistant?proposal=proposal-123', 'intake'],
     ['proposal for intake', '/dashboard/admin/coach-assistant?intake=clip-111&proposal=proposal-123', 'intake', 'clip-111'],

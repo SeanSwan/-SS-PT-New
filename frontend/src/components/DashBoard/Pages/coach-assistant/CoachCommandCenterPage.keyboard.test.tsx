@@ -13,7 +13,7 @@ describe('CoachCommandCenterPage keyboard submit', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
   it('submits the command dock when Enter is pressed in the textarea', async () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const composer = composerInput();
     fireEvent.change(composer, { target: { value: 'Chaz' } });
@@ -31,7 +31,7 @@ describe('CoachCommandCenterPage keyboard submit', () => {
   });
 
   it('keeps Shift+Enter available for multiline dock drafting', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const composer = composerInput();
     fireEvent.change(composer, { target: { value: 'Chaz' } });
@@ -41,7 +41,7 @@ describe('CoachCommandCenterPage keyboard submit', () => {
   });
 
   it('does not submit while IME composition is using Enter to choose text', () => {
-    renderPage();
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const composer = composerInput();
     fireEvent.change(composer, { target: { value: 'ちゃず' } });

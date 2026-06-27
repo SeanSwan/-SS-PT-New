@@ -10,8 +10,15 @@ const CLIENT_TABS: CoachTab[] = ['chat', 'history'];
 
 
 function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
+  const workspace = searchParams.get('workspace');
   if (
-    searchParams.get('workspace') === 'plaud' ||
+    workspace === 'chat' ||
+    workspace === 'intake' ||
+    workspace === 'history' ||
+    workspace === 'plaud'
+  ) return workspace;
+
+  if (
     searchParams.get('mergeRequestId') ||
     searchParams.get('review') === 'next'
   ) return 'plaud';
@@ -38,4 +45,15 @@ export function coerceCoachTabForRole(tab: CoachTab, role: CoachCommandRole): Co
 export function routeForcedTabForRole(searchParams: URLSearchParams, role: CoachCommandRole): CoachTab | null {
   const routedTab = tabFromRoute(searchParams);
   return routedTab ? coerceCoachTabForRole(routedTab, role) : null;
+}
+
+export function hasCoachOperatorRouteContext(searchParams: URLSearchParams): boolean {
+  return Boolean(
+    searchParams.get('clientId') ||
+    searchParams.get('intent') ||
+    searchParams.get('source') ||
+    searchParams.get('returnTo') ||
+    searchParams.get('sourcePath') ||
+    searchParams.get('teachPrompt')
+  );
 }

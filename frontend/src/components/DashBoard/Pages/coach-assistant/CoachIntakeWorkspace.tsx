@@ -20,7 +20,6 @@ import CoachIntakePreparedDraftPanel from './CoachIntakePreparedDraftPanel';
 import CoachIntakeQueueEmptyState from './CoachIntakeQueueEmptyState';
 import CoachIntakeQueueItemCard from './CoachIntakeQueueItemCard';
 import CoachIntakeQueueScopeTabs from './CoachIntakeQueueScopeTabs';
-import CoachIntakeTeachMe from './CoachIntakeTeachMe';
 import CoachIntakeWorkspaceHeader from './CoachIntakeWorkspaceHeader';
 import CoachIntakeWorkspaceActiveTarget from './CoachIntakeWorkspaceActiveTarget';
 import CoachIntakeSummaryStats from './CoachIntakeSummaryStats';
@@ -227,8 +226,6 @@ export function CoachIntakeWorkspace({
           onDismiss={() => setReviewOutcome(null)}
         />
       ) : null}
-
-      <CoachIntakeTeachMe />
 
       <ItemList aria-label="Coach intake work queue" aria-live="polite">
         <CoachIntakeQueueScopeTabs
