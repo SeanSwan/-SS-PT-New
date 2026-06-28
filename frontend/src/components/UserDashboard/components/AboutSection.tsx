@@ -18,6 +18,7 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
+import { useRankTitleSelection } from '../../../hooks/gamification/useRankTitleSelection';
 import {
   AboutContainer,
   LoadingSpinner,
@@ -27,15 +28,18 @@ import {
 import {
   buildAchievementCards,
   buildPersonalInfo,
+  buildRankTitleCatalog,
   buildSkillTreeStats,
 } from './AboutSection.helpers';
 import AboutSectionAchievements from './AboutSectionAchievements';
 import AboutSectionProfileCard from './AboutSectionProfileCard';
+import AboutSectionRankTitles from './AboutSectionRankTitles';
 import AboutSectionSkillTrees from './AboutSectionSkillTrees';
 
 const AboutSection: React.FC = () => {
   const { user } = useAuth();
   const { profile, achievements, isLoading, levelProgress } = useGamificationData();
+  const { equipRankTitle, isEquippingRankTitle, equippingRankTitleKey } = useRankTitleSelection();
   const profileData = profile?.data;
   const earnedAchievements = profileData?.achievements ?? [];
 
@@ -50,6 +54,10 @@ const AboutSection: React.FC = () => {
   const skillTreeStats = useMemo(
     () => buildSkillTreeStats(achievements?.data, earnedAchievements),
     [achievements?.data, earnedAchievements],
+  );
+  const rankTitleCatalog = useMemo(
+    () => buildRankTitleCatalog(profileData, levelProgress),
+    [profileData, levelProgress],
   );
 
   if (isLoading) {
@@ -69,6 +77,13 @@ const AboutSection: React.FC = () => {
         <AboutSectionProfileCard personalInfo={personalInfo} />
         <AboutSectionSkillTrees skillTreeStats={skillTreeStats} />
       </SectionGrid>
+      <AboutSectionRankTitles
+        {...rankTitleCatalog}
+        currentLevel={levelProgress?.level ?? profileData?.level ?? 1}
+        onEquipRankTitle={equipRankTitle}
+        isEquippingRankTitle={isEquippingRankTitle}
+        equippingRankTitleKey={equippingRankTitleKey}
+      />
       <AboutSectionAchievements achievements={achievementList} />
     </AboutContainer>
   );

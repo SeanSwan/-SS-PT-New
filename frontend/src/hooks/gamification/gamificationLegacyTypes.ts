@@ -96,6 +96,20 @@ export interface ProgressSnapshot {
   tier: LegacyTier;
 }
 
+export interface RankTitleOption {
+  key: string;
+  name: string;
+  rankNumber: number;
+  label: string;
+  minLevel: number;
+  maxLevel: number;
+  levelRange: string;
+  color?: string;
+  earned?: boolean;
+  isCurrent?: boolean;
+  isSelected?: boolean;
+}
+
 export interface GamificationProfile {
   id: string;
   firstName: string;
@@ -117,6 +131,12 @@ export interface GamificationProfile {
   nextLevelPoints: number;
   nextTierProgress: number;
   nextTier?: Exclude<LegacyTier, 'bronze'>;
+  selectedRankTitleKey?: string;
+  selectedRankTitleDisplay?: RankTitleOption;
+  currentRankTitleDisplay?: RankTitleOption;
+  rankTitles?: RankTitleOption[];
+  earnedRankTitleCount?: number;
+  nextRankTitleDisplay?: RankTitleOption | null;
   progressSnapshots?: ProgressSnapshot[];
   streakCalendar?: StreakDay[];
 }

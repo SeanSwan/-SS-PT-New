@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 /**
  * COMPONENT: CoverStudioPanel.types
  * PURPOSE: Types, constants, and branch-light helpers for the feed cover studio panel.
@@ -15,6 +17,7 @@ import {
 export type CoverType = 'single' | 'stage' | 'carousel' | 'collage';
 
 export interface CoverStudioPanelProps {
+  dashboardBackgroundControls?: ReactNode;
   bannerObjectPosition: BannerObjectPosition;
   bannerObjectFit: BannerObjectFit;
   bannerImageScale: number;

@@ -362,6 +362,11 @@ User.init(
       defaultValue: 'bronze_forge',
       comment: 'Current tier in the Crystalline Swan gamification system'
     },
+    selectedRankTitleKey: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      comment: 'User-selected earned public rank title key for profile display'
+    },
     streakDays: {
       type: DataTypes.INTEGER,
       allowNull: true,

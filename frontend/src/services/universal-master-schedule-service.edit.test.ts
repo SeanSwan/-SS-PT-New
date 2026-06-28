@@ -7,8 +7,17 @@ const apiMock = vi.hoisted(() => ({
   patch: vi.fn(),
 }));
 
+const loggerMock = vi.hoisted(() => ({
+  warn: vi.fn(),
+  log: vi.fn(),
+}));
+
 vi.mock('./api.service', () => ({
   default: apiMock,
+}));
+
+vi.mock('@/utils/logger', () => ({
+  logger: loggerMock,
 }));
 
 const { UniversalMasterScheduleService } = await import('./universal-master-schedule-service');
@@ -57,6 +66,10 @@ describe('UniversalMasterScheduleService editable session updates', () => {
         /Invalid sessions response from \/api\/sessions/
       );
       expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'Sessions endpoint returned an invalid list response:',
+        expect.any(Error)
+      );
     } finally {
       consoleErrorSpy.mockRestore();
     }

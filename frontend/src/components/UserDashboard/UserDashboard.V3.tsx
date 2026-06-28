@@ -13,6 +13,7 @@ import {
   ProfileContainer,
 } from './styles/DashboardV3Styles';
 import DashboardTeachMeGuide from '../Shared/DashboardTeachMeGuide';
+import brandLogo from '../../assets/Logo.png';
 import ObservatoryShell from './components/ObservatoryShell';
 import ObservatoryCoverHero from './components/ObservatoryCoverHero';
 import { OBSERVATORY_NAV_ITEMS } from './components/ObservatoryShellAdapter';
@@ -26,6 +27,8 @@ import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
 import { buildUserDashboardTeachCoachRoute } from './UserDashboardTeachCoachRoute';
+import UserDashboardBackgroundControls from './backgrounds/UserDashboardBackgroundControls';
+import useUserDashboardBackgroundPreference from './backgrounds/useUserDashboardBackgroundPreference';
 import { USER_DASHBOARD_TAB_IDS, type TabId } from './types/UserDashboardTypes';
 
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
@@ -45,7 +48,7 @@ const UserDashboardV3: React.FC = () => {
   const { setActiveTab } = dashboard;
   React.useEffect(() => {
     setActiveTab(routedTab);
-    // routedTab only — internal setActiveTab calls (e.g. Settings → profile)
+    // routedTab only - internal setActiveTab calls (e.g. Settings -> profile)
     // may diverge from the URL without being snapped back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routedTab, setActiveTab]);
@@ -59,6 +62,18 @@ const UserDashboardV3: React.FC = () => {
     navigate(buildUserDashboardTeachCoachRoute(prompt));
   }, [navigate]);
   const teachMePathname = `${location.pathname}#${dashboard.activeTab}`;
+  const dashboardBackground = useUserDashboardBackgroundPreference(brandLogo);
+  const dashboardBackgroundControls = (
+    <UserDashboardBackgroundControls
+      preference={dashboardBackground.preference}
+      activeBackground={dashboardBackground.activeBackground}
+      customUploadError={dashboardBackground.customUploadError}
+      onModeChange={dashboardBackground.setMode}
+      onBackgroundSelect={dashboardBackground.setSelectedId}
+      onIntervalChange={dashboardBackground.setIntervalMinutes}
+      onCustomImageFile={(file) => { void dashboardBackground.setCustomImageFile(file); }}
+    />
+  );
 
   if (dashboard.isLoading && !dashboard.profile) {
     return <UserDashboardLoadingState />;
@@ -75,6 +90,7 @@ const UserDashboardV3: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
+        style={dashboardBackground.backgroundStyle}
       >
         <NoiseOverlay />
         <MainContentZWrapper>
@@ -87,17 +103,19 @@ const UserDashboardV3: React.FC = () => {
             username={dashboard.getUsernameForDisplay()}
             userInitials={dashboard.getUserInitials()}
             tierName={dashboard.observatoryTierName}
+            rankTitleLabel={dashboard.observatoryRankTitleLabel}
             level={dashboard.observatoryLevel}
             profilePhoto={dashboard.profile?.photo}
             onEditProfile={dashboard.handleEditProfile}
             onSettings={dashboard.handleSettings}
             onShare={dashboard.handleShare}
             onAvatarClick={dashboard.handleProfileImageClick}
+            dashboardBackgroundControls={dashboardBackgroundControls}
           />
           <ContentWrapper data-user-dashboard-scroll-root $belowCover>
             {isHomeTab ? (
               <>
-              {/* O3 app-shell nav: the tab bar mounts on Home too — phones get
+              {/* O3 app-shell nav: the tab bar mounts on Home too - phones get
                   the same fixed bottom bar on every dashboard surface (it
                   renders nothing >=1025px, where the left rail is the nav). */}
               <UserDashboardTabBarV3

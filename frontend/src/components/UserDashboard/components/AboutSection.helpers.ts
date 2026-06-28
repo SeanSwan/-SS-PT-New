@@ -3,8 +3,9 @@
  */
 
 import { Calendar, Star, Target, Zap } from 'lucide-react';
-import { getTier, getTierDisplay, type Rarity, type SkillTree } from '../../../types/gamification';
-import type { EarnedAchievementCard, PersonalInfoItem, SkillTreeStats } from './AboutSection.types';
+import type { RankTitleOption } from '../../../hooks/gamification/gamificationLegacyTypes';
+import { getRankTitles, getTier, getTierDisplay, type Rarity, type SkillTree } from '../../../types/gamification';
+import type { EarnedAchievementCard, PersonalInfoItem, RankTitleCatalog, SkillTreeStats } from './AboutSection.types';
 
 export function formatJoinDate(dateStr?: string): string {
   if (!dateStr) return 'Unknown';
@@ -75,6 +76,46 @@ export function buildSkillTreeStats(achievementDefs: unknown, earnedAchievements
     earned: countSkillTrees(earnedAchievements, (userAchievement) => (
       userAchievement.achievement?.skillTree || userAchievement.achievement?.requirementType
     )),
+  };
+}
+
+export function buildRankTitleCatalog(profileData: any, levelProgress: any): RankTitleCatalog {
+  const level = levelProgress?.level ?? profileData?.level ?? 1;
+  const selectedKey = profileData?.selectedRankTitleKey;
+  const backendTitles = Array.isArray(profileData?.rankTitles) ? profileData.rankTitles : [];
+  const fallbackTitles: RankTitleOption[] = getRankTitles().map((rank, index) => {
+    const rankNumber = index + 1;
+    const earned = level >= rank.minLevel;
+    const isCurrent = level >= rank.minLevel && level <= rank.maxLevel;
+    return {
+      ...rank,
+      rankNumber,
+      label: `Rank ${String(rankNumber).padStart(2, '0')} | ${rank.name}`,
+      earned,
+      isCurrent,
+      isSelected: selectedKey ? rank.key === selectedKey : isCurrent,
+    };
+  });
+  const rankTitles = backendTitles.length ? backendTitles : fallbackTitles;
+  const currentRankTitle = profileData?.currentRankTitleDisplay
+    ?? rankTitles.find((rank: RankTitleOption) => rank.isCurrent)
+    ?? fallbackTitles.find((rank) => rank.isCurrent);
+  const selectedRankTitle = profileData?.selectedRankTitleDisplay
+    ?? rankTitles.find((rank: RankTitleOption) => rank.isSelected)
+    ?? currentRankTitle;
+  const nextRankTitle = profileData?.nextRankTitleDisplay !== undefined
+    ? profileData.nextRankTitleDisplay
+    : rankTitles.find((rank: RankTitleOption) => !rank.earned) ?? null;
+  const earnedRankTitleCount = typeof profileData?.earnedRankTitleCount === 'number'
+    ? profileData.earnedRankTitleCount
+    : rankTitles.filter((rank: RankTitleOption) => rank.earned).length;
+
+  return {
+    rankTitles,
+    selectedRankTitle,
+    currentRankTitle,
+    nextRankTitle,
+    earnedRankTitleCount,
   };
 }
 

@@ -31,6 +31,7 @@ import {
 const WHOLE_IMAGE_FITS: BannerObjectFit[] = ['smart', 'contain'];
 const isWholeImageFit = (fit: BannerObjectFit) => WHOLE_IMAGE_FITS.includes(fit);
 const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
+  dashboardBackgroundControls,
   bannerObjectPosition,
   bannerObjectFit,
   bannerImageScale,
@@ -93,6 +94,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   return (
     <StudioBody>
       <CoverTypeSection coverType={coverType} onSelectType={selectType} />
+      {dashboardBackgroundControls}
       <LayoutSection
         coverType={coverType}
         layoutOptions={layoutOptions}

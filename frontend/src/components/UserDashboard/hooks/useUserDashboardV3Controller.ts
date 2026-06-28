@@ -83,6 +83,11 @@ export function useUserDashboardV3Controller() {
   }), [stats]);
 
   const canonicalLevel = levelProgress?.level ?? stats?.level ?? 0;
+  const observatoryTierName = levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(canonicalLevel || 1)).name;
+  const selectedRankTitle = gamProfile?.data?.selectedRankTitleDisplay ?? gamProfile?.data?.currentRankTitleDisplay;
+  const observatoryRankTitleLabel = selectedRankTitle?.label
+    ? `Level ${canonicalLevel || 1} | ${selectedRankTitle.label}`
+    : `Level ${canonicalLevel || 1} | ${observatoryTierName}`;
 
   const topBadges = useMemo(() => {
     const earned = gamProfile?.data?.achievements || [];
@@ -214,7 +219,8 @@ export function useUserDashboardV3Controller() {
     levelProgress,
     observatoryLevel: canonicalLevel,
     observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
-    observatoryTierName: levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(canonicalLevel || 1)).name,
+    observatoryTierName,
+    observatoryRankTitleLabel,
     observatoryProgressPct: levelProgress?.progressPercent ?? 0,
     observatoryXpToNext: levelProgress?.pointsNeededForNext ?? 0,
     observatoryStreakDays: gamProfile?.data?.streakDays ?? 0,

@@ -1,5 +1,5 @@
 /**
- * 🚀 GAMIFICATION API ROUTES - COMPLETE v1 API ENDPOINTS
+ * ðŸš€ GAMIFICATION API ROUTES - COMPLETE v1 API ENDPOINTS
  * =====================================================
  * Production-ready API routes that match frontend gamification components
  * expectations with proper versioning (/api/v1/gamification/*)
@@ -53,7 +53,7 @@ const pointActionLimiter = rateLimit({
 });
 
 // ============================================================================
-// 📊 USER STATS & PROGRESS ENDPOINTS
+// ðŸ“Š USER STATS & PROGRESS ENDPOINTS
 // ============================================================================
 
 /**
@@ -85,7 +85,7 @@ router.post('/users/:userId/progress', authenticate, authorizeResourceAccess('us
 router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('userId'), progressController.getProgressInsights);
 
 // ============================================================================
-// 🏆 LEADERBOARD ENDPOINTS
+// ðŸ† LEADERBOARD ENDPOINTS
 // ============================================================================
 
 /**
@@ -96,7 +96,7 @@ router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('use
 router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard);
 
 // ============================================================================
-// 🎯 CHALLENGE SYSTEM ENDPOINTS
+// ðŸŽ¯ CHALLENGE SYSTEM ENDPOINTS
 // ============================================================================
 
 /**
@@ -156,7 +156,7 @@ router.get('/challenges/:id/leaderboard', authenticate, requireUser, challengeCo
 router.get('/users/:userId/challenges', authenticate, authorizeResourceAccess('userId'), challengeController.getUserChallenges);
 
 // ============================================================================
-// 🏅 ACHIEVEMENT SYSTEM ENDPOINTS
+// ðŸ… ACHIEVEMENT SYSTEM ENDPOINTS
 // ============================================================================
 
 /**
@@ -225,7 +225,7 @@ router.post('/users/:userId/achievements/:achievementId', authenticate, requireT
 router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.updateAchievementProgress);
 
 // ============================================================================
-// 💰 POINTS & REWARDS SYSTEM
+// ðŸ’° POINTS & REWARDS SYSTEM
 // ============================================================================
 
 /**
@@ -285,7 +285,7 @@ router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController
 router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, pointActionLimiter, authorizeResourceAccess('userId'), gamificationController.redeemReward);
 
 // ============================================================================
-// 🎖️ MILESTONES SYSTEM
+// ðŸŽ–ï¸ MILESTONES SYSTEM
 // ============================================================================
 
 /**
@@ -331,7 +331,7 @@ router.delete('/milestones/:id', authenticate, requireAdmin, gamificationControl
 router.post('/users/:userId/check-milestones', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.checkAndAwardMilestones);
 
 // ============================================================================
-// 🎯 GOAL MANAGEMENT SYSTEM
+// ðŸŽ¯ GOAL MANAGEMENT SYSTEM
 // ============================================================================
 
 /**
@@ -398,7 +398,7 @@ router.get('/goals/:id/analytics', authenticate, requireUser, goalController.get
 router.get('/users/:userId/goals/categories', authenticate, authorizeResourceAccess('userId'), goalController.getGoalCategoriesStats);
 
 // ============================================================================
-// 👥 SOCIAL FEATURES & USER INTERACTIONS
+// ðŸ‘¥ SOCIAL FEATURES & USER INTERACTIONS
 // ============================================================================
 
 /**
@@ -458,7 +458,7 @@ router.get('/discover-users', authenticate, requireUser, socialController.discov
 router.get('/social-feed', authenticate, requireUser, socialController.getSocialFeed);
 
 // ============================================================================
-// ⚙️ SETTINGS & CONFIGURATION
+// âš™ï¸ SETTINGS & CONFIGURATION
 // ============================================================================
 
 /**
@@ -476,7 +476,7 @@ router.get('/settings', gamificationController.getSettings);
 router.put('/settings', authenticate, requireAdmin, gamificationController.updateSettings);
 
 // ============================================================================
-// 🔥 WORKOUT INTEGRATION
+// ðŸ”¥ WORKOUT INTEGRATION
 // ============================================================================
 
 /**
@@ -501,7 +501,7 @@ router.post(
 );
 
 // ============================================================================
-// 🔔 NOTIFICATIONS
+// ðŸ”” NOTIFICATIONS
 // ============================================================================
 
 /**
@@ -512,7 +512,7 @@ router.post(
 router.patch('/notifications/:notificationId/read', authenticate, requireUser, gamificationController.markNotificationAsRead);
 
 // ============================================================================
-// 📱 USER PROFILE ENDPOINTS
+// ðŸ“± USER PROFILE ENDPOINTS
 // ============================================================================
 
 /**
@@ -526,6 +526,16 @@ router.get('/profile', authenticate, requireProfileReader, viewAsGuard, (req, re
 });
 
 /**
+ * @route   PUT /api/v1/gamification/profile/rank-title
+ * @desc    Select one earned rank title for the current user's public tag
+ * @access  Authenticated users
+ */
+router.put('/profile/rank-title', authenticate, requireProfileReader, (req, res) => {
+  req.params.userId = req.user.id;
+  return gamificationController.setSelectedRankTitle(req, res);
+});
+
+/**
  * @route   GET /api/v1/gamification/users/:userId/profile
  * @desc    Get user gamification profile
  * @access  Authenticated users
@@ -533,7 +543,7 @@ router.get('/profile', authenticate, requireProfileReader, viewAsGuard, (req, re
 router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserProfile);
 
 // ============================================================================
-// 🎯 ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY
+// ðŸŽ¯ ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY
 // ============================================================================
 
 /**
@@ -598,7 +608,7 @@ router.get('/search', async (req, res) => {
 });
 
 // ============================================================================
-// 🧊 STREAK FREEZE SYSTEM (Loss Aversion Psychology)
+// ðŸ§Š STREAK FREEZE SYSTEM (Loss Aversion Psychology)
 // ============================================================================
 
 /**
@@ -616,7 +626,7 @@ router.get('/streak-freeze/:userId', authenticate, authorizeResourceAccess('user
 router.post('/streak-freeze/use', authenticate, requireUser, gamificationController.useStreakFreeze);
 
 // ============================================================================
-// 🔄 COMEBACK CHALLENGES (Re-engagement Psychology)
+// ðŸ”„ COMEBACK CHALLENGES (Re-engagement Psychology)
 // ============================================================================
 
 /**
@@ -634,7 +644,7 @@ router.get('/comeback-challenge/:userId', authenticate, authorizeResourceAccess(
 router.post('/comeback-challenge/accept', authenticate, requireUser, gamificationController.acceptComebackChallenge);
 
 // ============================================================================
-// 📊 ACTIVITY FEED & WEEKLY RECAP (Social Psychology)
+// ðŸ“Š ACTIVITY FEED & WEEKLY RECAP (Social Psychology)
 // ============================================================================
 
 /**

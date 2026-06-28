@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-const { getUserProfileMock } = vi.hoisted(() => ({
+const { getUserProfileMock, setSelectedRankTitleMock } = vi.hoisted(() => ({
   getUserProfileMock: vi.fn(),
+  setSelectedRankTitleMock: vi.fn(),
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
@@ -20,6 +21,10 @@ vi.mock('../../controllers/gamificationController.mjs', () => ({
     getUserProfile: (req, res) => {
       getUserProfileMock(req.params.userId);
       return res.status(200).json({ success: true, userId: req.params.userId });
+    },
+    setSelectedRankTitle: (req, res) => {
+      setSelectedRankTitleMock(req.params.userId, req.body?.rankTitleKey);
+      return res.status(200).json({ success: true, userId: req.params.userId, rankTitleKey: req.body?.rankTitleKey });
     },
   }, {
     get: (target, prop) => {
@@ -103,5 +108,21 @@ describe('gamification profile access', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ success: true, userId: 101 });
     expect(getUserProfileMock).toHaveBeenCalledWith(101);
+  });
+
+  it.each([
+    ['/api/v1/gamification', 'user', 101],
+    ['/api/gamification', 'user', 101],
+    ['/api/v1/gamification', 'client', 102],
+    ['/api/gamification', 'client', 102],
+  ])('lets an authenticated profile user equip only their own profile rank title on %s as %s', async (base, token, userId) => {
+    const response = await request(createApp())
+      .put(`${base}/profile/rank-title`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ rankTitleKey: 'swan_initiate' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ success: true, userId, rankTitleKey: 'swan_initiate' });
+    expect(setSelectedRankTitleMock).toHaveBeenCalledWith(userId, 'swan_initiate');
   });
 });

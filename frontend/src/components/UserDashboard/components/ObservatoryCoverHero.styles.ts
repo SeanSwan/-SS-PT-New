@@ -189,22 +189,23 @@ export const CoverMeta = styled.div`
   }
 `;
 
-export const CoverTierChip = styled.span`
-  flex: 0 0 auto;
+export const CoverRankTag = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 0.22rem 0.6rem;
+  width: fit-content;
+  max-width: min(100%, 34rem);
+  min-height: 30px;
+  margin-top: 0.38rem;
+  padding: 0.32rem 0.68rem;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 46%, transparent);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 16%, transparent);
   color: var(--text-primary, #E0ECF4);
-  font: 800 0.66rem/1 var(--font-data, 'Fira Code', monospace);
+  font: 800 0.68rem/1.15 var(--font-data, 'Fira Code', monospace);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-
-  @media (max-width: 560px) {
-    display: none;
-  }
+  white-space: normal;
+  overflow-wrap: anywhere;
 `;
 
 export const CoverActions = styled.div`
