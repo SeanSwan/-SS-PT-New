@@ -21,7 +21,7 @@ export const BANNER_OBJECT_POSITION_PRESETS = [
 
 type LegacyBannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number];
 
-export const BANNER_OBJECT_FIT_OPTIONS = ['cover', 'contain', 'fill', 'tile', 'collage'] as const;
+export const BANNER_OBJECT_FIT_OPTIONS = ['smart', 'cover', 'contain', 'fill', 'tile', 'collage'] as const;
 export type BannerObjectFit = (typeof BANNER_OBJECT_FIT_OPTIONS)[number];
 export type BannerObjectPosition = string;
 export const BANNER_CAROUSEL_LAYOUT_OPTIONS = [
@@ -52,7 +52,7 @@ export const BANNER_COLLAGE_LAYOUT_OPTIONS = [
 export type BannerCollageLayout = (typeof BANNER_COLLAGE_LAYOUT_OPTIONS)[number];
 
 export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
-export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
+export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'smart';
 export const DEFAULT_BANNER_COLLAGE_LAYOUT: BannerCollageLayout = 'smart-carousel';
 export const DEFAULT_BANNER_STICKY_CAROUSEL = false;
 export const DEFAULT_BANNER_IMAGE_SCALE = 1;

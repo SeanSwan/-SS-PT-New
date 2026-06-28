@@ -27,6 +27,7 @@ describe('UserDashboard banner crop contract', () => {
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
   const compositionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCompositionStyles.ts');
   const carouselStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCarouselStyles.ts');
+  const smartFitStyles = read('src/components/UserDashboard/styles/DashboardV3BannerSmartFitStyles.ts');
   const stageStyles = read('src/components/UserDashboard/styles/DashboardV3BannerStageStyles.ts');
   const backendController = read('../backend/controllers/profileController.mjs');
   const layoutStyles = read('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
@@ -77,6 +78,8 @@ describe('UserDashboard banner crop contract', () => {
     expect(bannerCompositionService).toContain('normalizeBannerCollageLayout');
     expect(bannerCompositionService).toContain('normalizeBannerPresets');
     expect(bannerCompositionService).toContain('BANNER_OBJECT_FIT_OPTIONS');
+    expect(bannerCompositionService).toContain("'smart'");
+    expect(bannerCompositionService).toContain("DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'smart'");
     expect(bannerCompositionService).toContain('BANNER_COLLAGE_LAYOUT_OPTIONS');
     expect(bannerCompositionService).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
     expect(bannerCompositionService).toContain("'smart-carousel'");
@@ -95,6 +98,9 @@ describe('UserDashboard banner crop contract', () => {
   it('renders creative modes with image elements instead of CSS background-url repetition', () => {
     expect(mediaLayer).toContain('BannerTileLayer');
     expect(mediaLayer).toContain('data-testid="banner-tile-image"');
+    expect(mediaLayer).toContain('BannerSmartFitLayer');
+    expect(mediaLayer).toContain('data-testid="banner-smart-fit-layer"');
+    expect(smartFitStyles).toContain('object-fit: contain;');
     expect(mediaLayer).toContain('BannerCollageLayer');
     expect(mediaLayer).toContain('data-testid="banner-collage-image"');
     expect(mediaLayer).toContain('data-testid="banner-collage-video"');
@@ -198,6 +204,7 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain("bannerCollageLayout === 'vitrine'");
     expect(mediaLayer).toContain('UserDashboardBannerStageLayouts');
     expect(stageLayer).toContain('data-testid="banner-stage-smart-carousel"');
+    expect(stageStyles).toMatch(/BannerStageSmartHero[\s\S]*?object-fit: contain;/);
     expect(stageLayer).toContain("'banner-stage-smart-theme-tile'");
     expect(stageLayer).toContain('buildSmartRailItems');
     expect(stageLayer).toContain('data-testid="banner-stage-atrium"');
@@ -216,13 +223,16 @@ describe('UserDashboard banner crop contract', () => {
     expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition: none/);
   });
 
-  it('keeps cover controls away from the desktop right-rail tier cards', () => {
-    const actionRowBlock = styledBlock(actionStyles, 'BannerActionRow');
+  it('docks cover controls beside the live editor preview instead of below it', () => {
+    const editorStyles = read('src/components/Social/Feed/components/SocialCoverEditor.styles.ts');
+    const editorSource = read('src/components/Social/Feed/components/SocialCoverEditor.tsx');
 
-    expect(actionRowBlock).toContain('left: clamp');
-    expect(actionRowBlock).toContain('right: auto;');
-    expect(actionRowBlock).toContain('bottom: clamp');
-    expect(actionStyles).toMatch(/export const BannerRepositionPanel[\s\S]*?left: 0;/);
+    expect(editorSource).toContain('cover-editor-workspace');
+    expect(editorSource).toContain('cover-editor-controls');
+    expect(editorSource).toContain('Accept Changes');
+    expect(editorStyles).toContain('grid-template-columns: minmax(360px, 1.35fr) minmax(300px, 0.85fr);');
+    expect(editorStyles).toContain('max-height: calc(var(--cover-editor-preview-height) + 2px);');
+    expect(editorStyles).toContain('@media (max-width: 980px)');
   });
 
   it('fills tile mode with wrapped full-image tiles instead of wide dark cells', () => {

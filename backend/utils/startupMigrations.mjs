@@ -186,7 +186,7 @@ async function migrateStabilizationColumns() {
 
   // Manual banner crop controls use percentage position, fit mode, and scale.
   await addColumnIfMissing('Users', 'bannerObjectPosition', "VARCHAR(32) NOT NULL DEFAULT '50% 50%'");
-  await addColumnIfMissing('Users', 'bannerObjectFit', "VARCHAR(12) NOT NULL DEFAULT 'cover'");
+  await addColumnIfMissing('Users', 'bannerObjectFit', "VARCHAR(12) NOT NULL DEFAULT 'smart'");
   await addColumnIfMissing('Users', 'bannerImageScale', 'DOUBLE PRECISION NOT NULL DEFAULT 1');
   await addColumnIfMissing('Users', 'bannerFrameHeight', 'INTEGER NOT NULL DEFAULT 320');
   await addColumnIfMissing('Users', 'bannerCollagePhotos', "JSONB NOT NULL DEFAULT '[]'::jsonb");

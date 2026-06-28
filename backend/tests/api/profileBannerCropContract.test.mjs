@@ -20,6 +20,7 @@ describe('profile banner crop persistence contract', () => {
     expect(controllerSource).toContain("'bannerStickyCarousel'");
     expect(controllerSource).toContain("'bannerPresets'");
     expect(controllerSource).toContain("'smart-carousel'");
+    expect(controllerSource).toContain("'smart'");
     expect(controllerSource).toContain('isValidBannerObjectPosition');
     expect(controllerSource).toContain('isValidBannerObjectFit');
     expect(controllerSource).toContain('isValidBannerCollageLayout');
@@ -53,7 +54,7 @@ describe('profile banner crop persistence contract', () => {
 
   it('keeps startup repair migrations aligned with free crop storage', () => {
     expect(startupMigrationSource).toContain("'bannerObjectPosition', \"VARCHAR(32) NOT NULL DEFAULT '50% 50%'\"");
-    expect(startupMigrationSource).toContain("'bannerObjectFit', \"VARCHAR(12) NOT NULL DEFAULT 'cover'\"");
+    expect(startupMigrationSource).toContain("'bannerObjectFit', \"VARCHAR(12) NOT NULL DEFAULT 'smart'\"");
     expect(startupMigrationSource).toContain("'bannerImageScale', 'DOUBLE PRECISION NOT NULL DEFAULT 1'");
     expect(startupMigrationSource).toContain("'bannerFrameHeight', 'INTEGER NOT NULL DEFAULT 320'");
     expect(startupMigrationSource).toContain("'bannerCollagePhotos', \"JSONB NOT NULL DEFAULT '[]'::jsonb\"");

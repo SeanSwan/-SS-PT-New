@@ -232,7 +232,8 @@ export function FramingSection({
     <div>
       <SectionLabel>Framing</SectionLabel>
       <Seg>
-        <SegButton type="button" $active={fit !== 'contain'} onClick={() => onFitChange('cover')}>Fill</SegButton>
+        <SegButton type="button" $active={fit === 'smart'} onClick={() => onFitChange('smart')}>Smart fit</SegButton>
+        <SegButton type="button" $active={fit === 'cover'} onClick={() => onFitChange('cover')}>Fill crop</SegButton>
         <SegButton type="button" $active={fit === 'contain'} onClick={() => onFitChange('contain')}>Fit whole</SegButton>
       </Seg>
     </div>

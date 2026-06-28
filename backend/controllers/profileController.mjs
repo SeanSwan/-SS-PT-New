@@ -219,7 +219,7 @@ const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
 ]);
 
 const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
-const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill', 'tile', 'collage']);
+const BANNER_OBJECT_FITS = new Set(['smart', 'cover', 'contain', 'fill', 'tile', 'collage']);
 const BANNER_COLLAGE_LAYOUTS = new Set([
   // Smart Carousel adapts selected media into a full-bleed stage with built-in
   // crystalline fill tiles for portrait or sparse uploads.
@@ -390,7 +390,7 @@ export const updateUserProfile = async (req, res) => {
     if (updateData.bannerObjectFit !== undefined && !isValidBannerObjectFit(updateData.bannerObjectFit)) {
       return res.status(400).json({
         success: false,
-        message: 'bannerObjectFit must be cover, contain, fill, tile, or collage',
+        message: 'bannerObjectFit must be smart, cover, contain, fill, tile, or collage',
       });
     }
 

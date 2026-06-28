@@ -2,11 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialCoverEditor from './SocialCoverEditor';
 
-const mocks = vi.hoisted(() => ({
-  updateProfile: vi.fn(async () => undefined),
-  uploadBannerPhoto: vi.fn(async () => '/uploads/new-cover.jpg'),
-  uploadBannerCollagePhoto: vi.fn(async () => '/uploads/new-collage.jpg'),
-  profile: {
+const mocks = vi.hoisted(() => {
+  const profile = {
     bannerPhoto: '/uploads/cover.jpg',
     bannerObjectPosition: '50% 50%',
     bannerObjectFit: 'collage' as const,
@@ -16,8 +13,28 @@ const mocks = vi.hoisted(() => ({
     bannerCollageLayout: 'carousel-reel' as const,
     bannerStickyCarousel: true,
     bannerPresets: [],
-  },
-}));
+  };
+
+  const resetProfile = () => Object.assign(profile, {
+    bannerPhoto: '/uploads/cover.jpg',
+    bannerObjectPosition: '50% 50%',
+    bannerObjectFit: 'collage' as const,
+    bannerImageScale: 1,
+    bannerFrameHeight: 320,
+    bannerCollagePhotos: ['/uploads/one.jpg', '/uploads/two.jpg'],
+    bannerCollageLayout: 'carousel-reel' as const,
+    bannerStickyCarousel: true,
+    bannerPresets: [],
+  });
+
+  return {
+    updateProfile: vi.fn(async () => undefined),
+    uploadBannerPhoto: vi.fn(async () => '/uploads/new-cover.jpg'),
+    uploadBannerCollagePhoto: vi.fn(async () => '/uploads/new-collage.jpg'),
+    profile,
+    resetProfile,
+  };
+});
 
 vi.mock('../../../../hooks/profile/useProfile', () => ({
   useProfile: () => ({
@@ -45,10 +62,53 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  mocks.resetProfile();
   mocks.updateProfile.mockClear();
 });
 
 describe('SocialCoverEditor drag positioning', () => {
+  it('docks the live preview beside the cover controls', () => {
+    render(<SocialCoverEditor onClose={vi.fn()} />);
+
+    expect(screen.getByTestId('cover-editor-workspace')).toContainElement(screen.getByTestId('cover-editor-preview-frame'));
+    expect(screen.getByTestId('cover-editor-workspace')).toContainElement(screen.getByTestId('cover-editor-controls'));
+    expect(screen.getByRole('button', { name: 'Accept cover changes' })).toBeInTheDocument();
+  });
+
+  it('switches single-photo covers to smart fit and caps zoom at 100 percent', async () => {
+    Object.assign(mocks.profile, {
+      bannerObjectFit: 'cover' as const,
+      bannerImageScale: 2,
+      bannerCollageLayout: 'stream' as const,
+      bannerCollagePhotos: [],
+    });
+
+    render(<SocialCoverEditor onClose={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Smart fit' }));
+
+    await waitFor(() => {
+      expect(mocks.updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+        bannerObjectFit: 'smart',
+        bannerImageScale: 1,
+      }));
+    });
+  });
+
+  it('renders smart fit as a whole-image layer over matched fill', () => {
+    Object.assign(mocks.profile, {
+      bannerObjectFit: 'smart' as const,
+      bannerImageScale: 2,
+      bannerCollageLayout: 'stream' as const,
+      bannerCollagePhotos: [],
+    });
+
+    render(<SocialCoverEditor onClose={vi.fn()} />);
+
+    expect(screen.getByTestId('banner-smart-fit-layer')).toBeInTheDocument();
+    expect(screen.getByAltText('Profile cover photo')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Cover zoom')).not.toBeInTheDocument();
+  });
+
   it('saves dragged carousel focal position through the profile update lane', async () => {
     render(<SocialCoverEditor onClose={vi.fn()} />);
     const preview = screen.getByTestId('cover-editor-preview-frame');

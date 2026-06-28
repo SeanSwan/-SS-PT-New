@@ -26,6 +26,8 @@ import {
 import UserDashboardBannerCollageStrip from './UserDashboardBannerCollageStrip';
 import { FIT_LABELS } from '../utils/bannerCompositionMedia';
 
+const WHOLE_IMAGE_FITS: BannerObjectFit[] = ['smart', 'contain'];
+
 interface RepositionPanelContentProps {
   backgroundImage: string | null;
   bannerObjectPosition: BannerObjectPosition;
@@ -99,7 +101,7 @@ const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContent
     const next: BannerCropState = {
       ...cropStateRef.current,
       fit,
-      scale: fit === 'contain' ? Math.min(cropStateRef.current.scale, 1) : cropStateRef.current.scale,
+      scale: WHOLE_IMAGE_FITS.includes(fit) ? Math.min(cropStateRef.current.scale, 1) : cropStateRef.current.scale,
     };
     onBannerCropPreview(next);
     onBannerCropCommit(next);
@@ -137,7 +139,9 @@ const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContent
     ? bannerObjectFit === 'collage'
       ? 'Drag the collage to set its shared focal point.'
       : 'Drag the cover photo to frame it.'
-    : 'Choose a cover mode and frame size.';
+    : bannerObjectFit === 'smart'
+      ? 'Smart fit keeps the full photo visible with a matched background fill.'
+      : 'Choose a cover mode and frame size.';
 
   return (
     <>
@@ -173,7 +177,7 @@ const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContent
           onShuffle={onBannerCollageShuffle}
         />
       )}
-      {bannerObjectFit !== 'contain' && (
+      {!WHOLE_IMAGE_FITS.includes(bannerObjectFit) && (
         <BannerCropField>
           <span>{scaleLabel}</span>
           <BannerCropValue>{Math.round(bannerImageScale * 100)}%</BannerCropValue>

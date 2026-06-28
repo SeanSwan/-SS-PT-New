@@ -260,6 +260,10 @@ export const BannerStageSmartHero = styled.div`
     inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent),
     0 36px 80px -28px color-mix(in srgb, var(--bg-base, #0A0A0F) 90%, transparent),
     0 0 72px -20px color-mix(in srgb, var(--accent-primary, #60C0F0) 48%, transparent);
+  ${BannerStageImage},
+  ${BannerStageVideo} {
+    object-fit: contain;
+  }
 `;
 
 export const BannerStageSmartRail = styled.div`

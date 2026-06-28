@@ -8,6 +8,7 @@ export * from './DashboardV3LayoutStyles';
 export * from './DashboardV3BannerStyles';
 export * from './DashboardV3BannerActionsStyles';
 export * from './DashboardV3BannerCarouselStyles';
+export * from './DashboardV3BannerSmartFitStyles';
 export * from './DashboardV3BannerCrossfadeStyles';
 export * from './DashboardV3BannerStageStyles';
 export * from './DashboardV3BannerCompositionStyles';

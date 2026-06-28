@@ -61,7 +61,7 @@ module.exports = {
       await queryInterface.addColumn('Users', 'bannerObjectFit', {
         type: Sequelize.DataTypes.STRING(12),
         allowNull: false,
-        defaultValue: 'cover',
+        defaultValue: 'smart',
         comment: 'CSS object-fit mode for banner photo: cover, contain, or fill.',
       });
     }

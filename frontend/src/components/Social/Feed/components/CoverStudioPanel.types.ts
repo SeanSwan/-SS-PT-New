@@ -47,7 +47,7 @@ const CAROUSEL_LAYOUTS = [...BANNER_CAROUSEL_LAYOUT_OPTIONS] as BannerCollageLay
 const COLLAGE_LAYOUTS: BannerCollageLayout[] = ['stream', 'spotlight', 'crossfade'];
 
 export const COVER_TYPES: Array<{ id: CoverType; name: string; desc: string; rec?: boolean }> = [
-  { id: 'single', name: 'Single', desc: 'One photo or video, full-bleed.' },
+  { id: 'single', name: 'Single', desc: 'One photo or video with smart fill.' },
   { id: 'stage', name: 'Stage', desc: 'A cinematic gallery of your media.', rec: true },
   { id: 'carousel', name: 'Carousel', desc: 'A responsive image row for wide covers.' },
   { id: 'collage', name: 'Collage', desc: 'A composed crystalline mosaic.' },
@@ -141,7 +141,7 @@ export function getFallbackLayout(next: CoverType, current: BannerCollageLayout)
 }
 
 export function getSingleFit(fit: BannerObjectFit): BannerObjectFit {
-  if (fit === 'collage') return 'cover';
+  if (fit === 'collage') return 'smart';
   return fit;
 }
 
