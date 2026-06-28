@@ -36,7 +36,7 @@ function renderControls(preference: UserDashboardBackgroundPreference = basePref
 }
 
 describe('UserDashboardBackgroundControls', () => {
-  it('renders fixed and rotation controls with all twenty recipes', () => {
+  it('renders fixed and rotation controls with all thirty recipes', () => {
     renderControls();
 
     expect(screen.getByRole('button', { name: /Fixed/ })).toHaveAttribute('aria-pressed', 'true');
