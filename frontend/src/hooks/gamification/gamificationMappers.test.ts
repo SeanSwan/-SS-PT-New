@@ -49,6 +49,12 @@ describe('gamificationMappers', () => {
           { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true },
           { key: { raw: 'private-key' }, name: 'Spoofed', rankNumber: 2, minLevel: 11, maxLevel: 20, levelRange: '11-20' },
         ],
+        upcomingProgressionBeats: [
+          { key: 'rank-title-swan-initiate', level: 11, type: 'rank_title', label: 'Rank Title Unlock', reward: 'Equip Swan Initiate', description: 'A new public Swan title becomes available for the profile tag.', intensity: 'title', pointsRequired: 12100, pointsRemaining: 9600, levelsAway: 6 },
+          { key: { raw: 'private-beat' }, level: 15, type: 'momentum', label: 'Momentum Checkpoint', reward: 'Leaked', description: 'private-description', intensity: 'pulse' },
+          { key: 'missing-points', level: 15, type: 'momentum', label: 'Momentum Checkpoint', reward: 'Missing points', description: 'No real target', intensity: 'pulse' },
+        ],
+        nextMajorProgressionBeat: { key: 'rank-title-swan-initiate', level: 11, type: 'rank_title', label: 'Rank Title Unlock', reward: 'Equip Swan Initiate', description: 'A new public Swan title becomes available for the profile tag.', intensity: 'title', pointsRequired: 12100, pointsRemaining: 9600, levelsAway: 6 },
       } as any,
       targetUserId: 42,
       user: null,
@@ -59,7 +65,17 @@ describe('gamificationMappers', () => {
     expect(profile.currentRankTitleDisplay).toMatchObject({ key: 'swan_initiate' });
     expect(profile.earnedRankTitleCount).toBe(2);
     expect(profile.rankTitles).toHaveLength(1);
+    expect(profile.upcomingProgressionBeats).toHaveLength(1);
+    expect(profile.upcomingProgressionBeats?.[0]).toMatchObject({
+      level: 11,
+      type: 'rank_title',
+      reward: 'Equip Swan Initiate',
+      pointsRemaining: 9600,
+    });
+    expect(profile.nextMajorProgressionBeat).toMatchObject({ type: 'rank_title', label: 'Rank Title Unlock' });
     expect(JSON.stringify(profile)).not.toContain('private-key');
+    expect(JSON.stringify(profile)).not.toContain('private-beat');
+    expect(JSON.stringify(profile)).not.toContain('Missing points');
   });
   it('preserves valid profile collections', () => {
     const profile = buildLegacyProfile({

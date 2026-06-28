@@ -51,6 +51,7 @@ describe('gamification settings controller contract hardening', () => {
     expect(controllerSource).toContain('const applySystemSettingsDraftFields =');
     expect(updateSettingsSource).toContain('const validationError = applyGamificationSettingsDraft(updatedFields, req.body);');
     expect(updateSettingsSource).toContain('pointsMultiplier: pointsMultiplier === undefined ? 1.0 : normalizedPointsMultiplier,');
+    expect(controllerSource).toContain("return 'levelCap must be a positive integer up to 1000';");
   });
 
   it('keeps settings failures stable and rejects permissive multiplier parsing', () => {

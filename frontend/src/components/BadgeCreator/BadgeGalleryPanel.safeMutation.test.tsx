@@ -168,4 +168,47 @@ describe('BadgeGalleryPanel', () => {
       '"Crystal Finisher" shared to marketplace.'
     ));
   });
+  it('saves badge edits and optional replacement image through dedicated admin routes', async () => {
+    apiMocks.patch.mockResolvedValue({ data: { success: true } });
+    apiMocks.post.mockResolvedValue({
+      data: { success: true, data: { imageUrl: '/uploads/products/replacement.webp' } },
+    });
+    const user = userEvent.setup();
+
+    render(<BadgeGalleryPanel />);
+    await user.click(await screen.findByRole('button', { name: /select crystal finisher badge/i }));
+    await user.clear(screen.getByLabelText(/^badge name$/i));
+    await user.type(screen.getByLabelText(/^badge name$/i), 'Swan Glacier Guardian');
+    await user.clear(screen.getByLabelText(/description/i));
+    await user.type(screen.getByLabelText(/description/i), 'Updated badge copy.');
+    await user.selectOptions(screen.getByLabelText(/rarity/i), 'epic');
+    await user.clear(screen.getByLabelText(/xp reward/i));
+    await user.type(screen.getByLabelText(/xp reward/i), '180');
+    await user.selectOptions(screen.getByLabelText(/connect to/i), 'achievement');
+    await user.clear(screen.getByLabelText(/assignment target/i));
+    await user.type(screen.getByLabelText(/assignment target/i), 'swan_level_100');
+    const replacement = new File(['replacement'], 'replacement.webp', { type: 'image/webp' });
+    await user.upload(screen.getByLabelText(/replacement image/i), replacement);
+    await user.click(screen.getByRole('button', { name: /save details/i }));
+
+    expect(apiMocks.patch).toHaveBeenCalledWith(
+      '/api/admin/badge-creator/badge%2Falpha%201',
+      expect.objectContaining({
+        name: 'Swan Glacier Guardian',
+        description: 'Updated badge copy.',
+        rarity: 'epic',
+        abilityPoints: '180',
+        assignment: { assignedTo: 'achievement', assignedTarget: 'swan_level_100' },
+      }),
+      expect.any(Object)
+    );
+    expect(apiMocks.post).toHaveBeenCalledWith(
+      '/api/admin/badge-creator/badge%2Falpha%201/image',
+      expect.any(FormData),
+      expect.any(Object)
+    );
+    const imagePayload = apiMocks.post.mock.calls.find(([path]) => path === '/api/admin/badge-creator/badge%2Falpha%201/image')?.[1] as FormData;
+    expect(imagePayload.get('image')).toBe(replacement);
+    expect(await screen.findByRole('status')).toHaveTextContent('Badge "Swan Glacier Guardian" saved.');
+  });
 });

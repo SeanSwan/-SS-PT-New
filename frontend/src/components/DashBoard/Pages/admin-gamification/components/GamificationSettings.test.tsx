@@ -18,8 +18,8 @@ const baseProps = (): GamificationSettingsProps => ({
   ],
   levelSettings: {
     pointsPerLevel: 500,
-    levelCap: 100,
-    enableLevelCap: false,
+    levelCap: 1000,
+    enableLevelCap: true,
   },
   systemSettings: {
     enableGamification: true,
@@ -60,5 +60,37 @@ describe('GamificationSettings', () => {
         pointValues: [expect.objectContaining({ id: 'workout_complete', pointValue: 80 })],
       })
     );
+  });
+
+  it('renders the Swan 1-1000 progression truth instead of old metal tier copy', () => {
+    render(<GamificationSettings {...baseProps()} />);
+
+    expect(screen.getByText('Swan Progression Tuning')).toBeInTheDocument();
+    expect(screen.getAllByText('Level = Math.floor(0.1 * Math.sqrt(totalPoints))')).toHaveLength(2);
+    expect(screen.getByText('Cygnus Initiate')).toBeInTheDocument();
+    expect(screen.getByText('Frostwing Ascendant')).toBeInTheDocument();
+    expect(screen.queryByText('Bronze')).not.toBeInTheDocument();
+    expect(screen.queryByText('Silver')).not.toBeInTheDocument();
+  });
+
+  it('clamps admin level cap edits to the public Swan ladder', () => {
+    const props = baseProps();
+    render(<GamificationSettings {...props} />);
+
+    fireEvent.change(screen.getByLabelText('Level Cap'), { target: { value: '1200' } });
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    expect(props.onSaveSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        levelSettings: expect.objectContaining({ levelCap: 1000 }),
+      })
+    );
+  });
+
+  it('falls back gracefully when a legacy threshold key has no public label', () => {
+    render(<GamificationSettings {...baseProps()} tierThresholds={[{ tier: 'ancient' as any, pointsRequired: 1 }]} />);
+
+    expect(screen.getByText('Swan Arc')).toBeInTheDocument();
+    expect(screen.getByLabelText('Swan Arc Points Required')).toBeInTheDocument();
   });
 });

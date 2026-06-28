@@ -48,6 +48,10 @@ describe('AboutSection', () => {
           selectedRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
           currentRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
           nextRankTitleDisplay: { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20' },
+          upcomingProgressionBeats: [
+            { key: 'rank-title-swan-initiate', level: 11, type: 'rank_title', label: 'Rank Title Unlock', reward: 'Equip Swan Initiate', description: 'A new public Swan title becomes available for the profile tag.', intensity: 'title', pointsRequired: 12100, pointsRemaining: 9700, levelsAway: 2 },
+          ],
+          nextMajorProgressionBeat: { key: 'rank-title-swan-initiate', level: 11, type: 'rank_title', label: 'Rank Title Unlock', reward: 'Equip Swan Initiate', description: 'A new public Swan title becomes available for the profile tag.', intensity: 'title', pointsRequired: 12100, pointsRemaining: 9700, levelsAway: 2 },
           earnedRankTitleCount: 1,
           rankTitles: [
             { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
@@ -97,6 +101,10 @@ describe('AboutSection', () => {
     expect(screen.getByText('Rank Titles')).toBeInTheDocument();
     expect(screen.getByText('Rank 01 | First Flight')).toBeInTheDocument();
     expect(screen.getByText('Rank 02')).toBeInTheDocument();
+    expect(screen.getByText('Next progression beats')).toBeInTheDocument();
+    expect(screen.getByText('Rank Title Unlock')).toBeInTheDocument();
+    expect(screen.getByText('Equip Swan Initiate')).toBeInTheDocument();
+    expect(screen.getByText('9,700 XP away')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Rank 02 \| Swan Initiate locked until Level 11/i })).toBeDisabled();
   });
 

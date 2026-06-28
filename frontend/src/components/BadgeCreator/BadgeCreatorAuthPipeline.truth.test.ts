@@ -22,6 +22,9 @@ const sources = {
   styleBrowserStyles: stripComments(read('./StyleBrowser.styles.ts')),
   gallery: stripComments(read('./BadgeGalleryPanel.tsx')),
   galleryStyles: stripComments(read('./BadgeGalleryPanel.styles.ts')),
+  editor: stripComments(read('./BadgeAdminEditorPanel.tsx')),
+  editorStyles: stripComments(read('./BadgeAdminEditorPanel.styles.ts')),
+  editorConstants: stripComments(read('./BadgeAdminEditorPanel.constants.ts')),
   upload: stripComments(read('./BadgeUploadPanel.tsx')),
   uploadStyles: stripComments(read('./BadgeUploadPanel.styles.ts')),
   animated: stripComments(read('./AnimatedBadge.tsx')),
@@ -35,6 +38,9 @@ const sources = {
 
 const rawSources = {
   gallery: read('./BadgeGalleryPanel.tsx'),
+  editor: read('./BadgeAdminEditorPanel.tsx'),
+  editorStyles: read('./BadgeAdminEditorPanel.styles.ts'),
+  editorConstants: read('./BadgeAdminEditorPanel.constants.ts'),
   page: read('./BadgeCreatorPage.tsx'),
   pageStyles: read('./BadgeCreatorPage.styles.ts'),
   styleBrowser: read('./StyleBrowser.tsx'),
@@ -70,7 +76,7 @@ describe('BadgeCreator auth pipeline', () => {
   });
 
   it('keeps mounted badge creator calls on shared apiService auth transport', () => {
-    [sources.page, sources.gallery, sources.upload, sources.batch, sources.marketplace].forEach(expectSharedTransport);
+    [sources.page, sources.gallery, sources.editor, sources.upload, sources.batch, sources.marketplace].forEach(expectSharedTransport);
 
     expect(sources.page).toContain('/api/admin/badge-creator/styles');
     expect(sources.page).toContain('/api/admin/badge-creator/credits');
@@ -81,14 +87,14 @@ describe('BadgeCreator auth pipeline', () => {
     expect(sources.page).toMatch(/apiService\.post/);
 
     expect(sources.gallery).toContain('/api/admin/badge-creator/gallery');
-    expect(sources.gallery).toContain('buildBadgeActionPath');
-    expect(sources.gallery).toContain("'assign'");
-    expect(sources.gallery).toContain("'unassign'");
-    expect(sources.gallery).toContain('/api/admin/badge-creator/marketplace/share');
-    expect(sources.gallery).toContain('/api/admin/badge-creator/marketplace/unshare');
+    expect(sources.editorConstants).toContain('buildBadgeActionPath');
+    expect(sources.editorConstants).toContain("'assign'");
+    expect(sources.editorConstants).toContain("'unassign'");
+    expect(sources.editor).toContain('/api/admin/badge-creator/marketplace/share');
+    expect(sources.editor).toContain('/api/admin/badge-creator/marketplace/unshare');
     expect(sources.gallery).toMatch(/apiService\.get/);
-    expect(sources.gallery).toMatch(/apiService\.patch/);
-    expect(sources.gallery).toMatch(/apiService\.post/);
+    expect(sources.editor).toMatch(/apiService\.patch/);
+    expect(sources.editor).toMatch(/apiService\.post/);
     expect(sources.upload).toContain('/api/admin/badge-creator/upload');
     expect(sources.upload).toContain('new FormData()');
     expect(sources.upload).toMatch(/apiService\.post/);
@@ -194,25 +200,29 @@ describe('BadgeCreator auth pipeline', () => {
   });
 
   it('keeps the mounted badge gallery mutation flow safe and touch-ready', () => {
-    const gallerySurface = `${sources.gallery}\n${sources.galleryStyles}\n${sources.animated}`;
+    const gallerySurface = `${sources.gallery}\n${sources.editor}\n${sources.editorConstants}\n${sources.galleryStyles}\n${sources.editorStyles}\n${sources.animated}`;
 
     expect(lineCount(rawSources.gallery)).toBeLessThanOrEqual(300);
     expect(lineCount(rawSources.galleryStyles)).toBeLessThanOrEqual(300);
+    expect(lineCount(rawSources.editor)).toBeLessThanOrEqual(300);
+    expect(lineCount(rawSources.editorStyles)).toBeLessThanOrEqual(300);
+    expect(lineCount(rawSources.editorConstants)).toBeLessThanOrEqual(300);
     expect(lineCount(rawSources.animated)).toBeLessThanOrEqual(300);
-    expect(sources.gallery).toContain('BADGE_GALLERY_ASSIGN_ERROR');
-    expect(sources.gallery).toContain('BADGE_GALLERY_SHARE_ERROR');
-    expect(sources.gallery).toContain('const assigningRef = useRef(false);');
-    expect(sources.gallery).toContain('const sharingRef = useRef(false);');
+    expect(sources.editorConstants).toContain('BADGE_GALLERY_ASSIGN_ERROR');
+    expect(sources.editorConstants).toContain('BADGE_GALLERY_SHARE_ERROR');
+    expect(sources.editor).toContain('const assigningRef = useRef(false);');
+    expect(sources.editor).toContain('const sharingRef = useRef(false);');
     expect(sources.gallery).toContain("import { safeBadgeImageUrl } from './BadgeCreatorImageSafety'");
     expect(sources.gallery).toContain('safeBadgeImageUrl(badge.imageUrl)');
-    expect(sources.gallery).toContain('buildBadgeActionPath');
-    expect(sources.gallery).toContain('encodeURIComponent(badgeId)');
+    expect(sources.editorConstants).toContain('buildBadgeActionPath');
+    expect(sources.editorConstants).toContain('encodeURIComponent(badgeId)');
     expect(sources.gallery).toContain('role="status"');
     expect(sources.gallery).toContain('aria-live="polite"');
-    expect(sources.gallery).toContain('aria-busy={assigning}');
+    expect(sources.editor).toContain('aria-busy={assigning}');
     expect(sources.gallery).toContain("import AnimatedBadge from './AnimatedBadge'");
     expect(sources.gallery).toContain('<AnimatedBadge');
     expect(sources.galleryStyles).toContain('min-height: 44px');
+    expect(sources.editorStyles).toContain('min-height: 44px');
     expect(sources.animated).toContain('const BADGE_MIN_SIZE = 56;');
     expect(sources.animated).toContain('const BADGE_MAX_SIZE = 220;');
     expect(sources.animated).toContain('const clampBadgeSize');

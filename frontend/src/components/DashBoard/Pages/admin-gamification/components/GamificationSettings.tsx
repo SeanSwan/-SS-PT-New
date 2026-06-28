@@ -16,6 +16,7 @@ import {
 } from './GamificationSettingsFrame.styles';
 import { GamificationSettingsPointValuesSection } from './GamificationSettingsPointValuesSection';
 import { GamificationSettingsProgressionSections } from './GamificationSettingsProgressionSections';
+import { GamificationSettingsProgressionTuningPanel } from './GamificationSettingsProgressionTuningPanel';
 import { GamificationSettingsSystemSection } from './GamificationSettingsSystemSection';
 import type {
   GamificationSettingsProps,
@@ -133,6 +134,7 @@ const GamificationSettings: React.FC<GamificationSettingsProps> = ({
           onLevelSettingChange={handleLevelSettingChange}
           onTierThresholdChange={handleTierThresholdChange}
         />
+        <GamificationSettingsProgressionTuningPanel />
         <GamificationSettingsPointValuesSection
           pointValues={editedPointValues}
           onPointValueChange={handlePointValueChange}

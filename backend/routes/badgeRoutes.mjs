@@ -190,6 +190,18 @@ router.get('/',
   badgeController.getBadges.bind(badgeController)
 );
 
+// Get user's earned badges
+router.get('/user/:userId',
+  authenticateToken,
+  verifyClientAccessByUserId({ paramName: 'userId' }),
+  apiLimiter,
+  param('userId').isInt({ min: 1 }).withMessage('Invalid user ID'),
+  query('category').optional().isIn(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']),
+  query('recent').optional().isBoolean().withMessage('Recent must be a boolean'),
+  handleValidationErrors,
+  badgeController.getUserBadges.bind(badgeController)
+);
+
 // Get badge details
 router.get('/:badgeId',
   authenticateToken,
@@ -226,18 +238,6 @@ router.post('/check-earning',
   badgeEarningValidation,
   handleValidationErrors,
   badgeController.checkBadgeEarnings.bind(badgeController)
-);
-
-// Get user's earned badges
-router.get('/user/:userId',
-  authenticateToken,
-  verifyClientAccessByUserId({ paramName: 'userId' }),
-  apiLimiter,
-  param('userId').isInt({ min: 1 }).withMessage('Invalid user ID'),
-  query('category').optional().isIn(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']),
-  query('recent').optional().isBoolean().withMessage('Recent must be a boolean'),
-  handleValidationErrors,
-  badgeController.getUserBadges.bind(badgeController)
 );
 
 // Upload badge image (admin only)

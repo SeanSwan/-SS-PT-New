@@ -33,6 +33,17 @@ const HEALTHY_CONTEXT = {
     painEntries: [{ bodyPart: 'knee', level: 'high', isActive: true }],
     schedule: { upcomingCount: 0, nextSessionDate: null, statuses: [] },
     workoutCount: 1,
+    gamification: {
+      points: 1200,
+      level: 5,
+      tier: 'Sapphire',
+      streakDays: 6,
+      totalWorkouts: 42,
+      badges: {
+        displayedCount: 1,
+        recent: [{ name: 'Sapphire Flight Crew', rewardPoints: 350, category: 'endurance', difficulty: 'advanced' }],
+      },
+    },
   },
 };
 
@@ -55,7 +66,10 @@ describe('dispatchBriefClient', () => {
     expect(r.message).toContain('knee');
     expect(r.message).toContain('session credits low');
     expect(r.message).toContain('no upcoming sessions booked');
+    expect(r.message).toContain('Badges: 1 displayed');
+    expect(r.message).toContain('Sapphire Flight Crew');
     expect(r.brief.flags.length).toBeGreaterThanOrEqual(3);
+    expect(r.brief.gamification.badges.displayedCount).toBe(1);
     // De-identified: real name never appears in the brief output
     expect(r.message).not.toContain('Maria');
   });

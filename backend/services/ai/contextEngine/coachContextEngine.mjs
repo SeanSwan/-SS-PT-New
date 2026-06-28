@@ -11,13 +11,14 @@
  *   - deIdentifyClient() output — IDs/aliases only, zero PII
  *   - authorization FIRST — denied access loads ZERO domains
  *
- * Domains v1 (all schema-verified 2026-06-10): profile + session credits,
- * last-5 workouts, active pain, nutrition summary, active goals, upcoming schedule.
- * Gamification is DEFERRED to A2 (schema unverified — reported in dataQuality).
+ * Domains v1: profile + session credits, last-5 workouts, active pain,
+ * nutrition summary, active goals, upcoming schedule, and displayed Badge Creator
+ * rewards. Gamification uses user XP plus badge summary.
  */
 import { deIdentifyClient } from '../deIdentifier.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE, parseContextClientId } from './clientAccess.mjs';
 import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
+import { loadCoachBadgeRows, summarizeCoachBadges } from './coachGamificationContext.mjs';
 
 function selectType(sequelize) {
   return sequelize?.QueryTypes?.SELECT || 'SELECT';
@@ -94,6 +95,11 @@ const DOMAIN_LOADERS = {
      ORDER BY "sessionDate" ASC
      LIMIT 5`,
     replacements,
+  ),
+  badges: (sequelize, replacements) => loadCoachBadgeRows(
+    sequelize,
+    replacements,
+    selectType(sequelize),
   ),
 };
 
@@ -207,6 +213,7 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       tier: clientRow.tier ?? null,
       streakDays: toNum(clientRow.streakDays),
       totalWorkouts: toNum(clientRow.totalWorkouts),
+      badges: summarizeCoachBadges(results.badges),
     },
   };
 

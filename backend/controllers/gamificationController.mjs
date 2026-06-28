@@ -192,7 +192,7 @@
  *         │               │               │               │
  *         ▼               ▼               ▼               ▼
  *   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
- *   │ Bronze   │   │ Silver   │   │ Gold     │   │ Platinum │
+ *   │ Cygnus   │   │ Frostwing│   │ Gilded  │   │ Amethyst │
  *   │ 0+ pts   │   │ 1000+ pts│   │ 5000+ pts│   │ 20000+pts│
  *   └──────────┘   └──────────┘   └──────────┘   └──────────┘
  *         │               │               │               │
@@ -205,7 +205,7 @@
  * - points_earned: Earn N total points
  * - streak_days: Maintain N-day workout streak
  * - specific_exercise: Complete specific exercise N times
- * - tier_reached: Reach specific tier (bronze/silver/gold/platinum)
+ * - tier_reached: Reach a configured Swan arc or legacy tier alias
  *
  * Point Transaction Types:
  * - earn: Points awarded (workout, achievement)
@@ -411,6 +411,7 @@ import UserMilestone from '../models/UserMilestone.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import ComebackChallenge from '../models/ComebackChallenge.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
+import { checkBadgesForGamificationEvent } from '../services/badgeGamificationBridge.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
@@ -540,12 +541,20 @@ const normalizeBoundedString = (value, maxLength) => {
 const VALID_GAMIFICATION_TIERS = new Set(['bronze', 'silver', 'gold', 'platinum']);
 const VALID_REWARD_TYPES = new Set(['session', 'product', 'discount', 'service', 'other']);
 const VALID_PET_INTERACTIONS = new Set(['pet', 'feed', 'play']);
+const MAX_PUBLIC_GAMIFICATION_LEVEL = 1000;
 
 const DEFAULT_GAMIFICATION_TIER_THRESHOLDS = Object.freeze({
   bronze: 0,
   silver: 1000,
   gold: 5000,
   platinum: 20000
+});
+
+const DEFAULT_GAMIFICATION_LEVEL_REQUIREMENTS = Object.freeze({
+  levelCap: MAX_PUBLIC_GAMIFICATION_LEVEL,
+  enableLevelCap: true,
+  streakExpirationDays: 3,
+  pointsExpiration: { enabled: false, expirationDays: 365 }
 });
 
 const DEFAULT_GAMIFICATION_SETTINGS = Object.freeze({
@@ -557,7 +566,7 @@ const DEFAULT_GAMIFICATION_SETTINGS = Object.freeze({
   pointsPerReview: 15,
   pointsPerReferral: 200,
   tierThresholds: DEFAULT_GAMIFICATION_TIER_THRESHOLDS,
-  levelRequirements: null,
+  levelRequirements: DEFAULT_GAMIFICATION_LEVEL_REQUIREMENTS,
   pointsMultiplier: 1.0,
   enableLeaderboards: true,
   enableNotifications: true,
@@ -581,9 +590,10 @@ const buildGamificationSettingsPayload = (settings) => {
   const tierThresholds = raw.tierThresholds && typeof raw.tierThresholds === 'object'
     ? raw.tierThresholds
     : DEFAULT_GAMIFICATION_TIER_THRESHOLDS;
-  const levelRequirements = raw.levelRequirements && typeof raw.levelRequirements === 'object'
-    ? raw.levelRequirements
-    : {};
+  const levelRequirements = {
+    ...DEFAULT_GAMIFICATION_LEVEL_REQUIREMENTS,
+    ...(raw.levelRequirements && typeof raw.levelRequirements === 'object' ? raw.levelRequirements : {})
+  };
   const notificationsEnabled = raw.enableNotifications !== false;
 
   return {
@@ -598,7 +608,7 @@ const buildGamificationSettingsPayload = (settings) => {
     })),
     levelSettings: {
       pointsPerLevel: parsePositiveInteger(raw.pointsPerLevel, 100),
-      levelCap: parsePositiveInteger(levelRequirements.levelCap, 100),
+      levelCap: Math.min(parsePositiveInteger(levelRequirements.levelCap, MAX_PUBLIC_GAMIFICATION_LEVEL), MAX_PUBLIC_GAMIFICATION_LEVEL),
       enableLevelCap: Boolean(levelRequirements.enableLevelCap)
     },
     systemSettings: {
@@ -686,7 +696,9 @@ const applyLevelSettingsDraftFields = (target, levelSettings) => {
   const nextRequirements = {};
   if (levelSettings.levelCap !== undefined) {
     const levelCap = parsePositiveInteger(levelSettings.levelCap);
-    if (levelCap === null) return 'levelCap must be a positive integer';
+    if (levelCap === null || levelCap > MAX_PUBLIC_GAMIFICATION_LEVEL) {
+      return 'levelCap must be a positive integer up to 1000';
+    }
     nextRequirements.levelCap = levelCap;
   }
 
@@ -772,7 +784,19 @@ const applyFlatGamificationSettingsFields = (target, body) => {
 
   if (errors.length > 0) return errors[0];
 
-  if (body.levelRequirements !== undefined) target.levelRequirements = body.levelRequirements;
+  if (body.levelRequirements !== undefined) {
+    if (typeof body.levelRequirements !== 'object' || body.levelRequirements === null || Array.isArray(body.levelRequirements)) {
+      return 'levelRequirements must be an object';
+    }
+    const levelCap = body.levelRequirements.levelCap;
+    if (levelCap !== undefined) {
+      const parsedLevelCap = parsePositiveInteger(levelCap);
+      if (parsedLevelCap === null || parsedLevelCap > MAX_PUBLIC_GAMIFICATION_LEVEL) {
+        return 'levelCap must be a positive integer up to 1000';
+      }
+    }
+    target.levelRequirements = body.levelRequirements;
+  }
   return null;
 };
 
@@ -2643,6 +2667,7 @@ const gamificationController = {
    */
   recordWorkoutCompletion: async (req, res) => {
     const transaction = await db.transaction();
+    let transactionCommitted = false;
     
     try {
       const {
@@ -2962,6 +2987,46 @@ const gamificationController = {
 
       // Commit the transaction
       await transaction.commit();
+      transactionCommitted = true;
+
+      const badgeActivity = {
+        workoutId,
+        duration: normalizedDuration,
+        exercisesCompleted: normalizedExercisesCompleted,
+        completedExercises: normalizedExercisesCompleted,
+        exerciseCount: normalizedExercisesCompleted,
+        count: normalizedExercisesCompleted,
+        caloriesBurned: normalizedCaloriesBurned,
+        streakDays: updatedStats.streakDays,
+        currentStreak: updatedStats.streakDays,
+        totalWorkouts: updatedStats.totalWorkouts,
+        totalExercises: updatedStats.totalExercises,
+        milestoneIds: workoutMilestoneIds,
+        milestoneNames: awardedMilestones.map((milestone) => milestone.name),
+        points: finalBalance,
+        totalPoints: finalBalance,
+        completed: true
+      };
+      const badgeChecks = [
+        checkBadgesForGamificationEvent({
+          userId: normalizedUserId,
+          type: 'workout_completion',
+          activityData: badgeActivity
+        }),
+        checkBadgesForGamificationEvent({
+          userId: normalizedUserId,
+          type: 'streak_update',
+          activityData: badgeActivity
+        })
+      ];
+      if (awardedMilestones.length > 0) {
+        badgeChecks.push(checkBadgesForGamificationEvent({
+          userId: normalizedUserId,
+          type: 'milestone_reached',
+          activityData: badgeActivity
+        }));
+      }
+      const badgesEarned = (await Promise.all(badgeChecks)).flat();
       
       return res.status(200).json({
         success: true,
@@ -2969,11 +3034,12 @@ const gamificationController = {
         pointsAwarded: pointsToAward + totalMilestoneBonus,
         newBalance: finalBalance,
         awardedMilestones,
+        badgesEarned,
         streakDays: updatedStats.streakDays,
         totalWorkouts: updatedStats.totalWorkouts
       });
     } catch (error) {
-      await transaction.rollback();
+      if (!transactionCommitted) await transaction.rollback();
       console.error('Error recording workout completion:', error);
       return sendGamificationError(res, 'Failed to record workout completion');
     }

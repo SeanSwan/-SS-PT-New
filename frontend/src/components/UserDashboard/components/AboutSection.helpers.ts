@@ -5,6 +5,7 @@
 import { Calendar, Star, Target, Zap } from 'lucide-react';
 import type { RankTitleOption } from '../../../hooks/gamification/gamificationLegacyTypes';
 import { getRankTitles, getTier, getTierDisplay, type Rarity, type SkillTree } from '../../../types/gamification';
+import { getUpcomingProgressionBeats } from '../../../types/gamificationProgression';
 import type { EarnedAchievementCard, PersonalInfoItem, RankTitleCatalog, SkillTreeStats } from './AboutSection.types';
 
 export function formatJoinDate(dateStr?: string): string {
@@ -81,6 +82,7 @@ export function buildSkillTreeStats(achievementDefs: unknown, earnedAchievements
 
 export function buildRankTitleCatalog(profileData: any, levelProgress: any): RankTitleCatalog {
   const level = levelProgress?.level ?? profileData?.level ?? 1;
+  const points = levelProgress?.currentPoints ?? profileData?.points ?? 0;
   const selectedKey = profileData?.selectedRankTitleKey;
   const backendTitles = Array.isArray(profileData?.rankTitles) ? profileData.rankTitles : [];
   const fallbackTitles: RankTitleOption[] = getRankTitles().map((rank, index) => {
@@ -109,6 +111,15 @@ export function buildRankTitleCatalog(profileData: any, levelProgress: any): Ran
   const earnedRankTitleCount = typeof profileData?.earnedRankTitleCount === 'number'
     ? profileData.earnedRankTitleCount
     : rankTitles.filter((rank: RankTitleOption) => rank.earned).length;
+  const backendProgressionBeats = Array.isArray(profileData?.upcomingProgressionBeats)
+    ? profileData.upcomingProgressionBeats
+    : [];
+  const upcomingProgressionBeats = backendProgressionBeats.length
+    ? backendProgressionBeats
+    : getUpcomingProgressionBeats({ level, points, count: 4 });
+  const nextMajorProgressionBeat = profileData?.nextMajorProgressionBeat !== undefined
+    ? profileData.nextMajorProgressionBeat
+    : upcomingProgressionBeats.find((beat: any) => beat.type !== 'momentum') ?? upcomingProgressionBeats[0] ?? null;
 
   return {
     rankTitles,
@@ -116,6 +127,8 @@ export function buildRankTitleCatalog(profileData: any, levelProgress: any): Ran
     currentRankTitle,
     nextRankTitle,
     earnedRankTitleCount,
+    upcomingProgressionBeats,
+    nextMajorProgressionBeat,
   };
 }
 

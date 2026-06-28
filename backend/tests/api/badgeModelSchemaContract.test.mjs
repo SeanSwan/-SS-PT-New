@@ -19,6 +19,23 @@ describe('badge model and creator route schema contract', () => {
     for (const unsupportedColumn of ['xpReward:', 'rarity:', 'assignedTo:', 'assignedTarget:', 'prompt:', 'style:', 'isAnimated:', 'isShared:', 'sharedBy:', 'batchGroupId:', 'secondaryStyle:']) {
       expect(modelSource).not.toContain(unsupportedColumn);
     }
+
+    expect(modelSource).toContain('createdBy: {');
+    expect(modelSource).toContain('type: DataTypes.INTEGER');
+  });
+
+  it('ships a production CJS migration that reconciles badge user references to integer User ids', () => {
+    const migrationSource = readFileSync(
+      resolve(__dirname, '../../migrations/20260628090000-reconcile-badge-system-user-fks.cjs'),
+      'utf8'
+    );
+
+    expect(migrationSource).toContain('UserBadges');
+    expect(migrationSource).toContain('BadgeCollections');
+    expect(migrationSource).toContain('Badges');
+    expect(migrationSource).toContain('Sequelize.INTEGER');
+    expect(migrationSource).toContain('createdBy');
+    expect(migrationSource).toContain('awardedBy');
   });
 
   it('persists badge creator metadata through canonical JSON fields instead of non-existent columns', () => {

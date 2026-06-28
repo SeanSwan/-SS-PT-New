@@ -52,6 +52,36 @@ describe('badge service criteria truth', () => {
     expect(result).toBe(false);
   });
 
+  it('matches social engagement badges by social action', async () => {
+    const result = await badgeService.evaluateBadgeCriteria(
+      'user-1',
+      { criteriaType: 'social_engagement', criteria: { action: 'comment_created' } },
+      { type: 'social_action', socialAction: 'comment_created' }
+    );
+
+    expect(result).toBe(true);
+  });
+
+  it('requires social engagement count when action-specific criteria include a threshold', async () => {
+    const result = await badgeService.evaluateBadgeCriteria(
+      'user-1',
+      { criteriaType: 'social_engagement', criteria: { action: 'comment_created', count: 10 } },
+      { type: 'social_action', socialAction: 'comment_created', count: 1 }
+    );
+
+    expect(result).toBe(false);
+  });
+
+  it('matches milestone badges by milestone id or name', async () => {
+    const result = await badgeService.evaluateBadgeCriteria(
+      'user-1',
+      { criteriaType: 'milestone_reached', criteria: { milestoneId: 12 } },
+      { type: 'milestone_reached', milestoneIds: [10, 12], milestoneNames: ['First Flight'] }
+    );
+
+    expect(result).toBe(true);
+  });
+
   it('normalizes Sequelize SELECT array results for eligible badge checks', async () => {
     const querySpy = vi.spyOn(sequelize, 'query').mockResolvedValue([
       {

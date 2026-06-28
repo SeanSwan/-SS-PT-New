@@ -11,6 +11,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
 import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
+import { checkBadgesForGamificationEvent } from '../../services/badgeGamificationBridge.mjs';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import { cleanupSocialPostDeletionSideEffects } from '../../services/social/socialPostDeletionCleanupService.mjs';
 import { getIO } from '../../socket/socketManager.mjs';
@@ -166,11 +167,24 @@ async function awardSocialPoints(userId, action, metadata = {}) {
       return { pointsAwarded: 0, newBalance: result.newBalance, success: true, duplicate: true, action };
     }
 
+    const badgesEarned = await checkBadgesForGamificationEvent({
+      userId,
+      type: 'social_action',
+      activityData: {
+        socialAction: action,
+        action,
+        count: 1,
+        ...metadata
+      },
+      logger: console
+    });
+
     console.log(`[social-points] Awarded ${pointsToAward} points to user ${userId} for ${action}`);
     
     return {
       pointsAwarded: result.pointsAwarded,
       newBalance: result.newBalance,
+      badgesEarned,
       success: true,
       action
     };

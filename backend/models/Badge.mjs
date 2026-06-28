@@ -64,8 +64,12 @@ Badge.init({
     defaultValue: true,
   },
   createdBy: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id',
+    },
   },
 }, {
   sequelize,

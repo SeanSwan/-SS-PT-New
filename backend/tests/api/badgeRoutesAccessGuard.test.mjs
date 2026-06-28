@@ -18,6 +18,15 @@ describe('badge route access guard', () => {
     expect(routeSource).not.toContain("param('userId').isUUID().withMessage('Invalid user ID')");
   });
 
+  it('registers user badge reads before the generic badge detail route', () => {
+    const userRouteIndex = routeSource.indexOf("router.get('/user/:userId'");
+    const detailRouteIndex = routeSource.indexOf("router.get('/:badgeId'");
+
+    expect(userRouteIndex).toBeGreaterThanOrEqual(0);
+    expect(detailRouteIndex).toBeGreaterThanOrEqual(0);
+    expect(userRouteIndex).toBeLessThan(detailRouteIndex);
+  });
+
   it('uses type-safe self comparison in the fallback controller gate', () => {
     expect(controllerSource).toContain('const targetUserId = parsePositiveInteger(userId);');
     expect(controllerSource).toContain('const requesterId = parsePositiveInteger(currentUserId);');

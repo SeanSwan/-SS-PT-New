@@ -22,8 +22,8 @@ vi.mock('../../../../hooks/use-toast', () => ({
 
 const baseLevelSettings = {
   pointsPerLevel: 500,
-  levelCap: 100,
-  enableLevelCap: false,
+  levelCap: 1000,
+  enableLevelCap: true,
 };
 
 const baseSystemSettings = {

@@ -18,6 +18,8 @@ describe('gamification rank title selection helpers', () => {
     expect(payload.currentRankTitleDisplay).toMatchObject({ key: 'swan_initiate', rankNumber: 2 });
     expect(payload.selectedRankTitleDisplay).toMatchObject({ key: 'first_flight', rankNumber: 1 });
     expect(payload.nextRankTitleDisplay).toMatchObject({ key: 'dawn_wing', minLevel: 21 });
+    expect(payload.upcomingProgressionBeats[0]).toMatchObject({ level: 20, type: 'momentum' });
+    expect(payload.nextMajorProgressionBeat).toMatchObject({ level: 21, type: 'rank_title', reward: 'Equip Dawn Wing' });
   });
 
   it('falls back to the current rank when a stored selected title is locked or invalid', () => {
