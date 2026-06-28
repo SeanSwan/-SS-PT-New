@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useCallback, useEffect, memo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { HelpCircle, X, MessageCircle } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -21,6 +21,7 @@ interface TeachMeToggleProps {
   defaultOpen?: boolean;
   buttonLabel?: string;
   ariaLabel?: string;
+  panelMode?: 'inline' | 'popover';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -29,6 +30,13 @@ interface TeachMeToggleProps {
 const slideIn = keyframes`
   from { opacity: 0; max-height: 0; transform: translateY(-8px); }
   to { opacity: 1; max-height: 600px; transform: translateY(0); }
+`;
+
+const ToggleWrap = styled.div<{ $panelMode: 'inline' | 'popover' }>`
+  display: ${({ $panelMode }) => ($panelMode === 'popover' ? 'inline-grid' : 'grid')};
+  justify-items: start; min-width: 0; position: relative;
+  width: ${({ $panelMode }) => ($panelMode === 'popover' ? 'auto' : '100%')};
+  z-index: ${({ $panelMode }) => ($panelMode === 'popover' ? 80 : 'auto')};
 `;
 
 const ToggleBtn = styled.button<{ $active: boolean }>`
@@ -71,7 +79,7 @@ const ToggleLabel = styled.span`
   text-align: left;
 `;
 
-const Panel = styled.div`
+const Panel = styled.div<{ $panelMode: 'inline' | 'popover' }>`
   margin-top: 8px;
   padding: 16px;
   border-radius: 12px;
@@ -82,10 +90,20 @@ const Panel = styled.div`
   overflow-y: auto;
   scrollbar-gutter: stable both-edges;
 
+  ${({ $panelMode }) => $panelMode === 'popover' && css`
+    box-shadow: 0 24px 70px color-mix(in srgb, var(--bg-base, #030712) 74%, transparent);
+    position: absolute; right: 0; top: calc(100% + 8px); width: min(520px, calc(100vw - 32px));
+  `}
+
   @media (max-width: 560px) {
     padding: 12px;
     border-radius: 10px;
     max-height: calc(100dvh - 108px);
+
+    ${({ $panelMode }) => $panelMode === 'popover' && css`
+      bottom: 14px; left: 12px; max-height: min(68dvh, 560px);
+      position: fixed; right: 12px; top: auto; width: auto;
+    `}
   }
 `;
 
@@ -203,6 +221,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   defaultOpen,
   buttonLabel,
   ariaLabel,
+  panelMode = 'inline',
 }) => {
   const [open, setOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
@@ -226,7 +245,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   const resolvedAriaLabel = ariaLabel || buttonLabel || `Teach Me: ${title}`;
 
   return (
-    <>
+    <ToggleWrap $panelMode={panelMode}>
       <ToggleBtn
         onClick={toggle}
         $active={open}
@@ -239,7 +258,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
       </ToggleBtn>
 
       {open && (
-        <Panel>
+        <Panel $panelMode={panelMode}>
           <PanelHeader>
             <PanelTitle>
               <HelpCircle size={16} />
@@ -266,7 +285,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
           )}
         </Panel>
       )}
-    </>
+    </ToggleWrap>
   );
 };
 

@@ -40,4 +40,16 @@ describe('DashboardTeachMeGuide mounts', () => {
     expect(dashboardShellSource).toContain('teachPrompt');
     expect(dashboardShellSource).not.toContain('onAskCoach={\n                activeRole');
   });
+
+  it('lets Coach Assistant own its guide inside the command header', () => {
+    const dashboardShell = read('src/components/DashBoard/UniversalDashboardLayout.shell.tsx');
+    const coachPage = read('src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx');
+    const coachClientBar = read('src/components/DashBoard/Pages/coach-assistant/CoachClientBar.tsx');
+
+    expect(dashboardShell).toContain('isCoachAssistantRoute');
+    expect(dashboardShell).toContain('!isCoachAssistantRoute');
+    expect(coachPage).toContain('guideConfig={{ role: userRole');
+    expect(coachClientBar).toContain('className="coach-header-guide"');
+    expect(coachClientBar).toContain('variant="headerPopover"');
+  });
 });

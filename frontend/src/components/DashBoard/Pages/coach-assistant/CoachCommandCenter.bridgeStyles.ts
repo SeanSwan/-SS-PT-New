@@ -69,6 +69,21 @@ export const coachCommandBridgeStyles = css`
     letter-spacing: 0.03em;
   }
 
+  .client-bar-tools {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .coach-header-guide {
+    display: inline-flex;
+    justify-content: flex-end;
+    min-width: 0;
+    position: relative;
+  }
+
   .ops-button {
     align-items: center;
     background: var(--coach-soft);

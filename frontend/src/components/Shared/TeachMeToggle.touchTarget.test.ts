@@ -11,4 +11,10 @@ describe('TeachMeToggle touch targets', () => {
     expect(SOURCE).toMatch(/const CloseBtn[\s\S]*height:\s*44px/);
     expect(SOURCE).toMatch(/const AskAIBtn[\s\S]*min-height:\s*44px/);
   });
+
+  it('supports popover panels that do not add page height', () => {
+    expect(SOURCE).toContain("panelMode?: 'inline' | 'popover'");
+    expect(SOURCE).toMatch(/const Panel = styled\.div[\s\S]*position:\s*absolute/);
+    expect(SOURCE).toMatch(/@media \(max-width: 560px\)[\s\S]*position:\s*fixed/);
+  });
 });

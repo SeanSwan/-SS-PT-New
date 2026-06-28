@@ -155,6 +155,30 @@ describe('DashboardTeachMeGuide', () => {
     expect(onAskCoach).toHaveBeenCalledWith('teach me the client workout logging workflow');
   });
 
+
+  it('renders the Coach header popover variant without the shell quick strip', () => {
+    const onNavigate = vi.fn();
+
+    render(
+      <DashboardTeachMeGuide
+        role="admin"
+        pathname="/dashboard/admin/coach-assistant"
+        variant="headerPopover"
+        onNavigate={onNavigate}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }))
+      .toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Open guide')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: /visible fast path/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }));
+
+    expect(screen.getByRole('button', { name: /^first move: open coach$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Use Coach as the review-gated terminal/i)).toBeInTheDocument();
+  });
+
   it('keeps the closed phone guide compact and action-first on phones', () => {
     const quickStyles = readSource('src/components/Shared/DashboardTeachMeGuide.quickStyles.ts');
 

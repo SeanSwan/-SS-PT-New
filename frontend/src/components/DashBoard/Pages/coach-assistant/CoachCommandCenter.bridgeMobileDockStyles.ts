@@ -38,6 +38,11 @@ export const coachCommandBridgeMobileDockStyles = css`
       padding: 12px;
     }
 
+    .client-bar-tools {
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
     .tab-bar {
       border-radius: 14px;
       display: grid;

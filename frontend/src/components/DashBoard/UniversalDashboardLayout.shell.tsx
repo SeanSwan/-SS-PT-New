@@ -64,6 +64,7 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
 }) => {
   const dashboardTheme = createUniversalDashboardTheme(activeRole);
   const prefersReducedMotion = Boolean(useReducedMotion());
+  const isCoachAssistantRoute = /\/coach-assistant(?:\/|$)/.test(locationPathname);
   const themedShell = (content: React.ReactNode) => (
     <ThemeProvider theme={dashboardTheme}>
       <UniversalGlobalStyles />
@@ -119,12 +120,14 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
             {userRole === 'admin' && (activeRole === 'trainer' || activeRole === 'client') && (
               <ViewAsBanner activeRole={activeRole} />
             )}
-            <DashboardTeachMeGuide
-              role={activeRole}
-              pathname={locationPathname}
-              onNavigate={navigate}
-              onAskCoach={onTeachMeCoachPrompt}
-            />
+            {!isCoachAssistantRoute && (
+              <DashboardTeachMeGuide
+                role={activeRole}
+                pathname={locationPathname}
+                onNavigate={navigate}
+                onAskCoach={onTeachMeCoachPrompt}
+              />
+            )}
             <AnimatePresence mode="wait">
               <Suspense fallback={<LoadingState activeRole={activeRole} />}>
                 <DashboardRoutes

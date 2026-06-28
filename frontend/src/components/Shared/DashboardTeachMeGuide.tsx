@@ -49,6 +49,7 @@ interface DashboardTeachMeGuideProps {
   search?: string;
   onAskCoach?: (prompt: string) => void;
   onNavigate?: (to: string) => void;
+  variant?: 'full' | 'headerPopover';
 }
 
 interface DashboardTeachMeGuideContentProps extends DashboardTeachMeGuideProps {
@@ -71,6 +72,7 @@ const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> 
   effectiveSearch,
   onAskCoach,
   onNavigate,
+  variant = 'full',
 }) => {
   const normalizedRole = normalizeDashboardTeachMeRole(role);
   const guide = useMemo(
@@ -205,6 +207,25 @@ const DashboardTeachMeGuideContent: React.FC<DashboardTeachMeGuideContentProps> 
       </GuardrailNote>
     </GuideContent>
   );
+
+  if (variant === 'headerPopover') {
+    return (
+      <TeachMeToggle
+        sectionId={sectionIdFor(normalizedRole, `${pathname}${effectiveSearch}`)}
+        title={guide.title}
+        buttonLabel="Open guide"
+        ariaLabel={`Teach Me: ${guide.title} | First move: ${guide.primaryAction.label}`}
+        content={content}
+        defaultOpen={false}
+        panelMode="popover"
+        onAskAI={
+          guide.primaryPrompt && onAskCoach
+            ? () => onAskCoach(guide.primaryPrompt as string)
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <GuideShell aria-label={`${guide.title} teach me guide`}>

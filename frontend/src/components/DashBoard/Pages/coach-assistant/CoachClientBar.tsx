@@ -7,8 +7,9 @@
  * command header remains uncluttered.
  */
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CalendarCheck, ClipboardList, FileAudio, Inbox, Plus, Settings2, UserPlus, type LucideIcon } from 'lucide-react';
+import DashboardTeachMeGuide from '../../../Shared/DashboardTeachMeGuide';
 
 import type { CoachHeaderQuickAction, CoachHeaderQuickActionIcon } from './CoachCommandHeaderActions';
 
@@ -16,6 +17,7 @@ import type { CoachHeaderQuickAction, CoachHeaderQuickActionIcon } from './Coach
 type CoachClientBarProps = {
   selectedClientLabel: string;
   quickActions?: CoachHeaderQuickAction[];
+  guideConfig?: { role: string; onAskCoach?: (prompt: string) => void };
   opsOpen: boolean;
   showOps?: boolean;
   contextLabel?: string;
@@ -64,9 +66,26 @@ function QuickActionControl({ action }: { action: CoachHeaderQuickAction }) {
   );
 }
 
+function CoachHeaderGuide({ config }: { config: NonNullable<CoachClientBarProps['guideConfig']> }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <DashboardTeachMeGuide
+      role={config.role}
+      pathname={location.pathname}
+      search={location.search}
+      variant="headerPopover"
+      onNavigate={navigate}
+      onAskCoach={config.onAskCoach}
+    />
+  );
+}
+
 const CoachClientBar: React.FC<CoachClientBarProps> = ({
   selectedClientLabel,
   quickActions = [],
+  guideConfig,
   opsOpen,
   showOps = true,
   contextLabel = 'Now coaching',
@@ -77,18 +96,23 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   <header className="client-bar glass">
     <div className="client-bar-top">
       <span className="coach-wordmark">Swan Coach</span>
-      {showOps ? (
-        <button
-          type="button"
-          className="ops-button"
-          onClick={onOpenOps}
-          aria-controls="coach-command-ops"
-          aria-haspopup="dialog"
-          aria-expanded={opsOpen}
-        >
-          <Settings2 size={18} aria-hidden="true" />
-          <span>Operations</span>
-        </button>
+      {guideConfig || showOps ? (
+        <div className="client-bar-tools">
+          {guideConfig ? <div className="coach-header-guide"><CoachHeaderGuide config={guideConfig} /></div> : null}
+          {showOps ? (
+            <button
+              type="button"
+              className="ops-button"
+              onClick={onOpenOps}
+              aria-controls="coach-command-ops"
+              aria-haspopup="dialog"
+              aria-expanded={opsOpen}
+            >
+              <Settings2 size={18} aria-hidden="true" />
+              <span>Operations</span>
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
 
