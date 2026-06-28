@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 const unifiedSessionsSource = readFileSync(resolve(__dirname, '../../routes/sessions.mjs'), 'utf8');
+const cancellationReviewServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancellationReviewService.mjs'), 'utf8');
 
 describe('cancelled sessions widget route truth contracts', () => {
   it('anchors the admin cancelled-session review paths to the mounted unified sessions router', () => {
@@ -36,10 +37,13 @@ describe('cancelled sessions widget route truth contracts', () => {
   });
 
   it('records cancellation review decisions against the real cancellation audit fields', () => {
-    expect(unifiedSessionsSource).toContain('cancellationDecision');
-    expect(unifiedSessionsSource).toContain('cancellationReviewReason');
-    expect(unifiedSessionsSource).toContain('cancellationReviewedBy');
-    expect(unifiedSessionsSource).toContain('getClientPackagePricing');
-    expect(unifiedSessionsSource).toContain('computeCancellationCharge');
+    expect(unifiedSessionsSource).toContain('recordCancellationBillingDecision');
+    expect(cancellationReviewServiceSource).toContain('cancellationDecision');
+    expect(cancellationReviewServiceSource).toContain('cancellationReviewReason');
+    expect(cancellationReviewServiceSource).toContain('cancellationReviewedBy');
+    expect(cancellationReviewServiceSource).toContain('getClientPackagePricing');
+    expect(cancellationReviewServiceSource).toContain('computeCancellationCharge');
+    expect(cancellationReviewServiceSource).toContain('transaction,');
+    expect(cancellationReviewServiceSource).toContain('lock: transaction.LOCK.UPDATE');
   });
 });

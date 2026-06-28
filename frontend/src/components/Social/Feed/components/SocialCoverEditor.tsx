@@ -21,7 +21,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, Check } from 'lucide-react';
 import { useProfile } from '../../../../hooks/profile/useProfile';
 import { useBannerCompositionState } from '../../../UserDashboard/hooks/useBannerCompositionState';
 import { formatBannerPosition, parseBannerPosition } from '../../../UserDashboard/utils/bannerCompositionMedia';
@@ -29,9 +29,11 @@ import type { BannerCropState, BannerObjectPosition } from '../../../../services
 import CoverStudioPanel from './CoverStudioPanel';
 import UserDashboardBannerMediaLayer from '../../../UserDashboard/components/UserDashboardBannerMediaLayer';
 import {
+  EditorBody,
   EditorButton,
   EditorCard,
   EditorHeader,
+  EditorPreviewColumn,
   EditorTitle,
   PanelWell,
   PreviewFrame,
@@ -180,55 +182,59 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose, dashboar
           style={{ display: 'none' }}
           onChange={handlePhotoSelected}
         />
-        <EditorButton type="button" onClick={onClose} aria-label="Close cover editor">
-          <X size={15} />
-          Done
+        <EditorButton type="button" onClick={onClose} aria-label="Accept cover changes">
+          <Check size={15} />
+          Accept Changes
         </EditorButton>
       </EditorHeader>
 
-      <PreviewFrame
-        data-testid="cover-editor-preview-frame"
-        aria-label={canDragPreview ? 'Drag cover preview to reposition' : 'Cover preview'}
-        $draggable={canDragPreview}
-        onPointerDown={handlePreviewPointerDown}
-        onPointerMove={handlePreviewPointerMove}
-        onPointerUp={handlePreviewPointerEnd}
-        onPointerCancel={handlePreviewPointerEnd}
-      >
-        <UserDashboardBannerMediaLayer
-          backgroundImage={backgroundImage}
-          bannerObjectPosition={composition.bannerObjectPosition}
-          bannerObjectFit={composition.bannerObjectFit}
-          bannerImageScale={composition.bannerImageScale}
-          bannerCollagePhotos={composition.bannerCollagePhotos}
-          bannerCollageLayout={composition.bannerCollageLayout}
-          bannerStickyCarousel={false}
-        />
-      </PreviewFrame>
+      <EditorBody data-testid="cover-editor-workspace">
+        <EditorPreviewColumn>
+          <PreviewFrame
+            data-testid="cover-editor-preview-frame"
+            aria-label={canDragPreview ? 'Drag cover preview to reposition' : 'Cover preview'}
+            $draggable={canDragPreview}
+            onPointerDown={handlePreviewPointerDown}
+            onPointerMove={handlePreviewPointerMove}
+            onPointerUp={handlePreviewPointerEnd}
+            onPointerCancel={handlePreviewPointerEnd}
+          >
+            <UserDashboardBannerMediaLayer
+              backgroundImage={backgroundImage}
+              bannerObjectPosition={composition.bannerObjectPosition}
+              bannerObjectFit={composition.bannerObjectFit}
+              bannerImageScale={composition.bannerImageScale}
+              bannerCollagePhotos={composition.bannerCollagePhotos}
+              bannerCollageLayout={composition.bannerCollageLayout}
+              bannerStickyCarousel={false}
+            />
+          </PreviewFrame>
+        </EditorPreviewColumn>
 
-      <PanelWell>
-        <CoverStudioPanel
-          dashboardBackgroundControls={dashboardBackgroundControls}
-          bannerObjectPosition={composition.bannerObjectPosition}
-          bannerObjectFit={composition.bannerObjectFit}
-          bannerImageScale={composition.bannerImageScale}
-          bannerFrameHeight={composition.bannerFrameHeight}
-          bannerCollagePhotos={composition.bannerCollagePhotos}
-          bannerCollageLayout={composition.bannerCollageLayout}
-          bannerStickyCarousel={composition.bannerStickyCarousel}
-          bannerPresets={composition.bannerPresets}
-          onBannerCropPreview={composition.previewBannerCrop}
-          onBannerCropCommit={composition.handleBannerCropCommit}
-          onBannerCollageFiles={composition.handleBannerCollageFiles}
-          onBannerCollageRemove={composition.handleBannerCollageRemove}
-          onBannerCollageShuffle={composition.handleBannerCollageShuffle}
-          onBannerCollageLayoutCommit={composition.handleBannerCollageLayoutCommit}
-          onBannerStickyCarouselCommit={composition.handleBannerStickyCarouselCommit}
-          onBannerPresetSave={composition.handleBannerPresetSave}
-          onBannerPresetApply={composition.handleBannerPresetApply}
-          onBannerPresetRemove={composition.handleBannerPresetRemove}
-        />
-      </PanelWell>
+        <PanelWell data-testid="cover-editor-controls">
+          <CoverStudioPanel
+            dashboardBackgroundControls={dashboardBackgroundControls}
+            bannerObjectPosition={composition.bannerObjectPosition}
+            bannerObjectFit={composition.bannerObjectFit}
+            bannerImageScale={composition.bannerImageScale}
+            bannerFrameHeight={composition.bannerFrameHeight}
+            bannerCollagePhotos={composition.bannerCollagePhotos}
+            bannerCollageLayout={composition.bannerCollageLayout}
+            bannerStickyCarousel={composition.bannerStickyCarousel}
+            bannerPresets={composition.bannerPresets}
+            onBannerCropPreview={composition.previewBannerCrop}
+            onBannerCropCommit={composition.handleBannerCropCommit}
+            onBannerCollageFiles={composition.handleBannerCollageFiles}
+            onBannerCollageRemove={composition.handleBannerCollageRemove}
+            onBannerCollageShuffle={composition.handleBannerCollageShuffle}
+            onBannerCollageLayoutCommit={composition.handleBannerCollageLayoutCommit}
+            onBannerStickyCarouselCommit={composition.handleBannerStickyCarouselCommit}
+            onBannerPresetSave={composition.handleBannerPresetSave}
+            onBannerPresetApply={composition.handleBannerPresetApply}
+            onBannerPresetRemove={composition.handleBannerPresetRemove}
+          />
+        </PanelWell>
+      </EditorBody>
     </EditorCard>
   );
 };

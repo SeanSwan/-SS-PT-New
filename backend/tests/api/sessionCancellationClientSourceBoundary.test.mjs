@@ -11,6 +11,7 @@ const apiRoutesSource = readFileSync(resolve(__dirname, '../../routes/api.mjs'),
 const unifiedRouteSource = readFileSync(resolve(__dirname, '../../routes/sessions.mjs'), 'utf8');
 const legacyRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionRoutes.mjs'), 'utf8');
 const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/session.service.mjs'), 'utf8');
+const cancellationReviewServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancellationReviewService.mjs'), 'utf8');
 const aiCancelServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancelService.mjs'), 'utf8');
 
 const sliceBetween = (source, startMarker, endMarker) => {
@@ -47,16 +48,18 @@ describe('session cancellation clientSource restore boundary', () => {
 
   it('does not restore credits for free-tracking clients in unified waived cancellation review', () => {
     const { start, end, source } = sliceBetween(
-      unifiedRouteSource,
-      'router.post("/:sessionId/charge-cancellation"',
-      "logger.info('Cancellation billing decision recorded'"
+      cancellationReviewServiceSource,
+      'async function restoreWaivedCreditIfNeeded',
+      'function buildReviewResponse'
     );
 
+    expect(unifiedRouteSource).toContain('recordCancellationBillingDecision');
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
+    expect(cancellationReviewServiceSource).toContain("import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';");
     expect(source).toContain('isNonDeductingClient(client)');
     expect(source.indexOf('isNonDeductingClient(client)'))
-      .toBeLessThan(source.indexOf('availableSessions: Number(client.availableSessions || 0) + 1'));
+      .toBeLessThan(source.indexOf("client.increment('availableSessions'"));
   });
 
   it('does not restore credits for free-tracking clients in Swan Coach cancellation', () => {

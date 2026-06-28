@@ -4,7 +4,7 @@ import React from 'react';
 import GlowButton from '../ui/buttons/GlowButton';
 import { normalizeAvailableSessions, type ClientSessionSignal } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import { BodyText, Caption, SmallText } from './ui';
-import { DetailGrid, DetailItem, StatusBadge } from './SessionDetailModal.baseStyles';
+import { ContactLink, DetailGrid, DetailItem, StatusBadge } from './SessionDetailModal.baseStyles';
 import { AttendanceBadge, PaymentNeededBanner, PaymentNeededText, SessionsRemainingBadge } from './SessionDetailModal.feedbackStyles';
 import type { SessionDetail, SessionDetailModalMode } from './SessionDetailModal.types';
 
@@ -39,6 +39,8 @@ const SessionDetailInfoGrid: React.FC<SessionDetailInfoGridProps> = ({
     && normalizedAvailableSessions !== null
     && normalizedAvailableSessions <= 0
     && session.userId);
+  const clientLabel = session.clientName || 'client';
+  const clientPhoneDigits = session.clientPhone?.replace(/[^\d+]/g, '');
 
   return (
     <DetailGrid>
@@ -85,13 +87,19 @@ const SessionDetailInfoGrid: React.FC<SessionDetailInfoGridProps> = ({
       {canManage && session.clientEmail && (
         <DetailItem>
           <Caption secondary>Client Email</Caption>
-          <BodyText>{session.clientEmail}</BodyText>
+          <ContactLink href={`mailto:${session.clientEmail.trim()}`} aria-label={`Email ${clientLabel} at ${session.clientEmail}`}>
+            {session.clientEmail}
+          </ContactLink>
         </DetailItem>
       )}
       {canManage && session.clientPhone && (
         <DetailItem>
           <Caption secondary>Client Phone</Caption>
-          <BodyText>{session.clientPhone}</BodyText>
+          {clientPhoneDigits ? (
+            <ContactLink href={`tel:${clientPhoneDigits}`} aria-label={`Call ${clientLabel} at ${session.clientPhone}`}>
+              {session.clientPhone}
+            </ContactLink>
+          ) : <BodyText>{session.clientPhone}</BodyText>}
         </DetailItem>
       )}
       {session.clientAvailableSessions != null && (

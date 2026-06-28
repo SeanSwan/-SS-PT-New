@@ -24,6 +24,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const authState = vi.hoisted(() => ({
+  role: 'client' as 'client' | 'user',
+}));
+
 // ─────────────────────────────────────────────────────────────
 // Mocks — must be registered before the SUT import so hoisted
 // vi.mock calls intercept the module graph.
@@ -37,7 +41,7 @@ vi.mock('../../context/AuthContext', () => ({
       username: 'testclient',
       firstName: 'Test',
       lastName: 'Client',
-      role: 'client',
+      role: authState.role,
       isActive: true,
       createdAt: '',
       updatedAt: '',
@@ -146,6 +150,7 @@ describe('Phase 16.2 (Codex round 3) — WorkoutLogger client-mount TDZ regressi
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    authState.role = 'client';
   });
 
   it('mounts without throwing ReferenceError for executeLoadClientData', async () => {
@@ -180,6 +185,18 @@ describe('Phase 16.2 (Codex round 3) — WorkoutLogger client-mount TDZ regressi
         </MemoryRouter>,
       );
     }).not.toThrow();
+    expect(await screen.findByText(/Add Your First Exercise/i)).toBeInTheDocument();
+  });
+
+  it('mounts the member-role self logger instead of leaving /dashboard/client/log-workout on the loader', async () => {
+    authState.role = 'user';
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/client/log-workout?loadPlan=today']}>
+        <WorkoutLogger />
+      </MemoryRouter>,
+    );
+
     expect(await screen.findByText(/Add Your First Exercise/i)).toBeInTheDocument();
   });
 

@@ -118,6 +118,11 @@ import QuickLogMode from './QuickLogMode';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
 
+const SELF_LOGGING_DASHBOARD_ROLES = new Set(['client', 'user']);
+
+const isSelfLoggingDashboardRole = (role?: string | null): boolean =>
+  typeof role === 'string' && SELF_LOGGING_DASHBOARD_ROLES.has(role.toLowerCase());
+
 const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
   typeof error === 'object' && error !== null ? error as { code?: unknown; name?: unknown } : {};
 
@@ -148,7 +153,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // Self-mode resolves the logged-in client route without emitting
   // `/api/workout-forms/client/undefined/info`.
   const userNumericId = coerceToNumericId(user?.id);
-  const allowSelfMode = user?.role === 'client' || forceSelfMode;
+  const allowSelfMode = isSelfLoggingDashboardRole(user?.role) || forceSelfMode;
   const effectiveClientId: number | undefined =
     typeof clientId === 'number' && Number.isFinite(clientId)
       ? clientId

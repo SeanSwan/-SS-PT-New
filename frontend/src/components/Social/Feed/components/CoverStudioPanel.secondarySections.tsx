@@ -72,6 +72,7 @@ export function HeightPresetsSection({ height, onHeightChange }: { height: numbe
 
 export function AdvancedCropSection({
   open,
+  allowZoom,
   scale,
   height,
   onToggle,
@@ -81,6 +82,7 @@ export function AdvancedCropSection({
   onCommitHeight,
 }: {
   open: boolean;
+  allowZoom: boolean;
   scale: number;
   height: number;
   onToggle: () => void;
@@ -97,13 +99,15 @@ export function AdvancedCropSection({
       </AccordionHead>
       {open && (
         <AccordionInner>
-          <div>
-            <SectionLabel>Zoom</SectionLabel>
-            <RangeRow>
-              <input type="range" min="0.5" max="3" step="0.05" value={scale} aria-label="Cover zoom" onChange={(event) => onPreviewScale(Number(event.target.value))} onPointerUp={(event) => onCommitScale(Number((event.currentTarget as HTMLInputElement).value))} onBlur={(event) => onCommitScale(Number(event.currentTarget.value))} />
-              <RangeValue>{Math.round(scale * 100)}%</RangeValue>
-            </RangeRow>
-          </div>
+          {allowZoom && (
+            <div>
+              <SectionLabel>Zoom</SectionLabel>
+              <RangeRow>
+                <input type="range" min="0.5" max="3" step="0.05" value={scale} aria-label="Cover zoom" onChange={(event) => onPreviewScale(Number(event.target.value))} onPointerUp={(event) => onCommitScale(Number((event.currentTarget as HTMLInputElement).value))} onBlur={(event) => onCommitScale(Number(event.currentTarget.value))} />
+                <RangeValue>{Math.round(scale * 100)}%</RangeValue>
+              </RangeRow>
+            </div>
+          )}
           <div>
             <SectionLabel>Exact height</SectionLabel>
             <RangeRow>

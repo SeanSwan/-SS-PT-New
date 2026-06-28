@@ -80,8 +80,8 @@ User.init(
     bannerObjectFit: {
       type: DataTypes.STRING(12),
       allowNull: false,
-      defaultValue: 'cover',
-      comment: 'Banner composition mode: cover, contain, fill, tile, or collage.',
+      defaultValue: 'smart',
+      comment: 'Banner composition mode: smart, cover, contain, fill, tile, or collage.',
     },
     bannerImageScale: {
       type: DataTypes.FLOAT,

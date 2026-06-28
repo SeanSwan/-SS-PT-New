@@ -625,6 +625,10 @@ export const ownerOrAdminOnly = (getOwnerId) => {
   };
 };
 
+const WORKOUT_SELF_ACCESS_ROLES = new Set(['client', 'user']);
+const isWorkoutSelfAccessRole = (role) =>
+  typeof role === 'string' && WORKOUT_SELF_ACCESS_ROLES.has(role.toLowerCase());
+
 /**
  * Middleware to check trainer-client relationship
  * For routes where a trainer should only access their clients' data
@@ -644,7 +648,7 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
       return next();
     }
     
-    // Client accessing their own data
+    // Client/member accessing their own data
     //
     // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
     // by `protect` (authMiddleware.mjs:359 via toStringId), while clientId
@@ -658,7 +662,7 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
     // inputs still fall through to the deny branch safely.
     const clientId = parseInt(req.params.clientId || req.body.clientId, 10);
     const userNumericId = parseInt(req.user.id, 10);
-    if (req.user.role === 'client' && userNumericId === clientId) {
+    if (isWorkoutSelfAccessRole(req.user.role) && userNumericId === clientId) {
       return next();
     }
     

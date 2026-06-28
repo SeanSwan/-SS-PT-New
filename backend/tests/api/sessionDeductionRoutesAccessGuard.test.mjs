@@ -34,6 +34,10 @@ describe('session deduction trainer access guard', () => {
     expect(routeSource).toContain("router.post('/apply-package-payment', authenticateToken, adminOnly");
   });
 
+  it('keeps the settlement attention summary read-only and admin-only', () => {
+    expect(routeSource).toContain("getSessionDeductionAttentionSummary");
+    expect(routeSource).toContain("router.get('/attention', authenticateToken, adminOnly");
+  });
   it('mounts deductions before /api/sessions and confirms deductions paths are not consumed by unified sessions', () => {
     const deductionMount = coreRoutesSource.indexOf("app.use('/api/sessions/deductions', sessionDeductionRoutes)");
     const sessionsMount = coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)");

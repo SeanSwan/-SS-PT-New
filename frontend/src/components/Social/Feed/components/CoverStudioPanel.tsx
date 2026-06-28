@@ -28,6 +28,8 @@ import {
   type CoverType,
 } from './CoverStudioPanel.types';
 
+const WHOLE_IMAGE_FITS: BannerObjectFit[] = ['smart', 'contain'];
+const isWholeImageFit = (fit: BannerObjectFit) => WHOLE_IMAGE_FITS.includes(fit);
 const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   dashboardBackgroundControls,
   bannerObjectPosition,
@@ -69,10 +71,19 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
       onBannerCollageLayoutCommit(nextLayout);
       return;
     }
-    onBannerCropCommit({ ...baseCrop(), fit: getSingleFit(bannerObjectFit) });
+    const nextFit = getSingleFit(bannerObjectFit);
+    onBannerCropCommit({
+      ...baseCrop(),
+      fit: nextFit,
+      scale: isWholeImageFit(nextFit) ? Math.min(bannerImageScale, 1) : bannerImageScale,
+    });
   };
 
-  const setFit = (fit: BannerObjectFit) => onBannerCropCommit({ ...baseCrop(), fit });
+  const setFit = (fit: BannerObjectFit) => onBannerCropCommit({
+    ...baseCrop(),
+    fit,
+    scale: isWholeImageFit(fit) ? Math.min(bannerImageScale, 1) : bannerImageScale,
+  });
   const setFocal = (x: number, y: number) => onBannerCropCommit({ ...baseCrop(), position: formatBannerPosition(x, y) });
   const setHeight = (height: number) => onBannerCropCommit({ ...baseCrop(), height });
   const previewScale = (scale: number) => onBannerCropPreview({ ...baseCrop(), scale });
@@ -106,6 +117,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
       <HeightPresetsSection height={bannerFrameHeight} onHeightChange={setHeight} />
       <AdvancedCropSection
         open={advancedOpen}
+        allowZoom={!isWholeImageFit(bannerObjectFit)}
         scale={bannerImageScale}
         height={bannerFrameHeight}
         onToggle={() => setAdvancedOpen((open) => !open)}

@@ -198,7 +198,7 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
   it('resolves an effectiveClientId from prop OR authenticated self-mode session', () => {
     const declIdx = SOURCE.indexOf('effectiveClientId');
     expect(declIdx).toBeGreaterThan(-1);
-    expect(SOURCE).toMatch(/const\s+allowSelfMode\s*=\s*user\?\.role\s*===\s*['"]client['"]\s*\|\|\s*forceSelfMode/);
+    expect(SOURCE).toMatch(/const\s+allowSelfMode\s*=\s*isSelfLoggingDashboardRole\(user\?\.role\)\s*\|\|\s*forceSelfMode/);
     const body = SOURCE.slice(declIdx, declIdx + 500);
     expect(body).toMatch(/typeof\s+clientId\s*===\s*['"]number['"]/);
     expect(body).toMatch(/allowSelfMode\s*\?\s*userNumericId\s*:\s*undefined/);
@@ -214,17 +214,24 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/Number\.isFinite/);
   });
 
+  it('treats member-role users as self-loggers on the client dashboard route', () => {
+    const allowSelfModeIdx = SOURCE.indexOf('const allowSelfMode');
+    expect(allowSelfModeIdx).toBeGreaterThan(-1);
+    const slice = SOURCE.slice(allowSelfModeIdx, allowSelfModeIdx + 450);
+    expect(slice).toMatch(/user\?\.role\s*===\s*['"]user['"]|SELF_LOGGING_DASHBOARD_ROLES|isSelfLoggingDashboardRole/);
+  });
+
   it('derives isClientSelfMode for authenticated client self-route or forced owner self-route', () => {
     // Accepts either the raw `user.id` or the coerced `userNumericId`
     // since Codex round 2 introduced the numeric coercion helper. The
-    // invariant is that self-mode requires role === 'client' AND the
+    // invariant is that self-mode requires a self-logging dashboard role AND the
     // effective id equals the (possibly-coerced) authenticated user id.
     const allowSelfModeIdx = SOURCE.indexOf('const allowSelfMode');
     const isSelfModeIdx = SOURCE.indexOf('const isClientSelfMode');
     expect(allowSelfModeIdx).toBeGreaterThan(-1);
     expect(isSelfModeIdx).toBeGreaterThan(allowSelfModeIdx);
     const slice = SOURCE.slice(allowSelfModeIdx, isSelfModeIdx + 250);
-    expect(slice).toMatch(/user\?\.role\s*===\s*['"]client['"]\s*\|\|\s*forceSelfMode/);
+    expect(slice).toMatch(/isSelfLoggingDashboardRole\(user\?\.role\)\s*\|\|\s*forceSelfMode/);
     expect(slice).toMatch(/isClientSelfMode[\s\S]*?allowSelfMode/);
     expect(slice).toMatch(/effectiveClientId\s*===\s*userNumericId/);
   });
@@ -375,7 +382,7 @@ describe('Phase 16.2 (Codex round 4) - backend POST /api/workout-forms accepts c
       ROUTES.indexOf("router.get('/', protect, trainerOrAdminOnly")
     );
     expect(submitRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
-    expect(submitRoute).toContain("if (userRole === 'client' && parsedClientId !== userNumericId)");
+    expect(submitRoute).toContain('if (isWorkoutSelfLogRole(userRole) && parsedClientId !== userNumericId)');
     expect(ROUTES).toMatch(/Clients can only log their own workouts/);
     // Negative lock: the broken pre-fix shape must not come back.
     expect(ROUTES).not.toMatch(

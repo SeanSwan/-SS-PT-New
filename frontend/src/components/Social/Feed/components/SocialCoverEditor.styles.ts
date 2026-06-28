@@ -13,10 +13,11 @@
 import styled from 'styled-components';
 
 export const EditorCard = styled.section`
+  --cover-editor-preview-height: clamp(260px, 30vw, 430px);
   margin-top: 14px;
   border: 1px solid color-mix(in srgb, var(--accent-purple, #8B5CF6) 22%, transparent);
   border-radius: 16px;
-  padding: 14px;
+  padding: clamp(12px, 1.2vw, 16px);
   background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
 
   @supports (backdrop-filter: blur(16px)) {
@@ -79,12 +80,31 @@ export const EditorButton = styled.button`
   }
 `;
 
+export const EditorBody = styled.div`
+  display: grid;
+  grid-template-columns: minmax(360px, 1.35fr) minmax(300px, 0.85fr);
+  gap: clamp(12px, 1.4vw, 18px);
+  align-items: stretch;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 430px) {
+    gap: 10px;
+  }
+`;
+
+export const EditorPreviewColumn = styled.div`
+  min-width: 0;
+`;
+
 /* Live preview of the composition, scaled down. position:relative is the
    anchor for the absolute banner media layers. */
 export const PreviewFrame = styled.div<{ $draggable?: boolean }>`
   position: relative;
-  height: clamp(140px, 24vw, 220px);
-  margin-bottom: 12px;
+  height: var(--cover-editor-preview-height);
+  margin-bottom: 0;
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
@@ -101,8 +121,20 @@ export const PreviewFrame = styled.div<{ $draggable?: boolean }>`
 /* The shared reposition panel content was authored for a dashboard popover;
    give it a neutral, full-width well here. */
 export const PanelWell = styled.div`
-  border-top: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
-  padding-top: 12px;
+  min-width: 0;
+  max-height: calc(var(--cover-editor-preview-height) + 2px);
+  padding-left: clamp(10px, 1vw, 14px);
+  border-left: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @media (max-width: 980px) {
+    max-height: none;
+    padding-left: 0;
+    padding-top: 12px;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
+  }
 `;
 
 /* M6a: the cover's "Edit cover" entry — lives in the cover's ActionRow (the

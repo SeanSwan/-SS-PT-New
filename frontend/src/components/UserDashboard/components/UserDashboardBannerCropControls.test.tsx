@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import UserDashboardBannerCropControls from './UserDashboardBannerCropControls';
 
@@ -88,6 +88,25 @@ describe('UserDashboardBannerCropControls', () => {
       fit: 'contain',
       scale: 1,
     }));
+  });
+
+  it('switches to smart fit mode and hides crop zoom controls', () => {
+    const props = renderCropControls({ bannerImageScale: 2 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Smart fit' }));
+
+    expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'smart',
+      scale: 1,
+    }));
+    expect(props.onBannerCropCommit).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'smart',
+      scale: 1,
+    }));
+
+    cleanup();
+    renderCropControls({ bannerObjectFit: 'smart' as const });
+    expect(screen.queryByLabelText('Cover photo zoom')).not.toBeInTheDocument();
   });
 
   it('switches to tile mode and renders repeated safe image elements', () => {

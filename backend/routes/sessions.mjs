@@ -35,7 +35,8 @@ import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyti
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
-import { getClientPackagePricing, computeCancellationCharge } from '../utils/cancellationPricing.mjs';
+import { getClientPackagePricing } from '../utils/cancellationPricing.mjs';
+import { recordCancellationBillingDecision } from '../services/sessions/sessionCancellationReviewService.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { processSessionDeduction, sendDeductionNotification } from '../utils/notification.mjs';
 import {
@@ -2949,160 +2950,34 @@ router.get("/:id/client-package-price", protect, trainerOrAdminOnly, async (req,
  */
 router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, res) => {
   try {
-    const sessionId = parsePositiveInteger(req.params.sessionId);
-    if (!sessionId) {
-      return res.status(400).json({ success: false, message: 'Invalid session id' });
-    }
-
-    const {
+    const { decision, reason, chargeType = 'late_fee', chargeAmount } = req.body || {};
+    const result = await recordCancellationBillingDecision({
+      sessionId: req.params.sessionId,
+      reviewer: req.user,
       decision,
       reason,
-      chargeType = 'late_fee',
+      chargeType,
       chargeAmount
-    } = req.body;
-    const allowedDecisions = new Set(['charged', 'waived']);
-    const allowedChargeTypes = new Set(['none', 'late_fee', 'full', 'partial', 'custom']);
-
-    if (!allowedDecisions.has(decision)) {
-      return res.status(400).json({
-        success: false,
-        message: "Decision is required and must be 'charged' or 'waived'"
-      });
-    }
-
-    if (!allowedChargeTypes.has(chargeType)) {
-      return res.status(400).json({
-        success: false,
-        message: 'chargeType must be one of: none, late_fee, full, partial, custom'
-      });
-    }
-
-    const normalizedReason = typeof reason === 'string' ? reason.trim() : '';
-    if (decision === 'waived' && normalizedReason.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Reason is required when waiving a cancellation charge'
-      });
-    }
-
-    const session = await Session.findByPk(sessionId, {
-      include: [
-        {
-          model: User,
-          as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'sessionBillingMode']
-        }
-      ]
     });
 
-    if (!session) {
-      return res.status(404).json({ success: false, message: 'Session not found' });
-    }
-
-    if (session.status !== 'cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only cancelled sessions can be reviewed for cancellation billing'
-      });
-    }
-
-    const packageInfo = await getSessionPackagePricing(session);
-    let actualChargeAmount = 0;
-    let actualChargeType = 'none';
-
-    if (decision === 'charged') {
-      const customAmount = chargeType === 'custom' || chargeType === 'partial'
-        ? parseMoneyAmount(chargeAmount)
-        : null;
-      if ((chargeType === 'custom' || chargeType === 'partial') && customAmount === null) {
-        return res.status(400).json({
-          success: false,
-          message: 'A non-negative chargeAmount is required for custom or partial cancellation decisions'
-        });
-      }
-
-      const chargeCalc = computeCancellationCharge(session, packageInfo, {
-        chargeType,
-        customAmount
-      });
-      actualChargeAmount = chargeCalc.chargeAmount;
-      actualChargeType = chargeCalc.chargeType;
-
-      if (actualChargeAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'A charged cancellation decision requires an amount greater than zero'
-        });
-      }
-    }
-
-    const now = new Date();
-    session.cancellationChargeType = actualChargeType;
-    session.cancellationChargeAmount = actualChargeAmount;
-    session.cancellationChargedAt = now;
-    session.cancellationDecision = decision;
-    session.cancellationReviewedBy = req.user.id;
-    session.cancellationReviewedAt = now;
-    session.cancellationReviewReason = normalizedReason || null;
-
-    if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored && session.userId) {
-      const client = await User.findByPk(session.userId);
-      if (client) {
-        if (isNonDeductingClient(client)) {
-          logger.info('Skipped cancellation waiver credit restore for non-deducting client account', {
-            sessionId: session.id,
-            userId: client.id,
-            clientSource: client.clientSource,
-            sessionBillingMode: client.sessionBillingMode
-          });
-        } else {
-          await client.update({ availableSessions: Number(client.availableSessions || 0) + 1 });
-          session.sessionCreditRestored = true;
-        }
-      }
-    }
-
-    await session.save();
-
-    logger.info('Cancellation billing decision recorded', {
-      sessionId,
-      decision,
-      chargeType: actualChargeType,
-      chargeAmount: actualChargeAmount,
-      reviewedBy: req.user.id
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: decision === 'waived'
-        ? 'Cancellation waived and recorded for billing review'
-        : `Cancellation charge of $${actualChargeAmount} recorded for billing review`,
-      data: {
-        sessionId: session.id,
-        decision: session.cancellationDecision,
-        chargeType: session.cancellationChargeType,
-        chargeAmount: Number.parseFloat(session.cancellationChargeAmount) || 0,
-        chargedAt: session.cancellationChargedAt,
-        reviewedBy: session.cancellationReviewedBy,
-        reviewedAt: session.cancellationReviewedAt,
-        reason: session.cancellationReviewReason,
-        creditRestored: session.sessionCreditRestored,
-        packageInfo: {
-          pricePerSession: packageInfo.pricePerSession,
-          packageName: packageInfo.packageName,
-          isFallback: packageInfo.isFallback
-        }
-      }
-    });
+    return res.status(200).json(result);
   } catch (error) {
     logSessionRouteError('Error in POST /api/sessions/:sessionId/charge-cancellation', error, req, {
       sessionId: req.params.sessionId,
     });
-    return res.status(500).json({
+
+    const status = Number.isInteger(error.status) ? error.status : 500;
+    if (status === 500) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server error recording cancellation billing decision'
+      });
+    }
+
+    return res.status(status).json({
       success: false,
-      message: 'Server error recording cancellation billing decision'
+      message: error.message
     });
   }
 });
-
 export default router;

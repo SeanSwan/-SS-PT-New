@@ -12,6 +12,9 @@ import {
   BannerCrossfadeScrim,
   BannerCrossfadeVideo,
   BannerImage,
+  BannerSmartFitBackdrop,
+  BannerSmartFitImage,
+  BannerSmartFitLayer,
   BannerStickyCarouselFrame,
   BannerStickyCarouselImage,
   BannerStickyCarouselLayer,
@@ -84,6 +87,24 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
     );
     return () => window.clearInterval(id);
   }, [isCrossfade, crossfadePhotoCount]);
+
+
+  if (bannerObjectFit === 'smart' && backgroundImage) {
+    const smartFitScale = Math.min(bannerImageScale, 1);
+
+    return (
+      <BannerSmartFitLayer
+        data-testid="banner-smart-fit-layer"
+        style={{
+          '--banner-object-position': bannerObjectPosition,
+          '--banner-image-scale': String(smartFitScale),
+        } as React.CSSProperties}
+      >
+        <BannerSmartFitBackdrop src={backgroundImage} alt="" aria-hidden="true" draggable={false} />
+        <BannerSmartFitImage src={backgroundImage} alt="Profile cover photo" draggable={false} />
+      </BannerSmartFitLayer>
+    );
+  }
 
   if (bannerObjectFit === 'tile' && backgroundImage) {
     return (

@@ -5,6 +5,7 @@ export const TILE_REPEAT_COUNT = 360;
 export const DEFAULT_BANNER_COLLAGE_ASPECT_RATIO = 1.35;
 
 export const FIT_LABELS: Record<BannerObjectFit, string> = {
+  smart: 'Smart fit',
   cover: 'Crop',
   contain: 'Fit whole',
   fill: 'Stretch',

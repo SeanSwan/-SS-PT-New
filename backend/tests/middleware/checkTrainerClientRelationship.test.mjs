@@ -72,6 +72,23 @@ describe('checkTrainerClientRelationship — string/number drift fix (Phase 16.2
     expect(res.jsonBody).toBeNull();
   });
 
+  it('allows a member-role user to access their own workout-form data', async () => {
+    const req = {
+      user: { id: '91', role: 'user' },
+      params: {},
+      body: { clientId: 91 },
+      path: '/api/workout-forms',
+    };
+    const res = mockRes();
+    const next = vi.fn();
+
+    await checkTrainerClientRelationship(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toBeNull();
+  });
+
   it('allows a client to access their own data when both sides are strings', async () => {
     // Second common shape: clientId comes from params as a string.
     const req = {
@@ -177,10 +194,10 @@ describe('checkTrainerClientRelationship — source-level anti-regression locks'
     );
   });
 
-  it('client self-access gate compares numeric ids, not req.user.id against parseInt result', () => {
+  it('client/member self-access gate compares numeric ids, not req.user.id against parseInt result', () => {
     // Positive lock: the fixed comparison shape.
     expect(authSource).toMatch(
-      /req\.user\.role === 'client' && userNumericId === clientId/
+      /isWorkoutSelfAccessRole\(req\.user\.role\) && userNumericId === clientId|\(req\.user\.role === 'client' \|\| req\.user\.role === 'user'\) && userNumericId === clientId/
     );
     // Negative lock: the broken pre-fix shape must not come back.
     expect(authSource).not.toMatch(

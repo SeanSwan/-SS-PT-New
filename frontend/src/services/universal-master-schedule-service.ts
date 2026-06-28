@@ -4,11 +4,11 @@
  * Production-ready service connecting to the UNIFIED backend session service
  * 
  * ARCHITECTURAL TRANSFORMATION (Phase 2):
- * ✅ Updated to use unified backend endpoints from Phase 1
- * ✅ Role-based service methods for adaptive UI
- * ✅ Simplified API calls matching actual backend routes
- * ✅ Real-time calendar integration optimized
- * ✅ Cross-dashboard synchronization maintained
+ * - Updated to use unified backend endpoints from Phase 1
+ * - Role-based service methods for adaptive UI
+ * - Simplified API calls matching actual backend routes
+ * - Real-time calendar integration optimized
+ * - Cross-dashboard synchronization maintained
  * 
  * CONNECTS TO:
  * - backend/services/sessions/session.service.mjs (Unified Service)
@@ -35,31 +35,41 @@ import type {
   ApiResponse
 } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
+import {
+  isInvalidSessionsResponseError,
+  normalizeSessionsResponse,
+} from './universal-master-schedule-session-response';
 
-const INVALID_SESSIONS_RESPONSE_MESSAGE = 'Invalid sessions response from /api/sessions.';
+export interface ScheduleAiProposalRequest {
+  message: string;
+  context?: unknown;
+}
 
-const isInvalidSessionsResponseError = (error: unknown): boolean => (
-  error instanceof Error && error.message.startsWith(INVALID_SESSIONS_RESPONSE_MESSAGE)
-);
+export interface ScheduleAiProposal {
+  id?: string;
+  action?: string;
+  status?: string;
+  executionPolicy?: string;
+  manualOnly?: boolean;
+  confirmation?: Record<string, unknown>;
+  risk?: {
+    category?: string;
+    level?: string;
+    mutatesData?: boolean;
+  };
+  content?: string | null;
+}
 
-const normalizeSessionsResponse = (payload: unknown): Session[] => {
-  if (Array.isArray(payload)) {
-    return payload as Session[];
-  }
-
-  if (payload && typeof payload === 'object') {
-    const response = payload as { sessions?: unknown; message?: unknown };
-
-    if (Array.isArray(response.sessions)) {
-      return response.sessions as Session[];
-    }
-
-    const detail = typeof response.message === 'string' ? ` ${response.message}` : '';
-    throw new Error(`${INVALID_SESSIONS_RESPONSE_MESSAGE}${detail}`);
-  }
-
-  throw new Error(INVALID_SESSIONS_RESPONSE_MESSAGE);
-};
+export interface ScheduleAiProposalResponse {
+  success: boolean;
+  ok?: boolean;
+  type?: string;
+  code?: string;
+  message?: string;
+  proposal?: ScheduleAiProposal | null;
+  provider?: Record<string, unknown>;
+  errors?: unknown[];
+}
 
 /**
  * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
@@ -627,6 +637,13 @@ class UniversalMasterScheduleService {
     }
   }
 
+  /**
+   * Create a proposal-only Schedule AI response for the Universal Master Schedule dock.
+   */
+  async createScheduleAiProposal(payload: ScheduleAiProposalRequest): Promise<ScheduleAiProposalResponse> {
+    const response: AxiosResponse<ScheduleAiProposalResponse> = await this.api.post('/api/schedule-ai/proposals', payload);
+    return response.data;
+  }
   /**
    * Retry failed operations with exponential backoff
    */

@@ -105,6 +105,18 @@ function makeSession(id, overrides = {}) {
   };
 }
 
+function pastDueSettlementDate() {
+  return new Date(Date.now() - (26 * 60 * 60 * 1000));
+}
+
+function makeDueAttendedSession(id, overrides = {}) {
+  return makeSession(id, {
+    sessionDate: pastDueSettlementDate(),
+    attendanceStatus: 'present',
+    ...overrides,
+  });
+}
+
 function makeStorefrontItem(overrides = {}) {
   return {
     id: 1,
@@ -846,8 +858,7 @@ describe('SessionDeductionService', () => {
   describe('processSessionDeductions', () => {
     it('deducts credits from eligible past sessions', async () => {
       const client = makeClient(3, { availableSessions: 5 });
-      const session = makeSession(1, {
-        sessionDate: new Date(Date.now() - 86400000), // yesterday
+      const session = makeDueAttendedSession(1, {
         client,
       });
       mockSessionModel.findAll.mockResolvedValue([session]);
@@ -870,8 +881,7 @@ describe('SessionDeductionService', () => {
 
     it('marks session completed but tracks no-credit clients', async () => {
       const client = makeClient(4, { availableSessions: 0 });
-      const session = makeSession(2, {
-        sessionDate: new Date(Date.now() - 86400000),
+      const session = makeDueAttendedSession(2, {
         client,
       });
       mockSessionModel.findAll.mockResolvedValue([session]);
@@ -889,8 +899,7 @@ describe('SessionDeductionService', () => {
 
     it('treats malformed batch deduction balances as no usable credits', async () => {
       const client = makeClient(4, { availableSessions: 'unknown' });
-      const session = makeSession(3, {
-        sessionDate: new Date(Date.now() - 86400000),
+      const session = makeDueAttendedSession(3, {
         client,
       });
       mockSessionModel.findAll.mockResolvedValue([session]);
@@ -912,9 +921,8 @@ describe('SessionDeductionService', () => {
         availableSessions: 0,
         clientSource: 'move_fitness',
       });
-      const session = makeSession(6, {
+      const session = makeDueAttendedSession(6, {
         userId: 6,
-        sessionDate: new Date(Date.now() - 86400000),
         client,
       });
       mockSessionModel.findAll.mockResolvedValue([session]);
@@ -942,6 +950,57 @@ describe('SessionDeductionService', () => {
       expect(result.noCredits).toEqual([]);
     });
 
+    it('defers attended sessions until 24 hours after the scheduled end', async () => {
+      const client = makeClient(3, { availableSessions: 5 });
+      const session = makeSession(7, {
+        sessionDate: new Date(Date.now() - (60 * 60 * 1000)),
+        duration: 60,
+        attendanceStatus: 'present',
+        client,
+      });
+      mockSessionModel.findAll.mockResolvedValue([session]);
+      mockUserModel.findByPk.mockResolvedValue(client);
+
+      const result = await processSessionDeductions();
+
+      expect(result.processed).toBe(0);
+      expect(result.deferred).toHaveLength(1);
+      expect(result.deferred[0]).toMatchObject({
+        sessionId: 7,
+        reason: 'settlement_not_due',
+      });
+      expect(session.status).toBe('scheduled');
+      expect(session.save).not.toHaveBeenCalled();
+      expect(client.decrement).not.toHaveBeenCalled();
+      expect(mockUserModel.findByPk).not.toHaveBeenCalled();
+    });
+
+    it('defers sessions with missing attendance after cutoff for review', async () => {
+      const client = makeClient(3, { availableSessions: 5 });
+      const session = makeSession(8, {
+        sessionDate: pastDueSettlementDate(),
+        duration: 60,
+        attendanceStatus: null,
+        client,
+      });
+      mockSessionModel.findAll.mockResolvedValue([session]);
+      mockUserModel.findByPk.mockResolvedValue(client);
+
+      const result = await processSessionDeductions();
+
+      expect(result.processed).toBe(0);
+      expect(result.deferred).toHaveLength(1);
+      expect(result.deferred[0]).toMatchObject({
+        sessionId: 8,
+        reason: 'attendance_missing_after_cutoff',
+        recommendedAction: 'open_attendance_review',
+      });
+      expect(session.status).toBe('scheduled');
+      expect(session.save).not.toHaveBeenCalled();
+      expect(client.decrement).not.toHaveBeenCalled();
+      expect(mockUserModel.findByPk).not.toHaveBeenCalled();
+    });
+
     // ─────────────────────────────────────────────────────────
     // P0 REGRESSION: Multi-session-same-client deduction bug
     // Sequelize creates separate JS objects per session row for
@@ -956,9 +1015,9 @@ describe('SessionDeductionService', () => {
       const clientCopy3 = makeClient(3, { availableSessions: 5 });
 
       const sessions = [
-        makeSession(10, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy1 }),
-        makeSession(11, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy2 }),
-        makeSession(12, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy3 }),
+        makeDueAttendedSession(10, { userId: 3, client: clientCopy1 }),
+        makeDueAttendedSession(11, { userId: 3, client: clientCopy2 }),
+        makeDueAttendedSession(12, { userId: 3, client: clientCopy3 }),
       ];
       mockSessionModel.findAll.mockResolvedValue(sessions);
       // Refetch returns the REAL client (row-locked, single object)
@@ -987,9 +1046,9 @@ describe('SessionDeductionService', () => {
       const clientCopy3 = makeClient(3, { availableSessions: 2 });
 
       const sessions = [
-        makeSession(20, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy1 }),
-        makeSession(21, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy2 }),
-        makeSession(22, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: clientCopy3 }),
+        makeDueAttendedSession(20, { userId: 3, client: clientCopy1 }),
+        makeDueAttendedSession(21, { userId: 3, client: clientCopy2 }),
+        makeDueAttendedSession(22, { userId: 3, client: clientCopy3 }),
       ];
       mockSessionModel.findAll.mockResolvedValue(sessions);
       mockUserModel.findByPk.mockResolvedValue(client);
@@ -1013,9 +1072,8 @@ describe('SessionDeductionService', () => {
 
     it('uses row lock when refetching client for deduction', async () => {
       const client = makeClient(3, { availableSessions: 5 });
-      const session = makeSession(30, {
+      const session = makeDueAttendedSession(30, {
         userId: 3,
-        sessionDate: new Date(Date.now() - 86400000),
         client: makeClient(3, { availableSessions: 5 }),
       });
       mockSessionModel.findAll.mockResolvedValue([session]);
@@ -1034,9 +1092,9 @@ describe('SessionDeductionService', () => {
       const client4 = makeClient(4, { availableSessions: 1 });
 
       const sessions = [
-        makeSession(40, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: makeClient(3, { availableSessions: 2 }) }),
-        makeSession(41, { userId: 4, sessionDate: new Date(Date.now() - 86400000), client: makeClient(4, { availableSessions: 1 }) }),
-        makeSession(42, { userId: 3, sessionDate: new Date(Date.now() - 86400000), client: makeClient(3, { availableSessions: 2 }) }),
+        makeDueAttendedSession(40, { userId: 3, client: makeClient(3, { availableSessions: 2 }) }),
+        makeDueAttendedSession(41, { userId: 4, client: makeClient(4, { availableSessions: 1 }) }),
+        makeDueAttendedSession(42, { userId: 3, client: makeClient(3, { availableSessions: 2 }) }),
       ];
       mockSessionModel.findAll.mockResolvedValue(sessions);
       mockUserModel.findByPk
