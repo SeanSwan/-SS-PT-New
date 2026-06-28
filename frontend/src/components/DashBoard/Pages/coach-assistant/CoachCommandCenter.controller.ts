@@ -169,6 +169,13 @@ export function useCoachCommandCenterController({
     setCommandText((current) => capturedVoiceText(current, text));
     setSelectedStatus('Voice command captured - press Prepare to review');
   }, []);
+  const handleGuidePrompt = useCallback((prompt: string) => {
+    const trimmed = prompt.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS);
+    if (!trimmed) return;
+    setCommandText((current) => current.trim() ? current : trimmed);
+    setSelectedStatus('Guide prompt staged for review');
+    window.setTimeout(() => commandTextRef.current?.focus(), 0);
+  }, []);
   const speech = useCoachBrowserSpeechInput({
     maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
     onSend: handleVoiceCaptured,
@@ -254,6 +261,7 @@ export function useCoachCommandCenterController({
     handleAttach: actions.handleAttach,
     handleCancelCommand: actions.handleCancelCommand,
     handleConfirmCommand: actions.handleConfirmCommand,
+    handleGuidePrompt,
     handleNewThread: actions.handleNewThread,
     handleQuickClientSubmit: actions.handleQuickClientSubmit,
     handleReadback: actions.handleReadback,
