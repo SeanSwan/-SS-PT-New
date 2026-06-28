@@ -21,6 +21,7 @@ import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
 import ClientTimeline from './components/ClientTimeline';
 import BookingDrawer from './components/BookingDrawer';
+import ScheduleAiOperatorDock from './ScheduleAiOperatorDock';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import SessionTypeManager from './Config/SessionTypeManager';
 
@@ -825,6 +826,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onStatusFilterChange={handleStatusFilterChange}
       />
 
+      <ScheduleAiOperatorDock
+        mode={mode}
+        activeView={activeView}
+        currentDate={currentDate}
+        sessions={displaySessions as Array<Record<string, unknown>>}
+        selectedTrainerId={selectedTrainerId}
+        adminViewScope={adminViewScope}
+      />
       {mode === 'client' ? (
         <ClientTimeline
           sessions={displaySessions as any}

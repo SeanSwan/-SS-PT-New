@@ -73,6 +73,7 @@ import sprintRoutes from '../routes/sprintRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 import coachIntakeRoutes from '../routes/coachIntakeRoutes.mjs';
 import coachProposalRoutes from '../routes/coachProposalRoutes.mjs';
+import scheduleAiRoutes from '../routes/scheduleAiRoutes.mjs';
 // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.5 + 3.7)
 import plaudClipsRoutes from '../routes/plaud/plaudClipsRoutes.mjs';
 import plaudIntakeRoutes from '../routes/plaud/plaudIntakeRoutes.mjs';
@@ -352,6 +353,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
+  app.use('/api/schedule-ai', scheduleAiRoutes);
   app.use('/api/availability', availabilityRoutes);
   app.use('/api/orientation', orientationRoutes);
   app.use('/api/movement-analysis', movementAnalysisRoutes);

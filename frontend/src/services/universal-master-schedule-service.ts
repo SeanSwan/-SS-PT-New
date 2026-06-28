@@ -40,6 +40,36 @@ import {
   normalizeSessionsResponse,
 } from './universal-master-schedule-session-response';
 
+export interface ScheduleAiProposalRequest {
+  message: string;
+  context?: unknown;
+}
+
+export interface ScheduleAiProposal {
+  id?: string;
+  action?: string;
+  status?: string;
+  executionPolicy?: string;
+  manualOnly?: boolean;
+  confirmation?: Record<string, unknown>;
+  risk?: {
+    category?: string;
+    level?: string;
+    mutatesData?: boolean;
+  };
+  content?: string | null;
+}
+
+export interface ScheduleAiProposalResponse {
+  success: boolean;
+  ok?: boolean;
+  type?: string;
+  code?: string;
+  message?: string;
+  proposal?: ScheduleAiProposal | null;
+  provider?: Record<string, unknown>;
+  errors?: unknown[];
+}
 
 /**
  * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
@@ -607,6 +637,13 @@ class UniversalMasterScheduleService {
     }
   }
 
+  /**
+   * Create a proposal-only Schedule AI response for the Universal Master Schedule dock.
+   */
+  async createScheduleAiProposal(payload: ScheduleAiProposalRequest): Promise<ScheduleAiProposalResponse> {
+    const response: AxiosResponse<ScheduleAiProposalResponse> = await this.api.post('/api/schedule-ai/proposals', payload);
+    return response.data;
+  }
   /**
    * Retry failed operations with exponential backoff
    */
