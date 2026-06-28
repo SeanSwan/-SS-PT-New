@@ -182,13 +182,6 @@ export function useCoachCommandCenterController({
     setInputError: setVoiceInputError,
     setText: setVoiceCommandText,
   });
-  const handleWorkflowSelect = useCallback((prompt: string) => {
-    const nextPrompt = prompt.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS);
-    if (!nextPrompt) return;
-    setTeachMode(true); setCommandText(nextPrompt);
-    setSelectedStatus('Coach guide prompt loaded - press Prepare to review');
-    commandTextRef.current?.focus();
-  }, []);
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,
@@ -268,7 +261,6 @@ export function useCoachCommandCenterController({
     handleStartPlaudUpload: actions.handleStartPlaudUpload,
     handleSubmit: actions.handleSubmit,
     handleThreadSelect: actions.handleThreadSelect,
-    handleWorkflowSelect,
     handleVoice,
     initialReviewMergeRequestId,
     intakeStates,
