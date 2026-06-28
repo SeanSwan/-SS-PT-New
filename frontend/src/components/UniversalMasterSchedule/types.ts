@@ -8,12 +8,14 @@
  * client-trainer assignments, and real-time collaboration features.
  */
 
+import type { SessionBackendLifecycleFields } from './sessionBackendContract.types';
+
 // ==================== CORE ENTITY TYPES ====================
 
 /**
  * Session entity - represents a training session slot
  */
-export interface Session {
+export interface Session extends SessionBackendLifecycleFields {
   id: string;
   sessionDate: string;
   start?: string | Date;
@@ -46,6 +48,7 @@ export interface Session {
   feedback?: string | null;
   feedbackProvided?: boolean;
   reminderSentDate?: string | null;
+
   // Manual client name (when no user account linked)
   clientName?: string;
   // Package info from client's most recent order
