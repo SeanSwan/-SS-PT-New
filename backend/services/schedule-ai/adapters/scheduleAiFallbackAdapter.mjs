@@ -2,6 +2,9 @@ import { getScheduleAiToolSchema, SCHEDULE_AI_TOOL_TYPES } from '../scheduleAiTo
 
 function classify(message = '') {
   const text = String(message).toLowerCase();
+  if (/\b(recurring|series)\b/.test(text) && /\b(repair|conflict|heal|drift|gap|fix|optimi[sz]e)\b/.test(text)) {
+    return SCHEDULE_AI_TOOL_TYPES.DRAFT_RECURRING_REPAIR;
+  }
   if (/\b(charge|charged|payment|refund|reverse|credit|billing|late fee|waive)\b/.test(text)) {
     return SCHEDULE_AI_TOOL_TYPES.OPEN_PAYMENT_REVIEW;
   }

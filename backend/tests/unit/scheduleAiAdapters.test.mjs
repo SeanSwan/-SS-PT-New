@@ -17,6 +17,18 @@ describe('schedule AI provider adapters', () => {
     });
   });
 
+  it('fallback adapter classifies recurring repair commands as recurring repair proposals', async () => {
+    const adapter = createScheduleAiFallbackAdapter();
+    const result = await adapter.generateTurn({ message: 'Repair the recurring series conflict next Monday.' });
+
+    expect(result.toolCalls[0]).toMatchObject({
+      type: 'draft_recurring_repair',
+      mutatesData: false,
+      executionPolicy: 'proposal_only',
+      riskLevel: 'schedule_write',
+    });
+    expect(result.content).toContain('recurring repair');
+  });
   it('local GPU adapter calls an OpenAI-compatible chat completions endpoint', async () => {
     const fetchImpl = vi.fn(async (_url, options) => ({
       ok: true,

@@ -171,6 +171,72 @@ describe('schedule AI proposal engine', () => {
     });
   });
 
+  it('attaches recurring optimizer output to recurring repair proposals without executing changes', async () => {
+    const routeTurn = providerTurnWithTool('draft_recurring_repair');
+    const recurringOptimizer = vi.fn(() => ({
+      ok: true,
+      summary: { recurringGroupId: 'series-alpha', issueCount: 1, proposalCount: 1 },
+      issues: [{ code: 'TRAINER_CONFLICT', sessionId: 44 }],
+      proposals: [{
+        type: 'recurring_series_repair',
+        action: 'repair_series_conflict',
+        recurringGroupId: 'series-alpha',
+        targetSessionId: 44,
+        executionPolicy: 'proposal_only',
+        mutatesData: false,
+        suggestedPatch: { time: '17:30', trainerId: 8 },
+      }],
+    }));
+    const auditWriter = vi.fn(async () => true);
+
+    const outcome = await generateScheduleAiProposal({
+      actor: ADMIN,
+      message: 'Repair this recurring series conflict',
+      context: {
+        surface: 'universal_master_schedule',
+        recurringGroupId: 'series-alpha',
+        recurringSeries: [{ id: 44, trainerId: 8, sessionDate: '2026-07-13T16:00:00Z' }],
+      },
+      routeTurn,
+      recurringOptimizer,
+      auditWriter,
+      now: new Date('2026-06-28T12:00:00Z'),
+    });
+
+    expect(outcome.ok).toBe(true);
+    expect(outcome.proposal).toMatchObject({
+      action: 'draft_recurring_repair',
+      executionPolicy: 'proposal_only',
+      manualOnly: false,
+      confirmation: {
+        required: true,
+        canExecute: false,
+        mode: 'manual_review',
+      },
+      recurringRepair: {
+        summary: { recurringGroupId: 'series-alpha', issueCount: 1, proposalCount: 1 },
+        proposals: [expect.objectContaining({
+          action: 'repair_series_conflict',
+          mutatesData: false,
+        })],
+      },
+    });
+    expect(recurringOptimizer).toHaveBeenCalledWith(expect.objectContaining({
+      actor: ADMIN,
+      recurringGroupId: 'series-alpha',
+      seriesSessions: [{ id: 44, trainerId: 8, sessionDate: '2026-07-13T16:00:00Z' }],
+    }));
+    expect(auditWriter).toHaveBeenCalledWith(expect.objectContaining({
+      commandType: 'schedule_ai:draft_recurring_repair',
+      requiresConfirmation: true,
+      confirmationState: 'pending',
+      params: expect.objectContaining({
+        action: 'draft_recurring_repair',
+        recurringIssueCount: 1,
+        recurringProposalCount: 1,
+      }),
+    }));
+  });
   it('returns a degraded response and audit when no provider can classify the request', async () => {
     const auditWriter = vi.fn(async () => true);
     const routeTurn = vi.fn(async () => ({

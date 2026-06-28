@@ -34,7 +34,31 @@ describe('ScheduleAiOperatorDock', () => {
       },
     }));
 
-    render(<ScheduleAiOperatorDock {...baseProps} requestProposal={requestProposal} />);
+    const recurringSessions = [
+      {
+        id: '88',
+        status: 'confirmed',
+        sessionDate: '2026-06-28T15:00:00.000Z',
+        endDate: '2026-06-28T16:00:00.000Z',
+        duration: 60,
+        userId: '12',
+        trainerId: '8',
+        recurringGroupId: 'series-alpha',
+        clientName: 'Private Client',
+        notes: 'Do not send this note',
+        email: 'client@example.com',
+      },
+      {
+        id: '89',
+        status: 'confirmed',
+        sessionDate: '2026-06-28T15:30:00.000Z',
+        endDate: '2026-06-28T16:30:00.000Z',
+        duration: 60,
+        trainerId: '8',
+      },
+    ];
+
+    render(<ScheduleAiOperatorDock {...baseProps} sessions={recurringSessions} requestProposal={requestProposal} />);
 
     fireEvent.click(screen.getByRole('button', { name: /open schedule ai operator/i }));
     fireEvent.change(screen.getByLabelText(/schedule ai request/i), {
@@ -49,10 +73,28 @@ describe('ScheduleAiOperatorDock', () => {
         surface: 'universal_master_schedule',
         mode: 'admin',
         activeView: 'week',
-        visibleSessionIds: ['88'],
-        sessionCount: 1,
+        visibleSessionIds: ['88', '89'],
+        sessionCount: 2,
+        recurringSeries: [expect.objectContaining({
+          id: '88',
+          recurringGroupId: 'series-alpha',
+          sessionDate: '2026-06-28T15:00:00.000Z',
+          endDate: '2026-06-28T16:00:00.000Z',
+          duration: 60,
+          userId: '12',
+          trainerId: '8',
+          status: 'confirmed',
+        })],
+        comparisonSessions: expect.arrayContaining([
+          expect.objectContaining({ id: '88', trainerId: '8' }),
+          expect.objectContaining({ id: '89', trainerId: '8' }),
+        ]),
       }),
     });
+    const sentContext = requestProposal.mock.calls[0][0].context;
+    expect(JSON.stringify(sentContext)).not.toContain('Private Client');
+    expect(JSON.stringify(sentContext)).not.toContain('Do not send this note');
+    expect(JSON.stringify(sentContext)).not.toContain('client@example.com');
     expect(screen.getByText(/draft booking/i)).toBeInTheDocument();
     expect(screen.getByText(/Draft prepared for review/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /edit request/i })).toBeInTheDocument();

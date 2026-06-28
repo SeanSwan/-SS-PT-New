@@ -9,6 +9,17 @@ export interface ScheduleAiContextInput {
   adminViewScope?: 'my' | 'global';
 }
 
+export interface ScheduleAiSafeSessionContext {
+  id: string;
+  status: string;
+  sessionDate?: string;
+  endDate?: string;
+  duration?: number;
+  trainerId?: string;
+  userId?: string;
+  recurringGroupId?: string;
+}
+
 export interface ScheduleAiDockContext {
   surface: 'universal_master_schedule';
   mode: ScheduleAiDockMode;
@@ -19,6 +30,9 @@ export interface ScheduleAiDockContext {
   statusCounts: Record<string, number>;
   selectedTrainerId?: string;
   adminViewScope?: 'my' | 'global';
+  recurringGroupId?: string;
+  recurringSeries?: ScheduleAiSafeSessionContext[];
+  comparisonSessions?: ScheduleAiSafeSessionContext[];
   expectedScheduleVersion: string;
   currentScheduleVersion: string;
 }
@@ -31,6 +45,11 @@ function safeString(value: unknown): string | null {
 
 function sessionIdFor(session: Record<string, unknown>): string | null {
   return safeString(session.id ?? session.sessionId);
+}
+
+function safeNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
 function statusFor(session: Record<string, unknown>): string {
@@ -54,6 +73,32 @@ function buildScheduleVersion(sessions: Array<Record<string, unknown>>): string 
   return parts.length > 0 ? parts.join('|') : 'empty';
 }
 
+function safeSessionContext(session: Record<string, unknown>): ScheduleAiSafeSessionContext | null {
+  const id = sessionIdFor(session);
+  if (!id) return null;
+
+  const safeSession: ScheduleAiSafeSessionContext = {
+    id,
+    status: statusFor(session),
+  };
+
+  const sessionDate = safeString(session.sessionDate ?? session.startTime ?? session.start);
+  const endDate = safeString(session.endDate ?? session.endTime ?? session.end);
+  const duration = safeNumber(session.duration);
+  const trainerId = safeString(session.trainerId);
+  const userId = safeString(session.userId ?? session.clientId);
+  const recurringGroupId = safeString(session.recurringGroupId);
+
+  if (sessionDate) safeSession.sessionDate = sessionDate;
+  if (endDate) safeSession.endDate = endDate;
+  if (duration) safeSession.duration = duration;
+  if (trainerId) safeSession.trainerId = trainerId;
+  if (userId) safeSession.userId = userId;
+  if (recurringGroupId) safeSession.recurringGroupId = recurringGroupId;
+
+  return safeSession;
+}
+
 function countStatuses(sessions: Array<Record<string, unknown>>): Record<string, number> {
   return sessions.reduce<Record<string, number>>((counts, session) => {
     const status = statusFor(session);
@@ -72,6 +117,14 @@ export function buildScheduleAiDockContext({
 }: ScheduleAiContextInput): ScheduleAiDockContext {
   const safeSessions = Array.isArray(sessions) ? sessions : [];
   const version = buildScheduleVersion(safeSessions);
+  const comparisonSessions = safeSessions
+    .map(safeSessionContext)
+    .filter((session): session is ScheduleAiSafeSessionContext => Boolean(session))
+    .slice(0, 24);
+  const recurringSeries = comparisonSessions
+    .filter((session) => Boolean(session.recurringGroupId))
+    .slice(0, 24);
+  const recurringGroupIds = Array.from(new Set(recurringSeries.map((session) => session.recurringGroupId).filter(Boolean)));
   const context: ScheduleAiDockContext = {
     surface: 'universal_master_schedule',
     mode,
@@ -90,6 +143,9 @@ export function buildScheduleAiDockContext({
   const trainerId = safeString(selectedTrainerId);
   if (trainerId) context.selectedTrainerId = trainerId;
   if (mode === 'admin' && adminViewScope) context.adminViewScope = adminViewScope;
+  if (comparisonSessions.length > 0) context.comparisonSessions = comparisonSessions;
+  if (recurringSeries.length > 0) context.recurringSeries = recurringSeries;
+  if (recurringGroupIds.length === 1 && recurringGroupIds[0]) context.recurringGroupId = recurringGroupIds[0];
 
   return context;
 }

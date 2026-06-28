@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { recordCommandAudit } from '../ai/commandAudit.mjs';
 import { routeScheduleAiTurn } from './scheduleAiProviderRouter.mjs';
+import { buildRecurringOptimizationProposals } from './scheduleAiRecurringOptimizer.mjs';
 import { getScheduleAiToolSchema } from './scheduleAiToolSchemas.mjs';
 
 const WRITE_RISKS = new Set(['schedule_write', 'attendance_write']);
@@ -12,6 +13,7 @@ const ROLE_PERMISSIONS = Object.freeze({
   draft_cancel: new Set(['admin', 'trainer']),
   mark_attendance: new Set(['admin', 'trainer']),
   open_payment_review: new Set(['admin']),
+  draft_recurring_repair: new Set(['admin', 'trainer']),
   manual_schedule_review: new Set(['admin', 'trainer']),
 });
 
@@ -84,7 +86,7 @@ function extractTargets(context = {}) {
   };
 }
 
-function buildProposal({ actor, message, context, tool, providerResult, now }) {
+function buildProposal({ actor, message, context, tool, providerResult, recurringRepair, now }) {
   const confirmation = confirmationForTool(tool);
   const targets = extractTargets(context);
   const contextVersion = getContextVersion(context);
@@ -111,6 +113,7 @@ function buildProposal({ actor, message, context, tool, providerResult, now }) {
     },
     confirmation,
     content: providerResult?.content || null,
+    ...(recurringRepair ? { recurringRepair } : {}),
   };
 }
 
@@ -134,6 +137,8 @@ async function writeProposalAudit({ auditWriter, actor, proposal = null, outcome
       messageLength: String(message || '').length,
       surface: context?.surface || null,
       contextVersion: getContextVersion(context),
+      recurringIssueCount: proposal?.recurringRepair?.summary?.issueCount ?? null,
+      recurringProposalCount: proposal?.recurringRepair?.summary?.proposalCount ?? null,
     },
     durationMs,
   });
@@ -146,6 +151,7 @@ export async function generateScheduleAiProposal({
   config = {},
   routeTurn = routeScheduleAiTurn,
   auditWriter = null,
+  recurringOptimizer = buildRecurringOptimizationProposals,
   now = new Date(),
 } = {}) {
   const startedAt = Date.now();
@@ -213,12 +219,26 @@ export async function generateScheduleAiProposal({
     };
   }
 
+  const recurringRepair = tool.type === 'draft_recurring_repair'
+    ? recurringOptimizer({
+      actor,
+      recurringGroupId: context.recurringGroupId,
+      seriesSessions: context.recurringSeries || context.seriesSessions || [],
+      comparisonSessions: context.comparisonSessions || context.nearbySessions || [],
+      candidateSlots: context.candidateSlots || [],
+      clientPreferences: context.clientPreferences || {},
+      trainerLoad: context.trainerLoad || [],
+      now,
+    })
+    : null;
+
   const proposal = buildProposal({
     actor,
     message,
     context,
     tool,
     providerResult: routed.result,
+    recurringRepair,
     now,
   });
   await writeProposalAudit({
