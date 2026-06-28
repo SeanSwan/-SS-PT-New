@@ -134,7 +134,7 @@ const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
       <FeedEnrichmentTitle>{item.title}</FeedEnrichmentTitle>
       <FeedEnrichmentSummary>{item.summary}</FeedEnrichmentSummary>
       {item.url && (
-        <FeedEnrichmentLink href={item.url} target="_blank" rel="noreferrer">
+        <FeedEnrichmentLink href={item.url} target="_blank" rel="noopener noreferrer">
           Open source
           <ExternalLink size={14} aria-hidden="true" />
         </FeedEnrichmentLink>
@@ -144,7 +144,7 @@ const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
       <FeedEnrichmentMediaVideo src={item.mediaUrl} muted playsInline controls preload="metadata" />
     )}
     {item.mediaUrl && item.mediaType !== 'video' && (
-      <FeedEnrichmentMediaImage src={item.mediaUrl} alt="" loading="lazy" />
+      <FeedEnrichmentMediaImage src={item.mediaUrl} alt={item.title} loading="lazy" />
     )}
   </FeedEnrichmentCard>
 );

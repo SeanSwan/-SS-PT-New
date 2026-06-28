@@ -53,6 +53,53 @@ describe('useFeedEnrichment', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('drops unsafe or unknown enrichment metadata at the frontend boundary', async () => {
+    mocks.authAxios.get.mockResolvedValue({
+      data: {
+        items: [
+          {
+            ...apiItem,
+            id: 'unsafe-item',
+            source: 'unknown-provider',
+            category: 'unknown-category',
+            url: 'javascript:alert(1)',
+            mediaUrl: 'data:text/html,<script>alert(1)</script>',
+          },
+          {
+            ...apiItem,
+            id: 'safe-item',
+            url: 'https://apod.nasa.gov/example',
+            mediaUrl: 'https://images.example.com/webb.jpg',
+          },
+          {
+            ...apiItem,
+            id: 'known-source-unsafe-url',
+            url: 'javascript:alert(1)',
+            mediaType: 'video',
+            mediaUrl: 'https://www.youtube.com/watch?v=abc123',
+          },
+          {
+            ...apiItem,
+            id: 123,
+          },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => useFeedEnrichment({ limit: 3 }));
+
+    await waitFor(() => {
+      expect(result.current.items).toHaveLength(2);
+    });
+
+    expect(result.current.items[0]).toMatchObject({ id: 'safe-item', url: 'https://apod.nasa.gov/example' });
+    const sanitizedItem = result.current.items.find((item) => item.id === 'known-source-unsafe-url');
+    expect(sanitizedItem).toMatchObject({ id: 'known-source-unsafe-url', source: 'nasa-apod' });
+    expect(sanitizedItem?.url).toBeUndefined();
+    expect(sanitizedItem?.mediaUrl).toBeUndefined();
+    expect(sanitizedItem?.mediaType).toBeUndefined();
+  });
+
   it('fails quietly so the real social feed remains usable', async () => {
     mocks.authAxios.get.mockRejectedValue(new Error('provider offline'));
 

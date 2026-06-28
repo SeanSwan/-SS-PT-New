@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, RadioTower, type LucideIcon } from 'lucide-react';
+import { ExternalLink, Pause, Play, RadioTower, type LucideIcon } from 'lucide-react';
 import {
   SlideDot,
   SlideDots,
@@ -12,6 +12,8 @@ import {
   SponsorMediaVideo,
   SponsorTitle,
   TickerCounter,
+  TickerControlButton,
+  TickerFooterControls,
   TickerGrid,
   TickerHeader,
   TickerIconWrap,
@@ -66,6 +68,40 @@ const prefersReducedMotion = (): boolean => {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 };
 
+const toSafeHttpUrl = (value?: string): string | undefined => {
+  if (!value || value.trim() === '') return undefined;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+};
+
+const isDirectVideoUrl = (value: string): boolean => /\.(mp4|webm|ogg)$/i.test(new URL(value).pathname);
+
+const sanitizeSponsorSpot = (sponsor: QuickStatsSponsorSpot | null): QuickStatsSponsorSpot | null => {
+  if (!sponsor) return null;
+  const href = toSafeHttpUrl(sponsor.href);
+  const candidateMediaType = sponsor.mediaType === 'video' || sponsor.mediaType === 'image'
+    ? sponsor.mediaType
+    : undefined;
+  const candidateMediaUrl = toSafeHttpUrl(sponsor.mediaUrl);
+  const mediaUrl = candidateMediaType === 'video'
+    ? (candidateMediaUrl && isDirectVideoUrl(candidateMediaUrl) ? candidateMediaUrl : undefined)
+    : candidateMediaType === 'image'
+      ? candidateMediaUrl
+      : undefined;
+
+  return {
+    ...sponsor,
+    href,
+    mediaType: mediaUrl ? candidateMediaType : undefined,
+    mediaUrl,
+  };
+};
+
 const SponsorSlide = ({ sponsor }: { sponsor: QuickStatsSponsorSpot }) => (
   <SponsorCard aria-label={`${sponsor.label} sponsor spot`}>
     <SponsorCopy>
@@ -73,7 +109,7 @@ const SponsorSlide = ({ sponsor }: { sponsor: QuickStatsSponsorSpot }) => (
       <SponsorTitle>{sponsor.title}</SponsorTitle>
       <SponsorBody>{sponsor.body}</SponsorBody>
       {sponsor.href && sponsor.ctaLabel && (
-        <SponsorLink href={sponsor.href} target="_blank" rel="noreferrer">
+        <SponsorLink href={sponsor.href} target="_blank" rel="noopener noreferrer">
           {sponsor.ctaLabel}
           <ExternalLink size={14} aria-hidden="true" />
         </SponsorLink>
@@ -90,7 +126,7 @@ const SponsorSlide = ({ sponsor }: { sponsor: QuickStatsSponsorSpot }) => (
       />
     )}
     {sponsor.mediaUrl && sponsor.mediaType !== 'video' && (
-      <SponsorMediaImage src={sponsor.mediaUrl} alt="" loading="lazy" />
+      <SponsorMediaImage src={sponsor.mediaUrl} alt={`${sponsor.title} sponsor media`} loading="lazy" />
     )}
   </SponsorCard>
 );
@@ -120,27 +156,34 @@ const UserDashboardQuickStatsTicker: React.FC<UserDashboardQuickStatsTickerProps
   sponsorSpot = null,
   showHeader = true,
 }) => {
+  const safeSponsorSpot = useMemo(() => sanitizeSponsorSpot(sponsorSpot), [sponsorSpot]);
   const slides = useMemo<TickerSlide[]>(() => {
     const statSlides = chunkStats(stats).map<TickerSlide>((group) => ({ kind: 'stats', stats: group }));
-    return sponsorSpot ? [...statSlides, { kind: 'sponsor', sponsor: sponsorSpot }] : statSlides;
-  }, [sponsorSpot, stats]);
+    return safeSponsorSpot ? [...statSlides, { kind: 'sponsor', sponsor: safeSponsorSpot }] : statSlides;
+  }, [safeSponsorSpot, stats]);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [motionReduced] = useState(prefersReducedMotion);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     setSlideIndex(0);
   }, [slides.length]);
 
+  const canAutoRotate = slides.length > 1 && rotateMs > 0 && !motionReduced;
+
   useEffect(() => {
-    if (slides.length <= 1 || rotateMs <= 0 || prefersReducedMotion()) return undefined;
+    if (!canAutoRotate || isPaused) return undefined;
     const timer = window.setInterval(() => {
       setSlideIndex((current) => (current + 1) % slides.length);
     }, rotateMs);
     return () => window.clearInterval(timer);
-  }, [rotateMs, slides.length]);
+  }, [canAutoRotate, isPaused, rotateMs, slides.length]);
 
   if (slides.length === 0) return null;
 
   const activeSlide = slides[Math.min(slideIndex, slides.length - 1)];
+  const PauseIcon = isPaused ? Play : Pause;
+  const pauseLabel = isPaused ? 'Resume quick stats ticker' : 'Pause quick stats ticker';
 
   return (
     <TickerShell aria-label="Quick stats ticker">
@@ -159,11 +202,24 @@ const UserDashboardQuickStatsTicker: React.FC<UserDashboardQuickStatsTickerProps
           : <SponsorSlide sponsor={activeSlide.sponsor} />}
       </TickerViewport>
       {slides.length > 1 && (
-        <SlideDots aria-hidden="true">
-          {slides.map((slide, index) => (
-            <SlideDot key={`${slide.kind}-${index}`} $active={index === slideIndex} />
-          ))}
-        </SlideDots>
+        <TickerFooterControls>
+          <SlideDots aria-hidden="true">
+            {slides.map((slide, index) => (
+              <SlideDot key={`${slide.kind}-${index}`} $active={index === slideIndex} />
+            ))}
+          </SlideDots>
+          {canAutoRotate && (
+            <TickerControlButton
+              type="button"
+              aria-label={pauseLabel}
+              aria-pressed={isPaused}
+              title={pauseLabel}
+              onClick={() => setIsPaused((current) => !current)}
+            >
+              <PauseIcon size={16} aria-hidden="true" />
+            </TickerControlButton>
+          )}
+        </TickerFooterControls>
       )}
     </TickerShell>
   );

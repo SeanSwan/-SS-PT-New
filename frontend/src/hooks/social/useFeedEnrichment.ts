@@ -22,6 +22,48 @@ interface UseFeedEnrichmentOptions {
   limit?: number;
 }
 
+const allowedSources = new Set<FeedEnrichmentSource>([
+  'nasa-apod',
+  'inaturalist',
+  'quotable',
+  'swan-curated',
+]);
+
+const allowedCategories = new Set<FeedEnrichmentCategory>([
+  'space',
+  'nature',
+  'motivation',
+  'movement',
+  'growth',
+]);
+
+const toKnownSource = (value: unknown): FeedEnrichmentSource | null => (
+  typeof value === 'string' && allowedSources.has(value as FeedEnrichmentSource)
+    ? value as FeedEnrichmentSource
+    : null
+);
+
+const toKnownCategory = (value: unknown): FeedEnrichmentCategory | null => (
+  typeof value === 'string' && allowedCategories.has(value as FeedEnrichmentCategory)
+    ? value as FeedEnrichmentCategory
+    : null
+);
+
+const toSafeHttpUrl = (value: unknown): string | undefined => {
+  if (typeof value !== 'string' || value.trim() === '') return undefined;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+};
+
+const isDirectVideoUrl = (value: string): boolean => /\.(mp4|webm|ogg)$/i.test(new URL(value).pathname);
+
+const normalizeText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+
 const clampLimit = (limit: number | undefined): number => {
   const parsed = Number(limit);
   if (!Number.isFinite(parsed)) return 5;
@@ -30,14 +72,43 @@ const clampLimit = (limit: number | undefined): number => {
 
 const normalizeItems = (items: unknown): FeedEnrichmentItem[] => {
   if (!Array.isArray(items)) return [];
-  return items.filter((item): item is FeedEnrichmentItem => {
-    if (!item || typeof item !== 'object') return false;
+  const normalizedItems: FeedEnrichmentItem[] = [];
+
+  items.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
     const candidate = item as Partial<FeedEnrichmentItem>;
-    return candidate.kind === 'enrichment'
-      && typeof candidate.id === 'string'
-      && typeof candidate.title === 'string'
-      && typeof candidate.summary === 'string';
+    const id = normalizeText(candidate.id);
+    const source = toKnownSource(candidate.source);
+    const category = toKnownCategory(candidate.category);
+    const title = normalizeText(candidate.title);
+    const summary = normalizeText(candidate.summary);
+    if (candidate.kind !== 'enrichment' || !id || !source || !category || !title || !summary) return;
+
+    const url = toSafeHttpUrl(candidate.url);
+    const candidateMediaType = candidate.mediaType === 'image' || candidate.mediaType === 'video'
+      ? candidate.mediaType
+      : undefined;
+    const candidateMediaUrl = toSafeHttpUrl(candidate.mediaUrl);
+    const mediaUrl = candidateMediaType === 'video'
+      ? (candidateMediaUrl && isDirectVideoUrl(candidateMediaUrl) ? candidateMediaUrl : undefined)
+      : candidateMediaType === 'image'
+        ? candidateMediaUrl
+        : undefined;
+
+    normalizedItems.push({
+      id,
+      kind: 'enrichment',
+      source,
+      category,
+      title,
+      summary,
+      ...(url ? { url } : {}),
+      ...(mediaUrl && candidateMediaType ? { mediaType: candidateMediaType, mediaUrl } : {}),
+      ...(typeof candidate.publishedAt === 'string' ? { publishedAt: candidate.publishedAt } : {}),
+    });
   });
+
+  return normalizedItems;
 };
 
 export const useFeedEnrichment = ({ enabled = true, limit = 5 }: UseFeedEnrichmentOptions = {}) => {

@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProfileStats } from '../types/UserDashboardTypes';
 import UserDashboardSidebarV3, { buildSidebarQuickStats } from './UserDashboardSidebarV3';
@@ -65,6 +65,29 @@ describe('UserDashboardQuickStatsTicker', () => {
     expect(screen.getByText('Level Progress')).toBeInTheDocument();
     expect(screen.getByText('XP to Next')).toBeInTheDocument();
     expect(screen.queryByText('Workouts')).not.toBeInTheDocument();
+  });
+
+  it('lets users pause and resume automatic rotation', () => {
+    vi.useFakeTimers();
+    const stats = buildStats();
+
+    render(<UserDashboardQuickStatsTicker stats={stats} rotateMs={1000} />);
+
+    expect(screen.getByText('Workouts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /pause quick stats ticker/i }));
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.getByText('Workouts')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /resume quick stats ticker/i }));
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText('Streak')).toBeInTheDocument();
   });
 
   it('can rotate to a sponsor video spot without replacing real stat slides', () => {

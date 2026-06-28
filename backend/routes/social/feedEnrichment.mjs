@@ -25,6 +25,38 @@ const bannedTerms = [
   'war',
 ];
 
+const allowedSources = new Set([
+  'nasa-apod',
+  'inaturalist',
+  'quotable',
+  'swan-curated',
+]);
+
+const allowedCategories = new Set([
+  'space',
+  'nature',
+  'motivation',
+  'movement',
+  'growth',
+]);
+
+const toSafeHttpUrl = (value) => {
+  if (!value || typeof value !== 'string') return undefined;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+};
+
+const isDirectVideoUrl = (value) => {
+  const safeUrl = toSafeHttpUrl(value);
+  if (!safeUrl) return false;
+  return /\.(mp4|webm|ogg)$/i.test(new URL(safeUrl).pathname);
+};
+
 const curatedSparks = [
   {
     source: 'swan-curated',
@@ -96,18 +128,40 @@ export const clearFeedEnrichmentCache = () => {
 
 export const moderateEnrichmentItem = (item) => {
   if (!item || typeof item !== 'object') return null;
+  const id = typeof item.id === 'string' ? normalizeWhitespace(item.id) : '';
   const title = normalizeWhitespace(item.title);
   const summary = normalizeWhitespace(item.summary);
-  if (!title || !summary) return null;
+  if (!id || !title || !summary) return null;
 
   const haystack = `${title} ${summary}`.toLowerCase();
   if (bannedTerms.some((term) => haystack.includes(term))) return null;
 
+  const source = String(item.source || '');
+  const category = String(item.category || '');
+  if (!allowedSources.has(source) || !allowedCategories.has(category)) return null;
+
+  const url = toSafeHttpUrl(item.url);
+  const candidateMediaType = item.mediaType === 'video' || item.mediaType === 'image'
+    ? item.mediaType
+    : undefined;
+  const candidateMediaUrl = toSafeHttpUrl(item.mediaUrl);
+  const mediaUrl = candidateMediaType === 'video'
+    ? (candidateMediaUrl && isDirectVideoUrl(candidateMediaUrl) ? candidateMediaUrl : undefined)
+    : candidateMediaType === 'image'
+      ? candidateMediaUrl
+      : undefined;
+  const mediaType = mediaUrl ? candidateMediaType : undefined;
+
   return {
-    ...item,
+    id,
     kind: 'enrichment',
+    source,
+    category,
     title: truncate(title, 96),
     summary: truncate(summary, 220),
+    ...(url ? { url } : {}),
+    ...(mediaUrl && mediaType ? { mediaType, mediaUrl } : {}),
+    ...(typeof item.publishedAt === 'string' ? { publishedAt: item.publishedAt } : {}),
   };
 };
 

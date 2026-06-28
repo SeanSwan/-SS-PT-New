@@ -119,4 +119,54 @@ describe('social feed enrichment API contract', () => {
     expect(result.items.every((item) => item.source === 'swan-curated')).toBe(true);
     expect(result.items.every((item) => item.kind === 'enrichment')).toBe(true);
   });
+
+  it('strips unsafe provider URLs and does not render provider pages as playable video', async () => {
+    const unsafeItem = moderateEnrichmentItem({
+      id: 'bad-url-1',
+      kind: 'enrichment',
+      source: 'nasa-apod',
+      category: 'space',
+      title: 'Quiet space image',
+      summary: 'A calm provider item with unsafe media fields.',
+      mediaType: 'image',
+      mediaUrl: 'javascript:alert(1)',
+      url: 'data:text/html,<script>alert(1)</script>',
+    });
+
+    expect(unsafeItem).toMatchObject({
+      title: 'Quiet space image',
+      summary: 'A calm provider item with unsafe media fields.',
+    });
+    expect(unsafeItem.mediaUrl).toBeUndefined();
+    expect(unsafeItem.mediaType).toBeUndefined();
+    expect(unsafeItem.url).toBeUndefined();
+    expect(moderateEnrichmentItem({
+      id: 12,
+      kind: 'enrichment',
+      source: 'nasa-apod',
+      category: 'space',
+      title: 'Valid title',
+      summary: 'Valid neutral summary.',
+    })).toBeNull();
+
+    const result = await buildFeedEnrichmentItems({
+      fetchJson: vi.fn(async (url) => {
+        if (!url.includes('api.nasa.gov/planetary/apod')) throw new Error('provider offline');
+        return {
+          title: 'Webb video tour',
+          explanation: 'A calm space video page from a trusted provider.',
+          media_type: 'video',
+          url: 'https://www.youtube.com/watch?v=abc123',
+          date: '2026-06-28',
+        };
+      }),
+      nowMs: NOW_MS,
+      env: {},
+      limit: 1,
+    });
+
+    expect(result.items[0]).toMatchObject({ source: 'nasa-apod', url: 'https://www.youtube.com/watch?v=abc123' });
+    expect(result.items[0].mediaUrl).toBeUndefined();
+    expect(result.items[0].mediaType).toBeUndefined();
+  });
 });

@@ -90,6 +90,15 @@ export const TickerStatCaption = styled.span`
   font: 700 0.68rem/1.3 var(--font-ui, 'Sora', sans-serif);
 `;
 
+export const TickerFooterControls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  flex-wrap: wrap;
+`;
+
 export const SlideDots = styled.div`
   display: flex;
   align-items: center;
@@ -108,6 +117,42 @@ export const SlideDot = styled.span<{ $active: boolean }>`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+
+export const TickerControlButton = styled.button`
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 88%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 68%, transparent);
+      background: color-mix(in srgb, var(--surface-primary, #003080) 42%, transparent);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 
