@@ -30,7 +30,7 @@ const achievementPost: Post = {
   mediaUrl: '/uploads/progress.jpg',
   mediaType: 'image',
   achievementData: {
-    title: 'Bronze Forge',
+    title: 'First Flight',
     description: 'Completed the first training milestone.',
     points: 30,
   },
@@ -88,7 +88,7 @@ describe('PostCard feed display contract', () => {
 
     expect(screen.queryByText('Completed the first training milestone.')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /bronze forge achievement summary/i }));
+    await user.click(screen.getByRole('button', { name: /first flight achievement summary/i }));
 
     expect(screen.getByText(/Completed the first training milestone/i)).toBeInTheDocument();
     expect(screen.getByText(/Unlocked for reaching this SwanStudios milestone/i)).toBeInTheDocument();

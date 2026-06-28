@@ -23,6 +23,14 @@ describe('badge controller security hardening', () => {
     expect(controllerSource).not.toMatch(/error:\s*error\.message\s*\n\s*\}\);/);
   });
 
+  it('keeps badge display selection owner-or-admin scoped', () => {
+    expect(routeSource).toContain("router.put('/user/:userId/:badgeId/display'");
+    expect(controllerSource).toContain('async setUserBadgeDisplay');
+    expect(controllerSource).toContain("const canEditDisplay = req.user?.role === 'admin' || isOwnProfile;");
+    expect(controllerSource).toContain("return sendBadgeError(res, 403, 'Access denied')");
+    expect(controllerSource).not.toContain("req.user?.role === 'trainer' || isOwnProfile");
+  });
+
   it('strictly normalizes badge pagination and fallback self-access ids', () => {
     expect(controllerSource).toContain('const page = parsePositiveInteger(req.query.page, 1);');
     expect(controllerSource).toContain('const limit = parseBoundedPositiveInteger(req.query.limit, 20, 100);');

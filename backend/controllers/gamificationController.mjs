@@ -851,6 +851,16 @@ const formatFeedTimeAgo = (timestamp) => {
   return date.toISOString().split('T')[0];
 };
 
+const buildAchievementBadgeActivity = (achievement, ledgerResult = {}) => ({
+  achievementId: achievement?.id,
+  achievementIds: [achievement?.id].filter(Boolean),
+  achievementName: achievement?.name,
+  achievementNames: [achievement?.name].filter(Boolean),
+  points: ledgerResult?.pointsAwarded,
+  totalPoints: ledgerResult?.newBalance,
+  completed: true,
+  status: 'completed'
+});
 const gamificationController = {
   /**
    * Get gamification settings
@@ -1652,13 +1662,20 @@ const gamificationController = {
       
       // Commit the transaction
       await transaction.commit();
+
+      const badgesEarned = await checkBadgesForGamificationEvent({
+        userId: normalizedUserId,
+        type: 'achievement_earned',
+        activityData: buildAchievementBadgeActivity(achievement, ledgerResult)
+      });
       
       return res.status(200).json({
         success: true,
         message: 'Achievement awarded successfully',
         userAchievement,
         pointsAwarded: ledgerResult.pointsAwarded,
-        newBalance: ledgerResult.newBalance
+        newBalance: ledgerResult.newBalance,
+        badgesEarned
       });
     } catch (error) {
       await transaction.rollback();
@@ -1691,6 +1708,8 @@ const gamificationController = {
     }
 
     const transaction = await db.transaction();
+    let completedAchievement = null;
+    let completedLedgerResult = null;
 
     try {
       const user = await User.findByPk(normalizedUserId, {
@@ -1741,7 +1760,7 @@ const gamificationController = {
 
         if (normalizedProgress >= 100) {
           const achievementPoints = getAchievementPointValue(achievement);
-          await GamificationPointsService.recordLedgerEntry({
+          completedLedgerResult = await GamificationPointsService.recordLedgerEntry({
             userId: normalizedUserId,
             points: achievementPoints,
             transactionType: 'earn',
@@ -1752,8 +1771,9 @@ const gamificationController = {
             awardedBy: req.user?.id,
             idempotencyKey: `achievement:${normalizedUserId}:${achievement.id}`
           }, transaction);
+          completedAchievement = achievement;
 
-          await userAchievement.update({ pointsAwarded: achievementPoints }, { transaction });
+          await userAchievement.update({ pointsAwarded: completedLedgerResult.pointsAwarded }, { transaction });
         }
       } else if (!userAchievement.isCompleted) {
         const newProgress = normalizedProgress;
@@ -1767,7 +1787,7 @@ const gamificationController = {
 
         if (wasCompleted && userAchievement.achievement) {
           const achievementPoints = getAchievementPointValue(userAchievement.achievement);
-          await GamificationPointsService.recordLedgerEntry({
+          completedLedgerResult = await GamificationPointsService.recordLedgerEntry({
             userId: normalizedUserId,
             points: achievementPoints,
             transactionType: 'earn',
@@ -1778,17 +1798,27 @@ const gamificationController = {
             awardedBy: req.user?.id,
             idempotencyKey: `achievement:${normalizedUserId}:${userAchievement.achievement.id}`
           }, transaction);
+          completedAchievement = userAchievement.achievement;
 
-          await userAchievement.update({ pointsAwarded: achievementPoints }, { transaction });
+          await userAchievement.update({ pointsAwarded: completedLedgerResult.pointsAwarded }, { transaction });
         }
       }
 
       await transaction.commit();
 
+      const badgesEarned = completedAchievement
+        ? await checkBadgesForGamificationEvent({
+          userId: normalizedUserId,
+          type: 'achievement_earned',
+          activityData: buildAchievementBadgeActivity(completedAchievement, completedLedgerResult)
+        })
+        : [];
+
       return res.status(200).json({
         success: true,
         message: 'Achievement progress updated',
-        userAchievement
+        userAchievement,
+        badgesEarned
       });
     } catch (error) {
       await transaction.rollback();

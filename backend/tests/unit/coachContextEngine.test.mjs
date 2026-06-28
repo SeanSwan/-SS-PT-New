@@ -31,6 +31,7 @@ function fakeSequelize({ failDomain = null } = {}) {
   return {
     QueryTypes: { SELECT: 'SELECT' },
     query: vi.fn(async (sql) => {
+      if (failDomain === 'profile' && /FROM "Users"/.test(sql)) throw new Error('profile table down');
       if (failDomain === 'pain' && /PainEntries/.test(sql)) throw new Error('pain table down');
       if (failDomain === 'badges' && /FROM "UserBadges"/.test(sql)) throw new Error('badge table down');
       if (/FROM "Users"/.test(sql)) {
@@ -124,8 +125,17 @@ describe('buildCoachContext', () => {
     const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize() });
     expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('ok');
     expect(r.context.gamification).toBeDefined();
+    expect(r.context.gamification.rankTitle).toBe('First Flight');
   });
 
+  it('does not fabricate level or rank context when the profile domain degrades', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
+    const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize({ failDomain: 'profile' }) });
+    expect(r.ok).toBe(true);
+    expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('degraded');
+    expect(r.context.gamification.level).toBeNull();
+    expect(r.context.gamification.rankTitle).toBeNull();
+  });
   it('adds displayed badge rewards to PII-safe gamification context without media or descriptions', async () => {
     accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
     const sequelize = fakeSequelize();

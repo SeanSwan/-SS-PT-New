@@ -135,4 +135,12 @@ describe('frontend gamification level contract', () => {
     expect(getTierDisplay('obsidian_warrior').name).toBe('Frostwing Aegis');
     expect(getTierDisplay('crystalline_swan').name).toBe('Grand Crystalline Swan');
   });
+
+  it('normalizes legacy human tier labels before display', () => {
+    expect(getTierDisplay('Bronze Forge').name).toBe('First Flight');
+    expect(getTierDisplay('Silver Edge').name).toBe('Riverwing');
+    expect(getTierDisplay('Titanium Core').name).toBe('Iron Grove');
+    expect(getTierDisplay('Obsidian Warrior').name).toBe('Frostwing Aegis');
+    expect(getTierDisplay('Sapphire Tide').name).toBe('Sapphire Tide');
+  });
 });

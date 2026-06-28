@@ -55,6 +55,7 @@ import Badge from '../../../ui-kit/Badge';
 import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
 import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-kit/Container';
 import ClientProgressCharts from '../../../ClientProgressCharts/ClientProgressCharts';
+import { getTier, getTierDisplay } from '../../../../types/gamification';
 import { parseAdminProgressClientId } from './admin-client-progress-view.V2.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -786,13 +787,7 @@ export default AdminClientProgressView;
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers
 // ─────────────────────────────────────────────────────────────
-const getLevelName = (level: number): string => {
-  if (level < 10) return 'Bronze Forge';
-  if (level < 25) return 'Silver Edge';
-  if (level < 50) return 'Titanium Core';
-  if (level < 100) return 'Obsidian Warrior';
-  return 'Crystalline Swan';
-};
+const getLevelName = (level: number): string => getTierDisplay(getTier(level)).name;
 
 const getProgressStatus = (level: number): 'success' | 'info' | 'default' => {
   if (level > 40) return 'success';

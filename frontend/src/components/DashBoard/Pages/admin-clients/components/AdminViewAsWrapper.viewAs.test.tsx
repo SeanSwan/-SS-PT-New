@@ -64,7 +64,7 @@ const okEmpty = { data: {} };
 //     threshold for the next level (here: 2000 total points to reach lvl 8),
 //     NOT remaining XP. The UI must compute `threshold - currentPoints`.
 //   - User.mjs:295 stores `tier` as a slug (here: 'silver_edge'). The UI
-//     must map through the TIER_DISPLAY helper to render "Silver Edge".
+//     must map through the Swan rank ladder instead of showing retired labels.
 const okGamificationProfile = {
   data: {
     success: true,
@@ -117,9 +117,9 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
     expect(await screen.findByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getAllByText('7').length).toBeGreaterThan(0);
-    // Tier slug 'silver_edge' → mapped through TIER_DISPLAY → 'Silver Edge'.
+    // Tier slug 'silver_edge' maps through the Swan rank ladder to Riverwing.
     // Regression guard against rendering the raw backend slug in the UI.
-    expect(screen.getByText('Silver Edge — Level 7')).toBeInTheDocument();
+    expect(screen.getByText('Riverwing — Level 7')).toBeInTheDocument();
     // nextLevelPoints (2000) is the THRESHOLD, not remaining. UI must show
     // 2000 - 1234 = 766. Regression guard against the earlier bug where
     // the threshold was rendered verbatim as "2,000 XP to next level".

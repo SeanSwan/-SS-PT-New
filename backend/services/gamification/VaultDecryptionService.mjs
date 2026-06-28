@@ -84,7 +84,7 @@ const LOOT_TABLES = {
   common: [
     { id: 'title_dedicated', type: 'title', name: 'The Dedicated', description: 'Profile title: "The Dedicated"' },
     { id: 'title_rising', type: 'title', name: 'Rising Star', description: 'Profile title: "Rising Star"' },
-    { id: 'frame_bronze_leaf', type: 'avatar_frame', name: 'Bronze Leaf Frame', description: 'Bronze leaf avatar frame' },
+    { id: 'frame_bronze_leaf', type: 'avatar_frame', name: 'Fern Leaf Frame', description: 'Fern leaf avatar frame' },
     { id: 'emote_flex', type: 'emote', name: 'Flex Emote', description: 'Animated flex reaction' },
     { id: 'emote_fire', type: 'emote', name: 'Fire Emote', description: 'Animated fire reaction' },
     { id: 'banner_forest', type: 'profile_banner', name: 'Frozen Forest Banner', description: 'Profile banner: frozen forest' },
@@ -92,7 +92,7 @@ const LOOT_TABLES = {
   rare: [
     { id: 'title_iron_will', type: 'title', name: 'Iron Will', description: 'Profile title: "Iron Will"' },
     { id: 'title_swan_disciple', type: 'title', name: 'Swan Disciple', description: 'Profile title: "Swan Disciple"' },
-    { id: 'frame_gilded_vine', type: 'avatar_frame', name: 'Gilded Vine Frame', description: 'Gold vine avatar frame' },
+    { id: 'frame_gilded_vine', type: 'avatar_frame', name: 'Gilded Vine Frame', description: 'Gilded vine avatar frame' },
     { id: 'emote_thunder', type: 'emote', name: 'Thunder Emote', description: 'Animated thunder clap reaction' },
     { id: 'banner_sapphire', type: 'profile_banner', name: 'Sapphire Depths Banner', description: 'Profile banner: sapphire ocean' },
     { id: 'badge_sapphire_spark', type: 'badge', name: 'Sapphire Spark Badge', description: 'Profile badge: sapphire spark' },
@@ -107,7 +107,7 @@ const LOOT_TABLES = {
     { id: 'banner_crystal_wake', type: 'profile_banner', name: 'Crystal Wake Banner', description: 'Profile banner: crystalline wake' },
   ],
   legendary: [
-    { id: 'title_obsidian_warrior', type: 'title', name: 'Obsidian Warrior', description: 'Profile title: "Obsidian Warrior"' },
+    { id: 'title_obsidian_warrior', type: 'title', name: 'Frostwing Aegis', description: 'Profile title: "Frostwing Aegis"' },
     { id: 'frame_ice_crystal', type: 'avatar_frame', name: 'Ice Crystal Frame', description: 'Animated crystalline ice frame' },
     { id: 'emote_legendary_roar', type: 'emote', name: 'Legendary Roar', description: 'Full-screen legendary celebration' },
     { id: 'banner_void', type: 'profile_banner', name: 'Void Crystal Banner', description: 'Animated void crystal banner' },
@@ -115,7 +115,7 @@ const LOOT_TABLES = {
     { id: 'banner_swan_summit', type: 'profile_banner', name: 'Swan Summit Banner', description: 'Profile banner: summit lights' },
   ],
   pearlescent: [
-    { id: 'title_crystalline_swan', type: 'title', name: 'Crystalline Swan', description: 'Profile title: "Crystalline Swan" — rarest title' },
+    { id: 'title_crystalline_swan', type: 'title', name: 'Grand Crystalline Swan', description: 'Profile title: "Grand Crystalline Swan" — rarest title' },
     { id: 'frame_pearlescent', type: 'avatar_frame', name: 'Pearlescent Frame', description: 'Animated pearlescent shimmer frame' },
     { id: 'banner_nebula', type: 'profile_banner', name: 'Nebula Crown Banner', description: 'Animated cosmic nebula banner' },
     { id: 'emote_prismatic_salute', type: 'emote', name: 'Prismatic Salute', description: 'Full-screen prismatic celebration' },

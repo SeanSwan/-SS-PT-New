@@ -282,8 +282,10 @@ describe('ClientRewardsPage gamification truth', () => {
   it('keeps reward tier and badge colors connected to theme tokens', () => {
     const source = readSource('./ClientRewardsPage.tsx');
     const stylesSource = readSource('./ClientRewardsPage.styles.ts');
+    const logicSource = readSource('./ClientRewardsPage.logic.ts');
 
     expect(`${source}\n${stylesSource}`).not.toMatch(/color:\s*'#[0-9A-Fa-f]{3,8}'/);
+    expect(logicSource).not.toMatch(/Bronze Forge|Silver Edge|Titanium Core|Obsidian Warrior/);
     expect(`${source}\n${stylesSource}`).not.toMatch(/rgba\(/);
     expect(stylesSource).not.toContain('clamp(');
     expect(source).not.toContain('key={achievement.id || index}');

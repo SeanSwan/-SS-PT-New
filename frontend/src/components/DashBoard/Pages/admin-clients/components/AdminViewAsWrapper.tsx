@@ -34,7 +34,7 @@ import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, X, Dumbbell, Flame, Trophy, Star, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import { TIER_DISPLAY, type TierName } from '../../../../../types/gamification';
+import { getTier, getTierDisplay } from '../../../../../types/gamification';
 import { getNumericClientId } from '../../../workspaces/clients-team/tabs/clientTabId';
 import EnhancedWorkoutsModal from './EnhancedWorkoutsModal';
 
@@ -353,18 +353,12 @@ const AdminViewAsWrapper: React.FC = () => {
         const xpToNextLevel = nextLevelThreshold != null
           ? Math.max(0, nextLevelThreshold - totalPoints)
           : 100;
-        // Tier: backend returns a slug (e.g. 'bronze_forge') from User.tier
-        // (User.mjs:295). Map through the canonical TIER_DISPLAY helper so
-        // the UI shows a friendly label. Fall back to any backend-provided
-        // human name, then raw value, then a safe default.
-        const tierSlug = g.tier as TierName | undefined;
-        const tierDisplay =
-          (tierSlug && TIER_DISPLAY[tierSlug]?.name)
-          ?? g.tierName
-          ?? g.tier
-          ?? 'Bronze Forge';
+        // Tier: backend may return a slug or older human label. Normalize
+        // both through the Swan rank ladder before rendering profile copy.
+        const level = Number.isFinite(Number(g.level)) ? Number(g.level) : 1;
+        const tierDisplay = getTierDisplay(g.tier || g.tierName || getTier(level)).name;
         gamification = {
-          level: g.level ?? 0,
+          level,
           totalPoints,
           currentStreak: g.currentStreak ?? g.streak ?? g.streakDays ?? 0,
           tier: tierDisplay,

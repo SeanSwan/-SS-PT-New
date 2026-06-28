@@ -37,6 +37,7 @@ const HEALTHY_CONTEXT = {
       points: 1200,
       level: 5,
       tier: 'Sapphire',
+      rankTitle: 'First Flight',
       streakDays: 6,
       totalWorkouts: 42,
       badges: {
@@ -65,6 +66,7 @@ describe('dispatchBriefClient', () => {
     expect(r.message).toContain('Client-7');
     expect(r.message).toContain('knee');
     expect(r.message).toContain('session credits low');
+    expect(r.message).toContain('Lv 5 First Flight');
     expect(r.message).toContain('no upcoming sessions booked');
     expect(r.message).toContain('Badges: 1 displayed');
     expect(r.message).toContain('Sapphire Flight Crew');

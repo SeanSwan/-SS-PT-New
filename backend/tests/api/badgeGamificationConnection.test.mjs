@@ -45,4 +45,23 @@ describe('badge and gamification event connection', () => {
     expect(slice).toContain("type: 'social_action'");
     expect(slice).toContain('badgesEarned');
   });
+
+  it('routes completed achievement badges through the same bridge after achievement XP commits', () => {
+    const source = readBackend('controllers/gamificationController.mjs');
+    const awardStart = source.indexOf('awardAchievement: async');
+    const progressStart = source.indexOf('updateAchievementProgress: async');
+    const rewardsStart = source.indexOf('getAllRewards', progressStart);
+    const awardSlice = source.slice(awardStart, progressStart);
+    const progressSlice = source.slice(progressStart, rewardsStart);
+
+    expect(awardSlice).toContain('await transaction.commit();');
+    expect(awardSlice).toContain('checkBadgesForGamificationEvent');
+    expect(awardSlice.indexOf('await transaction.commit();')).toBeLessThan(awardSlice.indexOf('checkBadgesForGamificationEvent'));
+    expect(awardSlice).toContain("type: 'achievement_earned'");
+    expect(awardSlice).toContain('badgesEarned');
+    expect(progressSlice).toContain('completedAchievement');
+    expect(progressSlice).toContain('checkBadgesForGamificationEvent');
+    expect(progressSlice).toContain("type: 'achievement_earned'");
+    expect(progressSlice).toContain('badgesEarned');
+  });
 });

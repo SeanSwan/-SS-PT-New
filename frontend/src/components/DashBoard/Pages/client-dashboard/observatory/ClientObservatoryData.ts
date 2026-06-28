@@ -17,6 +17,7 @@ import {
 import heroSwan from '../../../../../assets/crystal-swan.png';
 import profileMark from '../../../../../assets/logo.svg';
 import reelArt from '../../../../../assets/swan-paint-3.png';
+import { getTierDisplay } from '../../../../../types/gamification';
 import { isNonDeductingClientSource } from '../../../workspaces/clients-team/clientSessionSignal';
 
 export type LensId = 'feed' | 'reels' | 'friends' | 'challenges';
@@ -150,16 +151,21 @@ export function quickActionsForClientSource(clientSource: ClientSource): QuickAc
 
 export const POST_CATEGORIES = ['Training', 'Nutrition', 'Progress', 'Community'] as const;
 
+const tierDisplay = (tier: string, tone: TierDisplay['tone']): TierDisplay => ({
+  label: getTierDisplay(tier).name,
+  tone,
+});
+
 export const TIER_LABELS: Record<string, TierDisplay> = {
-  bronze: { label: 'Bronze Forge', tone: 'bronze' },
-  silver: { label: 'Silver Edge', tone: 'silver' },
-  gold: { label: 'Titanium Core', tone: 'gold' },
-  platinum: { label: 'Obsidian Warrior', tone: 'platinum' },
-  bronze_forge: { label: 'Bronze Forge', tone: 'bronze' },
-  silver_edge: { label: 'Silver Edge', tone: 'silver' },
-  titanium_core: { label: 'Titanium Core', tone: 'gold' },
-  obsidian_warrior: { label: 'Obsidian Warrior', tone: 'platinum' },
-  crystalline_swan: { label: 'Crystalline Swan', tone: 'crystal' },
+  bronze: tierDisplay('bronze', 'bronze'),
+  silver: tierDisplay('silver', 'silver'),
+  gold: tierDisplay('gold', 'gold'),
+  platinum: tierDisplay('platinum', 'platinum'),
+  bronze_forge: tierDisplay('bronze_forge', 'bronze'),
+  silver_edge: tierDisplay('silver_edge', 'silver'),
+  titanium_core: tierDisplay('titanium_core', 'gold'),
+  obsidian_warrior: tierDisplay('obsidian_warrior', 'platinum'),
+  crystalline_swan: tierDisplay('crystalline_swan', 'crystal'),
 };
 
 export function clampPercent(value: number | undefined): number {

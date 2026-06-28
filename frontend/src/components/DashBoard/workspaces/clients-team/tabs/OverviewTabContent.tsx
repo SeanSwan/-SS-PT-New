@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import { getClientSessionSignal } from '../clientSessionSignal';
+import { getTier, getTierDisplay } from '../../../../../types/gamification';
 import { getNumericClientId } from './clientTabId';
 import NutritionTriageCard from './NutritionTriageCard';
 import {
@@ -79,7 +80,7 @@ function useClientOverview(clientId: number | string) {
           totalWorkouts: c.totalWorkouts || c.workoutCount || 0,
           points: c.points || 0,
           level: c.level || 1,
-          tier: c.tier || 'Bronze Forge',
+          tier: getTierDisplay(c.tier || c.tierName || getTier(c.level || 1)).name,
           streakDays: c.streakDays || 0,
           sessionsRemaining: Number.isFinite(Number(availableSessions)) ? Number(availableSessions) : 0,
           clientSource: typeof c.clientSource === 'string' ? c.clientSource : 'swanstudios',

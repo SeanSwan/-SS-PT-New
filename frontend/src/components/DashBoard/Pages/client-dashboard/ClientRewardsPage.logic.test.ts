@@ -37,5 +37,14 @@ describe('ClientRewardsPage display-number helpers', () => {
     expect(view.workoutLabel).toBe('18 workouts');
     expect(view.leaderboardLabel).toBe('#3');
     expect(view.progress).toBe(65);
+    expect(view.tier.name).toBe('First Flight');
+    expect(view.tier.shortName).toBe('Lv 1-10');
+  });
+
+  it('uses the 100-rank Swan ladder for higher client levels', () => {
+    const view = buildRewardsViewModel({ level: 105, points: 1102500 });
+
+    expect(view.tier.name).toBe('Riverwing');
+    expect(view.tier.shortName).toBe('Lv 101-110');
   });
 });

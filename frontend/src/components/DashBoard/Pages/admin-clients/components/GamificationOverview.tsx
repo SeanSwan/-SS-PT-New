@@ -19,7 +19,7 @@
  *
  * GAMIFICATION PROTOCOL (Octalysis Framework):
  * - Leveling: level = floor(0.1 × sqrt(totalPoints))
- * - Tiers: Bronze Forge → Silver Glacier → Gold Summit → Diamond Apex → Crystalline Swan
+ * - Tiers: First Flight → Riverwing → Iron Grove → Frostwing Aegis → Grand Crystalline Swan
  * - Points: workout=50, exercise=10, PR=100, social=15, referral=200
  * - Rarity: Common=Swan Lavender, Rare=Gilded Fern, Epic=Wing Purple, Legendary=animated gradient
  *

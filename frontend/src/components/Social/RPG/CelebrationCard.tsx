@@ -7,7 +7,7 @@
  * │ ┌──────────────────────────────────┐                        │
  * │ │ ✨ LEVEL UP!                     │                        │
  * │ │ Level 12 → Level 13             │                        │
- * │ │ Silver Edge Tier                 │                        │
+ * │ │ Riverwing Tier                 │                        │
  * │ │ [Share to Feed]                  │                        │
  * │ └──────────────────────────────────┘                        │
  * │ Props: { type, data }                                       │

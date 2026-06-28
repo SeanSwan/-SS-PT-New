@@ -86,6 +86,14 @@ describe('gamification vault controller security hardening', () => {
     expect(vaultServiceSource).not.toContain('variable-ratio');
     expect(vaultServiceSource).not.toContain('streak freezes');
     expect(vaultServiceSource).not.toContain('XP Boost');
+    expect(vaultServiceSource).not.toContain("name: 'Obsidian Warrior'");
+    expect(vaultServiceSource).toContain("name: 'Frostwing Aegis'");
+    expect(vaultServiceSource).not.toContain("name: 'Crystalline Swan'");
+    expect(vaultServiceSource).toContain("name: 'Grand Crystalline Swan'");
+    expect(vaultServiceSource).not.toContain("name: 'Bronze Leaf Frame'");
+    expect(vaultServiceSource).not.toContain("description: 'Bronze");
+    expect(vaultServiceSource).not.toContain('Gold vine');
+    expect(vaultServiceSource).toContain("name: 'Fern Leaf Frame'");
     expect(vaultStateSource).toContain('rewardMode: \'cosmetic_only\'');
     expect(vaultStateSource).toContain('xpBonus: 0');
     expect(vaultStateSource).not.toContain("'xp_boost'");

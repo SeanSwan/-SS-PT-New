@@ -27,6 +27,16 @@ describe('badge route access guard', () => {
     expect(userRouteIndex).toBeLessThan(detailRouteIndex);
   });
 
+  it('registers badge display selection before the generic badge detail route', () => {
+    const displayRouteIndex = routeSource.indexOf("router.put('/user/:userId/:badgeId/display'");
+    const detailRouteIndex = routeSource.indexOf("router.get('/:badgeId'");
+
+    expect(displayRouteIndex).toBeGreaterThanOrEqual(0);
+    expect(detailRouteIndex).toBeGreaterThanOrEqual(0);
+    expect(displayRouteIndex).toBeLessThan(detailRouteIndex);
+    expect(routeSource).toContain("body('isDisplayed').isBoolean().withMessage('isDisplayed must be a boolean').toBoolean()");
+  });
+
   it('uses type-safe self comparison in the fallback controller gate', () => {
     expect(controllerSource).toContain('const targetUserId = parsePositiveInteger(userId);');
     expect(controllerSource).toContain('const requesterId = parsePositiveInteger(currentUserId);');

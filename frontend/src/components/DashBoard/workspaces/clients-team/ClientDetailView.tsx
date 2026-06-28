@@ -33,10 +33,13 @@ import {
   PlaceholderTitle,
 } from './MasterDetailStyles';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
+import { getTier, getTierDisplay } from '../../../../types/gamification';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
+
+const DEFAULT_CLIENT_TIER_LABEL = getTierDisplay(getTier(1)).name;
 
 export type DetailTab = 'training' | 'progress' | 'nutrition' | 'biometrics' | 'overview' | 'settings';
 
@@ -93,7 +96,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const clientName = getClientDisplayName(client);
   const clientEmail = client.email?.trim() || 'No email on file';
   const clientStatus = client.status || 'status pending';
-  const clientTier = client.tier || 'Bronze Forge';
+  const clientTier = client.tier?.trim() || DEFAULT_CLIENT_TIER_LABEL;
   const clientSubtext = `${clientEmail} / ${clientStatus} / ${clientTier}`;
 
   // Reset tab to Training when switching clients (avoids stale tab state)

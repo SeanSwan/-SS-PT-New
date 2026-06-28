@@ -116,7 +116,7 @@ describe('ClientProgressDashboardPage malformed metric hardening', () => {
     const weekXpCard = screen.getByText(/^XP Earned$/).parentElement as HTMLElement;
 
     expect(within(levelCard).getByText('1')).toBeInTheDocument();
-    expect(screen.getByText('Bronze Forge')).toBeInTheDocument();
+    expect(screen.getByText('First Flight')).toBeInTheDocument();
     expect(within(totalXpCard).getByText('0')).toBeInTheDocument();
     expect(within(weekWorkoutsCard).getByText('0')).toBeInTheDocument();
     expect(within(streakCard).getByText('0d')).toBeInTheDocument();

@@ -1,3 +1,5 @@
+import { getRankTitles } from '../../../../types/gamification';
+
 export interface AchievementRecord {
   id?: string | number;
   achievementId?: string | number;
@@ -37,43 +39,13 @@ export interface TierDefinition {
 export const SAFE_REWARDS_ERROR_COPY =
   'Rewards data could not be loaded. Try again in a moment.';
 
-export const TIERS: TierDefinition[] = [
-  {
-    name: 'Bronze Forge',
-    shortName: 'Forge',
-    min: 1,
-    max: 10,
-    color: 'var(--accent-gold, #C6A84B)',
-  },
-  {
-    name: 'Silver Edge',
-    shortName: 'Edge',
-    min: 11,
-    max: 25,
-    color: 'var(--text-secondary, #94a3b8)',
-  },
-  {
-    name: 'Titanium Core',
-    shortName: 'Core',
-    min: 26,
-    max: 50,
-    color: 'var(--accent-tertiary, #4070C0)',
-  },
-  {
-    name: 'Obsidian Warrior',
-    shortName: 'Obsidian',
-    min: 51,
-    max: 99,
-    color: 'var(--bg-base, #0A0A0F)',
-  },
-  {
-    name: 'Crystalline Swan',
-    shortName: 'Crystalline',
-    min: 100,
-    max: Number.POSITIVE_INFINITY,
-    color: 'var(--accent-primary, #60C0F0)',
-  },
-];
+export const TIERS: TierDefinition[] = getRankTitles().map((rank) => ({
+  name: rank.name,
+  shortName: `Lv ${rank.levelRange}`,
+  min: rank.minLevel,
+  max: rank.maxLevel,
+  color: rank.color,
+}));
 
 const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
 

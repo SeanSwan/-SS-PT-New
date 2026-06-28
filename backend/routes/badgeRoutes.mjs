@@ -198,8 +198,20 @@ router.get('/user/:userId',
   param('userId').isInt({ min: 1 }).withMessage('Invalid user ID'),
   query('category').optional().isIn(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']),
   query('recent').optional().isBoolean().withMessage('Recent must be a boolean'),
+  query('includeHidden').optional().isBoolean().withMessage('includeHidden must be a boolean'),
   handleValidationErrors,
   badgeController.getUserBadges.bind(badgeController)
+);
+
+// Toggle public display for one earned user badge
+router.put('/user/:userId/:badgeId/display',
+  authenticateToken,
+  apiLimiter,
+  param('userId').isInt({ min: 1 }).withMessage('Invalid user ID'),
+  param('badgeId').isUUID().withMessage('Invalid badge ID'),
+  body('isDisplayed').isBoolean().withMessage('isDisplayed must be a boolean').toBoolean(),
+  handleValidationErrors,
+  badgeController.setUserBadgeDisplay.bind(badgeController)
 );
 
 // Get badge details

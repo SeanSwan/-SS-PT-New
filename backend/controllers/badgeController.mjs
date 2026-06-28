@@ -331,7 +331,8 @@ class BadgeController {
 
       const options = {
         category: req.query.category,
-        recent: req.query.recent === 'true'
+        recent: req.query.recent === 'true',
+        includeHidden: req.query.includeHidden === 'true' && (isOwnProfile || req.user.role === 'admin')
       };
 
       const badges = await badgeService.getUserBadges(targetUserId, options);
@@ -357,6 +358,50 @@ class BadgeController {
         success: false,
         error: 'Failed to retrieve user badges'
       });
+    }
+  }
+
+  /**
+   * Toggle whether an earned badge appears publicly.
+   * PUT /api/badges/user/:userId/:badgeId/display
+   */
+  async setUserBadgeDisplay(req, res) {
+    try {
+      const { userId, badgeId } = req.params;
+      const targetUserId = parsePositiveInteger(userId);
+      const requesterId = parsePositiveInteger(req.user?.id);
+      const isOwnProfile = targetUserId && requesterId && targetUserId === requesterId;
+      const canEditDisplay = req.user?.role === 'admin' || isOwnProfile;
+
+      if (!targetUserId) return sendBadgeError(res, 400, 'Invalid user ID');
+      if (!requesterId) return sendBadgeError(res, 401, 'Invalid authenticated user');
+      if (!canEditDisplay) return sendBadgeError(res, 403, 'Access denied');
+      if (typeof req.body?.isDisplayed !== 'boolean') {
+        return sendBadgeError(res, 400, 'isDisplayed must be a boolean');
+      }
+
+      const display = await badgeService.setUserBadgeDisplay({
+        userId: targetUserId,
+        badgeId,
+        isDisplayed: req.body.isDisplayed
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Badge display updated successfully',
+        data: display
+      });
+    } catch (error) {
+      if (error.code === 'BADGE_NOT_EARNED') return sendBadgeError(res, 404, 'Badge has not been earned by this user');
+      if (error.code === 'BADGE_DISPLAY_INVALID') return sendBadgeError(res, 400, 'isDisplayed must be a boolean');
+
+      this.logger.error('Failed to update badge display', {
+        error: error.message,
+        userId: req.params.userId,
+        badgeId: req.params.badgeId,
+        currentUserId: req.user?.id
+      });
+      return sendBadgeError(res, 500, 'Failed to update badge display');
     }
   }
 

@@ -59,7 +59,7 @@ describe('ClientObservatoryFeed XP receipt', () => {
       progress: 62,
       streakDays: 5,
       canBookSessions: false,
-      tierLabel: 'Obsidian Warrior',
+      tierLabel: 'Frostwing Aegis',
     });
 
     const coachUrl = new URL(path, 'https://app.local');

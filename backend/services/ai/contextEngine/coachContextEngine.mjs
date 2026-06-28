@@ -17,6 +17,7 @@
  */
 import { deIdentifyClient } from '../deIdentifier.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE, parseContextClientId } from './clientAccess.mjs';
+import { getTier, getTierDisplay } from '../../../utils/levelingAlgorithm.mjs';
 import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
 import { loadCoachBadgeRows, summarizeCoachBadges } from './coachGamificationContext.mjs';
 
@@ -198,6 +199,8 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
   // 4. Attach PII-free extras the de-identifier doesn't model.
   const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
 
+  const hasProfileRow = Array.isArray(results.profile) && results.profile.length > 0;
+  const clientLevel = toNum(clientRow.level) ?? (hasProfileRow ? 1 : null);
   const context = {
     ...deIdentified,
     sessionCredits: toNum(clientRow.availableSessions),
@@ -209,8 +212,9 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       : null,
     gamification: {
       points: toNum(clientRow.points),
-      level: toNum(clientRow.level),
+      level: clientLevel,
       tier: clientRow.tier ?? null,
+      rankTitle: clientLevel ? getTierDisplay(getTier(clientLevel)).name : null,
       streakDays: toNum(clientRow.streakDays),
       totalWorkouts: toNum(clientRow.totalWorkouts),
       badges: summarizeCoachBadges(results.badges),

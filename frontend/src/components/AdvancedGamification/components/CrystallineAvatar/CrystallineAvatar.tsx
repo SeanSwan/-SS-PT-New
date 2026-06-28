@@ -10,13 +10,13 @@
  * WIREFRAME:
  * ┌────────────────────────────┐
  * │       ◇  (rotating glow)  │  ← Crystal shape evolves per tier:
- * │      ╱ ╲                  │     Bronze: simple diamond (4 facets)
- * │     ╱   ╲                 │     Silver: hexagon (6 facets)
- * │    ╱  ●  ╲                │     Titanium: octagon (8 facets)
- * │    ╲     ╱                │     Obsidian: decagon (10 facets)
+ * │      ╱ ╲                  │     First Flight: simple diamond (4 facets)
+ * │     ╱   ╲                 │     Riverwing: hexagon (6 facets)
+ * │    ╱  ●  ╲                │     Iron Grove: octagon (8 facets)
+ * │    ╲     ╱                │     Frostwing Aegis: decagon (10 facets)
  * │     ╲   ╱  [⚔]           │     Crystalline Swan: 12-facet + orbital
  * │      ╲ ╱                  │
- * │     SILVER EDGE           │  ← Job class icon overlay (bottom-right)
+ * │     FIRST FLIGHT           │  ← Job class icon overlay (bottom-right)
  * └────────────────────────────┘
  *
  * GAMIFICATION HOOKS:
@@ -44,7 +44,7 @@ import {
 
 const TIER_VISUALS: Record<string, TierVisuals> = {
   bronze_forge: {
-    name: 'Bronze Forge',
+    name: 'First Flight',
     primaryColor: '#CD7F32',
     secondaryColor: '#A0622D',
     glowColor: 'rgba(205, 127, 50, 0.4)',
@@ -54,7 +54,7 @@ const TIER_VISUALS: Record<string, TierVisuals> = {
     particleCount: 0,
   },
   silver_edge: {
-    name: 'Silver Edge',
+    name: 'Riverwing',
     primaryColor: '#C0C0C0',
     secondaryColor: '#A8A8A8',
     glowColor: 'rgba(192, 192, 192, 0.4)',
@@ -64,7 +64,7 @@ const TIER_VISUALS: Record<string, TierVisuals> = {
     particleCount: 0,
   },
   titanium_core: {
-    name: 'Titanium Core',
+    name: 'Iron Grove',
     primaryColor: '#878681',
     secondaryColor: '#60C0F0',
     glowColor: 'rgba(96, 192, 240, 0.3)',
@@ -74,7 +74,7 @@ const TIER_VISUALS: Record<string, TierVisuals> = {
     particleCount: 4,
   },
   obsidian_warrior: {
-    name: 'Obsidian Warrior',
+    name: 'Frostwing Aegis',
     primaryColor: '#1A1A24',
     secondaryColor: '#8B5CF6',
     glowColor: 'rgba(139, 92, 246, 0.4)',
@@ -84,7 +84,7 @@ const TIER_VISUALS: Record<string, TierVisuals> = {
     particleCount: 8,
   },
   crystalline_swan: {
-    name: 'Crystalline Swan',
+    name: 'Grand Crystalline Swan',
     primaryColor: '#002060',
     secondaryColor: '#60C0F0',
     glowColor: 'rgba(96, 192, 240, 0.5)',

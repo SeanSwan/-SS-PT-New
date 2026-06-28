@@ -65,8 +65,8 @@ describe('ClientDetailView identity fallback', () => {
       />
     );
 
-    expect(screen.getByLabelText('No email on file / active / Bronze Forge')).toBeInTheDocument();
+    expect(screen.getByLabelText('No email on file / active / First Flight')).toBeInTheDocument();
     expect(screen.getByText('No email on file')).toBeInTheDocument();
-    expect(screen.getByText('Bronze Forge')).toBeInTheDocument();
+    expect(screen.getByText('First Flight')).toBeInTheDocument();
   });
 });

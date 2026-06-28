@@ -120,7 +120,7 @@ function normalizeLevel(level: number): number {
 }
 
 function resolveRankKey(tier: string): string {
-  const key = String(tier || '').trim().toLowerCase();
+  const key = slugifyRankName(String(tier || '').trim());
   return LEGACY_TIER_ALIASES[key] || key;
 }
 

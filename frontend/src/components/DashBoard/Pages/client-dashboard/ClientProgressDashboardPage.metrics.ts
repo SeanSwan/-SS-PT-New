@@ -1,3 +1,5 @@
+import { getTier, getTierDisplay } from '../../../../types/gamification';
+
 export interface WeeklyRecap {
   thisWeek?: {
     workouts?: number;
@@ -8,30 +10,6 @@ export interface WeeklyRecap {
     streak?: number;
   };
 }
-
-const TIER_COLORS: Record<string, string> = {
-  bronze: 'var(--tier-bronze, #CD7F32)',
-  silver: 'var(--tier-silver, #C0C0C0)',
-  gold: 'var(--tier-gold, #C6A84B)',
-  platinum: 'var(--accent-secondary, #8B5CF6)',
-  bronze_forge: 'var(--tier-bronze, #CD7F32)',
-  silver_edge: 'var(--tier-silver, #C0C0C0)',
-  titanium_core: 'var(--tier-gold, #C6A84B)',
-  obsidian_warrior: 'var(--bg-base, #0A0A0F)',
-  crystalline_swan: 'var(--accent-primary, #60C0F0)',
-};
-
-const TIER_LABELS: Record<string, string> = {
-  bronze: 'Bronze Forge',
-  silver: 'Silver Edge',
-  gold: 'Titanium Core',
-  platinum: 'Obsidian+',
-  bronze_forge: 'Bronze Forge',
-  silver_edge: 'Silver Edge',
-  titanium_core: 'Titanium Core',
-  obsidian_warrior: 'Obsidian Warrior',
-  crystalline_swan: 'Crystalline Swan',
-};
 
 const DECIMAL_NUMBER_PATTERN = /^-?\d+(?:\.\d+)?$/;
 
@@ -68,16 +46,18 @@ export function getClientProgressDashboardMetrics(
   } | null,
   weeklyRecap?: WeeklyRecap | null,
 ) {
-  const tierKey = profile?.tier || 'bronze';
+  const level = normalizeLevel(profile?.level);
+  const tierDisplay = getTierDisplay(profile?.tier || getTier(level));
+
   return {
-    level: normalizeLevel(profile?.level),
+    level,
     totalXp: normalizeWholeNumber(profile?.points),
     nextLevelProgress: normalizePercent(profile?.nextLevelProgress),
     weekWorkouts: normalizeWholeNumber(weeklyRecap?.thisWeek?.workouts),
     weekBonuses: normalizeWholeNumber(weeklyRecap?.thisWeek?.surpriseMultipliers),
     weekXp: normalizeWholeNumber(weeklyRecap?.thisWeek?.totalXP),
     streakDays: normalizeWholeNumber(weeklyRecap?.current?.streak ?? profile?.streakDays),
-    tierColor: TIER_COLORS[tierKey] || TIER_COLORS.bronze,
-    tierLabel: TIER_LABELS[tierKey] || TIER_LABELS.bronze,
+    tierColor: tierDisplay.color,
+    tierLabel: tierDisplay.name,
   };
 }

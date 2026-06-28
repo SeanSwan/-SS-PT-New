@@ -50,6 +50,58 @@ function firstQueryRow(result) {
   return queryRows(result)[0] || null;
 }
 
+const CUSTOM_ASSIGNMENT_ACTIVITY_TYPES = new Set([
+  'achievement_earned',
+  'milestone_reached',
+  'workout_completion',
+  'exercise_completion',
+  'streak_update',
+  'challenge_completion',
+  'social_action',
+  'social_engagement'
+]);
+
+function normalizeAssignmentToken(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function collectActivityValues(activity, ...keys) {
+  return keys.flatMap((key) => {
+    const value = activity?.[key];
+    return Array.isArray(value) ? value : [value];
+  }).filter((value) => value !== undefined && value !== null && value !== '');
+}
+
+function valuesInclude(values, target) {
+  const normalizedTarget = normalizeAssignmentToken(target);
+  return Boolean(normalizedTarget) && values.some((value) => normalizeAssignmentToken(value) === normalizedTarget);
+}
+
+function assignmentMatchesActivity(assignment = {}, activity = {}) {
+  const assignedTo = normalizeAssignmentToken(assignment.assignedTo);
+  const assignedTarget = String(assignment.assignedTarget ?? '').trim();
+
+  if (!assignedTo || !assignedTarget || assignedTo === 'tab') {
+    return false;
+  }
+
+  if (assignedTo === 'achievement') {
+    return valuesInclude(
+      collectActivityValues(activity, 'achievementId', 'achievementIds', 'achievementName', 'achievementNames'),
+      assignedTarget
+    );
+  }
+
+  if (assignedTo === 'milestone') {
+    return valuesInclude(
+      collectActivityValues(activity, 'milestoneId', 'milestoneIds', 'milestoneName', 'milestoneNames'),
+      assignedTarget
+    );
+  }
+
+  return false;
+}
+
 class BadgeService {
   constructor() {
     this.logger = piiSafeLogger;
@@ -601,6 +653,8 @@ class BadgeService {
    */
   async getUserBadges(userId, options = {}) {
     try {
+      const includeHidden = options.includeHidden === true;
+      const displayFilter = includeHidden ? '' : ' AND ub."isDisplayed" = true';
       const queryText = `
         SELECT
           ub.*,
@@ -614,7 +668,7 @@ class BadgeService {
         FROM "UserBadges" ub
         JOIN "Badges" b ON ub."badgeId" = b.id
         LEFT JOIN "BadgeCollections" bc ON b."collectionId" = bc.id
-        WHERE ub."userId" = $1 AND ub."isDisplayed" = true
+        WHERE ub."userId" = $1${displayFilter}
         ORDER BY ub."earnedAt" DESC
       `;
 
@@ -630,6 +684,42 @@ class BadgeService {
       this.logger.error('Failed to get user badges', { error: error.message, userId });
       throw error;
     }
+  }
+
+  /**
+   * Toggle public display for one earned user badge.
+   * @param {Object} params
+   * @param {number|string} params.userId
+   * @param {string} params.badgeId
+   * @param {boolean} params.isDisplayed
+   * @returns {Promise<Object>} Updated user badge display row
+   */
+  async setUserBadgeDisplay({ userId, badgeId, isDisplayed }) {
+    if (typeof isDisplayed !== 'boolean') {
+      const error = new Error('isDisplayed must be a boolean');
+      error.code = 'BADGE_DISPLAY_INVALID';
+      throw error;
+    }
+
+    const queryText = `
+      UPDATE "UserBadges"
+      SET "isDisplayed" = $3, "updatedAt" = NOW()
+      WHERE "userId" = $1 AND "badgeId" = $2
+      RETURNING id, "userId", "badgeId", "isDisplayed", "updatedAt"
+    `;
+    const result = await sequelize.query(queryText, {
+      type: QueryTypes.SELECT,
+      bind: [userId, badgeId, isDisplayed]
+    });
+    const row = firstQueryRow(result);
+
+    if (!row) {
+      const error = new Error('Badge has not been earned by this user');
+      error.code = 'BADGE_NOT_EARNED';
+      throw error;
+    }
+
+    return row;
   }
 
   /**
@@ -707,14 +797,21 @@ class BadgeService {
     };
 
     const criteriaType = criteriaTypeMapping[activityType];
-    if (!criteriaType) return [];
+    const includeAssignedCustomBadges = CUSTOM_ASSIGNMENT_ACTIVITY_TYPES.has(activityType);
+    if (!criteriaType && !includeAssignedCustomBadges) return [];
+
+    const criteriaTypes = Array.from(new Set([
+      ...(criteriaType ? [criteriaType] : []),
+      ...(includeAssignedCustomBadges ? ['custom_criteria'] : [])
+    ]));
+    const placeholders = criteriaTypes.map((_, index) => `$${index + 1}`).join(', ');
 
     const queryText = `
       SELECT * FROM "Badges"
-      WHERE "criteriaType" = $1 AND "isActive" = true
+      WHERE "criteriaType" IN (${placeholders}) AND "isActive" = true
     `;
 
-    const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: [criteriaType] });
+    const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: criteriaTypes });
     return queryRows(result).map(row => ({
       ...row,
       criteria: typeof row.criteria === 'string' ? JSON.parse(row.criteria) : row.criteria,
@@ -825,6 +922,9 @@ class BadgeService {
         const activityPoints = Number(activity.points || activity.totalPoints || activity.balance || 0);
         return requiredPoints > 0 && activityPoints >= requiredPoints;
       }
+
+      case 'custom_criteria':
+        return assignmentMatchesActivity(criteria.assignment, activity);
 
       default:
         return false;

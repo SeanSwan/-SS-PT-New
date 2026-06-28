@@ -9,7 +9,7 @@
  * Pre-fix: `const c = json.client || json.data || json;` resolved `c` to
  * `{ client, mcpStats }`, so `c.totalWorkouts`, `c.points`, `c.level`,
  * `c.tier`, `c.streakDays`, etc. were ALL undefined → bento cards rendered
- * default values (0, 1, 'Bronze Forge') for every viewed client.
+ * default values (0, 1, retired rank copy) for every viewed client.
  *
  * Synthetic fixtures only (rule 44).
  */
@@ -70,6 +70,7 @@ describe('OverviewTabContent — Phase 18 P1-O sibling-sweep unwrap', () => {
     const totalWorkoutMatches = await screen.findAllByText('42');
     expect(totalWorkoutMatches.length).toBeGreaterThan(0);
     expect(screen.getByText('1,234 XP')).toBeInTheDocument();
+    expect(screen.getByText('Riverwing')).toBeInTheDocument();
     expect(screen.getByText('5-day streak')).toBeInTheDocument();
     expect(screen.getByText('Phase 2')).toBeInTheDocument();
     expect(apiGetMock).toHaveBeenCalledWith('/api/admin/clients/424242');

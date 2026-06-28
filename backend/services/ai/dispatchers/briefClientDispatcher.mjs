@@ -66,6 +66,9 @@ function formatBrief(context, dataQuality) {
 
   const facts = [];
   if (context.nasmPhase) facts.push(`NASM phase ${context.nasmPhase}`);
+  if (context.gamification?.level && context.gamification?.rankTitle) {
+    facts.push(`Lv ${context.gamification.level} ${context.gamification.rankTitle}`);
+  }
   if (context.sessionCredits !== null) facts.push(`${context.sessionCredits} session credits`);
   facts.push(
     context.lastWorkoutDate

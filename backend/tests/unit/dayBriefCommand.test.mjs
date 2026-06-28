@@ -126,6 +126,7 @@ describe('gamification in buildCoachContext (A2)', () => {
       points: 1200,
       level: 5,
       tier: 'Rare',
+      rankTitle: 'First Flight',
       streakDays: 6,
       totalWorkouts: 42,
       badges: { displayedCount: 0, recent: [] },
