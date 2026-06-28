@@ -16,6 +16,7 @@ import {
   getClientLastPackage,
   applyPackagePayment
 } from '../services/sessionDeductionService.mjs';
+import { getSessionDeductionAttentionSummary } from '../services/sessions/sessionAttentionService.mjs';
 import { mapServiceError } from './sessionDeductionRoute.helpers.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -72,6 +73,24 @@ router.post('/process', authenticateToken, adminOnly, async (req, res) => {
     });
   } catch (error) {
     return handleServiceError(res, error, 'Failed to process session deductions');
+  }
+});
+
+/**
+ * GET /api/sessions/deductions/attention
+ * Read-only settlement and revenue-risk attention summary.
+ * Admin only
+ */
+router.get('/attention', authenticateToken, adminOnly, async (req, res) => {
+  try {
+    const data = await getSessionDeductionAttentionSummary({ limit: req.query.limit });
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    return handleServiceError(res, error, 'Failed to get session deduction attention summary');
   }
 });
 
