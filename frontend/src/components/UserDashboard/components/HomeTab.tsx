@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
+import { getTier, getTierDisplay } from '../../../types/gamification';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useFaction } from '../../../hooks/social/useFaction';
 // O3 feed unification: ONE stateful feed mount powers the community stream,
@@ -82,7 +83,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const level = normalizeHomeWholeNumber(levelProgress?.level ?? gamProfile?.data?.level, 1, 1);
   const points = normalizeHomeWholeNumber(gamProfile?.data?.points, 0, 0);
   const progressPercent = normalizeHomePercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
-  const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
+  const tierName = levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(level)).name;
   const streakDays = normalizeHomeWholeNumber(gamProfile?.data?.streakDays, 0, 0);
   const pointsToNext = normalizeHomeWholeNumber(levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints, 0, 0);
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();

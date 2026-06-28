@@ -3,7 +3,7 @@
  */
 
 import { Calendar, Star, Target, Zap } from 'lucide-react';
-import { type Rarity, type SkillTree } from '../../../types/gamification';
+import { getTier, getTierDisplay, type Rarity, type SkillTree } from '../../../types/gamification';
 import type { EarnedAchievementCard, PersonalInfoItem, SkillTreeStats } from './AboutSection.types';
 
 export function formatJoinDate(dateStr?: string): string {
@@ -15,7 +15,7 @@ export function formatJoinDate(dateStr?: string): string {
 
 export function buildPersonalInfo(user: any, profileData: any, levelProgress: any): PersonalInfoItem[] {
   const level = levelProgress?.level ?? profileData?.level ?? 0;
-  const tier = levelProgress?.tierDisplay?.name ?? 'Bronze Forge';
+  const tier = levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(level || 1)).name;
 
   return [
     {

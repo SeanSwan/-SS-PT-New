@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useProfile } from '../../../hooks/profile/useProfile';
+import { getTier, getTierDisplay } from '../../../types/gamification';
 import { useToast } from '../../../hooks/use-toast';
 import {
   getTransformationPhotos,
@@ -213,7 +214,7 @@ export function useUserDashboardV3Controller() {
     levelProgress,
     observatoryLevel: canonicalLevel,
     observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
-    observatoryTierName: levelProgress?.tierDisplay?.name ?? 'Bronze Forge',
+    observatoryTierName: levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(canonicalLevel || 1)).name,
     observatoryProgressPct: levelProgress?.progressPercent ?? 0,
     observatoryXpToNext: levelProgress?.pointsNeededForNext ?? 0,
     observatoryStreakDays: gamProfile?.data?.streakDays ?? 0,

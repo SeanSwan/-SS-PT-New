@@ -8,7 +8,7 @@
  * UPDATED: 2026-04-29
  * ----------------------------------------------------------------------------
  * Spec adherence (Phase 19 receipt Section 19B):
- *   - Tier label = real tier from props (no hardcoded "Crystal Voyager")
+ *   - Tier label = real Swan rank from props (no hardcoded legacy rank labels)
  *   - Creator streak = count only (no weekday completion dots)
  *   - Sidebar nav is desktop-only; mobile uses UserDashboardTabBarV3
  * ============================================================================

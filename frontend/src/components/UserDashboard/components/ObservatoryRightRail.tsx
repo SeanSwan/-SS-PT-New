@@ -8,7 +8,7 @@
  * UPDATED: 2026-04-29
  * ----------------------------------------------------------------------------
  * Spec adherence (Phase 19 receipt Section 19B):
- *   - Tier card renders the real tier name string (no Crystal Voyager hardcode)
+ *   - Tier card renders the real Swan rank name string (no hardcoded legacy labels)
  *   - Top Badges renders pre-derived earned achievements only
  *   - OMITTED here per duplicate-control pass: Stories, Reels Spotlight,
  *     Active Challenge, Live Activity, duplicate action buttons, XP toast

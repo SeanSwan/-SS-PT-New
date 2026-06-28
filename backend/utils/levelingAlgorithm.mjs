@@ -1,197 +1,276 @@
 /**
- * ============================================================================
- * FILE: levelingAlgorithm.mjs
- * PURPOSE: Authoritative leveling formula — level = floor(0.1 × sqrt(points))
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
- * AI VILLAGE VALIDATED: 2026-03-23
- * ============================================================================
+ * Authoritative SwanStudios leveling and rank helpers.
  *
- * WHAT THIS FILE DOES: Calculates user level from total points using a
- * logarithmic curve. Also provides tier lookup, progress snapshots, and
- * points-for-level calculations. THIS IS THE AUTHORITATIVE leveling source.
- *
- * HOW IT FITS IN THE APP:
- *   gamificationController → levelingAlgorithm.calculateLevel(points)
- *   GamificationEngine also has levelThresholds array (CONFLICTS — tech debt)
- *
- * KEY DECISIONS:
- * - Formula: level = floor(0.1 × sqrt(totalPoints)) — AUTHORITATIVE
- * - GamificationEngine.levelThresholds is legacy and should be removed
- * - 5-tier system maps level ranges to tier names and colors
- *
- * SwanStudios Gamification — Logarithmic Leveling System
- * =======================================================
- * Based on Octalysis Framework + Self-Determination Theory
- *
- * Architecture:
- * ```
- *   totalPoints --> calculateLevel() --> level
- *   level       --> getTier()         --> tier key
- *   tier key    --> getTierDisplay()   --> { name, emoji, color }
- *   totalPoints --> getLevelProgress() --> full progress snapshot
- * ```
- *
- * Tier Progression:
- *   Bronze Forge       (Levels  1-10)   - Onboarding & first wins
- *   Silver Edge        (Levels 11-25)   - Building consistency
- *   Titanium Core      (Levels 26-50)   - Intermediate mastery
- *   Obsidian Warrior   (Levels 51-99)   - Advanced dedication
- *   Crystalline Swan   (Level 100)      - Legendary status
- *
- * Formula:  Level  = floor(0.1 * sqrt(totalPoints))
- * Inverse:  Points = ceil((level / 0.1)^2)
- *
- * Sample progression:
- *   Level  1  =       100 pts
- *   Level  5  =     2,500 pts
- *   Level 10  =    10,000 pts
- *   Level 25  =    62,500 pts
- *   Level 50  =   250,000 pts
- *   Level 100 = 1,000,000 pts
+ * The XP curve remains logarithmic for backward compatibility:
+ * level = floor(0.1 * sqrt(totalPoints)). Public rank language now follows
+ * the Swan 1-1000 ladder approved for the gamification redesign.
  */
 
-// ---------------------------------------------------------------------------
-// Core leveling functions
-// ---------------------------------------------------------------------------
+export const MAX_LEVEL = 1000;
+export const LEVEL_FORMULA_SCALE = 0.1;
 
-/**
- * Calculate the player level from a total point balance.
- * @param {number} totalPoints - Cumulative XP earned
- * @returns {number} Current level (0+)
- */
-export function calculateLevel(totalPoints) {
-  if (totalPoints <= 0) return 1;
-  return Math.max(1, Math.floor(0.1 * Math.sqrt(totalPoints)));
+const RANK_TITLE_NAMES = [
+  'First Flight',
+  'Swan Initiate',
+  'Dawn Wing',
+  'River Spark',
+  'Meadow Current',
+  'Tide Runner',
+  'Wingrise',
+  'Frostbud',
+  'Grove Seed',
+  'First Crest',
+  'Riverwing',
+  'Verdant Wing',
+  'Grovewalker',
+  'Tideborne',
+  'Coral Wing',
+  'Moonstream',
+  'Frostline Swan',
+  'Rainforest Crest',
+  'Swan Sentinel',
+  'Verdant Swan',
+  'Iron Grove',
+  'Ironwood Wing',
+  'Stonewing',
+  'Emerald Current',
+  'Jade Wing',
+  'Grovebound',
+  'Rainforest Wing',
+  'Canopy Runner',
+  'Grove Aegis',
+  'Grove Ascendant',
+  'Ruby Bloom',
+  'Ruby Current',
+  'Ruby Tide',
+  'Ruby Grove',
+  'Ruby Wing',
+  'Ruby Canopy',
+  'Ruby Aegis',
+  'Ruby Crest',
+  'Ruby Swan',
+  'Ruby Ascendant',
+  'Amethyst Tide',
+  'Amethyst Current',
+  'Amethyst Grove',
+  'Amethyst Bloom',
+  'Amethyst Wing',
+  'Amethyst Aegis',
+  'Amethyst Crest',
+  'Amethyst Swan',
+  'Amethyst Ascendant',
+  'Amethyst Sovereign',
+  'Aurelian Canopy',
+  'Aurelian Grove',
+  'Aurelian Bloom',
+  'Aurelian Wing',
+  'Aurelian Tide',
+  'Aurelian Aegis',
+  'Aurelian Crest',
+  'Aurelian Swan',
+  'Aurelian Ascendant',
+  'Aurelian Sovereign',
+  'Frostwing Aegis',
+  'Frostwood Current',
+  'Frostwood Wing',
+  'Frostwood Tide',
+  'Frostwood Crest',
+  'Frostwood Swan',
+  'Frostwing Vanguard',
+  'Frostwing Sovereign',
+  'Frostwing Paragon',
+  'Frostwing Luminary',
+  'Starfall Wing',
+  'Starfall Current',
+  'Starfall Aegis',
+  'Starfall Ascendant',
+  'Starfall Sovereign',
+  'Aurora Current',
+  'Aurora Wing',
+  'Aurora Aegis',
+  'Aurora Swan',
+  'Aurora Paragon',
+  'Sapphire Tide',
+  'Sapphire Current',
+  'Sapphire Grove',
+  'Sapphire Wing',
+  'Sapphire Crest',
+  'Sapphire Aegis',
+  'Sapphire Swan',
+  'Sapphire Ascendant',
+  'Sapphire Sovereign',
+  'Sapphire Paragon',
+  'Celestial Swan',
+  'Crystalline Wing',
+  'Crystalline Aegis',
+  'Crystalline Ascendant',
+  'Crystalline Sovereign',
+  'Swan Luminary',
+  'Swan Paragon',
+  'Grand Crystalline Swan',
+  'Apex Crystalline Swan',
+  'Eternal Crystalline Swan',
+];
+
+const LEGACY_TIER_ALIASES = {
+  bronze: 'first_flight',
+  bronze_forge: 'first_flight',
+  silver: 'riverwing',
+  silver_edge: 'riverwing',
+  gold: 'iron_grove',
+  titanium_core: 'iron_grove',
+  platinum: 'frostwing_aegis',
+  obsidian_warrior: 'frostwing_aegis',
+  frostwing_ascendant: 'frostwing_vanguard',
+  crystalline_swan: 'grand_crystalline_swan',
+};
+
+function slugifyRankName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 }
 
-/**
- * Return the minimum total points required to reach a given level.
- * @param {number} level - Target level
- * @returns {number} Points threshold (ceiling to avoid float gaps)
- */
-export function pointsForLevel(level) {
-  if (level <= 1) return 0;
-  return Math.ceil(Math.pow(level / 0.1, 2));
+function rankColorForLevel(minLevel) {
+  if (minLevel >= 991) return 'var(--accent-primary, #60C0F0)';
+  if (minLevel >= 900) return 'var(--text-primary, #E0ECF4)';
+  if (minLevel >= 800) return 'var(--data-primary, #50A0F0)';
+  if (minLevel >= 700) return 'var(--accent-secondary, #8B5CF6)';
+  if (minLevel >= 500) return 'var(--accent-luxury, #C6A84B)';
+  if (minLevel >= 300) return 'var(--accent-danger, #C92A54)';
+  if (minLevel >= 200) return 'var(--accent-success, #22C55E)';
+  return 'var(--accent-primary, #60C0F0)';
 }
 
-// ---------------------------------------------------------------------------
-// Tier helpers
-// ---------------------------------------------------------------------------
+function buildRankTitle(name, index) {
+  const minLevel = index * 10 + 1;
+  const maxLevel = Math.min(MAX_LEVEL, minLevel + 9);
+  const levelRange = minLevel === maxLevel ? String(minLevel) : `${minLevel}-${maxLevel}`;
 
-/**
- * Map a numeric level to its tier key.
- * @param {number} level
- * @returns {string} Tier key (snake_case)
- */
-export function getTier(level) {
-  if (level >= 100) return 'crystalline_swan';
-  if (level >= 51)  return 'obsidian_warrior';
-  if (level >= 26)  return 'titanium_core';
-  if (level >= 11)  return 'silver_edge';
-  return 'bronze_forge';
-}
-
-/**
- * Return display metadata for a tier key.
- * @param {string} tier - One of the tier keys from getTier()
- * @returns {{ name: string, emoji: string, color: string }}
- */
-export function getTierDisplay(tier) {
-  const map = {
-    bronze_forge:     { name: 'Bronze Forge',      emoji: '\u{1F528}', color: '#CD7F32' },
-    silver_edge:      { name: 'Silver Edge',        emoji: '\u{2694}\uFE0F', color: '#C0C0C0' },
-    titanium_core:    { name: 'Titanium Core',      emoji: '\u{1F6E1}\uFE0F', color: '#878681' },
-    obsidian_warrior: { name: 'Obsidian Warrior',   emoji: '\u{26AB}', color: '#3D3D3D' },
-    crystalline_swan: { name: 'Crystalline Swan',   emoji: '\u{1F9A2}', color: '#60C0F0' },
+  return {
+    key: slugifyRankName(name),
+    name,
+    emoji: '',
+    color: rankColorForLevel(minLevel),
+    minLevel,
+    maxLevel,
+    levelRange,
   };
-  return map[tier] || map.bronze_forge;
 }
 
-// ---------------------------------------------------------------------------
-// Composite progress snapshot
-// ---------------------------------------------------------------------------
+export const RANK_TITLES = RANK_TITLE_NAMES.map(buildRankTitle);
 
-/**
- * Build a full progress object for a player's current point total.
- * Useful for rendering XP bars, tier badges, and "next level" hints.
- *
- * @param {number} totalPoints
- * @returns {{
- *   level: number,
- *   tier: string,
- *   tierDisplay: { name: string, emoji: string, color: string },
- *   currentPoints: number,
- *   pointsIntoLevel: number,
- *   pointsNeededForNext: number,
- *   progressPercent: number,
- *   nextLevelAt: number
- * }}
- */
+const RANK_BY_KEY = Object.fromEntries(RANK_TITLES.map((rank) => [rank.key, rank]));
+
+function normalizeLevel(level) {
+  const numericLevel = Number(level);
+  if (!Number.isFinite(numericLevel) || numericLevel <= 1) return 1;
+  return Math.min(MAX_LEVEL, Math.floor(numericLevel));
+}
+
+function resolveRankKey(tier) {
+  const key = String(tier || '').trim().toLowerCase();
+  return LEGACY_TIER_ALIASES[key] || key;
+}
+
+export function getRankTitles() {
+  return RANK_TITLES.map((rank) => ({ ...rank }));
+}
+
+export function calculateLevel(totalPoints) {
+  const numericPoints = Number(totalPoints);
+  if (!Number.isFinite(numericPoints) || numericPoints <= 0) return 1;
+  return Math.min(MAX_LEVEL, Math.max(1, Math.floor(LEVEL_FORMULA_SCALE * Math.sqrt(numericPoints))));
+}
+
+export function pointsForLevel(level) {
+  const targetLevel = normalizeLevel(level);
+  if (targetLevel <= 1) return 0;
+  return Math.ceil(Math.pow(targetLevel / LEVEL_FORMULA_SCALE, 2));
+}
+
+export function getTier(level) {
+  const normalizedLevel = normalizeLevel(level);
+  const rank = RANK_TITLES.find((entry) => normalizedLevel >= entry.minLevel && normalizedLevel <= entry.maxLevel);
+  return (rank || RANK_TITLES[RANK_TITLES.length - 1]).key;
+}
+
+export function getTierDisplay(tier) {
+  const rank = RANK_BY_KEY[resolveRankKey(tier)] || RANK_TITLES[0];
+  return {
+    name: rank.name,
+    emoji: rank.emoji,
+    color: rank.color,
+    levelRange: rank.levelRange,
+  };
+}
+
 export function getLevelProgress(totalPoints) {
-  const currentLevel       = calculateLevel(totalPoints);
-  const currentLevelPoints = pointsForLevel(currentLevel);
-  const nextLevelPoints    = pointsForLevel(currentLevel + 1);
-  const pointsIntoLevel    = totalPoints - currentLevelPoints;
+  const numericPoints = Number(totalPoints);
+  const currentPoints = Number.isFinite(numericPoints) && numericPoints > 0 ? numericPoints : 0;
+  const level = calculateLevel(currentPoints);
+  const tier = getTier(level);
+  const currentLevelPoints = pointsForLevel(level);
+
+  if (level >= MAX_LEVEL) {
+    return {
+      level,
+      tier,
+      tierDisplay: getTierDisplay(tier),
+      currentPoints,
+      pointsIntoLevel: Math.max(0, currentPoints - currentLevelPoints),
+      pointsNeededForNext: 0,
+      progressPercent: 100,
+      nextLevelAt: currentLevelPoints,
+    };
+  }
+
+  const nextLevelPoints = pointsForLevel(level + 1);
+  const pointsIntoLevel = Math.max(0, currentPoints - currentLevelPoints);
   const pointsNeededForNext = nextLevelPoints - currentLevelPoints;
 
   return {
-    level:              currentLevel,
-    tier:               getTier(currentLevel),
-    tierDisplay:        getTierDisplay(getTier(currentLevel)),
-    currentPoints:      totalPoints,
+    level,
+    tier,
+    tierDisplay: getTierDisplay(tier),
+    currentPoints,
     pointsIntoLevel,
     pointsNeededForNext,
-    progressPercent:    pointsNeededForNext > 0
+    progressPercent: pointsNeededForNext > 0
       ? Math.min(100, (pointsIntoLevel / pointsNeededForNext) * 100)
       : 100,
-    nextLevelAt:        nextLevelPoints,
+    nextLevelAt: nextLevelPoints,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Points configuration -- canonical XP values for trackable actions
-// ---------------------------------------------------------------------------
-
 export const POINTS_CONFIG = {
-  // Workouts
-  completeWorkout:     50,
-  personalRecord:      100,
-  completeAssessment:  75,
-
-  // Social
-  createPost:          10,
-  receiveLike:         5,
-  addComment:          5,
-  followUser:          5,
-
-  // Streaks
-  dailyLogin:          10,
-  streakBonus3Day:     25,
-  streakBonus7Day:     75,
-  streakBonus30Day:    300,
-  streakBonus90Day:    1000,
-  streakBonus365Day:   5000,
-
-  // Education
-  completeModule:      50,
-  watchTutorial:       15,
-
-  // Holistic wellness
-  logNutrition:        15,
-  logRecovery:         15,
-  logRecoveryBreath:   20,
-  logSleep:            10,
+  completeWorkout: 50,
+  personalRecord: 100,
+  completeAssessment: 75,
+  createPost: 10,
+  receiveLike: 5,
+  addComment: 5,
+  followUser: 5,
+  dailyLogin: 10,
+  streakBonus3Day: 25,
+  streakBonus7Day: 75,
+  streakBonus30Day: 300,
+  streakBonus90Day: 1000,
+  streakBonus365Day: 5000,
+  completeModule: 50,
+  watchTutorial: 15,
+  logNutrition: 15,
+  logRecovery: 15,
+  logRecoveryBreath: 20,
+  logSleep: 10,
 };
 
-// ---------------------------------------------------------------------------
-// Default export (convenience for CommonJS-style consumers)
-// ---------------------------------------------------------------------------
-
 export default {
+  MAX_LEVEL,
+  RANK_TITLES,
   calculateLevel,
   pointsForLevel,
   getTier,
   getTierDisplay,
   getLevelProgress,
+  getRankTitles,
   POINTS_CONFIG,
 };

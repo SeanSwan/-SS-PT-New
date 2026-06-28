@@ -55,7 +55,7 @@ describe('AboutSection', () => {
       levelProgress: {
         level: 9,
         currentPoints: 2400,
-        tierDisplay: { name: 'Silver Edge' },
+        tierDisplay: { name: 'First Flight' },
       },
       isLoading: false,
     });
@@ -64,11 +64,15 @@ describe('AboutSection', () => {
   it('renders profile progress and earned achievement information from gamification data', () => {
     render(<AboutSection />);
 
-    expect(screen.getByText('Level 9 - Silver Edge')).toBeInTheDocument();
+    expect(screen.getByText('Level 9 - First Flight')).toBeInTheDocument();
     expect(screen.getByText('2,400 points')).toBeInTheDocument();
     expect(screen.getByText('3 days')).toBeInTheDocument();
     expect(screen.getByText('First Lift')).toBeInTheDocument();
     expect(screen.getByText('120 XP - rare')).toBeInTheDocument();
+    expect(screen.getAllByText('Ironwood Flight').length).toBeGreaterThan(0);
+    expect(screen.getByText('Evergreen Current')).toBeInTheDocument();
+    expect(screen.queryByText('The Forge')).not.toBeInTheDocument();
+    expect(screen.queryByText('Holistic wellness')).not.toBeInTheDocument();
   });
 
   it('renders a loading state without leaking placeholder profile values', () => {

@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
+import { getTier, getTierDisplay } from '../../../types/gamification';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
@@ -102,7 +103,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const level = normalizeHomeWholeNumber(levelProgress?.level ?? gamProfile?.data?.level, 1, 1);
   const points = normalizeHomeWholeNumber(gamProfile?.data?.points, 0, 0);
   const progressPercent = normalizeHomePercent(levelProgress?.progressPercent ?? gamProfile?.data?.nextLevelProgress);
-  const tierName = levelProgress?.tierDisplay?.name ?? gamProfile?.data?.tier ?? 'Crystal Voyager';
+  const tierName = levelProgress?.tierDisplay?.name ?? getTierDisplay(getTier(level)).name;
   const streakDays = normalizeHomeWholeNumber(gamProfile?.data?.streakDays, 0, 0);
   const pointsToNext = normalizeHomeWholeNumber(levelProgress?.pointsNeededForNext ?? gamProfile?.data?.nextLevelPoints, 0, 0);
   const logWorkoutPath = getPersonalLogWorkoutDashboardPath();

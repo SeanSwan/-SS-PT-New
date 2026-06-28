@@ -27,7 +27,7 @@ describe('DailyHealthLoop', () => {
         streakDays={3}
         level={4}
         progressPercent={42}
-        tierName="Crystal Voyager"
+        tierName="Sapphire Tide"
         logWorkoutPath="/dashboard/client/log-workout"
         nutritionAction={{
           title: 'Add a water check-in before the next meal.',
@@ -55,7 +55,7 @@ describe('DailyHealthLoop', () => {
         streakDays={0}
         level={1}
         progressPercent={12}
-        tierName="Crystal Voyager"
+        tierName="First Flight"
         logWorkoutPath="/dashboard/client/log-workout"
       />,
     );

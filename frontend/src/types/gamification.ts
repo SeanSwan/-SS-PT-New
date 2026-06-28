@@ -1,52 +1,137 @@
 /**
- * ============================================================================
- * FILE: gamification.ts
- * PURPOSE: Shared TypeScript type definitions for the gamification system
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-23
- * AI VILLAGE VALIDATED: 2026-03-23
- * ============================================================================
- *
- * WHAT THIS FILE DOES:
- * Defines all shared TypeScript types, interfaces, enums, and constants for
- * the SwanStudios gamification system. Mirrors backend Sequelize models so the
- * frontend can render progress data and compute level previews client-side.
- *
- * HOW IT FITS IN THE APP:
- * Backend (Sequelize) -> REST API -> These types -> React Query hooks -> UI
- * Imported by gamificationSlice.ts, useGamificationData hooks, and all
- * gamification UI components across admin/client/trainer dashboards.
- *
- * KEY DECISIONS:
- * - Centralized type file rather than co-located types to prevent drift
- * - TIER_DISPLAY constant co-located with TierName type for single source of truth
- * - Level formula documented here: level = floor(0.1 * sqrt(totalPoints))
- * - Tier ladder: bronze_forge (1-10) -> silver_edge (11-25) -> titanium_core (26-50)
- *   -> obsidian_warrior (51-99) -> crystalline_swan (100+)
+ * Shared SwanStudios gamification types and client-side leveling helpers.
+ * Mirrors backend/utils/levelingAlgorithm.mjs for instant UI previews.
  */
 
-// ===== Tier System =====
+export const MAX_LEVEL = 1000;
+export const LEVEL_FORMULA_SCALE = 0.1;
 
-export type TierName =
-  | 'bronze_forge'
-  | 'silver_edge'
-  | 'titanium_core'
-  | 'obsidian_warrior'
-  | 'crystalline_swan';
+const RANK_TITLE_NAMES = [
+  'First Flight', 'Swan Initiate', 'Dawn Wing', 'River Spark', 'Meadow Current',
+  'Tide Runner', 'Wingrise', 'Frostbud', 'Grove Seed', 'First Crest',
+  'Riverwing', 'Verdant Wing', 'Grovewalker', 'Tideborne', 'Coral Wing',
+  'Moonstream', 'Frostline Swan', 'Rainforest Crest', 'Swan Sentinel', 'Verdant Swan',
+  'Iron Grove', 'Ironwood Wing', 'Stonewing', 'Emerald Current', 'Jade Wing',
+  'Grovebound', 'Rainforest Wing', 'Canopy Runner', 'Grove Aegis', 'Grove Ascendant',
+  'Ruby Bloom', 'Ruby Current', 'Ruby Tide', 'Ruby Grove', 'Ruby Wing',
+  'Ruby Canopy', 'Ruby Aegis', 'Ruby Crest', 'Ruby Swan', 'Ruby Ascendant',
+  'Amethyst Tide', 'Amethyst Current', 'Amethyst Grove', 'Amethyst Bloom', 'Amethyst Wing',
+  'Amethyst Aegis', 'Amethyst Crest', 'Amethyst Swan', 'Amethyst Ascendant', 'Amethyst Sovereign',
+  'Aurelian Canopy', 'Aurelian Grove', 'Aurelian Bloom', 'Aurelian Wing', 'Aurelian Tide',
+  'Aurelian Aegis', 'Aurelian Crest', 'Aurelian Swan', 'Aurelian Ascendant', 'Aurelian Sovereign',
+  'Frostwing Aegis', 'Frostwood Current', 'Frostwood Wing', 'Frostwood Tide', 'Frostwood Crest',
+  'Frostwood Swan', 'Frostwing Vanguard', 'Frostwing Sovereign', 'Frostwing Paragon', 'Frostwing Luminary',
+  'Starfall Wing', 'Starfall Current', 'Starfall Aegis', 'Starfall Ascendant', 'Starfall Sovereign',
+  'Aurora Current', 'Aurora Wing', 'Aurora Aegis', 'Aurora Swan', 'Aurora Paragon',
+  'Sapphire Tide', 'Sapphire Current', 'Sapphire Grove', 'Sapphire Wing', 'Sapphire Crest',
+  'Sapphire Aegis', 'Sapphire Swan', 'Sapphire Ascendant', 'Sapphire Sovereign', 'Sapphire Paragon',
+  'Celestial Swan', 'Crystalline Wing', 'Crystalline Aegis', 'Crystalline Ascendant',
+  'Crystalline Sovereign', 'Swan Luminary', 'Swan Paragon', 'Grand Crystalline Swan', 'Apex Crystalline Swan',
+  'Eternal Crystalline Swan',
+] as const;
+
+const LEGACY_TIER_ALIASES: Record<string, string> = {
+  bronze: 'first_flight',
+  bronze_forge: 'first_flight',
+  silver: 'riverwing',
+  silver_edge: 'riverwing',
+  gold: 'iron_grove',
+  titanium_core: 'iron_grove',
+  platinum: 'frostwing_aegis',
+  obsidian_warrior: 'frostwing_aegis',
+  frostwing_ascendant: 'frostwing_vanguard',
+  crystalline_swan: 'grand_crystalline_swan',
+};
+
+export type TierName = string;
 
 export interface TierDisplay {
-  name: string;       // "Bronze Forge"
-  emoji: string;      // "🔨"
-  color: string;      // "#CD7F32"
-  levelRange: string; // "1-10"
+  name: string;
+  emoji: string;
+  color: string;
+  levelRange: string;
 }
 
-export const TIER_DISPLAY: Record<TierName, TierDisplay> = {
-  bronze_forge:      { name: 'Bronze Forge',      emoji: '🔨', color: '#CD7F32', levelRange: '1-10'  },
-  silver_edge:       { name: 'Silver Edge',       emoji: '⚔️', color: '#C0C0C0', levelRange: '11-25' },
-  titanium_core:     { name: 'Titanium Core',     emoji: '🛡️', color: '#878681', levelRange: '26-50' },
-  obsidian_warrior:  { name: 'Obsidian Warrior',  emoji: '⚫', color: '#3D3D3D', levelRange: '51-99' },
-  crystalline_swan:  { name: 'Crystalline Swan',  emoji: '🦢', color: '#60C0F0', levelRange: '100'   },
+export interface RankTitle extends TierDisplay {
+  key: string;
+  minLevel: number;
+  maxLevel: number;
+}
+
+function slugifyRankName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function rankColorForLevel(minLevel: number): string {
+  if (minLevel >= 991) return 'var(--accent-primary, #60C0F0)';
+  if (minLevel >= 900) return 'var(--text-primary, #E0ECF4)';
+  if (minLevel >= 800) return 'var(--data-primary, #50A0F0)';
+  if (minLevel >= 700) return 'var(--accent-secondary, #8B5CF6)';
+  if (minLevel >= 500) return 'var(--accent-luxury, #C6A84B)';
+  if (minLevel >= 300) return 'var(--accent-danger, #C92A54)';
+  if (minLevel >= 200) return 'var(--accent-success, #22C55E)';
+  return 'var(--accent-primary, #60C0F0)';
+}
+
+function buildRankTitle(name: string, index: number): RankTitle {
+  const minLevel = index * 10 + 1;
+  const maxLevel = Math.min(MAX_LEVEL, minLevel + 9);
+  const levelRange = minLevel === maxLevel ? String(minLevel) : `${minLevel}-${maxLevel}`;
+
+  return {
+    key: slugifyRankName(name),
+    name,
+    emoji: '',
+    color: rankColorForLevel(minLevel),
+    minLevel,
+    maxLevel,
+    levelRange,
+  };
+}
+
+function toTierDisplay(rank: RankTitle): TierDisplay {
+  return {
+    name: rank.name,
+    emoji: rank.emoji,
+    color: rank.color,
+    levelRange: rank.levelRange,
+  };
+}
+
+export const RANK_TITLES: RankTitle[] = RANK_TITLE_NAMES.map(buildRankTitle);
+
+const RANK_BY_KEY: Record<string, RankTitle> = Object.fromEntries(
+  RANK_TITLES.map((rank) => [rank.key, rank])
+);
+
+export const TIER_DISPLAY: Record<string, TierDisplay> = {
+  ...Object.fromEntries(RANK_TITLES.map((rank) => [rank.key, toTierDisplay(rank)])),
+  ...Object.fromEntries(
+    Object.entries(LEGACY_TIER_ALIASES).map(([legacyKey, rankKey]) => [
+      legacyKey,
+      toTierDisplay(RANK_BY_KEY[rankKey] ?? RANK_TITLES[0]),
+    ])
+  ),
 };
+
+function normalizeLevel(level: number): number {
+  if (!Number.isFinite(level) || level <= 1) return 1;
+  return Math.min(MAX_LEVEL, Math.floor(level));
+}
+
+function resolveRankKey(tier: string): string {
+  const key = String(tier || '').trim().toLowerCase();
+  return LEGACY_TIER_ALIASES[key] || key;
+}
+
+export function getRankTitles(): RankTitle[] {
+  return RANK_TITLES.map((rank) => ({ ...rank }));
+}
+
+export function getTierDisplay(tier: string): TierDisplay {
+  const rank = RANK_BY_KEY[resolveRankKey(tier)] ?? RANK_TITLES[0];
+  return toTierDisplay(rank);
+}
 
 // ===== Skill Trees =====
 
@@ -62,16 +147,16 @@ export interface SkillTreeDisplay {
   name: string;
   emoji: string;
   description: string;
-  color: string; // Crystalline Swan palette color
+  color: string;
 }
 
 export const SKILL_TREE_DISPLAY: Record<SkillTree, SkillTreeDisplay> = {
-  awakening:        { name: 'The Awakening',  emoji: '🌅', description: 'Onboarding & first steps',   color: '#E0ECF4' },
-  forge_nasm:       { name: 'The Forge',      emoji: '🔥', description: 'Education & certification',  color: '#C6A84B' },
-  iron_gravity:     { name: 'Iron & Gravity',  emoji: '🏋️', description: 'Workout performance',       color: '#50A0F0' },
-  tribe_social:     { name: 'The Tribe',      emoji: '👥', description: 'Community engagement',       color: '#4070C0' },
-  free_spirit:      { name: 'The Free Spirit', emoji: '🧘', description: 'Holistic wellness',          color: '#22C55E' },
-  unbroken_streaks: { name: 'The Unbroken',   emoji: '🔗', description: 'Consistency & dedication',   color: '#60C0F0' },
+  awakening: { name: 'Dawnflight Path', emoji: '', description: 'First wins, profile setup, and launch milestones', color: 'var(--text-primary, #E0ECF4)' },
+  forge_nasm: { name: 'Coachcraft Grove', emoji: '', description: 'Technique study, coaching knowledge, and certification progress', color: 'var(--accent-luxury, #C6A84B)' },
+  iron_gravity: { name: 'Ironwood Flight', emoji: '', description: 'Workout logs, PRs, strength, and conditioning', color: 'var(--data-primary, #50A0F0)' },
+  tribe_social: { name: 'Flock Council', emoji: '', description: 'Team support, posts, groups, and community boosts', color: 'var(--tertiary, #4070C0)' },
+  free_spirit: { name: 'Vitality Grove', emoji: '', description: 'Nutrition, recovery, flexibility, sleep, and daily health habits', color: 'var(--accent-success, #22C55E)' },
+  unbroken_streaks: { name: 'Evergreen Current', emoji: '', description: 'Consistency chains, comeback arcs, and long-term discipline', color: 'var(--accent-primary, #60C0F0)' },
 };
 
 // ===== Rarity =====
@@ -79,10 +164,10 @@ export const SKILL_TREE_DISPLAY: Record<SkillTree, SkillTreeDisplay> = {
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export const RARITY_COLORS: Record<Rarity, string> = {
-  common:    '#4070C0',   // Swan Lavender
-  rare:      '#C6A84B',   // Gilded Fern
-  epic:      '#8B5CF6',   // Wing Purple
-  legendary: 'linear-gradient(135deg, #002060, #60C0F0, #C6A84B)', // Animated
+  common: 'var(--tertiary, #4070C0)',
+  rare: 'var(--accent-luxury, #C6A84B)',
+  epic: 'var(--accent-secondary, #8B5CF6)',
+  legendary: 'linear-gradient(135deg, var(--primary, #002060), var(--accent-primary, #60C0F0), var(--accent-luxury, #C6A84B))',
 };
 
 // ===== Achievement =====
@@ -105,7 +190,7 @@ export interface Achievement {
   tierLevel: number;
   isHidden: boolean;
   isSecret: boolean;
-  difficulty: number; // 1-5 (INTEGER, matches backend model)
+  difficulty: number;
 }
 
 export interface UserAchievement {
@@ -118,10 +203,8 @@ export interface UserAchievement {
   earnedAt: string | null;
   xpAwarded: number;
   pointsAwarded: number;
-  achievement: Achievement; // Joined data
+  achievement: Achievement;
 }
-
-// ===== Level Progress =====
 
 export interface LevelProgress {
   level: number;
@@ -133,8 +216,6 @@ export interface LevelProgress {
   progressPercent: number;
   nextLevelAt: number;
 }
-
-// ===== Gamification Profile =====
 
 export interface GamificationProfile {
   userId: number;
@@ -152,54 +233,51 @@ export interface GamificationProfile {
   recentAchievements: UserAchievement[];
 }
 
-// ===== Frontend Leveling Utilities (mirrors backend formulas) =====
-
-/**
- * Calculate the level for a given total point count.
- * Formula: level = floor(0.1 * sqrt(totalPoints))
- */
 export function calculateLevel(totalPoints: number): number {
-  if (totalPoints <= 0) return 1;
-  return Math.max(1, Math.floor(0.1 * Math.sqrt(totalPoints)));
+  if (!Number.isFinite(totalPoints) || totalPoints <= 0) return 1;
+  return Math.min(MAX_LEVEL, Math.max(1, Math.floor(LEVEL_FORMULA_SCALE * Math.sqrt(totalPoints))));
 }
 
-/**
- * Calculate the minimum total points required to reach a specific level.
- * Inverse of calculateLevel: points = ceil((level / 0.1)^2)
- */
 export function pointsForLevel(level: number): number {
-  if (level <= 1) return 0;
-  return Math.ceil(Math.pow(level / 0.1, 2));
+  const targetLevel = normalizeLevel(level);
+  if (targetLevel <= 1) return 0;
+  return Math.ceil(Math.pow(targetLevel / LEVEL_FORMULA_SCALE, 2));
 }
 
-/**
- * Determine which tier a given level falls into.
- */
 export function getTier(level: number): TierName {
-  if (level >= 100) return 'crystalline_swan';
-  if (level >= 51)  return 'obsidian_warrior';
-  if (level >= 26)  return 'titanium_core';
-  if (level >= 11)  return 'silver_edge';
-  return 'bronze_forge';
+  const normalizedLevel = normalizeLevel(level);
+  const rank = RANK_TITLES.find((entry) => normalizedLevel >= entry.minLevel && normalizedLevel <= entry.maxLevel);
+  return (rank ?? RANK_TITLES[RANK_TITLES.length - 1]).key;
 }
 
-/**
- * Build a full LevelProgress snapshot from a raw point total.
- * Used for instant client-side previews without waiting for the API.
- */
 export function getLevelProgress(totalPoints: number): LevelProgress {
-  const level = calculateLevel(totalPoints);
+  const currentPoints = Number.isFinite(totalPoints) && totalPoints > 0 ? totalPoints : 0;
+  const level = calculateLevel(currentPoints);
   const tier = getTier(level);
   const currentLevelPoints = pointsForLevel(level);
+
+  if (level >= MAX_LEVEL) {
+    return {
+      level,
+      tier,
+      tierDisplay: getTierDisplay(tier),
+      currentPoints,
+      pointsIntoLevel: Math.max(0, currentPoints - currentLevelPoints),
+      pointsNeededForNext: 0,
+      progressPercent: 100,
+      nextLevelAt: currentLevelPoints,
+    };
+  }
+
   const nextLevelPoints = pointsForLevel(level + 1);
-  const pointsIntoLevel = totalPoints - currentLevelPoints;
+  const pointsIntoLevel = Math.max(0, currentPoints - currentLevelPoints);
   const pointsNeededForNext = nextLevelPoints - currentLevelPoints;
 
   return {
     level,
     tier,
-    tierDisplay: TIER_DISPLAY[tier],
-    currentPoints: totalPoints,
+    tierDisplay: getTierDisplay(tier),
+    currentPoints,
     pointsIntoLevel,
     pointsNeededForNext,
     progressPercent:
