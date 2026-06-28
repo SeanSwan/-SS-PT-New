@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { recordCommandAudit } from '../ai/commandAudit.mjs';
 import { routeScheduleAiTurn } from './scheduleAiProviderRouter.mjs';
+import { buildScheduleRecoveryAdvisory } from './scheduleAiRecoveryAdvisor.mjs';
 import { buildRecurringOptimizationProposals } from './scheduleAiRecurringOptimizer.mjs';
 import { getScheduleAiToolSchema } from './scheduleAiToolSchemas.mjs';
 
@@ -14,6 +15,7 @@ const ROLE_PERMISSIONS = Object.freeze({
   mark_attendance: new Set(['admin', 'trainer']),
   open_payment_review: new Set(['admin']),
   draft_recurring_repair: new Set(['admin', 'trainer']),
+  recovery_safety_advisory: new Set(['admin', 'trainer']),
   manual_schedule_review: new Set(['admin', 'trainer']),
 });
 
@@ -80,13 +82,13 @@ function hasPermission(actor, tool) {
 
 function extractTargets(context = {}) {
   return {
-    targetClientId: normalizeId(context.clientId ?? context.session?.clientId ?? context.session?.userId),
-    targetTrainerId: normalizeId(context.trainerId ?? context.session?.trainerId),
-    targetSessionId: normalizeId(context.sessionId ?? context.session?.id),
+    targetClientId: normalizeId(context.clientId ?? context.session?.clientId ?? context.session?.userId ?? context.plannedSession?.clientId ?? context.plannedSession?.userId),
+    targetTrainerId: normalizeId(context.trainerId ?? context.session?.trainerId ?? context.plannedSession?.trainerId),
+    targetSessionId: normalizeId(context.sessionId ?? context.session?.id ?? context.plannedSession?.id),
   };
 }
 
-function buildProposal({ actor, message, context, tool, providerResult, recurringRepair, now }) {
+function buildProposal({ actor, message, context, tool, providerResult, recurringRepair, recoveryAdvisory, now }) {
   const confirmation = confirmationForTool(tool);
   const targets = extractTargets(context);
   const contextVersion = getContextVersion(context);
@@ -114,6 +116,7 @@ function buildProposal({ actor, message, context, tool, providerResult, recurrin
     confirmation,
     content: providerResult?.content || null,
     ...(recurringRepair ? { recurringRepair } : {}),
+    ...(recoveryAdvisory ? { recoveryAdvisory } : {}),
   };
 }
 
@@ -139,6 +142,8 @@ async function writeProposalAudit({ auditWriter, actor, proposal = null, outcome
       contextVersion: getContextVersion(context),
       recurringIssueCount: proposal?.recurringRepair?.summary?.issueCount ?? null,
       recurringProposalCount: proposal?.recurringRepair?.summary?.proposalCount ?? null,
+      recoveryRiskLevel: proposal?.recoveryAdvisory?.risk?.level ?? null,
+      recoveryDataCompleteness: proposal?.recoveryAdvisory?.dataCompleteness?.level ?? null,
     },
     durationMs,
   });
@@ -152,6 +157,7 @@ export async function generateScheduleAiProposal({
   routeTurn = routeScheduleAiTurn,
   auditWriter = null,
   recurringOptimizer = buildRecurringOptimizationProposals,
+  recoveryAdvisor = buildScheduleRecoveryAdvisory,
   now = new Date(),
 } = {}) {
   const startedAt = Date.now();
@@ -232,6 +238,16 @@ export async function generateScheduleAiProposal({
     })
     : null;
 
+  const recoveryAdvisory = tool.type === 'recovery_safety_advisory'
+    ? recoveryAdvisor({
+      actor,
+      plannedSession: context.plannedSession || context.session || {},
+      recentSessions: context.recentSessions || context.workoutSessions || [],
+      painEntries: context.painEntries || context.activePainEntries || [],
+      now,
+    })
+    : null;
+
   const proposal = buildProposal({
     actor,
     message,
@@ -239,6 +255,7 @@ export async function generateScheduleAiProposal({
     tool,
     providerResult: routed.result,
     recurringRepair,
+    recoveryAdvisory,
     now,
   });
   await writeProposalAudit({

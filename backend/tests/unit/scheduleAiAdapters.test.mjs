@@ -29,6 +29,18 @@ describe('schedule AI provider adapters', () => {
     });
     expect(result.content).toContain('recurring repair');
   });
+  it('fallback adapter classifies recovery and pain safety commands as read-only advisory', async () => {
+    const adapter = createScheduleAiFallbackAdapter();
+    const result = await adapter.generateTurn({ message: 'Check recovery risk and pain safety before scheduling.' });
+
+    expect(result.toolCalls[0]).toMatchObject({
+      type: 'recovery_safety_advisory',
+      mutatesData: false,
+      executionPolicy: 'read_only',
+      riskLevel: 'low',
+    });
+    expect(result.content).toContain('recovery');
+  });
   it('local GPU adapter calls an OpenAI-compatible chat completions endpoint', async () => {
     const fetchImpl = vi.fn(async (_url, options) => ({
       ok: true,

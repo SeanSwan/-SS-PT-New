@@ -8,6 +8,10 @@ function classify(message = '') {
   if (/\b(charge|charged|payment|refund|reverse|credit|billing|late fee|waive)\b/.test(text)) {
     return SCHEDULE_AI_TOOL_TYPES.OPEN_PAYMENT_REVIEW;
   }
+  if (/\b(recovery|recover|fatigue|soreness|pain|injury|injuries|rpe|intensity|training safety|overload)\b/.test(text)
+    && /\b(schedule|scheduling|risk|safe|safety|before|load|pain|recovery)\b/.test(text)) {
+    return SCHEDULE_AI_TOOL_TYPES.RECOVERY_SAFETY_ADVISORY;
+  }
   if (/\b(attention|risk|missing|leak|unpaid|review today|needs)\b/.test(text)) {
     return SCHEDULE_AI_TOOL_TYPES.SHOW_ATTENTION_QUEUE;
   }

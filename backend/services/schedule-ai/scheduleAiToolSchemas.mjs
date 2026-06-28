@@ -7,6 +7,7 @@ export const SCHEDULE_AI_TOOL_TYPES = Object.freeze({
   MARK_ATTENDANCE: 'mark_attendance',
   OPEN_PAYMENT_REVIEW: 'open_payment_review',
   DRAFT_RECURRING_REPAIR: 'draft_recurring_repair',
+  RECOVERY_SAFETY_ADVISORY: 'recovery_safety_advisory',
   MANUAL_SCHEDULE_REVIEW: 'manual_schedule_review',
 });
 
@@ -66,6 +67,13 @@ const TOOLS = Object.freeze([
     mutatesData: false,
     executionPolicy: 'proposal_only',
     riskLevel: 'schedule_write',
+  },
+  {
+    type: SCHEDULE_AI_TOOL_TYPES.RECOVERY_SAFETY_ADVISORY,
+    description: 'Review recovery, active pain, and recent training load before scheduling. Read-only advisory only.',
+    mutatesData: false,
+    executionPolicy: 'read_only',
+    riskLevel: 'low',
   },
   {
     type: SCHEDULE_AI_TOOL_TYPES.MANUAL_SCHEDULE_REVIEW,
