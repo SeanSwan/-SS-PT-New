@@ -10,6 +10,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ClientDashboardHomeTab from '../../../UserDashboard/components/ClientDashboardHomeTab';
+import {
+  DashboardBackgroundSettingsPanel,
+  DashboardBackgroundSurface,
+} from '../../shared/DashboardBackgroundStudio';
 import type { ProfileStats, TabId } from '../../../UserDashboard/types/UserDashboardTypes';
 
 const EMPTY_STATS: ProfileStats = {
@@ -35,16 +39,19 @@ const ClientHomeTab: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <ClientDashboardHomeTab
-      embedded
-      onTabChange={(tab) => navigate(CLIENT_TAB_ROUTES[tab] || '/dashboard/client/overview')}
-      profile={null}
-      displayStats={EMPTY_STATS}
-      profilePosts={[]}
-      followStats={null}
-      displayNameOverride=""
-      usernameOverride=""
-    />
+    <DashboardBackgroundSurface>
+      <ClientDashboardHomeTab
+        embedded
+        backgroundSettings={<DashboardBackgroundSettingsPanel scopeLabel="Client" />}
+        onTabChange={(tab) => navigate(CLIENT_TAB_ROUTES[tab] || '/dashboard/client/overview')}
+        profile={null}
+        displayStats={EMPTY_STATS}
+        profilePosts={[]}
+        followStats={null}
+        displayNameOverride=""
+        usernameOverride=""
+      />
+    </DashboardBackgroundSurface>
   );
 };
 

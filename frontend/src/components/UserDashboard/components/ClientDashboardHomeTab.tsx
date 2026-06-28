@@ -61,6 +61,7 @@ interface ClientDashboardHomeTabProps {
   displayNameOverride: string;
   usernameOverride: string;
   embedded?: boolean;
+  backgroundSettings?: React.ReactNode;
 }
 
 const featureWorkoutImage = '/images/parallax/video-library-bg.png';
@@ -71,6 +72,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   displayNameOverride,
   usernameOverride,
   embedded = false,
+  backgroundSettings,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -182,6 +184,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     <>
       <ClientDashboardHome
         embedded={embedded}
+        backgroundSettings={backgroundSettings}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}
         featureImageSrc={featureWorkoutImage}

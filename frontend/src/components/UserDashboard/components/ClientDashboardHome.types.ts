@@ -2,7 +2,7 @@
  * FILE: ClientDashboardHome.types.ts
  * PURPOSE: Shared view contracts for the client dashboard Home redesign.
  */
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
 import type {
   HomeBadgeItem,
@@ -43,6 +43,7 @@ export interface ClientDashboardAction {
 
 export interface ClientDashboardHomeProps {
   embedded?: boolean;
+  backgroundSettings?: ReactNode;
   logoSrc: string;
   swanHeroSrc: string;
   featureImageSrc: string;
