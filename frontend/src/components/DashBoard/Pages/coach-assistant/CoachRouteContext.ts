@@ -33,6 +33,7 @@ export interface CoachRouteContext {
   scope: 'client' | 'trainer' | 'admin' | 'unknown';
   source?: string;
   intent?: string;
+  workoutDate?: string;
   scheduledSessionId?: string;
   scheduledSessionDate?: string;
   scheduledSessionCredits?: number;
@@ -162,6 +163,7 @@ export function buildCoachRouteContext(pathname: string, search = ''): CoachRout
     ...compactRouteFields([
       ['source', source],
       ['intent', intent],
+      ['workoutDate', safeIsoDate(params.get('workoutDate'))],
     ]),
     ...scheduledSessionFields(scheduledSessionId, params),
     allowedActions: ACTIONS[surface],

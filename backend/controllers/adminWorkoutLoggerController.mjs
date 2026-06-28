@@ -17,6 +17,7 @@ import {
   parseWorkoutLogDate,
   WorkoutLogError,
 } from '../services/workout/workoutLogService.mjs';
+import { isHistoricalWorkoutLogSource } from '../services/workout/workoutLogSourcePolicy.mjs';
 
 const WORKOUT_LOG_CLIENT_ERROR_MESSAGES = {
   DUPLICATE_DATE: 'A workout session already exists for this client on this date.',
@@ -69,8 +70,7 @@ export const logWorkout = async (req, res) => {
       }
       isPlaudMergeApply = true;
     }
-    const isHistoricalImport =
-      source === 'historical_import' || source === 'move_fitness_historical_import';
+    const isHistoricalImport = isHistoricalWorkoutLogSource(source);
 
     let serviceResult;
     try {

@@ -182,6 +182,7 @@ export function buildHistoricalImportPlan(input: HistoricalImportPlanInput): His
     'Create editable workout-log drafts for the missing candidate dates only.',
     'Mark every generated draft as AI-estimated historical filler in the notes.',
     'Use NASM-appropriate progressions/regressions and ask for pain/contraindication clarification instead of inventing medical facts.',
+    'Earlier missing dates should generally be easier than later/current workouts: regress load, volume, density, and exercise complexity so the backfill tells a believable progression story toward the latest known anchor.',
     'Output one draft per date with title, date, duration, optional explicit intensity only, exercises, sets, reps, load, tempo, rest, RPE, and notes.',
     'Keep the drafts easy for the admin/trainer to edit before saving to charts and social progress proof.',
     'Do not present estimated drafts as verified performance records until the admin/trainer manually reviews and saves them.',

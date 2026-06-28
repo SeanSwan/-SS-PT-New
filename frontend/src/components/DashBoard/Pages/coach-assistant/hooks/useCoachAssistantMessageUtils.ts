@@ -24,12 +24,16 @@ interface CoachAssistantChatSnapshot {
 }
 
 export function buildRouteRequestContext(routeContext: CoachRouteContext | null) {
-  if (!routeContext?.scheduledSessionId) return null;
-  return {
-    scheduledSessionId: routeContext.scheduledSessionId,
+  if (!routeContext) return null;
+  const requestContext = {
+    ...(routeContext.source ? { source: routeContext.source } : {}),
+    ...(routeContext.intent ? { intent: routeContext.intent } : {}),
+    ...(routeContext.workoutDate ? { workoutDate: routeContext.workoutDate } : {}),
+    ...(routeContext.scheduledSessionId ? { scheduledSessionId: routeContext.scheduledSessionId } : {}),
     ...(routeContext.scheduledSessionDate ? { scheduledSessionDate: routeContext.scheduledSessionDate } : {}),
     ...(routeContext.scheduledSessionCredits ? { scheduledSessionCredits: routeContext.scheduledSessionCredits } : {}),
   };
+  return Object.keys(requestContext).length ? requestContext : null;
 }
 
 export function buildCoachAssistantMessages(

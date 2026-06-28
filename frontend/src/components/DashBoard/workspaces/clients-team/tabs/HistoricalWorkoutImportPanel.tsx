@@ -61,7 +61,7 @@ const sourceOptions: SourceValue[] = [
 function storeHistoricalImportDraft(key: string, prompt: string): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    window.sessionStorage.setItem(key, prompt);
+    window.sessionStorage.setItem(key, JSON.stringify({ prompt, expiresAt: Date.now() + 5 * 60 * 1000 }));
     return true;
   } catch {
     return false;

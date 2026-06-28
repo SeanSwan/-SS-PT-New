@@ -273,6 +273,79 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
     expect(result.billing.status).toBe('not_deducted');
   });
 
+  it('logs historical imports for paid clients without deducting session credits', async () => {
+    const client = makeClient({ clientSource: 'swanstudios', availableSessions: 0 });
+    const { submitAiWorkoutLogAsDailyForm, dailyFormRow, models, sequelize } = await loadService({ client });
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      source: 'historical_import',
+      exercises: [{ name: 'Squat', sets: [{ setNumber: 1, reps: 10, weight: 40 }] }],
+      sequelize,
+    });
+
+    expect(client.decrement).not.toHaveBeenCalled();
+    expect(dailyFormRow.update).not.toHaveBeenCalled();
+    expect(models.DailyWorkoutForm.create.mock.calls[0][0].formData).toEqual(expect.objectContaining({
+      source: 'historical_import',
+      historicalImport: true,
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      source: 'historical_import',
+      historicalImport: true,
+    }));
+    expect(result.billing).toEqual(expect.objectContaining({
+      status: 'not_deducted',
+      shouldDeduct: false,
+      sessionDeducted: false,
+      creditsDeducted: 0,
+      creditsRequired: 0,
+      remainingSessions: 0,
+    }));
+    expect(result.form).toEqual(expect.objectContaining({
+      source: 'historical_import',
+      historicalImport: true,
+      sessionDeducted: false,
+    }));
+  });
+
+  it('does not advance active plan progress for historical planned-assignment sources', async () => {
+    const { submitAiWorkoutLogAsDailyForm, activePlan, sequelize } = await loadService();
+    const verifiedAssignmentDate = new Date().toISOString().slice(0, 10);
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: verifiedAssignmentDate,
+      source: 'move_fitness_historical_import',
+      exercises: [{ name: 'Goblet Squat', sets: [{ reps: 10, weight: 40 }] }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+      sequelize,
+    });
+
+    expect(activePlan.update).not.toHaveBeenCalled();
+    expect(result.form.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      shouldDeductSession: false,
+    });
+    expect(result.form.planProgress).toBeUndefined();
+    expect(result.billing).toEqual(expect.objectContaining({
+      status: 'not_deducted',
+      creditsRequired: 0,
+    }));
+  });
+
   it('rejects duplicate same-day diary forms before rewriting session logs', async () => {
     const existingForm = { id: 'existing-form' };
     const { AiWorkoutDailyFormError, submitAiWorkoutLogAsDailyForm, models, sequelize, tx } = await loadService({ existingForm });

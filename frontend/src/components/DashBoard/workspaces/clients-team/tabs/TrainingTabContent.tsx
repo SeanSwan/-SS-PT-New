@@ -131,6 +131,10 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
     handleSectionChange('history');
   }, [handleSectionChange]);
 
+  const handleOpenHistoryImport = useCallback(() => {
+    handleSectionChange('import');
+  }, [handleSectionChange]);
+
   return (
     <LayoutWrapper>
       <Sidebar role="tablist" aria-label="Training sub-sections">
@@ -203,6 +207,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
               scheduledSessionId={scheduledSessionId}
               onArchitectPlanCreated={handlePlanCreated}
               onLogTodayFromPlan={handleLogTodayFromPlan}
+              onOpenHistoryImport={handleOpenHistoryImport}
               onOpenProgress={onOpenProgress}
               onWorkoutCancel={handleWorkoutCancel}
               onWorkoutComplete={handleWorkoutComplete}

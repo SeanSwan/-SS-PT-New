@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Plus, Download, Timer, History } from 'lucide-react';
+import { Plus, Download, Timer, History, UploadCloud } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 // 2026-04-17 Codex round 2 fix: self-route default onComplete/onCancel
@@ -60,6 +60,7 @@ import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
 import ActivePlanContextStrip from './ActivePlanContextStrip';
+import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
@@ -91,6 +92,7 @@ import { getPhaseTemplate } from './NASMPhaseTemplates';
 import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
+  PlanAssignmentPickerItem,
   PlannedAssignment,
   WorkoutLoggerClient,
   WorkoutLoggerExerciseOption,
@@ -104,6 +106,9 @@ import {
   getExerciseEntryRowKey,
   hasIncompleteWorkoutSets,
   normalizeWorkoutDate,
+  planAssignmentPickerItemToContext,
+  planAssignmentPickerItemToEntries,
+  planAssignmentPickerItemToSubmitAssignment,
 } from './WorkoutLogger.helpers';
 import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
 import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
@@ -140,7 +145,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   loadTodayPlanSignal = 0,
   scheduledSessionCreditHint = null,
   scheduledSessionId = null,
-  scheduledSessionDate = null
+  scheduledSessionDate = null,
+  onOpenHistoryImport,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -209,6 +215,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(readQuickLogPreference);
   const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
+  const [loadedPlanContext, setLoadedPlanContext] = useState<PlannedAssignment | null>(null);
 
   // Speed helpers are no-ops without a real client id; client self-mode
   // skips admin-only ghost pre-fill reads.
@@ -590,6 +597,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // - Load Today's Plan -
   const loadTodaysPlan = useCallback(async () => {
+    setLoadedPlanContext(null);
     await loadTodaysPlanIntoLogger({
       effectiveClientId,
       createWorkoutLoggerLocalId,
@@ -615,6 +623,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     autoLoadTodayPlanRef.current = todayPlanLoadSignal;
     void loadTodaysPlan();
   }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
+
+  const handleApplyGeneratedPlanDay = useCallback((assignment: PlanAssignmentPickerItem) => {
+    const prefilled = planAssignmentPickerItemToEntries(assignment, createWorkoutLoggerLocalId);
+    if (prefilled.length === 0) {
+      toast.info('That generated plan day has no exercises to load.');
+      return;
+    }
+
+    setExercises((prev) => [...prev, ...prefilled]);
+    const submitAssignment = planAssignmentPickerItemToSubmitAssignment(assignment);
+    setPlannedAssignment(submitAssignment);
+    setLoadedPlanContext(planAssignmentPickerItemToContext(assignment));
+    const label = assignment.title || assignment.dayLabel || 'generated plan day';
+    toast.success(`Loaded ${prefilled.length} exercise${prefilled.length === 1 ? '' : 's'} from ${label}${submitAssignment ? '' : ' as a draft'}.`);
+  }, [createWorkoutLoggerLocalId]);
 
   // - Repeat Last Session (admin/trainer click-saver; orchestration extracted) -
   const handleRepeatLastSession = useCallback(
@@ -1004,7 +1027,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Active plan context: shows what plan/assignment was loaded
             (title, week, day, exercise count, status) so it stays in
             view while logging. Renders nothing until a plan is loaded. */}
-        <ActivePlanContextStrip assignment={plannedAssignment} />
+        <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} />
 
         {!isClientSelfMode && typeof effectiveClientId === 'number' && (
           <VoiceImportPanel aria-label="Voice and file workout import">
@@ -1060,6 +1083,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
         {/* Exercise Section */}
         <ExerciseSection>
+          {!isClientSelfMode && typeof effectiveClientId === 'number' && (
+            <WorkoutPlanAssignmentPicker
+              clientId={effectiveClientId}
+              disabled={isLoadingPlan || isRepeatingSession}
+              onApplyAssignment={handleApplyGeneratedPlanDay}
+            />
+          )}
           <LoadPlanRow>
             {!isClientSelfMode && (
               <LoadPlanButton
@@ -1075,6 +1105,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               <Download size={16} />
               {isLoadingPlan ? 'Loading...' : "Load Today's Plan"}
             </LoadPlanButton>
+            {!isClientSelfMode && onOpenHistoryImport && (
+              <LoadPlanButton
+                onClick={onOpenHistoryImport}
+                disabled={isLoadingPlan || isRepeatingSession}
+                title="Open historical workout import"
+              >
+                <UploadCloud size={16} />
+                History Import
+              </LoadPlanButton>
+            )}
           </LoadPlanRow>
 
           <ExerciseSearchBar>

@@ -162,6 +162,14 @@ function parseOptionalCredits(value) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+
+function parseOptionalRouteToken(value) {
+  if (typeof value !== 'string') return null;
+  const token = value.trim();
+  return ROUTE_CONTEXT_TOKEN_PATTERN.test(token) ? token : null;
+}
+
 function sanitizePromptLine(value, maxLength = 160) {
   return String(value ?? '')
     .replace(/[\r\n\t`\\]/g, ' ')
@@ -190,21 +198,27 @@ function buildSelectedWorkoutDatePromptBlock({
 }
 
 function buildCoachProposalRouteContext({
+  source,
+  intent,
+  surface,
   scheduledSessionId,
   scheduledSessionDate,
   scheduledSessionCredits,
   workoutDate,
 }) {
   const routeContext = {};
+  if (source) routeContext.source = source;
+  if (intent) routeContext.intent = intent;
+  if (surface) routeContext.surface = surface;
   if (workoutDate) routeContext.workoutDate = workoutDate;
   if (scheduledSessionId) routeContext.scheduledSessionId = String(scheduledSessionId);
   if (scheduledSessionDate) routeContext.scheduledSessionDate = scheduledSessionDate;
   if (scheduledSessionCredits) routeContext.scheduledSessionCredits = scheduledSessionCredits;
   if (Object.keys(routeContext).length === 0) return null;
   return {
-    source: 'workout-logger',
-    intent: 'log_workout',
-    surface: 'workout-logger-coach-terminal',
+    source: source || 'workout-logger',
+    intent: intent || 'log_workout',
+    surface: surface || 'workout-logger-coach-terminal',
     ...routeContext,
   };
 }
@@ -543,7 +557,19 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         error: 'Valid workout date is required',
       });
     }
+    const routeContextSource = requestContext && typeof requestContext === 'object'
+      ? parseOptionalRouteToken(requestContext.source)
+      : null;
+    const routeContextIntent = requestContext && typeof requestContext === 'object'
+      ? parseOptionalRouteToken(requestContext.intent)
+      : null;
+    const routeContextSurface = requestContext && typeof requestContext === 'object'
+      ? parseOptionalRouteToken(requestContext.surface)
+      : null;
     const coachProposalRouteContext = buildCoachProposalRouteContext({
+      source: routeContextSource,
+      intent: routeContextIntent,
+      surface: routeContextSurface,
       scheduledSessionId: selectedScheduledSessionId,
       scheduledSessionDate: selectedScheduledSessionDate,
       scheduledSessionCredits: selectedScheduledSessionCredits,
