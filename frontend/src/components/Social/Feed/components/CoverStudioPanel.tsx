@@ -29,6 +29,7 @@ import {
 } from './CoverStudioPanel.types';
 
 const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
+  dashboardBackgroundControls,
   bannerObjectPosition,
   bannerObjectFit,
   bannerImageScale,
@@ -82,6 +83,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   return (
     <StudioBody>
       <CoverTypeSection coverType={coverType} onSelectType={selectType} />
+      {dashboardBackgroundControls}
       <LayoutSection
         coverType={coverType}
         layoutOptions={layoutOptions}

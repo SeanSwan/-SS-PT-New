@@ -40,9 +40,10 @@ import {
 interface SocialCoverEditorProps {
   /** Close the editor; the parent refreshes the live cover. */
   onClose: () => void;
+  dashboardBackgroundControls?: React.ReactNode;
 }
 
-const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose }) => {
+const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose, dashboardBackgroundControls }) => {
   const {
     profile,
     updateProfile,
@@ -207,6 +208,7 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose }) => {
 
       <PanelWell>
         <CoverStudioPanel
+          dashboardBackgroundControls={dashboardBackgroundControls}
           bannerObjectPosition={composition.bannerObjectPosition}
           bannerObjectFit={composition.bannerObjectFit}
           bannerImageScale={composition.bannerImageScale}
