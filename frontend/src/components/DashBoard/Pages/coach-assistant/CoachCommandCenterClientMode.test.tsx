@@ -9,8 +9,7 @@ import {
   useCoachIntakeQueueMock,
 } from './CoachCommandCenterPage.test.harness';
 
-const PLACEHOLDER = 'Talk or type to Swan Coach…';
-const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
+const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
 
 describe('CoachCommandCenterPage client mode', () => {
@@ -34,6 +33,7 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(screen.queryByRole('button', { name: /^Operations$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Import PLAUD/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Onboard client$/i })).not.toBeInTheDocument();
     const workoutActions = screen.getByLabelText('Workout surfaces');

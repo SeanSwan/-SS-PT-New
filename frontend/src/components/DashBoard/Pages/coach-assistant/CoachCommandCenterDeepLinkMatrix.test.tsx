@@ -5,7 +5,7 @@ import {
   resetCoachCommandCenterMocks,
 } from './CoachCommandCenterPage.test.harness';
 
-type ExpectedTab = 'chat' | 'intake' | 'plaud';
+type ExpectedTab = 'chat' | 'intake' | 'plaud' | 'onboarding';
 
 const MERGE_ID = '11111111-2222-3333-4444-555555555555';
 
@@ -29,18 +29,28 @@ function expectActiveTab(tab: ExpectedTab) {
   const chat = screen.getByRole('tab', { name: /^Chat$/i });
   const intake = screen.getByRole('tab', { name: /^Intake/i });
   const plaud = screen.getByRole('tab', { name: /^PLAUD/i });
+  const onboarding = screen.getByRole('tab', { name: /^Workbench/i });
   expect(chat).toHaveAttribute('aria-selected', String(tab === 'chat'));
   expect(intake).toHaveAttribute('aria-selected', String(tab === 'intake'));
   expect(plaud).toHaveAttribute('aria-selected', String(tab === 'plaud'));
+  expect(onboarding).toHaveAttribute('aria-selected', String(tab === 'onboarding'));
   expect(chat).toHaveAttribute('aria-pressed', String(tab === 'chat'));
   expect(intake).toHaveAttribute('aria-pressed', String(tab === 'intake'));
   expect(plaud).toHaveAttribute('aria-pressed', String(tab === 'plaud'));
+  expect(onboarding).toHaveAttribute('aria-pressed', String(tab === 'onboarding'));
 }
 
-function expectMountedWorkspace(tab: ExpectedTab, activeIntakeId?: string, mergeLabel?: string) {
+async function expectMountedWorkspace(tab: ExpectedTab, activeIntakeId?: string, mergeLabel?: string) {
   expectActiveTab(tab);
 
   if (tab === 'chat') {
+    expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
+    return;
+  }
+
+  if (tab === 'onboarding') {
+    expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     return;
@@ -70,6 +80,7 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
     ['direct proposal', '/dashboard/admin/coach-assistant?proposal=proposal-123', 'intake'],
     ['proposal for intake', '/dashboard/admin/coach-assistant?intake=clip-111&proposal=proposal-123', 'intake', 'clip-111'],
     ['PLAUD workspace', '/dashboard/admin/coach-assistant?workspace=plaud', 'plaud'],
+    ['onboarding workbench', '/dashboard/admin/coach-assistant?workspace=onboarding&clientId=77', 'onboarding'],
     ['review next PLAUD', '/dashboard/admin/coach-assistant?review=next', 'plaud'],
     ['direct PLAUD merge', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}`, 'plaud', undefined, MERGE_ID],
     ['PLAUD wins over proposal', '/dashboard/admin/coach-assistant?workspace=plaud&proposal=proposal-123', 'plaud'],
@@ -77,10 +88,10 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
     ['review-next wins over proposal', '/dashboard/admin/coach-assistant?review=next&proposal=proposal-123', 'plaud'],
   ] as const)(
     'routes %s to %s',
-    (_label, route, tab, activeIntakeId, mergeLabel) => {
+    async (_label, route, tab, activeIntakeId, mergeLabel) => {
       renderPage(route);
 
-      expectMountedWorkspace(tab, activeIntakeId, mergeLabel);
+      await expectMountedWorkspace(tab, activeIntakeId, mergeLabel);
     },
   );
 
@@ -89,6 +100,7 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
 
     expect(screen.getByRole('tab', { name: /^Chat$/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
   });
 

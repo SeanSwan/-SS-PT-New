@@ -11,6 +11,10 @@ const SECTION_FILES = [
   'CoachCommandCenter.bridgeStyles.ts',
   'CoachClientBar.tsx',
   'CoachCommandTabBar.tsx',
+  'CoachCommandCenterWorkbenchPanel.tsx',
+  'CoachOnboardingWorkbench.tsx',
+  'CoachOnboardingWorkbench.logic.ts',
+  'CoachOnboardingWorkbench.styles.ts',
   'CoachChatTranscript.tsx',
   'CoachConsoleDock.tsx',
   'CoachCommandLeftRail.tsx',
@@ -28,6 +32,7 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain("from './CoachCommandCenter.controller'");
     expect(pageSource).toContain("from './useCoachCommandCenterDrawerEffects'");
     expect(pageSource).toContain("from './CoachCommandCenter.bridgeStyles'");
+    expect(pageSource).toContain("from './CoachCommandCenterWorkbenchPanel'");
     expect(pageSource).toContain("from './CoachChatTranscript'");
     expect(pageSource).toContain("from './CoachClientBar'");
     expect(pageSource).toContain("from './CoachCommandTabBar'");
@@ -36,6 +41,7 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain("from './CoachCommandOpsRail'");
     expect(pageSource).toContain('<CoachClientBar');
     expect(pageSource).toContain('<CoachCommandTabBar');
+    expect(pageSource).toContain('<CoachCommandCenterWorkbenchPanel');
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('<CoachConsoleDock');
     expect(pageSource).toContain('<CoachCommandLeftRail');

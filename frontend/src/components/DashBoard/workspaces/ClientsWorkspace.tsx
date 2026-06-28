@@ -34,6 +34,7 @@ import { useToast } from '../../../hooks/use-toast';
 import ClientsWorkspaceView from './ClientsWorkspace.view';
 import {
   buildClientDetailSearchParams,
+  buildClientOnboardingWorkbenchRoute,
   buildCreationHandoffCopyToast,
   copyTextToClipboard,
   getBrowserClipboard,
@@ -162,6 +163,10 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [navigate, navigateClientDailyRoute, selectedClient]);
 
+  const handleOpenOnboardingWorkbench = useCallback(() => {
+    navigate(buildClientOnboardingWorkbenchRoute(selectedClient));
+  }, [navigate, selectedClient]);
+
   const handleLogWorkout = useCallback(() => {
     if (selectedClient) {
       showClientDetailTab(selectedClient, 'training', 'logger');
@@ -265,6 +270,7 @@ const ClientsWorkspace: React.FC = () => {
       onSelectClient={handleSelectClient}
       onNewClient={handleNewClient}
       onOpenAI={handleOpenAI}
+      onOpenOnboardingWorkbench={handleOpenOnboardingWorkbench}
       onViewAsClient={handleViewAsClient}
       onDeactivateClient={handleDeactivateClient}
       onReactivateClient={handleReactivateClient}

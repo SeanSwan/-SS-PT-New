@@ -88,6 +88,7 @@ interface ClientsWorkspaceViewProps {
   onSelectClient: (client: ClientOption) => void;
   onNewClient: () => void;
   onOpenAI: () => void;
+  onOpenOnboardingWorkbench: () => void;
   onViewAsClient: () => void;
   onDeactivateClient: () => void;
   onReactivateClient: () => void;
@@ -255,6 +256,7 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       onSelectClient={props.onSelectClient}
       onNewClient={props.onNewClient}
       onOpenAI={props.onOpenAI}
+      onOpenOnboardingWorkbench={props.onOpenOnboardingWorkbench}
       onViewAsClient={props.onViewAsClient}
       onDeactivateClient={props.onDeactivateClient}
       onReactivateClient={props.onReactivateClient}

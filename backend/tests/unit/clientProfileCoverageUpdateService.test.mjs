@@ -33,6 +33,7 @@ describe('clientProfileCoverageUpdateService', () => {
       findOne: vi.fn(async () => null),
       create: coverageCreate,
     };
+    const createNotificationFn = vi.fn(async () => ({ success: true, notification: { id: 9001 } }));
 
     const result = await applyClientProfileCoverageUpdate({
       clientId: 42,
@@ -41,6 +42,7 @@ describe('clientProfileCoverageUpdateService', () => {
       db: fakeDb(),
       models,
       CoverageItemModel,
+      createNotificationFn,
       payload: {
         profileFields: {
           phone: '555-0100',
@@ -97,12 +99,20 @@ describe('clientProfileCoverageUpdateService', () => {
       }),
     }), expect.objectContaining({ transaction: { id: 'tx' } }));
 
+    expect(createNotificationFn).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      senderId: 7,
+      type: 'client',
+      message: 'Please complete a secure onboarding follow-up for Health, injuries, and risk in your dashboard.',
+    }));
+
     expect(result).toEqual(expect.objectContaining({
       clientId: 42,
       profileUpdated: true,
       questionnaireUpdated: true,
       coverageUpdated: 1,
       onboardingComplete: false,
+      followUpNotifications: expect.objectContaining({ requested: 1, created: 1, failed: 0 }),
     }));
   });
 

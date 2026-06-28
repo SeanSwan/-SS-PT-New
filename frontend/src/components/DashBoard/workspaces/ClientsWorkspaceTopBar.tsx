@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { ClipboardList, Eye, KeyRound, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Eye, KeyRound, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
 import { ActionBtn, TopBar, TopBarActions } from './ClientsWorkspace.styles';
 import ClientSelectorDropdown, { type ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
@@ -15,6 +15,7 @@ interface ClientsWorkspaceTopBarProps {
   onSelectClient: (client: ClientOption) => void;
   onNewClient: () => void;
   onOpenAI: () => void;
+  onOpenOnboardingWorkbench: () => void;
   onViewAsClient: () => void;
   onDeactivateClient: () => void;
   onReactivateClient: () => void;
@@ -30,6 +31,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
   onSelectClient,
   onNewClient,
   onOpenAI,
+  onOpenOnboardingWorkbench,
   onViewAsClient,
   onDeactivateClient,
   onReactivateClient,
@@ -81,6 +83,15 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               </ActionBtn>
               <ActionBtn
                 type="button"
+                onClick={onOpenOnboardingWorkbench}
+                aria-label="Open onboarding workbench"
+                title="Open onboarding workbench"
+              >
+                <ClipboardCheck size={16} />
+                <span>Workbench</span>
+              </ActionBtn>
+              <ActionBtn
+                type="button"
                 onClick={onManageAssignments}
                 aria-label="Trainer assignments"
                 title="Manage trainer/client assignments"
@@ -89,6 +100,17 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
                 <span>Trainer Assignments</span>
               </ActionBtn>
             </>
+          )}
+          {selectedClient && (
+            <ActionBtn
+              type="button"
+              onClick={onOpenOnboardingWorkbench}
+              aria-label={`Open onboarding workbench for ${selectedClientName}`}
+              title={`Open ${selectedClientName}'s onboarding workbench`}
+            >
+              <ClipboardCheck size={16} />
+              <span>Workbench</span>
+            </ActionBtn>
           )}
           {selectedClient && (
             <ActionBtn

@@ -8,6 +8,7 @@ const baseProps = {
   onSelectClient: vi.fn(),
   onNewClient: vi.fn(),
   onOpenAI: vi.fn(),
+  onOpenOnboardingWorkbench: vi.fn(),
   onViewAsClient: vi.fn(),
   onDeactivateClient: vi.fn(),
   onReactivateClient: vi.fn(),
@@ -51,16 +52,40 @@ describe('ClientsWorkspaceTopBar', () => {
     expect(screen.getByRole('button', { name: /new client/i })).toHaveAttribute('type', 'button');
   });
 
+  it('opens the onboarding workbench from selected and empty states', () => {
+    const onOpenOnboardingWorkbench = vi.fn();
+    const selectedClient = {
+      id: 424242,
+      firstName: 'Ava',
+      lastName: 'Stone',
+      email: 'ava@example.test',
+      isActive: true,
+    };
+
+    const { rerender } = render(
+      <ClientsWorkspaceTopBar {...baseProps} onOpenOnboardingWorkbench={onOpenOnboardingWorkbench} selectedClient={null} />
+    );
+    screen.getByRole('button', { name: /^Open onboarding workbench$/i }).click();
+
+    rerender(
+      <ClientsWorkspaceTopBar {...baseProps} onOpenOnboardingWorkbench={onOpenOnboardingWorkbench} selectedClient={selectedClient} />
+    );
+    screen.getByRole('button', { name: /open onboarding workbench for ava stone/i }).click();
+
+    expect(onOpenOnboardingWorkbench).toHaveBeenCalledTimes(2);
+  });
   it('prioritizes onboarding actions before support actions when no client is selected', () => {
     render(<ClientsWorkspaceTopBar {...baseProps} selectedClient={null} />);
 
     const newClient = screen.getByRole('button', { name: /new client/i });
     const manualAdd = screen.getByRole('button', { name: /manual add/i });
     const swanCoach = screen.getByRole('button', { name: /open swan coach/i });
+    const workbench = screen.getByRole('button', { name: /open onboarding workbench/i });
     const trainerAssignments = screen.getByRole('button', { name: /trainer assignments/i });
 
     expect(newClient.compareDocumentPosition(manualAdd) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(manualAdd.compareDocumentPosition(swanCoach) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(swanCoach.compareDocumentPosition(trainerAssignments) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(swanCoach.compareDocumentPosition(workbench) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(workbench.compareDocumentPosition(trainerAssignments) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

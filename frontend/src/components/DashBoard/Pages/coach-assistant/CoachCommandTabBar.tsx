@@ -7,9 +7,9 @@
  * past conversations. Badges surface pending counts without opening the tab.
  */
 import React from 'react';
-import { History, Inbox, FileAudio, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, History, Inbox, FileAudio, MessageSquare } from 'lucide-react';
 
-export type CoachTab = 'chat' | 'intake' | 'plaud' | 'history';
+export type CoachTab = 'chat' | 'intake' | 'plaud' | 'onboarding' | 'history';
 
 type CoachCommandTabBarProps = {
   activeTab: CoachTab;
@@ -23,6 +23,7 @@ const TABS: { id: CoachTab; label: string; Icon: typeof MessageSquare }[] = [
   { id: 'chat', label: 'Chat', Icon: MessageSquare },
   { id: 'intake', label: 'Intake', Icon: Inbox },
   { id: 'plaud', label: 'PLAUD', Icon: FileAudio },
+  { id: 'onboarding', label: 'Workbench', Icon: ClipboardCheck },
   { id: 'history', label: 'History', Icon: History },
 ];
 

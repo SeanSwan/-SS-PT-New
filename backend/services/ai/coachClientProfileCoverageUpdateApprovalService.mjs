@@ -6,6 +6,7 @@
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
 import { applyClientProfileCoverageUpdate } from '../clientProfileCoverageUpdateService.mjs';
+import { createNotification } from '../../controllers/notificationController.mjs';
 
 export async function approveClientProfileCoverageUpdateProposal({
   id,
@@ -36,6 +37,7 @@ export async function approveClientProfileCoverageUpdateProposal({
       actorId: req.user.id,
       payload,
       proposalId: id,
+      createNotificationFn: createNotification,
       db,
     });
   } catch (err) {

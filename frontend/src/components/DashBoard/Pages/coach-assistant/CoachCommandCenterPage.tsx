@@ -15,6 +15,7 @@ import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsRail from './CoachCommandOpsRail';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
+import CoachCommandCenterWorkbenchPanel from './CoachCommandCenterWorkbenchPanel';
 import CoachConsoleDock from './CoachConsoleDock';
 import CoachIntakeWorkspace from './CoachIntakeWorkspace';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
@@ -35,7 +36,7 @@ const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);
   const commandCenter = useCoachCommandCenterController({ userRole });
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
   const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
   const hasOperatorRouteContext = hasCoachOperatorRouteContext(searchParams);
@@ -55,7 +56,6 @@ const CoachCommandCenterPage: React.FC = () => {
     rightRailRef: commandCenter.rightRailRef,
     shellRef: commandCenter.shellRef,
   });
-
   const nextActionLabel =
     isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
@@ -80,7 +80,6 @@ const CoachCommandCenterPage: React.FC = () => {
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
   const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';
   const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
-
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
     commandCenter.handleThreadSelect(thread);
     setOperatorTouchedTab(true);
@@ -214,7 +213,7 @@ const CoachCommandCenterPage: React.FC = () => {
               </article>
             </div>
           ) : null}
-
+          {!isClientMode && activeTab === 'onboarding' ? <CoachCommandCenterWorkbenchPanel commandCenter={commandCenter} searchParams={searchParams} selectedClientLabel={selectedDisplayLabel} setSearchParams={setSearchParams} /> : null}
           {activeTab === 'history' ? (
             <div className="tab-scroll" id="coach-tabpanel-history" role="tabpanel" aria-labelledby="coach-tab-history">
               <CoachCommandLeftRail

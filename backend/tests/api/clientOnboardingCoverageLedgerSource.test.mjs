@@ -9,6 +9,7 @@ describe('client onboarding coverage ledger source contract', () => {
   it('persists the coverage ledger with the expected statuses and uniqueness', () => {
     const modelSource = read('models/ClientOnboardingCoverageItem.mjs');
     const migrationSource = read('migrations/20260628070000-create-client-onboarding-coverage-items.cjs');
+    const followUpMigrationSource = read('migrations/20260628080500-add-client-onboarding-follow-up-timestamps.cjs');
 
     for (const status of ['known', 'unknown', 'trainer_pending', 'client_requested', 'not_applicable', 'blocked']) {
       expect(modelSource).toContain(status);
@@ -20,6 +21,10 @@ describe('client onboarding coverage ledger source contract', () => {
     expect(migrationSource).toContain("'client_onboarding_coverage_items'");
     expect(migrationSource).toContain("['clientId', 'coverageKey']");
     expect(migrationSource).toContain('unique: true');
+    expect(modelSource).toContain('requestedFromClientAt');
+    expect(modelSource).toContain('resolvedAt');
+    expect(followUpMigrationSource).toContain('requestedFromClientAt');
+    expect(followUpMigrationSource).toContain('resolvedAt');
   });
 
   it('registers the model in the central model cache and associations', () => {
@@ -33,6 +38,16 @@ describe('client onboarding coverage ledger source contract', () => {
     expect(associationsSource).toContain('ClientOnboardingCoverageItem');
   });
 
+
+  it('keeps client follow-up notifications in-app and sensitive-safe', () => {
+    const followUpSource = read('services/clientOnboardingFollowUpNotificationService.mjs');
+
+    expect(followUpSource).toContain("type: 'client'");
+    expect(followUpSource).toContain('secure onboarding follow-up');
+    expect(followUpSource).not.toContain('sendEmail');
+    expect(followUpSource).not.toContain('sendSMS');
+    expect(followUpSource).not.toContain('smsBody');
+  });
   it('keeps workout logging independent from coverage completeness', () => {
     const workoutServiceSource = read('services/workout/aiWorkoutDailyFormService.mjs');
     const workoutDispatcherSource = read('services/ai/dispatchers/workoutLogWriteDispatcher.mjs');

@@ -133,6 +133,21 @@ export const buildClientDetailSearchParams = (
   ...loggerLoadPlanParam(tab, trainingSection),
 });
 
+export const buildClientOnboardingWorkbenchRoute = (
+  client?: Pick<ClientOption, 'id'> | null,
+): string => {
+  const params = new URLSearchParams({
+    workspace: 'onboarding',
+    source: 'clients-team',
+    intent: client?.id ? 'client_profile_coverage_update' : 'client_onboarding',
+    returnTo: client?.id
+      ? `/dashboard/admin/client-management?clientId=${client.id}&tab=overview`
+      : '/dashboard/admin/client-management',
+  });
+  if (client?.id) params.set('clientId', String(client.id));
+  return `/dashboard/admin/coach-assistant?${params.toString()}`;
+};
+
 export const getBrowserClipboard = (): ClipboardWriter | null => {
   if (typeof navigator === 'undefined') return null;
   return navigator.clipboard || null;

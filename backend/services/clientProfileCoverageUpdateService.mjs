@@ -10,6 +10,7 @@ import {
   isPlainObject,
 } from '../utils/onboardingHelpers.mjs';
 import { upsertCoverageItems } from './clientOnboardingCoverageLedgerWriteService.mjs';
+import { createClientCoverageFollowUpNotifications } from './clientOnboardingFollowUpNotificationService.mjs';
 
 const PROFILE_FIELD_LIMITS = Object.freeze({
   phone: 64,
@@ -97,6 +98,19 @@ async function updateQuestionnaire({ ClientOnboardingQuestionnaire, clientId, ac
   return { id: created?.id ?? null, action: 'created' };
 }
 
+const emptyFollowUpResult = () => ({ requested: 0, created: 0, skipped: 0, failed: 0, items: [] });
+
+async function maybeCreateFollowUps({ clientId, actorId, coverageItems, createNotificationFn, CoverageItemModel }) {
+  if (typeof createNotificationFn !== 'function') return emptyFollowUpResult();
+  return createClientCoverageFollowUpNotifications({
+    clientId,
+    actorId,
+    coverageItems,
+    createNotificationFn,
+    CoverageItemModel,
+  });
+}
+
 export async function applyClientProfileCoverageUpdate({
   clientId,
   actorId,
@@ -105,6 +119,7 @@ export async function applyClientProfileCoverageUpdate({
   db,
   models = null,
   CoverageItemModel = null,
+  createNotificationFn = null,
 } = {}) {
   const profileFields = normalizeProfileFields(payload.profileFields || payload.profileUpdates || payload.profile);
   const questionnaireResponses = normalizeResponses(
@@ -115,7 +130,7 @@ export async function applyClientProfileCoverageUpdate({
   if (!hasWork({ profileFields, questionnaireResponses, coverageUpdates })) throw emptyUpdateError();
 
   const targetModels = models || getAllModels();
-  return withTransaction(db, async (transaction) => {
+  const updateResult = await withTransaction(db, async (transaction) => {
     const user = await targetModels.User?.findByPk?.(clientId, { transaction });
     if (!user?.update) throw notFoundError();
 
@@ -157,4 +172,17 @@ export async function applyClientProfileCoverageUpdate({
       onboardingComplete: false,
     };
   });
+
+  const followUpNotifications = await maybeCreateFollowUps({
+    clientId,
+    actorId,
+    coverageItems: updateResult.coverageItems,
+    createNotificationFn,
+    CoverageItemModel,
+  });
+
+  return {
+    ...updateResult,
+    followUpNotifications,
+  };
 }

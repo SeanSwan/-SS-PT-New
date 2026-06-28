@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildClientDetailSearchParams,
+  buildClientOnboardingWorkbenchRoute,
   buildCreationHandoffCopyToast,
   copyTextToClipboard,
   getClientDetailTabFromSearchParams,
@@ -29,6 +30,19 @@ describe('ClientsWorkspace route state parsing', () => {
       clientId: '61',
       tab: 'progress',
     });
+  });
+
+  it('builds Coach Workbench routes for selected and new-client onboarding', () => {
+    const selectedRoute = new URL(buildClientOnboardingWorkbenchRoute({ id: 61 }), 'https://app.example.test');
+    expect(selectedRoute.pathname).toBe('/dashboard/admin/coach-assistant');
+    expect(selectedRoute.searchParams.get('workspace')).toBe('onboarding');
+    expect(selectedRoute.searchParams.get('intent')).toBe('client_profile_coverage_update');
+    expect(selectedRoute.searchParams.get('clientId')).toBe('61');
+    expect(selectedRoute.searchParams.get('returnTo')).toBe('/dashboard/admin/client-management?clientId=61&tab=overview');
+
+    const newClientRoute = new URL(buildClientOnboardingWorkbenchRoute(null), 'https://app.example.test');
+    expect(newClientRoute.searchParams.get('intent')).toBe('client_onboarding');
+    expect(newClientRoute.searchParams.has('clientId')).toBe(false);
   });
 
   it('accepts the workout-history return section after a saved full-page log', () => {

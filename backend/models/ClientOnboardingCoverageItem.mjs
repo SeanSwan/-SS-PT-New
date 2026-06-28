@@ -76,6 +76,14 @@ ClientOnboardingCoverageItem.init(
       allowNull: false,
       defaultValue: false,
     },
+    requestedFromClientAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    resolvedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     blockerReason: {
       type: DataTypes.STRING(500),
       allowNull: true,

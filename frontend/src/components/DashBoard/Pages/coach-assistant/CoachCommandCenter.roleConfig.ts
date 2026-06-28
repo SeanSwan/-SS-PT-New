@@ -5,7 +5,7 @@ export type CoachCommandRole = 'admin' | 'trainer' | 'client';
 export const CLIENT_WORKOUTS_ROUTE = '/dashboard/client/workouts';
 export const CLIENT_NEXT_ACTION_LABEL = 'Log today or choose the next safe move';
 
-const OPERATOR_TABS: CoachTab[] = ['chat', 'intake', 'plaud', 'history'];
+const OPERATOR_TABS: CoachTab[] = ['chat', 'intake', 'plaud', 'onboarding', 'history'];
 const CLIENT_TABS: CoachTab[] = ['chat', 'history'];
 
 
@@ -15,7 +15,8 @@ function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
     workspace === 'chat' ||
     workspace === 'intake' ||
     workspace === 'history' ||
-    workspace === 'plaud'
+    workspace === 'plaud' ||
+    workspace === 'onboarding'
   ) return workspace;
 
   if (
