@@ -32,7 +32,7 @@ describe('ClientCreationHandoffPanel', () => {
     expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent('Claim link ready');
     expect(screen.getByText(/Move Client \(move.client@example.test\)/)).toBeInTheDocument();
     expect(screen.queryByText(/temporary/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/NeverExpose/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /copy claim link/i }));
     await user.click(screen.getByRole('button', { name: /copy claim code/i }));
@@ -62,6 +62,37 @@ describe('ClientCreationHandoffPanel', () => {
     expect(screen.queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
   });
 
+  it('renders and copies the reset-link-ready handoff without exposing passwords', async () => {
+    const user = userEvent.setup();
+    const onCopy = vi.fn();
+    const resetUrl = 'https://sswanstudios.com/reset-password/raw-token';
+
+    render(
+      <ClientCreationHandoffPanel
+        handoff={{
+          ...baseHandoff,
+          clientSource: 'swanstudios',
+          credentialMode: 'reset_link_ready',
+          claimCode: undefined,
+          claimUrl: undefined,
+          resetEmailSent: false,
+          resetUrl,
+          message: 'Email delivery did not complete. Copy this one-hour reset link directly to the client.',
+        }}
+        onDismiss={vi.fn()}
+        onCopy={onCopy}
+      />
+    );
+
+    expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent('Reset link ready to copy');
+    expect(screen.queryByText(/temporary/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/NeverExpose/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /copy reset link/i }));
+
+    expect(onCopy).toHaveBeenCalledWith(resetUrl, 'Reset link');
+    expect(screen.queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
+  });
   it('dismisses the handoff panel from a 44px touch target', async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();

@@ -65,7 +65,7 @@ const Harness = ({ onClientsChanged }: { onClientsChanged: () => void }) => {
       </button>
       {creationHandoff && (
         <output data-testid="creation-handoff">
-          {creationHandoff.clientName} {creationHandoff.credentialMode} {creationHandoff.claimUrl || ''}
+          {creationHandoff.clientName} {creationHandoff.credentialMode} {creationHandoff.claimUrl || creationHandoff.resetUrl || ''}
           {'temporaryPassword' in creationHandoff ? ' password leaked' : ''}
         </output>
       )}
@@ -105,7 +105,7 @@ describe('useManualClientCreation', () => {
     expect(onClientsChanged).toHaveBeenCalledTimes(1);
   });
 
-  it('sends a secure login reset link after SwanStudios manual client creation', async () => {
+  it('does not send a duplicate reset email when create response lacks reset handoff status', async () => {
     const user = userEvent.setup();
     const onClientsChanged = vi.fn();
     mocks.createClient.mockResolvedValue({
@@ -114,14 +114,10 @@ describe('useManualClientCreation', () => {
         client: {
           id: 7,
           firstName: 'Login',
-          lastName: 'Ready',
-          email: 'login.ready@example.test',
+          lastName: 'Needs Review',
+          email: 'login.needs.review@example.test',
         },
       },
-    });
-    mocks.sendClientPasswordReset.mockResolvedValue({
-      success: true,
-      data: { credentialAction: 'reset_email_sent', resetEmailSent: true },
     });
 
     render(<Harness onClientsChanged={onClientsChanged} />);
@@ -129,14 +125,14 @@ describe('useManualClientCreation', () => {
     await user.click(screen.getByRole('button', { name: /create swan/i }));
 
     await waitFor(() => {
-      expect(mocks.sendClientPasswordReset).toHaveBeenCalledWith('7');
+      expect(mocks.createClient).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByTestId('creation-handoff')).toHaveTextContent('reset_link_sent');
+    expect(mocks.sendClientPasswordReset).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('creation-handoff')).toHaveTextContent('reset_link_needed');
     expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({
-      description: expect.stringMatching(/secure login link/i),
+      variant: 'destructive',
     }));
   });
-
   it('uses the backend reset handoff without sending a duplicate reset email', async () => {
     const user = userEvent.setup();
     const onClientsChanged = vi.fn();
@@ -163,6 +159,37 @@ describe('useManualClientCreation', () => {
     });
     expect(mocks.sendClientPasswordReset).not.toHaveBeenCalled();
     expect(await screen.findByTestId('creation-handoff')).toHaveTextContent('reset_link_sent');
+  });
+  it('uses the backend manual reset link without sending a duplicate reset email', async () => {
+    const user = userEvent.setup();
+    const onClientsChanged = vi.fn();
+    mocks.createClient.mockResolvedValue({
+      success: true,
+      data: {
+        client: {
+          id: 7,
+          firstName: 'Manual',
+          lastName: 'Fallback',
+          email: 'manual.fallback@example.test',
+        },
+        credentialAction: 'reset_link_ready',
+        resetEmailSent: false,
+        resetUrl: 'https://sswanstudios.com/reset-password/raw-token',
+        expiresInMinutes: 60,
+      },
+    });
+
+    render(<Harness onClientsChanged={onClientsChanged} />);
+
+    await user.click(screen.getByRole('button', { name: /create swan/i }));
+
+    await waitFor(() => {
+      expect(mocks.createClient).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.sendClientPasswordReset).not.toHaveBeenCalled();
+    const handoff = await screen.findByTestId('creation-handoff');
+    expect(handoff).toHaveTextContent('reset_link_ready');
+    expect(handoff).toHaveTextContent('https://sswanstudios.com/reset-password/raw-token');
   });
   it('keeps Move Fitness manual creation on the claim-link activation path', async () => {
     const user = userEvent.setup();

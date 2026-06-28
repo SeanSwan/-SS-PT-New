@@ -586,13 +586,9 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     if (!formData.firstName.trim()) errors.firstName = 'First name is required';
     if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
     if (!normalizedEmail) errors.email = 'Email is required';
-    // Username/password only required for SwanStudios clients
+    // SwanStudios clients need a username; login is handed off by secure reset link.
     if (!isExternal) {
       if (!formData.username.trim()) errors.username = 'Username is required';
-      if (!formData.password.trim()) errors.password = 'Password is required';
-      else if (!/^(?=.*[a-zA-Z])(?=.*\d).{8,}$/.test(formData.password)) {
-        errors.password = 'Password must be 8+ characters with at least one letter and one number';
-      }
     }
 
     // Email validation
@@ -633,9 +629,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
         emergencyContact: formData.emergencyContact || undefined,
         trainerId: formData.trainerId || undefined,
       };
+      delete (cleanData as Partial<CreateClientRequest>).password;
+
       if (isExternal) {
         delete (cleanData as Partial<CreateClientRequest>).username;
-        delete (cleanData as Partial<CreateClientRequest>).password;
       }
 
       await onSubmit(cleanData);
@@ -748,8 +745,13 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 {isExternal && (
                   <ExternalNote style={{ marginTop: 10 }}>
                     {normalizedClientSource === 'move_fitness'
-                      ? 'Move Fitness client — gets full tool access (Workout Log, Food Logger, Body Map, Social) with 0 SwanStudios sessions. Username and password auto-generated.'
-                      : 'External client — gets full tool access with 0 SwanStudios sessions.'}
+                      ? 'Move Fitness client - gets full tool access (Workout Log, Food Logger, Body Map, Social) with 0 SwanStudios sessions. Account access is handled by a claim link.'
+                      : 'External client - gets full tool access with 0 SwanStudios sessions. Account access is handled by a claim link.'}
+                  </ExternalNote>
+                )}
+                {!isExternal && (
+                  <ExternalNote style={{ marginTop: 10 }}>
+                    SwanStudios clients receive a secure reset link after creation. No temporary password is shown or copied.
                   </ExternalNote>
                 )}
               </FullWidthCell>
@@ -819,22 +821,6 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 </FieldGroup>
               )}
 
-              {!isExternal && (
-                <FieldGroup>
-                  <FieldLabel htmlFor="ccm-password">Password *</FieldLabel>
-                  <StyledInput
-                    id="ccm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    $error={!!fieldErrors.password}
-                    aria-describedby={fieldErrors.password ? 'ccm-password-error' : undefined}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    disabled={loading}
-                  />
-                  {fieldErrors.password && <FieldError id="ccm-password-error">{fieldErrors.password}</FieldError>}
-                </FieldGroup>
-              )}
 
               <FieldGroup>
                 <FieldLabel htmlFor="ccm-phone">Phone Number</FieldLabel>

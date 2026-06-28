@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import {
+  BackgroundSettingsSlot,
   ClientDashboardShell,
   ContentGrid,
   DashboardFrame,
@@ -41,6 +42,7 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
       <DashboardFrame $embedded={embedded}>
         {!embedded && <ClientSidebar onNavigate={props.onNavigate} onTarget={props.onTarget} />}
         <MainCanvas $embedded={embedded}>
+          {props.backgroundSettings && <BackgroundSettingsSlot>{props.backgroundSettings}</BackgroundSettingsSlot>}
           <ContentGrid>
             <PrimaryStack>
               <ClientProfileHero {...props} />

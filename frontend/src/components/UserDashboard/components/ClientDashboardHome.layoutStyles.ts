@@ -24,10 +24,13 @@ export const ClientDashboardShell = styled.div<{ $embedded?: boolean }>`
   min-height: ${({ $embedded }) => ($embedded ? 'auto' : '100vh')};
   border: ${({ $embedded }) => ($embedded ? '1px solid color-mix(in srgb, var(--client-teal) 16%, transparent)' : '0')};
   border-radius: ${({ $embedded }) => ($embedded ? '18px' : '0')};
-  background:
-    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--client-teal) 16%, transparent), transparent 28rem),
-    radial-gradient(circle at 86% 6%, color-mix(in srgb, var(--client-blue) 18%, transparent), transparent 34rem),
-    linear-gradient(180deg, var(--client-bg), color-mix(in srgb, var(--client-bg) 86%, var(--client-black)));
+  background: ${({ $embedded }) => ($embedded
+    ? 'transparent'
+    : `
+      radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--client-teal) 16%, transparent), transparent 28rem),
+      radial-gradient(circle at 86% 6%, color-mix(in srgb, var(--client-blue) 18%, transparent), transparent 34rem),
+      linear-gradient(180deg, var(--client-bg), color-mix(in srgb, var(--client-bg) 86%, var(--client-black)))`
+  )};
   color: var(--client-text);
   font-family: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
   overflow-x: hidden;
@@ -278,6 +281,10 @@ export const MainCanvas = styled.main<{ $embedded?: boolean }>`
   @media (max-width: 760px) {
     padding: 14px 12px 22px;
   }
+`;
+
+export const BackgroundSettingsSlot = styled.div`
+  margin-bottom: 14px;
 `;
 
 export const ContentGrid = styled.div`

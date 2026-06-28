@@ -8,11 +8,16 @@ import { motion } from 'framer-motion';
 
 import { CommandHeader } from './overview/AdminOverview.styles';
 import AdminOverviewPanel from './overview/AdminOverviewPanel';
+import {
+  DashboardBackgroundSettingsPanel,
+  DashboardBackgroundSurface,
+} from '../../shared/DashboardBackgroundStudio';
 
 // === MAIN ADMIN DASHBOARD COMPONENT ===
 // NOTE: Uses universal theme from UniversalThemeContext (provided by parent)
 // Removed standalone ThemeProvider/adminGalaxyTheme to connect to site-wide theme system
 const RevolutionaryAdminDashboard: React.FC = () => (
+  <DashboardBackgroundSurface>
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -28,6 +33,8 @@ const RevolutionaryAdminDashboard: React.FC = () => (
       <p>Your administrative command center for platform oversight</p>
     </CommandHeader>
 
+    <DashboardBackgroundSettingsPanel scopeLabel="Admin" />
+
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -36,6 +43,7 @@ const RevolutionaryAdminDashboard: React.FC = () => (
       <AdminOverviewPanel />
     </motion.div>
   </motion.div>
+  </DashboardBackgroundSurface>
 );
 
 export { RevolutionaryAdminDashboard };

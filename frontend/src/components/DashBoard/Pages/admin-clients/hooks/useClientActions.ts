@@ -29,6 +29,26 @@ interface UseClientActionsParams {
   requestConfirmation: (request: ClientActionConfirmationRequest) => void;
 }
 
+const resetResponseData = (response: any): Record<string, unknown> => (
+  typeof response?.data === 'object' && response.data !== null && !Array.isArray(response.data)
+    ? response.data
+    : {}
+);
+
+const resetUrlFromResponse = (response: any): string | null => {
+  const resetUrl = resetResponseData(response).resetUrl;
+  return typeof resetUrl === 'string' && resetUrl.trim() ? resetUrl.trim() : null;
+};
+
+const copyResetUrl = async (resetUrl: string | null): Promise<boolean> => {
+  if (!resetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return false;
+  try {
+    await navigator.clipboard.writeText(resetUrl);
+    return true;
+  } catch {
+    return false;
+  }
+};
 export function useClientActions({
   adminClientService,
   toast,
@@ -100,9 +120,14 @@ export function useClientActions({
       onConfirm: async () => {
         try {
           const response = await adminClientService.sendClientPasswordReset(client.id);
+          const resetUrl = resetUrlFromResponse(response);
+          const copied = await copyResetUrl(resetUrl);
+          const resetReady = response?.data?.credentialAction === 'reset_link_ready' && Boolean(resetUrl);
           toast({
-            title: response?.success ? 'Reset link sent' : 'Error',
-            description: response?.message || 'Password reset email sent.',
+            title: response?.success ? (resetReady ? 'Reset link copied' : 'Reset link sent') : 'Error',
+            description: resetReady
+              ? (copied ? 'Email delivery failed, so the secure one-hour reset link was copied for manual handoff.' : 'Email delivery failed, but a secure one-hour reset link was generated. Copy from a browser with clipboard access.')
+              : (response?.message || 'Password reset email sent.'),
             variant: response?.success ? 'default' : 'destructive',
           });
         } catch (error: any) {

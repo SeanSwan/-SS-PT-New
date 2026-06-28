@@ -11,6 +11,10 @@ import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, Brain, Cli
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
 import {
+  DashboardBackgroundSettingsPanel,
+  DashboardBackgroundSurface,
+} from '../../shared/DashboardBackgroundStudio';
+import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
   buildTrainerSessionPlannerRoute,
@@ -104,6 +108,7 @@ const TrainerHomeTab: React.FC = () => {
   ];
 
   return (
+    <DashboardBackgroundSurface>
     <TrainerHomePageShell>
       <TrainerHomeObservatoryHero
         trainerName={trainerName}
@@ -117,6 +122,8 @@ const TrainerHomeTab: React.FC = () => {
         lenses={TRAINER_OBSERVATORY_LENSES}
         onNavigate={navigate}
       />
+
+      <DashboardBackgroundSettingsPanel scopeLabel="Trainer" />
 
       <TrainerHomeMainGrid>
         <TrainerHomePrimaryColumn>
@@ -241,6 +248,7 @@ const TrainerHomeTab: React.FC = () => {
         </TrainerHomeSideColumn>
       </TrainerHomeMainGrid>
     </TrainerHomePageShell>
+    </DashboardBackgroundSurface>
   );
 };
 

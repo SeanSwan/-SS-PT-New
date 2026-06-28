@@ -104,6 +104,8 @@ const CREATED_CLIENT_RESPONSE = {
         lastName: 'Client',
         email: 'manual.client@example.test',
       },
+      credentialAction: 'reset_link_sent',
+      resetEmailSent: true,
     },
   },
 };
@@ -175,12 +177,11 @@ describe('ClientsWorkspace manual client creation fallback', () => {
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Client' } });
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'manual.client@example.test' } });
     fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'manual.client' } });
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
     fireEvent.change(await screen.findByLabelText(/assign trainer/i), { target: { value: '99' } });
 
     fireEvent.click(screen.getByRole('button', { name: /create client/i }));
 
-    await waitFor(() => expect(mockAuthAxiosPost).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockAuthAxiosPost).toHaveBeenCalledTimes(1));
     const [path, payload] = mockAuthAxiosPost.mock.calls[0];
     expect(path).toBe('/api/admin/clients');
     expect(payload).toEqual(expect.objectContaining({
@@ -192,11 +193,7 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       role: 'client',
       isActive: true,
     }));
-    expect(mockAuthAxiosPost).toHaveBeenCalledWith(
-      '/api/admin/clients/5150/send-password-reset',
-      {},
-      undefined,
-    );
+    expect(mockAuthAxiosPost).not.toHaveBeenCalledWith('/api/admin/clients/5150/send-password-reset', {}, undefined);
     await waitFor(() => {
       const clientListCalls = mockAuthAxiosGet.mock.calls.filter(([url]) => url === '/api/admin/clients');
       expect(clientListCalls.length).toBeGreaterThanOrEqual(2);

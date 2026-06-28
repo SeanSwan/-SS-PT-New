@@ -77,8 +77,9 @@ describe('admin client route security contract', () => {
 
   it('sends admin client password resets through the reset-email service without raw passwords', () => {
     expect(adminClientRouteSource).toContain("router.post('/clients/:clientId/send-password-reset'");
-    expect(adminClientControllerSource).toContain('sendPasswordResetEmailForUser(client)');
-    expect(adminClientControllerSource).toContain("credentialAction: 'reset_email_sent'");
+    expect(adminClientControllerSource).toContain('sendPasswordResetEmailForUser(client, { includeResetUrl: true })');
+    expect(adminClientControllerSource).toContain("credentialAction = resetCredentialActionFor(resetEmailSent, resetHandoff.resetUrl)");
+    expect(adminClientControllerSource).toContain("reset_link_ready");
     expect(adminClientControllerSource).not.toContain('await client.update({ password: newPassword })');
     expect(adminClientControllerSource).not.toContain('const { newPassword } = req.body');
     expect(frontendAdminClientServiceSource).toContain("this.api.post(`/admin/clients/${clientId}/send-password-reset`");

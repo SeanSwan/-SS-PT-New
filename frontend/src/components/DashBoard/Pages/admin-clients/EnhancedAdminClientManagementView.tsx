@@ -1291,6 +1291,26 @@ const emptyQuickStats: ClientQuickStats = {
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error && error.message ? error.message : fallback;
 
+const resetResponseData = (response: any): Record<string, unknown> => (
+  typeof response?.data === 'object' && response.data !== null && !Array.isArray(response.data)
+    ? response.data
+    : {}
+);
+
+const resetUrlFromResponse = (response: any): string | null => {
+  const resetUrl = resetResponseData(response).resetUrl;
+  return typeof resetUrl === 'string' && resetUrl.trim() ? resetUrl.trim() : null;
+};
+
+const copyResetUrl = async (resetUrl: string | null): Promise<boolean> => {
+  if (!resetUrl || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) return false;
+  try {
+    await navigator.clipboard.writeText(resetUrl);
+    return true;
+  } catch {
+    return false;
+  }
+};
 const toExternalClientRequest = (data: CreateClientRequest): CreateExternalClientRequest => ({
   firstName: data.firstName,
   lastName: data.lastName,
@@ -1520,10 +1540,15 @@ const EnhancedAdminClientManagementView: React.FC = () => {
     const clientName = `${client.firstName} ${client.lastName}`.trim() || 'this client';
     setPasswordResetBusy(true);
     try {
-      await adminClientService.sendClientPasswordReset(client.id);
+      const response = await adminClientService.sendClientPasswordReset(client.id);
+      const resetUrl = resetUrlFromResponse(response);
+      const copied = await copyResetUrl(resetUrl);
+      const resetReady = response?.data?.credentialAction === 'reset_link_ready' && Boolean(resetUrl);
       toast({
-        title: "Reset Link Sent",
-        description: `Password reset email sent to ${clientName}.`,
+        title: resetReady ? "Reset Link Copied" : "Reset Link Sent",
+        description: resetReady
+          ? (copied ? `Email delivery failed for ${clientName}, so the secure one-hour reset link was copied for manual handoff.` : `Email delivery failed for ${clientName}, but a secure one-hour reset link was generated. Copy from a browser with clipboard access.`)
+          : `Password reset email sent to ${clientName}.`,
         variant: "default"
       });
     } catch (error: unknown) {
