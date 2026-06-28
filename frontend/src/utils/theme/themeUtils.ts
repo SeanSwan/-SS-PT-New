@@ -195,9 +195,13 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --surface-primary: ${theme.background.secondary};
     --surface-secondary: ${theme.background.elevated};
     --surface-tertiary: ${theme.background.surface};
+    --surface-accent: ${theme.background.secondary};
+    --surface-elevated: ${theme.background.elevated};
     --bg-card: ${theme.background.elevated};
+    --shadow-ambient: ${theme.shadows.elevation};
     --button-primary: ${buttonPrimaryBg};
     --button-primary-bg: ${buttonPrimaryBg};
+    --btn-primary-bg: ${buttonPrimaryBg};
     --button-primary-text: ${buttonPrimaryText};
     --button-secondary-bg: ${theme.colors.secondary};
     --button-secondary-text: ${buttonSecondaryText};

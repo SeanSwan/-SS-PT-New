@@ -166,11 +166,11 @@ export const ActionRow = styled.div`
 export const ActionButton = styled.button<{ $primary?: boolean }>`
   ${swanClientActionButton}
   --swan-action-border: ${({ $primary }) =>
-    $primary ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
+    $primary ? 'var(--button-primary-bg, var(--accent-primary, #60C0F0))' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
   --swan-action-bg: ${({ $primary }) =>
-    $primary ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)' : 'transparent'};
+    $primary ? 'var(--button-primary-bg, var(--accent-primary, #60C0F0))' : 'transparent'};
   --swan-action-fg: ${({ $primary }) =>
-    $primary ? 'var(--accent-primary, #60C0F0)' : 'var(--text-primary, #E0ECF4)'};
+    $primary ? 'var(--button-primary-text, #FFFFFF)' : 'var(--text-primary, #E0ECF4)'};
   flex: 1 1 min(100%, 148px);
   min-width: 0;
   padding: 8px 12px;

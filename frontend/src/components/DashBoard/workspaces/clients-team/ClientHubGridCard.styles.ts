@@ -1,16 +1,4 @@
-/**
- * ============================================================================
- * FILE: ClientHubGridCard.styles.ts
- * PURPOSE: Crystalline client-card chrome for the canonical Clients Workspace.
- * ============================================================================
- *
- * WHAT THIS FILE DOES:
- * Keeps the premium card shell, avatar, metric, and mobile-responsive layout
- * outside the active client-card data component.
- *
- * HOW IT FITS IN THE APP:
- * ClientsWorkspace -> ClientHubGridCard -> ClientHubGridCard.styles.
- */
+/** ClientHubGridCard styles for the canonical Clients Workspace. */
 
 import styled from 'styled-components';
 import {
@@ -24,19 +12,15 @@ import type { ClientSourceTone } from './clientSourceDisplay';
 
 export const CardShell = styled.article`
   --swan-card-padding: 16px;
-  /* Establish a container so the card's internals respond to the CARD's own
-     width, not the viewport. This is what stops the layout "mutating" on
-     browser zoom (zoom changes the viewport, not the card's relative width)
-     and lets a wide 4K card grow its padding/typography comfortably. */
   container: clientcard / inline-size;
   ${swanDataCardShell}
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  overflow: hidden;
+  height: auto;
+  max-height: none;
+  min-height: 100%;
+  overflow: visible;
   box-sizing: border-box;
 
   > * + * {
@@ -47,7 +31,6 @@ export const CardShell = styled.article`
     margin-top: auto;
   }
 
-  /* Wide cards (big screens / 4K) get more breathing room + larger type. */
   @container clientcard (min-width: 420px) {
     --swan-card-padding: 20px;
 
@@ -56,8 +39,6 @@ export const CardShell = styled.article`
     }
   }
 
-  /* Narrow cards (mobile, zoomed-in) tighten up — container-driven, not
-     viewport-driven, so it only triggers when the card itself is small. */
   @container clientcard (max-width: 300px) {
     --swan-card-padding: 14px;
     min-height: auto;
@@ -284,9 +265,9 @@ export const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
     return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)';
   }};
   background: ${({ $tone = 'default' }) => {
-    if ($tone === 'gold') return 'color-mix(in srgb, var(--bg-elevated, #141419) 82%, var(--accent-gold, #C6A84B) 8%)';
-    if ($tone === 'warning') return 'color-mix(in srgb, var(--bg-elevated, #141419) 82%, var(--accent-secondary, #8B5CF6) 10%)';
-    return 'color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent)';
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--bg-card, #141419) 82%, var(--accent-gold, #C6A84B) 8%)';
+    if ($tone === 'warning') return 'color-mix(in srgb, var(--bg-card, #141419) 82%, var(--accent-secondary, #8B5CF6) 10%)';
+    return 'color-mix(in srgb, var(--bg-card, #141419) 84%, transparent)';
   }};
   font-family: 'Sora', sans-serif;
   font-size: clamp(12px, 2.5cqi, 14px);
@@ -308,7 +289,7 @@ export const MetricStack = styled.span`
 export const MetricNote = styled.span`
   white-space: normal;
   overflow-wrap: anywhere;
-  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, var(--bg-elevated, #141419));
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, var(--bg-card, #141419));
   font-family: 'Fira Code', monospace;
   font-size: 10px;
   font-weight: 700;

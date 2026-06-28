@@ -26,6 +26,18 @@ const dashboardViewSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx'),
   'utf8',
 );
+const adminDashboardCardsSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/AdminDashboardCards.tsx'),
+  'utf8',
+);
+const adminDashboardThemeSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-theme.ts'),
+  'utf8',
+);
+const adminOverviewStylesSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverview.styles.ts'),
+  'utf8',
+);
 const coreRoutesSource = readFileSync(
   resolve(process.cwd(), '../backend/core/routes.mjs'),
   'utf8',
@@ -61,6 +73,19 @@ describe('AdminOverviewPanel analytics resilience contract', () => {
     expect(source).not.toContain('const [revenueRes, usersRes, workoutsRes, healthRes] = await Promise.all([');
   });
 
+  it('keeps admin dashboard card chrome mapped to active theme variables', () => {
+    expect(adminDashboardCardsSource).toContain('var(--bg-card');
+    expect(adminDashboardCardsSource).toContain('var(--surface-secondary');
+    expect(adminDashboardCardsSource).toContain('var(--shadow-elevation');
+    expect(adminDashboardCardsSource).not.toContain('background: radial-gradient(120% 120% at 0% 0%, #1A1A24 0%, #141419 100%)');
+    expect(adminDashboardCardsSource).not.toContain('rgba(');
+    expect(adminOverviewStylesSource).toContain('PRIMARY_GRADIENT');
+    expect(adminOverviewStylesSource).toContain('var(--bg-card');
+    expect(adminOverviewStylesSource).not.toContain('#3b82f6');
+    expect(adminOverviewStylesSource).not.toContain('rgba(');
+    expect(adminDashboardThemeSource).toContain('color-mix(in srgb, var(--surface-primary');
+    expect(adminDashboardThemeSource).not.toContain('rgba(');
+  });
   it('bridges overview shell status and shadow chrome through theme tokens', () => {
     expect(stylesSource).toContain("const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent))'");
     expect(stylesSource).toContain("const SHADOW_ELEVATION = 'var(--shadow-elevation, 0 4px 24px color-mix(in srgb, var(--bg-base, #030712) 20%, transparent))'");

@@ -49,7 +49,7 @@ export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: var(--button-text, #FFFFFF);
+  color: var(--button-primary-text, #FFFFFF);
   flex-shrink: 0;
 
   @media (max-width: 520px) {

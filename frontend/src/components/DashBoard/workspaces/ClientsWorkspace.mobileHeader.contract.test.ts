@@ -18,32 +18,48 @@ describe('ClientsWorkspace mobile selected-client header contract', () => {
     expect(styles).not.toContain('white-space: nowrap');
   });
 
-  it('keeps filled action contrast tokenized instead of raw white literals', () => {
-    expect(styles).toContain('var(--button-text, #FFFFFF)');
+  it('keeps filled action contrast mapped to the active theme accent text token', () => {
+    expect(styles).toContain('var(--button-primary-text, #FFFFFF)');
+    expect(styles).not.toContain('var(--button-text, #FFFFFF)');
     expect(styles).not.toContain("? '#FFFFFF'");
   });
 
-  it('makes the selected-client detail surface a smooth single-scroll owner', () => {
+  it('delegates Clients & Team scrolling to the dashboard page instead of nested panels', () => {
+    const hubBlock = styles.slice(
+      styles.indexOf('export const HubContainer'),
+      styles.indexOf('export const TopBar')
+    );
     const contentAreaBlock = styles.slice(
       styles.indexOf('export const ContentArea'),
       styles.indexOf('export const DetailScrollWrap')
     );
+    const detailBlock = styles.slice(
+      styles.indexOf('export const DetailScrollWrap'),
+      styles.indexOf('export const CardGrid')
+    );
+    const cardGridBlock = styles.slice(
+      styles.indexOf('export const CardGrid'),
+      styles.indexOf('export const EmptyHub')
+    );
 
-    expect(contentAreaBlock).toContain('min-height: 0');
-    expect(styles).toContain('scroll-behavior: smooth');
-    expect(styles).toContain('scrollbar-gutter: stable');
-    expect(styles).toContain('overscroll-behavior: contain');
+    expect(hubBlock).toContain('min-height: calc(100dvh - 64px)');
+    expect(hubBlock).toContain('overflow: visible');
+    expect(contentAreaBlock).toContain('overflow: visible');
+    expect(detailBlock).toContain('overflow: visible');
+    expect(cardGridBlock).toContain('overflow: visible');
+    expect(cardGridBlock).not.toContain('overflow-y: auto');
+    expect(styles).not.toContain('scrollbar-gutter: stable');
     expect(styles).toContain('padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px))');
   });
 
-  it('keeps desktop client cards pixel-even while leaving mobile card height natural', () => {
+  it('keeps desktop client cards aligned while allowing long cards to grow naturally', () => {
     const cardGridBlock = styles.slice(
       styles.indexOf('export const CardGrid'),
       styles.indexOf('export const EmptyHub')
     );
 
     expect(cardGridBlock).toContain('--client-card-desktop-row: 520px');
-    expect(cardGridBlock).toContain('grid-auto-rows: var(--client-card-desktop-row)');
+    expect(cardGridBlock).toContain('grid-auto-rows: minmax(var(--client-card-desktop-row), auto)');
     expect(cardGridBlock).toContain('grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr))');
     expect(cardGridBlock).toContain('@media (min-width: 2560px)');
     expect(cardGridBlock).toContain('--client-card-desktop-row: 560px');

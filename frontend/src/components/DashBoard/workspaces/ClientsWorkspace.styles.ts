@@ -14,9 +14,9 @@ export const HubContainer = styled.div`
   ${swanSectionBackdrop}
   display: flex;
   flex-direction: column;
-  height: calc(100dvh - 64px);
+  min-height: calc(100dvh - 64px);
   color: var(--text-primary, #E0ECF4);
-  overflow: hidden;
+  overflow: visible;
   font-size: calc(1rem * var(--client-hub-density-scale));
 
   @media (min-width: 2560px) {
@@ -97,7 +97,7 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
       : 'var(--bg-base, #0A0A0F)'};
   color: ${({ $variant }) =>
     $variant === 'primary' || $variant === 'danger'
-      ? 'var(--button-text, #FFFFFF)'
+      ? 'var(--button-primary-text, #FFFFFF)'
       : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -172,22 +172,17 @@ export const HeaderSection = styled.div`
 `;
 
 export const ContentArea = styled.div`
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 `;
 
 export const DetailScrollWrap = styled.div`
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-  scrollbar-gutter: stable;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 `;
 
@@ -195,15 +190,13 @@ export const CardGrid = styled.div`
   --client-card-desktop-row: 520px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, clamp(340px, 25vw, 560px)), 1fr));
-  grid-auto-rows: var(--client-card-desktop-row);
+  grid-auto-rows: minmax(var(--client-card-desktop-row), auto);
   align-items: stretch;
   gap: clamp(16px, 1.2vw, 28px);
   padding: clamp(16px, 1.4vw, 32px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
-  scrollbar-gutter: stable;
-  flex: 1;
+  overflow: visible;
+  align-content: start;
+  flex: 0 0 auto;
   min-height: 0;
 
   @media (min-width: 2560px) {

@@ -161,6 +161,14 @@ describe('Swan client card system contract', () => {
     expect(trainerCard).not.toContain('whileTap');
   });
 
+
+  it('maps shared card chrome to emitted theme aliases instead of missing blue fallbacks', () => {
+    expect(cardSystem).toContain('var(--bg-card, var(--surface-secondary, #141419))');
+    expect(cardSystem).toContain('var(--surface-primary, #002060)');
+    expect(cardSystem).toContain('var(--button-primary-text, #FFFFFF)');
+    expect(cardSystem).not.toContain('var(--surface-accent, #003080)');
+    expect(cardSystem).not.toContain('var(--button-text, #FFFFFF)');
+  });
   it('keeps mobile client-card scroll targets below dashboard fixed controls', () => {
     expect(cardSystem).toContain('scroll-margin-block: var(--swan-card-scroll-margin-top, 148px) 24px');
     expect(cardSystem).toContain('--swan-card-scroll-margin-top: 152px');

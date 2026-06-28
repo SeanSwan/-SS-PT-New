@@ -30,8 +30,8 @@ export const swanDataCardShell = css`
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
   background:
     linear-gradient(160deg,
-      color-mix(in srgb, var(--surface-accent, #003080) 46%, transparent),
-      color-mix(in srgb, var(--bg-base, #050810) 74%, var(--primary, #002060) 26%));
+      color-mix(in srgb, var(--bg-card, var(--surface-secondary, #141419)) 88%, transparent),
+      color-mix(in srgb, var(--surface-primary, #002060) 26%, var(--bg-base, #050810)));
   color: var(--text-primary, #E0ECF4);
   text-align: left;
   scroll-margin-block: var(--swan-card-scroll-margin-top, 148px) 24px;
@@ -95,7 +95,7 @@ export const swanClientAvatar = css`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--button-text, #FFFFFF);
+  color: var(--button-primary-text, #FFFFFF);
   font-family: 'Sora', sans-serif;
   font-size: 17px;
   font-weight: 800;
@@ -140,7 +140,7 @@ export const swanClientActionButton = css`
   gap: 6px;
   border-radius: 12px;
   border: 1px solid var(--swan-action-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
-  background: var(--swan-action-bg, color-mix(in srgb, var(--surface-accent, #003080) 70%, transparent));
+  background: var(--swan-action-bg, color-mix(in srgb, var(--surface-primary, #002060) 70%, transparent));
   color: var(--swan-action-fg, var(--text-primary, #E0ECF4));
   box-shadow:
     0 8px 20px var(--swan-action-shadow, rgba(0, 0, 0, 0.22)),

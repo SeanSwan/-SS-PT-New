@@ -112,7 +112,7 @@ export const EstimateReviewButton = styled.button`
   padding: 8px 12px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
   border-radius: 8px;
-  color: var(--text-primary, #E0ECF4);
+  color: var(--button-primary-text, #FFFFFF);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--button-primary-bg, #002060) 88%, transparent),

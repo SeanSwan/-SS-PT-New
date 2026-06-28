@@ -5,9 +5,13 @@ import { generateCSSVariables } from './themeUtils';
 const requiredDashboardAliases = [
   'surface-primary',
   'surface-secondary',
+  'surface-accent',
+  'surface-elevated',
   'bg-card',
+  'shadow-ambient',
   'button-primary',
   'button-primary-bg',
+  'btn-primary-bg',
   'button-primary-text',
   'button-secondary-bg',
   'button-secondary-text',
