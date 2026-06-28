@@ -54,7 +54,7 @@ export const DashboardBackgroundSurface: React.FC<DashboardBackgroundSurfaceProp
 
 export const DashboardBackgroundSettingsPanel: React.FC<DashboardBackgroundSettingsPanelProps> = ({ scopeLabel }) => {
   const dashboardBackground = React.useContext(DashboardBackgroundContext);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(true);
 
   if (!dashboardBackground) return null;
 
@@ -73,16 +73,18 @@ export const DashboardBackgroundSettingsPanel: React.FC<DashboardBackgroundSetti
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <DashboardBackgroundSettingsSummary aria-label={`${scopeLabel} dashboard background settings`}>
+      <DashboardBackgroundSettingsSummary aria-label={`${scopeLabel} dashboard background theme picker`}>
         <DashboardBackgroundSummaryMain>
           <Palette size={18} aria-hidden="true" />
           <span className="background-summary-copy">
-            <span>{scopeLabel} background</span>
-            <strong>{activeName}</strong>
+            <span>Background themes</span>
+            <strong>{scopeLabel} dashboard theme picker</strong>
+            <small>Choose fixed, rotating, or custom image backgrounds.</small>
           </span>
         </DashboardBackgroundSummaryMain>
         <DashboardBackgroundSummaryMeta>
-          {modeLabel}
+          <span>{open ? 'Close picker' : 'Open picker'}</span>
+          <em>{activeName} - {modeLabel}</em>
           <ChevronDown size={15} aria-hidden="true" />
         </DashboardBackgroundSummaryMeta>
       </DashboardBackgroundSettingsSummary>

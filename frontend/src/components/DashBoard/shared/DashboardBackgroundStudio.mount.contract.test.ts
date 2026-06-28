@@ -36,6 +36,10 @@ describe('role dashboard background studio mount contract', () => {
     expect(studio).toContain('useUserDashboardBackgroundPreference(brandLogo)');
     expect(studio).toContain('<UserDashboardBackgroundControls');
     expect(studio).toContain('DashboardBackgroundContext.Provider');
+    expect(studio).toContain('React.useState(true)');
+    expect(studio).toContain('Background themes');
+    expect(studio).toContain('dashboard theme picker');
+    expect(studio).toContain('Open picker');
     expect(recipes).toContain("'forest-swan'");
     expect(recipes).toContain("'deep-space-swan'");
     expect(recipes).toContain("'cyberpunk-swan'");

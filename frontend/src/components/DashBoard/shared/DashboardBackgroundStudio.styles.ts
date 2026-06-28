@@ -48,13 +48,13 @@ export const DashboardBackgroundSurfaceContent = styled.div`
 `;
 
 export const DashboardBackgroundSettingsDetails = styled.details`
-  margin-bottom: 1rem;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  margin: 0 0 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
   border-radius: 8px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--surface-primary, #003080) 24%, transparent), transparent 68%),
     color-mix(in srgb, var(--bg-elevated, #141419) 82%, transparent);
-  box-shadow: 0 18px 42px color-mix(in srgb, var(--bg-base, #030712) 30%, transparent);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--bg-base, #030712) 38%, transparent), 0 0 28px color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
   overflow: hidden;
 
   &[open] summary {
@@ -63,12 +63,12 @@ export const DashboardBackgroundSettingsDetails = styled.details`
 `;
 
 export const DashboardBackgroundSettingsSummary = styled.summary`
-  min-height: 56px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0.85rem 1rem;
+  padding: 1rem 1.1rem;
   cursor: pointer;
   list-style: none;
   color: var(--text-primary, #E0ECF4);
@@ -91,7 +91,7 @@ export const DashboardBackgroundSummaryMain = styled.span`
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 
   svg {
     flex: 0 0 auto;
@@ -119,28 +119,61 @@ export const DashboardBackgroundSummaryMain = styled.span`
     line-height: 1.25;
     color: var(--text-primary, #E0ECF4);
   }
+
+  .background-summary-copy > small {
+    display: block;
+    margin-top: 5px;
+    max-width: 46rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--text-secondary, #A8C5D8) 82%, transparent);
+  }
 `;
 
 export const DashboardBackgroundSummaryMeta = styled.span`
-  flex: 0 0 auto;
+  flex: 0 1 330px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 0 10px;
-  border-radius: 999px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px 9px;
+  min-height: 42px;
+  padding: 7px 10px;
+  border-radius: 12px;
   font-family: 'Fira Code', ui-monospace, monospace;
-  font-size: 0.68rem;
   color: var(--accent-gold, #C6A84B);
-  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-gold, #C6A84B) 32%, transparent);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-gold, #C6A84B) 38%, transparent);
+
+  > span {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: var(--text-primary, #E0ECF4);
+  }
+
+  > em {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-style: normal;
+    font-size: 0.62rem;
+    line-height: 1.25;
+    color: color-mix(in srgb, var(--accent-gold, #C6A84B) 86%, transparent);
+  }
 
   svg {
+    flex: 0 0 auto;
     transition: transform 0.2s ease;
   }
 
   details[open] & svg {
     transform: rotate(180deg);
+  }
+
+  @media (max-width: 560px) {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   @media (prefers-reduced-motion: reduce) {
