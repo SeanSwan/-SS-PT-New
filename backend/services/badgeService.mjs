@@ -699,7 +699,11 @@ class BadgeService {
       'exercise_completion': 'exercise_completion',
       'workout_completion': 'exercise_completion',
       'streak_update': 'streak_achievement',
-      'challenge_completion': 'challenge_completion'
+      'streak_bonus': 'streak_achievement',
+      'challenge_completion': 'challenge_completion',
+      'social_action': 'social_engagement',
+      'social_engagement': 'social_engagement',
+      'milestone_reached': 'milestone_reached'
     };
 
     const criteriaType = criteriaTypeMapping[activityType];
@@ -778,11 +782,48 @@ class BadgeService {
       }
 
       case 'challenge_completion': {
+        const isCompleted = activity.completed === true || activity.status === 'completed';
         if (criteria.challengeId) {
           return String(activity.challengeId || activity.challenge?.id || '') === String(criteria.challengeId)
-            && (activity.completed === true || activity.status === 'completed');
+            && isCompleted;
         }
-        return false;
+        const requiredCount = Number(criteria.count || criteria.minCount || 0);
+        const activityCount = Number(activity.count || activity.challengeCount || 1);
+        return isCompleted && (requiredCount <= 0 || activityCount >= requiredCount);
+      }
+
+      case 'social_engagement': {
+        const requiredAction = String(criteria.action || criteria.socialAction || '').toLowerCase();
+        const activityAction = String(activity.socialAction || activity.action || '').toLowerCase();
+        const requiredCount = Number(criteria.count || criteria.minCount || 0);
+        const activityCount = Number(activity.count || activity.engagementCount || 1);
+        if (requiredAction && activityAction !== requiredAction) {
+          return false;
+        }
+        return requiredAction
+          ? requiredCount <= 0 || activityCount >= requiredCount
+          : requiredCount > 0 && activityCount >= requiredCount;
+      }
+
+      case 'milestone_reached': {
+        const activityIds = [
+          activity.milestoneId,
+          ...(Array.isArray(activity.milestoneIds) ? activity.milestoneIds : [])
+        ].filter(value => value !== undefined && value !== null).map(value => String(value));
+        const activityNames = [
+          activity.milestoneName,
+          ...(Array.isArray(activity.milestoneNames) ? activity.milestoneNames : [])
+        ].filter(Boolean).map(value => String(value).toLowerCase());
+
+        if (criteria.milestoneId) {
+          return activityIds.includes(String(criteria.milestoneId));
+        }
+        if (criteria.milestoneName) {
+          return activityNames.includes(String(criteria.milestoneName).toLowerCase());
+        }
+        const requiredPoints = Number(criteria.points || criteria.minPoints || criteria.targetPoints || 0);
+        const activityPoints = Number(activity.points || activity.totalPoints || activity.balance || 0);
+        return requiredPoints > 0 && activityPoints >= requiredPoints;
       }
 
       default:

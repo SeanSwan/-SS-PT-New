@@ -62,9 +62,16 @@ export type UpdateSystemSetting = <K extends keyof SystemSettings>(key: K, value
 export type UpdateTierThreshold = (tier: TierName, value: number) => void;
 export type UpdatePointValue = (id: string, value: number) => void;
 
+export const TIER_PUBLIC_LABELS: Record<TierName, string> = {
+  bronze: 'Cygnus Initiate',
+  silver: 'Frostwing Ascendant',
+  gold: 'Gilded Sovereign',
+  platinum: 'Amethyst Apex',
+};
+
 export const TIER_COLOR_MAP: Record<TierName, string> = {
-  bronze: 'var(--gamification-tier-bronze, #CD7F32)',
-  silver: 'var(--gamification-tier-silver, #C0C0C0)',
-  gold: 'var(--gamification-tier-gold, #FFD700)',
-  platinum: 'var(--gamification-tier-platinum, #E5E4E2)',
+  bronze: 'var(--gamification-tier-cygnus, #002060)',
+  silver: 'var(--gamification-tier-frostwing, #60C0F0)',
+  gold: 'var(--gamification-tier-gilded, #C6A84B)',
+  platinum: 'var(--gamification-tier-amethyst, #8B5CF6)',
 };

@@ -34,11 +34,13 @@ import { GamificationSettingsToggle } from './GamificationSettingsToggle';
 import type {
   LevelSettings,
   SystemSettings,
+  TierName,
   TierThreshold,
   UpdateLevelSetting,
   UpdateTierThreshold,
 } from './GamificationSettings.types';
-import { TIER_COLOR_MAP } from './GamificationSettings.types';
+import { TIER_COLOR_MAP, TIER_PUBLIC_LABELS } from './GamificationSettings.types';
+import { LEVEL_FORMULA_SCALE, MAX_LEVEL, pointsForLevel } from '../../../../../types/gamification';
 
 interface GamificationSettingsProgressionSectionsProps {
   levelSettings: LevelSettings;
@@ -48,7 +50,8 @@ interface GamificationSettingsProgressionSectionsProps {
   onTierThresholdChange: UpdateTierThreshold;
 }
 
-const formatTierName = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1);
+const formatTierLabel = (tier: string) => TIER_PUBLIC_LABELS[tier as TierName] ?? 'Swan Arc';
+const formatTierColor = (tier: string) => TIER_COLOR_MAP[tier as TierName] ?? 'var(--gamification-tier-fallback, #60C0F0)';
 
 export const GamificationSettingsProgressionSections: React.FC<GamificationSettingsProgressionSectionsProps> = ({
   levelSettings,
@@ -59,8 +62,8 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
 }) => {
   const levelsDisabled = !systemSettings.enableGamification || !systemSettings.enableLevels;
   const tiersDisabled = !systemSettings.enableGamification || !systemSettings.enableTiers;
-  const formulaDivisor = Math.max(levelSettings.pointsPerLevel, 1);
-  const sampleLevel = Math.floor(4500 / formulaDivisor) + 1;
+  const currentCap = Math.min(Math.max(levelSettings.levelCap || MAX_LEVEL, 1), MAX_LEVEL);
+  const capPoints = pointsForLevel(currentCap);
 
   return (
     <GridContainer className="two-col">
@@ -71,9 +74,9 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
         </CardHeadingRow>
 
         <InputGroup $fullWidth>
-          <InputLabel>Points Per Level</InputLabel>
+          <InputLabel>Legacy Points Per Level</InputLabel>
           <StyledInput
-            aria-label="Points Per Level"
+            aria-label="Legacy Points Per Level"
             type="number"
             value={levelSettings.pointsPerLevel}
             onChange={event => onLevelSettingChange('pointsPerLevel', parseInt(event.target.value) || 0)}
@@ -81,7 +84,7 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
             $disabled={levelsDisabled}
             min={1}
           />
-          <HelperText>Points required to advance one level</HelperText>
+          <HelperText>Fallback value for older milestone settings; the Swan ladder uses the XP curve below.</HelperText>
         </InputGroup>
 
         <SectionSpacer>
@@ -100,21 +103,21 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
               aria-label="Level Cap"
               type="number"
               value={levelSettings.levelCap}
-              onChange={event => onLevelSettingChange('levelCap', parseInt(event.target.value) || 0)}
+              onChange={event => onLevelSettingChange('levelCap', Math.min(parseInt(event.target.value) || 0, MAX_LEVEL))}
               disabled={levelsDisabled || !levelSettings.enableLevelCap}
               $disabled={levelsDisabled || !levelSettings.enableLevelCap}
               min={1}
+              max={MAX_LEVEL}
             />
-            <HelperText>Maximum level a user can reach</HelperText>
+            <HelperText>Maximum public Swan level. Current ladder cap is Level {MAX_LEVEL}.</HelperText>
           </InputGroup>
         </SectionSpacer>
 
         <FormulaBox>
-          <SubTitle>Level Calculation Formula:</SubTitle>
-          <CodeBlock>Level = Math.floor(totalPoints / pointsPerLevel) + 1</CodeBlock>
+          <SubTitle>Live Level Calculation Formula:</SubTitle>
+          <CodeBlock>Level = Math.floor({LEVEL_FORMULA_SCALE} * Math.sqrt(totalPoints))</CodeBlock>
           <MutedText>
-            Users start at Level 1. For example, with {levelSettings.pointsPerLevel} points per level,
-            a user with 4500 points would be at Level {sampleLevel}.
+            Users start at Level 1. The selected cap of Level {currentCap} requires {capPoints.toLocaleString()} XP.
           </MutedText>
         </FormulaBox>
       </GlassCard>
@@ -122,14 +125,14 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
       <GlassCard>
         <CardHeadingRow>
           <Award size={20} />
-          <CardTitle>Tier Thresholds</CardTitle>
+          <CardTitle>Swan Arc Thresholds</CardTitle>
         </CardHeadingRow>
 
         <TableWrapper>
           <StyledTable>
             <THead>
               <tr>
-                <th>Tier</th>
+                <th>Arc</th>
                 <th>Points Required</th>
               </tr>
             </THead>
@@ -138,14 +141,14 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
                 <tr key={tier.tier}>
                   <td>
                     <TierCell>
-                      <TierDot $color={TIER_COLOR_MAP[tier.tier]} />
-                      {formatTierName(tier.tier)}
+                      <TierDot $color={formatTierColor(tier.tier)} />
+                      {formatTierLabel(tier.tier)}
                     </TierCell>
                   </td>
                   <td>
                     <InlineInputRow>
                       <StyledInput
-                        aria-label={`${formatTierName(tier.tier)} Points Required`}
+                        aria-label={`${formatTierLabel(tier.tier)} Points Required`}
                         type="number"
                         value={tier.pointsRequired}
                         onChange={event => onTierThresholdChange(tier.tier, parseInt(event.target.value) || 0)}
@@ -164,14 +167,14 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
         </TableWrapper>
 
         <MutedText>
-          Set the point thresholds required for users to reach each tier. Bronze should be attainable
-          fairly easily, while Platinum should represent significant achievement.
+          Set the point thresholds for each public Swan arc. Early arcs should feel attainable; Amethyst and
+          Sapphire-era progression should feel earned through sustained training proof.
         </MutedText>
 
         <AlertBanner $variant="info" $compact>
           <AlertContent>
             <Info size={16} />
-            Make sure tier thresholds are properly spaced to create achievable progression.
+            Keep thresholds spaced so workouts, streaks, badges, and social support all contribute meaningfully.
           </AlertContent>
         </AlertBanner>
       </GlassCard>

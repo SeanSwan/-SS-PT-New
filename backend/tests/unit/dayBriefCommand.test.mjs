@@ -122,7 +122,14 @@ describe('gamification in buildCoachContext (A2)', () => {
     };
     const r = await buildCoachContext({ user: ADMIN, targetClientId: 7, sequelize });
     expect(r.ok).toBe(true);
-    expect(r.context.gamification).toEqual({ points: 1200, level: 5, tier: 'Rare', streakDays: 6, totalWorkouts: 42 });
+    expect(r.context.gamification).toEqual({
+      points: 1200,
+      level: 5,
+      tier: 'Rare',
+      streakDays: 6,
+      totalWorkouts: 42,
+      badges: { displayedCount: 0, recent: [] },
+    });
     expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('ok');
   });
 });

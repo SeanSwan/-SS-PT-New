@@ -11,6 +11,7 @@ import db from '../database.mjs';
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
+import { checkBadgesForGamificationEvent } from '../services/badgeGamificationBridge.mjs';
 
 const INTERNAL_ERROR = 'Internal server error';
 
@@ -425,6 +426,7 @@ const challengeController = {
    */
   updateChallengeProgress: async (req, res) => {
     const transaction = await db.transaction();
+    let transactionCommitted = false;
     
     try {
       const models = await getModels();
@@ -525,6 +527,21 @@ const challengeController = {
       }
 
       await transaction.commit();
+      transactionCommitted = true;
+
+      const badgesEarned = wasCompleted
+        ? await checkBadgesForGamificationEvent({
+          userId,
+          type: 'challenge_completion',
+          activityData: {
+            challengeId: challenge.id,
+            challengeName: challenge.title || challenge.name,
+            completed: true,
+            status: 'completed',
+            count: 1
+          }
+        })
+        : [];
 
       return res.status(200).json({
         success: true,
@@ -534,10 +551,11 @@ const challengeController = {
           ...updatedFields
         },
         completed: wasCompleted,
+        badgesEarned,
         xpAwarded: wasCompleted ? challenge.xpReward + (challenge.bonusXpReward || 0) : 0
       });
     } catch (error) {
-      await transaction.rollback();
+      if (!transactionCommitted) await transaction.rollback();
       console.error('❌ Error updating challenge progress:', error);
       return sendChallengeError(res, 500, 'Failed to update challenge progress');
     }

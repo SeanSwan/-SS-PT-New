@@ -2,13 +2,20 @@
  * Full Swan rank-title ladder for the active About/Profile section.
  */
 import React from 'react';
-import { Award, CheckCircle2, Lock, Sparkles } from 'lucide-react';
+import { Award, CheckCircle2, Lock, Sparkles, TrendingUp } from 'lucide-react';
 import type { RankTitleCatalog } from './AboutSection.types';
 import {
   CardHeader,
   CardTitle,
 } from './AboutSection.styles';
 import {
+  ProgressionBeatCard,
+  ProgressionBeatGrid,
+  ProgressionBeatLevel,
+  ProgressionBeatMeta,
+  ProgressionBeatPanel,
+  ProgressionBeatReward,
+  ProgressionBeatTitle,
   RankTitleAction,
   RankTitleActive,
   RankTitleCount,
@@ -38,6 +45,8 @@ const AboutSectionRankTitles: React.FC<AboutSectionRankTitlesProps> = ({
   currentRankTitle,
   nextRankTitle,
   earnedRankTitleCount,
+  upcomingProgressionBeats,
+  nextMajorProgressionBeat,
   currentLevel,
   onEquipRankTitle,
   isEquippingRankTitle,
@@ -45,8 +54,11 @@ const AboutSectionRankTitles: React.FC<AboutSectionRankTitlesProps> = ({
 }) => {
   const activeTitle = selectedRankTitle ?? currentRankTitle;
   const nextCopy = nextRankTitle
-    ? `Next unlock: ${nextRankTitle.name} at Level ${nextRankTitle.minLevel}`
+    ? 'Next unlock: ' + nextRankTitle.name + ' at Level ' + nextRankTitle.minLevel
     : 'All rank titles unlocked';
+  const majorCopy = nextMajorProgressionBeat
+    ? 'Next beat: Level ' + nextMajorProgressionBeat.level + ' ' + nextMajorProgressionBeat.label
+    : 'Progression roadmap complete';
 
   return (
     <RankTitlesCard initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
@@ -61,10 +73,33 @@ const AboutSectionRankTitles: React.FC<AboutSectionRankTitlesProps> = ({
         <RankTitleSummaryCopy>
           <RankTitleEyebrow>Equipped profile tag</RankTitleEyebrow>
           <RankTitleActive>{activeTitle?.label ?? 'Rank 01 | First Flight'}</RankTitleActive>
-          <RankTitleMeta>Level {currentLevel} profile display. {nextCopy}.</RankTitleMeta>
+          <RankTitleMeta>Level {currentLevel} profile display. {nextCopy}. {majorCopy}.</RankTitleMeta>
         </RankTitleSummaryCopy>
         <RankTitleCount>{earnedRankTitleCount}/{rankTitles.length} earned</RankTitleCount>
       </RankTitleSummary>
+
+      {upcomingProgressionBeats.length > 0 && (
+        <ProgressionBeatPanel aria-label="Upcoming progression unlocks">
+          <RankTitleEyebrow>Next progression beats</RankTitleEyebrow>
+          <ProgressionBeatGrid>
+            {upcomingProgressionBeats.slice(0, 4).map((beat) => (
+              <ProgressionBeatCard key={beat.key}>
+                <ProgressionBeatLevel>Level {beat.level}</ProgressionBeatLevel>
+                <ProgressionBeatTitle>
+                  <TrendingUp size={14} aria-hidden="true" />
+                  {beat.label}
+                </ProgressionBeatTitle>
+                <ProgressionBeatReward>{beat.reward}</ProgressionBeatReward>
+                <ProgressionBeatMeta>
+                  {beat.pointsRemaining > 0
+                    ? beat.pointsRemaining.toLocaleString() + ' XP away'
+                    : 'Unlocked'}
+                </ProgressionBeatMeta>
+              </ProgressionBeatCard>
+            ))}
+          </ProgressionBeatGrid>
+        </ProgressionBeatPanel>
+      )}
 
       <RankTitleList aria-label="Swan rank title unlock ladder">
         {rankTitles.map((rank) => {

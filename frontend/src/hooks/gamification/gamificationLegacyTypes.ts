@@ -110,6 +110,24 @@ export interface RankTitleOption {
   isSelected?: boolean;
 }
 
+export type ProgressionBeatType = 'rank_title' | 'badge_showcase' | 'skill_tree_surge' | 'biome_chapter' | 'momentum';
+export type ProgressionBeatIntensity = 'pulse' | 'surge' | 'chapter' | 'title';
+
+export interface ProgressionBeatOption {
+  key: string;
+  level: number;
+  type: ProgressionBeatType;
+  label: string;
+  reward: string;
+  description: string;
+  intensity: ProgressionBeatIntensity;
+  pointsRequired: number;
+  pointsRemaining: number;
+  levelsAway?: number;
+  rankTitleKey?: string;
+  rankTitleName?: string;
+}
+
 export interface GamificationProfile {
   id: string;
   firstName: string;
@@ -137,6 +155,8 @@ export interface GamificationProfile {
   rankTitles?: RankTitleOption[];
   earnedRankTitleCount?: number;
   nextRankTitleDisplay?: RankTitleOption | null;
+  upcomingProgressionBeats?: ProgressionBeatOption[];
+  nextMajorProgressionBeat?: ProgressionBeatOption | null;
   progressSnapshots?: ProgressSnapshot[];
   streakCalendar?: StreakDay[];
 }

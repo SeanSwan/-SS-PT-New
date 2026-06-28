@@ -12,10 +12,13 @@ export interface GalleryBadgeRow {
   imageUrl: string;
   rarity: string;
   category: string;
+  difficulty: string;
+  criteriaType: string;
   xpReward: number;
   assignedTo: string | null;
   assignedTarget: string | null;
   isShared: boolean;
+  isActive: boolean;
   isAnimated: boolean;
   createdAt: string;
 }
@@ -117,10 +120,13 @@ const normalizeGalleryBadge = (value: unknown): GalleryBadgeRow | null => {
   return {
     ...base,
     category: asNonEmptyString(value.category) ?? 'general',
+    difficulty: asNonEmptyString(value.difficulty) ?? 'beginner',
+    criteriaType: asNonEmptyString(value.criteriaType) ?? 'custom_criteria',
     xpReward: asFiniteNumber(value.xpReward),
     assignedTo: asNullableString(value.assignedTo),
     assignedTarget: asNullableString(value.assignedTarget),
     isShared: asBoolean(value.isShared),
+    isActive: value.isActive !== false,
   };
 };
 

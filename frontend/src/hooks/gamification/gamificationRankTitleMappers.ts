@@ -1,7 +1,7 @@
 /**
  * Runtime guards for rank-title fields returned by the gamification profile API.
  */
-import type { GamificationProfile, RankTitleOption } from './gamificationLegacyTypes';
+import type { GamificationProfile, ProgressionBeatOption, RankTitleOption } from './gamificationLegacyTypes';
 import { firstNonNegativeNumber, isRecord, safeText } from './gamificationMapperGuards';
 
 const mapRankTitleOption = (value: unknown): RankTitleOption | null => {
@@ -48,6 +48,68 @@ const mapOptionalRankTitle = (value: unknown): RankTitleOption | undefined => (
   mapRankTitleOption(value) ?? undefined
 );
 
+const PROGRESSION_BEAT_TYPES = new Set(['rank_title', 'badge_showcase', 'skill_tree_surge', 'biome_chapter', 'momentum']);
+const PROGRESSION_BEAT_INTENSITIES = new Set(['pulse', 'surge', 'chapter', 'title']);
+
+const mapProgressionBeatOption = (value: unknown): ProgressionBeatOption | null => {
+  if (!isRecord(value)) return null;
+
+  const key = safeText(value.key);
+  const type = safeText(value.type);
+  const label = safeText(value.label);
+  const reward = safeText(value.reward);
+  const description = safeText(value.description);
+  const intensity = safeText(value.intensity);
+  const level = firstNonNegativeNumber(value.level);
+  const pointsRequired = firstNonNegativeNumber(value.pointsRequired);
+  const pointsRemaining = firstNonNegativeNumber(value.pointsRemaining);
+  const levelsAway = firstNonNegativeNumber(value.levelsAway);
+  const rankTitleKey = safeText(value.rankTitleKey);
+  const rankTitleName = safeText(value.rankTitleName);
+
+  if (
+    !key
+    || !type
+    || !PROGRESSION_BEAT_TYPES.has(type)
+    || !label
+    || !reward
+    || !description
+    || !intensity
+    || !PROGRESSION_BEAT_INTENSITIES.has(intensity)
+    || level <= 0
+    || pointsRequired <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    key,
+    level,
+    type: type as ProgressionBeatOption['type'],
+    label,
+    reward,
+    description,
+    intensity: intensity as ProgressionBeatOption['intensity'],
+    pointsRequired,
+    pointsRemaining,
+    ...(levelsAway > 0 ? { levelsAway } : {}),
+    ...(rankTitleKey ? { rankTitleKey } : {}),
+    ...(rankTitleName ? { rankTitleName } : {}),
+  };
+};
+
+const mapProgressionBeatList = (value: unknown): ProgressionBeatOption[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const mapped = value
+    .map(mapProgressionBeatOption)
+    .filter((beat): beat is ProgressionBeatOption => beat !== null);
+  return mapped.length ? mapped : undefined;
+};
+
+const mapOptionalProgressionBeat = (value: unknown): ProgressionBeatOption | undefined => (
+  mapProgressionBeatOption(value) ?? undefined
+);
+
 export function mapRankTitlePayloadFields(raw: Record<string, unknown>): Partial<GamificationProfile> {
   const rankTitles = mapRankTitleList(raw.rankTitles);
   const selectedRankTitleDisplay = mapOptionalRankTitle(raw.selectedRankTitleDisplay);
@@ -57,6 +119,10 @@ export function mapRankTitlePayloadFields(raw: Record<string, unknown>): Partial
     : mapOptionalRankTitle(raw.nextRankTitleDisplay);
   const selectedRankTitleKey = safeText(raw.selectedRankTitleKey) ?? selectedRankTitleDisplay?.key;
   const earnedRankTitleCount = firstNonNegativeNumber(raw.earnedRankTitleCount);
+  const upcomingProgressionBeats = mapProgressionBeatList(raw.upcomingProgressionBeats);
+  const nextMajorProgressionBeat = raw.nextMajorProgressionBeat === null
+    ? null
+    : mapOptionalProgressionBeat(raw.nextMajorProgressionBeat);
 
   return {
     ...(selectedRankTitleKey ? { selectedRankTitleKey } : {}),
@@ -65,5 +131,7 @@ export function mapRankTitlePayloadFields(raw: Record<string, unknown>): Partial
     ...(rankTitles ? { rankTitles } : {}),
     ...(earnedRankTitleCount > 0 ? { earnedRankTitleCount } : {}),
     ...(nextRankTitleDisplay !== undefined ? { nextRankTitleDisplay } : {}),
+    ...(upcomingProgressionBeats ? { upcomingProgressionBeats } : {}),
+    ...(nextMajorProgressionBeat !== undefined ? { nextMajorProgressionBeat } : {}),
   };
 }

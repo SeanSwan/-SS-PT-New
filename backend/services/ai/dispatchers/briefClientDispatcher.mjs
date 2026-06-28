@@ -48,6 +48,18 @@ function buildFlags(context) {
   return flags;
 }
 
+function formatBadgeSummary(context) {
+  const badges = context.gamification?.badges;
+  const displayedCount = Number(badges?.displayedCount || 0);
+  if (!Number.isFinite(displayedCount) || displayedCount <= 0) return null;
+  const recentNames = Array.isArray(badges.recent)
+    ? badges.recent.map((badge) => String(badge?.name || '').trim()).filter(Boolean).slice(0, 3)
+    : [];
+  return recentNames.length > 0
+    ? `Badges: ${displayedCount} displayed; recent: ${recentNames.join(', ')}`
+    : `Badges: ${displayedCount} displayed`;
+}
+
 function formatBrief(context, dataQuality) {
   const lines = [];
   lines.push(`**${context.clientAlias} — Client Brief**`);
@@ -73,6 +85,9 @@ function formatBrief(context, dataQuality) {
     const goalTitles = context.goals.map((g) => g.title).filter(Boolean).slice(0, 3);
     if (goalTitles.length) lines.push(`Active goals: ${goalTitles.join('; ')}`);
   }
+
+  const badgeSummary = formatBadgeSummary(context);
+  if (badgeSummary) lines.push(badgeSummary);
 
   const flags = buildFlags(context);
   lines.push(flags.length ? `⚠ Needs attention: ${flags.join(' · ')}` : '✓ Nothing urgent flagged.');
@@ -116,6 +131,7 @@ export async function dispatchBriefClient(params, ctx) {
       lastWorkoutDate: result.context.lastWorkoutDate,
       schedule: result.context.schedule,
       flags: buildFlags(result.context),
+      gamification: result.context.gamification ?? null,
       dataQuality: result.dataQuality,
     },
   };

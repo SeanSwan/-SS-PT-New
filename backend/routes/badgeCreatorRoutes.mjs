@@ -20,6 +20,9 @@ router.use(protect, adminOnly);
 
 const MAX_GENERATIONS_PER_MONTH = 50;
 const DB_BADGE_CATEGORIES = new Set(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']);
+const DB_BADGE_DIFFICULTIES = new Set(['beginner', 'intermediate', 'advanced', 'expert']);
+const BADGE_CRITERIA_TYPES = new Set(['exercise_completion', 'streak_achievement', 'challenge_completion', 'social_engagement', 'milestone_reached', 'custom_criteria']);
+const BADGE_RARITIES = new Set(['common', 'rare', 'epic', 'legendary']);
 const BADGE_GENERATION_FAILED_MESSAGE = 'Badge generation failed. Try again with a simpler prompt or different style.';
 const BADGE_VARIATION_FAILED_MESSAGE = 'Variation generation failed. Try again with a different style.';
 const PET_AVATAR_GENERATION_FAILED_MESSAGE = 'Pet avatar generation failed. Try again with a different style.';
@@ -63,6 +66,10 @@ function toRewardPoints(value) {
   return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 50;
 }
 
+function parseRewardPoints(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : null;
+}
 function getCriteria(badge) {
   return asObject(badge?.criteria);
 }
@@ -163,6 +170,86 @@ function runBadgeUpload(req, res, next) {
   });
 }
 
+function own(value, key) {
+  return Object.prototype.hasOwnProperty.call(value || {}, key);
+}
+
+function cleanString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeAssignmentValue(value) {
+  if (value === null) return { assignment: { assignedTo: null, assignedTarget: null } };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { error: 'assignment must be an object or null' };
+  }
+  const assignedTo = cleanString(value.assignedTo);
+  const assignedTarget = cleanString(value.assignedTarget);
+  if (!ASSIGNMENT_TYPES.has(assignedTo) || !assignedTarget) {
+    return { error: `assignment.assignedTo must be one of: ${Array.from(ASSIGNMENT_TYPES).join(', ')} and assignment.assignedTarget is required` };
+  }
+  return { assignment: { assignedTo, assignedTarget } };
+}
+
+function buildBadgePatchPayload(badge, body) {
+  const updates = {};
+  let criteria = getCriteria(badge);
+  let criteriaChanged = false;
+
+  if (own(body, 'name')) {
+    const name = cleanString(body.name);
+    if (!name) return { error: 'name cannot be blank' };
+    updates.name = name;
+  }
+  if (own(body, 'description')) {
+    const description = cleanString(body.description);
+    if (!description) return { error: 'description cannot be blank' };
+    updates.description = description;
+  }
+  if (own(body, 'category')) {
+    const category = cleanString(body.category);
+    if (!DB_BADGE_CATEGORIES.has(category)) return { error: 'Invalid badge category' };
+    updates.category = category;
+  }
+  if (own(body, 'difficulty')) {
+    const difficulty = cleanString(body.difficulty);
+    if (!DB_BADGE_DIFFICULTIES.has(difficulty)) return { error: 'Invalid badge difficulty' };
+    updates.difficulty = difficulty;
+  }
+  if (own(body, 'criteriaType')) {
+    const criteriaType = cleanString(body.criteriaType);
+    if (!BADGE_CRITERIA_TYPES.has(criteriaType)) return { error: 'Invalid criteria type' };
+    updates.criteriaType = criteriaType;
+  }
+  if (own(body, 'isActive')) {
+    if (typeof body.isActive !== 'boolean') return { error: 'isActive must be a boolean' };
+    updates.isActive = body.isActive;
+  }
+  if (own(body, 'abilityPoints')) {
+    const points = parseRewardPoints(body.abilityPoints);
+    if (points === null) return { error: 'abilityPoints must be a positive number' };
+    updates.rewards = { ...asObject(badge.rewards), points };
+  }
+  if (own(body, 'rarity')) {
+    const rarity = cleanString(body.rarity);
+    if (!BADGE_RARITIES.has(rarity)) return { error: 'Invalid badge rarity' };
+    criteria = {
+      ...criteria,
+      metadata: { ...asObject(criteria.metadata), rarity },
+    };
+    criteriaChanged = true;
+  }
+  if (own(body, 'assignment')) {
+    const result = normalizeAssignmentValue(body.assignment);
+    if (result.error) return { error: result.error };
+    criteria = { ...criteria, assignment: result.assignment };
+    criteriaChanged = true;
+  }
+
+  if (criteriaChanged) updates.criteria = criteria;
+  if (Object.keys(updates).length === 0) return { error: 'No badge fields to update' };
+  return { updates };
+}
 function optionalAssignment(body) {
   const assignedTo = typeof body?.assignedTo === 'string' ? body.assignedTo.trim() : '';
   const assignedTarget = typeof body?.assignedTarget === 'string' ? body.assignedTarget.trim() : '';
@@ -387,6 +474,27 @@ router.get('/gallery', async (req, res) => {
   }
 });
 
+// PATCH /api/admin/badge-creator/:badgeId
+router.patch('/:badgeId', async (req, res) => {
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(req.params.badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    const result = buildBadgePatchPayload(badge, req.body || {});
+    if (result.error) return res.status(400).json({ success: false, message: result.error });
+
+    await badge.update(result.updates);
+    logger.info(`[AUDIT] Admin ${req.user.id} updated badge "${badge.name}" (${badge.id})`);
+    res.json({ success: true, data: normalizeBadge(badge) });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: 'Badge name already exists' });
+    }
+    logger.error('Badge update error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to update badge' });
+  }
+});
 // ── Assign Badge to Achievement/Milestone ────────────────────
 // PATCH /api/admin/badge-creator/:badgeId/assign
 router.patch('/:badgeId/assign', async (req, res) => {
@@ -680,6 +788,41 @@ router.post('/marketplace/claim/:badgeId', async (req, res) => {
   }
 });
 
+// POST /api/admin/badge-creator/:badgeId/image
+router.post('/:badgeId/image', runBadgeUpload, async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: BADGE_UPLOAD_REQUIRED_MESSAGE });
+  }
+
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const badge = await Badge.findByPk(req.params.badgeId);
+    if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
+
+    const stored = await geminiBadgeImage.storeGeneratedBadgeImage({
+      buffer: req.file.buffer,
+      mimeType: req.file.mimetype,
+      userId: req.user.id,
+    });
+    const criteria = getCriteria(badge);
+    await badge.update({
+      imageUrl: stored.imageUrl,
+      criteria: {
+        ...criteria,
+        metadata: {
+          ...asObject(criteria.metadata),
+          uploadStorage: stored.storage || null,
+          uploadStorageKey: stored.storageKey || null,
+        },
+      },
+    });
+    logger.info(`[AUDIT] Admin ${req.user.id} replaced badge image for "${badge.name}" (${badge.id})`);
+    res.json({ success: true, data: normalizeBadge(badge) });
+  } catch (err) {
+    logger.error('Badge image replacement error:', err.message);
+    res.status(500).json({ success: false, message: BADGE_UPLOAD_FAILED_MESSAGE });
+  }
+});
 // ── List Art Styles ──────────────────────────────────────────
 // GET /api/admin/badge-creator/styles
 router.get('/styles', (_req, res) => {

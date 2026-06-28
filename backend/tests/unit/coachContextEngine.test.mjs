@@ -32,6 +32,7 @@ function fakeSequelize({ failDomain = null } = {}) {
     QueryTypes: { SELECT: 'SELECT' },
     query: vi.fn(async (sql) => {
       if (failDomain === 'pain' && /PainEntries/.test(sql)) throw new Error('pain table down');
+      if (failDomain === 'badges' && /FROM "UserBadges"/.test(sql)) throw new Error('badge table down');
       if (/FROM "Users"/.test(sql)) {
         return [{
           id: 7, firstName: 'Maria', lastName: 'Lopez', age: 41, gender: 'female',
@@ -63,6 +64,7 @@ function fakeSequelize({ failDomain = null } = {}) {
       }
       if (/"Goals"/.test(sql)) return [{ title: 'Run 5k', description: '', progress: 40, status: 'active' }];
       if (/FROM sessions/.test(sql)) return [{ id: 31, sessionDate: '2026-06-15T17:00:00.000Z', duration: 60, status: 'scheduled' }];
+      if (/FROM "UserBadges"/.test(sql)) return [];
       return [];
     }),
   };
@@ -124,8 +126,69 @@ describe('buildCoachContext', () => {
     expect(r.context.gamification).toBeDefined();
   });
 
+  it('adds displayed badge rewards to PII-safe gamification context without media or descriptions', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
+    const sequelize = fakeSequelize();
+    sequelize.query.mockImplementation(async (sql) => {
+      if (/FROM "Users"/.test(sql)) {
+        return [{
+          id: 7, firstName: 'Maria', lastName: 'Lopez', age: 41,
+          availableSessions: 3, points: 1200, level: 5, tier: 'Sapphire', streakDays: 6, totalWorkouts: 42,
+        }];
+      }
+      if (/FROM "UserBadges"/.test(sql)) {
+        return [{
+          name: 'Sapphire Flight Crew',
+          description: 'Should stay out of this context.',
+          category: 'endurance',
+          difficulty: 'advanced',
+          earningType: 'automatic',
+          earnedAt: '2026-06-20T10:00:00.000Z',
+          rewards: JSON.stringify({ points: 350 }),
+          collectionName: 'Team Flight',
+          imageUrl: 'https://private-r2.example.com/badge.png',
+        }];
+      }
+      if (/workout_sessions/.test(sql)) return [];
+      if (/PainEntries/.test(sql)) return [];
+      if (/daily_macro_logs/.test(sql)) return [];
+      if (/"Goals"/.test(sql)) return [];
+      if (/FROM sessions/.test(sql)) return [];
+      return [];
+    });
+
+    const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize });
+
+    expect(r.ok).toBe(true);
+    expect(r.context.gamification.badges).toMatchObject({
+      displayedCount: 1,
+      recent: [expect.objectContaining({
+        name: 'Sapphire Flight Crew',
+        category: 'endurance',
+        difficulty: 'advanced',
+        earningType: 'automatic',
+        rewardPoints: 350,
+        collectionName: 'Team Flight',
+      })],
+    });
+    const serialized = JSON.stringify(r.context.gamification.badges);
+    expect(serialized).not.toContain('private-r2');
+    expect(serialized).not.toContain('description');
+    expect(serialized).not.toContain('Maria');
+    expect(sequelize.query.mock.calls.find(([sql]) => /FROM "UserBadges"/.test(sql))?.[0]).not.toContain('imageUrl');
+  });
+
+  it('degrades badge context independently while preserving profile gamification', async () => {
+    accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
+    const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize({ failDomain: 'badges' }) });
+    expect(r.ok).toBe(true);
+    expect(r.dataQuality.find((d) => d.domain === 'badges')?.status).toBe('degraded');
+    expect(r.context.gamification.badges).toEqual({ displayedCount: 0, recent: [] });
+    expect(r.context.gamification.level).toBeDefined();
+  });
+
   it('covers all v1 domains with nutrition promoted from the legacy macros read', () => {
-    expect(CONTEXT_DOMAINS).toEqual(['profile', 'workouts', 'pain', 'nutrition', 'goals', 'schedule']);
+    expect(CONTEXT_DOMAINS).toEqual(['profile', 'workouts', 'pain', 'nutrition', 'goals', 'schedule', 'badges']);
   });
 
   it('nutrition domain queries canonical daily_macro_logs without raw meal text', async () => {

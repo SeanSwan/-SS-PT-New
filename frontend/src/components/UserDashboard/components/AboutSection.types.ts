@@ -3,7 +3,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
-import type { RankTitleOption } from '../../../hooks/gamification/gamificationLegacyTypes';
+import type { ProgressionBeatOption, RankTitleOption } from '../../../hooks/gamification/gamificationLegacyTypes';
 import type { Rarity, SkillTree } from '../../../types/gamification';
 
 export interface PersonalInfoItem {
@@ -35,4 +35,6 @@ export interface RankTitleCatalog {
   currentRankTitle?: RankTitleOption;
   nextRankTitle?: RankTitleOption | null;
   earnedRankTitleCount: number;
+  upcomingProgressionBeats: ProgressionBeatOption[];
+  nextMajorProgressionBeat?: ProgressionBeatOption | null;
 }

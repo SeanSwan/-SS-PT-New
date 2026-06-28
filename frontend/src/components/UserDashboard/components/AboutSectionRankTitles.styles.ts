@@ -70,6 +70,71 @@ export const RankTitleCount = styled.span`
   }
 `;
 
+
+export const ProgressionBeatPanel = styled.div`
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 26%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-primary, #003080) 28%, var(--bg-base, #0A0A0F));
+`;
+
+export const ProgressionBeatGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
+
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ProgressionBeatCard = styled.div`
+  min-width: 0;
+  min-height: 112px;
+  padding: 0.82rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent),
+    color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent)
+  );
+`;
+
+export const ProgressionBeatLevel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--accent-gold, #C6A84B);
+  font: 900 0.72rem/1 var(--font-data, 'Fira Code', monospace);
+  text-transform: uppercase;
+`;
+
+export const ProgressionBeatTitle = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.45rem 0 0;
+  color: var(--text-primary, #E0ECF4);
+  font: 900 0.86rem/1.25 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const ProgressionBeatReward = styled.p`
+  margin: 0.35rem 0 0;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 76%, transparent);
+  font: 700 0.76rem/1.35 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const ProgressionBeatMeta = styled.p`
+  margin: 0.5rem 0 0;
+  color: var(--accent-primary, #60C0F0);
+  font: 900 0.72rem/1 var(--font-data, 'Fira Code', monospace);
+`;
+
 export const RankTitleList = styled.div`
   display: grid;
   gap: 0.65rem;

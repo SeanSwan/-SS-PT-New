@@ -6,6 +6,7 @@
  * validation out of React-facing code.
  */
 import { calculateLevel, getRankTitles, getTier } from './levelingAlgorithm.mjs';
+import { getUpcomingProgressionBeats } from './gamificationProgression.mjs';
 
 const RANK_TITLES = getRankTitles();
 const RANK_BY_KEY = new Map(RANK_TITLES.map((rank, index) => [rank.key, { ...rank, rankNumber: index + 1 }]));
@@ -67,6 +68,14 @@ export function buildRankTitleSelectionPayload({ points, level, selectedRankTitl
   });
 
   const nextRank = RANK_TITLES.find((rank) => rank.minLevel > currentLevel) || null;
+  const upcomingProgressionBeats = getUpcomingProgressionBeats({
+    level: currentLevel,
+    points: toFiniteNumber(points),
+    count: 4
+  });
+  const nextMajorProgressionBeat = upcomingProgressionBeats.find((beat) => beat.type !== 'momentum')
+    || upcomingProgressionBeats[0]
+    || null;
 
   return {
     selectedRankTitleKey: selectedRank.key,
@@ -75,6 +84,8 @@ export function buildRankTitleSelectionPayload({ points, level, selectedRankTitl
     rankTitles,
     earnedRankTitleCount: rankTitles.filter((rank) => rank.earned).length,
     nextRankTitleDisplay: nextRank ? buildRankTitleDisplay(nextRank) : null,
+    upcomingProgressionBeats,
+    nextMajorProgressionBeat,
   };
 }
 

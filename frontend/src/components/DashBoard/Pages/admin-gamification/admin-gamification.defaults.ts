@@ -2,8 +2,8 @@ import type { LevelSettings, SystemSettings } from './admin-gamification.types';
 
 export const DEFAULT_LEVEL_SETTINGS: LevelSettings = {
   pointsPerLevel: 500,
-  levelCap: 100,
-  enableLevelCap: false,
+  levelCap: 1000,
+  enableLevelCap: true,
 };
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
