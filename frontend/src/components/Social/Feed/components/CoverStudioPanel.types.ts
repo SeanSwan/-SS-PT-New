@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 /**
  * COMPONENT: CoverStudioPanel.types
  * PURPOSE: Types, constants, and branch-light helpers for the feed cover studio panel.
@@ -15,6 +17,7 @@ import {
 export type CoverType = 'single' | 'stage' | 'carousel' | 'collage';
 
 export interface CoverStudioPanelProps {
+  dashboardBackgroundControls?: ReactNode;
   bannerObjectPosition: BannerObjectPosition;
   bannerObjectFit: BannerObjectFit;
   bannerImageScale: number;
@@ -27,6 +30,7 @@ export interface CoverStudioPanelProps {
   onBannerCropCommit: (next: BannerCropState) => void;
   onBannerCollageFiles: (files: FileList | File[]) => void;
   onBannerCollageRemove: (index: number) => void;
+  onBannerCollageShuffle?: () => void;
   onBannerCollageLayoutCommit: (layout: BannerCollageLayout) => void;
   onBannerStickyCarouselCommit: (sticky: boolean) => void;
   onBannerPresetSave: () => void;
@@ -41,7 +45,7 @@ export type CoverCropValues = {
   height: number;
 };
 
-const STAGE_LAYOUTS: BannerCollageLayout[] = ['atrium', 'vitrine', 'mosaic'];
+const STAGE_LAYOUTS: BannerCollageLayout[] = ['smart-carousel', 'atrium', 'vitrine', 'mosaic'];
 const CAROUSEL_LAYOUTS = [...BANNER_CAROUSEL_LAYOUT_OPTIONS] as BannerCollageLayout[];
 const COLLAGE_LAYOUTS: BannerCollageLayout[] = ['stream', 'spotlight', 'crossfade'];
 
@@ -53,6 +57,7 @@ export const COVER_TYPES: Array<{ id: CoverType; name: string; desc: string; rec
 ];
 
 export const LAYOUT_LABELS: Record<string, string> = {
+  'smart-carousel': 'Smart',
   atrium: 'Atrium',
   vitrine: 'Vitrine',
   mosaic: 'Mosaic',
@@ -68,6 +73,7 @@ export const LAYOUT_LABELS: Record<string, string> = {
 
 export const SCHEMATIC: Record<string, Array<{ w: string; h: string }>> = {
   single: [{ w: '72%', h: '82%' }],
+  'smart-carousel': [{ w: '54%', h: '82%' }, { w: '16%', h: '82%' }, { w: '12%', h: '64%' }],
   atrium: [{ w: '18%', h: '52%' }, { w: '34%', h: '82%' }, { w: '18%', h: '52%' }],
   vitrine: [{ w: '52%', h: '82%' }, { w: '20%', h: '82%' }],
   mosaic: [{ w: '40%', h: '82%' }, { w: '24%', h: '82%' }, { w: '24%', h: '82%' }],
@@ -100,7 +106,7 @@ export const HEIGHT_PRESETS: Array<{ value: number; label: string }> = [
 ];
 
 const DEFAULT_LAYOUT_BY_TYPE: Partial<Record<CoverType, BannerCollageLayout>> = {
-  stage: 'atrium',
+  stage: 'smart-carousel',
   carousel: 'carousel-reel',
   collage: 'stream',
 };
@@ -124,7 +130,7 @@ export function getLayoutOptions(coverType: CoverType): BannerCollageLayout[] {
 }
 
 export function getTypeSchematicKind(coverType: CoverType) {
-  if (coverType === 'stage') return 'atrium';
+  if (coverType === 'stage') return 'smart-carousel';
   if (coverType === 'carousel') return 'carousel-reel';
   if (coverType === 'collage') return 'stream';
   return 'single';

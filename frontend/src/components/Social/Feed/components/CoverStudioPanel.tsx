@@ -29,6 +29,7 @@ import {
 } from './CoverStudioPanel.types';
 
 const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
+  dashboardBackgroundControls,
   bannerObjectPosition,
   bannerObjectFit,
   bannerImageScale,
@@ -41,6 +42,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   onBannerCropCommit,
   onBannerCollageFiles,
   onBannerCollageRemove,
+  onBannerCollageShuffle,
   onBannerCollageLayoutCommit,
   onBannerStickyCarouselCommit,
   onBannerPresetSave,
@@ -81,6 +83,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   return (
     <StudioBody>
       <CoverTypeSection coverType={coverType} onSelectType={selectType} />
+      {dashboardBackgroundControls}
       <LayoutSection
         coverType={coverType}
         layoutOptions={layoutOptions}
@@ -96,6 +99,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
         photos={bannerCollagePhotos}
         onFiles={onBannerCollageFiles}
         onRemove={onBannerCollageRemove}
+        onShuffle={onBannerCollageShuffle}
       />
       <FramingSection coverType={coverType} fit={bannerObjectFit} onFitChange={setFit} />
       <FocalSection isFocal={(x, y) => isFocalPoint(focal, x, y)} onSetFocal={setFocal} />

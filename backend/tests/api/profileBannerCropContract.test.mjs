@@ -19,6 +19,7 @@ describe('profile banner crop persistence contract', () => {
     expect(controllerSource).toContain("'bannerCollageLayout'");
     expect(controllerSource).toContain("'bannerStickyCarousel'");
     expect(controllerSource).toContain("'bannerPresets'");
+    expect(controllerSource).toContain("'smart-carousel'");
     expect(controllerSource).toContain('isValidBannerObjectPosition');
     expect(controllerSource).toContain('isValidBannerObjectFit');
     expect(controllerSource).toContain('isValidBannerCollageLayout');

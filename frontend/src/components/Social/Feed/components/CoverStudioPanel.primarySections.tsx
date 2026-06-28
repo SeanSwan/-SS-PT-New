@@ -3,7 +3,7 @@
  * PURPOSE: Cover type, layout, media, and framing sections for the feed cover studio panel.
  */
 import React from 'react';
-import { Check, Film, Plus } from 'lucide-react';
+import { Check, Film, Plus, Shuffle } from 'lucide-react';
 import {
   BANNER_COLLAGE_MEDIA_TYPES,
   MAX_BANNER_COLLAGE_PHOTOS,
@@ -107,7 +107,7 @@ export function LayoutSection({
     <div>
       <SectionLabel><span className="num">02</span> {coverType === 'stage' ? 'Stage layout' : coverType === 'carousel' ? 'Carousel layout' : 'Collage pattern'}</SectionLabel>
       {coverType === 'stage' && (
-        <SectionHelp><b>Atrium</b> is our pick - a coverflow gallery with depth and a hero frame in focus.</SectionHelp>
+        <SectionHelp><b>Smart</b> is our pick - selected media plus crystalline fill tiles.</SectionHelp>
       )}
       <DirGrid>
         {layoutOptions.map((layout) => (
@@ -119,7 +119,7 @@ export function LayoutSection({
             aria-label={`${LAYOUT_LABELS[layout]} layout`}
             onClick={() => onLayoutCommit(layout)}
           >
-            {coverType === 'stage' && layout === 'atrium' && <DirTileRec><Check size={9} /></DirTileRec>}
+            {coverType === 'stage' && layout === 'smart-carousel' && <DirTileRec><Check size={9} /></DirTileRec>}
             <DirTilePreview><Schematic kind={layout} /></DirTilePreview>
             <DirTileName>{LAYOUT_LABELS[layout]}</DirTileName>
           </DirTile>
@@ -157,6 +157,7 @@ export function MediaLibrarySection({
   photos,
   onFiles,
   onRemove,
+  onShuffle,
 }: {
   coverType: CoverType;
   fileRef: React.RefObject<HTMLInputElement>;
@@ -164,6 +165,7 @@ export function MediaLibrarySection({
   photos: string[];
   onFiles: (files: FileList | File[]) => void;
   onRemove: (index: number) => void;
+  onShuffle?: () => void;
 }) {
   if (coverType === 'single') return null;
   return (
@@ -190,6 +192,14 @@ export function MediaLibrarySection({
           onClick={() => fileRef.current?.click()}
         >
           <Plus size={18} />
+        </LibAddTile>
+        <LibAddTile
+          type="button"
+          disabled={photos.length < 2 || !onShuffle}
+          aria-label="Shuffle cover media"
+          onClick={onShuffle}
+        >
+          <Shuffle size={18} />
         </LibAddTile>
       </LibGrid>
       <input

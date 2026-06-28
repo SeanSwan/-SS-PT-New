@@ -3,17 +3,12 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import UserDashboardBannerCropControls from './UserDashboardBannerCropControls';
 
 beforeAll(() => {
-  Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
-    configurable: true,
-    value: vi.fn(),
-  });
-  Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
-    configurable: true,
-    value: vi.fn(() => true),
-  });
-  Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', {
-    configurable: true,
-    value: vi.fn(),
+  [
+    ['setPointerCapture', vi.fn()],
+    ['hasPointerCapture', vi.fn(() => true)],
+    ['releasePointerCapture', vi.fn()],
+  ].forEach(([name, value]) => {
+    Object.defineProperty(HTMLElement.prototype, name, { configurable: true, value });
   });
 });
 
@@ -39,6 +34,7 @@ function renderCropControls(overrides = {}) {
     onBannerPresetSave: vi.fn(),
     onBannerPresetApply: vi.fn(),
     onBannerPresetRemove: vi.fn(),
+    onBannerCollageShuffle: vi.fn(),
     onBackgroundClick: vi.fn(),
     ...overrides,
   };
@@ -143,9 +139,11 @@ describe('UserDashboardBannerCropControls', () => {
 
     expect(screen.getAllByTestId('banner-collage-image')).toHaveLength(2);
     fireEvent.change(screen.getByLabelText('Add collage media'), { target: { files } });
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle collage media' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove collage media 1' }));
 
     expect(props.onBannerCollageFiles).toHaveBeenCalled();
+    expect(props.onBannerCollageShuffle).toHaveBeenCalled();
     expect(props.onBannerCollageRemove).toHaveBeenCalledWith(0);
   });
 
@@ -198,7 +196,6 @@ describe('UserDashboardBannerCropControls', () => {
     });
 
     expect(screen.getByTestId('banner-sticky-carousel')).toBeInTheDocument();
-    expect(screen.getByTestId('banner-sticky-carousel')).toHaveStyle('--banner-object-position: 50% 50%');
     expect(screen.getAllByTestId('banner-sticky-carousel-image')).toHaveLength(4);
     expect(screen.queryAllByTestId('banner-collage-image')).toHaveLength(0);
   });

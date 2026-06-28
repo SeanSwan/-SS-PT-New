@@ -87,9 +87,11 @@ const stickyCarouselMediaCss = css`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: var(--banner-object-position, center center);
-  background: transparent;
+  /* Cover-fill (2026-06-11): was object-fit:contain, which letterboxed every
+     photo with pillarbox bars. cover fills the frame edge-to-edge. */
+  object-fit: cover;
+  object-position: center;
+  background: var(--bg-base, #0A0A0F);
 `;
 
 export const BannerStickyCarouselImage = styled.img`
