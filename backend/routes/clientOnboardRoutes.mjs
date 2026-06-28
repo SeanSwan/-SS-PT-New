@@ -102,11 +102,11 @@ async function generateUniqueUsername(firstName, lastName, User, transaction, ma
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Temporary Password Generation
-// PURPOSE: Create a random 12-char password for stub accounts
+// SECTION: Account Seed Password Generation
+// PURPOSE: Create a random server-only password for claimable stub accounts
 // ─────────────────────────────────────────────────────────────
 
-function generateTempPassword() {
+function generateAccountSeedPassword() {
   // 12-char alphanumeric, URL-safe
   return crypto.randomBytes(9).toString('base64url').slice(0, 12);
 }
@@ -184,8 +184,8 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     // 1. Generate unique username
     const username = await generateUniqueUsername(firstName, lastName, User, transaction);
 
-    // 2. Generate temp password (User model beforeCreate hook handles hashing)
-    const tempPassword = generateTempPassword();
+    // 2. Generate server-only account seed password (User model beforeCreate hook handles hashing)
+    const accountSeedPassword = generateAccountSeedPassword();
 
     // 3. Generate claim token (if requested)
     let claimData = null;
@@ -202,7 +202,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       dateOfBirth: dateOfBirth || null,
       gender: gender || null,
       username,
-      password: tempPassword,
+      password: accountSeedPassword,
       role: 'client',
       clientSource: normalizedClientSource,
       forcePasswordChange: true,
@@ -304,6 +304,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     // ── Build Response ──────────────────────────────────────
     const isMoveFitness = normalizedClientSource === 'move_fitness';
     const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource);
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://sswanstudios.com').replace(/\/+$/, '');
     const responseData = {
       client: {
         id: newUser.id,
@@ -316,14 +317,14 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         accountStatus: newUser.accountStatus,
         role: newUser.role,
       },
-      temporaryPassword: tempPassword,
+      credentialMode: claimData ? 'claim_link_ready' : 'claim_link_needed',
       claimCode: claimData?.plainToken || null,
-      claimUrl: claimData ? `https://sswanstudios.com/claim/${claimData.plainToken}` : null,
+      claimUrl: claimData ? `${frontendUrl}/claim/${claimData.plainToken}` : null,
+      claimExpiresAt: claimData?.expires?.toISOString() || null,
       assignedTrainer,
       isMoveFitness,
       isFreeTracking,
     };
-
     return res.status(201).json({
       success: true,
       message: getClientOnboardSuccessMessage(normalizedClientSource),

@@ -552,7 +552,7 @@ const ModernUserManagementSystem: React.FC = () => {
                 />
               </FormField>
               <FormField $fullWidth>
-                <FormLabel htmlFor="add-password">Temporary Password *</FormLabel>
+                <FormLabel htmlFor="add-password">Initial Password *</FormLabel>
                 <FormInput
                   id="add-password"
                   name="password"
@@ -560,7 +560,7 @@ const ModernUserManagementSystem: React.FC = () => {
                   value={editFormData.password}
                   onChange={handleEditFormChange}
                   required
-                  placeholder="Set a temporary password"
+                  placeholder="Set an initial password"
                 />
               </FormField>
               <FormField $fullWidth>

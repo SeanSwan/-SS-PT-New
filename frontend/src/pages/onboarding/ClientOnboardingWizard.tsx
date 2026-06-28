@@ -634,20 +634,21 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
                   <CredLabel>Email:</CredLabel>
                   <CredValue>{submissionResult.email}</CredValue>
                 </CredentialRow>
-                {submissionResult.tempPassword && (
+                {submissionResult.resetEmailSent !== undefined && (
                   <CredentialRow>
-                    <CredLabel>Temporary Password:</CredLabel>
-                    <CredValue>{submissionResult.tempPassword}</CredValue>
+                    <CredLabel>Access:</CredLabel>
+                    <CredValue>{submissionResult.resetEmailSent ? "Reset link sent" : "Reset link needed"}</CredValue>
                   </CredentialRow>
                 )}
+
               </CredentialsBox>
-
               <ModalText>
-                {submissionResult.tempPassword
-                  ? "Please save your temporary password. You will be asked to change it on first login."
-                  : "Your login credentials have been sent to your email."}
+                {submissionResult.resetEmailSent === true
+                  ? "Secure login link sent. The client can set their password from email."
+                  : submissionResult.resetEmailSent === false
+                    ? "No password is shown here. Send a reset link before first login."
+                    : "Your onboarding profile has been saved."}
               </ModalText>
-
               <Button
                 $variant="primary"
                 onClick={() => {

@@ -121,4 +121,26 @@ describe('clientOptionMappers', () => {
       email: 'zero.id@example.test',
     })).toBeNull();
   });
+
+  it('preserves onboarding field ledger data from the admin client API', () => {
+    const option = mapAdminClientToClientOption({
+      id: 91,
+      firstName: 'Ledger',
+      lastName: 'Client',
+      email: 'ledger.client@example.test',
+      onboardingFieldLedger: {
+        version: 'computed-v1',
+        summary: {
+          completionPercentage: 70,
+          canStartTraining: true,
+        },
+      },
+      onboardingMissingFields: [
+        { key: 'medical.healthConcerns', label: 'Health concerns', owner: 'client', status: 'client_requested' },
+      ],
+    });
+
+    expect(option?.onboardingFieldLedger?.summary).toMatchObject({ completionPercentage: 70 });
+    expect(option?.onboardingMissingFields).toHaveLength(1);
+  });
 });

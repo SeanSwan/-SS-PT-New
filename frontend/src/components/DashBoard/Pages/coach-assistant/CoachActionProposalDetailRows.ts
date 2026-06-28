@@ -14,6 +14,7 @@ export function proposalTypeLabel(type: string) {
     workout_log: 'Workout log',
     nutrition_log: 'Nutrition log',
     client_data_update: 'Client data update',
+    client_profile_coverage_update: 'Profile coverage update',
     frontend_dispatch: 'Workout form action',
     clarification: 'Clarification',
     split_plan: 'Split plan',
@@ -241,6 +242,17 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
   const nutrition = asRecord(detail.nutrition);
   if (nutrition) {
     return withApprovalGateRows(detail, compactRows(nutritionDetailRows(nutrition)));
+  }
+  const profileCoverageUpdate = asRecord(detail.profileCoverageUpdate);
+  if (profileCoverageUpdate) {
+    const profileFields = asRecord(profileCoverageUpdate.profileFields);
+    const responses = asRecord(profileCoverageUpdate.questionnaireResponses);
+    return withApprovalGateRows(detail, compactRows([
+      ['Client', safeClientId(profileCoverageUpdate.clientId)],
+      ['Profile fields', profileFields ? Object.keys(profileFields).length : null],
+      ['Questionnaire fields', responses ? Object.keys(responses).length : null],
+      ['Coverage updates', compactCount(profileCoverageUpdate.coverageUpdates, 'coverage update')],
+    ]));
   }
   const clarification = asRecord(detail.clarification);
   if (clarification) {

@@ -7,6 +7,7 @@ import {
   getCoachProposal,
   rejectCoachProposal,
 } from '../../../../services/coachProposalService';
+import type { CoachAccessHandoff } from '../../../../services/coachProposalService';
 import { CoachProposalGateRail } from './CoachProposalGateRail';
 import {
   buildDetailRows,
@@ -31,6 +32,7 @@ import {
 } from './CoachActionProposalCard.logic';
 import {
   ActionButton,
+  ActionAnchor,
   ActionLink,
   Actions,
   Card,
@@ -42,6 +44,19 @@ import {
   Value,
 } from './CoachActionProposalCard.styles';
 
+const accessHandoffLabel = (handoff: CoachAccessHandoff | null) => {
+  if (!handoff) return null;
+  if (handoff.credentialMode === 'claim_link_ready') return 'Claim link ready';
+  if (handoff.resetEmailSent === true) return 'Reset link sent';
+  return 'Login handoff needs review';
+};
+
+const claimExpiryLabel = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
@@ -52,6 +67,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const [error, setError] = useState<string | null>(null);
   const [createdClientRoute, setCreatedClientRoute] = useState<string | null>(null);
   const summary = proposal.summary || {};
+  const [accessHandoff, setAccessHandoff] = useState<CoachAccessHandoff | null>(null);
   const pending = status === 'PENDING';
   const approveLabel = (proposal.type === 'workout_log' || proposal.type === 'nutrition_log')
     ? 'Approve and log'
@@ -73,6 +89,8 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
     ['Calories', safeSummaryCalories(summary.totalCalories)],
   ].filter((row) => row[1] != null), [proposal.type, summary]);
 
+  const accessLabel = accessHandoffLabel(accessHandoff);
+  const accessExpires = claimExpiryLabel(accessHandoff?.claimExpiresAt);
   const runLoadDetails = async () => {
     setBusy('detail');
     setError(null);
@@ -101,14 +119,18 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
     setBusy('approve');
     setError(null);
     setCreatedClientRoute(null);
+    setAccessHandoff(null);
     try {
       const result = await approveCoachProposal(proposal.id, reviewToken);
       const nextProposal = result.proposal || { ...proposal, status: result.applied ? 'APPLIED' : 'APPROVED' };
       setStatus(nextProposal.status);
       publishProposalAction(nextProposal, onProposalAction);
       if (result.client) {
+        const nextAccessHandoff = result.accessHandoff || null;
         setCreatedClientRoute(createdClientHubRoute(result.client));
-        setMessage('Client created through deterministic onboarding approval.');
+        setAccessHandoff(nextAccessHandoff);
+        setMessage(nextAccessHandoff?.credentialMode === 'claim_link_ready'
+          ? 'Client created and claim link is ready for activation.' : 'Client created through deterministic onboarding approval.');
       } else if (proposal.type === 'client_data_update' && result.partial) {
         setMessage('Some client updates applied; review the remaining errors.');
       } else if (proposal.type === 'client_data_update' && result.applied) {
@@ -227,6 +249,31 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
         <StatusText><CheckCircle2 size={14} /> {terminalMessage}</StatusText>
       )}
       {message && <StatusText><CheckCircle2 size={14} /> {message}</StatusText>}
+      {accessLabel && (
+        <DetailPanel aria-label="Client access handoff">
+          <Row>
+            <Label>Access</Label>
+            <Value>{accessLabel}</Value>
+          </Row>
+          {accessHandoff?.claimCode && (
+            <Row>
+              <Label>Claim code</Label>
+              <Value>{accessHandoff.claimCode}</Value>
+            </Row>
+          )}
+          {accessExpires && (
+            <Row>
+              <Label>Expires</Label>
+              <Value>{accessExpires}</Value>
+            </Row>
+          )}
+        </DetailPanel>
+      )}
+      {accessHandoff?.claimUrl && (
+        <Actions aria-label="Client access handoff actions">
+          <ActionAnchor href={accessHandoff.claimUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open claim link</ActionAnchor>
+        </Actions>
+      )}
       {createdClientRoute && (
         <Actions aria-label="Onboarding next steps">
           <ActionLink to={createdClientRoute}>

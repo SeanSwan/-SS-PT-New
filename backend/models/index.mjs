@@ -157,6 +157,7 @@ export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignmen
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
 export const getTrainerAvailability = () => getModel('TrainerAvailability');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
+export const getClientOnboardingCoverageItem = () => getModel('ClientOnboardingCoverageItem');
 export const getAdminSettings = () => getModel('AdminSettings');
 export const getAutomationSequence = () => getModel('AutomationSequence');
 export const getAutomationLog = () => getModel('AutomationLog');

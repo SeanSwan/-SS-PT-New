@@ -13,6 +13,12 @@ describe('onboarding controller disclosure and ID contracts', () => {
     expect(controllerSource).toContain("code: 'internal_error'");
   });
 
+  it('uses reset-link handoff instead of returning generated passwords for created onboarding clients', () => {
+    expect(controllerSource).toContain('sendPasswordResetEmailForUser(user)');
+    expect(controllerSource).toContain("credentialAction: resetEmailSent ? 'reset_link_sent' : 'reset_link_needed'");
+    expect(controllerSource).not.toContain('tempPassword:');
+    expect(controllerSource).not.toContain('Temporary Password');
+  });
   it('normalizes explicit and authenticated user IDs before onboarding data access', () => {
     expect(controllerSource).toContain('const parsePositiveUserId = (value) =>');
     expect(controllerSource).toContain('Number.isSafeInteger(parsed) && parsed > 0');

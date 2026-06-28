@@ -174,6 +174,7 @@ const explicitOnboardingPct = (client: ClientOption): number | undefined => (
     clampPercent(client.onboardingPct),
     clampPercent(client.onboardingCompletionPercentage),
     clampPercent(client.completionPercentage),
+    clampPercent(client.onboardingFieldLedger?.summary?.completionPercentage),
   ].find((value) => value !== undefined)
 );
 

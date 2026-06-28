@@ -20,11 +20,39 @@ const CLIENT_SOURCE_CLARIFICATION_QUESTION = [
   'Which client source should this client use before I prepare the onboarding draft?',
   'SwanStudios deducts paid sessions; Move Fitness and external clients are free-tracking.',
 ].join(' ');
+const TEXT_DRAFT_FIELDS = Object.freeze([
+  'healthConcerns',
+  'trainingGoal',
+  'fitnessGoal',
+  'limitations',
+  'painNotes',
+  'equipmentAccess',
+  'availability',
+  'firstSessionPriorities',
+  'trainerNotes',
+  'communicationStyle',
+  'motivationStyle',
+  'preferredContactMethod',
+]);
+const STRUCTURED_DRAFT_FIELDS = Object.freeze([
+  'nutritionPrefs',
+  'preferredTrainingDays',
+  'questionnaireResponses',
+  'coverageUpdates',
+]);
 
 function cleanText(value, maxLength) {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed ? trimmed.slice(0, maxLength) : undefined;
+}
+
+function copyStructuredValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => item && typeof item === 'object' ? { ...item } : item);
+  }
+  if (value && typeof value === 'object') return { ...value };
+  return cleanText(value, 2000);
 }
 
 function pickSource(value, fallback, allowed = CLIENT_SOURCES) {
@@ -45,6 +73,16 @@ function buildDraft(params = {}, fallbackSource, allowedSources) {
     phone: cleanText(params.phone, 64),
     clientSource: pickSource(params.clientSource, fallbackSource, allowedSources),
   };
+
+  for (const field of TEXT_DRAFT_FIELDS) {
+    const value = cleanText(params[field], 2000);
+    if (value !== undefined) draft[field] = value;
+  }
+  for (const field of STRUCTURED_DRAFT_FIELDS) {
+    const value = copyStructuredValue(params[field]);
+    if (value !== undefined) draft[field] = value;
+  }
+
   return Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== undefined));
 }
 

@@ -59,6 +59,8 @@ export interface ClientOption {
   onboardingPct?: number | null;
   onboardingCompletionPercentage?: number | null;
   completionPercentage?: number | null;
+  onboardingFieldLedger?: any;
+  onboardingMissingFields?: any[];
 }
 
 interface ClientSelectorDropdownProps {

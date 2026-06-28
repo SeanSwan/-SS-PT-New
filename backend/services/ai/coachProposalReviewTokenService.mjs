@@ -10,6 +10,7 @@ const VERSION = 'review-v1';
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 const REVIEW_REQUIRED_TYPES = new Set([
   'client_onboarding',
+  'client_profile_coverage_update',
   'workout_log',
   'nutrition_log',
   'client_data_update',

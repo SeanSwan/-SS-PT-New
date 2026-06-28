@@ -261,6 +261,12 @@ describe('CoachActionProposalCard', () => {
       applied: true,
       client: { id: 88, firstName: 'Norma', lastName: 'Patton' },
       proposal: { ...onboardingProposal, status: 'APPLIED' },
+      accessHandoff: {
+        credentialMode: 'claim_link_ready',
+        claimCode: 'SWAN-ABCD2345',
+        claimUrl: 'https://sswanstudios.com/claim/SWAN-ABCD2345',
+        claimExpiresAt: '2026-07-28T12:00:00.000Z',
+      },
     });
 
     render(
@@ -275,6 +281,14 @@ describe('CoachActionProposalCard', () => {
 
     const hubLink = await screen.findByRole('link', { name: /open client hub/i });
     expect(hubLink).toHaveAttribute('href', '/dashboard/admin/client-management?clientId=88');
+    expect(await screen.findByText(/Claim link ready/i)).toBeInTheDocument();
+    expect(screen.getByText(/SWAN-ABCD2345/i)).toBeInTheDocument();
+    expect(screen.queryByText(/temporary password/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/claimTokenHash/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open claim link/i })).toHaveAttribute(
+      'href',
+      'https://sswanstudios.com/claim/SWAN-ABCD2345',
+    );
   });
 
   it('keeps onboarding approval blocked when loaded details contain a validation error', async () => {

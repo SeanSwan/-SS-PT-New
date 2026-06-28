@@ -21,7 +21,7 @@ const getMethodSource = (methodName, nextMethodName) => {
 };
 
 describe('admin client create email normalization', () => {
-  it('normalizes regular admin-created client emails before lookup, create, and email send', () => {
+  it('normalizes regular admin-created client emails before lookup, create, and reset handoff', () => {
     const source = getMethodSource('createClient', 'updateClient');
 
     expect(controllerSource).toContain('normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput');
@@ -29,8 +29,10 @@ describe('admin client create email normalization', () => {
     expect(source).toContain("message: 'Please provide a valid email address'");
     expect(source).toContain('{ email: { [Op.iLike]: normalizedEmail } }');
     expect(source).toContain('email: normalizedEmail');
-    expect(source).toContain('String(normalizedEmail).replace');
-    expect(source).toContain('to: normalizedEmail');
+    expect(source).toContain('sendPasswordResetEmailForUser(newClient)');
+    expect(source).toContain("credentialAction = resetEmailSent ? 'reset_link_sent' : 'reset_link_needed'");
+    expect(source).not.toContain('Temporary Password');
+    expect(source).not.toContain('temporaryPassword: effectivePassword');
     expect(source).not.toContain('[Op.or]: [{ email }, { username }]');
   });
 

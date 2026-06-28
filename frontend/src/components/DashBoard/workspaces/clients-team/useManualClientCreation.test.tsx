@@ -137,6 +137,33 @@ describe('useManualClientCreation', () => {
     }));
   });
 
+  it('uses the backend reset handoff without sending a duplicate reset email', async () => {
+    const user = userEvent.setup();
+    const onClientsChanged = vi.fn();
+    mocks.createClient.mockResolvedValue({
+      success: true,
+      data: {
+        client: {
+          id: 7,
+          firstName: 'Backend',
+          lastName: 'Reset',
+          email: 'backend.reset@example.test',
+        },
+        credentialAction: 'reset_link_sent',
+        resetEmailSent: true,
+      },
+    });
+
+    render(<Harness onClientsChanged={onClientsChanged} />);
+
+    await user.click(screen.getByRole('button', { name: /create swan/i }));
+
+    await waitFor(() => {
+      expect(mocks.createClient).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.sendClientPasswordReset).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('creation-handoff')).toHaveTextContent('reset_link_sent');
+  });
   it('keeps Move Fitness manual creation on the claim-link activation path', async () => {
     const user = userEvent.setup();
     const onClientsChanged = vi.fn();

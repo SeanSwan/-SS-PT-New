@@ -282,6 +282,7 @@ import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEma
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
 import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
+import { buildClientOnboardingProgressSnapshot } from '../services/clientOnboardingCoverageLedgerService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -401,7 +402,15 @@ const buildOnboardingProgressMap = (questionnaires) => {
 
     const responses = normalizeJsonObject(questionnaire.responsesJson) ?? {};
     const completionPercentage = calculateCompletionPercentage(responses);
+    const questionnaireSnapshot = {
+      status: questionnaire.status ?? null,
+      nutritionPrefs: questionnaire.nutritionPrefs ?? null,
+      responsesJson: responses,
+    };
     progressMap[questionnaire.userId] = {
+      status: questionnaire.status ?? null,
+      responses,
+      questionnaire: questionnaireSnapshot,
       completionPercentage,
       onboardingComplete: questionnaire.status === 'completed' || completionPercentage === 100
     };
@@ -583,7 +592,7 @@ class AdminClientController {
       if (ClientOnboardingQuestionnaire?.findAll && clientIds.length > 0) {
         try {
           const questionnaires = await ClientOnboardingQuestionnaire.findAll({
-            attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+            attributes: ['userId', 'status', 'responsesJson', 'nutritionPrefs', 'completedAt', 'createdAt', 'updatedAt'],
             where: {
               userId: { [Op.in]: clientIds },
               status: { [Op.ne]: 'archived' }
@@ -612,9 +621,15 @@ class AdminClientController {
         const onboardingComplete = clientData.isOnboardingComplete === true ||
           masterPromptJson != null ||
           onboardingProgress?.onboardingComplete === true;
-        const onboardingPct = Number.isInteger(onboardingProgress?.completionPercentage)
+        const questionnairePct = Number.isInteger(onboardingProgress?.completionPercentage)
           ? onboardingProgress.completionPercentage
-          : onboardingComplete ? 100 : null;
+          : null;
+        const onboardingSnapshot = buildClientOnboardingProgressSnapshot({
+          client: clientData,
+          questionnaire: onboardingProgress?.questionnaire,
+          responses: onboardingProgress?.responses,
+        });
+        const onboardingPct = questionnairePct ?? (onboardingComplete ? 100 : onboardingSnapshot.completionPercentage);
 
         return {
           ...clientData,
@@ -623,6 +638,8 @@ class AdminClientController {
           onboardingCompletionPercentage: onboardingPct,
           onboardingPct,
           totalWorkouts: workoutCountMap[client.id] || 0,
+          onboardingFieldLedger: onboardingSnapshot.onboardingFieldLedger,
+          onboardingMissingFields: onboardingSnapshot.onboardingMissingFields,
           totalOrders: orderCountMap[client.id] || 0,
           lastWorkout: clientData.workoutSessions?.[0] || null,
           nextSession: clientData.clientSessions?.[0] || null,
@@ -788,7 +805,7 @@ class AdminClientController {
       if (ClientOnboardingQuestionnaire?.findAll) {
         try {
           const questionnaires = await ClientOnboardingQuestionnaire.findAll({
-            attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+            attributes: ['userId', 'status', 'responsesJson', 'nutritionPrefs', 'completedAt', 'createdAt', 'updatedAt'],
             where: {
               userId: { [Op.in]: [client.id] },
               status: { [Op.ne]: 'archived' }
@@ -810,9 +827,15 @@ class AdminClientController {
       const onboardingComplete = clientData.isOnboardingComplete === true ||
         clientData.masterPromptJson != null ||
         onboardingProgress?.onboardingComplete === true;
-      const onboardingPct = Number.isInteger(onboardingProgress?.completionPercentage)
+      const questionnairePct = Number.isInteger(onboardingProgress?.completionPercentage)
         ? onboardingProgress.completionPercentage
-        : onboardingComplete ? 100 : null;
+        : null;
+      const onboardingSnapshot = buildClientOnboardingProgressSnapshot({
+        client: clientData,
+        questionnaire: onboardingProgress?.questionnaire,
+        responses: onboardingProgress?.responses,
+      });
+      const onboardingPct = questionnairePct ?? (onboardingComplete ? 100 : onboardingSnapshot.completionPercentage);
 
       return res.status(200).json({
         success: true,
@@ -822,7 +845,9 @@ class AdminClientController {
             onboardingComplete,
             completionPercentage: onboardingPct,
             onboardingCompletionPercentage: onboardingPct,
-            onboardingPct
+            onboardingPct,
+            onboardingFieldLedger: onboardingSnapshot.onboardingFieldLedger,
+            onboardingMissingFields: onboardingSnapshot.onboardingMissingFields
           },
           mcpStats
         }
@@ -1017,26 +1042,19 @@ class AdminClientController {
 
       await transaction.commit();
 
-      // Send welcome email with temp password (non-blocking, only for generated passwords)
-      let emailSent = false;
-      if (passwordSource === 'generated') {
+      let resetEmailSent = false;
+      let credentialAction = 'reset_link_needed';
+      if (normalizedClientSource === 'swanstudios') {
         try {
-          const safeFirst = String(firstName || '').replace(/[<>&"']/g, '');
-          const safeEmail = String(normalizedEmail).replace(/[<>&"']/g, '');
-          const result = await sendGridEmail({
-            to: normalizedEmail,
-            subject: 'Welcome to SwanStudios — Your Account is Ready',
-            text: `Hi ${firstName},\n\nYour SwanStudios account has been created.\nEmail: ${normalizedEmail}\nTemporary Password: ${effectivePassword}\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
-            html: `<p>Hi ${safeFirst},</p><p>Your SwanStudios account has been created.</p><p><strong>Email:</strong> ${safeEmail}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>Please log in and change your password at your earliest convenience.</p><p>&mdash; SwanStudios Team</p>`,
-          });
-          emailSent = result?.success === true;
+          const reset = await sendPasswordResetEmailForUser(newClient);
+          resetEmailSent = reset?.emailSent === true;
+          credentialAction = resetEmailSent ? 'reset_link_sent' : 'reset_link_needed';
         } catch (emailError) {
-          logger.warn(`Welcome email failed for ${normalizedEmail}: ${emailError.message}`);
+          logger.warn(`Password reset handoff failed for ${normalizedEmail}: ${emailError.message}`);
         }
       }
 
-      logger.info(`Admin ${req.user?.id ?? 'unknown'} created client ${newClient.id} (${normalizedEmail}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
-
+      logger.info(`Admin ${req.user?.id ?? 'unknown'} created client ${newClient.id} (${normalizedEmail}), passwordSource=${passwordSource}, credentialAction=${credentialAction}`);
       return res.status(201).json({
         success: true,
         message: 'Client created successfully',
@@ -1051,9 +1069,10 @@ class AdminClientController {
             availableSessions: newClient.availableSessions,
             forcePasswordChange
           },
-          temporaryPassword: effectivePassword,
           passwordSource,
-          emailSent
+          credentialAction,
+          resetEmailSent,
+          emailSent: resetEmailSent
         }
       });
     } catch (error) {

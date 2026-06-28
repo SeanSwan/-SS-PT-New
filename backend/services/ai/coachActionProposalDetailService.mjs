@@ -46,6 +46,13 @@ function withApprovalGate(proposal, detail) {
   };
 }
 
+function firstDetailRecord(...candidates) {
+  for (const value of candidates) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  }
+  return {};
+}
+
 function parseDetailClientId(...candidates) {
   for (const value of candidates) {
     if (value === null || value === undefined || value === '') continue;
@@ -86,6 +93,23 @@ export function sanitizeProposalDetail({ row, proposal }) {
         error: err.message,
       });
     }
+  }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_PROFILE_COVERAGE_UPDATE) {
+    const coverageUpdates = Array.isArray(payload.coverageUpdates)
+      ? payload.coverageUpdates
+      : payload.coverageItems;
+    return withApprovalGate(proposal, {
+      profileCoverageUpdate: {
+        clientId: parseDetailClientId(payload.clientId, payload.targetUserId, proposal.targetUserId),
+        profileFields: firstDetailRecord(payload.profileFields, payload.profileUpdates, payload.profile),
+        questionnaireResponses: firstDetailRecord(
+          payload.questionnaireResponses,
+          payload.responsesJson,
+          payload.responses,
+        ),
+        coverageUpdates: Array.isArray(coverageUpdates) ? coverageUpdates.slice(0, 80) : [],
+      },
+    });
   }
   if (row.proposal_type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
     return withApprovalGate(proposal, {

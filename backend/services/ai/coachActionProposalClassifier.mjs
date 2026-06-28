@@ -10,6 +10,8 @@ import {
   parseSafeFrontendDispatch,
 } from './coachFrontendDispatchClassifier.mjs';
 import { classifyNutritionLogPayload } from './coachNutritionProposalClassifier.mjs';
+import { classifyClientProfileCoveragePayload } from './coachClientProfileCoverageClassifier.mjs';
+import { normalizeOnboardingCoverageUpdates } from './coachOnboardingCoveragePayloadNormalizer.mjs';
 
 export { parseSafeFrontendDispatch };
 
@@ -33,6 +35,7 @@ const StructuredCoachProposalSchema = z.object({
     'workout_log',
     'nutrition_log',
     'client_data_update',
+    'client_profile_coverage_update',
     'frontend_dispatch',
     'clarification',
     'split_plan',
@@ -135,7 +138,7 @@ function classifyClientOnboardingPayload(payload, proposalTypes, meta = null) {
       payload: onboardingClarificationPayload(missingFields, meta),
     };
   }
-  const normalizedPayload = normalizeOnboardingClientSource(payload);
+  const normalizedPayload = normalizeOnboardingCoverageUpdates(normalizeOnboardingClientSource(payload));
   return {
     type: proposalTypes.CLIENT_ONBOARDING,
     payload: meta ? { ...normalizedPayload, proposalMeta: meta } : normalizedPayload,
@@ -223,7 +226,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       });
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_ONBOARDING) {
-      const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', data: parsed.payload });
+      const payload = safeParseAction(ClientOnboardingActionSchema, { action: 'create_client', ...parsed.payload });
       return payload ? classifyClientOnboardingPayload(payload, proposalTypes, meta) : null;
     }
     if (parsed.proposal_type === proposalTypes.CLIENT_DATA_UPDATE) {
@@ -232,6 +235,14 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
         type: proposalTypes.CLIENT_DATA_UPDATE,
         payload: { ...payload, targetUserId: conversation?.targetUserId || null, proposalMeta: meta },
       } : null;
+    }
+    if (parsed.proposal_type === proposalTypes.CLIENT_PROFILE_COVERAGE_UPDATE) {
+      return classifyClientProfileCoveragePayload({
+        payload: parsed.payload,
+        conversation,
+        proposalTypes,
+        meta,
+      });
     }
     if (parsed.proposal_type === proposalTypes.CLARIFICATION) {
       const payload = safeParseAction(ClarificationPayloadSchema, parsed.payload);

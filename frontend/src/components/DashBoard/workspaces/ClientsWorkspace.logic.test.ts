@@ -149,6 +149,7 @@ describe('ClientsWorkspace UI helper logic', () => {
     expect(getClientOnboardingPct({ onboardingPct: 42.4 } as any)).toBe(42);
     expect(getClientOnboardingPct({ completionPercentage: 200 } as any)).toBe(100);
     expect(getClientOnboardingPct({ isOnboardingComplete: true } as any)).toBe(100);
+    expect(getClientOnboardingPct({ onboardingFieldLedger: { summary: { completionPercentage: 64.7 } } } as any)).toBe(65);
   });
 });
 

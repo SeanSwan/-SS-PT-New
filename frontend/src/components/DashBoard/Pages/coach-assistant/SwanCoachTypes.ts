@@ -67,9 +67,11 @@ export interface CoachMessageData {
       firstName?: string;
       lastName?: string;
       username?: string;
-      temporaryPassword?: string;
+      credentialMode?: string;
       claimCode?: string;
       claimUrl?: string;
+      claimExpiresAt?: string;
+      resetEmailSent?: boolean;
       clientSource?: 'swanstudios' | 'move_fitness' | 'external';
       isMoveFitness?: boolean;
       sectionsPreFilled?: number;
@@ -221,6 +223,7 @@ export interface CoachActionProposal {
     | 'workout_log'
     | 'nutrition_log'
     | 'client_data_update'
+    | 'client_profile_coverage_update'
     | 'frontend_dispatch'
     | 'clarification'
     | 'split_plan';

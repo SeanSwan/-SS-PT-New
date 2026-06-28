@@ -75,12 +75,30 @@ const sendLoginResetIfAvailable = async (
   }
 };
 
+const responseData = (response: any): Record<string, unknown> => (
+  typeof response?.data === 'object' && response.data !== null && !Array.isArray(response.data)
+    ? response.data
+    : {}
+);
+
+const responseResetEmailSent = (response: any): boolean | null => {
+  const data = responseData(response);
+  if (data.resetEmailSent === true) return true;
+  if (data.resetEmailSent === false) return false;
+  if (data.credentialAction === 'reset_link_sent' || data.credentialAction === 'reset_email_sent') return true;
+  if (data.credentialAction === 'reset_link_needed' || data.credentialAction === 'reset_email_needed') return false;
+  return null;
+};
+
 const resolveResetEmailSent = async (
   manualClientService: ManualClientService,
   data: CreateClientRequest,
   clientId: string | null,
+  response: any,
 ): Promise<boolean | null> => {
   if (isExternalClientSource(data)) return null;
+  const backendResetEmailSent = responseResetEmailSent(response);
+  if (backendResetEmailSent !== null) return backendResetEmailSent;
   return sendLoginResetIfAvailable(manualClientService, clientId);
 };
 
@@ -98,7 +116,7 @@ const buildCreationHandoff = async (
   response: any,
 ): Promise<ManualClientCreationHandoff> => {
   const clientId = toClientId(getCreatedClient(response).id);
-  const resetEmailSent = await resolveResetEmailSent(manualClientService, data, clientId);
+  const resetEmailSent = await resolveResetEmailSent(manualClientService, data, clientId, response);
   return buildManualClientCreationHandoff({ data, response, resetEmailSent });
 };
 

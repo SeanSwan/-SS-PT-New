@@ -110,6 +110,7 @@ const setupAssociations = async () => {
     const PlaudWebhookNonceModule = await import('./PlaudWebhookNonce.mjs');
     const ClientBaselineMeasurementsModule = await import('./ClientBaselineMeasurements.mjs');
     const ClientOnboardingQuestionnaireModule = await import('./ClientOnboardingQuestionnaire.mjs');
+    const ClientOnboardingCoverageItemModule = await import('./ClientOnboardingCoverageItem.mjs');
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
     const ClientPhotoModule = await import('./ClientPhoto.mjs');
     const ClientNoteModule = await import('./ClientNote.mjs');
@@ -314,6 +315,7 @@ const setupAssociations = async () => {
     const PlaudWebhookNonce = PlaudWebhookNonceModule.default;
     const ClientBaselineMeasurements = ClientBaselineMeasurementsModule.default;
     const ClientOnboardingQuestionnaire = ClientOnboardingQuestionnaireModule.default;
+    const ClientOnboardingCoverageItem = ClientOnboardingCoverageItemModule.default;
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
     const ClientPhoto = ClientPhotoModule.default;
     const ClientNote = ClientNoteModule.default;
@@ -483,7 +485,7 @@ const setupAssociations = async () => {
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
-        ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
+        ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
         AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog,
@@ -935,6 +937,12 @@ const setupAssociations = async () => {
     ClientOnboardingQuestionnaire.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     ClientOnboardingQuestionnaire.belongsTo(User, { foreignKey: 'createdBy', as: 'createdByUser' });
 
+    // Client Onboarding Coverage Ledger Associations
+    User.hasMany(ClientOnboardingCoverageItem, { foreignKey: 'clientId', as: 'onboardingCoverageItems' });
+    User.hasMany(ClientOnboardingCoverageItem, { foreignKey: 'lastMarkedBy', as: 'markedOnboardingCoverageItems' });
+    ClientOnboardingCoverageItem.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+    ClientOnboardingCoverageItem.belongsTo(User, { foreignKey: 'lastMarkedBy', as: 'lastMarkedByUser' });
+
     // Client Baseline Measurements Associations
     User.hasMany(ClientBaselineMeasurements, { foreignKey: 'userId', as: 'baselineMeasurements' });
     User.hasMany(ClientBaselineMeasurements, { foreignKey: 'recordedBy', as: 'baselineMeasurementsRecorded' });
@@ -1382,6 +1390,7 @@ const setupAssociations = async () => {
       TrainerAvailability,
       DailyWorkoutForm,
       ClientOnboardingQuestionnaire,
+      ClientOnboardingCoverageItem,
       ClientBaselineMeasurements,
       ClientNutritionPlan,
       ClientPhoto,

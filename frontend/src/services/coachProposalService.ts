@@ -8,6 +8,14 @@ import apiService from './api.service';
 import { PlaudApiError } from './plaudClipService';
 import type { CoachActionProposal } from '../components/DashBoard/Pages/coach-assistant/SwanCoachTypes';
 
+export interface CoachAccessHandoff {
+  credentialMode?: string;
+  claimCode?: string | null;
+  claimUrl?: string | null;
+  claimExpiresAt?: string | null;
+  resetEmailSent?: boolean;
+}
+
 export interface CoachProposalActionResponse {
   success: boolean;
   proposal?: CoachActionProposal;
@@ -16,6 +24,9 @@ export interface CoachProposalActionResponse {
   workout?: Record<string, unknown>;
   client?: Record<string, unknown>;
   updates?: Record<string, unknown>;
+  accessHandoff?: CoachAccessHandoff;
+  onboardingFieldLedger?: Record<string, unknown>;
+  onboardingMissingFields?: Array<Record<string, unknown>>;
   splitPlan?: {
     nextAction?: string;
     splitCount?: number;

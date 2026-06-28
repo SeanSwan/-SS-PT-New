@@ -47,6 +47,8 @@ export const mapAdminClientToClientOption = (client: any): ClientOption | null =
     onboardingPct: client.onboardingPct ?? null,
     onboardingCompletionPercentage: client.onboardingCompletionPercentage ?? null,
     completionPercentage: client.completionPercentage ?? null,
+    onboardingFieldLedger: client.onboardingFieldLedger ?? null,
+    onboardingMissingFields: Array.isArray(client.onboardingMissingFields) ? client.onboardingMissingFields : [],
   };
 };
 

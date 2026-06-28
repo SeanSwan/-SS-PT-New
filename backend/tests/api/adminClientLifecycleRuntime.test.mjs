@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
   const sessionModel = { update: vi.fn() };
   const sequelizeQuery = vi.fn();
   const sendGridEmail = vi.fn();
+  const sendPasswordResetEmailForUser = vi.fn();
   const generateClaimToken = vi.fn();
   const getAllModels = vi.fn(() => ({
     User: userModel,
@@ -31,6 +32,7 @@ const mocks = vi.hoisted(() => {
     sessionModel,
     sequelizeQuery,
     sendGridEmail,
+    sendPasswordResetEmailForUser,
     generateClaimToken,
     getAllModels
   };
@@ -84,11 +86,13 @@ vi.mock('../../services/sessionBillingPolicy.mjs', () => ({
     const parsed = Number(value ?? 0);
     return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
   }),
-  parseClientSource: vi.fn((value) => value || 'move_fitness')
+  isNonDeductingClient: vi.fn((client) => client?.clientSource === 'move_fitness' || client?.clientSource === 'external' || client?.sessionBillingMode === 'no_session_required'),
+  parseClientSource: vi.fn((value) => value || 'move_fitness'),
+  parseSessionBillingMode: vi.fn((value) => value || 'paid_sessions')
 }));
 
 vi.mock('../../services/auth/passwordResetEmailService.mjs', () => ({
-  sendPasswordResetEmailForUser: vi.fn()
+  sendPasswordResetEmailForUser: mocks.sendPasswordResetEmailForUser
 }));
 
 vi.mock('../../services/clientOnboardIdentityService.mjs', () => ({
@@ -134,6 +138,8 @@ describe('admin client lifecycle controller runtime behavior', () => {
     mocks.sequelizeQuery.mockResolvedValue([[{ exists: null }]]);
     mocks.sendGridEmail.mockReset();
     mocks.sendGridEmail.mockResolvedValue(undefined);
+    mocks.sendPasswordResetEmailForUser.mockReset();
+    mocks.sendPasswordResetEmailForUser.mockResolvedValue({ emailSent: true, expiresInMinutes: 60 });
     mocks.generateClaimToken.mockReset();
     mocks.generateClaimToken.mockReturnValue({
       plainToken: 'SWAN-ABCDEFGH',
@@ -223,6 +229,47 @@ describe('admin client lifecycle controller runtime behavior', () => {
     });
   });
 
+  it('admin-created SwanStudios clients use reset-link handoff without plaintext temp passwords', async () => {
+    mocks.userModel.findOne.mockResolvedValue(null);
+    const createdClient = {
+      id: 902,
+      firstName: 'Swan',
+      lastName: 'Client',
+      email: 'swan.client@example.test',
+      clientSource: 'swanstudios',
+      sessionBillingMode: 'paid_sessions',
+      availableSessions: 4,
+    };
+    mocks.userModel.create.mockResolvedValue(createdClient);
+    const res = buildResponse();
+
+    await adminClientController.createClient(
+      {
+        body: {
+          firstName: 'Swan',
+          lastName: 'Client',
+          email: 'swan.client@example.test',
+          username: 'swan.client',
+          clientSource: 'swanstudios',
+          availableSessions: 4,
+        },
+        user: { id: 7, role: 'admin' },
+      },
+      res,
+    );
+
+    const generatedSecret = mocks.userModel.create.mock.calls[0][0].password;
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(mocks.sendGridEmail).not.toHaveBeenCalled();
+    expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(createdClient);
+    expect(res.body.data).toMatchObject({
+      credentialAction: 'reset_link_sent',
+      resetEmailSent: true,
+    });
+    expect(res.body.data).not.toHaveProperty('temporaryPassword');
+    expect(JSON.stringify(res.body)).not.toContain(generatedSecret);
+  });
   it('external generated-password clients receive claim flow only, never plaintext temp passwords', async () => {
     const previousFrontendUrl = process.env.FRONTEND_URL;
     process.env.FRONTEND_URL = 'https://app.example.test';

@@ -164,7 +164,12 @@ describe('admin client list onboarding progress', () => {
       onboardingComplete: false,
       completionPercentage: 20,
       onboardingCompletionPercentage: 20,
-      onboardingPct: 20
+      onboardingPct: 20,
+      onboardingFieldLedger: expect.objectContaining({
+        version: 'computed-v1',
+        summary: expect.objectContaining({ canStartTraining: true })
+      }),
+      onboardingMissingFields: expect.any(Array)
     });
   });
 
@@ -185,7 +190,12 @@ describe('admin client list onboarding progress', () => {
       onboardingComplete: false,
       completionPercentage: 20,
       onboardingCompletionPercentage: 20,
-      onboardingPct: 20
+      onboardingPct: 20,
+      onboardingFieldLedger: expect.objectContaining({
+        version: 'computed-v1',
+        summary: expect.objectContaining({ canStartTraining: true })
+      }),
+      onboardingMissingFields: expect.any(Array)
     });
   });
 });

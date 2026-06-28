@@ -15,6 +15,10 @@ const APPROVAL_SERVICE_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/coachActionProposalApprovalService.mjs'),
   'utf8',
 );
+const CLIENT_DATA_UPDATE_APPROVAL_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/coachClientDataUpdateApprovalService.mjs'),
+  'utf8',
+);
 const COMMAND_DISPATCHER_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/commandDispatcher.mjs'),
   'utf8',
@@ -80,9 +84,9 @@ describe('coachActionProposalApprovalService source guards', () => {
   });
 
   it('routes client data updates through RBAC and the existing AI data write service', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/processAIDataUpdates/);
+    expect(CLIENT_DATA_UPDATE_APPROVAL_SRC).toMatch(/processAIDataUpdates/);
     expect(APPROVAL_SERVICE_SRC).toMatch(/COACH_PROPOSAL_TYPE\.CLIENT_DATA_UPDATE/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
+    expect(CLIENT_DATA_UPDATE_APPROVAL_SRC).toMatch(/ensureClientAccess/);
   });
 
   it('exposes a read-only proposal detail path before approval', () => {
@@ -91,8 +95,8 @@ describe('coachActionProposalApprovalService source guards', () => {
   });
 
   it('rejects empty client data update proposals instead of marking no-op approvals applied', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/CLIENT_DATA_UPDATE_EMPTY/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/updates\.length === 0/);
+    expect(CLIENT_DATA_UPDATE_APPROVAL_SRC).toMatch(/CLIENT_DATA_UPDATE_EMPTY/);
+    expect(CLIENT_DATA_UPDATE_APPROVAL_SRC).toMatch(/updates\.length === 0/);
   });
 
   it('defines APPLYING as the transient deterministic-write status', () => {

@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  buildCoachOnboardingAccessHandoff,
   getApprovedOnboardingAvailableSessions,
   normalizeCoachOnboardingDraft,
   summarizeOnboardingDraftForReview,
@@ -20,6 +21,10 @@ const SERVICE_SRC = readFileSync(
   resolve(__dirname, '../../services/coachClientOnboardingApprovalService.mjs'),
   'utf8',
 );
+const NORMALIZER_SRC = readFileSync(
+  resolve(__dirname, '../../services/coachClientOnboardingDraftNormalizer.mjs'),
+  'utf8',
+);
 
 describe('coachClientOnboardingApprovalService', () => {
   it('uses app models and claim-token hashing instead of raw assignment SQL', () => {
@@ -29,17 +34,35 @@ describe('coachClientOnboardingApprovalService', () => {
     expect(SERVICE_SRC).not.toMatch(/INSERT INTO client_trainer_assignments/i);
   });
 
-  it('does not expose invite secrets or temporary passwords in returned approval data', () => {
-    expect(SERVICE_SRC).not.toMatch(/claimUrl/);
-    expect(SERVICE_SRC).not.toMatch(/claimCode/);
-    expect(SERVICE_SRC).not.toMatch(/plainToken/);
+  it('builds a safe claim-link handoff for approved Coach onboarding', () => {
+    const expires = new Date('2026-07-28T12:00:00.000Z');
+
+    const handoff = buildCoachOnboardingAccessHandoff({
+      claimCode: 'SWAN-ABCDEFGH',
+      claimExpiresAt: expires,
+      frontendUrl: 'https://app.example.test/',
+    });
+
+    expect(handoff).toEqual({
+      credentialMode: 'claim_link_ready',
+      claimCode: 'SWAN-ABCDEFGH',
+      claimUrl: 'https://app.example.test/claim/SWAN-ABCDEFGH',
+      claimExpiresAt: '2026-07-28T12:00:00.000Z',
+    });
+    expect(JSON.stringify(handoff)).not.toMatch(/password|secret/i);
+  });
+
+  it('returns a sanitized access handoff instead of the old hidden invite status', () => {
+    expect(SERVICE_SRC).toMatch(/accessHandoff/);
+    expect(SERVICE_SRC).toMatch(/onboardingFieldLedger/);
+    expect(SERVICE_SRC).not.toMatch(/created_hidden/);
     expect(SERVICE_SRC).not.toMatch(/temporaryPassword/);
   });
 
   it('requires human-reviewable identity fields before client creation', () => {
     expect(SERVICE_SRC).toMatch(/firstName/);
     expect(SERVICE_SRC).toMatch(/lastName/);
-    expect(SERVICE_SRC).toMatch(/ONBOARDING_REQUIRED_FIELDS_MISSING/);
+    expect(NORMALIZER_SRC).toMatch(/ONBOARDING_REQUIRED_FIELDS_MISSING/);
   });
 
   it('requires client source before deterministic client creation', () => {
@@ -132,6 +155,32 @@ describe('coachClientOnboardingApprovalService', () => {
       availability: 'Weekday mornings before 9.',
       firstSessionPriorities: 'Baseline pushups, squat pattern, and pain-free conditioning.',
     });
+  });
+
+  it('normalizes coverage updates and questionnaire responses from broad onboarding payloads', () => {
+    const proposal = {
+      payload: {
+        firstName: 'Ivy',
+        lastName: 'Lane',
+        clientSource: 'external',
+        communicationStyle: 'warm and direct',
+        nutritionPrefs: { allergies: ['peanuts'] },
+        questionnaireResponses: { primaryGoal: 'Improve energy' },
+        coverageUpdates: [
+          { fieldKey: 'health_concerns', status: 'ask_client_later', category: 'health_injury_risk' },
+          { fieldKey: 'nutrition_preferences', status: 'known', value: { allergies: ['peanuts'] } },
+        ],
+      },
+    };
+
+    const draft = normalizeCoachOnboardingDraft(proposal);
+    expect(draft.questionnaireResponses.primaryGoal).toBe('Improve energy');
+    expect(draft.nutritionPrefs).toEqual({ allergies: ['peanuts'] });
+    expect(draft.communicationStyle).toBe('warm and direct');
+    expect(draft.coverageItems).toEqual(expect.arrayContaining([
+      expect.objectContaining({ coverageKey: 'health_concerns', status: 'client_requested' }),
+      expect.objectContaining({ coverageKey: 'nutrition_preferences', status: 'known' }),
+    ]));
   });
 
   it('does not depend on stale ClientProgress fields during client creation', () => {

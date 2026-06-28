@@ -15,83 +15,50 @@ import {
   getUser,
 } from '../models/index.mjs';
 import { generateClaimToken } from './claimTokenService.mjs';
+import { isNonDeductingClientSource } from './sessionBillingPolicy.mjs';
+import { buildClientOnboardingCoverageLedger } from './clientOnboardingCoverageLedgerService.mjs';
 import {
-  CLIENT_SOURCES,
-  isNonDeductingClientSource,
-  parseClientSource,
-} from './sessionBillingPolicy.mjs';
-import {
-  buildClientOnboardStubEmail,
-  normalizeClientOnboardEmailInput,
-} from './clientOnboardIdentityService.mjs';
+  cleanText,
+  normalizeCoachOnboardingDraft,
+  parseWholeSessionCount,
+} from './coachClientOnboardingDraftNormalizer.mjs';
 import logger from '../utils/logger.mjs';
 
-const TEXT_FIELDS = [
-  'phone',
-  'dateOfBirth',
-  'gender',
-  'fitnessGoal',
-  'healthConcerns',
-  'trainingExperience',
-  'trainerNotes',
-];
-const ONBOARDING_CONTEXT_FIELDS = [
-  ['limitations', 'Limitations'],
-  ['painNotes', 'Pain notes'],
-  ['equipmentAccess', 'Equipment access'],
-  ['availability', 'Availability'],
-  ['firstSessionPriorities', 'First session priorities'],
-];
-
-function parseWholeSessionCount(value) {
-  const sessions = Number(value ?? 0);
-  return Number.isInteger(sessions) && sessions > 0 ? sessions : 0;
-}
+export { normalizeCoachOnboardingDraft };
 
 export function getApprovedOnboardingAvailableSessions(draft) {
   if (isNonDeductingClientSource(draft?.clientSource)) return 0;
   return parseWholeSessionCount(draft?.availableSessions);
 }
 
-function cleanText(value, maxLength = 2000) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed.slice(0, maxLength) : null;
+
+export function buildCoachOnboardingAccessHandoff({
+  claimCode,
+  claimExpiresAt,
+  frontendUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com',
+} = {}) {
+  const code = cleanText(claimCode, 80);
+  if (!code) {
+    return { credentialMode: 'claim_link_needed' };
+  }
+
+  const baseUrl = String(frontendUrl || 'https://sswanstudios.com').replace(/\/+$/, '');
+  const expires = claimExpiresAt instanceof Date ? claimExpiresAt : new Date(claimExpiresAt);
+  const handoff = {
+    credentialMode: 'claim_link_ready',
+    claimCode: code,
+    claimUrl: `${baseUrl}/claim/${encodeURIComponent(code)}`,
+    claimExpiresAt: Number.isNaN(expires.getTime()) ? undefined : expires.toISOString(),
+  };
+
+  return Object.fromEntries(Object.entries(handoff).filter(([, value]) => value !== undefined));
 }
 
-function normalizeEmail(value, firstName, lastName) {
-  const email = normalizeClientOnboardEmailInput(value);
-  if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return email.toLowerCase();
-  return buildClientOnboardStubEmail({ firstName, lastName });
-}
 
 function createRandomPassword() {
   return crypto.randomBytes(18).toString('base64url').slice(0, 18);
 }
 
-function collectOnboardingContext(raw) {
-  return ONBOARDING_CONTEXT_FIELDS.reduce((context, [field]) => {
-    const value = cleanText(raw[field], 1000);
-    if (value) context[field] = value;
-    return context;
-  }, {});
-}
-
-function formatOnboardingContext(context) {
-  return ONBOARDING_CONTEXT_FIELDS
-    .map(([field, label]) => context[field] ? `${label}: ${context[field]}` : null)
-    .filter(Boolean);
-}
-
-function mergeTrainerNotes(notes, context) {
-  const contextLines = formatOnboardingContext(context);
-  const lines = [];
-  if (notes) lines.push(notes);
-  if (contextLines.length > 0) {
-    lines.push(`Onboarding context:\n${contextLines.join('\n')}`);
-  }
-  return cleanText(lines.join('\n\n'), 2000);
-}
 
 async function generateUniqueUsername(firstName, lastName, User, transaction) {
   const base = `${firstName}.${lastName}`.toLowerCase().replace(/[^a-z0-9.]/g, '');
@@ -127,41 +94,6 @@ async function createClientProgressIfAvailable({ db, userId }) {
   }
 }
 
-export function normalizeCoachOnboardingDraft(proposal) {
-  const raw = proposal?.payload?.data || proposal?.payload || proposal?.data || proposal || {};
-  const firstName = cleanText(raw.firstName, 80);
-  const lastName = cleanText(raw.lastName, 80);
-  if (!firstName || !lastName) {
-    const err = new Error('Client first and last name are required before approval.');
-    err.code = 'ONBOARDING_REQUIRED_FIELDS_MISSING';
-    throw err;
-  }
-
-  const clientSource = parseClientSource(cleanText(raw.clientSource, 40));
-  if (!CLIENT_SOURCES.has(clientSource)) {
-    const err = new Error('Client source is required before approval.');
-    err.code = 'ONBOARDING_REQUIRED_FIELDS_MISSING';
-    throw err;
-  }
-  const draft = {
-    firstName,
-    lastName,
-    email: normalizeEmail(raw.email, firstName, lastName),
-    clientSource,
-    availableSessions: parseWholeSessionCount(raw.availableSessions),
-  };
-
-  for (const field of TEXT_FIELDS) {
-    draft[field] = cleanText(raw[field], field === 'phone' ? 64 : 2000);
-  }
-  if (!draft.fitnessGoal) {
-    draft.fitnessGoal = cleanText(raw.trainingGoal, 2000);
-  }
-  draft.onboardingContext = collectOnboardingContext(raw);
-  draft.trainerNotes = mergeTrainerNotes(draft.trainerNotes, draft.onboardingContext);
-  return draft;
-}
-
 export function summarizeOnboardingDraftForReview(proposal) {
   const draft = normalizeCoachOnboardingDraft(proposal);
   return {
@@ -174,6 +106,10 @@ export function summarizeOnboardingDraftForReview(proposal) {
       fitnessGoal: draft.fitnessGoal,
       healthConcerns: draft.healthConcerns,
       trainingExperience: draft.trainingExperience,
+      communicationStyle: draft.communicationStyle,
+      nutritionPrefs: draft.nutritionPrefs,
+      questionnaireResponses: draft.questionnaireResponses,
+      coverageItems: draft.coverageItems,
       trainerNotes: draft.trainerNotes,
       onboardingContext: draft.onboardingContext,
       availableSessions: getApprovedOnboardingAvailableSessions(draft),
@@ -251,6 +187,19 @@ export async function createClientFromCoachOnboardingProposal({
 
     await transaction.commit();
     const progressStatus = await createClientProgressIfAvailable({ db, userId: client.id });
+    const accessHandoff = buildCoachOnboardingAccessHandoff({
+      claimCode: invite.plainToken,
+      claimExpiresAt: invite.expires,
+    });
+    const onboardingFieldLedger = buildClientOnboardingCoverageLedger({
+      client,
+      draft,
+      questionnaire: {
+        nutritionPrefs: draft.nutritionPrefs,
+        responsesJson: draft.questionnaireResponses,
+      },
+      responses: draft.questionnaireResponses,
+    });
 
     logger.info('[CoachOnboardingApproval] Client created from approved draft', {
       clientId: client.id,
@@ -266,8 +215,11 @@ export async function createClientFromCoachOnboardingProposal({
         email: client.email,
         clientSource: client.clientSource,
       },
-      invitationStatus: 'created_hidden',
+      accessHandoff,
+      invitationStatus: accessHandoff.credentialMode,
       assignmentStatus: 'active',
+      onboardingFieldLedger,
+      onboardingMissingFields: onboardingFieldLedger.missingFields,
       progressStatus,
       prefilledFields: Object.entries(draft)
         .filter(([, value]) => value !== null && value !== undefined && value !== '')

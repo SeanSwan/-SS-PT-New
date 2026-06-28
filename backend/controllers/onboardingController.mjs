@@ -7,6 +7,7 @@ import { triggerSequence } from '../services/automationService.mjs';
 import { generateChallengesFromGoals } from '../services/gamification/goalChallengeService.mjs';
 import { transformQuestionnaireToMasterPrompt } from '../services/onboardingMasterPromptBuilder.mjs';
 import { computeDerivedFields } from '../utils/onboardingHelpers.mjs';
+import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 
 export { transformQuestionnaireToMasterPrompt };
 
@@ -114,15 +115,15 @@ export const createClientOnboarding = async (req, res) => {
       });
     } else {
       // Create new user
-      // Generate a temporary password (client will reset on first login)
-      const tempPassword = `Temp${randomBytes(12).toString('base64url')}!A1`;
+      // Generate a server-only seed password; access is handed off through reset links
+      const accountSeedPassword = `Seed${randomBytes(12).toString('base64url')}!A1`;
 
       user = await User.create({
         firstName: formData.fullName.split(' ')[0],
         lastName: formData.fullName.split(' ').slice(1).join(' '),
         email: formData.email,
         username: formData.email.split('@')[0], // Use email prefix as username
-        password: tempPassword,
+        password: accountSeedPassword,
         phone: formData.phone,
         role: 'client',
         masterPromptJson: masterPromptJson,
@@ -167,6 +168,14 @@ export const createClientOnboarding = async (req, res) => {
         console.error('[Onboarding Controller] Challenge generation failed:', err.message);
       });
 
+      let resetEmailSent = false;
+      try {
+        const reset = await sendPasswordResetEmailForUser(user);
+        resetEmailSent = reset?.emailSent === true;
+      } catch (resetError) {
+        console.warn('[Onboarding Controller] Password reset handoff failed:', resetError.message);
+      }
+
       return res.status(201).json({
         success: true,
         message: 'Client onboarding created successfully',
@@ -174,7 +183,8 @@ export const createClientOnboarding = async (req, res) => {
           userId: user.id,
           clientId: `PT-${String(user.id).padStart(5, '0')}`,
           email: user.email,
-          tempPassword: tempPassword, // Send this via secure channel (email)
+          credentialAction: resetEmailSent ? 'reset_link_sent' : 'reset_link_needed',
+          resetEmailSent,
           masterPromptCreated: true
         }
       });

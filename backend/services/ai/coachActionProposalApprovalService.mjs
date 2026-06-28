@@ -6,7 +6,6 @@
 import sequelize from '../../database.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
-import { processAIDataUpdates } from '../aiDataWriteService.mjs';
 import {
   submitAiWorkoutLogAsDailyForm,
   AiWorkoutDailyFormError,
@@ -29,7 +28,9 @@ import {
   verifyProposalReviewToken,
 } from './coachProposalReviewTokenService.mjs';
 import { buildCoachProposalApplyErrorBody } from './coachActionProposalErrorPresenter.mjs';
+import { approveClientDataUpdateProposal } from './coachClientDataUpdateApprovalService.mjs';
 import { approveNutritionLogProposal } from './coachNutritionProposalApprovalService.mjs';
+import { approveClientProfileCoverageUpdateProposal } from './coachClientProfileCoverageUpdateApprovalService.mjs';
 import {
   invalidProposalClientId,
   parseProposalClientId,
@@ -99,12 +100,26 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       const updated = await updateProposalStatus({
         id,
         status: COACH_PROPOSAL_STATUS.APPLIED,
-        result: { client: clientResult.client, invitationStatus: clientResult.invitationStatus },
+        result: {
+          client: clientResult.client,
+          accessHandoff: clientResult.accessHandoff,
+          invitationStatus: clientResult.invitationStatus,
+          onboardingFieldLedger: clientResult.onboardingFieldLedger,
+          onboardingMissingFields: clientResult.onboardingMissingFields,
+        },
         db,
       });
       return {
         status: 200,
-        body: { success: true, proposal: updated, applied: true, client: clientResult.client },
+        body: {
+          success: true,
+          proposal: updated,
+          applied: true,
+          client: clientResult.client,
+          accessHandoff: clientResult.accessHandoff,
+          onboardingFieldLedger: clientResult.onboardingFieldLedger,
+          onboardingMissingFields: clientResult.onboardingMissingFields,
+        },
       };
     } catch (err) {
       const code = err.code || 'ONBOARDING_APPLY_FAILED';
@@ -113,61 +128,24 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     }
   }
 
-  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
-    const payload = proposal.payload || {};
-    const clientId = parseProposalClientId(payload.targetUserId, proposal.targetUserId, payload.clientId);
-    if (!clientId) return invalidProposalClientId();
-    const access = await ensureClientAccess(req, clientId);
-    if (!access.allowed) {
-      return { status: access.status, body: { success: false, code: 'CLIENT_ACCESS_DENIED', error: access.message } };
-    }
-    const updates = Array.isArray(payload.updates) ? payload.updates : [];
-    if (updates.length === 0) {
-      if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
-      const updated = await updateProposalStatus({
-        id,
-        status: COACH_PROPOSAL_STATUS.FAILED,
-        result: { updates: { successful: 0, errors: ['No client updates supplied.'] } },
-        errorCode: 'CLIENT_DATA_UPDATE_EMPTY',
-        db,
-      });
-      return {
-        status: 400,
-        body: {
-          success: false,
-          code: 'CLIENT_DATA_UPDATE_EMPTY',
-          error: 'Client data update proposal has no updates to apply.',
-          proposal: updated,
-        },
-      };
-    }
-    if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
-    const result = await processAIDataUpdates(
-      access.clientId,
-      updates,
-      req.user.id,
-      db,
-    );
-    const status = result.errors?.length > 0 && result.successful === 0
-      ? COACH_PROPOSAL_STATUS.FAILED
-      : COACH_PROPOSAL_STATUS.APPLIED;
-    const updated = await updateProposalStatus({
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_PROFILE_COVERAGE_UPDATE) {
+    return approveClientProfileCoverageUpdateProposal({
       id,
-      status,
-      result: { updates: result },
-      errorCode: status === COACH_PROPOSAL_STATUS.FAILED ? 'CLIENT_DATA_UPDATE_FAILED' : null,
+      req,
+      proposal,
       db,
+      parseProposalClientId,
+      invalidProposalClientId,
+      claimPendingProposal,
+      proposalNotPending,
+      updateProposalStatus,
     });
-    return {
-      status: status === COACH_PROPOSAL_STATUS.FAILED ? 400 : 200,
-      body: {
-        success: status === COACH_PROPOSAL_STATUS.APPLIED,
-        proposal: updated,
-        applied: status === COACH_PROPOSAL_STATUS.APPLIED,
-        partial: result.errors?.length > 0 && result.successful > 0,
-        updates: result,
-      },
-    };
+  }
+  if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
+    return approveClientDataUpdateProposal({
+      id, req, proposal, db, parseProposalClientId, invalidProposalClientId,
+      claimPendingProposal, proposalNotPending, updateProposalStatus,
+    });
   }
 
   if (row.proposal_type === COACH_PROPOSAL_TYPE.NUTRITION_LOG) {

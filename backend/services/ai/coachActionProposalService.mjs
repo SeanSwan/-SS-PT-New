@@ -27,6 +27,7 @@ export const COACH_PROPOSAL_STATUS = Object.freeze({
 
 export const COACH_PROPOSAL_TYPE = Object.freeze({
   CLIENT_ONBOARDING: 'client_onboarding',
+  CLIENT_PROFILE_COVERAGE_UPDATE: 'client_profile_coverage_update',
   WORKOUT_LOG: 'workout_log',
   NUTRITION_LOG: 'nutrition_log',
   CLIENT_DATA_UPDATE: 'client_data_update',
@@ -48,6 +49,7 @@ const SCHEMA_VERSION = '2026-05-06';
 function proposalTitle(type) {
   const titles = {
     [COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING]: 'Review client onboarding draft',
+    [COACH_PROPOSAL_TYPE.CLIENT_PROFILE_COVERAGE_UPDATE]: 'Review client profile coverage update',
     [COACH_PROPOSAL_TYPE.WORKOUT_LOG]: 'Review workout log draft',
     [COACH_PROPOSAL_TYPE.NUTRITION_LOG]: 'Review nutrition log draft',
     [COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE]: 'Review client data update',
@@ -75,6 +77,10 @@ function parseSummaryClientId(...candidates) {
   }
 
   return null;
+}
+
+function isSummaryObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
 }
 
 function summarizeProposal(type, payload, conversation) {
@@ -114,6 +120,20 @@ function summarizeProposal(type, payload, conversation) {
       displayName: 'New client draft',
       nameFieldsPresent: Boolean(data.firstName || data.lastName),
       sectionCount: Object.keys(data).length,
+    };
+  }
+  if (type === COACH_PROPOSAL_TYPE.CLIENT_PROFILE_COVERAGE_UPDATE) {
+    const profileFields = isSummaryObject(payload.profileFields) ? payload.profileFields : {};
+    const questionnaireResponses = isSummaryObject(payload.questionnaireResponses)
+      ? payload.questionnaireResponses
+      : {};
+    const coverageUpdates = Array.isArray(payload.coverageUpdates) ? payload.coverageUpdates : [];
+    return {
+      ...base,
+      clientId: parseSummaryClientId(payload.clientId, payload.targetUserId, conversation?.targetUserId),
+      profileFieldCount: Object.keys(profileFields).length,
+      questionnaireResponseCount: Object.keys(questionnaireResponses).length,
+      coverageUpdateCount: coverageUpdates.length,
     };
   }
   if (type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {

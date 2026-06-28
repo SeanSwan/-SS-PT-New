@@ -238,6 +238,7 @@ import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
 
+import { buildClientOnboardingProgressSnapshot } from '../services/clientOnboardingCoverageLedgerService.mjs';
 const router = express.Router();
 const VALID_ASSIGNMENT_STATUSES = new Set(['active', 'inactive', 'pending']);
 const MAX_PAGE_LIMIT = 300;
@@ -269,8 +270,15 @@ const buildOnboardingProgressMap = (questionnaires) => {
 
     const responses = normalizeJsonObject(questionnaire.responsesJson) ?? {};
     const derivedCompletion = calculateCompletionPercentage(responses);
+    const questionnaireSnapshot = {
+      status: questionnaire.status ?? null,
+      nutritionPrefs: questionnaire.nutritionPrefs ?? null,
+      responsesJson: responses,
+    };
     progressMap[questionnaire.userId] = {
       status: questionnaire.status ?? null,
+      responses,
+      questionnaire: questionnaireSnapshot,
       onboardingCompletionPercentage: derivedCompletion,
       onboardingComplete: questionnaire.status === 'completed' || derivedCompletion === 100
     };
@@ -286,14 +294,22 @@ const attachOnboardingReadiness = (assignments, progressMap) => assignments.map(
 
   const onboardingProgress = progressMap[clientData.id] ?? null;
 
+  const onboardingSnapshot = buildClientOnboardingProgressSnapshot({
+    client: clientData,
+    questionnaire: onboardingProgress?.questionnaire,
+    responses: onboardingProgress?.responses,
+  });
+  const onboardingPct = onboardingProgress?.onboardingCompletionPercentage ?? onboardingSnapshot.completionPercentage;
   return {
     ...assignmentData,
     client: {
       ...clientData,
       onboardingStatus: onboardingProgress?.status ?? null,
       onboardingComplete: onboardingProgress?.onboardingComplete === true,
-      onboardingCompletionPercentage: onboardingProgress?.onboardingCompletionPercentage ?? null,
-      onboardingPct: onboardingProgress?.onboardingCompletionPercentage ?? null
+      onboardingCompletionPercentage: onboardingPct,
+      onboardingPct,
+      onboardingFieldLedger: onboardingSnapshot.onboardingFieldLedger,
+      onboardingMissingFields: onboardingSnapshot.onboardingMissingFields
     }
   };
 });
@@ -555,7 +571,10 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
             'phone',
             'fitnessGoal',
             'trainingExperience',
-            'photo'
+            'photo',
+            'healthConcerns',
+            'emergencyContact',
+            'isOnboardingComplete'
           ],
           required: false
         },
@@ -577,7 +596,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     if (ClientOnboardingQuestionnaire?.findAll && clientIds.length > 0) {
       try {
         const questionnaires = await ClientOnboardingQuestionnaire.findAll({
-          attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+          attributes: ['userId', 'status', 'responsesJson', 'nutritionPrefs', 'completedAt', 'createdAt', 'updatedAt'],
           where: {
             userId: { [Op.in]: clientIds },
             status: { [Op.ne]: 'archived' }

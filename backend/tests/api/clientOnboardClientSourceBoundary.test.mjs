@@ -79,17 +79,20 @@ describe('client onboard route clientSource boundary', () => {
     );
   });
 
-  it('returns created client source, session inventory, and account status in the success payload', () => {
+  it('returns client source, session inventory, account status, and claim handoff without generated passwords', () => {
     const responseBlock = routeSource.slice(
       routeSource.indexOf('const responseData = {'),
-      routeSource.indexOf('temporaryPassword: tempPassword')
+      routeSource.indexOf('return res.status(201).json')
     );
 
     expect(responseBlock).toContain('clientSource: newUser.clientSource');
     expect(responseBlock).toContain('availableSessions: newUser.availableSessions');
     expect(responseBlock).toContain('accountStatus: newUser.accountStatus');
+    expect(responseBlock).toContain("credentialMode: claimData ? 'claim_link_ready' : 'claim_link_needed'");
+    expect(responseBlock).toContain('claimExpiresAt: claimData?.expires?.toISOString() || null');
+    expect(responseBlock).not.toContain('temporaryPassword');
+    expect(responseBlock).not.toContain('tempPassword');
   });
-
   it('sanitizes generated stub emails for names with spaces and punctuation', () => {
     expect(buildClientOnboardStubEmail({
       firstName: 'Mary Ann',
