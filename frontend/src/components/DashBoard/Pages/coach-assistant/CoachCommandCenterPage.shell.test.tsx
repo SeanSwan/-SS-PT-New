@@ -55,6 +55,18 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByText(/Next: Review next ready intake/i)).toBeInTheDocument();
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
+  it('stages the header guide prompt in chat without sending it', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    fireEvent.click(screen.getByRole('button', { name: /teach me: admin coach command terminal/i }));
+    fireEvent.click(screen.getByRole('button', { name: /ask swan coach for help/i }));
+
+    expect(composerInput()).toHaveValue('teach me the admin Coach command terminal workflow for client and owner workout actions');
+    await waitFor(() => expect(composerInput()).toHaveFocus());
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+    expect(executeCommandMock).not.toHaveBeenCalled();
+  });
+
   it('moves the heavy operator surfaces off the default chat view into tabs', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 

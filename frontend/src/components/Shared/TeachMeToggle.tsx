@@ -1,18 +1,12 @@
 /**
- * ┌─── SHARED COMPONENT: TeachMeToggle ───────────────────────┐
- * │ PURPOSE: Educational toggle panel for any section          │
- * │ Shows/hides contextual training content with AI Coach link │
- * │ Props: { sectionId, title, content, onAskAI? }            │
- * └────────────────────────────────────────────────────────────┘
+ * SHARED COMPONENT: TeachMeToggle
+ * PURPOSE: Compact educational toggle panel for dashboard guidance.
  */
 
 import React, { useState, useCallback, useEffect, memo } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { HelpCircle, X, MessageCircle } from 'lucide-react';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
 interface TeachMeToggleProps {
   sectionId: string;
   title: string;
@@ -24,9 +18,6 @@ interface TeachMeToggleProps {
   panelMode?: 'inline' | 'popover';
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
 const slideIn = keyframes`
   from { opacity: 0; max-height: 0; transform: translateY(-8px); }
   to { opacity: 1; max-height: 600px; transform: translateY(0); }
@@ -208,9 +199,6 @@ const FirstTimeBadge = styled.span`
   animation: ${keyframes`0%,100%{opacity:1}50%{opacity:0.5}`} 2s ease-in-out 3;
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 const SEEN_KEY = 'ss-teachme-seen';
 
 const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
@@ -225,8 +213,9 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(false);
+  const panelId = `${sectionId}-teachme-panel`;
+  const titleId = `${sectionId}-teachme-title`;
 
-  // Check if this section has been seen before
   useEffect(() => {
     try {
       const seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}');
@@ -244,12 +233,23 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
   const resolvedButtonLabel = buttonLabel || 'Teach Me';
   const resolvedAriaLabel = ariaLabel || buttonLabel || `Teach Me: ${title}`;
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [open]);
+
   return (
     <ToggleWrap $panelMode={panelMode}>
       <ToggleBtn
+        type="button"
         onClick={toggle}
         $active={open}
         aria-expanded={open}
+        aria-controls={panelId}
         aria-label={resolvedAriaLabel}
       >
         <HelpCircle size={14} />
@@ -258,13 +258,18 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
       </ToggleBtn>
 
       {open && (
-        <Panel $panelMode={panelMode}>
+        <Panel
+          id={panelId}
+          role="region"
+          aria-labelledby={titleId}
+          $panelMode={panelMode}
+        >
           <PanelHeader>
-            <PanelTitle>
+            <PanelTitle id={titleId}>
               <HelpCircle size={16} />
               {title}
             </PanelTitle>
-            <CloseBtn onClick={close} aria-label="Close teach me panel">
+            <CloseBtn type="button" onClick={close} aria-label="Close teach me panel">
               <X size={14} />
             </CloseBtn>
           </PanelHeader>
@@ -278,7 +283,7 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
           </PanelContent>
 
           {onAskAI && (
-            <AskAIBtn onClick={onAskAI}>
+            <AskAIBtn type="button" onClick={onAskAI}>
               <MessageCircle size={14} />
               Ask Swan Coach for help
             </AskAIBtn>

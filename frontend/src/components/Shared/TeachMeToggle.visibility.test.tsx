@@ -42,4 +42,37 @@ describe('TeachMeToggle visibility behavior', () => {
     expect(screen.getByRole('button', { name: /teach me: admin command center/i }))
       .toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('wires popover panels to the trigger and closes with Escape', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TeachMeToggle
+        sectionId="coach-header-fixture"
+        title="Header guide"
+        buttonLabel="Open guide"
+        panelMode="popover"
+        defaultOpen={false}
+        content={<p>Header guide content.</p>}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /open guide/i });
+    expect(trigger).toHaveAttribute('type', 'button');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(trigger);
+
+    const panel = screen.getByRole('region', { name: /header guide/i });
+    expect(panel).toHaveAttribute('id', 'coach-header-fixture-teachme-panel');
+    expect(trigger).toHaveAttribute('aria-controls', 'coach-header-fixture-teachme-panel');
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /close teach me panel/i })).toHaveAttribute('type', 'button');
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('region', { name: /header guide/i })).toBeNull();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
 });

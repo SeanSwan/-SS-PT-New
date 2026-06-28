@@ -156,7 +156,7 @@ const CoachCommandCenterPage: React.FC = () => {
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
           quickActions={headerQuickActions}
-          guideConfig={{ role: userRole, onAskCoach: commandCenter.handleWorkflowSelect }}
+          guideConfig={{ role: userRole, onAskCoach: commandCenter.handleGuidePrompt }}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
