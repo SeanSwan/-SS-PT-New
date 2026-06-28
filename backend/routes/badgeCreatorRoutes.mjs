@@ -9,6 +9,7 @@
  */
 
 import express from 'express';
+import multer from 'multer';
 import { randomBytes } from 'node:crypto';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import geminiBadgeImage from '../services/geminiBadgeImageService.mjs';
@@ -23,6 +24,22 @@ const BADGE_GENERATION_FAILED_MESSAGE = 'Badge generation failed. Try again with
 const BADGE_VARIATION_FAILED_MESSAGE = 'Variation generation failed. Try again with a different style.';
 const PET_AVATAR_GENERATION_FAILED_MESSAGE = 'Pet avatar generation failed. Try again with a different style.';
 const GEMINI_NOT_CONFIGURED_MESSAGE = 'Badge generation is not configured yet. Add GEMINI_API_KEY or GOOGLE_API_KEY on Render before using Nano Banana generation.';
+const BADGE_UPLOAD_FAILED_MESSAGE = 'Badge upload failed. Check the image and try again.';
+const BADGE_UPLOAD_REQUIRED_MESSAGE = 'Badge name and image are required.';
+const BADGE_UPLOAD_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const ASSIGNMENT_TYPES = new Set(['achievement', 'tab', 'milestone']);
+
+const badgeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (BADGE_UPLOAD_MIME_TYPES.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('UNSUPPORTED_BADGE_IMAGE_TYPE'));
+  },
+});
 
 function getMonthKey() {
   const d = new Date();
@@ -89,6 +106,8 @@ function buildGeneratedBadgePayload(req, badgeData, metadataOverrides = {}) {
     isAnimated,
     batchGroupId,
     secondaryStyle,
+    source,
+    assignment,
   } = badgeData;
 
   return {
@@ -99,7 +118,8 @@ function buildGeneratedBadgePayload(req, badgeData, metadataOverrides = {}) {
     difficulty: 'beginner',
     criteriaType: 'custom_criteria',
     criteria: {
-      source: 'badge_creator',
+      source: source || 'badge_creator',
+      ...(assignment ? { assignment } : {}),
       metadata: {
         prompt: prompt || null,
         style: style || null,
@@ -131,6 +151,26 @@ function requireGeminiConfigured(res) {
   if (geminiBadgeImage.isConfigured()) return true;
   res.status(424).json({ success: false, message: GEMINI_NOT_CONFIGURED_MESSAGE });
   return false;
+}
+
+function runBadgeUpload(req, res, next) {
+  badgeUpload.single('image')(req, res, (err) => {
+    if (!err) {
+      next();
+      return;
+    }
+    res.status(400).json({ success: false, message: BADGE_UPLOAD_FAILED_MESSAGE });
+  });
+}
+
+function optionalAssignment(body) {
+  const assignedTo = typeof body?.assignedTo === 'string' ? body.assignedTo.trim() : '';
+  const assignedTarget = typeof body?.assignedTarget === 'string' ? body.assignedTarget.trim() : '';
+  if (!assignedTo && !assignedTarget) return { assignment: null };
+  if (!ASSIGNMENT_TYPES.has(assignedTo) || !assignedTarget) {
+    return { error: `assignedTo must be one of: ${Array.from(ASSIGNMENT_TYPES).join(', ')} and assignedTarget is required` };
+  }
+  return { assignment: { assignedTo, assignedTarget } };
 }
 
 /**
@@ -266,6 +306,53 @@ router.post('/save', async (req, res) => {
     }
     logger.error('Failed to save badge:', err.message);
     res.status(500).json({ success: false, message: 'Failed to save badge' });
+  }
+});
+
+// ── Direct Admin Badge Upload ────────────────────────────────
+// POST /api/admin/badge-creator/upload
+router.post('/upload', runBadgeUpload, async (req, res) => {
+  const { name, description, rarity, abilityPoints } = req.body;
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  const assignmentResult = optionalAssignment(req.body);
+
+  if (!trimmedName || !req.file) {
+    return res.status(400).json({ success: false, message: BADGE_UPLOAD_REQUIRED_MESSAGE });
+  }
+  if (assignmentResult.error) {
+    return res.status(400).json({ success: false, message: assignmentResult.error });
+  }
+
+  try {
+    const { default: Badge } = await import('../models/Badge.mjs');
+    const stored = await geminiBadgeImage.storeGeneratedBadgeImage({
+      buffer: req.file.buffer,
+      mimeType: req.file.mimetype,
+      userId: req.user.id,
+    });
+    const badge = await Badge.create(buildGeneratedBadgePayload(req, {
+      name: trimmedName,
+      description,
+      imageUrl: stored.imageUrl,
+      prompt: 'admin uploaded badge art',
+      style: 'direct-upload',
+      rarity,
+      abilityPoints,
+      source: 'badge_upload',
+      assignment: assignmentResult.assignment,
+    }, {
+      uploadStorage: stored.storage || null,
+      uploadStorageKey: stored.storageKey || null,
+    }));
+
+    logger.info(`[AUDIT] Admin ${req.user.id} uploaded badge "${trimmedName}" (${badge.id})`);
+    res.status(201).json({ success: true, data: normalizeBadge(badge) });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ success: false, message: `Badge "${trimmedName}" already exists` });
+    }
+    logger.error('Badge upload error:', err.message);
+    res.status(500).json({ success: false, message: BADGE_UPLOAD_FAILED_MESSAGE });
   }
 });
 

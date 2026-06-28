@@ -4,6 +4,7 @@ import StyleBrowser, { type ArtStyle } from './StyleBrowser';
 import BadgeGalleryPanel from './BadgeGalleryPanel';
 import BatchGenerationPanel from './BatchGenerationPanel';
 import BadgeMarketplacePanel from './BadgeMarketplacePanel';
+import BadgeUploadPanel from './BadgeUploadPanel';
 import apiService from '../../services/api.service';
 import { safeBadgeImageUrl } from './BadgeCreatorImageSafety';
 import { normalizeArtStyleRows, normalizeBadgeCreatorCredits, normalizeCreditCount } from './BadgeCreatorPayloadSafety';
@@ -36,7 +37,7 @@ export const BADGE_CREATOR_GENERATE_ERROR = 'Badge generation could not finish. 
 export const BADGE_CREATOR_SAVE_ERROR = 'Badge could not be saved. Rename it and try again.';
 export const BADGE_CREATOR_NETWORK_ERROR = 'Badge creator service is temporarily unavailable. Please try again.';
 
-type BadgeCreatorMode = 'generate' | 'gallery' | 'batch' | 'marketplace';
+type BadgeCreatorMode = 'generate' | 'upload' | 'gallery' | 'batch' | 'marketplace';
 
 const BadgeCreatorPage: React.FC = () => {
   const [mode, setMode] = useState<BadgeCreatorMode>('generate');
@@ -154,7 +155,7 @@ const BadgeCreatorPage: React.FC = () => {
         <ModeTab type="button" $active={mode === 'batch'} aria-pressed={mode === 'batch'} onClick={() => setMode('batch')}>
           <Layers size={16} aria-hidden="true" /> Batch
         </ModeTab>
-        <ModeTab type="button" $active={false} aria-pressed="false" aria-disabled="true" disabled title="Upload route unavailable">
+        <ModeTab type="button" $active={mode === 'upload'} aria-pressed={mode === 'upload'} onClick={() => setMode('upload')}>
           <Upload size={16} aria-hidden="true" /> Upload
         </ModeTab>
         <ModeTab type="button" $active={mode === 'gallery'} aria-pressed={mode === 'gallery'} onClick={() => setMode('gallery')}>
@@ -178,7 +179,9 @@ const BadgeCreatorPage: React.FC = () => {
         </StatusMsg>
       )}
 
-      {mode === 'gallery' ? (
+      {mode === 'upload' ? (
+        <BadgeUploadPanel />
+      ) : mode === 'gallery' ? (
         <BadgeGalleryPanel />
       ) : mode === 'batch' ? (
         <BatchGenerationPanel

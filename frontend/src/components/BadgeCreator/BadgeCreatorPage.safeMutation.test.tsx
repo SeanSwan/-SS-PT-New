@@ -223,17 +223,17 @@ describe('BadgeCreatorPage default generation', () => {
     expect(generateCalls).toHaveLength(1);
   });
 
-  it('keeps upload mode disabled when no badge upload route exists', async () => {
+  it('opens the direct upload workflow from the Upload tab', async () => {
     const user = userEvent.setup();
     render(<BadgeCreatorPage />);
     await screen.findByText(/10\/20 generations left/i);
     const uploadTab = screen.getByRole('button', { name: /^upload$/i });
 
-    expect(uploadTab).toBeDisabled();
+    expect(uploadTab).not.toBeDisabled();
     await user.click(uploadTab);
 
-    expect(screen.queryByText(/drag & drop or click to upload/i)).not.toBeInTheDocument();
-    expect(apiMocks.post).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: /upload badge art/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/badge image/i)).toBeInTheDocument();
   });
 
   it('shows safe save failure copy without leaking backend messages', async () => {

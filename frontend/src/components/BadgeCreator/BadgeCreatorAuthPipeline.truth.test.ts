@@ -10,9 +10,8 @@ const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-const dashboardLayoutSource = read('../DashBoard/UniversalDashboardLayout.tsx');
 const routeComponentsSource = read('../DashBoard/UniversalDashboardLayout.routeComponents.tsx');
-const dashboardRoutesSource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
+const routeRegistrySource = read('../DashBoard/UniversalDashboardLayout.routes.tsx');
 const backendMountSource = read('../../../../backend/core/routes.mjs');
 const badgeRoutesSource = read('../../../../backend/routes/badgeCreatorRoutes.mjs');
 
@@ -23,6 +22,8 @@ const sources = {
   styleBrowserStyles: stripComments(read('./StyleBrowser.styles.ts')),
   gallery: stripComments(read('./BadgeGalleryPanel.tsx')),
   galleryStyles: stripComments(read('./BadgeGalleryPanel.styles.ts')),
+  upload: stripComments(read('./BadgeUploadPanel.tsx')),
+  uploadStyles: stripComments(read('./BadgeUploadPanel.styles.ts')),
   animated: stripComments(read('./AnimatedBadge.tsx')),
   batch: stripComments(read('./BatchGenerationPanel.tsx')),
   batchStyles: stripComments(read('./BatchGenerationPanel.styles.ts')),
@@ -39,6 +40,8 @@ const rawSources = {
   styleBrowser: read('./StyleBrowser.tsx'),
   styleBrowserStyles: read('./StyleBrowser.styles.ts'),
   galleryStyles: read('./BadgeGalleryPanel.styles.ts'),
+  upload: read('./BadgeUploadPanel.tsx'),
+  uploadStyles: read('./BadgeUploadPanel.styles.ts'),
   animated: read('./AnimatedBadge.tsx'),
   batch: read('./BatchGenerationPanel.tsx'),
   batchStyles: read('./BatchGenerationPanel.styles.ts'),
@@ -59,21 +62,21 @@ const expectSharedTransport = (source: string) => {
 
 describe('BadgeCreator auth pipeline', () => {
   it('is mounted as an admin dashboard surface backed by admin-only badge creator routes', () => {
-    expect(dashboardLayoutSource).toContain("from './UniversalDashboardLayout.routes'");
     expect(routeComponentsSource).toMatch(/export const BadgeCreatorPage = React\.lazy\(\(\) => import\('\.\.\/BadgeCreator\/BadgeCreatorPage'\)\)/);
-    expect(dashboardRoutesSource).toMatch(/path: '\/badge-creator', component: BadgeCreatorPage/);
+    expect(routeRegistrySource).toMatch(/path: '\/badge-creator', component: BadgeCreatorPage/);
     expect(backendMountSource).toMatch(/app\.use\('\/api\/admin\/badge-creator', badgeCreatorRoutes\)/);
     expect(badgeRoutesSource).toMatch(/import\s+\{\s*protect,\s*adminOnly\s*\}\s+from\s+['"]\.\.\/middleware\/authMiddleware\.mjs['"]/);
     expect(badgeRoutesSource).toMatch(/router\.use\(protect,\s*adminOnly\)/);
   });
 
   it('keeps mounted badge creator calls on shared apiService auth transport', () => {
-    [sources.page, sources.gallery, sources.batch, sources.marketplace].forEach(expectSharedTransport);
+    [sources.page, sources.gallery, sources.upload, sources.batch, sources.marketplace].forEach(expectSharedTransport);
 
     expect(sources.page).toContain('/api/admin/badge-creator/styles');
     expect(sources.page).toContain('/api/admin/badge-creator/credits');
     expect(sources.page).toContain('/api/admin/badge-creator/generate');
     expect(sources.page).toContain('/api/admin/badge-creator/save');
+    expect(sources.page).toContain('BadgeUploadPanel');
     expect(sources.page).toMatch(/apiService\.get/);
     expect(sources.page).toMatch(/apiService\.post/);
 
@@ -86,6 +89,9 @@ describe('BadgeCreator auth pipeline', () => {
     expect(sources.gallery).toMatch(/apiService\.get/);
     expect(sources.gallery).toMatch(/apiService\.patch/);
     expect(sources.gallery).toMatch(/apiService\.post/);
+    expect(sources.upload).toContain('/api/admin/badge-creator/upload');
+    expect(sources.upload).toContain('new FormData()');
+    expect(sources.upload).toMatch(/apiService\.post/);
 
     expect(sources.batch).toContain('/api/admin/badge-creator/generate-batch');
     expect(sources.batch).toContain('/api/admin/badge-creator/generate-pet-avatar');
@@ -133,6 +139,36 @@ describe('BadgeCreator auth pipeline', () => {
     expect(defaultSurface).not.toContain('transition: all');
   });
 
+  it('keeps the mounted direct badge upload flow safe and touch-ready', () => {
+    const uploadSurface = `${sources.upload}\n${sources.uploadStyles}`;
+
+    expect(lineCount(rawSources.upload)).toBeLessThanOrEqual(300);
+    expect(lineCount(rawSources.uploadStyles)).toBeLessThanOrEqual(300);
+    expect(sources.upload).toContain('BADGE_UPLOAD_ERROR');
+    expect(sources.upload).toContain('BADGE_UPLOAD_NETWORK_ERROR');
+    expect(sources.upload).toContain('const uploadingRef = useRef(false);');
+    expect(sources.upload).toContain('const fileInputRef = useRef<HTMLInputElement | null>(null);');
+    expect(sources.upload).toContain('const handleChooseFile = useCallback');
+    expect(sources.upload).toContain('fileInputRef.current?.click();');
+    expect(sources.upload).toContain('type="button"');
+    expect(sources.upload).toContain('aria-label="Choose badge art file"');
+    expect(sources.upload).toContain('tabIndex={-1}');
+    expect(sources.uploadStyles).toContain('export const FileDropLabel = styled.button');
+    expect(sources.upload).toContain("import { safeBadgeImageUrl } from './BadgeCreatorImageSafety'");
+    expect(sources.upload).toContain('safeBadgeImageUrl(res.data.data?.imageUrl)');
+    expect(sources.upload).toContain("formData.set('image', file)");
+    expect(sources.upload).toContain("formData.set('assignedTo', assignmentType)");
+    expect(sources.upload).toContain("formData.set('assignedTarget', assignmentTarget.trim())");
+    expect(sources.upload).toContain("role={status.type === 'error' ? 'alert' : 'status'}");
+    expect(sources.upload).toContain('aria-busy={uploading}');
+    expect(sources.uploadStyles).toContain('min-height: 44px');
+    expect(uploadSurface).not.toContain('d.message');
+    expect(uploadSurface).not.toContain('Upload failed');
+    expect(uploadSurface).not.toContain('Network error');
+    expect(uploadSurface).not.toContain('style={{');
+    expect(uploadSurface).not.toContain('rgba(');
+    expect(uploadSurface).not.toContain('transition: all');
+  });
   it('keeps the mounted badge marketplace claim flow safe and touch-ready', () => {
     const marketplaceSurface = `${sources.marketplace}\n${sources.marketplaceStyles}`;
 

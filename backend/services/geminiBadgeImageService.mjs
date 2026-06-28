@@ -274,4 +274,5 @@ export default {
   generateBadge,
   isConfigured,
   checkHealth,
+  storeGeneratedBadgeImage,
 };
