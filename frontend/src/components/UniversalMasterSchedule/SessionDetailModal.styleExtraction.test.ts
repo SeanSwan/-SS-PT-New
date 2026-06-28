@@ -43,13 +43,22 @@ describe('SessionDetailModal style extraction', () => {
   it('keeps the session detail modal chrome connected to active theme variables', () => {
     const commandStyles = read('SessionDetailCommandPanel.styles.ts');
     const baseStyles = read('SessionDetailModal.baseStyles.ts');
+    const chargeStyles = read('SessionDetailModal.chargeStyles.ts');
     const feedbackStyles = read('SessionDetailModal.feedbackStyles.ts');
 
+    expect(commandStyles).toContain('--schedule-command-panel-bg');
     expect(commandStyles).toContain('var(--accent-primary');
     expect(commandStyles).toContain('var(--bg-elevated');
     expect(commandStyles).not.toContain('rgba(0, 32, 96');
+    expect(commandStyles).not.toContain('#002060');
+    expect(commandStyles).not.toContain('#4070C0');
+    expect(commandStyles).not.toContain('--accent-tertiary');
     expect(baseStyles).toContain('color-mix(in srgb, var(--bg-elevated');
     expect(baseStyles).not.toContain('rgba(255, 255, 255');
+    expect(baseStyles).not.toContain('rgba(59, 130, 246');
+    expect(chargeStyles).toContain('var(--schedule-notification-bg');
+    expect(chargeStyles).not.toContain('rgba(59, 130, 246');
+    expect(chargeStyles).not.toContain('#3b82f6');
     expect(feedbackStyles).toContain('var(--danger');
     expect(feedbackStyles).toContain('var(--success');
     expect(feedbackStyles).not.toContain('#00FF88');

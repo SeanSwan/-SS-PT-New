@@ -29,6 +29,34 @@ const requiredDashboardAliases = [
   'cyan-glow',
 ] as const;
 
+const requiredSessionDetailAliases = [
+  'schedule-command-panel-bg',
+  'schedule-command-panel-border',
+  'schedule-command-panel-inset',
+  'schedule-command-panel-shadow',
+  'schedule-command-card-bg',
+  'schedule-command-card-border',
+  'schedule-command-risk-high-border',
+  'schedule-command-risk-high-bg',
+  'schedule-command-risk-medium-border',
+  'schedule-command-risk-medium-bg',
+  'schedule-command-risk-low-border',
+  'schedule-command-risk-low-bg',
+  'schedule-command-attention-bg',
+  'schedule-command-attention-border',
+  'schedule-command-proposal-bg',
+  'schedule-command-proposal-border',
+  'schedule-command-action-border',
+  'schedule-command-action-bg',
+  'schedule-command-action-glow',
+  'schedule-command-action-border-hover',
+  'schedule-series-bg',
+  'schedule-series-border',
+  'schedule-notification-bg',
+  'schedule-notification-border',
+  'schedule-notification-accent',
+] as const;
+
 function cssValue(css: string, name: string): string {
   const match = css.match(new RegExp(`--${name}:\\s*([^;]+);`));
   return match?.[1]?.trim() ?? '';
@@ -95,5 +123,28 @@ describe('theme CSS variable bridge aliases', () => {
       expect(cssValue(css, 'text-on-accent'), `${themeId} legacy --text-on-accent`).toBe(cssValue(css, 'button-primary-text'));
       expect(cssValue(css, 'button-text-on-accent'), `${themeId} legacy --button-text-on-accent`).toBe(cssValue(css, 'button-primary-text'));
     }
+  });
+
+  it('emits theme-owned session detail modal aliases for every theme', () => {
+    for (const themeId of themeCycle) {
+      const css = generateCSSVariables(themeId as ThemeId);
+
+      for (const alias of requiredSessionDetailAliases) {
+        expect(cssValue(css, alias), `${themeId} missing --${alias}`).not.toBe('');
+      }
+    }
+  });
+
+  it('ties premium session detail modal modules to the selected non-blue theme', () => {
+    const rubyCss = generateCSSVariables('ruby-forge');
+    const emeraldCss = generateCSSVariables('emerald-vault');
+
+    expect(cssValue(rubyCss, 'schedule-command-panel-bg')).toContain('#32111B');
+    expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#9F1239');
+    expect(cssValue(rubyCss, 'schedule-command-action-bg')).toContain('#BE123C');
+    expect(cssValue(rubyCss, 'schedule-notification-accent')).toBe('#FB7185');
+    expect(cssValue(emeraldCss, 'schedule-command-panel-bg')).toContain('#0B3A2B');
+    expect(cssValue(emeraldCss, 'schedule-command-action-bg')).toContain('#047857');
+    expect(cssValue(emeraldCss, 'schedule-command-action-bg')).toContain('#065F46');
   });
 });

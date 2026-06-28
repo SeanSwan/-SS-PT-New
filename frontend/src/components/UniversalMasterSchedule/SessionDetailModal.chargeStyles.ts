@@ -135,13 +135,13 @@ export const NotificationOption = styled.div`
   gap: 0.75rem;
   padding: 0.75rem;
   border-radius: 8px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: var(--schedule-notification-bg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
+  border: 1px solid var(--schedule-notification-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent));
 
   input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #3b82f6;
+    accent-color: var(--schedule-notification-accent, var(--accent-primary, #60C0F0));
     cursor: pointer;
   }
 

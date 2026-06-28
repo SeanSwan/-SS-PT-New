@@ -88,8 +88,8 @@ export const SeriesCallout = styled.div`
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
   border-radius: 10px;
-  background: var(--schedule-series-bg, rgba(59, 130, 246, 0.12));
-  border: 1px solid var(--schedule-series-border, rgba(59, 130, 246, 0.35));
+  background: var(--schedule-series-bg, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
+  border: 1px solid var(--schedule-series-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent));
 
   @media (max-width: 768px) {
     flex-direction: column;

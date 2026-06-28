@@ -75,6 +75,10 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
   const buttonPrimaryBg = theme.colors.primary;
   const buttonPrimaryText = getReadableAccentText(buttonPrimaryBg);
   const buttonSecondaryText = getReadableAccentText(theme.colors.secondary);
+  const commandPrimary = theme.colors.primary;
+  const commandPrimaryDeep = theme.colors.primaryDeep || theme.colors.primary;
+  const commandPrimaryLight = theme.colors.primaryLight || theme.colors.primary;
+  const commandSecondary = theme.colors.secondary;
   return `
     /* === FOUNDATION COLORS === */
     --color-deep-space: ${theme.colors.deepSpace};
@@ -216,6 +220,33 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --tertiary: ${theme.colors.secondary};
     --arctic-cyan: ${theme.colors.primaryLight || theme.colors.primary};
     --cyan-glow: ${theme.colors.primaryNeon || theme.colors.primary};
+
+    /* === UNIVERSAL MASTER SCHEDULE SESSION DETAIL === */
+    --schedule-command-panel-bg: linear-gradient(135deg, color-mix(in srgb, ${theme.background.elevated} 84%, ${commandPrimary} 16%), color-mix(in srgb, ${theme.background.surface} 86%, ${commandSecondary} 10%));
+    --schedule-command-panel-border: color-mix(in srgb, ${commandPrimary} 24%, transparent);
+    --schedule-command-panel-inset: color-mix(in srgb, ${commandPrimaryLight} 10%, transparent);
+    --schedule-command-panel-shadow: color-mix(in srgb, ${commandPrimaryDeep} 24%, transparent);
+    --schedule-command-card-bg: color-mix(in srgb, ${theme.background.primary} 70%, ${theme.background.elevated} 30%);
+    --schedule-command-card-border: color-mix(in srgb, ${commandPrimary} 16%, transparent);
+    --schedule-command-risk-high-border: color-mix(in srgb, ${theme.colors.warning} 50%, transparent);
+    --schedule-command-risk-high-bg: color-mix(in srgb, ${theme.colors.warning} 16%, transparent);
+    --schedule-command-risk-medium-border: color-mix(in srgb, ${commandPrimary} 45%, transparent);
+    --schedule-command-risk-medium-bg: color-mix(in srgb, ${commandPrimary} 14%, transparent);
+    --schedule-command-risk-low-border: color-mix(in srgb, ${commandSecondary} 45%, transparent);
+    --schedule-command-risk-low-bg: color-mix(in srgb, ${commandSecondary} 14%, transparent);
+    --schedule-command-attention-bg: color-mix(in srgb, ${theme.colors.warning} 12%, transparent);
+    --schedule-command-attention-border: color-mix(in srgb, ${theme.colors.warning} 28%, transparent);
+    --schedule-command-proposal-bg: color-mix(in srgb, ${commandSecondary} 10%, transparent);
+    --schedule-command-proposal-border: color-mix(in srgb, ${commandSecondary} 28%, transparent);
+    --schedule-command-action-border: color-mix(in srgb, ${commandSecondary} 55%, transparent);
+    --schedule-command-action-bg: linear-gradient(135deg, ${commandPrimaryDeep}, ${commandSecondary});
+    --schedule-command-action-glow: color-mix(in srgb, ${commandSecondary} 22%, transparent);
+    --schedule-command-action-border-hover: color-mix(in srgb, ${commandPrimary} 72%, transparent);
+    --schedule-series-bg: color-mix(in srgb, ${commandPrimary} 12%, transparent);
+    --schedule-series-border: color-mix(in srgb, ${commandPrimary} 35%, transparent);
+    --schedule-notification-bg: color-mix(in srgb, ${commandPrimary} 10%, transparent);
+    --schedule-notification-border: color-mix(in srgb, ${commandPrimary} 30%, transparent);
+    --schedule-notification-accent: ${commandPrimary};
   `;
 };
 

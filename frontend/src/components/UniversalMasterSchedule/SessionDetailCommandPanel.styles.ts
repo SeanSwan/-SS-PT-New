@@ -10,7 +10,7 @@ export const CommandPanel = styled.section`
     --schedule-command-panel-bg,
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, var(--primary, #002060) 16%),
+      color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, var(--brand-primary, var(--accent-primary, #60C0F0)) 16%),
       color-mix(in srgb, var(--bg-surface, #141419) 86%, var(--accent-secondary, #8B5CF6) 10%)
     )
   );
@@ -25,7 +25,7 @@ export const CommandPanel = styled.section`
     ) inset,
     0 20px 46px var(
       --schedule-command-panel-shadow,
-      color-mix(in srgb, var(--primary, #002060) 24%, transparent)
+      color-mix(in srgb, var(--brand-primary, var(--accent-primary, #60C0F0)) 24%, transparent)
     );
 `;
 
@@ -74,12 +74,12 @@ export const OutcomePill = styled.span<{ $risk: 'low' | 'medium' | 'high' }>`
   border: 1px solid ${({ $risk }) => {
     if ($risk === 'high') return 'var(--schedule-command-risk-high-border, color-mix(in srgb, var(--warning, #C6A84B) 50%, transparent))';
     if ($risk === 'medium') return 'var(--schedule-command-risk-medium-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent))';
-    return 'var(--schedule-command-risk-low-border, color-mix(in srgb, var(--accent-tertiary, #4070C0) 45%, transparent))';
+    return 'var(--schedule-command-risk-low-border, color-mix(in srgb, var(--brand-tertiary, var(--accent-secondary, #8B5CF6)) 45%, transparent))';
   }};
   background: ${({ $risk }) => {
     if ($risk === 'high') return 'var(--schedule-command-risk-high-bg, color-mix(in srgb, var(--warning, #C6A84B) 16%, transparent))';
     if ($risk === 'medium') return 'var(--schedule-command-risk-medium-bg, color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent))';
-    return 'var(--schedule-command-risk-low-bg, color-mix(in srgb, var(--accent-tertiary, #4070C0) 14%, transparent))';
+    return 'var(--schedule-command-risk-low-bg, color-mix(in srgb, var(--brand-tertiary, var(--accent-secondary, #8B5CF6)) 14%, transparent))';
   }};
 `;
 
@@ -200,7 +200,7 @@ export const ActionButton = styled.button`
   color: var(--text-primary, #E0ECF4);
   background: var(
     --schedule-command-action-bg,
-    linear-gradient(135deg, var(--primary, #002060), var(--accent-tertiary, #4070C0))
+    linear-gradient(135deg, var(--brand-primary, var(--accent-primary, #60C0F0)), var(--brand-tertiary, var(--accent-secondary, #8B5CF6)))
   );
   box-shadow: 0 0 22px var(
     --schedule-command-action-glow,
