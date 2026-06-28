@@ -15,6 +15,7 @@ import SessionDetailClientCancelWarningPanel from './SessionDetailClientCancelWa
 import SessionDetailClientFeedbackPanel from './SessionDetailClientFeedbackPanel';
 import SessionDetailCompletionBillingPanel from './SessionDetailCompletionBillingPanel';
 import SessionDetailCancelOptionsPanel from './SessionDetailCancelOptionsPanel';
+import SessionDetailCommandPanel from './SessionDetailCommandPanel';
 import SessionDetailInfoGrid from './SessionDetailInfoGrid';
 import SessionDetailNoShowReasonPanel from './SessionDetailNoShowReasonPanel';
 import SessionDetailPackageSummary from './SessionDetailPackageSummary';
@@ -178,6 +179,13 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
         onDeleteSeries={onDeleteSeries}
       />
     )}
+
+    <SessionDetailCommandPanel
+      session={session}
+      mode={mode}
+      isNonDeductingClient={isNonDeductingClient}
+      onApplyPayment={onApplyPayment}
+    />
 
     <SessionDetailInfoGrid
       session={session}
