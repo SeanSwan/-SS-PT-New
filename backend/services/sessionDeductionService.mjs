@@ -10,6 +10,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateRecoveryOrderNumber } from '../utils/orderNumber.mjs';
 import { isNonDeductingClient, NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { getSessionSettlementDecision } from './sessions/sessionSettlementPolicy.mjs';
 import {
   VALID_PAYMENT_METHODS,
   METHODS_REQUIRING_REFERENCE,
@@ -53,6 +54,15 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function toDeferredSettlementRecord(session, decision) {
+  return {
+    sessionId: session?.id ?? null,
+    reason: decision.reason,
+    recommendedAction: decision.recommendedAction,
+    settlementDueAt: decision.settlementDueAt?.toISOString?.() ?? null
+  };
+}
+
 // ── Main Functions ──────────────────────────────────────────────
 
 /**
@@ -69,7 +79,8 @@ export async function processSessionDeductions() {
     processed: 0,
     deducted: 0,
     errors: [],
-    noCredits: []
+    noCredits: [],
+    deferred: []
   };
 
   const transaction = await sequelize.transaction();
@@ -93,9 +104,20 @@ export async function processSessionDeductions() {
       transaction
     });
 
+    const now = new Date();
+    const sessionsDueForSettlement = [];
+    for (const session of eligibleSessions) {
+      const decision = getSessionSettlementDecision(session, { now });
+      if (decision.shouldSettleNow) {
+        sessionsDueForSettlement.push(session);
+      } else {
+        results.deferred.push(toDeferredSettlementRecord(session, decision));
+      }
+    }
+
     // Group sessions by client to avoid Sequelize duplicate-object bug
     const sessionsByClient = {};
-    for (const session of eligibleSessions) {
+    for (const session of sessionsDueForSettlement) {
       results.processed++;
       if (!session.client) {
         results.errors.push({ sessionId: session.id, reason: 'No client found' });
@@ -192,6 +214,7 @@ export async function processSessionDeductions() {
       processed: results.processed,
       deducted: results.deducted,
       noCredits: results.noCredits.length,
+      deferred: results.deferred.length,
       errors: results.errors.length
     });
 
