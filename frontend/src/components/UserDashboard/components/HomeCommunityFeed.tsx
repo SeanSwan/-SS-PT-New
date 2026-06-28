@@ -57,9 +57,9 @@ type FeedBodyProps = FeedNavigationHandlers & {
 };
 
 const sourceLabels: Record<FeedEnrichmentItem['source'], string> = {
-  'nasa-apod': 'Space Spark',
-  inaturalist: 'Nature Note',
-  quotable: 'Momentum Cue',
+  'nasa-images': 'NASA Image Library',
+  smithsonian: 'Smithsonian Open Access',
+  nps: 'National Park Service',
   'swan-curated': 'Swan Cue',
 };
 

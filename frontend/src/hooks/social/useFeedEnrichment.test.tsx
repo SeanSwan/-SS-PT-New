@@ -17,15 +17,15 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 const apiItem = {
-  id: 'nasa-apod-2026-06-28',
+  id: 'nasa-images-GSFC_20260628',
   kind: 'enrichment',
-  source: 'nasa-apod',
+  source: 'nasa-images',
   category: 'space',
-  title: 'Webb catches a quiet star nursery',
-  summary: 'A short, neutral science spark for the community feed.',
+  title: 'Earth glows beyond the blue horizon',
+  summary: 'A short, neutral NASA Image Library spark for the community feed.',
   mediaType: 'image',
-  mediaUrl: 'https://images.example.com/webb.jpg',
-  url: 'https://apod.nasa.gov/example',
+  mediaUrl: 'https://images.example.com/earth.jpg',
+  url: 'https://images.nasa.gov/details/GSFC_20260628',
   publishedAt: '2026-06-28T00:00:00.000Z',
 };
 
@@ -47,7 +47,7 @@ describe('useFeedEnrichment', () => {
     expect(result.current.items[0]).toMatchObject({
       id: apiItem.id,
       kind: 'enrichment',
-      source: 'nasa-apod',
+      source: 'nasa-images',
       title: apiItem.title,
     });
     expect(result.current.error).toBeNull();
@@ -68,8 +68,8 @@ describe('useFeedEnrichment', () => {
           {
             ...apiItem,
             id: 'safe-item',
-            url: 'https://apod.nasa.gov/example',
-            mediaUrl: 'https://images.example.com/webb.jpg',
+            url: 'https://images.nasa.gov/details/GSFC_20260628',
+            mediaUrl: 'https://images.example.com/earth.jpg',
           },
           {
             ...apiItem,
@@ -92,9 +92,9 @@ describe('useFeedEnrichment', () => {
       expect(result.current.items).toHaveLength(2);
     });
 
-    expect(result.current.items[0]).toMatchObject({ id: 'safe-item', url: 'https://apod.nasa.gov/example' });
+    expect(result.current.items[0]).toMatchObject({ id: 'safe-item', url: 'https://images.nasa.gov/details/GSFC_20260628' });
     const sanitizedItem = result.current.items.find((item) => item.id === 'known-source-unsafe-url');
-    expect(sanitizedItem).toMatchObject({ id: 'known-source-unsafe-url', source: 'nasa-apod' });
+    expect(sanitizedItem).toMatchObject({ id: 'known-source-unsafe-url', source: 'nasa-images' });
     expect(sanitizedItem?.url).toBeUndefined();
     expect(sanitizedItem?.mediaUrl).toBeUndefined();
     expect(sanitizedItem?.mediaType).toBeUndefined();
