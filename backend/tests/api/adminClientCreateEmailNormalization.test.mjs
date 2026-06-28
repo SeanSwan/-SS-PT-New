@@ -31,8 +31,8 @@ describe('admin client create email normalization', () => {
     expect(source).toContain('email: normalizedEmail');
     expect(source).toContain('sendPasswordResetEmailForUser(newClient)');
     expect(source).toContain("credentialAction = resetEmailSent ? 'reset_link_sent' : 'reset_link_needed'");
-    expect(source).not.toContain('Temporary Password');
-    expect(source).not.toContain('temporaryPassword: effectivePassword');
+    expect(source).toContain("const passwordSource = 'server_generated_reset_link';");
+    expect(source).not.toContain("password ? 'admin-supplied' : 'generated'");
     expect(source).not.toContain('[Op.or]: [{ email }, { username }]');
   });
 

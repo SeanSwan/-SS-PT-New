@@ -871,7 +871,6 @@ class AdminClientController {
         lastName,
         email,
         username,
-        password,
         phone,
         dateOfBirth,
         gender,
@@ -939,15 +938,6 @@ class AdminClientController {
         }
       }
 
-      // Validate password if admin-supplied
-      if (password && password.length < 8) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: 'Password must be at least 8 characters long'
-        });
-      }
-
       const normalizedEmail = normalizeAdminClientEmailInput(email);
       if (!normalizedEmail || !EMAIL_PATTERN.test(normalizedEmail)) {
         await transaction.rollback();
@@ -957,10 +947,9 @@ class AdminClientController {
         });
       }
 
-      // Determine password: use admin-supplied or generate a secure one
-      // base64url + special char suffix ensures validators requiring special chars pass
-      const passwordSource = password ? 'admin-supplied' : 'generated';
-      const effectivePassword = password || (crypto.randomBytes(12).toString('base64url') + '!A1');
+      // Server-only credential seed. Admin-created clients receive a reset-link handoff.
+      const passwordSource = 'server_generated_reset_link';
+      const effectivePassword = crypto.randomBytes(24).toString('base64url') + '!A1';
 
       // Check if email/username already exists
       const existingUser = await User.findOne({

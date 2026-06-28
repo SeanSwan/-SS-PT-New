@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 describe('adminClientService createClient', () => {
-  it('preserves an admin-entered initial password', async () => {
+  it('drops submitted client passwords so reset-link handoff owns credential setup', async () => {
     const post = vi.fn().mockResolvedValue({
       data: { success: true, data: { client: { id: 42 } } },
     });
@@ -34,23 +34,21 @@ describe('adminClientService createClient', () => {
     expect(post).toHaveBeenCalledWith(
       '/api/admin/clients',
       expect.objectContaining({
-        password: 'Client123',
         role: 'client',
         isActive: true,
         availableSessions: 1,
       }),
       undefined,
     );
+    expect(post.mock.calls[0][1]).not.toHaveProperty('password');
   });
 
-  it('generates temporary passwords with Web Crypto instead of Math.random', () => {
+  it('contains no client-side temporary password generator', () => {
     const source = readFileSync(resolve(__dirname, './adminClientService.ts'), 'utf8');
-    const utilityStart = source.indexOf('private secureRandomIndex');
-    const utilitySource = source.slice(utilityStart, source.indexOf('formatClientData', utilityStart));
 
-    expect(utilitySource).not.toMatch(/Math\.random/);
-    expect(utilitySource).toMatch(/getRandomValues/);
-    expect(utilitySource).toMatch(/Fisher-Yates/);
+    expect(source).not.toContain('generateTempPassword');
+    expect(source).not.toContain('Generate temporary password for new clients');
+    expect(source).not.toContain('Fisher-Yates shuffle');
   });
 });
 

@@ -250,6 +250,7 @@ describe('admin client lifecycle controller runtime behavior', () => {
           lastName: 'Client',
           email: 'swan.client@example.test',
           username: 'swan.client',
+          password: 'TrainerShouldNotKnow123!',
           clientSource: 'swanstudios',
           availableSessions: 4,
         },
@@ -260,6 +261,8 @@ describe('admin client lifecycle controller runtime behavior', () => {
 
     const generatedSecret = mocks.userModel.create.mock.calls[0][0].password;
 
+    expect(generatedSecret).toEqual(expect.any(String));
+    expect(generatedSecret).not.toBe('TrainerShouldNotKnow123!');
     expect(res.status).toHaveBeenCalledWith(201);
     expect(mocks.sendGridEmail).not.toHaveBeenCalled();
     expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(createdClient);

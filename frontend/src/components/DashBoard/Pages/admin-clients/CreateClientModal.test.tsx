@@ -82,7 +82,6 @@ describe('CreateClientModal', () => {
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reed' } });
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'taylor@example.com' } });
     fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'taylor.reed' } });
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
     fireEvent.change(screen.getByLabelText(/weight \(lbs\)/i), { target: { value: '185' } });
     fireEvent.change(screen.getByLabelText(/height \(ft\)/i), { target: { value: '5' } });
     fireEvent.change(screen.getByLabelText(/height \(in\)/i), { target: { value: '10' } });
@@ -111,7 +110,6 @@ describe('CreateClientModal', () => {
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reed' } });
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: '  Taylor@Example.COM  ' } });
     fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'taylor.reed' } });
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
 
     fireEvent.click(screen.getByRole('button', { name: /create client/i }));
 
@@ -121,6 +119,29 @@ describe('CreateClientModal', () => {
     }));
   });
 
+  it('creates SwanStudios clients without collecting or submitting temporary passwords', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateClientModal
+        open
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/^password/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/secure reset link/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Taylor' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reed' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'taylor@example.com' } });
+    fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'taylor.reed' } });
+    fireEvent.click(screen.getByRole('button', { name: /create client/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('password');
+  });
   it('omits hidden username and password fields for Move Fitness clients', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 

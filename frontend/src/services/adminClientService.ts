@@ -95,15 +95,14 @@ class AdminClientService {
    */
   async createClient(clientData) {
     try {
+      const { password: _discardedPassword, ...clientDataWithoutPassword } = clientData || {};
       const response = await this.api.post('/admin/clients', {
-        ...clientData,
-        // Set initial password (client will be prompted to change)
-        password: clientData.password || this.generateTempPassword(),
+        ...clientDataWithoutPassword,
         // Ensure client role
         role: 'client',
         isActive: true,
         // Set available sessions from package
-        availableSessions: clientData.availableSessions || 0
+        availableSessions: clientData?.availableSessions || 0
       });
       
       return response.data;
@@ -648,60 +647,6 @@ class AdminClientService {
     }
   }
 
-  // ==================== UTILITY FUNCTIONS ====================
-
-  private secureRandomIndex(maxExclusive: number) {
-    if (!globalThis.crypto?.getRandomValues) {
-      throw new Error('Secure random generation is unavailable');
-    }
-
-    const values = new Uint32Array(1);
-    const range = 0x100000000;
-    const maxUnbiased = Math.floor(range / maxExclusive) * maxExclusive;
-    let value = range;
-
-    while (value >= maxUnbiased) {
-      globalThis.crypto.getRandomValues(values);
-      value = values[0];
-    }
-
-    return value % maxExclusive;
-  }
-
-  private pickSecureCharacter(charset: string) {
-    return charset[this.secureRandomIndex(charset.length)];
-  }
-  
-  /**
-   * Generate temporary password for new clients
-   */
-  generateTempPassword() {
-    const length = 12;
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*';
-    const charset = `${lowercase}${uppercase}${numbers}${symbols}`;
-    const password = [
-      this.pickSecureCharacter(uppercase),
-      this.pickSecureCharacter(lowercase),
-      this.pickSecureCharacter(numbers),
-      this.pickSecureCharacter(symbols)
-    ];
-    
-    while (password.length < length) {
-      password.push(this.pickSecureCharacter(charset));
-    }
-    
-    // Fisher-Yates shuffle using Web Crypto so character positions are not predictable.
-    for (let i = password.length - 1; i > 0; i--) {
-      const j = this.secureRandomIndex(i + 1);
-      [password[i], password[j]] = [password[j], password[i]];
-    }
-
-    return password.join('');
-  }
-  
   /**
    * Format client data for display
    */
