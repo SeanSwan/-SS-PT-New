@@ -170,6 +170,11 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
     expect(names).not.toContain('trainerOrAdminOnly');
   });
 
+  it('POST / handler treats member-role users as self-log workout actors', () => {
+    expect(source).toMatch(/SELF_LOG_WORKOUT_ROLES|isWorkoutSelfLogRole/);
+    expect(source).toMatch(/['"]user['"]/);
+  });
+
   it('POST / handler body still enforces client-self and trainer-permission checks (defense-in-depth)', () => {
     // Source-level lock: even though the outer `trainerOrAdminOnly` is gone,
     // the handler body MUST keep the in-handler client-self check and the
@@ -182,7 +187,7 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
     // was always true — every client save was silently 403'd by the inline
     // check even when the middleware allowed the request through.
     expect(source).toMatch(
-      /userRole === 'client' && parsedClientId !== userNumericId[\s\S]{0,300}Clients can only log their own workouts/
+      /isWorkoutSelfLogRole\(userRole\) && parsedClientId !== userNumericId[\s\S]{0,300}Clients can only log their own workouts/
     );
     expect(source).toMatch(
       /userRole === 'trainer'[\s\S]{0,400}checkTrainerPermission\s*\(\s*trainerId\s*,\s*PERMISSION_TYPES\.EDIT_WORKOUTS\s*\)/
@@ -256,13 +261,13 @@ describe('dailyWorkoutFormRoutes — client self-log trainerId attribution (Phas
     );
   });
 
-  it('branches on userRole === "client" to look up an active assignment', () => {
+  it('branches on self-log roles to look up an active assignment', () => {
     // Lock the shape of the role-gated derivation. Any refactor that
     // drops the role branch would re-stamp the actor as the trainer.
     const idx = source.indexOf('let attributedTrainerId');
     expect(idx).toBeGreaterThan(-1);
     const slice = source.slice(idx, idx + 2000);
-    expect(slice).toMatch(/if\s*\(\s*userRole\s*===\s*['"]client['"]\s*\)/);
+    expect(slice).toMatch(/if\s*\(\s*isWorkoutSelfLogRole\(userRole\)\s*\)/);
     expect(slice).toMatch(/ClientTrainerAssignment[\s\S]{0,300}findOne/);
     expect(slice).toMatch(/status:\s*['"]active['"]/);
   });

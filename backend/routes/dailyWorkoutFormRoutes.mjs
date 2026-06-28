@@ -55,6 +55,9 @@ import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTraining
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
+const SELF_LOG_WORKOUT_ROLES = new Set(['client', 'user']);
+const isWorkoutSelfLogRole = (role) =>
+  typeof role === 'string' && SELF_LOG_WORKOUT_ROLES.has(role.toLowerCase());
 
 const parseStrictPositiveInteger = (value) => {
   if (typeof value === 'number') {
@@ -638,8 +641,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
-    // Client can only submit for themselves
-    if (userRole === 'client' && parsedClientId !== userNumericId) {
+    // Client/member self-log actors can only submit for themselves.
+    if (isWorkoutSelfLogRole(userRole) && parsedClientId !== userNumericId) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -821,7 +824,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     //
     // Trainer/admin path: actor and form's trainerId are the same user.
     let attributedTrainerId = trainerId;
-    if (userRole === 'client') {
+    if (isWorkoutSelfLogRole(userRole)) {
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
@@ -1093,7 +1096,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     if (linkedScheduledSession) {
       const scheduledSessionCompletionDate = new Date();
       const shouldStampScheduledSessionDeduction = billingDecision.shouldDeduct && billingDecision.sessionDeducted;
-      const scheduledSessionAttendanceRecorderId = userRole === 'client'
+      const scheduledSessionAttendanceRecorderId = isWorkoutSelfLogRole(userRole)
         ? (linkedScheduledSession.markedPresentBy || null)
         : trainerId;
       await linkedScheduledSession.update({
