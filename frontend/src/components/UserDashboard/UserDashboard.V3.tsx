@@ -87,6 +87,7 @@ const UserDashboardV3: React.FC = () => {
             username={dashboard.getUsernameForDisplay()}
             userInitials={dashboard.getUserInitials()}
             tierName={dashboard.observatoryTierName}
+            rankTitleLabel={dashboard.observatoryRankTitleLabel}
             level={dashboard.observatoryLevel}
             profilePhoto={dashboard.profile?.photo}
             onEditProfile={dashboard.handleEditProfile}

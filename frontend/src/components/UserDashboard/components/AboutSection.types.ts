@@ -3,6 +3,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react';
+import type { RankTitleOption } from '../../../hooks/gamification/gamificationLegacyTypes';
 import type { Rarity, SkillTree } from '../../../types/gamification';
 
 export interface PersonalInfoItem {
@@ -26,4 +27,12 @@ export interface EarnedAchievementCard {
 export interface SkillTreeStats {
   total: Record<string, number>;
   earned: Record<string, number>;
+}
+
+export interface RankTitleCatalog {
+  rankTitles: RankTitleOption[];
+  selectedRankTitle?: RankTitleOption;
+  currentRankTitle?: RankTitleOption;
+  nextRankTitle?: RankTitleOption | null;
+  earnedRankTitleCount: number;
 }

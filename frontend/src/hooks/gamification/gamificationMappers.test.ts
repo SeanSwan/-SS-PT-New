@@ -37,6 +37,30 @@ describe('gamificationMappers', () => {
     expect(JSON.stringify(profile)).not.toContain('private');
   });
 
+  it('preserves safe rank title payload fields and drops malformed rows', () => {
+    const profile = buildLegacyProfile({
+      raw: {
+        ...baseRawProfile,
+        selectedRankTitleKey: 'first_flight',
+        selectedRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true },
+        currentRankTitleDisplay: { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20', earned: true, isCurrent: true },
+        earnedRankTitleCount: 2,
+        rankTitles: [
+          { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true },
+          { key: { raw: 'private-key' }, name: 'Spoofed', rankNumber: 2, minLevel: 11, maxLevel: 20, levelRange: '11-20' },
+        ],
+      } as any,
+      targetUserId: 42,
+      user: null,
+    });
+
+    expect(profile.selectedRankTitleKey).toBe('first_flight');
+    expect(profile.selectedRankTitleDisplay).toMatchObject({ label: 'Rank 01 | First Flight' });
+    expect(profile.currentRankTitleDisplay).toMatchObject({ key: 'swan_initiate' });
+    expect(profile.earnedRankTitleCount).toBe(2);
+    expect(profile.rankTitles).toHaveLength(1);
+    expect(JSON.stringify(profile)).not.toContain('private-key');
+  });
   it('preserves valid profile collections', () => {
     const profile = buildLegacyProfile({
       raw: {

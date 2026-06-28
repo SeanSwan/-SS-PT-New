@@ -414,6 +414,10 @@ import GamificationPointsService from '../services/gamification/GamificationPoin
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
+import {
+  buildRankTitleSelectionPayload,
+  validateSelectedRankTitleKey,
+} from '../utils/gamificationRankTitles.mjs';
 
 // Safe attribute list for UserAchievement — only columns from the .cjs migration.
 // The model defines extra fields (maxProgress, etc.) that don't exist in the
@@ -938,7 +942,7 @@ const gamificationController = {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
-          'totalExercises'
+          'totalExercises', 'selectedRankTitleKey'
         ],
         include: [
           {
@@ -1032,6 +1036,12 @@ const gamificationController = {
           }
         }
       }
+
+      const rankTitlePayload = buildRankTitleSelectionPayload({
+        points: user.points,
+        level: user.level,
+        selectedRankTitleKey: user.selectedRankTitleKey
+      });
       
       return res.status(200).json({
         success: true,
@@ -1043,7 +1053,8 @@ const gamificationController = {
           nextLevelProgress,
           nextLevelPoints,
           nextTierProgress,
-          nextTier
+          nextTier,
+          ...rankTitlePayload
         }
       });
     } catch (error) {
@@ -1093,6 +1104,65 @@ const gamificationController = {
     } catch (error) {
       console.error('Error getting leaderboard:', error);
       return sendGamificationError(res, 'Failed to get leaderboard');
+    }
+  },
+
+  /**
+   * Select one earned public rank title for profile display.
+   */
+  setSelectedRankTitle: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
+
+      if (!normalizedUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user id is required'
+        });
+      }
+
+      const user = await User.findByPk(normalizedUserId, {
+        attributes: ['id', 'points', 'level', 'selectedRankTitleKey']
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const requestedKey = req.body?.rankTitleKey ?? req.body?.selectedRankTitleKey;
+      const validation = validateSelectedRankTitleKey(requestedKey, {
+        points: user.points,
+        level: user.level
+      });
+
+      if (!validation.ok) {
+        return res.status(validation.status).json({
+          success: false,
+          message: validation.message,
+          rankTitleDisplay: validation.rankTitleDisplay || null
+        });
+      }
+
+      await user.update({ selectedRankTitleKey: validation.rankTitleKey });
+
+      const rankTitlePayload = buildRankTitleSelectionPayload({
+        points: user.points,
+        level: user.level,
+        selectedRankTitleKey: validation.rankTitleKey
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Rank title updated successfully',
+        ...rankTitlePayload
+      });
+    } catch (error) {
+      console.error('Error updating selected rank title:', error);
+      return sendGamificationError(res, 'Failed to update rank title');
     }
   },
 

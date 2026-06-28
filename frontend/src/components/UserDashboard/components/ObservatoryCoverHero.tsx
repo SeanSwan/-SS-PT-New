@@ -27,9 +27,8 @@
 import React from 'react';
 import { Camera, Edit3, ImagePlus, Settings, Share2 } from 'lucide-react';
 import { useHomeCoverBanner } from './useHomeCoverBanner';
-import { HeroRanges, LevelHex } from './HomeTabVisionScenes';
+import { HeroRanges } from './HomeTabVisionScenes';
 import { GlowSweep } from './HomeTabVision.styles';
-import { LevelBadgeAnchor } from './HomeTabVisionHero.styles';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import {
   CoverActionButton,
@@ -47,7 +46,7 @@ import {
   CoverName,
   CoverNameBlock,
   CoverScrim,
-  CoverTierChip,
+  CoverRankTag,
 } from './ObservatoryCoverHero.styles';
 
 interface ObservatoryCoverHeroProps {
@@ -55,6 +54,7 @@ interface ObservatoryCoverHeroProps {
   username: string;
   userInitials: string;
   tierName: string;
+  rankTitleLabel?: string;
   level: number;
   /** Raw profile photo URL — sanitized here, initials fallback when absent. */
   profilePhoto?: string | null;
@@ -71,6 +71,7 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
   username,
   userInitials,
   tierName,
+  rankTitleLabel,
   level,
   profilePhoto,
   onEditProfile,
@@ -80,6 +81,7 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
 }) => {
   const { bannerLayer, coverEditorSlot, toggleCoverEditor } = useHomeCoverBanner();
   const safePhoto = sanitizeImageUrl(profilePhoto ?? undefined);
+  const visibleRankTitle = rankTitleLabel || `Level ${level} | ${tierName}`;
 
   return (
     <>
@@ -108,15 +110,12 @@ const ObservatoryCoverHero: React.FC<ObservatoryCoverHeroProps> = ({
               <CoverAvatarCameraBadge aria-hidden="true">
                 <Camera size={13} />
               </CoverAvatarCameraBadge>
-              <LevelBadgeAnchor>
-                <LevelHex level={level} size={30} />
-              </LevelBadgeAnchor>
             </CoverAvatarButton>
             <CoverNameBlock>
               <CoverName>{displayName}</CoverName>
+              <CoverRankTag>{visibleRankTitle}</CoverRankTag>
               <CoverMeta>
                 <span>@{username}</span>
-                <CoverTierChip>{tierName}</CoverTierChip>
               </CoverMeta>
             </CoverNameBlock>
           </CoverIdentity>

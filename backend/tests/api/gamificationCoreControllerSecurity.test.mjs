@@ -34,6 +34,7 @@ const activityFeedSource = functionSource('getActivityFeed', 'getComebackChallen
 describe('core gamification controller security hardening', () => {
   it('locks the active profile, transaction, and activity-feed route wiring', () => {
     const gamificationHookSource = readFrontend('src/hooks/gamification/useGamificationData.ts');
+    const rankTitleHookSource = readFrontend('src/hooks/gamification/useRankTitleSelection.ts');
     const clientDashboardSource = readFrontend('src/hooks/useClientDashboardMcp.ts');
     const profileHookSource = readFrontend('src/hooks/useGamificationProfile.ts');
     const recentActivitySource = readFrontend('src/components/DashBoard/Pages/admin-dashboard/components/RecentActivityFeed.tsx');
@@ -43,9 +44,12 @@ describe('core gamification controller security hardening', () => {
     expect(routeSource).toContain("router.get('/profile', authenticate, requireProfileReader, viewAsGuard, (req, res) => {");
     expect(routeSource).toContain('req.params.userId = getEffectiveReadUserId(req);');
     expect(routeSource).toContain("router.get('/users/:userId/profile', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserProfile)");
+    expect(routeSource).toContain("router.put('/profile/rank-title', authenticate, requireProfileReader, (req, res) => {");
+    expect(routeSource).toContain('req.params.userId = req.user.id;');
     expect(routeSource).toContain("router.get('/users/:userId/transactions', authenticate, authorizeResourceAccess('userId'), gamificationController.getUserTransactions)");
     expect(routeSource).toContain("router.get('/activity-feed', authenticate, requireUser, gamificationController.getActivityFeed)");
     expect(gamificationHookSource).toContain("authAxios.get('/api/v1/gamification/profile'");
+    expect(rankTitleHookSource).toContain("authAxios.put('/api/v1/gamification/profile/rank-title'");
     expect(clientDashboardSource).toContain("apiService.get('/api/v1/gamification/profile')");
     expect(profileHookSource).toContain('`/api/v1/gamification/users/${targetUserId}/profile`');
     expect(recentActivitySource).toContain("authAxios.get('/api/gamification/activity-feed'");

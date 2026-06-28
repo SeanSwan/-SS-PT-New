@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AboutSection from './AboutSection';
 import {
@@ -8,9 +8,11 @@ import {
   getRarityFlat,
 } from './AboutSection.helpers';
 
-const { mockUseAuth, mockUseGamificationData } = vi.hoisted(() => ({
+const { mockEquipRankTitle, mockUseAuth, mockUseGamificationData, mockUseRankTitleSelection } = vi.hoisted(() => ({
+  mockEquipRankTitle: vi.fn(),
   mockUseAuth: vi.fn(),
   mockUseGamificationData: vi.fn(),
+  mockUseRankTitleSelection: vi.fn(),
 }));
 
 vi.mock('../../../context/AuthContext', () => ({
@@ -21,8 +23,18 @@ vi.mock('../../../hooks/gamification/useGamificationData', () => ({
   useGamificationData: mockUseGamificationData,
 }));
 
+vi.mock('../../../hooks/gamification/useRankTitleSelection', () => ({
+  useRankTitleSelection: mockUseRankTitleSelection,
+}));
+
 describe('AboutSection', () => {
   beforeEach(() => {
+    mockEquipRankTitle.mockClear();
+    mockUseRankTitleSelection.mockReturnValue({
+      equipRankTitle: mockEquipRankTitle,
+      isEquippingRankTitle: false,
+      equippingRankTitleKey: undefined,
+    });
     mockUseAuth.mockReturnValue({
       user: { createdAt: '2026-01-14T12:00:00.000Z' },
     });
@@ -32,6 +44,15 @@ describe('AboutSection', () => {
           level: 9,
           points: 2400,
           streakDays: 3,
+          selectedRankTitleKey: 'first_flight',
+          selectedRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
+          currentRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
+          nextRankTitleDisplay: { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20' },
+          earnedRankTitleCount: 1,
+          rankTitles: [
+            { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true, isCurrent: true },
+            { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20', earned: false, isSelected: false, isCurrent: false },
+          ],
           achievements: [
             {
               id: 'ua-1',
@@ -73,8 +94,44 @@ describe('AboutSection', () => {
     expect(screen.getByText('Evergreen Current')).toBeInTheDocument();
     expect(screen.queryByText('The Forge')).not.toBeInTheDocument();
     expect(screen.queryByText('Holistic wellness')).not.toBeInTheDocument();
+    expect(screen.getByText('Rank Titles')).toBeInTheDocument();
+    expect(screen.getByText('Rank 01 | First Flight')).toBeInTheDocument();
+    expect(screen.getByText('Rank 02')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rank 02 \| Swan Initiate locked until Level 11/i })).toBeDisabled();
   });
 
+  it('lets users equip an earned rank title from the About ladder', () => {
+    mockUseGamificationData.mockReturnValue({
+      profile: {
+        data: {
+          level: 15,
+          points: 22500,
+          streakDays: 4,
+          achievements: [],
+          selectedRankTitleKey: 'first_flight',
+          selectedRankTitleDisplay: { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true },
+          currentRankTitleDisplay: { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20', earned: true, isCurrent: true },
+          earnedRankTitleCount: 2,
+          rankTitles: [
+            { key: 'first_flight', name: 'First Flight', rankNumber: 1, label: 'Rank 01 | First Flight', minLevel: 1, maxLevel: 10, levelRange: '1-10', earned: true, isSelected: true },
+            { key: 'swan_initiate', name: 'Swan Initiate', rankNumber: 2, label: 'Rank 02 | Swan Initiate', minLevel: 11, maxLevel: 20, levelRange: '11-20', earned: true, isSelected: false, isCurrent: true },
+          ],
+        },
+      },
+      achievements: { data: [] },
+      levelProgress: {
+        level: 15,
+        currentPoints: 22500,
+        tierDisplay: { name: 'Swan Initiate' },
+      },
+      isLoading: false,
+    });
+
+    render(<AboutSection />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Equip Rank 02 \| Swan Initiate/i }));
+    expect(mockEquipRankTitle).toHaveBeenCalledWith('swan_initiate');
+  });
   it('renders a loading state without leaking placeholder profile values', () => {
     mockUseGamificationData.mockReturnValue({
       profile: undefined,

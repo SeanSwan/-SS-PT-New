@@ -1,14 +1,8 @@
 /**
- * Gamification API mappers
- * =======================
- * Converts the newer backend gamification payloads into the legacy dashboard
- * contracts exported by useGamificationData.
- *
- * This file intentionally has no React imports. It is pure mapping logic so
- * hook tests can lock data truth without coupling every assertion to React
- * Query orchestration.
+ * Pure mappers from backend gamification payloads to legacy dashboard DTOs.
  */
 
+import { mapRankTitlePayloadFields } from './gamificationRankTitleMappers';
 import {
   type GamificationProfile as NewGamificationProfile,
   type TierName,
@@ -241,6 +235,7 @@ export function buildLegacyProfile({
     nextLevelPoints: usableNextLevelTarget ?? levelProgress.nextLevelAt,
     nextTierProgress: clampProgressPercent(raw.nextTierProgress),
     nextTier,
+    ...mapRankTitlePayloadFields(raw),
     progressSnapshots: undefined,
     streakCalendar: undefined,
   };
