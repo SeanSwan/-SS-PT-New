@@ -1,34 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  BANNER_COLLAGE_MEDIA_TYPES,
-  BANNER_MEDIA_VIDEO_TYPES,
-  DEFAULT_BANNER_FRAME_HEIGHT,
-  DEFAULT_BANNER_COLLAGE_LAYOUT,
-  DEFAULT_BANNER_STICKY_CAROUSEL,
-  DEFAULT_BANNER_IMAGE_SCALE,
-  DEFAULT_BANNER_OBJECT_FIT,
-  DEFAULT_BANNER_OBJECT_POSITION,
-  MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE,
-  MAX_BANNER_COLLAGE_PHOTOS,
-  MAX_BANNER_COLLAGE_VIDEOS,
-  MAX_BANNER_PRESETS,
-  isBannerCollageVideoUrl,
-  isBannerObjectFit,
-  normalizeBannerCollageLayout,
-  normalizeBannerCollagePhotos,
-  normalizeBannerFrameHeight,
-  normalizeBannerImageScale,
-  normalizeBannerObjectPosition,
-  normalizeBannerPresets,
-  normalizeBannerStickyCarousel,
-  type BannerCropState,
-  type BannerCollageLayout,
-  type BannerPreset,
-  type BannerObjectFit,
-  type BannerObjectPosition,
-  type UserProfile,
+  DEFAULT_BANNER_FRAME_HEIGHT, DEFAULT_BANNER_COLLAGE_LAYOUT, DEFAULT_BANNER_STICKY_CAROUSEL,
+  DEFAULT_BANNER_IMAGE_SCALE, DEFAULT_BANNER_OBJECT_FIT, DEFAULT_BANNER_OBJECT_POSITION, MAX_BANNER_PRESETS,
+  isBannerObjectFit, normalizeBannerCollageLayout, normalizeBannerCollagePhotos,
+  normalizeBannerFrameHeight, normalizeBannerImageScale, normalizeBannerObjectPosition, normalizeBannerPresets,
+  normalizeBannerStickyCarousel, type BannerCropState, type BannerCollageLayout, type BannerPreset,
+  type BannerObjectFit, type BannerObjectPosition, type UserProfile,
 } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
+import { logger } from '../../../utils/logger';
+import { useBannerCollageMediaHandlers } from './useBannerCollageMediaHandlers';
 
 interface BannerCompositionArgs {
   profile: UserProfile | null | undefined;
@@ -106,6 +87,7 @@ export function useBannerCompositionState({
   }, [bannerStateRef]);
 
   const handleBannerCropCommit = useCallback(async (next: BannerCropState) => {
+    const previousCrop = { position: bannerObjectPosition, fit: bannerObjectFit, scale: bannerImageScale, height: bannerFrameHeight };
     const normalizedNext: BannerCropState = {
       position: normalizeBannerObjectPosition(next.position),
       fit: isBannerObjectFit(next.fit) ? next.fit : DEFAULT_BANNER_OBJECT_FIT,
@@ -121,10 +103,13 @@ export function useBannerCompositionState({
         bannerImageScale: normalizedNext.scale,
         bannerFrameHeight: normalizedNext.height,
       });
-    } catch (positionError) {
-      console.error('Failed to save banner crop settings:', positionError);
+    } catch {
+      logger.warn('User dashboard banner crop save failed.');
+      Object.assign(bannerStateRef, previousCrop);
+      setBannerObjectPosition(previousCrop.position); setBannerObjectFit(previousCrop.fit);
+      setBannerImageScale(previousCrop.scale); setBannerFrameHeight(previousCrop.height);
     }
-  }, [previewBannerCrop, updateProfile]);
+  }, [bannerFrameHeight, bannerImageScale, bannerObjectFit, bannerObjectPosition, bannerStateRef, previewBannerCrop, updateProfile]);
 
   const handleBannerCollageLayoutCommit = useCallback(async (layout: BannerCollageLayout) => {
     const normalizedLayout = normalizeBannerCollageLayout(layout);
@@ -135,8 +120,8 @@ export function useBannerCompositionState({
     setBannerObjectFit('collage');
     try {
       await updateProfile({ bannerCollageLayout: normalizedLayout, bannerObjectFit: 'collage' });
-    } catch (persistError) {
-      console.error('Failed to save banner collage layout:', persistError);
+    } catch {
+      logger.warn('User dashboard banner collage layout save failed.');
       Object.assign(bannerStateRef, { layout: previousLayout, fit: previousFit });
       setBannerCollageLayout(previousLayout);
       setBannerObjectFit(previousFit);
@@ -149,72 +134,28 @@ export function useBannerCompositionState({
     setBannerStickyCarousel(sticky);
     try {
       await updateProfile({ bannerStickyCarousel: sticky });
-    } catch (persistError) {
-      console.error('Failed to save banner sticky carousel:', persistError);
+    } catch {
+      logger.warn('User dashboard banner sticky carousel save failed.');
       Object.assign(bannerStateRef, { sticky: previousSticky });
       setBannerStickyCarousel(previousSticky);
     }
   }, [bannerStateRef, bannerStickyCarousel, updateProfile]);
 
-  const handleBannerCollageFiles = useCallback(async (filesLike: FileList | File[]) => {
-    const previousPhotos = bannerCollagePhotos;
-    const previousFit = bannerObjectFit;
-    const capacity = MAX_BANNER_COLLAGE_PHOTOS - bannerCollagePhotos.length;
-    if (capacity <= 0) return;
-    let nextVideoCount = bannerCollagePhotos.filter(isBannerCollageVideoUrl).length;
-    const files: File[] = [];
-    for (const file of Array.from(filesLike)) {
-      if (files.length >= capacity) break;
-      const isAllowedType = (BANNER_COLLAGE_MEDIA_TYPES as readonly string[]).includes(file.type);
-      const isAllowedSize = file.size <= MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE;
-      if (!isAllowedType || !isAllowedSize) continue;
-      const isVideo = (BANNER_MEDIA_VIDEO_TYPES as readonly string[]).includes(file.type);
-      if (isVideo) {
-        if (nextVideoCount >= MAX_BANNER_COLLAGE_VIDEOS) continue;
-        nextVideoCount += 1;
-      }
-      files.push(file);
-    }
-    if (files.length === 0) return;
-
-    const uploaded: string[] = [];
-    for (const file of files) {
-      try {
-        const url = sanitizeImageUrl(await uploadBannerCollagePhoto(file));
-        if (url) uploaded.push(url);
-      } catch (uploadError) {
-        console.error('Failed to upload collage photo:', uploadError);
-      }
-    }
-    if (uploaded.length === 0) return;
-
-    const normalized = normalizeBannerCollagePhotos([...bannerCollagePhotos, ...uploaded]);
-    Object.assign(bannerStateRef, { photos: normalized, fit: 'collage' });
-    setBannerCollagePhotos(normalized);
-    setBannerObjectFit('collage');
-    try {
-      await updateProfile({ bannerCollagePhotos: normalized, bannerObjectFit: 'collage' });
-    } catch (persistError) {
-      console.error('Failed to save banner collage photos:', persistError);
-      Object.assign(bannerStateRef, { photos: previousPhotos, fit: previousFit });
-      setBannerCollagePhotos(previousPhotos);
-      setBannerObjectFit(previousFit);
-    }
-  }, [bannerCollagePhotos, bannerObjectFit, bannerStateRef, updateProfile, uploadBannerCollagePhoto]);
-
-  const handleBannerCollageRemove = useCallback(async (index: number) => {
-    const previousPhotos = bannerCollagePhotos;
-    const normalized = normalizeBannerCollagePhotos(bannerCollagePhotos.filter((_, photoIndex) => photoIndex !== index));
-    Object.assign(bannerStateRef, { photos: normalized });
-    setBannerCollagePhotos(normalized);
-    try {
-      await updateProfile({ bannerCollagePhotos: normalized });
-    } catch (persistError) {
-      console.error('Failed to remove banner collage photo:', persistError);
-      Object.assign(bannerStateRef, { photos: previousPhotos });
-      setBannerCollagePhotos(previousPhotos);
-    }
-  }, [bannerCollagePhotos, bannerStateRef, updateProfile]);
+  const {
+    handleBannerCollageFiles,
+    handleBannerCollageRemove,
+    handleBannerCollageShuffle,
+  } = useBannerCollageMediaHandlers({
+    bannerCollagePhotos,
+    bannerObjectFit,
+    bannerCollageLayout,
+    bannerStateRef,
+    setBannerCollagePhotos,
+    setBannerObjectFit,
+    setBannerCollageLayout,
+    updateProfile,
+    uploadBannerCollagePhoto,
+  });
 
   const handleBannerPresetSave = useCallback(async () => {
     const previousPresets = bannerPresets;
@@ -237,8 +178,8 @@ export function useBannerCompositionState({
     setBannerPresets(normalizedPresets);
     try {
       await updateProfile({ bannerPresets: normalizedPresets });
-    } catch (persistError) {
-      console.error('Failed to save banner preset:', persistError);
+    } catch {
+      logger.warn('User dashboard banner preset save failed.');
       Object.assign(bannerStateRef, { presets: previousPresets });
       setBannerPresets(previousPresets);
     }
@@ -248,6 +189,7 @@ export function useBannerCompositionState({
     const preset = normalizeBannerPresets(bannerStateRef.presets).find((item) => item.id === presetId);
     if (!preset) return;
     const previousState = { ...bannerStateRef, photos: [...bannerStateRef.photos], presets: [...bannerStateRef.presets] };
+    const previousBannerPhoto = sanitizeImageUrl(profile?.bannerPhoto) ?? null;
     Object.assign(bannerStateRef, {
       position: preset.bannerObjectPosition,
       fit: preset.bannerObjectFit,
@@ -276,11 +218,15 @@ export function useBannerCompositionState({
         bannerCollageLayout: preset.bannerCollageLayout,
         bannerStickyCarousel: preset.bannerStickyCarousel,
       });
-    } catch (persistError) {
-      console.error('Failed to apply banner preset:', persistError);
+    } catch {
+      logger.warn('User dashboard banner preset apply failed.');
       Object.assign(bannerStateRef, previousState);
+      setBannerObjectPosition(previousState.position); setBannerObjectFit(previousState.fit);
+      setBannerImageScale(previousState.scale); setBannerFrameHeight(previousState.height);
+      setBannerCollagePhotos(previousState.photos); setBannerCollageLayout(previousState.layout);
+      setBannerStickyCarousel(previousState.sticky); onBannerPhotoPreview?.(previousBannerPhoto);
     }
-  }, [bannerStateRef, onBannerPhotoPreview, updateProfile]);
+  }, [bannerStateRef, onBannerPhotoPreview, profile?.bannerPhoto, updateProfile]);
 
   const handleBannerPresetRemove = useCallback(async (presetId: string) => {
     const previousPresets = bannerPresets;
@@ -289,8 +235,8 @@ export function useBannerCompositionState({
     setBannerPresets(normalizedPresets);
     try {
       await updateProfile({ bannerPresets: normalizedPresets });
-    } catch (persistError) {
-      console.error('Failed to remove banner preset:', persistError);
+    } catch {
+      logger.warn('User dashboard banner preset removal failed.');
       Object.assign(bannerStateRef, { presets: previousPresets });
       setBannerPresets(previousPresets);
     }
@@ -299,10 +245,9 @@ export function useBannerCompositionState({
   const toggleRepositionPanel = useCallback(() => setShowRepositionPanel((open) => !open), []);
 
   return {
-    bannerObjectPosition, bannerObjectFit, bannerImageScale, bannerFrameHeight,
-    bannerCollagePhotos, bannerCollageLayout, bannerStickyCarousel, bannerPresets,
-    showRepositionPanel, toggleRepositionPanel, previewBannerCrop, handleBannerCropCommit,
-    handleBannerCollageLayoutCommit, handleBannerStickyCarouselCommit, handleBannerCollageFiles,
-    handleBannerCollageRemove, handleBannerPresetSave, handleBannerPresetApply, handleBannerPresetRemove,
+    bannerObjectPosition, bannerObjectFit, bannerImageScale, bannerFrameHeight, bannerCollagePhotos, bannerCollageLayout,
+    bannerStickyCarousel, bannerPresets, showRepositionPanel, toggleRepositionPanel, previewBannerCrop,
+    handleBannerCropCommit, handleBannerCollageLayoutCommit, handleBannerStickyCarouselCommit, handleBannerCollageFiles,
+    handleBannerCollageRemove, handleBannerCollageShuffle, handleBannerPresetSave, handleBannerPresetApply, handleBannerPresetRemove,
   };
 }

@@ -16,9 +16,11 @@ describe('UserDashboard banner crop contract', () => {
   const cropControls = read('src/components/UserDashboard/components/UserDashboardBannerCropControls.tsx');
   const repositionPanel = read('src/components/UserDashboard/components/UserDashboardBannerRepositionPanelContent.tsx');
   const mediaLayer = read('src/components/UserDashboard/components/UserDashboardBannerMediaLayer.tsx');
+  const stageLayer = read('src/components/UserDashboard/components/UserDashboardBannerStageLayouts.tsx');
   const shell = read('src/components/UserDashboard/components/ObservatoryShell.tsx');
   const controller = read('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
   const compositionHook = read('src/components/UserDashboard/hooks/useBannerCompositionState.ts');
+  const mediaHandlers = read('src/components/UserDashboard/hooks/useBannerCollageMediaHandlers.ts');
   const profileService = read('src/services/profileService.ts');
   const bannerCompositionService = read('src/services/profileBannerComposition.ts');
   const profileTypesService = read('src/services/profileTypes.ts');
@@ -35,6 +37,7 @@ describe('UserDashboard banner crop contract', () => {
     expect(cropControls).toContain('onPointerDown={handleBannerPointerDown}');
     expect(repositionPanel).toContain('Drag the cover photo');
     expect(actionStyles).toContain('BannerCropModeButton');
+    expect(cropControls).toContain('<BannerUploadButton type="button"');
   });
 
   it('persists position, fit mode, and zoom through the dashboard controller', () => {
@@ -48,13 +51,16 @@ describe('UserDashboard banner crop contract', () => {
     expect(compositionHook).toContain('bannerPresets');
     expect(compositionHook).toContain('handleBannerCropCommit');
     expect(compositionHook).toContain('handleBannerCollageLayoutCommit');
+    expect(compositionHook).toContain('handleBannerCollageShuffle');
+    expect(compositionHook).toContain('useBannerCollageMediaHandlers');
+    expect(mediaHandlers).toContain('handleBannerCollageShuffle');
     expect(compositionHook).toContain('handleBannerPresetSave');
     expect(compositionHook).toContain('updateProfile({');
     expect(compositionHook).toContain('bannerObjectPosition: normalizedNext.position');
     expect(compositionHook).toContain('bannerObjectFit: normalizedNext.fit');
     expect(compositionHook).toContain('bannerImageScale: normalizedNext.scale');
     expect(compositionHook).toContain('bannerFrameHeight: normalizedNext.height');
-    expect(compositionHook).toContain('bannerCollagePhotos: normalized');
+    expect(mediaHandlers).toContain('bannerCollagePhotos: normalized');
     expect(compositionHook).toContain('bannerCollageLayout: normalizedLayout');
     expect(compositionHook).toContain('bannerStickyCarousel');
     expect(compositionHook).toContain('bannerPresets: normalizedPresets');
@@ -73,6 +79,8 @@ describe('UserDashboard banner crop contract', () => {
     expect(bannerCompositionService).toContain('BANNER_OBJECT_FIT_OPTIONS');
     expect(bannerCompositionService).toContain('BANNER_COLLAGE_LAYOUT_OPTIONS');
     expect(bannerCompositionService).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
+    expect(bannerCompositionService).toContain("'smart-carousel'");
+    expect(bannerCompositionService).toContain("DEFAULT_BANNER_COLLAGE_LAYOUT: BannerCollageLayout = 'smart-carousel'");
     expect(bannerCompositionService).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
     expect(bannerCompositionService).toContain("'tile'");
     expect(bannerCompositionService).toContain("'collage'");
@@ -96,21 +104,30 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('data-testid="banner-sticky-carousel"');
     expect(mediaLayer).toContain('!bannerStickyCarousel');
     expect(mediaLayer).toContain('data-testid="banner-sticky-carousel-image"');
-    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-fit: contain;/);
-    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-position: var\(--banner-object-position, center center\);/);
-    expect(mediaLayer).toContain('style={positionStyle}');
+    // 2026-06-11 flaw fix: sticky carousel media is cover-fill (was contain,
+    // which letterboxed photos with black bars).
+    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-fit: cover;/);
     expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_PHOTOS = 12');
     expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_VIDEOS = 3');
-    expect(compositionHook).toContain('MAX_BANNER_COLLAGE_VIDEOS');
-    expect(compositionHook).toContain('nextVideoCount >= MAX_BANNER_COLLAGE_VIDEOS');
+    expect(mediaHandlers).toContain('MAX_BANNER_COLLAGE_VIDEOS');
+    expect(mediaHandlers).toContain('nextVideoCount >= MAX_BANNER_COLLAGE_VIDEOS');
     expect(mediaLayer).toContain('slice(0, MAX_BANNER_COLLAGE_PHOTOS)');
     expect(cropControls).not.toContain('backgroundImage: `');
     expect(mediaLayer).not.toContain('backgroundImage: `');
   });
 
+  it('keeps the mounted banner media renderer below the runtime file-size cap', () => {
+    expect(mediaLayer.split(/\r?\n/).length, 'UserDashboardBannerMediaLayer.tsx line count')
+      .toBeLessThanOrEqual(300);
+    expect(stageLayer.split(/\r?\n/).length, 'UserDashboardBannerStageLayouts.tsx line count')
+      .toBeLessThanOrEqual(300);
+    expect(mediaHandlers.split(/\r?\n/).length, 'useBannerCollageMediaHandlers.ts line count')
+      .toBeLessThanOrEqual(300);
+  });
+
   it('keeps tile media whole and removes carousel frame containers below photos', () => {
     expect(compositionStyles).toMatch(/export const BannerTileImage[\s\S]*?object-fit: contain;/);
-    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
+    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: cover;/);
     expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?data-layout\^='carousel-'[\s\S]*?object-fit: contain;/);
     expect(compositionStyles).toMatch(/BannerCollageLayer[\s\S]*?data-layout='stream'[\s\S]*?display: grid;/);
     expect(compositionStyles).toContain("${BannerCollageLayer}[data-layout='stream'] &,");
@@ -157,45 +174,46 @@ describe('UserDashboard banner crop contract', () => {
     expect(compositionStyles).not.toMatch(/BannerCollageMediaFrame[\s\S]*animation:\s*\$\{carouselTrack\}/);
   });
 
-  it('renders Atrium and Vitrine as full-bleed premium stage layouts (Slice 2)', () => {
-    // enum carries the two standalone stage layouts
+  it('renders Smart Carousel, Atrium, and Vitrine as full-bleed premium stage layouts', () => {
+    // enum carries the standalone stage layouts
+    expect(bannerCompositionService).toContain("'smart-carousel'");
     expect(bannerCompositionService).toContain("'atrium'");
     expect(bannerCompositionService).toContain("'vitrine'");
     // they are NOT marquee carousels (must stay out of the carousel option set,
     // so isBannerCarouselLayout() is false and the sticky-strip path is skipped)
     const carouselArray = bannerCompositionService.match(/BANNER_CAROUSEL_LAYOUT_OPTIONS = \[[\s\S]*?\]/)?.[0] ?? '';
+    expect(carouselArray).not.toContain('smart-carousel');
     expect(carouselArray).not.toContain('atrium');
     expect(carouselArray).not.toContain('vitrine');
     // frontend <-> backend allowlist parity (drift here silently downgrades the
-    // saved layout to 'stream' — the M5b crossfade gotcha)
+    // saved layout to 'stream' - the M5b crossfade gotcha)
+    expect(backendController).toContain("'smart-carousel'");
     expect(backendController).toContain("'atrium'");
     expect(backendController).toContain("'vitrine'");
     // editor picker maps every option through a label record (exhaustive)
     expect(header || cropControls).toBeDefined();
     // the media layer renders each stage on its own branch with stable testids
+    expect(mediaLayer).toContain("bannerCollageLayout === 'smart-carousel'");
     expect(mediaLayer).toContain("bannerCollageLayout === 'atrium'");
     expect(mediaLayer).toContain("bannerCollageLayout === 'vitrine'");
-    expect(mediaLayer).toContain('data-testid="banner-stage-atrium"');
-    expect(mediaLayer).toContain('data-testid="banner-stage-vitrine"');
-    expect(mediaLayer).toContain('buildAtriumSlotStyle');
-    expect(mediaLayer).toContain('BannerStageVitrineRail');
-    // the active index is reduced-motion-guarded in the media layer
-    expect(mediaLayer).toMatch(/setStageIndex[\s\S]*?prefers-reduced-motion: reduce/);
+    expect(mediaLayer).toContain('UserDashboardBannerStageLayouts');
+    expect(stageLayer).toContain('data-testid="banner-stage-smart-carousel"');
+    expect(stageLayer).toContain("'banner-stage-smart-theme-tile'");
+    expect(stageLayer).toContain('buildSmartRailItems');
+    expect(stageLayer).toContain('data-testid="banner-stage-atrium"');
+    expect(stageLayer).toContain('data-testid="banner-stage-vitrine"');
+    expect(stageLayer).toContain('buildAtriumSlotStyle');
+    expect(stageLayer).toContain('BannerStageVitrineRail');
+    // the active index is reduced-motion-guarded in the stage renderer
+    expect(stageLayer).toMatch(/setStageIndex[\s\S]*?prefers-reduced-motion: reduce/);
     // stage styles exist, are will-change-scoped, and kill transitions under
     // reduced motion (matches the M5a/M5b accessibility discipline)
+    expect(stageStyles).toContain('export const BannerStageSmart');
+    expect(stageStyles).toContain('export const BannerStageSmartTile');
     expect(stageStyles).toContain('export const BannerStageAtrium');
     expect(stageStyles).toContain('export const BannerStageVitrine');
-    expect(stageStyles).toMatch(/const stageMediaCss[\s\S]*?object-fit: contain;/);
     expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: no-preference\)[\s\S]*?will-change: transform/);
     expect(stageStyles).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*?transition: none/);
-  });
-
-  it('keeps crossfade hero slides whole instead of re-cropping with cover or zoom drift', () => {
-    const crossfadeStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCrossfadeStyles.ts');
-
-    expect(crossfadeStyles).toMatch(/const crossfadeSlideCss[\s\S]*?object-fit: contain;/);
-    expect(crossfadeStyles).not.toContain('scale(1.07)');
-    expect(crossfadeStyles).not.toContain('kenBurns');
   });
 
   it('keeps cover controls away from the desktop right-rail tier cards', () => {

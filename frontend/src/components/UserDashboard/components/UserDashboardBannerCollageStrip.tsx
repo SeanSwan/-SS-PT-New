@@ -1,5 +1,5 @@
 import React from 'react';
-import { Film, Image, Plus, Save, Trash2 } from 'lucide-react';
+import { Film, Image, Plus, Save, Shuffle, Trash2 } from 'lucide-react';
 import {
   BannerCollageControlGrid,
   BannerCollageThumb,
@@ -36,6 +36,7 @@ const COLLAGE_FOCUS_OPTIONS: Array<{ label: string; aria: string; position: Bann
 ];
 
 const COLLAGE_LAYOUT_LABELS: Record<BannerCollageLayout, { label: string; aria: string }> = {
+  'smart-carousel': { label: 'Smart', aria: 'smart carousel adaptive stage' },
   stream: { label: 'Stream', aria: 'stream' },
   mosaic: { label: 'Mosaic', aria: 'mosaic' },
   spotlight: { label: 'Spotlight', aria: 'spotlight' },
@@ -63,6 +64,7 @@ interface UserDashboardBannerCollageStripProps {
   onPresetSave: () => void;
   onPresetApply: (presetId: string) => void;
   onPresetRemove: (presetId: string) => void;
+  onShuffle?: () => void;
 }
 
 const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripProps> = ({
@@ -79,6 +81,7 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
   onPresetSave,
   onPresetApply,
   onPresetRemove,
+  onShuffle,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isFull = photos.length >= MAX_BANNER_COLLAGE_PHOTOS;
@@ -137,6 +140,15 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
       >
         <Plus size={16} />
         {isFull ? 'Full' : 'Add photos/videos'}
+      </BannerCropResetButton>
+      <BannerCropResetButton
+        type="button"
+        onClick={onShuffle}
+        disabled={photos.length < 2 || !onShuffle}
+        aria-label="Shuffle collage media"
+      >
+        <Shuffle size={16} />
+        Shuffle media
       </BannerCropResetButton>
       <BannerCropResetButton
         type="button"

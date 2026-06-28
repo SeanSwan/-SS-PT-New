@@ -219,6 +219,7 @@ const SocialCoverEditor: React.FC<SocialCoverEditorProps> = ({ onClose }) => {
           onBannerCropCommit={composition.handleBannerCropCommit}
           onBannerCollageFiles={composition.handleBannerCollageFiles}
           onBannerCollageRemove={composition.handleBannerCollageRemove}
+          onBannerCollageShuffle={composition.handleBannerCollageShuffle}
           onBannerCollageLayoutCommit={composition.handleBannerCollageLayoutCommit}
           onBannerStickyCarouselCommit={composition.handleBannerStickyCarouselCommit}
           onBannerPresetSave={composition.handleBannerPresetSave}

@@ -46,6 +46,7 @@ interface RepositionPanelContentProps {
   onBannerPresetSave: () => void;
   onBannerPresetApply: (presetId: string) => void;
   onBannerPresetRemove: (presetId: string) => void;
+  onBannerCollageShuffle?: () => void;
 }
 
 const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContentProps> = ({
@@ -68,6 +69,7 @@ const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContent
   onBannerPresetSave,
   onBannerPresetApply,
   onBannerPresetRemove,
+  onBannerCollageShuffle,
 }) => {
   const cropState = React.useMemo<BannerCropState>(() => ({
     position: bannerObjectPosition,
@@ -168,6 +170,7 @@ const UserDashboardBannerRepositionPanelContent: React.FC<RepositionPanelContent
           onPresetSave={onBannerPresetSave}
           onPresetApply={onBannerPresetApply}
           onPresetRemove={onBannerPresetRemove}
+          onShuffle={onBannerCollageShuffle}
         />
       )}
       {bannerObjectFit !== 'contain' && (

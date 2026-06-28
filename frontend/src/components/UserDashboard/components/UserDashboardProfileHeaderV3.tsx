@@ -66,6 +66,7 @@ interface UserDashboardProfileHeaderV3Props {
   onBannerPresetSave: () => void;
   onBannerPresetApply: (presetId: string) => void;
   onBannerPresetRemove: (presetId: string) => void;
+  onBannerCollageShuffle?: () => void;
   profile: ProfileData | null;
   displayStats: ProfileStats;
   topBadges: TopBadge[];
@@ -101,6 +102,7 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
   onBannerPresetSave,
   onBannerPresetApply,
   onBannerPresetRemove,
+  onBannerCollageShuffle,
   profile,
   displayStats,
   topBadges,
@@ -143,6 +145,7 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
         onBannerPresetSave={onBannerPresetSave}
         onBannerPresetApply={onBannerPresetApply}
         onBannerPresetRemove={onBannerPresetRemove}
+        onBannerCollageShuffle={onBannerCollageShuffle}
         onBackgroundClick={onBackgroundClick}
       />
 

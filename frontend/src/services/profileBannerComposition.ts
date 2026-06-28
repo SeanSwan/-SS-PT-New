@@ -32,6 +32,9 @@ export const BANNER_CAROUSEL_LAYOUT_OPTIONS = [
   'carousel-ticker',
 ] as const;
 export const BANNER_COLLAGE_LAYOUT_OPTIONS = [
+  // Smart Carousel fills portrait/partial media with a hero frame, side rail,
+  // and built-in crystalline theme tiles instead of leaving dead space.
+  'smart-carousel',
   'stream',
   'mosaic',
   'spotlight',
@@ -50,7 +53,7 @@ export type BannerCollageLayout = (typeof BANNER_COLLAGE_LAYOUT_OPTIONS)[number]
 
 export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
 export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
-export const DEFAULT_BANNER_COLLAGE_LAYOUT: BannerCollageLayout = 'stream';
+export const DEFAULT_BANNER_COLLAGE_LAYOUT: BannerCollageLayout = 'smart-carousel';
 export const DEFAULT_BANNER_STICKY_CAROUSEL = false;
 export const DEFAULT_BANNER_IMAGE_SCALE = 1;
 export const DEFAULT_BANNER_FRAME_HEIGHT = 320;

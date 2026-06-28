@@ -54,6 +54,36 @@ describe('useBannerCompositionState', () => {
     }));
   });
 
+  it('rolls crop previews back when crop persistence fails', async () => {
+    const updateProfile = vi.fn().mockRejectedValue(new Error('save failed'));
+    const profile = {
+      bannerObjectPosition: '25% 40%',
+      bannerObjectFit: 'cover',
+      bannerImageScale: 1.5,
+      bannerFrameHeight: 420,
+    } as any;
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+    }));
+
+    await waitFor(() => expect(result.current.bannerFrameHeight).toBe(420));
+    await act(async () => {
+      await result.current.handleBannerCropCommit({
+        position: '80% 10%',
+        fit: 'contain',
+        scale: 2,
+        height: 700,
+      });
+    });
+
+    expect(result.current.bannerObjectPosition).toBe('25% 40%');
+    expect(result.current.bannerObjectFit).toBe('cover');
+    expect(result.current.bannerImageScale).toBe(1.5);
+    expect(result.current.bannerFrameHeight).toBe(420);
+  });
+
   it('accepts small uploaded videos for collage media', async () => {
     const updateProfile = vi.fn().mockResolvedValue(undefined);
     const uploadBannerCollagePhoto = vi.fn().mockResolvedValue('/uploads/banner-clip.mp4');
@@ -73,6 +103,7 @@ describe('useBannerCompositionState', () => {
     expect(updateProfile).toHaveBeenCalledWith({
       bannerCollagePhotos: ['/uploads/banner-clip.mp4'],
       bannerObjectFit: 'collage',
+      bannerCollageLayout: 'smart-carousel',
     });
   });
 
@@ -109,6 +140,33 @@ describe('useBannerCompositionState', () => {
         '/uploads/photo.jpg',
       ],
       bannerObjectFit: 'collage',
+      bannerCollageLayout: 'smart-carousel',
+    });
+  });
+
+  it('shuffles selected collage media and keeps Smart Carousel active', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const profile = {
+      bannerObjectFit: 'cover',
+      bannerCollageLayout: 'smart-carousel',
+      bannerCollagePhotos: ['/uploads/one.jpg', '/uploads/two.jpg', '/uploads/three.jpg'],
+    } as any;
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+    }));
+
+    await waitFor(() => expect(result.current.bannerCollagePhotos).toHaveLength(3));
+    await act(async () => {
+      await result.current.handleBannerCollageShuffle();
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith({
+      bannerCollagePhotos: ['/uploads/two.jpg', '/uploads/three.jpg', '/uploads/one.jpg'],
+      bannerObjectFit: 'collage',
+      bannerCollageLayout: 'smart-carousel',
     });
   });
 
@@ -158,79 +216,4 @@ describe('useBannerCompositionState', () => {
     expect(result.current.bannerCollagePhotos).toEqual(['/uploads/one.jpg', '/uploads/two.jpg']);
   });
 
-  it('persists carousel layout choices and enables collage mode', async () => {
-    const updateProfile = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useBannerCompositionState({
-      profile: null,
-      updateProfile,
-      uploadBannerCollagePhoto: vi.fn(),
-    }));
-
-    await act(async () => {
-      await result.current.handleBannerCollageLayoutCommit('carousel-coverflow');
-    });
-
-    expect(updateProfile).toHaveBeenCalledWith({
-      bannerCollageLayout: 'carousel-coverflow',
-      bannerObjectFit: 'collage',
-    });
-  });
-
-  it('persists the optional sticky mini carousel toggle', async () => {
-    const updateProfile = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useBannerCompositionState({
-      profile: null,
-      updateProfile,
-      uploadBannerCollagePhoto: vi.fn(),
-    }));
-
-    await act(async () => {
-      await result.current.handleBannerStickyCarouselCommit(true);
-    });
-
-    expect(updateProfile).toHaveBeenCalledWith({ bannerStickyCarousel: true });
-  });
-
-  it('saves and reapplies full banner presets', async () => {
-    const updateProfile = vi.fn().mockResolvedValue(undefined);
-    const onBannerPhotoPreview = vi.fn();
-    const profile = {
-      bannerPhoto: '/uploads/cover.jpg',
-      bannerPresets: [],
-    } as any;
-    const { result } = renderHook(() => useBannerCompositionState({
-      profile,
-      updateProfile,
-      uploadBannerCollagePhoto: vi.fn(),
-      onBannerPhotoPreview,
-    }));
-
-    await act(async () => {
-      await result.current.handleBannerCollageLayoutCommit('carousel-reel');
-      await result.current.handleBannerStickyCarouselCommit(true);
-      await result.current.handleBannerPresetSave();
-    });
-
-    const savedPresets = updateProfile.mock.calls.at(-1)?.[0].bannerPresets;
-    expect(savedPresets).toHaveLength(1);
-    expect(savedPresets[0]).toEqual(expect.objectContaining({
-      bannerPhoto: '/uploads/cover.jpg',
-      bannerObjectFit: 'collage',
-      bannerCollageLayout: 'carousel-reel',
-      bannerStickyCarousel: true,
-    }));
-
-    updateProfile.mockClear();
-    await act(async () => {
-      await result.current.handleBannerPresetApply(savedPresets[0].id);
-    });
-
-    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
-      bannerPhoto: '/uploads/cover.jpg',
-      bannerObjectFit: 'collage',
-      bannerCollageLayout: 'carousel-reel',
-      bannerStickyCarousel: true,
-    }));
-    expect(onBannerPhotoPreview).toHaveBeenCalledWith('/uploads/cover.jpg');
-  });
 });

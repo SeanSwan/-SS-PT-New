@@ -37,9 +37,8 @@ const stageMediaCss = css`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: var(--banner-object-position, center center);
-  background: transparent;
   user-select: none;
   -webkit-user-drag: none;
 `;
@@ -194,5 +193,97 @@ export const BannerStageVitrineThumb = styled.div`
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+  }
+`;
+type SmartSkin = 'crystal' | 'ocean' | 'forest' | 'forge';
+
+const smartSkinSurface: Record<SmartSkin, string> = {
+  crystal: `linear-gradient(145deg,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent),
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 24%, var(--bg-base, #0A0A0F)))`,
+  ocean: `linear-gradient(145deg,
+    color-mix(in srgb, var(--accent-data, #50A0F0) 30%, transparent),
+    color-mix(in srgb, var(--surface-primary, #003080) 64%, var(--bg-base, #0A0A0F)))`,
+  forest: `linear-gradient(145deg,
+    color-mix(in srgb, var(--success, #2BDD66) 20%, transparent),
+    color-mix(in srgb, var(--bg-elevated, #10131A) 64%, var(--primary-dark, #002060)))`,
+  forge: `linear-gradient(145deg,
+    color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent),
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, var(--bg-base, #0A0A0F)))`,
+};
+
+export const BannerStageSmart = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(92px, 18%, 210px);
+  gap: clamp(8px, 1vw, 14px);
+  padding: clamp(8px, 1vw, 14px);
+  overflow: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent), transparent 34%),
+    var(--bg-elevated, #10131A);
+
+  @media (max-width: 700px) {
+    grid-template-columns: minmax(0, 1fr) clamp(76px, 24%, 112px);
+  }
+`;
+
+export const BannerStageSmartBackdrop = styled.div`
+  position: absolute;
+  inset: -28px;
+  z-index: 0;
+  opacity: 0.44;
+  filter: blur(22px) saturate(1.25) brightness(0.82);
+  transform: scale(1.07);
+`;
+
+export const BannerStageSmartAura = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 76%, transparent),
+      transparent 44%,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 62%, transparent)),
+    radial-gradient(circle at 84% 24%, color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent), transparent 30%);
+`;
+
+export const BannerStageSmartHero = styled.div`
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent),
+    0 36px 80px -28px color-mix(in srgb, var(--bg-base, #0A0A0F) 90%, transparent),
+    0 0 72px -20px color-mix(in srgb, var(--accent-primary, #60C0F0) 48%, transparent);
+`;
+
+export const BannerStageSmartRail = styled.div`
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 0.8vw, 10px);
+  min-height: 0;
+`;
+
+export const BannerStageSmartTile = styled.div<{ $skin: SmartSkin }>`
+  position: relative;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: ${({ $skin }) => smartSkinSurface[$skin]};
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0 42%, color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent) 48%, transparent 56%);
+    opacity: 0.38;
   }
 `;

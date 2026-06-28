@@ -221,6 +221,9 @@ const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
 const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
 const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill', 'tile', 'collage']);
 const BANNER_COLLAGE_LAYOUTS = new Set([
+  // Smart Carousel adapts selected media into a full-bleed stage with built-in
+  // crystalline fill tiles for portrait or sparse uploads.
+  'smart-carousel',
   'stream',
   'mosaic',
   'spotlight',

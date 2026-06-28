@@ -41,6 +41,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
   onBannerCropCommit,
   onBannerCollageFiles,
   onBannerCollageRemove,
+  onBannerCollageShuffle,
   onBannerCollageLayoutCommit,
   onBannerStickyCarouselCommit,
   onBannerPresetSave,
@@ -96,6 +97,7 @@ const CoverStudioPanel: React.FC<CoverStudioPanelProps> = ({
         photos={bannerCollagePhotos}
         onFiles={onBannerCollageFiles}
         onRemove={onBannerCollageRemove}
+        onShuffle={onBannerCollageShuffle}
       />
       <FramingSection coverType={coverType} fit={bannerObjectFit} onFitChange={setFit} />
       <FocalSection isFocal={(x, y) => isFocalPoint(focal, x, y)} onSetFocal={setFocal} />

@@ -48,6 +48,7 @@ interface UserDashboardBannerCropControlsProps {
   onBannerPresetSave: () => void;
   onBannerPresetApply: (presetId: string) => void;
   onBannerPresetRemove: (presetId: string) => void;
+  onBannerCollageShuffle?: () => void;
   onBackgroundClick: () => void;
 }
 
@@ -72,6 +73,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
   onBannerPresetSave,
   onBannerPresetApply,
   onBannerPresetRemove,
+  onBannerCollageShuffle,
   onBackgroundClick,
 }) => {
   const canDragBanner = showRepositionPanel
@@ -205,11 +207,12 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
                   onBannerPresetSave={onBannerPresetSave}
                   onBannerPresetApply={onBannerPresetApply}
                   onBannerPresetRemove={onBannerPresetRemove}
+                  onBannerCollageShuffle={onBannerCollageShuffle}
                 />
               </BannerRepositionPanel>
             )}
           </BannerRepositionAnchor>
-          <BannerUploadButton onClick={onBackgroundClick}>
+          <BannerUploadButton type="button" onClick={onBackgroundClick}>
             <Camera size={18} />
             {backgroundImage ? 'Change Cover' : 'Add Cover'}
           </BannerUploadButton>
