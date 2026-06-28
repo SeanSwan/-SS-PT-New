@@ -3,33 +3,32 @@
  * FILE: HomeCommunityFeed.tsx
  * PURPOSE: The REAL scrolling community feed inside Home's center column
  *          (workstream O2 - Home truly absorbs the retired Feed tab).
- *          Full PostCard interaction surface (reactions, comments, edit,
- *          delete, report, repost) + cursor-style infinite scroll.
- * HOW IT FITS: Lazy-mounted by HomeTabVisionCenter below the Quick Post
- *          composer, replacing the old single latest-post card. Reuses the
- *          battle-tested hooks/social/useSocialFeed (pagination + optimistic
- *          updates) and the Social/Feed PostCard - no forked feed logic.
- * KEY DECISIONS:
- * - No cover studio / composer / stats here: Home's hero and Quick Post
- *   already own those facts (no-duplicate-facts card standard).
- * - Quick Post refresh rides the 'swan:social-post-created' event the hook
- *   already listens for (same contract as the Coach dock's inline share).
- * - Honest states: compact spinner, retry-able error, EmptyFeedWelcome with
- *   real Find Friends / Browse Challenges actions.
+ *          Full PostCard interaction surface plus quiet enrichment cards.
  * ============================================================================
  */
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users } from 'lucide-react';
+import { ExternalLink, Users } from 'lucide-react';
 import PostCard from '../../Social/Feed/PostCard';
 import { EmptyFeedWelcome } from '../../Social/Feed/components/SocialFeedPanels';
 import { InfiniteScrollSentinel, Spinner } from '../../Social/Feed/styles/SocialFeedStyles';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
 import { Eyebrow } from './HomeTabVision.styles';
 import {
   CenteredRow,
   EndOfFeed,
   ErrorCopy,
+  FeedEnrichmentCard,
+  FeedEnrichmentCopy,
+  FeedEnrichmentLabel,
+  FeedEnrichmentLink,
+  FeedEnrichmentMediaImage,
+  FeedEnrichmentMediaVideo,
+  FeedEnrichmentMeta,
+  FeedEnrichmentStack,
+  FeedEnrichmentSummary,
+  FeedEnrichmentTitle,
   FeedHint,
   FeedSection,
   FeedSignalCopy,
@@ -42,9 +41,8 @@ import {
 } from './HomeCommunityFeed.styles';
 
 interface HomeCommunityFeedProps {
-  /** The single stateful feed mount, owned by HomeTab (O3 unification) -
-      one fetch powers composer, spotlight, widgets, and this stream. */
   feed: SocialFeedApi;
+  enrichmentItems?: FeedEnrichmentItem[];
 }
 
 type FeedNavigationHandlers = {
@@ -54,7 +52,15 @@ type FeedNavigationHandlers = {
 
 type FeedBodyProps = FeedNavigationHandlers & {
   feed: SocialFeedApi;
+  enrichmentItems: FeedEnrichmentItem[];
   sentinelRef: React.RefObject<HTMLDivElement>;
+};
+
+const sourceLabels: Record<FeedEnrichmentItem['source'], string> = {
+  'nasa-apod': 'Space Spark',
+  inaturalist: 'Nature Note',
+  quotable: 'Momentum Cue',
+  'swan-curated': 'Swan Cue',
 };
 
 const describeLivePostCount = (count: number): string =>
@@ -120,39 +126,85 @@ const FeedEmptyState = ({
   />
 );
 
+const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
+  <FeedEnrichmentCard aria-label={`Swan Signal ${item.title}`}>
+    <FeedEnrichmentCopy>
+      <FeedEnrichmentLabel>Swan Signal</FeedEnrichmentLabel>
+      <FeedEnrichmentMeta>{sourceLabels[item.source]} / {item.category}</FeedEnrichmentMeta>
+      <FeedEnrichmentTitle>{item.title}</FeedEnrichmentTitle>
+      <FeedEnrichmentSummary>{item.summary}</FeedEnrichmentSummary>
+      {item.url && (
+        <FeedEnrichmentLink href={item.url} target="_blank" rel="noreferrer">
+          Open source
+          <ExternalLink size={14} aria-hidden="true" />
+        </FeedEnrichmentLink>
+      )}
+    </FeedEnrichmentCopy>
+    {item.mediaUrl && item.mediaType === 'video' && (
+      <FeedEnrichmentMediaVideo src={item.mediaUrl} muted playsInline controls preload="metadata" />
+    )}
+    {item.mediaUrl && item.mediaType !== 'video' && (
+      <FeedEnrichmentMediaImage src={item.mediaUrl} alt="" loading="lazy" />
+    )}
+  </FeedEnrichmentCard>
+);
+
+const FeedEnrichmentCards = ({ items }: { items: FeedEnrichmentItem[] }) => {
+  if (items.length === 0) return null;
+  return (
+    <FeedEnrichmentStack aria-label="Quiet feed enrichment">
+      {items.map((item) => <FeedEnrichmentCardView key={item.id} item={item} />)}
+    </FeedEnrichmentStack>
+  );
+};
+
 const FeedPostStream = ({
   feed,
+  enrichmentItems,
   sentinelRef,
-}: Pick<FeedBodyProps, 'feed' | 'sentinelRef'>) => (
-  <>
-    {feed.posts.map((post) => (
-      <PostCard
-        key={post.id}
-        post={post}
-        onLike={() => (post.isLiked ? feed.unlikePost(post.id) : feed.likePost(post.id))}
-        onReact={feed.reactToPost}
-        onRemoveReaction={feed.removeReaction}
-        onComment={feed.addComment}
-        onEdit={feed.updatePost}
-        onDelete={feed.deletePost}
-        onReport={feed.reportPost}
-        onRepost={feed.repostPost}
-        onLoadComments={feed.loadComments}
-      />
-    ))}
+}: Pick<FeedBodyProps, 'feed' | 'enrichmentItems' | 'sentinelRef'>) => {
+  const trailingEnrichment = feed.posts.length < 3 ? enrichmentItems.slice(0, 2) : [];
 
-    {feed.hasMore && (
-      <InfiniteScrollSentinel ref={sentinelRef}>
-        {feed.isLoadingMore && <Spinner $size={20} />}
-      </InfiniteScrollSentinel>
-    )}
+  return (
+    <>
+      {feed.posts.map((post, index) => {
+        const enrichmentIndex = Math.floor((index + 1) / 3) - 1;
+        const showEnrichment = (index + 1) % 3 === 0 && enrichmentItems[enrichmentIndex];
+        return (
+          <React.Fragment key={post.id}>
+            <PostCard
+              post={post}
+              onLike={() => (post.isLiked ? feed.unlikePost(post.id) : feed.likePost(post.id))}
+              onReact={feed.reactToPost}
+              onRemoveReaction={feed.removeReaction}
+              onComment={feed.addComment}
+              onEdit={feed.updatePost}
+              onDelete={feed.deletePost}
+              onReport={feed.reportPost}
+              onRepost={feed.repostPost}
+              onLoadComments={feed.loadComments}
+            />
+            {showEnrichment && <FeedEnrichmentCardView item={enrichmentItems[enrichmentIndex]} />}
+          </React.Fragment>
+        );
+      })}
 
-    {!feed.hasMore && <EndOfFeed>You are caught up.</EndOfFeed>}
-  </>
-);
+      <FeedEnrichmentCards items={trailingEnrichment} />
+
+      {feed.hasMore && (
+        <InfiniteScrollSentinel ref={sentinelRef}>
+          {feed.isLoadingMore && <Spinner $size={20} />}
+        </InfiniteScrollSentinel>
+      )}
+
+      {!feed.hasMore && <EndOfFeed>You are caught up.</EndOfFeed>}
+    </>
+  );
+};
 
 const FeedBody = ({
   feed,
+  enrichmentItems,
   onBrowseChallenges,
   onFindFriends,
   sentinelRef,
@@ -161,16 +213,22 @@ const FeedBody = ({
   if (feed.error) return <FeedErrorState onRetry={() => void feed.refreshPosts()} />;
   if (feed.posts.length === 0) {
     return (
-      <FeedEmptyState
-        onBrowseChallenges={onBrowseChallenges}
-        onFindFriends={onFindFriends}
-      />
+      <>
+        <FeedEmptyState
+          onBrowseChallenges={onBrowseChallenges}
+          onFindFriends={onFindFriends}
+        />
+        <FeedEnrichmentCards items={enrichmentItems} />
+      </>
     );
   }
-  return <FeedPostStream feed={feed} sentinelRef={sentinelRef} />;
+  return <FeedPostStream feed={feed} enrichmentItems={enrichmentItems} sentinelRef={sentinelRef} />;
 };
 
-const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({ feed }) => {
+const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({
+  feed,
+  enrichmentItems = [],
+}) => {
   const navigate = useNavigate();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const statusLabel = getFeedStatusLabel(feed);
@@ -197,6 +255,7 @@ const HomeCommunityFeed: React.FC<HomeCommunityFeedProps> = ({ feed }) => {
 
       <FeedBody
         feed={feed}
+        enrichmentItems={enrichmentItems}
         sentinelRef={sentinelRef}
         onBrowseChallenges={() => navigate('/user-dashboard/challenges')}
         onFindFriends={() => navigate('/user-dashboard/friends')}

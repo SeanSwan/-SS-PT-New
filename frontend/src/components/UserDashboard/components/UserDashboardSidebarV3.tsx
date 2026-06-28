@@ -2,74 +2,122 @@
  * Quick stats sidebar rendered on non-home UserDashboard V3 tabs.
  */
 
-import React from 'react';
-import styled from 'styled-components';
-import { Crown, Dumbbell, Sparkles, Star, type LucideIcon } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Crown, Dumbbell, Flame, Medal, MessageCircle, RadioTower, Sparkles, Star, Timer, TrendingUp } from 'lucide-react';
 import {
   Sidebar,
   SidebarCard,
   SidebarTitle,
 } from '../styles/DashboardV3Styles';
 import type { ProfileStats } from '../types/UserDashboardTypes';
+import UserDashboardQuickStatsTicker, { type QuickStatsTickerStat } from './UserDashboardQuickStatsTicker';
 
-const QuickStatsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const QuickStatRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent);
-  transition: all 0.2s ease;
-`;
-
-const QuickStatLabel = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
-  font-size: 0.9rem;
-`;
-
-const QuickStatIcon = styled.span`
-  display: inline-flex;
-  color: var(--accent-primary, #60C0F0);
-  opacity: 0.6;
-`;
-
-const QuickStatValue = styled.span`
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-`;
-
-interface SidebarStat {
-  label: string;
-  value: number;
-  Icon: LucideIcon;
+interface TrainingProofStats {
+  thisWeekCount?: number;
+  minutesThisWeek?: number;
 }
 
-interface UserDashboardSidebarV3Props {
+export interface SidebarQuickStatsInput {
   displayStats: ProfileStats;
   canonicalLevel: number;
+  streakDays?: number;
+  progressPercent?: number;
+  pointsToNext?: number;
+  trainingProof?: TrainingProofStats | null;
 }
 
-const UserDashboardSidebarV3: React.FC<UserDashboardSidebarV3Props> = ({
+interface UserDashboardSidebarV3Props extends SidebarQuickStatsInput {}
+
+const asWhole = (value: unknown, fallback = 0): number => {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return fallback;
+  return Math.max(0, Math.round(numberValue));
+};
+
+const statValue = (value: unknown): string => asWhole(value).toLocaleString();
+
+export const buildSidebarQuickStats = ({
   displayStats,
   canonicalLevel,
-}) => {
-  const stats: SidebarStat[] = [
-    { label: 'Workouts', value: displayStats.workouts, Icon: Dumbbell },
-    { label: 'Level', value: canonicalLevel, Icon: Crown },
-    { label: 'Points', value: displayStats.points, Icon: Sparkles },
-  ];
+  streakDays = 0,
+  progressPercent = 0,
+  pointsToNext = 0,
+  trainingProof = null,
+}: SidebarQuickStatsInput): QuickStatsTickerStat[] => ([
+  {
+    id: 'workouts',
+    label: 'Workouts',
+    value: statValue(displayStats.workouts),
+    caption: 'Logged total',
+    Icon: Dumbbell,
+  },
+  {
+    id: 'level',
+    label: 'Level',
+    value: statValue(canonicalLevel || displayStats.level),
+    caption: 'Current rank',
+    Icon: Crown,
+  },
+  {
+    id: 'points',
+    label: 'Points',
+    value: statValue(displayStats.points),
+    caption: 'XP balance',
+    Icon: Sparkles,
+  },
+  {
+    id: 'streak',
+    label: 'Streak',
+    value: `${asWhole(streakDays)}d`,
+    caption: 'Training rhythm',
+    Icon: Flame,
+  },
+  {
+    id: 'level-progress',
+    label: 'Level Progress',
+    value: `${asWhole(progressPercent)}%`,
+    caption: 'Toward next level',
+    Icon: TrendingUp,
+  },
+  {
+    id: 'xp-to-next',
+    label: 'XP to Next',
+    value: statValue(pointsToNext),
+    caption: 'Remaining XP',
+    Icon: RadioTower,
+  },
+  {
+    id: 'this-week',
+    label: 'This Week',
+    value: statValue(trainingProof?.thisWeekCount),
+    caption: 'Logged workouts',
+    Icon: Medal,
+  },
+  {
+    id: 'training-time',
+    label: 'Training Time',
+    value: `${asWhole(trainingProof?.minutesThisWeek)}m`,
+    caption: 'This week',
+    Icon: Timer,
+  },
+  {
+    id: 'posts',
+    label: 'Posts',
+    value: statValue(displayStats.posts),
+    caption: 'Community shares',
+    Icon: MessageCircle,
+  },
+  {
+    id: 'followers',
+    label: 'Followers',
+    value: statValue(displayStats.followers),
+    caption: 'People watching',
+    Icon: Star,
+  },
+]);
+
+const UserDashboardSidebarV3: React.FC<UserDashboardSidebarV3Props> = (props) => {
+  const stats = useMemo(() => buildSidebarQuickStats(props), [props]);
 
   return (
     <Sidebar
@@ -82,20 +130,7 @@ const UserDashboardSidebarV3: React.FC<UserDashboardSidebarV3Props> = ({
           <Star size={20} />
           Quick Stats
         </SidebarTitle>
-
-        <QuickStatsList>
-          {stats.map(({ label, value, Icon }) => (
-            <QuickStatRow key={label}>
-              <QuickStatLabel>
-                <QuickStatIcon>
-                  <Icon size={16} />
-                </QuickStatIcon>
-                {label}
-              </QuickStatLabel>
-              <QuickStatValue>{value}</QuickStatValue>
-            </QuickStatRow>
-          ))}
-        </QuickStatsList>
+        <UserDashboardQuickStatsTicker stats={stats} showHeader={false} />
       </SidebarCard>
     </Sidebar>
   );

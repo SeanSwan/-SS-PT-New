@@ -12,6 +12,7 @@ import { useFaction } from '../../../hooks/social/useFaction';
 // O3 feed unification: ONE stateful feed mount powers the community stream,
 // the Quick Post composer, the latest-post spotlight, and the live widgets.
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
+import { useFeedEnrichment } from '../../../hooks/social/useFeedEnrichment';
 import { useSubscription } from '../../../hooks/useSubscription';
 import { useMessageSummary, useNotificationSummary, useWorkoutSessions } from '../../../hooks/useDashboardQueries';
 import brandLogo from '../../../assets/Logo.png';
@@ -29,6 +30,7 @@ import { USER_HOME_TRAINING_PROMPT, buildUserDashboardTeachCoachRoute } from '..
 import HomeTabVisionCenter from './HomeTabVisionCenter';
 import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
 import HomeTabVisionRightRail from './HomeTabVisionRightRail';
+import { buildSidebarQuickStats } from './UserDashboardSidebarV3';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
@@ -58,6 +60,7 @@ interface HomeTabProps {
 const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
+  displayStats,
   displayNameOverride,
 }) => {
   const navigate = useNavigate();
@@ -67,6 +70,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
   const communityFeed = useSocialFeed();
+  const { items: feedEnrichmentItems } = useFeedEnrichment({ limit: 5 });
   const notificationSummary = useNotificationSummary();
   // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
   const messageSummary = useMessageSummary({
@@ -96,6 +100,14 @@ const HomeTab: React.FC<HomeTabProps> = ({
     () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
     [workoutSessions.data],
   );
+  const quickStats = useMemo(() => buildSidebarQuickStats({
+    displayStats: { ...displayStats, points, level },
+    canonicalLevel: level,
+    streakDays,
+    progressPercent,
+    pointsToNext,
+    trainingProof,
+  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof]);
   // O3 streak rescue: live streak + no session today + evening = escalate.
   const streakAtRisk = useMemo(
     () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
@@ -175,6 +187,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
           selectedMediaType={composer.selectedMedia?.type}
           mediaError={composer.mediaError}
           communityFeed={communityFeed}
+          quickStats={quickStats}
+          feedEnrichmentItems={feedEnrichmentItems}
           proofAttached={composer.proofAttached}
           postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}

@@ -163,3 +163,101 @@ export const EndOfFeed = styled.p`
   font: 700 0.78rem/1.45 var(--font-ui, 'Sora', sans-serif);
   text-align: center;
 `;
+export const FeedEnrichmentStack = styled.div`
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+`;
+
+export const FeedEnrichmentCard = styled.article`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.34fr);
+  gap: 0.85rem;
+  align-items: center;
+  min-width: 0;
+  padding: clamp(0.85rem, 2vw, 1rem);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--surface-primary, #003080) 46%, transparent),
+      color-mix(in srgb, var(--bg-elevated, #141419) 88%, transparent)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 9%, transparent);
+
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const FeedEnrichmentCopy = styled.div`
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+`;
+
+export const FeedEnrichmentLabel = styled.span`
+  color: var(--accent-primary, #60C0F0);
+  font: 900 0.68rem/1 var(--font-data, 'Fira Code', monospace);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+export const FeedEnrichmentTitle = styled.h3`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font: 900 1rem/1.24 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  letter-spacing: 0;
+`;
+
+export const FeedEnrichmentSummary = styled.p`
+  margin: 0;
+  color: color-mix(in srgb, var(--text-secondary, #B8C7D9) 86%, transparent);
+  font: 700 0.82rem/1.5 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const FeedEnrichmentMeta = styled.span`
+  color: color-mix(in srgb, var(--accent-gold, #C6A84B) 90%, transparent);
+  font: 800 0.68rem/1.35 var(--font-ui, 'Sora', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+export const FeedEnrichmentMediaImage = styled.img`
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  background: var(--bg-base, #030712);
+  object-fit: cover;
+`;
+
+export const FeedEnrichmentMediaVideo = styled.video`
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  background: var(--bg-base, #030712);
+  object-fit: cover;
+`;
+
+export const FeedEnrichmentLink = styled.a`
+  min-height: 44px;
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  text-decoration: none;
+  font: 900 0.74rem/1 var(--font-ui, 'Sora', sans-serif);
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;

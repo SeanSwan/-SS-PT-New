@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Post } from '../../Social/Feed/types/PostCardTypes';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
 import HomeCommunityFeed from './HomeCommunityFeed';
 
 const mockNavigate = vi.fn();
@@ -115,6 +116,32 @@ const buildFeed = (overrides: Partial<SocialFeedApi> = {}): SocialFeedApi => ({
   ...overrides,
 } as SocialFeedApi);
 
+const enrichmentItems: FeedEnrichmentItem[] = [
+  {
+    id: 'nasa-apod-2026-06-28',
+    kind: 'enrichment',
+    source: 'nasa-apod',
+    category: 'space',
+    title: 'Webb catches a quiet star nursery',
+    summary: 'A calm space spark for the community feed.',
+    mediaType: 'image',
+    mediaUrl: 'https://images.example.com/webb.jpg',
+    url: 'https://apod.nasa.gov/example',
+    publishedAt: '2026-06-28T00:00:00.000Z',
+  },
+  {
+    id: 'inaturalist-42',
+    kind: 'enrichment',
+    source: 'inaturalist',
+    category: 'nature',
+    title: 'Blue passionflower spotted today',
+    summary: 'A quick nature card that is separate from user posts.',
+    mediaType: 'image',
+    mediaUrl: 'https://static.inaturalist.org/photos/42.jpg',
+    url: 'https://inaturalist.org/observations/42',
+    publishedAt: '2026-06-27T00:00:00.000Z',
+  },
+];
 describe('HomeCommunityFeed', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
@@ -194,6 +221,37 @@ describe('HomeCommunityFeed', () => {
     expect(loadComments).toHaveBeenCalledWith('post-1');
   });
 
+  it('inserts API-fed enrichment cards without treating them as user posts', () => {
+    const posts = [
+      buildPost({ id: 'post-1' }),
+      buildPost({ id: 'post-2', content: 'Second real post' }),
+      buildPost({ id: 'post-3', content: 'Third real post' }),
+      buildPost({ id: 'post-4', content: 'Fourth real post' }),
+    ];
+
+    render(<HomeCommunityFeed feed={buildFeed({ posts })} enrichmentItems={enrichmentItems} />);
+
+    expect(screen.getByText('4 live posts')).toBeInTheDocument();
+    expect(screen.getByText('Swan Signal')).toBeInTheDocument();
+    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
+    expect(screen.getAllByRole('article', { name: /Post post-/i })).toHaveLength(4);
+    expect(screen.queryByRole('button', { name: /toggle like nasa/i })).not.toBeInTheDocument();
+  });
+
+  it('short feed still receives enrichment so early community timelines are not dead', () => {
+    render(<HomeCommunityFeed feed={buildFeed({ posts: [buildPost()] })} enrichmentItems={enrichmentItems} />);
+
+    expect(screen.getByText('1 live post')).toBeInTheDocument();
+    expect(screen.getByText('QA lifted 200 pounds today')).toBeInTheDocument();
+    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
+  });
+  it('keeps the empty feed actions while showing quiet filler cards', () => {
+    render(<HomeCommunityFeed feed={buildFeed()} enrichmentItems={enrichmentItems} />);
+
+    expect(screen.getByLabelText('Empty feed welcome')).toBeInTheDocument();
+    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
+    expect(screen.getByText('Blue passionflower spotted today')).toBeInTheDocument();
+  });
   it('loads more posts only when the sentinel is visible and idle', () => {
     const loadMore = vi.fn();
     const { rerender } = render(
