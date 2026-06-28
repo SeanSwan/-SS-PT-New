@@ -1,4 +1,9 @@
 import { normalizeTokenUsage, withTimeout } from '../../ai/adapters/adapterUtils.mjs';
+import {
+  buildScheduleAiAdapterPrompt,
+  extractScheduleAiToolCalls,
+  normalizeScheduleAiProviderContent,
+} from './scheduleAiAdapterParsing.mjs';
 
 function trimSlash(value) {
   return String(value || '').trim().replace(/\/+$/, '');
@@ -30,7 +35,7 @@ export function createScheduleAiLocalGpuAdapter(options = {}) {
         model: model(),
         messages: [
           { role: 'system', content: payload.systemMessage || 'You are SwanStudios schedule AI.' },
-          { role: 'user', content: payload.message || '' },
+          { role: 'user', content: buildScheduleAiAdapterPrompt(payload) },
         ],
         temperature: 0.2,
         max_tokens: payload.maxOutputTokens || 900,
@@ -56,16 +61,24 @@ export function createScheduleAiLocalGpuAdapter(options = {}) {
       }
 
       const json = await response.json();
-      const content = json?.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || !content.trim()) {
+      const message = json?.choices?.[0]?.message || {};
+      const rawContent = typeof message.content === 'string' ? message.content : '';
+      const rawToolCalls = message.tool_calls || message.toolCalls || [];
+      const toolCalls = extractScheduleAiToolCalls({
+        content: rawContent,
+        rawToolCalls,
+      });
+      if (!rawContent.trim() && !toolCalls.length) {
         throw providerError('PROVIDER_INVALID_RESPONSE', 'Local GPU returned an empty response');
       }
+      const content = normalizeScheduleAiProviderContent(rawContent)
+        || 'I drafted an option for review; confirm before applying any schedule changes.';
 
       return {
         provider: 'local_gpu',
         model: json.model || model(),
-        content: content.trim(),
-        toolCalls: [],
+        content,
+        toolCalls,
         latencyMs: Date.now() - start,
         finishReason: json?.choices?.[0]?.finish_reason || 'unknown',
         tokenUsage: normalizeTokenUsage(json.model || model(), {

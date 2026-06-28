@@ -4,6 +4,11 @@ import {
   requireNonEmptyText,
   withTimeout,
 } from '../../ai/adapters/adapterUtils.mjs';
+import {
+  buildScheduleAiAdapterPrompt,
+  extractScheduleAiToolCalls,
+  normalizeScheduleAiProviderContent,
+} from './scheduleAiAdapterParsing.mjs';
 
 function providerError(code, message, statusCode = null) {
   const err = new Error(message);
@@ -47,8 +52,9 @@ export function createScheduleAiGeminiAdapter(options = {}) {
         generationConfig: { maxOutputTokens: payload.maxOutputTokens || 900, temperature: 0.2 },
       });
 
+      const prompt = buildScheduleAiAdapterPrompt(payload);
       const result = await withTimeout(
-        () => model.generateContent({ contents: [{ role: 'user', parts: [{ text: payload.message || '' }] }] }),
+        () => model.generateContent({ contents: [{ role: 'user', parts: [{ text: prompt }] }] }),
         payload.timeoutMs || 7000,
         { parentSignal: payload.signal, provider: 'gemini' },
       ).catch((err) => {
@@ -59,14 +65,16 @@ export function createScheduleAiGeminiAdapter(options = {}) {
       const response = result?.response;
       const finishReason = normalizeFinishReason('gemini', response?.candidates?.[0]?.finishReason);
       if (finishReason === 'content_filter') throw providerError('PROVIDER_CONTENT_FILTER', 'Gemini content filter triggered');
-      const content = requireNonEmptyText('gemini', typeof response?.text === 'function' ? response.text() : null);
+      const rawContent = requireNonEmptyText('gemini', typeof response?.text === 'function' ? response.text() : null);
       const usage = response?.usageMetadata || {};
+      const content = normalizeScheduleAiProviderContent(rawContent);
+      const toolCalls = extractScheduleAiToolCalls({ content: rawContent });
 
       return {
         provider: 'gemini_cloud',
         model: modelName(),
         content,
-        toolCalls: [],
+        toolCalls,
         latencyMs: Date.now() - start,
         finishReason,
         tokenUsage: normalizeTokenUsage(modelName(), {

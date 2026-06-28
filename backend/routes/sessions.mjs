@@ -2967,11 +2967,16 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     });
 
     const status = Number.isInteger(error.status) ? error.status : 500;
+    if (status === 500) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server error recording cancellation billing decision'
+      });
+    }
+
     return res.status(status).json({
       success: false,
-      message: status === 500
-        ? 'Server error recording cancellation billing decision'
-        : error.message
+      message: error.message
     });
   }
 });
