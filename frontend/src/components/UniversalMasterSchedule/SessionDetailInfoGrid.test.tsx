@@ -48,6 +48,8 @@ describe('SessionDetailInfoGrid', () => {
     expect(screen.getByText('Present')).toBeInTheDocument();
     expect(screen.getByText('Client Alpha')).toBeInTheDocument();
     expect(screen.getByText('client@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /email client alpha at client@example\.com/i })).toHaveAttribute('href', 'mailto:client@example.com');
+    expect(screen.getByRole('link', { name: /call client alpha at 555-0100/i })).toHaveAttribute('href', 'tel:5550100');
     expect(screen.getByText('0 paid sessions')).toBeInTheDocument();
     expect(screen.getByText('Client has no remaining session credits')).toBeInTheDocument();
 

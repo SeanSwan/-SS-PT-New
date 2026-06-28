@@ -26,13 +26,44 @@ export const DetailGrid = styled.div`
 `;
 
 export const DetailItem = styled.div`
-  background: var(--schedule-detail-item-bg, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--schedule-detail-item-border, rgba(255, 255, 255, 0.08));
+  background: var(
+    --schedule-detail-item-bg,
+    color-mix(in srgb, var(--bg-elevated, #1A1A24) 88%, var(--accent-primary, #60C0F0) 6%)
+  );
+  border: 1px solid var(
+    --schedule-detail-item-border,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)
+  );
   border-radius: 10px;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  overflow-wrap: anywhere;
+`;
+
+export const ContactLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 44px;
+  color: var(--accent-primary, #60C0F0);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent);
+  text-underline-offset: 0.18em;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    color: var(--text-primary, #E0ECF4);
+    text-decoration-color: var(--accent-primary, #60C0F0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring, var(--accent-secondary, #8B5CF6));
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
 `;
 
 export const StatusBadge = styled.span<{ $tone: string }>`

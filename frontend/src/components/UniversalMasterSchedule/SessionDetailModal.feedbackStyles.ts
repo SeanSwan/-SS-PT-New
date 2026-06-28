@@ -4,8 +4,12 @@ import { SmallText } from './ui';
 
 // Client Feedback Styled Components
 export const ClientFeedbackPanel = styled.div`
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent) 0%,
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
   border-radius: 12px;
   padding: 1.25rem;
   margin: 1rem 0;
@@ -21,7 +25,7 @@ export const FeedbackHeader = styled.div`
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
-    color: #3b82f6;
+    color: var(--accent-primary, #60C0F0);
   }
 `;
 
@@ -29,9 +33,9 @@ export const FeedbackSubmittedBadge = styled.span`
   display: inline-flex;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #10b981;
+  background: color-mix(in srgb, var(--success, #10b981) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success, #10b981) 40%, transparent);
+  color: var(--success, #10b981);
   font-size: 0.75rem;
   font-weight: 500;
 `;
@@ -53,11 +57,13 @@ export const StarButton = styled.button<{ $active: boolean }>`
   cursor: pointer;
   padding: 0.25rem;
   transition: transform 0.15s ease, color 0.15s ease;
-  color: ${props => props.$active ? '#fbbf24' : 'rgba(255, 255, 255, 0.2)'};
+  color: ${props => props.$active
+    ? 'var(--warning, #fbbf24)'
+    : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 22%, transparent)'};
 
   &:hover {
     transform: scale(1.2);
-    color: #fbbf24;
+    color: var(--warning, #fbbf24);
   }
 
   &:focus {
@@ -67,7 +73,7 @@ export const StarButton = styled.button<{ $active: boolean }>`
 
 export const RatingValue = styled.span`
   margin-left: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-muted, rgba(224, 236, 244, 0.7));
 `;
 
 export const FeedbackSubmitButton = styled(GlowButton)`
@@ -102,29 +108,29 @@ export const AttendanceButton = styled.button<{ $variant: 'present' | 'late' | '
     switch (props.$variant) {
       case 'present':
         return `
-          background: rgba(16, 185, 129, 0.15);
-          border-color: #10b981;
-          color: #10b981;
+          background: color-mix(in srgb, var(--success, #10b981) 15%, transparent);
+          border-color: var(--success, #10b981);
+          color: var(--success, #10b981);
           &:hover:not(:disabled) {
-            background: rgba(16, 185, 129, 0.25);
+            background: color-mix(in srgb, var(--success, #10b981) 25%, transparent);
           }
         `;
       case 'late':
         return `
-          background: rgba(245, 158, 11, 0.15);
-          border-color: #f59e0b;
-          color: #f59e0b;
+          background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+          border-color: var(--warning, #f59e0b);
+          color: var(--warning, #f59e0b);
           &:hover:not(:disabled) {
-            background: rgba(245, 158, 11, 0.25);
+            background: color-mix(in srgb, var(--warning, #f59e0b) 25%, transparent);
           }
         `;
       case 'noshow':
         return `
-          background: rgba(239, 68, 68, 0.15);
-          border-color: #ef4444;
-          color: #ef4444;
+          background: color-mix(in srgb, var(--danger, #ef4444) 15%, transparent);
+          border-color: var(--danger, #ef4444);
+          color: var(--danger, #ef4444);
           &:hover:not(:disabled) {
-            background: rgba(239, 68, 68, 0.25);
+            background: color-mix(in srgb, var(--danger, #ef4444) 25%, transparent);
           }
         `;
     }
@@ -149,29 +155,29 @@ export const AttendanceBadge = styled.span<{ $status: 'present' | 'no_show' | 'l
     switch (props.$status) {
       case 'present':
         return `
-          background: rgba(16, 185, 129, 0.15);
-          border: 1px solid rgba(16, 185, 129, 0.4);
-          color: #10b981;
+          background: color-mix(in srgb, var(--success, #10b981) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--success, #10b981) 40%, transparent);
+          color: var(--success, #10b981);
         `;
       case 'late':
         return `
-          background: rgba(245, 158, 11, 0.15);
-          border: 1px solid rgba(245, 158, 11, 0.4);
-          color: #f59e0b;
+          background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 40%, transparent);
+          color: var(--warning, #f59e0b);
         `;
       case 'no_show':
         return `
-          background: rgba(239, 68, 68, 0.15);
-          border: 1px solid rgba(239, 68, 68, 0.4);
-          color: #ef4444;
+          background: color-mix(in srgb, var(--danger, #ef4444) 15%, transparent);
+          border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 40%, transparent);
+          color: var(--danger, #ef4444);
         `;
     }
   }}
 `;
 
 export const NoShowReasonBox = styled.div`
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--danger, #ef4444) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -210,8 +216,8 @@ export const NoShowCreditOption = styled.label`
 `;
 
 export const NoShowReasonDisplay = styled.div`
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: color-mix(in srgb, var(--danger, #ef4444) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 20%, transparent);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
@@ -225,8 +231,8 @@ export const PaymentNeededBanner = styled.div`
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 35%, transparent);
 
   @media (max-width: 430px) {
     flex-direction: column;
@@ -235,7 +241,7 @@ export const PaymentNeededBanner = styled.div`
 `;
 
 export const PaymentNeededText = styled.span`
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   font-size: 0.875rem;
   font-weight: 600;
 `;
@@ -250,10 +256,10 @@ export const SessionsRemainingBadge = styled.span<{ $low?: boolean }>`
   font-size: 1.1rem;
   font-weight: 700;
   background: ${({ $low }) => $low
-    ? 'rgba(239, 68, 68, 0.15)'
-    : 'rgba(0, 255, 136, 0.15)'};
-  color: ${({ $low }) => $low ? '#ef4444' : '#00FF88'};
+    ? 'color-mix(in srgb, var(--danger, #ef4444) 15%, transparent)'
+    : 'color-mix(in srgb, var(--success, #10b981) 15%, transparent)'};
+  color: ${({ $low }) => $low ? 'var(--danger, #ef4444)' : 'var(--success, #10b981)'};
   border: 1px solid ${({ $low }) => $low
-    ? 'rgba(239, 68, 68, 0.3)'
-    : 'rgba(0, 255, 136, 0.3)'};
+    ? 'color-mix(in srgb, var(--danger, #ef4444) 30%, transparent)'
+    : 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)'};
 `;

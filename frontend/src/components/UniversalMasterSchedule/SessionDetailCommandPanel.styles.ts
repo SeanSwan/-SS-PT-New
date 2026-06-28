@@ -8,12 +8,25 @@ export const CommandPanel = styled.section`
   border-radius: 16px;
   background: var(
     --schedule-command-panel-bg,
-    linear-gradient(135deg, rgba(0, 32, 96, 0.68), rgba(26, 26, 36, 0.78))
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, var(--primary, #002060) 16%),
+      color-mix(in srgb, var(--bg-surface, #141419) 86%, var(--accent-secondary, #8B5CF6) 10%)
+    )
   );
-  border: 1px solid var(--schedule-command-panel-border, rgba(96, 192, 240, 0.22));
+  border: 1px solid var(
+    --schedule-command-panel-border,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent)
+  );
   box-shadow:
-    0 1px 0 var(--schedule-command-panel-inset, rgba(96, 192, 240, 0.08)) inset,
-    0 20px 46px var(--schedule-command-panel-shadow, rgba(0, 16, 40, 0.36));
+    0 1px 0 var(
+      --schedule-command-panel-inset,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)
+    ) inset,
+    0 20px 46px var(
+      --schedule-command-panel-shadow,
+      color-mix(in srgb, var(--primary, #002060) 24%, transparent)
+    );
 `;
 
 export const CommandHeader = styled.div`
@@ -59,14 +72,14 @@ export const OutcomePill = styled.span<{ $risk: 'low' | 'medium' | 'high' }>`
   font-size: 0.78rem;
   font-weight: 800;
   border: 1px solid ${({ $risk }) => {
-    if ($risk === 'high') return 'var(--schedule-command-risk-high-border, rgba(198, 168, 75, 0.5))';
-    if ($risk === 'medium') return 'var(--schedule-command-risk-medium-border, rgba(96, 192, 240, 0.45))';
-    return 'var(--schedule-command-risk-low-border, rgba(64, 112, 192, 0.45))';
+    if ($risk === 'high') return 'var(--schedule-command-risk-high-border, color-mix(in srgb, var(--warning, #C6A84B) 50%, transparent))';
+    if ($risk === 'medium') return 'var(--schedule-command-risk-medium-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent))';
+    return 'var(--schedule-command-risk-low-border, color-mix(in srgb, var(--accent-tertiary, #4070C0) 45%, transparent))';
   }};
   background: ${({ $risk }) => {
-    if ($risk === 'high') return 'var(--schedule-command-risk-high-bg, rgba(198, 168, 75, 0.16))';
-    if ($risk === 'medium') return 'var(--schedule-command-risk-medium-bg, rgba(96, 192, 240, 0.14))';
-    return 'var(--schedule-command-risk-low-bg, rgba(64, 112, 192, 0.14))';
+    if ($risk === 'high') return 'var(--schedule-command-risk-high-bg, color-mix(in srgb, var(--warning, #C6A84B) 16%, transparent))';
+    if ($risk === 'medium') return 'var(--schedule-command-risk-medium-bg, color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent))';
+    return 'var(--schedule-command-risk-low-bg, color-mix(in srgb, var(--accent-tertiary, #4070C0) 14%, transparent))';
   }};
 `;
 
@@ -86,8 +99,14 @@ export const CommandCard = styled.div`
   min-width: 0;
   padding: 0.8rem;
   border-radius: 12px;
-  background: var(--schedule-command-card-bg, rgba(10, 10, 15, 0.34));
-  border: 1px solid var(--schedule-command-card-border, rgba(96, 192, 240, 0.14));
+  background: var(
+    --schedule-command-card-bg,
+    color-mix(in srgb, var(--bg-base, #0A0A0F) 74%, var(--bg-elevated, #1A1A24) 26%)
+  );
+  border: 1px solid var(
+    --schedule-command-card-border,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)
+  );
 `;
 
 export const CardLabel = styled.span`
@@ -124,8 +143,14 @@ export const AttentionChip = styled.li`
   min-height: 32px;
   padding: 0.25rem 0.6rem;
   border-radius: 999px;
-  background: var(--schedule-command-attention-bg, rgba(198, 168, 75, 0.12));
-  border: 1px solid var(--schedule-command-attention-border, rgba(198, 168, 75, 0.28));
+  background: var(
+    --schedule-command-attention-bg,
+    color-mix(in srgb, var(--warning, #C6A84B) 12%, transparent)
+  );
+  border: 1px solid var(
+    --schedule-command-attention-border,
+    color-mix(in srgb, var(--warning, #C6A84B) 28%, transparent)
+  );
   color: var(--text-primary, #E0ECF4);
   font-size: 0.78rem;
   font-weight: 700;
@@ -138,8 +163,14 @@ export const ProposalStrip = styled.div`
   gap: 0.75rem;
   padding: 0.8rem;
   border-radius: 12px;
-  background: var(--schedule-command-proposal-bg, rgba(139, 92, 246, 0.1));
-  border: 1px solid var(--schedule-command-proposal-border, rgba(139, 92, 246, 0.28));
+  background: var(
+    --schedule-command-proposal-bg,
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent)
+  );
+  border: 1px solid var(
+    --schedule-command-proposal-border,
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent)
+  );
 
   @media (max-width: 640px) {
     align-items: flex-start;
@@ -162,15 +193,27 @@ export const ActionButton = styled.button`
   min-width: 44px;
   padding: 0.55rem 0.9rem;
   border-radius: 10px;
-  border: 1px solid var(--schedule-command-action-border, rgba(139, 92, 246, 0.55));
+  border: 1px solid var(
+    --schedule-command-action-border,
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 55%, transparent)
+  );
   color: var(--text-primary, #E0ECF4);
-  background: var(--schedule-command-action-bg, #002060);
-  box-shadow: 0 0 22px var(--schedule-command-action-glow, rgba(139, 92, 246, 0.22));
+  background: var(
+    --schedule-command-action-bg,
+    linear-gradient(135deg, var(--primary, #002060), var(--accent-tertiary, #4070C0))
+  );
+  box-shadow: 0 0 22px var(
+    --schedule-command-action-glow,
+    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent)
+  );
   cursor: pointer;
   font-weight: 800;
 
   &:hover:not(:disabled) {
-    border-color: var(--schedule-command-action-border-hover, rgba(96, 192, 240, 0.72));
+    border-color: var(
+      --schedule-command-action-border-hover,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 72%, transparent)
+    );
   }
 
   &:focus-visible {

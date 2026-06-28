@@ -39,4 +39,19 @@ describe('SessionDetailModal style extraction', () => {
       expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     });
   });
+
+  it('keeps the session detail modal chrome connected to active theme variables', () => {
+    const commandStyles = read('SessionDetailCommandPanel.styles.ts');
+    const baseStyles = read('SessionDetailModal.baseStyles.ts');
+    const feedbackStyles = read('SessionDetailModal.feedbackStyles.ts');
+
+    expect(commandStyles).toContain('var(--accent-primary');
+    expect(commandStyles).toContain('var(--bg-elevated');
+    expect(commandStyles).not.toContain('rgba(0, 32, 96');
+    expect(baseStyles).toContain('color-mix(in srgb, var(--bg-elevated');
+    expect(baseStyles).not.toContain('rgba(255, 255, 255');
+    expect(feedbackStyles).toContain('var(--danger');
+    expect(feedbackStyles).toContain('var(--success');
+    expect(feedbackStyles).not.toContain('#00FF88');
+  });
 });
