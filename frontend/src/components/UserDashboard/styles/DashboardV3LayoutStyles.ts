@@ -28,7 +28,10 @@ export const MainContentZWrapper = styled.div`
 
 export const ProfileContainer = styled(motion.div)`
   min-height: 100vh;
-  background: var(--bg-base);
+  background: var(--user-dashboard-bg-base, var(--bg-base));
+  background-size: var(--user-dashboard-bg-base-size, auto);
+  background-position: var(--user-dashboard-bg-base-position, center);
+  background-repeat: var(--user-dashboard-bg-base-repeat, no-repeat);
   color: var(--text-primary);
   position: relative;
   /* 2026-05-10 SLICE 1 (Codex round-3 HIGH): keep horizontal clipping so the
@@ -38,17 +41,31 @@ export const ProfileContainer = styled(motion.div)`
      constrained by this ancestor's containing block. */
   overflow-x: hidden;
 
-  /* Subtle background pattern for premium feel */
+  /* Token-driven dashboard background art. Recipes inherit the active theme
+     variables; custom photos stay darkened so cards and text keep contrast. */
   &::before {
     content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent-gold, #C6A84B) 5%, transparent) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent) 0%, transparent 50%);
+    position: fixed;
+    inset: 0;
+    background: var(--user-dashboard-bg-art,
+      radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent-gold, #C6A84B) 5%, transparent) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent) 0%, transparent 50%));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: var(--user-dashboard-bg-mark-image, none);
+    background-position: var(--user-dashboard-bg-mark-position, center);
+    background-size: var(--user-dashboard-bg-mark-size, min(68vw, 900px));
+    background-repeat: no-repeat;
+    opacity: var(--user-dashboard-bg-mark-opacity, 0.06);
+    filter: blur(var(--user-dashboard-bg-mark-blur, 0px)) saturate(1.15);
+    mix-blend-mode: screen;
     pointer-events: none;
     z-index: 0;
   }
@@ -62,7 +79,7 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
   padding: 3rem 2rem;
 
   /* Workstream O: when the full-width cover hero sits directly above, the
-     page rhythm tightens — one small gap instead of the old 3rem-plus stack
+     page rhythm tightens - one small gap instead of the old 3rem-plus stack
      of banner margins and rail clearances. */
   ${({ $belowCover }) => $belowCover && 'padding-top: 1.25rem;'}
 
@@ -72,7 +89,7 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
     ${({ $belowCover }) => $belowCover && 'padding-top: 1rem;'}
   }
 
-  /* O3: phones carry the fixed bottom nav bar — clear it (+ iOS safe area)
+  /* O3: phones carry the fixed bottom nav bar - clear it (+ iOS safe area)
      so the last content row is never buried under the bar. */
   @media (max-width: 768px) {
     padding: 1.5rem 1rem;
@@ -121,7 +138,7 @@ export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
   /* 2026-05-10 SLICE 1: removed overflow: hidden so the sticky tab strip
      above ContentGrid can pin to the viewport without being clipped to
-     ContentGrid's box. The retired clip wasn't load-bearing here —
+     ContentGrid's box. The retired clip wasn't load-bearing here -
      ProfileContainer/ContentWrapper still clip the page horizontally. */
 
   @media (max-width: 1024px) {

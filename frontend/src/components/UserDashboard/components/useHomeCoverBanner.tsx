@@ -5,7 +5,7 @@
  *          N2/N3, extracted in N4 for the rule-4 cap): renders the user's
  *          cover composition (photo / collage / carousel / crossfade) via the
  *          same media layer as the feed cover studio, and hosts the lazy
- *          embedded SocialCoverEditor — closing it bumps refreshKey so the
+ *          embedded SocialCoverEditor - closing it bumps refreshKey so the
  *          live cover refetches once.
  * ============================================================================
  */
@@ -15,7 +15,7 @@ import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
 
 const SocialCoverEditor = lazy(() => import('../../Social/Feed/components/SocialCoverEditor'));
 
-export function useHomeCoverBanner(): {
+export function useHomeCoverBanner(dashboardBackgroundControls?: React.ReactNode): {
   bannerLayer: React.ReactNode | null;
   coverEditorSlot: React.ReactNode | null;
   toggleCoverEditor: () => void;
@@ -39,6 +39,7 @@ export function useHomeCoverBanner(): {
   const coverEditorSlot = editorOpen ? (
     <Suspense fallback={null}>
       <SocialCoverEditor
+        dashboardBackgroundControls={dashboardBackgroundControls}
         onClose={() => {
           setEditorOpen(false);
           setCoverRefreshKey((key) => key + 1);
