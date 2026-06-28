@@ -200,7 +200,15 @@ export const ControlsInner = styled.div`
 
 export const CosmicSelect = styled.select`
   appearance: none;
-  background: var(--bg-surface, #1A1A24) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2360C0F0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 12px center;
+  background-color: var(--bg-surface, #1A1A24);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-secondary, #8B5CF6) 50%),
+    linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 52%,
+    calc(100% - 13px) 52%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
   border-radius: 10px;
   color: var(--text-primary, #E0ECF4);

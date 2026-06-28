@@ -1,10 +1,10 @@
 /**
- * AdminOverviewMetrics — Enhanced KPI metric cards
+ * AdminOverviewMetrics - Enhanced KPI metric cards
  * Uses AnimatedCounter for values + Victory sparkline for trend data.
  * Theme: Crystalline Swan
  */
 
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
 import { VictoryLine, VictoryGroup } from 'victory';
 import { AdminDashboardMetric } from './AdminOverview.types';
@@ -18,8 +18,27 @@ interface AdminOverviewMetricsProps {
 const CHANGE_COLORS = {
   increase: 'var(--accent-primary, #60C0F0)',
   decrease: 'var(--error, #EF4444)',
-  neutral: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+  neutral: 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 40%, transparent))',
 };
+
+const METRIC_ACCENT_TOKENS: Record<string, string> = {
+  'total-revenue': 'var(--accent-gold, #C6A84B)',
+  'active-users': 'var(--accent-primary, #60C0F0)',
+  'completion-rate': 'var(--accent-secondary, #8B5CF6)',
+  'system-health': 'var(--surface-accent, var(--accent-secondary, #8B5CF6))',
+};
+
+const DEFAULT_METRIC_ACCENT = 'var(--accent-primary, #60C0F0)';
+
+type MetricCardStyle = CSSProperties & { '--admin-metric-accent': string };
+
+const getMetricAccent = (metric: AdminDashboardMetric): string => (
+  METRIC_ACCENT_TOKENS[metric.id] ?? DEFAULT_METRIC_ACCENT
+);
+
+const metricCardStyle = (accent: string): MetricCardStyle => ({
+  '--admin-metric-accent': accent,
+});
 
 const getChangeColor = (type: string) => (
   type === 'increase' ? CHANGE_COLORS.increase :
@@ -53,9 +72,9 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
     );
   };
 
-  const formatValue = (metric: AdminDashboardMetric) => {
+  const formatValue = (metric: AdminDashboardMetric, accent: string) => {
     const val = Number(metric.value);
-    if (isNaN(val)) return <ValueText style={{ color: metric.color }}>{metric.value}</ValueText>;
+    if (isNaN(val)) return <ValueText style={{ color: accent }}>{metric.value}</ValueText>;
 
     return (
       <AnimatedCounter
@@ -67,77 +86,80 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
     );
   };
 
-  const renderMetricCard = (metric: AdminDashboardMetric) => (
-    <MetricCommandCard key={metric.id} accentColor={metric.color} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
-      <CardInner>
-        <TopRow>
-          <div style={{ flex: 1 }}>
-            <Label>{metric.title}</Label>
-            <ValueRow style={{ color: metric.color }}>
-              {formatValue(metric)}
-            </ValueRow>
-            {metric.format !== 'text' && (
-              <ChangeRow>
-                {metric.changeType === 'increase' ? (
-                  <TrendingUp size={14} color={CHANGE_COLORS.increase} />
-                ) : metric.changeType === 'decrease' ? (
-                  <TrendingDown size={14} color={CHANGE_COLORS.decrease} />
-                ) : (
-                  <Activity size={14} color={CHANGE_COLORS.neutral} />
-                )}
-                <ChangeText $type={metric.changeType}>
-                  {metric.change > 0 ? '+' : ''}{metric.change}%
-                </ChangeText>
-              </ChangeRow>
-            )}
-          </div>
-          <IconCol>
-            <IconBubble style={{ background: metricAccentWash(metric.color), color: metric.color }}>
-              {metric.icon}
-            </IconBubble>
-            {metric.target && (
-              <TargetText>
-                Target: {metric.target}{metric.format === 'percentage' ? '%' : ''}
-              </TargetText>
-            )}
-          </IconCol>
-        </TopRow>
+  const renderMetricCard = (metric: AdminDashboardMetric) => {
+    const accent = getMetricAccent(metric);
 
-        <Divider />
-        <Description>{metric.description}</Description>
+    return (
+      <MetricCommandCard key={metric.id} style={metricCardStyle(accent)} whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+        <CardInner>
+          <TopRow>
+            <div style={{ flex: 1 }}>
+              <Label>{metric.title}</Label>
+              <ValueRow style={{ color: accent }}>
+                {formatValue(metric, accent)}
+              </ValueRow>
+              {metric.format !== 'text' && (
+                <ChangeRow>
+                  {metric.changeType === 'increase' ? (
+                    <TrendingUp size={14} color={CHANGE_COLORS.increase} />
+                  ) : metric.changeType === 'decrease' ? (
+                    <TrendingDown size={14} color={CHANGE_COLORS.decrease} />
+                  ) : (
+                    <Activity size={14} color={CHANGE_COLORS.neutral} />
+                  )}
+                  <ChangeText $type={metric.changeType}>
+                    {metric.change > 0 ? '+' : ''}{metric.change}%
+                  </ChangeText>
+                </ChangeRow>
+              )}
+            </div>
+            <IconCol>
+              <IconBubble style={{ background: metricAccentWash(accent), color: accent }}>
+                {metric.icon}
+              </IconBubble>
+              {metric.target && (
+                <TargetText>
+                  Target: {metric.target}{metric.format === 'percentage' ? '%' : ''}
+                </TargetText>
+              )}
+            </IconCol>
+          </TopRow>
 
-        {metric.target && (
-          <ProgressWrap>
-            <ProgressMeta>
-              <span>Progress</span>
-              <span>{((Number(metric.value) / metric.target) * 100).toFixed(1)}%</span>
-            </ProgressMeta>
-            <ProgressTrack>
-              <ProgressFill
-                style={{
-                  width: `${Math.min((Number(metric.value) / metric.target) * 100, 100)}%`,
-                  background: metric.color,
-                }}
-              />
-            </ProgressTrack>
-          </ProgressWrap>
-        )}
+          <Divider />
+          <Description>{metric.description}</Description>
 
-        {metric.trend?.length >= 2 ? (
-          renderSparkline(metric.trend, metric.color)
-        ) : (
-          <ChartContainer>Awaiting trend data</ChartContainer>
-        )}
-      </CardInner>
-    </MetricCommandCard>
-  );
+          {metric.target && (
+            <ProgressWrap>
+              <ProgressMeta>
+                <span>Progress</span>
+                <span>{((Number(metric.value) / metric.target) * 100).toFixed(1)}%</span>
+              </ProgressMeta>
+              <ProgressTrack>
+                <ProgressFill
+                  style={{
+                    width: `${Math.min((Number(metric.value) / metric.target) * 100, 100)}%`,
+                    background: accent,
+                  }}
+                />
+              </ProgressTrack>
+            </ProgressWrap>
+          )}
 
+          {metric.trend?.length >= 2 ? (
+            renderSparkline(metric.trend, accent)
+          ) : (
+            <ChartContainer>Awaiting trend data</ChartContainer>
+          )}
+        </CardInner>
+      </MetricCommandCard>
+    );
+  };
   return <MetricGrid>{metrics.map(renderMetricCard)}</MetricGrid>;
 };
 
 export default AdminOverviewMetrics;
 
-/* ── Inline styled helpers (kept minimal to stay under 300 lines) ── */
+/* Inline styled helpers (kept minimal to stay under 300 lines) */
 
 import styled from 'styled-components';
 
@@ -148,9 +170,9 @@ const TopRow = styled.div`
   align-items: flex-start; margin-bottom: 1rem;
 `;
 
-/* Kirin hero label — Sora 13px uppercase, Frost White 60% */
+/* Kirin hero label - Sora 13px uppercase, Frost White 60% */
 const Label = styled.div`
-  color: rgba(224, 236, 244, 0.6);
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -159,7 +181,7 @@ const Label = styled.div`
   margin-bottom: 0.75rem;
 `;
 
-/* Kirin hero metric — Cormorant Garamond Italic 48px editorial serif */
+/* Kirin hero metric - Cormorant Garamond Italic 48px editorial serif */
 const ValueRow = styled.div`
   font-family: 'Cormorant Garamond', 'Times New Roman', serif;
   font-style: italic;
@@ -206,17 +228,17 @@ const IconBubble = styled.div`
 `;
 
 const TargetText = styled.div`
-  font-size: 0.75rem; color: var(--text-muted, rgba(224,236,244,0.5));
+  font-size: 0.75rem; color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent));
   text-align: center;
 `;
 
 const Divider = styled.div`
   height: 1px; margin: 1rem 0;
-  background: var(--border-subtle, rgba(255,255,255,0.08));
+  background: var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent));
 `;
 
 const Description = styled.div`
-  color: var(--text-secondary, rgba(224,236,244,0.7));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
   font-size: 0.875rem; margin-bottom: 1rem;
 `;
 
@@ -224,12 +246,12 @@ const ProgressWrap = styled.div`margin-bottom: 1rem;`;
 
 const ProgressMeta = styled.div`
   display: flex; justify-content: space-between; margin-bottom: 0.5rem;
-  font-size: 0.75rem; color: var(--text-muted, rgba(224,236,244,0.5));
+  font-size: 0.75rem; color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent));
 `;
 
 const ProgressTrack = styled.div`
   height: 6px; border-radius: 3px; overflow: hidden;
-  background: var(--border-subtle, rgba(255,255,255,0.08));
+  background: var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent));
 `;
 
 const ProgressFill = styled.div`

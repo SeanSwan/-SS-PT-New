@@ -6,7 +6,7 @@ const PRIMARY_GRADIENT = 'var(--gradient-primary, linear-gradient(135deg, var(--
 const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent))';
 const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 54%, transparent))';
 
-export const MetricCommandCard = styled(CommandCard)<{ accentColor?: string }>`
+export const MetricCommandCard = styled(CommandCard)`
   position: relative;
   overflow: hidden;
 
@@ -17,7 +17,7 @@ export const MetricCommandCard = styled(CommandCard)<{ accentColor?: string }>`
     left: 0;
     right: 0;
     height: 4px;
-    background: ${({ accentColor, theme }) => accentColor || theme.gradients?.primary || PRIMARY_GRADIENT};
+    background: var(--admin-metric-accent, ${PRIMARY_GRADIENT});
   }
 `;
 

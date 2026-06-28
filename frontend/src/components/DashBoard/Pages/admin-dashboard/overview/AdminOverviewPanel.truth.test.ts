@@ -89,6 +89,10 @@ describe('AdminOverviewPanel analytics resilience contract', () => {
   it('bridges overview shell status and shadow chrome through theme tokens', () => {
     expect(stylesSource).toContain("const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent))'");
     expect(stylesSource).toContain("const SHADOW_ELEVATION = 'var(--shadow-elevation, 0 4px 24px color-mix(in srgb, var(--bg-base, #030712) 20%, transparent))'");
+    expect(stylesSource).toContain('background-image:');
+    expect(stylesSource).toContain('linear-gradient(45deg, transparent 50%, var(--accent-secondary');
+    expect(stylesSource).not.toContain('data:image');
+    expect(stylesSource).not.toContain('%2360C0F0');
     expect(stylesSource).not.toContain('rgba(');
     expect(stylesSource).not.toContain('color: var(--text-secondary, rgba(224,236,244,0.6));');
     expect(stylesSource).not.toContain('box-shadow: var(--shadow-elevation, 0 4px 24px rgba(0, 0, 0, 0.2));');
