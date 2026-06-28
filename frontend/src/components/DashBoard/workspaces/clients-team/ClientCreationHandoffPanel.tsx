@@ -139,6 +139,7 @@ const STATUS_COPY: Record<ManualClientCreationCredentialMode, { title: string; w
   claim_link_ready: { title: 'Claim link ready', warning: false },
   claim_link_needed: { title: 'Login handoff needs review', warning: true },
   reset_link_sent: { title: 'Secure login link sent', warning: false },
+  reset_link_ready: { title: 'Reset link ready to copy', warning: false },
   reset_link_needed: { title: 'Login handoff needs review', warning: true },
 };
 
@@ -146,6 +147,7 @@ const STATUS_ICONS: Record<ManualClientCreationCredentialMode, typeof AlertTrian
   claim_link_ready: Link2,
   claim_link_needed: AlertTriangle,
   reset_link_sent: MailCheck,
+  reset_link_ready: Link2,
   reset_link_needed: AlertTriangle,
 };
 
@@ -159,6 +161,7 @@ interface HandoffToken {
 }
 
 const handoffTokens = (handoff: ManualClientCreationHandoff): HandoffToken[] => [
+  { value: handoff.resetUrl || '', label: 'Reset link' },
   { value: handoff.claimUrl || '', label: 'Claim link' },
   { value: handoff.claimCode || '', label: 'Claim code' },
 ].filter((token) => token.value.length > 0);

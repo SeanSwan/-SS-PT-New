@@ -14,8 +14,6 @@ import {
 import { normalizeClientSource } from './clientSessionSignal';
 import {
   buildManualClientCreationHandoff,
-  getCreatedClient,
-  toClientId,
   type ManualClientCreationHandoff,
 } from './manualClientCreationHandoff';
 
@@ -51,30 +49,6 @@ const throwIfCreateFailed = (response: any): void => {
   throw new Error(createFailureMessage(response));
 };
 
-const canSendLoginReset = (
-  manualClientService: ManualClientService,
-  clientId: string | null,
-): boolean => (
-  Boolean(clientId) && typeof manualClientService.sendClientPasswordReset === 'function'
-);
-
-const resetSucceeded = (response: any): boolean => response?.success !== false;
-
-const sendLoginResetIfAvailable = async (
-  manualClientService: ManualClientService,
-  clientId: string | null,
-): Promise<boolean> => {
-  if (!canSendLoginReset(manualClientService, clientId)) return false;
-  if (!clientId) return false;
-
-  try {
-    const resetResponse = await manualClientService.sendClientPasswordReset(clientId);
-    return resetSucceeded(resetResponse);
-  } catch {
-    return false;
-  }
-};
-
 const responseData = (response: any): Record<string, unknown> => (
   typeof response?.data === 'object' && response.data !== null && !Array.isArray(response.data)
     ? response.data
@@ -86,20 +60,20 @@ const responseResetEmailSent = (response: any): boolean | null => {
   if (data.resetEmailSent === true) return true;
   if (data.resetEmailSent === false) return false;
   if (data.credentialAction === 'reset_link_sent' || data.credentialAction === 'reset_email_sent') return true;
-  if (data.credentialAction === 'reset_link_needed' || data.credentialAction === 'reset_email_needed') return false;
+  if (
+    data.credentialAction === 'reset_link_ready'
+    || data.credentialAction === 'reset_link_needed'
+    || data.credentialAction === 'reset_email_needed'
+  ) return false;
   return null;
 };
 
-const resolveResetEmailSent = async (
-  manualClientService: ManualClientService,
+const resolveResetEmailSent = (
   data: CreateClientRequest,
-  clientId: string | null,
   response: any,
-): Promise<boolean | null> => {
+): boolean | null => {
   if (isExternalClientSource(data)) return null;
-  const backendResetEmailSent = responseResetEmailSent(response);
-  if (backendResetEmailSent !== null) return backendResetEmailSent;
-  return sendLoginResetIfAvailable(manualClientService, clientId);
+  return responseResetEmailSent(response);
 };
 
 const toastVariantForHandoff = (handoff: ManualClientCreationHandoff): 'default' | 'destructive' => (
@@ -110,13 +84,11 @@ const buildCreatedToastDescription = (handoff: ManualClientCreationHandoff): str
   `${handoff.clientName} is ready in Client Hub. ${handoff.message}`
 );
 
-const buildCreationHandoff = async (
-  manualClientService: ManualClientService,
+const buildCreationHandoff = (
   data: CreateClientRequest,
   response: any,
-): Promise<ManualClientCreationHandoff> => {
-  const clientId = toClientId(getCreatedClient(response).id);
-  const resetEmailSent = await resolveResetEmailSent(manualClientService, data, clientId, response);
+): ManualClientCreationHandoff => {
+  const resetEmailSent = resolveResetEmailSent(data, response);
   return buildManualClientCreationHandoff({ data, response, resetEmailSent });
 };
 
@@ -163,7 +135,7 @@ export function useManualClientCreation({
     const response = await createManualClient(manualClientService, data);
     throwIfCreateFailed(response);
 
-    const handoff = await buildCreationHandoff(manualClientService, data, response);
+    const handoff = buildCreationHandoff(data, response);
     setCreationHandoff(handoff);
     toast({
       title: 'Client created',

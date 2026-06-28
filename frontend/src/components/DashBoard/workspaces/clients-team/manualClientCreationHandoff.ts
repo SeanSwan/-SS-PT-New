@@ -24,6 +24,7 @@ import { normalizeClientSource } from './clientSessionSignal';
 
 export type ManualClientCreationCredentialMode =
   | 'reset_link_sent'
+  | 'reset_link_ready'
   | 'reset_link_needed'
   | 'claim_link_ready'
   | 'claim_link_needed';
@@ -38,6 +39,9 @@ export interface ManualClientCreationHandoff {
   claimUrl?: string;
   claimExpiresAt?: string;
   resetEmailSent?: boolean;
+  resetUrl?: string;
+  resetExpiresAt?: string;
+  resetExpiresInMinutes?: number;
   message: string;
 }
 
@@ -55,12 +59,16 @@ interface ManualClientCreationHandoffContext {
   claimCode?: string;
   claimUrl?: string;
   claimExpiresAt?: string;
+  resetUrl?: string;
+  resetExpiresAt?: string;
+  resetExpiresInMinutes?: number;
 }
 
 const CLAIM_READY_MESSAGE = 'Claim link is ready for account activation.';
 const CLAIM_NEEDED_MESSAGE = 'Client was created, but no claim link returned. Generate a claim link before the client logs in.';
-const RESET_SENT_MESSAGE = 'Secure login link sent.';
-const RESET_NEEDED_MESSAGE = 'Client was created, but the login email did not send. Use Send reset link before the client logs in.';
+const RESET_SENT_MESSAGE = 'Secure login link sent. Copy link is also ready for direct handoff.';
+const RESET_READY_MESSAGE = 'Email delivery did not complete. Copy this one-hour reset link directly to the client.';
+const RESET_NEEDED_MESSAGE = 'Client was created, but no reset link returned. Use Send reset link before the client logs in.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -90,6 +98,10 @@ const isPositiveSafeInteger = (value: unknown): value is number => (
 
 const numberClientId = (value: unknown): string => (
   isPositiveSafeInteger(value) ? String(value) : ''
+);
+
+const toOptionalPositiveInteger = (value: unknown): number | undefined => (
+  isPositiveSafeInteger(value) ? value : undefined
 );
 
 const trimmedString = (value: unknown): string => (
@@ -143,6 +155,9 @@ const buildHandoffContext = ({
     claimCode: getClaimCode(responseData),
     claimUrl: toOptionalString(responseData.claimUrl),
     claimExpiresAt: toOptionalString(responseData.claimExpiresAt),
+    resetUrl: toOptionalString(responseData.resetUrl),
+    resetExpiresAt: toOptionalString(responseData.resetExpiresAt),
+    resetExpiresInMinutes: toOptionalPositiveInteger(responseData.expiresInMinutes),
   };
 };
 
@@ -169,14 +184,20 @@ const buildClaimHandoff = (
 });
 
 const resetCredentialMode = (
+  context: ManualClientCreationHandoffContext,
   resetEmailSent: boolean | null,
-): ManualClientCreationCredentialMode => (
-  resetEmailSent ? 'reset_link_sent' : 'reset_link_needed'
-);
+): ManualClientCreationCredentialMode => {
+  if (resetEmailSent) return 'reset_link_sent';
+  return context.resetUrl ? 'reset_link_ready' : 'reset_link_needed';
+};
 
-const resetMessage = (resetEmailSent: boolean | null): string => (
-  resetEmailSent ? RESET_SENT_MESSAGE : RESET_NEEDED_MESSAGE
-);
+const resetMessage = (
+  context: ManualClientCreationHandoffContext,
+  resetEmailSent: boolean | null,
+): string => {
+  if (resetEmailSent) return RESET_SENT_MESSAGE;
+  return context.resetUrl ? RESET_READY_MESSAGE : RESET_NEEDED_MESSAGE;
+};
 
 const buildResetHandoff = (
   context: ManualClientCreationHandoffContext,
@@ -186,9 +207,12 @@ const buildResetHandoff = (
   clientName: context.clientName,
   clientEmail: context.clientEmail,
   clientSource: context.clientSource,
-  credentialMode: resetCredentialMode(resetEmailSent),
+  credentialMode: resetCredentialMode(context, resetEmailSent),
   resetEmailSent: resetEmailSent === true,
-  message: resetMessage(resetEmailSent),
+  resetUrl: context.resetUrl,
+  resetExpiresAt: context.resetExpiresAt,
+  resetExpiresInMinutes: context.resetExpiresInMinutes,
+  message: resetMessage(context, resetEmailSent),
 });
 
 export const buildManualClientCreationHandoff = (

@@ -41,6 +41,22 @@ export function hashPasswordResetToken(rawToken, resetSecret = getPasswordResetS
   return crypto.createHmac('sha256', resetSecret).update(rawToken).digest('hex');
 }
 
+export class PasswordResetEmailDeliveryError extends Error {
+  constructor(message, {
+    resetUrl,
+    resetExpiresAt,
+    expiresInMinutes,
+    cause,
+  } = {}) {
+    super(message);
+    this.name = 'PasswordResetEmailDeliveryError';
+    this.emailSent = false;
+    this.expiresInMinutes = expiresInMinutes;
+    if (resetUrl) this.resetUrl = resetUrl;
+    if (resetExpiresAt) this.resetExpiresAt = resetExpiresAt;
+    if (cause) this.cause = cause;
+  }
+}
 export async function sendPasswordResetEmailForUser(user, options = {}) {
   const email = typeof user?.email === 'string' ? user.email.trim() : '';
   if (!email) {
@@ -54,6 +70,8 @@ export async function sendPasswordResetEmailForUser(user, options = {}) {
   const resetSecret = options.resetSecret || getPasswordResetSecret();
   const sendEmail = options.sendEmail || sendEmailNotification;
   const frontendUrl = options.frontendUrl || process.env.FRONTEND_URL || 'https://sswanstudios.com';
+  const includeResetUrl = options.includeResetUrl === true;
+  const expiresInMinutes = Math.round(RESET_TOKEN_TTL_MS / 60000);
 
   const rawToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
   const hashedToken = hashPasswordResetToken(rawToken, resetSecret);
@@ -79,18 +97,28 @@ export async function sendPasswordResetEmailForUser(user, options = {}) {
       userId: user.id,
       error: emailResult?.error?.message || 'unknown',
     });
-    throw new Error('Password reset email could not be sent.');
+    throw new PasswordResetEmailDeliveryError('Password reset email could not be sent.', {
+      resetUrl: includeResetUrl ? resetUrl : undefined,
+      resetExpiresAt: includeResetUrl ? resetPasswordExpires.toISOString() : undefined,
+      expiresInMinutes,
+      cause: emailResult?.error,
+    });
   }
 
   logger.info('[passwordResetEmailService] email_send_success', { userId: user.id });
   return {
     emailSent: true,
-    expiresInMinutes: Math.round(RESET_TOKEN_TTL_MS / 60000),
+    expiresInMinutes,
+    ...(includeResetUrl ? {
+      resetUrl,
+      resetExpiresAt: resetPasswordExpires.toISOString(),
+    } : {}),
   };
 }
 
 export default {
   getPasswordResetSecret,
   hashPasswordResetToken,
+  PasswordResetEmailDeliveryError,
   sendPasswordResetEmailForUser,
 };

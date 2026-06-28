@@ -329,6 +329,32 @@ function sendInternalError(res, message) {
   });
 }
 
+const toOptionalHandoffString = (value) => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toOptionalHandoffMinutes = (value) => (
+  Number.isSafeInteger(value) && value > 0 ? value : undefined
+);
+
+const passwordResetHandoffFrom = (source) => ({
+  resetUrl: toOptionalHandoffString(source?.resetUrl),
+  resetExpiresAt: toOptionalHandoffString(source?.resetExpiresAt),
+  expiresInMinutes: toOptionalHandoffMinutes(source?.expiresInMinutes),
+});
+
+const resetCredentialActionFor = (resetEmailSent, resetUrl) => (
+  resetEmailSent ? 'reset_link_sent' : (resetUrl ? 'reset_link_ready' : 'reset_link_needed')
+);
+
+const appendPasswordResetHandoff = (data, handoff) => ({
+  ...data,
+  ...(handoff.resetUrl ? { resetUrl: handoff.resetUrl } : {}),
+  ...(handoff.resetExpiresAt ? { resetExpiresAt: handoff.resetExpiresAt } : {}),
+  ...(handoff.expiresInMinutes ? { expiresInMinutes: handoff.expiresInMinutes } : {}),
+});
 const parseNonNegativeSessionCount = (value) => {
   const parsed = Number(value ?? 0);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
@@ -1032,14 +1058,18 @@ class AdminClientController {
       await transaction.commit();
 
       let resetEmailSent = false;
+      let resetHandoff = {};
       let credentialAction = 'reset_link_needed';
       if (normalizedClientSource === 'swanstudios') {
         try {
-          const reset = await sendPasswordResetEmailForUser(newClient);
+          const reset = await sendPasswordResetEmailForUser(newClient, { includeResetUrl: true });
           resetEmailSent = reset?.emailSent === true;
-          credentialAction = resetEmailSent ? 'reset_link_sent' : 'reset_link_needed';
+          resetHandoff = passwordResetHandoffFrom(reset);
+          credentialAction = resetCredentialActionFor(resetEmailSent, resetHandoff.resetUrl);
         } catch (emailError) {
-          logger.warn(`Password reset handoff failed for ${normalizedEmail}: ${emailError.message}`);
+          resetHandoff = passwordResetHandoffFrom(emailError);
+          credentialAction = resetCredentialActionFor(false, resetHandoff.resetUrl);
+          logger.warn(`Password reset handoff email failed for ${normalizedEmail}: ${emailError.message}`);
         }
       }
 
@@ -1047,7 +1077,7 @@ class AdminClientController {
       return res.status(201).json({
         success: true,
         message: 'Client created successfully',
-        data: {
+        data: appendPasswordResetHandoff({
           client: {
             id: newClient.id,
             firstName: newClient.firstName,
@@ -1062,7 +1092,7 @@ class AdminClientController {
           credentialAction,
           resetEmailSent,
           emailSent: resetEmailSent
-        }
+        }, resetHandoff)
       });
     } catch (error) {
       await transaction.rollback();
@@ -1306,17 +1336,29 @@ class AdminClientController {
         });
       }
 
-      const reset = await sendPasswordResetEmailForUser(client);
+      let resetEmailSent = false;
+      let resetHandoff = {};
+      try {
+        const reset = await sendPasswordResetEmailForUser(client, { includeResetUrl: true });
+        resetEmailSent = reset.emailSent === true;
+        resetHandoff = passwordResetHandoffFrom(reset);
+      } catch (emailError) {
+        resetHandoff = passwordResetHandoffFrom(emailError);
+        if (!resetHandoff.resetUrl) throw emailError;
+        logger.warn(`Password reset email failed for client ${clientId}; admin-copy reset link generated.`);
+      }
+
+      const credentialAction = resetCredentialActionFor(resetEmailSent, resetHandoff.resetUrl);
 
       return res.status(200).json({
         success: true,
-        message: 'Password reset email sent.',
-        data: {
-          credentialAction: 'reset_email_sent',
+        message: resetEmailSent ? 'Password reset email sent.' : 'Password reset link generated for manual handoff.',
+        data: appendPasswordResetHandoff({
+          credentialAction,
           clientId,
-          resetEmailSent: reset.emailSent === true,
-          expiresInMinutes: reset.expiresInMinutes,
-        }
+          resetEmailSent,
+          emailSent: resetEmailSent,
+        }, resetHandoff)
       });
     } catch (error) {
       logger.error('Error resetting password:', error);

@@ -229,6 +229,42 @@ describe('admin client lifecycle controller runtime behavior', () => {
     });
   });
 
+  it('admin password reset returns a manual handoff link when email delivery fails', async () => {
+    const client = buildClient({ id: 301, email: 'client@example.test' });
+    mocks.userModel.findOne.mockResolvedValue(client);
+    mocks.sendPasswordResetEmailForUser.mockRejectedValue(Object.assign(
+      new Error('provider credits exceeded'),
+      {
+        name: 'PasswordResetEmailDeliveryError',
+        emailSent: false,
+        expiresInMinutes: 60,
+        resetUrl: 'https://app.example.test/reset-password/manual-reset-token',
+        resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      }
+    ));
+    const res = buildResponse();
+
+    await adminClientController.resetClientPassword(
+      { params: { clientId: '301' }, user: { id: 7, role: 'admin' } },
+      res,
+    );
+
+    expect(mocks.userModel.findOne).toHaveBeenCalledWith({
+      where: { id: '301', role: 'client' }
+    });
+    expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(client, { includeResetUrl: true });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.body.data).toMatchObject({
+      credentialAction: 'reset_link_ready',
+      clientId: '301',
+      resetEmailSent: false,
+      emailSent: false,
+      resetUrl: 'https://app.example.test/reset-password/manual-reset-token',
+      resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      expiresInMinutes: 60,
+    });
+    expect(JSON.stringify(res.body)).not.toMatch(/newPassword|temporaryPassword/i);
+  });
   it('admin-created SwanStudios clients use reset-link handoff without plaintext temp passwords', async () => {
     mocks.userModel.findOne.mockResolvedValue(null);
     const createdClient = {
@@ -241,6 +277,12 @@ describe('admin client lifecycle controller runtime behavior', () => {
       availableSessions: 4,
     };
     mocks.userModel.create.mockResolvedValue(createdClient);
+    mocks.sendPasswordResetEmailForUser.mockResolvedValue({
+      emailSent: true,
+      expiresInMinutes: 60,
+      resetUrl: 'https://app.example.test/reset-password/raw-token',
+      resetExpiresAt: '2026-07-01T00:00:00.000Z',
+    });
     const res = buildResponse();
 
     await adminClientController.createClient(
@@ -265,13 +307,66 @@ describe('admin client lifecycle controller runtime behavior', () => {
     expect(generatedSecret).not.toBe('TrainerShouldNotKnow123!');
     expect(res.status).toHaveBeenCalledWith(201);
     expect(mocks.sendGridEmail).not.toHaveBeenCalled();
-    expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(createdClient);
+    expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(createdClient, { includeResetUrl: true });
     expect(res.body.data).toMatchObject({
       credentialAction: 'reset_link_sent',
       resetEmailSent: true,
+      resetUrl: 'https://app.example.test/reset-password/raw-token',
+      resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      expiresInMinutes: 60,
     });
     expect(res.body.data).not.toHaveProperty('temporaryPassword');
     expect(JSON.stringify(res.body)).not.toContain(generatedSecret);
+  });
+  it('admin-created SwanStudios clients return a manual reset link when email delivery fails', async () => {
+    mocks.userModel.findOne.mockResolvedValue(null);
+    const createdClient = {
+      id: 903,
+      firstName: 'Email',
+      lastName: 'Fallback',
+      email: 'email.fallback@example.test',
+      clientSource: 'swanstudios',
+      sessionBillingMode: 'paid_sessions',
+      availableSessions: 0,
+    };
+    mocks.userModel.create.mockResolvedValue(createdClient);
+    mocks.sendPasswordResetEmailForUser.mockRejectedValue(Object.assign(
+      new Error('provider credits exceeded'),
+      {
+        name: 'PasswordResetEmailDeliveryError',
+        emailSent: false,
+        expiresInMinutes: 60,
+        resetUrl: 'https://app.example.test/reset-password/manual-token',
+        resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      }
+    ));
+    const res = buildResponse();
+
+    await adminClientController.createClient(
+      {
+        body: {
+          firstName: 'Email',
+          lastName: 'Fallback',
+          email: 'email.fallback@example.test',
+          username: 'email.fallback',
+          clientSource: 'swanstudios',
+        },
+        user: { id: 7, role: 'admin' },
+      },
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(mocks.sendPasswordResetEmailForUser).toHaveBeenCalledWith(createdClient, { includeResetUrl: true });
+    expect(res.body.data).toMatchObject({
+      credentialAction: 'reset_link_ready',
+      resetEmailSent: false,
+      emailSent: false,
+      resetUrl: 'https://app.example.test/reset-password/manual-token',
+      resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      expiresInMinutes: 60,
+    });
+    expect(res.body.data).not.toHaveProperty('temporaryPassword');
   });
   it('external generated-password clients receive claim flow only, never plaintext temp passwords', async () => {
     const previousFrontendUrl = process.env.FRONTEND_URL;

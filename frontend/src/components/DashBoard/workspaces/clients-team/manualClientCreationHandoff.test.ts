@@ -90,4 +90,43 @@ describe('manualClientCreationHandoff', () => {
       resetEmailSent: true,
     });
   });
+  it('marks SwanStudios clients as reset-link-ready when email fails but a reset URL is returned', () => {
+    const handoff = buildManualClientCreationHandoff({
+      data: {
+        ...baseRequest,
+        firstName: 'Manual',
+        lastName: 'Fallback',
+        email: 'manual.fallback@example.test',
+        clientSource: 'swanstudios',
+      },
+      resetEmailSent: false,
+      response: {
+        data: {
+          client: {
+            id: '78',
+            firstName: 'Manual',
+            lastName: 'Fallback',
+            email: 'manual.fallback@example.test',
+          },
+          resetUrl: 'https://sswanstudios.com/reset-password/raw-token',
+          resetExpiresAt: '2026-07-01T00:00:00.000Z',
+          expiresInMinutes: 60,
+          temporaryPassword: 'NeverExpose123!',
+        },
+      },
+    });
+
+    expect(handoff).toMatchObject({
+      clientId: '78',
+      clientName: 'Manual Fallback',
+      clientSource: 'swanstudios',
+      credentialMode: 'reset_link_ready',
+      resetEmailSent: false,
+      resetUrl: 'https://sswanstudios.com/reset-password/raw-token',
+      resetExpiresAt: '2026-07-01T00:00:00.000Z',
+      resetExpiresInMinutes: 60,
+    });
+    expect(handoff.message).toMatch(/copy this one-hour reset link/i);
+    expect(JSON.stringify(handoff)).not.toContain('NeverExpose123!');
+  });
 });
