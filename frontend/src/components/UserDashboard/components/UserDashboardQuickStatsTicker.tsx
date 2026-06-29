@@ -186,7 +186,7 @@ const UserDashboardQuickStatsTicker: React.FC<UserDashboardQuickStatsTickerProps
   const pauseLabel = isPaused ? 'Resume quick stats ticker' : 'Pause quick stats ticker';
 
   return (
-    <TickerShell aria-label="Quick stats ticker">
+    <TickerShell aria-label="Quick stats ticker" $goldFrame={showHeader}>
       {showHeader && (
         <TickerHeader>
           <TickerTitle>

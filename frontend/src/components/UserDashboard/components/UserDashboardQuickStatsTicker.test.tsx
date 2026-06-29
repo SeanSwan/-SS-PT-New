@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ProfileStats } from '../types/UserDashboardTypes';
@@ -124,5 +126,15 @@ describe('UserDashboardQuickStatsTicker', () => {
 
     expect(screen.getByLabelText('Quick stats ticker')).toBeInTheDocument();
     expect(screen.getByText('Workouts')).toBeInTheDocument();
+  });
+
+  it('frames the Home quick stats signal with a gold challenge-style outline', () => {
+    const componentSource = readFileSync(resolve(__dirname, './UserDashboardQuickStatsTicker.tsx'), 'utf8');
+    const stylesSource = readFileSync(resolve(__dirname, './UserDashboardQuickStatsTicker.styles.ts'), 'utf8');
+
+    expect(componentSource).toContain('<TickerShell aria-label="Quick stats ticker" $goldFrame={showHeader}>');
+    expect(stylesSource).toContain('var(--accent-gold, #C6A84B) 42%');
+    expect(stylesSource).toContain('border-radius: 22px;');
+    expect(stylesSource).toContain('0 16px 34px color-mix(in srgb, var(--bg-base, #0A0A0F) 62%, transparent)');
   });
 });

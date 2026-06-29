@@ -1,9 +1,27 @@
 import styled, { css } from 'styled-components';
 
-export const TickerShell = styled.section`
+const goldFrame = css`
+  padding: clamp(0.9rem, 1.25vw, 1.15rem);
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 42%, transparent);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent),
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent)
+    ),
+    var(--bg-elevated, #141419);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent),
+    0 16px 34px color-mix(in srgb, var(--bg-base, #0A0A0F) 62%, transparent),
+    0 0 26px color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+`;
+
+export const TickerShell = styled.section<{ $goldFrame?: boolean }>`
   display: grid;
   gap: 0.8rem;
   min-width: 0;
+  ${({ $goldFrame }) => ($goldFrame ? goldFrame : '')}
 `;
 
 export const TickerHeader = styled.header`
