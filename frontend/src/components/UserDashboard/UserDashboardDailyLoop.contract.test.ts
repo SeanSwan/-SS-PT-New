@@ -376,20 +376,24 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(adapterSource.indexOf("id: 'progress'")).toBeLessThan(adapterSource.indexOf("id: 'reels'"));
   });
 
-  it('puts the REAL scrolling community feed on Home with full interactions (workstream O2)', () => {
+  it('puts the REAL scrolling community feed after the mission and coach priority stack', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
     const feedSource = readSource('src/components/UserDashboard/components/HomeCommunityFeed.tsx');
     const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
 
-    // Home's center column mounts the community feed (lazy) and the old
-    // single latest-post card is gone (the feed's first posts replace it).
-    expect(centerSource).toContain("lazy(() => import('./HomeCommunityFeed'))");
-    expect(centerSource).toContain('<HomeCommunityFeed feed={communityFeed} />');
+    expect(homeSource).toContain("const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'))");
+    expect(centerSource).not.toContain("lazy(() => import('./HomeCommunityFeed'))");
+    expect(centerSource).not.toContain('<HomeCommunityFeed');
     expect(centerSource).not.toContain('Your first post will land here');
+
+    expect(homeSource.indexOf('<HomeTabVisionCenter')).toBeLessThan(homeSource.indexOf('<HomeTabTrainingProof'));
+    expect(homeSource.indexOf('<HomeTabTrainingProof')).toBeLessThan(homeSource.indexOf('<DailyHealthLoop'));
+    expect(homeSource.indexOf('<DailyHealthLoop')).toBeLessThan(homeSource.indexOf('<SwanCoachDock'));
+    expect(homeSource.indexOf('<SwanCoachDock')).toBeLessThan(homeSource.indexOf('<HomeCommunityFeed'));
 
     // O3 unification: HomeTab owns the ONE stateful feed mount; the stream
     // component is presentational (no duplicate fetch on Home).
-    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     expect(homeSource).toContain("import { useSocialFeed } from '../../../hooks/social/useSocialFeed'");
     expect(homeSource).not.toContain('useSocialFeed({ limit: 4 })');
     expect(feedSource).toContain("import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed'");
@@ -514,7 +518,7 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(wrapperSource).toContain('$belowCover');
 
     // One cover system: the hero reuses Home's media-layer + embedded editor.
-    expect(coverHeroSource).toContain('useHomeCoverBanner()');
+    expect(coverHeroSource).toContain('useHomeCoverBanner(dashboardBackgroundControls)');
     expect(coverHeroSource).toContain('aria-label="Edit cover"');
     expect(coverHeroSource).toContain('aria-label="Edit profile"');
     // Settings is the ONLY entry into the profile panel (N5 contract) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â the

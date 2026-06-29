@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import PostMediaDisplay from './components/PostMediaDisplay';
@@ -50,7 +50,8 @@ describe('PostMediaDisplay image lightbox', () => {
     });
   });
 
-  it('renders official feed enrichment URLs as the full post image frame', () => {
+  it('renders official feed enrichment URLs as the full post image frame and opens the viewer', async () => {
+    const user = userEvent.setup();
     const nasaMediaUrl = 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg';
     const enrichmentPost: Post = {
       ...imagePost,
@@ -72,15 +73,26 @@ describe('PostMediaDisplay image lightbox', () => {
     const feedImage = screen.getByRole('img', { name: /earth glows beyond the blue horizon/i });
     expect(feedImage).toHaveAttribute('src', nasaMediaUrl);
     expect(openButton).toContainElement(feedImage);
+
+    await user.click(openButton);
+
+    const dialog = screen.getByRole('dialog', { name: /full post image/i });
+    expect(within(dialog).getByRole('link', { name: /open original/i })).toHaveAttribute('href', nasaMediaUrl);
+    expect(screen.getByRole('img', { name: /full post image/i })).toHaveAttribute('src', nasaMediaUrl);
   });
-  it('keeps uploaded images out of the gradient-backed hero and preserves contain-fit modal images', () => {
+
+  it('keeps uploaded images out of the gradient-backed hero and portals contain-fit modal images', () => {
     const displaySource = readFileSync(resolve(__dirname, './components/PostMediaDisplay.tsx'), 'utf8');
+    const lightboxSource = readFileSync(resolve(__dirname, './components/PostMediaLightbox.tsx'), 'utf8');
     const lightboxStyles = readFileSync(resolve(__dirname, './components/PostMediaLightbox.styles.ts'), 'utf8');
 
     expect(displaySource).toContain('<ImageMediaButton');
     expect(displaySource).toContain('<HeroArea $bgImage={null} $gradient={gradient} $hasImage={false}>');
     expect(displaySource).not.toContain('$bgImage={heroImage}');
+    expect(lightboxSource).toContain('createPortal(');
+    expect(lightboxSource).toContain('document.body');
+    expect(lightboxStyles).toContain('overflow: auto');
     expect(lightboxStyles).toContain('object-fit: contain');
-    expect(lightboxStyles).toContain('max-height: calc(92vh - 64px);');
+    expect(lightboxStyles).toContain('max-height: calc(92vh - 96px);');
   });
 });

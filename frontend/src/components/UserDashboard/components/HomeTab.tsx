@@ -2,7 +2,7 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { useMemo, useState } from 'react';
+import React, { lazy, Suspense, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
@@ -48,6 +48,7 @@ import {
   type HomeTopBarTarget,
 } from './HomeTabViewModel';
 import { CenterColumn, CreatorPage, CreatorShell, Panel, SupportShell } from './HomeTabVision.styles';
+const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -186,9 +187,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           selectedMediaPreviewUrl={composer.selectedMediaPreviewUrl}
           selectedMediaType={composer.selectedMedia?.type}
           mediaError={composer.mediaError}
-          communityFeed={communityFeed}
           quickStats={quickStats}
-          feedEnrichmentItems={feedEnrichmentItems}
           proofAttached={composer.proofAttached}
           postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}
@@ -245,8 +244,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
       <SupportShell>
         <CenterColumn>
-          {/* Workstream N4: the Product Core Loop on Home — real progress
-              proof from logged workouts, one tap from a shareable post. */}
           <Panel>
             <HomeTabTrainingProof
               proof={trainingProof}
@@ -288,6 +285,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
               )}
             </Panel>
           )}
+          <Suspense fallback={null}>
+            <HomeCommunityFeed feed={communityFeed} enrichmentItems={feedEnrichmentItems} />
+          </Suspense>
         </CenterColumn>
       </SupportShell>
     </CreatorPage>

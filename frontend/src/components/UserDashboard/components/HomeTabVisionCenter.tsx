@@ -3,7 +3,7 @@
  * PURPOSE: Center column for the Claude Design Creator Observatory Home view.
  */
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import {
   ImagePlus,
   Loader2,
@@ -12,8 +12,6 @@ import {
   Video,
 } from 'lucide-react';
 import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
-import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
-import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
@@ -51,9 +49,6 @@ import {
   LensStrip,
 } from './HomeTabVisionHero.styles';
 
-// Lazy: PostCard + comment machinery stay out of Home's initial chunk.
-const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
-
 interface HomeTabVisionCenterProps {
   points: number;
   activeLens: string;
@@ -63,11 +58,7 @@ interface HomeTabVisionCenterProps {
   selectedMediaPreviewUrl?: string | null;
   selectedMediaType?: string;
   mediaError?: string | null;
-  /** O3: the single stateful feed mount (owned by HomeTab) — powers the
-      community stream below the composer. */
-  communityFeed: SocialFeedApi;
   quickStats: QuickStatsTickerStat[];
-  feedEnrichmentItems: FeedEnrichmentItem[];
   /** O3: true while "Share my week" has armed the workout-proof attachment. */
   proofAttached: boolean;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
@@ -95,9 +86,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   selectedMediaPreviewUrl,
   selectedMediaType,
   mediaError,
-  communityFeed,
   quickStats,
-  feedEnrichmentItems,
   proofAttached,
   postIntentPreview,
   latestPost,
@@ -245,18 +234,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
       </Panel>
     </CenterGrid>
 
-    {/* Workstream O2: the REAL scrolling community feed lives on Home now —
-        full PostCard interactions + infinite scroll (the retired Feed tab's
-        single duplicated surface). Replaces the old one-post feed card; the
-        Latest Drop spotlight above still owns the user's own latest media. */}
     <UserDashboardQuickStatsTicker stats={quickStats} />
-
-    <Suspense fallback={null}>
-      <HomeCommunityFeed
-        feed={communityFeed}
-        enrichmentItems={feedEnrichmentItems}
-      />
-    </Suspense>
   </CenterColumn>
 );
 

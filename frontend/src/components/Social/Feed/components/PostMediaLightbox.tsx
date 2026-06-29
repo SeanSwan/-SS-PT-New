@@ -1,9 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ExternalLink, X } from 'lucide-react';
 import {
   CloseButton,
   FullImage,
+  LightboxActions,
   LightboxFrame,
+  LightboxHeader,
+  LightboxOpenLink,
   LightboxOverlay,
 } from './PostMediaLightbox.styles';
 
@@ -34,22 +38,32 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
     };
   }, [onClose, open]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
-    <LightboxOverlay onMouseDown={onClose}>
+  return createPortal(
+    <LightboxOverlay onClick={onClose}>
       <LightboxFrame
         role="dialog"
         aria-modal="true"
         aria-label="Full post image"
-        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
-        <CloseButton ref={closeButtonRef} type="button" aria-label="Close full image" onClick={onClose}>
-          <X size={20} aria-hidden="true" />
-        </CloseButton>
-        <FullImage src={src} alt={`Full post image: ${alt}`} />
+        <LightboxHeader>
+          <span>Image preview</span>
+          <LightboxActions>
+            <LightboxOpenLink href={src} target="_blank" rel="noopener noreferrer">
+              Open original
+              <ExternalLink size={15} aria-hidden="true" />
+            </LightboxOpenLink>
+            <CloseButton ref={closeButtonRef} type="button" aria-label="Close full image" onClick={onClose}>
+              <X size={20} aria-hidden="true" />
+            </CloseButton>
+          </LightboxActions>
+        </LightboxHeader>
+        <FullImage src={src} alt={`Full post image: ${alt}`} loading="eager" decoding="async" />
       </LightboxFrame>
-    </LightboxOverlay>
+    </LightboxOverlay>,
+    document.body,
   );
 };
 
