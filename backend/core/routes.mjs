@@ -858,8 +858,25 @@ export const setupRoutes = async (app) => {
       
       // Fallback error handler for missing frontend
       app.get('*', (req, res) => {
+        const requestPath = req.path || '';
         if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
           return res.status(404).json({ error: 'API endpoint not found' });
+        }
+
+        if (
+          requestPath.includes('robots.txt') ||
+          requestPath.includes('sitemap.xml') ||
+          requestPath.includes('favicon.ico') ||
+          requestPath.includes('.well-known')
+        ) {
+          return res.status(404).send('Resource not found');
+        }
+
+        if (!requestPath.startsWith('/photos/')) {
+          const staticAssetPattern = /\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json|xml|txt)$/i;
+          if (staticAssetPattern.test(requestPath)) {
+            return res.status(404).send('Static asset not found');
+          }
         }
         
         res.status(503).json({
