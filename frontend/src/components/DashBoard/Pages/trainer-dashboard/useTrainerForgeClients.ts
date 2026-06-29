@@ -1,6 +1,6 @@
 /**
  * HOOK: useTrainerForgeClients
- * PURPOSE: Loads the correct Workout Forge client selector data for admins
+ * PURPOSE: Loads the correct Build Plan client selector data for admins
  * and trainers without leaking admin-only roster calls into trainer sessions.
  */
 import { useEffect, useState } from 'react';

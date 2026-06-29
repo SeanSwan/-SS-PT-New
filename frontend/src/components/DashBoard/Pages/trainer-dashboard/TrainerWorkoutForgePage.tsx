@@ -1,10 +1,10 @@
 /**
  * COMPONENT: TrainerWorkoutForgePage
- * PURPOSE: Trainer workout-planning surface that combines manual draft
+ * PURPOSE: Trainer Build Plan surface that combines manual draft
  * creation with the existing Swan Coach workout copilot.
  *
  * CANONICAL ROUTE:
- * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/workout-forge.
+ * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/build-plan.
  *
  * DATA CONTRACTS:
  * - GET role-aware clients for trainer/admin client selector parity.
@@ -132,7 +132,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
         ],
       },
       metadata: {
-        source: 'trainer_workout_forge',
+        source: 'trainer_build_plan',
         equipment,
         optPhaseName: activePhase.name,
         ...TRAINER_SESSION_PLAN_METADATA,
@@ -185,7 +185,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
   if (!clientId) {
     return (
       <PageWrapper>
-        <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
+        <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Build Plan</Title>
         <Card>
           <TrainerWorkoutForgeClientSelect
             label="Select a Client"
@@ -194,14 +194,14 @@ const TrainerWorkoutForgePage: React.FC = () => {
             onChange={handleClientChange}
           />
         </Card>
-        <EmptyState>Select a client to generate a personalized workout plan.</EmptyState>
+        <EmptyState>Select a client to build a personalized workout plan.</EmptyState>
       </PageWrapper>
     );
   }
 
   return (
     <PageWrapper>
-      <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
+      <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Build Plan</Title>
 
       <Card>
         <TrainerWorkoutForgeClientSelect

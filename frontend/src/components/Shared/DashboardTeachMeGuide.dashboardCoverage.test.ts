@@ -28,7 +28,7 @@ describe('DashboardTeachMeGuide mounted dashboard coverage', () => {
       to: '/dashboard/trainer/sprint-planner',
     });
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
+      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/trainer/workout-planner' }),
       expect.objectContaining({ label: 'Client Progress', to: '/dashboard/trainer/client-progress' }),
     ]));
   });

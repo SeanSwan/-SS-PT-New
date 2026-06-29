@@ -1,6 +1,6 @@
 /**
  * COMPONENT: TrainerWorkoutForgeClientSelect
- * PURPOSE: Shared client selector for the trainer Workout Forge route.
+ * PURPOSE: Shared client selector for the trainer Build Plan route.
  * WHY: Keeps the mounted page orchestrator under the project line cap while
  * preserving one accessible selector contract for admin and trainer modes.
  */

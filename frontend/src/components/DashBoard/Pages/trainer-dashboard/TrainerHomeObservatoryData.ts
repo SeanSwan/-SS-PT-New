@@ -71,9 +71,9 @@ export const TRAINER_OBSERVATORY_LENSES: readonly TrainerObservatoryLens[] = [
   },
   {
     id: 'forge',
-    label: 'Forge',
-    detail: 'Build the next workout.',
-    path: '/dashboard/trainer/workout-planner',
+    label: 'Build Plan',
+    detail: 'Create or review the next workout.',
+    path: '/dashboard/trainer/build-plan',
     Icon: Zap,
   },
   {

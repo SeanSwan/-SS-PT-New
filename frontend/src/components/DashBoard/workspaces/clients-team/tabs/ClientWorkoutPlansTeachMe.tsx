@@ -1,7 +1,7 @@
 /**
  * ============================================================================
  * FILE: ClientWorkoutPlansTeachMe.tsx
- * PURPOSE: Opt-in training-plan guidance for the Client Hub Plan Vault.
+ * PURPOSE: Opt-in training-plan guidance for the Client Hub Plan Library.
  * ============================================================================
  *
  * WHAT THIS FILE DOES:
@@ -48,7 +48,7 @@ const ClientWorkoutPlansTeachMe: React.FC = () => (
   <TeachMePlacement>
     <TeachMeToggle
       sectionId="client-workout-plan-vault"
-      title="Plan Vault + off-day logging"
+      title="Plan Library + off-day logging"
       defaultOpen={false}
       content={(
         <TeachMeCopy>

@@ -186,18 +186,18 @@ describe('TrainerWorkoutForgePage workflow', () => {
     await user.type(screen.getByLabelText(/exercise 1 name/i), 'Cable Row');
     await user.click(screen.getByRole('button', { name: /save draft plan/i }));
 
-    const nextActions = await screen.findByRole('region', { name: /workout saved next actions/i });
+    const nextActions = await screen.findByRole('region', { name: /plan saved next actions/i });
     expect(nextActions).toHaveTextContent('Phase 2 Pull Day');
     expect(nextActions).toHaveTextContent('Fixture Client');
 
     await user.click(screen.getByRole('button', { name: /log today/i }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/dashboard/trainer/log-workout?clientId=424242&loadPlan=today&source=workout-forge',
+      '/dashboard/trainer/log-workout?clientId=424242&loadPlan=today&source=build-plan',
     );
 
-    await user.click(screen.getByRole('button', { name: /open planner/i }));
+    await user.click(screen.getByRole('button', { name: /open plan library/i }));
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/dashboard/trainer/workout-planner?clientId=424242&source=workout-forge',
+      '/dashboard/trainer/workout-planner?clientId=424242&source=build-plan',
     );
   });
 });

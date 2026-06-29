@@ -11,9 +11,9 @@ const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Co
 describe('CoachCommandCenterPage plan review route', () => {
   beforeEach(resetCoachCommandCenterMocks);
 
-  it('hydrates a workout-planner review prompt and returns to the planner', async () => {
+  it('hydrates a Build Plan review prompt and returns to Build Plan', async () => {
     const prompt = [
-      'Workout planner generated day review.',
+      'Build Plan generated day review.',
       'Client #42.',
       'Day 2 lower body strength.',
       'Goblet Squat - 3 x 8.',
@@ -26,11 +26,11 @@ describe('CoachCommandCenterPage plan review route', () => {
 
     const composer = composerInput();
     await waitFor(() => {
-      expect((composer as HTMLTextAreaElement).value).toContain('Workout planner generated day review');
+      expect((composer as HTMLTextAreaElement).value).toContain('Build Plan generated day review');
     });
 
-    expect(screen.getAllByText(/Workout planner review context loaded/i).length).toBeGreaterThan(0);
-    expect(await screen.findByRole('link', { name: /back to workout planner/i }))
+    expect(screen.getAllByText(/Build Plan review context loaded/i).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('link', { name: /back to build plan/i }))
       .toHaveAttribute('href', '/dashboard/admin/workout-planner?clientId=42');
 
     fireEvent.change(composer, { target: { value: 'Check if Day 2 is safe to log.' } });
@@ -38,9 +38,9 @@ describe('CoachCommandCenterPage plan review route', () => {
 
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
-        expect.stringContaining('Workout planner generated day review'),
+        expect.stringContaining('Build Plan generated day review'),
         'coach_assistant',
-        'Client #42 workout planner review',
+        'Client #42 Build Plan review',
         42,
         'both',
       );

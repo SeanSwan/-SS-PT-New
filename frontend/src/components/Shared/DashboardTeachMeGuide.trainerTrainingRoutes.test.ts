@@ -2,38 +2,38 @@ import { describe, expect, it } from 'vitest';
 import { getDashboardTeachMeGuide } from './DashboardTeachMeGuide.logic';
 
 describe('DashboardTeachMeGuide trainer training routes', () => {
-  it('teaches Workout Forge as a save-to-logger and planner handoff', () => {
+  it('teaches Build Plan as a save-to-logger and Plan Library handoff', () => {
     const guide = getDashboardTeachMeGuide({
       role: 'trainer',
-      pathname: '/dashboard/trainer/workout-forge',
+      pathname: '/dashboard/trainer/build-plan',
     });
 
-    expect(guide.title).toBe('Trainer workout build flow');
-    expect(guide.summary).toMatch(/Log Today|Open Planner/i);
-    expect(guide.focus).toMatch(/Log Today|Open Planner/i);
-    expect(guide.fastPath.join(' ')).toMatch(/Log Today|Open Planner/i);
+    expect(guide.title).toBe('Trainer Build Plan flow');
+    expect(guide.summary).toMatch(/Log Today|Open Plan Library/i);
+    expect(guide.focus).toMatch(/Log Today|Open Plan Library/i);
+    expect(guide.fastPath.join(' ')).toMatch(/Log Today|Open Plan Library/i);
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Workout Forge', to: '/dashboard/trainer/workout-forge' }),
+      expect.objectContaining({ label: 'Build Plan', to: '/dashboard/trainer/build-plan' }),
       expect.objectContaining({ label: 'Log Today', to: '/dashboard/trainer/clients?intent=log_workout' }),
-      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
+      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/trainer/workout-planner' }),
     ]));
     expect(guide.primaryPrompt).toContain('logger');
   });
 
-  it('keeps trainer workout planner, equipment, and bootcamp on the exact tool they opened', () => {
+  it('keeps trainer Plan Library, equipment, and bootcamp on the exact tool they opened', () => {
     const planner = getDashboardTeachMeGuide({
       role: 'trainer',
       pathname: '/dashboard/trainer/workout-planner',
     });
 
-    expect(planner.title).toBe('Trainer workout planner');
+    expect(planner.title).toBe('Trainer Plan Library');
     expect(planner.primaryAction).toEqual({
-      label: 'Open Workout Planner',
+      label: 'Open Plan Library',
       to: '/dashboard/trainer/workout-planner',
     });
-    expect(planner.primaryPrompt).toContain('workout planner');
+    expect(planner.primaryPrompt).toContain('Plan Library');
     expect(planner.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' }),
+      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/trainer/workout-planner' }),
       expect.objectContaining({ label: 'My Clients', to: '/dashboard/trainer/clients' }),
       expect.objectContaining({ label: 'Equipment', to: '/dashboard/trainer/equipment' }),
     ]));
@@ -68,6 +68,6 @@ describe('DashboardTeachMeGuide trainer training routes', () => {
       expect.objectContaining({ label: 'Schedule', to: '/dashboard/trainer/schedule' }),
       expect.objectContaining({ label: 'Equipment', to: '/dashboard/trainer/equipment' }),
     ]));
-    expect(bootcamp.primaryAction.to).not.toBe('/dashboard/trainer/workout-forge');
+    expect(bootcamp.primaryAction.to).not.toBe('/dashboard/trainer/build-plan');
   });
 });
