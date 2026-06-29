@@ -1,157 +1,225 @@
-/**
- * ============================================================================
- * FILE: useBarcodeCamera.ts
- * PURPOSE: Camera-based barcode detection using native BarcodeDetector API
- *          with barcode-detector WASM polyfill for Safari/iOS
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-31
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Opens the rear camera, continuously scans for barcodes
- * using the native BarcodeDetector API (Chrome/Edge) or WASM polyfill (Safari).
- * Returns the detected barcode string via onDetected callback.
- *
- * HOW IT FITS IN THE APP: FoodTracker/BarcodeScanner → useBarcodeCamera
- */
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import type { IScannerControls } from '@zxing/browser';
+
+export type BarcodeScannerEngine = 'native' | 'zxing';
 
 export interface UseBarcodeCamera {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoRef: RefObject<HTMLVideoElement>;
   isScanning: boolean;
   startCamera: () => Promise<void>;
   stopCamera: () => void;
   cameraError: string | null;
   supported: boolean;
+  scannerEngine: BarcodeScannerEngine | null;
 }
 
-let polyfillLoaded = false;
+type DetectedBarcodeLike = {
+  rawValue?: string;
+};
 
-async function ensureBarcodeDetector(): Promise<boolean> {
-  if (typeof globalThis.BarcodeDetector !== 'undefined') return true;
-  if (polyfillLoaded) return typeof globalThis.BarcodeDetector !== 'undefined';
+type BarcodeDetectorLike = {
+  detect: (source: HTMLVideoElement) => Promise<DetectedBarcodeLike[]>;
+};
 
-  try {
-    const { BarcodeDetector } = await import('barcode-detector');
-    globalThis.BarcodeDetector = BarcodeDetector as unknown as typeof globalThis.BarcodeDetector;
-    polyfillLoaded = true;
-    return true;
-  } catch {
-    return false;
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
+
+type GlobalBarcodeDetector = typeof globalThis & {
+  BarcodeDetector?: BarcodeDetectorConstructor;
+};
+
+const BARCODE_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'];
+
+const CAMERA_CONSTRAINTS: MediaStreamConstraints = {
+  video: {
+    facingMode: { ideal: 'environment' },
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+  },
+  audio: false,
+};
+
+const hasCameraSupport = () =>
+  typeof navigator !== 'undefined'
+  && Boolean(navigator.mediaDevices?.getUserMedia);
+
+const getNativeBarcodeDetector = () =>
+  (globalThis as GlobalBarcodeDetector).BarcodeDetector;
+
+const isPermissionError = (error: unknown) => {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'NotAllowedError'
+    || error.name === 'PermissionDeniedError'
+    || error.message.includes('Permission denied')
+    || error.message.includes('NotAllowed');
+};
+
+const cameraErrorCopy = (error: unknown) => {
+  if (isPermissionError(error)) {
+    return 'Camera permission denied. Allow camera access and try again, or enter the barcode manually.';
   }
-}
+
+  return 'Camera scanning is unavailable on this device. Enter the barcode manually.';
+};
 
 export function useBarcodeCamera(
   onDetected: (barcode: string) => void,
 ): UseBarcodeCamera {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const detectorRef = useRef<BarcodeDetector | null>(null);
+  const detectorRef = useRef<BarcodeDetectorLike | null>(null);
+  const zxingControlsRef = useRef<IScannerControls | null>(null);
   const rafRef = useRef<number>(0);
   const lastDetectedRef = useRef<string>('');
 
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [supported, setSupported] = useState(true);
+  const [scannerEngine, setScannerEngine] = useState<BarcodeScannerEngine | null>(null);
 
-  // Check support on mount
   useEffect(() => {
-    const hasCamera = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
-    if (!hasCamera) setSupported(false);
+    if (!hasCameraSupport()) {
+      setSupported(false);
+    }
   }, []);
 
+  const emitDetected = useCallback((barcode: string | undefined) => {
+    const code = barcode?.trim();
+    if (!code || code === lastDetectedRef.current) return;
+
+    lastDetectedRef.current = code;
+    onDetected(code);
+  }, [onDetected]);
+
   const stopCamera = useCallback(() => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = 0;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
+
+    if (zxingControlsRef.current) {
+      zxingControlsRef.current.stop();
+      zxingControlsRef.current = null;
+    }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-    setIsScanning(false);
+
+    detectorRef.current = null;
     lastDetectedRef.current = '';
+    setIsScanning(false);
+    setScannerEngine(null);
   }, []);
 
-  const scanFrame = useCallback(() => {
+  const scanNativeFrame = useCallback(() => {
     const video = videoRef.current;
     const detector = detectorRef.current;
-    if (!video || !detector || video.readyState < 2) {
-      rafRef.current = requestAnimationFrame(scanFrame);
+
+    if (!video || !detector || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      rafRef.current = requestAnimationFrame(scanNativeFrame);
       return;
     }
 
     detector
       .detect(video)
-      .then((barcodes: DetectedBarcode[]) => {
-        if (barcodes.length > 0) {
-          const code = barcodes[0].rawValue;
-          // Debounce: don't fire same code twice in a row
-          if (code && code !== lastDetectedRef.current) {
-            lastDetectedRef.current = code;
-            onDetected(code);
-          }
-        }
+      .then((barcodes) => {
+        emitDetected(barcodes[0]?.rawValue);
         if (streamRef.current) {
-          rafRef.current = requestAnimationFrame(scanFrame);
+          rafRef.current = requestAnimationFrame(scanNativeFrame);
         }
       })
       .catch(() => {
-        // Detection failed for this frame — keep scanning
         if (streamRef.current) {
-          rafRef.current = requestAnimationFrame(scanFrame);
+          rafRef.current = requestAnimationFrame(scanNativeFrame);
         }
       });
-  }, [onDetected]);
+  }, [emitDetected]);
 
-  const startCamera = useCallback(async () => {
-    setCameraError(null);
-
-    const ok = await ensureBarcodeDetector();
-    if (!ok) {
-      setCameraError('Barcode detection not supported on this device');
-      setSupported(false);
-      return;
+  const waitForPreviewElement = useCallback(async () => {
+    for (let index = 0; index < 5; index += 1) {
+      if (videoRef.current) return videoRef.current;
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
-    try {
-      detectorRef.current = new globalThis.BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'],
-      });
-    } catch {
-      setCameraError('Failed to initialize barcode detector');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      setIsScanning(true);
-      rafRef.current = requestAnimationFrame(scanFrame);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Camera access denied';
-      setCameraError(msg.includes('NotAllowed') ? 'Camera permission denied — allow camera access and try again' : msg);
-    }
-  }, [scanFrame]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
+    return videoRef.current;
   }, []);
 
-  return { videoRef, isScanning, startCamera, stopCamera, cameraError, supported };
+  const startNativeScanner = useCallback(async (preview: HTMLVideoElement | null) => {
+    const BarcodeDetector = getNativeBarcodeDetector();
+    if (!BarcodeDetector || !preview) return false;
+
+    try {
+      detectorRef.current = new BarcodeDetector({ formats: BARCODE_FORMATS });
+    } catch {
+      detectorRef.current = null;
+      return false;
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia(CAMERA_CONSTRAINTS);
+    streamRef.current = stream;
+    preview.srcObject = stream;
+    await preview.play();
+
+    setScannerEngine('native');
+    rafRef.current = requestAnimationFrame(scanNativeFrame);
+    return true;
+  }, [scanNativeFrame]);
+
+  const startZxingScanner = useCallback(async (preview: HTMLVideoElement | null) => {
+    const { BrowserMultiFormatReader } = await import('@zxing/browser');
+    const reader = new BrowserMultiFormatReader();
+
+    const controls = await reader.decodeFromConstraints(
+      CAMERA_CONSTRAINTS,
+      preview ?? undefined,
+      (result) => {
+        emitDetected(result?.getText());
+      },
+    );
+
+    zxingControlsRef.current = controls;
+    setScannerEngine('zxing');
+  }, [emitDetected]);
+
+  const startCamera = useCallback(async () => {
+    stopCamera();
+    setCameraError(null);
+
+    if (!hasCameraSupport()) {
+      setSupported(false);
+      setCameraError('Camera access is not available in this browser. Enter the barcode manually.');
+      return;
+    }
+
+    setSupported(true);
+    setIsScanning(true);
+
+    try {
+      const preview = await waitForPreviewElement();
+      const nativeStarted = await startNativeScanner(preview);
+      if (!nativeStarted) {
+        await startZxingScanner(preview);
+      }
+    } catch (error) {
+      stopCamera();
+      setCameraError(cameraErrorCopy(error));
+    }
+  }, [startNativeScanner, startZxingScanner, stopCamera, waitForPreviewElement]);
+
+  useEffect(() => stopCamera, [stopCamera]);
+
+  return {
+    videoRef,
+    isScanning,
+    startCamera,
+    stopCamera,
+    cameraError,
+    supported,
+    scannerEngine,
+  };
 }

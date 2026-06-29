@@ -639,7 +639,7 @@ const EnhancedNotificationSection: React.FC = () => {
     (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
       dispatch(removeNotification(id));
-      api.delete(`/notifications/${id}`).catch(() => {});
+      api.delete(`/api/notifications/${id}`).catch(() => {});
     },
     [dispatch]
   );

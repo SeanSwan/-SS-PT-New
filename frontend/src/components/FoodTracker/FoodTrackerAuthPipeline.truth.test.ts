@@ -41,6 +41,7 @@ describe('mounted FoodTracker auth pipeline', () => {
     expect(gardeningRoutesSource).toContain("router.get('/zone/:zipCode'");
     expect(gardeningRoutesSource).toContain("router.get('/plants'");
     expect(farmRoutesSource).toContain("router.get('/search'");
+    expect(farmRoutesSource).toContain("router.get('/nearby'");
     expect(farmRoutesSource).toContain("router.get('/detail/:id'");
     expect(freeRoutesSource).toContain("router.get('/nutrition'");
     expect(freeRoutesSource).toContain("router.get('/food-search'");
@@ -89,6 +90,7 @@ describe('mounted FoodTracker auth pipeline', () => {
 
     expect(farmFinderSource).toContain("import apiService from '../../services/api.service'");
     expect(farmFinderSource).toContain('apiService.get(`/api/farms/search?zip=${zipCode}`)');
+    expect(farmFinderSource).toContain('apiService.get(`/api/farms/nearby?lat=${position.coords.latitude}&lng=${position.coords.longitude}`)');
     expect(farmFinderSource).toContain('apiService.get(`/api/farms/detail/${marketId}`)');
 
     expect(intelligenceSource).toContain("import apiService from '../../services/api.service'");
@@ -161,6 +163,11 @@ describe('mounted FoodTracker auth pipeline', () => {
       'frontend/src/components/FoodTracker/RestaurantTab.tsx',
       'frontend/src/components/FoodTracker/RestaurantTab.logic.ts',
       'frontend/src/components/FoodTracker/RestaurantTab.styles.ts',
+      'frontend/src/components/FoodTracker/FarmFinderTab.tsx',
+      'frontend/src/components/FoodTracker/FarmFinderTab.styles.ts',
+      'frontend/src/components/FoodTracker/GardeningTab.tsx',
+      'frontend/src/components/FoodTracker/GardeningTab.styles.ts',
+      'frontend/src/components/FoodTracker/LocalFoodActionPanel.tsx',
     ];
 
     for (const file of sourceFiles) {

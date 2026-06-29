@@ -293,7 +293,6 @@ const LOG_PRODUCT_ERROR_COPY = 'Could not log that product right now.';
 
 // Main component
 const FoodScannerPage: React.FC = () => {
-  const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState<'scan' | 'history'>('scan');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -349,26 +348,15 @@ const FoodScannerPage: React.FC = () => {
       
       if (response.data && response.data.success) {
         setScannedProduct(response.data.product);
-        // Stop scanning after successful scan
-        setIsScanning(false);
       } else {
         setError(SCAN_ERROR_COPY);
-        // Continue scanning if there was an error
-        setIsScanning(true);
       }
     } catch (error: any) {
       console.error('Error processing barcode:', error);
       setError(SCAN_ERROR_COPY);
-      // Continue scanning if there was an error
-      setIsScanning(true);
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Handle toggle scanning
-  const handleScanToggle = () => {
-    setIsScanning(prev => !prev);
   };
   
   // Handle tab change
@@ -378,7 +366,6 @@ const FoodScannerPage: React.FC = () => {
     // Clear any scan results when switching to history tab
     if (tab === 'history') {
       setScannedProduct(null);
-      setIsScanning(false);
     }
   };
   
@@ -552,7 +539,7 @@ const FoodScannerPage: React.FC = () => {
                       <Step>
                         <StepNumber>1</StepNumber>
                         <StepContent>
-                          Click "Start Scanner" to activate your device's camera
+                          Tap "Scan with Camera" to activate your device's camera
                         </StepContent>
                       </Step>
                       <Step>
@@ -591,10 +578,9 @@ const FoodScannerPage: React.FC = () => {
               ) : (
                 <>
                   {!scannedProduct ? (
-                    <BarcodeScanner 
+                    <BarcodeScanner
                       onDetected={handleBarcodeDetected}
-                      isScanning={isScanning}
-                      onScanToggle={handleScanToggle}
+                      disabled={loading}
                     />
                   ) : (
                     <ScanResultsContainer
@@ -616,7 +602,6 @@ const FoodScannerPage: React.FC = () => {
                         <button
                           onClick={() => {
                             setScannedProduct(null);
-                            setIsScanning(false);
                           }}
                           style={{
                             background: 'rgba(60, 60, 100, 0.5)',
@@ -710,7 +695,7 @@ const FoodScannerPage: React.FC = () => {
                         {foodScannerRatingLabel(scan.product.overallRating)}
                       </ScanHistoryRating>
                       {scan.isFavorite && (
-                        <div style={{ color: '#ffc107', fontSize: '1.2rem' }}>★</div>
+                        <div style={{ color: '#ffc107', fontSize: '1.2rem' }}>&#9733;</div>
                       )}
                     </ScanHistoryItem>
                   ))}

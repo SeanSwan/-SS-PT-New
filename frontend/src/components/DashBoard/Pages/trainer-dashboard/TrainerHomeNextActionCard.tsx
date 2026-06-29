@@ -11,7 +11,7 @@ import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
-  buildTrainerSessionPlannerRoute,
+  buildTrainerSessionBuildPlanRoute,
   getClientName,
   getSessionClientId,
   getSessionStartDate,
@@ -90,7 +90,7 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
           <NextActionKicker>Build the day</NextActionKicker>
           <NextActionTitle>Start with a workout log</NextActionTitle>
           <NextActionMeta>
-            Pick a client to log now, ask Coach for triage, or plan the next opening.
+            Pick a client to log now, ask Coach for triage, or build the next plan.
           </NextActionMeta>
         </NextActionCopy>
 
@@ -130,10 +130,10 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
   const clientName = getClientName(session);
   const coachRoute = buildTrainerSessionCoachRoute(session);
   const logRoute = buildTrainerSessionLogRoute(session);
-  const plannerRoute = buildTrainerSessionPlannerRoute(session);
+  const buildPlanRoute = buildTrainerSessionBuildPlanRoute(session);
   const progressRoute = buildTrainerSessionProgressRoute(session);
 
-  if (!coachRoute && !logRoute && !plannerRoute && !progressRoute) return null;
+  if (!coachRoute && !logRoute && !buildPlanRoute && !progressRoute) return null;
 
   return (
     <NextActionCard aria-label="Next trainer action" role="region">
@@ -141,7 +141,7 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
         <NextActionKicker>Next client</NextActionKicker>
         <NextActionTitle>{clientName}</NextActionTitle>
         <NextActionMeta>
-          {formatSessionTime(session)} - coach, plan, log, then check progress from here.
+          {formatSessionTime(session)} - coach, build, log, then check progress from here.
         </NextActionMeta>
       </NextActionCopy>
 
@@ -159,14 +159,14 @@ const TrainerHomeNextActionCard: React.FC<TrainerHomeNextActionCardProps> = ({
             Coach
           </NextActionButton>
         )}
-        {plannerRoute && (
+        {buildPlanRoute && (
           <NextActionButton
             type="button"
-            onClick={() => onNavigate(plannerRoute)}
-            aria-label={`Plan next session for ${clientName}`}
+            onClick={() => onNavigate(buildPlanRoute)}
+            aria-label={`Build plan from next action for ${clientName}`}
           >
             <ClipboardList size={16} aria-hidden="true" />
-            Plan
+            Build
           </NextActionButton>
         )}
         {logRoute && (

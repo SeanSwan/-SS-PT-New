@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
-  buildTrainerSessionPlannerRoute,
+  buildTrainerSessionBuildPlanRoute,
   getNextActionableTrainerSession,
   getSessionClientId,
   getSessionEndDate,
@@ -97,12 +97,12 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
   });
 
-  it('builds a trainer planner route with scoped client and booked-session context', () => {
-    const route = buildTrainerSessionPlannerRoute(apiSession);
+  it('builds a trainer Build Plan route with scoped client and booked-session context', () => {
+    const route = buildTrainerSessionBuildPlanRoute(apiSession);
     expect(route).not.toBeNull();
 
     const url = new URL(route ?? '', 'https://sswanstudios.test');
-    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
+    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
     expect(url.searchParams.get('clientId')).toBe('42');
     expect(url.searchParams.get('sessionId')).toBe('88');
     expect(url.searchParams.get('sessionDate')).toBe('2026-05-31T16:00:00.000Z');

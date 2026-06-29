@@ -173,6 +173,7 @@ import clientOnboardRoutes from '../routes/clientOnboardRoutes.mjs';
 import clientDataRoutes from '../routes/clientDataRoutes.mjs';
 import recommendationRoutes from '../routes/recommendationRoutes.mjs';
 import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
+import foodScannerExplainRoutes from '../routes/foodScannerExplainRoutes.mjs';
 import adminDashboardRoutes from '../routes/dashboard/adminDashboardRoutes.mjs';
 import sharedDashboardRoutes from '../routes/dashboard/sharedDashboardRoutes.mjs';
 import clientDashboardRoutes from '../routes/clientDashboardRoutes.mjs';
@@ -358,6 +359,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/orientation', orientationRoutes);
   app.use('/api/movement-analysis', movementAnalysisRoutes);
   app.use('/api/recommendations', recommendationRoutes);
+  app.use('/api/food-scanner', foodScannerExplainRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);
   app.use('/api/measurements', bodyMeasurementRoutes);
   app.use('/api/wearable-data', wearableDataRoutes);

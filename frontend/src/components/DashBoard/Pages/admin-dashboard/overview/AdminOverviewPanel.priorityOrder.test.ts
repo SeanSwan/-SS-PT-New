@@ -7,18 +7,54 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const source = readFileSync(resolve(__dirname, './AdminOverviewPanel.tsx'), 'utf8');
+const signalSource = readFileSync(resolve(__dirname, './AdminSignalBar.tsx'), 'utf8');
+
+const indexOfRequired = (needle: string) => {
+  const index = source.indexOf(needle);
+  expect(index, `${needle} should be mounted in AdminOverviewPanel`).toBeGreaterThanOrEqual(0);
+  return index;
+};
 
 describe('AdminOverviewPanel action priority', () => {
-  it('puts Quick Actions before passive telemetry on the admin first screen', () => {
-    const quickActionsIndex = source.indexOf('<BentoFull><AdminQuickActions actions={quickActions} /></BentoFull>');
-    const assistantIndex = source.indexOf('<AITerminalPanel');
-    const metricsIndex = source.indexOf('<AdminOverviewMetrics');
+  it('puts signal, commands, and mission queues before passive business analytics', () => {
+    const signalIndex = indexOfRequired('<BentoFull><AdminSignalBar /></BentoFull>');
+    const quickActionsIndex = indexOfRequired('<BentoFull><AdminQuickActions actions={quickActions} /></BentoFull>');
+    const assistantIndex = indexOfRequired('<AITerminalPanel');
+    const missionIndex = indexOfRequired('id="admin-mission-critical"');
+    const platformIndex = indexOfRequired('id="admin-platform-pulse"');
+    const operationsIndex = indexOfRequired('id="admin-operations"');
+    const communityIndex = indexOfRequired('id="admin-community-safety"');
+    const businessIndex = indexOfRequired('id="admin-business-lens"');
+    const telemetryIndex = indexOfRequired('id="admin-deep-telemetry"');
 
-    expect(quickActionsIndex).toBeGreaterThanOrEqual(0);
-    expect(assistantIndex).toBeGreaterThanOrEqual(0);
-    expect(metricsIndex).toBeGreaterThanOrEqual(0);
+    expect(signalIndex).toBeLessThan(quickActionsIndex);
     expect(quickActionsIndex).toBeLessThan(assistantIndex);
-    expect(quickActionsIndex).toBeLessThan(metricsIndex);
+    expect(assistantIndex).toBeLessThan(missionIndex);
+    expect(missionIndex).toBeLessThan(platformIndex);
+    expect(platformIndex).toBeLessThan(operationsIndex);
+    expect(operationsIndex).toBeLessThan(communityIndex);
+    expect(communityIndex).toBeLessThan(businessIndex);
+    expect(businessIndex).toBeLessThan(telemetryIndex);
+  });
+
+  it('promotes operational intelligence out of the old collapsed telemetry details block', () => {
+    expect(source).not.toContain('TelemetryDetails');
+    expect(source).not.toContain('TelemetryGrid');
+    expect(source).not.toContain('<details');
+    expect(source).not.toContain('Access Deep Telemetry');
+    expect(source.indexOf('<BentoThird><SocialOverviewWidget /></BentoThird>')).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf('<BentoHalf><UpcomingChecksWidget /></BentoHalf>')).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf('<BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>')).toBeGreaterThanOrEqual(0);
+  });
+
+  it('keeps signal shortcuts honest and wired to visible sections', () => {
+    expect(signalSource).toContain("Counts stay inside the live widgets");
+    expect(signalSource).not.toContain('0');
+    expect(signalSource).not.toContain('99');
+    expect(signalSource).toContain("href: '#admin-mission-critical'");
+    expect(signalSource).toContain("href: '#admin-platform-pulse'");
+    expect(signalSource).toContain("href: '#admin-community-safety'");
+    expect(signalSource).toContain("href: '#admin-business-lens'");
   });
 
   it('seeds the admin assistant with one-tap operator prompts', () => {

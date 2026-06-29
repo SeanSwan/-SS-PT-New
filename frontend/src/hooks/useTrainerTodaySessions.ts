@@ -159,7 +159,7 @@ export function buildTrainerSessionCoachRoute(
   return `/dashboard/trainer/coach-assistant?${params.toString()}`;
 }
 
-export function buildTrainerSessionPlannerRoute(
+export function buildTrainerSessionBuildPlanRoute(
   session: TrainerSession,
   returnTo = '/dashboard/trainer/overview',
 ): string | null {
@@ -178,7 +178,7 @@ export function buildTrainerSessionPlannerRoute(
   const start = getSessionStartDate(session);
   if (start) params.set('sessionDate', start.toISOString());
 
-  return `/dashboard/trainer/workout-planner?${params.toString()}`;
+  return `/dashboard/trainer/build-plan?${params.toString()}`;
 }
 
 const isClosedTrainerSession = (session: TrainerSession): boolean =>
