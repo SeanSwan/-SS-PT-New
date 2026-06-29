@@ -43,22 +43,71 @@ export const filterClients = (clients: Client[], query: string): Client[] => {
   return clients.filter((client) => client.name.toLowerCase().includes(normalizedQuery));
 };
 
+const toFiniteMeasurementNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getMeasurementTimestamp = (value: unknown): number | null => {
+  if (typeof value !== 'string' && !(value instanceof Date)) return null;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const compareByMeasurementDate = (
+  a: { measurement: RecentMeasurement; index: number },
+  b: { measurement: RecentMeasurement; index: number },
+): number => {
+  const aTime = getMeasurementTimestamp(a.measurement.measurementDate);
+  const bTime = getMeasurementTimestamp(b.measurement.measurementDate);
+
+  if (aTime === null && bTime === null) return a.index - b.index;
+  if (aTime === null) return 1;
+  if (bTime === null) return -1;
+  return aTime - bTime || a.index - b.index;
+};
+
+const formatMeasurementDateLabel = (value: unknown, index: number): string => {
+  const timestamp = getMeasurementTimestamp(value);
+  return timestamp === null
+    ? `Entry ${index + 1}`
+    : new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+const hasTrendValue = (datum: Pick<TrendDatum, 'weight' | 'bodyFat' | 'waist'>): boolean => (
+  datum.weight !== null || datum.bodyFat !== null || datum.waist !== null
+);
+
 export const buildTrendData = (recentMeasurements: RecentMeasurement[]): TrendDatum[] => {
   if (recentMeasurements.length < 2) return [];
-  return [...recentMeasurements]
-    .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime())
-    .map((measurement) => ({
-      date: new Date(measurement.measurementDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      weight: measurement.weight || null,
-      bodyFat: measurement.bodyFatPercentage || null,
-      waist: measurement.naturalWaist || null,
+  const trendData = recentMeasurements
+    .map((measurement, index) => ({ measurement, index }))
+    .sort(compareByMeasurementDate)
+    .map(({ measurement }) => ({
+      measurement,
+      weight: toFiniteMeasurementNumber(measurement.weight),
+      bodyFat: toFiniteMeasurementNumber(measurement.bodyFatPercentage),
+      waist: toFiniteMeasurementNumber(measurement.naturalWaist),
+    }))
+    .filter(hasTrendValue)
+    .map(({ measurement, weight, bodyFat, waist }, index) => ({
+      date: formatMeasurementDateLabel(measurement.measurementDate, index),
+      weight,
+      bodyFat,
+      waist,
     }));
+
+  return trendData.length >= 2 ? trendData : [];
 };
 
 export const buildRadarData = (recentMeasurements: RecentMeasurement[]): RadarDatum[] => {
   if (recentMeasurements.length < 2) return [];
-  const sorted = [...recentMeasurements]
-    .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime());
+  const sorted = recentMeasurements
+    .map((measurement, index) => ({ measurement, index }))
+    .sort(compareByMeasurementDate)
+    .map(({ measurement }) => measurement);
   const first = sorted[0];
   const latest = sorted[sorted.length - 1];
   const fields: readonly RadarMeasurementKey[] = [
@@ -75,8 +124,8 @@ export const buildRadarData = (recentMeasurements: RecentMeasurement[]): RadarDa
   return fields
     .map((field) => ({
       metric: RADAR_LABEL_MAP[field],
-      first: first[field] || 0,
-      current: latest[field] || 0,
+      first: toFiniteMeasurementNumber(first[field]) ?? 0,
+      current: toFiniteMeasurementNumber(latest[field]) ?? 0,
     }))
     .filter((datum) => datum.first > 0 || datum.current > 0);
 };
