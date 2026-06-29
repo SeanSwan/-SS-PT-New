@@ -119,63 +119,6 @@ export const BentoThird = styled.div`
   }
 `;
 
-export const TelemetryDetails = styled.details`
-  grid-column: 1 / -1;
-  margin-top: 8px;
-  ${bentoItemAnimation}
-
-  &[open] > summary {
-    margin-bottom: 20px;
-  }
-
-  & > summary {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    font-family: 'Sora', sans-serif;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--accent-secondary, #8B5CF6);
-    cursor: pointer;
-    padding: 12px 24px;
-    min-height: 44px;
-    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
-    border-radius: 44px;
-    transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
-    list-style: none;
-    user-select: none;
-
-    &::-webkit-details-marker { display: none; }
-    &::marker { display: none; }
-
-    &:hover {
-      background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent);
-      border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--accent-secondary, #8B5CF6);
-      outline-offset: 4px;
-    }
-  }
-`;
-
-export const TelemetryGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-
-  @media (min-width: 1280px) {
-    grid-template-columns: repeat(6, 1fr);
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-`;
-
 export const ControlsHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -194,6 +137,7 @@ export const ControlsHeader = styled.div`
 
 export const ControlsInner = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
 `;
