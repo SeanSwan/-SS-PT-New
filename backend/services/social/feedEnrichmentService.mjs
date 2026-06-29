@@ -28,6 +28,7 @@ const allowedSources = new Set([
   'nasa-images',
   'smithsonian',
   'nps',
+  'wikimedia-commons',
   'swan-curated',
 ]);
 

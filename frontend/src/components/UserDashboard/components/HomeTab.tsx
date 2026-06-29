@@ -70,7 +70,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
   const communityFeed = useSocialFeed();
-  const { items: feedEnrichmentItems } = useFeedEnrichment({ limit: 5 });
+  const { items: feedEnrichmentItems } = useFeedEnrichment({ limit: 8 });
   const notificationSummary = useNotificationSummary();
   // Messaging is elite-gated server-side — free tiers never poll it (402 by design).
   const messageSummary = useMessageSummary({

@@ -163,6 +163,24 @@ export const EndOfFeed = styled.p`
   font: 700 0.78rem/1.45 var(--font-ui, 'Sora', sans-serif);
   text-align: center;
 `;
+
+export const FeedEnrichmentSourceBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  margin: -0.35rem 16px 16px;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-base, #030712) 38%, transparent);
+
+  @media (min-width: 768px) {
+    margin: -0.35rem 20px 20px;
+  }
+`;
 export const FeedEnrichmentStack = styled.div`
   display: grid;
   gap: 0.8rem;

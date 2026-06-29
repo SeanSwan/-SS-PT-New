@@ -24,11 +24,43 @@ const makeFetchJson = () => vi.fn(async (url) => {
             date_created: '2026-06-28T00:00:00Z',
           }],
           links: [{ href: 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg', render: 'image' }],
+        }, {
+          href: 'https://images-api.nasa.gov/asset/GSFC_20260629',
+          data: [{
+            nasa_id: 'GSFC_20260629',
+            title: 'A star field over a quiet nebula',
+            description_508: 'A deep space field with blue stars and luminous dust.',
+            date_created: '2026-06-29T00:00:00Z',
+          }],
+          links: [{ href: 'https://images-assets.nasa.gov/image/GSFC_20260629/GSFC_20260629~thumb.jpg', render: 'image' }],
         }],
       },
     };
   }
 
+  if (url.includes('commons.wikimedia.org/w/api.php')) {
+    return {
+      query: {
+        pages: {
+          101: {
+            pageid: 101,
+            title: 'File:Blue bird on branch.jpg',
+            imageinfo: [{
+              thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bird/blue-bird.jpg/1200px-blue-bird.jpg',
+              descriptionurl: 'https://commons.wikimedia.org/wiki/File:Blue_bird_on_branch.jpg',
+              timestamp: '2026-06-26T00:00:00Z',
+              extmetadata: {
+                ObjectName: { value: 'Blue bird on branch' },
+                ImageDescription: { value: '<p>A bright bird resting on a flowering branch.</p>' },
+                Artist: { value: 'Open nature photographer' },
+                LicenseShortName: { value: 'CC BY-SA 4.0' },
+              },
+            }],
+          },
+        },
+      },
+    };
+  }
   if (url.includes('api.si.edu/openaccess')) {
     return {
       response: {
@@ -107,11 +139,12 @@ describe('social feed enrichment API contract', () => {
 
     expect(first.cacheStatus).toBe('miss');
     expect(second.cacheStatus).toBe('hit');
-    expect(fetchJson).toHaveBeenCalledTimes(3);
+    expect(fetchJson).toHaveBeenCalledTimes(4);
     expect(first.items.map((item) => item.source)).toEqual(expect.arrayContaining([
       'nasa-images',
       'smithsonian',
       'nps',
+      'wikimedia-commons',
     ]));
     expect(first.items.every((item) => item.kind === 'enrichment')).toBe(true);
     expect(first.items[0]).toMatchObject({
@@ -131,9 +164,14 @@ describe('social feed enrichment API contract', () => {
       limit: 4,
     });
 
-    expect(fetchJson).toHaveBeenCalledTimes(1);
+    expect(fetchJson).toHaveBeenCalledTimes(2);
     expect(fetchJson.mock.calls[0][0]).toContain('images-api.nasa.gov/search');
-    expect(result.items.map((item) => item.source)).toContain('nasa-images');
+    expect(fetchJson.mock.calls[1][0]).toContain('commons.wikimedia.org/w/api.php');
+    expect(result.items.map((item) => item.source)).toEqual(expect.arrayContaining([
+      'nasa-images',
+      'wikimedia-commons',
+    ]));
+    expect(result.items.filter((item) => item.mediaType === 'image' && item.mediaUrl).length).toBeGreaterThanOrEqual(2);
     expect(result.items.map((item) => item.source)).not.toContain('quotable');
     expect(result.items.map((item) => item.source)).not.toContain('inaturalist');
   });

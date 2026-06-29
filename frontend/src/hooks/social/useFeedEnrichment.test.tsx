@@ -35,12 +35,23 @@ describe('useFeedEnrichment', () => {
   });
 
   it('loads safe feed enrichment through the authenticated backend route', async () => {
-    mocks.authAxios.get.mockResolvedValue({ data: { items: [apiItem] } });
+    mocks.authAxios.get.mockResolvedValue({ data: { items: [
+      apiItem,
+      {
+        ...apiItem,
+        id: 'wikimedia-commons-blue-bird',
+        source: 'wikimedia-commons',
+        category: 'nature',
+        title: 'Blue bird on branch',
+        mediaUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bird/blue-bird.jpg/1200px-blue-bird.jpg',
+        url: 'https://commons.wikimedia.org/wiki/File:Blue_bird_on_branch.jpg',
+      },
+    ] } });
 
     const { result } = renderHook(() => useFeedEnrichment({ limit: 3 }));
 
     await waitFor(() => {
-      expect(result.current.items).toHaveLength(1);
+      expect(result.current.items).toHaveLength(2);
     });
 
     expect(mocks.authAxios.get).toHaveBeenCalledWith('/api/social/feed-enrichment?limit=3');
@@ -49,6 +60,11 @@ describe('useFeedEnrichment', () => {
       kind: 'enrichment',
       source: 'nasa-images',
       title: apiItem.title,
+    });
+    expect(result.current.items[1]).toMatchObject({
+      id: 'wikimedia-commons-blue-bird',
+      source: 'wikimedia-commons',
+      category: 'nature',
     });
     expect(result.current.error).toBeNull();
   });

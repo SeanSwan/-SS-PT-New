@@ -10,6 +10,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink, Users } from 'lucide-react';
 import PostCard from '../../Social/Feed/PostCard';
+import type { Post } from '../../Social/Feed/types/PostCardTypes';
 import { EmptyFeedWelcome } from '../../Social/Feed/components/SocialFeedPanels';
 import { InfiniteScrollSentinel, Spinner } from '../../Social/Feed/styles/SocialFeedStyles';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
@@ -19,16 +20,10 @@ import {
   CenteredRow,
   EndOfFeed,
   ErrorCopy,
-  FeedEnrichmentCard,
-  FeedEnrichmentCopy,
-  FeedEnrichmentLabel,
   FeedEnrichmentLink,
-  FeedEnrichmentMediaImage,
-  FeedEnrichmentMediaVideo,
   FeedEnrichmentMeta,
+  FeedEnrichmentSourceBar,
   FeedEnrichmentStack,
-  FeedEnrichmentSummary,
-  FeedEnrichmentTitle,
   FeedHint,
   FeedSection,
   FeedSignalCopy,
@@ -60,6 +55,7 @@ const sourceLabels: Record<FeedEnrichmentItem['source'], string> = {
   'nasa-images': 'NASA Image Library',
   smithsonian: 'Smithsonian Open Access',
   nps: 'National Park Service',
+  'wikimedia-commons': 'Wikimedia Commons',
   'swan-curated': 'Swan Cue',
 };
 
@@ -126,28 +122,66 @@ const FeedEmptyState = ({
   />
 );
 
-const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
-  <FeedEnrichmentCard aria-label={`Swan Signal ${item.title}`}>
-    <FeedEnrichmentCopy>
-      <FeedEnrichmentLabel>Swan Signal</FeedEnrichmentLabel>
-      <FeedEnrichmentMeta>{sourceLabels[item.source]} / {item.category}</FeedEnrichmentMeta>
-      <FeedEnrichmentTitle>{item.title}</FeedEnrichmentTitle>
-      <FeedEnrichmentSummary>{item.summary}</FeedEnrichmentSummary>
-      {item.url && (
-        <FeedEnrichmentLink href={item.url} target="_blank" rel="noopener noreferrer">
-          Open source
-          <ExternalLink size={14} aria-hidden="true" />
-        </FeedEnrichmentLink>
-      )}
-    </FeedEnrichmentCopy>
-    {item.mediaUrl && item.mediaType === 'video' && (
-      <FeedEnrichmentMediaVideo src={item.mediaUrl} muted playsInline controls preload="metadata" />
+const sourceProfiles: Record<FeedEnrichmentItem['source'], Pick<Post['user'], 'firstName' | 'lastName' | 'username'>> = {
+  'nasa-images': { firstName: 'NASA', lastName: 'Image Library', username: 'nasa-images' },
+  smithsonian: { firstName: 'Smithsonian', lastName: 'Open Access', username: 'smithsonian-open-access' },
+  nps: { firstName: 'National Park', lastName: 'Service', username: 'national-park-service' },
+  'wikimedia-commons': { firstName: 'Wikimedia', lastName: 'Commons', username: 'wikimedia-commons' },
+  'swan-curated': { firstName: 'Swan', lastName: 'Studios', username: 'swanstudios' },
+};
+
+const noopPostAction = () => undefined;
+
+const buildEnrichmentPost = (item: FeedEnrichmentItem): Post => {
+  const sourceProfile = sourceProfiles[item.source];
+  const hasMediaImage = item.mediaType === 'image' && !!item.mediaUrl;
+  const safeDate = item.publishedAt || new Date(0).toISOString();
+
+  return {
+    id: `feed-enrichment-${item.id}`,
+    content: `${item.title}\n\n${item.summary}`,
+    type: 'general',
+    createdAt: safeDate,
+    user: {
+      id: `feed-enrichment-${item.source}`,
+      ...sourceProfile,
+      photo: hasMediaImage ? item.mediaUrl : undefined,
+    },
+    likesCount: 0,
+    commentsCount: 0,
+    isLiked: false,
+    reactionCounts: { thumbs_up: 0, heart: 0, swan: 0 },
+    userReactions: [],
+    mediaUrl: item.mediaUrl,
+    mediaType: item.mediaType || null,
+    comments: [],
+  };
+};
+
+const FeedEnrichmentSourceContext = ({ item }: { item: FeedEnrichmentItem }) => (
+  <FeedEnrichmentSourceBar aria-label={`${sourceLabels[item.source]} source context`}>
+    <FeedEnrichmentMeta>{sourceLabels[item.source]} / {item.category}</FeedEnrichmentMeta>
+    {item.url && (
+      <FeedEnrichmentLink href={item.url} target="_blank" rel="noopener noreferrer">
+        Open source
+        <ExternalLink size={14} aria-hidden="true" />
+      </FeedEnrichmentLink>
     )}
-    {item.mediaUrl && item.mediaType !== 'video' && (
-      <FeedEnrichmentMediaImage src={item.mediaUrl} alt={item.title} loading="lazy" />
-    )}
-  </FeedEnrichmentCard>
+  </FeedEnrichmentSourceBar>
 );
+
+const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
+  <PostCard
+    post={buildEnrichmentPost(item)}
+    onLike={noopPostAction}
+    onComment={noopPostAction}
+    readOnly
+    contextSlot={<FeedEnrichmentSourceContext item={item} />}
+  />
+);
+
+const ENRICHMENT_INSERT_EVERY = 3;
+const MAX_TRAILING_ENRICHMENT = 4;
 
 const FeedEnrichmentCards = ({ items }: { items: FeedEnrichmentItem[] }) => {
   if (items.length === 0) return null;
@@ -163,13 +197,17 @@ const FeedPostStream = ({
   enrichmentItems,
   sentinelRef,
 }: Pick<FeedBodyProps, 'feed' | 'enrichmentItems' | 'sentinelRef'>) => {
-  const trailingEnrichment = feed.posts.length < 3 ? enrichmentItems.slice(0, 2) : [];
+  const insertedEnrichmentCount = Math.floor(feed.posts.length / ENRICHMENT_INSERT_EVERY);
+  const trailingEnrichment = enrichmentItems.slice(
+    insertedEnrichmentCount,
+    insertedEnrichmentCount + MAX_TRAILING_ENRICHMENT,
+  );
 
   return (
     <>
       {feed.posts.map((post, index) => {
-        const enrichmentIndex = Math.floor((index + 1) / 3) - 1;
-        const showEnrichment = (index + 1) % 3 === 0 && enrichmentItems[enrichmentIndex];
+        const enrichmentIndex = Math.floor((index + 1) / ENRICHMENT_INSERT_EVERY) - 1;
+        const showEnrichment = (index + 1) % ENRICHMENT_INSERT_EVERY === 0 && enrichmentItems[enrichmentIndex];
         return (
           <React.Fragment key={post.id}>
             <PostCard
