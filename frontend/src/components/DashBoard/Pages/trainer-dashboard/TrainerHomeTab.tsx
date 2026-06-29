@@ -17,7 +17,7 @@ import {
 import {
   buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
-  buildTrainerSessionPlannerRoute,
+  buildTrainerSessionBuildPlanRoute,
   getClientName,
   getNextActionableTrainerSession,
   getSessionStartDate,
@@ -169,10 +169,10 @@ const TrainerHomeTab: React.FC = () => {
                   const startDate = getSessionStartDate(s);
                   const coachRoute = buildTrainerSessionCoachRoute(s);
                   const logRoute = buildTrainerSessionLogRoute(s);
-                  const plannerRoute = buildTrainerSessionPlannerRoute(s);
+                  const buildPlanRoute = buildTrainerSessionBuildPlanRoute(s);
                   const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
                   const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
-                  const canPlan = Boolean(plannerRoute && s.status !== 'completed' && s.status !== 'cancelled');
+                  const canBuildPlan = Boolean(buildPlanRoute && s.status !== 'completed' && s.status !== 'cancelled');
 
                   return (
                     <SessionRow key={s.id}>
@@ -190,10 +190,10 @@ const TrainerHomeTab: React.FC = () => {
                             Coach
                           </SessionLogButton>
                         )}
-                        {canPlan && (
-                          <SessionLogButton type="button" onClick={() => plannerRoute && navigate(plannerRoute)} aria-label={`Plan workout for ${getClientName(s)}`}>
+                        {canBuildPlan && (
+                          <SessionLogButton type="button" onClick={() => buildPlanRoute && navigate(buildPlanRoute)} aria-label={`Build plan for ${getClientName(s)}`}>
                             <ClipboardList size={14} aria-hidden="true" />
-                            Plan
+                            Build
                           </SessionLogButton>
                         )}
                         {canLog && (

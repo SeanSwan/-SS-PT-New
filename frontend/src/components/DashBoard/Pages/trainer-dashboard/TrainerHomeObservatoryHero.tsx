@@ -77,7 +77,7 @@ const TrainerHomeObservatoryHero: React.FC<TrainerHomeObservatoryHeroProps> = ({
   const handleLabel = trainerHandle || 'Trainer Command';
   const nextCue = nextClientName
     ? `Next up: ${nextClientName}. Prime the session, log the proof, then review the progress signal.`
-    : 'No booked client is waiting. Build the day from roster, schedule, workout planner, or Swan Coach triage.';
+    : 'No booked client is waiting. Build the day from roster, schedule, Build Plan, or Swan Coach triage.';
 
   const heroActions = [
     { label: 'Log Workout', Icon: Dumbbell, path: TRAINER_HOME_LOG_WORKOUT_PATH, primary: true },
@@ -162,7 +162,7 @@ const TrainerHomeObservatoryHero: React.FC<TrainerHomeObservatoryHeroProps> = ({
             <div>
               <ArtworkTitle>{nextClientName || 'Build the day'}</ArtworkTitle>
               <ArtworkMeta>
-                Roster, Coach, planner, schedule, and progress proof stay one move from home.
+                Roster, Coach, Build Plan, schedule, and progress proof stay one move from home.
               </ArtworkMeta>
             </div>
           </ArtworkShade>

@@ -3,7 +3,7 @@ import { Brain, CalendarDays, ClipboardList } from 'lucide-react';
 import type { TrainerSession } from '../../../../hooks/useTrainerTodaySessions';
 import {
   buildTrainerSessionCoachRoute,
-  buildTrainerSessionPlannerRoute,
+  buildTrainerSessionBuildPlanRoute,
   getClientName,
   getSessionStartDate,
 } from '../../../../hooks/useTrainerTodaySessions';
@@ -60,7 +60,7 @@ const TrainerHomeObservatoryWidgets: React.FC<TrainerHomeObservatoryWidgetsProps
 }) => {
   const nextClientName = nextSession ? getClientName(nextSession) : 'Build the day';
   const coachRoute = nextSession ? buildTrainerSessionCoachRoute(nextSession) : coachPath;
-  const plannerRoute = nextSession ? buildTrainerSessionPlannerRoute(nextSession) : '/dashboard/trainer/workout-planner';
+  const buildPlanRoute = nextSession ? buildTrainerSessionBuildPlanRoute(nextSession) : '/dashboard/trainer/build-plan';
 
   return (
     <WidgetsStack aria-label="Trainer homepage widgets">
@@ -80,11 +80,11 @@ const TrainerHomeObservatoryWidgets: React.FC<TrainerHomeObservatoryWidgetsProps
           </WidgetButton>
           <WidgetButton
             type="button"
-            onClick={() => onNavigate(plannerRoute ?? '/dashboard/trainer/workout-planner')}
-            aria-label="Open trainer workout planner"
+            onClick={() => onNavigate(buildPlanRoute ?? '/dashboard/trainer/build-plan')}
+            aria-label="Open trainer Build Plan"
           >
             <ClipboardList size={15} aria-hidden="true" />
-            Plan
+            Build
           </WidgetButton>
         </WidgetButtonRow>
       </WidgetCard>

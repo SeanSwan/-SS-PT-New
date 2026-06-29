@@ -3,12 +3,21 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import TrainerWorkoutForgePage from './TrainerWorkoutForgePage';
 
-const { mockAuthAxios, mockNavigate, mockToastSuccess, mockToastError, mockToastInfo, mockUser } = vi.hoisted(() => ({
+const {
+  mockAuthAxios,
+  mockNavigate,
+  mockSearchParamsRef,
+  mockToastSuccess,
+  mockToastError,
+  mockToastInfo,
+  mockUser,
+} = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
     post: vi.fn(),
   },
   mockNavigate: vi.fn(),
+  mockSearchParamsRef: { current: new URLSearchParams() },
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
@@ -29,6 +38,7 @@ vi.mock('react-toastify', () => ({
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useSearchParams: () => [mockSearchParamsRef.current],
 }));
 
 vi.mock('../admin-clients/components/WorkoutCopilotPanel', () => ({
@@ -79,6 +89,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
     vi.clearAllMocks();
     mockUser.id = 9001;
     mockUser.role = 'trainer';
+    mockSearchParamsRef.current = new URLSearchParams();
     mockAuthAxios.get.mockResolvedValue(TRAINER_ASSIGNMENTS_RESPONSE);
     mockAuthAxios.post.mockResolvedValue({ data: { success: true, plan: { id: 'plan-1' } } });
   });
@@ -141,6 +152,15 @@ describe('TrainerWorkoutForgePage workflow', () => {
     expect(screen.getByTestId('mock-workout-copilot')).toHaveTextContent('424242:Fixture Client:true');
   });
 
+  it('preselects the routed client when Build Plan opens from trainer Home', async () => {
+    mockSearchParamsRef.current = new URLSearchParams('clientId=424242&sessionId=88&source=trainer-overview');
+
+    render(<TrainerWorkoutForgePage />);
+
+    expect(await screen.findByRole('option', { name: 'Fixture Client' })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^client$/i)).toHaveValue('424242');
+  });
+
   it('saves a draft workout plan to the canonical workout-plan API', async () => {
     const user = userEvent.setup();
     render(<TrainerWorkoutForgePage />);
@@ -176,7 +196,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
     });
   });
 
-  it('turns a saved draft into one-click logger and planner next actions', async () => {
+  it('turns a saved draft into one-click logger and Plan Library next actions', async () => {
     const user = userEvent.setup();
     render(<TrainerWorkoutForgePage />);
 

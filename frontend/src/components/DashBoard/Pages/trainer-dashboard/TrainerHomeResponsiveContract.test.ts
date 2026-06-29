@@ -16,7 +16,7 @@ const widgetsStylesSource = source('TrainerHomeObservatoryWidgets.styles.ts');
 const dataSource = source('TrainerHomeObservatoryData.ts');
 
 describe('TrainerHomeTab responsive contract', () => {
-  it('stacks today session rows on phone widths so Coach, Plan, and Log do not squeeze the client name', () => {
+  it('stacks today session rows on phone widths so Coach, Build, and Log do not squeeze the client name', () => {
     expect(stylesSource).toContain('@media (max-width: 560px)');
     expect(stylesSource).toContain('flex-direction: column');
     expect(stylesSource).toContain('align-items: stretch');
@@ -81,7 +81,7 @@ describe('TrainerHomeTab responsive contract', () => {
     expect(dataSource).toContain("label: 'Clients'");
     expect(dataSource).toContain("label: 'Progress'");
     expect(dataSource).toContain("label: 'Schedule'");
-    expect(dataSource).toContain("label: 'Forge'");
+    expect(dataSource).toContain("label: 'Build Plan'");
     expect(dataSource).toContain("label: 'Coach'");
     expect(dataSource).toContain('TRAINER_HOME_LOG_WORKOUT_PATH');
   });

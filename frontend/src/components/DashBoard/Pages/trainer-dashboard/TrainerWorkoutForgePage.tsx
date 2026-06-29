@@ -11,8 +11,8 @@
  * - POST /api/workout-plans for draft plan persistence.
  * - WorkoutCopilotPanel for AI generation and approval flow.
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -42,6 +42,7 @@ import {
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const clients = useTrainerForgeClients(authAxios, user);
   const [clientId, setClientId] = useState('');
   const [optPhase, setOptPhase] = useState(1);
@@ -53,6 +54,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSavedPlan, setLastSavedPlan] = useState<SavedTrainerForgePlan | null>(null);
+  const appliedRouteClientRef = useRef<string | null>(null);
 
   const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
   const selectedClient = useMemo(
@@ -60,6 +62,19 @@ const TrainerWorkoutForgePage: React.FC = () => {
     [clientId, clients],
   );
   const parsedClientId = parseTrainerForgeClientId(clientId);
+  const routeClientId = useMemo(() => parseTrainerForgeClientId(searchParams.get('clientId')), [searchParams]);
+
+  useEffect(() => {
+    if (routeClientId === null) return;
+
+    const nextClientId = String(routeClientId);
+    if (appliedRouteClientRef.current === nextClientId) return;
+    if (!clients.some(client => String(client.id) === nextClientId)) return;
+
+    appliedRouteClientRef.current = nextClientId;
+    setClientId(nextClientId);
+    setLastSavedPlan(null);
+  }, [clients, routeClientId]);
 
   const handleClientChange = useCallback((nextClientId: string) => {
     setClientId(nextClientId);
