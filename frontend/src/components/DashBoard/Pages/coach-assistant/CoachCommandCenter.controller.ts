@@ -115,7 +115,7 @@ export function useCoachCommandCenterController({
         status: routeIntent === 'trainer_daily_command'
           ? 'Trainer day command context loaded'
           : routeIntent === 'plan_review'
-            ? 'Workout planner review context loaded'
+            ? 'Build Plan review context loaded'
             : 'Coach route prompt loaded',
       }
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),

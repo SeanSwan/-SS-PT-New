@@ -39,7 +39,7 @@ describe('CoachCommandCenterPage client mode', () => {
     const workoutActions = screen.getByLabelText('Workout surfaces');
     expect(within(workoutActions).getByRole('link', { name: /^Open workout logger$/i }))
       .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
-    expect(within(workoutActions).getByRole('link', { name: /^Open workout planner$/i }))
+    expect(within(workoutActions).getByRole('link', { name: /^Open workouts$/i }))
       .toHaveAttribute('href', '/dashboard/client/workouts');
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });

@@ -88,9 +88,9 @@ const RETURN_LABELS: Record<string, string> = {
   'admin-workout-logger': 'Back to Workout Logger',
   'trainer-workout-logger': 'Back to Workout Logger',
   'client-workout-logger': 'Back to Workout Logger',
-  'admin-workout-planner': 'Back to Workout Planner',
-  'trainer-workout-planner': 'Back to Workout Planner',
-  'client-workout-planner': 'Back to Workout Planner',
+  'admin-workout-planner': 'Back to Build Plan',
+  'trainer-workout-planner': 'Back to Build Plan',
+  'client-workout-planner': 'Back to Build Plan',
 };
 
 function commandCenterReturnLabel(source: string | null): string {
@@ -223,13 +223,13 @@ function selfWorkoutRouteContext(
 function planReviewRouteContext(routeClientLabel: string | null): RouteContextCopy {
   return {
     prompt: prompt([
-      'Workout planner review.',
-      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this planner route.',
+      'Build Plan review.',
+      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this Build Plan route.',
       'Review the selected day before it is saved, assigned, or logged.',
       'Name safety issues, missing warmup/cooldown detail, pain-risk edits, and the simplest logger-ready version.',
       'Do not claim the workout was logged until it is saved in the Workout Logger.',
     ]),
-    status: 'Workout planner review context loaded',
+    status: 'Build Plan review context loaded',
   };
 }
 

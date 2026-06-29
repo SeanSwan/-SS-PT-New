@@ -21,9 +21,9 @@ describe('CoachCommandCenterPage header quick actions', () => {
       'href',
       '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today',
     );
-    expect(within(headerActions).getByRole('link', { name: /Build workout for Client #42/i })).toHaveAttribute(
+    expect(within(headerActions).getByRole('link', { name: /Build plan for Client #42/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
     );
 
     fireEvent.click(within(headerActions).getByRole('button', { name: /Review intake queue/i }));

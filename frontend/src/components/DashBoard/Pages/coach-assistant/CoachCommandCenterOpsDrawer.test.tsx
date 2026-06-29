@@ -94,7 +94,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(within(operationsRail).getByRole('heading', { name: /Workout command center/i })).toBeInTheDocument();
     expect(within(operationsRail).getAllByText('My workout log').length).toBeGreaterThan(0);
     expect(logNow).toHaveAttribute('href', '/dashboard/admin/log-my-workout?loadPlan=today');
-    expect(within(priorityActions).getByRole('link', { name: /Open workout builder/i })).toHaveAttribute(
+    expect(within(priorityActions).getByRole('link', { name: /Open Build Plan/i })).toHaveAttribute(
       'href',
       '/dashboard/admin/workout-planner?self=1&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Flog-my-workout%3FloadPlan%3Dtoday',
     );
@@ -106,7 +106,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     const operationsRail = openOpsRail();
     const priorityActions = within(operationsRail).getByLabelText('Priority coach actions');
     const logNow = within(priorityActions).getByRole('link', { name: /Log workout now/i });
-    const builder = within(priorityActions).getByRole('link', { name: /Open workout builder/i });
+    const builder = within(priorityActions).getByRole('link', { name: /Open Build Plan/i });
 
     expect(logNow).toHaveAttribute(
       'href',
@@ -114,7 +114,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     );
     expect(builder).toHaveAttribute(
       'href',
-      '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
     );
     expect(within(priorityActions).queryByRole('button', { name: /Draft in chat/i })).not.toBeInTheDocument();
     fireEvent.click(within(priorityActions).getByRole('button', { name: /Review next intake/i }));

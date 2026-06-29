@@ -44,13 +44,13 @@ describe('ClientWorkoutPlansPanel', () => {
   it('loads selected-client plans from the canonical client plan overview API', async () => {
     renderPlansPanel();
     expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/workout-plans/client/424242');
-    expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /plan library/i })).toBeInTheDocument();
     expect(screen.getAllByText('Phase 2 Strength Plan').length).toBeGreaterThan(0);
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
-  it('reloads saved plans when the parent refresh signal changes after Program Architect save', async () => {
+  it('reloads saved plans when the parent refresh signal changes after Build Plan save', async () => {
     const { rerender } = renderPlansPanel({ refreshSignal: 0 });
-    expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /plan library/i })).toBeInTheDocument();
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(1);
     rerender(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" refreshSignal={1} />);
     await waitFor(() => expect(mockAuthAxios.get).toHaveBeenCalledTimes(2));
@@ -332,7 +332,7 @@ describe('ClientWorkoutPlansPanel', () => {
       },
     });
     renderPlansPanel();
-    expect(await screen.findByText('Plan Arc Vault')).toBeInTheDocument();
+    expect(await screen.findByText('Plan Arc Library')).toBeInTheDocument();
     for (const label of ['1 Day', '1 Week', '1 Month', '3 Month', '6 Month', '9 Month', '12 Month']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
@@ -343,9 +343,9 @@ describe('ClientWorkoutPlansPanel', () => {
   it('keeps plan-vault guidance opt-in and explains off-day logging semantics', async () => {
     const user = userEvent.setup();
     renderPlansPanel();
-    expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /plan library/i })).toBeInTheDocument();
     expect(screen.queryByText(/seven swanstudios arcs stay visible/i)).toBeNull();
-    await user.click(screen.getByRole('button', { name: /teach me: plan vault/i }));
+    await user.click(screen.getByRole('button', { name: /teach me: plan library/i }));
     expect(screen.getByText(/seven swanstudios arcs stay visible/i)).toBeInTheDocument();
     expect(screen.getByText(/homework diary logs are off-day plan work/i)).toBeInTheDocument();
     expect(screen.getByText(/scheduled paid session/i)).toBeInTheDocument();

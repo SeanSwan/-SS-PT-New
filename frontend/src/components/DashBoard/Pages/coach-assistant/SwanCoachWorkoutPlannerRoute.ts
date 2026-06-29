@@ -1,9 +1,9 @@
 /**
  * FILE: SwanCoachWorkoutPlannerRoute.ts
- * PURPOSE: Role-aware Workout Planner routes launched from Swan Coach.
+ * PURPOSE: Role-aware Build Plan routes launched from Swan Coach.
  *
  * Coach does not write workout plans directly. These routes only move the
- * operator into the mounted Planner surface with enough context for that
+ * operator into the selected-client Build Plan surface with enough context for that
  * surface to keep save/generate/review gates authoritative.
  */
 import { buildClientWorkoutPlannerRoute } from '../../workspaces/clients-team/clientDailyTrainingRoutes';

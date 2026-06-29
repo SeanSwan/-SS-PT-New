@@ -61,7 +61,7 @@ const adminSelfWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatch(
   actions: [
     { label: 'My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
-    { label: 'My Planner', to: '/dashboard/admin/workout-planner?self=1' },
+    { label: 'Build My Plan', to: '/dashboard/admin/workout-planner?self=1' },
     { label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' },
   ],
   primaryPrompt: 'teach me the admin self workout logging workflow',
@@ -81,7 +81,7 @@ const adminClientWorkoutLogging = (base: DashboardTeachMeGuideCopy) => applyPatc
   actions: [
     { label: 'Pick Client to Log', to: '/dashboard/admin/client-management?intent=log_workout' },
     { label: 'Client Hub Logger', to: '/dashboard/admin/client-management?tab=training&trainingSection=logger&loadPlan=today' },
-    { label: 'Workout Planner', to: '/dashboard/admin/workout-planner' },
+    { label: 'Plan Library', to: '/dashboard/admin/workout-planner' },
     { label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' },
   ],
   primaryPrompt: 'teach me the admin client workout logging workflow',

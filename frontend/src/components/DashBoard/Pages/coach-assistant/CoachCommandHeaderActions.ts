@@ -4,7 +4,7 @@
  *
  * These actions reduce the common workout flow by one click: Log, Build, Intake,
  * and PLAUD are visible before the Ops drawer opens. They only navigate or switch
- * local tabs; Logger/Planner remain the save owners.
+ * local tabs; Logger and Build Plan keep save ownership clear.
  */
 export type CoachHeaderQuickActionIcon = 'log' | 'builder' | 'client' | 'intake' | 'plaud';
 
@@ -61,11 +61,11 @@ export function buildCoachHeaderQuickActions({
 
   if (workoutPlannerRoute) {
     actions.push({
-      ariaLabel: `${isClientMode ? 'Open workouts' : 'Build workout'} for ${scopeLabel}`,
+      ariaLabel: `${isClientMode ? 'Open workouts' : 'Build plan'} for ${scopeLabel}`,
       detail: scopeLabel,
       href: workoutPlannerRoute,
       icon: 'builder',
-      label: isClientMode ? 'Workouts' : 'Build',
+      label: isClientMode ? 'Workouts' : 'Build Plan',
     });
   }
 

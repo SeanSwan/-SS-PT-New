@@ -45,9 +45,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
       'href',
       '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=logger&loadPlan=today',
     );
-    expect(within(opsRail).getByRole('link', { name: /open planner/i })).toHaveAttribute(
+    expect(within(opsRail).getByRole('link', { name: /open build plan/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/workout-planner?clientId=424242&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242%26tab%3Dtraining%26trainingSection%3Dplans',
+      '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=architect',
     );
 
     fireEvent.change(composerInput(), { target: { value: 'Bench press 3 sets of 10.' } });

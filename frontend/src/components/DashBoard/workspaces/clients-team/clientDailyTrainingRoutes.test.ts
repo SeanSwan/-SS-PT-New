@@ -39,9 +39,9 @@ describe('client daily training routes', () => {
     expect(buildClientWorkoutLoggerRoute(VALID_CLIENT_ID)).toBe(CLIENT_HUB_LOGGER_ROUTE);
   });
 
-  it('opens the workout planner with source and returnTo context', () => {
+  it('opens embedded Build Plan inside the selected-client Client Hub', () => {
     expect(buildClientWorkoutPlannerRoute(VALID_CLIENT_ID)).toBe(
-      `/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=${ENCODED_PLANS_RETURN_TO}`
+      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect'
     );
   });
 

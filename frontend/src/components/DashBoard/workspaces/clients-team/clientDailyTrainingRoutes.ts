@@ -1,5 +1,5 @@
 export type ClientDailyIntent = 'log_workout' | 'plan_next';
-type ClientDailyReturnSection = 'logger' | 'plans' | 'history';
+type ClientDailyReturnSection = 'architect' | 'logger' | 'plans' | 'history';
 
 const CLIENT_MANAGEMENT_BASE = '/dashboard/admin/client-management';
 
@@ -72,6 +72,5 @@ export const buildClientWorkoutLoggerRoute = (clientId: number | string) => {
 };
 
 export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {
-  const params = buildClientDailyParams(clientId, {}, 'plans');
-  return params ? `/dashboard/admin/workout-planner?${params}` : null;
+  return buildClientManagementReturnTo(clientId, 'architect');
 };

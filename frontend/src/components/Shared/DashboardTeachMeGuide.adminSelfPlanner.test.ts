@@ -11,7 +11,7 @@ describe('DashboardTeachMeGuide admin self planner routes', () => {
 
     expect(guide.title).toBe('Admin self workout planning');
     expect(guide.primaryAction).toEqual({
-      label: 'Plan My Workout',
+      label: 'Build My Plan',
       to: '/dashboard/admin/workout-planner?self=1',
     });
     expect(guide.fastPath).toEqual([
@@ -20,7 +20,7 @@ describe('DashboardTeachMeGuide admin self planner routes', () => {
       expect.stringMatching(/send it to Log My Workout/i),
     ]);
     expect(guide.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({ label: 'My Planner', to: '/dashboard/admin/workout-planner?self=1' }),
+      expect.objectContaining({ label: 'Build My Plan', to: '/dashboard/admin/workout-planner?self=1' }),
       expect.objectContaining({ label: 'Log My Workout', to: '/dashboard/admin/log-my-workout?loadPlan=today' }),
       expect.objectContaining({ label: 'Ask Coach', to: '/dashboard/admin/coach-assistant' }),
     ]));
@@ -33,9 +33,9 @@ describe('DashboardTeachMeGuide admin self planner routes', () => {
       pathname: '/dashboard/admin/workout-planner',
     });
 
-    expect(guide.title).toBe('Admin workout systems');
+    expect(guide.title).toBe('Admin Plan Library');
     expect(guide.primaryAction).toEqual({
-      label: 'Open Workout Planner',
+      label: 'Open Plan Library',
       to: '/dashboard/admin/workout-planner',
     });
   });

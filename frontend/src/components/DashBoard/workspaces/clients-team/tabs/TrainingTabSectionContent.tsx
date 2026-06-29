@@ -3,8 +3,8 @@
  * ====================================
  *
  * BLUEPRINT: Client Hub training section renderer.
- * Parent: TrainingTabContent. Children: lazy workout builder, plan vault,
- * logger, PLAUD merge, Copilot, and history receipt panels.
+ * Parent: TrainingTabContent. Children: lazy Build Plan, Plan Library,
+ * logger, PLAUD merge, Ask Coach, and history receipt panels.
  *
  * Keeps the selected-client training workspace shell free of route-like switch
  * rendering. Each section stays lazy-loaded and mounted through this canonical

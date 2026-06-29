@@ -5,7 +5,7 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES:
- * Renders the selected client's training sub-sections with the workout logger as
+ * Renders the selected client's training sub-sections with Log Workout as
  * the default daily workflow, then hands completed/canceled logs to history.
  *
  * HOW IT FITS IN THE APP:
@@ -56,12 +56,12 @@ const SECTIONS: {
   shortLabel: string;
   icon: React.ReactNode;
 }[] = [
-  { id: 'architect', label: 'Swan Coach Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
-  { id: 'plans', label: 'Training Plans', shortLabel: 'Plans', icon: <ClipboardList size={18} /> },
-  { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
+  { id: 'architect', label: 'Build Plan', shortLabel: 'Build', icon: <Wand2 size={18} /> },
+  { id: 'plans', label: 'Plan Library', shortLabel: 'Library', icon: <ClipboardList size={18} /> },
+  { id: 'logger', label: 'Log Workout', shortLabel: 'Log', icon: <Play size={18} /> },
   { id: 'import', label: 'History Import', shortLabel: 'Import', icon: <UploadCloud size={18} /> },
   { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },
-  { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
+  { id: 'copilot', label: 'Ask Coach', shortLabel: 'Coach', icon: <Sparkles size={18} /> },
   { id: 'history', label: 'Workout History', shortLabel: 'History', icon: <Archive size={18} /> },
 ];
 
@@ -137,7 +137,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 
   return (
     <LayoutWrapper>
-      <Sidebar role="tablist" aria-label="Training sub-sections">
+      <Sidebar role="tablist" aria-label="Training command modes">
         {SECTIONS.map((section) => (
           <SidebarItem
             type="button"
@@ -177,8 +177,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
               >
                 <Sparkles size={17} />
                 <CommandToggleCopy>
-                  <span>Tell Swan</span>
-                  <small>Open when you want AI commands, dictation, or a review-gated workout draft.</small>
+                  <span>Ask Coach</span>
+                  <small>Use dictation, AI commands, or a review-gated training draft from any mode.</small>
                 </CommandToggleCopy>
                 <ChevronDown size={16} />
               </CommandToggleButton>

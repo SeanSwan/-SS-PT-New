@@ -10,13 +10,13 @@
  * [Builder] [Review intake] [PLAUD]
  *
  * DATA FLOW:
- * Props: selectedClientLabel, Logger/Planner routes, and event handlers.
+ * Props: selectedClientLabel, Logger/Build Plan routes, and event handlers.
  * State/API: none. This component does not fetch, mutate, or write workouts.
  * Children: route Links and review buttons.
  *
  * CLICK OUTCOMES:
  * Log/Pick: navigates to Logger or Client Hub.
- * Builder: navigates to Workout Planner.
+ * Builder: navigates to Build Plan or the role-specific planner route.
  * Review intake: switches the parent to the Intake tab.
  * PLAUD: switches to the PLAUD tab and opens the uploader.
  *
@@ -91,7 +91,7 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
   const showClientPicker = hasLoggerRoute && scopeLabel === 'My workout log';
   const targetNote = hasLoggerRoute
     ? workoutPlannerRoute
-      ? 'Coach, Builder, and Logger point here.'
+      ? 'Coach, Build Plan, and Logger point here.'
       : 'Coach and Logger point here.'
     : 'Pick a client so workout actions route correctly.';
   const safetyNote = hasLoggerRoute ? 'Save happens in Logger.' : 'No workout writes until a target is chosen.';
@@ -147,8 +147,8 @@ const CoachCommandOpsLaunchpad: React.FC<CoachCommandOpsLaunchpadProps> = ({
         ) : null}
 
         {workoutPlannerRoute ? (
-          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open workout builder - Open Planner">
-            <ActionBody icon={<ClipboardList size={18} aria-hidden="true" />} title="Open builder" note="Create plan" />
+          <Link className="workout-command-card route" to={workoutPlannerRoute} aria-label="Open Build Plan from Operations">
+            <ActionBody icon={<ClipboardList size={18} aria-hidden="true" />} title="Build plan" note="Create plan" />
           </Link>
         ) : null}
 

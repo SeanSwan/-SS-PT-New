@@ -18,7 +18,7 @@ export function buildCoachCommandTitle({
     return routeClientLabel ? `${routeClientLabel} onboarding` : 'New client onboarding';
   }
   if (routeIntent === 'plan_review') {
-    return routeClientLabel ? `${routeClientLabel} workout planner review` : 'Workout planner review';
+    return routeClientLabel ? `${routeClientLabel} Build Plan review` : 'Build Plan review';
   }
   if (routeClientLabel) return `${routeClientLabel} daily workout log`;
   return commandText.slice(0, 60);

@@ -69,9 +69,9 @@ export const trainerNavConfig = [
   {
     section: 'BUILD',
     items: [
-      { label: 'Workout Forge', path: '/dashboard/trainer/workout-forge', icon: Zap },
+      { label: 'Build Plan', path: '/dashboard/trainer/build-plan', icon: Zap },
       { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
-      { label: 'Workout Planner', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
+      { label: 'Plan Library', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
     ],
