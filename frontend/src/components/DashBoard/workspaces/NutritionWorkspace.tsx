@@ -1,48 +1,24 @@
 /**
- * ============================================================================
  * FILE: NutritionWorkspace.tsx
- * PURPOSE: Unified Nutrition Hub — meal logging, food search, hydration,
- *          macro charts, and secondary nutrition tools in a focused interface
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-26
- * AI VILLAGE VALIDATED: 2026-03-26
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Combines FoodIntakeForm, FoodSearchPanel,
- * FoodIntelligenceDashboard, HydrationTab, LearnTab, macro Victory charts,
- * and lower-priority nutrition tools behind More. Available to all roles.
- *
- * HOW IT FITS IN THE APP: UniversalDashboardLayout → NutritionWorkspace
- * KEY DECISIONS: Today-first primary tabs; Restaurant, Garden, Farm Finder,
- * and Supplements stay available behind More.
- *
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: NutritionWorkspace                               ║
- * ║  PURPOSE: Unified nutrition hub with 10 tabs                  ║
- * ║  OWNER: Claude Opus 4.6                                       ║
- * ║  LAST VALIDATED: 2026-03-26                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * CLICK-OUTCOMES:
- * [Tab: Log Meal] → FoodIntakeForm → POST /api/macros
- * [Tab: Food Search] → FoodSearchPanel → USDA/barcode lookup
- * [Tab: Hydration] → NutritionHydrationTab → localStorage tracker
- * [Tab: My Macros] → Victory MacroDonut + NutritionBalanceRadar
- * [Tab: Intelligence] → FoodIntelligenceDashboard
- * [Tab: Learn] → NutritionLearnTab → NASM education accordion
+ * PURPOSE: Mounted nutrition hub for capture, review, macros, hydration, and education.
+ * HOW IT FITS: UniversalDashboardLayout -> role /meal-planner route -> NutritionWorkspace.
  */
-
 import React, { useCallback, useState, lazy, Suspense } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
-import { useHydration } from '../../../hooks/useHydration';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
 import { useWorkoutSessions } from '../../../hooks/useDashboardQueries';
 import { useSubscription } from '../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
-import type { MacroSummary } from '../../../hooks/useMacroSummary';
+import LogFoodCommandCenter, { type LogFoodCommand } from '../../FoodTracker/LogFoodCommandCenter';
+import NutritionReviewDrawer from '../../FoodTracker/NutritionReviewDrawer';
+import { restaurantFoodToNutritionDraft } from '../../FoodTracker/nutritionDraft.adapters';
+import type { RestaurantAddFoodPayload } from '../../FoodTracker/RestaurantTab.logic';
+import type { NutritionEntryDraft } from '../../FoodTracker/nutritionDraft.types';
 import { hasWorkoutLoggedOnDate } from './NutritionTodayPanel.trainingDay';
+import MacroChartsPanel from './NutritionWorkspace.macroCharts';
 import {
   readNutritionGentleModePreference,
   writeNutritionGentleModePreference,
@@ -58,7 +34,6 @@ import {
   MacroHiddenPanel,
   MacroHiddenText,
   MacroHiddenTitle,
-  MacroGrid,
   MoreToolsLabel,
   MoreToolsRow,
   MoreToolsSelect,
@@ -76,7 +51,6 @@ import {
   type Tab,
 } from './NutritionWorkspace.tabs';
 
-// SECTION: Lazy imports
 const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'));
 const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntelligenceDashboard'));
 const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
@@ -89,53 +63,11 @@ const SupplementsTab = lazy(() => import('../../FoodTracker/SupplementsTab'));
 const MealPlanTab = lazy(() => import('../../FoodTracker/MealPlanTab'));
 const VoiceNutritionPanel = lazy(() => import('../../FoodTracker/VoiceNutritionPanel'));
 const NutritionTodayPanel = lazy(() => import('./NutritionTodayPanel'));
-const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
-const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
-
-const OUNCES_TO_ML = 29.5735;
-
-const MacroChartsPanel: React.FC<{ summary: MacroSummary | null; loading: boolean; gentleMode: boolean }> = ({ summary, loading, gentleMode }) => {
-  const { filled: hydrationGlasses, dailyGoal: hydrationGoalGlasses, glassOz, loading: hydrationLoading } = useHydration();
-  const hydrationMl = Math.round(hydrationGlasses * glassOz * OUNCES_TO_ML);
-  const hydrationTargetMl = Math.round(hydrationGoalGlasses * glassOz * OUNCES_TO_ML);
-
-  if (gentleMode) {
-    return (
-      <MacroHiddenPanel role="region" aria-label="Gentle mode macro charts hidden">
-        <HeartPulse size={28} aria-hidden="true" />
-        <MacroHiddenTitle>Gentle Mode is on</MacroHiddenTitle>
-        <MacroHiddenText>
-          Macro charts are hidden while you use Today for meal rhythm, hydration, and coach support.
-        </MacroHiddenText>
-      </MacroHiddenPanel>
-    );
-  }
-
-  return (
-    <MacroGrid>
-      <MacroDonut
-        protein={summary?.totalProtein}
-        carbs={summary?.totalCarbs}
-        fat={summary?.totalFat}
-        totalCalories={summary?.totalCalories}
-        loading={loading}
-      />
-      <NutritionBalanceRadar
-        protein={summary?.totalProtein}
-        carbs={summary?.totalCarbs}
-        fat={summary?.totalFat}
-        fiber={summary?.totalFiber}
-        hydrationMl={hydrationMl}
-        hydrationTargetMl={hydrationTargetMl}
-        loading={loading || hydrationLoading}
-      />
-    </MacroGrid>
-  );
-};
 
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
+  const [reviewDraft, setReviewDraft] = useState<NutritionEntryDraft | null>(null);
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
   const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary();
@@ -143,10 +75,9 @@ const NutritionWorkspace: React.FC = () => {
   const trainingDay = hasWorkoutLoggedOnDate(workoutSessions.data, summary?.date);
   const reduceMotion = Boolean(useReducedMotion());
   const activeMoreTab = isMoreNutritionTab(activeTab);
+
   const handleMealLogResult = useCallback((success: boolean) => {
-    if (success) {
-      refetchMacroSummary();
-    }
+    if (success) refetchMacroSummary();
   }, [refetchMacroSummary]);
 
   const toggleGentleMode = useCallback(() => {
@@ -161,6 +92,32 @@ const NutritionWorkspace: React.FC = () => {
     const prompt = encodeURIComponent('I want gentle nutrition support without numbers or pressure.');
     window.location.href = `/dashboard/client/coach-assistant?teachPrompt=${prompt}`;
   }, []);
+
+  const handleRestaurantFood = useCallback((food: RestaurantAddFoodPayload) => {
+    setReviewDraft(restaurantFoodToNutritionDraft(food));
+  }, []);
+
+  const handleReviewSaved = useCallback((success: boolean, options?: { closeDrawer?: boolean }) => {
+    if (success) handleMealLogResult(true);
+    if (success && options?.closeDrawer !== false) setReviewDraft(null);
+  }, [handleMealLogResult]);
+
+  const handleLogFoodCommand = useCallback((command: LogFoodCommand) => {
+    const tabByCommand: Partial<Record<LogFoodCommand, Tab>> = {
+      manual: 'log',
+      voice: 'voice',
+      snap: 'meal-plan',
+      search: 'search',
+      restaurant: 'restaurant',
+    };
+    if (command === 'scan') {
+      window.location.href = '/food-scanner';
+      return;
+    }
+    const nextTab = tabByCommand[command];
+    if (nextTab) setActiveTab(nextTab);
+  }, []);
+
   const macroUnavailablePanel = macroError ? (
     <MacroHiddenPanel role="alert" aria-live="assertive" aria-label="Nutrition totals unavailable">
       <MacroHiddenTitle>Nutrition totals unavailable</MacroHiddenTitle>
@@ -236,15 +193,18 @@ const NutritionWorkspace: React.FC = () => {
         <ErrorBoundary>
           <Suspense fallback={<CosmicSuspenseLoader />}>
             {activeTab === 'today' && (macroUnavailablePanel || (
-              <NutritionTodayPanel
-                summary={summary}
-                loading={macroLoading}
-                onNavigate={(target) => setActiveTab(target)}
-                onLogged={refetchMacroSummary}
-                gentleMode={gentleMode}
-                onAskCoach={handleGentleCoach}
-                trainingDay={trainingDay}
-              />
+              <>
+                <LogFoodCommandCenter onCommand={handleLogFoodCommand} />
+                <NutritionTodayPanel
+                  summary={summary}
+                  loading={macroLoading}
+                  onNavigate={(target) => setActiveTab(target)}
+                  onLogged={refetchMacroSummary}
+                  gentleMode={gentleMode}
+                  onAskCoach={handleGentleCoach}
+                  trainingDay={trainingDay}
+                />
+              </>
             ))}
             {activeTab === 'log' && <FoodIntakeForm onDataSent={handleMealLogResult} />}
             {activeTab === 'voice' && (
@@ -259,7 +219,7 @@ const NutritionWorkspace: React.FC = () => {
               </CrystallineLockOverlay>
             )}
             {activeTab === 'search' && <FoodSearchPanel onDataSent={handleMealLogResult} />}
-            {activeTab === 'restaurant' && <RestaurantTab />}
+            {activeTab === 'restaurant' && <RestaurantTab onAddFood={handleRestaurantFood} />}
             {activeTab === 'hydration' && <NutritionHydrationTab />}
             {activeTab === 'macros' && (macroUnavailablePanel || <MacroChartsPanel summary={summary} loading={macroLoading} gentleMode={gentleMode} />)}
             {activeTab === 'garden' && <GardeningTab />}
@@ -291,6 +251,7 @@ const NutritionWorkspace: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
       </ContentArea>
+      <NutritionReviewDrawer draft={reviewDraft} onClose={() => setReviewDraft(null)} onSaved={handleReviewSaved} />
     </WorkspaceRoot>
   );
 };

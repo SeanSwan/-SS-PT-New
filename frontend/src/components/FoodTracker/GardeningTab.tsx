@@ -1,10 +1,8 @@
 /**
- * ┌─── SUB-COMPONENT: GardeningTab ────────────────────────────┐
- * │ PARENT: NutritionWorkspace                                  │
- * │ PURPOSE: USDA Hardiness Zone lookup + plant recommendations │
- * │ API: GET /api/gardening/zone/:zip (phzmapi.org proxy)       │
- * │      GET /api/gardening/plants?zone=&...  (static DB)       │
- * └─────────────────────────────────────────────────────────────┘
+ * SUB-COMPONENT: GardeningTab
+ * PARENT: NutritionWorkspace
+ * PURPOSE: USDA Hardiness Zone lookup, plant recommendations, and Nutrition OS garden handoff
+ * API: GET /api/gardening/zone/:zip, GET /api/gardening/plants?zone=&...
  */
 import React, { useState, useCallback } from 'react';
 import { Sprout, Search, Leaf, Sun, Droplets, Clock, MapPin } from 'lucide-react';
@@ -19,11 +17,12 @@ import {
   EmptyState,
 } from './GardeningTab.styles';
 import apiService from '../../services/api.service';
+import LocalFoodActionPanel from './LocalFoodActionPanel';
 
 const GARDENING_ZONE_ERROR = 'Growing zone lookup is unavailable right now. Please try again.';
 const GARDENING_PLANTS_ERROR = 'Plant recommendations are unavailable right now. Please try again.';
+const GARDEN_SOURCE_NOTE = 'Garden recommendations are Swan planning guidance from zone and plant data. Confirm seeds, starts, organic practices, and local timing with a nursery or farmer.';
 
-// ── Types ──────────────────────────────────────────────────────
 interface PlantData {
   id: string;
   name: string;
@@ -53,7 +52,11 @@ const difficultyColor = (d: string) => {
   return 'var(--accent-error, #C92A54)';
 };
 
-// ── Component ──────────────────────────────────────────────────
+const gardenProducts = (plants: PlantData[]) => plants
+  .map(plant => plant.name)
+  .filter(Boolean)
+  .slice(0, 8);
+
 const GardeningTab: React.FC = () => {
   const [zipCode, setZipCode] = useState('');
   const [zoneData, setZoneData] = useState<ZoneData | null>(null);
@@ -101,7 +104,6 @@ const GardeningTab: React.FC = () => {
 
   const refetchPlants = useCallback(async (cat: string, space: string, diff: string) => {
     if (!zoneData) return;
-    // Clear immediately so failure never shows old results under new filter labels
     setPlants([]);
     const params = new URLSearchParams({ zone: zoneData.zone });
     if (cat) params.set('category', cat);
@@ -131,6 +133,7 @@ const GardeningTab: React.FC = () => {
   };
 
   const safeZone = zoneData?.zone?.toUpperCase() ?? '';
+  const localGardenProducts = gardenProducts(plants);
 
   return (
     <Container>
@@ -193,6 +196,16 @@ const GardeningTab: React.FC = () => {
         </FilterRow>
       )}
 
+      {zoneData && plants.length > 0 && (
+        <LocalFoodActionPanel
+          title="Grow foods that support your macro gaps"
+          subtitle="Use garden picks as grocery, meal-plan, and local sourcing context for your Nutrition OS."
+          products={localGardenProducts}
+          contextType="garden"
+          sourceNote={GARDEN_SOURCE_NOTE}
+        />
+      )}
+
       {plants.length > 0 && (
         <>
           <SectionHeader>{plants.length} plant{plants.length !== 1 ? 's' : ''} for zone {safeZone}</SectionHeader>
@@ -202,7 +215,7 @@ const GardeningTab: React.FC = () => {
                 key={plant.id}
                 type="button"
                 aria-expanded={expandedPlant === plant.id}
-                aria-label={`${plant.name} — ${plant.difficulty}, ${plant.daysToHarvest} days to harvest`}
+                aria-label={`${plant.name} - ${plant.difficulty}, ${plant.daysToHarvest} days to harvest`}
                 onClick={() => setExpandedPlant(expandedPlant === plant.id ? null : plant.id)}
               >
                 <PlantHeader>
@@ -224,7 +237,7 @@ const GardeningTab: React.FC = () => {
                   <PlantDetails>
                     <DetailRow><Sun size={14} /><span>{plant.sunHours}+ hours sunlight</span></DetailRow>
                     <DetailRow><Droplets size={14} /><span>Water: {plant.waterFrequency}</span></DetailRow>
-                    <DetailRow><Clock size={14} /><span>Season: {plant.seasonStart} — {plant.seasonEnd}</span></DetailRow>
+                    <DetailRow><Clock size={14} /><span>Season: {plant.seasonStart} - {plant.seasonEnd}</span></DetailRow>
                     <DetailRow><MapPin size={14} /><span>Space: {plant.spaceType.join(', ')}</span></DetailRow>
                     <NutritionNote><Leaf size={14} /> {plant.nutritionHighlight}</NutritionNote>
                     <YieldNote>Yield: {plant.yieldPerPlant}</YieldNote>

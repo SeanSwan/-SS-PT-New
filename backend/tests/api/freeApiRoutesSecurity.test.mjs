@@ -16,6 +16,7 @@ const coreRoutesSource = readBackend('../../core/routes.mjs');
 describe('free API nutrition intelligence route hardening', () => {
   it('locks the mounted free API and FoodTracker intelligence consumer', () => {
     const intelligenceSource = readFrontend('src/components/FoodTracker/FoodIntelligenceDashboard.tsx');
+    const foodSearchLogicSource = readFrontend('src/components/FoodTracker/FoodSearchPanel.logic.ts');
     const workspaceSource = readFrontend('src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
 
     expect(coreRoutesSource).toContain("app.use('/api/free', freeApiRoutes)");
@@ -23,9 +24,23 @@ describe('free API nutrition intelligence route hardening', () => {
     expect(intelligenceSource).toContain('apiService.get(`/api/free/nutrition?q=${encodeURIComponent(query)}`)');
     expect(intelligenceSource).toContain('apiService.get(`/api/free/food-search?q=${encodeURIComponent(query)}`)');
     expect(intelligenceSource).toContain("apiService.get('/api/free/quote')");
+    expect(foodSearchLogicSource).toContain("import apiService from '../../services/api.service'");
+    expect(foodSearchLogicSource).toContain('apiService.get(`/api/free/food-search?${params}`)');
     expect(routeSource).toContain("router.get('/nutrition'");
     expect(routeSource).toContain("router.get('/food-search'");
     expect(routeSource).toContain("router.get('/quote'");
+    expect(routeSource).toContain('parseFoodSearchPageSize');
+    expect(routeSource).toContain('Food search query is too long');
+  });
+
+  it('keeps mounted food search provider calls behind the backend proxy', () => {
+    const foodSearchLogicSource = readFrontend('src/components/FoodTracker/FoodSearchPanel.logic.ts');
+
+    expect(foodSearchLogicSource).toContain('apiService.get(`/api/free/food-search?${params}`)');
+    expect(foodSearchLogicSource).not.toContain('VITE_USDA_API_KEY');
+    expect(foodSearchLogicSource).not.toContain('api.nal.usda.gov');
+    expect(foodSearchLogicSource).not.toContain('openfoodfacts.org');
+    expect(foodSearchLogicSource).not.toContain('fetch(');
   });
 
   it('does not expose provider, env-var, or thrown exception details to clients', () => {

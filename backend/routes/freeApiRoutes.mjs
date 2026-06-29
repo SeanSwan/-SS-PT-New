@@ -1,5 +1,5 @@
 // ============================================================================
-// freeApiRoutes.mjs — Public + Protected routes for free API integrations
+// freeApiRoutes.mjs - Public + protected routes for free API integrations
 // ============================================================================
 
 import { Router } from 'express';
@@ -15,15 +15,23 @@ import {
 
 const router = Router();
 
+const parseFoodSearchPageSize = (value) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 15;
+  return Math.min(Math.max(Math.trunc(parsed), 1), 25);
+};
+
 // ---------------------------------------------------------------------------
 // Protected routes (require auth)
 // ---------------------------------------------------------------------------
 
 // GET /api/free/food-search?q=chicken
 router.get('/food-search', protect, async (req, res) => {
-  const { q, pageSize } = req.query;
+  const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (!q) return res.status(400).json({ ok: false, error: 'Missing query parameter "q"' });
-  const result = await searchFoods(q, pageSize ? Number(pageSize) : 10);
+  if (q.length > 120) return res.status(400).json({ ok: false, error: 'Food search query is too long' });
+
+  const result = await searchFoods(q, parseFoodSearchPageSize(req.query.pageSize));
   return res.status(result.ok ? 200 : 502).json(result);
 });
 

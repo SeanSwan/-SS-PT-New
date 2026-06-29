@@ -1,68 +1,17 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+import ProductHeroCard from './ProductHeroCard';
+import IngredientFlagsPanel from './IngredientFlagsPanel';
+import NutritionFactsPanel from './NutritionFactsPanel';
+import ProductCertificationsPanel from './ProductCertificationsPanel';
+import CleanerAlternativesPanel from './CleanerAlternativesPanel';
+import HowItsMadePanel from './HowItsMadePanel';
+import ProductCoachActions from './ProductCoachActions';
+import type { FoodProduct, Ingredient, ProductExplanation, ProductVideoBrief } from './productAnalysis.types';
+import { AnalysisContainer, InfoMessage, TabButton, TabList } from './ProductAnalysis.styles';
 
-// ── Ingredient Safety Color System (IARC conservative defaults) ──
-// "red" = IARC Group 1 + EU-banned additive signal
-// "yellow" = IARC Group 2A/2B, highly processed, excessive sugar/sodium
-// "green" = lower-concern ingredient signals such as GRAS / whole food ingredients
-const SAFETY_COLORS = {
-  good:  { bg: 'rgba(96, 192, 240, 0.1)', border: 'rgba(96, 192, 240, 0.2)', icon: '#60C0F0', label: 'Lower concern' },
-  okay:  { bg: 'rgba(198, 168, 75, 0.1)', border: 'rgba(198, 168, 75, 0.2)', icon: '#C6A84B', label: 'Review' },
-  bad:   { bg: 'rgba(201, 42, 84, 0.1)', border: 'rgba(201, 42, 84, 0.2)', icon: '#C92A54', label: 'Higher concern' },
-} as const;
-
-// Types
-interface Ingredient {
-  name: string;
-  healthRating: 'good' | 'bad' | 'okay';
-  isGMO: boolean;
-  isProcessed: boolean;
-  iarcGroup?: string | null;
-  isEUBanned?: boolean;
-  bannedRegions?: string[];
-  healthConcerns?: string[];
-  healthierAlternatives?: string[];
-  description?: string | null;
-  category?: string | null;
-}
-
-interface NutritionalInfo {
-  calories?: number;
-  fat?: number;
-  saturatedFat?: number;
-  carbohydrates?: number;
-  sugars?: number;
-  protein?: number;
-  salt?: number;
-  fiber?: number;
-}
-
-export interface FoodProduct {
-  id: number;
-  barcode: string;
-  name: string;
-  brand: string | null;
-  description: string | null;
-  ingredientsList: string | null;
-  ingredients: Ingredient[] | null;
-  nutritionalInfo: NutritionalInfo | null;
-  overallRating: 'good' | 'bad' | 'okay';
-  ratingReasons: string[] | null;
-  healthConcerns: string[] | null;
-  isOrganic: boolean;
-  isNonGMO: boolean;
-  category: string | null;
-  imageUrl: string | null;
-  healthierAlternatives: any[] | null;
-}
-
-export const foodScannerRatingLabel = (rating: FoodProduct['overallRating'] | string): string => {
-  if (rating === 'good') return 'Lower concern';
-  if (rating === 'okay') return 'Review';
-  if (rating === 'bad') return 'Higher concern';
-  return 'Needs review';
-};
+export { foodScannerRatingLabel } from './productAnalysis.logic';
+export type { FoodProduct } from './productAnalysis.types';
 
 interface ProductAnalysisProps {
   product: FoodProduct;
@@ -72,453 +21,11 @@ interface ProductAnalysisProps {
   logLoading?: boolean;
 }
 
-// Styled components
-const AnalysisContainer = styled.div`
-  background: rgba(20, 20, 40, 0.7);
-  border-radius: 15px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 1.5rem;
-`;
+type ProductTab = 'ingredients' | 'nutrition' | 'learn' | 'alternatives';
+type LoadingAction = 'explain' | 'video' | string | null;
 
-const AnalysisHeader = styled.div<{ rating: string }>`
-  padding: 1.5rem;
-  background: ${({ rating }) => {
-    switch (rating) {
-      case 'good': return 'linear-gradient(135deg, rgba(0, 200, 83, 0.8), rgba(0, 150, 80, 0.8))';
-      case 'bad': return 'linear-gradient(135deg, rgba(255, 70, 70, 0.8), rgba(200, 40, 40, 0.8))';
-      case 'okay': return 'linear-gradient(135deg, rgba(255, 193, 7, 0.8), rgba(240, 160, 0, 0.8))';
-      default: return 'linear-gradient(135deg, rgba(100, 100, 100, 0.8), rgba(70, 70, 70, 0.8))';
-    }
-  }};
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
+const ACTION_ERROR_COPY = 'Product intelligence is temporarily unavailable. Please try again.';
 
-const ProductImage = styled.div`
-  width: 80px;
-  height: 80px;
-  border-radius: 10px;
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  
-  @media (max-width: 600px) {
-    width: 60px;
-    height: 60px;
-  }
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const ProductName = styled.h3`
-  margin: 0 0 0.3rem 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: white;
-  
-  @media (max-width: 600px) {
-    font-size: 1.1rem;
-  }
-`;
-
-const ProductBrand = styled.div`
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.9);
-  
-  @media (max-width: 600px) {
-    font-size: 0.8rem;
-  }
-`;
-
-const OverallRating = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-`;
-
-const RatingLabel = styled.span`
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: white;
-`;
-
-const RatingBadge = styled.span<{ rating: string }>`
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-`;
-
-const AnalysisTabs = styled.div`
-  display: flex;
-  background: rgba(30, 30, 60, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const TabButton = styled.button<{ active: boolean }>`
-  padding: 1rem;
-  background: ${({ active }) => active ? 'rgba(60, 60, 100, 0.7)' : 'transparent'};
-  color: ${({ active }) => active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
-  border: none;
-  border-bottom: 2px solid ${({ active }) => active ? '#60C0F0' : 'transparent'};
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  flex: 1;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: rgba(60, 60, 100, 0.5);
-    color: white;
-  }
-`;
-
-const TabContent = styled(motion.div)`
-  padding: 1.5rem;
-`;
-
-const SectionTitle = styled.h4`
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: white;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 0.5rem;
-`;
-
-const IngredientsList = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const Ingredient = styled.div<{ rating: string }>`
-  display: flex;
-  align-items: center;
-  padding: 0.5rem;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  background: ${({ rating }) => {
-    switch (rating) {
-      case 'good': return SAFETY_COLORS.good.bg;
-      case 'bad': return SAFETY_COLORS.bad.bg;
-      case 'okay': return SAFETY_COLORS.okay.bg;
-      default: return 'rgba(100, 100, 100, 0.1)';
-    }
-  }};
-  border: 1px solid ${({ rating }) => {
-    switch (rating) {
-      case 'good': return SAFETY_COLORS.good.border;
-      case 'bad': return SAFETY_COLORS.bad.border;
-      case 'okay': return SAFETY_COLORS.okay.border;
-      default: return 'rgba(100, 100, 100, 0.2)';
-    }
-  }};
-`;
-
-const IngredientIcon = styled.div<{ rating: string }>`
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  margin-right: 1rem;
-  background: ${({ rating }) => {
-    switch (rating) {
-      case 'good': return SAFETY_COLORS.good.icon;
-      case 'bad': return SAFETY_COLORS.bad.icon;
-      case 'okay': return SAFETY_COLORS.okay.icon;
-      default: return '#888';
-    }
-  }};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 0.8rem;
-  font-weight: bold;
-`;
-
-const IngredientName = styled.div`
-  flex: 1;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-`;
-
-const IngredientTags = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const IngredientTag = styled.span`
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const IngredientExpandBtn = styled.button`
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.75rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
-  &:hover { color: rgba(255, 255, 255, 0.9); }
-`;
-
-const IngredientDetail = styled(motion.div)`
-  padding: 0.6rem 0.8rem 0.6rem 2.8rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.5;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const DetailRow = styled.div`
-  display: flex;
-  gap: 6px;
-  margin-bottom: 4px;
-  align-items: flex-start;
-`;
-
-const DetailLabel = styled.span`
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  min-width: 60px;
-  flex-shrink: 0;
-`;
-
-const IarcBadge = styled.span<{ $group: string }>`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: ${({ $group }) =>
-    $group === '1' ? 'rgba(201, 42, 84, 0.25)' :
-    $group === '2A' ? 'rgba(201, 42, 84, 0.15)' :
-    $group === '2B' ? 'rgba(198, 168, 75, 0.15)' :
-    'rgba(255, 255, 255, 0.06)'};
-  color: ${({ $group }) =>
-    $group === '1' ? '#C92A54' :
-    $group === '2A' ? '#E06080' :
-    $group === '2B' ? '#C6A84B' :
-    'rgba(255, 255, 255, 0.5)'};
-`;
-
-const EuBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: rgba(201, 42, 84, 0.2);
-  color: #C92A54;
-`;
-
-const SummaryBar = styled.div`
-  display: flex;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-`;
-
-const SummaryChip = styled.div<{ $color: string }>`
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: ${({ $color }) => $color};
-`;
-
-const SummaryDot = styled.div<{ $color: string }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
-`;
-
-const ConcernsList = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const ConcernItem = styled.div`
-  background: rgba(255, 70, 70, 0.1);
-  border: 1px solid rgba(255, 70, 70, 0.2);
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  
-  &:before {
-    content: "i";
-    margin-right: 0.5rem;
-  }
-`;
-
-const CertificationList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const Certification = styled.div<{ active: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  background: ${({ active }) => active ? 'rgba(0, 200, 83, 0.1)' : 'rgba(100, 100, 100, 0.1)'};
-  border: 1px solid ${({ active }) => active ? 'rgba(0, 200, 83, 0.2)' : 'rgba(100, 100, 100, 0.2)'};
-  color: ${({ active }) => active ? 'rgba(0, 200, 83, 0.9)' : 'rgba(255, 255, 255, 0.4)'};
-  font-size: 0.9rem;
-  
-  span {
-    font-weight: 500;
-  }
-`;
-
-const NutritionTable = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const NutritionRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const NutritionLabel = styled.div`
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-`;
-
-const NutritionValue = styled.div`
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-`;
-
-const AlternativesList = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const AlternativeItem = styled.div`
-  padding: 0.8rem;
-  background: rgba(0, 200, 83, 0.1);
-  border: 1px solid rgba(0, 200, 83, 0.2);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  
-  &:before {
-    content: "+";
-    margin-right: 0.5rem;
-    color: #00c853;
-  }
-`;
-
-const InfoMessage = styled.div`
-  text-align: center;
-  padding: 1rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-style: italic;
-  font-size: 0.9rem;
-`;
-
-const MealPickerOverlay = styled(motion.div)`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 12px 16px;
-  background: rgba(20, 20, 36, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const MealChip = styled.button`
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  background: rgba(96, 192, 240, 0.08);
-  color: #60C0F0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  min-width: 44px;
-  transition: all 0.2s;
-  text-transform: capitalize;
-  &:hover { background: rgba(96, 192, 240, 0.2); }
-  &:active { transform: scale(0.95); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-`;
-
-const ActionButton = styled.button<{ $primary?: boolean }>`
-  background: ${({ $primary }) => $primary ?
-    'linear-gradient(135deg, #8B5CF6, #60C0F0)' :
-    'rgba(60, 60, 100, 0.5)'
-  };
-  color: white;
-  border: ${({ $primary }) => $primary ?
-    'none' :
-    '1px solid rgba(255, 255, 255, 0.2)'
-  };
-  border-radius: 8px;
-  padding: 0.8rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  }
-  
-  &:active {
-    transform: translateY(1px);
-  }
-`;
-
-// Main component
 const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
   product,
   onSave,
@@ -526,412 +33,104 @@ const ProductAnalysis: React.FC<ProductAnalysisProps> = ({
   isFavorite = false,
   logLoading = false,
 }) => {
-  const [activeTab, setActiveTab] = useState('ingredients');
-  const [favorite, setFavorite] = useState(isFavorite);
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
-  const [showMealPicker, setShowMealPicker] = useState(false);
+  const [activeTab, setActiveTab] = useState<ProductTab>('ingredients');
+  const [explanation, setExplanation] = useState<ProductExplanation | null>(null);
+  const [videoBrief, setVideoBrief] = useState<ProductVideoBrief | null>(null);
+  const [loadingAction, setLoadingAction] = useState<LoadingAction>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  // Get ingredient counts
-  const goodIngredients = product.ingredients?.filter(i => i.healthRating === 'good').length || 0;
-  const badIngredients = product.ingredients?.filter(i => i.healthRating === 'bad').length || 0;
-  const okayIngredients = product.ingredients?.filter(i => i.healthRating === 'okay').length || 0;
-  const totalIngredients = product.ingredients?.length || 0;
+  const requestProductExplanation = async () => {
+    try {
+      setLoadingAction('explain');
+      setActionError(null);
+      const response = await axios.post('/api/food-scanner/explain-product', { product });
+      setExplanation(response.data?.explanation || null);
+      setActiveTab('learn');
+    } catch (error) {
+      setActionError(ACTION_ERROR_COPY);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
-  // Check for IARC/EU flagged ingredients
-  const hasDetailData = (i: Ingredient) =>
-    i.iarcGroup || i.isEUBanned || (i.healthConcerns && i.healthConcerns.length > 0) ||
-    (i.healthierAlternatives && i.healthierAlternatives.length > 0) || i.description;
-  
-  // Toggle favorite status
-  const handleToggleFavorite = () => {
-    const newStatus = !favorite;
-    setFavorite(newStatus);
-    if (onSave) {
-      onSave(newStatus);
+  const requestIngredientExplanation = async (ingredient: Ingredient) => {
+    try {
+      setLoadingAction(ingredient.name);
+      setActionError(null);
+      setActiveTab('learn');
+      const response = await axios.post('/api/food-scanner/explain-ingredient', { product, ingredient });
+      setExplanation(response.data?.explanation || null);
+    } catch (error) {
+      setActionError(ACTION_ERROR_COPY);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const requestVideoBrief = async () => {
+    try {
+      setLoadingAction('video');
+      setActionError(null);
+      const response = await axios.post('/api/food-scanner/video-brief', { product });
+      setVideoBrief(response.data?.videoBrief || null);
+      setActiveTab('learn');
+    } catch (error) {
+      setActionError(ACTION_ERROR_COPY);
+    } finally {
+      setLoadingAction(null);
     }
   };
 
   return (
     <AnalysisContainer>
-      <AnalysisHeader rating={product.overallRating}>
-        <ProductImage 
-          style={{ 
-            backgroundImage: `url(${product.imageUrl || '/placeholder-product.jpg'})` 
-          }}
+      <ProductHeroCard product={product} />
+      <TabList aria-label="Product intelligence views">
+        {[
+          ['ingredients', 'Ingredients'],
+          ['nutrition', 'Nutrition'],
+          ['learn', 'How made'],
+          ['alternatives', 'Swaps'],
+        ].map(([id, label]) => (
+          <TabButton key={id} $active={activeTab === id} onClick={() => setActiveTab(id as ProductTab)}>
+            {label}
+          </TabButton>
+        ))}
+      </TabList>
+      {activeTab === 'ingredients' && (
+        <IngredientFlagsPanel
+          product={product}
+          onExplainIngredient={requestIngredientExplanation}
+          loadingIngredient={typeof loadingAction === 'string' && !['explain', 'video'].includes(loadingAction) ? loadingAction : null}
         />
-        <HeaderContent>
-          <ProductName>{product.name}</ProductName>
-          {product.brand && <ProductBrand>{product.brand}</ProductBrand>}
-          <OverallRating>
-            <RatingLabel>Rating:</RatingLabel>
-            <RatingBadge rating={product.overallRating}>
-              {foodScannerRatingLabel(product.overallRating)}
-            </RatingBadge>
-          </OverallRating>
-        </HeaderContent>
-      </AnalysisHeader>
-      
-      <AnalysisTabs>
-        <TabButton 
-          active={activeTab === 'ingredients'} 
-          onClick={() => setActiveTab('ingredients')}
-        >
-          Ingredients
-        </TabButton>
-        <TabButton 
-          active={activeTab === 'nutrition'} 
-          onClick={() => setActiveTab('nutrition')}
-        >
-          Nutrition
-        </TabButton>
-        <TabButton 
-          active={activeTab === 'alternatives'} 
-          onClick={() => setActiveTab('alternatives')}
-        >
-          Alternatives
-        </TabButton>
-      </AnalysisTabs>
-      
-      <AnimatePresence mode="wait">
-        {activeTab === 'ingredients' && (
-          <TabContent
-            key="ingredients"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SectionTitle>Ingredients Analysis</SectionTitle>
-            <SafetyLegend>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.good.icon} />{SAFETY_COLORS.good.label} - GRAS / whole food signal</LegendItem>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.okay.icon} />{SAFETY_COLORS.okay.label} - processed / Group 2 signal</LegendItem>
-              <LegendItem><LegendDot $color={SAFETY_COLORS.bad.icon} />{SAFETY_COLORS.bad.label} - IARC Group 1 / EU-banned signal</LegendItem>
-            </SafetyLegend>
-            {totalIngredients > 0 && (
-              <SummaryBar>
-                <SummaryChip $color={SAFETY_COLORS.good.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.good.icon} />{goodIngredients} lower concern
-                </SummaryChip>
-                <SummaryChip $color={SAFETY_COLORS.okay.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.okay.icon} />{okayIngredients} review
-                </SummaryChip>
-                <SummaryChip $color={SAFETY_COLORS.bad.icon}>
-                  <SummaryDot $color={SAFETY_COLORS.bad.icon} />{badIngredients} higher concern
-                </SummaryChip>
-              </SummaryBar>
-            )}
-
-            {product.ingredients && product.ingredients.length > 0 ? (
-              <IngredientsList>
-                {product.ingredients.map((ingredient, index) => (
-                  <div key={index}>
-                    <Ingredient
-                      rating={ingredient.healthRating}
-                      style={{ cursor: hasDetailData(ingredient) ? 'pointer' : 'default' }}
-                      onClick={() => hasDetailData(ingredient) && setExpandedIdx(expandedIdx === index ? null : index)}
-                    >
-                      <IngredientIcon rating={ingredient.healthRating}>
-                        {ingredient.healthRating === 'bad' ? '!' :
-                          ingredient.healthRating === 'okay' ? '?' : 'i'}
-                      </IngredientIcon>
-                      <IngredientName>{ingredient.name}</IngredientName>
-                      <IngredientTags>
-                        {ingredient.iarcGroup && <IarcBadge $group={ingredient.iarcGroup}>IARC {ingredient.iarcGroup}</IarcBadge>}
-                        {ingredient.isEUBanned && <EuBadge>EU Ban</EuBadge>}
-                        {ingredient.isGMO && <IngredientTag>GMO</IngredientTag>}
-                        {ingredient.isProcessed && <IngredientTag>Processed</IngredientTag>}
-                      </IngredientTags>
-                      {hasDetailData(ingredient) && (
-                        <IngredientExpandBtn onClick={(e) => { e.stopPropagation(); setExpandedIdx(expandedIdx === index ? null : index); }}>
-                          {expandedIdx === index ? '▲' : '▼'}
-                        </IngredientExpandBtn>
-                      )}
-                    </Ingredient>
-                    <AnimatePresence>
-                      {expandedIdx === index && (
-                        <IngredientDetail
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          {ingredient.description && (
-                            <DetailRow><DetailLabel>Info</DetailLabel><span>{ingredient.description}</span></DetailRow>
-                          )}
-                          {ingredient.iarcGroup && (
-                            <DetailRow>
-                              <DetailLabel>IARC</DetailLabel>
-                              <span>
-                                IARC category {ingredient.iarcGroup}
-                                {ingredient.iarcGroup === '1' && ' - strongest evidence category'}
-                                {ingredient.iarcGroup === '2A' && ' - elevated evidence category'}
-                                {ingredient.iarcGroup === '2B' && ' - limited evidence category'}
-                                {ingredient.iarcGroup === '3' && ' - not classified by this scan data'}
-                              </span>
-                            </DetailRow>
-                          )}
-                          {ingredient.isEUBanned && (
-                            <DetailRow><DetailLabel>Status</DetailLabel><span style={{ color: '#C92A54' }}>Banned in the European Union</span></DetailRow>
-                          )}
-                          {ingredient.bannedRegions && ingredient.bannedRegions.length > 0 && (
-                            <DetailRow><DetailLabel>Banned</DetailLabel><span>{ingredient.bannedRegions.join(', ')}</span></DetailRow>
-                          )}
-                          {ingredient.healthConcerns && ingredient.healthConcerns.length > 0 && (
-                            <DetailRow><DetailLabel>Notes</DetailLabel><span>{ingredient.healthConcerns.join('; ')}</span></DetailRow>
-                          )}
-                          {ingredient.healthierAlternatives && ingredient.healthierAlternatives.length > 0 && (
-                            <DetailRow><DetailLabel>Try</DetailLabel><span style={{ color: '#60C0F0' }}>{ingredient.healthierAlternatives.join(', ')}</span></DetailRow>
-                          )}
-                        </IngredientDetail>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </IngredientsList>
-            ) : (
-              <InfoMessage>No ingredient information available</InfoMessage>
-            )}
-            
-            {product.healthConcerns && product.healthConcerns.length > 0 && (
-              <div>
-                <SectionTitle>Ingredient Notes</SectionTitle>
-                <ConcernsList>
-                  {product.healthConcerns.map((concern, index) => (
-                    <ConcernItem key={index}>{concern}</ConcernItem>
-                  ))}
-                </ConcernsList>
-              </div>
-            )}
-            
-            <SectionTitle>Certifications</SectionTitle>
-            <CertificationList>
-              <Certification active={product.isOrganic}>
-                <span>Organic</span>
-              </Certification>
-              <Certification active={product.isNonGMO}>
-                <span>Non-GMO</span>
-              </Certification>
-            </CertificationList>
-            <FdaDisclaimer>
-              For general wellness purposes only. Not medical advice. Ingredient
-              labels use conservative IARC/EU classifications and may not
-              reflect individual sensitivities. Consult a healthcare professional
-              for dietary guidance.
-            </FdaDisclaimer>
-          </TabContent>
-        )}
-        
-        {activeTab === 'nutrition' && (
-          <TabContent
-            key="nutrition"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SectionTitle>Nutritional Information</SectionTitle>
-            {product.nutritionalInfo ? (
-              <NutritionTable>
-                {product.nutritionalInfo.calories !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Calories</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.calories} kcal</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.fat !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Fat</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.fat} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.saturatedFat !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Saturated Fat</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.saturatedFat} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.carbohydrates !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Carbohydrates</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.carbohydrates} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.sugars !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Sugars</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.sugars} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.protein !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Protein</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.protein} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.fiber !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Fiber</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.fiber} g</NutritionValue>
-                  </NutritionRow>
-                )}
-                {product.nutritionalInfo.salt !== undefined && (
-                  <NutritionRow>
-                    <NutritionLabel>Salt</NutritionLabel>
-                    <NutritionValue>{product.nutritionalInfo.salt} g</NutritionValue>
-                  </NutritionRow>
-                )}
-              </NutritionTable>
-            ) : (
-              <InfoMessage>No nutritional information available</InfoMessage>
-            )}
-            
-            <SectionTitle>Raw Ingredients List</SectionTitle>
-            {product.ingredientsList ? (
-              <div style={{ 
-                color: 'rgba(255, 255, 255, 0.8)', 
-                fontSize: '0.9rem',
-                lineHeight: '1.6'
-              }}>
-                {product.ingredientsList}
-              </div>
-            ) : (
-              <InfoMessage>No ingredients list available</InfoMessage>
-            )}
-          </TabContent>
-        )}
-        
-        {activeTab === 'alternatives' && (
-          <TabContent
-            key="alternatives"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SectionTitle>Alternative Options</SectionTitle>
-            {product.healthierAlternatives && product.healthierAlternatives.length > 0 ? (
-              <AlternativesList>
-                {product.healthierAlternatives.map((alternative, index) => (
-                  <AlternativeItem key={index}>
-                    {typeof alternative === 'string' ? alternative : alternative.name}
-                  </AlternativeItem>
-                ))}
-              </AlternativesList>
-            ) : (
-              <InfoMessage>
-                No specific alternatives provided from this data source.
-                {product.overallRating === 'good' && " Current scan data does not show higher-concern ingredient flags."}
-              </InfoMessage>
-            )}
-            
-            <SectionTitle>General Recommendations</SectionTitle>
-            {product.overallRating === 'bad' ? (
-              <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>When comparing options, look for products with:</p>
-                <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
-                  <li>Certified organic</li>
-                  <li>Non-GMO verified</li>
-                  <li>Fewer artificial additives</li>
-                  <li>Fewer processed ingredients</li>
-                  <li>A shorter ingredients list</li>
-                </ul>
-              </div>
-            ) : product.overallRating === 'okay' ? (
-              <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>This product has mixed ingredient signals. Consider comparing options with:</p>
-                <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
-                  <li>More organic ingredients</li>
-                  <li>Fewer additives</li>
-                  <li>No GMO ingredients</li>
-                </ul>
-              </div>
-            ) : (
-              <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                <p>This scan shows lower concern ingredient signals. General comparison tips:</p>
-                <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem' }}>
-                  <li>Choose shorter, recognizable ingredient lists</li>
-                  <li>Look for organic certification when possible</li>
-                  <li>Vary your diet to get a wide range of nutrients</li>
-                </ul>
-              </div>
-            )}
-          </TabContent>
-        )}
-      </AnimatePresence>
-      
-      <ActionButtons>
-        <ActionButton onClick={handleToggleFavorite}>
-          {favorite ? '★ Saved' : '☆ Save'}
-        </ActionButton>
-        {onAddToLog && (
-          <ActionButton $primary onClick={() => setShowMealPicker(!showMealPicker)} disabled={logLoading}>
-            {logLoading ? 'Logging...' : '+ Add to Food Log'}
-          </ActionButton>
-        )}
-      </ActionButtons>
-
-      <AnimatePresence>
-        {showMealPicker && onAddToLog && (
-          <MealPickerOverlay
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            {['breakfast', 'lunch', 'dinner', 'snack'].map(meal => (
-              <MealChip
-                key={meal}
-                disabled={logLoading}
-                onClick={() => { onAddToLog(meal); setShowMealPicker(false); }}
-              >
-                {meal}
-              </MealChip>
-            ))}
-          </MealPickerOverlay>
-        )}
-      </AnimatePresence>
+      )}
+      {activeTab === 'nutrition' && (
+        <>
+          <NutritionFactsPanel product={product} />
+          <ProductCertificationsPanel product={product} />
+        </>
+      )}
+      {activeTab === 'learn' && (
+        <HowItsMadePanel
+          product={product}
+          explanation={explanation}
+          videoBrief={videoBrief}
+          loadingAction={loadingAction}
+          error={actionError}
+          onExplainProduct={requestProductExplanation}
+          onCreateVideoBrief={requestVideoBrief}
+        />
+      )}
+      {activeTab === 'alternatives' && <CleanerAlternativesPanel product={product} />}
+      {actionError && activeTab !== 'learn' && <InfoMessage>{actionError}</InfoMessage>}
+      <ProductCoachActions
+        isFavorite={isFavorite}
+        logLoading={logLoading}
+        onSave={onSave}
+        onAddToLog={onAddToLog}
+        onOpenLearn={() => setActiveTab('learn')}
+      />
     </AnalysisContainer>
   );
 };
-
-// ── Safety Legend ──
-const SafetyLegend = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const LegendItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const LegendDot = styled.div<{ $color: string }>`
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${({ $color }) => $color};
-  flex-shrink: 0;
-`;
-
-const FdaDisclaimer = styled.div`
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: rgba(198, 168, 75, 0.06);
-  border-left: 3px solid rgba(198, 168, 75, 0.4);
-  font-size: 0.75rem;
-  color: rgba(224, 236, 244, 0.6);
-  line-height: 1.5;
-  font-style: italic;
-`;
 
 export default ProductAnalysis;

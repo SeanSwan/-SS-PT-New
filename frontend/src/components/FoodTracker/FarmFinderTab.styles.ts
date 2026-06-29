@@ -1,6 +1,6 @@
 /**
- * Styled components for FarmFinderTab
- * Extracted to keep FarmFinderTab.tsx under 300 lines (CLAUDE.md rule).
+ * Styled components for FarmFinderTab.
+ * Extracted to keep FarmFinderTab.tsx under 300 lines.
  */
 import styled from 'styled-components';
 
@@ -44,11 +44,13 @@ export const Subtitle = styled.p`
 
 export const SearchRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 `;
 
 export const ZipInput = styled.input`
   flex: 1;
+  min-width: 180px;
   padding: 12px 16px;
   border-radius: 10px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
@@ -56,6 +58,7 @@ export const ZipInput = styled.input`
   color: var(--text-primary, #E0ECF4);
   font-size: 15px;
   min-height: 44px;
+
   &::placeholder { color: var(--text-muted, rgba(224, 236, 244, 0.4)); }
   &:focus { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: -2px; }
 `;
@@ -63,6 +66,7 @@ export const ZipInput = styled.input`
 export const SearchBtn = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 0 20px;
   border-radius: 10px;
@@ -74,10 +78,12 @@ export const SearchBtn = styled.button`
   min-height: 44px;
   cursor: pointer;
   white-space: nowrap;
+
   &:disabled { opacity: 0.5; cursor: not-allowed; }
   &:hover:not(:disabled) { filter: brightness(1.1); }
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
   @media (prefers-reduced-motion: reduce) {
     .spin { animation: none; }
   }
@@ -126,21 +132,13 @@ export const MarketList = styled.div`
   gap: 8px;
 `;
 
-/**
- * Outer wrapper (div) carries the card chrome.
- * Trigger (button) is the only interactive child in the header row.
- * Detail content (including anchor) lives in a sibling div — no button-in-button or a-in-button.
- */
 export const MarketCardWrapper = styled.div<{ $selected: boolean }>`
   border-radius: 12px;
-  border: 1px solid ${(p) => p.$selected
-    ? 'rgba(96, 192, 240, 0.3)'
-    : 'rgba(96, 192, 240, 0.08)'};
-  background: ${(p) => p.$selected
-    ? 'rgba(96, 192, 240, 0.04)'
-    : 'var(--bg-surface, #1A1A24)'};
+  border: 1px solid ${(p) => p.$selected ? 'rgba(96, 192, 240, 0.3)' : 'rgba(96, 192, 240, 0.08)'};
+  background: ${(p) => p.$selected ? 'rgba(96, 192, 240, 0.04)' : 'var(--bg-surface, #1A1A24)'};
   overflow: hidden;
   transition: border-color 0.15s;
+
   &:hover { border-color: rgba(96, 192, 240, 0.25); }
 `;
 
@@ -152,6 +150,7 @@ export const MarketCardTrigger = styled.button`
   padding: 0;
   cursor: pointer;
   text-align: left;
+
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: -2px; }
 `;
 
@@ -187,8 +186,10 @@ export const LoadingRow = styled.div`
   padding: 8px 16px 14px;
   font-size: 12px;
   color: var(--text-muted, rgba(224, 236, 244, 0.5));
+
   svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
   @media (prefers-reduced-motion: reduce) {
     svg { animation: none; }
   }
@@ -209,6 +210,7 @@ export const DetailItem = styled.div`
   font-size: 13px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.6));
   line-height: 1.4;
+
   svg { color: var(--accent-primary, #60C0F0); flex-shrink: 0; margin-top: 2px; }
 `;
 
@@ -225,6 +227,7 @@ export const DirectionsLink = styled.a`
   background: rgba(96, 192, 240, 0.08);
   width: fit-content;
   min-height: 44px;
+
   &:hover { background: rgba(96, 192, 240, 0.15); }
 `;
 
