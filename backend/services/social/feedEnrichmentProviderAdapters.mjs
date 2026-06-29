@@ -7,13 +7,17 @@ const nasaImageQueries = [
 ];
 
 const commonsQueries = [
-  { query: 'featured picture bird', category: 'nature' },
-  { query: 'featured picture flower', category: 'nature' },
-  { query: 'featured picture waterfall', category: 'nature' },
-  { query: 'featured picture forest', category: 'nature' },
-  { query: 'featured picture ocean', category: 'nature' },
-  { query: 'featured picture wildlife animal', category: 'nature' },
+  { query: 'featured picture bird photograph', category: 'nature' },
+  { query: 'featured picture flower photograph', category: 'nature' },
+  { query: 'featured picture waterfall photograph', category: 'nature' },
+  { query: 'featured picture forest photograph', category: 'nature' },
+  { query: 'featured picture ocean photograph', category: 'nature' },
+  { query: 'featured picture wildlife animal photograph', category: 'nature' },
 ];
+
+const commonsNonPhotoTerms = /\b(stamp|stamps|postage|postal|coin|coins|logo|map|diagram|chart|painting|drawing|illustration)\b/i;
+
+const isCommonsNaturePhotoCandidate = (...values) => !commonsNonPhotoTerms.test(values.join(' '));
 
 const npsQueries = [
   'waterfall',
@@ -113,7 +117,7 @@ const buildCommonsNatureItems = async ({ fetchJson, nowMs, env, moderate }) => {
       const description = stripHtml(metadata.ImageDescription?.value);
       const sourceLabel = [credit, license].filter(Boolean).join(' / ');
 
-      if (!mediaUrl || !title || !sourceLabel) return null;
+      if (!mediaUrl || !title || !sourceLabel || !isCommonsNaturePhotoCandidate(title, description, page?.title)) return null;
 
       return moderate({
         id: `wikimedia-commons-${page.pageid || title}`,

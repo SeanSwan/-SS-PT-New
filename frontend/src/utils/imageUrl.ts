@@ -29,19 +29,34 @@ const FALLBACK_ORIGINS: readonly string[] = [
   'https://media.sswanstudios.com',
 ];
 
-/**
- * Origin allowlist. Read from VITE_PHOTO_ORIGINS (comma-separated) at build
- * time; falls back to the production sswanstudios.com origins. Local-fallback
- * relative URLs (starting with `/`) are accepted regardless.
- */
-const ALLOWED_ORIGINS: readonly string[] = (() => {
+const TRUSTED_FEED_IMAGE_ORIGINS: readonly string[] = [
+  'https://images-assets.nasa.gov',
+  'https://images.nasa.gov',
+  'https://upload.wikimedia.org',
+  'https://www.nps.gov',
+  'https://nps.gov',
+  'https://ids.si.edu',
+];
+
+const readConfiguredOrigins = (): string[] => {
   const raw = import.meta.env.VITE_PHOTO_ORIGINS as string | undefined;
-  if (!raw) return FALLBACK_ORIGINS;
+  if (!raw) return [];
   return raw
     .split(',')
     .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter((origin) => origin.startsWith('https://'));
-})();
+};
+
+/**
+ * Origin allowlist. VITE_PHOTO_ORIGINS can add deployment-specific media
+ * origins; the Swan media origins and official feed image providers stay
+ * trusted so enrichment cards can render their actual post media.
+ */
+const ALLOWED_ORIGINS: readonly string[] = Array.from(new Set([
+  ...FALLBACK_ORIGINS,
+  ...TRUSTED_FEED_IMAGE_ORIGINS,
+  ...readConfiguredOrigins(),
+]));
 
 /** Reject any character that could escape a CSS `url(...)` token. */
 const CSS_INJECTION_CHARS = /[()'"\\<>\s]/;

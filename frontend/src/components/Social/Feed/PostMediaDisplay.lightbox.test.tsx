@@ -49,6 +49,30 @@ describe('PostMediaDisplay image lightbox', () => {
       expect(screen.queryByRole('dialog', { name: /full post image/i })).not.toBeInTheDocument();
     });
   });
+
+  it('renders official feed enrichment URLs as the full post image frame', () => {
+    const nasaMediaUrl = 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg';
+    const enrichmentPost: Post = {
+      ...imagePost,
+      id: 'feed-enrichment-nasa-images-GSFC_20260628',
+      content: 'Earth glows beyond the blue horizon',
+      mediaUrl: nasaMediaUrl,
+      mediaType: 'image',
+      user: {
+        id: 'feed-enrichment-nasa-images',
+        firstName: 'NASA',
+        lastName: 'Image Library',
+        username: 'nasa-images',
+      },
+    };
+
+    render(<PostMediaDisplay post={enrichmentPost} gradient="linear-gradient(#000, #111)" />);
+
+    const openButton = screen.getByRole('button', { name: /view full image/i });
+    const feedImage = screen.getByRole('img', { name: /earth glows beyond the blue horizon/i });
+    expect(feedImage).toHaveAttribute('src', nasaMediaUrl);
+    expect(openButton).toContainElement(feedImage);
+  });
   it('keeps uploaded images out of the gradient-backed hero and preserves contain-fit modal images', () => {
     const displaySource = readFileSync(resolve(__dirname, './components/PostMediaDisplay.tsx'), 'utf8');
     const lightboxStyles = readFileSync(resolve(__dirname, './components/PostMediaLightbox.styles.ts'), 'utf8');

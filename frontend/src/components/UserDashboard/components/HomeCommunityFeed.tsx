@@ -180,8 +180,8 @@ const FeedEnrichmentCardView = ({ item }: { item: FeedEnrichmentItem }) => (
   />
 );
 
-const ENRICHMENT_INSERT_EVERY = 3;
-const MAX_TRAILING_ENRICHMENT = 4;
+const TOP_ENRICHMENT_COUNT = 2;
+const ENRICHMENT_INSERT_EVERY = 4;
 
 const FeedEnrichmentCards = ({ items }: { items: FeedEnrichmentItem[] }) => {
   if (items.length === 0) return null;
@@ -197,17 +197,16 @@ const FeedPostStream = ({
   enrichmentItems,
   sentinelRef,
 }: Pick<FeedBodyProps, 'feed' | 'enrichmentItems' | 'sentinelRef'>) => {
-  const insertedEnrichmentCount = Math.floor(feed.posts.length / ENRICHMENT_INSERT_EVERY);
-  const trailingEnrichment = enrichmentItems.slice(
-    insertedEnrichmentCount,
-    insertedEnrichmentCount + MAX_TRAILING_ENRICHMENT,
-  );
+  const topEnrichment = enrichmentItems.slice(0, TOP_ENRICHMENT_COUNT);
+  const inlineEnrichment = enrichmentItems.slice(TOP_ENRICHMENT_COUNT);
 
   return (
     <>
+      <FeedEnrichmentCards items={topEnrichment} />
+
       {feed.posts.map((post, index) => {
         const enrichmentIndex = Math.floor((index + 1) / ENRICHMENT_INSERT_EVERY) - 1;
-        const showEnrichment = (index + 1) % ENRICHMENT_INSERT_EVERY === 0 && enrichmentItems[enrichmentIndex];
+        const showEnrichment = (index + 1) % ENRICHMENT_INSERT_EVERY === 0 && inlineEnrichment[enrichmentIndex];
         return (
           <React.Fragment key={post.id}>
             <PostCard
@@ -222,12 +221,10 @@ const FeedPostStream = ({
               onRepost={feed.repostPost}
               onLoadComments={feed.loadComments}
             />
-            {showEnrichment && <FeedEnrichmentCardView item={enrichmentItems[enrichmentIndex]} />}
+            {showEnrichment && <FeedEnrichmentCardView item={inlineEnrichment[enrichmentIndex]} />}
           </React.Fragment>
         );
       })}
-
-      <FeedEnrichmentCards items={trailingEnrichment} />
 
       {feed.hasMore && (
         <InfiniteScrollSentinel ref={sentinelRef}>

@@ -54,6 +54,19 @@ describe('sanitizeImageUrl', () => {
     expect(sanitizeImageUrl(cdn)).toBe(cdn);
   });
 
+  it('accepts official feed enrichment image provider origins', () => {
+    const officialImages = [
+      'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg',
+      'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bird/blue-bird.jpg/1200px-blue-bird.jpg',
+      'https://www.nps.gov/common/uploads/structured_data/yose-valley.jpg',
+      'https://ids.si.edu/ids/deliveryService/id/flowering-branch',
+    ];
+
+    officialImages.forEach((url) => {
+      expect(sanitizeImageUrl(url)).toBe(url);
+    });
+  });
+
   it('accepts root-relative paths (local-fallback uploads)', () => {
     expect(sanitizeImageUrl('/uploads/banners/abc.jpg')).toBe(
       '/uploads/banners/abc.jpg',

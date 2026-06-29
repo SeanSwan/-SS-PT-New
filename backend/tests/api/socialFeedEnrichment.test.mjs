@@ -42,6 +42,21 @@ const makeFetchJson = () => vi.fn(async (url) => {
     return {
       query: {
         pages: {
+          100: {
+            pageid: 100,
+            title: 'File:Wildlife Conservation Issue 8c 1971 U.S. stamps.jpg',
+            imageinfo: [{
+              thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/s/stamp/wildlife-stamp.jpg/1200px-wildlife-stamp.jpg',
+              descriptionurl: 'https://commons.wikimedia.org/wiki/File:Wildlife_Conservation_stamp.jpg',
+              timestamp: '2026-06-25T00:00:00Z',
+              extmetadata: {
+                ObjectName: { value: 'Wildlife Conservation Issue 8c 1971 U.S. stamps' },
+                ImageDescription: { value: '<p>Wildlife Conservation Issue - set of four 8-cent 1971 U.S. stamps.</p>' },
+                Artist: { value: 'Postal archive' },
+                LicenseShortName: { value: 'Public domain' },
+              },
+            }],
+          },
           101: {
             pageid: 101,
             title: 'File:Blue bird on branch.jpg',
@@ -152,6 +167,8 @@ describe('social feed enrichment API contract', () => {
       mediaType: 'image',
       title: 'Earth glows beyond the blue horizon',
     });
+    expect(first.items.map((item) => item.title).join(' ')).toContain('Blue bird on branch');
+    expect(first.items.map((item) => item.title).join(' ')).not.toMatch(/stamp/i);
   });
 
   it('skips keyed providers when keys are absent without calling mixed-license filler APIs', async () => {

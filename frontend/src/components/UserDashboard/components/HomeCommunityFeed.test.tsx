@@ -137,7 +137,7 @@ const enrichmentItems: FeedEnrichmentItem[] = [
     title: 'Earth glows beyond the blue horizon',
     summary: 'A calm NASA Image Library spark for the community feed.',
     mediaType: 'image',
-    mediaUrl: 'https://images.example.com/earth.jpg',
+    mediaUrl: 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg',
     url: 'https://images.nasa.gov/details/GSFC_20260628',
     publishedAt: '2026-06-28T00:00:00.000Z',
   },
@@ -245,6 +245,10 @@ describe('HomeCommunityFeed', () => {
 
     expect(screen.getByText('4 live posts')).toBeInTheDocument();
     expect(screen.getAllByRole('article', { name: /Post post-/i })).toHaveLength(4);
+    const articles = screen.getAllByRole('article');
+    expect(articles[0]).toHaveAttribute('aria-label', 'Post feed-enrichment-nasa-images-GSFC_20260628');
+    expect(articles[1]).toHaveAttribute('aria-label', 'Post feed-enrichment-nps-yose');
+    expect(articles[2]).toHaveAttribute('aria-label', 'Post post-1');
 
     const enrichmentPost = screen.getByRole('article', {
       name: /Post feed-enrichment-nasa-images-GSFC_20260628/i,
@@ -252,9 +256,9 @@ describe('HomeCommunityFeed', () => {
     expect(enrichmentPost).toHaveAttribute('data-readonly', 'true');
     expect(within(enrichmentPost).getByText(/Earth glows beyond the blue horizon/)).toBeInTheDocument();
     expect(within(enrichmentPost).getByAltText('avatar feed-enrichment-nasa-images-GSFC_20260628'))
-      .toHaveAttribute('src', 'https://images.example.com/earth.jpg');
+      .toHaveAttribute('src', 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg');
     expect(within(enrichmentPost).getByAltText('media feed-enrichment-nasa-images-GSFC_20260628'))
-      .toHaveAttribute('src', 'https://images.example.com/earth.jpg');
+      .toHaveAttribute('src', 'https://images-assets.nasa.gov/image/GSFC_20260628/GSFC_20260628~thumb.jpg');
     expect(within(enrichmentPost).getByRole('link', { name: /open source/i }))
       .toHaveAttribute('href', 'https://images.nasa.gov/details/GSFC_20260628');
     expect(within(enrichmentPost).queryByRole('button', { name: /toggle like/i })).not.toBeInTheDocument();
@@ -266,7 +270,11 @@ describe('HomeCommunityFeed', () => {
     expect(screen.getByText('1 live post')).toBeInTheDocument();
     expect(screen.getByText('QA lifted 200 pounds today')).toBeInTheDocument();
     expect(screen.getByText(/Earth glows beyond the blue horizon/)).toBeInTheDocument();
+    const articles = screen.getAllByRole('article');
+    expect(articles[0]).toHaveAttribute('aria-label', 'Post feed-enrichment-nasa-images-GSFC_20260628');
+    expect(articles[2]).toHaveAttribute('aria-label', 'Post post-1');
   });
+
   it('keeps the empty feed actions while showing quiet filler cards', () => {
     render(<HomeCommunityFeed feed={buildFeed()} enrichmentItems={enrichmentItems} />);
 
