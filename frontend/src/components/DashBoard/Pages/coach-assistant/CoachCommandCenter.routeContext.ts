@@ -88,22 +88,18 @@ const RETURN_LABELS: Record<string, string> = {
   'admin-workout-logger': 'Back to Workout Logger',
   'trainer-workout-logger': 'Back to Workout Logger',
   'client-workout-logger': 'Back to Workout Logger',
-  'admin-workout-planner': 'Back to Workout Planner',
-  'trainer-workout-planner': 'Back to Workout Planner',
-  'client-workout-planner': 'Back to Workout Planner',
+  'admin-workout-planner': 'Back to Build Plan',
+  'trainer-workout-planner': 'Back to Build Plan',
+  'client-workout-planner': 'Back to Build Plan',
 };
 
 function commandCenterReturnLabel(source: string | null): string {
   return source ? RETURN_LABELS[source] ?? 'Back to Dashboard' : 'Back to Dashboard';
 }
 
-export function buildWorkflowReturnLabel(workflowReturnTo: string | null, source: string | null): string | null {
-  return workflowReturnTo ? commandCenterReturnLabel(source) : null;
-}
+export function buildWorkflowReturnLabel(workflowReturnTo: string | null, source: string | null): string | null { return workflowReturnTo ? commandCenterReturnLabel(source) : null; }
 
-export function buildRouteClientLabel(routeClientId: number | null): string | null {
-  return routeClientId ? `Client #${routeClientId}` : null;
-}
+export function buildRouteClientLabel(routeClientId: number | null): string | null { return routeClientId ? `Client #${routeClientId}` : null; }
 
 const THREAD_SELECTION_STALE_KEYS = [
   'intent',
@@ -227,13 +223,13 @@ function selfWorkoutRouteContext(
 function planReviewRouteContext(routeClientLabel: string | null): RouteContextCopy {
   return {
     prompt: prompt([
-      'Workout planner review.',
-      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this planner route.',
+      'Build Plan review.',
+      routeClientLabel ? `${routeClientLabel} generated-plan context loaded.` : 'No selected client is attached to this Build Plan route.',
       'Review the selected day before it is saved, assigned, or logged.',
       'Name safety issues, missing warmup/cooldown detail, pain-risk edits, and the simplest logger-ready version.',
       'Do not claim the workout was logged until it is saved in the Workout Logger.',
     ]),
-    status: 'Workout planner review context loaded',
+    status: 'Build Plan review context loaded',
   };
 }
 
@@ -270,15 +266,18 @@ const HISTORICAL_IMPORT_DRAFT_KEY = /^swan-historical-import-[1-9]\d*-\d+$/;
 function safeSessionStorageItem(key: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return window.sessionStorage?.getItem(key)?.trim() || null;
-  } catch {
-    return null;
-  }
+    const raw = window.sessionStorage?.getItem(key)?.trim();
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as { prompt?: unknown; expiresAt?: unknown };
+      if (typeof parsed.expiresAt === 'number' && parsed.expiresAt < Date.now()) { window.sessionStorage.removeItem(key); return null; }
+      return typeof parsed.prompt === 'string' ? parsed.prompt.trim() || null : raw;
+    } catch { return raw; }
+  } catch { return null; }
 }
 
 function historicalImportDraftKey(routeIntent: string | null, routeDraftKey: string | null): string | null {
-  if (routeIntent !== 'historical_import') return null;
-  return routeDraftKey && HISTORICAL_IMPORT_DRAFT_KEY.test(routeDraftKey) ? routeDraftKey : null;
+  return routeIntent === 'historical_import' && routeDraftKey && HISTORICAL_IMPORT_DRAFT_KEY.test(routeDraftKey) ? routeDraftKey : null;
 }
 
 export function readHistoricalImportRouteDraft(

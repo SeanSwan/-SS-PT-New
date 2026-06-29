@@ -38,9 +38,9 @@ const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps
   onMakePrimary,
   onOpenPdf,
 }) => (
-  <VaultSection aria-label="Plan Arc Vault">
+  <VaultSection aria-label="Plan Arc Library">
     <VaultHeader>
-      <VaultTitle><Layers3 size={16} /> Plan Arc Vault</VaultTitle>
+      <VaultTitle><Layers3 size={16} /> Plan Arc Library</VaultTitle>
       <VaultMeta>{planVault.filledCount} of 7 arcs filled</VaultMeta>
     </VaultHeader>
     <VaultGrid>

@@ -1,6 +1,6 @@
 /**
  * COMPONENT: TrainerWorkoutForgePage.data
- * PURPOSE: Constants and small pure helpers for the trainer Workout Forge.
+ * PURPOSE: Constants and small pure helpers for the trainer Build Plan route.
  */
 import {
   normalizeTrainerClientOptions,
@@ -63,10 +63,10 @@ export type SavedTrainerForgePlan = {
 export const buildExerciseId = (index: number) => `manual-exercise-${Date.now()}-${index}`;
 
 export const buildTrainerForgeLoggerPath = (clientId: number) =>
-  `/dashboard/trainer/log-workout?clientId=${clientId}&loadPlan=today&source=workout-forge`;
+  `/dashboard/trainer/log-workout?clientId=${clientId}&loadPlan=today&source=build-plan`;
 
 export const buildTrainerForgePlannerPath = (clientId: number) =>
-  `/dashboard/trainer/workout-planner?clientId=${clientId}&source=workout-forge`;
+  `/dashboard/trainer/workout-planner?clientId=${clientId}&source=build-plan`;
 
 export const parseTrainerForgeClientId = (value: string | number | null | undefined): number | null => {
   if (typeof value === 'number') {

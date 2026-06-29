@@ -148,13 +148,13 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
 
       if (!result || (result as { failed?: boolean }).failed) {
         setStatusTone('error');
-        setStatus('Swan could not process that. Edit and resend.');
+        setStatus('Coach could not process that. Edit and resend.');
         return;
       }
 
       setCommand('');
       setStatusTone('success');
-      setStatus('Sent to Swan. Review before save.');
+      setStatus('Sent to Coach. Review before save.');
     },
     [
       busy,
@@ -190,7 +190,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
       const result = await confirmCommand(operationId);
       if (!result.success) {
         setStatusTone('error');
-        setStatus(result.message || 'Swan could not confirm that action.');
+        setStatus(result.message || 'Coach could not confirm that action.');
         return { success: false, error: result.message || 'Confirm failed.' };
       }
 
@@ -231,10 +231,10 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
   const handleVoiceClick = speech.cancelPillVisible ? speech.handleCancelSend : speech.toggleListening;
 
   return (
-    <Shell aria-label={`${clientName} Swan daily training command`}>
+    <Shell aria-label={`${clientName} Swan Coach training command`}>
       <Badge>
         <Sparkles size={16} />
-        Tell Swan
+        Ask Coach
       </Badge>
 
       <Form onSubmit={handleSubmit}>
@@ -243,7 +243,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
           <Input
             value={command}
             onChange={(event) => setCommand(event.target.value)}
-            aria-label={`Tell Swan about ${clientName}`}
+            aria-label={`Ask Coach about ${clientName}`}
             placeholder="Dictate sets, reps, load, pain, notes..."
           />
         </InputWrap>
@@ -260,7 +260,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
           <span>{speech.listening ? 'Listening' : 'Voice'}</span>
         </VoiceButton>
 
-        <SubmitButton type="submit" disabled={!command.trim() || busy} aria-label="Send to Swan">
+        <SubmitButton type="submit" disabled={!command.trim() || busy} aria-label="Send to Coach">
           <Send size={16} />
           Send
         </SubmitButton>
@@ -273,7 +273,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
       )}
 
       {(pendingConfirmation || shouldShowAssistantContent || latestClientProposals.length > 0) && (
-        <OutputPanel aria-label="Swan daily training review output">
+        <OutputPanel aria-label="Swan Coach training review output">
           {pendingConfirmation && (
             <ConfirmationCard
               operationId={pendingConfirmation.operationId}

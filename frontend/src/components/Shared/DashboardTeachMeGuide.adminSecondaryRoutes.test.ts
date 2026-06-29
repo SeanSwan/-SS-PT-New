@@ -15,10 +15,10 @@ describe('DashboardTeachMeGuide admin secondary route specificity', () => {
     });
     expect(guide.fastPath.join(' ')).toMatch(/equipment/i);
     expect(guide.primaryPrompt).toContain('equipment');
-    expect(guide.primaryAction.label).not.toBe('Open Workout Planner');
+    expect(guide.primaryAction.label).not.toBe('Open Plan Library');
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Equipment', to: '/dashboard/admin/equipment' }),
-      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/admin/workout-planner' }),
+      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/admin/workout-planner' }),
       expect.objectContaining({ label: 'Client Hub Training', to: '/dashboard/admin/client-management?tab=training' }),
     ]));
   });
@@ -36,10 +36,10 @@ describe('DashboardTeachMeGuide admin secondary route specificity', () => {
     });
     expect(guide.fastPath.join(' ')).toMatch(/group|bootcamp/i);
     expect(guide.primaryPrompt).toContain('bootcamp');
-    expect(guide.primaryAction.label).not.toBe('Open Workout Planner');
+    expect(guide.primaryAction.label).not.toBe('Open Plan Library');
     expect(guide.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: 'Bootcamp', to: '/dashboard/admin/bootcamp' }),
-      expect.objectContaining({ label: 'Workout Planner', to: '/dashboard/admin/workout-planner' }),
+      expect.objectContaining({ label: 'Plan Library', to: '/dashboard/admin/workout-planner' }),
       expect.objectContaining({ label: 'Schedule', to: '/dashboard/admin/master-schedule' }),
     ]));
   });

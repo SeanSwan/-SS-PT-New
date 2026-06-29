@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildRouteContext,
+  readHistoricalImportRouteDraft,
   buildThreadSelectionSearchParams,
   buildWorkflowReturnLabel,
   getScheduledSessionRouteContextFromSearchParams,
@@ -60,6 +61,20 @@ describe('CoachCommandCenter route workout context parsing', () => {
       scheduledSessionDate: '2026-06-15',
       scheduledSessionCredits: 0,
     });
+  });
+});
+
+describe('CoachCommandCenter historical import draft handoff', () => {
+  it('reads TTL-bound historical import drafts and drops expired drafts', () => {
+    const activeKey = 'swan-historical-import-42-123';
+    const expiredKey = 'swan-historical-import-42-456';
+    window.sessionStorage.setItem(activeKey, JSON.stringify({ prompt: 'Backfill client #42.', expiresAt: Date.now() + 60_000 }));
+    window.sessionStorage.setItem(expiredKey, JSON.stringify({ prompt: 'Expired draft.', expiresAt: Date.now() - 1 }));
+
+    expect(readHistoricalImportRouteDraft('historical_import', activeKey)).toBe('Backfill client #42.');
+    expect(readHistoricalImportRouteDraft('historical_import', expiredKey)).toBeNull();
+    expect(window.sessionStorage.getItem(expiredKey)).toBeNull();
+    expect(readHistoricalImportRouteDraft('log_workout', activeKey)).toBeNull();
   });
 });
 

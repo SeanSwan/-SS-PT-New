@@ -45,7 +45,7 @@ const scheduledSession: TrainerSession = {
   status: 'scheduled',
 };
 
-describe('TrainerHomeTab planner handoffs', () => {
+describe('TrainerHomeTab Build Plan handoffs', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockedUseTrainerTodaySessions.mockReturnValue({
@@ -61,17 +61,17 @@ describe('TrainerHomeTab planner handoffs', () => {
     });
   });
 
-  it('surfaces a next-session Plan action that opens the selected client planner', async () => {
+  it('surfaces a next-session Build action that opens selected-client Build Plan', async () => {
     const user = userEvent.setup();
     render(<TrainerHomeTab />);
 
     const nextAction = screen.getByRole('region', { name: /next trainer action/i });
-    await user.click(within(nextAction).getByRole('button', { name: /plan next session for ada lovelace/i }));
+    await user.click(within(nextAction).getByRole('button', { name: /build plan from next action for ada lovelace/i }));
 
     const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
     const url = new URL(route, 'https://sswanstudios.test');
 
-    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
+    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
     expect(url.searchParams.get('clientId')).toBe('42');
     expect(url.searchParams.get('sessionId')).toBe('88');
     expect(url.searchParams.get('sessionDate')).toBe('2099-05-31T16:00:00.000Z');
@@ -79,18 +79,18 @@ describe('TrainerHomeTab planner handoffs', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
   });
 
-  it('keeps Coach, Plan, and Log available on the session row without extra tab hunting', async () => {
+  it('keeps Coach, Build, and Log available on the session row without extra tab hunting', async () => {
     const user = userEvent.setup();
     render(<TrainerHomeTab />);
 
-    await user.click(screen.getByRole('button', { name: /plan workout for ada lovelace/i }));
+    await user.click(screen.getByRole('button', { name: /build plan for ada lovelace/i }));
 
     const route = mockNavigate.mock.calls.at(-1)?.[0] as string;
     const url = new URL(route, 'https://sswanstudios.test');
 
     expect(screen.getByRole('button', { name: /dictate workout with swan coach for ada lovelace/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log workout for ada lovelace/i })).toBeInTheDocument();
-    expect(url.pathname).toBe('/dashboard/trainer/workout-planner');
+    expect(url.pathname).toBe('/dashboard/trainer/build-plan');
     expect(url.searchParams.get('clientId')).toBe('42');
   });
 });

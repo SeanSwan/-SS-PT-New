@@ -48,6 +48,8 @@ describe('HistoricalWorkoutImportPanel logic', () => {
     expect(plan.coachPrompt).toContain('AI-estimated historical filler');
     expect(plan.coachPrompt).toContain('edit before saving');
     expect(plan.coachPrompt).toContain('verified performance records');
+    expect(plan.coachPrompt).toContain('believable progression story');
+    expect(plan.coachPrompt).toContain('regress load, volume, density, and exercise complexity');
   });
 
   it('redacts common contact details from freeform trainer notes before Coach handoff', () => {

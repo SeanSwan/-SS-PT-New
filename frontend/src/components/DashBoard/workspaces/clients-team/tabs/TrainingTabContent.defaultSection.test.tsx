@@ -86,9 +86,9 @@ type TestTrainingSection = 'architect' | 'plans' | 'logger' | 'import' | 'plaud'
 const renderTraining = (props: Partial<ComponentProps<typeof TrainingTabContent>> = {}) => render(
   <TrainingTabContent clientId={424242} clientName="Fixture Client" {...props} />
 );
-const openSwanCommand = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByRole('button', { name: /tell swan/i }));
-  return screen.findByLabelText(/tell swan about fixture client/i);
+const openCoachCommand = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /ask coach/i }));
+  return screen.findByLabelText(/ask coach about fixture client/i);
 };
 describe('TrainingTabContent daily workflow default', () => {
   const source = readFileSync(resolve(__dirname, 'TrainingTabContent.tsx'), 'utf8');
@@ -105,12 +105,12 @@ describe('TrainingTabContent daily workflow default', () => {
       dispatched: true,
     });
   });
-  it('opens on Workout Logger so the selected-client workflow starts with today', async () => {
+  it('opens on Log Workout so the selected-client workflow starts with today', async () => {
     renderTraining();
-    expect(screen.getByRole('button', { name: /tell swan/i })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: /ask coach/i })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('region', { name: /fixture client swan daily training command/i })).not.toBeInTheDocument();
     expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /log workout/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -124,10 +124,10 @@ describe('TrainingTabContent daily workflow default', () => {
       'true'
     );
   });
-  it('can open directly on saved Plans after returning from a saved full-page planner', async () => {
+  it('can open directly on Plan Library after returning from a saved full-page planner', async () => {
     renderTraining({ initialSection: 'plans' });
     expect(await screen.findByTestId('client-workout-plans-panel')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /plans/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /plan library/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -138,7 +138,7 @@ describe('TrainingTabContent daily workflow default', () => {
     renderTraining({ initialSection: 'plans', onSectionChange });
     await user.click(await screen.findByRole('button', { name: /mock plan log today/i }));
     expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /log workout/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -153,7 +153,7 @@ describe('TrainingTabContent daily workflow default', () => {
       '1'
     );
   });
-  it('opens and refreshes Plan Vault after Program Architect saves a generated plan', async () => {
+  it('opens and refreshes Plan Library after Build Plan saves a generated plan', async () => {
     const user = userEvent.setup();
     const onSectionChange = vi.fn();
     renderTraining({ initialSection: 'architect', onSectionChange });
@@ -162,18 +162,22 @@ describe('TrainingTabContent daily workflow default', () => {
       'data-refresh-signal',
       '1'
     );
-    expect(screen.getByRole('tab', { name: /plans/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /plan library/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
     expect(onSectionChange).toHaveBeenCalledWith('plans');
   });
-  it('names the plan-generation tab as Swan Coach planning, not a generic architect', () => {
+  it('names the plan-generation tab as Build Plan, not a generic architect', () => {
     renderTraining();
-    expect(screen.getByRole('tab', { name: /swan coach architect/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /build plan/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /swan coach architect/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /swan coach copilot/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /training plans/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /workout logger/i })).not.toBeInTheDocument();
     expect(screen.queryByText('Program Architect')).not.toBeInTheDocument();
   });
-  it('forwards scheduled session context into the embedded workout logger', async () => {
+  it('forwards scheduled session context into the embedded log workout', async () => {
     renderTraining({
       scheduledSessionCreditHint: 2,
       scheduledSessionDate: '2026-06-07',
@@ -199,12 +203,12 @@ describe('TrainingTabContent daily workflow default', () => {
       scheduledSessionDate: '2026-06-07',
       scheduledSessionId: '72',
     });
-    const commandInput = await openSwanCommand(user);
+    const commandInput = await openCoachCommand(user);
     await user.type(
       commandInput,
       'Log bench press 3 sets of 10'
     );
-    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+    await user.click(screen.getByRole('button', { name: /send to coach/i }));
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
     expect(commandMock.executeCommand).toHaveBeenCalledWith(
       'Log bench press 3 sets of 10',
@@ -277,10 +281,10 @@ describe('TrainingTabContent daily workflow default', () => {
       'aria-selected',
       'true'
     );
-    await user.type(await openSwanCommand(user), 'Add push ups to the workout');
-    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+    await user.type(await openCoachCommand(user), 'Add push ups to the workout');
+    await user.click(screen.getByRole('button', { name: /send to coach/i }));
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /log workout/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -291,10 +295,10 @@ describe('TrainingTabContent daily workflow default', () => {
     renderTraining();
     await user.click(screen.getByRole('tab', { name: /workout history/i }));
     expect(await screen.findByTestId('workout-history-panel')).toBeInTheDocument();
-    await user.type(await openSwanCommand(user), 'We did bench press 3 sets of 10 at 135');
-    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+    await user.type(await openCoachCommand(user), 'We did bench press 3 sets of 10 at 135');
+    await user.click(screen.getByRole('button', { name: /send to coach/i }));
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /log workout/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -305,8 +309,8 @@ describe('TrainingTabContent daily workflow default', () => {
     renderTraining();
     await user.click(screen.getByRole('tab', { name: /workout history/i }));
     expect(await screen.findByTestId('workout-history-panel')).toBeInTheDocument();
-    await user.type(await openSwanCommand(user), 'Log meals for today');
-    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+    await user.type(await openCoachCommand(user), 'Log meals for today');
+    await user.click(screen.getByRole('button', { name: /send to coach/i }));
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
     expect(screen.getByRole('tab', { name: /workout history/i })).toHaveAttribute(
       'aria-selected',

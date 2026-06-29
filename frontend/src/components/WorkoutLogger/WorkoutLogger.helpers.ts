@@ -2,6 +2,7 @@ import type { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import type { WorkoutExerciseTransfer } from '../../utils/parseAIWorkoutPlan';
 import type {
   CurrentWorkoutPlanResponse,
+  PlanAssignmentPickerItem,
   PlannedDay,
   PlannedAssignment,
   PlannedExercise,
@@ -219,6 +220,48 @@ export function currentWorkoutAssignmentMatchesRouteIntent(
   return true;
 }
 
+export function planAssignmentPickerItemToEntries(
+  item: PlanAssignmentPickerItem,
+  createLocalId: (prefix: string) => string,
+): ExerciseEntry[] {
+  const sourceExercises = Array.isArray(item.exercises) ? item.exercises : [];
+  return sourceExercises.map((exercise) =>
+    plannedExerciseToEntry(exercise, () => createLocalId('plan-picker'))
+  );
+}
+
+export function planAssignmentPickerItemToContext(
+  item: PlanAssignmentPickerItem,
+): PlannedAssignment {
+  return {
+    assignmentId: item.assignmentId ?? item.assignmentKey ?? null,
+    assignmentKey: item.assignmentKey ?? item.assignmentId ?? null,
+    planId: item.planId ?? null,
+    assignmentType: item.assignmentType ?? null,
+    source: 'workout_plan',
+    isLoggable: item.isLoadable !== false,
+    isBillable: item.isBillable ?? false,
+    shouldDeductSession: item.shouldDeductSession ?? false,
+    status: item.status ?? null,
+    title: item.title || item.dayLabel || item.planTitle || 'Selected Plan Day',
+    scheduledDate: item.scheduledDate ?? null,
+    weekNumber: item.weekNumber ?? null,
+    dayNumber: item.dayNumber ?? null,
+    dayLabel: item.dayLabel ?? null,
+    exerciseCount: item.exerciseCount ?? (Array.isArray(item.exercises) ? item.exercises.length : null),
+    firstExerciseName: item.firstExerciseName ?? item.exercises?.[0]?.exerciseName ?? item.exercises?.[0]?.name ?? null,
+    ctaLabel: item.ctaLabel ?? null,
+    exercises: item.exercises ?? [],
+  };
+}
+
+export function planAssignmentPickerItemToSubmitAssignment(
+  item: PlanAssignmentPickerItem,
+): PlannedAssignment | null {
+  return item.canSubmitPlannedAssignment === true
+    ? planAssignmentPickerItemToContext(item)
+    : null;
+}
 export function getPlanDayForDate(
   days: PlannedDay[] | undefined,
   date = new Date(),

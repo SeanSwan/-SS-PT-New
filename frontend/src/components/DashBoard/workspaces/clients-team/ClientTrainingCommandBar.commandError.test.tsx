@@ -55,11 +55,11 @@ describe('ClientTrainingCommandBar command errors', () => {
 
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
     fireEvent.change(input, {
       target: { value: 'Log bench press 3 sets of 10 at 135' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /selectedClientId must be a positive integer/i

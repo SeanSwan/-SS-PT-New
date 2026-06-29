@@ -24,7 +24,7 @@ describe('DashboardTeachMeGuide admin Client Hub', () => {
         to: '/dashboard/admin/client-management?intent=log_workout',
       }),
       expect.objectContaining({
-        label: 'Workout Planner',
+        label: 'Plan Library',
         to: '/dashboard/admin/workout-planner',
       }),
       expect.objectContaining({

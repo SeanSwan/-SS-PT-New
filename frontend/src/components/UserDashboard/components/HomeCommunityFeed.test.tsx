@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import type React from 'react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Post } from '../../Social/Feed/types/PostCardTypes';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
@@ -17,23 +18,34 @@ vi.mock('../../Social/Feed/PostCard', () => ({
     onLike,
     onComment,
     onLoadComments,
+    readOnly,
+    contextSlot,
   }: {
     post: Post;
     onLike: () => void;
     onComment: (postId: string, content: string) => void;
     onLoadComments?: (postId: string) => void;
+    readOnly?: boolean;
+    contextSlot?: React.ReactNode;
   }) => (
-    <article aria-label={`Post ${post.id}`}>
+    <article aria-label={`Post ${post.id}`} data-readonly={readOnly ? 'true' : 'false'}>
       <h3>{post.content}</h3>
-      <button type="button" onClick={onLike}>
-        Toggle like {post.id}
-      </button>
-      <button type="button" onClick={() => onComment(post.id, 'Strong work')}>
-        Comment {post.id}
-      </button>
-      <button type="button" onClick={() => onLoadComments?.(post.id)}>
-        Load comments {post.id}
-      </button>
+      {post.user.photo && <img src={post.user.photo} alt={`avatar ${post.id}`} />}
+      {post.mediaUrl && <img src={post.mediaUrl} alt={`media ${post.id}`} />}
+      {!readOnly && (
+        <>
+          <button type="button" onClick={onLike}>
+            Toggle like {post.id}
+          </button>
+          <button type="button" onClick={() => onComment(post.id, 'Strong work')}>
+            Comment {post.id}
+          </button>
+          <button type="button" onClick={() => onLoadComments?.(post.id)}>
+            Load comments {post.id}
+          </button>
+        </>
+      )}
+      {contextSlot}
     </article>
   ),
 }));
@@ -118,27 +130,27 @@ const buildFeed = (overrides: Partial<SocialFeedApi> = {}): SocialFeedApi => ({
 
 const enrichmentItems: FeedEnrichmentItem[] = [
   {
-    id: 'nasa-apod-2026-06-28',
+    id: 'nasa-images-GSFC_20260628',
     kind: 'enrichment',
-    source: 'nasa-apod',
+    source: 'nasa-images',
     category: 'space',
-    title: 'Webb catches a quiet star nursery',
-    summary: 'A calm space spark for the community feed.',
+    title: 'Earth glows beyond the blue horizon',
+    summary: 'A calm NASA Image Library spark for the community feed.',
     mediaType: 'image',
-    mediaUrl: 'https://images.example.com/webb.jpg',
-    url: 'https://apod.nasa.gov/example',
+    mediaUrl: 'https://images.example.com/earth.jpg',
+    url: 'https://images.nasa.gov/details/GSFC_20260628',
     publishedAt: '2026-06-28T00:00:00.000Z',
   },
   {
-    id: 'inaturalist-42',
+    id: 'nps-yose',
     kind: 'enrichment',
-    source: 'inaturalist',
-    category: 'nature',
-    title: 'Blue passionflower spotted today',
-    summary: 'A quick nature card that is separate from user posts.',
+    source: 'nps',
+    category: 'parks',
+    title: 'Yosemite National Park',
+    summary: 'A quick official park card that is separate from user posts.',
     mediaType: 'image',
-    mediaUrl: 'https://static.inaturalist.org/photos/42.jpg',
-    url: 'https://inaturalist.org/observations/42',
+    mediaUrl: 'https://www.nps.gov/common/uploads/structured_data/yose-valley.jpg',
+    url: 'https://www.nps.gov/yose/index.htm',
     publishedAt: '2026-06-27T00:00:00.000Z',
   },
 ];
@@ -232,10 +244,20 @@ describe('HomeCommunityFeed', () => {
     render(<HomeCommunityFeed feed={buildFeed({ posts })} enrichmentItems={enrichmentItems} />);
 
     expect(screen.getByText('4 live posts')).toBeInTheDocument();
-    expect(screen.getByText('Swan Signal')).toBeInTheDocument();
-    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
     expect(screen.getAllByRole('article', { name: /Post post-/i })).toHaveLength(4);
-    expect(screen.queryByRole('button', { name: /toggle like nasa/i })).not.toBeInTheDocument();
+
+    const enrichmentPost = screen.getByRole('article', {
+      name: /Post feed-enrichment-nasa-images-GSFC_20260628/i,
+    });
+    expect(enrichmentPost).toHaveAttribute('data-readonly', 'true');
+    expect(within(enrichmentPost).getByText(/Earth glows beyond the blue horizon/)).toBeInTheDocument();
+    expect(within(enrichmentPost).getByAltText('avatar feed-enrichment-nasa-images-GSFC_20260628'))
+      .toHaveAttribute('src', 'https://images.example.com/earth.jpg');
+    expect(within(enrichmentPost).getByAltText('media feed-enrichment-nasa-images-GSFC_20260628'))
+      .toHaveAttribute('src', 'https://images.example.com/earth.jpg');
+    expect(within(enrichmentPost).getByRole('link', { name: /open source/i }))
+      .toHaveAttribute('href', 'https://images.nasa.gov/details/GSFC_20260628');
+    expect(within(enrichmentPost).queryByRole('button', { name: /toggle like/i })).not.toBeInTheDocument();
   });
 
   it('short feed still receives enrichment so early community timelines are not dead', () => {
@@ -243,14 +265,14 @@ describe('HomeCommunityFeed', () => {
 
     expect(screen.getByText('1 live post')).toBeInTheDocument();
     expect(screen.getByText('QA lifted 200 pounds today')).toBeInTheDocument();
-    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
+    expect(screen.getByText(/Earth glows beyond the blue horizon/)).toBeInTheDocument();
   });
   it('keeps the empty feed actions while showing quiet filler cards', () => {
     render(<HomeCommunityFeed feed={buildFeed()} enrichmentItems={enrichmentItems} />);
 
     expect(screen.getByLabelText('Empty feed welcome')).toBeInTheDocument();
-    expect(screen.getByText('Webb catches a quiet star nursery')).toBeInTheDocument();
-    expect(screen.getByText('Blue passionflower spotted today')).toBeInTheDocument();
+    expect(screen.getByText(/Earth glows beyond the blue horizon/)).toBeInTheDocument();
+    expect(screen.getByText(/Yosemite National Park/)).toBeInTheDocument();
   });
   it('loads more posts only when the sentinel is visible and idle', () => {
     const loadMore = vi.fn();

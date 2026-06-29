@@ -36,6 +36,13 @@ describe('AI chat selected equipment profile request context', () => {
     expect(routeSource).toMatch(/routeContext:\s*coachProposalRouteContext/);
   });
 
+
+  it('forwards safe route source and intent into Coach proposal parsing', () => {
+    expect(routeSource).toContain('parseOptionalRouteToken');
+    expect(routeSource).toContain('routeContextIntent');
+    expect(routeSource).toContain('intent: routeContextIntent');
+    expect(routeSource).toContain('source: routeContextSource');
+  });
   it('prints equipment profile IDs in enrichment blocks so selected IDs are actionable', () => {
     expect(serviceSource).toMatch(/SELECT\s+ep\.id,\s+ep\.name,\s+ep\."locationType",\s+ep\.description/);
     expect(serviceSource).toContain('`#${e.id} ${e.name}');

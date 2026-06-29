@@ -34,7 +34,20 @@ import {
 import { logger } from '@/utils/logger';
 import { buildSocialPostShareUrl } from '../../../utils/socialPostShareUrl';
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost, onLoadComments }) => {
+const PostCard: React.FC<PostCardProps> = ({
+  post,
+  onLike,
+  onReact,
+  onRemoveReaction,
+  onComment,
+  onDelete,
+  onEdit,
+  onReport,
+  onRepost,
+  onLoadComments,
+  readOnly = false,
+  contextSlot,
+}) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
@@ -212,6 +225,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           onCopyLink={handleCopyLink}
           onMute={handleMute}
           isOwnPost={isOwnPost}
+          readOnly={readOnly}
         />
 
         {editMode ? (
@@ -230,39 +244,45 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           />
         )}
 
-        <StyledDivider />
+        {contextSlot}
 
-        <PostActions
-          post={post}
-          userReactions={userReactions}
-          reactionCounts={reactionCounts}
-          onReaction={handleReaction}
-          showComments={showComments}
-          onToggleComments={handleToggleComments}
-          onShareClick={() => setShareDialogOpen(true)}
-        />
-
-        {showComments && (
+        {!readOnly && (
           <>
             <StyledDivider />
-            <PostComments
-              comments={post.comments || []}
-              currentUser={user ? { photo: user.photo, firstName: user.firstName } : undefined}
-              commentText={commentText}
-              onCommentTextChange={setCommentText}
-              onSubmitComment={handleSubmitComment}
-              onCommentKeyPress={handleCommentKeyPress}
-            />
-          </>
-        )}
 
-        {shareDialogOpen && (
-          <PostShareDialog
-            postId={post.id}
-            canRepost={!!onRepost && !isOwnPost}
-            onClose={() => setShareDialogOpen(false)}
-            onRepost={handleRepost}
-          />
+            <PostActions
+              post={post}
+              userReactions={userReactions}
+              reactionCounts={reactionCounts}
+              onReaction={handleReaction}
+              showComments={showComments}
+              onToggleComments={handleToggleComments}
+              onShareClick={() => setShareDialogOpen(true)}
+            />
+
+            {showComments && (
+              <>
+                <StyledDivider />
+                <PostComments
+                  comments={post.comments || []}
+                  currentUser={user ? { photo: user.photo, firstName: user.firstName } : undefined}
+                  commentText={commentText}
+                  onCommentTextChange={setCommentText}
+                  onSubmitComment={handleSubmitComment}
+                  onCommentKeyPress={handleCommentKeyPress}
+                />
+              </>
+            )}
+
+            {shareDialogOpen && (
+              <PostShareDialog
+                postId={post.id}
+                canRepost={!!onRepost && !isOwnPost}
+                onClose={() => setShareDialogOpen(false)}
+                onRepost={handleRepost}
+              />
+            )}
+          </>
         )}
       </PostCardWrapper>
 

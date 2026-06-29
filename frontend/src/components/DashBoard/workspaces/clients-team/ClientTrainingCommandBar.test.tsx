@@ -67,11 +67,11 @@ describe('ClientTrainingCommandBar', () => {
 
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
     fireEvent.change(input, {
       target: { value: 'Log bench press 3 sets of 10 at 135' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
     expect(commandMock.executeCommand).toHaveBeenCalledWith(
@@ -93,7 +93,7 @@ describe('ClientTrainingCommandBar', () => {
     expect(input).toHaveValue('');
   });
 
-  it('lets the parent activate the workout logger before command-lane dispatch', async () => {
+  it('lets the parent activate the log workout before command-lane dispatch', async () => {
     const callOrder: string[] = [];
     const onCommandLaneStart = vi.fn(() => {
       callOrder.push('activate-logger');
@@ -118,10 +118,10 @@ describe('ClientTrainingCommandBar', () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+    fireEvent.change(screen.getByLabelText(/ask coach about fixture client/i), {
       target: { value: 'Add push ups to the workout' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
     expect(onCommandLaneStart).toHaveBeenCalledWith('Add push ups to the workout');
@@ -149,10 +149,10 @@ describe('ClientTrainingCommandBar', () => {
 
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+    fireEvent.change(screen.getByLabelText(/ask coach about fixture client/i), {
       target: { value: 'Log bench press 3 sets of 10 at 135' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
@@ -175,10 +175,10 @@ describe('ClientTrainingCommandBar', () => {
 
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+    fireEvent.change(screen.getByLabelText(/ask coach about fixture client/i), {
       target: { value: 'Log rows 4 sets of 12' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /cancel action/i }));
@@ -191,11 +191,11 @@ describe('ClientTrainingCommandBar', () => {
   it('sends a selected-client daily workout command with review-gated AI context', async () => {
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
     fireEvent.change(input, {
       target: { value: 'Bench press 3 sets of 10 at 135, RPE 7' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
     await waitFor(() => expect(chatMock.sendMessageWithConversation).toHaveBeenCalledTimes(1));
     const [message, context, title, targetUserId, responseStyle] =
@@ -222,11 +222,11 @@ describe('ClientTrainingCommandBar', () => {
 
     render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
 
-    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
     fireEvent.change(input, { target: { value: 'Rows 4 sets of 12' } });
-    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/swan could not process/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/coach could not process/i);
     expect(input).toHaveValue('Rows 4 sets of 12');
   });
 
@@ -286,12 +286,12 @@ describe('ClientTrainingCommandBar', () => {
     const { rerender } = render(
       <ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />
     );
-    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
     fireEvent.change(input, { target: { value: 'Log squats for this client' } });
 
     rerender(<ClientTrainingCommandBar clientId={515151} clientName="Next Client" />);
 
     expect(chatMock.newChat).toHaveBeenCalledTimes(1);
-    expect(screen.getByLabelText(/tell swan about next client/i)).toHaveValue('');
+    expect(screen.getByLabelText(/ask coach about next client/i)).toHaveValue('');
   });
 });

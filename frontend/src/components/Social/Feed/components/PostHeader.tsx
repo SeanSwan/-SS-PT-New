@@ -105,6 +105,7 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
   onCopyLink,
   onMute,
   isOwnPost,
+  readOnly = false,
 }) => {
   const PostTypeIcon = postTypeIcons[post.type] || User;
   const isCoach = isCoachRole(post.user.role);
@@ -159,7 +160,8 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
             {postTypeLabels[post.type]}
           </PostType>
 
-          <MenuWrapper ref={menuRef}>
+          {!readOnly && (
+            <MenuWrapper ref={menuRef}>
             <IconBtn onClick={onMenuToggle} title="More options">
               <MoreVertical size={20} />
             </IconBtn>
@@ -200,7 +202,8 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
                 )}
               </DropdownMenu>
             )}
-          </MenuWrapper>
+            </MenuWrapper>
+          )}
         </HeaderRightGroup>
       </PostHeaderBar>
     </PostHeaderRelative>

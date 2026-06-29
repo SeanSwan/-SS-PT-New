@@ -1,18 +1,18 @@
 /**
  * COMPONENT: TrainerWorkoutForgePage
- * PURPOSE: Trainer workout-planning surface that combines manual draft
+ * PURPOSE: Trainer Build Plan surface that combines manual draft
  * creation with the existing Swan Coach workout copilot.
  *
  * CANONICAL ROUTE:
- * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/workout-forge.
+ * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/build-plan.
  *
  * DATA CONTRACTS:
  * - GET role-aware clients for trainer/admin client selector parity.
  * - POST /api/workout-plans for draft plan persistence.
  * - WorkoutCopilotPanel for AI generation and approval flow.
  */
-import React, { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -42,6 +42,7 @@ import {
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const clients = useTrainerForgeClients(authAxios, user);
   const [clientId, setClientId] = useState('');
   const [optPhase, setOptPhase] = useState(1);
@@ -53,6 +54,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSavedPlan, setLastSavedPlan] = useState<SavedTrainerForgePlan | null>(null);
+  const appliedRouteClientRef = useRef<string | null>(null);
 
   const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
   const selectedClient = useMemo(
@@ -60,6 +62,19 @@ const TrainerWorkoutForgePage: React.FC = () => {
     [clientId, clients],
   );
   const parsedClientId = parseTrainerForgeClientId(clientId);
+  const routeClientId = useMemo(() => parseTrainerForgeClientId(searchParams.get('clientId')), [searchParams]);
+
+  useEffect(() => {
+    if (routeClientId === null) return;
+
+    const nextClientId = String(routeClientId);
+    if (appliedRouteClientRef.current === nextClientId) return;
+    if (!clients.some(client => String(client.id) === nextClientId)) return;
+
+    appliedRouteClientRef.current = nextClientId;
+    setClientId(nextClientId);
+    setLastSavedPlan(null);
+  }, [clients, routeClientId]);
 
   const handleClientChange = useCallback((nextClientId: string) => {
     setClientId(nextClientId);
@@ -132,7 +147,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
         ],
       },
       metadata: {
-        source: 'trainer_workout_forge',
+        source: 'trainer_build_plan',
         equipment,
         optPhaseName: activePhase.name,
         ...TRAINER_SESSION_PLAN_METADATA,
@@ -185,7 +200,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
   if (!clientId) {
     return (
       <PageWrapper>
-        <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
+        <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Build Plan</Title>
         <Card>
           <TrainerWorkoutForgeClientSelect
             label="Select a Client"
@@ -194,14 +209,14 @@ const TrainerWorkoutForgePage: React.FC = () => {
             onChange={handleClientChange}
           />
         </Card>
-        <EmptyState>Select a client to generate a personalized workout plan.</EmptyState>
+        <EmptyState>Select a client to build a personalized workout plan.</EmptyState>
       </PageWrapper>
     );
   }
 
   return (
     <PageWrapper>
-      <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
+      <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Build Plan</Title>
 
       <Card>
         <TrainerWorkoutForgeClientSelect

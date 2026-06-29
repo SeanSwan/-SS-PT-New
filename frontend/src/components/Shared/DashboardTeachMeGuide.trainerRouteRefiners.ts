@@ -133,11 +133,11 @@ const trainerSprintPlanning = (base: DashboardTeachMeGuideCopy) => applyPatch(ba
   fastPath: [
     'Pick the sprint outcome.',
     'Connect it to client progress.',
-    'Move the next action into planner, schedule, or Coach.',
+    'Move the next action into Plan Library, schedule, or Coach.',
   ],
   actions: [
     { label: 'Sprint Planner', to: '/dashboard/trainer/sprint-planner' },
-    { label: 'Workout Planner', to: '/dashboard/trainer/workout-planner' },
+    { label: 'Plan Library', to: '/dashboard/trainer/workout-planner' },
     { label: 'Client Progress', to: '/dashboard/trainer/client-progress' },
     { label: 'Open Coach', to: '/dashboard/trainer/coach-assistant' },
   ],
@@ -152,7 +152,7 @@ export const refineTrainerGuide = (
   if (includesAny(path, ['client-progress', 'progress'])) return trainerProgressReview(base);
   if (includesAny(path, ['log-workout'])) return trainerWorkoutLogging(base);
   if (includesAny(path, ['clients'])) return trainerClientCommand(base);
-  if (includesAny(path, ['workout-forge', 'workout-planner', 'bootcamp', 'equipment'])) {
+  if (includesAny(path, ['build-plan', 'workout-forge', 'workout-planner', 'bootcamp', 'equipment'])) {
     return trainerTrainingSystems(path, base);
   }
   if (includesAny(path, ['meal-planner', 'nutrition'])) return trainerNutritionFlow(base);

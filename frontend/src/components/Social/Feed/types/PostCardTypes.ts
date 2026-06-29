@@ -159,6 +159,8 @@ export interface PostCardProps {
       counts only, so without this other members' (and coaches') comments
       would never render. */
   onLoadComments?: (postId: string) => Promise<unknown> | void;
+  readOnly?: boolean;
+  contextSlot?: React.ReactNode;
 }
 
 export interface PostHeaderProps {
@@ -174,6 +176,7 @@ export interface PostHeaderProps {
   onCopyLink: () => void;
   onMute: () => void;
   isOwnPost: boolean;
+  readOnly?: boolean;
 }
 
 export interface PostContentProps {

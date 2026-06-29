@@ -154,10 +154,10 @@ describe('DashboardTeachMeGuide route matrix', () => {
 
     expect(getDashboardTeachMeGuide({
       role: 'trainer',
-      pathname: '/dashboard/trainer/workout-forge',
+      pathname: '/dashboard/trainer/build-plan',
     }).primaryAction).toEqual({
-      label: 'Build Client Workout',
-      to: '/dashboard/trainer/workout-forge',
+      label: 'Build Plan',
+      to: '/dashboard/trainer/build-plan',
     });
 
     expect(getDashboardTeachMeGuide({

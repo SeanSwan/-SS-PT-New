@@ -291,7 +291,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
       <Header>
         <TitleBlock>
           <Eyebrow><ClipboardList size={14} /> Client plan library</Eyebrow>
-          <Title>Training Plans</Title>
+          <Title>Plan Library</Title>
           <Hint>{activeCount} current plan{activeCount === 1 ? '' : 's'} for {clientName || `client #${safeClientId}`}</Hint>
         </TitleBlock>
         <ClientWorkoutPlanActiveArcSelector

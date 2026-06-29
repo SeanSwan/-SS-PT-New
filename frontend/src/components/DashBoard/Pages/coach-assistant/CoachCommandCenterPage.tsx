@@ -245,7 +245,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"
             workoutPlannerRoute={workoutPlannerRoute}
-            workoutPlannerLabel={isClientMode ? 'My Workouts' : commandCenter.routeClientId ? 'Planner' : 'My Planner'}
+            workoutPlannerLabel={isClientMode ? 'My Workouts' : 'Build Plan'}
+            workoutPlannerAriaLabel={isClientMode ? 'Open workouts' : 'Open Build Plan'}
             showPlaudAction={!isClientMode}
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}

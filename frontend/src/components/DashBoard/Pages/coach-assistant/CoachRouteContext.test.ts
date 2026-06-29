@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildCoachRouteContext } from './CoachRouteContext';
+import { buildRouteRequestContext } from './hooks/useCoachAssistantMessageUtils';
 
 describe('CoachRouteContext', () => {
   it('binds client progress to read and approval-gated draft actions', () => {
@@ -52,5 +53,20 @@ describe('CoachRouteContext', () => {
       writeBackPolicy: 'approval_required',
     });
     expect(context).not.toHaveProperty('scheduledSessionNotes');
+  });
+  it('forwards safe historical-import route context to backend Coach proposals', () => {
+    const context = buildCoachRouteContext(
+      '/dashboard/admin/coach-assistant',
+      '?clientId=42&intent=historical_import&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&draftKey=swan-historical-import-42-123',
+    );
+
+    expect(context).toMatchObject({
+      source: 'clients-team',
+      intent: 'historical_import',
+    });
+    expect(buildRouteRequestContext(context)).toEqual({
+      source: 'clients-team',
+      intent: 'historical_import',
+    });
   });
 });

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
-export type FeedEnrichmentSource = 'nasa-apod' | 'inaturalist' | 'quotable' | 'swan-curated';
-export type FeedEnrichmentCategory = 'space' | 'nature' | 'motivation' | 'movement' | 'growth';
+export type FeedEnrichmentSource = 'nasa-images' | 'smithsonian' | 'nps' | 'wikimedia-commons' | 'swan-curated';
+export type FeedEnrichmentCategory = 'space' | 'nature' | 'parks' | 'culture' | 'movement' | 'growth';
 
 export interface FeedEnrichmentItem {
   id: string;
@@ -23,16 +23,18 @@ interface UseFeedEnrichmentOptions {
 }
 
 const allowedSources = new Set<FeedEnrichmentSource>([
-  'nasa-apod',
-  'inaturalist',
-  'quotable',
+  'nasa-images',
+  'smithsonian',
+  'nps',
+  'wikimedia-commons',
   'swan-curated',
 ]);
 
 const allowedCategories = new Set<FeedEnrichmentCategory>([
   'space',
   'nature',
-  'motivation',
+  'parks',
+  'culture',
   'movement',
   'growth',
 ]);
