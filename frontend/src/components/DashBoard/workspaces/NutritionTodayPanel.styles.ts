@@ -1,13 +1,15 @@
 import styled from 'styled-components';
 
 export const TodayShell = styled.section`
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
   gap: 1rem;
-  @media (max-width: 860px) { grid-template-columns: 1fr; }
+  min-width: 0;
 `;
-
 export const TodayHero = styled.div`
+  flex: 999 1 620px;
+  min-width: min(100%, 520px);
   display: grid;
   grid-template-columns: minmax(145px, 0.34fr) minmax(0, 1fr);
   gap: 1rem;
@@ -23,7 +25,6 @@ export const TodayHero = styled.div`
     0 18px 42px color-mix(in srgb, var(--bg-base, #0A0A0F) 66%, transparent);
   @media (max-width: 580px) { grid-template-columns: 1fr; min-height: 0; }
 `;
-
 export const CalorieRing = styled.div`
   position: relative;
   display: grid;
@@ -132,22 +133,25 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0 0.85rem;
+  min-width: 0;
+  padding: 0.55rem 0.85rem;
   border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent)')};
   border-radius: 12px;
   background: ${({ $primary }) => ($primary
     ? 'var(--button-primary-bg, #002060)'
     : 'color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent)')};
   color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #030712)' : 'var(--text-primary, #E0ECF4)')};
-  font: 900 0.8rem/1 var(--font-ui, 'Sora', sans-serif);
+  font: 900 0.8rem/1.15 var(--font-ui, 'Sora', sans-serif);
   cursor: pointer;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: break-word;
   transition: transform 160ms ease, box-shadow 160ms ease;
   &:hover { transform: translateY(-1px); box-shadow: 0 0 18px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent); }
   &:disabled { cursor: not-allowed; opacity: 0.58; transform: none; box-shadow: none; }
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { transition: box-shadow 160ms ease; &:hover { transform: none; } }
 `;
-
 export const InlineStatus = styled.p<{ $error?: boolean }>`
   display: inline-flex;
   align-items: center;
@@ -166,6 +170,7 @@ export const InsightList = styled.div`
 export const InsightItem = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fern' }>`
   display: grid;
   gap: 0.45rem;
+  min-width: 0;
   padding: 0.85rem;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
   border-radius: 12px;
@@ -177,7 +182,6 @@ export const InsightItem = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fe
     return 'var(--accent-primary, #60C0F0)';
   }};
 `;
-
 export const InsightTitle = styled.h4`
   margin: 0;
   color: var(--text-primary, #E0ECF4);
@@ -186,11 +190,9 @@ export const InsightTitle = styled.h4`
 
 export const MetricGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
   gap: 0.75rem;
-  @media (max-width: 480px) { grid-template-columns: 1fr; }
 `;
-
 export const MetricPanel = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fern' }>`
   min-height: 92px;
   padding: 0.85rem;
@@ -207,31 +209,33 @@ export const MetricPanel = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fe
 
 export const MetricValue = styled.strong`
   display: block;
+  overflow-wrap: anywhere;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 1.25rem;
 `;
-
 export const MetricLabel = styled.span`
   display: block;
+  overflow-wrap: break-word;
   margin-top: 0.3rem;
   color: var(--text-secondary, #94a3b8);
   font-size: 0.76rem;
   font-weight: 800;
 `;
-
 export const SideRail = styled.aside`
+  flex: 1 1 320px;
+  min-width: min(100%, 300px);
   display: grid;
+  align-content: start;
   gap: 0.75rem;
 `;
-
 export const RailPanel = styled.div`
+  min-width: 0;
   padding: 1rem;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   border-radius: 16px;
   background: color-mix(in srgb, var(--bg-elevated, #141419) 74%, transparent);
 `;
-
 export const RailTitle = styled.h3`
   margin: 0 0 0.55rem;
   color: var(--text-primary, #E0ECF4);
@@ -241,11 +245,11 @@ export const RailTitle = styled.h3`
 
 export const RailText = styled.p`
   margin: 0;
+  overflow-wrap: break-word;
   color: var(--text-secondary, #94a3b8);
   font-size: 0.82rem;
   line-height: 1.5;
 `;
-
 export const HydrationMeter = styled.div`
   display: grid;
   gap: 0.45rem;

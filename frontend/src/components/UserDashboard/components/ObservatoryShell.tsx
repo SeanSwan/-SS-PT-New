@@ -43,6 +43,7 @@ export type {
 
 interface ObservatoryShellProps {
   activeTab: TabId;
+  focusMode?: boolean;
   onTabChange: (tab: TabId) => void;
   observatoryLevel: number;
   observatoryPoints: number;
@@ -57,6 +58,7 @@ interface ObservatoryShellProps {
 
 const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   activeTab,
+  focusMode = false,
   onTabChange,
   observatoryLevel,
   observatoryPoints,
@@ -70,7 +72,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
 }) => {
   return (
     <>
-      <ObservatoryGrid data-user-dashboard-scroll-root>
+      <ObservatoryGrid $focusMode={focusMode} data-user-dashboard-scroll-root>
         <ObservatoryLeftRail
           activeTab={activeTab}
           onTabChange={onTabChange}
@@ -85,10 +87,12 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
 
         <ObservatoryMain data-user-dashboard-scroll-root>{children}</ObservatoryMain>
 
-        <ObservatoryRightRail
-          observatoryTierName={observatoryTierName}
-          topBadges={topBadges}
-        />
+        {!focusMode && (
+          <ObservatoryRightRail
+            observatoryTierName={observatoryTierName}
+            topBadges={topBadges}
+          />
+        )}
       </ObservatoryGrid>
     </>
   );
