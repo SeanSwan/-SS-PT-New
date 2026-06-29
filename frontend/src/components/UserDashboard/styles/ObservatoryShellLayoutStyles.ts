@@ -21,7 +21,7 @@ import styled from 'styled-components';
    sits in normal flow ABOVE the grid, so the rails never need to dodge a
    full-bleed overlay. */
 
-export const ObservatoryGrid = styled.div`
+export const ObservatoryGrid = styled.div<{ $focusMode?: boolean }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.25rem;
@@ -33,34 +33,43 @@ export const ObservatoryGrid = styled.div`
     gap: 1.25rem;
   }
 
-  /* 1280px: compact three-column desktop. Right rail joins at this width
-     in lockstep with ObservatoryRightRail's display:flex breakpoint. */
+  /* Nutrition and future focus-mode tabs keep navigation, but reclaim the
+     decorative right rail so task surfaces do not collapse on desktop. */
   @media (min-width: 1280px) {
-    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 280px);
+    grid-template-columns: ${({ $focusMode }) => ($focusMode
+      ? 'minmax(220px, 260px) minmax(0, 1fr)'
+      : 'minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 280px)')};
     gap: 1.25rem;
   }
 
   @media (min-width: 1440px) {
-    grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(280px, 320px);
+    grid-template-columns: ${({ $focusMode }) => ($focusMode
+      ? 'minmax(240px, 280px) minmax(0, 1fr)'
+      : 'minmax(240px, 280px) minmax(0, 1fr) minmax(280px, 320px)')};
     gap: 1.5rem;
   }
 
   @media (min-width: 1920px) {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 380px);
+    grid-template-columns: ${({ $focusMode }) => ($focusMode
+      ? 'minmax(280px, 340px) minmax(0, 1fr)'
+      : 'minmax(280px, 340px) minmax(0, 1fr) minmax(320px, 380px)')};
     gap: 1.75rem;
   }
 
   @media (min-width: 2560px) {
-    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) minmax(360px, 440px);
+    grid-template-columns: ${({ $focusMode }) => ($focusMode
+      ? 'minmax(320px, 420px) minmax(0, 1fr)'
+      : 'minmax(320px, 420px) minmax(0, 1fr) minmax(360px, 440px)')};
     gap: 2rem;
   }
 
   @media (min-width: 3840px) {
-    grid-template-columns: minmax(360px, 520px) minmax(0, 1fr) minmax(420px, 560px);
+    grid-template-columns: ${({ $focusMode }) => ($focusMode
+      ? 'minmax(360px, 520px) minmax(0, 1fr)'
+      : 'minmax(360px, 520px) minmax(0, 1fr) minmax(420px, 560px)')};
     gap: 2.5rem;
   }
 `;
-
 export const ObservatoryLeftRail = styled.aside`
   display: none;
 

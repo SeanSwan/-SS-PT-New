@@ -122,6 +122,11 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
     ${({ $belowCover }) => $belowCover && 'padding-top: 1.75rem;'}
   }
 
+  @media (min-width: 3200px) {
+    max-width: 3040px;
+    padding: 4.5rem 3.5rem;
+    ${({ $belowCover }) => $belowCover && 'padding-top: 1.9rem;'}
+  }
   @media (min-width: 3840px) {
     max-width: 3440px;
     padding: 5rem 4rem;

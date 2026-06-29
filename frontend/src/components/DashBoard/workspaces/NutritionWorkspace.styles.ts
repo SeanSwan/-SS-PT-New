@@ -62,16 +62,21 @@ const nutritionAccentButtonCss = css`
 
 export const WorkspaceRoot = styled.div`
   ${nutritionPanelCss}
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  max-width: 1200px;
+  max-width: min(100%, 1680px);
+  min-width: 0;
   margin: 0 auto;
   padding: 24px;
-  @media (max-width: 768px) { padding: 16px; gap: 16px; }
-`;
+  container-type: inline-size;
 
+  @media (max-width: 768px) { padding: 16px; gap: 16px; }
+  @media (min-width: 2560px) { max-width: min(100%, 2120px); }
+  @media (min-width: 3840px) { max-width: min(100%, 2480px); }
+`;
 export const Header = styled.div`
   display: flex;
   align-items: center;
@@ -188,10 +193,11 @@ export const MoreToolsSelect = styled.select`
 
 export const ContentArea = styled.div`
   ${nutritionCardCss}
+  min-width: 0;
   min-height: 400px;
+  overflow: hidden;
   padding: clamp(1rem, 1.5vw, 1.35rem);
 `;
-
 export const MacroGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;

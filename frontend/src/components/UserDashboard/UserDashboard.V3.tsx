@@ -54,6 +54,7 @@ const UserDashboardV3: React.FC = () => {
   }, [routedTab, setActiveTab]);
 
   const isHomeTab = dashboard.activeTab === 'home';
+  const isNutritionTaskTab = dashboard.activeTab === 'nutrition';
   const handleTabChange = React.useCallback((tab: TabId) => {
     navigate(tab === 'home' ? '/user-dashboard' : `/user-dashboard/${tab}`);
     resetUserDashboardTabScroll();
@@ -144,6 +145,7 @@ const UserDashboardV3: React.FC = () => {
             ) : (
               <ObservatoryShell
                 activeTab={dashboard.activeTab}
+                focusMode={isNutritionTaskTab}
                 onTabChange={handleTabChange}
                 observatoryLevel={dashboard.observatoryLevel}
                 observatoryPoints={dashboard.observatoryPoints}
@@ -165,11 +167,13 @@ const UserDashboardV3: React.FC = () => {
                   onNavigate={navigate}
                 />
 
-                <ContentGrid>
-                  <UserDashboardSidebarV3
-                    displayStats={dashboard.displayStats}
-                    canonicalLevel={dashboard.canonicalLevel}
-                  />
+                <ContentGrid $fullWidth={isNutritionTaskTab}>
+                  {!isNutritionTaskTab && (
+                    <UserDashboardSidebarV3
+                      displayStats={dashboard.displayStats}
+                      canonicalLevel={dashboard.canonicalLevel}
+                    />
+                  )}
 
                   <UserDashboardTabsV3
                     activeTab={dashboard.activeTab}
