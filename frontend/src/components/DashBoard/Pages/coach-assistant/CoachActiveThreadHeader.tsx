@@ -16,6 +16,11 @@ function clientLabel(thread: ConversationSummary): string {
   return targetUserId ? `Client #${targetUserId}` : 'No client bound';
 }
 
+function memoryScopeLabel(thread: ConversationSummary): string {
+  const targetUserId = positiveId(thread.targetUserId);
+  return targetUserId ? `Conversation context for Client #${targetUserId}` : 'Conversation context only - choose a client for client actions';
+}
+
 function messageCountLabel(thread: ConversationSummary): string {
   const count = Number(thread.messageCount || 0);
   return `${count} ${count === 1 ? 'msg' : 'msgs'}`;
@@ -45,7 +50,7 @@ const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ threa
       <div className="active-thread-main">
         <span className="active-thread-eyebrow">Active thread</span>
         <h3>{title}</h3>
-        <p>History loaded below. Composer ready for the next command.</p>
+        <p>{memoryScopeLabel(thread)}</p>
       </div>
       <dl className="active-thread-meta" aria-label="Active thread details">
         <div>
