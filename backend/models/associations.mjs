@@ -174,6 +174,8 @@ const setupAssociations = async () => {
     const EquipmentProfileModule = await import('./EquipmentProfile.mjs');
     const EquipmentItemModule = await import('./EquipmentItem.mjs');
     const EquipmentExerciseMapModule = await import('./EquipmentExerciseMap.mjs');
+    const EquipmentScanSessionModule = await import('./EquipmentScanSession.mjs');
+    const EquipmentScanCandidateModule = await import('./EquipmentScanCandidate.mjs');
 
     // Workout Variation Engine (Phase 8)
     const VariationLogModule = await import('./VariationLog.mjs');
@@ -377,6 +379,8 @@ const setupAssociations = async () => {
     const EquipmentProfile = EquipmentProfileModule.default;
     const EquipmentItem = EquipmentItemModule.default;
     const EquipmentExerciseMap = EquipmentExerciseMapModule.default;
+    const EquipmentScanSession = EquipmentScanSessionModule.default;
+    const EquipmentScanCandidate = EquipmentScanCandidateModule.default;
 
     // Workout Variation Engine (Phase 8)
     const VariationLog = VariationLogModule.default;
@@ -510,7 +514,7 @@ const setupAssociations = async () => {
         // Custom Exercise Builder (Phase 6 - Biomechanics Studio)
         CustomExercise,
         // Equipment Profile Manager (Phase 7)
-        EquipmentProfile, EquipmentItem, EquipmentExerciseMap,
+        EquipmentProfile, EquipmentItem, EquipmentExerciseMap, EquipmentScanSession, EquipmentScanCandidate,
         // Workout Variation Engine (Phase 8)
         VariationLog,
         // Boot Camp Class Builder (Phase 10)
@@ -1166,6 +1170,18 @@ const setupAssociations = async () => {
     EquipmentItem.hasMany(EquipmentExerciseMap, { foreignKey: 'equipmentItemId', as: 'exerciseMappings' });
     EquipmentExerciseMap.belongsTo(EquipmentItem, { foreignKey: 'equipmentItemId', as: 'equipmentItem' });
     EquipmentExerciseMap.belongsTo(CustomExercise, { foreignKey: 'customExerciseId', as: 'customExercise' });
+    User.hasMany(EquipmentScanSession, { foreignKey: 'trainerId', as: 'equipmentScanSessions' });
+    EquipmentScanSession.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    EquipmentProfile.hasMany(EquipmentScanSession, { foreignKey: 'profileId', as: 'scanSessions' });
+    EquipmentScanSession.belongsTo(EquipmentProfile, { foreignKey: 'profileId', as: 'profile' });
+    EquipmentScanSession.hasMany(EquipmentScanCandidate, { foreignKey: 'sessionId', as: 'candidates' });
+    EquipmentScanCandidate.belongsTo(EquipmentScanSession, { foreignKey: 'sessionId', as: 'session' });
+    EquipmentScanCandidate.belongsTo(EquipmentProfile, { foreignKey: 'profileId', as: 'profile' });
+    EquipmentScanCandidate.belongsTo(EquipmentItem, { foreignKey: 'equipmentItemId', as: 'createdItem', constraints: false });
+    EquipmentScanCandidate.belongsTo(EquipmentItem, { foreignKey: 'duplicateOfItemId', as: 'duplicateOfItem', constraints: false });
+    EquipmentItem.hasMany(EquipmentScanCandidate, { foreignKey: 'equipmentItemId', as: 'scanCandidates', constraints: false });
+    EquipmentScanCandidate.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer', constraints: false });
+    User.hasMany(EquipmentScanCandidate, { foreignKey: 'reviewedBy', as: 'reviewedEquipmentScanCandidates', constraints: false });
     console.log('✅ Equipment Profile Manager models integrated');
 
     // Workout Variation Engine Associations (Phase 8)
@@ -1461,6 +1477,8 @@ const setupAssociations = async () => {
       EquipmentProfile,
       EquipmentItem,
       EquipmentExerciseMap,
+      EquipmentScanSession,
+      EquipmentScanCandidate,
 
       // Workout Variation Engine (Phase 8)
       VariationLog,

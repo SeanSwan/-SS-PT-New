@@ -22,6 +22,9 @@ import {
 import type {
   EquipmentProfile,
   EquipmentItem,
+  EquipmentScanCandidate,
+  EquipmentScanDuplicate,
+  EquipmentScanError,
 } from '../../hooks/useEquipmentAPI';
 import {
   createEquipmentScanQueue,
@@ -30,6 +33,20 @@ import {
 } from './equipmentScanInputs';
 import type { EquipmentScanQueueItem, EquipmentScanSource } from './equipmentScanInputs';
 import { SCAN_AUTO_RETRY_DELAY_MS, shouldAutoRetryScan } from './equipmentScanRetry';
+import EquipmentScanBatchPanel from './EquipmentScanBatchPanel';
+import {
+  buildDuplicateQuantityMerge,
+  buildEquipmentScanBatch,
+  buildManualItemDraftFromCandidate,
+  getCandidateName,
+  removeBatchDuplicateItem,
+  removeBatchPossibleItem,
+  replaceBatchItem,
+  shouldAutoOpenScanApproval,
+  updateBatchItemStatus,
+} from './equipmentScanBatch';
+import type { EquipmentScanBatch } from './equipmentScanBatch';
+import { approveSelectedScanItems, rejectSelectedScanItems } from './equipmentScanBatchActions';
 
 // --- Keyframes ---
 
@@ -629,6 +646,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 type View = 'list' | 'detail' | 'create';
 
+const getReviewCandidateIndex = (
+  candidate: EquipmentScanCandidate | EquipmentScanDuplicate,
+  fallbackIndex: number,
+): number => (
+  Number.isInteger(candidate.candidateIndex) ? Number(candidate.candidateIndex) : fallbackIndex
+);
+
 const EquipmentManagerPage: React.FC = () => {
   const api = useEquipmentAPI();
   const [view, setView] = useState<View>('list');
@@ -644,6 +668,8 @@ const EquipmentManagerPage: React.FC = () => {
   // The photo whose scan just failed. Retained so the trainer can retry the
   // SAME image (or fall back to manual) instead of losing it. (Sean, 2026-06-17)
   const [failedScanItem, setFailedScanItem] = useState<EquipmentScanQueueItem | null>(null);
+  const [lastScanBatch, setLastScanBatch] = useState<EquipmentScanBatch | null>(null);
+  const [batchActionPending, setBatchActionPending] = useState(false);
   const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showCreateProfile, setShowCreateProfile] = useState(false);
@@ -744,6 +770,7 @@ const EquipmentManagerPage: React.FC = () => {
       setFailedScanItem(null);
       setActiveScanItem(null);
       setScanError(null);
+      setLastScanBatch(null);
       loadItems(selectedProfile.id);
       loadProfiles();
     } catch {
@@ -757,6 +784,9 @@ const EquipmentManagerPage: React.FC = () => {
       await api.deleteItem(selectedProfile.id, itemId);
       loadItems(selectedProfile.id);
       loadProfiles();
+      setLastScanBatch(current => (current
+        ? { ...current, createdItems: current.createdItems.filter(item => item.id !== itemId) }
+        : current));
     } catch {
       // silent
     }
@@ -801,12 +831,22 @@ const EquipmentManagerPage: React.FC = () => {
     let autoRetrying = false;
     try {
       const result = await api.scanEquipment(selectedProfile.id, queueItem.file);
-      setShowApproval(result.item);
-      setApprovalOverrides({
-        name: result.scanResult.suggestedName,
-        trainerLabel: '',
-        category: result.scanResult.suggestedCategory,
-      });
+      const batch = buildEquipmentScanBatch(result, queueItem.fileName);
+      const reviewItem = result.item || result.items?.[0] || null;
+      setLastScanBatch(batch);
+
+      if (reviewItem && shouldAutoOpenScanApproval(batch)) {
+        const scanResult = result.scanResult || reviewItem.aiScanData;
+        setShowApproval(reviewItem);
+        setApprovalOverrides({
+          name: scanResult?.suggestedName || reviewItem.name,
+          trainerLabel: '',
+          category: scanResult?.suggestedCategory || reviewItem.category,
+        });
+      } else {
+        setActiveScanItem(null);
+        if (!batch) setScanPreview(null);
+      }
       loadItems(selectedProfile.id);
     } catch (err) {
       if (shouldAutoRetryScan(err, attempt)) {
@@ -821,6 +861,10 @@ const EquipmentManagerPage: React.FC = () => {
       }
       // Terminal failure: retain the photo so the trainer can Try Again on the
       // SAME image (or add it manually). The queue stays put until they choose.
+      setLastScanBatch(buildEquipmentScanBatch(
+        (err as EquipmentScanError).scanResponse,
+        queueItem.fileName,
+      ));
       setActiveScanItem(null);
       setFailedScanItem(queueItem);
       setScanError(getEquipmentApiErrorMessage(
@@ -838,7 +882,7 @@ const EquipmentManagerPage: React.FC = () => {
   useEffect(() => {
     if (
       !selectedProfile || scanning || showApproval || activeScanItem
-      || scanError || failedScanItem || scanQueue.length === 0
+      || scanError || failedScanItem || lastScanBatch || scanQueue.length === 0
     ) {
       return;
     }
@@ -846,7 +890,7 @@ const EquipmentManagerPage: React.FC = () => {
     const [nextScan, ...remainingQueue] = scanQueue;
     setScanQueue(remainingQueue);
     void scanQueuedItem(nextScan);
-  }, [activeScanItem, failedScanItem, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
+  }, [activeScanItem, failedScanItem, lastScanBatch, scanError, scanQueue, scanQueuedItem, scanning, selectedProfile, showApproval]);
 
   // Clear any pending auto-retry timer if the component unmounts mid-wait.
   useEffect(() => cancelAutoRetry, [cancelAutoRetry]);
@@ -862,12 +906,14 @@ const EquipmentManagerPage: React.FC = () => {
 
     if (validationError) {
       setScanError(validationError);
+      setLastScanBatch(null);
       resetScanInputs();
       return;
     }
 
     const queuedFiles = createEquipmentScanQueue(filesToQueue, source, Date.now());
     setScanError(null);
+    setLastScanBatch(null);
     setScanQueue(currentQueue => [...currentQueue, ...queuedFiles]);
     resetScanInputs();
   };
@@ -881,6 +927,7 @@ const EquipmentManagerPage: React.FC = () => {
     if (!failedScanItem) return;
     const item = failedScanItem;
     setFailedScanItem(null);
+    setLastScanBatch(null);
     setScanError(null);
     void scanQueuedItem(item, 0);
   }, [failedScanItem, scanQueuedItem]);
@@ -891,6 +938,7 @@ const EquipmentManagerPage: React.FC = () => {
     setFailedScanItem(null);
     setActiveScanItem(null);
     setScanError(null); // lets the queue effect advance to the next queued photo
+    setLastScanBatch(null);
   }, [cancelAutoRetry]);
 
   // "Add manually instead" from the error box: open the manual form but do not
@@ -901,20 +949,22 @@ const EquipmentManagerPage: React.FC = () => {
 
   const handleCloseApproval = () => {
     setShowApproval(null);
-    setScanPreview(null);
+    if (!lastScanBatch) setScanPreview(null);
     setActiveScanItem(null);
   };
 
   const handleApprove = async () => {
     if (!selectedProfile || !showApproval) return;
     try {
-      await api.approveItem(selectedProfile.id, showApproval.id, {
+      const approveRes = await api.approveItem(selectedProfile.id, showApproval.id, {
         name: approvalOverrides.name || undefined,
         trainerLabel: approvalOverrides.trainerLabel || undefined,
         category: approvalOverrides.category || undefined,
       });
+      setItems(current => current.map(item => (item.id === approveRes.item.id ? approveRes.item : item)));
+      setLastScanBatch(current => replaceBatchItem(current, approveRes.item));
       setShowApproval(null);
-      setScanPreview(null);
+      if (!lastScanBatch) setScanPreview(null);
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
@@ -927,8 +977,12 @@ const EquipmentManagerPage: React.FC = () => {
     if (!selectedProfile || !showApproval) return;
     try {
       await api.rejectItem(selectedProfile.id, showApproval.id);
+      setItems(current => current.map(item => (
+        item.id === showApproval.id ? { ...item, approvalStatus: 'rejected' } : item
+      )));
+      setLastScanBatch(current => updateBatchItemStatus(current, showApproval.id, 'rejected'));
       setShowApproval(null);
-      setScanPreview(null);
+      if (!lastScanBatch) setScanPreview(null);
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
@@ -947,6 +1001,7 @@ const EquipmentManagerPage: React.FC = () => {
     setActiveScanItem(null);
     setFailedScanItem(null);
     setScanError(null);
+    setLastScanBatch(null);
     resetScanInputs();
   };
 
@@ -961,6 +1016,168 @@ const EquipmentManagerPage: React.FC = () => {
         category: scan.suggestedCategory || item.category,
       });
     }
+  };
+
+  const handleReviewBatchItem = (item: EquipmentItem) => {
+    openApprovalReview(items.find(current => current.id === item.id) || item);
+  };
+  const handleApproveBatchItems = async (selectedItems: EquipmentItem[]) => {
+    if (!selectedProfile || selectedItems.length === 0) return;
+    const pendingItems = selectedItems.filter(item => item.approvalStatus === 'pending');
+    if (pendingItems.length === 0) return;
+
+    setBatchActionPending(true);
+    try {
+      const { approvedItems, failedCount } = await approveSelectedScanItems({
+        api,
+        profileId: selectedProfile.id,
+        items: pendingItems,
+      });
+      if (approvedItems.length > 0) {
+        setItems(current => current.map(item => (
+          approvedItems.find(approved => approved.id === item.id) || item
+        )));
+        setLastScanBatch(current => approvedItems.reduce(
+          (batch, approvedItem) => replaceBatchItem(batch, approvedItem),
+          current,
+        ));
+        loadItems(selectedProfile.id);
+        loadProfiles();
+      }
+      setScanError(failedCount > 0
+        ? `${failedCount} selected scan ${failedCount === 1 ? 'item' : 'items'} could not be approved. Review remaining items individually.`
+        : null);
+    } finally {
+      setBatchActionPending(false);
+    }
+  };
+
+  const handleRejectBatchItems = async (selectedItems: EquipmentItem[]) => {
+    if (!selectedProfile || selectedItems.length === 0) return;
+    const pendingItems = selectedItems.filter(item => item.approvalStatus === 'pending');
+    if (pendingItems.length === 0) return;
+
+    setBatchActionPending(true);
+    try {
+      const { rejectedIds, failedCount } = await rejectSelectedScanItems({
+        api,
+        profileId: selectedProfile.id,
+        items: pendingItems,
+      });
+      if (rejectedIds.size > 0) {
+        setItems(current => current.map(item => (
+          rejectedIds.has(item.id) ? { ...item, approvalStatus: 'rejected' } : item
+        )));
+        setLastScanBatch(current => [...rejectedIds].reduce(
+          (batch, itemId) => updateBatchItemStatus(batch, itemId, 'rejected'),
+          current,
+        ));
+        loadItems(selectedProfile.id);
+        loadProfiles();
+      }
+      setScanError(failedCount > 0
+        ? `${failedCount} selected scan ${failedCount === 1 ? 'item' : 'items'} could not be rejected. Review remaining items individually.`
+        : null);
+    } finally {
+      setBatchActionPending(false);
+    }
+  };
+
+  const handleAddPossibleScanItem = async (candidate: EquipmentScanCandidate, candidateIndex: number) => {
+    if (!selectedProfile) return;
+    setBatchActionPending(true);
+    try {
+      const addRes = await api.addItem(
+        selectedProfile.id,
+        buildManualItemDraftFromCandidate(candidate),
+      );
+      const reviewSessionId = lastScanBatch?.scanSession?.reviewSessionId;
+      if (reviewSessionId) {
+        void Promise.resolve(api.reviewScanCandidate(selectedProfile.id, {
+          reviewSessionId,
+          candidateIndex: getReviewCandidateIndex(candidate, candidateIndex),
+          candidateStatus: 'possible',
+          outcome: 'approved',
+          equipmentItemId: addRes.item.id,
+          trainerCorrection: {
+            name: addRes.item.name,
+            category: addRes.item.category,
+            resistanceType: addRes.item.resistanceType || undefined,
+          },
+        })).catch(() => undefined);
+      }
+      setItems(current => (
+        current.some(item => item.id === addRes.item.id)
+          ? current.map(item => (item.id === addRes.item.id ? addRes.item : item))
+          : [addRes.item, ...current]
+      ));
+      const nextBatch = removeBatchPossibleItem(lastScanBatch, candidateIndex);
+      setLastScanBatch(nextBatch);
+      if (!nextBatch) setScanPreview(null);
+      setScanError(null);
+      loadItems(selectedProfile.id);
+      loadProfiles();
+    } catch (err) {
+      setScanError(getEquipmentApiErrorMessage(
+        err,
+        `Could not add ${getCandidateName(candidate)}. Add it manually or review the scan again.`,
+      ));
+    } finally {
+      setBatchActionPending(false);
+    }
+  };
+
+  const handleMergeDuplicateScanItem = async (
+    duplicate: EquipmentScanDuplicate,
+    duplicateIndex: number,
+    matchedItem: EquipmentItem,
+  ) => {
+    if (!selectedProfile) return;
+    setBatchActionPending(true);
+    try {
+      const updateRes = await api.updateItem(
+        selectedProfile.id,
+        matchedItem.id,
+        buildDuplicateQuantityMerge(matchedItem, duplicate),
+      );
+      const reviewSessionId = lastScanBatch?.scanSession?.reviewSessionId;
+      if (reviewSessionId) {
+        void Promise.resolve(api.reviewScanCandidate(selectedProfile.id, {
+          reviewSessionId,
+          candidateIndex: getReviewCandidateIndex(duplicate, duplicateIndex),
+          candidateStatus: 'duplicate',
+          outcome: 'approved',
+          equipmentItemId: updateRes.item.id,
+          duplicateOfItemId: duplicate.duplicateOfItemId || matchedItem.id,
+          trainerCorrection: {
+            name: updateRes.item.name,
+            trainerLabel: updateRes.item.trainerLabel || undefined,
+            category: updateRes.item.category,
+            resistanceType: updateRes.item.resistanceType || duplicate.resistanceType || undefined,
+          },
+        })).catch(() => undefined);
+      }
+      setItems(current => current.map(item => (
+        item.id === updateRes.item.id ? updateRes.item : item
+      )));
+      const nextBatch = removeBatchDuplicateItem(lastScanBatch, duplicateIndex);
+      setLastScanBatch(nextBatch);
+      if (!nextBatch) setScanPreview(null);
+      setScanError(null);
+      loadItems(selectedProfile.id);
+    } catch (err) {
+      setScanError(getEquipmentApiErrorMessage(
+        err,
+        `Could not merge ${getCandidateName(duplicate)}. Review the matched item manually.`,
+      ));
+    } finally {
+      setBatchActionPending(false);
+    }
+  };
+
+  const handleDismissScanBatch = () => {
+    setLastScanBatch(null);
+    setScanPreview(null);
   };
 
   const handleCardKeyDown = (
@@ -1231,6 +1448,21 @@ const EquipmentManagerPage: React.FC = () => {
               </GhostButton>
             </ScanErrorActions>
           </ScanErrorBox>
+        )}
+
+        {lastScanBatch && (
+          <EquipmentScanBatchPanel
+            batch={lastScanBatch}
+            previewUrl={scanPreview}
+            inventoryItems={items}
+            onReviewItem={handleReviewBatchItem}
+            onApproveSelected={handleApproveBatchItems}
+            onRejectSelected={handleRejectBatchItems}
+            onAddPossibleItem={handleAddPossibleScanItem}
+            onMergeDuplicate={handleMergeDuplicateScanItem}
+            bulkActionPending={batchActionPending}
+            onDismiss={handleDismissScanBatch}
+          />
         )}
 
         {/* Equipment Items List */}

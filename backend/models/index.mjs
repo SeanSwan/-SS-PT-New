@@ -213,6 +213,8 @@ export const getCustomExercise = () => getModel('CustomExercise');
 export const getEquipmentProfile = () => getModel('EquipmentProfile');
 export const getEquipmentItem = () => getModel('EquipmentItem');
 export const getEquipmentExerciseMap = () => getModel('EquipmentExerciseMap');
+export const getEquipmentScanSession = () => getModel('EquipmentScanSession');
+export const getEquipmentScanCandidate = () => getModel('EquipmentScanCandidate');
 
 // Workout Variation Engine (Phase 8)
 export const getVariationLog = () => getModel('VariationLog');
