@@ -46,6 +46,11 @@ const CoachCommandCenterPage: React.FC = () => {
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const handledPlaudUploadRequestRef = useRef(0);
+  const handleStartPlaudUploadRef = useRef(commandCenter.handleStartPlaudUpload);
+
+  useEffect(() => {
+    handleStartPlaudUploadRef.current = commandCenter.handleStartPlaudUpload;
+  }, [commandCenter.handleStartPlaudUpload]);
 
   useCoachCommandCenterDrawerEffects({
     commandFormRef: commandCenter.commandFormRef,
@@ -112,8 +117,8 @@ const CoachCommandCenterPage: React.FC = () => {
       handledPlaudUploadRequestRef.current === plaudUploadRequest
     ) return;
     handledPlaudUploadRequestRef.current = plaudUploadRequest;
-    commandCenter.handleStartPlaudUpload();
-  }, [activeTab, commandCenter, plaudUploadRequest]);
+    handleStartPlaudUploadRef.current();
+  }, [activeTab, plaudUploadRequest]);
 
   const handleStartPlaudUpload = () => {
     setOperatorTouchedTab(true);
@@ -234,6 +239,7 @@ const CoachCommandCenterPage: React.FC = () => {
 
         {activeTab === 'chat' ? (
           <CoachConsoleDock
+            commandBusy={commandCenter.commandBusy}
             commandFormRef={commandCenter.commandFormRef}
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
