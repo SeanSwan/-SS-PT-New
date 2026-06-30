@@ -11,6 +11,7 @@ import {
   Dumbbell,
   Flame,
   Gamepad2,
+  Utensils,
   Laugh,
   Mic,
   Mic2,
@@ -24,6 +25,7 @@ import type { ChallengeCategory, ChallengeStatus } from '../../../hooks/useChall
 export const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
   strength: 'var(--challenge-strength, #C6A84B)',
   cardio: 'var(--challenge-cardio, #E879F9)',
+  nutrition: 'var(--challenge-nutrition, #34D399)',
   consistency: 'var(--challenge-consistency, #8B5CF6)',
   social: 'var(--challenge-social, #60C0F0)',
   dance: 'var(--challenge-dance, #EC4899)',
@@ -38,6 +40,7 @@ export const CATEGORY_COLORS: Record<ChallengeCategory, string> = {
 export const CATEGORY_ICONS: Record<ChallengeCategory, ElementType> = {
   strength: Dumbbell,
   cardio: Flame,
+  nutrition: Utensils,
   consistency: Target,
   social: Users,
   dance: Music2,
@@ -53,6 +56,7 @@ export const ALL_CATEGORIES: { key: ChallengeCategory | 'all'; label: string }[]
   { key: 'all', label: 'All' },
   { key: 'strength', label: 'Fitness' },
   { key: 'cardio', label: 'Cardio' },
+  { key: 'nutrition', label: 'Nutrition' },
   { key: 'consistency', label: 'Consistency' },
   { key: 'social', label: 'Social' },
   { key: 'dance', label: 'Dance' },
