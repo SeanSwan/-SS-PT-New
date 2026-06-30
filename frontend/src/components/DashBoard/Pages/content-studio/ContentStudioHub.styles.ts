@@ -36,8 +36,8 @@ export const HeaderIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
+  color: var(--accent-secondary, #8B5CF6);
 `;
 
 export const Title = styled.h1`
@@ -55,7 +55,7 @@ export const StudioBrief = styled.p`
   font-family: 'Sora', sans-serif;
   font-size: 0.86rem;
   line-height: 1.55;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 78%, transparent);
 `;
 
 export const TierBadge = styled.span<{ $tier: 'bootstrap' | 'full' }>`
@@ -66,11 +66,11 @@ export const TierBadge = styled.span<{ $tier: 'bootstrap' | 'full' }>`
   text-transform: uppercase;
   padding: 4px 12px;
   border-radius: 6px;
-  color: ${({ $tier }) => ($tier === 'full' ? '#C6A84B' : '#60C0F0')};
+  color: ${({ $tier }) => ($tier === 'full' ? 'var(--accent-luxury, #C6A84B)' : 'var(--accent-primary, #60C0F0)')};
   background: ${({ $tier }) =>
-    $tier === 'full' ? 'rgba(198, 168, 75, 0.15)' : 'rgba(96, 192, 240, 0.12)'};
+    $tier === 'full' ? 'color-mix(in srgb, var(--accent-luxury, #C6A84B) 15%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'};
   border: 1px solid ${({ $tier }) =>
-    $tier === 'full' ? 'rgba(198, 168, 75, 0.3)' : 'rgba(96, 192, 240, 0.2)'};
+    $tier === 'full' ? 'color-mix(in srgb, var(--accent-luxury, #C6A84B) 30%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)'};
 `;
 
 export const ServiceGrid = styled.div`
@@ -88,7 +88,7 @@ export const ServiceCard = styled.div<{ $configured: boolean }>`
   border-radius: 12px;
   background: var(--bg-elevated, #141419);
   border: 1px solid ${({ $configured }) =>
-    $configured ? 'rgba(96, 192, 240, 0.25)' : 'rgba(96, 192, 240, 0.08)'};
+    $configured ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
   transition: all 0.2s ease;
   &:hover { background: var(--bg-surface, #1A1A24); }
 `;
@@ -101,8 +101,8 @@ export const ServiceIcon = styled.div<{ $configured: boolean }>`
   align-items: center;
   justify-content: center;
   background: ${({ $configured }) =>
-    $configured ? 'rgba(96, 192, 240, 0.12)' : 'rgba(139, 92, 246, 0.12)'};
-  color: ${({ $configured }) => ($configured ? '#60C0F0' : '#8B5CF6')};
+    $configured ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)' : 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)'};
+  color: ${({ $configured }) => ($configured ? 'var(--accent-primary, #60C0F0)' : 'var(--accent-secondary, #8B5CF6)')};
   flex-shrink: 0;
 `;
 
@@ -118,7 +118,7 @@ export const ServiceLabel = styled.div`
 export const ServiceMeta = styled.div<{ $configured: boolean }>`
   font-family: 'Fira Code', monospace;
   font-size: 0.65rem;
-  color: ${({ $configured }) => ($configured ? '#60C0F0' : 'rgba(224, 236, 244, 0.6)')};
+  color: ${({ $configured }) => ($configured ? 'var(--accent-primary, #60C0F0)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent)')};
   display: flex;
   align-items: center;
   gap: 4px;
@@ -128,7 +128,7 @@ export const TabBar = styled.div`
   display: flex;
   gap: 2px;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
   overflow-x: auto;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
@@ -147,16 +147,16 @@ export const Tab = styled.button<{ $active: boolean; $locked?: boolean }>`
   font-size: 0.85rem;
   font-weight: ${({ $active }) => ($active ? 600 : 500)};
   color: ${({ $active, $locked }) =>
-    $locked ? 'rgba(224, 236, 244, 0.3)'
+    $locked ? 'color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent)'
     : $active ? 'var(--text-primary, #E0ECF4)'
-    : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
-  border-bottom: 2px solid ${({ $active }) => ($active ? '#8B5CF6' : 'transparent')};
+    : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent)'};
+  border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
   white-space: nowrap;
   transition: all 0.2s ease;
   opacity: ${({ $locked }) => ($locked ? 0.5 : 1)};
 
   &:hover:not([disabled]) { color: var(--text-primary, #E0ECF4); }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: -2px; }
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: -2px; }
   svg { flex-shrink: 0; }
 `;
 
@@ -167,6 +167,106 @@ export const LoadingFallback = styled.div`
   align-items: center;
   justify-content: center;
   padding: 48px;
-  color: rgba(224, 236, 244, 0.6);
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent);
   font-size: 0.9rem;
+`;
+
+export const WorkflowPanel = styled.section`
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 3vw, 28px) 24px 32px;
+`;
+
+export const WorkflowHeader = styled.div`
+  display: grid;
+  gap: 8px;
+  max-width: 860px;
+`;
+
+export const WorkflowTitle = styled.h2`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--text-heading, #E0ECF4);
+  font: 800 1.15rem/1.25 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+`;
+
+export const WorkflowCopy = styled.p`
+  margin: 0;
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent);
+  font: 500 0.88rem/1.55 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const WorkflowGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+`;
+
+export const WorkflowStep = styled.div`
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-card, #141419) 82%, transparent);
+  padding: 12px;
+`;
+
+export const WorkflowStepIcon = styled.span`
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 14%, transparent);
+  color: var(--accent-primary, #60C0F0);
+`;
+
+export const WorkflowStepBody = styled.span`
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+`;
+
+export const WorkflowStepLabel = styled.strong`
+  color: var(--text-primary, #E0ECF4);
+  font: 800 0.82rem/1.2 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const WorkflowStepMeta = styled.span`
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 64%, transparent);
+  font: 500 0.74rem/1.45 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const WorkflowActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+export const WorkflowActionButton = styled.button`
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 16%, var(--bg-base, #030712));
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font: 800 0.8rem/1 var(--font-ui, 'Sora', sans-serif);
+  padding: 0 14px;
+
+  &:hover {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
 `;

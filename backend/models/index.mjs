@@ -200,6 +200,7 @@ export const getUserWatchHistory = () => getModel('UserWatchHistory');
 export const getVideoAccessGrant = () => getModel('VideoAccessGrant');
 export const getVideoOutboundClick = () => getModel('VideoOutboundClick');
 export const getVideoJobLog = () => getModel('VideoJobLog');
+export const getContentProject = () => getModel('ContentProject');
 
 // Form Analysis Models (Phase 2 - AI Form Analysis)
 export const getFormAnalysis = () => getModel('FormAnalysis');

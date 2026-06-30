@@ -208,6 +208,7 @@ const setupAssociations = async () => {
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
     const MarketingCalendarItemModule = await import('./MarketingCalendarItem.mjs');
+    const ContentProjectModule = await import('./ContentProject.mjs');
     const SocialPublishingAccountModule = await import('./SocialPublishingAccount.mjs');
     const SocialPublishingJobModule = await import('./SocialPublishingJob.mjs');
     const SocialPublishingAttemptModule = await import('./SocialPublishingAttempt.mjs');
@@ -410,6 +411,7 @@ const setupAssociations = async () => {
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
     const MarketingCalendarItem = MarketingCalendarItemModule.default;
+    const ContentProject = ContentProjectModule.default;
     const SocialPublishingAccount = SocialPublishingAccountModule.default;
     const SocialPublishingJob = SocialPublishingJobModule.default;
     const SocialPublishingAttempt = SocialPublishingAttemptModule.default;
@@ -519,7 +521,7 @@ const setupAssociations = async () => {
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
-        MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+        MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
@@ -1278,6 +1280,10 @@ const setupAssociations = async () => {
 
     // Marketing Calendar Associations
     User.hasMany(MarketingCalendarItem, { foreignKey: 'createdBy', as: 'createdMarketingCalendarItems', constraints: false });
+    User.hasMany(ContentProject, { foreignKey: 'createdBy', as: 'createdContentProjects', constraints: false });
+    ContentProject.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
+    User.hasMany(ContentProject, { foreignKey: 'updatedBy', as: 'updatedContentProjects', constraints: false });
+    ContentProject.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
     User.hasMany(MarketingCalendarItem, { foreignKey: 'updatedBy', as: 'updatedMarketingCalendarItems', constraints: false });
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
@@ -1470,7 +1476,7 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
-      Lead, LeadActivity, MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+      Lead, LeadActivity, MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
 
       // AI Chat & Macro Logging Models
       AiConversation,
