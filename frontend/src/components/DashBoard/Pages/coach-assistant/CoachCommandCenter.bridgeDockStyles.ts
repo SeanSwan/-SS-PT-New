@@ -128,6 +128,10 @@ export const coachCommandDockStyles = css`
     gap: 10px;
     padding: 12px;
   }
+  .dock-form.is-busy {
+    border-color: color-mix(in srgb, var(--coach-cyan) 48%, var(--coach-line-strong));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--coach-cyan) 16%, transparent), 0 16px 44px color-mix(in srgb, var(--coach-bg) 60%, transparent);
+  }
   .dock-textarea {
     border-radius: 12px;
     font-size: 17px;
@@ -135,6 +139,10 @@ export const coachCommandDockStyles = css`
     max-height: 160px;
     min-height: 64px;
     resize: none;
+  }
+  .dock-textarea[readonly] {
+    cursor: progress;
+    opacity: 0.86;
   }
   .dock-actions {
     align-items: center;
@@ -192,6 +200,11 @@ export const coachCommandDockStyles = css`
     height: 56px;
     justify-content: center;
     width: 56px;
+  }
+  .dock-send:disabled {
+    cursor: progress;
+    filter: saturate(0.82);
+    opacity: 0.7;
   }
   .dock-status {
     color: var(--coach-muted);
