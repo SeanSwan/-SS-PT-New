@@ -101,6 +101,9 @@ const TabLoadingFallback = () => (
   </LoadingContainer>
 );
 
+const noopUpdateProfile = async () => undefined;
+const noopOpenEditor = () => undefined;
+
 interface UserDashboardTabsV3Props {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
@@ -112,9 +115,9 @@ interface UserDashboardTabsV3Props {
   homeFollowStats: FollowStats | null;
   homeDisplayName: string;
   homeUsername: string;
-  profileSettingsProfile: UserProfile | null;
-  onUpdateProfile: (data: Record<string, unknown>) => Promise<void>;
-  onOpenEditProfile: () => void;
+  profileSettingsProfile?: UserProfile | null;
+  onUpdateProfile?: (data: Record<string, unknown>) => Promise<void>;
+  onOpenEditProfile?: () => void;
 }
 
 const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
@@ -227,9 +230,9 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
         <SectionChrome id="profile">
           <TabStack>
             <UserSettingsHub
-              profile={profileSettingsProfile}
-              onUpdateProfile={onUpdateProfile}
-              onOpenEditProfile={onOpenEditProfile}
+              profile={profileSettingsProfile ?? homeProfile}
+              onUpdateProfile={onUpdateProfile || noopUpdateProfile}
+              onOpenEditProfile={onOpenEditProfile || noopOpenEditor}
             />
             <AboutSection />
             <TransformationPhotoShowcase
