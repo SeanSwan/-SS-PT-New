@@ -1,11 +1,23 @@
 /**
  * ChallengesView status styled-components.
  *
- * Loading and empty/error state primitives split out to keep the main
- * challenge style module inside the project file-health limit.
+ * Loading and demo state primitives split out to keep the main challenge style
+ * module inside the project file-health limit.
  */
 import styled from 'styled-components';
 import { Loader2 } from 'lucide-react';
+
+export const DemoBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-luxury, #C6A84B) 32%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-luxury, #C6A84B) 12%, transparent);
+  color: var(--accent-luxury, #C6A84B);
+  font: 700 0.85rem/1.4 var(--font-ui, 'Sora', sans-serif);
+  padding: 10px 16px;
+`;
 
 export const LoadingContainer = styled.div`
   display: flex;
@@ -28,7 +40,6 @@ export const Spinner = styled(Loader2)`
     animation: none;
   }
 `;
-
 export const EmptyState = styled.div`
   display: grid;
   justify-items: center;

@@ -38,13 +38,6 @@ export const CHALLENGE_LIST_UNAVAILABLE_MESSAGE = 'Challenge list unavailable. R
 
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
-const getErrorMessage = (error: unknown): string => {
-  if (error && typeof error === 'object') {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.trim()) return message;
-  }
-  return 'Unknown error';
-};
 export function useChallenges(): UseChallengesReturn {
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -85,8 +78,8 @@ export function useChallenges(): UseChallengesReturn {
 
       setChallenges(normalizeChallengeRecords(apiChallenges, participations));
       setIsDemoData(false);
-    } catch (err: unknown) {
-      logger.warn('[useChallenges] API unavailable, showing retry state:', getErrorMessage(err));
+    } catch (err: any) {
+      logger.warn('[useChallenges] API unavailable, showing retry state:', err.message);
       setChallenges([]);
       setIsDemoData(false);
       setError(CHALLENGE_LIST_UNAVAILABLE_MESSAGE);
@@ -107,8 +100,8 @@ export function useChallenges(): UseChallengesReturn {
         return true;
       }
       return false;
-    } catch (err: unknown) {
-      logger.warn('[useChallenges] Join failed:', getErrorMessage(err));
+    } catch (err: any) {
+      logger.warn('[useChallenges] Join failed:', err.message);
       return false;
     }
   }, [fetchChallenges]);
@@ -121,8 +114,8 @@ export function useChallenges(): UseChallengesReturn {
         return true;
       }
       return false;
-    } catch (err: unknown) {
-      logger.warn('[useChallenges] Leave failed:', getErrorMessage(err));
+    } catch (err: any) {
+      logger.warn('[useChallenges] Leave failed:', err.message);
       return false;
     }
   }, [fetchChallenges]);

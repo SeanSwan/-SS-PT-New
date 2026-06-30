@@ -39,7 +39,7 @@
  * [Filter: Fitness] → Sets category filter → Refetches feed with ?category=fitness
  * [Trending: #legday] → Sets hashtag filter → Refetches feed with ?hashtag=legday
  * [Post button] → POST /api/social/posts → Extracts #hashtags → Refreshes feed
- * [Challenge card] → Future: opens challenge detail modal
+ * [Challenge card] -> Opens the first-class Challenge Board
  *
  * DATA FLOW:
  * Props In:  none
@@ -53,6 +53,7 @@
  */
 
 import React, { useState, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Clock, Swords, MessageSquare, Hash, Users, Shield } from 'lucide-react';
 import { FeedFilterBar, type FeedFilters } from '../../../Social/Hashtags';
 import { FactionLeaderboard, PartyHPBar, PartyCreateJoin } from '../../../Social/RPG';
@@ -92,6 +93,7 @@ const MAX_POST_LENGTH = 500;
 // ─────────────────────────────────────────────────────────────
 
 const ClientCommunityPage: React.FC = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<FeedFilters>({ category: 'all', hashtag: null });
   const [postText, setPostText] = useState('');
   const [postReceiptPoints, setPostReceiptPoints] = useState<number | null>(null);
@@ -217,7 +219,12 @@ const ClientCommunityPage: React.FC = () => {
             : (challenges as CommunityChallenge[]).slice(0, 3).map((rawChallenge, i) => {
               const challenge = normalizeCommunityChallenge(rawChallenge, i);
               return (
-              <ChallengeCard key={challenge.id}>
+              <ChallengeCard
+                key={challenge.id}
+                type="button"
+                onClick={() => navigate('/dashboard/client/challenges')}
+                aria-label={`Open Challenge Board for ${challenge.title}`}
+              >
                 <ChallengeTitle>{challenge.title}</ChallengeTitle>
                 <ChallengeDesc>{challenge.description}</ChallengeDesc>
                 <ChallengeFooter>

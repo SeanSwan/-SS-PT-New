@@ -17,6 +17,7 @@ describe('useChallenges normalization', () => {
       currentParticipants: 8,
       maxProgress: 12,
       progressUnit: 'sessions',
+      tags: ['assigned-session', 'program-week'],
       xpReward: 150,
       bonusXpReward: 25,
     }, {
@@ -40,12 +41,69 @@ describe('useChallenges normalization', () => {
       progressUnit: 'sessions',
       progressLabel: '5 of 12 sessions',
       targetLabel: '12 sessions target',
+      tags: ['assigned-session', 'program-week'],
       participantStatus: 'active',
       reward: '150 XP + 25 bonus XP',
       checkInsCount: 3,
     });
   });
 
+  it('normalizes team challenge fields without inventing squad data', () => {
+    const challenge = normalizeChallengeForDashboard({
+      id: 'team-challenge',
+      title: 'Squad Program Week',
+      description: 'Complete assigned sessions as a team',
+      category: 'social',
+      status: 'active',
+      startDate: '2026-06-01T00:00:00.000Z',
+      endDate: '2099-06-30T00:00:00.000Z',
+      currentParticipants: 8,
+      maxProgress: 12,
+      progressUnit: 'sessions',
+      allowTeams: true,
+      maxTeamSize: 4,
+    }, {
+      id: 'participant-team',
+      challengeId: 'team-challenge',
+      status: 'active',
+      teamId: 'team-alpha-internal',
+      currentProgress: 3,
+      progressPercentage: 25,
+    });
+
+    expect(challenge).toMatchObject({
+      id: 'team-challenge',
+      joined: true,
+      allowTeams: true,
+      maxTeamSize: 4,
+      teamId: 'team-alpha-internal',
+    });
+  });
+  it('drops participant team ids when the challenge is not team-enabled', () => {
+    const challenge = normalizeChallengeForDashboard({
+      id: 'solo-challenge',
+      title: 'Solo Program Week',
+      description: 'Complete assigned sessions solo',
+      category: 'streak',
+      status: 'active',
+      startDate: '2026-06-01T00:00:00.000Z',
+      endDate: '2099-06-30T00:00:00.000Z',
+      maxProgress: 4,
+      progressUnit: 'sessions',
+      maxTeamSize: 4,
+    }, {
+      id: 'participant-solo',
+      challengeId: 'solo-challenge',
+      status: 'active',
+      teamId: 'team-alpha-internal',
+      currentProgress: 1,
+      progressPercentage: 25,
+    });
+
+    expect(challenge.allowTeams).toBeUndefined();
+    expect(challenge.maxTeamSize).toBeUndefined();
+    expect(challenge.teamId).toBeUndefined();
+  });
   it('prefers backend dashboard summaries for joined progress and workout impact', () => {
     const challenge = normalizeChallengeForDashboard({
       id: 'challenge-1',
@@ -76,6 +134,10 @@ describe('useChallenges normalization', () => {
           occurredAt: '2026-06-29T15:30:00.000Z',
           progressUnit: 'sessions',
           delta: 1,
+          activeMinutes: 42,
+          exercisesCompleted: 7,
+          personalRecordCount: 2,
+          assignedSession: true,
           previousProgress: 1,
           currentProgress: 2,
         },
@@ -95,10 +157,48 @@ describe('useChallenges normalization', () => {
         occurredAt: '2026-06-29T15:30:00.000Z',
         progressUnit: 'sessions',
         delta: 1,
+        activeMinutes: 42,
+        exercisesCompleted: 7,
+        personalRecordCount: 2,
+        assignedSession: true,
         previousProgress: 1,
         currentProgress: 2,
       },
     });
+  });
+  it('does not treat a preserved quit participation row as joined on active challenge cards', () => {
+    const challenge = normalizeChallengeForDashboard({
+      id: 'challenge-1',
+      title: '150-Minute Week',
+      description: 'Build consistent training minutes',
+      category: 'strength',
+      status: 'active',
+      startDate: '2026-06-01T00:00:00.000Z',
+      endDate: '2099-06-30T00:00:00.000Z',
+      currentParticipants: 8,
+      maxProgress: 150,
+      progressUnit: 'minutes',
+    }, {
+      id: 'participant-quit',
+      challengeId: 'challenge-1',
+      status: 'quit',
+      currentProgress: 75,
+      progressPercentage: 50,
+      checkInsCount: 2,
+      joinedAt: '2026-06-02T00:00:00.000Z',
+      lastProgressUpdate: '2026-06-20T12:00:00.000Z',
+      dashboardSummary: { progressLabel: '75 of 150 minutes', nextAction: 'Keep going' },
+    });
+
+    expect(challenge).toMatchObject({
+      id: 'challenge-1',
+      joined: false,
+      progress: 0,
+      currentProgress: 0,
+      participantStatus: 'quit',
+      progressLabel: '0 of 150 minutes',
+    });
+    expect(challenge.nextAction).toBeUndefined();
   });
   it('keeps user-only joined challenges visible when the public list omits them', () => {
     const records = normalizeChallengeRecords([], [{
@@ -128,6 +228,29 @@ describe('useChallenges normalization', () => {
       joined: true,
       progressLabel: '2 of 10 workouts',
     });
+  });
+  it('does not surface user-only quit rows when the public challenge list omits them', () => {
+    const records = normalizeChallengeRecords([], [{
+      id: 'participant-quit',
+      challengeId: 'private-challenge',
+      status: 'quit',
+      currentProgress: 2,
+      progressPercentage: 20,
+      challenge: {
+        id: 'private-challenge',
+        title: 'Trainer Team Push',
+        description: 'Assigned by your trainer',
+        category: 'social',
+        status: 'active',
+        startDate: '2026-06-01T00:00:00.000Z',
+        endDate: '2099-06-30T00:00:00.000Z',
+        currentParticipants: 4,
+        maxProgress: 10,
+        progressUnit: 'workouts',
+      },
+    }]);
+
+    expect(records).toEqual([]);
   });
 
   it('preserves backend nutrition challenge category instead of relabeling it as cardio', () => {

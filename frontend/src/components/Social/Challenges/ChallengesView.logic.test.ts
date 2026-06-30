@@ -5,7 +5,9 @@ import {
   emptyChallengeTitle,
   filterChallenges,
   formatChallengeCompletionDate,
+  formatChallengeDeadline,
   formatChallengeJoinImpact,
+  formatChallengeNextAction,
   formatChallengeWorkoutImpact,
   formatChallengeWorkoutSyncFallback,
   nextChallengeTab,
@@ -141,22 +143,44 @@ describe('ChallengesView logic helpers', () => {
       progressUnit: 'sessions',
     })).toBe('Last workout: +1 session');
 
+    expect(formatChallengeWorkoutImpact({
+      delta: 1,
+      progressUnit: 'sessions',
+      activeMinutes: 42,
+      exercisesCompleted: 7,
+      personalRecordCount: 2,
+      assignedSession: true,
+    })).toBe('Last workout: +1 session | 42 active min | 7 exercises | 2 PRs | assigned session');
+
+    expect(formatChallengeWorkoutImpact({
+      delta: 1,
+      progressUnit: 'sessions',
+      personalRecordCount: 1.6,
+    })).toBe('Last workout: +1 session | 2 PRs');
+
     expect(formatChallengeWorkoutImpact({ delta: 0, progressUnit: 'minutes' })).toBeNull();
     expect(formatChallengeWorkoutImpact(null)).toBeNull();
   });
 
-  it('explains what the next logged workout can sync for joined active challenges', () => {
+  it('explains what the next logged workout can sync without overpromising rule matches', () => {
     expect(formatChallengeWorkoutSyncFallback({
       ...baseChallenge,
       progressUnit: 'minutes',
       targetLabel: '150 minutes target',
-    })).toBe('Next logged workout will sync completed workout minutes toward 150 minutes target.');
+    })).toBe('Next logged workout can sync completed workout minutes toward 150 minutes target when challenge rules match.');
 
     expect(formatChallengeWorkoutSyncFallback({
       ...baseChallenge,
       progressUnit: 'sessions',
       targetLabel: '3 sessions target',
-    })).toBe('Next logged workout will count toward 3 sessions target.');
+    })).toBe('Next logged workout can count toward 3 sessions target when challenge rules match.');
+
+    expect(formatChallengeWorkoutSyncFallback({
+      ...baseChallenge,
+      progressUnit: 'sessions',
+      targetLabel: '3 sessions target',
+      tags: ['assigned-session'],
+    })).toBe('Next assigned workout can count toward 3 sessions target when challenge rules match.');
 
     expect(formatChallengeWorkoutSyncFallback({
       ...baseChallenge,
@@ -180,11 +204,38 @@ describe('ChallengesView logic helpers', () => {
 
     expect(formatChallengeJoinImpact({
       ...baseChallenge,
+      progressUnit: 'sessions',
+      targetLabel: '3 sessions target',
+      tags: ['assigned-session'],
+    })).toBe('Join to turn assigned workout completions into 3 sessions target.');
+
+    expect(formatChallengeJoinImpact({
+      ...baseChallenge,
       progressUnit: 'custom',
       targetLabel: '1 custom target',
     })).toBe('Join to track 1 custom target from verified challenge activity.');
   });
 
+  it('formats assigned-session next actions without implying ad hoc workout logs count', () => {
+    expect(formatChallengeNextAction({
+      ...baseChallenge,
+      tags: ['assigned-session'],
+      nextAction: 'Complete your next workout',
+    })).toBe('Complete your next assigned workout');
+
+    expect(formatChallengeNextAction({
+      ...baseChallenge,
+      nextAction: 'Complete your next workout',
+    })).toBe('Complete your next workout');
+  });
+
+  it('formats challenge deadlines without today or singular grammar drift', () => {
+    expect(formatChallengeDeadline(0)).toBe('Today');
+    expect(formatChallengeDeadline(-2)).toBe('Today');
+    expect(formatChallengeDeadline(1)).toBe('1 day left');
+    expect(formatChallengeDeadline(4)).toBe('4 days left');
+    expect(formatChallengeDeadline(undefined)).toBeNull();
+  });
   it('formats completed challenge dates without guessing invalid timestamps', () => {
     expect(formatChallengeCompletionDate('2026-06-29T15:30:00.000Z')).toBe('Completed Jun 29');
     expect(formatChallengeCompletionDate('not-a-date')).toBeNull();

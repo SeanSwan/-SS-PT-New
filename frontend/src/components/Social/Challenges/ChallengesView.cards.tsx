@@ -5,27 +5,20 @@
  * Data truth: Receives already-filtered Challenge records; no mock fallback.
  * Writes: Only calls the explicit join/leave handlers passed by ChallengesView.
  */
-import {
-  CalendarCheck,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  LogOut,
-  Share2,
-  Trophy,
-  Users,
-} from 'lucide-react';
+import React from 'react';
+import { CalendarCheck, CheckCircle2, Clock, Trophy, Users } from 'lucide-react';
 import type { Challenge, ChallengeStatus } from '../../../hooks/useChallenges';
+import { ChallengeAction } from './ChallengesView.actions';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from './ChallengesView.constants';
 import { ChallengeMomentum } from './ChallengesView.momentum';
 import {
   barTransitionFor,
   cardTransitionFor,
   formatChallengeCompletionDate,
+  formatChallengeDeadline,
   stripSeedMarker,
 } from './ChallengesView.logic';
 import {
-  ActionButton,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -175,6 +168,15 @@ function ChallengeProgress({
 
 function ChallengeMeta({ challenge }: { challenge: Challenge }) {
   const isCompleted = challenge.status === 'completed' || challenge.participantStatus === 'completed';
+  const normalizedMaxTeamSize = typeof challenge.maxTeamSize === 'number' && Number.isFinite(challenge.maxTeamSize)
+    ? Math.max(2, Math.round(challenge.maxTeamSize))
+    : null;
+  const teamLabel = challenge.allowTeams
+    ? challenge.teamId ? 'Your squad challenge' : 'Team challenge'
+    : null;
+  const teamSizeLabel = challenge.allowTeams && normalizedMaxTeamSize
+    ? `Squads up to ${normalizedMaxTeamSize}`
+    : null;
   const completionDateLabel = isCompleted
     ? formatChallengeCompletionDate(challenge.completedAt)
     : null;
@@ -186,6 +188,13 @@ function ChallengeMeta({ challenge }: { challenge: Challenge }) {
   const rewardLabel = isCompleted && !/^earned\b/i.test(challenge.reward)
     ? `Earned ${challenge.reward}`
     : challenge.reward;
+  const deadlineLabel = formatChallengeDeadline(challenge.daysLeft);
+  const checkInCount = challenge.joined && Number.isFinite(challenge.checkInsCount)
+    ? Math.max(0, Math.round(challenge.checkInsCount))
+    : 0;
+  const checkInLabel = checkInCount > 0
+    ? `${checkInCount} ${checkInCount === 1 ? 'check-in' : 'check-ins'}`
+    : null;
 
   return (
     <MetaRow>
@@ -193,10 +202,16 @@ function ChallengeMeta({ challenge }: { challenge: Challenge }) {
         <Users size={14} aria-hidden="true" />
         {challenge.participants} participants
       </MetaItem>
-      {challenge.daysLeft != null && (
+      {checkInLabel && (
+        <MetaItem>
+          <CheckCircle2 size={14} aria-hidden="true" />
+          {checkInLabel}
+        </MetaItem>
+      )}
+      {deadlineLabel && (
         <MetaItem>
           <Clock size={14} aria-hidden="true" />
-          {challenge.daysLeft} days left
+          {deadlineLabel}
         </MetaItem>
       )}
       {challenge.startsIn && (
@@ -212,99 +227,12 @@ function ChallengeMeta({ challenge }: { challenge: Challenge }) {
         </MetaItem>
       )}
       {statusLabel && <StatusBadge>{statusLabel}</StatusBadge>}
+      {teamLabel && <StatusBadge>{teamLabel}</StatusBadge>}
+      {teamSizeLabel && <StatusBadge>{teamSizeLabel}</StatusBadge>}
       <RewardBadge>
         <Trophy size={14} aria-hidden="true" />
         {rewardLabel}
       </RewardBadge>
     </MetaRow>
-  );
-}
-
-function ChallengeAction({
-  challenge,
-  isDemoData,
-  onJoin,
-  onLeave,
-  onShareCompleted,
-  sharingChallengeId,
-  joiningChallengeId,
-  leavingChallengeId,
-}: Omit<ChallengeCardItemProps, 'noMotion'>) {
-  const isCompleted = challenge.status === 'completed' || challenge.participantStatus === 'completed';
-  const isSharing = sharingChallengeId === challenge.id;
-  const isAnyShareInFlight = Boolean(sharingChallengeId);
-  const isAnyJoinInFlight = Boolean(joiningChallengeId);
-  const isJoining = joiningChallengeId === challenge.id;
-  const isAnyLeaveInFlight = Boolean(leavingChallengeId);
-  const isLeaving = leavingChallengeId === challenge.id;
-
-  if (isCompleted) {
-    return (
-      <>
-        <ActionButton
-          $variant="completed"
-          disabled
-          aria-label={`Completed: ${challenge.title}`}
-        >
-          <CheckCircle2 size={16} aria-hidden="true" />
-          Completed
-        </ActionButton>
-        {challenge.joined && onShareCompleted && (
-          <ActionButton
-            $variant="secondary"
-            disabled={isAnyShareInFlight}
-            aria-label={`Share to Feed: ${challenge.title}`}
-            onClick={() => onShareCompleted(challenge)}
-          >
-            <Share2 size={16} aria-hidden="true" />
-            {isSharing ? 'Sharing...' : 'Share to Feed'}
-          </ActionButton>
-        )}
-      </>
-    );
-  }
-
-  if (challenge.joined) {
-    return (
-      <>
-        <ActionButton
-          $variant="secondary"
-          disabled
-          aria-label={`Progress synced: ${challenge.title}`}
-        >
-          <CheckCircle2 size={16} aria-hidden="true" />
-          Progress synced
-        </ActionButton>
-        {onLeave && (
-          <ActionButton
-            $variant="secondary"
-            disabled={isAnyLeaveInFlight}
-            aria-busy={isLeaving || undefined}
-            aria-label={`${isLeaving ? 'Leaving' : 'Leave'} Challenge: ${challenge.title}`}
-            onClick={() => {
-              if (!isAnyLeaveInFlight) onLeave(challenge.id);
-            }}
-          >
-            <LogOut size={16} aria-hidden="true" />
-            {isLeaving ? 'Leaving...' : 'Leave Challenge'}
-          </ActionButton>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <ActionButton
-      $variant="primary"
-      disabled={isDemoData || isAnyJoinInFlight}
-      aria-busy={isJoining || undefined}
-      aria-label={`${isJoining ? 'Joining' : 'Join'} Challenge: ${challenge.title}`}
-      onClick={() => {
-        if (!isDemoData && !isAnyJoinInFlight) onJoin(challenge.id);
-      }}
-    >
-      {isJoining ? 'Joining...' : 'Join Challenge'}
-      {!isJoining && <ChevronRight size={16} aria-hidden="true" />}
-    </ActionButton>
   );
 }

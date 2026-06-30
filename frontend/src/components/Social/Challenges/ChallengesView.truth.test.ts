@@ -8,6 +8,8 @@ const __dirname = dirname(__filename);
 
 const viewSource = readFileSync(resolve(__dirname, './ChallengesView.tsx'), 'utf8');
 const cardsSource = readFileSync(resolve(__dirname, './ChallengesView.cards.tsx'), 'utf8');
+const actionsSource = readFileSync(resolve(__dirname, './ChallengesView.actions.tsx'), 'utf8');
+const stylesSource = readFileSync(resolve(__dirname, './ChallengesView.styles.ts'), 'utf8');
 const momentumSource = readFileSync(resolve(__dirname, './ChallengesView.momentum.tsx'), 'utf8');
 const statusPanelSource = readFileSync(resolve(__dirname, './ChallengesView.statusPanels.tsx'), 'utf8');
 const logicSource = readFileSync(resolve(__dirname, './ChallengesView.logic.ts'), 'utf8');
@@ -43,6 +45,15 @@ describe('ChallengesView truth contract', () => {
     expect(viewSource).not.toMatch(/rgba\(|#[0-9a-f]{3,8}/i);
   });
 
+  it('keeps challenge action hover motion reduced-motion aware', () => {
+    const actionButtonBlock = stylesSource.match(/export const ActionButton[\s\S]*?export \*/)?.[0] ?? '';
+
+    expect(actionButtonBlock).toContain('transform: translateY(-1px)');
+    expect(actionButtonBlock).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(actionButtonBlock).toContain('transition: none;');
+    expect(actionButtonBlock).toContain('transform: none;');
+  });
+
   it('renders real user progress details and workout impact instead of a dead progress button', () => {
     expect(cardsSource).toContain('role="progressbar"');
     expect(cardsSource).toContain('challenge.progressLabel');
@@ -51,15 +62,27 @@ describe('ChallengesView truth contract', () => {
     expect(momentumSource).toContain('formatChallengeJoinImpact');
     expect(logicSource).toContain('Last workout:');
     expect(momentumSource).toContain('Next:');
-    expect(cardsSource).toContain('Progress synced');
+    expect(actionsSource).toContain('Progress synced');
     expect(cardsSource).toContain('formatChallengeCompletionDate');
     expect(cardsSource).toContain('`Earned ${challenge.reward}`');
     expect(logicSource).toContain('formatChallengeCompletionDate');
     expect(logicSource).toContain("timeZone: 'UTC'");
     expect(cardsSource).toContain('onShareCompleted');
-    expect(cardsSource).toContain('Share to Feed');
+    expect(actionsSource).toContain('Share to Feed');
     expect(viewSource).toContain('shareCompletedChallengeToFeed');
     expect(cardsSource).not.toContain('View Progress');
+  });
+
+  it('records aggregate challenge impressions without viewer payloads or repeat storms', () => {
+    expect(viewSource).toContain("import apiService from '../../../services/api.service';");
+    expect(viewSource).toContain('viewedChallengeIdsRef');
+    expect(viewSource).toContain('if (loading || error || isDemoData) return;');
+    expect(viewSource).toContain('viewedChallengeIdsRef.current.add(challengeId);');
+    expect(viewSource).toContain('encodeURIComponent(challengeId)');
+    expect(viewSource).toContain('/view`');
+    expect(viewSource).toContain('catch(() => undefined)');
+    expect(viewSource).not.toContain('req.user');
+    expect(viewSource).not.toContain('req.ip');
   });
 
   it('keeps challenge joining feedback explicit and non-silent', () => {
@@ -67,8 +90,8 @@ describe('ChallengesView truth contract', () => {
     expect(viewSource).toContain('handleJoinChallenge');
     expect(viewSource).toContain('Challenge joined');
     expect(viewSource).toContain('Unable to join challenge');
-    expect(cardsSource).toContain('joiningChallengeId');
-    expect(cardsSource).toContain('Joining...');
+    expect(actionsSource).toContain('joiningChallengeId');
+    expect(actionsSource).toContain('Joining...');
     expect(hookSource).toContain('Promise<boolean>');
     expect(hookSource).toContain('return true');
     expect(hookSource).toContain('return false');
@@ -83,9 +106,9 @@ describe('ChallengesView truth contract', () => {
     expect(viewSource).not.toContain('window.confirm');
     expect(viewSource).toContain('Challenge left');
     expect(viewSource).toContain('Unable to leave challenge');
-    expect(cardsSource).toContain('leavingChallengeId');
-    expect(cardsSource).toContain('Leave Challenge');
-    expect(cardsSource).toContain('Leaving...');
+    expect(actionsSource).toContain('leavingChallengeId');
+    expect(actionsSource).toContain('Leave Challenge');
+    expect(actionsSource).toContain('Leaving...');
     expect(hookSource).toContain('leaveChallenge: (id: string) => Promise<boolean>');
     expect(hookSource).toContain('return true');
     expect(hookSource).toContain('return false');

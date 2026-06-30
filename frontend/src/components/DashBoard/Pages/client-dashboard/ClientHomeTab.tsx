@@ -29,7 +29,7 @@ const CLIENT_TAB_ROUTES: Partial<Record<TabId, string>> = {
   home: '/dashboard/client/overview',
   progress: '/dashboard/client/progress',
   nutrition: '/dashboard/client/meal-planner',
-  challenges: '/dashboard/client/community',
+  challenges: '/dashboard/client/challenges',
   community: '/dashboard/client/community',
   notifications: '/dashboard/client/messages',
   profile: '/dashboard/client/profile',

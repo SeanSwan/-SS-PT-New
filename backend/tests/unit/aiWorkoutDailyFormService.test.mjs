@@ -6,6 +6,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let models;
+let challengeBridge;
 
 function makeTransaction() {
   return {
@@ -60,6 +61,22 @@ function makeActivePlan(overrides = {}) {
 
 async function loadService({ client = makeClient(), existingForm = null, activePlan = makeActivePlan() } = {}) {
   vi.resetModules();
+  challengeBridge = {
+    applyDailyWorkoutFormChallengeProgress: vi.fn(async () => ({
+      updatedCount: 1,
+      skippedCount: 0,
+      updated: [{
+        challengeId: 'challenge-1',
+        title: 'Session Streak',
+        progressUnit: 'sessions',
+        delta: 1,
+        currentProgress: 2,
+        progressPercentage: 66.67,
+        completed: false,
+      }],
+      skipped: [],
+    })),
+  };
   const tx = makeTransaction();
   const dailyFormRow = {
     id: 'form-1',
@@ -89,10 +106,13 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     WorkoutPlan: {
       findOne: vi.fn(async () => activePlan),
     },
+    Challenge: { modelName: 'Challenge' },
+    ChallengeParticipant: { modelName: 'ChallengeParticipant' },
   };
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => models,
   }));
+  vi.doMock('../../services/gamification/challengeWorkoutCompletionBridge.mjs', () => challengeBridge);
   const service = await import('../../services/workout/aiWorkoutDailyFormService.mjs');
   return {
     ...service,
@@ -100,6 +120,7 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     dailyFormRow,
     models,
     sequelize: { transaction: vi.fn(async () => tx) },
+    challengeBridge,
     tx,
     workoutSession,
     activePlan,
@@ -183,6 +204,104 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
     }));
     expect(tx.commit).toHaveBeenCalledTimes(1);
     expect(tx.rollback).not.toHaveBeenCalled();
+  });
+
+  it('feeds accepted AI workout logs into challenge progress after the workout commit', async () => {
+    const {
+      submitAiWorkoutLogAsDailyForm,
+      challengeBridge,
+      dailyFormRow,
+      models,
+      sequelize,
+      tx,
+      workoutSession,
+    } = await loadService();
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      duration: 30,
+      exercises: [{
+        name: 'Push Up',
+        exerciseFamily: 'push',
+        movementPattern: 'horizontal_push',
+        nasmMovementPattern: 'push',
+        bodyPartCategory: 'Chest',
+        muscleGroups: ['chest', 'triceps'],
+        tags: ['bodyweight', 'push'],
+        sets: [{ reps: 10, weight: 0 }],
+      }],
+      sequelize,
+    });
+
+    expect(result.challengeProgress).toEqual({
+      status: 'processed',
+      updatedCount: 1,
+      skippedCount: 0,
+      headline: '1 challenge moved from this workout',
+      updates: [{
+        challengeId: 'challenge-1',
+        title: 'Session Streak',
+        delta: 1,
+        progressUnit: 'sessions',
+        currentProgress: 2,
+        progressPercentage: 66.67,
+        completed: false,
+        xpEarned: 0,
+      }],
+    });
+    expect(tx.commit).toHaveBeenCalledTimes(1);
+    expect(challengeBridge.applyDailyWorkoutFormChallengeProgress).toHaveBeenCalledWith({
+      sequelize,
+      models: {
+        Challenge: models.Challenge,
+        ChallengeParticipant: models.ChallengeParticipant,
+      },
+      userId: 42,
+      dailyForm: expect.objectContaining({ id: dailyFormRow.id }),
+      workoutSession,
+      workoutDateIso: '2026-05-05',
+      estimatedDuration: 30,
+      exercises: [expect.objectContaining({
+        exerciseName: 'Push Up',
+        exerciseFamily: 'push',
+        movementPattern: 'horizontal_push',
+        nasmMovementPattern: 'push',
+        bodyPartCategory: 'Chest',
+        muscleGroups: ['chest', 'triceps'],
+        tags: ['bodyweight', 'push'],
+      })],
+    });
+    expect(tx.commit.mock.invocationCallOrder[0]).toBeLessThan(
+      challengeBridge.applyDailyWorkoutFormChallengeProgress.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('keeps the AI workout write committed if challenge progress fails after commit', async () => {
+    const { submitAiWorkoutLogAsDailyForm, challengeBridge, sequelize, tx } = await loadService();
+    challengeBridge.applyDailyWorkoutFormChallengeProgress.mockRejectedValueOnce(new Error('challenge bridge down'));
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      exercises: [{ name: 'Push Up', sets: [{ reps: 10, weight: 0 }] }],
+      sequelize,
+    });
+
+    expect(result.form.id).toBe('form-1');
+    expect(result.challengeProgress).toEqual({
+      status: 'failed',
+      updatedCount: 0,
+      skippedCount: 0,
+      headline: null,
+      updates: [],
+    });
+    expect(JSON.stringify(result.challengeProgress)).not.toContain('challenge bridge down');
+    expect(tx.commit).toHaveBeenCalledTimes(1);
+    expect(tx.rollback).not.toHaveBeenCalled();
+    expect(challengeBridge.applyDailyWorkoutFormChallengeProgress).toHaveBeenCalledTimes(1);
   });
 
   it('logs Move Fitness clients without deducting sessions', async () => {

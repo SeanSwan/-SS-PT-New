@@ -157,6 +157,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     { label: 'Log Workout', path: logWorkoutPath },
     { label: 'Ask Coach', path: homeTrainingCoachPath },
     { label: 'View Progress', target: 'progress' },
+    { label: 'View Challenges', target: 'challenges' },
     ...(canBookSessions ? [{ label: 'Book Session', path: '/dashboard/client/schedule' }] : []),
   ], [canBookSessions, homeTrainingCoachPath, logWorkoutPath]);
 

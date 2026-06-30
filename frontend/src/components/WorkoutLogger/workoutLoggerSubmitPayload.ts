@@ -77,6 +77,13 @@ interface SanitizedExercise {
   performanceNotes?: string;
   sets: SanitizedSet[];
   formRating?: number;
+  category?: string;
+  exerciseFamily?: string;
+  movementPattern?: string;
+  nasmMovementPattern?: string;
+  bodyPartCategory?: string;
+  muscleGroups?: string[];
+  tags?: string[];
 }
 
 interface SanitizedSet {
@@ -90,11 +97,44 @@ interface SanitizedSet {
   formQuality?: number;
 }
 
+type ExerciseClassificationMetadata = {
+  category?: unknown;
+  exerciseFamily?: unknown;
+  movementPattern?: unknown;
+  nasmMovementPattern?: unknown;
+  bodyPartCategory?: unknown;
+  muscleGroups?: unknown;
+  tags?: unknown;
+};
+
 const compactString = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+const compactStringArray = (value: unknown) => (
+  Array.isArray(value)
+    ? value.map(compactString).filter((item): item is string => Boolean(item))
+    : []
+);
 const positiveInteger = (value: unknown) => {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
+
+function copyExerciseClassificationMetadata(
+  out: SanitizedExercise,
+  exercise: ExerciseEntry,
+): void {
+  const source = exercise as ExerciseEntry & ExerciseClassificationMetadata;
+  const target = out as SanitizedExercise & Record<string, unknown>;
+
+  for (const key of ['category', 'exerciseFamily', 'movementPattern', 'nasmMovementPattern', 'bodyPartCategory']) {
+    const value = compactString(source[key as keyof ExerciseClassificationMetadata]);
+    if (value) target[key] = value;
+  }
+
+  for (const key of ['muscleGroups', 'tags']) {
+    const values = compactStringArray(source[key as keyof ExerciseClassificationMetadata]);
+    if (values.length > 0) target[key] = values;
+  }
+}
 
 function sanitizePlannedAssignment(
   value?: PlannedAssignmentInput | null,
@@ -167,6 +207,7 @@ export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[
     if (ex.formRating !== null && ex.formRating !== undefined) {
       out.formRating = ex.formRating;
     }
+    copyExerciseClassificationMetadata(out, ex);
     return out;
   });
 }

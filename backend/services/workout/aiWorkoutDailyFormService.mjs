@@ -36,6 +36,7 @@ import {
   scheduledWorkoutSessionFields,
 } from './aiWorkoutScheduledSessionService.mjs';
 import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
+import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -250,6 +251,10 @@ export async function submitAiWorkoutLogAsDailyForm({
       remainingSessions: Math.max(0, availableSessionsBeforeSave - billingDecision.creditsToDeduct),
     };
     await transaction.commit();
+    const challengeProgress = await applyAiWorkoutChallengeProgress({
+      sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
+      workoutDateIso, estimatedDuration, exercises: normalizedExercises,
+    });
 
     return {
       id: dailyForm.id,
@@ -271,6 +276,7 @@ export async function submitAiWorkoutLogAsDailyForm({
       source: sourcePolicy.source,
       historicalImport: sourcePolicy.isHistoricalImport,
       billing,
+      challengeProgress,
       form: {
         id: dailyForm.id,
         clientId: parsedClientId,

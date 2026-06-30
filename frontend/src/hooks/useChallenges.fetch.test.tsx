@@ -96,6 +96,32 @@ describe('useChallenges fetch contract', () => {
     expect(result.current.challenges).toHaveLength(1);
     expect(result.current.challenges[0].title).toBe('150-Minute Week');
   });
+
+  it('logs join failures through the project logger without raw console noise', async () => {
+    mocks.get.mockResolvedValue({ data: { success: true, challenges: [apiChallenge] } });
+    mocks.post.mockRejectedValueOnce(new Error('join failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      const { result } = renderHook(() => useChallenges());
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let joined = true;
+      await act(async () => {
+        joined = await result.current.joinChallenge('challenge-1');
+      });
+
+      expect(joined).toBe(false);
+      expect(mocks.post).toHaveBeenCalledWith('/api/v1/gamification/challenges/challenge-1/join');
+      expect(mocks.warn).toHaveBeenCalledWith('[useChallenges] Join failed:', 'join failed');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   it('returns true from leaveChallenge after API success and refreshes challenge state', async () => {
     mocks.get.mockResolvedValue({ data: { success: true, challenges: [apiChallenge] } });
     mocks.delete.mockResolvedValueOnce({ data: { success: true } });
@@ -114,21 +140,28 @@ describe('useChallenges fetch contract', () => {
     expect(mocks.get).toHaveBeenCalledTimes(2);
   });
 
-  it('returns false from leaveChallenge when the API rejects the leave request', async () => {
+  it('logs leave failures through the project logger without raw console noise', async () => {
     mocks.get.mockResolvedValue({ data: { success: true, challenges: [apiChallenge] } });
     mocks.delete.mockRejectedValueOnce(new Error('leave failed'));
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    const { result } = renderHook(() => useChallenges());
+    try {
+      const { result } = renderHook(() => useChallenges());
 
-    await waitFor(() => expect(result.current.loading).toBe(false));
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
-    let left = true;
-    await act(async () => {
-      left = await result.current.leaveChallenge('challenge-1');
-    });
+      let left = true;
+      await act(async () => {
+        left = await result.current.leaveChallenge('challenge-1');
+      });
 
-    expect(left).toBe(false);
-    expect(mocks.delete).toHaveBeenCalledWith('/api/v1/gamification/challenges/challenge-1/leave');
-    expect(mocks.get).toHaveBeenCalledTimes(1);
+      expect(left).toBe(false);
+      expect(mocks.delete).toHaveBeenCalledWith('/api/v1/gamification/challenges/challenge-1/leave');
+      expect(mocks.warn).toHaveBeenCalledWith('[useChallenges] Leave failed:', 'leave failed');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(mocks.get).toHaveBeenCalledTimes(1);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

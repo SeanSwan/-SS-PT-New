@@ -46,12 +46,13 @@ import {
   Dumbbell, Calendar, Clock, Flame, TrendingUp,
   ChevronDown, ChevronUp, Weight, Zap, MessageCircle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
 import ClientMyWorkoutsHeader from './ClientMyWorkoutsHeader';
 import ClientMyWorkoutsNextMove from './ClientMyWorkoutsNextMove';
 import ClientWorkoutPlanVaultPanel from './ClientWorkoutPlanVaultPanel';
 import ClientMyWorkoutsPagination from './ClientMyWorkoutsPagination';
+import WorkoutLoggerChallengeReceipt from '../../../WorkoutLogger/WorkoutLoggerChallengeReceipt';
 import {
   PageContainer, HeaderActions, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
   WorkoutCard, WorkoutHeader, WorkoutInfo, WorkoutDate, WorkoutTitle, WorkoutMeta,
@@ -62,6 +63,7 @@ import {
 } from './ClientMyWorkoutsStyles';
 import { buildClientWorkoutsCoachPath, CLIENT_WORKOUTS_PAGE_LIMIT, groupWorkoutLogsByExercise } from './ClientMyWorkoutsPage.logic';
 import type { WorkoutSession } from './ClientMyWorkoutsPage.logic';
+import type { ChallengeProgressImpactReceipt } from '../../../../services/nasmApiService';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -78,6 +80,7 @@ import type { WorkoutSession } from './ClientMyWorkoutsPage.logic';
 
 const ClientMyWorkoutsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   // Canonical pagination state. Canonical-surface-audit 2026-04-13: the prior
   // canonical consumer never sent page>1, so the backend controller's
@@ -92,6 +95,10 @@ const ClientMyWorkoutsPage: React.FC = () => {
     page,
   });
   const coachPath = useMemo(() => buildClientWorkoutsCoachPath({ workouts, page }), [page, workouts]);
+  const workoutChallengeProgress = useMemo(() => {
+    const state = location.state as { workoutChallengeProgress?: ChallengeProgressImpactReceipt | null } | null;
+    return state?.workoutChallengeProgress ?? null;
+  }, [location.state]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -119,6 +126,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
       <PageContainer>
         {pageHeader}
         <ClientWorkoutPlanVaultPanel />
+        <WorkoutLoggerChallengeReceipt progress={workoutChallengeProgress} />
         <ShimmerCard /><ShimmerCard /><ShimmerCard />
       </PageContainer>
     );
@@ -127,6 +135,9 @@ const ClientMyWorkoutsPage: React.FC = () => {
   if (error) {
     return (
       <PageContainer>
+        {pageHeader}
+        <ClientWorkoutPlanVaultPanel />
+        <WorkoutLoggerChallengeReceipt progress={workoutChallengeProgress} />
         <ErrorCard>
           <p>Unable to load workouts. Please try again.</p>
           <RetryBtn onClick={() => refetch()}>Retry</RetryBtn>
@@ -139,6 +150,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
     <PageContainer>
       {pageHeader}
       <ClientWorkoutPlanVaultPanel />
+      <WorkoutLoggerChallengeReceipt progress={workoutChallengeProgress} />
 
       {workouts.length === 0 ? (
         // Empty branch splits by page to avoid the "empty-page trap" where

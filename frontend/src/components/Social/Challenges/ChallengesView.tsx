@@ -4,7 +4,7 @@
  * Fetches real data from /api/v1/gamification/challenges and separates
  * API outage retry state from the honest no-challenges empty state.
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/use-toast';
@@ -23,9 +23,16 @@ import {
   TABS,
 } from './ChallengesView.constants';
 import ConfirmActionDialog from '../../Shared/ConfirmActionDialog';
+import { ChallengeBoardPulse } from './ChallengesViewPulse';
 import { ChallengeCards } from './ChallengesView.cards';
 import { ChallengeUnavailableState } from './ChallengesView.statusPanels';
 import { shareCompletedChallengeToFeed } from './challengeSocialShare';
+import apiService from '../../../services/api.service';
+import {
+  formatChallengeJoinSuccessDescription,
+  formatChallengeLeaveConfirmMessage,
+  formatChallengeLeaveSuccessDescription,
+} from './ChallengesView.feedback';
 import {
   filterChallenges,
   nextChallengeTab,
@@ -43,7 +50,6 @@ import {
   TabButton,
 } from './ChallengesView.styles';
 
-
 const ChallengesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ChallengeStatus>('active');
   const [selectedCategory, setSelectedCategory] = useState<ChallengeCategory | 'all'>('all');
@@ -56,15 +62,33 @@ const ChallengesView: React.FC = () => {
   const shareInFlightRef = useRef(false);
   const joinInFlightRef = useRef(false);
   const leaveInFlightRef = useRef(false);
+  const viewedChallengeIdsRef = useRef<Set<string>>(new Set());
   const { authAxios } = useAuth();
   const { toast } = useToast();
-  const { challenges, loading, error, joinChallenge, leaveChallenge, refetch } = useChallenges();
+  const { challenges, loading, error, isDemoData, joinChallenge, leaveChallenge, refetch } = useChallenges();
 
   const filtered = filterChallenges(challenges, activeTab, selectedCategory);
   const sortedChallenges = sortChallengesForUser(filtered);
-  const leaveConfirmMessage = leaveConfirmChallenge
-    ? `${leaveConfirmChallenge.title} will stop syncing from future workouts and your current challenge progress will be removed.`
-    : '';
+  const tabCounts: Record<ChallengeStatus, number> = { active: 0, upcoming: 0, completed: 0 };
+  challenges.forEach((challenge) => {
+    if (selectedCategory !== 'all' && challenge.category !== selectedCategory) return;
+    tabCounts[challenge.status] += 1;
+  });
+  const leaveConfirmMessage = formatChallengeLeaveConfirmMessage(leaveConfirmChallenge);
+
+  useEffect(() => {
+    if (loading || error || isDemoData) return;
+
+    sortedChallenges.forEach((challenge) => {
+      const challengeId = String(challenge.id ?? '').trim();
+      if (!challengeId || viewedChallengeIdsRef.current.has(challengeId)) return;
+
+      viewedChallengeIdsRef.current.add(challengeId);
+      void apiService
+        .post(`/api/v1/gamification/challenges/${encodeURIComponent(challengeId)}/view`)
+        .catch(() => undefined);
+    });
+  }, [error, isDemoData, loading, sortedChallenges]);
 
   const handleTabKeyDown = useCallback((event: React.KeyboardEvent) => {
     const nextTab = nextChallengeTab(activeTab, event.key);
@@ -88,7 +112,7 @@ const ChallengesView: React.FC = () => {
       toast({
         title: joined ? 'Challenge joined' : 'Unable to join challenge',
         description: joined
-          ? `${challenge?.title || 'This challenge'} is now syncing from your completed workouts.`
+          ? formatChallengeJoinSuccessDescription(challenge)
           : 'That challenge could not be joined. Refresh and try again.',
         variant: joined ? 'default' : 'destructive',
       });
@@ -121,7 +145,7 @@ const ChallengesView: React.FC = () => {
       toast({
         title: left ? 'Challenge left' : 'Unable to leave challenge',
         description: left
-          ? `${challenge.title} will stop syncing from future workouts.`
+          ? formatChallengeLeaveSuccessDescription(challenge)
           : 'That challenge could not be left. Refresh and try again.',
         variant: left ? 'default' : 'destructive',
       });
@@ -146,10 +170,10 @@ const ChallengesView: React.FC = () => {
           : 'Only completed challenges with verified progress can be shared.',
         variant: shared ? 'default' : 'destructive',
       });
-    } catch {
+    } catch (error: any) {
       toast({
         title: 'Unable to share challenge',
-        description: 'Please try again from your challenge card.',
+        description: error?.response?.data?.message || 'Please try again from your challenge card.',
         variant: 'destructive',
       });
     } finally {
@@ -171,6 +195,8 @@ const ChallengesView: React.FC = () => {
 
   return (
     <Container>
+      {challenges.length > 0 ? <ChallengeBoardPulse challenges={challenges} /> : null}
+
       <TabBar role="tablist" aria-label="Challenge status" onKeyDown={handleTabKeyDown}>
         {TABS.map(({ key, label, icon: Icon }, idx) => (
           <TabButton
@@ -185,7 +211,7 @@ const ChallengesView: React.FC = () => {
             onClick={() => setActiveTab(key)}
           >
             <Icon size={16} aria-hidden="true" />
-            {label}
+            {label} <span>{tabCounts[key]}</span>
           </TabButton>
         ))}
       </TabBar>

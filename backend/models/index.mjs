@@ -137,6 +137,7 @@ export const getPackage = () => getModel('Package');
 // Challenge/Gamification Models
 export const getChallenge = () => getModel('Challenge');
 export const getChallengeParticipant = () => getModel('ChallengeParticipant');
+export const getChallengeSubmission = () => getModel('ChallengeSubmission');
 export const getGoal = () => getModel('Goal');
 export const getProgressData = () => getModel('ProgressData');
 export const getUserFollow = () => getModel('UserFollow');

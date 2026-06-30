@@ -1,11 +1,13 @@
 /**
  * Challenge momentum and join-impact rows.
  */
+import React from 'react';
 import { Activity, Target } from 'lucide-react';
 import type { Challenge } from '../../../hooks/useChallenges';
 import { MetaItem, MetaRow } from './ChallengesView.styles';
 import {
   formatChallengeJoinImpact,
+  formatChallengeNextAction,
   formatChallengeWorkoutImpact,
   formatChallengeWorkoutSyncFallback,
 } from './ChallengesView.logic';
@@ -27,7 +29,7 @@ export function ChallengeMomentum({ challenge }: { challenge: Challenge }) {
   }
 
   const impactLabel = formatChallengeWorkoutImpact(challenge.lastWorkoutImpact);
-  const nextAction = challenge.status === 'active' ? challenge.nextAction?.trim() : undefined;
+  const nextAction = challenge.status === 'active' ? formatChallengeNextAction(challenge) : undefined;
   const syncFallback = challenge.status === 'active' && !impactLabel && !nextAction
     ? formatChallengeWorkoutSyncFallback(challenge)
     : null;

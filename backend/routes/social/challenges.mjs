@@ -11,6 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import logger from '../../utils/logger.mjs';
 
+const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
+
 const router = express.Router();
 
 // Apply auth middleware to all routes
@@ -226,21 +228,24 @@ router.get('/:challengeId', async (req, res) => {
     });
     
     // Get leaderboard
-    const leaderboard = await ChallengeParticipant.findAll({
-      where: {
-        challengeId,
-        status: { [Op.in]: ['active', 'completed'] }
-      },
-      limit: 10,
-      order: [['progress', 'DESC']],
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
-        }
-      ]
-    });
+    let leaderboard = [];
+    if (challenge.type !== 'global') {
+      leaderboard = await ChallengeParticipant.findAll({
+        where: {
+          challengeId,
+          status: { [Op.in]: ['active', 'completed'] }
+        },
+        limit: 10,
+        order: [['progress', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+          }
+        ]
+      });
+    }
     
     // For team challenges, get teams
     let teams = [];
@@ -300,7 +305,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     const {
       name,
       description,
-      type = 'individual',
+      type,
       category = 'workout',
       goal,
       unit,
@@ -320,6 +325,14 @@ router.post('/', upload.single('image'), async (req, res) => {
       });
     }
 
+    const challengeType = type === undefined || type === null || type === '' ? 'individual' : String(type).trim();
+    if (!ALLOWED_SOCIAL_CHALLENGE_TYPES.has(challengeType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Global challenge leaderboards are disabled for new challenges; choose individual or team.'
+      });
+    }
+
     // SECURITY: Bounds validation on numeric inputs
     const parsedGoal = Math.min(Math.max(parseInt(goal) || 1, 1), 100000);
     const parsedPPU = Math.min(Math.max(parseInt(pointsPerUnit) || 10, 1), 10000);
@@ -330,7 +343,7 @@ router.post('/', upload.single('image'), async (req, res) => {
       creatorId: req.user.id,
       name: String(name).slice(0, 200),
       description: String(description).slice(0, 2000),
-      type,
+      type: challengeType,
       category,
       goal: parsedGoal,
       unit,
@@ -607,6 +620,13 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Challenge not found'
+      });
+    }
+
+    if (challenge.type === 'global') {
+      return res.status(404).json({
+        success: false,
+        message: 'Global challenge leaderboards are disabled for this legacy challenge'
       });
     }
     

@@ -29,6 +29,7 @@ const setupAssociations = async () => {
     // Enhanced Gamification Models (Sequelize)
     const ChallengeModule = await import('./Challenge.mjs');
     const ChallengeParticipantModule = await import('./ChallengeParticipant.mjs');
+    const ChallengeSubmissionModule = await import('./ChallengeSubmission.mjs');
     const GoalModule = await import('./Goal.mjs');
     const ProgressDataModule = await import('./ProgressData.mjs');
     const UserFollowModule = await import('./UserFollow.mjs');
@@ -243,6 +244,7 @@ const setupAssociations = async () => {
     // Enhanced Gamification Models
     const Challenge = ChallengeModule.default;
     const ChallengeParticipant = ChallengeParticipantModule.default;
+    const ChallengeSubmission = ChallengeSubmissionModule.default;
     const Goal = GoalModule.default;
     const ProgressData = ProgressDataModule.default;
     const UserFollow = UserFollowModule.default;
@@ -744,6 +746,16 @@ const setupAssociations = async () => {
     ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participants' });
     ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
+
+    // Challenge Submissions (entitlement-gated client proposal moderation queue)
+    User.hasMany(ChallengeSubmission, { foreignKey: 'submittedByUserId', as: 'challengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'submittedByUserId', as: 'submittedBy' });
+    User.hasMany(ChallengeSubmission, { foreignKey: 'assignedTrainerId', as: 'assignedChallengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'assignedTrainerId', as: 'assignedTrainer' });
+    User.hasMany(ChallengeSubmission, { foreignKey: 'reviewedByUserId', as: 'reviewedChallengeSubmissions' });
+    ChallengeSubmission.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedBy' });
+    Challenge.hasMany(ChallengeSubmission, { foreignKey: 'approvedChallengeId', as: 'sourceSubmissions' });
+    ChallengeSubmission.belongsTo(Challenge, { foreignKey: 'approvedChallengeId', as: 'approvedChallenge' });
     
     // Challenge -> Participants (Many-to-Many)
     Challenge.belongsToMany(User, {
@@ -1335,6 +1347,7 @@ const setupAssociations = async () => {
       // Enhanced Gamification Models
       Challenge,
       ChallengeParticipant,
+      ChallengeSubmission,
       Goal,
       ProgressData,
       UserFollow,

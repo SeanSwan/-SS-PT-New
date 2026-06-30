@@ -243,6 +243,7 @@ export const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' |
   cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
   font: 800 0.82rem/1 var(--font-ui, 'Sora', sans-serif);
   padding: 0 18px;
+  text-decoration: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 
   ${({ $variant }) => {
@@ -281,6 +282,13 @@ export const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' |
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
   }
 `;
 export * from './ChallengesView.statusStyles';

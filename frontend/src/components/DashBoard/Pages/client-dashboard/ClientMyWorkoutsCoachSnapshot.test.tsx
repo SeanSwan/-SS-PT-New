@@ -11,6 +11,13 @@ const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useLocation: () => ({
+    pathname: '/dashboard/client/workouts',
+    search: '',
+    hash: '',
+    key: 'test',
+    state: null,
+  }),
 }));
 
 const mockUseWorkoutSessions = vi.fn();
