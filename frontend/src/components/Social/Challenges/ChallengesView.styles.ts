@@ -185,6 +185,14 @@ export const ProgressBarInner = styled(motion.div)<{ $color: string }>`
   background: linear-gradient(90deg, ${({ $color }) => $color}, ${({ $color }) => `color-mix(in srgb, ${$color} 68%, var(--text-primary, #E0ECF4))`});
 `;
 
+export const ProgressStats = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+`;
+
 export const MetaRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -211,6 +219,18 @@ export const RewardBadge = styled.span`
   color: color-mix(in srgb, var(--text-primary, #E0ECF4) 86%, var(--accent-secondary, #8B5CF6));
   font: 800 0.72rem/1 var(--font-ui, 'Sora', sans-serif);
   padding: 0.34rem 0.75rem;
+`;
+
+export const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid color-mix(in srgb, var(--accent-luxury, #C6A84B) 34%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-luxury, #C6A84B) 12%, transparent);
+  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 88%, var(--accent-luxury, #C6A84B));
+  font: 800 0.72rem/1 var(--font-ui, 'Sora', sans-serif);
+  padding: 0.28rem 0.7rem;
 `;
 
 export const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'completed' }>`
@@ -263,27 +283,4 @@ export const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' |
     outline-offset: 3px;
   }
 `;
-
-export const EmptyState = styled.div`
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  min-height: clamp(170px, 24vw, 240px);
-  align-content: center;
-  border: 1px dashed color-mix(in srgb, var(--accent-luxury, #C6A84B) 28%, transparent);
-  border-radius: 8px;
-  color: color-mix(in srgb, var(--text-primary, #E0ECF4) 64%, transparent);
-  padding: clamp(24px, 4vw, 42px);
-  text-align: center;
-`;
-
-export const EmptyIcon = styled.div`
-  color: var(--accent-luxury, #C6A84B);
-  opacity: 0.62;
-`;
-
-export const EmptyTitle = styled(CardTitle)`
-  margin-bottom: 2px;
-`;
-
 export * from './ChallengesView.statusStyles';
