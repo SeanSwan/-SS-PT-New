@@ -18,12 +18,18 @@ export type CommandConfirmationResult = { success: boolean; error?: string };
 
 type CommandLaneHandledResponse = Exclude<CommandResponse, { type: 'fallback_to_chat' } | { type: 'error' }>;
 
+function isCoachRecallCommand(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  return /^(what did we do last time|what did .+ do last (workout|session)|show last workout|view last session)\b/.test(normalized)
+    || /^(who are my clients|who needs attention|where is .+ in onboarding)\b/.test(normalized);
+}
+
 export function commandLaneErrorBody(result: Extract<CommandResponse, { type: 'error' }>): string {
   return result.error || 'Swan Coach command lane failed. No data was changed.';
 }
 
 export function shouldRouteToCommandLane(message: string): boolean {
-  return isCommandLaneCandidate(message);
+  return isCommandLaneCandidate(message) || isCoachRecallCommand(message);
 }
 
 export function commandLaneLogBody(result: CommandLaneHandledResponse): string {
