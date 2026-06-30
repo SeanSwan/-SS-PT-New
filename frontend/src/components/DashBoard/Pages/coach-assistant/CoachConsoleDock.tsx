@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUp, ClipboardList, Dumbbell, FileAudio, Mic, Paperclip, Volume2 } from 'lucide-react';
 
 type CoachConsoleDockProps = {
+  commandBusy?: boolean;
   commandFormRef: React.RefObject<HTMLFormElement>;
   commandText: string;
   commandTextRef: React.RefObject<HTMLTextAreaElement>;
@@ -37,6 +38,7 @@ type CoachConsoleDockProps = {
 };
 
 const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
+  commandBusy = false,
   commandFormRef,
   commandText,
   commandTextRef,
@@ -91,7 +93,13 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
       </div>
     ) : null}
 
-    <form className="dock-form" ref={commandFormRef} onSubmit={onSubmit} aria-label="Talk to Swan Coach">
+    <form
+      className={`dock-form ${commandBusy ? 'is-busy' : ''}`}
+      ref={commandFormRef}
+      onSubmit={onSubmit}
+      aria-label="Talk to Swan Coach"
+      aria-busy={commandBusy}
+    >
       <textarea
         className="dock-textarea"
         ref={commandTextRef}
@@ -101,12 +109,14 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           if (event.key !== 'Enter') return;
           if (event.nativeEvent.isComposing) return;
           if (event.shiftKey && !event.metaKey && !event.ctrlKey) return;
+          if (commandBusy) return;
 
           event.preventDefault();
           event.currentTarget.form?.requestSubmit();
         }}
         placeholder="Talk or type to Swan Coach…"
         aria-describedby="coach-dock-status coach-dock-trust"
+        readOnly={commandBusy}
         rows={2}
       />
       <span id="coach-dock-trust" className="dock-trust-line">
@@ -141,13 +151,13 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           >
             <Mic size={20} aria-hidden="true" />
           </button>
-          <button type="submit" className="dock-send" aria-label="Send to Swan Coach">
+          <button type="submit" className="dock-send" aria-label="Send to Swan Coach" disabled={commandBusy}>
             <ArrowUp size={20} aria-hidden="true" />
           </button>
         </div>
       </div>
       <span id="coach-dock-status" className="dock-status">
-        {selectedStatus}
+        {commandBusy ? 'Swan Coach is preparing…' : selectedStatus}
       </span>
     </form>
   </div>
