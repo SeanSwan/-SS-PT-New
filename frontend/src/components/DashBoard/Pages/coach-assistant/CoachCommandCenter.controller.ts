@@ -67,6 +67,7 @@ export function useCoachCommandCenterController({
   const rightRailRef = useRef<HTMLElement>(null);
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const commandSubmitLockRef = useRef(false);
 
   const coachThreads = useMemo(
     () => buildCoachThreads(chat.conversations, threadSearch),
@@ -192,6 +193,7 @@ export function useCoachCommandCenterController({
     clientFacing: userRole === 'client',
     commandBusy,
     commandLaneEnabled: operatorEnabled,
+    commandSubmitLockRef,
     commandText,
     commandTextRef,
     confirmCommand,
