@@ -63,8 +63,8 @@ const ClientProgressDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, authAxios } = useAuth();
   const { profile } = useGamificationData();
-  const { isPro, isElite } = useSubscription();
-  const hasAdvancedAccess = isPro || isElite;
+  const { hasGuardianAccess } = useSubscription();
+  const hasAdvancedAccess = hasGuardianAccess;
   const companionPetUserIdSegment = getSafeGamificationIdSegment(user?.id);
   const companionPetUserId = companionPetUserIdSegment ? Number(companionPetUserIdSegment) : null;
   const canRenderCompanionPet = companionPetUserId !== null;
@@ -265,9 +265,21 @@ const ClientProgressDashboardPage: React.FC = () => {
           </CardTitle>
         </ChartsSectionHeader>
         {user?.id ? (
-          <Suspense fallback={<ChartsLoading>Loading charts...</ChartsLoading>}>
-            <CanonicalProgressChartsGrid />
-          </Suspense>
+          hasAdvancedAccess ? (
+            <Suspense fallback={<ChartsLoading>Loading charts...</ChartsLoading>}>
+              <CanonicalProgressChartsGrid />
+            </Suspense>
+          ) : (
+            <CrystallineLockOverlay
+              isLocked
+              featureName="Swan Guardian Analytics"
+              description="Unlock the canonical 12-chart progress cockpit, trend insights, PR timelines, recovery signals, and advanced analytics."
+              badgeLabel="Swan Guardian Required"
+              ariaLabel="Swan Guardian Analytics requires Swan Guardian or an active premium trial"
+            >
+              <ChartsLoading>Advanced progress analytics preview locked.</ChartsLoading>
+            </CrystallineLockOverlay>
+          )
         ) : (
           <Skeleton $h="300px" />
         )}
@@ -276,13 +288,15 @@ const ClientProgressDashboardPage: React.FC = () => {
       <CrystallineLockOverlay
         isLocked={!hasAdvancedAccess}
         featureName="Detailed NASM Analytics"
-        description="14 advanced charts with body composition, strength curves, and periodization insights"
+        description="Swan Guardian unlocks the advanced progress cockpit and the detailed NASM analytics view. Active premium trials unlock this too."
         ctaLabel="Upgrade to Swan Guardian"
+        badgeLabel="Swan Guardian Required"
+        ariaLabel="Detailed NASM Analytics requires Swan Guardian or an active premium trial"
         onConfigure={() => navigate('/ascension')}
       >
         <DetailedLink onClick={() => navigate('/dashboard/client/progress/detailed')}>
           <Dumbbell size={18} />
-          View Detailed NASM Analytics (14 Charts)
+          View Detailed NASM Analytics
           <TrailingChevron size={16} />
         </DetailedLink>
       </CrystallineLockOverlay>
