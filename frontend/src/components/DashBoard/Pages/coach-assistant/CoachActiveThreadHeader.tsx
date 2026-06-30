@@ -17,6 +17,11 @@ function clientLabel(thread: ConversationSummary): string {
   return targetUserId ? `Client #${targetUserId}` : 'No client bound';
 }
 
+function memoryScopeLabel(thread: ConversationSummary): string {
+  const targetUserId = positiveId(thread.targetUserId);
+  return targetUserId ? `Context: Client #${targetUserId}` : 'Context only - choose client before client actions';
+}
+
 function messageCountLabel(thread: ConversationSummary): string {
   const count = Number(thread.messageCount || 0);
   return `${count} ${count === 1 ? 'msg' : 'msgs'}`;
@@ -44,6 +49,7 @@ const CoachActiveThreadHeader: React.FC<CoachActiveThreadHeaderProps> = ({ threa
       <MessageCircle size={16} aria-hidden="true" />
       <strong>{title}</strong>
       <span>{clientLabel(thread)}</span>
+      <span>{memoryScopeLabel(thread)}</span>
       <span>{messageCountLabel(thread)}</span>
       <span>{statusLabel(thread)}</span>
       <small><Clock3 size={13} aria-hidden="true" /> {formatThreadMeta(thread)}</small>
