@@ -41,7 +41,7 @@ export function useCoachCommandCenterController({
 }: { userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat();
-  const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
+  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
   const operatorEnabled = userRole !== 'client';
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
@@ -162,6 +162,7 @@ export function useCoachCommandCenterController({
   );
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
+  const commandBusy = chat.sending || executingCommand;
   const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
     setCommandText((current) => resolveVoiceCommandText(next, current));
   }, []);
@@ -189,6 +190,7 @@ export function useCoachCommandCenterController({
     chat,
     coachQueue,
     clientFacing: userRole === 'client',
+    commandBusy,
     commandLaneEnabled: operatorEnabled,
     commandText,
     commandTextRef,
@@ -227,7 +229,7 @@ export function useCoachCommandCenterController({
   }, [speech.cancelPillVisible, speech.handleCancelSend, speech.speechSupported, speech.toggleListening]);
 
   useLoadCoachConversations(chat);
-  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
+  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat.loadConversation, setActiveThreadId, setSelectedStatus);
   useAutoSelectCoachThread(autoSelectedThread, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
   usePlaudReviewScroll(
@@ -245,6 +247,7 @@ export function useCoachCommandCenterController({
     clientContextTiles,
     coachQueue,
     coachThreads,
+    commandBusy,
     commandFormRef,
     commandText,
     commandTextRef,
