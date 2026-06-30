@@ -30,6 +30,7 @@ type CoachCommandActionProps = {
   chat: CoachCommandChat;
   coachQueue: CoachCommandQueue;
   clientFacing: boolean;
+  commandBusy: boolean;
   commandLaneEnabled: boolean;
   cancelCommand: CancelCoachCommand;
   commandText: string;
@@ -159,6 +160,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     event.preventDefault();
     const trimmed = props.commandText.trim();
     if (!trimmed) return;
+    if (props.commandBusy) {
+      focusComposer(undefined, 'Swan Coach is still preparing the current command');
+      return;
+    }
 
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
@@ -182,7 +187,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           body: commandLaneErrorBody(commandResult),
           attachments: ['command lane error', 'No data was changed'],
         });
-        props.setSelectedStatus('Command lane failed');
+        focusComposer(trimmed, 'Command lane failed - draft restored');
         return;
       }
       if (commandResult.type !== 'fallback_to_chat') {
@@ -202,9 +207,19 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const response = props.routeRequestContext
       ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
       : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
-    if (response && typeof response === 'object' && 'failed' in response) {
-      props.setSelectedStatus('Swan Coach command failed');
-      addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.' });
+    if (!response) {
+      addLog({
+        actor: 'system',
+        label: 'command stopped',
+        body: 'The request stopped before Swan Coach returned a draft. No final write was made.',
+        attachments: ['draft restored'],
+      });
+      focusComposer(trimmed, 'Swan Coach command stopped - draft restored');
+      return;
+    }
+    if (typeof response === 'object' && ('failed' in response || 'paywallRequired' in response)) {
+      addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.', attachments: ['draft restored'] });
+      focusComposer(trimmed, 'Swan Coach command failed - draft restored');
       return;
     }
     addLog({
