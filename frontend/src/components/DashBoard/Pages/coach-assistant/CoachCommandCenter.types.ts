@@ -56,6 +56,7 @@ export type CoachQueueSummaryView = {
   failed: number;
   needsClient: number;
   preparedDrafts: number;
+  pendingDrafts: number;
 };
 
 export type CoachThreadSummary = ConversationSummary;

@@ -1,7 +1,6 @@
 /**
  * FILE: CoachCommandCenter.bridgeMobileDockStyles.ts
- * PURPOSE: Mobile-first overrides that keep the Swan Coach command dock
- * reachable, thumb-sized, and safe-area aware inside the mounted dashboard.
+ * PURPOSE: Mobile-first overrides that keep Floor Mode reachable and thumb-sized.
  */
 
 import { css } from 'styled-components';
@@ -22,32 +21,39 @@ export const coachCommandBridgeMobileDockStyles = css`
       overflow: visible;
     }
 
-    .bridge-shell.is-workspace-tab .tab-content {
-      flex: 0 0 auto;
-      min-height: auto;
-    }
-
+    .bridge-shell.is-workspace-tab .tab-content,
     .bridge-shell.is-workspace-tab .tab-scroll {
       flex: 0 0 auto;
+      min-height: auto;
       overflow: visible;
     }
 
     .client-bar {
       border-radius: 18px;
-      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) auto;
       padding: 12px;
     }
 
     .client-bar-tools {
-      align-items: stretch;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+    }
+
+    .new-client-button span,
+    .ops-button span {
+      display: none;
+    }
+
+    .new-client-button,
+    .ops-button {
+      min-width: 44px;
+      padding: 0;
     }
 
     .tab-bar {
       border-radius: 14px;
       display: grid;
       gap: 4px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
       overflow: visible;
       padding: 4px;
     }
@@ -61,23 +67,10 @@ export const coachCommandBridgeMobileDockStyles = css`
       white-space: normal;
     }
 
-    .client-action-strip {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      overflow: visible;
-    }
-
-    .client-action-button {
-      min-height: 64px;
-    }
-
     .tab-scroll {
       padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 96px));
-      scroll-padding-top: 96px;
       scroll-padding-bottom: max(120px, var(--mobile-dock-space, 160px));
-    }
-
-    .transcript-top {
-      display: none;
+      scroll-padding-top: 96px;
     }
 
     .transcript-stream {
@@ -104,40 +97,6 @@ export const coachCommandBridgeMobileDockStyles = css`
       padding: 0 12px;
     }
 
-    .workout-route-actions {
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      scrollbar-width: none;
-    }
-
-    .quick-intents {
-      flex-wrap: wrap;
-      overflow-x: visible;
-      padding-bottom: 0;
-      scrollbar-width: none;
-    }
-
-    .workout-route-actions::-webkit-scrollbar,
-    .dock-actions-left::-webkit-scrollbar {
-      display: none;
-    }
-
-    .workout-route-link {
-      flex: 0 0 auto;
-      min-height: 48px;
-      min-width: max-content;
-    }
-
-    .quick-intent {
-      flex: 1 1 148px;
-      min-width: 0;
-      min-height: 48px;
-      padding: 0 10px;
-      line-height: 1.15;
-      white-space: normal;
-    }
-
     .dock-form {
       border-radius: 20px;
       box-shadow: 0 18px 50px color-mix(in srgb, var(--coach-bg) 78%, transparent);
@@ -152,67 +111,65 @@ export const coachCommandBridgeMobileDockStyles = css`
       padding: 12px;
     }
 
-    .dock-actions {
-      display: grid;
+    .dock-primary-row {
       gap: 8px;
       grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .dock-actions-left {
-      gap: 6px;
-      min-width: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
+    .dock-safety-stack {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 5px;
     }
 
-    .dock-action {
-      justify-content: center;
-      min-width: 48px;
-      padding: 0;
-      width: 48px;
-    }
-
-    .dock-action .dock-action-label {
-      display: none;
-    }
-
-    .dock-actions-right {
-      flex: 0 0 auto;
-      gap: 8px;
-    }
-
-    .dock-mic,
-    .dock-send {
-      height: 54px;
-      min-width: 54px;
-      min-height: 54px;
-      width: 54px;
+    .dock-trust-pill,
+    .dock-next-pill {
+      max-width: 100%;
+      min-height: 30px;
     }
 
     .dock-status {
+      flex-basis: auto;
       font-size: 12px;
       min-height: 16px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      max-width: 100%;
+    }
+
+    .dock-main-actions {
+      gap: 7px;
+    }
+
+    .dock-more,
+    .dock-mic,
+    .dock-send {
+      height: 54px;
+      min-height: 54px;
+      min-width: 54px;
+      width: 54px;
+    }
+
+    .dock-more-menu {
+      bottom: calc(100% + 8px);
+      min-width: min(244px, calc(100vw - 24px));
+      right: 0;
     }
   }
 
   @media (max-width: 380px) {
-    .tab-bar,
-    .client-action-strip {
+    .dock-primary-row {
       grid-template-columns: 1fr;
     }
 
-    .dock-actions {
-      grid-template-columns: minmax(0, 1fr) 112px;
+    .dock-main-actions {
+      justify-content: flex-end;
     }
 
+    .dock-more,
     .dock-mic,
     .dock-send {
       height: 52px;
-      min-width: 52px;
       min-height: 52px;
+      min-width: 52px;
       width: 52px;
     }
   }

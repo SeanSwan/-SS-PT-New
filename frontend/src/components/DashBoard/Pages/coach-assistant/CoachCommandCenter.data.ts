@@ -1,6 +1,6 @@
 /**
  * FILE: CoachCommandCenter.data.ts
- * PURPOSE: Static operator-console state for the admin Swan Coach Command Center.
+ * PURPOSE: Command log data types for the admin Swan Coach Command Center.
  *
  * The command center intentionally models review-gated draft preparation only.
  * No entry in this file implies automatic client-facing writes.
@@ -32,11 +32,4 @@ export type CommandLogResult = {
   message?: string;
 };
 
-export const INITIAL_COMMAND_LOGS: CommandLogEntry[] = [
-  {
-    id: 'coach-welcome',
-    actor: 'coach',
-    label: 'Swan Coach',
-    body: 'Ready when you are. Talk or type — log a workout, onboard a client, or pick up a past conversation. I prepare each action and wait for your confirmation before anything is saved.',
-  },
-];
+export const INITIAL_COMMAND_LOGS: CommandLogEntry[] = [];

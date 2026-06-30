@@ -1,15 +1,14 @@
 /**
  * COMPONENT: CoachCommandTabBar
- * PURPOSE: Section switcher for the Swan Coach terminal.
+ * PURPOSE: Floor Mode section switcher for the Swan Coach terminal.
  *
- * Chat is the default. Intake queue and PLAUD merge review (the heavy ops surfaces)
- * live behind tabs so the default screen stays calm and chat-first; History exposes
- * past conversations. Badges surface pending counts without opening the tab.
+ * Talk is the calm default. Review groups intake, audio/PLAUD, and draft
+ * workbench queues behind one trainer-floor concept; History exposes old threads.
  */
 import React from 'react';
-import { ClipboardCheck, History, Inbox, FileAudio, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, History, Mic } from 'lucide-react';
 
-export type CoachTab = 'chat' | 'intake' | 'plaud' | 'onboarding' | 'history';
+export type CoachTab = 'talk' | 'review' | 'history';
 
 type CoachCommandTabBarProps = {
   activeTab: CoachTab;
@@ -19,17 +18,16 @@ type CoachCommandTabBarProps = {
   plaudCount?: number;
 };
 
-const TABS: { id: CoachTab; label: string; Icon: typeof MessageSquare }[] = [
-  { id: 'chat', label: 'Chat', Icon: MessageSquare },
-  { id: 'intake', label: 'Intake', Icon: Inbox },
-  { id: 'plaud', label: 'PLAUD', Icon: FileAudio },
-  { id: 'onboarding', label: 'Workbench', Icon: ClipboardCheck },
+const TABS: { id: CoachTab; label: string; Icon: typeof Mic }[] = [
+  { id: 'talk', label: 'Talk', Icon: Mic },
+  { id: 'review', label: 'Review', Icon: ClipboardCheck },
   { id: 'history', label: 'History', Icon: History },
 ];
 
-function tabBadge(tab: CoachTab, intakeCount?: number, plaudCount?: number): string | null {
-  const count = tab === 'intake' ? intakeCount : tab === 'plaud' ? plaudCount : 0;
-  if (!count || count <= 0) return null;
+function reviewBadge(tab: CoachTab, intakeCount?: number, plaudCount?: number): string | null {
+  if (tab !== 'review') return null;
+  const count = Math.max(0, Number(intakeCount || 0)) + Math.max(0, Number(plaudCount || 0));
+  if (!count) return null;
   return count > 99 ? '99+' : String(count);
 }
 
@@ -42,13 +40,13 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
 }) => (
   <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
     {TABS.filter((tab) => !tabs || tabs.includes(tab.id)).map(({ id, label, Icon }) => {
-      const badge = tabBadge(id, intakeCount, plaudCount);
+      const badge = reviewBadge(id, intakeCount, plaudCount);
       return (
         <button
           type="button"
           key={id}
           className={`tab-button ${activeTab === id ? 'is-active' : ''}`}
-          aria-label={badge ? `${label}, ${badge} pending` : label}
+          aria-label={badge ? `${label}, ${badge} waiting` : label}
           aria-controls={`coach-tabpanel-${id}`}
           aria-pressed={activeTab === id}
           aria-selected={activeTab === id}

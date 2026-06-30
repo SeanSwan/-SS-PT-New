@@ -12,7 +12,7 @@ vi.mock('../../../Admin/AdminAccountSwitcher', () => ({
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
 const openOpsRail = () => {
-  fireEvent.click(screen.getByRole('button', { name: /^Operations$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /^More coach actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
 
@@ -46,7 +46,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
   });
 
-  it('opens Intake and PLAUD from Operations without staging prompt text or submitting chat', async () => {
+  it('opens Intake and Audio from Operations without staging prompt text or submitting chat', async () => {
     const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
@@ -58,10 +58,10 @@ describe('CoachCommandOpsRail workout command panel', () => {
     expect(screen.queryByPlaceholderText(/Talk or type to Swan Coach/i)).not.toBeInTheDocument();
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('tab', { name: /^Chat$/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /^Talk$/i }));
     expect(composerInput()).toHaveValue('User-written note stays untouched.');
     opsRail = openOpsRail();
-    fireEvent.click(within(opsRail).getByRole('button', { name: /import plaud audio/i }));
+    fireEvent.click(within(opsRail).getByRole('button', { name: /import audio/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
     await waitFor(() => expect(clickSpy).toHaveBeenCalled());
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
   it('shows an explicit drawer header close control that collapses Operations', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=42&intent=log_workout&source=clients-team');
 
-    const opsTrigger = screen.getByRole('button', { name: /^Operations$/i });
+    const opsTrigger = screen.getByRole('button', { name: /^More coach actions$/i });
     const opsRail = openOpsRail();
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(within(opsRail).getByLabelText('Coach Actions target and safety')).toHaveTextContent('Client #42');

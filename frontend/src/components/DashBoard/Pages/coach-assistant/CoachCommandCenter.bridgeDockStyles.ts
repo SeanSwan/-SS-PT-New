@@ -1,46 +1,17 @@
 /**
  * FILE: CoachCommandCenter.bridgeDockStyles.ts
- * PURPOSE: Chat transcript + command dock + Ops drawer styles for the Command Bridge.
+ * PURPOSE: Chat transcript + Floor Mode command dock + drawer styles.
  *
- * Split out of CoachCommandCenter.bridgeStyles to honor the 300-line file cap (Rule 4).
- * Composed into CommandBridgeShell alongside the shell/foundation/bridge fragments.
+ * Split out of CoachCommandCenter.bridgeStyles to honor the 300-line file cap.
  */
-
 import { css } from 'styled-components';
-
 export const coachCommandDockStyles = css`
-  /* ── Chat transcript ──────────────────────────────────────────────── */
   .chat-transcript {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     gap: 10px;
     min-height: 0;
-  }
-  .transcript-top {
-    align-items: center;
-    display: flex;
-    justify-content: space-between;
-  }
-  .transcript-title {
-    color: var(--coach-muted);
-    font-family: 'Fira Code', monospace;
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .transcript-reset {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--coach-line);
-    border-radius: 10px;
-    color: var(--coach-text-soft);
-    display: inline-flex;
-    font-size: 13px;
-    font-weight: 700;
-    gap: 6px;
-    min-height: 44px;
-    padding: 0 12px;
   }
   .transcript-stream {
     display: flex;
@@ -63,15 +34,44 @@ export const coachCommandDockStyles = css`
   }
   .transcript-empty strong {
     color: var(--coach-text);
-    font-size: 19px;
-    font-weight: 800;
+    font-size: 20px;
+    font-weight: 840;
   }
   .transcript-empty p {
+    color: var(--coach-text-soft);
     font-size: 15px;
     line-height: 1.5;
+    margin: 0;
   }
-
-  /* ── Command dock (bottom) ────────────────────────────────────────── */
+  .transcript-empty-safe {
+    background: color-mix(in srgb, var(--coach-gold) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-gold) 32%, transparent);
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--coach-gold) 82%, var(--coach-text));
+    font-size: 13px;
+    font-weight: 800;
+    min-height: 32px;
+    padding: 7px 12px;
+  }
+  .transcript-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+  }
+  .transcript-empty-actions li {
+    background: color-mix(in srgb, var(--coach-cyan) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 18%, var(--coach-line));
+    border-radius: 999px;
+    color: var(--coach-text-soft);
+    font-size: 12px;
+    font-weight: 760;
+    min-height: 32px;
+    padding: 7px 11px;
+  }
   .console-dock {
     display: grid;
     flex: 0 0 auto;
@@ -99,27 +99,6 @@ export const coachCommandDockStyles = css`
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .workout-route-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .workout-route-link {
-    align-items: center;
-    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--coach-cyan) 28%, var(--coach-line));
-    border-radius: 12px;
-    color: var(--coach-text);
-    display: inline-flex;
-    flex: 1 1 144px;
-    font-size: 14px;
-    font-weight: 760;
-    gap: 8px;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0 14px;
-    text-decoration: none;
-  }
   .dock-form {
     background: color-mix(in srgb, var(--coach-surface-strong) 86%, transparent);
     border: 1px solid var(--coach-line-strong);
@@ -136,41 +115,112 @@ export const coachCommandDockStyles = css`
     min-height: 64px;
     resize: none;
   }
-  .dock-actions {
+  .dock-primary-row {
     align-items: center;
-    display: flex;
+    display: grid;
     gap: 10px;
-    justify-content: space-between;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .dock-actions-left,
-  .dock-actions-right {
+  .dock-safety-stack {
     align-items: center;
     display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    min-width: 0;
+  }
+  .dock-trust-pill,
+  .dock-next-pill {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 820;
+    min-height: 32px;
+    padding: 0 11px;
+  }
+  .dock-trust-pill {
+    background: color-mix(in srgb, var(--coach-gold) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-gold) 32%, transparent);
+    color: color-mix(in srgb, var(--coach-gold) 84%, var(--coach-text));
+  }
+  .dock-next-pill {
+    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 24%, transparent);
+    color: var(--coach-text-soft);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dock-status {
+    color: var(--coach-muted);
+    flex-basis: 100%;
+    font-size: 13px;
+    min-height: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dock-main-actions {
+    align-items: center;
+    display: inline-flex;
     gap: 8px;
   }
-  .dock-action {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--coach-line);
-    border-radius: 12px;
-    color: var(--coach-text-soft);
-    display: inline-flex;
-    font-size: 14px;
-    font-weight: 700;
-    gap: 6px;
-    min-height: 48px;
-    padding: 0 12px;
+  .dock-more-wrap {
+    position: relative;
   }
-  .dock-mic {
+  .dock-more,
+  .dock-mic,
+  .dock-send {
     align-items: center;
-    background: var(--coach-soft);
-    border: 1px solid var(--coach-line);
     border-radius: 16px;
-    color: var(--coach-text);
     display: inline-flex;
     height: 56px;
     justify-content: center;
+    min-height: 56px;
+    min-width: 56px;
     width: 56px;
+  }
+  .dock-more,
+  .dock-mic {
+    background: var(--coach-soft);
+    border: 1px solid var(--coach-line);
+    color: var(--coach-text);
+  }
+  .dock-more-menu {
+    background: color-mix(in srgb, var(--coach-surface-strong) 96%, var(--coach-bg));
+    border: 1px solid var(--coach-line-strong);
+    border-radius: 16px;
+    bottom: calc(100% + 8px);
+    box-shadow: 0 18px 50px color-mix(in srgb, var(--coach-bg) 72%, transparent);
+    display: grid;
+    gap: 6px;
+    min-width: 216px;
+    padding: 8px;
+    position: absolute;
+    right: 0;
+    z-index: 35;
+  }
+  .dock-more-menu button,
+  .dock-more-menu a {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    color: var(--coach-text-soft);
+    display: flex;
+    font-size: 14px;
+    font-weight: 760;
+    gap: 9px;
+    min-height: 44px;
+    padding: 0 10px;
+    text-decoration: none;
+  }
+  .dock-more-menu button:hover,
+  .dock-more-menu a:hover {
+    background: color-mix(in srgb, var(--coach-cyan) 10%, transparent);
+    border-color: color-mix(in srgb, var(--coach-cyan) 20%, transparent);
+    color: var(--coach-text);
   }
   .dock-mic.is-listening {
     background: color-mix(in srgb, var(--coach-danger) 18%, transparent);
@@ -180,26 +230,12 @@ export const coachCommandDockStyles = css`
     cursor: not-allowed;
     opacity: 0.5;
   }
-  /* Purple bg -> cyan glow (Dual-Button Glow) */
   .dock-send {
-    align-items: center;
     background: linear-gradient(135deg, var(--coach-purple), color-mix(in srgb, var(--coach-purple) 64%, var(--coach-cyan)));
     border: 1px solid color-mix(in srgb, var(--coach-cyan) 40%, transparent);
-    border-radius: 16px;
     box-shadow: 0 10px 30px color-mix(in srgb, var(--coach-cyan) 30%, transparent);
     color: #ffffff;
-    display: inline-flex;
-    height: 56px;
-    justify-content: center;
-    width: 56px;
   }
-  .dock-status {
-    color: var(--coach-muted);
-    font-size: 13px;
-    min-height: 18px;
-  }
-
-  /* ── Ops drawer (slide-in from right; reuses .right-rail) ──────────── */
   .drawer-scrim {
     background: color-mix(in srgb, var(--coach-bg) 70%, transparent);
     border: 0;
@@ -232,11 +268,6 @@ export const coachCommandDockStyles = css`
   .right-rail.is-open {
     transform: translateX(0);
   }
-
-  @media (max-width: 360px) {
-    .dock-action .dock-action-label { display: none; }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .right-rail,
     .drawer-scrim,

@@ -46,6 +46,7 @@ type CoachCommandActionProps = {
   routeIntent: string | null;
   routeContextPrompt: string | null;
   routeRequestContext: CoachScheduledSessionRouteContext | null;
+  speakCoachReply?: (text: string) => void;
   onThreadSelectRoute: (thread: ConversationSummary) => void;
   onNewThreadRoute: () => void;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
@@ -89,15 +90,14 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     void props.chat.loadConversation(thread.id);
   };
 
-
   const handleStartPlaudUpload = () => {
     closeDrawer(false);
-    props.setSelectedStatus('PLAUD upload lane ready');
+    props.setSelectedStatus('Audio review lane ready');
     addLog({
       actor: 'system',
-      label: 'PLAUD upload ready',
-      body: 'PLAUD recorder upload lane opened inside Swan Coach Command Center. Choose saved recorder clips, merge them, then review before any final write.',
-      attachments: ['PLAUD uploader ready', 'operator approval required'],
+      label: 'audio review ready',
+      body: 'Audio upload lane opened inside Swan Coach Command Center. Choose saved recorder clips, merge them, then review before any final write.',
+      attachments: ['audio uploader ready', 'operator approval required'],
     });
 
     const panel = props.plaudReviewRef.current;
@@ -138,7 +138,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       addLog({
         actor: 'system',
         label: 'client added',
-        body: `${createdName} is ready for staged PLAUD/workout review. No workout log was written and final writes still require operator approval.`,
+        body: `${createdName} is ready for staged audio/workout review. No workout log was written and final writes still require operator approval.`,
         attachments: result.claimUrl ? ['claim link ready'] : ['client profile ready'],
       });
       props.setSelectedStatus(status);
@@ -207,14 +207,16 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.' });
       return;
     }
+    const responseBody = response && typeof response === 'object' && 'content' in response
+      ? String(response.content)
+      : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.';
     addLog({
       actor: 'coach',
       label: props.clientFacing ? 'coach response' : 'prepared draft',
-      body: response && typeof response === 'object' && 'content' in response
-        ? String(response.content)
-        : 'Prepared a review package with blockers, source context, and approval steps. No final write is made until the operator approves it.',
+      body: responseBody,
       attachments: props.clientFacing ? ['review before logging'] : ['draft_review_packet.md', 'approval gate remains locked'],
     });
+    props.speakCoachReply?.(responseBody);
     props.setSelectedStatus(props.clientFacing ? 'Swan Coach response ready' : 'Prepared draft awaiting operator approval');
     void props.chat.listConversations('active', true);
   };
@@ -267,12 +269,12 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   };
 
   const handleReadback = () => {
-    props.setSelectedStatus('Readback prepared for operator review');
+    props.setSelectedStatus('Voice replies read the next real Swan Coach response when enabled');
     addLog({
-      actor: 'coach',
-      label: 'readback',
-      body: 'Readback prepared from the active intake dossier, queue state, and selected client context.',
-      attachments: ['readback pending operator review'],
+      actor: 'system',
+      label: 'voice replies',
+      body: 'Turn on Voice replies in More to hear live Swan Coach responses from the conversation API.',
+      attachments: ['real response audio only'],
     });
     focusComposer();
   };

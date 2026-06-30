@@ -93,16 +93,6 @@ export function selectedClientLabel(
   return routeClientLabel || (hasActiveThread ? activeThreadTitle : 'Selected client');
 }
 
-export function buildVoiceStatus(
-  voiceInputError: string | null,
-  interim: string | null,
-  cancelPillVisible: boolean,
-): string | null {
-  if (voiceInputError) return voiceInputError;
-  if (interim) return `Listening: ${interim}`;
-  return cancelPillVisible ? 'Voice command captured - tap Mic to cancel before it lands in the composer' : null;
-}
-
 export function shouldScrollPlaudReview(
   plaudWorkspaceRequested: boolean,
   rawMergeRequestId: string | null,
@@ -114,30 +104,8 @@ export function shouldScrollPlaudReview(
 export function displaySelectedStatus(voiceStatus: string | null, selectedStatus: string): string {
   return voiceStatus || selectedStatus;
 }
-
 export function toggleBoolean(current: boolean): boolean {
   return !current;
-}
-
-export function runCoachVoiceCommand(
-  speech: {
-    cancelPillVisible: boolean;
-    handleCancelSend: () => void;
-    speechSupported: boolean;
-    toggleListening: () => void;
-  },
-  setSelectedStatus: (status: string) => void,
-) {
-  if (!speech.speechSupported) {
-    setSelectedStatus('Voice input is not available in this browser');
-    return;
-  }
-  if (speech.cancelPillVisible) {
-    speech.handleCancelSend();
-    setSelectedStatus('Voice command cancelled');
-    return;
-  }
-  speech.toggleListening();
 }
 
 function formatThreadDateLabel(dateValue?: string | null): string {
@@ -181,6 +149,7 @@ export function buildQueueSummary(queueSummary: Partial<CoachQueueSummaryView> |
     failed: read('failed'),
     needsClient: read('needsClient'),
     preparedDrafts: read('preparedDrafts'),
+    pendingDrafts: read('pendingDrafts'),
   };
 }
 
@@ -227,7 +196,7 @@ export function buildStatusMetrics(
     {
       label: 'Queue health',
       value: queueHealthValue(healthStatus, isLoading),
-      note: nextActionLabel || 'Unified PLAUD and Coach intake queue',
+      note: nextActionLabel || 'Unified audio and Coach intake queue',
       accent: 'var(--success, #47e89a)',
     },
     {
@@ -262,7 +231,7 @@ export function buildDossierTiles(
   return [
     {
       label: 'Active intake dossier',
-      value: initialReviewMergeRequestId ? 'PLAUD review selected' : 'Unified queue review',
+      value: initialReviewMergeRequestId ? 'Audio review selected' : 'Unified queue review',
       note: initialReviewMergeRequestId
         ? 'Merge review loaded from the command route'
         : 'Next actionable item is pulled from the unified queue',
@@ -293,5 +262,5 @@ export function buildRightRailItems(items: CoachIntakeItem[]): string[] {
 
   return liveItems.length
     ? liveItems
-    : ['No ready intake items. New PLAUD clips, transcripts, and coach drafts will appear here.'];
+    : ['No ready intake items. New audio clips, transcripts, and coach drafts will appear here.'];
 }

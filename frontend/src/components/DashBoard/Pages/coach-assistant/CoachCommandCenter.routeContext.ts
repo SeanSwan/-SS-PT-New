@@ -161,7 +161,7 @@ function adminDailyCommandRouteContext(): RouteContextCopy {
   return {
     prompt: prompt([
       'Admin daily command triage.',
-      'Help me choose the next owner/admin move across client logging, my workout, onboarding, intake review, PLAUD review, schedule gaps, session credits, and money-path blockers.',
+      'Help me choose the next owner/admin move across client logging, my workout, onboarding, intake review, audio review, schedule gaps, session credits, and money-path blockers.',
       'Keep it low-click: tell me the next one or two actions and where to go.',
       'Keep all workout, client, intake, and money-path writes review-gated; do not claim anything was saved until I approve it.',
     ]),

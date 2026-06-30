@@ -63,7 +63,7 @@ function opsRailDescription({
     return `Review, import, or route workout actions for ${scopeLabel}.`;
   }
 
-  return 'Pick a client, review intake, or import PLAUD audio before building a workout.';
+  return 'Pick a client, review intake, or import audio before building a workout.';
 }
 
 const CoachCommandOpsRail: React.FC<CoachCommandOpsRailProps> = ({

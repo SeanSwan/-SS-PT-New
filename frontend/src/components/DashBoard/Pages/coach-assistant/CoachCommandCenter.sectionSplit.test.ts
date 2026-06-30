@@ -11,7 +11,9 @@ const SECTION_FILES = [
   'CoachCommandCenter.bridgeStyles.ts',
   'CoachClientBar.tsx',
   'CoachCommandTabBar.tsx',
+  'CoachCommandCenterReviewPanel.tsx',
   'CoachCommandCenterWorkbenchPanel.tsx',
+  'CoachReviewHub.tsx',
   'CoachOnboardingWorkbench.tsx',
   'CoachOnboardingWorkbench.logic.ts',
   'CoachOnboardingWorkbench.styles.ts',
@@ -27,12 +29,13 @@ const readCoachFile = (fileName: string) =>
 describe('CoachCommandCenter section split', () => {
   it('delegates the mounted page shell to capped section components', () => {
     const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
+    const reviewPanelSource = readCoachFile('CoachCommandCenterReviewPanel.tsx');
 
     expect(pageSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(pageSource).toContain("from './CoachCommandCenter.controller'");
     expect(pageSource).toContain("from './useCoachCommandCenterDrawerEffects'");
     expect(pageSource).toContain("from './CoachCommandCenter.bridgeStyles'");
-    expect(pageSource).toContain("from './CoachCommandCenterWorkbenchPanel'");
+    expect(pageSource).toContain("from './CoachCommandCenterReviewPanel'");
     expect(pageSource).toContain("from './CoachChatTranscript'");
     expect(pageSource).toContain("from './CoachClientBar'");
     expect(pageSource).toContain("from './CoachCommandTabBar'");
@@ -41,11 +44,16 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain("from './CoachCommandOpsRail'");
     expect(pageSource).toContain('<CoachClientBar');
     expect(pageSource).toContain('<CoachCommandTabBar');
-    expect(pageSource).toContain('<CoachCommandCenterWorkbenchPanel');
+    expect(pageSource).toContain('<CoachCommandCenterReviewPanel');
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('<CoachConsoleDock');
     expect(pageSource).toContain('<CoachCommandLeftRail');
     expect(pageSource).toContain('<CoachCommandOpsRail');
+
+    expect(reviewPanelSource).toContain("from './CoachReviewHub'");
+    expect(reviewPanelSource).toContain("from './CoachCommandCenterWorkbenchPanel'");
+    expect(reviewPanelSource).toContain('<CoachReviewHub');
+    expect(reviewPanelSource).toContain('<CoachCommandCenterWorkbenchPanel');
 
     SECTION_FILES.forEach((fileName) => {
       expect(

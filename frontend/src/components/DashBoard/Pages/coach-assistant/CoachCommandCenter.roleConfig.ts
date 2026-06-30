@@ -1,28 +1,38 @@
 import type { CoachTab } from './CoachCommandTabBar';
 
 export type CoachCommandRole = 'admin' | 'trainer' | 'client';
+export type CoachReviewSection = 'intake' | 'audio' | 'drafts';
 
 export const CLIENT_WORKOUTS_ROUTE = '/dashboard/client/workouts';
 export const CLIENT_NEXT_ACTION_LABEL = 'Log today or choose the next safe move';
 
-const OPERATOR_TABS: CoachTab[] = ['chat', 'intake', 'plaud', 'onboarding', 'history'];
-const CLIENT_TABS: CoachTab[] = ['chat', 'history'];
-
+const OPERATOR_TABS: CoachTab[] = ['talk', 'review', 'history'];
+const CLIENT_TABS: CoachTab[] = ['talk', 'history'];
+const REVIEW_WORKSPACES = new Set(['review', 'intake', 'plaud', 'audio', 'onboarding', 'workbench', 'drafts']);
 
 function tabFromRoute(searchParams: URLSearchParams): CoachTab | null {
   const workspace = searchParams.get('workspace');
-  if (
-    workspace === 'chat' ||
-    workspace === 'intake' ||
-    workspace === 'history' ||
-    workspace === 'plaud' ||
-    workspace === 'onboarding'
-  ) return workspace;
+  if (workspace === 'history') return 'history';
+  if (workspace === 'chat' || workspace === 'talk') return 'talk';
+  if (workspace && REVIEW_WORKSPACES.has(workspace)) return 'review';
 
   if (
     searchParams.get('mergeRequestId') ||
-    searchParams.get('review') === 'next'
-  ) return 'plaud';
+    searchParams.get('review') === 'next' ||
+    searchParams.get('intake') ||
+    searchParams.get('proposal')
+  ) return 'review';
+
+  return null;
+}
+
+export function reviewSectionFromRoute(searchParams: URLSearchParams): CoachReviewSection | null {
+  const workspace = searchParams.get('workspace');
+  if (workspace === 'onboarding' || workspace === 'workbench' || workspace === 'drafts') return 'drafts';
+  if (workspace === 'plaud' || workspace === 'audio') return 'audio';
+  if (workspace === 'intake') return 'intake';
+
+  if (searchParams.get('mergeRequestId') || searchParams.get('review') === 'next') return 'audio';
   if (searchParams.get('intake') || searchParams.get('proposal')) return 'intake';
   return null;
 }
@@ -40,7 +50,7 @@ export function coachTabsForRole(role: CoachCommandRole): CoachTab[] {
 }
 
 export function coerceCoachTabForRole(tab: CoachTab, role: CoachCommandRole): CoachTab {
-  return coachTabsForRole(role).includes(tab) ? tab : 'chat';
+  return coachTabsForRole(role).includes(tab) ? tab : 'talk';
 }
 
 export function routeForcedTabForRole(searchParams: URLSearchParams, role: CoachCommandRole): CoachTab | null {

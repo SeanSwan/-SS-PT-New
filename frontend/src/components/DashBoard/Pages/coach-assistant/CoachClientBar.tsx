@@ -1,23 +1,15 @@
 /**
  * COMPONENT: CoachClientBar
- * PURPOSE: The signature focal point of the Swan Coach terminal — fast client switching.
+ * PURPOSE: Compact Floor Mode header for the Swan Coach terminal.
  *
- * Shows the client currently being coached, the primary new-conversation action,
- * and route-safe quick actions. Thread reopening stays in the History tab so the
- * command header remains uncluttered.
+ * The header answers one question first: who is being coached right now? Deeper
+ * actions move to History, Review, or More so the trainer-floor view stays calm.
  */
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { CalendarCheck, ClipboardList, FileAudio, Inbox, Plus, Settings2, UserPlus, type LucideIcon } from 'lucide-react';
-import DashboardTeachMeGuide from '../../../Shared/DashboardTeachMeGuide';
-
-import type { CoachHeaderQuickAction, CoachHeaderQuickActionIcon } from './CoachCommandHeaderActions';
-
+import { MoreHorizontal, Plus } from 'lucide-react';
 
 type CoachClientBarProps = {
   selectedClientLabel: string;
-  quickActions?: CoachHeaderQuickAction[];
-  guideConfig?: { role: string; onAskCoach?: (prompt: string) => void };
   opsOpen: boolean;
   showOps?: boolean;
   contextLabel?: string;
@@ -26,114 +18,41 @@ type CoachClientBarProps = {
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
-const QUICK_ACTION_ICONS: Record<CoachHeaderQuickActionIcon, LucideIcon> = {
-  builder: ClipboardList,
-  client: UserPlus,
-  intake: Inbox,
-  log: CalendarCheck,
-  plaud: FileAudio,
-};
-
-function QuickActionContent({ action }: { action: CoachHeaderQuickAction }) {
-  const Icon = QUICK_ACTION_ICONS[action.icon];
-
-  return (
-    <>
-      <Icon size={16} aria-hidden="true" />
-      <span>
-        <strong>{action.label}</strong>
-        <small>{action.detail}</small>
-      </span>
-    </>
-  );
-}
-
-function QuickActionControl({ action }: { action: CoachHeaderQuickAction }) {
-  const className = `client-action-button ${action.tone === 'primary' ? 'is-primary' : ''}`;
-
-  if (action.href) {
-    return (
-      <Link className={className} to={action.href} aria-label={action.ariaLabel}>
-        <QuickActionContent action={action} />
-      </Link>
-    );
-  }
-
-  return (
-    <button type="button" className={className} onClick={action.onClick} aria-label={action.ariaLabel}>
-      <QuickActionContent action={action} />
-    </button>
-  );
-}
-
-function CoachHeaderGuide({ config }: { config: NonNullable<CoachClientBarProps['guideConfig']> }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  return (
-    <DashboardTeachMeGuide
-      role={config.role}
-      pathname={location.pathname}
-      search={location.search}
-      variant="headerPopover"
-      onNavigate={navigate}
-      onAskCoach={config.onAskCoach}
-    />
-  );
-}
-
 const CoachClientBar: React.FC<CoachClientBarProps> = ({
   selectedClientLabel,
-  quickActions = [],
-  guideConfig,
   opsOpen,
   showOps = true,
   contextLabel = 'Now coaching',
-  newConversationLabel = 'New client / conversation',
+  newConversationLabel = 'New chat',
   onNewConversation,
   onOpenOps,
 }) => (
   <header className="client-bar glass">
-    <div className="client-bar-top">
-      <span className="coach-wordmark">Swan Coach</span>
-      {guideConfig || showOps ? (
-        <div className="client-bar-tools">
-          {guideConfig ? <div className="coach-header-guide"><CoachHeaderGuide config={guideConfig} /></div> : null}
-          {showOps ? (
-            <button
-              type="button"
-              className="ops-button"
-              onClick={onOpenOps}
-              aria-controls="coach-command-ops"
-              aria-haspopup="dialog"
-              aria-expanded={opsOpen}
-            >
-              <Settings2 size={18} aria-hidden="true" />
-              <span>Operations</span>
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-
-    <div className="now-coaching">
+    <div className="now-coaching" aria-label="Current coach context">
       <span className="now-label">{contextLabel}</span>
       <strong className="client-name">{selectedClientLabel}</strong>
     </div>
 
-    <button type="button" className="new-client-button" onClick={onNewConversation}>
-      <Plus size={18} aria-hidden="true" />
-      <span>{newConversationLabel}</span>
-    </button>
-
-    {quickActions.length ? (
-      <div className="client-action-strip" role="group" aria-label="Coach header quick actions">
-        <span className="client-action-scope">{selectedClientLabel}</span>
-        {quickActions.map((action) => (
-          <QuickActionControl action={action} key={action.ariaLabel} />
-        ))}
-      </div>
-    ) : null}
+    <div className="client-bar-tools">
+      <button type="button" className="new-client-button" onClick={onNewConversation} aria-label={newConversationLabel}>
+        <Plus size={18} aria-hidden="true" />
+        <span>New</span>
+      </button>
+      {showOps ? (
+        <button
+          type="button"
+          className="ops-button"
+          onClick={onOpenOps}
+          aria-controls="coach-command-ops"
+          aria-haspopup="dialog"
+          aria-expanded={opsOpen}
+          aria-label="More coach actions"
+        >
+          <MoreHorizontal size={20} aria-hidden="true" />
+          <span>More</span>
+        </button>
+      ) : null}
+    </div>
   </header>
 );
 
