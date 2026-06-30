@@ -2,7 +2,7 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { lazy, Suspense, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
@@ -47,8 +47,7 @@ import {
   sumUnreadConversations,
   type HomeTopBarTarget,
 } from './HomeTabViewModel';
-import { CenterColumn, CreatorPage, CreatorShell, Panel, SupportShell } from './HomeTabVision.styles';
-const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
+import { CreatorPage, CreatorShell, Panel } from './HomeTabVision.styles';
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -136,6 +135,51 @@ const HomeTab: React.FC<HomeTabProps> = ({
     currentUserPoints: points,
   });
 
+  const supportPanels = (
+    <>
+      <Panel>
+        <HomeTabTrainingProof
+          proof={trainingProof}
+          onShareProgress={composer.handleShareProgress}
+        />
+      </Panel>
+
+      <Panel>
+        <DailyHealthLoop
+          streakDays={streakDays}
+          level={level}
+          progressPercent={progressPercent}
+          tierName={tierName}
+          logWorkoutPath={logWorkoutPath}
+          nutritionAction={nutritionAction}
+          onOpenNutrition={() => onTabChange('nutrition')}
+        />
+      </Panel>
+
+      {subLoading ? (
+        <DockSkeleton aria-hidden="true" />
+      ) : (
+        <Panel>
+          <SwanCoachDock
+            isElite={hasEliteAccess}
+            userName={displayName}
+            userRole={user?.role}
+            streakDays={streakDays}
+            level={level}
+            tierName={tierName}
+          />
+          {hasEliteAccess && (
+            <SwanCoachActionLauncher
+              userName={displayName}
+              userRole={user?.role}
+              streakDays={streakDays}
+              level={level}
+            />
+          )}
+        </Panel>
+      )}
+    </>
+  );
   const runAction = (target: VisionTarget) => {
     if (target === 'challenges') {
       // Challenges is a first-class dashboard tab post-merge (workstream N).
@@ -188,6 +232,9 @@ const HomeTab: React.FC<HomeTabProps> = ({
           selectedMediaType={composer.selectedMedia?.type}
           mediaError={composer.mediaError}
           quickStats={quickStats}
+          communityFeed={communityFeed}
+          supportPanels={supportPanels}
+          feedEnrichmentItems={feedEnrichmentItems}
           proofAttached={composer.proofAttached}
           postIntentPreview={composer.postIntentPreview}
           latestPost={latestPostView}
@@ -241,55 +288,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
           onLogWorkout={() => navigate(logWorkoutPath)}
         />
       </CreatorShell>
-
-      <SupportShell>
-        <CenterColumn>
-          <Panel>
-            <HomeTabTrainingProof
-              proof={trainingProof}
-              onShareProgress={composer.handleShareProgress}
-            />
-          </Panel>
-
-          <Panel>
-            <DailyHealthLoop
-              streakDays={streakDays}
-              level={level}
-              progressPercent={progressPercent}
-              tierName={tierName}
-              logWorkoutPath={logWorkoutPath}
-              nutritionAction={nutritionAction}
-              onOpenNutrition={() => onTabChange('nutrition')}
-            />
-          </Panel>
-
-          {subLoading ? (
-            <DockSkeleton aria-hidden="true" />
-          ) : (
-            <Panel>
-              <SwanCoachDock
-                isElite={hasEliteAccess}
-                userName={displayName}
-                userRole={user?.role}
-                streakDays={streakDays}
-                level={level}
-                tierName={tierName}
-              />
-              {hasEliteAccess && (
-                <SwanCoachActionLauncher
-                  userName={displayName}
-                  userRole={user?.role}
-                  streakDays={streakDays}
-                  level={level}
-                />
-              )}
-            </Panel>
-          )}
-          <Suspense fallback={null}>
-            <HomeCommunityFeed feed={communityFeed} enrichmentItems={feedEnrichmentItems} />
-          </Suspense>
-        </CenterColumn>
-      </SupportShell>
     </CreatorPage>
   );
 };

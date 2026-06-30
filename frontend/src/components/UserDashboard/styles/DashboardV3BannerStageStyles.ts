@@ -166,6 +166,11 @@ export const BannerStageVitrineHero = styled.div`
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent),
     0 0 60px -18px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+
+  > ${BannerStageImage},
+  > ${BannerStageVideo} {
+    object-fit: contain;
+  }
 `;
 
 export const BannerStageVitrineRail = styled.div`

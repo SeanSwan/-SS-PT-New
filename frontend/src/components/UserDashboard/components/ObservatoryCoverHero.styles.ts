@@ -20,7 +20,7 @@ import styled from 'styled-components';
 export const CoverHeroSection = styled.section`
   position: relative;
   width: 100%;
-  height: clamp(200px, 26vw, 340px);
+  height: clamp(220px, var(--cover-hero-height, 320px), 620px);
   overflow: hidden;
   background:
     radial-gradient(ellipse 80% 60% at 30% 20%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent) 0%, transparent 60%),
@@ -28,12 +28,20 @@ export const CoverHeroSection = styled.section`
     linear-gradient(180deg, var(--bg-base, #0A0A0F) 0%, color-mix(in srgb, var(--bg-elevated, #141419) 92%, var(--accent-secondary, #8B5CF6) 8%) 60%, var(--bg-base, #0A0A0F) 100%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
 
+  @media (max-width: 768px) {
+    height: clamp(180px, calc(var(--cover-hero-height, 320px) * 0.72), 440px);
+  }
+
+  @media (max-width: 430px) {
+    height: clamp(170px, calc(var(--cover-hero-height, 320px) * 0.66), 400px);
+  }
+
   @media (min-width: 2560px) {
-    height: clamp(300px, 16vw, 420px);
+    height: clamp(300px, var(--cover-hero-height, 420px), 720px);
   }
 
   @media (min-width: 3840px) {
-    height: clamp(360px, 13vw, 500px);
+    height: clamp(360px, var(--cover-hero-height, 500px), 860px);
   }
 `;
 

@@ -11,6 +11,7 @@ export * from './DashboardV3BannerCarouselStyles';
 export * from './DashboardV3BannerSmartFitStyles';
 export * from './DashboardV3BannerCrossfadeStyles';
 export * from './DashboardV3BannerStageStyles';
+export * from './DashboardV3BannerStageHeroBackdropStyles';
 export * from './DashboardV3BannerCompositionStyles';
 export * from './DashboardV3BannerPresetStyles';
 export * from './DashboardV3BadgeStyles';

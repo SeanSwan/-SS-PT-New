@@ -16,6 +16,9 @@ describe('UserDashboard banner crop contract', () => {
   const cropControls = read('src/components/UserDashboard/components/UserDashboardBannerCropControls.tsx');
   const repositionPanel = read('src/components/UserDashboard/components/UserDashboardBannerRepositionPanelContent.tsx');
   const mediaLayer = read('src/components/UserDashboard/components/UserDashboardBannerMediaLayer.tsx');
+  const homeCoverHook = read('src/components/UserDashboard/components/useHomeCoverBanner.tsx');
+  const coverHero = read('src/components/UserDashboard/components/ObservatoryCoverHero.tsx');
+  const coverHeroStyles = read('src/components/UserDashboard/components/ObservatoryCoverHero.styles.ts');
   const stageLayer = read('src/components/UserDashboard/components/UserDashboardBannerStageLayouts.tsx');
   const shell = read('src/components/UserDashboard/components/ObservatoryShell.tsx');
   const controller = read('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
@@ -29,6 +32,8 @@ describe('UserDashboard banner crop contract', () => {
   const carouselStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCarouselStyles.ts');
   const smartFitStyles = read('src/components/UserDashboard/styles/DashboardV3BannerSmartFitStyles.ts');
   const stageStyles = read('src/components/UserDashboard/styles/DashboardV3BannerStageStyles.ts');
+  const stageHeroBackdropStyles = read('src/components/UserDashboard/styles/DashboardV3BannerStageHeroBackdropStyles.ts');
+  const dashboardStylesBarrel = read('src/components/UserDashboard/styles/DashboardV3Styles.ts');
   const backendController = read('../backend/controllers/profileController.mjs');
   const layoutStyles = read('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
   const profilePhotoStyles = read('src/components/UserDashboard/styles/DashboardV3ProfilePhotoStyles.ts');
@@ -122,12 +127,28 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).not.toContain('backgroundImage: `');
   });
 
+  it('honors the saved banner height in the mounted Observatory cover hero', () => {
+    expect(homeCoverHook).toContain('DEFAULT_BANNER_FRAME_HEIGHT');
+    expect(homeCoverHook).toContain('bannerFrameHeight = coverBanner?.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT');
+    expect(homeCoverHook).toContain('bannerFrameHeight,');
+    expect(coverHero).toContain('--cover-hero-height');
+    expect(coverHero).toContain('`${bannerFrameHeight}px`');
+    expect(coverHeroStyles).toContain('height: clamp(220px, var(--cover-hero-height, 320px), 620px);');
+    expect(coverHeroStyles).toContain('calc(var(--cover-hero-height, 320px) * 0.72)');
+    expect(coverHeroStyles).toContain('calc(var(--cover-hero-height, 320px) * 0.66)');
+    expect(coverHeroStyles).toContain('height: clamp(300px, var(--cover-hero-height, 420px), 720px);');
+    expect(coverHeroStyles).toContain('height: clamp(360px, var(--cover-hero-height, 500px), 860px);');
+    expect(coverHeroStyles).not.toContain('height: clamp(200px, 26vw, 340px);');
+  });
+
   it('keeps the mounted banner media renderer below the runtime file-size cap', () => {
     expect(mediaLayer.split(/\r?\n/).length, 'UserDashboardBannerMediaLayer.tsx line count')
       .toBeLessThanOrEqual(300);
     expect(stageLayer.split(/\r?\n/).length, 'UserDashboardBannerStageLayouts.tsx line count')
       .toBeLessThanOrEqual(300);
     expect(mediaHandlers.split(/\r?\n/).length, 'useBannerCollageMediaHandlers.ts line count')
+      .toBeLessThanOrEqual(300);
+    expect(stageHeroBackdropStyles.split(/\r?\n/).length, 'DashboardV3BannerStageHeroBackdropStyles.ts line count')
       .toBeLessThanOrEqual(300);
   });
 
@@ -205,6 +226,13 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('UserDashboardBannerStageLayouts');
     expect(stageLayer).toContain('data-testid="banner-stage-smart-carousel"');
     expect(stageStyles).toMatch(/BannerStageSmartHero[\s\S]*?object-fit: contain;/);
+    expect(stageStyles).toMatch(/BannerStageVitrineHero[\s\S]*?object-fit: contain;/);
+    expect(stageLayer).toContain('BannerStageHeroBackdrop');
+    expect(stageLayer).toContain('renderStageMedia(heroPhoto, isBannerVideoUrl(heroPhoto) ?');
+    expect(stageHeroBackdropStyles).toContain("import { BannerStageImage, BannerStageVideo } from './DashboardV3BannerStageStyles';");
+    expect(stageHeroBackdropStyles).toMatch(/BannerStageImage[\s\S]*?object-fit: cover;/);
+    expect(stageHeroBackdropStyles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(dashboardStylesBarrel).toContain("export * from './DashboardV3BannerStageHeroBackdropStyles';");
     expect(stageLayer).toContain("'banner-stage-smart-theme-tile'");
     expect(stageLayer).toContain('buildSmartRailItems');
     expect(stageLayer).toContain('data-testid="banner-stage-atrium"');

@@ -3,7 +3,7 @@
  * PURPOSE: Center column for the Claude Design Creator Observatory Home view.
  */
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import {
   ImagePlus,
   Loader2,
@@ -12,6 +12,8 @@ import {
   Video,
 } from 'lucide-react';
 import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
+import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
@@ -49,6 +51,8 @@ import {
   LensStrip,
 } from './HomeTabVisionHero.styles';
 
+const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
+
 interface HomeTabVisionCenterProps {
   points: number;
   activeLens: string;
@@ -59,6 +63,9 @@ interface HomeTabVisionCenterProps {
   selectedMediaType?: string;
   mediaError?: string | null;
   quickStats: QuickStatsTickerStat[];
+  communityFeed: SocialFeedApi;
+  supportPanels?: React.ReactNode;
+  feedEnrichmentItems: FeedEnrichmentItem[];
   /** O3: true while "Share my week" has armed the workout-proof attachment. */
   proofAttached: boolean;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
@@ -87,6 +94,9 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   selectedMediaType,
   mediaError,
   quickStats,
+  communityFeed,
+  supportPanels,
+  feedEnrichmentItems,
   proofAttached,
   postIntentPreview,
   latestPost,
@@ -235,6 +245,11 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
     </CenterGrid>
 
     <UserDashboardQuickStatsTicker stats={quickStats} />
+    {supportPanels}
+
+    <Suspense fallback={null}>
+      <HomeCommunityFeed feed={communityFeed} enrichmentItems={feedEnrichmentItems} />
+    </Suspense>
   </CenterColumn>
 );
 

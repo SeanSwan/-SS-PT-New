@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ExternalLink, X } from 'lucide-react';
+import { cssUrlValue, sanitizeImageUrl } from '../../../../utils/imageUrl';
 import {
   CloseButton,
   FullImage,
@@ -20,9 +21,13 @@ interface PostMediaLightboxProps {
 
 const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, onClose }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const safeSrc = sanitizeImageUrl(src);
+  const backdropStyle = safeSrc ? ({
+    '--post-lightbox-backdrop-image': `url(${cssUrlValue(safeSrc)})`,
+  } as React.CSSProperties & Record<'--post-lightbox-backdrop-image', string>) : undefined;
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || !safeSrc) return undefined;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeButtonRef.current?.focus();
@@ -36,12 +41,12 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
       document.body.style.overflow = previousOverflow;
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, open]);
+  }, [onClose, open, safeSrc]);
 
-  if (!open || typeof document === 'undefined') return null;
+  if (!open || !safeSrc || typeof document === 'undefined') return null;
 
   return createPortal(
-    <LightboxOverlay onClick={onClose}>
+    <LightboxOverlay style={backdropStyle} onClick={onClose}>
       <LightboxFrame
         role="dialog"
         aria-modal="true"
@@ -51,7 +56,7 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
         <LightboxHeader>
           <span>Image preview</span>
           <LightboxActions>
-            <LightboxOpenLink href={src} target="_blank" rel="noopener noreferrer">
+            <LightboxOpenLink href={safeSrc} target="_blank" rel="noopener noreferrer">
               Open original
               <ExternalLink size={15} aria-hidden="true" />
             </LightboxOpenLink>
@@ -60,7 +65,7 @@ const PostMediaLightbox: React.FC<PostMediaLightboxProps> = ({ src, alt, open, o
             </CloseButton>
           </LightboxActions>
         </LightboxHeader>
-        <FullImage src={src} alt={`Full post image: ${alt}`} loading="eager" decoding="async" />
+        <FullImage src={safeSrc} alt={`Full post image: ${alt}`} loading="eager" decoding="async" />
       </LightboxFrame>
     </LightboxOverlay>,
     document.body,

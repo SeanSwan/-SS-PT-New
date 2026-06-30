@@ -14,6 +14,7 @@ const panelsSource = readSource('./components/SocialFeedPanels.tsx');
 const studioSource = readSource('./components/FeedCoverStudio.tsx');
 const coverEditorSource = readSource('./components/SocialCoverEditor.tsx');
 const coverPanelSource = readSource('./components/CoverStudioPanel.tsx');
+const coverPanelPrimarySource = readSource('./components/CoverStudioPanel.primarySections.tsx');
 const coverPanelTypesSource = readSource('./components/CoverStudioPanel.types.ts');
 const studioStylesSource = readSource('./components/FeedCoverStudio.styles.ts');
 const identityStylesSource = readSource('./components/FeedCoverIdentity.styles.ts');
@@ -76,6 +77,9 @@ describe('SocialFeed cover studio contract', () => {
     expect(sectionsSource).toContain('bannerStickyCarousel={false}');
     // The hook is the lightweight read — it never imports the heavy useProfile.
     expect(hookSource).not.toMatch(/import .*useProfile/);
+    expect(hookSource).toContain('DEFAULT_BANNER_FRAME_HEIGHT');
+    expect(hookSource).toContain('normalizeBannerFrameHeight');
+    expect(hookSource).toContain('bannerFrameHeight: normalizeBannerFrameHeight(profile.bannerFrameHeight ?? DEFAULT_BANNER_FRAME_HEIGHT)');
     expect(hookSource).toContain('decorative fallback');
     // Crossfade hero: reduced-motion users get a static photo (no cycling),
     // and the media layer drives the index adaptively in JS.
@@ -95,6 +99,9 @@ describe('SocialFeed cover studio contract', () => {
     expect(editorSource).toContain('handleBannerCropCommit(next)');
     expect(coverPanelTypesSource).toContain("export type CoverType = 'single' | 'stage' | 'carousel' | 'collage'");
     expect(coverPanelTypesSource).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
+    expect(coverPanelPrimarySource).toContain('Vitrine</b> keeps the hero whole with atmospheric fill.');
+    expect(coverPanelPrimarySource).toContain("selectedLayout !== 'smart-carousel' && selectedLayout !== 'vitrine'");
+    expect(coverPanelPrimarySource).toContain('Need the full photo visible? Use Smart or Vitrine');
     expect(coverPanelSource).toContain('bannerStickyCarousel');
     // The cover exposes the entry; sections lazy-mount the editor and refresh
     // the live cover when it closes.
