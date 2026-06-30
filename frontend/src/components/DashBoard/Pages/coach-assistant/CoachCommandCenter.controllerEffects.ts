@@ -35,7 +35,7 @@ export function useAutoSelectCoachThread(
 export function useLoadRoutedCoachThread(
   routeThreadId: number | null,
   coachThreads: ConversationSummary[],
-  chat: { loadConversation: (id: number) => unknown },
+  loadConversation: (id: number) => unknown,
   setActiveThreadId: Dispatch<SetStateAction<number | null>>,
   setSelectedStatus: Dispatch<SetStateAction<string>>,
 ) {
@@ -53,8 +53,8 @@ export function useLoadRoutedCoachThread(
 
     if (lastLoadedThreadIdRef.current === routeThreadId) return;
     lastLoadedThreadIdRef.current = routeThreadId;
-    void chat.loadConversation(routeThreadId);
-  }, [chat, coachThreads, routeThreadId, setActiveThreadId, setSelectedStatus]);
+    void loadConversation(routeThreadId);
+  }, [coachThreads, loadConversation, routeThreadId, setActiveThreadId, setSelectedStatus]);
 }
 
 export function useApplyRouteContextPrompt(
