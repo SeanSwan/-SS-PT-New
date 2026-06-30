@@ -19,7 +19,7 @@ export const coachCommandCrystallineFocusStyles = css`
   --coach-focus-accent: var(--accent-primary, #69d7d0);
   --coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));
 
-  .bridge-shell { gap: 14px; max-width: min(100%, 1680px); width: 100%; }
+  .bridge-shell { gap: 14px; max-width: min(100%, 1040px); width: 100%; }
   .client-bar {
     background: linear-gradient(180deg, color-mix(in srgb, var(--coach-focus-elevated) 92%, transparent), var(--coach-focus-surface)), var(--coach-focus-surface);
     border-color: var(--coach-focus-line);
@@ -95,7 +95,6 @@ export const coachCommandCrystallineFocusStyles = css`
     box-shadow: 0 12px 28px color-mix(in srgb, var(--coach-focus-canvas) 42%, transparent);
     transform: translateY(-2px);
   }
-
 
   .tab-bar {
     background: var(--coach-focus-surface);
@@ -185,37 +184,28 @@ export const coachCommandCrystallineFocusStyles = css`
   .dock-send { box-shadow: 0 10px 26px color-mix(in srgb, var(--coach-focus-accent) 22%, transparent); }
 
   @media (min-width: 1280px) {
-    .bridge-shell {
-      align-items: start;
-      display: grid;
-      gap: 16px 18px;
-      grid-template-areas: 'header header' 'tabs ops' 'content ops' 'dock ops' 'account ops';
-      grid-template-columns: minmax(0, 1fr) minmax(336px, clamp(336px, 23vw, 392px));
-    }
-    .client-bar { display: grid; grid-area: header; grid-template-columns: minmax(0, 1fr) auto; }
+    .bridge-shell { max-width: min(100%, 1120px); }
+    .client-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
     .client-bar-top,
     .client-action-strip { grid-column: 1 / -1; }
     .new-client-button { align-self: end; grid-column: 2; grid-row: 2; }
-    .tab-bar { grid-area: tabs; }
-    .tab-content { grid-area: content; }
-    .console-dock { grid-area: dock; }
-    .drawer-scrim,
-    .ops-button,
-    .ops-rail-close { display: none; }
+    .ops-button { display: inline-flex; }
+    .ops-rail-close { display: inline-flex; }
     .right-rail {
-      border-radius: 18px;
-      grid-area: ops;
-      height: auto;
-      max-height: calc(100dvh - 32px);
+      border-radius: 22px 0 0 22px;
+      height: 100dvh;
+      max-height: none;
       min-width: 0;
-      padding: 12px;
-      position: sticky;
-      right: auto;
-      top: 12px;
-      transform: none;
-      width: auto;
-      z-index: 1;
+      padding: 16px;
+      position: fixed;
+      right: 0;
+      top: 0;
+      transform: translateX(100%);
+      width: min(392px, 92vw);
+      z-index: 50;
     }
+    .right-rail.is-open { transform: translateX(0); }
+    .drawer-scrim { display: block; }
     .transcript-stream { min-height: clamp(360px, calc(100dvh - 560px), 660px); }
   }
 
