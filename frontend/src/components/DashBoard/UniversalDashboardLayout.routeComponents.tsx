@@ -85,12 +85,12 @@ export const ClientProgressDashboardPage = React.lazy(() => import('./Pages/clie
 
 export const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
-  const { isPro, isElite, loading: subscriptionLoading } = useSubscription();
+  const { hasGuardianAccess, loading: subscriptionLoading } = useSubscription();
   const navigate = useNavigate();
   const clientId = parseDashboardUserId(user?.id);
   const userRole = user?.role;
   const isStaffRole = userRole === 'admin' || userRole === 'trainer';
-  const hasDetailedProgressAccess = isStaffRole || isPro || isElite;
+  const hasDetailedProgressAccess = isStaffRole || hasGuardianAccess;
 
   if (!clientId) {
     return (
@@ -114,7 +114,7 @@ export const ClientProgressWrapper: React.FC = () => {
     return (
       <UniversalErrorContainer role="status">
         <h2>Guardian analytics required</h2>
-        <p>Detailed progress analytics are available with Swan Guardian, Crystalline Swan, or an active trial.</p>
+        <p>Detailed progress analytics are available with Swan Guardian, Crystalline Swan, or an active premium trial.</p>
         <UniversalButton
           type="button"
           onClick={() => navigate('/ascension')}
