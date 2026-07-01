@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
+import { reviewSwanAuraPostDraft } from './SwanAuraComposeReview';
 import { validateHomeComposerMediaFile } from './HomeComposerMediaPolicy';
 import { buildHomePostPayload, previewHomePostIntent } from './HomeTabViewModel';
 
@@ -63,6 +64,11 @@ function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHom
     [activeMood, postText],
   );
 
+  const swanAuraReview = useMemo(
+    () => reviewSwanAuraPostDraft(postText),
+    [postText],
+  );
+
   const clearSelectedMedia = useCallback(() => {
     setSelectedMedia(null);
     setMediaError(null);
@@ -112,6 +118,7 @@ function useHomeComposer({ createPost, isCreatingPost, latestSessionId }: UseHom
     proofAttached: !!pendingProofSessionId,
     canPost,
     postIntentPreview,
+    swanAuraReview,
     clearSelectedMedia,
     handleMediaSelect,
     handleShareProgress,
