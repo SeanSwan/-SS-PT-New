@@ -100,9 +100,9 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = ({
             <HeartHandshake size={13} aria-hidden="true" />
             Swan Aura
           </AuraEyebrow>
-          <AuraTitle>{userName}, good energy is part of the training.</AuraTitle>
+          <AuraTitle>{userName}, good energy is part of the community.</AuraTitle>
           <AuraSubtext>
-            Unity Weaver’s dashboard presence is read-only in this slice: motivation, kindness prompts, and honest momentum — no posts or records change from this card.
+            The user dashboard is your social home. Swan Aura is the benevolent Unity Weaver presence here: motivation, kindness prompts, and honest momentum — no posts or records change from this card.
           </AuraSubtext>
         </AuraCopy>
       </AuraHeader>
