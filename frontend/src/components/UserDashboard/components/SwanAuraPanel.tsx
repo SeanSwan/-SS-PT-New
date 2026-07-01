@@ -1,22 +1,13 @@
 /**
  * FILE: SwanAuraPanel.tsx
  * PURPOSE: Read-only Unity Weaver / Swan Aura dashboard surface.
- *
- * Slice 1 boundary:
- * - No moderation writes
- * - No AI provider calls
- * - No social post mutation
- * - No gamification mutation
- *
- * This panel converts existing dashboard state into warm, prosocial, health-first
- * nudges so Unity Weaver can enter the product safely before command or
- * moderation workflows are introduced.
  */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { ArrowRight, HeartHandshake, Sparkles } from 'lucide-react';
-import { buildAuraNudge, compactAuraNumber, getNudgeIcon } from './SwanAuraPanel.logic';
+import { compactAuraNumber, getNudgeIcon } from './SwanAuraPanel.logic';
 import type { SwanAuraPanelProps } from './SwanAuraPanel.types';
+import { useSwanAuraNudges } from './useSwanAuraNudges';
 import {
   AuraAvatar,
   AuraButton,
@@ -56,7 +47,7 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = ({
   onOpenChallenges,
 }) => {
   const prefersReducedMotion = useReducedMotion();
-  const nudge = useMemo(() => buildAuraNudge({
+  const nudge = useSwanAuraNudges({
     activeChallenge,
     badges,
     latestPost,
@@ -68,19 +59,7 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = ({
     onEncourageFriend,
     onLogWorkout,
     onOpenChallenges,
-  }), [
-    activeChallenge,
-    badges,
-    latestPost,
-    level,
-    pointsToNext,
-    progressPercent,
-    streakAtRisk,
-    streakDays,
-    onEncourageFriend,
-    onLogWorkout,
-    onOpenChallenges,
-  ]);
+  });
   const Icon = getNudgeIcon(nudge.tone);
 
   return (
@@ -102,7 +81,7 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = ({
           </AuraEyebrow>
           <AuraTitle>{userName}, good energy is part of the community.</AuraTitle>
           <AuraSubtext>
-            The user dashboard is your social home. Swan Aura is the benevolent Unity Weaver presence here: motivation, kindness prompts, and honest momentum — no posts or records change from this card.
+            The user dashboard is your social home. Swan Aura is the benevolent Unity Weaver presence here: motivation, kindness prompts, and honest momentum.
           </AuraSubtext>
         </AuraCopy>
       </AuraHeader>
