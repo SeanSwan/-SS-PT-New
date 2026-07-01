@@ -40,9 +40,47 @@ import {
   NudgeTop,
 } from './SwanAuraPanel.styles';
 
-const SwanAuraPanel: React.FC<SwanAuraPanelProps> = (props) => {
+const SwanAuraPanel: React.FC<SwanAuraPanelProps> = ({
+  activeChallenge,
+  badges,
+  latestPost,
+  level,
+  points,
+  pointsToNext,
+  progressPercent,
+  streakAtRisk,
+  streakDays,
+  userName,
+  onEncourageFriend,
+  onLogWorkout,
+  onOpenChallenges,
+}) => {
   const prefersReducedMotion = useReducedMotion();
-  const nudge = useMemo(() => buildAuraNudge(props), [props]);
+  const nudge = useMemo(() => buildAuraNudge({
+    activeChallenge,
+    badges,
+    latestPost,
+    level,
+    pointsToNext,
+    progressPercent,
+    streakAtRisk,
+    streakDays,
+    onEncourageFriend,
+    onLogWorkout,
+    onOpenChallenges,
+  }), [
+    activeChallenge,
+    badges,
+    latestPost,
+    level,
+    pointsToNext,
+    progressPercent,
+    streakAtRisk,
+    streakDays,
+    onEncourageFriend,
+    onLogWorkout,
+    onOpenChallenges,
+  ]);
   const Icon = getNudgeIcon(nudge.tone);
 
   return (
@@ -62,7 +100,7 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = (props) => {
             <HeartHandshake size={13} aria-hidden="true" />
             Swan Aura
           </AuraEyebrow>
-          <AuraTitle>{props.userName}, good energy is part of the training.</AuraTitle>
+          <AuraTitle>{userName}, good energy is part of the training.</AuraTitle>
           <AuraSubtext>
             Unity Weaver’s dashboard presence is read-only in this slice: motivation, kindness prompts, and honest momentum — no posts or records change from this card.
           </AuraSubtext>
@@ -88,15 +126,15 @@ const SwanAuraPanel: React.FC<SwanAuraPanelProps> = (props) => {
 
       <AuraMetaGrid aria-label="Swan Aura context summary">
         <AuraMeta>
-          <MetaValue>{compactAuraNumber(props.points)}</MetaValue>
+          <MetaValue>{compactAuraNumber(points)}</MetaValue>
           <MetaLabel>XP</MetaLabel>
         </AuraMeta>
         <AuraMeta>
-          <MetaValue>{props.streakDays}</MetaValue>
+          <MetaValue>{streakDays}</MetaValue>
           <MetaLabel>Streak</MetaLabel>
         </AuraMeta>
         <AuraMeta>
-          <MetaValue>{props.badges.length}</MetaValue>
+          <MetaValue>{badges.length}</MetaValue>
           <MetaLabel>Top badges</MetaLabel>
         </AuraMeta>
       </AuraMetaGrid>
