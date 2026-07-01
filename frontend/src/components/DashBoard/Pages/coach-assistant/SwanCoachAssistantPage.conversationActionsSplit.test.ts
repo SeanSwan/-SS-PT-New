@@ -27,6 +27,10 @@ describe('SwanCoachAssistantPage conversation/action split', () => {
     expect(ACTIONS_SOURCE).toMatch(/chat\.loadConversation\(id\)/);
     expect(ACTIONS_SOURCE).toMatch(/coach\.clearConversation\(\)/);
     expect(ACTIONS_SOURCE).toMatch(/chat\.listConversations\(['"]active['"],\s*true\)/);
+    expect(ACTIONS_SOURCE).toMatch(/const\s+macroTargetClientId\s*=\s*selectedClient\?\.id/);
+    expect(ACTIONS_SOURCE).toMatch(
+      /chat\.createConversation\(\s*['"]macro_logging['"],\s*['"]Macro Context Session['"],\s*macroTargetClientId,?\s*\)/,
+    );
     expect(ACTIONS_SOURCE).toMatch(/chat\.createConversation\(['"]macro_logging['"],\s*['"]Macro Context Session['"]\)/);
   });
 

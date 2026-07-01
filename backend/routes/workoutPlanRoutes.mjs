@@ -43,6 +43,11 @@ import { readAssignmentCompletionContext } from '../services/clientTrainingAssig
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import {
+  normalizeWorkoutPlanDataForPersistence,
+  sanitizeWorkoutPlanMetadataForPersistence,
+  sanitizeWorkoutPlanProgressNotesForPersistence,
+} from '../services/workoutPlanDataPrivacyService.mjs';
+import {
   ACTIVATE_MAX_RETRIES,
   buildDuplicatePlanMetadata,
   currentDateOnly,
@@ -262,6 +267,10 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
       });
     }
 
+    const safePlanData = normalizeWorkoutPlanDataForPersistence(planData);
+    const safeProgressNotes = sanitizeWorkoutPlanProgressNotesForPersistence(progressNotes);
+    const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(metadata);
+
     const plan = await WorkoutPlan.create({
       userId: parseInt(userId, 10),
       trainerId: req.user.id,
@@ -274,10 +283,10 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
       status: 'draft',
       currentWeek: 1,
       currentDay: 1,
-      planData: planData || { weeks: [] },
-      progressNotes: progressNotes || [],
+      planData: safePlanData,
+      progressNotes: safeProgressNotes,
       createdBy: createdBy || 'trainer',
-      metadata: metadata || {}
+      metadata: safeMetadata
     });
 
     logger.info('[WorkoutPlan] Created plan #%d for client %d by trainer %d',
@@ -306,6 +315,13 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
     const plan = req.workoutPlan;
 
+    if (req.body.status === 'active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Use the activate endpoint to make a workout plan active.',
+      });
+    }
+
     // Whitelist updatable fields to prevent mass-assignment
     const allowedFields = [
       'title', 'description', 'nasmPhase', 'startDate', 'endDate',
@@ -316,9 +332,15 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updates[field] = field === 'metadata'
-          ? mergePlanMetadata(plan, req.body[field])
-          : req.body[field];
+        if (field === 'metadata') {
+          updates[field] = mergePlanMetadata(plan, req.body[field]);
+        } else if (field === 'planData') {
+          updates[field] = normalizeWorkoutPlanDataForPersistence(req.body[field]);
+        } else if (field === 'progressNotes') {
+          updates[field] = sanitizeWorkoutPlanProgressNotesForPersistence(req.body[field]);
+        } else {
+          updates[field] = req.body[field];
+        }
       }
     }
 
@@ -360,11 +382,14 @@ router.put('/:id/pdf', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({
       return res.status(400).json({ success: false, message: result.message });
     }
 
-    await plan.update({ metadata: result.metadata });
+    const safeMetadata = sanitizeWorkoutPlanMetadataForPersistence(result.metadata);
+    const safePlanPdf = safeMetadata.planPdf || result.planPdf;
+
+    await plan.update({ metadata: safeMetadata });
 
     logger.info('[WorkoutPlan] Updated plan PDF for plan #%s by user %d', plan.id, req.user.id);
 
-    return res.json({ success: true, plan, planPdf: result.planPdf });
+    return res.json({ success: true, plan, planPdf: safePlanPdf });
   } catch (error) {
     logger.error('[WorkoutPlan] PUT /:id/pdf error: %s', error.message);
     return res.status(500).json({ success: false, message: 'Failed to update workout plan PDF' });
@@ -424,6 +449,15 @@ router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlan
     if (!freshTarget) {
       await t.rollback();
       return res.status(404).json({ success: false, message: 'Plan not found' });
+    }
+
+    const primaryStatus = String(freshTarget.status || '').trim().toLowerCase();
+    if (primaryStatus !== 'active') {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Use the activate endpoint to make this workout plan current before selecting it as primary.',
+      });
     }
 
     const siblings = await WorkoutPlan.findAll({
@@ -640,12 +674,9 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
     const { title } = req.body || {};
 
     try {
-      // Deep-clone JSONB: serializing prevents accidental shared-reference
-      // bugs at test time. JSONB persists fine either way; explicit clone
-      // makes intent unambiguous.
-      const clonedPlanData = original.planData
-        ? JSON.parse(JSON.stringify(original.planData))
-        : { weeks: [] };
+      // Clone through the planData privacy boundary so old plans cannot
+      // re-copy contact details into new saved drafts.
+      const clonedPlanData = normalizeWorkoutPlanDataForPersistence(original.planData);
 
       const copy = await WorkoutPlan.create({
         userId: original.userId,
@@ -723,7 +754,7 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlan
 
     // Apply updates
     const updates = {
-      planData: cursorAdvance.planData,
+      planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),
       currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
       currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
       status: cursorAdvance.planCompleted ? 'completed' : 'active'

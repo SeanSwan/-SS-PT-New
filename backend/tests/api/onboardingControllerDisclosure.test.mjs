@@ -14,10 +14,23 @@ describe('onboarding controller disclosure and ID contracts', () => {
   });
 
   it('uses reset-link handoff instead of returning generated passwords for created onboarding clients', () => {
-    expect(controllerSource).toContain('sendPasswordResetEmailForUser(user)');
-    expect(controllerSource).toContain("credentialAction: resetEmailSent ? 'reset_link_sent' : 'reset_link_needed'");
+    expect(controllerSource).toContain('buildOnboardingResetLinkHandoff(user)');
+    expect(controllerSource).toContain('...resetHandoff');
     expect(controllerSource).not.toContain('tempPassword:');
     expect(controllerSource).not.toContain('Temporary Password');
+    const handoffServiceSource = readFileSync(resolve(__dirname, '../../services/onboardingResetHandoffService.mjs'), 'utf8');
+    expect(handoffServiceSource).toContain('{ includeResetUrl: true }');
+    expect(handoffServiceSource).toContain("'reset_link_ready'");
+  });
+  it('marks legacy onboarding seed-password accounts for reset-link completion', () => {
+    const createStart = controllerSource.indexOf('user = await User.create({');
+    const createEnd = controllerSource.indexOf('// Now set the anonymous alias', createStart);
+    expect(createStart).toBeGreaterThanOrEqual(0);
+    expect(createEnd).toBeGreaterThan(createStart);
+    const createBlock = controllerSource.slice(createStart, createEnd);
+
+    expect(createBlock).toContain('password: accountSeedPassword');
+    expect(createBlock).toContain('forcePasswordChange: true');
   });
   it('normalizes explicit and authenticated user IDs before onboarding data access', () => {
     expect(controllerSource).toContain('const parsePositiveUserId = (value) =>');

@@ -81,9 +81,12 @@ const parseNonNegativeIntegerString = (value: string | null): number | null => {
   return Number.isSafeInteger(parsedValue) ? parsedValue : null;
 };
 
+const UNSAFE_ROUTE_TEXT = /[\r\n\t\\]|%(?:0a|0d|09|5c)/i;
+const CLIENT_HUB_RETURN_BASE = 'https://sswanstudios.local';
+
 const safeRouteText = (value: string | null): string | null => {
   const trimmed = value?.trim();
-  if (!trimmed || /[\r\n\t\\]/.test(trimmed)) return null;
+  if (!trimmed || UNSAFE_ROUTE_TEXT.test(trimmed)) return null;
   return trimmed;
 };
 
@@ -106,6 +109,31 @@ export const getClientScheduleWorkoutLoggerContextFromSearchParams = (
     scheduledSessionDate: safeRouteDateText(searchParams.get('sessionDate')),
     scheduledSessionCreditHint: parseNonNegativeIntegerString(searchParams.get('sessionCredits')),
   };
+};
+
+export const getClientLoggerReturnToFromSearchParams = (
+  searchParams: URLSearchParams,
+): string | null => {
+  if (getClientTrainingSectionFromSearchParams(searchParams) !== 'logger') return null;
+
+  const safeReturnTo = safeRouteText(searchParams.get('returnTo'));
+  if (!safeReturnTo) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(safeReturnTo, CLIENT_HUB_RETURN_BASE);
+  } catch {
+    return null;
+  }
+
+  if (parsed.origin !== CLIENT_HUB_RETURN_BASE) return null;
+  if (!/^\/dashboard\/admin\/workout-planner\/?$/.test(parsed.pathname)) return null;
+
+  const currentClientId = getClientIdFromSearchParams(searchParams);
+  const returnClientId = getClientIdFromSearchParams(parsed.searchParams);
+  if (currentClientId && returnClientId && currentClientId !== returnClientId) return null;
+
+  return `${parsed.pathname}${parsed.search}`;
 };
 
 const trainingSectionParam = (

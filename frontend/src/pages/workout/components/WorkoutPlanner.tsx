@@ -79,8 +79,8 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
         await refreshWorkoutHistory();
         setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching workout plans:', err);
-        setError('Failed to fetch workout plans');
+        console.error('Error fetching workout sessions:', err);
+        setError('Failed to fetch workout sessions');
         setIsLoading(false);
       }
     };

@@ -51,6 +51,48 @@ describe('coachProposalService', () => {
     });
   });
 
+
+  it('maps duplicate workout approval errors to safe actionable copy', async () => {
+    vi.mocked(apiService.post).mockRejectedValue({
+      isAxiosError: true,
+      message: 'Request failed with status code 400',
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          code: 'DUPLICATE_DATE',
+          error: 'A workout session already exists for this client on this date.',
+        },
+      },
+    });
+
+    await expect(approveCoachProposal('proposal-1', 'review-token')).rejects.toMatchObject({
+      code: 'DUPLICATE_DATE',
+      status: 400,
+      message: 'A workout session already exists for this client on this date.',
+    });
+  });
+
+  it('maps split-plan approval failures to safe actionable copy', async () => {
+    vi.mocked(apiService.post).mockRejectedValue({
+      isAxiosError: true,
+      message: 'Request failed with status code 400',
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          code: 'SPLIT_PLAN_APPROVAL_FAILED',
+          error: 'internal child proposal insert failure detail',
+        },
+      },
+    });
+
+    await expect(approveCoachProposal('proposal-1', 'review-token')).rejects.toMatchObject({
+      code: 'SPLIT_PLAN_APPROVAL_FAILED',
+      status: 400,
+      message: 'Split-plan proposal could not be approved. Refresh the draft and try again.',
+    });
+  });
   it('does not expose arbitrary backend proposal error detail', async () => {
     vi.mocked(apiService.get).mockRejectedValue({
       isAxiosError: true,

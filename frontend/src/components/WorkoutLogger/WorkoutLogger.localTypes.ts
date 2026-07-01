@@ -42,12 +42,16 @@ export interface PlannedExercise {
   exerciseName?: string;
   name?: string;
   sets?: unknown[] | number | string;
+  setScheme?: number | string;
   weight?: number | string;
   targetReps?: number | string;
   reps?: number | string;
+  repGoal?: number | string;
   tempo?: string;
   restTime?: number | string;
   restSeconds?: number | string;
+  restPeriod?: number | string;
+  notes?: string;
 }
 
 export interface PlannedSession {

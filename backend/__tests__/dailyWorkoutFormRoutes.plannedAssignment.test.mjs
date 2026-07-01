@@ -66,6 +66,19 @@ vi.mock('../utils/logger.mjs', () => ({
 vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('../services/gamification/challengeWorkoutCompletionBridge.mjs', () => ({
+  applyDailyWorkoutFormChallengeProgress: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../services/gamification/challengeProgressImpactReceipt.mjs', () => ({
+  buildChallengeProgressImpactReceipt: vi.fn(() => ({
+    status: 'processed',
+    updatedCount: 0,
+    skippedCount: 0,
+    headline: null,
+    updates: [],
+  })),
+}));
 
 const dailyWorkoutFormRoutes = (await import('../routes/dailyWorkoutFormRoutes.mjs')).default;
 
@@ -190,6 +203,11 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       firstExerciseName: 'Goblet Squat',
     });
     expect(res.body.form.plannedAssignment.shouldDeductSession).toBe(false);
+    expect(res.body.form.billing).toMatchObject({
+      status: 'not_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 0,
+    });
     expect(mockWorkoutPlanUpdate).toHaveBeenCalledWith(expect.objectContaining({
       currentWeek: 5,
       currentDay: 1,
@@ -207,6 +225,22 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       next: { week: 5, day: 1 },
     });
     expect(res.body.message).toMatch(/without session deduction/i);
+  });
+
+  it('returns normalized persisted ids in the save receipt when clientId arrives as a string', async () => {
+    const res = await request(app)
+      .post('/api/workout-forms')
+      .send({ ...payload, clientId: '11' });
+
+    expect(res.status).toBe(201);
+    expect(mockDailyWorkoutFormCreate.mock.calls[0][0]).toMatchObject({
+      clientId: 11,
+      trainerId: 99,
+    });
+    expect(res.body.form).toMatchObject({
+      clientId: 11,
+      trainerId: 99,
+    });
   });
 
   it('stores selected training-location equipment profile metadata in the daily form JSON', async () => {

@@ -31,7 +31,7 @@ export function buildRouteRequestContext(routeContext: CoachRouteContext | null)
     ...(routeContext.workoutDate ? { workoutDate: routeContext.workoutDate } : {}),
     ...(routeContext.scheduledSessionId ? { scheduledSessionId: routeContext.scheduledSessionId } : {}),
     ...(routeContext.scheduledSessionDate ? { scheduledSessionDate: routeContext.scheduledSessionDate } : {}),
-    ...(routeContext.scheduledSessionCredits ? { scheduledSessionCredits: routeContext.scheduledSessionCredits } : {}),
+    ...(routeContext.scheduledSessionCredits !== undefined ? { scheduledSessionCredits: routeContext.scheduledSessionCredits } : {}),
   };
   return Object.keys(requestContext).length ? requestContext : null;
 }

@@ -41,7 +41,7 @@ describe('CoachCommandCenterPage workout route actions', () => {
     );
     expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
+      '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
   });
 
@@ -110,6 +110,19 @@ describe('CoachCommandCenterPage workout route actions', () => {
     expect(within(menu).getByRole('menuitem', { name: /open build plan/i })).toHaveAttribute(
       'href',
       '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule',
+    );
+  });
+
+  it('preserves booked-session context in the rendered trainer planner handoff', () => {
+    renderPage(
+      '/dashboard/trainer/coach-assistant?clientId=42&intent=log_workout&source=master-schedule&returnTo=%2Fdashboard%2Ftrainer%2Fschedule&sessionId=88&sessionDate=2026-05-31T16%3A00%3A00.000Z&sessionCredits=2',
+      'trainer',
+    );
+
+    const menu = openCommandTools();
+    expect(within(menu).getByRole('menuitem', { name: /^open build plan$/i })).toHaveAttribute(
+      'href',
+      '/dashboard/trainer/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Ftrainer%2Fschedule&sessionId=88&sessionDate=2026-05-31T16%3A00%3A00.000Z&sessionCredits=2',
     );
   });
 

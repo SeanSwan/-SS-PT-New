@@ -2,6 +2,8 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientDisplayName } from './clientIdentity';
 import type { ClientLifecycleConfirmRequest } from './ClientLifecycleConfirmDialog';
+import type { ManualClientCreationHandoff } from './manualClientCreationHandoff';
+import { buildClaimLinkHandoff, buildClaimLinkToast, buildPasswordResetHandoff, buildPasswordResetToast, toRecord } from './clientAccessHandoffBuilders';
 
 type ClientHubToast = (opts: {
   title: string;
@@ -92,6 +94,8 @@ export const useClientAccountLifecycle = ({
 }: UseClientAccountLifecycleParams) => {
   const [deactivationConfirmation, setDeactivationConfirmation] =
     useState<ClientLifecycleConfirmRequest | null>(null);
+  const [passwordResetHandoff, setPasswordResetHandoff] =
+    useState<ManualClientCreationHandoff | null>(null);
 
   const deactivateSelectedClient = useCallback(async () => {
     if (!hasLifecycleTarget(authAxios, selectedClient)) return;
@@ -170,12 +174,20 @@ export const useClientAccountLifecycle = ({
 
     try {
       const response = await authAxios.post(`/api/admin/clients/${selectedClient.id}/send-password-reset`, {});
-      toast({
-        title: 'Reset link sent',
-        description: response.data?.message || 'Password reset email sent.',
-        variant: 'default',
-      });
+      const fallbackData = /password reset email sent|reset email sent/i.test(response.data?.message || '') ? { resetEmailSent: true } : response.data;
+      const handoff = buildPasswordResetHandoff(selectedClient, response.data?.data ?? fallbackData);
+      setPasswordResetHandoff(handoff);
+      toast(buildPasswordResetToast(handoff, getResponseMessage(response.data, handoff.message)));
     } catch (error: any) {
+      const errorData = error?.response?.data?.data ?? error?.response?.data;
+      const errorRecord = toRecord(errorData);
+      if (errorRecord.credentialIssue === 'reset_link_unavailable' || errorRecord.credentialMode === 'reset_link_unavailable' || errorRecord.error === 'reset_link_unavailable') {
+        const handoff = buildPasswordResetHandoff(selectedClient, errorData);
+        setPasswordResetHandoff(handoff);
+        toast(buildPasswordResetToast(handoff, getLifecycleErrorMessage(error, handoff.message)));
+        return;
+      }
+      setPasswordResetHandoff(null);
       toast({
         title: 'Reset link failed',
         description: error?.response?.data?.message || error?.message || 'Unable to send password reset email.',
@@ -196,11 +208,50 @@ export const useClientAccountLifecycle = ({
     });
   }, [authAxios, selectedClient, sendSelectedClientPasswordReset]);
 
+  const generateSelectedClientClaimLink = useCallback(async () => {
+    if (!authAxios || !selectedClient) return;
+
+    try {
+      const response = await authAxios.post('/api/claim/generate-token', { clientId: selectedClient.id });
+      const handoff = buildClaimLinkHandoff(selectedClient, response.data?.data ?? response.data);
+      setPasswordResetHandoff(handoff);
+      toast(buildClaimLinkToast(handoff, getResponseMessage(response.data, handoff.message)));
+    } catch (error: any) {
+      setPasswordResetHandoff(null);
+      toast({
+        title: 'Claim link failed',
+        description: error?.response?.data?.message || error?.message || 'Unable to generate a claim link.',
+        variant: 'destructive',
+      });
+    }
+  }, [authAxios, selectedClient, toast]);
+
+  const handleGenerateClaimLink = useCallback(() => {
+    if (!authAxios || !selectedClient) return;
+
+    const clientName = getClientDisplayName(selectedClient);
+    setDeactivationConfirmation({
+      title: `Generate claim link for ${clientName}?`,
+      message: 'This creates a copyable secure claim link or code for account activation. Send it to the client by approved email or text. No password is generated, shown, dictated, or stored in the admin interface.',
+      confirmLabel: 'Generate claim link',
+      onConfirm: generateSelectedClientClaimLink,
+    });
+  }, [authAxios, generateSelectedClientClaimLink, selectedClient]);
+
+  const activePasswordResetHandoff = selectedClient && passwordResetHandoff?.clientId === String(selectedClient.id)
+    ? passwordResetHandoff
+    : null;
+
+  const clearPasswordResetHandoff = useCallback(() => setPasswordResetHandoff(null), []);
+
   return {
     handleDeactivateClient,
     handleReactivateClient,
     handleSendPasswordReset,
+    handleGenerateClaimLink,
     deactivationConfirmation,
     closeDeactivationConfirmation,
+    passwordResetHandoff: activePasswordResetHandoff,
+    clearPasswordResetHandoff,
   };
 };

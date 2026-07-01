@@ -9,6 +9,10 @@ const routeSource = readFileSync(resolve(__dirname, '../../routes/onboardingRout
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 
 describe('onboarding route access guard', () => {
+  it('allows raw user accounts through the self-onboarding route guard for dashboard-normalized clients', () => {
+    expect(routeSource).toContain("router.post('/self'");
+    expect(routeSource).toContain("authorize(['client', 'user'])");
+  });
   it('keeps client master prompt reads limited to admin, assigned trainer, or self', () => {
     expect(coreRoutesSource).toContain("app.use('/api/onboarding', onboardingRoutes)");
     expect(routeSource).toContain("import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';");

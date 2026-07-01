@@ -106,6 +106,22 @@ function routeSurface(pathname: string): CoachRouteSurface {
   return SURFACE_MATCHERS.find(([, matches]) => matches(pathname))?.[0] ?? 'dashboard_unknown';
 }
 
+const UNSAFE_SOURCE_PATH_PATTERN = /[\r\n\t\\]|%(?:0a|0d|09|2e|2f|5c)/i;
+
+function hasDotOrDoubleSlashSegment(value: string): boolean {
+  const pathname = value.split(/[?#]/, 1)[0];
+  return pathname.includes('//') || pathname.split('/').some((segment) => segment === '.' || segment === '..');
+}
+
+function safeSourcePath(pathname: string, rawSourcePath: string | null): string {
+  const sourcePath = rawSourcePath?.trim();
+  if (!sourcePath || !sourcePath.startsWith('/dashboard/')) return pathname;
+  if (UNSAFE_SOURCE_PATH_PATTERN.test(sourcePath) || hasDotOrDoubleSlashSegment(sourcePath)) return pathname;
+  const currentScope = routeScope(pathname);
+  const sourceScope = routeScope(sourcePath);
+  return currentScope !== 'unknown' && sourceScope !== currentScope ? pathname : sourcePath;
+}
+
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
 
 function safeToken(rawValue: string | null): string | undefined {
@@ -123,9 +139,9 @@ function safeIsoDate(rawValue: string | null): string | undefined {
   return normalizeIsoDateOnly(rawValue) ?? undefined;
 }
 
-function safePositiveInteger(rawValue: string | null): number | undefined {
-  const token = safePositiveIntegerString(rawValue);
-  if (!token) return undefined;
+function safeNonNegativeInteger(rawValue: string | null): number | undefined {
+  const token = rawValue?.trim();
+  if (!token || !/^(0|[1-9]\d*)$/.test(token)) return undefined;
   const parsed = Number(token);
   return Number.isSafeInteger(parsed) ? parsed : undefined;
 }
@@ -144,13 +160,13 @@ function scheduledSessionFields(
   return compactRouteFields([
     ['scheduledSessionId', scheduledSessionId],
     ['scheduledSessionDate', safeIsoDate(params.get('sessionDate'))],
-    ['scheduledSessionCredits', safePositiveInteger(params.get('sessionCredits'))],
+    ['scheduledSessionCredits', safeNonNegativeInteger(params.get('sessionCredits'))],
   ]);
 }
 
 export function buildCoachRouteContext(pathname: string, search = ''): CoachRouteContext {
   const params = new URLSearchParams(search);
-  const sourcePath = params.get('sourcePath') || pathname;
+  const sourcePath = safeSourcePath(pathname, params.get('sourcePath'));
   const surface = routeSurface(sourcePath);
   const source = safeToken(params.get('source'));
   const intent = safeToken(params.get('intent'));

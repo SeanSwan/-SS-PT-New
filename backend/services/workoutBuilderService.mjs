@@ -1295,6 +1295,7 @@ export async function generatePlan(options) {
       nutrition: context.nutrition || null,
       progressLevels: context.progressLevels || null,
       streak: context.streak || null,
+      activeProgram: context.activeProgram || null,
       trainingVault: context.trainingVault || null,
       sourcePolicy: context.sourcePolicy || null,
       safety: context.safety || null,

@@ -57,13 +57,15 @@ const responseData = (response: any): Record<string, unknown> => (
 
 const responseResetEmailSent = (response: any): boolean | null => {
   const data = responseData(response);
+  const credentialState = data.credentialMode || data.credentialAction;
   if (data.resetEmailSent === true) return true;
   if (data.resetEmailSent === false) return false;
-  if (data.credentialAction === 'reset_link_sent' || data.credentialAction === 'reset_email_sent') return true;
+  if (credentialState === 'reset_link_sent' || credentialState === 'reset_email_sent') return true;
   if (
-    data.credentialAction === 'reset_link_ready'
-    || data.credentialAction === 'reset_link_needed'
-    || data.credentialAction === 'reset_email_needed'
+    credentialState === 'reset_link_ready'
+    || credentialState === 'reset_link_needed'
+    || credentialState === 'reset_email_needed'
+    || credentialState === 'reset_link_unavailable'
   ) return false;
   return null;
 };
@@ -77,7 +79,7 @@ const resolveResetEmailSent = (
 };
 
 const toastVariantForHandoff = (handoff: ManualClientCreationHandoff): 'default' | 'destructive' => (
-  handoff.credentialMode.endsWith('_needed') ? 'destructive' : 'default'
+  handoff.credentialMode.endsWith('_needed') || handoff.credentialMode === 'reset_link_unavailable' ? 'destructive' : 'default'
 );
 
 const buildCreatedToastDescription = (handoff: ManualClientCreationHandoff): string => (

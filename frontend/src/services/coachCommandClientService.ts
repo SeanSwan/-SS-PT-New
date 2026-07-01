@@ -24,6 +24,13 @@ export type QuickCoachClientResponse = {
   };
   claimCode?: string | null;
   claimUrl?: string | null;
+  credentialMode?: 'claim_link_ready' | 'claim_link_needed' | 'reset_link_sent' | 'reset_link_ready' | 'reset_link_needed' | string;
+  credentialAction?: 'claim_link_ready' | 'claim_link_needed' | 'reset_link_sent' | 'reset_link_ready' | 'reset_link_needed' | string;
+  credentialIssue?: 'reset_link_unavailable' | string;
+  resetEmailSent?: boolean;
+  emailSent?: boolean;
+  resetUrl?: string | null;
+  resetExpiresAt?: string | null;
   isMoveFitness?: boolean;
 };
 

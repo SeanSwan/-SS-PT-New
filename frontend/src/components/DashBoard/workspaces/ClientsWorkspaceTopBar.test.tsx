@@ -13,6 +13,7 @@ const baseProps = {
   onDeactivateClient: vi.fn(),
   onReactivateClient: vi.fn(),
   onSendPasswordReset: vi.fn(),
+  onGenerateClaimLink: vi.fn(),
   onManageAssignments: vi.fn(),
   onManualCreateClient: vi.fn(),
 };
@@ -40,6 +41,56 @@ describe('ClientsWorkspaceTopBar', () => {
     })).toHaveAttribute('type', 'button');
     expect(screen.getByRole('button', {
       name: /send password reset link to fallback.client@example.test/i,
+    })).toHaveAttribute('type', 'button');
+  });
+
+  it('uses claim-link recovery for selected stub clients', () => {
+    const onGenerateClaimLink = vi.fn();
+    render(
+      <ClientsWorkspaceTopBar
+        {...baseProps}
+        onGenerateClaimLink={onGenerateClaimLink}
+        selectedClient={{
+          id: 424242,
+          firstName: 'Fixture',
+          lastName: 'Client',
+          email: 'fixture.client@example.test',
+          isActive: true,
+          accountStatus: 'stub',
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('button', {
+      name: /send password reset link to fixture client/i,
+    })).not.toBeInTheDocument();
+    screen.getByRole('button', {
+      name: /generate claim link for fixture client/i,
+    }).click();
+    expect(onGenerateClaimLink).toHaveBeenCalledTimes(1);
+  });
+  it('keeps inactive clients on reactivation before reset-link handoff', () => {
+    render(
+      <ClientsWorkspaceTopBar
+        {...baseProps}
+        selectedClient={{
+          id: 424242,
+          firstName: '',
+          lastName: '',
+          email: 'fallback.client@example.test',
+          isActive: false,
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('button', {
+      name: /send password reset link to fallback.client@example.test/i,
+    })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {
+      name: /deactivate fallback.client@example.test/i,
+    })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {
+      name: /reactivate fallback.client@example.test/i,
     })).toHaveAttribute('type', 'button');
   });
 

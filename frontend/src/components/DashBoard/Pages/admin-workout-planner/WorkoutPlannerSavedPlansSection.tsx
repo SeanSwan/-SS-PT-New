@@ -76,17 +76,19 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
 }) => {
   if (!selectedClientId) return null;
 
-  const defaultSixMonthPlan = savedPlans.find(plan => (
-    plan.horizonKey === 'six_month' || plan.horizonLabel === '6 Month'
-  ));
-  const primaryPlan = savedPlans.find(plan => plan.isPrimary)
-    || savedPlans.find(plan => isWorkoutPlanActiveStatus(plan.status))
-    || defaultSixMonthPlan
-    || savedPlans[0]
-    || null;
+  const hasCurrentPlan = savedPlans.some(plan => isWorkoutPlanActiveStatus(plan.status));
+  const currentPlanLoggerRoute = hasCurrentPlan ? activePlanLoggerRoute : null;
+  const primaryPlan = savedPlans.find(plan => (
+    plan.isPrimary && isWorkoutPlanActiveStatus(plan.status)
+  )) || savedPlans.find(plan => isWorkoutPlanActiveStatus(plan.status)) || null;
   const handlePrimaryArcChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const plan = savedPlans.find(item => item.id === event.target.value);
-    if (plan && plan.id !== primaryPlan?.id) onSetPrimary(plan.id, plan.name);
+    if (!plan || plan.id === primaryPlan?.id) return;
+    if (!isWorkoutPlanActiveStatus(plan.status)) {
+      onActivate(plan.id, plan.name);
+      return;
+    }
+    onSetPrimary(plan.id, plan.name);
   };
 
   return (
@@ -108,7 +110,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
           </SavedPlansLoading>
         ) : savedPlans.length === 0 ? (
           <SavedPlansEmpty>
-            No saved plans for this client yet. Generate and save a workout plan above.
+            No saved plans for this training profile yet. Generate and save a workout plan above.
           </SavedPlansEmpty>
         ) : (
           <>
@@ -119,15 +121,18 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                 onChange={handlePrimaryArcChange}
                 aria-label="Select primary training arc"
               >
+                {!primaryPlan && (
+                  <option value="" disabled>Select current arc</option>
+                )}
                 {savedPlans.map(plan => (
                   <option key={plan.id} value={plan.id}>
                     {(plan.horizonLabel || '6 Month')} - {plan.name}
                   </option>
                 ))}
               </SmallSelect>
-              {activePlanLoggerRoute && (
+              {currentPlanLoggerRoute && (
                 <PlannerHandoffLink
-                  href={activePlanLoggerRoute}
+                  href={currentPlanLoggerRoute}
                   aria-label="Open Workout Logger for the current plan"
                   $variant="primary"
                 >

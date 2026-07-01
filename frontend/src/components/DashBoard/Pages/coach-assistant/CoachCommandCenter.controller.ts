@@ -28,11 +28,13 @@ import {
   shouldScrollPlaudReview,
   toggleBoolean,
 } from './CoachCommandCenter.logic';
-import { buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
+import { buildChatRouteRequestContext, buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
+import { useCoachCommandCenterPendingFood } from './hooks/useCoachCommandCenterPendingFood';
 import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
+import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
 
 export function useCoachCommandCenterController({
   userRole = 'admin',
@@ -88,7 +90,10 @@ export function useCoachCommandCenterController({
     [activeThread?.targetUserId],
   );
   const effectiveClientId = routeClientId || activeThreadClientId;
-  const routeIntent = searchParams.get('intent');
+  const rawRouteIntent = searchParams.get('intent');
+  const routeIntent = rawRouteIntent === 'client_onboarding' && routeClientId
+    ? 'client_profile_coverage_update'
+    : rawRouteIntent;
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
   const autoSelectedThread = useMemo(
@@ -96,12 +101,23 @@ export function useCoachCommandCenterController({
     [activeThreadId, allCoachThreads, autoSelectSuppressed, routeClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
-    () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath')),
-    [searchKey],
+    () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),
+    [searchKey, userRole],
   );
   const workflowReturnSource = routeSource
     || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
   const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, workflowReturnSource);
+  const workoutPlannerRoute = useMemo(
+    () => userRole === 'client'
+      ? null
+      : buildSwanCoachWorkoutPlannerRoute({
+        userRole,
+        selectedClientId: effectiveClientId,
+        workflowReturnTo,
+        searchParams,
+      }),
+    [effectiveClientId, searchKey, userRole, workflowReturnTo],
+  );
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
@@ -122,6 +138,10 @@ export function useCoachCommandCenterController({
   const storedRouteDraft = useMemo(() => readHistoricalImportRouteDraft(routeIntent, routeDraftKey), [routeDraftKey, routeIntent, searchKey]);
   const effectiveRouteContext = useMemo(() => buildEffectiveRouteContext(routeContext, storedRouteDraft, routeClientLabel), [routeClientLabel, routeContext, storedRouteDraft]);
   const commandRouteContext = useMemo(() => buildCommandRouteContext(routeIntent, scheduledSessionContext), [routeIntent, scheduledSessionContext]);
+  const chatRouteRequestContext = useMemo(
+    () => buildChatRouteRequestContext(routeIntent, routeSource, scheduledSessionContext),
+    [routeIntent, routeSource, scheduledSessionContext],
+  );
   const clientContextTiles = useMemo(() => buildClientContextTiles(Boolean(effectiveClientId), Boolean(activeThread)), [activeThread, effectiveClientId]);
   const conversationLogs = useMemo(
     () => buildConversationLogs(chat.activeConversation?.id, chat.messages),
@@ -168,7 +188,7 @@ export function useCoachCommandCenterController({
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
   const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
-
+  const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
   const actions = createCoachCommandCenterActions({
     activeThread,
     activeThreadTitle,
@@ -190,8 +210,9 @@ export function useCoachCommandCenterController({
     routeCommandContext: commandRouteContext,
     routeContextPrompt: effectiveRouteContext.prompt,
     routeIntent,
-    routeRequestContext: scheduledSessionContext,
+    routeRequestContext: chatRouteRequestContext,
     speakCoachReply: tts.speak,
+    workoutPlannerRoute,
     onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
     onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, null, null), { replace: true }),
     setActiveThreadId,
@@ -208,7 +229,7 @@ export function useCoachCommandCenterController({
 
   useLoadCoachConversations(chat);
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
-  useAutoSelectCoachThread(autoSelectedThread, setActiveThreadId, setSelectedStatus);
+  useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
   usePlaudReviewScroll(
     shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested),
@@ -259,6 +280,7 @@ export function useCoachCommandCenterController({
     rightRailRef,
     selectedClientLabel,
     selectedStatus: displaySelectedStatus(voiceCapture.voiceStatus, selectedStatus),
+    sendMessageWithFood,
     setCommandText,
     setQuickClientName,
     setQuickClientSource,

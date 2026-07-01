@@ -16,6 +16,7 @@ import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanel';
 import CoachConsoleDock from './CoachConsoleDock';
 import { useCoachCommandCenterDrawerEffects } from './useCoachCommandCenterDrawerEffects';
+import { useSwanCoachPendingFoodQuery } from './hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from './SwanCoachWorkoutLoggerRoute';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
 import {
@@ -35,6 +36,7 @@ const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const userRole = normalizeCoachCommandRole(authUser?.role);
   const commandCenter = useCoachCommandCenterController({ userRole });
+  useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood);
   const [searchParams, setSearchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
   const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
@@ -47,7 +49,6 @@ const CoachCommandCenterPage: React.FC = () => {
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const handledPlaudUploadRequestRef = useRef(0);
-
   useCoachCommandCenterDrawerEffects({
     commandFormRef: commandCenter.commandFormRef,
     commandText: commandCenter.commandText,
@@ -77,9 +78,10 @@ const CoachCommandCenterPage: React.FC = () => {
         userRole,
         selectedClientId: commandCenter.routeClientId,
         workflowReturnTo: commandCenter.workflowReturnTo,
+        searchParams,
       });
     },
-    [commandCenter.routeClientId, commandCenter.workflowReturnTo, isClientMode, userRole],
+    [commandCenter.routeClientId, commandCenter.workflowReturnTo, isClientMode, searchParams, userRole],
   );
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
   const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';

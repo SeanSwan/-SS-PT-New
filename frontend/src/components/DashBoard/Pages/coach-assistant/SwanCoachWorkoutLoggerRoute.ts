@@ -23,18 +23,60 @@ const parsePositiveId = (value: number | string | null | undefined): string | nu
 };
 
 const parseNonNegativeInteger = (value: string | null): string | null => {
-  if (!value || !/^(0|[1-9]\d*)$/.test(value)) return null;
-  return Number.isSafeInteger(Number(value)) ? value : null;
+  const trimmed = value?.trim();
+  if (!trimmed || !/^(0|[1-9]\d*)$/.test(trimmed)) return null;
+  return Number.isSafeInteger(Number(trimmed)) ? trimmed : null;
 };
 
-const parseIsoDate = (value: string | null): string | null => {
-  if (!value) return null;
-  const date = new Date(value);
+const hasUnsafeRouteCharacters = (value: string): boolean => /[\r\n\t\\]|%(?:0a|0d|09|2e|2f|5c)/i.test(value);
+
+const hasDotOrDoubleSlashSegment = (value: string): boolean => {
+  const pathname = value.split(/[?#]/, 1)[0];
+  return pathname.includes('//') || pathname.split('/').some((segment) => segment === '.' || segment === '..');
+};
+
+const ISO_SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+
+const parseRouteDate = (value: string | null): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed || hasUnsafeRouteCharacters(trimmed) || !ISO_SESSION_DATE_PATTERN.test(trimmed)) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const date = new Date(trimmed);
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 };
 
 const parseTrainerReturnTo = (value: string | null): string | null => {
-  return value?.startsWith('/dashboard/trainer/') ? value : null;
+  const returnTo = value?.trim();
+  return returnTo
+    && returnTo.startsWith('/dashboard/trainer/')
+    && !hasUnsafeRouteCharacters(returnTo)
+    && !hasDotOrDoubleSlashSegment(returnTo)
+    ? returnTo
+    : null;
+};
+
+const appendSafeSessionContext = (params: URLSearchParams, searchParams: URLSearchParams): void => {
+  const sessionId = parsePositiveId(searchParams.get('sessionId'));
+  if (!sessionId) return;
+
+  params.set('sessionId', sessionId);
+
+  const sessionDate = parseRouteDate(searchParams.get('sessionDate'));
+  if (sessionDate) params.set('sessionDate', sessionDate);
+
+  const sessionCredits = parseNonNegativeInteger(searchParams.get('sessionCredits'));
+  if (sessionCredits !== null) params.set('sessionCredits', sessionCredits);
+};
+
+const appendContextToRoute = (route: string, searchParams: URLSearchParams): string => {
+  const queryStart = route.indexOf('?');
+  if (queryStart < 0) return route;
+
+  const path = route.slice(0, queryStart);
+  const params = new URLSearchParams(route.slice(queryStart + 1));
+  appendSafeSessionContext(params, searchParams);
+  return `${path}?${params.toString()}`;
 };
 
 export function buildSwanCoachWorkoutLoggerRoute({
@@ -46,7 +88,9 @@ export function buildSwanCoachWorkoutLoggerRoute({
 
   const clientId = parsePositiveId(selectedClientId);
   if (userRole === 'admin') {
-    return clientId ? buildClientWorkoutLoggerRoute(clientId) : ADMIN_PERSONAL_WORKOUT_LOGGER_ROUTE;
+    return clientId
+      ? appendContextToRoute(buildClientWorkoutLoggerRoute(clientId) || ADMIN_PERSONAL_WORKOUT_LOGGER_ROUTE, searchParams)
+      : ADMIN_PERSONAL_WORKOUT_LOGGER_ROUTE;
   }
 
   if (!clientId) return null;
@@ -60,14 +104,7 @@ export function buildSwanCoachWorkoutLoggerRoute({
   const returnTo = parseTrainerReturnTo(searchParams.get('returnTo'));
   if (returnTo) params.set('returnTo', returnTo);
 
-  const sessionId = parsePositiveId(searchParams.get('sessionId'));
-  if (sessionId) params.set('sessionId', sessionId);
-
-  const sessionDate = parseIsoDate(searchParams.get('sessionDate'));
-  if (sessionDate) params.set('sessionDate', sessionDate);
-
-  const sessionCredits = parseNonNegativeInteger(searchParams.get('sessionCredits'));
-  if (sessionCredits) params.set('sessionCredits', sessionCredits);
+  appendSafeSessionContext(params, searchParams);
 
   return `/dashboard/trainer/log-workout?${params.toString()}`;
 }

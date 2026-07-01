@@ -17,11 +17,31 @@ import React from 'react';
 import styled from 'styled-components';
 import { BarChart3, CheckCircle2 } from 'lucide-react';
 
+interface ClientTrainingPlanCursor {
+  week?: string | number | null;
+  day?: string | number | null;
+}
+
+interface ClientTrainingPlanProgress {
+  advanced?: boolean | null;
+  planCompleted?: boolean | null;
+  previous?: ClientTrainingPlanCursor | null;
+  next?: ClientTrainingPlanCursor | null;
+}
+
+interface ClientTrainingPlannedAssignment {
+  weekNumber?: string | number | null;
+  dayNumber?: string | number | null;
+}
+
 export interface ClientTrainingSavedWorkout {
   id?: string | number | null;
   formId?: string | number | null;
   date?: string | null;
   sessionDeducted?: boolean | null;
+  scheduledSessionId?: string | number | null;
+  plannedAssignment?: ClientTrainingPlannedAssignment | null;
+  planProgress?: ClientTrainingPlanProgress | null;
 }
 
 interface ClientTrainingSaveReceiptProps {
@@ -116,32 +136,72 @@ const getDeductionLabel = (value: ClientTrainingSavedWorkout['sessionDeducted'])
   return 'Session policy recorded';
 };
 
+const getScheduledSessionLabel = (value: ClientTrainingSavedWorkout['scheduledSessionId']) => {
+  if (value === null || value === undefined || value === '') return null;
+  return `Booked session ${String(value)}`;
+};
+
+const formatCursorPart = (prefix: 'W' | 'D', value: string | number | null | undefined) => {
+  if (value === null || value === undefined || value === '') return null;
+  const text = String(value).trim();
+  return text ? `${prefix}${text}` : null;
+};
+
+const formatPlanCursor = (cursor?: ClientTrainingPlanCursor | null) => {
+  const week = formatCursorPart('W', cursor?.week);
+  const day = formatCursorPart('D', cursor?.day);
+  if (week && day) return `${week}${day}`;
+  return week || day;
+};
+
+const getPlannedAssignmentCursor = (assignment?: ClientTrainingPlannedAssignment | null) => (
+  formatPlanCursor({ week: assignment?.weekNumber, day: assignment?.dayNumber })
+);
+
+const getPlanProgressLabel = (savedWorkout: ClientTrainingSavedWorkout) => {
+  const progress = savedWorkout.planProgress;
+  if (!progress?.advanced) return null;
+  const previous = formatPlanCursor(progress.previous) ?? getPlannedAssignmentCursor(savedWorkout.plannedAssignment);
+  if (progress.planCompleted) return previous ? `Plan completed from ${previous}` : 'Plan completed';
+  const next = formatPlanCursor(progress.next);
+  if (previous && next) return `Plan advanced ${previous} -> ${next}`;
+  if (next) return `Plan advanced to ${next}`;
+  return previous ? `Plan advanced from ${previous}` : 'Plan advanced';
+};
+
 const ClientTrainingSaveReceipt: React.FC<ClientTrainingSaveReceiptProps> = ({
   clientName,
   savedWorkout,
   onOpenProgress,
-}) => (
-  <Receipt role="status" aria-live="polite">
-    <Copy>
-      <Eyebrow><CheckCircle2 size={14} /> Workout saved</Eyebrow>
-      <Title>{clientName} history is updated.</Title>
-      <Meta>
-        <span>Form {getReceiptId(savedWorkout)}</span>
-        {savedWorkout.date && <span>{savedWorkout.date}</span>}
-        <span>{getDeductionLabel(savedWorkout.sessionDeducted)}</span>
-      </Meta>
-    </Copy>
-    {onOpenProgress && (
-      <ProofButton
-        type="button"
-        onClick={onOpenProgress}
-        aria-label={`Open ${clientName} progress proof`}
-      >
-        <BarChart3 size={15} />
-        Progress Proof
-      </ProofButton>
-    )}
-  </Receipt>
-);
+}) => {
+  const scheduledSessionLabel = getScheduledSessionLabel(savedWorkout.scheduledSessionId);
+  const planProgressLabel = getPlanProgressLabel(savedWorkout);
+
+  return (
+    <Receipt role="status" aria-live="polite">
+      <Copy>
+        <Eyebrow><CheckCircle2 size={14} /> Workout saved</Eyebrow>
+        <Title>{clientName} history is updated.</Title>
+        <Meta>
+          <span>Form {getReceiptId(savedWorkout)}</span>
+          {savedWorkout.date && <span>{savedWorkout.date}</span>}
+          {scheduledSessionLabel && <span>{scheduledSessionLabel}</span>}
+          {planProgressLabel && <span>{planProgressLabel}</span>}
+          <span>{getDeductionLabel(savedWorkout.sessionDeducted)}</span>
+        </Meta>
+      </Copy>
+      {onOpenProgress && (
+        <ProofButton
+          type="button"
+          onClick={onOpenProgress}
+          aria-label={`Open ${clientName} progress proof`}
+        >
+          <BarChart3 size={15} />
+          Progress Proof
+        </ProofButton>
+      )}
+    </Receipt>
+  );
+};
 
 export default ClientTrainingSaveReceipt;

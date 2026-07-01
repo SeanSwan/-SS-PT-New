@@ -1036,6 +1036,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     if (parsedEquipmentProfileId) {
       formData.equipmentProfileId = parsedEquipmentProfileId;
     }
+    if (linkedScheduledSession) {
+      formData.scheduledSessionId = linkedScheduledSession.id;
+    }
     if (plannedAssignmentMetadata) {
       formData.plannedAssignment = plannedAssignmentMetadata;
     }
@@ -1071,11 +1074,13 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       : 'not_deducted';
     const billingReceiptCreditsRequired = billingDecision.creditsToDeduct > 0
       ? billingDecision.creditsToDeduct
-      : (
-          scheduledSessionCreditsRequired === undefined
-            ? 1
-            : normalizePaidSessionCount(scheduledSessionCreditsRequired)
-        );
+      : billingDecision.sessionDeducted
+        ? (
+            scheduledSessionCreditsRequired === undefined
+              ? 1
+              : normalizePaidSessionCount(scheduledSessionCreditsRequired)
+          )
+        : 0;
     const billingReceipt = {
       status: billingReceiptStatus,
       shouldDeduct: billingDecision.shouldDeduct,
@@ -1214,11 +1219,12 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       success: true,
       form: {
         id: dailyForm.id,
-        clientId,
-        trainerId,
+        clientId: parsedClientId,
+        trainerId: attributedTrainerId,
         date: workoutDateIso,
         totalSets,
         estimatedDuration,
+        ...(linkedScheduledSession ? { scheduledSessionId: linkedScheduledSession.id } : {}),
         sessionDeducted: billingDecision.sessionDeducted,
         billing: billingReceipt,
         plannedAssignment: plannedAssignmentMetadata,

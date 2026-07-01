@@ -22,10 +22,11 @@ const router = express.Router();
  */
 
 // POST /api/onboarding/self - Client self-service onboarding
-// MUST be registered BEFORE /:userId to avoid param route capture
+// MUST be registered BEFORE /:userId to avoid param route capture.
+// Controller also enforces strict client-equivalent roles because authorize() has an admin override.
 router.post('/self',
   protect,
-  authorize(['client', 'admin']),
+  authorize(['client', 'user']),
   createClientSelfOnboarding
 );
 

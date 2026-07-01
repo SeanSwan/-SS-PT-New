@@ -241,7 +241,9 @@ export async function submitAiWorkoutLogAsDailyForm({
       ? 0
       : billingDecision.creditsToDeduct > 0
         ? billingDecision.creditsToDeduct
-        : normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired);
+        : billingDecision.sessionDeducted
+          ? normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired)
+          : 0;
     const billing = {
       status: billingStatus,
       shouldDeduct: billingDecision.shouldDeduct,

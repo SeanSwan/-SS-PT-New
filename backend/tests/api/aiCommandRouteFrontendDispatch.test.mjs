@@ -272,6 +272,43 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('scheduledSessionNotes');
   });
 
+  it('preserves zero-credit scheduled-session context for free-tracking workout logging commands', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'log the free-tracking booked workout',
+        selectedClientId: 42,
+        routeContext: {
+          source: 'coach-command-center',
+          intent: 'log_workout',
+          scheduledSessionId: '778',
+          scheduledSessionDate: '2026-06-08',
+          scheduledSessionCredits: 0,
+        },
+      })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
+      'log the free-tracking booked workout',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({
+        routeContext: {
+          source: 'coach-command-center',
+          intent: 'log_workout',
+          scheduledSessionId: '778',
+          scheduledSessionDate: '2026-06-08',
+          scheduledSessionCredits: 0,
+        },
+      }),
+    );
+  });
   it('rejects malformed selected-client ids instead of letting stale client refs take over', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,

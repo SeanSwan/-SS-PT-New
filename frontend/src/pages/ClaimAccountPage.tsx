@@ -12,8 +12,8 @@
  *   and set a password to activate their account.
  *
  * HOW IT FITS IN THE APP:
- *   Admin creates STUB client → generates SWAN-XXXXXXXX token → QR code / manual code
- *   Client scans QR → /claim/SWAN-XXXXXXXX → this page → POST /api/claim/activate
+ *   Admin creates STUB client -> generates SWAN-XXXXXXXX token -> QR code / manual code
+ *   Client scans QR -> /claim/SWAN-XXXXXXXX -> this page -> POST /api/claim/activate
  *
  * ARCHITECTURE:
  * graph TD
@@ -24,186 +24,35 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
-import { motion } from 'framer-motion';
+import {
+  ActivatedUsername,
+  FormCard,
+  InputField,
+  Label,
+  LoadingDots,
+  LoginLink,
+  PageOverlay,
+  PasswordInput,
+  PasswordPolicyHint,
+  StatusMessage,
+  SubmitButton,
+  Subtitle,
+  SwanIcon,
+  Title,
+  WelcomeName,
+} from './ClaimAccountPage.styles';
+import { PASSWORD_POLICY_COPY, isActivationPasswordStrong } from './activationPasswordPolicy';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// PURPOSE: Dark-first Crystalline Swan styling matching auth pages
-// ─────────────────────────────────────────────────────────────
-
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
-const PageOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1500;
-  overflow: auto;
-  background: var(--bg-base, #0A0A0F);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-`;
-
-const FormCard = styled(motion.div)`
-  width: 90%;
-  max-width: 440px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 16px;
-  padding: 40px 32px;
-  box-shadow: 0 0 40px rgba(139, 92, 246, 0.08), 0 0 80px rgba(96, 192, 240, 0.04);
-`;
-
-const SwanIcon = styled.div`
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 12px;
-  filter: drop-shadow(0 0 8px rgba(96, 192, 240, 0.4));
-`;
-
-const Title = styled.h2`
-  text-align: center;
-  color: var(--accent-primary, #60C0F0);
-  margin: 0 0 6px;
-  font-size: 1.6rem;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 700;
-`;
-
-const Subtitle = styled.p`
-  text-align: center;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-  margin: 0 0 28px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-`;
-
-const WelcomeName = styled.span`
-  color: var(--accent-gold, #C6A84B);
-  font-weight: 600;
-`;
-
-const Label = styled.label`
-  display: block;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-  font-size: 0.85rem;
-  margin-bottom: 6px;
-  font-family: 'Sora', sans-serif;
-`;
-
-const InputField = styled.input`
-  width: 100%;
-  padding: 12px 14px;
-  margin-bottom: 18px;
-  border: 2px solid rgba(139, 92, 246, 0.3);
-  border-radius: 10px;
-  background: var(--bg-base, #0A0A0F);
-  color: var(--text-primary, #E0ECF4);
-  font-size: 1rem;
-  font-family: 'Fira Code', monospace;
-  min-height: 48px;
-  box-sizing: border-box;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: border-color 0.2s, box-shadow 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.2);
-  }
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.3);
-    text-transform: none;
-    letter-spacing: normal;
-  }
-`;
-
-const PasswordInput = styled(InputField)`
-  letter-spacing: 3px;
-  text-transform: none;
-
-  &::placeholder {
-    letter-spacing: normal;
-  }
-`;
-
-const SubmitButton = styled(motion.button)`
-  width: 100%;
-  padding: 14px;
-  min-height: 52px;
-  border: none;
-  border-radius: 10px;
-  background: var(--accent-secondary, #8B5CF6);
-  color: #fff;
-  font-size: 1.05rem;
-  font-weight: 600;
-  font-family: 'Sora', sans-serif;
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-  margin-top: 4px;
-
-  &:hover:not(:disabled) {
-    box-shadow: 0 0 20px rgba(96, 192, 240, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const StatusMessage = styled.div<{ $type: 'error' | 'success' | 'info' }>`
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 18px;
-  font-size: 0.9rem;
-  border-left: 4px solid ${({ $type }) =>
-    $type === 'error' ? '#C92A54' :
-    $type === 'success' ? '#C6A84B' : '#60C0F0'};
-  background: var(--bg-surface, #1A1A24);
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const LoadingDots = styled.span`
-  background: linear-gradient(90deg, #60C0F0, #8B5CF6, #60C0F0);
-  background-size: 200% auto;
-  animation: ${shimmer} 1.5s linear infinite;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
-const LoginLink = styled.a`
-  display: block;
-  text-align: center;
-  margin-top: 20px;
-  color: var(--accent-primary, #60C0F0);
-  text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
-
-  &:hover {
-    color: var(--accent-gold, #C6A84B);
-  }
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component Logic
-// PURPOSE: Token verification + password activation flow
-// ─────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CLAIM_TOKEN_PLACEHOLDER = 'SWAN-XXXXXXXX';
 const CLAIM_TOKEN_MAX_LENGTH = CLAIM_TOKEN_PLACEHOLDER.length;
+const CLAIM_TOKEN_PATTERN = /SWAN-[A-Z0-9]{8}/i;
+const normalizeClaimTokenInput = (value: string): string => {
+  const trimmed = value.trim();
+  const matchedToken = trimmed.match(CLAIM_TOKEN_PATTERN)?.[0] ?? trimmed;
+  return matchedToken.toUpperCase().slice(0, CLAIM_TOKEN_MAX_LENGTH);
+};
 
 const ClaimAccountPage: React.FC = () => {
   const { token: urlToken } = useParams<{ token?: string }>();
@@ -230,17 +79,31 @@ const ClaimAccountPage: React.FC = () => {
     }
   }, [urlToken]);
 
+  function handleClaimTokenPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const pastedToken = normalizeClaimTokenInput(e.clipboardData.getData('text'));
+    if (!pastedToken) return;
+    e.preventDefault();
+    setToken(pastedToken);
+  }
+
   async function verifyToken(code: string) {
+    const normalizedCode = normalizeClaimTokenInput(code);
+    if (!normalizedCode || normalizedCode.length < 6) {
+      setStatus({ type: 'error', message: 'Please enter your SWAN invite code.' });
+      setVerified(false);
+      return;
+    }
+
     setVerifying(true);
     setStatus(null);
     try {
-      const res = await fetch(`${API_BASE}/api/claim/verify/${encodeURIComponent(code)}`);
+      const res = await fetch(`${API_BASE}/api/claim/verify/${encodeURIComponent(normalizedCode)}`);
       const data = await res.json();
 
       if (data.success && data.data?.valid) {
         setVerified(true);
         setFirstName(data.data.firstName || '');
-        setToken(code);
+        setToken(normalizedCode);
       } else {
         setStatus({ type: 'error', message: 'Invalid or expired invite code. Please contact your trainer for a new code.' });
         setVerified(false);
@@ -256,13 +119,21 @@ const ClaimAccountPage: React.FC = () => {
     e.preventDefault();
     setStatus(null);
 
-    if (!token || token.length < 6) {
+    const normalizedToken = normalizeClaimTokenInput(token);
+
+    if (!verified) {
+      setToken(normalizedToken);
+      await verifyToken(normalizedToken);
+      return;
+    }
+
+    if (!normalizedToken || normalizedToken.length < 6) {
       setStatus({ type: 'error', message: 'Please enter your SWAN invite code.' });
       return;
     }
 
-    if (password.length < 8) {
-      setStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
+    if (!isActivationPasswordStrong(password)) {
+      setStatus({ type: 'error', message: PASSWORD_POLICY_COPY });
       return;
     }
 
@@ -277,7 +148,7 @@ const ClaimAccountPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          token: token.toUpperCase().trim(),
+          token: normalizedToken,
           password,
           ...(email ? { email } : {}),
         }),
@@ -298,9 +169,6 @@ const ClaimAccountPage: React.FC = () => {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // SECTION: Render
-  // ─────────────────────────────────────────────────────────────
 
   return (
     <PageOverlay>
@@ -316,7 +184,7 @@ const ClaimAccountPage: React.FC = () => {
             <Title>Account Activated</Title>
             <Subtitle>
               Welcome to SwanStudios, <WelcomeName>{firstName || 'Champion'}</WelcomeName>!
-              {activatedUsername && <><br />Your username: <strong style={{ color: '#60C0F0' }}>{activatedUsername}</strong></>}
+              {activatedUsername && <><br />Your username: <ActivatedUsername>{activatedUsername}</ActivatedUsername></>}
             </Subtitle>
             <SubmitButton
               onClick={() => navigate('/login')}
@@ -348,7 +216,8 @@ const ClaimAccountPage: React.FC = () => {
                     type="text"
                     placeholder={CLAIM_TOKEN_PLACEHOLDER}
                     value={token}
-                    onChange={(e) => setToken(e.target.value.toUpperCase())}
+                    onChange={(e) => setToken(normalizeClaimTokenInput(e.target.value))}
+                    onPaste={handleClaimTokenPaste}
                     maxLength={CLAIM_TOKEN_MAX_LENGTH}
                     autoFocus
                     autoComplete="off"
@@ -356,7 +225,7 @@ const ClaimAccountPage: React.FC = () => {
                   <SubmitButton
                     type="button"
                     onClick={() => verifyToken(token)}
-                    disabled={verifying || token.length < 6}
+                    disabled={verifying || normalizeClaimTokenInput(token).length < 6}
                     whileTap={{ scale: 0.97 }}
                     style={{ marginBottom: 16 }}
                   >
@@ -367,7 +236,7 @@ const ClaimAccountPage: React.FC = () => {
 
               {verified && (
                 <>
-                  <Label htmlFor="claim-email">Email (optional — use your own email)</Label>
+                  <Label htmlFor="claim-email">Email (optional - use your own email)</Label>
                   <InputField
                     id="claim-email"
                     type="email"
@@ -382,13 +251,14 @@ const ClaimAccountPage: React.FC = () => {
                   <PasswordInput
                     id="claim-password"
                     type="password"
-                    placeholder="At least 8 characters"
+                    placeholder="Strong password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     minLength={8}
                     autoComplete="new-password"
                     autoFocus
                   />
+                  <PasswordPolicyHint>{PASSWORD_POLICY_COPY}</PasswordPolicyHint>
 
                   <Label htmlFor="claim-confirm">Confirm Password</Label>
                   <PasswordInput
@@ -403,7 +273,7 @@ const ClaimAccountPage: React.FC = () => {
 
                   <SubmitButton
                     type="submit"
-                    disabled={submitting || password.length < 8 || password !== confirmPassword}
+                    disabled={submitting || !isActivationPasswordStrong(password) || password !== confirmPassword}
                     whileTap={{ scale: 0.97 }}
                   >
                     {submitting ? <LoadingDots>Activating...</LoadingDots> : 'Activate Account'}

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   renderPage,
   resetCoachCommandCenterMocks,
+  loadConversationMock,
   sendMessageWithConversationMock,
   setCoachCommandCenterConversations,
 } from './CoachCommandCenterPage.test.harness';
@@ -36,6 +37,7 @@ describe('CoachCommandCenter selected thread target routes', () => {
       const header = screen.getByRole('region', { name: /active coach thread/i });
       expect(within(header).getByText('Ava Stone weekly training')).toBeInTheDocument();
     });
+    await waitFor(() => expect(loadConversationMock).toHaveBeenCalledWith(201));
 
     const opsRail = openOpsRail();
     expect(within(opsRail).getByText(/route workout actions for Client #424242/i)).toBeInTheDocument();
@@ -47,7 +49,7 @@ describe('CoachCommandCenter selected thread target routes', () => {
     );
     expect(within(opsRail).getByRole('link', { name: /open build plan/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/client-management?clientId=424242&tab=training&trainingSection=architect',
+      '/dashboard/admin/workout-planner?clientId=424242&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242%26tab%3Dtraining%26trainingSection%3Dplans',
     );
 
     fireEvent.change(composerInput(), { target: { value: 'Bench press 3 sets of 10.' } });

@@ -35,6 +35,28 @@ describe('CoachRouteContext', () => {
     expect(context.allowedActions.every(action => action.mode !== 'act' || action.requiresApproval)).toBe(true);
   });
 
+  it('falls back to the mounted route when sourcePath crosses dashboard roles', () => {
+    const context = buildCoachRouteContext(
+      '/dashboard/trainer/coach-assistant',
+      '?sourcePath=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42',
+    );
+
+    expect(context.route).toBe('/dashboard/trainer/coach-assistant');
+    expect(context.scope).toBe('trainer');
+    expect(context.surface).toBe('coach_command_center');
+  });
+
+  it('falls back to the mounted route when sourcePath carries encoded traversal', () => {
+    const context = buildCoachRouteContext(
+      '/dashboard/client/coach-assistant',
+      '?sourcePath=%2Fdashboard%2Fclient%2F%252e%252e%2Fadmin%2Fclient-management',
+    );
+
+    expect(context.route).toBe('/dashboard/client/coach-assistant');
+    expect(context.scope).toBe('client');
+    expect(context.surface).toBe('coach_command_center');
+  });
+
   it('preserves safe scheduled-session context when Coach is opened from the schedule', () => {
     const context = buildCoachRouteContext(
       '/dashboard/trainer/coach-assistant',
@@ -54,6 +76,30 @@ describe('CoachRouteContext', () => {
     });
     expect(context).not.toHaveProperty('scheduledSessionNotes');
   });
+  it('preserves zero-credit scheduled-session context for free-tracking Coach requests', () => {
+    const context = buildCoachRouteContext(
+      '/dashboard/trainer/coach-assistant',
+      '?source=master-schedule&intent=log_workout&sourcePath=%2Fdashboard%2Ftrainer%2Fschedule&sessionId=89&sessionDate=2026-05-31&sessionCredits=0',
+    );
+
+    expect(context).toMatchObject({
+      route: '/dashboard/trainer/schedule',
+      scope: 'trainer',
+      source: 'master-schedule',
+      intent: 'log_workout',
+      scheduledSessionId: '89',
+      scheduledSessionDate: '2026-05-31',
+      scheduledSessionCredits: 0,
+    });
+    expect(buildRouteRequestContext(context)).toEqual({
+      source: 'master-schedule',
+      intent: 'log_workout',
+      scheduledSessionId: '89',
+      scheduledSessionDate: '2026-05-31',
+      scheduledSessionCredits: 0,
+    });
+  });
+
   it('forwards safe historical-import route context to backend Coach proposals', () => {
     const context = buildCoachRouteContext(
       '/dashboard/admin/coach-assistant',

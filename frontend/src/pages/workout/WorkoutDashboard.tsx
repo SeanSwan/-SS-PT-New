@@ -38,6 +38,7 @@ const WorkoutDashboard: React.FC = () => {
   const [clients, setClients] = useState<WorkoutDashboardClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const isStaffDashboard = isWorkoutDashboardStaffRole(user?.role);
 
   useEffect(() => {
     const nextClientId = getInitialWorkoutDashboardClientId(userId, user, clients);
@@ -87,7 +88,7 @@ const WorkoutDashboard: React.FC = () => {
         <Title>Workout Dashboard</Title>
       </DashboardHeader>
 
-      {isWorkoutDashboardStaffRole(user?.role) && clients.length > 0 && (
+      {isStaffDashboard && clients.length > 0 && (
         <ClientSelectorContainer>
           <ClientSelector value={selectedClientId} onChange={handleClientChange}>
             {clients.map((client) => (
@@ -106,7 +107,7 @@ const WorkoutDashboard: React.FC = () => {
           Progress
         </Tab>
         <Tab $isActive={activeTab === 'planner'} onClick={() => setActiveTab('planner')}>
-          Workout Planner
+          {isStaffDashboard ? 'Session Builder' : 'Workout Sessions'}
         </Tab>
         <Tab $isActive={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')}>
           Recent Sessions

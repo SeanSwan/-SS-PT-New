@@ -13,7 +13,7 @@ import { ApiService } from '../../services/api.service';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
 import {
   APPLY_WORKOUT_EVENT,
-  drainPendingWorkoutPlans,
+  drainPendingWorkoutPlansForClient,
   type WorkoutPlanTransfer,
   type WorkoutExerciseTransfer,
 } from '../../utils/parseAIWorkoutPlan';
@@ -57,6 +57,7 @@ import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
+import { shouldBlockWorkoutSubmitForSessionBalance } from './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
 import VoiceMemoUpload, { type ParsedWorkout } from './VoiceMemoUpload';
@@ -188,6 +189,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const autoLoadTodayPlanRef = useRef<string | null>(null);
+  const pendingAiPlanPrefillLoadedRef = useRef(false);
   const workoutLoggerLocalIdCounterRef = useRef(0);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
@@ -345,19 +347,24 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<WorkoutPlanTransfer>).detail;
-      const pendingPlans = drainPendingWorkoutPlans();
-      const plans = pendingPlans.length ? pendingPlans : (detail?.exercises?.length ? [detail] : []);
+      const hasResolvedClient = typeof effectiveClientId === 'number';
+      const pendingPlans = hasResolvedClient ? drainPendingWorkoutPlansForClient(effectiveClientId) : [];
+      const detailMatchesClient = hasResolvedClient
+        && detail?.exercises?.length
+        && (!detail.targetClientId || detail.targetClientId === effectiveClientId);
+      const plans = pendingPlans.length ? pendingPlans : (detailMatchesClient ? [detail] : []);
       const pendingExercises = plans.flatMap((plan) => plan.exercises ?? []);
       if (pendingExercises.length) {
         const converted = convertAIExercises(pendingExercises);
         const planLabel = plans.length === 1 ? 'AI plan' : `${plans.length} AI plans`;
+        pendingAiPlanPrefillLoadedRef.current = true;
         setExercises(prev => [...prev, ...converted]);
         toast.success(`Applied ${converted.length} exercises from ${planLabel}`);
       }
     };
     window.addEventListener(APPLY_WORKOUT_EVENT, handler);
     return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
-  }, [convertAIExercises]);
+  }, [convertAIExercises, effectiveClientId]);
 
   const handleVoiceMemoParsed = useCallback((workout: ParsedWorkout) => {
     const parsedExercises = parsedWorkoutToExerciseEntries(workout).map((exercise) =>
@@ -490,15 +497,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [loadPhaseTemplate, currentOPTPhase, createWorkoutLoggerLocalId]);
 
   useEffect(() => {
-    const pendingPlans = drainPendingWorkoutPlans();
+    const pendingPlans = drainPendingWorkoutPlansForClient(effectiveClientId);
     const pendingExercises = pendingPlans.flatMap((plan) => plan.exercises ?? []);
     if (pendingExercises.length) {
       const converted = convertAIExercises(pendingExercises);
       const planLabel = pendingPlans.length === 1 ? 'AI plan' : `${pendingPlans.length} AI plans`;
+      pendingAiPlanPrefillLoadedRef.current = true;
       setExercises(prev => [...prev, ...converted]);
       toast.success(`Loaded ${converted.length} exercises from ${planLabel}`);
     }
-  }, [convertAIExercises]);
+  }, [convertAIExercises, effectiveClientId]);
 
   const executeLoadClientData = useCallback(async () => {
     setIsLoadingClient(true);
@@ -565,6 +573,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       scheduledSessionId,
       setExercises,
       setIsLoadingPlan,
+      setLoadedPlanContext,
       setPlannedAssignment,
     });
   }, [effectiveClientId, createWorkoutLoggerLocalId, routeAssignmentKey, routeAssignmentType, scheduledSessionId]);
@@ -577,6 +586,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         : null;
 
     if (!todayPlanLoadSignal || autoLoadTodayPlanRef.current === todayPlanLoadSignal || hasInitialExercises) return;
+    if (pendingAiPlanPrefillLoadedRef.current && autoLoadTodayPlan && loadTodayPlanSignal <= 0) {
+      autoLoadTodayPlanRef.current = todayPlanLoadSignal;
+      pendingAiPlanPrefillLoadedRef.current = false;
+      return;
+    }
     if (typeof effectiveClientId !== 'number') return;
 
     autoLoadTodayPlanRef.current = todayPlanLoadSignal;
@@ -744,11 +758,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
     if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
-    if (
-      client.availableSessions === 0 &&
-      user?.role !== 'admin' &&
-      !isNonDeductingClientSource(client.clientSource)
-    ) {
+    // Null balances and linked scheduled sessions pass through to backend billing validation.
+    if (shouldBlockWorkoutSubmitForSessionBalance({
+      availableSessions: client.availableSessions,
+      userRole: user?.role,
+      clientSource: client.clientSource,
+      scheduledSessionId,
+    })) {
       toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 

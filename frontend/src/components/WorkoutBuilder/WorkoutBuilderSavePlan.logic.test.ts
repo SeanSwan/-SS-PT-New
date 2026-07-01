@@ -113,6 +113,8 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
     expect(payload.planData.rationale).toEqual(generatedPlan.rationale);
     expect(payload.planData.equipmentContext).toEqual(generatedPlan.equipmentContext);
     expect(payload.planData.category).toBe('full_body');
+    expect(payload.planData.planningSystem).toBe('swan_coach_planning');
+    expect(payload.planData.swanCoachPlanning).toEqual(generatedPlan.swanCoachPlanning);
     expect(payload.planData.assignmentDefaults).toEqual({
       defaultAssignmentType: 'homework',
       billingIntent: 'non_billable_assignment',
@@ -120,6 +122,21 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
     });
   });
 
+  it('preserves generated training style metadata in saved planData', () => {
+    const trainingStyle = {
+      mode: 'hardcore',
+      method: 'standard',
+      label: 'Hardcore Sean Style',
+      cue: 'High-intent blocks with guardrails.',
+    };
+    const payload = buildWorkoutBuilderPlanSavePayload({
+      ...generatedPlan,
+      trainingStyle,
+    } as unknown as GeneratedPlan);
+
+    expect(payload.planData.trainingStyle).toEqual(trainingStyle);
+    expect((payload.planData.planSummary as Record<string, unknown>).trainingStyle).toEqual(trainingStyle);
+  });
   it('marks trainer-led generated plans without enabling automatic session deduction', () => {
     const payload = buildWorkoutBuilderPlanSavePayload(generatedPlan, {
       assignmentDefault: 'trainer_session',
@@ -135,5 +152,62 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
       billingIntent: 'trainer_led_scheduled_flow',
       shouldDeductSession: false,
     });
+  });
+
+  it('normalizes backend-shaped numeric plan summary values before persistence', () => {
+    const backendShapedPlan = {
+      ...generatedPlan,
+      planSummary: {
+        ...generatedPlan.planSummary,
+        durationWeeks: '8',
+        sessionsPerWeek: '2',
+        totalSessions: '16',
+        startingPhase: '3',
+        equipmentProfileId: '9',
+      },
+    } as unknown as GeneratedPlan;
+
+    const payload = buildWorkoutBuilderPlanSavePayload(backendShapedPlan);
+
+    expect(payload.title).toBe('Client 42 - 8-Week Swan Coach Plan');
+    expect(payload.durationWeeks).toBe(8);
+    expect(payload.nasmPhase).toBe(3);
+    expect(payload.metadata.sessionsPerWeek).toBe(2);
+    expect(payload.metadata.totalSessions).toBe(16);
+    expect(payload.metadata.equipmentProfileId).toBe(9);
+    expect(payload.planData.planSummary).toMatchObject({
+      durationWeeks: 8,
+      sessionsPerWeek: 2,
+      totalSessions: 16,
+      startingPhase: 3,
+      equipmentProfileId: 9,
+    });
+  });
+
+  it('strips identity and contact fields from persisted generated planData', () => {
+    const privateGeneratedPlan = {
+      ...generatedPlan,
+      planSummary: {
+        ...generatedPlan.planSummary,
+        clientName: 'Private Client',
+        email: 'private@example.com',
+        phone: '555-123-4567',
+        selectedClient: { email: 'nested@example.com' },
+      },
+      recommendations: [
+        'Follow up by email at private@example.com or phone 555-987-6543 after the workout.',
+      ],
+    } as unknown as GeneratedPlan;
+
+    const payload = buildWorkoutBuilderPlanSavePayload(privateGeneratedPlan);
+    const planDataText = JSON.stringify(payload.planData);
+
+    expect(planDataText).not.toContain('clientName');
+    expect(planDataText).not.toContain('selectedClient');
+    expect(planDataText).not.toContain('private@example.com');
+    expect(planDataText).not.toContain('nested@example.com');
+    expect(planDataText).not.toContain('555-123-4567');
+    expect(planDataText).not.toContain('555-987-6543');
+    expect(planDataText).toContain('[redacted]');
   });
 });

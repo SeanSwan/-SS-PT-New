@@ -43,6 +43,39 @@ describe('adminClientService createClient', () => {
     expect(post.mock.calls[0][1]).not.toHaveProperty('password');
   });
 
+  it('drops external client passwords so claim-link handoff owns credential setup', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: { success: true, data: { client: { id: 77 }, claimUrl: 'https://sswanstudios.com/claim/SWAN-ABCDEFGH' } },
+    });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get: vi.fn(),
+      post,
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+
+    await service.createExternalClient({
+      firstName: 'Move',
+      lastName: 'Client',
+      email: 'move@example.com',
+      clientSource: 'move_fitness',
+      password: 'DoNotSend123!',
+    });
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/admin/clients/create-external',
+      expect.objectContaining({
+        firstName: 'Move',
+        lastName: 'Client',
+        email: 'move@example.com',
+        clientSource: 'move_fitness',
+      }),
+      undefined,
+    );
+    expect(post.mock.calls[0][1]).not.toHaveProperty('password');
+  });
   it('contains no client-side temporary password generator', () => {
     const source = readFileSync(resolve(__dirname, './adminClientService.ts'), 'utf8');
 
@@ -73,6 +106,36 @@ describe('adminClientService sendClientPasswordReset', () => {
       {},
       undefined,
     );
+  });
+
+  it('preserves backend reset-link policy messages for admin surfaces', async () => {
+    const post = vi.fn().mockRejectedValue({
+      response: {
+        data: {
+          message: 'Client is inactive. Reactivate the client before sending a password reset link.',
+        },
+      },
+    });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get: vi.fn(),
+      post,
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      await expect(service.sendClientPasswordReset('client-42'))
+        .rejects.toThrow(/reactivate the client before sending a password reset link/i);
+      expect(consoleError).toHaveBeenCalledWith(
+        'Error sending password reset:',
+        expect.objectContaining({ response: expect.any(Object) }),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('keeps legacy admin-client surfaces off raw password prompts', () => {

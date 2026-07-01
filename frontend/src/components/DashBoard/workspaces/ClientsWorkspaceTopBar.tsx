@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { ClipboardCheck, ClipboardList, Eye, KeyRound, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Eye, KeyRound, Link2, MessageCircle, RotateCcw, UserCheck, UserPlus, UserX } from 'lucide-react';
 import { ActionBtn, TopBar, TopBarActions } from './ClientsWorkspace.styles';
 import ClientSelectorDropdown, { type ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
@@ -20,6 +20,7 @@ interface ClientsWorkspaceTopBarProps {
   onDeactivateClient: () => void;
   onReactivateClient: () => void;
   onSendPasswordReset: () => void;
+  onGenerateClaimLink: () => void;
   onManageAssignments: () => void;
   onManualCreateClient: () => void;
 }
@@ -36,10 +37,12 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
   onDeactivateClient,
   onReactivateClient,
   onSendPasswordReset,
+  onGenerateClaimLink,
   onManageAssignments,
   onManualCreateClient,
 }) => {
   const selectedClientName = selectedClient ? getClientDisplayName(selectedClient) : '';
+  const isClaimPending = selectedClient?.accountStatus === 'stub' || selectedClient?.accountStatus === 'invited';
 
   return (
     <TopBar data-swan-client-workspace-topbar>
@@ -135,7 +138,18 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Deactivate</span>
             </ActionBtn>
           )}
-          {selectedClient && (
+          {selectedClient && selectedClient.isActive !== false && isClaimPending && (
+            <ActionBtn
+              type="button"
+              onClick={onGenerateClaimLink}
+              aria-label={`Generate claim link for ${selectedClientName}`}
+              title={`Generate ${selectedClientName} a secure claim link`}
+            >
+              <Link2 size={16} />
+              <span>Claim Link</span>
+            </ActionBtn>
+          )}
+          {selectedClient && selectedClient.isActive !== false && !isClaimPending && (
             <ActionBtn
               type="button"
               onClick={onSendPasswordReset}

@@ -93,6 +93,7 @@ interface ClientsWorkspaceViewProps {
   onDeactivateClient: () => void;
   onReactivateClient: () => void;
   onSendPasswordReset: () => void;
+  onGenerateClaimLink: () => void;
   onManageAssignments: () => void;
   onManualCreateClient: () => void;
   onCloseManualCreate: () => void;
@@ -261,6 +262,7 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       onDeactivateClient={props.onDeactivateClient}
       onReactivateClient={props.onReactivateClient}
       onSendPasswordReset={props.onSendPasswordReset}
+      onGenerateClaimLink={props.onGenerateClaimLink}
       onManageAssignments={props.onManageAssignments}
       onManualCreateClient={props.onManualCreateClient}
     />

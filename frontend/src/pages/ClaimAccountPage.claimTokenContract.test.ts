@@ -15,4 +15,18 @@ describe('ClaimAccountPage claim token contract', () => {
     expect(pageSource).toContain('placeholder={CLAIM_TOKEN_PLACEHOLDER}');
     expect(pageSource).toContain('maxLength={CLAIM_TOKEN_MAX_LENGTH}');
   });
+
+  it('keeps activation success username styling tokenized instead of inline hardcoded cyan', () => {
+    const pageSource = readSource('src/pages/ClaimAccountPage.tsx');
+    const stylesSource = readSource('src/pages/ClaimAccountPage.styles.ts');
+
+    expect(pageSource).not.toContain("style={{ color: '#60C0F0' }}");
+    expect(pageSource).toContain("from './ClaimAccountPage.styles'");
+    expect(stylesSource).toContain('export const ActivatedUsername = styled.strong`');
+    expect(stylesSource).toContain('color: var(--accent-primary, #60C0F0);');
+    expect(stylesSource).toContain("'var(--error-text, #C92A54)'");
+    expect(stylesSource).not.toMatch(/\? '#[0-9A-Fa-f]{3,8}'/);
+    expect(stylesSource).not.toMatch(/: '#[0-9A-Fa-f]{3,8}'/);
+    expect(pageSource).toContain('<ActivatedUsername>{activatedUsername}</ActivatedUsername>');
+  });
 });

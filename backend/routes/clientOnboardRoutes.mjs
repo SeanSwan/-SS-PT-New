@@ -15,7 +15,7 @@
  * HOW IT FITS IN THE APP:
  *   AI Chat → parses trainer speech into ONBOARD_CLIENT_INTENT →
  *   Frontend sends structured JSON here → Backend creates all records atomically →
- *   Returns claim code + temp password for trainer to share with client.
+ *   Returns claim code + claim link for trainer to share with client.
  *
  * KEY DECISIONS:
  *   - AI is intent parser only (no PII in AI context)
@@ -40,6 +40,7 @@ import {
   buildClientOnboardStubEmail,
   normalizeClientOnboardEmailInput,
 } from '../services/clientOnboardIdentityService.mjs';
+import { buildClientOnboardAccessHandoff } from '../services/clientOnboardAccessHandoffService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -305,6 +306,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     const isMoveFitness = normalizedClientSource === 'move_fitness';
     const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource);
     const frontendUrl = (process.env.FRONTEND_URL || 'https://sswanstudios.com').replace(/\/+$/, '');
+    const accessHandoff = await buildClientOnboardAccessHandoff({ user: newUser, claimData, frontendUrl });
     const responseData = {
       client: {
         id: newUser.id,
@@ -317,10 +319,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         accountStatus: newUser.accountStatus,
         role: newUser.role,
       },
-      credentialMode: claimData ? 'claim_link_ready' : 'claim_link_needed',
-      claimCode: claimData?.plainToken || null,
-      claimUrl: claimData ? `${frontendUrl}/claim/${claimData.plainToken}` : null,
-      claimExpiresAt: claimData?.expires?.toISOString() || null,
+      ...accessHandoff,
       assignedTrainer,
       isMoveFitness,
       isFreeTracking,

@@ -6,6 +6,18 @@
  * No entry in this file implies automatic client-facing writes.
  */
 
+export type CommandLogAccessHandoff = {
+  credentialMode: 'claim_link_ready' | 'claim_link_needed' | 'reset_link_sent' | 'reset_link_ready' | 'reset_link_needed' | 'reset_link_unavailable';
+  claimCode?: string | null;
+  claimUrl?: string | null;
+  resetUrl?: string | null;
+  resetExpiresAt?: string | null;
+  resetEmailSent?: boolean;
+  credentialIssue?: 'reset_link_unavailable' | string;
+  clientName?: string;
+  clientSource?: string | null;
+};
+
 export type CommandLogEntry = {
   id: string;
   actor: 'system' | 'operator' | 'coach';
@@ -14,6 +26,7 @@ export type CommandLogEntry = {
   attachments?: string[];
   commandConfirmation?: CommandLogConfirmation;
   commandResult?: CommandLogResult;
+  accessHandoff?: CommandLogAccessHandoff;
 };
 
 export type CommandLogConfirmation = {

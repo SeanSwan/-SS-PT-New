@@ -28,6 +28,22 @@ describe('buildSwanCoachWorkoutLoggerRoute', () => {
     );
   });
 
+  it('drops malformed scheduled dates instead of normalizing them into fake logger context', () => {
+    const searchParams = new URLSearchParams({
+      sessionId: '77',
+      sessionDate: '1',
+      sessionCredits: '2',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'trainer',
+      selectedClientId: 42,
+      searchParams,
+    })).toBe(
+      '/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today&sessionId=77&sessionCredits=2',
+    );
+  });
+
   it('drops unsafe trainer route context instead of copying free-form query text', () => {
     const searchParams = new URLSearchParams({
       sessionId: 'bad-id',
@@ -43,11 +59,77 @@ describe('buildSwanCoachWorkoutLoggerRoute', () => {
     })).toBe('/dashboard/trainer/log-workout?clientId=99&source=swan-coach&loadPlan=today');
   });
 
+  it('drops dashboard-looking trainer return paths with unsafe control characters', () => {
+    const searchParams = new URLSearchParams({
+      returnTo: '/dashboard/trainer/overview\n?sessionId=777',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'trainer',
+      selectedClientId: 42,
+      searchParams,
+    })).toBe('/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today');
+  });
+
+  it('drops dashboard-looking trainer return paths with encoded control characters', () => {
+    const searchParams = new URLSearchParams({
+      returnTo: '/dashboard/trainer/overview%0A?sessionId=777',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'trainer',
+      selectedClientId: 42,
+      searchParams,
+    })).toBe('/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today');
+  });
+
+  it('drops encoded traversal-style trainer return paths', () => {
+    const searchParams = new URLSearchParams({
+      returnTo: '/dashboard/trainer/%2e%2e/admin/client-management',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'trainer',
+      selectedClientId: 42,
+      searchParams,
+    })).toBe('/dashboard/trainer/log-workout?clientId=42&source=swan-coach&loadPlan=today');
+  });
+
   it('routes admin Coach workouts to the Client Hub logger when a client is selected', () => {
     expect(buildSwanCoachWorkoutLoggerRoute({
       userRole: 'admin',
       selectedClientId: 8,
       searchParams: new URLSearchParams(),
+    })).toBe('/dashboard/admin/client-management?clientId=8&tab=training&trainingSection=logger&loadPlan=today');
+  });
+
+  it('preserves safe admin booked-session context when returning Coach-generated workouts to the Client Hub logger', () => {
+    const searchParams = new URLSearchParams({
+      sessionId: '314',
+      sessionDate: '2026-06-15',
+      sessionCredits: '0',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'admin',
+      selectedClientId: 8,
+      searchParams,
+    })).toBe(
+      '/dashboard/admin/client-management?clientId=8&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-15&sessionCredits=0',
+    );
+  });
+
+  it('drops unsafe admin booked-session context before returning to the Client Hub logger', () => {
+    const searchParams = new URLSearchParams({
+      sessionId: '314bad',
+      sessionDate: 'javascript:alert(1)',
+      sessionCredits: '-1',
+    });
+
+    expect(buildSwanCoachWorkoutLoggerRoute({
+      userRole: 'admin',
+      selectedClientId: 8,
+      searchParams,
     })).toBe('/dashboard/admin/client-management?clientId=8&tab=training&trainingSection=logger&loadPlan=today');
   });
 

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { registerCommands, DateSchema } from './baseSchemas.mjs';
 
 const BarcodeSchema = z.string().trim().regex(/^\d{8,14}$/, 'Barcode must be 8-14 digits');
+const CLIENT_FACING_READ_ROLES = ['admin', 'trainer', 'client', 'user'];
 
 const ScanFoodInputSchema = z.object({
   query: z.string().trim().min(1).max(200).optional(),
@@ -97,7 +98,7 @@ const commands = [
     method: 'GET', endpoint: '/api/food-scanner/search',
     inputSchema: ScanFoodInputSchema,
     destructive: false, requiresConfirmation: false,
-    roleRequired: ['admin', 'trainer', 'client'],
+    roleRequired: CLIENT_FACING_READ_ROLES,
     requiresClientRef: false, category: 'E',
   },
   {

@@ -8,6 +8,7 @@
 
 import multer from 'multer';
 import logger from '../utils/logger.mjs';
+import { sanitizeWorkoutPlanMetadataForPersistence } from '../services/workoutPlanDataPrivacyService.mjs';
 import {
   storeWorkoutPlanPdf,
   WORKOUT_PLAN_PDF_MAX_BYTES,
@@ -78,14 +79,15 @@ export const handleWorkoutPlanPdfUpload = async (req, res) => {
       uploadedBy: req.user.id,
     });
 
-    const metadata = {
+    const metadata = sanitizeWorkoutPlanMetadataForPersistence({
       ...(plan.metadata && typeof plan.metadata === 'object' ? plan.metadata : {}),
       planPdf,
-    };
+    });
+    const safePlanPdf = metadata.planPdf || planPdf;
 
     await plan.update({ metadata });
     logger.info('[WorkoutPlan] Uploaded PDF for plan #%s by user %d', plan.id, req.user.id);
-    return res.json({ success: true, plan, planPdf });
+    return res.json({ success: true, plan, planPdf: safePlanPdf });
   } catch (error) {
     return sendPdfUploadError(res, error);
   }

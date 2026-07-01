@@ -178,7 +178,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     await user.click(await screen.findByRole('button', { name: /^new client$/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/dashboard/admin/coach-assistant?source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
+      '/dashboard/admin/coach-assistant?source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
     );
   });
 

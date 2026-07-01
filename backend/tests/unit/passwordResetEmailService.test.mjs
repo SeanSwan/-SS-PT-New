@@ -48,6 +48,25 @@ describe('password reset email service', () => {
     expect(hashPasswordResetToken('raw-token-value', 'different-secret')).not.toBe(hashed);
   });
 
+  it('refuses reset links for inactive accounts before token storage', async () => {
+    process.env.JWT_SECRET = 'unit-test-jwt-secret-with-enough-entropy';
+    const update = vi.fn(async () => {});
+    const sendEmail = vi.fn(async () => ({ success: true }));
+    const user = { id: 46, email: 'inactive@example.test', isActive: false, update };
+
+    const { sendPasswordResetEmailForUser } = await import('../../services/auth/passwordResetEmailService.mjs');
+
+    await expect(sendPasswordResetEmailForUser(user, {
+      frontendUrl: 'https://app.example.test',
+      includeResetUrl: true,
+      now: () => 1700000000000,
+      sendEmail,
+    })).rejects.toThrow(/reactivate the client before sending a password reset link/i);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
   it('uses a dedicated password reset secret without requiring the JWT fallback first', async () => {
     process.env.PASSWORD_RESET_SECRET = 'dedicated-reset-secret';
     delete process.env.JWT_SECRET;

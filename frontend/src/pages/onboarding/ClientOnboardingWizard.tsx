@@ -6,6 +6,11 @@ import { useNavigate } from "react-router-dom";
 import apiService from "../../services/api.service";
 import { grantConsent } from "../../services/aiConsentService";
 import { logger } from '@/utils/logger';
+import {
+  getOnboardingAccessModalCopy,
+  getOnboardingResetUrlToCopy,
+  getOnboardingAccessStatusLabel,
+} from "./ClientOnboardingAccessHandoff";
 
 /* ── Lazy-loaded wizard sections (code-split for FCP) ── */
 const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
@@ -105,6 +110,11 @@ const StepIndicator = styled.div`
   align-items: center;
   margin-bottom: 2rem;
   gap: 0;
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
 `;
 
 const Step = styled.button<{ $active: boolean; $completed: boolean }>`
@@ -155,8 +165,10 @@ const Step = styled.button<{ $active: boolean; $completed: boolean }>`
   }
 
   @media (max-width: 768px) {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     font-size: 0.75rem;
   }
 `;
@@ -171,7 +183,7 @@ const StepConnector = styled.div<{ $completed: boolean }>`
   transition: background 0.3s ease;
 
   @media (max-width: 768px) {
-    width: 12px;
+    display: none;
   }
 `;
 
@@ -352,6 +364,8 @@ const CredentialRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
   color: rgba(255, 255, 255, 0.9);
 
@@ -370,6 +384,37 @@ const CredValue = styled.span`
   font-family: "Fira Code", "Courier New", monospace;
   font-size: 1rem;
   color: ${ICE_WING};
+`;
+
+const ResetLinkValue = styled(CredValue)`
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 0.82rem;
+  line-height: 1.45;
+`;
+
+const CopyResetLinkButton = styled.button`
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 192, 240, 0.35);
+  background: rgba(96, 192, 240, 0.12);
+  color: ${FROST_WHITE};
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(96, 192, 240, 0.2);
+  }
+`;
+
+const ResetLinkCopyStatus = styled.p`
+  margin: 0.75rem 0 0;
+  color: ${FROST_WHITE};
+  font-size: 0.9rem;
+  line-height: 1.45;
 `;
 
 interface ClientOnboardingWizardProps {
@@ -410,10 +455,27 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [copiedResetLink, setCopiedResetLink] = useState(false);
+  const [resetLinkCopyStatus, setResetLinkCopyStatus] = useState('');
 
   const steps = WIZARD_STEPS;
   const CurrentSection = steps[currentStep].component as React.ComponentType<any>;
   const progress = ((currentStep + 1) / steps.length) * 100;
+  const isStaffCreationFlow = !selfSubmit && !onSubmit;
+  const completionRoute = isStaffCreationFlow ? "/dashboard/admin/client-management" : "/dashboard/client/overview";
+  const completionCtaLabel = isStaffCreationFlow ? "Back to Client Hub" : "Go to Dashboard";
+  const accessStatusLabel = getOnboardingAccessStatusLabel(submissionResult);
+  const accessModalCopy = getOnboardingAccessModalCopy(submissionResult);
+  const resetUrlToCopy = getOnboardingResetUrlToCopy(submissionResult);
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    setCopiedResetLink(false);
+    setResetLinkCopyStatus('');
+    if (!onComplete) {
+      navigate(completionRoute);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -444,6 +506,23 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
     onFormDataChange?.(merged);
   };
 
+  const handleCopyResetLink = async () => {
+    const resetUrl = resetUrlToCopy || "";
+    if (!resetUrl) return;
+
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+        throw new Error("Clipboard unavailable");
+      }
+      await navigator.clipboard.writeText(resetUrl);
+      setCopiedResetLink(true);
+      setResetLinkCopyStatus("Reset link copied.");
+    } catch {
+      setCopiedResetLink(false);
+      setResetLinkCopyStatus("Clipboard unavailable. Select and copy the reset link manually.");
+    }
+  };
+
   const handleExit = () => {
     if (onCancel) {
       onCancel();
@@ -471,6 +550,8 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
+    setCopiedResetLink(false);
+    setResetLinkCopyStatus("");
 
     try {
       // Admin override: use custom onSubmit handler if provided
@@ -601,12 +682,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => {
-              setShowSuccessModal(false);
-              if (!onComplete) {
-                navigate("/dashboard/client/overview");
-              }
-            }}
+            onClick={handleSuccessModalClose}
           >
             <ModalContent
               initial={{ scale: 0.8, opacity: 0 }}
@@ -614,8 +690,11 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="client-onboarding-success-title"
             >
-              <ModalTitle>Welcome to SwanStudios!</ModalTitle>
+              <ModalTitle id="client-onboarding-success-title">Welcome to SwanStudios!</ModalTitle>
 
               <ModalText>
                 Your onboarding is complete. Your anonymous client ID has been assigned:
@@ -634,32 +713,35 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
                   <CredLabel>Email:</CredLabel>
                   <CredValue>{submissionResult.email}</CredValue>
                 </CredentialRow>
-                {submissionResult.resetEmailSent !== undefined && (
+                {accessStatusLabel && (
                   <CredentialRow>
                     <CredLabel>Access:</CredLabel>
-                    <CredValue>{submissionResult.resetEmailSent ? "Reset link sent" : "Reset link needed"}</CredValue>
+                    <CredValue>{accessStatusLabel}</CredValue>
                   </CredentialRow>
+                )}
+                {resetUrlToCopy && (
+                  <CredentialRow>
+                    <CredLabel>Reset Link:</CredLabel>
+                    <CopyResetLinkButton type="button" onClick={handleCopyResetLink}>
+                      {copiedResetLink ? "Copied" : "Copy reset link"}
+                    </CopyResetLinkButton>
+                    <ResetLinkValue>{resetUrlToCopy}</ResetLinkValue>
+                  </CredentialRow>
+                )}
+                {resetLinkCopyStatus && (
+                  <ResetLinkCopyStatus role="status" aria-live="polite">
+                    {resetLinkCopyStatus}
+                  </ResetLinkCopyStatus>
                 )}
 
               </CredentialsBox>
-              <ModalText>
-                {submissionResult.resetEmailSent === true
-                  ? "Secure login link sent. The client can set their password from email."
-                  : submissionResult.resetEmailSent === false
-                    ? "No password is shown here. Send a reset link before first login."
-                    : "Your onboarding profile has been saved."}
-              </ModalText>
+              <ModalText>{accessModalCopy}</ModalText>
               <Button
                 $variant="primary"
-                onClick={() => {
-                  setShowSuccessModal(false);
-                  if (!onComplete) {
-                    navigate("/dashboard/client/overview");
-                  }
-                }}
+                onClick={handleSuccessModalClose}
                 style={{ marginTop: "1.5rem" }}
               >
-                Go to Dashboard
+                {completionCtaLabel}
               </Button>
             </ModalContent>
           </ModalOverlay>

@@ -8,6 +8,10 @@
 import { formatAssignmentContext } from './swanCoachPlanningAssignmentContextService.mjs';
 import { detectPii } from './ai/outputValidator.mjs';
 import {
+  sanitizeWorkoutPlanDataForPersistence,
+  sanitizeWorkoutPlanProgressNotesForPersistence,
+} from './workoutPlanDataPrivacyService.mjs';
+import {
   asArray,
   firstPresent,
   getWeekDaysOrSessions,
@@ -37,6 +41,10 @@ function safePlanContextText(value, fallback = '[filtered plan text]') {
   return UNSAFE_PLAN_CONTEXT_TEXT.test(cleaned) || detectPii(cleaned) ? fallback : cleaned;
 }
 
+function safePlanScalar(value, fallback = '?') {
+  return safePlanContextText(value, fallback) || fallback;
+}
+
 export function safePlanId(plan) {
   const raw = firstPresent(plan.id, plan.planId, plan.uuid);
   if (isBlank(raw)) return 'unavailable';
@@ -45,12 +53,16 @@ export function safePlanId(plan) {
 }
 
 function getPlanData(plan) {
-  return tryParse(firstPresent(plan.plan_data, plan.planData));
+  const parsed = tryParse(firstPresent(plan.plan_data, plan.planData));
+  const sanitized = sanitizeWorkoutPlanDataForPersistence(parsed);
+  return sanitized && typeof sanitized === 'object' && !Array.isArray(sanitized)
+    ? sanitized
+    : {};
 }
 
 function getProgressNotes(plan) {
   const parsed = tryParse(firstPresent(plan.progress_notes, plan.progressNotes));
-  return Array.isArray(parsed) ? parsed : [];
+  return sanitizeWorkoutPlanProgressNotesForPersistence(parsed);
 }
 
 function firstNonEmptyArray(...values) {
@@ -133,12 +145,16 @@ function formatPlanLine(plan) {
     plan.assignmentCompletions,
     plan.assignment_completions,
   )));
+  const status = safePlanScalar(plan.status || 'active', 'active').toUpperCase();
+  const nasmPhase = safePlanScalar(firstPresent(plan.nasm_phase, plan.nasmPhase), '?');
+  const durationWeeks = safePlanScalar(firstPresent(plan.duration_weeks, plan.durationWeeks), '?');
+  const createdBy = safePlanScalar(firstPresent(plan.created_by, plan.createdBy), 'unknown');
 
-  return `Plan ID: ${safePlanId(plan)} [${String(plan.status || 'active').toUpperCase()}]
+  return `Plan ID: ${safePlanId(plan)} [${status}]
 Planning System: Swan Coach Planning
-NASM Phase: ${firstPresent(plan.nasm_phase, plan.nasmPhase, '?')} | Duration: ${firstPresent(plan.duration_weeks, plan.durationWeeks, '?')} weeks | Progress: Week ${week}, Day ${day}
+NASM Phase: ${nasmPhase} | Duration: ${durationWeeks} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${countSessions(planData)}
-Created: ${planCreatedDate(plan)} by ${firstPresent(plan.created_by, plan.createdBy, 'unknown')}
+Created: ${planCreatedDate(plan)} by ${createdBy}
 ${assignmentContext ? `${assignmentContext}` : ''}
 --- CURRENT SESSION (Week ${week}, Day ${day}) ---
 ${formatCurrentSession(plan, planData, week, day)}`;

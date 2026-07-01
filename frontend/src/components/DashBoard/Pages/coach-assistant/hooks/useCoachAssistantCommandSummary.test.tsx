@@ -136,6 +136,8 @@ describe('useCoachAssistant command summaries', () => {
       'balanced',
       null,
       {
+        source: 'master-schedule',
+        intent: 'log_workout',
         scheduledSessionId: '88',
         scheduledSessionDate: '2026-05-31',
         scheduledSessionCredits: 2,
@@ -215,6 +217,44 @@ describe('useCoachAssistant command summaries', () => {
     expect(assistantMessages).not.toContain('Client created.');
   });
 
+  it('renders confirmed workout-plan debates as started instead of completed', async () => {
+    executeCommand.mockResolvedValue({
+      type: 'confirmation_required',
+      message: 'I\'ll build a workout plan for Ava. Confirm?',
+      operationId: 'op-debate',
+      command: 'build_workout_plan',
+      params: { clientId: 42 },
+      client: { id: 42, firstName: 'Ava' },
+      details: null,
+      isDestructive: false,
+    });
+    confirmCommand.mockResolvedValue({
+      success: true,
+      type: 'debate_started',
+      command: 'build_workout_plan',
+      message: 'Workout plan debate started. Track progress at /api/ai/debate/debate_job_42/status.',
+      result: { jobId: 'debate_job_42', debateType: 'workout_plan' },
+    });
+
+    const { result } = renderHook(() => useCoachAssistant({ targetClientId: 42 }));
+
+    await act(async () => {
+      await result.current.sendMessage('build a workout plan');
+    });
+
+    await act(async () => {
+      await result.current.confirmCommand('op-debate');
+    });
+
+    const assistantMessages = result.current.messages
+      .filter((message) => message.role === 'assistant')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(assistantMessages).toContain('Workout plan debate started.');
+    expect(assistantMessages).toContain('/api/ai/debate/debate_job_42/status');
+    expect(assistantMessages).not.toContain('build workout plan completed');
+  });
   it('returns the safe backend receipt when a confirmed command is no longer wired', async () => {
     confirmCommand.mockResolvedValue({
       success: false,

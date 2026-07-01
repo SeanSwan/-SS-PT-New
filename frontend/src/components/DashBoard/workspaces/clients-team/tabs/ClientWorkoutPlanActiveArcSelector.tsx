@@ -1,3 +1,11 @@
+/**
+ * Client Hub active training arc selector.
+ * =======================================
+ *
+ * BLUEPRINT: Selects the current saved workout-plan arc for a client.
+ * Parent: ClientWorkoutPlansPanel. Children: native select options sourced from
+ * hydrated plan-vault slots. Keeps loading distinct from the empty library state.
+ */
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import type {
@@ -6,6 +14,7 @@ import type {
 } from './ClientWorkoutPlansPanel.logic';
 
 interface ClientWorkoutPlanActiveArcSelectorProps {
+  loading: boolean;
   planVault: ClientPlanVaultSummary;
   updatingPlanId: string | null;
   onSelectActiveArc: (plan: ClientPlanSummary) => void;
@@ -26,14 +35,22 @@ const findSelectedArcPlan = (
   planId: string,
 ) => filledSlots.find((slot) => slot.plan?.id === planId)?.plan || null;
 
-const selectorMetaText = (planVault: ClientPlanVaultSummary, updatingPlanId: string | null) => (
-  updatingPlanId
-    ? 'Updating current arc...'
-    : `${planVault.filledCount} saved arc${planVault.filledCount === 1 ? '' : 's'} available`
+const selectorMetaText = (
+  planVault: ClientPlanVaultSummary,
+  updatingPlanId: string | null,
+  loading: boolean,
+) => (
+  loading
+    ? 'Loading saved arcs...'
+    : updatingPlanId
+      ? 'Updating current arc...'
+      : `${planVault.filledCount} saved arc${planVault.filledCount === 1 ? '' : 's'} available`
 );
 
-const renderActiveArcOptions = (filledSlots: ClientPlanVaultSlot[]) => (
-  filledSlots.length === 0 ? (
+const renderActiveArcOptions = (filledSlots: ClientPlanVaultSlot[], loading: boolean) => (
+  loading ? (
+    <option value="">Loading saved plan arcs...</option>
+  ) : filledSlots.length === 0 ? (
     <option value="">No saved plan arcs</option>
   ) : filledSlots.map((slot) => (
     <option key={slot.plan?.id} value={slot.plan?.id}>
@@ -87,13 +104,14 @@ const SelectorMeta = styled.span`
 `;
 
 const ClientWorkoutPlanActiveArcSelector: React.FC<ClientWorkoutPlanActiveArcSelectorProps> = ({
+  loading,
   planVault,
   updatingPlanId,
   onSelectActiveArc,
 }) => {
   const filledSlots = useMemo(() => filledPlanSlots(planVault), [planVault]);
   const activePlanId = resolveActivePlanId(planVault, filledSlots);
-  const disabled = filledSlots.length === 0 || Boolean(updatingPlanId);
+  const disabled = loading || filledSlots.length === 0 || Boolean(updatingPlanId);
 
   const selectActiveArc = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedPlan = findSelectedArcPlan(filledSlots, event.target.value);
@@ -110,10 +128,11 @@ const ClientWorkoutPlanActiveArcSelector: React.FC<ClientWorkoutPlanActiveArcSel
         value={activePlanId}
         onChange={selectActiveArc}
         disabled={disabled}
+        aria-busy={loading}
       >
-        {renderActiveArcOptions(filledSlots)}
+        {renderActiveArcOptions(filledSlots, loading)}
       </SelectControl>
-      <SelectorMeta>{selectorMetaText(planVault, updatingPlanId)}</SelectorMeta>
+      <SelectorMeta>{selectorMetaText(planVault, updatingPlanId, loading)}</SelectorMeta>
     </SelectorShell>
   );
 };

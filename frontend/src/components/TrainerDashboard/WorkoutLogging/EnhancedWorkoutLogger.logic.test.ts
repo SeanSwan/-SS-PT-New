@@ -27,6 +27,13 @@ describe('EnhancedWorkoutLogger return path normalization', () => {
     expect(normalizeDashboardReturnTo('/dashboard/admin/client-management\t?clientId=61')).toBeNull();
     expect(normalizeDashboardReturnTo('/dashboard\\admin\\client-management')).toBeNull();
   });
+
+  it('rejects encoded control, encoded traversal, dot, and double-slash path segments', () => {
+    expect(normalizeDashboardReturnTo('/dashboard/admin/client-management%0A?clientId=61')).toBeNull();
+    expect(normalizeDashboardReturnTo('/dashboard/admin/%2e%2e/trainer/clients')).toBeNull();
+    expect(normalizeDashboardReturnTo('/dashboard/admin/../trainer/clients')).toBeNull();
+    expect(normalizeDashboardReturnTo('/dashboard/admin//client-management')).toBeNull();
+  });
 });
 
 describe('EnhancedWorkoutLogger client identity parsing', () => {
@@ -103,6 +110,21 @@ describe('EnhancedWorkoutLogger route context', () => {
       clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-07&sessionCredits=2',
       isClientHubOrigin: false,
       workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
+    });
+  });
+
+  it('labels workout-planner returns with the planner destination', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: '/dashboard/trainer/workout-planner?source=swan-coach&clientId=61',
+      routeClientId: 61,
+      scheduledSessionId: null,
+      source: 'workout-planner',
+      userRole: 'trainer',
+    })).toMatchObject({
+      backToClientsLabel: 'Back to Workout Planner',
+      clientHubRedirectPath: null,
+      isClientHubOrigin: false,
+      workflowReturnPath: '/dashboard/trainer/workout-planner?source=swan-coach&clientId=61',
     });
   });
 

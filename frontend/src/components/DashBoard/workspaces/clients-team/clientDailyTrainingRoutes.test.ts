@@ -31,7 +31,7 @@ describe('client daily training routes', () => {
 
   it('opens Swan Coach in new-client onboarding mode from Client Hub', () => {
     expect(buildClientCoachOnboardingRoute()).toBe(
-      '/dashboard/admin/coach-assistant?source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
+      '/dashboard/admin/coach-assistant?source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
     );
   });
 
@@ -39,9 +39,9 @@ describe('client daily training routes', () => {
     expect(buildClientWorkoutLoggerRoute(VALID_CLIENT_ID)).toBe(CLIENT_HUB_LOGGER_ROUTE);
   });
 
-  it('opens embedded Build Plan inside the selected-client Client Hub', () => {
+  it('opens the full Workout Planner with a Client Hub Plan Library return target', () => {
     expect(buildClientWorkoutPlannerRoute(VALID_CLIENT_ID)).toBe(
-      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect'
+      '/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans'
     );
   });
 

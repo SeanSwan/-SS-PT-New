@@ -111,15 +111,6 @@ describe('SavedPlanCard — basic render', () => {
     expect(screen.getByTestId('primary-arc-badge')).toHaveTextContent(/primary arc/i);
   });
 
-  it('lets trainers mark a non-primary saved plan as the primary arc', () => {
-    const h = handlers();
-    render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
-
-    fireEvent.click(screen.getByTestId('action-set-primary-p-50'));
-
-    expect(h.onSetPrimary).toHaveBeenCalledWith('p-50', 'Phase 1 Plan');
-    expect(h.onLoad).not.toHaveBeenCalled();
-  });
 });
 
 describe('SavedPlanCard — card-body Load', () => {

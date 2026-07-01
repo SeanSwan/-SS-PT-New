@@ -630,7 +630,7 @@ export async function getClientContext(clientId, trainerId) {
 
     // 11. Active long-term program plan
     getLongTermProgramPlan().findOne({
-      where: { clientId, status: 'active' },
+      where: { userId: clientId, status: 'active' },
       order: [['createdAt', 'DESC']],
     }).catch(err => {
       logger.warn(

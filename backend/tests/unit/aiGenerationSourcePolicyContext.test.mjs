@@ -131,11 +131,18 @@ describe('AI generation source-policy context', () => {
       },
       longHorizonContext: {
         progressSummary: { recentSessionCount: 3 },
+        activeProgram: {
+          horizonMonths: 9,
+          goalProfile: { primaryGoal: 'strength' },
+          status: 'active',
+          sourceType: 'ai_assisted',
+        },
       },
       horizonMonths: 9,
     });
 
     expect(fingerprint.planInputsUsed.clientSourcePolicy).toBe(true);
     expect(fingerprint.planInputsUsed.planVault).toBe(true);
+    expect(fingerprint.planInputsUsed.activeProgram).toBe(true);
   });
 });

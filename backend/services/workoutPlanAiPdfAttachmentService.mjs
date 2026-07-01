@@ -10,6 +10,7 @@
 import logger from '../utils/logger.mjs';
 import { storeWorkoutPlanPdf } from './workoutPlanPdfStorageService.mjs';
 import { buildWorkoutPlanPdfFile } from './workoutPlanServerPdfService.mjs';
+import { sanitizeWorkoutPlanMetadataForPersistence } from './workoutPlanDataPrivacyService.mjs';
 
 const firstRowId = (value) => {
   const row = Array.isArray(value) ? value.find((item) => item?.id) : value;
@@ -44,13 +45,13 @@ const persistPlanPdf = async ({ sequelize, file, planId, clientId, trainerId, me
       clientId,
       uploadedBy: trainerId,
     });
-    const nextMetadata = { ...metadata, planPdf };
+    const nextMetadata = sanitizeWorkoutPlanMetadataForPersistence({ ...metadata, planPdf });
     await updatePlanPdfMetadata({ sequelize, planId, metadata: nextMetadata });
     logger.info('[AIDataWrite] Attached generated PDF to workout plan %s', planId);
     return nextMetadata;
   } catch (error) {
     logger.warn('[AIDataWrite] Workout plan PDF attachment failed for plan %s: %s', planId, error.message);
-    return metadata;
+    return sanitizeWorkoutPlanMetadataForPersistence(metadata);
   }
 };
 
@@ -68,11 +69,11 @@ export async function attachGeneratedWorkoutPlanPdf({
 }) {
   if (!planId) {
     logger.warn('[AIDataWrite] Workout plan PDF skipped because inserted plan id was unavailable');
-    return metadata;
+    return sanitizeWorkoutPlanMetadataForPersistence(metadata);
   }
 
   const file = buildWorkoutPlanPdfFile({ title, description, durationWeeks, nasmPhase, planData });
-  if (!file) return metadata;
+  if (!file) return sanitizeWorkoutPlanMetadataForPersistence(metadata);
 
   return persistPlanPdf({ sequelize, file, planId, clientId, trainerId, metadata });
 }

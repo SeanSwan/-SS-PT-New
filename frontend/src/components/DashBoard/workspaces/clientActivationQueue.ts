@@ -95,8 +95,9 @@ function buildAdminCoachOnboardingRoute(clientId: number): string {
   const params = new URLSearchParams({
     clientId: String(clientId),
     source: 'clients-team',
+    workspace: 'onboarding',
     returnTo,
-    intent: 'client_onboarding',
+    intent: 'client_profile_coverage_update',
   });
 
   return `/dashboard/admin/coach-assistant?${params.toString()}`;

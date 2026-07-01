@@ -10,6 +10,9 @@ import logger from '../../utils/logger.mjs';
 
 export function mapProposalRow(row) {
   const summary = row.summary_json || {};
+  const appliedResult = row.applied_result_json && typeof row.applied_result_json === 'object'
+    ? row.applied_result_json
+    : null;
   return {
     id: row.id,
     type: row.proposal_type,
@@ -17,13 +20,15 @@ export function mapProposalRow(row) {
     title: summary.title || 'Review Coach proposal',
     summary,
     createdAt: row.created_at,
+    ...(appliedResult?.accessHandoff ? { accessHandoff: appliedResult.accessHandoff } : {}),
+    ...(appliedResult?.client ? { client: appliedResult.client } : {}),
   };
 }
 
 export async function loadOwnedProposal({ id, userId, db }) {
   const rows = await db.query(
     `SELECT id, created_by_user_id, proposal_type, status, summary_json,
-            conversation_id, source_message_id,
+            conversation_id, source_message_id, applied_result_json,
             proposal_cipher, proposal_iv, proposal_tag, cipher_key_id
        FROM coach_action_proposals
       WHERE id = :id AND created_by_user_id = :userId
@@ -167,7 +172,7 @@ export async function updateProposalStatus({
       WHERE id = :id
         ${userId == null ? '' : 'AND created_by_user_id = :userId'}
         ${fromStatus == null ? '' : 'AND status = :fromStatus'}
-      RETURNING id, created_by_user_id, proposal_type, status, summary_json, created_at`,
+      RETURNING id, created_by_user_id, proposal_type, status, summary_json, applied_result_json, created_at`,
     {
       replacements: { id, status, resultJson: JSON.stringify(result), errorCode, userId, fromStatus },
       type: QueryTypes.SELECT,

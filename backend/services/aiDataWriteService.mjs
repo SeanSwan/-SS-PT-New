@@ -18,6 +18,10 @@ import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
 import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
 import { sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
+import {
+  normalizeWorkoutPlanDataForPersistence,
+  sanitizeWorkoutPlanMetadataForPersistence,
+} from './workoutPlanDataPrivacyService.mjs';
 import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
 import {
   attachGeneratedWorkoutPlanPdf,
@@ -71,10 +75,75 @@ function inferAiPlanHorizonKey(durationWeeks) {
   }, DURATION_HORIZONS[0]).key;
 }
 
-function clampPlanDurationWeeks(value, fallback = 4) {
+function optionalPlanDurationWeeks(value) {
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (!Number.isFinite(parsed)) return 0;
   return Math.max(1, Math.min(52, parsed));
+}
+
+function clampPlanDurationWeeks(value, fallback = 4) {
+  return optionalPlanDurationWeeks(value) || fallback;
+}
+
+function planSummaryDurationWeeks(planData) {
+  const summary = planData && typeof planData === 'object' && !Array.isArray(planData)
+    ? planData.planSummary
+    : null;
+  if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return 0;
+  return optionalPlanDurationWeeks(summary.durationWeeks);
+}
+
+function planWeekCountDurationWeeks(planData) {
+  if (!Array.isArray(planData?.weeks) || planData.weeks.length === 0) return 0;
+  return clampPlanDurationWeeks(planData.weeks.length);
+}
+
+function inferSaveWorkoutPlanDurationWeeks(data, planData) {
+  return planSummaryDurationWeeks(planData)
+    || optionalPlanDurationWeeks(data?.durationWeeks)
+    || planWeekCountDurationWeeks(planData)
+    || 4;
+}
+
+function normalizePlanNasmPhase(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const text = String(value).trim();
+  if (!/^\d+$/.test(text)) return null;
+  const parsed = Number(text);
+  if (!Number.isSafeInteger(parsed)) return null;
+  return Math.max(1, Math.min(5, parsed));
+}
+
+const PRIMARY_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: true, primary: true });
+const DEMOTED_WORKOUT_PLAN_METADATA = Object.freeze({ isPrimaryPlan: false, primary: false });
+
+function withTransactionOption(options, transaction) {
+  return transaction ? { ...options, transaction } : options;
+}
+
+async function runWorkoutPlanWriteTransaction(sequelize, work) {
+  if (typeof sequelize?.transaction === 'function') {
+    return sequelize.transaction((transaction) => work(transaction));
+  }
+  return work(null);
+}
+
+async function demoteActiveWorkoutPlansForClient(clientId, sequelize, transaction) {
+  await sequelize.query(
+    `UPDATE workout_plans
+     SET status = 'paused',
+         metadata = COALESCE(metadata, '{}'::jsonb) || :demotionMetadata::jsonb,
+         "updatedAt" = NOW()
+     WHERE "userId" = :clientId
+       AND status = 'active'`,
+    withTransactionOption({
+      replacements: {
+        clientId,
+        demotionMetadata: JSON.stringify(DEMOTED_WORKOUT_PLAN_METADATA),
+      },
+      type: sequelize.QueryTypes?.UPDATE,
+    }, transaction),
+  );
 }
 
 function sanitizeAiMacroNumber(value, fallback = 0) {
@@ -507,36 +576,25 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
 
   const title = String(data.title).slice(0, 255);
   const description = data.description ? String(data.description).slice(0, 5000) : null;
-  const nasmPhase = data.nasmPhase ? Math.max(1, Math.min(5, parseInt(data.nasmPhase))) : null;
-  const durationWeeks = clampPlanDurationWeeks(data.durationWeeks);
+  const nasmPhase = normalizePlanNasmPhase(data.nasmPhase);
+  const planData = normalizeWorkoutPlanDataForPersistence(data.planData);
+  // Cap at 52 weeks to prevent abuse.
+  planData.weeks = planData.weeks.slice(0, 52);
+  const durationWeeks = inferSaveWorkoutPlanDurationWeeks(data, planData);
   const startDate = data.startDate || null;
   const endDate = data.endDate || null;
-  const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
-    ? { ...data.metadata }
-    : {};
+  const metadata = sanitizeWorkoutPlanMetadataForPersistence(data.metadata);
 
-  if (!metadata.planHorizon && !metadata.horizonKey && !metadata.planDurationKey) {
-    const horizonKey = inferAiPlanHorizonKey(durationWeeks);
-    metadata.planHorizon = horizonKey;
-    metadata.horizonKey = horizonKey;
-    metadata.planDurationKey = horizonKey;
-  }
+  const horizonKey = inferAiPlanHorizonKey(durationWeeks);
+  metadata.planHorizon = horizonKey;
+  metadata.horizonKey = horizonKey;
+  metadata.planDurationKey = horizonKey;
   metadata.planSource = metadata.planSource || 'swan_coach_planning';
   metadata.assignmentDefault = metadata.assignmentDefault || 'trainer_session';
   metadata.billingIntent = metadata.billingIntent || 'trainer_led_scheduled_flow';
   metadata.defaultShouldDeductSession = false;
+  Object.assign(metadata, PRIMARY_WORKOUT_PLAN_METADATA);
 
-  // Validate planData structure if provided
-  let planData = { weeks: [] };
-  if (data.planData && typeof data.planData === 'object') {
-    planData = data.planData;
-    // Ensure weeks array exists
-    if (!Array.isArray(planData.weeks)) {
-      planData.weeks = [];
-    }
-    // Cap at 52 weeks to prevent abuse
-    planData.weeks = planData.weeks.slice(0, 52);
-  }
   const assignmentDefaults = planData.assignmentDefaults && typeof planData.assignmentDefaults === 'object' && !Array.isArray(planData.assignmentDefaults)
     ? { ...planData.assignmentDefaults }
     : {};
@@ -560,20 +618,23 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     metadata: JSON.stringify(metadata),
   };
 
-  const insertResult = await sequelize.query(
-    `INSERT INTO workout_plans ("userId", trainer_id, title, description,
-                                nasm_phase, start_date, end_date, "durationWeeks",
-                                status, current_week, current_day,
-                                plan_data, progress_notes, created_by, metadata,
-                                "createdAt", "updatedAt")
-     VALUES (:clientId, :trainerId, :title, :description,
-             :nasmPhase, :startDate, :endDate, :durationWeeks,
-             'active', 1, 1,
-             :planData::jsonb, '[]'::jsonb, :createdBy, :metadata::jsonb,
-             NOW(), NOW())
-     RETURNING id`,
-    { replacements, type: sequelize.QueryTypes.INSERT }
-  );
+  const insertResult = await runWorkoutPlanWriteTransaction(sequelize, async (transaction) => {
+    await demoteActiveWorkoutPlansForClient(clientId, sequelize, transaction);
+    return sequelize.query(
+      `INSERT INTO workout_plans ("userId", trainer_id, title, description,
+                                  nasm_phase, start_date, end_date, "durationWeeks",
+                                  status, current_week, current_day,
+                                  plan_data, progress_notes, created_by, metadata,
+                                  "createdAt", "updatedAt")
+       VALUES (:clientId, :trainerId, :title, :description,
+               :nasmPhase, :startDate, :endDate, :durationWeeks,
+               'active', 1, 1,
+               :planData::jsonb, '[]'::jsonb, :createdBy, :metadata::jsonb,
+               NOW(), NOW())
+       RETURNING id`,
+      withTransactionOption({ replacements, type: sequelize.QueryTypes.INSERT }, transaction),
+    );
+  });
 
   await attachGeneratedWorkoutPlanPdf({
     sequelize,

@@ -136,7 +136,7 @@ export function buildLongHorizonPlanningFingerprint({
       baseline: nasmConstraints || safePayload?.baselineReadiness,
       nutrition: safePayload?.nutrition || safePayload?.nutritionAndLifestyle,
       progressLevels: safePayload?.progressLevels,
-      activeProgram: safePayload?.activeProgram || safePayload?.activePlans,
+      activeProgram: longHorizonContext?.activeProgram || safePayload?.activeProgram || safePayload?.activePlans,
       trainingVault: longHorizonContext?.trainingVault
         || safePayload?.trainingVault
         || safePayload?.planVault,

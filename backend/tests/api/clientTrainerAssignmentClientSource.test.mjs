@@ -30,6 +30,8 @@ describe('client trainer assignment clientSource contract', () => {
     expect(trainerClientRouteEnd).toBeGreaterThan(trainerClientRouteStart);
     expect(trainerClientRoute).toContain("'fitnessGoal'");
     expect(trainerClientRoute).toContain("'trainingExperience'");
+    expect(trainerClientRoute).toContain("'accountStatus'");
+    expect(trainerClientRoute).toContain("'forcePasswordChange'");
   });
 
   it('derives onboarding readiness for trainer client cards without relying on a fake model column', () => {

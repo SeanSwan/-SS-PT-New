@@ -108,7 +108,7 @@ export const unifiedSummary = {
   failedDrafts: 0,
 };
 
-type CoachCommandTestRole = 'admin' | 'trainer' | 'client';
+type CoachCommandTestRole = 'admin' | 'trainer' | 'client' | 'user';
 
 export function setCoachCommandCenterRole(role: CoachCommandTestRole) {
   useAuthMock.mockReturnValue({

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   appendPendingWorkoutPlan,
   drainPendingWorkoutPlans,
+  drainPendingWorkoutPlansForClient,
   parseAIWorkoutPlan,
   PENDING_WORKOUT_KEY,
   PENDING_WORKOUT_QUEUE_KEY,
@@ -45,6 +46,36 @@ describe('pending AI workout plan queue', () => {
     expect(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY)).toBeNull();
   });
 
+  it('drains only matching targeted plans and preserves the rest for the correct client', () => {
+    expect(appendPendingWorkoutPlan({ ...buildPlan('Client 42 row'), targetClientId: 42 })).toBe(true);
+    expect(appendPendingWorkoutPlan({ ...buildPlan('Client 99 row'), targetClientId: 99 })).toBe(true);
+    expect(appendPendingWorkoutPlan(buildPlan('Unscoped row'))).toBe(true);
+
+    const plans = drainPendingWorkoutPlansForClient(42);
+
+    expect(plans.map((plan) => plan.exercises[0]?.exerciseName)).toEqual([
+      'Client 42 row',
+      'Unscoped row',
+    ]);
+    const remaining = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]).toMatchObject({ targetClientId: 99 });
+    expect(remaining[0].exercises[0].exerciseName).toBe('Client 99 row');
+  });
+  it('preserves queued plans when the logger has no resolved client context yet', () => {
+    expect(appendPendingWorkoutPlan(buildPlan('Unresolved self row'))).toBe(true);
+    expect(appendPendingWorkoutPlan({ ...buildPlan('Client 42 row'), targetClientId: 42 })).toBe(true);
+
+    const plans = drainPendingWorkoutPlansForClient(undefined);
+
+    expect(plans).toEqual([]);
+    const remaining = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(remaining.map((plan: WorkoutPlanTransfer) => plan.exercises[0]?.exerciseName)).toEqual([
+      'Unresolved self row',
+      'Client 42 row',
+    ]);
+    expect(sessionStorage.getItem(PENDING_WORKOUT_KEY)).toBeNull();
+  });
   it('does not mistake the s in sets for a rest-time cue', () => {
     const parsed = parseAIWorkoutPlan('- Goblet squat: 3 sets x 10 reps');
 
@@ -98,6 +129,29 @@ describe('pending AI workout plan queue', () => {
     ]);
   });
 
+  it('parses duration and round-based coach rows with unicode dash separators', () => {
+    const parsed = parseAIWorkoutPlan([
+      'Warm-up:',
+      '- Incline walk \u2013 5 minutes',
+      'Finisher:',
+      '- Bike sprint \u2014 6 rounds x 20 sec',
+    ].join('\n'));
+
+    expect(parsed).toEqual([
+      expect.objectContaining({
+        exerciseName: 'Incline walk',
+        sets: 1,
+        reps: 0,
+        notes: '5 minutes',
+      }),
+      expect.objectContaining({
+        exerciseName: 'Bike sprint',
+        sets: 6,
+        reps: 0,
+        notes: '6 rounds x 20 sec',
+      }),
+    ]);
+  });
   it('parses trainer shorthand with superset labels and unicode separators', () => {
     const parsed = parseAIWorkoutPlan([
       'A1. DB Romanian deadlift \u2013 4x8 @ 85 lbs, rest 75 sec',
@@ -124,6 +178,23 @@ describe('pending AI workout plan queue', () => {
         reps: 10,
       }),
     ]);
+  });
+
+  it('preserves structured generator target reps, rest seconds, load, and set-array counts', () => {
+    const parsed = parseAIWorkoutPlan([
+      '```json',
+      JSON.stringify({ exercises: [{ name: 'Bench Press', sets: [{ setNumber: 1 }, { setNumber: 2 }], targetReps: '8-10', restSeconds: 75, load: '95 lb' }, { name: 'Push-up', sets: 2, targetReps: 12, load: 'bodyweight' }] }),
+      '```',
+    ].join('\n'));
+
+    expect(parsed?.[0]).toMatchObject({
+      exerciseName: 'Bench Press',
+      sets: 2,
+      reps: 8,
+      restTime: 75,
+      weight: 95,
+    });
+    expect(parsed?.[1]?.weight).toBeUndefined();
   });
 
   it('preserves explicit zero reps from structured review-only JSON rows', () => {

@@ -236,6 +236,7 @@ import {
   hashPasswordResetToken,
   sendPasswordResetEmailForUser,
 } from '../services/auth/passwordResetEmailService.mjs';
+import { validatePasswordStrength } from '../services/auth/passwordPolicyService.mjs';
 import {
   CLIENT_SOURCES,
   parseClientSource,
@@ -252,7 +253,6 @@ dotenv.config();
  */
 const JWT_EXPIRY = process.env.JWT_EXPIRES_IN || '24h';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
-const PASSWORD_MIN_LENGTH = 8;
 const INSECURE_JWT_PLACEHOLDERS = new Set([
   'your-secret-key',
   'your-secret-key-change-in-production',
@@ -309,12 +309,12 @@ const loginAttempts = new Map();
  */
 const generateAccessToken = (id, role) => {
   return jwt.sign(
-    { 
+    {
       id,
       role,
       tokenType: 'access',
       tokenId: uuidv4() // Unique identifier for token revocation
-    }, 
+    },
     getJwtSecret(),
     { expiresIn: JWT_EXPIRY }
   );
@@ -327,11 +327,11 @@ const generateAccessToken = (id, role) => {
  */
 const generateRefreshToken = (id) => {
   return jwt.sign(
-    { 
+    {
       id,
       tokenType: 'refresh',
       tokenId: uuidv4() // Unique identifier for token revocation
-    }, 
+    },
     getRefreshJwtSecret(),
     { expiresIn: REFRESH_TOKEN_EXPIRY }
   );
@@ -352,7 +352,8 @@ const sanitizeUser = (user) => {
     role: user.role,
     photo: user.photo,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
+    isOnboardingComplete: user.isOnboardingComplete === true
   };
 
   // Only include additional fields if they exist
@@ -409,53 +410,16 @@ async function withWaiverAccessStatus(user) {
 const checkAndRecordAttempt = (identifier) => {
   const now = Date.now();
   const attempts = loginAttempts.get(identifier) || [];
-  
+
   // Filter recent attempts and add current attempt in one operation
   const recentAttempts = attempts
     .filter(timestamp => now - timestamp < LOGIN_ATTEMPT_WINDOW)
     .concat(now);
-  
+
   loginAttempts.set(identifier, recentAttempts);
-  
+
   // Return if rate limited (excluding the current attempt)
   return recentAttempts.length > LOGIN_ATTEMPT_LIMIT;
-};
-
-/**
- * @desc    Validate password strength
- * @param   {String} password - Password to validate
- * @returns {Object} Validation result with success and message
- */
-const validatePasswordStrength = (password) => {
-  // Check length
-  if (!password || password.length < PASSWORD_MIN_LENGTH) {
-    return { 
-      success: false, 
-      message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` 
-    };
-  }
-  
-  // Check for mix of character types (can be enhanced further)
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumbers = /[0-9]/.test(password);
-  const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-  
-  if (!(hasUppercase && hasLowercase && hasNumbers)) {
-    return {
-      success: false,
-      message: 'Password must include uppercase letters, lowercase letters, and numbers'
-    };
-  }
-  
-  if (!hasSpecialChars) {
-    return {
-      success: false,
-      message: 'Password should include at least one special character for better security'
-    };
-  }
-  
-  return { success: true };
 };
 
 /**
@@ -465,18 +429,18 @@ const validatePasswordStrength = (password) => {
  */
 export const register = async (req, res) => {
   const transaction = await sequelize.transaction();
-  
+
   try {
     logger.info('Processing new user registration');
     logger.info('Registration request received', {
       hasRequiredFields: Boolean(req.body?.firstName && req.body?.lastName && req.body?.email && req.body?.username),
     });
-    
-    const { 
-      firstName, 
-      lastName, 
-      email, 
-      username, 
+
+    const {
+      firstName,
+      lastName,
+      email,
+      username,
       password,
       // Optional fields
       phone,
@@ -494,9 +458,9 @@ export const register = async (req, res) => {
     if (!firstName || !lastName || !email || !username || !password) {
       await transaction.rollback();
       logger.warn('Registration attempt with missing required fields');
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Please provide all required fields' 
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide all required fields'
       });
     }
 
@@ -524,12 +488,12 @@ export const register = async (req, res) => {
 
     // Check if user already exists
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
-    const existingUser = await User.findOne({ 
-      where: { 
+    const existingUser = await User.findOne({
+      where: {
         [Op.or]: [
           { email },
           { username }
-        ] 
+        ]
       },
       transaction
     });
@@ -537,9 +501,9 @@ export const register = async (req, res) => {
     if (existingUser) {
       await transaction.rollback();
       logger.info(`Registration attempt with existing ${existingUser.email === email ? 'email' : 'username'}`);
-      return res.status(409).json({ 
+      return res.status(409).json({
         success: false,
-        message: 'User with this email or username already exists' 
+        message: 'User with this email or username already exists'
       });
     }
 
@@ -565,7 +529,7 @@ export const register = async (req, res) => {
         message: 'Please select a valid account type'
       });
     }
-    
+
     // Validate admin role requires a valid admin code
     if (role === 'admin') {
       if (!adminCode) {
@@ -576,7 +540,7 @@ export const register = async (req, res) => {
           message: 'Admin access code is required for admin registration'
         });
       }
-      
+
       if (adminCode !== process.env.ADMIN_ACCESS_CODE) {
         await transaction.rollback();
         logger.warn('Admin registration attempt with incorrect admin code');
@@ -585,7 +549,7 @@ export const register = async (req, res) => {
           message: 'Invalid admin access code'
         });
       }
-      
+
       // Log successful admin code verification
       logger.info('Valid admin code provided for admin registration');
     }
@@ -599,7 +563,7 @@ export const register = async (req, res) => {
         message: 'Client source is required for client accounts'
       });
     }
-    
+
     // Create new user
     const user = await User.create(
       {
@@ -628,14 +592,14 @@ export const register = async (req, res) => {
     // Ensure ID is treated properly
     const userId = user.id.toString();
     logger.info(`User authenticated, generating tokens: userID type=${typeof userId} id=${userId}`);
-    
+
     // Generate tokens
     const accessToken = generateAccessToken(userId, user.role);
     const refreshToken = generateRefreshToken(userId);
 
     // Update user with refresh token hash
     await user.update(
-      { 
+      {
         refreshTokenHash: await bcrypt.hash(refreshToken, 10),
         lastLogin: new Date()
       },
@@ -684,7 +648,7 @@ export const register = async (req, res) => {
         title: 'Welcome to SwanStudios!',
         message: 'Complete your onboarding to get started',
         type: 'system',
-        link: '/client-dashboard?tab=onboarding'
+        link: '/dashboard/client/onboarding'
       });
     } catch (notifErr) {
       logger.warn(`Registration notification failed for user ${user.id}: ${notifErr.message}`);
@@ -717,13 +681,13 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    logger.error('Registration error:', { 
-      error: error.message, 
+    logger.error('Registration error:', {
+      error: error.message,
       stack: error.stack,
       name: error.name,
-      code: error.code 
+      code: error.code
     });
-    
+
     // Handle specific database errors
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
@@ -732,8 +696,8 @@ export const register = async (req, res) => {
         errors: error.errors.map(e => ({ field: e.path, message: e.message }))
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: 'Server error during registration'
     });
@@ -748,22 +712,22 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     // Enhanced debug logging
-    logger.info(`Login attempt initiated with request body:`, { 
+    logger.info(`Login attempt initiated with request body:`, {
       body: JSON.stringify({
         username: req.body.username ? req.body.username.substring(0, 3) + '***' : 'undefined',
         hasPassword: !!req.body.password
       })
     });
-    
+
     const { username, password } = req.body;
     const ipAddress = req.ip;
-    
+
     // Input validation
     if (!username || !password) {
       logger.warn('Login attempt with missing credentials');
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Please provide username and password' 
+        message: 'Please provide username and password'
       });
     }
 
@@ -778,11 +742,11 @@ export const login = async (req, res) => {
 
     // Find the user with enhanced error handling
     let user;
-    
+
     try {
       const User = getUser(); // 🎯 ENHANCED: Lazy load User model
-      user = await User.findOne({ 
-        where: { 
+      user = await User.findOne({
+        where: {
           [Op.or]: [
             { username },
             { email: username } // Allow login with email too
@@ -795,7 +759,7 @@ export const login = async (req, res) => {
         name: queryError.name,
         code: queryError.code,
       });
-      
+
       return res.status(500).json({
         success: false,
         message: 'Database query error'
@@ -804,9 +768,9 @@ export const login = async (req, res) => {
 
     if (!user) {
       logger.info('Login attempt for non-existent user');
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
 
@@ -830,7 +794,7 @@ export const login = async (req, res) => {
 
     // Check password with error handling
     let isMatch;
-    
+
     try {
       isMatch = await user.checkPassword(password);
     } catch (passwordError) {
@@ -838,13 +802,13 @@ export const login = async (req, res) => {
         error: passwordError.message,
         userId: user.id
       });
-      
+
       return res.status(500).json({
         success: false,
         message: 'Password verification error'
       });
     }
-    
+
     if (!isMatch) {
       // Increment failed attempts
       await user.update({
@@ -854,9 +818,9 @@ export const login = async (req, res) => {
       });
 
       logger.warn('Failed login attempt for user', { userId: user.id });
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
 
@@ -944,13 +908,13 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     // Detailed error logging
-    logger.error('Login error:', { 
-      error: error.message, 
+    logger.error('Login error:', {
+      error: error.message,
       stack: error.stack,
       name: error.name,
       code: error.code || 'no_code'
     });
-    
+
     // Database-specific errors
     if (error.name === 'SequelizeConnectionError') {
       return res.status(500).json({
@@ -965,15 +929,15 @@ export const login = async (req, res) => {
         message: 'Authentication is not configured'
       });
     }
-    
+
     if (error.name === 'SequelizeDatabaseError') {
       return res.status(500).json({
         success: false,
         message: 'Database query error'
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: 'Server error during login'
     });
@@ -998,7 +962,7 @@ export const refreshToken = async (req, res) => {
 
     // Verify refresh token
     const decoded = jwt.verify(
-      refreshToken, 
+      refreshToken,
       getRefreshJwtSecret()
     );
 
@@ -1059,10 +1023,10 @@ export const refreshToken = async (req, res) => {
     if (!isValidRefreshToken) {
       // Potential token reuse attack
       logger.warn(`Potential refresh token reuse for user ${user.id}`);
-      
+
       // Revoke all refresh tokens for this user
       await user.update({ refreshTokenHash: null });
-      
+
       return res.status(401).json({
         success: false,
         message: 'Invalid refresh token'
@@ -1086,14 +1050,14 @@ export const refreshToken = async (req, res) => {
     });
   } catch (error) {
     logger.error('Token refresh error:', { error: error.message, stack: error.stack });
-    
+
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
         message: 'Refresh token expired'
       });
     }
-    
+
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
@@ -1107,7 +1071,7 @@ export const refreshToken = async (req, res) => {
         message: 'Authentication is not configured'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error during token refresh'
@@ -1125,17 +1089,17 @@ export const logout = async (req, res) => {
     // The user is attached to req by the protect middleware
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     // Revoke refresh token
     await user.update({ refreshTokenHash: null });
-    
+
     res.status(200).json({
       success: true,
       message: 'Logged out successfully'
@@ -1163,9 +1127,9 @@ export const getProfile = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        message: 'User not found'
       });
     }
 
@@ -1178,7 +1142,7 @@ export const getProfile = async (req, res) => {
     });
   } catch (error) {
     logger.error('Profile fetch error:', { error: error.message, stack: error.stack });
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Server error fetching profile'
     });
@@ -1192,11 +1156,11 @@ export const getProfile = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   const transaction = await sequelize.transaction();
-  
+
   try {
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id, { transaction });
-    
+
     if (!user) {
       await transaction.rollback();
       return res.status(404).json({
@@ -1204,7 +1168,7 @@ export const updateProfile = async (req, res) => {
         message: 'User not found'
       });
     }
-    
+
     // Fields that can be updated
     const {
       firstName,
@@ -1222,7 +1186,7 @@ export const updateProfile = async (req, res) => {
       currentPassword,
       newPassword
     } = req.body;
-    
+
     // Check if email is being changed
     if (email && email !== user.email) {
       // Validate email format
@@ -1234,14 +1198,14 @@ export const updateProfile = async (req, res) => {
           message: 'Please provide a valid email address'
         });
       }
-      
+
       // Check if email is already taken
       const ExistingUser = getUser(); // 🎯 ENHANCED: Lazy load User model for email check
       const existingEmail = await ExistingUser.findOne({
         where: { email },
         transaction
       });
-      
+
       if (existingEmail) {
         await transaction.rollback();
         return res.status(409).json({
@@ -1250,7 +1214,7 @@ export const updateProfile = async (req, res) => {
         });
       }
     }
-    
+
     // Handle password change
     if (newPassword) {
       // Require current password
@@ -1261,7 +1225,7 @@ export const updateProfile = async (req, res) => {
           message: 'Current password is required to set a new password'
         });
       }
-      
+
       // Verify current password
       const isMatch = await user.checkPassword(currentPassword);
       if (!isMatch) {
@@ -1271,7 +1235,7 @@ export const updateProfile = async (req, res) => {
           message: 'Current password is incorrect'
         });
       }
-      
+
       // Validate new password strength
       const passwordValidation = validatePasswordStrength(newPassword);
       if (!passwordValidation.success) {
@@ -1281,11 +1245,11 @@ export const updateProfile = async (req, res) => {
           message: passwordValidation.message
         });
       }
-      
+
       // Set new password (will be hashed by model hooks)
       user.password = newPassword;
     }
-    
+
     // Update user fields
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
@@ -1299,11 +1263,11 @@ export const updateProfile = async (req, res) => {
     if (trainingExperience) user.trainingExperience = trainingExperience;
     if (healthConcerns) user.healthConcerns = healthConcerns;
     if (emergencyContact) user.emergencyContact = emergencyContact;
-    
+
     // Save changes
     await user.save({ transaction });
     await transaction.commit();
-    
+
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
@@ -1312,7 +1276,7 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     logger.error('Profile update error:', { error: error.message, stack: error.stack });
-    
+
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
         success: false,
@@ -1320,7 +1284,7 @@ export const updateProfile = async (req, res) => {
         errors: error.errors.map(e => ({ field: e.path, message: e.message }))
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Server error updating profile'
@@ -1336,22 +1300,22 @@ export const updateProfile = async (req, res) => {
 export const validateToken = async (req, res) => {
   try {
     let token;
-    
+
     // Get token from headers
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'No token provided' 
+        message: 'No token provided'
       });
     }
 
     // Verify token
     const decoded = jwt.verify(token, getJwtSecret());
-    
+
     // Check token type
     if (decoded.tokenType !== 'access') {
       return res.status(401).json({
@@ -1359,7 +1323,7 @@ export const validateToken = async (req, res) => {
         message: 'Invalid token type'
       });
     }
-    
+
     // Find user by ID
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(decoded.id, {
@@ -1367,9 +1331,28 @@ export const validateToken = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'User not found' 
+        valid: false,
+        message: 'User not found'
+      });
+    }
+
+    if (user.isActive === false) {
+      logger.warn('Token validation attempt on inactive account', { userId: user.id });
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        message: 'Account is inactive. Please contact support.'
+      });
+    }
+
+    if (user.isLocked) {
+      logger.warn('Token validation attempt on locked account', { userId: user.id });
+      return res.status(401).json({
+        success: false,
+        valid: false,
+        message: 'Account is locked. Please contact support.'
       });
     }
 
@@ -1379,15 +1362,16 @@ export const validateToken = async (req, res) => {
     // Return user data
     res.status(200).json({
       success: true,
+      valid: true,
       user: await withWaiverAccessStatus(user)
     });
   } catch (error) {
     logger.error('Token validation error:', { error: error.message, stack: error.stack });
-    
+
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Token expired' 
+        message: 'Token expired'
       });
     }
 
@@ -1397,8 +1381,8 @@ export const validateToken = async (req, res) => {
         message: 'Authentication is not configured'
       });
     }
-    
-    res.status(401).json({ 
+
+    res.status(401).json({
       success: false,
       message: 'Invalid token'
     });
@@ -1416,14 +1400,14 @@ export const getUserById = async (req, res) => {
     const user = await User.findByPk(req.params.id, {
       attributes: { exclude: ['password', 'refreshTokenHash'] }
     });
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.status(200).json({
       success: true,
       user: await withWaiverAccessStatus(user)
@@ -1476,10 +1460,11 @@ export const changePasswordForced = async (req, res) => {
       });
     }
 
-    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.success) {
       return res.status(400).json({
         success: false,
-        message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
+        message: passwordValidation.message
       });
     }
 
@@ -1515,6 +1500,14 @@ export const changePasswordForced = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    if (user.isActive === false) {
+      logger.warn('Force password change attempt on inactive account', { userId: user.id });
+      return res.status(401).json({
+        success: false,
+        message: 'Account is inactive. Please contact support.'
       });
     }
 
@@ -1593,6 +1586,10 @@ export const forgotPassword = async (req, res) => {
         return;
       }
       logger.info(`[forgotPassword] user_lookup=found id=${user.id}`);
+      if (user.isActive === false) {
+        logger.info(`[forgotPassword] user_lookup=inactive id=${user.id}`);
+        return;
+      }
 
       await sendPasswordResetEmailForUser(user, { resetSecret });
       logger.info(`[forgotPassword] email_send=success id=${user.id}`);
@@ -1610,6 +1607,14 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
+    const resetToken = typeof token === 'string' ? token.trim() : '';
+
+    if (!resetToken || typeof newPassword !== 'string' || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reset token and new password are required'
+      });
+    }
 
     try {
       getPasswordResetSecret();
@@ -1621,13 +1626,14 @@ export const resetPassword = async (req, res) => {
     }
 
     // Compute HMAC hash of provided token for O(1) indexed lookup
-    const hashedToken = hashPasswordResetToken(token);
+    const hashedToken = hashPasswordResetToken(resetToken);
 
     const User = getUser();
     const user = await User.findOne({
       where: {
         resetPasswordToken: hashedToken,
-        resetPasswordExpires: { [Op.gt]: new Date() }
+        resetPasswordExpires: { [Op.gt]: new Date() },
+        isActive: true
       }
     });
 
@@ -1648,12 +1654,16 @@ export const resetPassword = async (req, res) => {
     }
 
     // Update password (model beforeUpdate hook hashes it)
-    // Clear token fields + revoke active sessions
+    // Clear reset/claim state, complete credential handoff, and revoke active sessions.
     await user.update({
       password: newPassword,
       resetPasswordToken: null,
       resetPasswordExpires: null,
-      refreshTokenHash: null
+      refreshTokenHash: null,
+      forcePasswordChange: false,
+      accountStatus: 'active',
+      claimTokenHash: null,
+      claimTokenExpires: null
     });
 
     logger.info(`Password reset successful for user ID ${user.id}`);

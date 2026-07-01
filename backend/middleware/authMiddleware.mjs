@@ -517,7 +517,7 @@ export const trainerOnly = (req, res, next) => {
  * Client-only access middleware
  */
 export const clientOnly = (req, res, next) => {
-  if (req.user && (req.user.role === 'client' || req.user.role === 'admin')) {
+  if (req.user && (req.user.role === 'client' || req.user.role === 'user' || req.user.role === 'admin')) {
     next();
   } else {
     logger.warn('Non-client attempted client action', {

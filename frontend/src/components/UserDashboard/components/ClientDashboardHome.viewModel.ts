@@ -10,6 +10,7 @@ import type { Session } from '../../UniversalMasterSchedule/types';
 
 const WEEKLY_GOAL = 5;
 const MINUTES_PER_WORKOUT_GOAL = 45;
+const CLIENT_WORKOUTS_PATH = '/dashboard/client/workouts';
 
 export interface MetricRow {
   label: string;
@@ -109,7 +110,12 @@ export function buildTodaySnapshot({
   };
 }
 
+function isCompletedAssignment(workout?: CurrentClientWorkout | null): boolean {
+  return workout?.assignmentStatus === 'completed';
+}
+
 function assignmentPath(workout?: CurrentClientWorkout | null): string {
+  if (isCompletedAssignment(workout)) return CLIENT_WORKOUTS_PATH;
   if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) return '/dashboard/client/schedule';
 
   const params = new URLSearchParams({ loadPlan: 'today' });
@@ -117,7 +123,7 @@ function assignmentPath(workout?: CurrentClientWorkout | null): string {
   if (workout?.assignmentType) params.set('assignmentType', workout.assignmentType);
   return workout?.isLoggable
     ? `/dashboard/client/log-workout?${params.toString()}`
-    : '/dashboard/client/workouts';
+    : CLIENT_WORKOUTS_PATH;
 }
 
 export function buildAssignmentView({
@@ -129,7 +135,7 @@ export function buildAssignmentView({
   loading?: boolean;
   error?: boolean;
 }): AssignmentView {
-  const complete = workout?.assignmentStatus === 'completed';
+  const complete = isCompletedAssignment(workout);
   const exerciseCount = workout?.exerciseCount || 0;
   const rows = workout
     ? [
@@ -144,9 +150,11 @@ export function buildAssignmentView({
     : [];
   const actionLabel = !workout
     ? 'View Workouts'
-    : workout.assignmentType === 'trainer_session' && !workout.isLoggable
-      ? 'View Schedule'
-      : workout.ctaLabel || (complete ? 'Review Workout' : 'Open Workout');
+    : complete
+      ? 'Review Workout History'
+      : workout.assignmentType === 'trainer_session' && !workout.isLoggable
+        ? 'View Schedule'
+        : workout.ctaLabel || 'Open Workout';
 
   return {
     kicker: workout?.assignmentType === 'trainer_session' ? 'Trainer session' : "Today's assignment",

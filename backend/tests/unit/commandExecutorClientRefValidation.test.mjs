@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 const adminUser = { id: 7, role: 'admin', firstName: 'Admin', lastName: 'User' };
 const clientUser = { id: 42, role: 'client', firstName: 'Ava', lastName: 'Strong' };
+const rawUser = { id: 42, role: 'user', firstName: 'Ava', lastName: 'Strong' };
 
 async function loadPipeline({
   intent,
@@ -393,6 +394,31 @@ describe('command executor client reference validation', () => {
     });
 
     const ctx = await executeCommandPipeline('request a plan adjustment', clientUser, {
+      sequelize: {},
+    });
+
+    expect(ctx.error).toBeNull();
+    expect(resolveClient).not.toHaveBeenCalled();
+    expect(ctx.command?.type).toBe('request_plan_adjustment');
+    expect(ctx.result).toMatchObject({
+      type: 'confirmation_required',
+      command: 'request_plan_adjustment',
+      operationId: expect.any(String),
+    });
+    expect(ctx.result.message).toMatch(/confirm/i);
+  });
+
+  it('prepares raw-user client-equivalent plan adjustment requests without RBAC denial', async () => {
+    const { executeCommandPipeline, resolveClient } = await loadPipeline({
+      intent: {
+        intent: 'request_plan_adjustment',
+        params: { reason: 'My knee hurts when I squat.' },
+        confidence: 0.99,
+      },
+      hasDispatcher: (commandType) => commandType === 'request_plan_adjustment',
+    });
+
+    const ctx = await executeCommandPipeline('request a plan adjustment', rawUser, {
       sequelize: {},
     });
 

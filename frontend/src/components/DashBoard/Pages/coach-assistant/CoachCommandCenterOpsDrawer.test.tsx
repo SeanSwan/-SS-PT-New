@@ -114,7 +114,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     );
     expect(builder).toHaveAttribute(
       'href',
-      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
+      '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
     expect(within(priorityActions).queryByRole('button', { name: /Draft in chat/i })).not.toBeInTheDocument();
     expect(within(priorityActions).getByRole('button', { name: /^Import audio$/i })).toBeInTheDocument();
@@ -140,6 +140,38 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     );
   });
 
+  it('shows reset-link handoff copy for SwanStudios quick client add responses', async () => {
+    const resetUrl = 'https://sswanstudios.com/reset-password/raw-token';
+    createQuickCoachCommandClientMock.mockResolvedValueOnce({
+      client: {
+        id: 88,
+        firstName: 'Ava',
+        lastName: 'Stone',
+        clientSource: 'swanstudios',
+      },
+      credentialMode: 'reset_link_ready',
+      resetEmailSent: false,
+      resetUrl,
+    } as any);
+
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    const operationsRail = openOpsRail();
+    fireEvent.click(within(operationsRail).getByRole('button', { name: /client setup/i }));
+    fireEvent.change(within(operationsRail).getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
+    fireEvent.change(within(operationsRail).getByLabelText('Client source'), { target: { value: 'swanstudios' } });
+    fireEvent.click(within(operationsRail).getByRole('button', { name: /Add client/i }));
+
+    await waitFor(() => {
+      expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({ fullName: 'Ava Stone', clientSource: 'swanstudios' });
+    });
+
+    const handoff = await screen.findByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/Reset link ready/i);
+    expect(handoff).toHaveTextContent(/secure reset link/i);
+    expect(handoff).not.toHaveTextContent(/claim link/i);
+    expect(within(handoff).getByRole('link', { name: /open reset link/i })).toHaveAttribute('href', resetUrl);
+    expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
+  });
   it('adds a client from the operator drawer with human-facing copy without staging canned composer text', async () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
     const operationsRail = openOpsRail();
@@ -167,5 +199,14 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(composerInput()).toHaveValue('');
     expect(screen.getAllByText(/Ava Stone - client ready/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/No workout log was written/i).length).toBeGreaterThan(0);
+
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/Claim link ready/i);
+    expect(handoff).toHaveTextContent('claim-77');
+    expect(handoff).not.toHaveTextContent(/temporary password/i);
+    expect(within(handoff).getByRole('link', { name: /open claim link/i })).toHaveAttribute(
+      'href',
+      'https://sswanstudios.com/claim/claim-77',
+    );
   });
 });

@@ -13,6 +13,7 @@ function readBackendFile(path) {
 const classifierSource = readBackendFile('services/ai/coachActionProposalClassifier.mjs');
 const dispatcherSource = readBackendFile('services/ai/dispatchers/clientOnboardingProposalDispatcher.mjs');
 const approvalSource = readBackendFile('services/coachClientOnboardingApprovalService.mjs');
+const approvalNormalizerSource = readBackendFile('services/coachClientOnboardingDraftNormalizer.mjs');
 const directOnboardRouteSource = readBackendFile('routes/clientOnboardRoutes.mjs');
 const publicRegistrationSource = readBackendFile('controllers/authController.mjs');
 
@@ -31,9 +32,12 @@ describe('Swan Coach onboarding clientSource policy boundary', () => {
   });
 
   it('keeps approved Coach onboarding drafts on the central source allowlist', () => {
-    expect(approvalSource).toContain('CLIENT_SOURCES,');
-    expect(approvalSource).toContain('isNonDeductingClientSource,');
+    expect(approvalNormalizerSource).toContain('CLIENT_SOURCES,');
+    expect(approvalNormalizerSource).toContain('parseClientSource,');
+    expect(approvalNormalizerSource).toContain("from './sessionBillingPolicy.mjs';");
+    expect(approvalSource).toContain('isNonDeductingClientSource');
     expect(approvalSource).toContain("from './sessionBillingPolicy.mjs';");
+    expect(approvalNormalizerSource).not.toContain("const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external'])");
     expect(approvalSource).not.toContain("const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external'])");
   });
 

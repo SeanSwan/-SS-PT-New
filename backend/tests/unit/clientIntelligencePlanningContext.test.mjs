@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   const onboardingFindOne = vi.fn();
   const query = vi.fn();
   const trainingVault = vi.fn();
+  const programPlanFindOne = vi.fn();
 
   const emptyModel = { findAll: emptyFindAll, findOne: emptyFindOne, count: vi.fn() };
 
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => {
     onboardingFindOne,
     query,
     trainingVault,
+    programPlanFindOne,
     emptyModel,
   };
 });
@@ -70,7 +72,7 @@ vi.mock('../../models/index.mjs', () => {
     getGoal: () => mocks.emptyModel,
     getClientProgress: () => mocks.emptyModel,
     getBodyMeasurement: () => mocks.emptyModel,
-    getLongTermProgramPlan: () => mocks.emptyModel,
+    getLongTermProgramPlan: () => ({ findOne: mocks.programPlanFindOne }),
     getModel: (name) => optionalModels[name] || null,
     Op: { gte: 'gte' },
   };
@@ -89,6 +91,13 @@ describe('clientIntelligenceService planning context', () => {
       available: true,
       filledHorizonKeys: ['six_month'],
       slots: [{ horizonKey: 'six_month', isFilled: true }],
+    });
+    mocks.programPlanFindOne.mockResolvedValue({
+      id: 'program-42',
+      horizonMonths: 6,
+      goalProfile: { primaryGoal: 'strength' },
+      status: 'active',
+      sourceType: 'ai_assisted',
     });
     mocks.userFindByPk.mockImplementation(async (id) => {
       if (Number(id) === 99) return { id: 99, role: 'admin' };
@@ -163,6 +172,17 @@ describe('clientIntelligenceService planning context', () => {
       healthRisk: 'high',
       medicalClearanceRequired: true,
       specialPopulationFlags: expect.arrayContaining(['pregnancy_postpartum']),
+    }));
+    expect(mocks.programPlanFindOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42, status: 'active' },
+      order: [['createdAt', 'DESC']],
+    }));
+    expect(mocks.programPlanFindOne.mock.calls[0][0].where).not.toHaveProperty('clientId');
+    expect(context.activeProgram).toEqual(expect.objectContaining({
+      id: 'program-42',
+      horizonMonths: 6,
+      status: 'active',
+      sourceType: 'ai_assisted',
     }));
 
     const serializedSafeContext = JSON.stringify({

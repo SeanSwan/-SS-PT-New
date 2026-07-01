@@ -80,7 +80,7 @@ describe('coachActionProposalService', () => {
     expect(serialized).toContain('Review client onboarding draft');
   });
 
-  it('turns workout imports and submit events into approval proposals, not frontend writes', async () => {
+  it('turns workout imports into approval proposals and drops workout-submit frontend dispatches', async () => {
     const db = fakeSequelize();
     const content = [
       'Workout is ready.',
@@ -102,7 +102,6 @@ describe('coachActionProposalService', () => {
     expect(result.frontendActions).toEqual([]);
     expect(result.proposals.map((proposal) => proposal.type)).toEqual([
       COACH_PROPOSAL_TYPE.WORKOUT_LOG,
-      COACH_PROPOSAL_TYPE.FRONTEND_DISPATCH,
     ]);
   });
 
@@ -426,6 +425,33 @@ describe('coachActionProposalService', () => {
     });
   });
 
+  it('defaults split-plan child source from historical route context', () => {
+    const classified = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'split_plan',
+      payload: {
+        splits: [{
+          title: 'Imported lower body session',
+          date: '2026-06-14',
+          exercises: [{ name: 'Step-up', sets: 3, reps: 10 }],
+        }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+      routeContext: {
+        intent: 'historical_import',
+        workoutDate: '2026-06-14',
+      },
+    });
+
+    expect(classified?.type).toBe(COACH_PROPOSAL_TYPE.SPLIT_PLAN);
+    expect(classified?.payload).toMatchObject({
+      source: 'historical_import',
+      splits: [{ date: '2026-06-14' }],
+    });
+  });
   it('does not create date-less workout-log proposals from malformed route context', () => {
     const classified = classifyActionBlock({
       action: 'import_workout_log',

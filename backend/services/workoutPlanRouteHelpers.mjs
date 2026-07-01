@@ -6,6 +6,8 @@
  * ownership and gives primary-plan metadata behavior focused test coverage.
  */
 
+import { sanitizeWorkoutPlanMetadataForPersistence } from './workoutPlanDataPrivacyService.mjs';
+
 export const ACTIVATE_MAX_RETRIES = 2;
 
 export const isUniqueViolation = (err) =>
@@ -32,17 +34,29 @@ export const toPlainObject = (value) => (
 export const currentDateOnly = () => new Date().toISOString().slice(0, 10);
 
 const isPlainRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const PRIMARY_METADATA_KEYS = new Set(['isprimaryplan', 'primary']);
+
+const isPrimaryMetadataKey = (key) => (
+  PRIMARY_METADATA_KEYS.has(String(key).replace(/[^a-z0-9]/gi, '').toLowerCase())
+);
+
+const omitRequestPrimaryMetadata = (metadata) => (
+  Object.entries(metadata).reduce((safe, [key, value]) => {
+    if (!isPrimaryMetadataKey(key)) safe[key] = value;
+    return safe;
+  }, {})
+);
 
 export const mergePlanMetadata = (plan, nextMetadata) => {
   const raw = toPlainObject(plan) || {};
   const current = isPlainRecord(raw.metadata) ? raw.metadata : {};
-  const next = isPlainRecord(nextMetadata) ? nextMetadata : {};
-  return { ...current, ...next };
+  const next = isPlainRecord(nextMetadata) ? omitRequestPrimaryMetadata(nextMetadata) : {};
+  return sanitizeWorkoutPlanMetadataForPersistence({ ...current, ...next });
 };
 
 export const buildDuplicatePlanMetadata = (plan) => {
   const raw = toPlainObject(plan) || {};
-  const metadata = isPlainRecord(raw.metadata) ? { ...raw.metadata } : {};
+  const metadata = sanitizeWorkoutPlanMetadataForPersistence(raw.metadata);
   delete metadata.planPdf;
   return {
     ...metadata,
@@ -54,14 +68,14 @@ export const buildDuplicatePlanMetadata = (plan) => {
 
 export const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
-  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
+  const metadata = sanitizeWorkoutPlanMetadataForPersistence(raw.metadata);
   return {
     ...raw,
-    metadata: {
+    metadata: sanitizeWorkoutPlanMetadataForPersistence({
       ...metadata,
       isPrimaryPlan: isPrimary,
       primary: isPrimary,
-    },
+    }),
   };
 };
 

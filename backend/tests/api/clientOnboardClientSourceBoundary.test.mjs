@@ -79,7 +79,7 @@ describe('client onboard route clientSource boundary', () => {
     );
   });
 
-  it('returns client source, session inventory, account status, and claim handoff without generated passwords', () => {
+  it('returns client source, session inventory, account status, and access handoff without generated passwords', () => {
     const responseBlock = routeSource.slice(
       routeSource.indexOf('const responseData = {'),
       routeSource.indexOf('return res.status(201).json')
@@ -88,8 +88,10 @@ describe('client onboard route clientSource boundary', () => {
     expect(responseBlock).toContain('clientSource: newUser.clientSource');
     expect(responseBlock).toContain('availableSessions: newUser.availableSessions');
     expect(responseBlock).toContain('accountStatus: newUser.accountStatus');
-    expect(responseBlock).toContain("credentialMode: claimData ? 'claim_link_ready' : 'claim_link_needed'");
-    expect(responseBlock).toContain('claimExpiresAt: claimData?.expires?.toISOString() || null');
+    expect(routeSource).toContain("from '../services/clientOnboardAccessHandoffService.mjs'");
+    expect(responseBlock).toContain('...accessHandoff');
+    expect(responseBlock).not.toContain("credentialMode: claimData ? 'claim_link_ready' : 'claim_link_needed'");
+    expect(routeSource).toContain('buildClientOnboardAccessHandoff({');
     expect(responseBlock).not.toContain('temporaryPassword');
     expect(responseBlock).not.toContain('tempPassword');
   });

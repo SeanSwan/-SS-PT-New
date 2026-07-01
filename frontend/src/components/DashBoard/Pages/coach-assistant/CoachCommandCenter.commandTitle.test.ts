@@ -22,7 +22,7 @@ describe('buildCoachCommandTitle', () => {
     })).toBe('Client #42 Build Plan review');
   });
 
-  it('keeps existing onboarding and daily log titles', () => {
+  it('keeps existing onboarding, coverage, and daily log titles', () => {
     expect(buildCoachCommandTitle({
       activeThreadTitle: 'Unused',
       commandText: 'Start onboarding',
@@ -30,6 +30,13 @@ describe('buildCoachCommandTitle', () => {
       routeClientLabel: null,
       routeIntent: 'client_onboarding',
     })).toBe('New client onboarding');
+    expect(buildCoachCommandTitle({
+      activeThreadTitle: 'Unused',
+      commandText: 'Fill readiness gaps',
+      hasActiveThread: false,
+      routeClientLabel: 'Client #7',
+      routeIntent: 'client_profile_coverage_update',
+    })).toBe('Client #7 profile coverage update');
     expect(buildCoachCommandTitle({
       activeThreadTitle: 'Unused',
       commandText: 'Bench 3x10',

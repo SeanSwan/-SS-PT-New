@@ -24,12 +24,22 @@ function makeModels() {
     MovementProfile: { findOne: emptyFindOne() },
     WorkoutPlan: { findAll: emptyFindAll() },
     DailyWorkoutForm: { findAll: emptyFindAll() },
+    LongTermProgramPlan: { findOne: emptyFindOne() },
   };
 }
 
 describe('long-horizon Swan Coach plan-vault context', () => {
-  it('includes de-identified training vault context from WorkoutPlan rows', async () => {
+  it('includes de-identified training vault and active-program context', async () => {
     const models = makeModels();
+    models.LongTermProgramPlan.findOne.mockResolvedValue({
+      id: 'program-42',
+      horizonMonths: 6,
+      goalProfile: { primaryGoal: 'strength' },
+      status: 'active',
+      sourceType: 'ai_assisted',
+      planName: 'Jane Doe Strength Plan',
+      summary: 'Reach Jane at jane@example.test',
+    });
 
     const context = await buildLongHorizonContext(42, 9, models);
 
@@ -37,6 +47,21 @@ describe('long-horizon Swan Coach plan-vault context', () => {
       where: expect.objectContaining({ userId: 42 }),
       limit: 14,
     }));
+    expect(models.LongTermProgramPlan.findOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42, status: 'active' },
+    }));
+    expect(models.LongTermProgramPlan.findOne).not.toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ clientId: 42 }),
+    }));
+    expect(context.activeProgram).toEqual(expect.objectContaining({
+      id: 'program-42',
+      horizonMonths: 6,
+      goalProfile: { primaryGoal: 'strength' },
+      status: 'active',
+      sourceType: 'ai_assisted',
+    }));
+    expect(context.activeProgram).not.toHaveProperty('planName');
+    expect(context.activeProgram).not.toHaveProperty('summary');
     expect(context.trainingVault).toEqual(expect.objectContaining({
       available: false,
       defaultHorizonKey: 'six_month',
@@ -71,9 +96,21 @@ describe('long-horizon Swan Coach plan-vault context', () => {
             firstExerciseName: 'Goblet Squat',
           },
         },
+        activeProgram: {
+          id: 'program-42',
+          horizonMonths: 6,
+          goalProfile: { primaryGoal: 'strength' },
+          status: 'active',
+          sourceType: 'ai_assisted',
+          planName: 'Jane Doe Strength Plan',
+          summary: 'Reach Jane at jane@example.test',
+        },
       },
     });
 
+    expect(prompt).toContain('--- Active Program Context (de-identified) ---');
+    expect(prompt).toContain('Active program: 6-month ai_assisted plan; status active');
+    expect(prompt).toContain('Primary program goal: strength');
     expect(prompt).toContain('--- Plan Vault / Current Assignment (de-identified) ---');
     expect(prompt).toContain('Filled horizons: one_day, six_month');
     expect(prompt).toContain('Primary horizon: six_month');

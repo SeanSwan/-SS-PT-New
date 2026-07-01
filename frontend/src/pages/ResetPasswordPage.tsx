@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import apiService from '../services/api.service';
+import { PASSWORD_POLICY_COPY, isActivationPasswordStrong } from './activationPasswordPolicy';
 
 const PageOverlay = styled.div`
   position: fixed;
@@ -12,7 +13,7 @@ const PageOverlay = styled.div`
   height: 100vh;
   z-index: 1500;
   overflow: auto;
-  background: #002060;
+  background: var(--bg-base, #002060);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,56 +22,65 @@ const PageOverlay = styled.div`
 const FormCard = styled(motion.div)`
   width: 90%;
   max-width: 420px;
-  background: rgba(30, 30, 50, 0.95);
-  border: 1px solid rgba(139, 92, 246, 0.15);
+  background: var(--card-bg, rgba(30, 30, 50, 0.95));
+  border: 1px solid var(--border-soft, rgba(139, 92, 246, 0.15));
   border-radius: 12px;
   padding: 40px 30px;
-  box-shadow: 0 0 30px rgba(139, 92, 246, 0.05);
+  box-shadow: 0 0 30px var(--shadow-purple-soft, rgba(139, 92, 246, 0.05));
 `;
 
 const Title = styled.h2`
   text-align: center;
-  color: #60C0F0;
+  color: var(--accent-primary, #60C0F0);
   margin-bottom: 8px;
   font-size: 1.5rem;
 `;
 
 const Subtitle = styled.p`
   text-align: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.72));
   margin-bottom: 24px;
   font-size: 0.9rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 8px;
 `;
 
 const InputField = styled.input`
   width: 100%;
   padding: 12px;
   margin-bottom: 16px;
-  border: 2px solid rgba(139, 92, 246, 0.4);
+  border: 2px solid var(--input-border, rgba(139, 92, 246, 0.4));
   border-radius: 8px;
-  background: rgba(0, 32, 96, 0.8);
-  color: #fff;
+  background: var(--input-bg, rgba(0, 32, 96, 0.8));
+  color: var(--text-primary, #E0ECF4);
   font-size: 1rem;
   min-height: 44px;
   box-sizing: border-box;
 
   &:focus {
     outline: none;
-    border-color: #60C0F0;
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 3px var(--focus-ring, rgba(96, 192, 240, 0.25));
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted, rgba(224, 236, 244, 0.56));
   }
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #60C0F0, #8B5CF6);
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
   border: none;
   border-radius: 8px;
-  color: #002060;
+  color: var(--button-text-on-accent, #002060);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -93,16 +103,25 @@ const Message = styled.p<{ $type: 'error' | 'success' }>`
   border-radius: 6px;
   margin-bottom: 16px;
   font-size: 0.9rem;
-  background: ${props => props.$type === 'error' ? 'rgba(255, 50, 50, 0.15)' : 'rgba(0, 255, 100, 0.15)'};
-  color: ${props => props.$type === 'error' ? '#ff6b6b' : '#00ff88'};
-  border: 1px solid ${props => props.$type === 'error' ? 'rgba(255, 50, 50, 0.3)' : 'rgba(0, 255, 100, 0.3)'};
+  background: ${props => props.$type === 'error'
+    ? 'var(--error-bg, rgba(255, 50, 50, 0.15))'
+    : 'var(--success-bg, rgba(0, 255, 100, 0.15))'};
+  color: ${props => props.$type === 'error'
+    ? 'var(--error-text, #ff8a8a)'
+    : 'var(--success-text, #80ffaa)'};
+  border: 1px solid ${props => props.$type === 'error'
+    ? 'var(--error-border, rgba(255, 50, 50, 0.3))'
+    : 'var(--success-border, rgba(0, 255, 100, 0.3))'};
 `;
 
-const BackLink = styled.a`
+const BackButton = styled.button`
   display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
   text-align: center;
   margin-top: 20px;
-  color: #60C0F0;
+  color: var(--accent-primary, #60C0F0);
   text-decoration: none;
   font-size: 0.9rem;
   cursor: pointer;
@@ -111,6 +130,11 @@ const BackLink = styled.a`
 
   &:hover {
     text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
   }
 `;
 
@@ -133,8 +157,8 @@ const ResetPasswordPage: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (!isActivationPasswordStrong(newPassword)) {
+      setError(PASSWORD_POLICY_COPY);
       return;
     }
 
@@ -175,23 +199,27 @@ const ResetPasswordPage: React.FC = () => {
         transition={{ duration: 0.4 }}
       >
         <Title>Reset Password</Title>
-        <Subtitle>Enter your new password below</Subtitle>
+        <Subtitle>{PASSWORD_POLICY_COPY}</Subtitle>
 
         {error && <Message $type="error">{error}</Message>}
         {success && <Message $type="success">{success}</Message>}
 
         {!success ? (
           <form onSubmit={handleSubmit}>
+            <Label htmlFor="reset-new-password">New Password</Label>
             <InputField
+              id="reset-new-password"
               type="password"
-              placeholder="New password"
+              placeholder="Strong password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
             />
+            <Label htmlFor="reset-confirm-password">Confirm New Password</Label>
             <InputField
+              id="reset-confirm-password"
               type="password"
               placeholder="Confirm new password"
               value={confirmPassword}
@@ -200,15 +228,15 @@ const ResetPasswordPage: React.FC = () => {
               minLength={8}
               autoComplete="new-password"
             />
-            <SubmitButton type="submit" disabled={loading}>
+            <SubmitButton type="submit" disabled={loading || !isActivationPasswordStrong(newPassword) || newPassword !== confirmPassword}>
               {loading ? 'Resetting...' : 'Reset Password'}
             </SubmitButton>
           </form>
         ) : null}
 
-        <BackLink onClick={() => navigate('/login')}>
+        <BackButton type="button" onClick={() => navigate('/login')}>
           Back to Login
-        </BackLink>
+        </BackButton>
       </FormCard>
     </PageOverlay>
   );

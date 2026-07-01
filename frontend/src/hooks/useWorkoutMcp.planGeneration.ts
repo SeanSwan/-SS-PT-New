@@ -39,6 +39,8 @@ export interface SwanCoachPlanRequest {
   sessionsPerWeek: number;
   primaryGoal: string;
   startingPhaseOverride?: number;
+  trainingIntensityMode?: 'hardcore';
+  hardcoreMethod?: 'standard';
 }
 
 export interface WorkoutPlanSaveOptions {
@@ -88,6 +90,12 @@ const parsePhase = (value?: string) => {
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : undefined;
 };
 
+const trainingStyleFromDifficulty = (difficulty?: string): Pick<SwanCoachPlanRequest, 'trainingIntensityMode' | 'hardcoreMethod'> => (
+  String(difficulty || '').trim().toLowerCase() === 'advanced'
+    ? { trainingIntensityMode: 'hardcore', hardcoreMethod: 'standard' }
+    : {}
+);
+
 const normalizeGoal = (goal?: string) => GOAL_MAP[String(goal || '').trim().toLowerCase()] || 'general_fitness';
 
 const firstString = (...values: unknown[]) => {
@@ -124,17 +132,54 @@ const inferPlanNasmPhase = (plan: WorkoutPlan) => {
   return phase >= 1 && phase <= 5 ? phase : null;
 };
 
-const fallbackWeeksFromPlanDays = (plan: WorkoutPlan) =>
-  plan.days?.length ? [{ weekNumber: 1, days: plan.days }] : [];
+const planDayRecords = (plan: WorkoutPlan) => recordArrayFrom(plan.days);
+
+const fallbackWeeksFromPlanDays = (days: Record<string, unknown>[]) =>
+  days.length ? [{ weekNumber: 1, days }] : [];
+
+const weekEntryKey = (week: Record<string, unknown>): 'days' | 'sessions' => (
+  recordArrayFrom(week.days).length || !recordArrayFrom(week.sessions).length ? 'days' : 'sessions'
+);
+
+const replaceWeekEntriesWithReviewedDays = (
+  weeks: Record<string, unknown>[],
+  reviewedDays: Record<string, unknown>[],
+) => {
+  let cursor = 0;
+  const nextWeeks = weeks.reduce<Record<string, unknown>[]>((mapped, week) => {
+    const key = weekEntryKey(week);
+    const entries = recordArrayFrom(week[key]);
+    if (!entries.length) {
+      mapped.push(week);
+      return mapped;
+    }
+    const days = entries.map(() => reviewedDays[cursor++]).filter(Boolean);
+    if (days.length) mapped.push({ ...week, [key]: days });
+    return mapped;
+  }, []);
+  const remaining = reviewedDays.slice(cursor);
+  if (remaining.length) {
+    const last = nextWeeks[nextWeeks.length - 1];
+    if (!last) return fallbackWeeksFromPlanDays(remaining);
+    const key = weekEntryKey(last);
+    nextWeeks[nextWeeks.length - 1] = { ...last, [key]: [...recordArrayFrom(last[key]), ...remaining] };
+  }
+  return nextWeeks;
+};
 
 const resolvePersistableWeeks = (existing: Record<string, unknown>, plan: WorkoutPlan) => {
   const existingWeeks = recordArrayFrom(existing.weeks);
-  return existingWeeks.length ? existingWeeks : fallbackWeeksFromPlanDays(plan);
+  const reviewedDays = planDayRecords(plan);
+  if (reviewedDays.length && existingWeeks.length) {
+    return replaceWeekEntriesWithReviewedDays(existingWeeks, reviewedDays);
+  }
+  if (reviewedDays.length) return fallbackWeeksFromPlanDays(reviewedDays);
+  return existingWeeks;
 };
 
 const buildPersistablePlanData = (plan: WorkoutPlan) => {
   const existing = toRecord(sanitizePlanDataForPersistence(plan.planData));
-  return {
+  const payload = {
     ...existing,
     weeks: withTrainerSessionPlanWeeks(resolvePersistableWeeks(existing, plan)),
     goal: firstString(existing.goal, plan.goal, 'general'),
@@ -143,6 +188,7 @@ const buildPersistablePlanData = (plan: WorkoutPlan) => {
       ...TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
     },
   };
+  return sanitizePlanDataForPersistence(payload) as Record<string, unknown>;
 };
 
 const buildExerciseId = (exercise: Record<string, unknown>, index: number) =>
@@ -177,9 +223,14 @@ const normalizeGeneratedDay = (dayRecord: Record<string, unknown>, weekNumber: n
   exercises: recordArrayFrom(dayRecord.exercises).map(normalizeExercise),
 });
 
+const resolveGeneratedWeekEntries = (weekRecord: Record<string, unknown>) => {
+  const days = recordArrayFrom(weekRecord.days);
+  return days.length > 0 ? days : recordArrayFrom(weekRecord.sessions);
+};
+
 const normalizeGeneratedWeek = (weekRecord: Record<string, unknown>, baseSortOrder: number) => {
   const weekNumber = toPositiveInteger(weekRecord.weekNumber, 1);
-  return recordArrayFrom(weekRecord.days).map((dayRecord, index) =>
+  return resolveGeneratedWeekEntries(weekRecord).map((dayRecord, index) =>
     normalizeGeneratedDay(dayRecord, weekNumber, baseSortOrder + index + 1));
 };
 
@@ -200,7 +251,7 @@ export const buildSwanCoachPlanRequest = (params: WorkoutPlanGenerationParams): 
   };
   const phase = parsePhase(params.optPhase);
   if (phase) request.startingPhaseOverride = phase;
-  return request;
+  return { ...request, ...trainingStyleFromDifficulty(params.difficulty) };
 };
 
 const buildPlanDescription = (description?: string) =>

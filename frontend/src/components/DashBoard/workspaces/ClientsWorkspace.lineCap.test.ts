@@ -20,4 +20,10 @@ describe('ClientsWorkspace decomposition', () => {
     expect(viewSource).toContain("import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState'");
     expect(viewSource).toContain('<ClientsWorkspaceEmptyState');
   });
+  it('surfaces the latest password reset handoff ahead of an older creation handoff', () => {
+    const source = readWorkspaceFile('ClientsWorkspace.tsx');
+
+    expect(source).toContain('const clientAccessHandoff = passwordResetHandoff ?? creationHandoff;');
+    expect(source).toContain('const clearClientAccessHandoff = passwordResetHandoff ? clearPasswordResetHandoff : clearCreationHandoff;');
+  });
 });

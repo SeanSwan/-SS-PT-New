@@ -78,6 +78,7 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(plan.name);
   const isCurrent = isWorkoutPlanActiveStatus(plan.status);
+  const isPrimaryCurrent = isCurrent && Boolean(plan.isPrimary);
   const normalizedStatus = String(plan.status || '').trim().toLowerCase();
   const cardLoadLabel = ordinal
     ? `Load plan ${ordinal}: ${plan.name}`
@@ -141,8 +142,12 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
 
   const handleSetPrimary = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isCurrent) {
+      onActivate(plan.id, plan.name);
+      return;
+    }
     onSetPrimary(plan.id, plan.name);
-  }, [onSetPrimary, plan.id, plan.name]);
+  }, [isCurrent, onActivate, onSetPrimary, plan.id, plan.name]);
 
   const stopProp = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
@@ -196,7 +201,7 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
 
       <PlanArcRow>
         <HorizonBadge>{plan.horizonLabel || '6 Month'}</HorizonBadge>
-        {plan.isPrimary && (
+        {isPrimaryCurrent && (
           <PrimaryArcBadge data-testid="primary-arc-badge">
             <Star size={12} /> Primary Arc
           </PrimaryArcBadge>
@@ -239,7 +244,7 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
                 <Play size={14} /> Make Current
               </CardActionButton>
             )}
-            {!plan.isPrimary && (
+            {isCurrent && !plan.isPrimary && (
               <CardActionButton
                 type="button"
                 onClick={handleSetPrimary}

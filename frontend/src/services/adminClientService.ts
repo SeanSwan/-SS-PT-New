@@ -120,7 +120,8 @@ class AdminClientService {
    */
   async createExternalClient(clientData: CreateExternalClientRequest) {
     try {
-      const response = await this.api.post('/admin/clients/create-external', clientData);
+      const { password: _discardedPassword, ...clientDataWithoutPassword } = clientData || {};
+      const response = await this.api.post('/admin/clients/create-external', clientDataWithoutPassword);
       return response.data;
     } catch (error: any) {
       console.error('Error creating external client:', error);
@@ -211,8 +212,11 @@ class AdminClientService {
     try {
       const response = await this.api.post(`/admin/clients/${clientId}/send-password-reset`, {});
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending password reset:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       throw new Error('Failed to send password reset email');
     }
   }

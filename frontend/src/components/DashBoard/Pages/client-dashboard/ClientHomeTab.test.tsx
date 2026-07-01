@@ -555,7 +555,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     const user = userEvent.setup();
     render(<ClientHomeTab />);
 
-    await user.click(screen.getByRole('button', { name: /training/i }));
+    await user.click(screen.getByRole('button', { name: /^Training$/i }));
     await user.type(screen.getByLabelText(/write a community post/i), 'A controlled strength set from today');
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 

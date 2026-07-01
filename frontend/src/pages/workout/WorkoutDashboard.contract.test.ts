@@ -23,6 +23,12 @@ describe('WorkoutDashboard client selection contract', () => {
     );
   });
 
+  it('labels the mounted session surface by role instead of plan-vault planning', () => {
+    expect(dashboardSource).toContain('const isStaffDashboard = isWorkoutDashboardStaffRole(user?.role);');
+    expect(dashboardSource).toContain("{isStaffDashboard ? 'Session Builder' : 'Workout Sessions'}");
+    expect(dashboardSource).not.toContain('Workout Logger');
+    expect(dashboardSource).not.toContain('Workout Planner');
+  });
   it('uses role-aware client sources instead of sending trainers to the admin-only client endpoint', () => {
     expect(dashboardSource).toContain('getWorkoutDashboardClients');
     expect(logicSource).toContain('/api/client-trainer-assignments/trainer/${user.id}');

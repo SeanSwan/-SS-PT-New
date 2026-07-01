@@ -568,6 +568,8 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
             'email',
             'availableSessions',
             'clientSource',
+            'accountStatus',
+            'forcePasswordChange',
             'phone',
             'fitnessGoal',
             'trainingExperience',

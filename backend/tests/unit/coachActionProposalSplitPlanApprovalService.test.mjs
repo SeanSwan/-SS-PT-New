@@ -4,7 +4,7 @@
  * Regression coverage for split-plan approval. Split plans approve the
  * proposed session boundaries; they do not write workout logs directly.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const splitPlanRow = {
   id: '22222222-2222-2222-2222-222222222222',
@@ -18,7 +18,7 @@ const splitPlanRow = {
   cipher_key_id: 'VTEST',
 };
 
-function fakeSplitApprovalDb({ order = [] } = {}) {
+function fakeSplitApprovalDb({ order = [], throwOnInsert = false } = {}) {
   const calls = [];
   return {
     calls,
@@ -31,6 +31,7 @@ function fakeSplitApprovalDb({ order = [] } = {}) {
       }
       if (sql.includes('INSERT INTO coach_action_proposals')) {
         order.push(`insert:${options.replacements.proposalType}`);
+        if (throwOnInsert) throw new Error('proposal insert unavailable');
         return [{
           id: options.replacements.id,
           proposal_type: options.replacements.proposalType,
@@ -120,8 +121,28 @@ async function loadApprovalService({ order = [], decryptedProposal = defaultSpli
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
   return { ...service, encryptedPayloads, ensureClientAccess, logWorkoutForClient };
 }
+async function approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db }) {
+  const detailResult = await getCoachActionProposal({
+    id: splitPlanRow.id,
+    req: { user: { id: 7, role: 'trainer' } },
+    sequelizeOverride: db,
+  });
+  return approveCoachActionProposal({
+    id: splitPlanRow.id,
+    req: {
+      user: { id: 7, role: 'trainer' },
+      body: { reviewToken: detailResult.body.proposal.reviewToken },
+    },
+    sequelizeOverride: db,
+  });
+}
+
+beforeEach(() => {
+  vi.stubEnv('JWT_SECRET', 'unit-test-review-token-secret');
+});
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.resetModules();
 });
@@ -137,20 +158,7 @@ describe('split-plan Coach proposal approval', () => {
       logWorkoutForClient,
     } = await loadApprovalService({ order });
 
-    const detailResult = await getCoachActionProposal({
-      id: splitPlanRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
-      sequelizeOverride: db,
-    });
-
-    const result = await approveCoachActionProposal({
-      id: splitPlanRow.id,
-      req: {
-        user: { id: 7, role: 'trainer' },
-        body: { reviewToken: detailResult.body.proposal.reviewToken },
-      },
-      sequelizeOverride: db,
-    });
+    const result = await approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db });
 
     expect(result.status).toBe(200);
     expect(result.body).toMatchObject({
@@ -194,6 +202,32 @@ describe('split-plan Coach proposal approval', () => {
     expect(order).toEqual(['claim', 'insert:workout_log', 'insert:workout_log']);
   });
 
+  it('carries parent historical source into child workout-log proposals', async () => {
+    const order = [];
+    const db = fakeSplitApprovalDb({ order });
+    const {
+      approveCoachActionProposal,
+      encryptedPayloads,
+      getCoachActionProposal,
+    } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        ...defaultSplitProposal,
+        payload: {
+          ...defaultSplitProposal.payload,
+          source: 'historical_import',
+        },
+      },
+    });
+
+    const result = await approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db });
+
+    expect(result.status).toBe(200);
+    expect(encryptedPayloads).toHaveLength(2);
+    expect(encryptedPayloads[0].payload).toMatchObject({ source: 'historical_import' });
+    expect(encryptedPayloads[1].payload).toMatchObject({ source: 'historical_import' });
+  });
+
   it('skips malformed split client IDs before access checks or child proposal creation', async () => {
     const order = [];
     const db = fakeSplitApprovalDb({ order });
@@ -218,20 +252,7 @@ describe('split-plan Coach proposal approval', () => {
       },
     });
 
-    const detailResult = await getCoachActionProposal({
-      id: splitPlanRow.id,
-      req: { user: { id: 7, role: 'trainer' } },
-      sequelizeOverride: db,
-    });
-
-    const result = await approveCoachActionProposal({
-      id: splitPlanRow.id,
-      req: {
-        user: { id: 7, role: 'trainer' },
-        body: { reviewToken: detailResult.body.proposal.reviewToken },
-      },
-      sequelizeOverride: db,
-    });
+    const result = await approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db });
 
     expect(result.status).toBe(200);
     expect(result.body.splitPlan).toMatchObject({
@@ -241,5 +262,28 @@ describe('split-plan Coach proposal approval', () => {
     });
     expect(ensureClientAccess).not.toHaveBeenCalled();
     expect(order).toEqual(['claim']);
+  });
+  it('marks split-plan approval failed when child proposal preparation errors after claim', async () => {
+    const order = [];
+    const db = fakeSplitApprovalDb({ order, throwOnInsert: true });
+    const {
+      approveCoachActionProposal,
+      getCoachActionProposal,
+    } = await loadApprovalService({ order });
+
+    const result = await approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db });
+
+    expect(result.status).toBe(400);
+    expect(result.body).toMatchObject({
+      success: false,
+      code: 'SPLIT_PLAN_APPROVAL_FAILED',
+      error: 'Split-plan proposal could not be approved.',
+    });
+    expect(order).toEqual(['claim', 'insert:workout_log']);
+    const failedUpdate = db.calls.find((call) => call.options.replacements?.status === 'FAILED');
+    expect(failedUpdate?.options.replacements).toMatchObject({
+      status: 'FAILED',
+      errorCode: 'SPLIT_PLAN_APPROVAL_FAILED',
+    });
   });
 });

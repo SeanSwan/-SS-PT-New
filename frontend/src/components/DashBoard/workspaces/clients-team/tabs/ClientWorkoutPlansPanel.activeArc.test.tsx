@@ -14,6 +14,12 @@ vi.mock('../../../../../context/AuthContext', () => ({
   useAuth: () => ({ authAxios: mockAuthAxios }),
 }));
 
+const waitForActiveArcValue = async (value = 'plan-6m') => {
+  const activeArcSelector = await screen.findByRole('combobox', { name: /active training arc/i });
+  await waitFor(() => expect(activeArcSelector).toHaveValue(value));
+  return activeArcSelector;
+};
+
 describe('ClientWorkoutPlansPanel active arc selector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,15 +49,30 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     });
   });
 
+  it('shows a loading active-arc state before saved plans hydrate', async () => {
+    let resolvePlans!: (value: unknown) => void;
+    mockAuthAxios.get.mockImplementationOnce(() => new Promise((resolve) => {
+      resolvePlans = resolve;
+    }));
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    const activeArcSelector = await screen.findByRole('combobox', { name: /active training arc/i });
+    expect(activeArcSelector).toHaveValue('');
+    expect(activeArcSelector).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText(/loading saved arcs/i)).toBeInTheDocument();
+
+    resolvePlans({ data: { success: true, plans: [] } });
+    await waitFor(() => expect(activeArcSelector).toHaveAttribute('aria-busy', 'false'));
+    expect(screen.getByText(/0 saved arcs available/i)).toBeInTheDocument();
+  });
+
   it('lets trainer and admin users activate a filled plan horizon from one active-arc control', async () => {
     const user = userEvent.setup();
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
-    const activeArcSelector = await screen.findByRole('combobox', { name: /active training arc/i });
-
-    expect(activeArcSelector).toHaveValue('plan-6m');
-
+    const activeArcSelector = await waitForActiveArcValue();
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
@@ -65,7 +86,7 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
-    const activeArcSelector = await screen.findByRole('combobox', { name: /active training arc/i });
+    const activeArcSelector = await waitForActiveArcValue();
     await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
@@ -118,10 +139,8 @@ describe('ClientWorkoutPlansPanel active arc selector', () => {
     expect(await screen.findByText(/2 current plans for fixture client/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /activate 9 month arc/i })).toBeNull();
 
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: /active training arc/i }),
-      'plan-9m'
-    );
+    const activeArcSelector = await waitForActiveArcValue();
+    await user.selectOptions(activeArcSelector, 'plan-9m');
 
     await waitFor(() => {
       expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');

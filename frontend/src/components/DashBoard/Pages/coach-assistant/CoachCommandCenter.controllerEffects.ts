@@ -22,16 +22,24 @@ export function useLoadCoachConversations(chat: {
 
 export function useAutoSelectCoachThread(
   autoSelectedThread: ConversationSummary | null,
+  chat: { loadConversation: (id: number) => unknown },
   setActiveThreadId: Dispatch<SetStateAction<number | null>>,
   setSelectedStatus: Dispatch<SetStateAction<string>>,
 ) {
+  const lastLoadedThreadIdRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (!autoSelectedThread) return;
+    if (!autoSelectedThread) {
+      lastLoadedThreadIdRef.current = null;
+      return;
+    }
     setActiveThreadId(autoSelectedThread.id);
     setSelectedStatus(`${getConversationTitle(autoSelectedThread)} - thread ready`);
-  }, [autoSelectedThread, setActiveThreadId, setSelectedStatus]);
+    if (lastLoadedThreadIdRef.current === autoSelectedThread.id) return;
+    lastLoadedThreadIdRef.current = autoSelectedThread.id;
+    void chat.loadConversation(autoSelectedThread.id);
+  }, [autoSelectedThread, chat, setActiveThreadId, setSelectedStatus]);
 }
-
 export function useLoadRoutedCoachThread(
   routeThreadId: number | null,
   coachThreads: ConversationSummary[],

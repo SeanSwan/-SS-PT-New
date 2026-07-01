@@ -35,6 +35,12 @@ import { recordCommandAudit } from './commandAudit.mjs';
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+const DEBATE_TYPE_BY_COMMAND = {
+  build_workout_plan: 'workout_plan',
+  create_nasm_program: 'workout_plan',
+  generate_periodization: 'workout_plan',
+  create_nutrition_plan: 'nutrition_plan',
+};
 
 // ── Command Context (flows through pipeline) ────────────────────────────────
 
@@ -106,6 +112,48 @@ const toPositiveInteger = (value) => {
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
+
+const debateTypeForCommandType = (commandType) => (
+  typeof commandType === 'string' ? DEBATE_TYPE_BY_COMMAND[commandType] || null : null
+);
+
+const debateTypeForCommand = (command) => (
+  command?.isDebateRequired ? debateTypeForCommandType(command.type) : null
+);
+
+function debateStartedMessage({ debateType, jobId, clientName }) {
+  const subject = debateType.replace('_', ' ');
+  const title = `${subject.charAt(0).toUpperCase()}${subject.slice(1)}`;
+  const target = clientName || 'your client';
+  return `${title} debate started for ${target}. This takes 1-3 minutes.\n\nTrack progress at: /api/ai/debate/${jobId}/status`;
+}
+async function startDebateForClient({ commandType, clientId, userId, sequelize, params = {}, resolvedClient = null }) {
+  const debateType = debateTypeForCommandType(commandType);
+  if (!debateType) return null;
+
+  const parsedClientId = toPositiveInteger(clientId);
+  if (!parsedClientId) throw new Error('Debate command requires a confirmed client id');
+
+  const { deIdentified } = await buildDebateClientContext(
+    parsedClientId,
+    sequelize,
+    { id: parsedClientId, ...(resolvedClient || {}) },
+  );
+  const debateParams = params && typeof params === 'object' && !Array.isArray(params)
+    ? { ...params, clientId: parsedClientId }
+    : { clientId: parsedClientId };
+  const jobId = startDebate(debateType, deIdentified, userId, debateParams);
+
+  return {
+    jobId,
+    debateType,
+    message: debateStartedMessage({
+      debateType,
+      jobId,
+      clientName: resolvedClient?.firstName || null,
+    }),
+  };
+}
 
 const routeScheduledSessionId = (routeContext) => {
   const id = toPositiveInteger(routeContext?.scheduledSessionId);
@@ -354,41 +402,30 @@ async function stepResolveClient(ctx) {
 async function stepDebateRouting(ctx) {
   ctx.stage = 'debate_routing';
   if (!ctx.command || !ctx.command.isDebateRequired) return ctx;
+  if (ctx.command.destructive || ctx.command.requiresConfirmation) return ctx;
 
-  // Debate commands need client context — de-identify before sending
   const clientId = ctx.resolvedClient?.id;
-  if (!clientId) return ctx; // Will be caught by confirmation step
+  if (!clientId) return ctx;
 
-  // Map command types to debate types
-  const debateTypeMap = {
-    build_workout_plan: 'workout_plan',
-    create_nasm_program: 'workout_plan',
-    generate_periodization: 'workout_plan',
-    create_nutrition_plan: 'nutrition_plan',
-  };
-
-  const debateType = debateTypeMap[ctx.command.type];
-  if (!debateType) return ctx; // No debate mapping — proceed normally
-
-  const { deIdentified } = await buildDebateClientContext(
+  const debate = await startDebateForClient({
+    commandType: ctx.command.type,
     clientId,
-    ctx.options.sequelize,
-    { id: clientId, ...(ctx.resolvedClient || {}) },
-  );
-
-  // Start debate asynchronously
-  const jobId = startDebate(debateType, deIdentified, ctx.user.id, ctx.intent.params || {});
+    userId: ctx.user.id,
+    sequelize: ctx.options.sequelize,
+    params: ctx.intent.params || {},
+    resolvedClient: ctx.resolvedClient,
+  });
+  if (!debate) return ctx;
 
   ctx.result = {
     type: 'debate_started',
-    message: `I'm assembling a team of AI specialists to build the best ${debateType.replace('_', ' ')} for ${ctx.resolvedClient.firstName || 'your client'}. This takes 1-3 minutes.\n\nTrack progress at: /api/ai/debate/${jobId}/status`,
-    jobId,
-    debateType,
+    message: debate.message,
+    jobId: debate.jobId,
+    debateType: debate.debateType,
   };
-  ctx.skipRemainingSteps = true; // Debate is async — don't proceed to confirmation step
+  ctx.skipRemainingSteps = true;
   return ctx;
 }
-
 /** Step 8: Handle destructive operations (prepare confirmation) */
 async function stepConfirmation(ctx) {
   ctx.stage = 'confirmation';
@@ -399,7 +436,8 @@ async function stepConfirmation(ctx) {
   // Frontend-dispatch commands are the exception: /confirm returns a typed
   // browser event, and the browser performs the explicit UI action.
   const isConfirmedFrontendDispatch = ctx.command.method === 'FRONTEND_DISPATCH' && ctx.command.frontendEvent;
-  if (!hasDispatcher(ctx.command.type) && !isConfirmedFrontendDispatch) {
+  const isConfirmedDebate = Boolean(debateTypeForCommand(ctx.command));
+  if (!hasDispatcher(ctx.command.type) && !isConfirmedFrontendDispatch && !isConfirmedDebate) {
     const manualOnly = getManualOnlyCommand(ctx.command.type);
     ctx.result = {
       type: 'not_wired',
@@ -729,6 +767,49 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       };
     }
 
+    const debateType = debateTypeForCommandType(operation.commandType);
+    if (debateType) {
+      try {
+        const debate = await startDebateForClient({
+          commandType: operation.commandType,
+          clientId: operation.clientId ?? operation.params?.clientId,
+          userId: user.id,
+          sequelize,
+          params: operation.params || {},
+        });
+        auditConfirm('debate_started', {
+          commandType: operation.commandType,
+          targetClientId: operation.clientId ?? null,
+          requiresConfirmation: true,
+          params: operation.params || null,
+        });
+        return {
+          success: true,
+          type: 'debate_started',
+          command: operation.commandType,
+          result: { jobId: debate.jobId, debateType: debate.debateType },
+          client: operation.clientId ? { id: operation.clientId } : null,
+          message: debate.message,
+        };
+      } catch (err) {
+        logger.error('[CommandExecutor] Confirmed debate start failed', {
+          commandType: operation.commandType,
+          operationId,
+          error: err.message,
+        });
+        auditConfirm('failed', {
+          commandType: operation.commandType,
+          targetClientId: operation.clientId ?? null,
+          requiresConfirmation: true,
+          errorCode: 'confirm_debate_failed',
+        });
+        return {
+          success: false,
+          type: 'error',
+          message: COMMAND_CONFIRM_FAILED_MESSAGE,
+        };
+      }
+    }
     if (!hasDispatcher(operation.commandType)) {
       logger.warn('[CommandExecutor] Confirmed pending op has no dispatcher entry', {
         commandType: operation.commandType,

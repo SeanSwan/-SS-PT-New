@@ -27,6 +27,7 @@ export type {
   PainExclusion,
   PainWarning,
   SavedWorkoutPlan,
+  TrainingStyleMetadata,
   WarmupExercise,
   WorkoutBuilderPlanAssignmentDefault,
   WorkoutBuilderPlanBillingIntent,

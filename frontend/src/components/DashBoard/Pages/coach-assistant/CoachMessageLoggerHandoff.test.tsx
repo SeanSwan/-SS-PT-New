@@ -207,6 +207,7 @@ describe('CoachMessage logger handoff', () => {
     await user.click(reviewLink);
 
     const queued = JSON.parse(sessionStorage.getItem(PENDING_WORKOUT_QUEUE_KEY) || '[]');
+    expect(queued[0].targetClientId).toBe(42);
     expect(queued[0].exercises).toEqual([
       expect.objectContaining({ exerciseName: 'DB Romanian deadlift', sets: 4, reps: 8, weight: 85, restTime: 75 }),
       expect.objectContaining({ exerciseName: 'TRX row', sets: 3, reps: 12 }),

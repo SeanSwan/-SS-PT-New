@@ -79,7 +79,7 @@ export const useWorkoutPlannerSavedPlansState = ({
 
     setSavedPlansLoading(true);
     try {
-      const res = await authAxios.get(`/api/workout/plans?clientId=${clientId}`);
+      const res = await authAxios.get(`/api/workout-plans?clientId=${clientId}`);
       const data = res.data as SavedPlansApiData | undefined;
       if (data?.success && Array.isArray(data.plans)) {
         setSavedPlans(data.plans.map(mapSavedPlan));
@@ -97,7 +97,11 @@ export const useWorkoutPlannerSavedPlansState = ({
     if (!selectedClientId) return;
     try {
       await authAxios.put(`/api/workout-plans/${planId}/activate`);
-      setStatusMsg({ type: 'success', text: `${planName} is now the current plan.` });
+      setStatusMsg({
+        type: 'success',
+        text: `${planName} is now the current plan.`,
+        nextAction: 'current-plan-ready',
+      });
       if (loadedPlanId === planId) {
         setSavedSnapshot(currentExercisesSig);
       }

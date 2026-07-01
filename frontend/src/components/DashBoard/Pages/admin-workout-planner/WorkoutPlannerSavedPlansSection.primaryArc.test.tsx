@@ -55,28 +55,76 @@ describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
     expect(screen.getByTestId('saved-plan-number-plan-9m')).toHaveTextContent('Plan 2');
   });
 
-  it('lets trainers choose the primary training arc from the saved-plan section header', () => {
+  it('uses profile-neutral empty copy for admin self planner gaps', () => {
+    render(
+      <WorkoutPlannerSavedPlansSection
+        {...props}
+        savedPlans={[]}
+        activePlanLoggerRoute="/dashboard/admin/log-my-workout?loadPlan=today&source=workout-planner"
+      />,
+    );
+
+    expect(screen.getByText(/no saved plans for this training profile yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/this client/i)).not.toBeInTheDocument();
+  });
+
+  it('activates draft plans selected from the primary-arc header so clients can see them', () => {
+    const onActivate = vi.fn();
     const onSetPrimary = vi.fn();
-    render(<WorkoutPlannerSavedPlansSection {...props} onSetPrimary={onSetPrimary} />);
+    render(
+      <WorkoutPlannerSavedPlansSection
+        {...props}
+        onActivate={onActivate}
+        onSetPrimary={onSetPrimary}
+      />,
+    );
 
     const selector = screen.getByLabelText(/select primary training arc/i);
     expect(selector).toHaveValue('plan-6m');
 
     fireEvent.change(selector, { target: { value: 'plan-9m' } });
 
-    expect(onSetPrimary).toHaveBeenCalledWith('plan-9m', 'Nine Month Strength Arc');
+    expect(onActivate).toHaveBeenCalledWith('plan-9m', 'Nine Month Strength Arc');
+    expect(onSetPrimary).not.toHaveBeenCalled();
   });
 
-  it('falls back to the 6 Month default when no active or primary arc exists', () => {
+  it('uses the primary endpoint only when switching between current active arcs', () => {
+    const onActivate = vi.fn();
+    const onSetPrimary = vi.fn();
+    render(
+      <WorkoutPlannerSavedPlansSection
+        {...props}
+        savedPlans={[plans[0], { ...plans[1], status: 'ACTIVE', isPrimary: false }]}
+        onActivate={onActivate}
+        onSetPrimary={onSetPrimary}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/select primary training arc/i), {
+      target: { value: 'plan-9m' },
+    });
+
+    expect(onSetPrimary).toHaveBeenCalledWith('plan-9m', 'Nine Month Strength Arc');
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it('leaves the selector unclaimed when all saved plans are drafts so selecting one activates it', () => {
+    const onActivate = vi.fn();
     render(<WorkoutPlannerSavedPlansSection
       {...props}
       savedPlans={[
         { ...plans[1], status: 'draft', isPrimary: false },
         { ...plans[0], status: 'draft', isPrimary: false },
       ]}
+      onActivate={onActivate}
     />);
 
-    expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-6m');
+    const selector = screen.getByLabelText(/select primary training arc/i);
+    expect(selector).toHaveValue('');
+
+    fireEvent.change(selector, { target: { value: 'plan-6m' } });
+
+    expect(onActivate).toHaveBeenCalledWith('plan-6m', 'Six Month Foundation');
   });
 
   it('prefers a legacy uppercase active arc before the 6 Month default', () => {
@@ -89,6 +137,19 @@ describe('WorkoutPlannerSavedPlansSection primary arc selector', () => {
     />);
 
     expect(screen.getByLabelText(/select primary training arc/i)).toHaveValue('plan-9m');
+  });
+
+  it('does not offer a current-plan logger link when saved plans are drafts only', () => {
+    render(
+      <WorkoutPlannerSavedPlansSection
+        {...props}
+        savedPlans={plans.map(plan => ({ ...plan, status: 'draft' }))}
+        activePlanLoggerRoute="/dashboard/trainer/log-workout?clientId=42&source=workout-planner&loadPlan=today"
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: /open workout logger for the current plan/i }))
+      .not.toBeInTheDocument();
   });
 
   it('offers a direct logger link for the current selected-client plan', () => {

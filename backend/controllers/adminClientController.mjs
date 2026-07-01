@@ -208,9 +208,9 @@
  *
  * WHY Password Reset (Admin Override)?
  * - Support workflow: Clients forget passwords, admins help
- * - Security: Generates secure random password (bcrypt hashed)
+ * - Security: Generates a short-lived reset link; no staff-visible password handoff
  * - Audit trail: Logged for compliance (admin reset client password)
- * - No email required: Admin can provide password directly to client
+ * - Email preferred, manual reset-link copy only when delivery fails after token creation
  *
  * First-Party API Analytics:
  *
@@ -246,7 +246,7 @@
  *   - ✅ createClient → creates user with role=client
  *   - ✅ updateClient → updates fields correctly
  *   - ✅ deleteClient → soft delete (isActive = false)
- *   - ✅ resetPassword → generates secure password
+ *   - ✅ resetPassword → sends or returns secure reset-link handoff
  *   - ✅ Optional analytics failure → graceful degradation
  *
  * Future Enhancements:
@@ -278,7 +278,7 @@ import {
   parseClientSource,
   parseSessionBillingMode,
 } from '../services/sessionBillingPolicy.mjs';
-import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
+import { INACTIVE_PASSWORD_RESET_MESSAGE, sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
 import { calculateCompletionPercentage, normalizeJsonObject } from '../utils/onboardingHelpers.mjs';
@@ -315,10 +315,11 @@ const ensureModels = () => {
   DailyWorkoutForm = models.DailyWorkoutForm;
   ClientTrainerAssignment = models.ClientTrainerAssignment;
   ClientOnboardingQuestionnaire = models.ClientOnboardingQuestionnaire ?? null;
-  if (!User) throw new Error('User model not available — model cache may not be initialized');
+  if (!User) throw new Error('User model not available - model cache may not be initialized');
 };
 
 const INTERNAL_ERROR = 'internal_error';
+const RESET_LINK_UNAVAILABLE_MESSAGE = 'Reset link could not be generated. Resolve the account or email delivery issue before trying again.';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function sendInternalError(res, message) {
@@ -351,6 +352,7 @@ const resetCredentialActionFor = (resetEmailSent, resetUrl) => (
 
 const appendPasswordResetHandoff = (data, handoff) => ({
   ...data,
+  ...(handoff.credentialIssue ? { credentialIssue: handoff.credentialIssue } : {}),
   ...(handoff.resetUrl ? { resetUrl: handoff.resetUrl } : {}),
   ...(handoff.resetExpiresAt ? { resetExpiresAt: handoff.resetExpiresAt } : {}),
   ...(handoff.expiresInMinutes ? { expiresInMinutes: handoff.expiresInMinutes } : {}),
@@ -922,6 +924,15 @@ class AdminClientController {
         });
       }
 
+      // Generic admin create is reset-link-only; external clients must use the claim-link route.
+      if (normalizedClientSource !== 'swanstudios') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Use /api/admin/clients/create-external for Move Fitness or external clients so a claim-link handoff is generated.'
+        });
+      }
+
       const normalizedSessionBillingMode = parseSessionBillingMode(sessionBillingMode);
       if (!normalizedSessionBillingMode) {
         await transaction.rollback();
@@ -1041,7 +1052,7 @@ class AdminClientController {
       if (trainerIdValue && normalizedAvailableSessions > 0) {
         const sessions = [];
         for (let i = 0; i < normalizedAvailableSessions; i++) {
-          // sessionDate is NOT NULL — set to a future placeholder date offset by session index
+          // sessionDate is NOT NULL - set to a future placeholder date offset by session index
           const placeholderDate = new Date();
           placeholderDate.setDate(placeholderDate.getDate() + i + 1);
           sessions.push({
@@ -1060,6 +1071,7 @@ class AdminClientController {
       let resetEmailSent = false;
       let resetHandoff = {};
       let credentialAction = 'reset_link_needed';
+      let credentialIssue;
       if (normalizedClientSource === 'swanstudios') {
         try {
           const reset = await sendPasswordResetEmailForUser(newClient, { includeResetUrl: true });
@@ -1068,7 +1080,12 @@ class AdminClientController {
           credentialAction = resetCredentialActionFor(resetEmailSent, resetHandoff.resetUrl);
         } catch (emailError) {
           resetHandoff = passwordResetHandoffFrom(emailError);
-          credentialAction = resetCredentialActionFor(false, resetHandoff.resetUrl);
+          if (!resetHandoff.resetUrl) {
+            credentialIssue = 'reset_link_unavailable';
+            credentialAction = 'reset_link_unavailable';
+          } else {
+            credentialAction = resetCredentialActionFor(false, resetHandoff.resetUrl);
+          }
           logger.warn(`Password reset handoff email failed for ${normalizedEmail}: ${emailError.message}`);
         }
       }
@@ -1090,6 +1107,8 @@ class AdminClientController {
           },
           passwordSource,
           credentialAction,
+          credentialMode: credentialAction,
+          ...(credentialIssue ? { credentialIssue } : {}),
           resetEmailSent,
           emailSent: resetEmailSent
         }, resetHandoff)
@@ -1145,7 +1164,7 @@ class AdminClientController {
         });
       }
 
-      // Strict whitelist — isActive excluded to force changes through soft-delete endpoint.
+      // Strict whitelist - isActive excluded to force changes through soft-delete endpoint.
       // L5 (2026-05-02): canGenerateWorkoutPlans added so admins can flip the
       // per-client opt-in for self-service workout plan generation. Coerced
       // to a strict boolean below so non-boolean payloads can't sneak truthy
@@ -1336,6 +1355,13 @@ class AdminClientController {
         });
       }
 
+      if (client.isActive === false) {
+        return res.status(409).json({
+          success: false,
+          message: INACTIVE_PASSWORD_RESET_MESSAGE
+        });
+      }
+
       let resetEmailSent = false;
       let resetHandoff = {};
       try {
@@ -1344,7 +1370,15 @@ class AdminClientController {
         resetHandoff = passwordResetHandoffFrom(reset);
       } catch (emailError) {
         resetHandoff = passwordResetHandoffFrom(emailError);
-        if (!resetHandoff.resetUrl) throw emailError;
+        if (!resetHandoff.resetUrl) {
+          logger.warn(`Password reset link unavailable for client ${clientId}: ${emailError.message}`);
+          return res.status(503).json({
+            success: false,
+            message: RESET_LINK_UNAVAILABLE_MESSAGE,
+            error: 'reset_link_unavailable',
+            credentialIssue: 'reset_link_unavailable',
+          });
+        }
         logger.warn(`Password reset email failed for client ${clientId}; admin-copy reset link generated.`);
       }
 
@@ -1355,6 +1389,7 @@ class AdminClientController {
         message: resetEmailSent ? 'Password reset email sent.' : 'Password reset link generated for manual handoff.',
         data: appendPasswordResetHandoff({
           credentialAction,
+          credentialMode: credentialAction,
           clientId,
           resetEmailSent,
           emailSent: resetEmailSent,
@@ -1909,6 +1944,8 @@ class AdminClientController {
         message: `External client created (${normalizedClientSource})`,
         data: {
           client: clientData,
+          credentialAction: 'claim_link_ready',
+          credentialMode: 'claim_link_ready',
           claimToken: plainToken,
           claimUrl,
           claimExpiresAt: claimTokenExpires.toISOString(),

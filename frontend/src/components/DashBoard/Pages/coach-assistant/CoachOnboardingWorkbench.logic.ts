@@ -163,6 +163,11 @@ export function getWorkbenchDisplayName(client: ClientOption | null): string {
   return name || client?.email || (client?.id ? `Client #${client.id}` : 'No client selected');
 }
 
+function getWorkbenchCoachSubject(client: ClientOption | null): string {
+  if (client?.id) return `Client #${client.id}`;
+  return 'the selected client';
+}
+
 export function buildRouteContextClient(clientId: number | null, label: string): ClientOption | null {
   if (!clientId) return null;
   const display = label && label !== 'Selected client' ? label : `Client #${clientId}`;
@@ -191,7 +196,7 @@ export function buildNextWorkbenchQuestion(client: ClientOption | null): Workben
     .filter((item) => !CLEAR_STATUSES.has(item.status))
     .sort((a, b) => b.chartDataPriority - a.chartDataPriority || statusRank(a.status) - statusRank(b.status))[0];
   if (!category || !field) return null;
-  const clientName = getWorkbenchDisplayName(client);
+  const clientName = getWorkbenchCoachSubject(client);
   const prompt = field.isSensitive ? field.trainerPrompt : field.clientPrompt;
   return {
     categoryLabel: category.label,

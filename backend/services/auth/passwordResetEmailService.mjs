@@ -10,6 +10,8 @@ import { sendEmailNotification } from '../../utils/notification.mjs';
 
 const RESET_TOKEN_BYTES = 32;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+export const INACTIVE_PASSWORD_RESET_MESSAGE = 'Client is inactive. Reactivate the client before sending a password reset link.';
+
 const INSECURE_JWT_PLACEHOLDERS = new Set([
   'your-secret-key',
   'your-secret-key-change-in-production',
@@ -65,6 +67,9 @@ export async function sendPasswordResetEmailForUser(user, options = {}) {
   if (typeof user.update !== 'function') {
     throw new Error('Client account cannot store a password reset token.');
   }
+  if (user.isActive === false) {
+    throw new Error(INACTIVE_PASSWORD_RESET_MESSAGE);
+  }
 
   const now = typeof options.now === 'function' ? options.now() : Date.now();
   const resetSecret = options.resetSecret || getPasswordResetSecret();
@@ -117,6 +122,7 @@ export async function sendPasswordResetEmailForUser(user, options = {}) {
 }
 
 export default {
+  INACTIVE_PASSWORD_RESET_MESSAGE,
   getPasswordResetSecret,
   hashPasswordResetToken,
   PasswordResetEmailDeliveryError,

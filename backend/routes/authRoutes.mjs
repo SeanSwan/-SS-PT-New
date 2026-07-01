@@ -336,6 +336,7 @@ import {
   rateLimiter 
 } from '../middleware/authMiddleware.mjs';
 import { validate } from '../middleware/validationMiddleware.mjs';
+import { validatePasswordStrength } from '../services/auth/passwordPolicyService.mjs';
 import User from '../models/User.mjs';
 import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
@@ -343,6 +344,7 @@ import logger from '../utils/logger.mjs';
 const router = express.Router();
 const adminAccountListLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 120 });
 const adminAccountCommandLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 });
+const CLIENT_ROLE_CONVERSION_MESSAGE = 'Client accounts must be created through Client Hub onboarding so access is handed off with a secure reset link.';
 
 /**
  * @route   POST /api/auth/register
@@ -467,6 +469,13 @@ router.put(
   async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
+      const passwordValidation = validatePasswordStrength(newPassword);
+      if (!passwordValidation.success) {
+        return res.status(400).json({
+          success: false,
+          message: passwordValidation.message
+        });
+      }
       
       // Find user
       const user = await User.findByPk(req.user.id);
@@ -885,6 +894,13 @@ router.put('/users/:id', protect, adminOnly, async (req, res) => {
       fitnessGoal,
       trainingExperience
     } = req.body;
+
+    if (role === 'client' && user.role !== 'client') {
+      return res.status(409).json({
+        success: false,
+        message: CLIENT_ROLE_CONVERSION_MESSAGE
+      });
+    }
     
     // Update fields if provided
     if (firstName) user.firstName = firstName;

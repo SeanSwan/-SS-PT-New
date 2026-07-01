@@ -30,6 +30,20 @@ describe('WorkoutPlannerClientIdentity', () => {
     expect(clients.map((client) => client.id)).toEqual([91]);
   });
 
+  it('normalizes string self-generation flags before planner UI gating', () => {
+    const clients = normalizeWorkoutPlannerClients([
+      { id: '91', firstName: 'Allowed', lastName: 'Client', username: 'allowed', canGenerateWorkoutPlans: 'true' },
+      { id: '92', firstName: 'Blocked', lastName: 'Client', username: 'blocked', canGenerateWorkoutPlans: 'false' },
+      { id: '93', firstName: 'Missing', lastName: 'Client', username: 'missing' },
+    ]);
+
+    expect(clients.map((client) => ({ id: client.id, canGenerateWorkoutPlans: client.canGenerateWorkoutPlans }))).toEqual([
+      { id: 91, canGenerateWorkoutPlans: true },
+      { id: 92, canGenerateWorkoutPlans: false },
+      { id: 93, canGenerateWorkoutPlans: false },
+    ]);
+  });
+
   it('prefers a valid requested client and otherwise falls back to the first valid client', () => {
     const clients = normalizeWorkoutPlannerClients([
       { id: 91, firstName: 'First', lastName: 'Client', username: 'first' },

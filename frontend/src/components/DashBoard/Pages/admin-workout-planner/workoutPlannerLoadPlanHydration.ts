@@ -59,6 +59,23 @@ const asRecord = (value: unknown): PlanDataRecord | null => (
     : null
 );
 
+const savedPlanningSystem = (planData: PlanDataRecord): GeneratedPlan['planningSystem'] | undefined => (
+  planData.planningSystem === 'swan_coach_planning' ? 'swan_coach_planning' : undefined
+);
+
+const savedSwanCoachPlanning = (planData: PlanDataRecord): GeneratedPlan['swanCoachPlanning'] | undefined => {
+  const planning = asRecord(planData.swanCoachPlanning);
+  return planning ? planning as unknown as GeneratedPlan['swanCoachPlanning'] : undefined;
+};
+
+const savedTrainingStyle = (planData: PlanDataRecord): GeneratedPlan['trainingStyle'] | undefined => {
+  const directStyle = asRecord(planData.trainingStyle);
+  if (directStyle) return directStyle as unknown as GeneratedPlan['trainingStyle'];
+
+  const summaryStyle = asRecord(asRecord(planData.planSummary)?.trainingStyle);
+  return summaryStyle ? summaryStyle as unknown as GeneratedPlan['trainingStyle'] : undefined;
+};
+
 const firstTrainingDay = (weeks: GeneratedPlanWeeks) => {
   const firstWeek = weeks[0];
   return firstWeek?.days?.[0] || firstWeek?.sessions?.[0];
@@ -147,6 +164,9 @@ export const buildLoadedGeneratedPlan = (
   return {
     clientId,
     clientName: String(planData.clientName || ''),
+    planningSystem: savedPlanningSystem(planData),
+    swanCoachPlanning: savedSwanCoachPlanning(planData),
+    trainingStyle: savedTrainingStyle(planData),
     planSummary: (planData.planSummary as GeneratedPlan['planSummary']) || {
       durationWeeks: weeks.length,
       sessionsPerWeek: firstWeek?.days?.length || firstWeek?.sessions?.length || 0,

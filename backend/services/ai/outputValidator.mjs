@@ -343,9 +343,19 @@ export function validateApprovedDraftPlan({ draft } = {}) {
   }
 
   // ── Per-day + exercise validation ────────────────────────────
-  const durationWeeks = Number.isFinite(Number(draft.durationWeeks))
-    ? Math.max(1, Number(draft.durationWeeks))
-    : 4;
+  let durationWeeks = 4;
+  if (draft.durationWeeks !== undefined && draft.durationWeeks !== null) {
+    const parsedDurationWeeks = Number(draft.durationWeeks);
+    if (!Number.isInteger(parsedDurationWeeks) || parsedDurationWeeks < 1 || parsedDurationWeeks > 52) {
+      errors.push({
+        code: 'INVALID_DURATION_WEEKS',
+        field: 'durationWeeks',
+        message: 'Duration must be a whole number of weeks between 1 and 52',
+      });
+    } else {
+      durationWeeks = parsedDurationWeeks;
+    }
+  }
   const maxDays = durationWeeks * 7;
 
   if (draft.days.length > maxDays) {
@@ -412,6 +422,7 @@ export function validateApprovedDraftPlan({ draft } = {}) {
   // ── Normalize (minimal, safe) ────────────────────────────────
   const normalizedDraft = JSON.parse(JSON.stringify(draft));
   normalizedDraft.planName = normalizedDraft.planName.trim();
+  normalizedDraft.durationWeeks = durationWeeks;
   if (normalizedDraft.summary && typeof normalizedDraft.summary === 'string') {
     normalizedDraft.summary = normalizedDraft.summary.trim();
   }

@@ -250,9 +250,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   // For non-admin users, perform detailed role checks
   else if ((allowedRoles && allowedRoles.length > 0) || requiredRole) {
+    const roleAliases = auth.user.role === 'user' ? ['user', 'client'] : [auth.user.role];
     // Check against allowedRoles array if provided
     if (allowedRoles && allowedRoles.length > 0) {
-      if (!allowedRoles.includes(auth.user.role as any)) {
+      if (!allowedRoles.some((role) => roleAliases.includes(role))) {
         const message = `This area requires one of these roles: ${allowedRoles.join(', ')}. Your current role: ${auth.user.role}`;
         return (
           <AccessDeniedScreen 
@@ -263,7 +264,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       }
     }
     // Check against single requiredRole
-    else if (requiredRole && auth.user.role !== requiredRole) {
+    else if (requiredRole && !roleAliases.includes(requiredRole)) {
       const message = `This area requires ${requiredRole} privileges. Your current role: ${auth.user.role}`;
       return (
         <AccessDeniedScreen 

@@ -10,6 +10,16 @@ import {
   parseRouteClientId,
   parseRouteThreadId,
 } from './CoachCommandCenter.routeContext';
+import { normalizeCoachCommandRole } from './CoachCommandCenter.roleConfig';
+
+describe('CoachCommandCenter role normalization', () => {
+  it('treats legacy raw user accounts as client-mode Coach users', () => {
+    expect(normalizeCoachCommandRole('user')).toBe('client');
+    expect(normalizeCoachCommandRole('client')).toBe('client');
+    expect(normalizeCoachCommandRole('trainer')).toBe('trainer');
+    expect(normalizeCoachCommandRole('admin')).toBe('admin');
+  });
+});
 
 describe('CoachCommandCenter route client parsing', () => {
   it('accepts only complete positive integer client ids', () => {
@@ -31,10 +41,25 @@ describe('CoachCommandCenter return route normalization', () => {
     expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management\n?clientId=424242')).toBeNull();
     expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management\t?clientId=424242')).toBeNull();
     expect(normalizeCommandCenterReturnTo('/dashboard/admin\\client-management')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/%2e%2e/admin/client-management')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/log-workout%2f..%2fadmin')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/%5cadmin/client-management')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/../admin/client-management')).toBeNull();
     expect(normalizeCommandCenterReturnTo('/store')).toBeNull();
     expect(normalizeCommandCenterReturnTo(null)).toBeNull();
   });
 
+  it('role-scopes workflow return routes when the dashboard role is known', () => {
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management?clientId=42', 'admin'))
+      .toBe('/dashboard/admin/client-management?clientId=42');
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/overview', 'trainer'))
+      .toBe('/dashboard/trainer/overview');
+    expect(normalizeCommandCenterReturnTo('/dashboard/client/overview', 'client'))
+      .toBe('/dashboard/client/overview');
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management?clientId=42', 'trainer')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management?clientId=42', 'client')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/trainer/overview', 'admin')).toBeNull();
+  });
   it('uses workflow-specific return labels for known origins', () => {
     expect(buildWorkflowReturnLabel('/dashboard/admin/client-management', 'clients-team')).toBe('Back to Client Hub');
     expect(buildWorkflowReturnLabel('/dashboard/admin/schedule', 'master-schedule')).toBe('Back to Schedule');
@@ -43,6 +68,22 @@ describe('CoachCommandCenter return route normalization', () => {
     expect(buildWorkflowReturnLabel('/dashboard/client/log-workout?loadPlan=today', 'client-workout-logger')).toBe('Back to Workout Logger');
     expect(buildWorkflowReturnLabel('/dashboard/admin', null)).toBe('Back to Dashboard');
     expect(buildWorkflowReturnLabel(null, 'clients-team')).toBeNull();
+  });
+
+  it('falls back to the safe return path when source is missing or unknown', () => {
+    expect(buildWorkflowReturnLabel('/dashboard/trainer/log-workout?clientId=42', null))
+      .toBe('Back to Workout Logger');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/workout-planner?clientId=42', 'swan-coach'))
+      .toBe('Back to Build Plan');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/client-management?clientId=42', 'unknown-source'))
+      .toBe('Back to Client Hub');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/schedule?date=2026-06-30', null))
+      .toBe('Back to Schedule');
+    expect(buildWorkflowReturnLabel('/dashboard/admin/reporting/schedule', null))
+      .toBe('Back to Dashboard');
+    expect(buildWorkflowReturnLabel('/dashboard/trainer/overview', null))
+      .toBe('Back to Trainer Home');
+    expect(buildWorkflowReturnLabel('/dashboard/admin', null)).toBe('Back to Dashboard');
   });
 });
 
@@ -126,13 +167,38 @@ describe('CoachCommandCenter thread selection route binding', () => {
 });
 
 describe('CoachCommandCenter route context copy', () => {
-  it('uses selected-client onboarding activation copy when client context is present', () => {
+  it('keeps new-client onboarding route prompts off contact fields', () => {
+    const context = buildRouteContext('client_onboarding', null);
+
+    expect(context.prompt).toContain('New client onboarding intake');
+    expect(context.prompt).toContain('client source');
+    expect(context.prompt).toContain('secure access handoff stays deterministic');
+    expect(context.prompt).not.toMatch(/contact details/i);
+    expect(context.prompt).not.toMatch(/email|phone|claim link|reset link|password/i);
+  });
+  it('routes selected-client onboarding intents to existing-client coverage copy', () => {
     const context = buildRouteContext('client_onboarding', 'Ava Client');
 
-    expect(context.prompt).toContain('Selected paid client onboarding activation');
+    expect(context.prompt).toContain('Selected client onboarding coverage update');
+    expect(context.prompt).toContain('existing-client context');
     expect(context.prompt).toContain('selectedClientId');
+    expect(context.prompt).toContain('client_profile_coverage_update proposal');
+    expect(context.prompt).not.toMatch(/paid client/i);
     expect(context.prompt).not.toContain('New client onboarding intake');
-    expect(context.status).toBe('Ava Client onboarding context loaded');
+    expect(context.prompt).not.toContain('client_onboarding proposal');
+    expect(context.status).toBe('Ava Client profile coverage context loaded');
+  });
+
+  it('uses existing-client coverage copy for selected-client activation onboarding', () => {
+    const context = buildRouteContext('client_profile_coverage_update', 'Ava Client');
+
+    expect(context.prompt).toContain('Selected client onboarding coverage update');
+    expect(context.prompt).toContain('existing-client context');
+    expect(context.prompt).toContain('client_profile_coverage_update proposal');
+    expect(context.prompt).toContain('Workout logging remains available');
+    expect(context.prompt).not.toContain('New client onboarding intake');
+    expect(context.prompt).not.toContain('client_onboarding proposal');
+    expect(context.status).toBe('Ava Client profile coverage context loaded');
   });
 
   it('uses self-workout copy without inventing a selected client', () => {

@@ -10,6 +10,14 @@ import { memo } from 'react';
 import styled from 'styled-components';
 import { CheckCircle } from 'lucide-react';
 import { CommandRouteAction } from './CommandRouteAction';
+import { CommandLogAccessLinkActions } from './CoachClaimLinkActions';
+import {
+  buildCommandResultAccessHandoff,
+  commandLogAccessHandoffDescription,
+  commandLogAccessHandoffLink,
+  commandLogAccessHandoffTitle,
+} from './CoachCommandCenter.accessHandoff';
+import { AccessHandoffCard, AccessHandoffHeader } from './CoachCommandLogEntry.styles';
 import {
   CoachAudioInspectionResultCard,
   isAudioInspectionCommand,
@@ -95,8 +103,6 @@ const NudgeText = styled.div`
 const NEXT_ACTION_MAP: Record<string, string> = {
   log_workout: 'Want me to generate a session recap?',
   log_meals: 'Log another meal?',
-  create_client: 'Send the claim link to the client now?',
-  save_workout_plan: 'Review the plan before saving?',
   create_hermes_task: 'Check task status? Say "show hermes tasks".',
 };
 
@@ -105,6 +111,7 @@ export interface ExecutionResultCardProps {
   result: Record<string, unknown> | null;
   client: { id?: number; firstName?: string } | null;
   message?: string;
+  showAccessHandoff?: boolean;
 }
 
 export const ExecutionResultCard = memo(function ExecutionResultCard({
@@ -112,6 +119,7 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   result,
   client,
   message,
+  showAccessHandoff = true,
 }: ExecutionResultCardProps) {
   const safeMessage = safeCommandResultMessage(message);
 
@@ -138,6 +146,10 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
   }
 
   const clientLabel = client?.firstName ?? null;
+  const accessHandoff = showAccessHandoff
+    ? buildCommandResultAccessHandoff({ command, result, client, message })
+    : undefined;
+  const accessLink = accessHandoff ? commandLogAccessHandoffLink(accessHandoff) : null;
   const resultEntries = result
     ? Object.entries(result)
       .filter(([key]) => !isCommandRouteKey(key) && isSafeCommandDisplayKey(key))
@@ -156,6 +168,17 @@ export const ExecutionResultCard = memo(function ExecutionResultCard({
           <DataValue>{renderCommandParamValue(key, value)}</DataValue>
         </DataRow>
       ))}
+      {accessHandoff ? (
+        <AccessHandoffCard aria-label="Client access handoff">
+          <AccessHandoffHeader>
+            <strong>{commandLogAccessHandoffTitle(accessHandoff)}</strong>
+          </AccessHandoffHeader>
+          <p>{commandLogAccessHandoffDescription(accessHandoff)}</p>
+          {accessLink ? (
+            <CommandLogAccessLinkActions url={accessLink.url} label={accessLink.label} />
+          ) : null}
+        </AccessHandoffCard>
+      ) : null}
       <CommandRouteAction command={command} result={result} />
       {NEXT_ACTION_MAP[command] && (
         <NudgeText>{NEXT_ACTION_MAP[command]}</NudgeText>

@@ -13,6 +13,9 @@ import {
   NON_DEDUCTING_CLIENT_SOURCES,
   parseClientSource,
 } from '../../sessionBillingPolicy.mjs';
+import {
+  stripModelAuthoredOnboardingContactFields,
+} from '../coachOnboardingContactFieldSanitizer.mjs';
 
 const EXTERNAL_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;
 const CLIENT_SOURCE_OPTIONS = Object.freeze(['move_fitness', 'swanstudios', 'external']);
@@ -32,7 +35,6 @@ const TEXT_DRAFT_FIELDS = Object.freeze([
   'trainerNotes',
   'communicationStyle',
   'motivationStyle',
-  'preferredContactMethod',
 ]);
 const STRUCTURED_DRAFT_FIELDS = Object.freeze([
   'nutritionPrefs',
@@ -69,8 +71,6 @@ function buildDraft(params = {}, fallbackSource, allowedSources) {
   const draft = {
     firstName: cleanText(params.firstName, 80),
     lastName: cleanText(params.lastName, 80),
-    email: cleanText(params.email, 320),
-    phone: cleanText(params.phone, 64),
     clientSource: pickSource(params.clientSource, fallbackSource, allowedSources),
   };
 
@@ -131,7 +131,9 @@ async function prepareOnboardingProposal(params, ctx, fallbackSource, allowedSou
 
   const proposal = await createCoachActionProposalDraft({
     type: COACH_PROPOSAL_TYPE.CLIENT_ONBOARDING,
-    payload: { data: buildDraft(params, fallbackSource, allowedSources) },
+    payload: stripModelAuthoredOnboardingContactFields({
+      data: buildDraft(params, fallbackSource, allowedSources),
+    }),
     user: ctx.user,
     conversation: {
       id: ctx.options?.conversationId || null,

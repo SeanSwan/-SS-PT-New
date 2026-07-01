@@ -25,6 +25,8 @@ import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog
 import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
 import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
+import { resolveWorkoutPlannerReturnTo } from './workoutPlannerReturnTo';
+import { useWorkoutPlannerDebateResultHydration } from './workoutPlannerDebateResultHydration';
 
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
@@ -36,10 +38,10 @@ const WorkoutPlannerPage: React.FC = () => {
   const routeRequestedClientId = useMemo(() => parseWorkoutPlannerClientId(searchParams.get('clientId')), [searchParams]);
   const selfPlannerClient = useMemo(() => buildWorkoutPlannerSelfClient(user, searchParams.get('self') === '1' && !routeRequestedClientId), [routeRequestedClientId, searchParams, user]);
   const requestedClientId = selfPlannerClient?.id ?? routeRequestedClientId;
-  const plannerReturnTo = useMemo(() => {
-    const rawReturnTo = searchParams.get('returnTo');
-    return rawReturnTo && rawReturnTo.startsWith('/dashboard/') && !/[\r\n\t\\]/.test(rawReturnTo) ? rawReturnTo : null;
-  }, [searchParams]);
+  const plannerReturnTo = useMemo(
+    () => resolveWorkoutPlannerReturnTo(searchParams.get('returnTo'), user?.role),
+    [searchParams, user?.role],
+  );
 
   const [phaseNumber, setPhaseNumber] = useState(2);
   const [category, setCategory] = useState<WorkoutCategory>('full_body');
@@ -162,6 +164,8 @@ const WorkoutPlannerPage: React.FC = () => {
     clearExplanations,
     resetLoadedPlanState,
   });
+
+  useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState });
 
   const requestSwanCoachWorkoutForSelectedClient = useCallback(() => {
     void handleSwanCoachWorkoutGenerate(selectedClientId);

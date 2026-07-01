@@ -6,6 +6,7 @@ import {
   buildCreationHandoffCopyToast,
   copyTextToClipboard,
   getClientDetailTabFromSearchParams,
+  getClientLoggerReturnToFromSearchParams,
   getClientOnboardingPct,
   getClientScheduleWorkoutLoggerContextFromSearchParams,
   getClientTrainingSectionFromSearchParams,
@@ -133,6 +134,42 @@ describe('ClientsWorkspace route state parsing', () => {
       scheduledSessionDate: null,
       scheduledSessionCreditHint: 2,
     });
+  });
+  it('accepts a safe workout-planner return route for embedded logger cancellation', () => {
+    const params = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&returnTo=%2Fdashboard%2Fadmin%2Fworkout-planner%3FclientId%3D61%26source%3Dclients-team'
+    );
+
+    expect(getClientLoggerReturnToFromSearchParams(params)).toBe(
+      '/dashboard/admin/workout-planner?clientId=61&source=clients-team'
+    );
+  });
+
+
+  it('rejects mismatched workout-planner return clients', () => {
+    const params = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&returnTo=%2Fdashboard%2Fadmin%2Fworkout-planner%3FclientId%3D62'
+    );
+
+    expect(getClientLoggerReturnToFromSearchParams(params)).toBeNull();
+  });  it('rejects unsafe embedded logger return routes', () => {
+    const wrongSection = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=history&returnTo=%2Fdashboard%2Fadmin%2Fworkout-planner%3FclientId%3D61'
+    );
+    const external = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&returnTo=https%3A%2F%2Fevil.example%2Fdashboard%2Fadmin%2Fworkout-planner'
+    );
+    const encodedControl = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&returnTo=%2Fdashboard%2Fadmin%2Fworkout-planner%250A%3FclientId%3D61'
+    );
+    const sameAppWrongPath = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&returnTo=%2Fdashboard%2Fadmin%2Fuser-management'
+    );
+
+    expect(getClientLoggerReturnToFromSearchParams(wrongSection)).toBeNull();
+    expect(getClientLoggerReturnToFromSearchParams(external)).toBeNull();
+    expect(getClientLoggerReturnToFromSearchParams(encodedControl)).toBeNull();
+    expect(getClientLoggerReturnToFromSearchParams(sameAppWrongPath)).toBeNull();
   });
 });
 

@@ -23,18 +23,41 @@
  */
 import express from 'express';
 import { Op } from 'sequelize';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, rateLimiter } from '../middleware/authMiddleware.mjs';
 import { generateClaimToken, hashToken, isTokenExpired } from '../services/claimTokenService.mjs';
 import { normalizeClientOnboardEmailInput } from '../services/clientOnboardIdentityService.mjs';
+import { validatePasswordStrength } from '../services/auth/passwordPolicyService.mjs';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const CLAIM_TOKEN_PATTERN = /^SWAN-[A-Z0-9]{8}$/i;
+const CLAIM_RATE_LIMIT_MESSAGE = 'Too many claim-link attempts, please try again later.';
+const claimVerifyLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 10, message: CLAIM_RATE_LIMIT_MESSAGE });
+const claimActivateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: CLAIM_RATE_LIMIT_MESSAGE });
 
-// ─────────────────────────────────────────────────────────────
+const isValidClaimToken = (token) => (
+  typeof token === 'string'
+  && CLAIM_TOKEN_PATTERN.test(token.trim())
+);
+
+const parsePositiveClientId = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === 'string' && /^[1-9]\d*$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+};
+
+// -------------------------------------------------------------
 // SECTION: Admin-Only Token Generation
 // PURPOSE: Create invite codes for STUB clients
-// ────────���──────────────────────────────────────────────���─────
+// -------------------------------------------------------------
 
 /**
  * POST /api/claim/generate-token
@@ -47,15 +70,24 @@ router.post('/generate-token', protect, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Admin only' });
     }
 
-    const { clientId } = req.body;
+    const clientId = parsePositiveClientId(req.body?.clientId);
     if (!clientId) {
-      return res.status(400).json({ success: false, message: 'clientId is required' });
+      return res.status(400).json({ success: false, message: 'Valid clientId is required' });
     }
 
     const User = getUser();
-    const client = await User.findByPk(clientId);
-    if (!client) {
+    const client = await User.findByPk(clientId, {
+      attributes: ['id', 'role', 'isActive', 'accountStatus', 'forcePasswordChange', 'firstName', 'lastName'],
+    });
+    if (!client || client.role !== 'client') {
       return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    if (client.isActive === false) {
+      return res.status(409).json({
+        success: false,
+        message: 'Client is inactive. Reactivate the client before generating a claim link.'
+      });
     }
 
     if (client.accountStatus === 'active' && !client.forcePasswordChange) {
@@ -90,20 +122,20 @@ router.post('/generate-token', protect, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────
+// -------------------------------------------------------------
 // SECTION: Public Token Verification
 // PURPOSE: Check if a claim token is valid (no auth required)
 // WHY O(1): SHA-256 hash allows direct WHERE lookup (AI Village Finding 3)
-// ──────────────────────────────���──────────────────────────────
+// -------------------------------------------------------------
 
 /**
  * GET /api/claim/verify/:token
  * Public endpoint — validates a token without consuming it
  */
-router.get('/verify/:token', async (req, res) => {
+router.get('/verify/:token', claimVerifyLimiter, async (req, res) => {
   try {
     const { token } = req.params;
-    if (!token || token.length < 6) {
+    if (!isValidClaimToken(token)) {
       return res.status(400).json({ success: false, message: 'Invalid token format' });
     }
 
@@ -115,6 +147,8 @@ router.get('/verify/:token', async (req, res) => {
       where: {
         claimTokenHash: tokenHash,
         accountStatus: { [Op.in]: ['invited', 'stub'] }, // AI Village Finding 1
+        role: 'client',
+        isActive: true,
       },
       attributes: ['id', 'firstName', 'claimTokenExpires', 'clientSource'],
     });
@@ -138,17 +172,17 @@ router.get('/verify/:token', async (req, res) => {
   }
 });
 
-// ────────────────────────────────────────────────────��────────
+// -------------------------------------------------------------
 // SECTION: Account Activation
 // PURPOSE: Client sets password and activates their account
-// ───���──────────────────────────────���──────────────────────────
+// -------------------------------------------------------------
 
 /**
  * POST /api/claim/activate
  * Public endpoint — claims an account with token + new password
  * Body: { token: string, password: string, email?: string }
  */
-router.post('/activate', async (req, res) => {
+router.post('/activate', claimActivateLimiter, async (req, res) => {
   try {
     const { token, password, email } = req.body;
 
@@ -156,8 +190,13 @@ router.post('/activate', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Token and password are required' });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+    if (!isValidClaimToken(token)) {
+      return res.status(400).json({ success: false, message: 'Invalid token format' });
+    }
+
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.success) {
+      return res.status(400).json({ success: false, message: passwordValidation.message });
     }
 
     const User = getUser();
@@ -168,6 +207,8 @@ router.post('/activate', async (req, res) => {
       where: {
         claimTokenHash: tokenHash,
         accountStatus: { [Op.in]: ['invited', 'stub'] }, // AI Village Finding 1
+        role: 'client',
+        isActive: true,
       },
     });
 

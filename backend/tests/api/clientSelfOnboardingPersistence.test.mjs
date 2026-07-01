@@ -45,7 +45,7 @@ async function loadController({ questionnaire = null } = {}) {
   }));
 
   const mod = await import('../../controllers/onboardingController.mjs');
-  return { createClientSelfOnboarding: mod.createClientSelfOnboarding, user, mockQuestionnaire };
+  return { createClientSelfOnboarding: mod.createClientSelfOnboarding, user, mockUser, mockQuestionnaire };
 }
 
 describe('client self-onboarding persistence', () => {
@@ -56,7 +56,7 @@ describe('client self-onboarding persistence', () => {
   it('marks the user complete and stores the raw questionnaire row for downstream intake consumers', async () => {
     const { createClientSelfOnboarding, user, mockQuestionnaire } = await loadController();
     const req = {
-      user: { id: 42 },
+      user: { id: 42, role: 'client' },
       body: {
         fullName: 'Test Client',
         primaryGoal: 'Build strength',
@@ -87,6 +87,56 @@ describe('client self-onboarding persistence', () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
+  it('accepts raw user role accounts that the mounted dashboard treats as clients', async () => {
+    const { createClientSelfOnboarding, user, mockQuestionnaire } = await loadController();
+    const req = {
+      user: { id: 42, role: 'user' },
+      body: {
+        fullName: 'Test Client',
+        primaryGoal: 'Build strength',
+      },
+    };
+    const res = makeRes();
+
+    await createClientSelfOnboarding(req, res);
+
+    expect(user.update).toHaveBeenCalledWith(expect.objectContaining({
+      isOnboardingComplete: true,
+      masterPromptJson: expect.any(Object),
+    }));
+    expect(mockQuestionnaire.create).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      createdBy: 42,
+      status: 'completed',
+      responsesJson: expect.objectContaining({ primaryGoal: 'Build strength' }),
+    }));
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('rejects admin actors before mutating client self-onboarding state', async () => {
+    const { createClientSelfOnboarding, user, mockUser, mockQuestionnaire } = await loadController();
+    const req = {
+      user: { id: 7, role: 'admin' },
+      body: {
+        fullName: 'Admin Actor',
+        primaryGoal: 'Build strength',
+      },
+    };
+    const res = makeRes();
+
+    await createClientSelfOnboarding(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      success: false,
+      code: 'client_role_required',
+    }));
+    expect(mockUser.findByPk).not.toHaveBeenCalled();
+    expect(user.update).not.toHaveBeenCalled();
+    expect(mockQuestionnaire.findOne).not.toHaveBeenCalled();
+    expect(mockQuestionnaire.create).not.toHaveBeenCalled();
+  });
+
   it('updates the latest questionnaire row on repeat self-onboarding', async () => {
     const existingQuestionnaire = {
       update: vi.fn().mockResolvedValue(undefined),
@@ -95,7 +145,7 @@ describe('client self-onboarding persistence', () => {
       questionnaire: existingQuestionnaire,
     });
     const req = {
-      user: { id: 42 },
+      user: { id: 42, role: 'client' },
       body: {
         fullName: 'Test Client',
         primaryGoal: 'Improve conditioning',

@@ -32,8 +32,9 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => vi.fn() };
 });
 
-const { apiGetMock, toastMock } = vi.hoisted(() => ({
+const { apiGetMock, submitWorkoutFormMock, toastMock } = vi.hoisted(() => ({
   apiGetMock: vi.fn(),
+  submitWorkoutFormMock: vi.fn(),
   toastMock: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }));
 
@@ -42,7 +43,7 @@ vi.mock('../../services/nasmApiService', async () => {
   return {
     ...actual,
     dailyWorkoutFormService: {
-      submitWorkoutForm: vi.fn().mockResolvedValue({ success: true, data: {} }),
+      submitWorkoutForm: submitWorkoutFormMock,
     },
   };
 });
@@ -75,7 +76,7 @@ vi.mock('./NASMExerciseRolodex', () => ({ default: () => null }));
 vi.mock('../Shared/AITerminalPanel', () => ({ default: () => null }));
 vi.mock('../Shared/EquipmentProfilePicker', () => ({ default: () => null }));
 
-import { render, waitFor, cleanup } from '@testing-library/react';
+import { render, waitFor, cleanup, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import WorkoutLogger from './WorkoutLogger';
 
@@ -100,9 +101,11 @@ describe('WorkoutLogger scheduled-session plan prefill', () => {
     cleanup();
     vi.clearAllMocks();
     apiGetMock.mockReset();
+    submitWorkoutFormMock.mockReset();
+    submitWorkoutFormMock.mockResolvedValue({ success: true, data: { id: 'form-scheduled', clientId: CLIENT_ID, date: '2026-06-15' } });
   });
 
-  it('refreshes scheduled-session context before loading a trainer-session plan assignment', async () => {
+  it('refreshes scheduled-session context and submits trainer-session plan metadata', async () => {
     apiGetMock.mockImplementation((url: string) => {
       if (url.endsWith('/current')) {
         return Promise.resolve({
@@ -161,5 +164,23 @@ describe('WorkoutLogger scheduled-session plan prefill', () => {
     expect(successMsg).toMatch(/Week 4/);
     expect(successMsg).toMatch(/Paid Session Day/);
     expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
+
+    fireEvent.click(await screen.findByRole('button', { name: /complete & save workout/i }));
+
+    await waitFor(() => expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1));
+    expect(submitWorkoutFormMock.mock.calls[0][0]).toMatchObject({
+      clientId: CLIENT_ID,
+      scheduledSessionId: '314',
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:trainer_session',
+        planId: 'plan-6m',
+        assignmentType: 'trainer_session',
+        source: 'workout_plan',
+        isBillable: true,
+        shouldDeductSession: true,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    });
   });
 });

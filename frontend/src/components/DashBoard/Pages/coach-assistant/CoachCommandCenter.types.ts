@@ -44,6 +44,12 @@ export type CoachCommandRouteContext = {
   intent: string | null;
 } & Partial<CoachScheduledSessionRouteContext>;
 
+export type CoachChatRouteRequestContext = {
+  source?: string;
+  intent?: string;
+  surface?: 'coach-command-center';
+} & Partial<CoachScheduledSessionRouteContext>;
+
 export type CoachQueueSummaryView = {
   total: number;
   actionable: number;

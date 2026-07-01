@@ -6,6 +6,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import clientSelfServiceCommands from '../../services/ai/commandRegistry/clientSelfService.mjs';
+import {
+  buildCommandSummaryForClassifier,
+  getCommandsForRole,
+  initializeRegistry,
+} from '../../services/ai/commandRegistry/index.mjs';
 
 const byType = (type) => clientSelfServiceCommands.find((command) => command.type === type);
 
@@ -67,6 +72,25 @@ describe('client self-service command registry contracts', () => {
       requiresConfirmation: false,
       selfService: true,
     });
+  });
+
+  it('makes self-service commands available to persisted client-equivalent roles', () => {
+    initializeRegistry();
+
+    const selfServiceCommandTypes = clientSelfServiceCommands.map((command) => command.type);
+    const userCommandTypes = new Set(getCommandsForRole('user').map((command) => command.type));
+    const classifierSummary = buildCommandSummaryForClassifier('user');
+
+    for (const command of clientSelfServiceCommands) {
+      expect(command.roleRequired).toEqual(expect.arrayContaining(['client', 'user']));
+      expect(userCommandTypes).toContain(command.type);
+    }
+
+    expect(selfServiceCommandTypes).toContain('my_workout_today');
+    expect(selfServiceCommandTypes).toContain('request_plan_adjustment');
+    expect(classifierSummary).toContain('my_workout_today:');
+    expect(classifierSummary).toContain('request_plan_adjustment:');
+    expect(classifierSummary).not.toContain('build_workout_plan:');
   });
 
   it('accepts voice-friendly read filters without needing a client ref', () => {

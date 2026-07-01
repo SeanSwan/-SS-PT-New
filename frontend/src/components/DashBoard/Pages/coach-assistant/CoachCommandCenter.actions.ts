@@ -18,8 +18,9 @@ import {
 } from './CoachCommandCenter.commandLane';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
+import { buildCommandLogAccessHandoff, commandLogAccessHandoffAttachment, commandLogAccessHandoffIntro } from './CoachCommandCenter.accessHandoff';
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
-import type { CoachCommandRouteContext, CoachScheduledSessionRouteContext, DrawerSide } from './CoachCommandCenter.types';
+import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
 type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 type CoachCommandQueue = { refresh: () => unknown };
@@ -45,8 +46,9 @@ type CoachCommandActionProps = {
   routeCommandContext: CoachCommandRouteContext;
   routeIntent: string | null;
   routeContextPrompt: string | null;
-  routeRequestContext: CoachScheduledSessionRouteContext | null;
+  routeRequestContext: CoachChatRouteRequestContext | null;
   speakCoachReply?: (text: string) => void;
+  workoutPlannerRoute?: string | null;
   onThreadSelectRoute: (thread: ConversationSummary) => void;
   onNewThreadRoute: () => void;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
@@ -132,14 +134,16 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     try {
       const result = await createQuickCoachCommandClient({ fullName, clientSource: props.quickClientSource });
       const createdName = [result.client.firstName, result.client.lastName].filter(Boolean).join(' ') || fullName;
+      const accessHandoff = buildCommandLogAccessHandoff({ result, createdName, fallbackClientSource: props.quickClientSource });
       const status = `${createdName} - client ready`;
       props.setQuickClientName('');
       props.setQuickClientMessage(`${createdName} is ready for review-gated follow-up. No workout log was written.`);
       addLog({
         actor: 'system',
         label: 'client added',
-        body: `${createdName} is ready for staged audio/workout review. No workout log was written and final writes still require operator approval.`,
-        attachments: result.claimUrl ? ['claim link ready'] : ['client profile ready'],
+        body: `${createdName} is ready for staged audio/workout review. ${commandLogAccessHandoffIntro(accessHandoff)}No workout log was written and final writes still require operator approval.`,
+        attachments: [commandLogAccessHandoffAttachment(accessHandoff)],
+        accessHandoff,
       });
       props.setSelectedStatus(status);
       void props.coachQueue.refresh();
@@ -241,7 +245,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       label: 'command confirmed',
       body,
       attachments: [confirmation.command, 'confirmed'],
-      commandResult: confirmedCommandLogResult(confirmation, result),
+      commandResult: confirmedCommandLogResult(confirmation, result, { workoutPlannerRoute: props.workoutPlannerRoute }),
     });
     return { success: true };
   };

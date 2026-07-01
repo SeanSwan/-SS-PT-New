@@ -6,6 +6,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import goalCommands from '../../services/ai/commandRegistry/goalCommands.mjs';
+import {
+  buildCommandSummaryForClassifier,
+  getCommandsForRole,
+  initializeRegistry,
+} from '../../services/ai/commandRegistry/index.mjs';
 
 const byType = (type) => goalCommands.find((command) => command.type === type);
 
@@ -29,6 +34,29 @@ describe('goal command registry contracts', () => {
       destructive: false,
       requiresConfirmation: true,
     });
+  });
+
+  it('exposes only no-client-ref gamification reads to raw user accounts', () => {
+    initializeRegistry();
+
+    const leaderboard = byType('view_leaderboard');
+    const xpStreaks = byType('view_xp_streaks');
+    const userCommandTypes = new Set(getCommandsForRole('user').map((command) => command.type));
+    const classifierSummary = buildCommandSummaryForClassifier('user');
+
+    expect(leaderboard).toMatchObject({
+      destructive: false,
+      requiresConfirmation: false,
+      requiresClientRef: false,
+    });
+    expect(leaderboard.roleRequired).toEqual(expect.arrayContaining(['admin', 'trainer', 'client', 'user']));
+    expect(userCommandTypes).toContain('view_leaderboard');
+    expect(classifierSummary).toContain('view_leaderboard:');
+
+    expect(xpStreaks.requiresClientRef).toBe(true);
+    expect(userCommandTypes).not.toContain('view_xp_streaks');
+    expect(userCommandTypes).not.toContain('award_badge');
+    expect(classifierSummary).not.toContain('view_xp_streaks:');
   });
 
   it('validates create_goal against real Goal model required fields', () => {

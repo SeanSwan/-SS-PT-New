@@ -104,7 +104,7 @@ const normalizeRouteContext = (value) => {
   const workoutDate = normalizeIsoDate(value.workoutDate);
   if (workoutDate) normalized.workoutDate = workoutDate;
   const scheduledSessionCredits = Number(value.scheduledSessionCredits);
-  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
+  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits >= 0) {
     normalized.scheduledSessionCredits = scheduledSessionCredits;
   }
 

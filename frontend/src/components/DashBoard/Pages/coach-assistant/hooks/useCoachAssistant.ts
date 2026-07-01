@@ -35,6 +35,12 @@ interface UseCoachAssistantOptions {
   routeContext?: CoachRouteContext | null;
 }
 
+function positiveTargetClientId(value?: number | string | null): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const {
     defaultContext = 'coach_assistant',
@@ -46,6 +52,9 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   const internalChat = useAIChat();
   const chat = externalChat || internalChat;
+  const selectedTargetClientId = positiveTargetClientId(targetClientId);
+  const activeThreadTargetClientId = positiveTargetClientId(chat.activeConversation?.targetUserId);
+  const effectiveTargetClientId = selectedTargetClientId ?? activeThreadTargetClientId;
   const {
     executeCommand,
     confirmCommand: execConfirm,
@@ -95,7 +104,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
       if (isCommandLaneCandidate(trimmedText)) {
         cmdResult = await executeCommand(trimmedText, {
-          selectedClientId: targetClientId,
+          selectedClientId: effectiveTargetClientId,
           routeContext: routeContext as unknown as Record<string, unknown> | null,
         });
       } else {
@@ -116,7 +125,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
               trimmedText,
               context as Parameters<typeof chat.sendMessageWithConversation>[1],
               'Swan Coach Session',
-              targetClientId,
+              effectiveTargetClientId,
               backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
               null,
               routeRequestContext,
@@ -125,7 +134,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
               trimmedText,
               context as Parameters<typeof chat.sendMessageWithConversation>[1],
               'Swan Coach Session',
-              targetClientId,
+              effectiveTargetClientId,
               backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
             );
         setLocalMessages([]);
@@ -143,7 +152,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     } finally {
       setPendingEcho(null);
     }
-  }, [chat, context, responseStyle, targetClientId, routeContext, executeCommand, executingCommand]);
+  }, [chat, context, responseStyle, effectiveTargetClientId, routeContext, executeCommand, executingCommand]);
 
   // ── Confirm a pending destructive/confirmation command ──
   const confirmCommand = useCallback(async (operationId: string): Promise<{ success: boolean; error?: string }> => {
@@ -161,7 +170,8 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       if (msg.metadata?.commandConfirmation?.operationId !== operationId) return msg;
       const confirmation = msg.metadata.commandConfirmation!;
       const summary = result.type === 'frontend_dispatch' ? (result.message || 'Confirmed action sent to the active workout surface.')
-        : commandResultSummary(confirmation.command, result.result, confirmation.client);
+        : result.type === 'debate_started' ? (result.message || 'Workout plan debate started.')
+          : commandResultSummary(confirmation.command, result.result, confirmation.client);
       return {
         ...msg,
         content: summary,
@@ -197,7 +207,12 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     appendAudioIntakeReceipt,
   } = useCoachAssistantTranscriptMessages(setCommandMessages);
 
-  const { sendMessageWithFood } = useCoachAssistantFoodMessages({ chat, responseStyle, targetClientId, setLocalMessages });
+  const { sendMessageWithFood } = useCoachAssistantFoodMessages({
+    chat,
+    responseStyle,
+    targetClientId: effectiveTargetClientId,
+    setLocalMessages,
+  });
 
   const switchContext = useCallback((newContext: CoachContext) => {
     setContext(newContext);

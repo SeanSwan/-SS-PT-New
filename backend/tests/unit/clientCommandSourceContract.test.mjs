@@ -11,32 +11,58 @@ import clientCommands from '../../services/ai/commandRegistry/clientCommands.mjs
 const commandByType = (type) => clientCommands.find((command) => command.type === type);
 
 describe('AI client command source contracts', () => {
-  it('create_client accepts only canonical User.clientSource values', () => {
+  it('create_client accepts canonical source values without contact fields', () => {
     const createClient = commandByType('create_client');
 
-    expect(() => createClient.inputSchema.parse({
+    expect(createClient.description).toBe('Prepare a SwanStudios client onboarding draft');
+    expect(createClient.description).not.toMatch(/create a new client account/i);
+
+    expect(createClient.inputSchema.parse({
+      firstName: 'Ava',
+      lastName: 'Stone',
+      clientSource: 'swanstudios',
+    })).toEqual({
+      firstName: 'Ava',
+      lastName: 'Stone',
+      clientSource: 'swanstudios',
+    });
+
+    expect(createClient.inputSchema.parse({
       firstName: 'Ava',
       lastName: 'Stone',
       email: 'ava@example.test',
+      phone: '555-0100',
       clientSource: 'swanstudios',
-    })).not.toThrow();
+    })).toEqual({
+      firstName: 'Ava',
+      lastName: 'Stone',
+      clientSource: 'swanstudios',
+    });
 
     expect(() => createClient.inputSchema.parse({
       firstName: 'Ava',
       lastName: 'Stone',
-      email: 'ava@example.test',
       clientSource: 'direct',
     })).toThrow();
   });
 
-  it('create_external_client accepts Move Fitness or external only', () => {
+  it('create_external_client accepts Move Fitness or external without contact fields', () => {
     const createExternalClient = commandByType('create_external_client');
+
+    expect(createExternalClient.description).toBe('Prepare a Move Fitness or external client onboarding draft');
+    expect(createExternalClient.description).not.toMatch(/create .*client$/i);
 
     expect(createExternalClient.inputSchema.parse({
       firstName: 'Mia',
       lastName: 'Reed',
+      email: 'mia@example.test',
+      phone: '555-0200',
       clientSource: 'move_fitness',
-    }).clientSource).toBe('move_fitness');
+    })).toEqual({
+      firstName: 'Mia',
+      lastName: 'Reed',
+      clientSource: 'move_fitness',
+    });
 
     expect(() => createExternalClient.inputSchema.parse({
       firstName: 'Mia',

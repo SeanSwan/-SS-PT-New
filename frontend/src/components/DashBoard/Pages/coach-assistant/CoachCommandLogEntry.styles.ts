@@ -158,6 +158,104 @@ export const StepList = styled.ol`
   }
 `;
 
+export const AccessHandoffCard = styled.section`
+  background: color-mix(in srgb, var(--coach-cyan, #60c0f0) 9%, var(--coach-deep, #030712) 82%);
+  border: 1px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 26%, transparent);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  p {
+    color: var(--coach-text-soft, #dbeafe);
+    font-size: 0.94rem;
+    line-height: 1.45;
+    margin: 0;
+  }
+`;
+
+export const AccessHandoffHeader = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  strong {
+    color: var(--coach-text, #e0ecf4);
+  }
+  span {
+    border: 1px solid color-mix(in srgb, var(--coach-purple, #8b5cf6) 28%, transparent);
+    border-radius: 999px;
+    color: var(--coach-text-soft, #dbeafe);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    text-transform: uppercase;
+  }
+`;
+
+export const AccessHandoffToken = styled.div`
+  align-items: center;
+  background: color-mix(in srgb, var(--coach-surface-strong, #102044) 72%, transparent);
+  border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 9px 10px;
+  span {
+    color: var(--coach-muted, #91a3bd);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+  code {
+    color: var(--coach-text, #e0ecf4);
+    font-family: 'Fira Code', monospace;
+    font-size: 0.94rem;
+    overflow-wrap: anywhere;
+  }
+`;
+
+export const AccessHandoffButton = styled.button`
+  align-items: center;
+  background: color-mix(in srgb, var(--coach-purple, #8b5cf6) 30%, var(--coach-deep, #030712) 70%);
+  border: 1px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 32%, transparent);
+  border-radius: 12px;
+  color: var(--coach-text, #e0ecf4);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 820;
+  gap: 8px;
+  justify-content: center;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 14px;
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 70%, transparent);
+    outline-offset: 3px;
+  }
+`;
+export const AccessHandoffLink = styled.a`
+  align-items: center;
+  background: color-mix(in srgb, var(--coach-purple, #8b5cf6) 30%, var(--coach-deep, #030712) 70%);
+  border: 1px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 32%, transparent);
+  border-radius: 12px;
+  color: var(--coach-text, #e0ecf4);
+  display: inline-flex;
+  font-weight: 820;
+  gap: 8px;
+  justify-content: center;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 14px;
+  text-decoration: none;
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--coach-cyan, #60c0f0) 70%, transparent);
+    outline-offset: 3px;
+  }
+`;
 export const PacketDetails = styled.details`
   border: 1px solid var(--coach-line, color-mix(in srgb, var(--coach-cyan, #60c0f0) 18%, transparent));
   border-radius: 14px;

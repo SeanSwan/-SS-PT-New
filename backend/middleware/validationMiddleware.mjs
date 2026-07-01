@@ -274,6 +274,18 @@ import { body, param, query, validationResult } from 'express-validator';
 import logger from '../utils/logger.mjs';
 import { ValidationError } from './errorMiddleware.mjs';
 import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
+import { validatePasswordStrength } from '../services/auth/passwordPolicyService.mjs';
+
+const strongPassword = (field, requiredMessage) => body(field)
+  .notEmpty().withMessage(requiredMessage)
+  .bail()
+  .custom((value) => {
+    const passwordValidation = validatePasswordStrength(value);
+    if (!passwordValidation.success) {
+      throw new Error(passwordValidation.message);
+    }
+    return true;
+  });
 
 // Validation schemas for different request types
 const validationSchemas = {
@@ -296,13 +308,7 @@ const validationSchemas = {
     body('currentPassword')
       .notEmpty().withMessage('Current password is required'),
     
-    body('newPassword')
-      .notEmpty().withMessage('New password is required')
-      .isLength({ min: 8 }).withMessage('New password must be at least 8 characters long')
-      .matches(/[A-Z]/).withMessage('New password must contain at least one uppercase letter')
-      .matches(/[a-z]/).withMessage('New password must contain at least one lowercase letter')
-      .matches(/[0-9]/).withMessage('New password must contain at least one number')
-      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('New password must contain at least one special character')
+    strongPassword('newPassword', 'New password is required')
   ],
   
   forgotPassword: [
@@ -320,13 +326,7 @@ const validationSchemas = {
       .isHexadecimal().withMessage('Invalid reset token format')
       .isLength({ min: 64, max: 64 }).withMessage('Invalid reset token length'),
 
-    body('newPassword')
-      .notEmpty().withMessage('New password is required')
-      .isLength({ min: 8 }).withMessage('New password must be at least 8 characters long')
-      .matches(/[A-Z]/).withMessage('New password must contain at least one uppercase letter')
-      .matches(/[a-z]/).withMessage('New password must contain at least one lowercase letter')
-      .matches(/[0-9]/).withMessage('New password must contain at least one number')
-      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('New password must contain at least one special character')
+    strongPassword('newPassword', 'New password is required')
   ],
 
   register: [
@@ -352,13 +352,7 @@ const validationSchemas = {
       .isLength({ min: 3, max: 30 }).withMessage('Username must be between 3 and 30 characters')
       .matches(/^[a-zA-Z0-9_]+$/).withMessage('Username can only contain letters, numbers, and underscores'),
     
-    body('password')
-      .notEmpty().withMessage('Password is required')
-      .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
-      .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
-      .matches(/[a-z]/).withMessage('Password must contain at least one lowercase letter')
-      .matches(/[0-9]/).withMessage('Password must contain at least one number')
-      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Password must contain at least one special character'),
+    strongPassword('password', 'Password is required'),
 
     body('role')
       .optional()
