@@ -20,6 +20,23 @@ export const DockShell = styled.aside`
   }
 `;
 
+export const DockMiniButton = styled.button`
+  position: fixed;
+  right: clamp(14px, 2vw, 26px);
+  bottom: clamp(14px, 2vw, 26px);
+  z-index: 60;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 94%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--bg-base, #0A0A0F) 45%, transparent);
+`;
+
 export const DockHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -30,6 +47,25 @@ export const DockHeader = styled.div`
 
 export const DockIdentity = styled.div`
   min-width: 0;
+`;
+
+export const DockHeaderActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const DockIconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 55%, transparent);
+  color: var(--text-secondary, #A8B7C7);
+  cursor: pointer;
 `;
 
 export const DockEyebrow = styled.div`
