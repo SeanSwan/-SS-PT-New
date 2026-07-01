@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-6 Hostile Review Record
+# Swan Aura Slice 1-7 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, and frontend real-action XP wiring.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, frontend real-action XP wiring, and avatar economy blueprint.
 
 ## Slice summary
 
@@ -17,6 +17,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - Protected route mounted under `/api/social/unity-weaver` for event discovery and XP awards.
 - Frontend `SwanAuraProsocialXP.client.ts` helper that calls the backend award path only after real post/comment/reaction actions succeed.
 - `useSocialFeed.ts` now awards backend-validated Unity Weaver XP for real positive social actions: positive progress posts, supportive reactions, and supportive/grateful comments.
+- `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` defines XP as permanent progression, SwanCoins as earnable spend currency, and Premium Credits as optional future paid cosmetic currency.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -30,6 +31,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - No XP awards happen from frontend-only constants.
 - Backend owns actual XP award validation.
 - No XP is awarded for merely clicking Swan Aura CTAs.
+- No spendable currency or paid cosmetic checkout was implemented in this slice.
 
 ## Hostile review findings and recursive fixes
 
@@ -131,7 +133,14 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 **Severity:** High  
 **Risk:** The first backend implementation fetched the latest 100 `social_engagement` rows and filtered in memory. Heavy unrelated activity could push older Unity Weaver event rows out of the sample, bypassing daily limits/cooldowns.
 
-**Fix applied:** Replaced in-memory filtering with a direct SQL aggregate on `PointTransactions.metadata->>'unityWeaverEventId'`, returning exact daily count and latest event timestamp for the specific Unity Weaver event.
+**Fix applied:** Replaced in-memory filtering with a direct SQL aggregate on `PointTransactions.metadata->>'unityWeaverEventId'`, returning exact daily count and latest event timestamp for the specific Unity Weaver event. Also switched to explicit Sequelize `QueryTypes.SELECT`.
+
+### Finding 14 — Cosmetic spending could accidentally punish progression
+
+**Severity:** High before avatar economy implementation  
+**Risk:** If avatar clothes/skins spend XP directly, users could lose level progress by buying cosmetics, which damages motivation and trust.
+
+**Fix applied:** Added `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` with a three-layer economy: XP for permanent progression, SwanCoins for earnable spend currency, and Premium Credits for optional future paid cosmetic currency.
 
 ## Current gate status
 
@@ -152,6 +161,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 | Frontend awards only after real action success | PASS |
 | No CTA-click XP farming | PASS |
 | Toast noise reduced | PASS |
+| Avatar economy avoids spending XP | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -180,7 +190,8 @@ Manual/API smoke targets:
 12. Swan/heart reaction on another user's post can trigger `encourage_friend` after reaction success.
 13. Workout/transformation/achievement/challenge post can trigger `positive_progress_post` after post success.
 14. Commenting/reacting on your own post does not trigger Unity Weaver recipient-based XP.
+15. No avatar/cosmetic purchase flow spends XP.
 
 ## Verdict
 
-Slices 1-6 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-7 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
