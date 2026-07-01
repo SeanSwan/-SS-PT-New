@@ -182,7 +182,6 @@ export async function awardUnityWeaverProsocialXP({
   targetUserId = null,
   contextType = 'dashboard',
   contextId = null,
-  clientMetadata = null,
 }) {
   const now = new Date();
   const numericActorId = normalizePositiveInteger(actorUserId);
@@ -269,7 +268,6 @@ export async function awardUnityWeaverProsocialXP({
       contextType,
       contextId: contextId ? String(contextId).slice(0, 80) : null,
       targetUserId: numericTargetId,
-      clientMetadata: clientMetadata && typeof clientMetadata === 'object' ? clientMetadata : null,
     },
     awardedBy: numericActorId,
     idempotencyKey,
