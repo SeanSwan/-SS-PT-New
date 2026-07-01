@@ -31,6 +31,17 @@ The first implementation pass upgrades the existing Avatar Home companion panel 
 - keep the current API response compatible;
 - keep the rendering cheap for low-end phones.
 
+## Phase 1 changes
+
+The second implementation pass starts the mounted client-dashboard companion surface:
+
+- add a `CompanionV2Snapshot` contract for dashboard-ready companion state;
+- add snapshot normalization tests;
+- add `ClientCompanionDock` and styles;
+- mount the dock in `ClientDashboardHomeTab`, the canonical `/dashboard/client/overview` surface;
+- route empty companion state to Avatar Home adoption;
+- route ready companion state to the next healthy action and My Home.
+
 ## Future architecture
 
 Later phases should introduce:
@@ -39,7 +50,7 @@ Later phases should introduce:
 - `CompanionEvents` for idempotent event intake from workouts and gamification;
 - `CompanionMemories` for user-visible safe preference summaries;
 - `CompanionCosmetics` and `UserCompanionCosmetics` for unlockable appearance items;
-- a `CompanionV2Snapshot` contract for one dashboard-ready state payload;
+- a richer `CompanionV2Snapshot` endpoint for one dashboard-ready state payload;
 - render tiers: lite, SVG sprite, voxel sprite, optional Three.js.
 
 ## GOAL loop
