@@ -50,13 +50,16 @@ The third implementation pass hardens rollout and prepares event bridging:
 - add a `VITE_ENABLE_COMPANION_DOCK` rollout guard;
 - add source-contract tests proving the dock remains mounted behind the guard;
 - add backend `CompanionEventBridgeService` prep for mapping positive platform events into companion activity counters;
-- add tests for workout, streak, social, and personal-record event mapping.
+- add nutrition and recovery companion lanes so meal/recovery events can create visible companion progression;
+- add tests for workout, nutrition, recovery, streak, social, badge, and personal-record event mapping.
 
 ## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
 
 The rollout review found that the dock needed to be reversible on small screens and stageable in production. The dock now has a persisted collapse control and an explicit environment flag.
+
+The event-bridge review found that nutrition and recovery events would have been dropped or collapsed into unrelated activity lanes. The companion now has first-class `nutrition_logs` and `recovery_actions` counters and appearance triggers.
 
 ## Future architecture
 
