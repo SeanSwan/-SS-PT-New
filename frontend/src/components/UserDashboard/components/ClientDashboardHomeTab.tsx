@@ -41,6 +41,7 @@ import {
 } from './HomeTabViewModel';
 import ClientDashboardHome from './ClientDashboardHome';
 import ClientCompanionDock from './ClientCompanionDock';
+import { isCompanionDockEnabled } from './companionDockPreferences';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
   buildAssignmentView,
@@ -83,6 +84,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const { summary: macroSummary, loading: macroSummaryLoading } = useMacroSummary();
   const communityFeed = useSocialFeed();
   const notificationSummary = useNotificationSummary();
+  const companionDockEnabled = isCompanionDockEnabled(import.meta.env?.VITE_ENABLE_COMPANION_DOCK);
   const companionUserIdSegment = getSafeGamificationIdSegment(user?.id);
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   const messageSummary = useMessageSummary({ enabled: hasEliteAccess });
@@ -247,7 +249,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         onTarget={handleTarget}
         onShareProgress={shareProgress}
       />
-      {companionUserIdSegment && <ClientCompanionDock userIdSegment={companionUserIdSegment} onNavigate={navigate} />}
+      {companionDockEnabled && companionUserIdSegment && <ClientCompanionDock userIdSegment={companionUserIdSegment} onNavigate={navigate} />}
       <input
         ref={composer.mediaInputRef}
         type="file"
