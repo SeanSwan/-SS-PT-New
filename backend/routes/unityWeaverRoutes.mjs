@@ -31,7 +31,6 @@ router.post('/prosocial-events/award', prosocialAwardLimiter, async (req, res) =
       targetUserId: req.body?.targetUserId,
       contextType: req.body?.contextType || 'dashboard',
       contextId: req.body?.contextId,
-      clientMetadata: req.body?.metadata,
     });
 
     if (result.error) {
