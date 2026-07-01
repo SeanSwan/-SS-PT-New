@@ -15,7 +15,8 @@ describe('UserDashboard background picker mount contract', () => {
     const layoutStyles = read('src/components/UserDashboard/styles/DashboardV3LayoutStyles.ts');
 
     expect(dashboard).toContain('useUserDashboardBackgroundPreference(brandLogo)');
-    expect(dashboard).toContain('<UserDashboardBackgroundControls');
+    expect(dashboard).toContain('<UserDashboardBackgroundControlsDisclosure');
+    expect(dashboard).not.toContain("import UserDashboardBackgroundControls from './backgrounds/UserDashboardBackgroundControls';");
     expect(dashboard).toContain('style={dashboardBackground.backgroundStyle}');
     expect(dashboard).toContain('dashboardBackgroundControls={dashboardBackgroundControls}');
     expect(hero).toContain('dashboardBackgroundControls?: React.ReactNode');

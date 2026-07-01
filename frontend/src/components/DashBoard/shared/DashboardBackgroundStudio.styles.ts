@@ -11,7 +11,7 @@ export const DashboardBackgroundSurfaceFrame = styled.section`
   isolation: isolate;
   width: 100%;
   min-height: 100%;
-  overflow: hidden;
+  overflow: visible;
   background: var(--user-dashboard-bg-base, var(--bg-base, #030712));
   background-size: var(--user-dashboard-bg-base-size, auto);
   background-position: var(--user-dashboard-bg-base-position, center);
@@ -21,14 +21,19 @@ export const DashboardBackgroundSurfaceFrame = styled.section`
   &::before,
   &::after {
     content: '';
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
   }
 
   &::before {
-    background: var(--user-dashboard-bg-art, transparent);
+    background:
+      var(--user-dashboard-bg-art, transparent),
+      var(--user-dashboard-bg-base, var(--bg-base, #030712));
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   &::after {
@@ -48,27 +53,29 @@ export const DashboardBackgroundSurfaceContent = styled.div`
 `;
 
 export const DashboardBackgroundSettingsDetails = styled.details`
+  position: relative;
+  width: min(100%, 430px);
   margin: 0 0 1.25rem;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
-  border-radius: 8px;
+  border-radius: 10px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--surface-primary, #003080) 24%, transparent), transparent 68%),
-    color-mix(in srgb, var(--bg-elevated, #141419) 82%, transparent);
+    color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent);
   box-shadow: 0 20px 50px color-mix(in srgb, var(--bg-base, #030712) 38%, transparent), 0 0 28px color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  overflow: hidden;
+  overflow: visible;
 
-  &[open] summary {
-    border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  &[open] {
+    z-index: 60;
   }
 `;
 
 export const DashboardBackgroundSettingsSummary = styled.summary`
-  min-height: 72px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 1rem 1.1rem;
+  padding: 0.8rem 0.95rem;
   cursor: pointer;
   list-style: none;
   color: var(--text-primary, #E0ECF4);
@@ -182,5 +189,27 @@ export const DashboardBackgroundSummaryMeta = styled.span`
 `;
 
 export const DashboardBackgroundSettingsBody = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(760px, calc(100vw - 48px));
+  max-height: min(68vh, 720px);
   padding: 1rem;
+  overflow-y: auto;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-primary, #003080) 24%, transparent), transparent 68%),
+    color-mix(in srgb, var(--bg-base, #030712) 94%, transparent);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--bg-base, #030712) 58%, transparent);
+  backdrop-filter: blur(14px);
+
+  @media (max-width: 760px) {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    max-height: 70vh;
+    margin-top: 8px;
+  }
 `;
