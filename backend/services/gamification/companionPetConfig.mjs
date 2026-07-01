@@ -62,6 +62,8 @@ export const PET_MOODS = [
 export const APPEARANCE_TRIGGERS = {
   strength_workouts: { thresholds: [5, 20, 50, 100], mods: ['iron_plates', 'steel_armor', 'crystal_armor', 'mythic_armor'] },
   cardio_workouts: { thresholds: [5, 20, 50, 100], mods: ['speed_lines', 'wind_trail', 'lightning_wings', 'sonic_aura'] },
+  nutrition_logs: { thresholds: [5, 20, 50, 100], mods: ['vitality_spark', 'vitality_glow', 'prismatic_aura', 'mythic_aura'] },
+  recovery_actions: { thresholds: [5, 20, 50, 100], mods: ['calm_glow', 'rested_aura', 'healing_aura', 'mythic_aura'] },
   streak_days: { thresholds: [7, 30, 90, 365], mods: ['faint_glow', 'steady_glow', 'bright_aura', 'legendary_flame'] },
   social_actions: { thresholds: [10, 50, 100, 200], mods: ['collar', 'cape', 'crown_jewel', 'royal_mantle'] },
   personal_records: { thresholds: [1, 5, 15, 30], mods: ['small_blade', 'longsword', 'crystal_lance', 'mythic_weapon'] },
