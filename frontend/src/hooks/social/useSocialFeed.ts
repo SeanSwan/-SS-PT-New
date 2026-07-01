@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
 import { useGamificationData } from '../gamification/useGamificationData';
+import {
+  awardSwanAuraProsocialXP,
+  inferSwanAuraCommentEvent,
+  shouldAwardPositiveProgressPost,
+  type SwanAuraAwardableEventId,
+  type SwanAuraProsocialAwardRequest,
+} from '../../components/UserDashboard/components/SwanAuraProsocialXP.client';
 import type {
   AchievementPostData,
   ChallengePostData,
@@ -76,6 +83,12 @@ interface PointResult {
   pointMessage?: string;
 }
 
+function isRealDifferentUser(currentUserId: unknown, targetUserId: unknown): boolean {
+  if (currentUserId === undefined || currentUserId === null) return false;
+  if (targetUserId === undefined || targetUserId === null) return false;
+  return String(currentUserId) !== String(targetUserId);
+}
+
 /**
  * Hook for managing social feed functionality
  */
@@ -97,6 +110,19 @@ export const useSocialFeed = () => {
   
   // Create post state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+
+  const awardProsocialXP = useCallback(async (request: SwanAuraProsocialAwardRequest) => {
+    const result = await awardSwanAuraProsocialXP(authAxios, request);
+    if (result?.awarded && result.pointsAwarded) {
+      invalidateProfile();
+      toast({
+        title: 'Swan Aura bonus ✨',
+        description: `+${result.pointsAwarded} XP for positive community energy.`,
+        variant: 'default',
+      });
+    }
+    return result;
+  }, [authAxios, invalidateProfile, toast]);
   
   // Fetch feed posts
   const fetchPosts = useCallback(async (resetPagination = false) => {
@@ -205,6 +231,14 @@ export const useSocialFeed = () => {
       // Add new post to the top of the feed
       const newPost = response.data.post;
       setPosts(prevPosts => [newPost, ...prevPosts]);
+
+      if (newPost?.id && shouldAwardPositiveProgressPost(newPost.type || postData.type)) {
+        await awardProsocialXP({
+          eventId: 'positive_progress_post',
+          contextType: 'post',
+          contextId: newPost.id,
+        });
+      }
       
       // Handle point notifications
       if (response.data.pointsAwarded) {
@@ -242,11 +276,12 @@ export const useSocialFeed = () => {
     } finally {
       setIsCreatingPost(false);
     }
-  }, [authAxios, user, toast]);
+  }, [authAxios, user, toast, invalidateProfile, awardProsocialXP]);
   
   // React to a post (thumbs_up, heart, or swan)
   const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {
     if (!user) return false;
+    const targetPost = posts.find(post => String(post.id) === String(postId));
 
     try {
       const response = await authAxios.post(`/api/social/posts/${postId}/like`, { reactionType });
@@ -269,6 +304,15 @@ export const useSocialFeed = () => {
         })
       );
 
+      if (targetPost?.user?.id && isRealDifferentUser(user.id, targetPost.user.id) && ['swan', 'heart'].includes(reactionType)) {
+        await awardProsocialXP({
+          eventId: 'encourage_friend',
+          targetUserId: targetPost.user.id,
+          contextType: 'post',
+          contextId: postId,
+        });
+      }
+
       if (response.data.pointsAwarded) {
         invalidateProfile();
         return {
@@ -284,7 +328,7 @@ export const useSocialFeed = () => {
       console.error('Error reacting to post:', err);
       return false;
     }
-  }, [authAxios, user, invalidateProfile]);
+  }, [authAxios, user, posts, invalidateProfile, awardProsocialXP]);
 
   // Remove a reaction from a post
   const removeReaction = useCallback(async (postId: string, reactionType: string = 'swan') => {
@@ -324,6 +368,7 @@ export const useSocialFeed = () => {
   // Add a comment to a post
   const addComment = useCallback(async (postId: string, content: string) => {
     if (!user || !content.trim()) return null;
+    const targetPost = posts.find(post => String(post.id) === String(postId));
     
     try {
       const response = await authAxios.post(`/api/social/posts/${postId}/comments`, {
@@ -348,6 +393,16 @@ export const useSocialFeed = () => {
           return post;
         })
       );
+
+      const inferredEvent = inferSwanAuraCommentEvent(content) as SwanAuraAwardableEventId | null;
+      if (inferredEvent && newComment?.id && targetPost?.user?.id && isRealDifferentUser(user.id, targetPost.user.id)) {
+        await awardProsocialXP({
+          eventId: inferredEvent,
+          targetUserId: targetPost.user.id,
+          contextType: 'comment',
+          contextId: newComment.id,
+        });
+      }
       
       // Handle point notifications for commenting
       if (response.data.pointsAwarded) {
@@ -371,7 +426,7 @@ export const useSocialFeed = () => {
       });
       return null;
     }
-  }, [authAxios, user, toast, invalidateProfile]);
+  }, [authAxios, user, toast, invalidateProfile, posts, awardProsocialXP]);
   
   // Update a post's content (owner only, within 24h — admin exempt)
   const updatePost = useCallback(async (postId: string, content: string): Promise<boolean> => {
