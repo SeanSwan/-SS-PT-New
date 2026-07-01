@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { ChevronUp, Minus } from 'lucide-react';
 import apiService from '../../../services/api.service';
 import { getCompanionV2Insight } from '../../AvatarHome/companionV2Insights';
 import { normalizeCompanionV2Snapshot, type CompanionV2Snapshot } from '../../AvatarHome/companionV2Snapshot';
@@ -9,13 +10,17 @@ import {
   DockButton,
   DockEyebrow,
   DockHeader,
+  DockHeaderActions,
+  DockIconButton,
   DockIdentity,
   DockMeter,
   DockMeterFill,
+  DockMiniButton,
   DockShell,
   DockState,
   DockTitle,
 } from './ClientCompanionDock.styles';
+import { readCompanionDockCollapsed, writeCompanionDockCollapsed } from './companionDockPreferences';
 
 interface ClientCompanionDockProps {
   userIdSegment: string;
@@ -36,7 +41,15 @@ const getPrimaryPath = (snapshot: CompanionV2Snapshot) => {
 
 const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment, onNavigate }) => {
   const [state, setState] = useState<DockStateValue>('loading');
+  const [collapsed, setCollapsed] = useState(() => readCompanionDockCollapsed(userIdSegment));
   const [snapshot, setSnapshot] = useState<CompanionV2Snapshot>(() => normalizeCompanionV2Snapshot(null));
+
+  useEffect(() => { setCollapsed(readCompanionDockCollapsed(userIdSegment)); }, [userIdSegment]);
+
+  const setDockCollapsed = useCallback((nextCollapsed: boolean) => {
+    setCollapsed(nextCollapsed);
+    writeCompanionDockCollapsed(userIdSegment, nextCollapsed);
+  }, [userIdSegment]);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -55,10 +68,27 @@ const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment
 
   useEffect(() => { loadSnapshot(); }, [loadSnapshot]);
 
+  if (collapsed) {
+    return (
+      <DockMiniButton type="button" aria-label="Open companion dock" onClick={() => setDockCollapsed(false)}>
+        <ChevronUp size={14} aria-hidden /> Companion
+      </DockMiniButton>
+    );
+  }
+
+  const collapseButton = (
+    <DockIconButton type="button" aria-label="Minimize companion dock" onClick={() => setDockCollapsed(true)}>
+      <Minus size={14} aria-hidden />
+    </DockIconButton>
+  );
+
   if (state === 'loading') {
     return (
       <DockShell aria-label="Companion dock">
-        <DockState>Checking companion rhythm...</DockState>
+        <DockHeader>
+          <DockState>Checking companion rhythm...</DockState>
+          {collapseButton}
+        </DockHeader>
       </DockShell>
     );
   }
@@ -71,6 +101,7 @@ const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment
             <DockEyebrow>Companion</DockEyebrow>
             <DockTitle>Rhythm unavailable</DockTitle>
           </DockIdentity>
+          {collapseButton}
         </DockHeader>
         <DockBody>Your companion data could not load. Your dashboard is still ready.</DockBody>
         <DockActions>
@@ -88,7 +119,10 @@ const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment
             <DockEyebrow>Companion</DockEyebrow>
             <DockTitle>Adopt your training familiar</DockTitle>
           </DockIdentity>
-          <DockBadge>New</DockBadge>
+          <DockHeaderActions>
+            <DockBadge>New</DockBadge>
+            {collapseButton}
+          </DockHeaderActions>
         </DockHeader>
         <DockBody>Pick a companion that grows with your workouts, recovery, nutrition, and consistency.</DockBody>
         <DockActions>
@@ -113,7 +147,10 @@ const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment
           <DockEyebrow>Companion rhythm</DockEyebrow>
           <DockTitle>{snapshot.name}</DockTitle>
         </DockIdentity>
-        <DockBadge>{snapshot.stageLabel}</DockBadge>
+        <DockHeaderActions>
+          <DockBadge>{snapshot.stageLabel}</DockBadge>
+          {collapseButton}
+        </DockHeaderActions>
       </DockHeader>
       <DockBody>{insight.body}</DockBody>
       <DockMeter aria-label={`Companion progress ${insight.bondPercent}%`}>
