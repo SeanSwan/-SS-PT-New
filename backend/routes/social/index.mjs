@@ -8,6 +8,7 @@ import hashtagsRoutes from './hashtags.mjs';
 import factionsRoutes from './factions.mjs';
 import partiesRoutes from './parties.mjs';
 import eventsRoutes from './events.mjs';
+import unityWeaverRoutes from '../unityWeaverRoutes.mjs';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/hashtags', hashtagsRoutes);
 router.use('/factions', protect, factionsRoutes);
 router.use('/parties', protect, partiesRoutes);
 router.use('/events', protect, eventsRoutes);
+router.use('/unity-weaver', unityWeaverRoutes);
 
 export default router;
