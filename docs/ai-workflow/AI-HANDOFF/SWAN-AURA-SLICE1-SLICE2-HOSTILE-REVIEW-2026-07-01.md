@@ -1,8 +1,8 @@
-# Swan Aura Slice 1 + Slice 2 Hostile Review Record
+# Swan Aura Slice 1-3 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard social/community Swan Aura panel and reusable deterministic nudge hook.
+**Scope:** User Dashboard social/community Swan Aura panel, reusable deterministic nudge hook, and prosocial event registry.
 
 ## Slice summary
 
@@ -11,6 +11,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 - Read-only Swan Aura panel on the User Dashboard Home surface.
 - Deterministic nudge logic based on existing dashboard state.
 - Reusable `useSwanAuraNudges` hook for future dashboard surfaces.
+- Read-only `SwanAuraProsocialEvents.ts` registry for future good-energy gamification.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -63,6 +64,20 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 
 **Fix applied in this slice:** Swan Aura remains read-only and motivational. No review, scanning, write, hide, block, or AI-provider behavior was introduced.
 
+### Finding 5 — Prosocial XP could be farmed if wired naïvely
+
+**Severity:** High before backend wiring  
+**Risk:** Rewarding encouragement, gratitude, welcomes, reports, or de-escalation without limits would invite spam, fake kindness, self-rewards, report abuse, and point farming.
+
+**Fix applied:** `SwanAuraProsocialEvents.ts` defines each event with base XP, daily limits, cooldown windows, recipient requirements, validation requirements, and anti-abuse notes. Safety-sensitive events such as confirmed reports and de-escalation assistance require human or trusted-system validation before any future XP award.
+
+### Finding 6 — Frontend event registry must not become the backend source of truth
+
+**Severity:** Medium  
+**Risk:** A frontend-only registry could drift from backend enforcement if future slices wire rewards directly from UI constants.
+
+**Required follow-up fix before XP wiring:** Backend must own the authoritative event validation, rate limits, and award rules. The frontend registry is only a product/UX contract for now.
+
 ## Current gate status
 
 | Gate | Status |
@@ -75,6 +90,8 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 | No Swan Coach behavior change | PASS |
 | User/Client dashboard separation clarified | PASS |
 | Component decomposition | PASS |
+| Prosocial event anti-abuse rules defined | PASS |
+| Backend reward execution intentionally absent | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -95,7 +112,8 @@ Manual smoke targets:
 4. No Swan Coach behavior changes.
 5. No network calls originate from Swan Aura.
 6. Mobile width retains readable text and 44px CTA.
+7. No XP is awarded by the prosocial registry yet.
 
 ## Verdict
 
-Slice 1 + Slice 2 are acceptable to proceed to the next slice after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-3 are acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
