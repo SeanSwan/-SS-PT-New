@@ -256,6 +256,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           feedEnrichmentItems={feedEnrichmentItems}
           proofAttached={composer.proofAttached}
           postIntentPreview={composer.postIntentPreview}
+          swanAuraReview={composer.swanAuraReview}
           latestPost={latestPostView}
           canPost={composer.canPost}
           isPosting={communityFeed.isCreatingPost}
