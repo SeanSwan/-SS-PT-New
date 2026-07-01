@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildCompanionActivityEvents,
   buildCompanionActivityEventsForLedger,
+  buildCompanionLedgerSummary,
   getCompanionActivityForWorkout,
   recordCompanionActivityEvents,
   recordCompanionLedgerEvents,
@@ -18,21 +19,11 @@ describe('CompanionEventBridgeService', () => {
   });
 
   it('maps positive platform events without creating unknown counters', () => {
-    expect(buildCompanionActivityEvents('nutrition_logged')).toEqual([
-      { activityType: 'nutrition_logs', amount: 1 },
-    ]);
-    expect(buildCompanionActivityEvents('recovery_logged')).toEqual([
-      { activityType: 'recovery_actions', amount: 1 },
-    ]);
-    expect(buildCompanionActivityEvents('streak_updated', { days: 7 })).toEqual([
-      { activityType: 'streak_days', amount: 7 },
-    ]);
-    expect(buildCompanionActivityEvents('social_action')).toEqual([
-      { activityType: 'social_actions', amount: 1 },
-    ]);
-    expect(buildCompanionActivityEvents('badge_earned')).toEqual([
-      { activityType: 'personal_records', amount: 1 },
-    ]);
+    expect(buildCompanionActivityEvents('nutrition_logged')).toEqual([{ activityType: 'nutrition_logs', amount: 1 }]);
+    expect(buildCompanionActivityEvents('recovery_logged')).toEqual([{ activityType: 'recovery_actions', amount: 1 }]);
+    expect(buildCompanionActivityEvents('streak_updated', { days: 7 })).toEqual([{ activityType: 'streak_days', amount: 7 }]);
+    expect(buildCompanionActivityEvents('social_action')).toEqual([{ activityType: 'social_actions', amount: 1 }]);
+    expect(buildCompanionActivityEvents('badge_earned')).toEqual([{ activityType: 'personal_records', amount: 1 }]);
     expect(buildCompanionActivityEvents('unmapped_event')).toEqual([]);
   });
 
@@ -46,6 +37,22 @@ describe('CompanionEventBridgeService', () => {
     ]);
     expect(buildCompanionActivityEventsForLedger({ duplicate: true, pointsAwarded: 0 }, { source: 'workout_completion' })).toEqual([]);
     expect(buildCompanionActivityEventsForLedger(result, { source: 'reward_redemption', transactionType: 'spend' })).toEqual([]);
+  });
+
+  it('summarizes scheduled and skipped companion ledger work', () => {
+    const scheduled = buildCompanionLedgerSummary(
+      { duplicate: false, pointsAwarded: 50 },
+      { source: 'workout_completion', transactionType: 'earn' },
+    );
+    const skipped = buildCompanionLedgerSummary(
+      { duplicate: true, pointsAwarded: 0 },
+      { source: 'workout_completion', transactionType: 'earn' },
+    );
+
+    expect(scheduled.status).toBe('scheduled');
+    expect(scheduled.events[0].activityType).toBe('strength_workouts');
+    expect(skipped.status).toBe('skipped');
+    expect(skipped.events).toEqual([]);
   });
 
   it('records only allowlisted activity events through the companion service', async () => {
@@ -81,13 +88,15 @@ describe('CompanionEventBridgeService', () => {
     const service = { recordActivity: vi.fn(async () => ({})) };
     const afterCommit = vi.fn();
 
-    scheduleCompanionLedgerEvents({
+    const summary = scheduleCompanionLedgerEvents({
       service,
       result: { duplicate: false, pointsAwarded: 50 },
       entry: { userId: 42, source: 'workout_completion', transactionType: 'earn' },
       transaction: { afterCommit },
+      logger: { info: vi.fn(), error: vi.fn() },
     });
 
+    expect(summary.status).toBe('scheduled');
     expect(afterCommit).toHaveBeenCalledTimes(1);
     expect(service.recordActivity).not.toHaveBeenCalled();
   });
