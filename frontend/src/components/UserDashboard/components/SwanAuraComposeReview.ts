@@ -45,6 +45,14 @@ const INSULT_PATTERNS = [
   /\bworthless\b/i,
 ];
 
+function idleReview(): SwanAuraComposeReview {
+  return {
+    status: 'idle',
+    label: 'Swan Aura',
+    message: '',
+  };
+}
+
 function hasExcessiveCaps(text: string): boolean {
   const letters = text.replace(/[^a-z]/gi, '');
   if (letters.length < 12) return false;
@@ -54,13 +62,7 @@ function hasExcessiveCaps(text: string): boolean {
 
 export function reviewSwanAuraPostDraft(rawText: string): SwanAuraComposeReview {
   const text = rawText.trim();
-  if (text.length < 3) {
-    return {
-      status: 'idle',
-      label: 'Swan Aura',
-      message: 'Add a few words and Swan Aura will help keep the energy constructive.',
-    };
-  }
+  if (text.length < 3) return idleReview();
 
   if (INSULT_PATTERNS.some(pattern => pattern.test(text))) {
     return {
@@ -98,9 +100,5 @@ export function reviewSwanAuraPostDraft(rawText: string): SwanAuraComposeReview 
     };
   }
 
-  return {
-    status: 'coach',
-    label: 'Swan Aura',
-    message: 'Want stronger engagement? Add a question, a next step, or a note of encouragement before posting.',
-  };
+  return idleReview();
 }
