@@ -8,11 +8,33 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
-import { AlertTriangle, Clock3, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../../../../context/AuthContext';
-
+import {
+  CompleteButton,
+  EmptyPanel,
+  ErrorBanner,
+  Eyebrow,
+  HeaderCopy,
+  MetricGrid,
+  MetricLabel,
+  MetricPanel,
+  MetricValue,
+  PrivacyRail,
+  QueueHeader,
+  QueueShell,
+  QueueText,
+  QueueTitle,
+  RefreshButton,
+  TaskActions,
+  TaskAge,
+  TaskList,
+  TaskMain,
+  TaskMeta,
+  TaskRow,
+  TaskTitle,
+} from './HermesCoachReviewQueue.styles';
 type HermesTaskStatus = 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
 type HermesTaskPriority = 'low' | 'normal' | 'high';
 
@@ -80,6 +102,7 @@ const HermesCoachReviewQueue: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastLoadedAt, setLastLoadedAt] = useState<string | null>(null);
+  const [closingTaskId, setClosingTaskId] = useState<string | null>(null);
 
   const loadQueue = useCallback(async () => {
     setIsLoading(true);
@@ -116,6 +139,22 @@ const HermesCoachReviewQueue: React.FC = () => {
       setIsLoading(false);
     }
   }, [authAxios]);
+
+  const markFulfilled = useCallback(async (taskId: string) => {
+    setClosingTaskId(taskId);
+    setError(null);
+
+    try {
+      await authAxios.post(`/api/hermes/tasks/${encodeURIComponent(taskId)}/complete`, {
+        terminalReason: 'Fulfilled from admin coach review queue',
+      });
+      await loadQueue();
+    } catch {
+      setError('Hermes coach request could not be marked fulfilled.');
+    } finally {
+      setClosingTaskId(null);
+    }
+  }, [authAxios, loadQueue]);
 
   useEffect(() => {
     void loadQueue();
@@ -199,10 +238,22 @@ const HermesCoachReviewQueue: React.FC = () => {
                     <span>Requester {task.requestedBy ?? 'unknown'}</span>
                   </TaskMeta>
                 </TaskMain>
-                <TaskAge>
-                  <Clock3 size={16} />
-                  {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
-                </TaskAge>
+                <TaskActions>
+                  <TaskAge>
+                    <Clock3 size={16} />
+                    {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                  </TaskAge>
+                  {(task.status === 'pending' || task.status === 'in_progress') && (
+                    <CompleteButton
+                      type="button"
+                      onClick={() => void markFulfilled(task.id)}
+                      disabled={closingTaskId === task.id}
+                    >
+                      <CheckCircle2 size={16} />
+                      {closingTaskId === task.id ? 'Closing' : 'Mark fulfilled'}
+                    </CompleteButton>
+                  )}
+                </TaskActions>
               </TaskRow>
             );
           })
@@ -211,76 +262,5 @@ const HermesCoachReviewQueue: React.FC = () => {
     </QueueShell>
   );
 };
-
-const QueueShell = styled.section`display:grid;gap:18px;`;
-
-const QueueHeader = styled.div`
-  display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:20px;
-  border:1px solid var(--swan-border-subtle, rgba(96, 192, 240, 0.22));border-radius:14px;
-  background:linear-gradient(135deg, rgba(0, 32, 96, 0.72), rgba(10, 10, 15, 0.86));
-`;
-
-const HeaderCopy = styled.div`display:grid;gap:8px;`;
-
-const Eyebrow = styled.span`
-  color:var(--accent-primary, #60c0f0);font-size:0.78rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
-`;
-
-const QueueTitle = styled.h4`
-  display:inline-flex;align-items:center;gap:10px;color:var(--text-primary, #e0ecf4);font-size:1.28rem;margin:0;
-`;
-
-const QueueText = styled.p`color:var(--text-secondary, #a7b5c4);margin:0;max-width:760px;`;
-
-const RefreshButton = styled.button`
-  min-height:44px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent-primary, #60c0f0);
-  border-radius:999px;background:rgba(96, 192, 240, 0.12);color:var(--text-primary, #e0ecf4);font-weight:700;padding:0 16px;cursor:pointer;
-`;
-
-const MetricGrid = styled.div`display:grid;grid-template-columns:repeat(4, minmax(140px, 1fr));gap:12px;`;
-
-const MetricPanel = styled.div<{ $warn?: boolean }>`
-  display:grid;gap:8px;min-height:96px;padding:16px;border-radius:12px;
-  border:1px solid ${({ $warn }) => ($warn ? 'rgba(198, 168, 75, 0.45)' : 'var(--swan-border-subtle, rgba(96, 192, 240, 0.18))')};
-  background:${({ $warn }) => ($warn ? 'rgba(198, 168, 75, 0.12)' : 'rgba(255, 255, 255, 0.045)')};
-`;
-
-const MetricLabel = styled.span`color:var(--text-secondary, #a7b5c4);font-size:0.82rem;font-weight:700;`;
-const MetricValue = styled.span`color:var(--text-primary, #e0ecf4);font-size:1.9rem;font-weight:800;`;
-
-const PrivacyRail = styled.div`
-  display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;min-height:44px;color:var(--text-secondary, #a7b5c4);
-  border:1px solid rgba(96, 192, 240, 0.16);border-radius:12px;background:rgba(96, 192, 240, 0.07);padding:10px 14px;
-  svg{color:var(--accent-primary, #60c0f0);flex-shrink:0;} span{color:var(--accent-primary, #60c0f0);margin-left:auto;}
-`;
-
-const ErrorBanner = styled.div`
-  display:flex;align-items:center;gap:10px;min-height:44px;color:var(--danger-contrast, #ffe8e8);
-  border:1px solid rgba(248, 113, 113, 0.45);border-radius:12px;background:rgba(127, 29, 29, 0.32);padding:10px 14px;
-`;
-
-const TaskList = styled.div`display:grid;gap:10px;`;
-
-const TaskRow = styled.article<{ $stale?: boolean }>`
-  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;border-radius:12px;background:rgba(10, 10, 15, 0.72);
-  border:1px solid ${({ $stale }) => ($stale ? 'rgba(198, 168, 75, 0.48)' : 'rgba(255, 255, 255, 0.1)')};
-`;
-
-const TaskMain = styled.div`display:grid;gap:8px;min-width:0;`;
-const TaskTitle = styled.h5`color:var(--text-primary, #e0ecf4);font-size:1rem;line-height:1.3;margin:0;`;
-
-const TaskMeta = styled.div`
-  display:flex;flex-wrap:wrap;gap:8px;
-  span{color:var(--text-secondary, #a7b5c4);border:1px solid rgba(255, 255, 255, 0.1);border-radius:999px;padding:4px 9px;font-size:0.78rem;}
-`;
-
-const TaskAge = styled.span`
-  display:inline-flex;align-items:center;gap:6px;color:var(--accent-primary, #60c0f0);font-size:0.86rem;white-space:nowrap;
-`;
-
-const EmptyPanel = styled.div`
-  display:flex;align-items:center;min-height:88px;color:var(--text-secondary, #a7b5c4);
-  border:1px dashed rgba(96, 192, 240, 0.24);border-radius:12px;background:rgba(255, 255, 255, 0.035);padding:18px;
-`;
 
 export default HermesCoachReviewQueue;

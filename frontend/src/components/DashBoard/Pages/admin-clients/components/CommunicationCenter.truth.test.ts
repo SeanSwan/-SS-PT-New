@@ -60,6 +60,8 @@ describe('CommunicationCenter active surface truth contract', () => {
     expect(source).toContain('Coach Review');
     expect(queueSource).toContain("authAxios.get('/api/hermes/tasks'");
     expect(queueSource).toContain("params: { agentType: 'coach' }");
+    expect(queueSource).toContain('Mark fulfilled');
+    expect(queueSource).toContain('authAxios.post(`/api/hermes/tasks/${encodeURIComponent(taskId)}/complete`');
   });
 
   it('keeps Hermes coach queue list view privacy-scoped', () => {
