@@ -2136,9 +2136,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           {currentTab === 2 && selectedClient && <AIInsightsPanel clientId={selectedClient.id} />}
           {currentTab === 3 && selectedClient && <ClientProgressDashboard clientId={selectedClient.id} />}
           {currentTab === 4 && selectedClient && <GamificationOverview clientId={selectedClient.id} />}
-          {currentTab === 5 && selectedClient && (
+          {currentTab === 5 && (
             <CommunicationCenter
-              clientId={selectedClient.id}
+              clientId={selectedClient?.id}
               onMessageSend={(message) => {
                 logger.log('Message sent:', message);
                 toast({
@@ -2158,7 +2158,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             />
           )}
           {/* Show message if no client is selected for other tabs */}
-          {currentTab > 0 && !selectedClient && (
+          {currentTab > 0 && currentTab !== 5 && !selectedClient && (
             <EmptySelectionPanel>
               <PageTitle $compact>Select a Client</PageTitle>
               <Label>Please select a client from the table to view detailed information</Label>

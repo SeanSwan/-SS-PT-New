@@ -10,12 +10,18 @@ const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx'),
   'utf8',
 );
+const queueSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/HermesCoachReviewQueue.tsx'),
+  'utf8',
+);
 
 describe('CommunicationCenter active surface truth contract', () => {
   it('is mounted by the admin client management communication tab', () => {
     expect(parentSource).toContain("import CommunicationCenter from './components/CommunicationCenter'");
     expect(parentSource).toContain('<CommunicationCenter');
-    expect(parentSource).toContain('clientId={selectedClient.id}');
+    expect(parentSource).toContain('clientId={selectedClient?.id}');
+    expect(parentSource).toContain('{currentTab === 5 && (');
+    expect(parentSource).toContain('currentTab !== 5 && !selectedClient');
   });
 
   it('does not render hardcoded conversations, templates, messages, or analytics', () => {
@@ -46,5 +52,19 @@ describe('CommunicationCenter active surface truth contract', () => {
     expect(source).toContain('disabled={!onCallStart}');
     expect(source).toContain('aria-label="Thread options unavailable"');
     expect(source).not.toContain('<RoundButton title="More Options">');
+  });
+
+  it('mounts the Hermes coach review queue through the communication center', () => {
+    expect(source).toContain("import HermesCoachReviewQueue from './HermesCoachReviewQueue'");
+    expect(source).toContain('<HermesCoachReviewQueue />');
+    expect(source).toContain('Coach Review');
+    expect(queueSource).toContain("authAxios.get('/api/hermes/tasks'");
+    expect(queueSource).toContain("params: { agentType: 'coach' }");
+  });
+
+  it('keeps Hermes coach queue list view privacy-scoped', () => {
+    expect(queueSource).toContain('List view omits task descriptions and client transcript text.');
+    expect(queueSource).not.toContain('taskDescription');
+    expect(queueSource).not.toContain('authAxios.get(`/api/hermes/tasks/');
   });
 });
