@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-5 Hostile Review Record
+# Swan Aura Slice 1-6 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, and backend-owned prosocial XP award path.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, and frontend real-action XP wiring.
 
 ## Slice summary
 
@@ -15,6 +15,8 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - Local `SwanAuraComposeReview.ts` good-energy guidance for the public/social Quick Post composer.
 - Backend `prosocialXPService.mjs` that can award approved, low-risk prosocial XP through the canonical `GamificationPointsService.recordLedgerEntry()` ledger path.
 - Protected route mounted under `/api/social/unity-weaver` for event discovery and XP awards.
+- Frontend `SwanAuraProsocialXP.client.ts` helper that calls the backend award path only after real post/comment/reaction actions succeed.
+- `useSocialFeed.ts` now awards backend-validated Unity Weaver XP for real positive social actions: positive progress posts, supportive reactions, and supportive/grateful comments.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -27,6 +29,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - No arbitrary client metadata stored in point ledgers.
 - No XP awards happen from frontend-only constants.
 - Backend owns actual XP award validation.
+- No XP is awarded for merely clicking Swan Aura CTAs.
 
 ## Hostile review findings and recursive fixes
 
@@ -109,6 +112,27 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 
 **Fix applied:** `safe_report_confirmed`, `deescalation_assist`, and `mentor_tip` require human or trusted-system validation and return HTTP 202 with `requires_validation`; they do not award points from the public self-service route.
 
+### Finding 11 — Frontend wiring could award XP for button clicks instead of real actions
+
+**Severity:** High  
+**Risk:** If Swan Aura CTA clicks awarded XP directly, users could farm points without doing real community work.
+
+**Fix applied:** `useSocialFeed.ts` calls Unity Weaver XP only after existing social API actions succeed: post creation, post reaction, and comment creation. CTA navigation remains non-awarding.
+
+### Finding 12 — Duplicate toast noise from stacked social XP + Swan Aura XP
+
+**Severity:** Medium  
+**Risk:** Posts and comments already show social XP feedback. Adding a second Swan Aura toast for the same user action could feel spammy and undermine trust.
+
+**Fix applied:** `awardProsocialXP()` supports `{ notify: false }`. Progress post and comment bonuses update the ledger/profile quietly. Reactions can still show a Swan Aura bonus because reactions previously had no visible success toast.
+
+### Finding 13 — Daily limit query could be bypassed by unrelated social actions
+
+**Severity:** High  
+**Risk:** The first backend implementation fetched the latest 100 `social_engagement` rows and filtered in memory. Heavy unrelated activity could push older Unity Weaver event rows out of the sample, bypassing daily limits/cooldowns.
+
+**Fix applied:** Replaced in-memory filtering with a direct SQL aggregate on `PointTransactions.metadata->>'unityWeaverEventId'`, returning exact daily count and latest event timestamp for the specific Unity Weaver event.
+
 ## Current gate status
 
 | Gate | Status |
@@ -122,8 +146,12 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 | Backend owns XP validation | PASS |
 | Self-reward blocked | PASS |
 | Cooldowns/daily limits/idempotency present | PASS |
+| Exact event-specific daily/cooldown query | PASS |
 | Arbitrary metadata removed | PASS |
 | Validation-only safety events do not award XP | PASS |
+| Frontend awards only after real action success | PASS |
+| No CTA-click XP farming | PASS |
+| Toast noise reduced | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -148,7 +176,11 @@ Manual/API smoke targets:
 8. `POST /api/social/unity-weaver/prosocial-events/award` returns 202 for `safe_report_confirmed`, `deescalation_assist`, and `mentor_tip`.
 9. Awarded low-risk events create a canonical `PointTransaction` with source `social_engagement` and update User points/level through `GamificationPointsService`.
 10. Repeating the same event/context returns duplicate/cooldown/limit instead of awarding again.
+11. Supportive comment on another user's post can trigger `encourage_friend` or `gratitude_given` after comment success.
+12. Swan/heart reaction on another user's post can trigger `encourage_friend` after reaction success.
+13. Workout/transformation/achievement/challenge post can trigger `positive_progress_post` after post success.
+14. Commenting/reacting on your own post does not trigger Unity Weaver recipient-based XP.
 
 ## Verdict
 
-Slices 1-5 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-6 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
