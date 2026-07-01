@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-7 Hostile Review Record
+# Swan Aura Slice 1-8 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, frontend real-action XP wiring, and avatar economy blueprint.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, backend social-action XP orchestration, and avatar economy blueprint.
 
 ## Slice summary
 
@@ -14,9 +14,9 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - Read-only `SwanAuraProsocialEvents.ts` registry for future good-energy gamification.
 - Local `SwanAuraComposeReview.ts` good-energy guidance for the public/social Quick Post composer.
 - Backend `prosocialXPService.mjs` that can award approved, low-risk prosocial XP through the canonical `GamificationPointsService.recordLedgerEntry()` ledger path.
-- Protected route mounted under `/api/social/unity-weaver` for event discovery and XP awards.
-- Frontend `SwanAuraProsocialXP.client.ts` helper that calls the backend award path only after real post/comment/reaction actions succeed.
-- `useSocialFeed.ts` now awards backend-validated Unity Weaver XP for real positive social actions: positive progress posts, supportive reactions, and supportive/grateful comments.
+- Protected route mounted under `/api/social/unity-weaver` for event discovery and explicit future XP award requests.
+- Backend `socialActionProsocialMiddleware.mjs` now owns automatic Unity Weaver XP orchestration for successful post, reaction, and comment actions.
+- `useSocialFeed.ts` no longer decides Unity Weaver XP eligibility for normal post/comment/reaction actions; it only reads the backend response and updates the profile/toast state.
 - `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` defines XP as permanent progression, SwanCoins as earnable spend currency, and Premium Credits as optional future paid cosmetic currency.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
@@ -119,14 +119,14 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 **Severity:** High  
 **Risk:** If Swan Aura CTA clicks awarded XP directly, users could farm points without doing real community work.
 
-**Fix applied:** `useSocialFeed.ts` calls Unity Weaver XP only after existing social API actions succeed: post creation, post reaction, and comment creation. CTA navigation remains non-awarding.
+**Fix applied:** XP is awarded only after successful backend social actions. CTA navigation remains non-awarding.
 
 ### Finding 12 — Duplicate toast noise from stacked social XP + Swan Aura XP
 
 **Severity:** Medium  
 **Risk:** Posts and comments already show social XP feedback. Adding a second Swan Aura toast for the same user action could feel spammy and undermine trust.
 
-**Fix applied:** `awardProsocialXP()` supports `{ notify: false }`. Progress post and comment bonuses update the ledger/profile quietly. Reactions can still show a Swan Aura bonus because reactions previously had no visible success toast.
+**Fix applied:** Backend returns `unityWeaverXP` separately. `useSocialFeed.ts` quietly invalidates profile for post/comment Unity Weaver XP and only shows a small Swan Aura toast for reactions, where there was previously no success toast.
 
 ### Finding 13 — Daily limit query could be bypassed by unrelated social actions
 
@@ -141,6 +141,20 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 **Risk:** If avatar clothes/skins spend XP directly, users could lose level progress by buying cosmetics, which damages motivation and trust.
 
 **Fix applied:** Added `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` with a three-layer economy: XP for permanent progression, SwanCoins for earnable spend currency, and Premium Credits for optional future paid cosmetic currency.
+
+### Finding 15 — Frontend still exposed direct XP award helper
+
+**Severity:** Medium  
+**Risk:** Leaving a frontend `awardSwanAuraProsocialXP()` helper after backend orchestration could invite future UI code to bypass backend-owned social action decisions.
+
+**Fix applied:** Deleted `SwanAuraProsocialXP.client.ts`. Core social-action XP is now backend-orchestrated. The explicit `/api/social/unity-weaver/prosocial-events/award` endpoint remains for future non-core, validation-aware UX flows only.
+
+### Finding 16 — Backend route mutation risk
+
+**Severity:** Medium  
+**Risk:** Directly editing the large `posts.mjs` route could create merge risk and accidentally break post creation, R2 cleanup, reaction, comment, or rollback behavior.
+
+**Fix applied:** Added a response-wrapping middleware at the social router layer: `unityWeaverSocialActionXPResponseMiddleware`. It appends optional `unityWeaverXP` after successful responses and does not change the existing social route internals.
 
 ## Current gate status
 
@@ -158,7 +172,8 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 | Exact event-specific daily/cooldown query | PASS |
 | Arbitrary metadata removed | PASS |
 | Validation-only safety events do not award XP | PASS |
-| Frontend awards only after real action success | PASS |
+| Backend social-action middleware owns core action XP | PASS |
+| Frontend no longer awards core social-action XP | PASS |
 | No CTA-click XP farming | PASS |
 | Toast noise reduced | PASS |
 | Avatar economy avoids spending XP | PASS |
@@ -186,12 +201,13 @@ Manual/API smoke targets:
 8. `POST /api/social/unity-weaver/prosocial-events/award` returns 202 for `safe_report_confirmed`, `deescalation_assist`, and `mentor_tip`.
 9. Awarded low-risk events create a canonical `PointTransaction` with source `social_engagement` and update User points/level through `GamificationPointsService`.
 10. Repeating the same event/context returns duplicate/cooldown/limit instead of awarding again.
-11. Supportive comment on another user's post can trigger `encourage_friend` or `gratitude_given` after comment success.
-12. Swan/heart reaction on another user's post can trigger `encourage_friend` after reaction success.
-13. Workout/transformation/achievement/challenge post can trigger `positive_progress_post` after post success.
+11. Supportive comment on another user's post can trigger backend-owned `encourage_friend` or `gratitude_given` after comment success.
+12. Swan/heart reaction on another user's post can trigger backend-owned `encourage_friend` after reaction success.
+13. Workout/transformation/achievement/challenge post can trigger backend-owned `positive_progress_post` after post success.
 14. Commenting/reacting on your own post does not trigger Unity Weaver recipient-based XP.
 15. No avatar/cosmetic purchase flow spends XP.
+16. Existing post/comment/reaction response shapes remain backward-compatible, with only optional `unityWeaverXP` added.
 
 ## Verdict
 
-Slices 1-7 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-8 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
