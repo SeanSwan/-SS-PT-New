@@ -565,6 +565,7 @@ export const register = async (req, res) => {
     }
 
     // Create new user
+    const registrationIp = getClientIp(req);
     const user = await User.create(
       {
         firstName,
@@ -584,7 +585,8 @@ export const register = async (req, res) => {
         role: role, // Use the provided role or default to 'user'
         clientSource: resolvedClientSource,
         lastActive: new Date(),
-        registrationIP: getClientIp(req) // Store IP for security monitoring
+        lastLoginIP: registrationIp,
+        registrationIP: registrationIp // Store IP for security monitoring
       },
       { transaction }
     );

@@ -132,7 +132,6 @@ describe('auth register clientSource contract', () => {
     expect(res.body.user.clientSource).toBe('move_fitness');
   });
 
-
   it('routes client welcome onboarding notifications to the mounted client onboarding dashboard', async () => {
     const req = { body: validRegistration({ clientSource: 'move_fitness' }) };
     const res = createResponse();
@@ -147,6 +146,23 @@ describe('auth register clientSource contract', () => {
       type: 'system',
       link: '/dashboard/client/onboarding',
     }));
+  });
+
+  it('stamps signup IP as lastLoginIP so registered visitor intelligence can include the new user', async () => {
+    const req = { body: validRegistration({ clientSource: 'swanstudios' }) };
+    const res = createResponse();
+
+    await register(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(mocks.userModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        registrationIP: '127.0.0.1',
+        lastLoginIP: '127.0.0.1',
+        lastActive: expect.any(Date),
+      }),
+      expect.objectContaining({ transaction: mocks.transaction }),
+    );
   });
 
   it('normalizes human-form client source before register validation reaches the controller', async () => {
