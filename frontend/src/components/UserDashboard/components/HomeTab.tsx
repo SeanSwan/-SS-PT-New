@@ -22,6 +22,7 @@ import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import HomeDashboardSearchPanel from './HomeDashboardSearchPanel';
 import DailyHealthLoop from './DailyHealthLoop';
 import HomeTrainingCommandStrip from './HomeTrainingCommandStrip';
+import SwanAuraPanel from './SwanAuraPanel';
 import SwanCoachActionLauncher from './SwanCoachActionLauncher';
 import SwanCoachDock from './SwanCoachDock';
 import { DockSkeleton } from './HomeTabActions.styles';
@@ -141,6 +142,24 @@ const HomeTab: React.FC<HomeTabProps> = ({
         <HomeTabTrainingProof
           proof={trainingProof}
           onShareProgress={composer.handleShareProgress}
+        />
+      </Panel>
+
+      <Panel>
+        <SwanAuraPanel
+          userName={displayName}
+          streakDays={streakDays}
+          level={level}
+          points={points}
+          progressPercent={progressPercent}
+          pointsToNext={pointsToNext}
+          streakAtRisk={streakAtRisk}
+          activeChallenge={liveWidgets.activeChallenge}
+          badges={liveWidgets.badges}
+          latestPost={latestPostView}
+          onLogWorkout={() => navigate(logWorkoutPath)}
+          onOpenChallenges={() => onTabChange('challenges')}
+          onEncourageFriend={() => onTabChange('friends')}
         />
       </Panel>
 
