@@ -1,6 +1,8 @@
 const POSITIVE_ACTIVITY_TYPES = new Set([
   'strength_workouts',
   'cardio_workouts',
+  'nutrition_logs',
+  'recovery_actions',
   'streak_days',
   'social_actions',
   'personal_records',
@@ -26,10 +28,15 @@ export const buildCompanionActivityEvents = (sourceType, metadata = {}) => {
   switch (sourceType) {
     case 'workout_completed':
       return [{ activityType: getCompanionActivityForWorkout(metadata), amount: normalizeAmount(metadata.amount) }];
+    case 'nutrition_logged':
+      return [{ activityType: 'nutrition_logs', amount: normalizeAmount(metadata.amount) }];
+    case 'recovery_logged':
+      return [{ activityType: 'recovery_actions', amount: normalizeAmount(metadata.amount) }];
     case 'streak_updated':
       return [{ activityType: 'streak_days', amount: normalizeAmount(metadata.days || metadata.amount) }];
     case 'social_action':
       return [{ activityType: 'social_actions', amount: normalizeAmount(metadata.amount) }];
+    case 'badge_earned':
     case 'personal_record':
       return [{ activityType: 'personal_records', amount: normalizeAmount(metadata.amount) }];
     default:
