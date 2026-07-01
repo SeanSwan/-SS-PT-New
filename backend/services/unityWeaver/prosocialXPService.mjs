@@ -1,6 +1,5 @@
-import { Op } from 'sequelize';
-import PointTransaction from '../../models/PointTransaction.mjs';
 import User from '../../models/User.mjs';
+import db from '../../database.mjs';
 import GamificationPointsService from '../gamification/GamificationPointsService.mjs';
 import { checkBadgesForGamificationEvent } from '../badgeGamificationBridge.mjs';
 import logger from '../../utils/logger.mjs';
@@ -124,22 +123,29 @@ function buildIdempotencyKey({ actorUserId, eventId, targetUserId, contextType, 
   return `unity:${eventId}:actor:${actorUserId}:${targetKey}:ctx:${safeContextType}:${safeContextId}`.slice(0, 128);
 }
 
-function eventMatches(transaction, eventId) {
-  return transaction?.metadata?.unityWeaverEventId === eventId;
-}
-
-async function getTodaysEventTransactions(actorUserId, eventId, now) {
-  const rows = await PointTransaction.findAll({
-    where: {
-      userId: actorUserId,
-      source: LEDGER_SOURCE,
-      createdAt: { [Op.gte]: startOfToday(now) },
+async function getTodaysEventStats(actorUserId, eventId, now) {
+  const [row] = await db.query(
+    `SELECT COUNT(*)::int AS count, MAX("createdAt") AS "lastCreatedAt"
+       FROM "PointTransactions"
+      WHERE "userId" = :actorUserId
+        AND "source" = :source
+        AND "createdAt" >= :startOfToday
+        AND "metadata"->>'unityWeaverEventId' = :eventId`,
+    {
+      replacements: {
+        actorUserId,
+        eventId,
+        source: LEDGER_SOURCE,
+        startOfToday: startOfToday(now).toISOString(),
+      },
+      type: db.QueryTypes.SELECT,
     },
-    order: [['createdAt', 'DESC'], ['id', 'DESC']],
-    limit: 100,
-  });
+  );
 
-  return rows.filter((row) => eventMatches(row, eventId));
+  return {
+    count: Number.parseInt(row?.count, 10) || 0,
+    lastCreatedAt: row?.lastCreatedAt || null,
+  };
 }
 
 async function validateRecipient({ actorUserId, targetUserId, rule, now }) {
@@ -218,8 +224,8 @@ export async function awardUnityWeaverProsocialXP({
   });
   if (recipientValidation.error) return { error: recipientValidation.error };
 
-  const todaysEvents = await getTodaysEventTransactions(numericActorId, eventId, now);
-  if (todaysEvents.length >= rule.dailyLimit) {
+  const todaysEventStats = await getTodaysEventStats(numericActorId, eventId, now);
+  if (todaysEventStats.count >= rule.dailyLimit) {
     return {
       success: true,
       awarded: false,
@@ -230,9 +236,8 @@ export async function awardUnityWeaverProsocialXP({
     };
   }
 
-  const lastEvent = todaysEvents[0];
-  if (lastEvent && rule.cooldownMinutes > 0) {
-    const elapsedMs = now.getTime() - new Date(lastEvent.createdAt).getTime();
+  if (todaysEventStats.lastCreatedAt && rule.cooldownMinutes > 0) {
+    const elapsedMs = now.getTime() - new Date(todaysEventStats.lastCreatedAt).getTime();
     const cooldownMs = rule.cooldownMinutes * 60 * 1000;
     if (elapsedMs < cooldownMs) {
       return {
