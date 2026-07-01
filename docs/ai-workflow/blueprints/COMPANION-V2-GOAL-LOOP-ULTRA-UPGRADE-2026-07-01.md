@@ -63,6 +63,16 @@ The fourth implementation pass wires the companion event bridge into the shared 
 - workout completion, streak bonuses, achievement awards, and milestone awards can now feed companion counters through one shared bridge;
 - companion bridge failures are caught as non-blocking errors so primary gamification success is preserved.
 
+## Phase 4 changes
+
+The fifth implementation pass adds lightweight bridge observability:
+
+- `CompanionEventBridgeService` now returns a `scheduled` or `skipped` summary for ledger events;
+- summaries include the source and planned companion activity events;
+- `GamificationPointsService` attaches this summary to the ledger result as `companionEvents`;
+- scheduled records log compact success metadata through the injected logger;
+- skipped events remain cheap and do not schedule unnecessary work.
+
 ## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
@@ -72,6 +82,8 @@ The rollout review found that the dock needed to be reversible on small screens 
 The event-bridge review found that nutrition and recovery events would have been dropped or collapsed into unrelated activity lanes. The companion now has first-class `nutrition_logs` and `recovery_actions` counters and appearance triggers.
 
 The ledger-wiring review found that patching the monolithic gamification controller directly was too risky. The integration now lives in `GamificationPointsService`, the existing idempotent point-ledger service used by workout, streak, achievement, and milestone awards.
+
+The observability review found that bridge work needed response-safe metadata without waiting for async companion writes. Ledger results now expose scheduled/skipped companion summaries while the writes remain after-commit and non-blocking.
 
 ## Future architecture
 
