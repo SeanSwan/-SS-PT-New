@@ -1,3 +1,4 @@
+import { QueryTypes } from 'sequelize';
 import User from '../../models/User.mjs';
 import db from '../../database.mjs';
 import GamificationPointsService from '../gamification/GamificationPointsService.mjs';
@@ -138,7 +139,7 @@ async function getTodaysEventStats(actorUserId, eventId, now) {
         source: LEDGER_SOURCE,
         startOfToday: startOfToday(now).toISOString(),
       },
-      type: db.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     },
   );
 
