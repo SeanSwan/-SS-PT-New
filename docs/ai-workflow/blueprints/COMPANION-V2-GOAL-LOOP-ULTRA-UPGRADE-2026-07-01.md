@@ -53,6 +53,16 @@ The third implementation pass hardens rollout and prepares event bridging:
 - add nutrition and recovery companion lanes so meal/recovery events can create visible companion progression;
 - add tests for workout, nutrition, recovery, streak, social, badge, and personal-record event mapping.
 
+## Phase 3 changes
+
+The fourth implementation pass wires the companion event bridge into the shared idempotent point ledger:
+
+- `GamificationPointsService.recordLedgerEntry` now schedules companion ledger events alongside realtime ledger events;
+- companion updates are scheduled after transaction commit when a transaction supports `afterCommit`;
+- duplicate ledger results, spend/expire transactions, and unknown sources do not increment companion counters;
+- workout completion, streak bonuses, achievement awards, and milestone awards can now feed companion counters through one shared bridge;
+- companion bridge failures are caught as non-blocking errors so primary gamification success is preserved.
+
 ## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
@@ -60,6 +70,8 @@ The first dock review found that every next-action button originally routed to w
 The rollout review found that the dock needed to be reversible on small screens and stageable in production. The dock now has a persisted collapse control and an explicit environment flag.
 
 The event-bridge review found that nutrition and recovery events would have been dropped or collapsed into unrelated activity lanes. The companion now has first-class `nutrition_logs` and `recovery_actions` counters and appearance triggers.
+
+The ledger-wiring review found that patching the monolithic gamification controller directly was too risky. The integration now lives in `GamificationPointsService`, the existing idempotent point-ledger service used by workout, streak, achievement, and milestone awards.
 
 ## Future architecture
 
