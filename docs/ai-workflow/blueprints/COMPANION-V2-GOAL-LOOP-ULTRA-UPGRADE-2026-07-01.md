@@ -81,6 +81,10 @@ GOAL means Ground truth, Observe, Act, Loop.
 3. Ship the smallest improvement that makes the companion better.
 4. Repeat until the phase has no open issues, then advance to the next phase.
 
+## Current known blocker
+
+GitHub Actions has repeatedly reported `startup_failure` before jobs are created. The available API returns no job logs or artifacts for those runs, so this is tracked as a repository workflow-startup issue rather than a visible companion test failure.
+
 ## Review checklist
 
 - Works without a pet.
