@@ -42,6 +42,10 @@ The second implementation pass starts the mounted client-dashboard companion sur
 - route empty companion state to Avatar Home adoption;
 - route ready companion state to the next healthy action and My Home.
 
+## Recursive review fix
+
+The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
+
 ## Future architecture
 
 Later phases should introduce:
