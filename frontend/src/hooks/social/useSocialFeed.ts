@@ -95,7 +95,7 @@ function isRealDifferentUser(currentUserId: unknown, targetUserId: unknown): boo
 export const useSocialFeed = () => {
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
-  const { profile, invalidateProfile } = useGamificationData();
+  const { invalidateProfile } = useGamificationData();
   
   // State for posts data
   const [posts, setPosts] = useState<Post[]>([]);
@@ -111,15 +111,20 @@ export const useSocialFeed = () => {
   // Create post state
   const [isCreatingPost, setIsCreatingPost] = useState(false);
 
-  const awardProsocialXP = useCallback(async (request: SwanAuraProsocialAwardRequest) => {
+  const awardProsocialXP = useCallback(async (
+    request: SwanAuraProsocialAwardRequest,
+    options: { notify?: boolean } = {},
+  ) => {
     const result = await awardSwanAuraProsocialXP(authAxios, request);
     if (result?.awarded && result.pointsAwarded) {
       invalidateProfile();
-      toast({
-        title: 'Swan Aura bonus ✨',
-        description: `+${result.pointsAwarded} XP for positive community energy.`,
-        variant: 'default',
-      });
+      if (options.notify !== false) {
+        toast({
+          title: 'Swan Aura bonus ✨',
+          description: `+${result.pointsAwarded} XP for positive community energy.`,
+          variant: 'default',
+        });
+      }
     }
     return result;
   }, [authAxios, invalidateProfile, toast]);
@@ -237,7 +242,7 @@ export const useSocialFeed = () => {
           eventId: 'positive_progress_post',
           contextType: 'post',
           contextId: newPost.id,
-        });
+        }, { notify: false });
       }
       
       // Handle point notifications
@@ -401,7 +406,7 @@ export const useSocialFeed = () => {
           targetUserId: targetPost.user.id,
           contextType: 'comment',
           contextId: newComment.id,
-        });
+        }, { notify: false });
       }
       
       // Handle point notifications for commenting
