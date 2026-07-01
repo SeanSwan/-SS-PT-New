@@ -40,6 +40,7 @@ const CreativeGallery = lazy(() => import('./CreativeGallery'));
 const PhotoGallery = lazy(() => import('./PhotoGallery'));
 const AboutSection = lazy(() => import('./AboutSection'));
 const ActivitySection = lazy(() => import('./ActivitySection'));
+const UserSettingsHub = lazy(() => import('./UserSettingsHub'));
 const NutritionWorkspace = lazy(() => import('../../DashBoard/workspaces/NutritionWorkspace'));
 const WorkoutsTab = lazy(() => import('./WorkoutsTab'));
 const TransformationPhotoShowcase = lazy(() => import('./TransformationPhotoShowcase'));
@@ -100,6 +101,9 @@ const TabLoadingFallback = () => (
   </LoadingContainer>
 );
 
+const noopUpdateProfile = async () => undefined;
+const noopOpenEditor = () => undefined;
+
 interface UserDashboardTabsV3Props {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
@@ -111,6 +115,9 @@ interface UserDashboardTabsV3Props {
   homeFollowStats: FollowStats | null;
   homeDisplayName: string;
   homeUsername: string;
+  profileSettingsProfile?: UserProfile | null;
+  onUpdateProfile?: (data: Record<string, unknown>) => Promise<void>;
+  onOpenEditProfile?: () => void;
 }
 
 const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
@@ -124,6 +131,9 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
   homeFollowStats,
   homeDisplayName,
   homeUsername,
+  profileSettingsProfile,
+  onUpdateProfile,
+  onOpenEditProfile,
 }) => (
   <MainContent
     initial={{ opacity: 0, x: 50 }}
@@ -219,6 +229,11 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
       <TabPanel id="profile" activeTab={activeTab}>
         <SectionChrome id="profile">
           <TabStack>
+            <UserSettingsHub
+              profile={profileSettingsProfile ?? homeProfile}
+              onUpdateProfile={onUpdateProfile || noopUpdateProfile}
+              onOpenEditProfile={onOpenEditProfile || noopOpenEditor}
+            />
             <AboutSection />
             <TransformationPhotoShowcase
               photos={transformationPhotos}

@@ -39,17 +39,12 @@ const UserDashboardV3: React.FC = () => {
   const location = useLocation();
   const { tab: urlTab } = useParams<{ tab?: string }>();
 
-  // Workstream N: tabs are URL-driven (/user-dashboard/:tab) so old /social
-  // links, redirects, and back/forward all land on the right tab. Unknown
-  // segments fall back to home.
   const routedTab: TabId = USER_DASHBOARD_TAB_IDS.includes(urlTab as TabId)
     ? (urlTab as TabId)
     : 'home';
   const { setActiveTab } = dashboard;
   React.useEffect(() => {
     setActiveTab(routedTab);
-    // routedTab only - internal setActiveTab calls (e.g. Settings -> profile)
-    // may diverge from the URL without being snapped back.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routedTab, setActiveTab]);
 
@@ -95,10 +90,6 @@ const UserDashboardV3: React.FC = () => {
       >
         <NoiseOverlay />
         <MainContentZWrapper>
-          {/* The cover carousel is the full-width dashboard header on every tab,
-              including Home. Sticky behavior lives in the cover editor's mini
-              carousel option, so the full hero does not permanently consume
-              desktop scroll space by default. */}
           <ObservatoryCoverHero
             displayName={dashboard.getDisplayName()}
             username={dashboard.getUsernameForDisplay()}
@@ -116,9 +107,6 @@ const UserDashboardV3: React.FC = () => {
           <ContentWrapper data-user-dashboard-scroll-root $belowCover>
             {isHomeTab ? (
               <>
-              {/* O3 app-shell nav: the tab bar mounts on Home too - phones get
-                  the same fixed bottom bar on every dashboard surface (it
-                  renders nothing >=1025px, where the left rail is the nav). */}
               <UserDashboardTabBarV3
                 activeTab={dashboard.activeTab}
                 onTabChange={handleTabChange}

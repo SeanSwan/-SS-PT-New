@@ -54,8 +54,10 @@ import {
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { requireFeature } from '../middleware/requireTier.mjs';
 
 const router = express.Router();
+const requireGuardianAnalytics = requireFeature('analytics.advanced');
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Authentication gate
@@ -145,43 +147,48 @@ router.get('/exercise-variety', getExerciseVariety);
 // PascalCase joins, no demo data, no preview fallbacks. See
 // `chartDataController.mjs` section header for the Phase 14 rebuild
 // rationale and per-chart source-of-truth documentation.
+//
+// ENTITLEMENT: These are the Swan Guardian advanced progress cockpit. The
+// frontend hides/locks this surface for Starter users, but this server-side gate
+// is the source of truth so direct API calls cannot bypass the Ascension promise.
+// A live 30-day premium trial is treated as eligible by requireTier.mjs.
 // ─────────────────────────────────────────────────────────────
 
 /** @route GET /api/client/analytics/chart-workout-frequency    (Phase 14 #1) */
-router.get('/chart-workout-frequency', getWorkoutFrequencyChart);
+router.get('/chart-workout-frequency', requireGuardianAnalytics, getWorkoutFrequencyChart);
 
 /** @route GET /api/client/analytics/chart-attendance-reliability (Phase 14 #2) */
-router.get('/chart-attendance-reliability', getAttendanceReliabilityChart);
+router.get('/chart-attendance-reliability', requireGuardianAnalytics, getAttendanceReliabilityChart);
 
 /** @route GET /api/client/analytics/chart-weekly-volume          (Phase 14 #3) */
-router.get('/chart-weekly-volume', getWeeklyVolumeChart);
+router.get('/chart-weekly-volume', requireGuardianAnalytics, getWeeklyVolumeChart);
 
 /** @route GET /api/client/analytics/chart-sets-reps-trend        (Phase 14 #4) */
-router.get('/chart-sets-reps-trend', getSetsRepsTrendChart);
+router.get('/chart-sets-reps-trend', requireGuardianAnalytics, getSetsRepsTrendChart);
 
 /** @route GET /api/client/analytics/chart-duration-trend         (Phase 14 #5) */
-router.get('/chart-duration-trend', getDurationTrendChart);
+router.get('/chart-duration-trend', requireGuardianAnalytics, getDurationTrendChart);
 
 /** @route GET /api/client/analytics/chart-intensity-rpe-trend    (Phase 14 #6) */
-router.get('/chart-intensity-rpe-trend', getIntensityRPETrendChart);
+router.get('/chart-intensity-rpe-trend', requireGuardianAnalytics, getIntensityRPETrendChart);
 
 /** @route GET /api/client/analytics/chart-pr-timeline            (Phase 14 #7) */
-router.get('/chart-pr-timeline', getPRTimelineChart);
+router.get('/chart-pr-timeline', requireGuardianAnalytics, getPRTimelineChart);
 
 /** @route GET /api/client/analytics/chart-anchor-lifts           (Phase 14 #8) */
-router.get('/chart-anchor-lifts', getAnchorLiftsChart);
+router.get('/chart-anchor-lifts', requireGuardianAnalytics, getAnchorLiftsChart);
 
 /** @route GET /api/client/analytics/chart-exercise-frequency     (Phase 14 #9) */
-router.get('/chart-exercise-frequency', getExerciseFrequencyChart);
+router.get('/chart-exercise-frequency', requireGuardianAnalytics, getExerciseFrequencyChart);
 
 /** @route GET /api/client/analytics/chart-movement-pattern-balance (Phase 14 #10) */
-router.get('/chart-movement-pattern-balance', getMovementPatternBalanceChart);
+router.get('/chart-movement-pattern-balance', requireGuardianAnalytics, getMovementPatternBalanceChart);
 
 /** @route GET /api/client/analytics/chart-muscle-group-balance   (Phase 14 #11) */
-router.get('/chart-muscle-group-balance', getMuscleGroupBalanceChart);
+router.get('/chart-muscle-group-balance', requireGuardianAnalytics, getMuscleGroupBalanceChart);
 
 /** @route GET /api/client/analytics/chart-recovery-signal        (Phase 14 #12) */
-router.get('/chart-recovery-signal', getRecoverySignalChart);
+router.get('/chart-recovery-signal', requireGuardianAnalytics, getRecoverySignalChart);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Legacy body-composition chart endpoints (truthful)
@@ -211,18 +218,18 @@ router.get('/chart-macro-split', getMacroSplitChart);
 // ─────────────────────────────────────────────────────────────
 
 /** @deprecated Phase 14 — replaced by chart-muscle-group-balance */
-router.get('/chart-muscle-group-focus', getMuscleGroupFocusChart);
+router.get('/chart-muscle-group-focus', requireGuardianAnalytics, getMuscleGroupFocusChart);
 
 /** @deprecated Phase 14 — out of 12-chart scope */
-router.get('/chart-cardio-endurance', getCardioEnduranceChart);
+router.get('/chart-cardio-endurance', requireGuardianAnalytics, getCardioEnduranceChart);
 
 /** @deprecated Phase 14 — replaced by chart-workout-frequency */
-router.get('/chart-session-frequency', getSessionFrequencyChart);
+router.get('/chart-session-frequency', requireGuardianAnalytics, getSessionFrequencyChart);
 
 /** @deprecated Phase 14 — replaced in spirit by chart-recovery-signal */
-router.get('/chart-muscle-recovery', getMuscleRecoveryChart);
+router.get('/chart-muscle-recovery', requireGuardianAnalytics, getMuscleRecoveryChart);
 
 /** @deprecated Phase 14 — replaced by chart-intensity-rpe-trend */
-router.get('/chart-rpe-by-exercise', getRPEByExerciseChart);
+router.get('/chart-rpe-by-exercise', requireGuardianAnalytics, getRPEByExerciseChart);
 
 export default router;
