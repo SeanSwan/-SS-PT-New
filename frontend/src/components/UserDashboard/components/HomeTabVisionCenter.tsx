@@ -11,6 +11,7 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react';
+import type { SwanAuraComposeReview } from './SwanAuraComposeReview';
 import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
@@ -70,6 +71,8 @@ interface HomeTabVisionCenterProps {
   proofAttached: boolean;
   /** Live preview of the smart type + hashtags the quick post will ship with. */
   postIntentPreview: { type: string; label: string | null; hashtags: string[] } | null;
+  /** Local, deterministic Swan Aura writing hint. No moderation or network call. */
+  swanAuraReview: SwanAuraComposeReview;
   /** Real latest feed post — null renders honest empty states. */
   latestPost: HomeLatestPostView | null;
   canPost: boolean;
@@ -99,6 +102,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   feedEnrichmentItems,
   proofAttached,
   postIntentPreview,
+  swanAuraReview,
   latestPost,
   canPost,
   isPosting,
@@ -211,6 +215,12 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
             {postIntentPreview.hashtags.map((tag) => (
               <IntentTag key={tag}>{tag}</IntentTag>
             ))}
+          </IntentPreview>
+        )}
+        {swanAuraReview.status !== 'idle' && (
+          <IntentPreview aria-live="polite">
+            <span>{swanAuraReview.label}: {swanAuraReview.message}</span>
+            {swanAuraReview.suggestion && <span>{swanAuraReview.suggestion}</span>}
           </IntentPreview>
         )}
         {mediaError && (
