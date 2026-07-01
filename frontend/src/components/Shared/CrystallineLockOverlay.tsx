@@ -30,12 +30,14 @@ interface CrystallineLockOverlayProps {
   description?: string;
   onConfigure?: () => void;
   ctaLabel?: string;
+  badgeLabel?: string;
+  ariaLabel?: string;
   children: React.ReactNode;
 }
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
-// ─────────────────────────────────────────────────��───────────
+// ─────────────────────────────────────────────────────────────
 const dormantShimmer = keyframes`
   0% { left: -100%; }
   100% { left: 200%; }
@@ -212,6 +214,8 @@ const CrystallineLockOverlay: React.FC<CrystallineLockOverlayProps> = ({
   description,
   onConfigure,
   ctaLabel = 'Configure',
+  badgeLabel = 'Requires Config',
+  ariaLabel,
   children,
 }) => {
   if (!isLocked) {
@@ -227,14 +231,14 @@ const CrystallineLockOverlay: React.FC<CrystallineLockOverlayProps> = ({
       >
         {children}
       </ChildrenContainer>
-      <Overlay role="status" aria-label={`${featureName} requires configuration`}>
+      <Overlay role="status" aria-label={ariaLabel || `${featureName} is locked`}>
         <LockIcon>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </LockIcon>
-        <FeatureBadge>Requires Config</FeatureBadge>
+        <FeatureBadge>{badgeLabel}</FeatureBadge>
         <FeatureTitle>{featureName}</FeatureTitle>
         {description && <FeatureDescription>{description}</FeatureDescription>}
         {onConfigure && (

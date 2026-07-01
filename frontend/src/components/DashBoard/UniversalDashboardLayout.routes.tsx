@@ -143,7 +143,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/badge-creator', component: BadgeCreatorPage, title: 'Badge Creator', description: 'AI-powered badge and icon generation studio' },
       { path: '/waivers', component: AdminWaiversManagerPage, title: 'Waiver Management', description: 'Waiver records, match approval, revocation, and manual linking' },
     ],
-    defaultPath: '/coach-assistant',
+    defaultPath: '/master-schedule',
   },
   trainer: {
     routes: [
@@ -171,7 +171,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/coach-assistant', component: CoachCommandCenterPage, title: 'Coach Command Center', description: 'Review-gated trainer command bridge' },
       { path: '/virtual-olympics', component: VirtualOlympicsPage, title: 'Virtual Olympics', description: 'Ghost Racing competitive events' },
     ],
-    defaultPath: '/overview',
+    defaultPath: '/schedule',
   },
   client: {
     routes: [

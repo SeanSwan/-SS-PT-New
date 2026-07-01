@@ -67,10 +67,6 @@ export interface UsageStatus {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: API Helpers
-// ─────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────
 // SECTION: Hook
 // ─────────────────────────────────────────────────────────────
 
@@ -174,6 +170,12 @@ export function useSubscription() {
   const isElite = subscription?.tier === 'elite' || subscription?.tier === 'premium';
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'supporter';
 
+  // Ascension promise alignment: an active 30-day trial unlocks premium feature
+  // surfaces for the user while the backend middleware treats the same trial as
+  // an elite-equivalent temporary entitlement.
+  const hasGuardianAccess = isPro || isElite || isTrial;
+  const hasCrystallineAccess = isElite || isTrial;
+
   useEffect(() => {
     if (!fetchedRef.current) {
       fetchedRef.current = true;
@@ -203,6 +205,8 @@ export function useSubscription() {
     isPaid,
     isPro,
     isElite,
+    hasGuardianAccess,
+    hasCrystallineAccess,
   };
 }
 

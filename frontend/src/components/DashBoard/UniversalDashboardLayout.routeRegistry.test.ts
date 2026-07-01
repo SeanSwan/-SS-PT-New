@@ -39,4 +39,10 @@ describe('UniversalDashboardLayout route registry contract', () => {
       '/trainer-management-legacy',
     ]);
   });
+
+  it('keeps operator dashboards schedule-first for the daily training loop', () => {
+    expect(roleConfigurations.admin.defaultPath).toBe('/master-schedule');
+    expect(roleConfigurations.trainer.defaultPath).toBe('/schedule');
+    expect(roleConfigurations.client.defaultPath).toBe('/overview');
+  });
 });

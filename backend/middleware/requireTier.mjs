@@ -16,8 +16,8 @@
  *   requireTier         = Feature gating (returns 402, frontend shows paywall)
  *
  * FEATURE FLAG: TIER_GATING_ENABLED (env var)
- *   - If false or unset: middleware passes through (all features open)
- *   - If true: enforces tier checks and returns 402
+ *   - If false, 0, or off: middleware passes through (emergency kill-switch)
+ *   - Otherwise: enforces tier checks and returns 402
  *   - Admin/trainer roles ALWAYS bypass regardless of flag
  *
  * USAGE:
@@ -29,37 +29,70 @@
 import { meetsMinimumTier, tierDisplayName, featureLabel, FEATURE_GATES } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
 
+const TRIAL_EFFECTIVE_TIER = 'elite';
+
+const isActiveTrialSubscription = (subscription) => {
+  if (!subscription || subscription.status !== 'trial' || !subscription.trialEndDate) return false;
+  return new Date() < new Date(subscription.trialEndDate);
+};
+
 /**
- * Resolve the user's CURRENT tier from the Subscription table (server truth).
- * Caches result on req._resolvedTier so multiple requireTier calls on the
+ * Resolve the user's CURRENT entitlement from the Subscription table (server truth).
+ * Caches result on req._resolvedEntitlement so multiple requireTier calls on the
  * same request don't repeat the DB query.
+ *
+ * A live trial intentionally receives an elite-equivalent effective tier because
+ * the Ascension copy promises a 30-day trial of premium features. The actual tier
+ * is still returned in 402 responses for transparency and debugging.
  */
-async function resolveCurrentTier(req) {
-  if (req._resolvedTier) return req._resolvedTier;
+async function resolveCurrentEntitlement(req) {
+  if (req._resolvedEntitlement) return req._resolvedEntitlement;
+
+  let actualTier = req.user?.subscriptionTier || 'free';
+  let status = null;
+  let isTrial = false;
 
   try {
     const { default: Subscription } = await import('../models/Subscription.mjs');
     const sub = await Subscription.findOne({
       where: { userId: req.user.id },
       order: [['createdAt', 'DESC']],
-      attributes: ['tier', 'status'],
+      attributes: ['tier', 'status', 'trialEndDate'],
     });
-    req._resolvedTier = sub?.tier || req.user.subscriptionTier || 'free';
-  } catch {
-    // Fallback to JWT claim on DB error — never hard-fail an auth check
-    req._resolvedTier = req.user.subscriptionTier || 'free';
+
+    if (sub) {
+      actualTier = sub.tier || actualTier;
+      status = sub.status || null;
+      isTrial = isActiveTrialSubscription(sub);
+    }
+  } catch (error) {
+    // Fallback to JWT claim on DB error — never 500 a feature gate because the
+    // entitlement read path had a transient problem. The gate remains fail-closed
+    // for insufficient tiers based on the best available claim.
+    logger.warn('[TierGating] Failed to resolve subscription from DB; using request claim', {
+      userId: req.user?.id,
+      errorName: error instanceof Error ? error.name : typeof error,
+    });
   }
 
-  return req._resolvedTier;
+  req._resolvedEntitlement = {
+    actualTier,
+    effectiveTier: isTrial ? TRIAL_EFFECTIVE_TIER : actualTier,
+    status,
+    isTrial,
+  };
+
+  return req._resolvedEntitlement;
 }
 
 /**
  * Check if tier gating is enabled via environment variable.
- * Defaults to false (all features open) for safe rollout.
+ * Defaults to enabled so premium promises are enforced by the backend. Set
+ * TIER_GATING_ENABLED=false only as an emergency rollback switch.
  */
 function isGatingEnabled() {
-  const flag = process.env.TIER_GATING_ENABLED;
-  return flag === 'true' || flag === '1';
+  const flag = String(process.env.TIER_GATING_ENABLED || '').trim().toLowerCase();
+  return !['false', '0', 'off', 'disabled'].includes(flag);
 }
 
 /**
@@ -89,19 +122,20 @@ export function requireTier(minimumTier, featureKey) {
       });
     }
 
-    // Resolve tier from DB (not JWT — JWT can be stale after upgrade)
-    const userTier = await resolveCurrentTier(req);
+    // Resolve entitlement from DB (not JWT — JWT can be stale after upgrade)
+    const entitlement = await resolveCurrentEntitlement(req);
+    const { actualTier, effectiveTier, isTrial } = entitlement;
 
-    if (meetsMinimumTier(userTier, minimumTier)) {
+    if (meetsMinimumTier(effectiveTier, minimumTier)) {
       return next();
     }
 
     // Tier insufficient — return 402 Payment Required
     const requiredName = tierDisplayName(minimumTier);
-    const currentName = tierDisplayName(userTier);
+    const currentName = tierDisplayName(actualTier);
 
     logger.info(
-      `[TierGating] User ${req.user.id} blocked: has ${userTier} (${currentName}), needs ${minimumTier} (${requiredName})` +
+      `[TierGating] User ${req.user.id} blocked: has ${actualTier} (${currentName}), needs ${minimumTier} (${requiredName})` +
       (featureKey ? ` for feature ${featureKey}` : '')
     );
 
@@ -112,7 +146,9 @@ export function requireTier(minimumTier, featureKey) {
       featureName: featureLabel(featureKey),
       feature: featureKey || null,
       requiredTier: minimumTier,
-      currentTier: userTier,
+      currentTier: actualTier,
+      effectiveTier,
+      isTrial,
       upgradeUrl: '/ascension',
     });
   };
