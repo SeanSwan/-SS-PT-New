@@ -1,30 +1,32 @@
-# Swan Aura Slice 1-4 Hostile Review Record
+# Swan Aura Slice 1-5 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard social/community Swan Aura panel, deterministic nudge hook, prosocial event registry, and local Quick Post good-energy guidance.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, and backend-owned prosocial XP award path.
 
 ## Slice summary
 
-Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
+Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 
 - Read-only Swan Aura panel on the User Dashboard Home surface.
 - Deterministic nudge logic based on existing dashboard state.
 - Reusable `useSwanAuraNudges` hook for future dashboard surfaces.
 - Read-only `SwanAuraProsocialEvents.ts` registry for future good-energy gamification.
 - Local `SwanAuraComposeReview.ts` good-energy guidance for the public/social Quick Post composer.
+- Backend `prosocialXPService.mjs` that can award approved, low-risk prosocial XP through the canonical `GamificationPointsService.recordLedgerEntry()` ledger path.
+- Protected route mounted under `/api/social/unity-weaver` for event discovery and XP awards.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
-## Non-negotiable boundaries preserved
+## Boundaries preserved
 
-- No backend writes.
-- No moderation actions.
 - No AI provider calls.
-- No social post mutation outside the existing user-submitted post flow.
-- No gamification mutation.
-- No changes to Swan Coach command execution.
-- No changes to private client training records.
+- No moderation hide/block/delete actions.
+- No Swan Coach command execution changes.
+- No private client training records touched.
+- No arbitrary client metadata stored in point ledgers.
+- No XP awards happen from frontend-only constants.
+- Backend owns actual XP award validation.
 
 ## Hostile review findings and recursive fixes
 
@@ -63,51 +65,65 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 **Severity:** High if violated  
 **Risk:** Users may distrust a bot that silently moderates or scans before transparency and review paths exist.
 
-**Fix applied in this slice:** Swan Aura remains read-only and motivational. No review, scanning, write, hide, block, or AI-provider behavior was introduced.
+**Fix applied:** Swan Aura remains motivational and transparent. No hide/block/delete moderation behavior was introduced.
 
 ### Finding 5 — Prosocial XP could be farmed if wired naïvely
 
-**Severity:** High before backend wiring  
+**Severity:** High  
 **Risk:** Rewarding encouragement, gratitude, welcomes, reports, or de-escalation without limits would invite spam, fake kindness, self-rewards, report abuse, and point farming.
 
-**Fix applied:** `SwanAuraProsocialEvents.ts` defines each event with base XP, daily limits, cooldown windows, recipient requirements, validation requirements, and anti-abuse notes. Safety-sensitive events such as confirmed reports and de-escalation assistance require human or trusted-system validation before any future XP award.
+**Fix applied:** Backend rules enforce daily limits, cooldown windows, recipient requirements, validation requirements, idempotency keys, and a low max award cap. Safety-sensitive events such as confirmed reports, mentor tips, and de-escalation assistance return `requires_validation` instead of awarding immediately.
 
-### Finding 6 — Frontend event registry must not become the backend source of truth
+### Finding 6 — Frontend event registry must not become backend source of truth
 
 **Severity:** Medium  
 **Risk:** A frontend-only registry could drift from backend enforcement if future slices wire rewards directly from UI constants.
 
-**Required follow-up fix before XP wiring:** Backend must own the authoritative event validation, rate limits, and award rules. The frontend registry is only a product/UX contract for now.
+**Fix applied:** Backend `prosocialXPService.mjs` now owns the authoritative event rules for XP awards. The frontend registry remains a UX/product contract only.
 
 ### Finding 7 — Compose guidance could become paternalistic
 
 **Severity:** Medium  
 **Risk:** If Swan Aura comments on every ordinary post, users may feel watched, judged, or interrupted.
 
-**Fix applied:** `SwanAuraComposeReview.ts` now returns `idle` for neutral drafts. It only renders guidance for clear supportive language, broad-brush language, insults, excessive caps, or repeated punctuation.
+**Fix applied:** `SwanAuraComposeReview.ts` returns `idle` for neutral drafts. It only renders guidance for clear supportive language, broad-brush language, insults, excessive caps, or repeated punctuation.
 
 ### Finding 8 — Compose helper must not be mistaken for moderation
 
 **Severity:** High if unclear  
 **Risk:** Users might think the draft helper blocks or scans private content.
 
-**Fix applied:** The helper is explicitly local/deterministic, only runs on text already typed into the public/social Quick Post composer, does not block posting, does not call AI providers, and does not create records.
+**Fix applied:** The helper is local/deterministic, only runs on text already typed into the public/social Quick Post composer, does not block posting, does not call AI providers, and does not create records.
+
+### Finding 9 — Prosocial ledger metadata could leak private text
+
+**Severity:** High  
+**Risk:** Accepting arbitrary client-supplied metadata for XP awards could store private text, screenshots, post drafts, health details, or other accidental PII in `PointTransaction.metadata`.
+
+**Fix applied:** Removed arbitrary `clientMetadata` storage. Ledger metadata is limited to safe structured fields: event ID, event category, context type, short context ID, and target user ID.
+
+### Finding 10 — Public endpoint should not grant safety-review XP without review
+
+**Severity:** High  
+**Risk:** Users could file false reports or manufacture conflict to farm safety badges/XP.
+
+**Fix applied:** `safe_report_confirmed`, `deescalation_assist`, and `mentor_tip` require human or trusted-system validation and return HTTP 202 with `requires_validation`; they do not award points from the public self-service route.
 
 ## Current gate status
 
 | Gate | Status |
 |---|---|
 | Branch starts from current main | PASS |
-| No backend writes | PASS |
 | No AI provider calls | PASS |
-| No social post mutation beyond existing submit | PASS |
-| No gamification mutation | PASS |
+| No hide/block/delete moderation action | PASS |
 | No Swan Coach behavior change | PASS |
 | User/Client dashboard separation clarified | PASS |
 | Component decomposition | PASS |
-| Prosocial event anti-abuse rules defined | PASS |
-| Backend reward execution intentionally absent | PASS |
-| Compose guidance is non-blocking | PASS |
+| Backend owns XP validation | PASS |
+| Self-reward blocked | PASS |
+| Cooldowns/daily limits/idempotency present | PASS |
+| Arbitrary metadata removed | PASS |
+| Validation-only safety events do not award XP | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -120,19 +136,19 @@ cd frontend && npm run build
 cd backend && npm test
 ```
 
-Manual smoke targets:
+Manual/API smoke targets:
 
 1. `/user-dashboard` renders.
 2. Swan Aura panel appears on Home support panels.
-3. CTA buttons route to workout logging, challenges, and friends.
-4. No Swan Coach behavior changes.
-5. No network calls originate from Swan Aura panel or compose review.
-6. Mobile width retains readable text and 44px CTA.
-7. No XP is awarded by the prosocial registry yet.
-8. Quick Post still submits through the existing createPost path.
-9. Neutral post drafts do not show noisy Swan Aura copy.
-10. Tone-risk drafts show private, non-blocking guidance.
+3. Quick Post still submits through the existing createPost path.
+4. Neutral post drafts do not show noisy Swan Aura copy.
+5. Tone-risk drafts show private, non-blocking guidance.
+6. `GET /api/social/unity-weaver/prosocial-events` returns the event catalog for authenticated users.
+7. `POST /api/social/unity-weaver/prosocial-events/award` rejects self-awards.
+8. `POST /api/social/unity-weaver/prosocial-events/award` returns 202 for `safe_report_confirmed`, `deescalation_assist`, and `mentor_tip`.
+9. Awarded low-risk events create a canonical `PointTransaction` with source `social_engagement` and update User points/level through `GamificationPointsService`.
+10. Repeating the same event/context returns duplicate/cooldown/limit instead of awarding again.
 
 ## Verdict
 
-Slices 1-4 are acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-5 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
