@@ -2,6 +2,10 @@
  * JOB: Marketing Publisher Worker
  * ===============================
  * Runs due SwanStudios-native social publishing jobs on a short interval.
+ *
+ * NOTE: server.mjs already calls this worker bootstrap unconditionally. Until
+ * the backend entrypoint is split into a dedicated jobs hub, this module also
+ * starts/stops the schedule settlement worker through its own env gate.
  */
 
 import nativeSocialPublishingService from '../services/nativeSocialPublishingService.mjs';
@@ -9,6 +13,7 @@ import {
   getStorageErrorCode,
   isSocialPublishingStorageUnavailableError,
 } from '../services/socialPublishingStorageErrors.mjs';
+import { startSessionSettlementWorker, stopSessionSettlementWorker } from './sessionSettlementWorker.mjs';
 import logger from '../utils/logger.mjs';
 
 export function createMarketingPublisherWorker({
@@ -78,6 +83,14 @@ export function createMarketingPublisherWorker({
 
 const worker = createMarketingPublisherWorker();
 
-export const startMarketingPublisherWorker = () => worker.start();
-export const stopMarketingPublisherWorker = () => worker.stop();
+export const startMarketingPublisherWorker = () => {
+  startSessionSettlementWorker();
+  return worker.start();
+};
+
+export const stopMarketingPublisherWorker = () => {
+  stopSessionSettlementWorker();
+  return worker.stop();
+};
+
 export default worker;
