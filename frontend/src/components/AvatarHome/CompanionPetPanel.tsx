@@ -42,6 +42,7 @@ import {
   StatValue,
   SpeciesStatValue,
 } from './CompanionPetPanel.styles';
+import CompanionV2InsightCard from './CompanionV2InsightCard';
 
 const SPECIES_EMOJI: Record<string, string> = {
   crystal_dragon: '\u{1F409}',
@@ -87,12 +88,14 @@ interface PetData {
   pet?: {
     species: string;
     name: string;
+    level?: number;
     evolution: { stage: number; label: string };
     health: number;
     happiness: number;
     mood: { label: string; animation: string };
     appearance: Record<string, string>;
     birthDate?: string;
+    totalInteractions?: number;
   };
 }
 
@@ -123,6 +126,7 @@ const normalizePetData = (value: unknown): PetData => {
     pet: {
       species: safeText(pet.species, ''),
       name: safeText(pet.name, ''),
+      level: asFiniteNumber(pet.level),
       evolution: {
         stage: asFiniteNumber(evolution.stage),
         label: safeText(evolution.label, ''),
@@ -135,6 +139,7 @@ const normalizePetData = (value: unknown): PetData => {
       },
       appearance: normalizeAppearance(pet.appearance),
       birthDate: typeof pet.birthDate === 'string' ? pet.birthDate : undefined,
+      totalInteractions: asFiniteNumber(pet.totalInteractions),
     },
   };
 };
@@ -258,6 +263,14 @@ const CompanionPetPanel: React.FC<CompanionPetPanelProps> = ({
       <HealthBar>
         <HealthFill $pct={health} />
       </HealthBar>
+
+      <CompanionV2InsightCard
+        stage={stage}
+        health={health}
+        happiness={happiness}
+        moodLabel={moodLabel}
+        totalInteractions={pet.totalInteractions}
+      />
 
       <StatsGrid>
         <StatCard>
