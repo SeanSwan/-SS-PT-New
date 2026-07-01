@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-3 Hostile Review Record
+# Swan Aura Slice 1-4 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard social/community Swan Aura panel, reusable deterministic nudge hook, and prosocial event registry.
+**Scope:** User Dashboard social/community Swan Aura panel, deterministic nudge hook, prosocial event registry, and local Quick Post good-energy guidance.
 
 ## Slice summary
 
@@ -12,6 +12,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 - Deterministic nudge logic based on existing dashboard state.
 - Reusable `useSwanAuraNudges` hook for future dashboard surfaces.
 - Read-only `SwanAuraProsocialEvents.ts` registry for future good-energy gamification.
+- Local `SwanAuraComposeReview.ts` good-energy guidance for the public/social Quick Post composer.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -20,7 +21,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 - No backend writes.
 - No moderation actions.
 - No AI provider calls.
-- No social post mutation.
+- No social post mutation outside the existing user-submitted post flow.
 - No gamification mutation.
 - No changes to Swan Coach command execution.
 - No changes to private client training records.
@@ -78,6 +79,20 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 
 **Required follow-up fix before XP wiring:** Backend must own the authoritative event validation, rate limits, and award rules. The frontend registry is only a product/UX contract for now.
 
+### Finding 7 — Compose guidance could become paternalistic
+
+**Severity:** Medium  
+**Risk:** If Swan Aura comments on every ordinary post, users may feel watched, judged, or interrupted.
+
+**Fix applied:** `SwanAuraComposeReview.ts` now returns `idle` for neutral drafts. It only renders guidance for clear supportive language, broad-brush language, insults, excessive caps, or repeated punctuation.
+
+### Finding 8 — Compose helper must not be mistaken for moderation
+
+**Severity:** High if unclear  
+**Risk:** Users might think the draft helper blocks or scans private content.
+
+**Fix applied:** The helper is explicitly local/deterministic, only runs on text already typed into the public/social Quick Post composer, does not block posting, does not call AI providers, and does not create records.
+
 ## Current gate status
 
 | Gate | Status |
@@ -85,13 +100,14 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard presence:
 | Branch starts from current main | PASS |
 | No backend writes | PASS |
 | No AI provider calls | PASS |
-| No social post mutation | PASS |
+| No social post mutation beyond existing submit | PASS |
 | No gamification mutation | PASS |
 | No Swan Coach behavior change | PASS |
 | User/Client dashboard separation clarified | PASS |
 | Component decomposition | PASS |
 | Prosocial event anti-abuse rules defined | PASS |
 | Backend reward execution intentionally absent | PASS |
+| Compose guidance is non-blocking | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -110,10 +126,13 @@ Manual smoke targets:
 2. Swan Aura panel appears on Home support panels.
 3. CTA buttons route to workout logging, challenges, and friends.
 4. No Swan Coach behavior changes.
-5. No network calls originate from Swan Aura.
+5. No network calls originate from Swan Aura panel or compose review.
 6. Mobile width retains readable text and 44px CTA.
 7. No XP is awarded by the prosocial registry yet.
+8. Quick Post still submits through the existing createPost path.
+9. Neutral post drafts do not show noisy Swan Aura copy.
+10. Tone-risk drafts show private, non-blocking guidance.
 
 ## Verdict
 
-Slices 1-3 are acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-4 are acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
