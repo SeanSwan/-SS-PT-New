@@ -24,7 +24,7 @@ describe('progress controller security hardening', () => {
     expect(routeSource).toContain("router.get('/users/:userId/progress', authenticate, authorizeResourceAccess('userId'), progressController.getUserProgress)");
     expect(routeSource).toContain("router.post('/users/:userId/progress', authenticate, authorizeResourceAccess('userId'), progressController.recordProgressEntry)");
     expect(routeSource).toContain("router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('userId'), progressController.getProgressInsights)");
-    expect(routeSource).toContain("router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard)");
+    expect(routeSource).toContain("router.get('/leaderboard', authenticate, requireProfileReader, progressController.getLeaderboard)");
     expect(dashboardQueriesSource).toContain("authAxios.get('/api/v1/gamification/leaderboard'");
     expect(gamificationHookSource).toContain("authAxios.get('/api/v1/gamification/leaderboard'");
     expect(gamificationSliceSource).toContain('fetch(`/api/v1/gamification/users/${userId}/progress');

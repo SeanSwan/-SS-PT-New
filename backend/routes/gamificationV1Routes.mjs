@@ -103,7 +103,7 @@ router.get('/users/:userId/insights', authenticate, authorizeResourceAccess('use
  * @desc    Get leaderboard with advanced filtering (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/leaderboard', authenticate, requireUser, progressController.getLeaderboard);
+router.get('/leaderboard', authenticate, requireProfileReader, progressController.getLeaderboard);
 
 // ============================================================================
 // CHALLENGE SYSTEM ENDPOINTS
