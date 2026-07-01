@@ -30,6 +30,7 @@ import { Op } from 'sequelize';
 import db from '../../database.mjs';
 import { calculateLevel, getTier } from '../../utils/levelingAlgorithm.mjs';
 import { scheduleLedgerRealtimeEvent } from './GamificationRealtimeEvents.mjs';
+import { scheduleCompanionLedgerEvents } from './CompanionEventBridgeService.mjs';
 
 const MAX_SINGLE_AWARD = 500;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
@@ -285,14 +286,17 @@ export class GamificationPointsService {
       source,
       sourceId,
       transactionType,
+      metadata,
     };
     if (outerTransaction) {
       const result = await execute(outerTransaction);
       scheduleLedgerRealtimeEvent(result, eventEntry, outerTransaction);
+      scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: outerTransaction });
       return result;
     }
     const result = await db.transaction(execute);
     scheduleLedgerRealtimeEvent(result, eventEntry, null);
+    scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: null });
     return result;
   }
 }
