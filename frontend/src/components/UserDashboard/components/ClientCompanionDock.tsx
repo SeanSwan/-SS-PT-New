@@ -26,6 +26,13 @@ type DockStateValue = 'loading' | 'ready' | 'empty' | 'error';
 
 const HOME_PATH = '/dashboard/client/my-home';
 const LOG_WORKOUT_PATH = '/dashboard/client/log-workout';
+const PROGRESS_PATH = '/dashboard/client/progress';
+
+const getPrimaryPath = (snapshot: CompanionV2Snapshot) => {
+  if (snapshot.health < 40) return PROGRESS_PATH;
+  if (snapshot.happiness < 50) return HOME_PATH;
+  return LOG_WORKOUT_PATH;
+};
 
 const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment, onNavigate }) => {
   const [state, setState] = useState<DockStateValue>('loading');
@@ -113,7 +120,7 @@ const ClientCompanionDock: React.FC<ClientCompanionDockProps> = ({ userIdSegment
         <DockMeterFill $pct={insight.bondPercent} />
       </DockMeter>
       <DockActions>
-        <DockButton type="button" $primary onClick={() => onNavigate(LOG_WORKOUT_PATH)}>{insight.nextActionLabel}</DockButton>
+        <DockButton type="button" $primary onClick={() => onNavigate(getPrimaryPath(snapshot))}>{insight.nextActionLabel}</DockButton>
         <DockButton type="button" onClick={() => onNavigate(HOME_PATH)}>My Home</DockButton>
       </DockActions>
     </DockShell>
