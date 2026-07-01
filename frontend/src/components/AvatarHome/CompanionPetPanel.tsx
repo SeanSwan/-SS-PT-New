@@ -1,10 +1,3 @@
-/**
- * COMPONENT: CompanionPetPanel
- * PURPOSE: Displays the user's companion pet inside Avatar Home.
- * PARENT: AvatarHomePage
- * DATA: /api/gamification/users/:userId/pet
- */
-
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Drumstick,
@@ -88,7 +81,6 @@ interface PetData {
   pet?: {
     species: string;
     name: string;
-    level?: number;
     evolution: { stage: number; label: string };
     health: number;
     happiness: number;
@@ -126,7 +118,6 @@ const normalizePetData = (value: unknown): PetData => {
     pet: {
       species: safeText(pet.species, ''),
       name: safeText(pet.name, ''),
-      level: asFiniteNumber(pet.level),
       evolution: {
         stage: asFiniteNumber(evolution.stage),
         label: safeText(evolution.label, ''),
@@ -264,13 +255,7 @@ const CompanionPetPanel: React.FC<CompanionPetPanelProps> = ({
         <HealthFill $pct={health} />
       </HealthBar>
 
-      <CompanionV2InsightCard
-        stage={stage}
-        health={health}
-        happiness={happiness}
-        moodLabel={moodLabel}
-        totalInteractions={pet.totalInteractions}
-      />
+      <CompanionV2InsightCard stage={stage} health={health} happiness={happiness} moodLabel={moodLabel} totalInteractions={pet.totalInteractions} />
 
       <StatsGrid>
         <StatCard>
