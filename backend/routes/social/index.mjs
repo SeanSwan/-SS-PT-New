@@ -9,13 +9,13 @@ import factionsRoutes from './factions.mjs';
 import partiesRoutes from './parties.mjs';
 import eventsRoutes from './events.mjs';
 import unityWeaverRoutes from '../unityWeaverRoutes.mjs';
+import { unityWeaverSocialActionXPResponseMiddleware } from '../../services/unityWeaver/socialActionProsocialMiddleware.mjs';
 
 const router = express.Router();
 
-// Register social routes
 router.use('/friendships', friendshipsRoutes);
 router.use('/feed-enrichment', protect, feedEnrichmentRoutes);
-router.use('/posts', postsRoutes);
+router.use('/posts', unityWeaverSocialActionXPResponseMiddleware, postsRoutes);
 router.use('/challenges', challengesRoutes);
 router.use('/hashtags', hashtagsRoutes);
 router.use('/factions', protect, factionsRoutes);
