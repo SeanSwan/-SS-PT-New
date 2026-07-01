@@ -42,9 +42,21 @@ The second implementation pass starts the mounted client-dashboard companion sur
 - route empty companion state to Avatar Home adoption;
 - route ready companion state to the next healthy action and My Home.
 
-## Recursive review fix
+## Phase 2 changes
+
+The third implementation pass hardens rollout and prepares event bridging:
+
+- add local, per-user dock collapse persistence;
+- add a `VITE_ENABLE_COMPANION_DOCK` rollout guard;
+- add source-contract tests proving the dock remains mounted behind the guard;
+- add backend `CompanionEventBridgeService` prep for mapping positive platform events into companion activity counters;
+- add tests for workout, streak, social, and personal-record event mapping.
+
+## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
+
+The rollout review found that the dock needed to be reversible on small screens and stageable in production. The dock now has a persisted collapse control and an explicit environment flag.
 
 ## Future architecture
 
