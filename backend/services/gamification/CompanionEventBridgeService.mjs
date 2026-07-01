@@ -1,3 +1,5 @@
+import { CompanionPetService } from './CompanionPetService.mjs';
+
 const POSITIVE_ACTIVITY_TYPES = new Set([
   'strength_workouts',
   'cardio_workouts',
@@ -7,6 +9,14 @@ const POSITIVE_ACTIVITY_TYPES = new Set([
   'social_actions',
   'personal_records',
 ]);
+
+const LEDGER_SOURCE_TO_COMPANION_EVENT = {
+  workout_completion: 'workout_completed',
+  workout_completed: 'workout_completed',
+  streak_bonus: 'streak_updated',
+  achievement_earned: 'badge_earned',
+  milestone_reached: 'personal_record',
+};
 
 const normalizeAmount = (value, fallback = 1) => {
   const parsed = Number(value);
@@ -44,7 +54,20 @@ export const buildCompanionActivityEvents = (sourceType, metadata = {}) => {
   }
 };
 
-export const recordCompanionActivityEvents = async ({ userId, events, service }) => {
+export const buildCompanionActivityEventsForLedger = (result, entry = {}) => {
+  if (!result || result.duplicate || result.pointsAwarded <= 0) return [];
+  if (entry.transactionType === 'spend' || entry.transactionType === 'expire') return [];
+
+  const sourceType = LEDGER_SOURCE_TO_COMPANION_EVENT[entry.source];
+  if (!sourceType) return [];
+
+  return buildCompanionActivityEvents(sourceType, {
+    ...(entry.metadata || {}),
+    amount: sourceType === 'streak_updated' ? entry.metadata?.streakDays : 1,
+  });
+};
+
+export const recordCompanionActivityEvents = async ({ userId, events, service = CompanionPetService }) => {
   if (!userId || !Array.isArray(events) || events.length === 0 || !service?.recordActivity) return [];
 
   const results = [];
@@ -56,8 +79,27 @@ export const recordCompanionActivityEvents = async ({ userId, events, service })
   return results;
 };
 
+export const recordCompanionLedgerEvents = async ({ result, entry, service = CompanionPetService }) => {
+  const events = buildCompanionActivityEventsForLedger(result, entry);
+  return recordCompanionActivityEvents({ userId: entry?.userId, events, service });
+};
+
+export const scheduleCompanionLedgerEvents = ({ result, entry, transaction, service = CompanionPetService }) => {
+  const run = () => recordCompanionLedgerEvents({ result, entry, service })
+    .catch((error) => console.error('[CompanionEventBridge] non-blocking ledger bridge failed:', error?.message || error));
+
+  if (transaction && typeof transaction.afterCommit === 'function') {
+    transaction.afterCommit(run);
+    return;
+  }
+  void run();
+};
+
 export default {
   buildCompanionActivityEvents,
+  buildCompanionActivityEventsForLedger,
   getCompanionActivityForWorkout,
   recordCompanionActivityEvents,
+  recordCompanionLedgerEvents,
+  scheduleCompanionLedgerEvents,
 };
