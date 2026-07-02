@@ -18,6 +18,7 @@
 
 import getProgressPulse from '../services/progressPulseService.mjs';
 import { computeNextBestAction } from '../services/nextBestActionService.mjs';
+import getWorkoutDayDetail from '../services/workoutDayDetailService.mjs';
 
 const parseUserId = (raw) => {
   const id = parseInt(raw, 10);
@@ -44,6 +45,28 @@ export async function getProgressPulseHandler(req, res) {
     return res.status(500).json({
       success: false,
       message: 'Unable to load progress pulse',
+      error: 'internal_error',
+    });
+  }
+}
+
+/** GET /api/client/analytics/workout-day?md=MM/DD — Slice 8.4 drill-down. */
+export async function getWorkoutDayHandler(req, res) {
+  try {
+    const userId = parseUserId(req.params?.userId || req.user?.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user context' });
+    }
+    const data = await getWorkoutDayDetail(req.app.get('sequelize'), userId, req.query?.md);
+    if (data.invalidLabel) {
+      return res.status(400).json({ success: false, message: 'Invalid date label' });
+    }
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('[Workout Day Failed]', { message: error?.message, userId: req.params?.userId });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load workout detail',
       error: 'internal_error',
     });
   }
