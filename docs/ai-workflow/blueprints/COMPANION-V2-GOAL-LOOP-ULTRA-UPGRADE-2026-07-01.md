@@ -73,6 +73,16 @@ The fifth implementation pass adds lightweight bridge observability:
 - scheduled records log compact success metadata through the injected logger;
 - skipped events remain cheap and do not schedule unnecessary work.
 
+## Phase 5 changes
+
+The sixth implementation pass surfaces companion event metadata on the real workout endpoint without rewriting the controller monolith:
+
+- `CompanionEventBridgeService` now supports request-scoped summary collection through `AsyncLocalStorage`;
+- `companionEventBridgeResponseMiddleware` wraps `res.json` and injects `companionEvents` only when summaries exist;
+- `/api/gamification/record-workout` is wrapped with the middleware;
+- explicit `companionEvents` response fields are never overwritten;
+- response injection is tested separately from controller business logic.
+
 ## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
@@ -84,6 +94,8 @@ The event-bridge review found that nutrition and recovery events would have been
 The ledger-wiring review found that patching the monolithic gamification controller directly was too risky. The integration now lives in `GamificationPointsService`, the existing idempotent point-ledger service used by workout, streak, achievement, and milestone awards.
 
 The observability review found that bridge work needed response-safe metadata without waiting for async companion writes. Ledger results now expose scheduled/skipped companion summaries while the writes remain after-commit and non-blocking.
+
+The endpoint response review found that rewriting `gamificationController.mjs` would be too risky for this slice. The response surfacing now uses route-scoped middleware and request context instead.
 
 ## Future architecture
 
