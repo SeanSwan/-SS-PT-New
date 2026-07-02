@@ -11,7 +11,13 @@ describe('BodyMap client target selection', () => {
     expect(source).toContain('const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some(');
     expect(source).toContain('const staffTargetClientId = userIdProp ?? verifiedActiveClientId;');
     expect(source).toContain('const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;');
-    expect(source).toContain('if (!painService || !userId) {');
+    expect(source).toContain('if (!entryService || !userId) {');
     expect(source).toContain('Select a client to view pain and injury entries.');
+  });
+
+  it('passes a decorative profile photo to the body-map SVG without changing evidence logic', () => {
+    expect(source).toContain('const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;');
+    expect(source).toContain('profilePhotoUrl={profilePhotoUrl}');
+    expect(source).toContain('<BodyMapEvidenceSection');
   });
 });
