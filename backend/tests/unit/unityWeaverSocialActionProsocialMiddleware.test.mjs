@@ -14,7 +14,7 @@ vi.mock('../../utils/logger.mjs', () => ({ default: mockLogger }));
 
 const { unityWeaverSocialActionXPResponseMiddleware } = await import('../../services/unityWeaver/socialActionProsocialMiddleware.mjs');
 
-const awardedResult = (eventId, pointsAwarded = 8) => ({
+const awardedResult = (eventId, pointsAwarded = 8, swanCoinsAwarded = 2) => ({
   success: true,
   awarded: true,
   duplicate: false,
@@ -25,6 +25,10 @@ const awardedResult = (eventId, pointsAwarded = 8) => ({
   newLevel: 2,
   newTier: 'bronze_forge',
   badgesEarned: [],
+  swanCoinsAwarded,
+  swanCoinBalance: 50 + swanCoinsAwarded,
+  currencyName: 'SwanCoins',
+  legacyField: 'crystalBalance',
 });
 
 async function flushMiddleware() {
@@ -63,7 +67,7 @@ describe('Unity Weaver social action XP response middleware', () => {
   });
 
   it('adds positive_progress_post XP summary after a successful workout post', async () => {
-    mockAwardUnityWeaverProsocialXP.mockResolvedValueOnce(awardedResult('positive_progress_post', 12));
+    mockAwardUnityWeaverProsocialXP.mockResolvedValueOnce(awardedResult('positive_progress_post', 12, 4));
 
     const payload = await runMiddleware({
       req: { user: { id: 7 }, method: 'POST', path: '/', body: { type: 'workout' } },
@@ -81,6 +85,10 @@ describe('Unity Weaver social action XP response middleware', () => {
         awarded: true,
         eventId: 'positive_progress_post',
         pointsAwarded: 12,
+        swanCoinsAwarded: 4,
+        swanCoinBalance: 54,
+        currencyName: 'SwanCoins',
+        legacyField: 'crystalBalance',
       }),
     }));
   });
@@ -110,7 +118,7 @@ describe('Unity Weaver social action XP response middleware', () => {
       contextType: 'post',
       contextId: 99,
     });
-    expect(payload.unityWeaverXP).toEqual(expect.objectContaining({ eventId: 'encourage_friend' }));
+    expect(payload.unityWeaverXP).toEqual(expect.objectContaining({ eventId: 'encourage_friend', swanCoinsAwarded: 2 }));
   });
 
   it('does not award Unity Weaver XP for thumbs_up reactions', async () => {
@@ -139,7 +147,7 @@ describe('Unity Weaver social action XP response middleware', () => {
   });
 
   it('awards gratitude_given for grateful comments on another user post', async () => {
-    mockAwardUnityWeaverProsocialXP.mockResolvedValueOnce(awardedResult('gratitude_given', 6));
+    mockAwardUnityWeaverProsocialXP.mockResolvedValueOnce(awardedResult('gratitude_given', 6, 2));
 
     const payload = await runMiddleware({
       req: { user: { id: 7 }, method: 'POST', path: '/99/comments', body: { content: 'Thank you for sharing this progress.' } },
@@ -153,7 +161,7 @@ describe('Unity Weaver social action XP response middleware', () => {
       contextType: 'comment',
       contextId: 333,
     });
-    expect(payload.unityWeaverXP).toEqual(expect.objectContaining({ eventId: 'gratitude_given', pointsAwarded: 6 }));
+    expect(payload.unityWeaverXP).toEqual(expect.objectContaining({ eventId: 'gratitude_given', pointsAwarded: 6, swanCoinsAwarded: 2 }));
   });
 
   it('awards encourage_friend for supportive comments on another user post', async () => {
