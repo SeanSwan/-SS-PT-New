@@ -17,6 +17,7 @@
  */
 
 import getProgressPulse from '../services/progressPulseService.mjs';
+import { computeNextBestAction } from '../services/nextBestActionService.mjs';
 
 const parseUserId = (raw) => {
   const id = parseInt(raw, 10);
@@ -31,7 +32,10 @@ export async function getProgressPulseHandler(req, res) {
     }
     const sequelize = req.app.get('sequelize');
     const data = await getProgressPulse(sequelize, userId);
-    return res.json({ success: true, data });
+    // One round trip: the pulse payload carries its own coach guidance so the
+    // client surface never needs a second request for "what do I do next?".
+    const nextBestAction = computeNextBestAction(data);
+    return res.json({ success: true, data: { ...data, nextBestAction } });
   } catch (error) {
     console.error('[Progress Pulse Failed]', {
       message: error?.message,
