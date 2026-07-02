@@ -175,7 +175,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
     try {
       if (existingEntry) await entryService.update(userId, existingEntry.id, payload);
       else await entryService.create(userId, payload);
-      await fetchEntries(); setPanelOpen(false); setSelectedRegion(null);
+      await fetchEntries(); setPanelOpen(false); setSelectedRegion(payload.bodyRegion);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to save');
     } finally {
