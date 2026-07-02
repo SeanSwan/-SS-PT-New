@@ -192,7 +192,7 @@ const ClientCommunityPage: React.FC = () => {
           {factions.length > 0 ? (
             <FactionLeaderboard factions={factions} frameless />
           ) : (
-            <EmptyState>Factions loading... Join a faction to compete!</EmptyState>
+            <EmptyState>No faction standings are live yet. Join a faction when the board opens to start the race.</EmptyState>
           )}
         </SectionCard>
         <SectionCard>
