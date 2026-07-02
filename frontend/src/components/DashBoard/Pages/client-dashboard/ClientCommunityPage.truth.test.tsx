@@ -71,12 +71,16 @@ const COMMUNITY_STYLE_SOURCES = [STYLES_SOURCE, FEED_STYLES_SOURCE];
 describe('ClientCommunityPage truth states', () => {
   beforeEach(() => {
     mockCreatePostMutate.mockClear();
+    mockNavigate.mockClear();
+    mockSocialChallengesData.splice(0, mockSocialChallengesData.length);
   });
 
-  it('shows an honest empty leaderboard instead of placeholder athletes', () => {
+  it('shows honest empty community states instead of fake loading or placeholder proof', () => {
     render(<ClientCommunityPage />);
 
     expect(screen.getByText(/no leaderboard entries yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no faction standings are live yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/factions loading/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/SwanAthlete1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IronPhoenix/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/CoreCrusher/i)).not.toBeInTheDocument();
