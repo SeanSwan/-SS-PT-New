@@ -189,8 +189,6 @@ export function selectActiveChallengeSummary({
 export function buildHomeBadgeShowcase({
   achievements,
   leaderboard,
-  currentUserName,
-  currentUserPoints,
 }: {
   achievements?: unknown[] | null;
   leaderboard?: unknown[] | null;
@@ -213,14 +211,14 @@ export function buildHomeBadgeShowcase({
     const client = asRecord(record.client || record.user);
     return {
       id: readString(record, ['id', 'userId', '_id']) || `leader-${index}`,
-      name: readString(client, ['firstName', 'username', 'name']) || readString(record, ['firstName', 'username', 'name']) || 'SwanCreator',
+      name: readString(client, ['firstName', 'username', 'name']) || readString(record, ['firstName', 'username', 'name']) || 'Community Member',
       points: Math.max(0, Math.round(readNumber(record, ['points', 'totalPoints', 'score']))),
     };
   });
 
   return {
     badges,
-    leaderboardRows: rows.length ? rows : [{ id: 'current-user', name: currentUserName, points: Math.max(0, Math.round(currentUserPoints || 0)) }],
+    leaderboardRows: rows,
   };
 }
 
