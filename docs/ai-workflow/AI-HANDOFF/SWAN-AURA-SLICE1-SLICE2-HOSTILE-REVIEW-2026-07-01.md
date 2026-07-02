@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-8 Hostile Review Record
+# Swan Aura Slice 1-9 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, backend social-action XP orchestration, and avatar economy blueprint.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, backend social-action XP orchestration, avatar economy blueprint, and Unity Weaver XP unit test harness.
 
 ## Slice summary
 
@@ -15,9 +15,11 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - Local `SwanAuraComposeReview.ts` good-energy guidance for the public/social Quick Post composer.
 - Backend `prosocialXPService.mjs` that can award approved, low-risk prosocial XP through the canonical `GamificationPointsService.recordLedgerEntry()` ledger path.
 - Protected route mounted under `/api/social/unity-weaver` for event discovery and explicit future XP award requests.
-- Backend `socialActionProsocialMiddleware.mjs` now owns automatic Unity Weaver XP orchestration for successful post, reaction, and comment actions.
+- Backend `socialActionProsocialMiddleware.mjs` owns automatic Unity Weaver XP orchestration for successful post, reaction, and comment actions.
 - `useSocialFeed.ts` no longer decides Unity Weaver XP eligibility for normal post/comment/reaction actions; it only reads the backend response and updates the profile/toast state.
 - `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` defines XP as permanent progression, SwanCoins as earnable spend currency, and Premium Credits as optional future paid cosmetic currency.
+- `unityWeaverProsocialXPService.test.mjs` covers service-level anti-abuse, validation, ledger, metadata, and duplicate behavior.
+- `unityWeaverSocialActionProsocialMiddleware.test.mjs` covers backend-owned post/reaction/comment orchestration and response compatibility.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -156,6 +158,20 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 
 **Fix applied:** Added a response-wrapping middleware at the social router layer: `unityWeaverSocialActionXPResponseMiddleware`. It appends optional `unityWeaverXP` after successful responses and does not change the existing social route internals.
 
+### Finding 17 — Tests could be flaky if one-time mock queues persist
+
+**Severity:** Medium  
+**Risk:** `vi.clearAllMocks()` clears call counts but can leave unused one-time mock implementations queued, causing order-sensitive failures.
+
+**Fix applied:** The new Unity Weaver unit tests use explicit `.mockReset()` calls in `beforeEach()` before setting default behavior.
+
+### Finding 18 — XP test harness must prove optional XP cannot break social actions
+
+**Severity:** High  
+**Risk:** If the optional Unity Weaver ledger side effect fails, post/comment/reaction responses must still preserve the original successful social action.
+
+**Fix applied:** `unityWeaverSocialActionProsocialMiddleware.test.mjs` includes a failure-path test proving the original response body is returned and a warning is logged if the optional XP award throws.
+
 ## Current gate status
 
 | Gate | Status |
@@ -177,6 +193,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 | No CTA-click XP farming | PASS |
 | Toast noise reduced | PASS |
 | Avatar economy avoids spending XP | PASS |
+| Unit tests added for service and middleware | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -210,4 +227,4 @@ Manual/API smoke targets:
 
 ## Verdict
 
-Slices 1-8 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-9 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
