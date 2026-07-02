@@ -29,6 +29,8 @@ export interface GlobalClientContextType {
 const SESSION_KEY = 'ss-active-client';
 export const ADMIN_CLIENT_LIST_LIMIT = 500;
 
+const optionalGender = (value: unknown) => (value ? { gender: String(value) } : {});
+
 export function normalizeClientListResponse(data: any, role: string): ActiveClient[] {
   if (role === 'admin') {
     const raw = data?.data?.clients ?? (Array.isArray(data?.data) ? data.data : []);
@@ -38,7 +40,7 @@ export function normalizeClientListResponse(data: any, role: string): ActiveClie
       lastName: c.lastName ?? '',
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
-      gender: c.gender ?? undefined,
+      ...optionalGender(c.gender),
       role: c.role,
       availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
       clientSource: c.clientSource ?? undefined,
@@ -63,7 +65,7 @@ export function normalizeClientListResponse(data: any, role: string): ActiveClie
       lastName: c.lastName ?? '',
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
-      gender: c.gender ?? undefined,
+      ...optionalGender(c.gender),
       role: c.role,
       availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
       clientSource: c.clientSource ?? undefined,
