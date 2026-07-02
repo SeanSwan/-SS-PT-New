@@ -3,6 +3,7 @@ import User from '../../models/User.mjs';
 import db from '../../database.mjs';
 import GamificationPointsService from '../gamification/GamificationPointsService.mjs';
 import { checkBadgesForGamificationEvent } from '../badgeGamificationBridge.mjs';
+import { awardSwanCoins } from '../avatarEconomy/swanCoinService.mjs';
 import logger from '../../utils/logger.mjs';
 
 const LEDGER_SOURCE = 'social_engagement';
@@ -13,6 +14,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Encourage a Friend',
     category: 'encouragement',
     baseXP: 8,
+    swanCoins: 2,
     dailyLimit: 5,
     cooldownMinutes: 10,
     requiresRecipient: true,
@@ -22,6 +24,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Welcome a New Swan',
     category: 'welcome',
     baseXP: 10,
+    swanCoins: 3,
     dailyLimit: 3,
     cooldownMinutes: 20,
     requiresRecipient: true,
@@ -32,6 +35,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Give Gratitude',
     category: 'gratitude',
     baseXP: 6,
+    swanCoins: 2,
     dailyLimit: 5,
     cooldownMinutes: 10,
     requiresRecipient: true,
@@ -41,6 +45,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Share Honest Progress',
     category: 'progress_sharing',
     baseXP: 12,
+    swanCoins: 4,
     dailyLimit: 2,
     cooldownMinutes: 180,
     requiresRecipient: false,
@@ -50,6 +55,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Cheer the Team',
     category: 'challenge_support',
     baseXP: 8,
+    swanCoins: 2,
     dailyLimit: 4,
     cooldownMinutes: 15,
     requiresRecipient: true,
@@ -59,6 +65,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Share a Helpful Tip',
     category: 'mentorship',
     baseXP: 15,
+    swanCoins: 5,
     dailyLimit: 3,
     cooldownMinutes: 30,
     requiresRecipient: true,
@@ -68,6 +75,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Protect the Community',
     category: 'safety',
     baseXP: 10,
+    swanCoins: 3,
     dailyLimit: 3,
     cooldownMinutes: 60,
     requiresRecipient: false,
@@ -77,6 +85,7 @@ export const UNITY_WEAVER_PROSOCIAL_EVENTS = Object.freeze({
     label: 'Bridge Builder',
     category: 'safety',
     baseXP: 20,
+    swanCoins: 6,
     dailyLimit: 2,
     cooldownMinutes: 120,
     requiresRecipient: false,
@@ -261,23 +270,55 @@ export async function awardUnityWeaverProsocialXP({
     now,
   });
 
-  const ledgerResult = await GamificationPointsService.recordLedgerEntry({
-    userId: numericActorId,
-    points: rule.baseXP,
-    transactionType: 'earn',
-    source: LEDGER_SOURCE,
-    sourceId: numericTargetId,
-    description: `Unity Weaver: ${rule.label}`,
-    metadata: {
-      unityWeaverEventId: eventId,
-      unityWeaverCategory: rule.category,
-      contextType,
-      contextId: contextId ? String(contextId).slice(0, 80) : null,
-      targetUserId: numericTargetId,
-    },
-    awardedBy: numericActorId,
-    idempotencyKey,
-    maxPoints: MAX_PROSOCIAL_XP,
+  const { ledgerResult, swanCoinResult } = await db.transaction(async (transaction) => {
+    const ledgerEntry = await GamificationPointsService.recordLedgerEntry({
+      userId: numericActorId,
+      points: rule.baseXP,
+      transactionType: 'earn',
+      source: LEDGER_SOURCE,
+      sourceId: numericTargetId,
+      description: `Unity Weaver: ${rule.label}`,
+      metadata: {
+        unityWeaverEventId: eventId,
+        unityWeaverCategory: rule.category,
+        contextType,
+        contextId: contextId ? String(contextId).slice(0, 80) : null,
+        targetUserId: numericTargetId,
+      },
+      awardedBy: numericActorId,
+      idempotencyKey,
+      maxPoints: MAX_PROSOCIAL_XP,
+    }, transaction);
+
+    if (ledgerEntry.duplicate || ledgerEntry.pointsAwarded <= 0 || !rule.swanCoins) {
+      return {
+        ledgerResult: ledgerEntry,
+        swanCoinResult: {
+          swanCoinsAwarded: 0,
+          swanCoinBalance: null,
+          currencyName: 'SwanCoins',
+          legacyField: 'crystalBalance',
+        },
+      };
+    }
+
+    const coinAward = await awardSwanCoins({
+      userId: numericActorId,
+      amount: rule.swanCoins,
+      source: LEDGER_SOURCE,
+      reason: `Unity Weaver: ${rule.label}`,
+    }, transaction);
+
+    if (coinAward.error) {
+      const error = new Error(coinAward.error.message || 'Failed to award SwanCoins');
+      error.statusCode = coinAward.error.status || 500;
+      throw error;
+    }
+
+    return {
+      ledgerResult: ledgerEntry,
+      swanCoinResult: coinAward,
+    };
   });
 
   const badgesEarned = ledgerResult.duplicate ? [] : await checkBadgesForGamificationEvent({
@@ -305,6 +346,10 @@ export async function awardUnityWeaverProsocialXP({
     newLevel: ledgerResult.newLevel,
     newTier: ledgerResult.newTier,
     badgesEarned,
+    swanCoinsAwarded: swanCoinResult.swanCoinsAwarded || 0,
+    swanCoinBalance: swanCoinResult.swanCoinBalance ?? null,
+    currencyName: swanCoinResult.currencyName || 'SwanCoins',
+    legacyField: swanCoinResult.legacyField || 'crystalBalance',
   };
 }
 
