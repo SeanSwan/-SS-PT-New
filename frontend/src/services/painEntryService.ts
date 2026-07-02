@@ -124,9 +124,7 @@ export function createPainEntryService(authAxios: any) {
       const formData = new FormData();
       formData.append('media', file);
       formData.append('captureContext', JSON.stringify(captureContext));
-      const { data } = await authAxios.post(`${EVIDENCE_BASE}/${userId}/${entryId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await authAxios.post(`${EVIDENCE_BASE}/${userId}/${entryId}`, formData);
       return { success: data.success, evidence: data.data };
     },
 
