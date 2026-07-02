@@ -16,7 +16,7 @@
  * └─────────────────────────────────────────────────────┘
  *
  * DATA FLOW:
- * Props In:  { painEntries, selectedRegion, onRegionClick, gender, labelMode }
+ * Props In:  { painEntries, selectedRegion, onRegionClick, gender, labelMode, profilePhotoUrl }
  * Children:  None (leaf SVG component)
  *
  * IMAGE LAYER SYSTEM:
@@ -418,6 +418,7 @@ interface BodyMapSVGProps {
   onRegionClick: (regionId: string) => void;
   gender?: AnatomyGender;
   labelMode?: LabelMode;
+  profilePhotoUrl?: string | null;
 }
 
 const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
@@ -426,6 +427,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   onRegionClick,
   gender = 'male',
   labelMode = 'off',
+  profilePhotoUrl = null,
 }) => {
   // Pinch-zoom state for mobile
   const [scale, setScale] = useState(1);
@@ -436,6 +438,12 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   // Track whether anatomical images loaded successfully.
   const [frontImgLoaded, setFrontImgLoaded] = useState(false);
   const [backImgLoaded, setBackImgLoaded] = useState(false);
+  const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
+  const shouldShowProfilePhoto = Boolean(profilePhotoUrl) && !profilePhotoFailed;
+
+  React.useEffect(() => {
+    setProfilePhotoFailed(false);
+  }, [profilePhotoUrl]);
 
   // Reset and preload image state when gender changes.
   React.useEffect(() => {
@@ -658,6 +666,11 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
           <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
             <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
+              <defs>
+                <clipPath id="body-map-profile-head-clip">
+                  <ellipse cx="100" cy="24" rx="12" ry="15" />
+                </clipPath>
+              </defs>
               {/* Layer 1: Anatomical image (if available) */}
               <image
                 href={getAnatomyImagePath(gender, 'front')}
@@ -670,9 +683,32 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               <g opacity={frontImgLoaded ? 0.3 : 1}>
                 {getFrontOutline()}
               </g>
-              {/* Layer 3: Interactive hotspot regions */}
+              {/* Layer 3: Decorative profile personalization, scaled with the front anatomy. */}
+              {shouldShowProfilePhoto && (
+                <g pointerEvents="none" aria-hidden="true" data-testid="body-map-profile-head-overlay">
+                  <image
+                    data-testid="body-map-profile-head-image"
+                    href={profilePhotoUrl ?? undefined}
+                    x="88" y="9" width="24" height="30"
+                    preserveAspectRatio="xMidYMid slice"
+                    clipPath="url(#body-map-profile-head-clip)"
+                    opacity="0.92"
+                    pointerEvents="none"
+                    onError={() => setProfilePhotoFailed(true)}
+                  />
+                  <ellipse
+                    cx="100" cy="24" rx="12" ry="15"
+                    fill="none"
+                    stroke="var(--accent-primary, #8B5CF6)"
+                    strokeWidth="0.8"
+                    opacity="0.75"
+                    pointerEvents="none"
+                  />
+                </g>
+              )}
+              {/* Layer 4: Interactive hotspot regions */}
               {renderRegions(FRONT_VIEW_REGIONS)}
-              {/* Layer 4: Anatomical labels */}
+              {/* Layer 5: Anatomical labels */}
               {renderLabels(FRONT_VIEW_REGIONS)}
             </ResponsiveSVG>
           </ZoomContent>

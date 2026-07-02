@@ -136,6 +136,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
   const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender;
+  const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;
   const entryService = useMemo(() => (authAxios ? createPainEntryService(authAxios) : null), [authAxios]);
 
   const [entries, setEntries] = useState<PainEntry[]>([]);
@@ -249,7 +250,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       {!loading && (
         <>
           <BodyMapToolbar gender={gender} labelMode={labelMode} onGenderChange={setGender} onLabelModeChange={setLabelMode} />
-          <BodyMapSVG painEntries={entries} selectedRegion={selectedRegion} onRegionClick={handleRegionClick} gender={gender} labelMode={labelMode} />
+          <BodyMapSVG painEntries={entries} selectedRegion={selectedRegion} onRegionClick={handleRegionClick} gender={gender} labelMode={labelMode} profilePhotoUrl={profilePhotoUrl} />
 
           {entries.length > 0 && (
             <ActiveEntriesList>
@@ -271,7 +272,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
 
           {entries.length === 0 && !loading && (
             <StatusText>
-              {!userId ? 'Select a client to view entries.' : isClientMode ? 'Tap any area to log what you are feeling so your trainer can plan around it.' : 'No active entries. Click a body region to add one.'}
+              {!userId ? 'Select a client to view pain and injury entries.' : isClientMode ? 'Tap any area to log what you are feeling so your trainer can plan around it.' : 'No active entries. Click a body region to add one.'}
             </StatusText>
           )}
         </>
