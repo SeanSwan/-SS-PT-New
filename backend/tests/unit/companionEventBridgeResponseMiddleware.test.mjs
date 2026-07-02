@@ -47,4 +47,37 @@ describe('companionEventBridgeResponseMiddleware', () => {
 
     expect(json.mock.calls[0][0].companionEvents).toEqual([{ source: 'manual' }]);
   });
+
+  it('keeps a successful workout response stable when companion recording fails after commit', async () => {
+    const afterCommit = vi.fn();
+    const error = vi.fn();
+    const json = vi.fn((body) => body);
+    const res = { json };
+    const next = vi.fn(() => {
+      scheduleCompanionLedgerEvents({
+        service: { recordActivity: vi.fn(async () => { throw new Error('simulated companion write failure'); }) },
+        result: { duplicate: false, pointsAwarded: 50 },
+        entry: { userId: 42, source: 'workout_completion', transactionType: 'earn' },
+        transaction: { afterCommit },
+        logger: { info: vi.fn(), error },
+      });
+      res.json({ success: true, message: 'Workout completion recorded successfully' });
+    });
+
+    companionEventBridgeResponseMiddleware({}, res, next);
+
+    const responseBody = json.mock.calls[0][0];
+    expect(responseBody).toMatchObject({
+      success: true,
+      message: 'Workout completion recorded successfully',
+      companionEvents: [{ source: 'workout_completion', status: 'scheduled' }],
+    });
+    expect(afterCommit).toHaveBeenCalledTimes(1);
+
+    await afterCommit.mock.calls[0][0]();
+
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(json).toHaveBeenCalledTimes(1);
+    expect(json.mock.calls[0][0]).toEqual(responseBody);
+  });
 });
