@@ -20,4 +20,8 @@ describe('BodyMap client target selection', () => {
     expect(source).toContain('profilePhotoUrl={profilePhotoUrl}');
     expect(source).toContain('<BodyMapEvidenceSection');
   });
+  it('keeps selected-region evidence mounted when the pain panel is closed', () => {
+    expect(source).toContain('onClose={() => setPanelOpen(false)}');
+    expect(source).toContain('await fetchEntries(); setPanelOpen(false); setSelectedRegion(null);');
+  });
 });

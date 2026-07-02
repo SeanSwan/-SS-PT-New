@@ -135,7 +135,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
     : undefined;
   const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
-  const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender;
+  const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender ?? user?.clientInfo?.gender;
   const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;
   const entryService = useMemo(() => (authAxios ? createPainEntryService(authAxios) : null), [authAxios]);
 
@@ -284,7 +284,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
           existingEntry={existingEntry}
           isOpen={panelOpen}
           isSaving={isSaving}
-          onClose={() => { setPanelOpen(false); setSelectedRegion(null); }}
+          onClose={() => setPanelOpen(false)}
           onSave={handleSave}
           onResolve={handleResolve}
           onDelete={handleDelete}
