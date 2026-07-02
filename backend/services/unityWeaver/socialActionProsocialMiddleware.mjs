@@ -29,6 +29,10 @@ function summarizeUnityWeaverXP(result) {
     newLevel: result.newLevel,
     newTier: result.newTier,
     badgesEarned: result.badgesEarned || [],
+    swanCoinsAwarded: result.swanCoinsAwarded || 0,
+    swanCoinBalance: result.swanCoinBalance ?? null,
+    currencyName: result.currencyName || 'SwanCoins',
+    legacyField: result.legacyField || 'crystalBalance',
   };
 }
 
