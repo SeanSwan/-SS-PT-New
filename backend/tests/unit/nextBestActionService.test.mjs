@@ -120,6 +120,40 @@ describe('computeNextBestAction — priority ladder', () => {
   });
 });
 
+describe('coach audience (Slice 8.5)', () => {
+  it('keeps the ranking but swaps to third-person coach voice with no CTA', () => {
+    const pulse = basePulse({ pushPull: { ratio: 1.6, label: 'push_heavy' } });
+    const trainee = computeNextBestAction(pulse, { now: MONDAY });
+    const coach = computeNextBestAction(pulse, { now: MONDAY, audience: 'coach' });
+    expect(coach.primary.code).toBe(trainee.primary.code); // same ladder
+    expect(coach.primary.title).toContain('Push-heavy month');
+    expect(coach.primary.cta).toBeNull();
+    for (const a of [coach.primary, ...coach.secondary]) {
+      expect(a.cta).toBeNull();
+      expect(`${a.title} ${a.message}`).not.toMatch(/\byour?\b/i); // no second person
+    }
+  });
+
+  it('covers every rung with coach copy (no fallthrough to trainee voice)', () => {
+    const scenarios = [
+      ['log_first_workout', basePulse({ lastWorkout: { date: null, daysAgo: null } })],
+      ['return_after_gap', basePulse({ lastWorkout: { daysAgo: 15 } })],
+      ['streak_at_risk', basePulse({ streak: { weeklyCurrent: 3, daysThisWeek: 1, currentWeekPending: true } })],
+      ['balance_push', basePulse({ pushPull: { ratio: 0.5, label: 'pull_heavy' } })],
+      ['add_variety', basePulse({ variety: { score: 20, patternsCovered: 2 } })],
+      ['volume_drop', basePulse({ volume: { thisWeek: 1000, priorWeek: 5000, deltaPct: -80 } })],
+      ['celebrate_streak', basePulse({ streak: { weeklyCurrent: 6, daysThisWeek: 2, currentWeekPending: false } })],
+      ['keep_momentum', basePulse()],
+    ];
+    for (const [expectedCode, pulse] of scenarios) {
+      const { primary } = computeNextBestAction(pulse, { now: FRIDAY, audience: 'coach' });
+      expect(primary.code).toBe(expectedCode);
+      expect(primary.message.length).toBeGreaterThan(10);
+      expect(primary.message).not.toMatch(/\byour?\b/i);
+    }
+  });
+});
+
 describe('getNextBestAction (DB-backed) + controller embedding', () => {
   const emptySequelize = () => ({ query: vi.fn(async () => [[]]) });
 

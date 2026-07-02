@@ -17,7 +17,7 @@
  */
 
 import getProgressPulse from '../services/progressPulseService.mjs';
-import { computeNextBestAction } from '../services/nextBestActionService.mjs';
+import { computeNextBestAction, getNextBestAction } from '../services/nextBestActionService.mjs';
 import getWorkoutDayDetail from '../services/workoutDayDetailService.mjs';
 
 const parseUserId = (raw) => {
@@ -67,6 +67,28 @@ export async function getWorkoutDayHandler(req, res) {
     return res.status(500).json({
       success: false,
       message: 'Unable to load workout detail',
+      error: 'internal_error',
+    });
+  }
+}
+
+/**
+ * GET /api/analytics/:userId/next-best-action — Slice 8.5 coach surface.
+ * userId here IS a URL param; requireOwnershipOrTrainer gates access.
+ */
+export async function getNextBestActionHandler(req, res) {
+  try {
+    const userId = parseUserId(req.params?.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid userId' });
+    }
+    const result = await getNextBestAction(req.app.get('sequelize'), userId, { audience: 'coach' });
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('[Next Best Action Failed]', { message: error?.message, userId: req.params?.userId });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load next best action',
       error: 'internal_error',
     });
   }

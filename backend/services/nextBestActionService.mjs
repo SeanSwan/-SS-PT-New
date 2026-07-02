@@ -50,7 +50,8 @@ const PROGRESS_HREF = '/dashboard/client/progress';
  * @param {{ now?: Date }} opts injectable clock for tests
  * @returns {{ primary: object, secondary: object[] }}
  */
-export function computeNextBestAction(pulse, { now = new Date() } = {}) {
+export function computeNextBestAction(pulse, opts = {}) {
+  const { now = new Date() } = opts;
   const candidates = [];
   const streak = pulse?.streak ?? {};
   const pushPull = pulse?.pushPull ?? {};
@@ -135,7 +136,50 @@ export function computeNextBestAction(pulse, { now = new Date() } = {}) {
     { label: 'Log a workout', href: LOG_HREF }));
 
   candidates.sort((a, b) => a.priority - b.priority);
-  return { primary: candidates[0], secondary: candidates.slice(1, 3) };
+  const ranked = { primary: candidates[0], secondary: candidates.slice(1, 3) };
+  if (opts.audience === 'coach') {
+    return {
+      primary: coachify(ranked.primary, pulse),
+      secondary: ranked.secondary.map((a) => coachify(a, pulse)),
+    };
+  }
+  return ranked;
+}
+
+/**
+ * Coach-facing voice for the trainer/admin per-client surface: third-person,
+ * factual, no CTA (decisions happen in the existing coach workflows).
+ * Same ladder, same data — only the voice changes (never the ranking).
+ */
+export function coachify(a, pulse) {
+  const streak = pulse?.streak ?? {};
+  const pushPull = pulse?.pushPull ?? {};
+  const variety = pulse?.variety ?? {};
+  const volume = pulse?.volume ?? {};
+  const daysAgo = pulse?.lastWorkout?.daysAgo;
+  const remaining = Math.max(0, (streak.weekTarget ?? 0) - (streak.daysThisWeek ?? 0));
+  const COACH_COPY = {
+    log_first_workout: ['No workouts logged yet',
+      'This client has no logged sessions. The progress record starts with the first logged workout.'],
+    return_after_gap: [`${Number.isFinite(daysAgo) ? daysAgo : 'Several'} days since last session`,
+      'Consider a check-in — a light restart session this week protects momentum.'],
+    streak_at_risk: ['Weekly streak at risk',
+      `${remaining} more training ${remaining === 1 ? 'day' : 'days'} by Sunday keeps the ${streak.weeklyCurrent}-week streak alive.`],
+    balance_pull: [`Push-heavy month (${pushPull.ratio}:1)`,
+      'Program more pulling work (rows, pulldowns, face pulls) over the next sessions.'],
+    balance_push: [`Pull-heavy month (${pushPull.ratio}:1)`,
+      'Program more pressing work over the next sessions to even the balance.'],
+    add_variety: ['Low movement variety',
+      `Training ${variety.patternsCovered ?? 0} of ${variety.patternsTotal ?? 6} movement patterns — add new patterns for transferable strength.`],
+    volume_drop: [`Volume down ${Math.abs(volume.deltaPct ?? 0)}% vs last week`,
+      'Could be a planned recovery week — confirm the intent at the next touchpoint.'],
+    celebrate_streak: [`${streak.weeklyCurrent}-week streak — worth celebrating`,
+      'A real habit has formed. A shout-out or share nudge reinforces it.'],
+    keep_momentum: ['On track',
+      'Cadence is healthy. Next best action: keep the current plan rolling.'],
+  };
+  const [title, message] = COACH_COPY[a.code] ?? [a.title, a.message];
+  return { ...a, title, message, cta: null };
 }
 
 /** DB-backed entry point: pulse + decision in one call. */

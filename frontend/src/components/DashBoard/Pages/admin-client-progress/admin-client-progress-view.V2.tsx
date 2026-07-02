@@ -57,6 +57,7 @@ import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-
 import ClientProgressCharts from '../../../ClientProgressCharts/ClientProgressCharts';
 import { getTier, getTierDisplay } from '../../../../types/gamification';
 import { parseAdminProgressClientId } from './admin-client-progress-view.V2.logic';
+import ClientNextBestActionCard from './ClientNextBestActionCard';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Frost Shimmer Skeleton
@@ -628,6 +629,9 @@ const AdminClientProgressView: React.FC = () => {
                       </div>
                     </CardBody>
                   </Card>
+
+                  {/* Slice 8.5 — coach-voiced next best action (self-hides on error) */}
+                  <ClientNextBestActionCard clientId={selectedClientChartId} />
 
                   {/* Victory Charts Section */}
                   <ChartsSection>
