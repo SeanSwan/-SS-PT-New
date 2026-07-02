@@ -76,108 +76,12 @@ interface PointResult {
   pointMessage?: string;
 }
 
-type UnityWeaverEventId =
-  | 'encourage_friend'
-  | 'welcome_new_member'
-  | 'gratitude_given'
-  | 'positive_progress_post'
-  | 'challenge_cheer';
-
-type UnityWeaverContextType = 'post' | 'comment' | 'challenge' | 'profile' | 'dashboard';
-
-interface UnityWeaverAwardInput {
-  eventId: UnityWeaverEventId;
-  targetUserId?: string | number | null;
-  contextType: UnityWeaverContextType;
-  contextId?: string | number | null;
-}
-
-interface UnityWeaverAwardResult {
-  success: boolean;
-  awarded?: boolean;
-  duplicate?: boolean;
-  status?: string;
-  pointsAwarded?: number;
-  newBalance?: number;
-}
-
-const PROGRESS_POST_TYPES = new Set<string>([
-  'workout',
-  'achievement',
-  'challenge',
-  'transformation',
-  'milestone',
-]);
-
-const PROGRESS_TERMS = [
-  'progress',
-  'personal record',
-  'personal best',
-  'transformation',
-  'down ',
-  'lost ',
-  'gained ',
-  'stronger',
-  'streak',
-  'finished',
-  'completed',
-  'hit my goal',
-  'new max',
-];
-
-const GRATITUDE_TERMS = [
-  'thank',
-  'thanks',
-  'grateful',
-  'appreciate',
-  'appreciated',
-  'shoutout',
-];
-
-const ENCOURAGEMENT_TERMS = [
-  'proud',
-  'keep going',
-  'you got this',
-  'great job',
-  'amazing',
-  'strong',
-  'inspiring',
-  'inspiration',
-  'congrats',
-  'congratulations',
-  'love this',
-  'well done',
-];
-
-function textHasAnyTerm(value: string, terms: string[]) {
-  const normalized = value.toLowerCase();
-  return terms.some(term => normalized.includes(term));
-}
-
-function inferPositiveProgressPostEvent(postData: CreatePostParams, createdPost: Post | null): UnityWeaverEventId | null {
-  const postType = postData.type || createdPost?.type || 'general';
-  if (PROGRESS_POST_TYPES.has(postType)) return 'positive_progress_post';
-  return textHasAnyTerm(postData.content, PROGRESS_TERMS) ? 'positive_progress_post' : null;
-}
-
-function inferCommentProsocialEvent(content: string): UnityWeaverEventId | null {
-  const trimmed = content.trim();
-  if (trimmed.length < 12) return null;
-  if (textHasAnyTerm(trimmed, GRATITUDE_TERMS)) return 'gratitude_given';
-  if (textHasAnyTerm(trimmed, ENCOURAGEMENT_TERMS)) return 'encourage_friend';
-  return null;
-}
-
-function shouldAwardReactionProsocialXP(reactionType: string) {
-  return reactionType === 'heart' || reactionType === 'swan';
-}
-
-function isDifferentUser(currentUserId: string | number | undefined, targetUserId: string | number | undefined | null) {
-  return Boolean(currentUserId && targetUserId && String(currentUserId) !== String(targetUserId));
-}
-
 /**
- * Hook for managing social feed functionality
+ * Hook for managing social feed functionality.
+ *
+ * Unity Weaver / Swan Aura XP is intentionally backend-owned. This hook only
+ * consumes the optional `unityWeaverXP` response appended after a real social
+ * action succeeds, then refreshes visible gamification state.
  */
 export const useSocialFeed = () => {
   const { authAxios, user } = useAuth();
@@ -248,40 +152,6 @@ export const useSocialFeed = () => {
     if (isLoadingMore || !hasMore) return;
     fetchPosts(false);
   }, [fetchPosts, isLoadingMore, hasMore]);
-
-  const awardUnityWeaverXP = useCallback(async ({
-    eventId,
-    targetUserId,
-    contextType,
-    contextId,
-  }: UnityWeaverAwardInput): Promise<UnityWeaverAwardResult | null> => {
-    if (!user) return null;
-
-    try {
-      const response = await authAxios.post('/api/social/unity-weaver/prosocial-events/award', {
-        eventId,
-        targetUserId,
-        contextType,
-        contextId,
-      });
-
-      const result: UnityWeaverAwardResult = response.data;
-      if (result?.awarded && result.pointsAwarded) {
-        invalidateProfile();
-        toast({
-          title: 'Swan Aura bonus ✨',
-          description: `+${result.pointsAwarded} XP for positive community energy.`,
-          variant: 'default',
-        });
-      }
-
-      return result;
-    } catch (err: any) {
-      // This reward path must never break the real social action that already succeeded.
-      console.warn('[SwanAuraXP] Prosocial XP award skipped:', err?.response?.data?.message || err?.message);
-      return null;
-    }
-  }, [authAxios, user, invalidateProfile, toast]);
   
   // Create a new post
   const createPost = useCallback(async (postData: CreatePostParams) => {
@@ -337,18 +207,10 @@ export const useSocialFeed = () => {
       });
       
       // Add new post to the top of the feed
-      const newPost = response.data.post as Post | null;
-      setPosts(prevPosts => newPost ? [newPost, ...prevPosts] : prevPosts);
+      const newPost = response.data.post;
+      setPosts(prevPosts => [newPost, ...prevPosts]);
 
-      const inferredEvent = newPost ? inferPositiveProgressPostEvent(postData, newPost) : null;
-      const unityWeaverXP = response.data.unityWeaverXP || (inferredEvent
-        ? await awardUnityWeaverXP({
-          eventId: inferredEvent,
-          contextType: 'post',
-          contextId: newPost?.id,
-        })
-        : null);
-      if (unityWeaverXP?.awarded) {
+      if (response.data.unityWeaverXP?.awarded) {
         invalidateProfile();
       }
       
@@ -370,15 +232,13 @@ export const useSocialFeed = () => {
         });
       }
       
-      if (!newPost) return null;
-
       // Return enhanced result with point information
       return {
         ...newPost,
         pointsAwarded: response.data.pointsAwarded || 0,
         newBalance: response.data.newBalance,
         pointMessage: response.data.pointMessage,
-        unityWeaverXP
+        unityWeaverXP: response.data.unityWeaverXP
       };
     } catch (err: any) {
       console.error('Error creating post:', err);
@@ -391,14 +251,13 @@ export const useSocialFeed = () => {
     } finally {
       setIsCreatingPost(false);
     }
-  }, [authAxios, user, toast, invalidateProfile, awardUnityWeaverXP]);
+  }, [authAxios, user, toast, invalidateProfile]);
   
   // React to a post (thumbs_up, heart, or swan)
   const reactToPost = useCallback(async (postId: string, reactionType: string = 'swan'): Promise<PointResult | boolean> => {
     if (!user) return false;
 
     try {
-      const targetPost = posts.find(post => String(post.id) === String(postId));
       const response = await authAxios.post(`/api/social/posts/${postId}/like`, { reactionType });
 
       // Optimistic update
@@ -419,17 +278,13 @@ export const useSocialFeed = () => {
         })
       );
 
-      const targetUserId = targetPost?.user?.id;
-      const unityWeaverXP = response.data.unityWeaverXP || (shouldAwardReactionProsocialXP(reactionType) && isDifferentUser(user.id, targetUserId)
-        ? await awardUnityWeaverXP({
-          eventId: 'encourage_friend',
-          targetUserId,
-          contextType: 'post',
-          contextId: `${postId}:${reactionType}`,
-        })
-        : null);
-      if (unityWeaverXP?.awarded) {
+      if (response.data.unityWeaverXP?.awarded) {
         invalidateProfile();
+        toast({
+          title: 'Swan Aura bonus ✨',
+          description: `+${response.data.unityWeaverXP.pointsAwarded} XP for positive community energy.`,
+          variant: 'default',
+        });
       }
 
       if (response.data.pointsAwarded) {
@@ -447,7 +302,7 @@ export const useSocialFeed = () => {
       console.error('Error reacting to post:', err);
       return false;
     }
-  }, [authAxios, user, invalidateProfile, awardUnityWeaverXP, posts]);
+  }, [authAxios, user, invalidateProfile, toast]);
 
   // Remove a reaction from a post
   const removeReaction = useCallback(async (postId: string, reactionType: string = 'swan') => {
@@ -489,7 +344,6 @@ export const useSocialFeed = () => {
     if (!user || !content.trim()) return null;
     
     try {
-      const targetPost = posts.find(post => String(post.id) === String(postId));
       const response = await authAxios.post(`/api/social/posts/${postId}/comments`, {
         content
       });
@@ -513,17 +367,7 @@ export const useSocialFeed = () => {
         })
       );
 
-      const commentEvent = inferCommentProsocialEvent(content);
-      const targetUserId = targetPost?.user?.id;
-      const unityWeaverXP = response.data.unityWeaverXP || (commentEvent && isDifferentUser(user.id, targetUserId)
-        ? await awardUnityWeaverXP({
-          eventId: commentEvent,
-          targetUserId,
-          contextType: 'comment',
-          contextId: newComment?.id,
-        })
-        : null);
-      if (unityWeaverXP?.awarded) {
+      if (response.data.unityWeaverXP?.awarded) {
         invalidateProfile();
       }
       
@@ -549,7 +393,7 @@ export const useSocialFeed = () => {
       });
       return null;
     }
-  }, [authAxios, user, toast, invalidateProfile, awardUnityWeaverXP, posts]);
+  }, [authAxios, user, toast, invalidateProfile]);
   
   // Update a post's content (owner only, within 24h — admin exempt)
   const updatePost = useCallback(async (postId: string, content: string): Promise<boolean> => {
