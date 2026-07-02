@@ -7,6 +7,18 @@ import {
   normalizeOwnedMarketplaceItems,
 } from './avatarHomeMarketplaceState.mjs';
 
+function buildSwanCoinBalancePayload(home) {
+  const balance = normalizeCrystalBalance(home.crystalBalance);
+  return {
+    balance,
+    swanCoins: balance,
+    currencyName: 'SwanCoins',
+    legacyCurrencyName: 'Crystals',
+    legacyField: 'crystalBalance',
+    ownedItems: normalizeOwnedMarketplaceItems(home.ownedItems),
+  };
+}
+
 export function registerAvatarHomeMarketplaceRoutes(router, { requireUnlockedHome, logger }) {
   router.get('/marketplace', async (_req, res) => {
     res.json({ success: true, data: MARKETPLACE_CATALOG });
@@ -18,14 +30,25 @@ export function registerAvatarHomeMarketplaceRoutes(router, { requireUnlockedHom
       if (!home) return res.status(status).json({ success: false, message: error });
       res.json({
         success: true,
-        data: {
-          balance: normalizeCrystalBalance(home.crystalBalance),
-          ownedItems: normalizeOwnedMarketplaceItems(home.ownedItems),
-        },
+        data: buildSwanCoinBalancePayload(home),
       });
     } catch (err) {
-      logger.error('Crystal balance error:', err.message);
+      logger.error('SwanCoin balance error:', err.message);
       res.status(500).json({ success: false, message: 'Failed to fetch balance' });
+    }
+  });
+
+  router.get('/swan-coins', async (req, res) => {
+    try {
+      const { home, error, status } = await requireUnlockedHome(req.user.id);
+      if (!home) return res.status(status).json({ success: false, message: error });
+      res.json({
+        success: true,
+        data: buildSwanCoinBalancePayload(home),
+      });
+    } catch (err) {
+      logger.error('SwanCoin balance error:', err.message);
+      res.status(500).json({ success: false, message: 'Failed to fetch SwanCoin balance' });
     }
   });
 
@@ -51,8 +74,13 @@ export function registerAvatarHomeMarketplaceRoutes(router, { requireUnlockedHom
 
       await home.update(purchase.updates);
 
-      logger.info(`[AUDIT] User ${req.user.id} purchased "${catalogItem.name}" for ${catalogItem.price} crystals`);
-      res.json({ success: true, data: purchase.data });
+      logger.info(`[AUDIT] User ${req.user.id} purchased "${catalogItem.name}" for ${catalogItem.price} SwanCoins`);
+      res.json({ success: true, data: {
+        ...purchase.data,
+        swanCoins: purchase.data.balance,
+        currencyName: 'SwanCoins',
+        legacyField: 'crystalBalance',
+      } });
     } catch (err) {
       logger.error('Marketplace purchase error:', err.message);
       res.status(500).json({ success: false, message: 'Purchase failed' });
