@@ -51,7 +51,13 @@ async function runMiddleware({ req, body, statusCode = 200 }) {
 
 describe('Unity Weaver social action XP response middleware', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockSocialPost.findByPk.mockReset();
+    mockAwardUnityWeaverProsocialXP.mockReset();
+    mockLogger.warn.mockReset();
+    mockLogger.info.mockReset();
+    mockLogger.error.mockReset();
+    mockLogger.debug.mockReset();
+
     mockSocialPost.findByPk.mockResolvedValue({ id: 99, userId: 22, type: 'workout' });
     mockAwardUnityWeaverProsocialXP.mockResolvedValue(awardedResult('encourage_friend'));
   });
