@@ -113,6 +113,18 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (user && (user.role === 'admin' || user.role === 'trainer')) refreshClients();
   }, [user?.id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!activeClient || clientList.length === 0) return;
+    const fresh = clientList.find((client) => client.id === activeClient.id);
+    if (!fresh) return;
+    const merged = { ...activeClient, ...fresh };
+    const changed = JSON.stringify(merged) !== JSON.stringify(activeClient);
+    if (changed) {
+      setActiveClientState(merged);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+    }
+  }, [activeClient?.id, clientList]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const setActiveClient = useCallback((client: ActiveClient | null) => {
     setActiveClientState(client);
     if (client) sessionStorage.setItem(SESSION_KEY, JSON.stringify(client));
