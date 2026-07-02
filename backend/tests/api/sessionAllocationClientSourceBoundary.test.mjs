@@ -38,6 +38,27 @@ describe('session allocation clientSource boundary', () => {
     expect(source).toContain('Manual paid-session allocation is disabled for no-pay/free-tracking clients');
   });
 
+  it('writes an append-only audit row for manual session grants without blocking the grant', () => {
+    const start = unifiedRouteSource.indexOf('router.post("/add-to-user"');
+    const end = unifiedRouteSource.indexOf('router.get("/user-summary/:userId"', start);
+    const source = unifiedRouteSource.slice(start, end);
+
+    expect(unifiedRouteSource).toContain(
+      'import AdminAccountAuditLog from "../models/AdminAccountAuditLog.mjs";'
+    );
+    expect(source).toContain('const previousAvailableSessions = Number(user.availableSessions || 0);');
+    expect(source).toContain("action: 'manual_session_grant'");
+    expect(source).toContain('previousState: { availableSessions: previousAvailableSessions }');
+    expect(source).toContain('nextState: { availableSessions }');
+    // Snapshot must be captured BEFORE the atomic increment mutates the row.
+    expect(source.indexOf('const previousAvailableSessions'))
+      .toBeLessThan(source.indexOf("user.increment('availableSessions'"));
+    // Audit write is fail-soft: wrapped in its own try/catch that only warns.
+    expect(source).toContain('Manual session grant audit write failed:');
+    expect(source.indexOf('AdminAccountAuditLog.create'))
+      .toBeLessThan(source.indexOf('broadcastAllocationUpdated'));
+  });
+
   it('masks user-summary paid inventory for non-deducting client sources', () => {
     const start = unifiedRouteSource.indexOf('router.get("/user-summary/:userId"');
     const end = unifiedRouteSource.indexOf('router.get("/allocation-health"', start);
