@@ -1,8 +1,8 @@
-# Swan Aura Slice 1-9 Hostile Review Record
+# Swan Aura Slice 1-10 Hostile Review Record
 
 **Date:** 2026-07-01  
 **Branch:** `aura-social-current`  
-**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, backend social-action XP orchestration, avatar economy blueprint, and Unity Weaver XP unit test harness.
+**Scope:** User Dashboard Swan Aura panel, deterministic nudge hook, prosocial event registry, local Quick Post good-energy guidance, backend-owned prosocial XP awards, backend social-action XP orchestration, avatar economy blueprint, Unity Weaver XP unit tests, and community truth states.
 
 ## Slice summary
 
@@ -20,6 +20,8 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - `SWAN-AVATAR-ECONOMY-XP-COINS-SKINS.md` defines XP as permanent progression, SwanCoins as earnable spend currency, and Premium Credits as optional future paid cosmetic currency.
 - `unityWeaverProsocialXPService.test.mjs` covers service-level anti-abuse, validation, ledger, metadata, and duplicate behavior.
 - `unityWeaverSocialActionProsocialMiddleware.test.mjs` covers backend-owned post/reaction/comment orchestration and response compatibility.
+- `HomeTabLiveWidgetViewModel.truth.test.ts` guards the V3 home widget truth contract for leaderboard, challenge, and activity widgets.
+- `ClientCommunityPage.truth.test.tsx` now guards honest faction and leaderboard empty states.
 - Architecture record for keeping User Dashboard and Client Dashboard distinct.
 - Architecture record for a benevolent ranking philosophy.
 
@@ -34,6 +36,7 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 - Backend owns actual XP award validation.
 - No XP is awarded for merely clicking Swan Aura CTAs.
 - No spendable currency or paid cosmetic checkout was implemented in this slice.
+- No fake leaderboard row is inserted when leaderboard APIs return empty.
 
 ## Hostile review findings and recursive fixes
 
@@ -172,6 +175,27 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 
 **Fix applied:** `unityWeaverSocialActionProsocialMiddleware.test.mjs` includes a failure-path test proving the original response body is returned and a warning is logged if the optional XP award throws.
 
+### Finding 19 — V3 home rail silently hid an empty leaderboard
+
+**Severity:** Medium  
+**Risk:** A blank leaderboard panel looks broken and pushes designers toward fake rows later.
+
+**Fix applied:** `HomeTabVisionRightRail.tsx` now renders an explicit empty leaderboard state plus a challenge CTA when the API returns no leaderboard rows.
+
+### Finding 20 — V3 home view model injected a fallback current-user leaderboard row
+
+**Severity:** High  
+**Risk:** Showing the current user as a leaderboard row when the leaderboard API returns empty is fake social proof and distorts competitive truth.
+
+**Fix applied:** `buildHomeBadgeShowcase()` now returns an empty `leaderboardRows` array when the leaderboard API returns empty. The UI owns the empty-state CTA.
+
+### Finding 21 — Client community faction state looked like perpetual loading
+
+**Severity:** Low  
+**Risk:** `Factions loading...` is misleading when the API returns an empty list rather than a loading state.
+
+**Fix applied:** `ClientCommunityPage.tsx` now says no faction standings are live yet and invites the user to join when the board opens.
+
 ## Current gate status
 
 | Gate | Status |
@@ -194,6 +218,9 @@ Implemented the first safe Unity Weaver / Swan Aura dashboard and XP foundation:
 | Toast noise reduced | PASS |
 | Avatar economy avoids spending XP | PASS |
 | Unit tests added for service and middleware | PASS |
+| Community truth tests added/updated | PASS |
+| No fallback current-user leaderboard row | PASS |
+| No silent empty leaderboard rail | PASS |
 | Automated frontend build | NOT VERIFIED in connector |
 | Automated backend tests | NOT VERIFIED in connector |
 
@@ -204,6 +231,7 @@ Run locally or in CI:
 ```bash
 cd frontend && npm run build
 cd backend && npm test
+cd frontend && npm run test:run
 ```
 
 Manual/API smoke targets:
@@ -224,7 +252,8 @@ Manual/API smoke targets:
 14. Commenting/reacting on your own post does not trigger Unity Weaver recipient-based XP.
 15. No avatar/cosmetic purchase flow spends XP.
 16. Existing post/comment/reaction response shapes remain backward-compatible, with only optional `unityWeaverXP` added.
+17. Empty leaderboard states show honest calls-to-action, not placeholder users.
 
 ## Verdict
 
-Slices 1-9 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
+Slices 1-10 are structurally acceptable to proceed after build/test verification. Do not deploy to Render until automated verification passes.
