@@ -116,16 +116,26 @@ const EntriesLabel = styled.div`
 
 interface BodyMapProps { userId?: number; mode?: 'trainer' | 'client'; }
 
+const resolveAnatomyGender = (value?: string | null): AnatomyGender | null => {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return null;
+  if (['female', 'woman', 'f'].includes(normalized)) return 'female';
+  if (['male', 'man', 'm'].includes(normalized)) return 'male';
+  return null;
+};
+
 const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const { user, authAxios } = useAuth() as any;
   const globalClient = useContext(GlobalClientContext);
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
+  const activeClientProfile = globalClient?.activeClient as any;
   const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some((client) => client.id === globalClient.activeClient?.id)
     ? globalClient.activeClient.id
     : undefined;
   const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
+  const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender;
   const entryService = useMemo(() => (authAxios ? createPainEntryService(authAxios) : null), [authAxios]);
 
   const [entries, setEntries] = useState<PainEntry[]>([]);
@@ -136,6 +146,11 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [gender, setGender] = useState<AnatomyGender>('male');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
+
+  useEffect(() => {
+    const resolved = resolveAnatomyGender(profileGender);
+    if (resolved) setGender(resolved);
+  }, [profileGender, userId]);
 
   const effectiveMode = mode || (isTrainerOrAdmin ? 'trainer' : 'client');
   const isClientMode = effectiveMode === 'client';
