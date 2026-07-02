@@ -16,6 +16,7 @@ import {
   getClientPainEntry,
 } from '../../models/index.mjs';
 import { getExerciseRegistry } from '../variationEngine.mjs';
+import { applyExerciseQualityGate } from '../exerciseQualityGate.mjs';
 import { Op } from 'sequelize';
 import {
   FORMAT_CONFIG, TRANSITION_TIME_SEC, STATION_TRANSITION_SEC,
@@ -435,6 +436,24 @@ export async function generateBootcampClass(options) {
       type: 'intensity',
       message: `Intensity category applied: ${intensityCategory.replace(/_/g, ' ')} prioritized the exercise pool before station assignment.`,
     });
+  }
+
+  // Step 4b: Quality gate — general classes stay low-impact by default.
+  // High-impact plyo (jumps/hops/burpee-class moves) only enters stations
+  // when the trainer explicitly asks for cardio or high-impact intensity.
+  // Fail-open: the gate never empties the pool.
+  const explicitHighImpactClass = intensityCategory === 'high_impact'
+    || intensityCategory === 'cardio'
+    || dayType === 'cardio';
+  if (!explicitHighImpactClass) {
+    const gateResult = applyExerciseQualityGate(availableExercises, { nasmPhase: 2 });
+    if (gateResult.rejected.length > 0) {
+      availableExercises = gateResult.allowed;
+      explanations.push({
+        type: 'quality_gate',
+        message: `${gateResult.rejected.length} high-impact exercise(s) excluded from this low-impact class. Choose the cardio day type or high-impact intensity to include them.`,
+      });
+    }
   }
 
   // Step 5: Build stations or full-group workout

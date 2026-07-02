@@ -31,7 +31,8 @@ import {
   getTrainerPermissions,
   getBodyMeasurement,
   getChallenge,
-  getChallengeParticipant
+  getChallengeParticipant,
+  getVariationLog
 } from '../models/index.mjs';
 import { PERMISSION_TYPES } from '../models/TrainerPermissions.mjs';
 import sequelize from '../database.mjs';
@@ -1122,6 +1123,35 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     }
 
     await transaction.commit();
+
+    // Rotation write-through confirmation (fail-soft, post-commit): a logged
+    // workout confirms the day's delivered generation, so flip the newest
+    // same-day VariationLog row to accepted. Manual logs with no generated
+    // row simply skip — rotation history is never fabricated.
+    try {
+      const VariationLog = getVariationLog?.();
+      if (VariationLog?.findOne) {
+        const dayStart = new Date(`${workoutDateIso}T00:00:00.000Z`);
+        const dayEnd = new Date(`${workoutDateIso}T23:59:59.999Z`);
+        const variationRow = await VariationLog.findOne({
+          where: {
+            clientId: parsedClientId,
+            accepted: false,
+            sessionDate: { [Op.between]: [dayStart, dayEnd] },
+          },
+          order: [['sessionDate', 'DESC']],
+        });
+        if (variationRow?.update) {
+          await variationRow.update({ accepted: true, acceptedAt: new Date() });
+        }
+      }
+    } catch (variationConfirmError) {
+      logger.warn('Variation history confirmation failed (workout save unaffected)', {
+        clientId: parsedClientId,
+        ...toWorkoutFormErrorMetadata(variationConfirmError, 'variation_history_confirm_failed'),
+      });
+    }
+
     let challengeProgress = buildChallengeProgressImpactReceipt();
     try {
       const challengeExercises = formData?.exercises || [];

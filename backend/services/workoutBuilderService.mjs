@@ -25,8 +25,11 @@ import {
   getExerciseRegistryFromDB,
   generateSwapSuggestions,
   getNextSessionType,
+  recordVariation,
 } from './variationEngine.mjs';
 import { getRecommendedWeight } from './oneRepMaxService.mjs';
+import { applyExerciseQualityGate } from './exerciseQualityGate.mjs';
+import { applyMicroProgressionToExercises } from './workoutProgressionService.mjs';
 import {
   buildWeeklyDayTypes,
   expandV3aDayTypeToMovementCategories,
@@ -324,7 +327,7 @@ function expandScheduleCategoryToMovementCategories(category) {
   }
 }
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null) {
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
@@ -332,7 +335,18 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
     .filter(ex => movementCats === null || movementCats.includes(ex.category));
 
   // Apply constraints
-  const available = filterExercises(categoryExercises, constraints, equipmentItems);
+  const filtered = filterExercises(categoryExercises, constraints, equipmentItems);
+
+  // Quality gate: low-impact is the default — high-impact plyo (jumps/hops/
+  // bounds) never enters general strength selection unless the trainer asks
+  // for hardcore/athletic work or the client is in a power phase. Fail-open:
+  // an all-rejected pool falls back untouched so selection never empties.
+  const qualityResult = applyExerciseQualityGate(filtered, {
+    nasmPhase,
+    trainingStyleMode: qualityContext?.trainingStyleMode,
+    primaryGoal: qualityContext?.primaryGoal,
+  });
+  const available = qualityResult.allowed;
 
   // CEO Directive: Monitor Phase 2 stabilization pairing availability
   // Tracks exercises missing nasmLevel for ops monitoring (structured logging)
@@ -530,7 +544,8 @@ export async function generateWorkout(options) {
   for (const moveCat of movementCategories) {
     const catExercises = selectExercises(
       registry, moveCat, exercisesPerCategory,
-      context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness
+      context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
+      { trainingStyleMode: trainingStyle.mode, primaryGoal }
     );
     selectedExercises.push(...catExercises);
   }
@@ -669,6 +684,20 @@ export async function generateWorkout(options) {
       }
     }
   }
+
+  // Step 7c: Micro-progression from the client's LAST comparable logged
+  // performance — one extra rep first, then the smallest load jump; holds
+  // for pain-touched movements and near-max recent RPE. Overrides the
+  // phase %1RM band with a concrete target when real history exists.
+  const microProgressedCount = applyMicroProgressionToExercises(
+    workoutExercises,
+    context.workouts?.recentExercisePerformance,
+    {
+      painWarnings: context.pain?.warnings || [],
+      readinessLevel: swanCoachReadiness?.level || null,
+    },
+  );
+
   const styledWorkoutExercises = applySwanCoachReadinessToExercises(
     applyTrainingStyleToExercises(
       workoutExercises,
@@ -740,6 +769,13 @@ export async function generateWorkout(options) {
     message: `NASM OPT Phase ${nasmPhase}: ${OPT_PHASE_PARAMS[nasmPhase]?.name || 'Strength Endurance'}`,
   });
 
+  if (microProgressedCount > 0) {
+    explanations.push({
+      type: 'micro_progression',
+      message: `${microProgressedCount} exercise(s) carry a micro-progression target from the client's last logged performance — one extra rep first, then the smallest load jump; holds applied for pain or near-max recent RPE.`,
+    });
+  }
+
   explanations.push({
     type: 'selected_goal',
     message: `Trainer-selected goal: ${goalLabel}. Exercise selection and OPT targets biased toward ${goalBias.exerciseBias.join(' > ')}.`,
@@ -795,6 +831,28 @@ export async function generateWorkout(options) {
     `Training style: ${trainingStyle.label}. ${trainingStyle.cue}`,
     buildSwanCoachReadinessRationaleLine(swanCoachReadiness),
   ];
+
+  // Rotation write-through: every delivered generation records BUILD/SWITCH
+  // history so rotation advances without the separate /variation/suggest
+  // flow. Same-day duplicates collapse at read time (client intelligence
+  // dedupes per category+day). Fail-soft: history writes never block
+  // generation, and mocked test harnesses without recordVariation are safe.
+  try {
+    if (typeof recordVariation === 'function') {
+      await recordVariation({
+        clientId,
+        trainerId,
+        templateCategory: category,
+        sessionType,
+        rotationPattern: rotationPattern || context.variation?.currentPattern || 'standard',
+        exercisesUsed: selectedExercises.map((ex) => ex.key),
+        equipmentProfileId,
+        nasmPhase,
+      });
+    }
+  } catch (recordErr) {
+    logger.warn('[WorkoutBuilder] Variation history write failed (generation unaffected):', recordErr.message);
+  }
 
   return {
     clientId,
@@ -1084,7 +1142,8 @@ export async function generatePlan(options) {
       const exerciseCount = recoveryOverride?.exerciseCount ?? 6;
       const selected = selectExercises(
         registry, cat, exerciseCount,
-        constraintsForDay, equipmentItems, phase, goalBias, swanCoachReadiness
+        constraintsForDay, equipmentItems, phase, goalBias, swanCoachReadiness,
+        { trainingStyleMode: trainingStyle.mode, primaryGoal }
       );
 
       // Detect rotation fallback: if pool size < 7 distinct AND any selected

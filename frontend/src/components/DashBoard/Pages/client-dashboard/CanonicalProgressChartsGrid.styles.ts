@@ -240,3 +240,34 @@ export const LoadingStrip = styled.div`
 export const ErrorLoadingStrip = styled(LoadingStrip)`
   color: ${CHART_COLORS.crimsonFrost};
 `;
+
+export const DrillTriggerRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.25rem 0.5rem 0.5rem;
+`;
+
+export const DrillTriggerButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &:hover {
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 45%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;

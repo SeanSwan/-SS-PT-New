@@ -36,6 +36,11 @@ export const durationLineProps = {
   style: { data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } },
 };
 
+export const durationScatterProps = {
+  size: 5,
+  style: { data: { fill: CHART_COLORS.iceWing, cursor: 'pointer' } },
+};
+
 export const intensityLineProps = {
   style: { data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2 } },
 };
