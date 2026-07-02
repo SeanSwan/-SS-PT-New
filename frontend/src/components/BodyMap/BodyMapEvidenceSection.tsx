@@ -104,9 +104,7 @@ const Card = styled.article`
   overflow: hidden;
 `;
 
-const CardBody = styled.div`
-  padding: 12px;
-`;
+const CardBody = styled.div` padding: 12px; `;
 
 const Preview = styled.div`
   background: var(--bg-base, #0A0A0F);
@@ -144,6 +142,7 @@ interface BodyMapEvidenceSectionProps {
 }
 
 const readableStatus = (status: string) => status.replace('_', ' ');
+const clientCanRemove = (item: BodyMapEvidence) => ['pending', 'failed'].includes(item.analysisStatus);
 
 const asTextList = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -208,7 +207,7 @@ const BodyMapEvidenceSection: React.FC<BodyMapEvidenceSectionProps> = ({ userId,
   };
 
   if (!entryId) {
-    return <Section><Title>Photo / Movement Evidence</Title><Hint>Save this entry first, then attach photos or video from the movement where the issue shows up.</Hint></Section>;
+    return <Section><Title>Photo / Movement Evidence</Title><Hint>Save this entry first, then attach photos or video from the movement moment.</Hint></Section>;
   }
 
   return (
@@ -239,6 +238,7 @@ const BodyMapEvidenceSection: React.FC<BodyMapEvidenceSectionProps> = ({ userId,
         const draft = reviewDrafts[item.id] ?? String(item.aiAnalysis?.swanCoachNotesDraft || '');
         const observations = asTextList(item.aiAnalysis?.visualObservations);
         const contributors = asTextList(item.aiAnalysis?.possibleContributors);
+        const showRemove = !isClientMode || clientCanRemove(item);
         return (
           <Card key={item.id}>
             <Preview>{item.mediaUrl ? (item.mediaType === 'image' ? <img src={item.mediaUrl} alt="Body map evidence" /> : <video src={item.mediaUrl} controls />) : 'Stored securely'}</Preview>
@@ -257,7 +257,7 @@ const BodyMapEvidenceSection: React.FC<BodyMapEvidenceSectionProps> = ({ userId,
                 {!isClientMode && ['pending', 'failed'].includes(item.analysisStatus) && item.mediaType === 'image' && <Button type="button" onClick={() => refreshAction(`analyze-${item.id}`, () => service!.analyzeEvidence(userId!, entryId!, item.id))} disabled={busy === `analyze-${item.id}`}>Analyze</Button>}
                 {!isClientMode && item.analysisStatus === 'needs_review' && <Button $variant="primary" type="button" onClick={() => refreshAction(`approve-${item.id}`, () => service!.reviewEvidence(userId!, entryId!, item.id, { decision: 'approved', swanCoachNotes: draft }))}>Approve</Button>}
                 {!isClientMode && item.analysisStatus === 'needs_review' && <Button type="button" onClick={() => refreshAction(`reject-${item.id}`, () => service!.reviewEvidence(userId!, entryId!, item.id, { decision: 'rejected', internalNotes: 'Rejected from Body Map review UI' }))}>Reject</Button>}
-                <Button $variant="danger" type="button" onClick={() => refreshAction(`remove-${item.id}`, () => service!.removeEvidence(userId!, entryId!, item.id))}>Remove</Button>
+                {showRemove && <Button $variant="danger" type="button" onClick={() => refreshAction(`remove-${item.id}`, () => service!.removeEvidence(userId!, entryId!, item.id))}>Remove</Button>}
               </ButtonRow>
             </CardBody>
           </Card>
