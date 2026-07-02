@@ -20,7 +20,12 @@
  */
 
 import { getClientContext } from './clientIntelligenceService.mjs';
-import { getExerciseRegistry, getExerciseRegistryFromDB, generateSwapSuggestions } from './variationEngine.mjs';
+import {
+  getExerciseRegistry,
+  getExerciseRegistryFromDB,
+  generateSwapSuggestions,
+  getNextSessionType,
+} from './variationEngine.mjs';
 import { getRecommendedWeight } from './oneRepMaxService.mjs';
 import {
   buildWeeklyDayTypes,
@@ -413,6 +418,24 @@ function formatExerciseName(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function buildVariationSessionHistory(variation = {}) {
+  if (Array.isArray(variation.sessionHistory)) {
+    return variation.sessionHistory.filter((entry) => (
+      entry?.sessionType === 'build' || entry?.sessionType === 'switch'
+    ));
+  }
+
+  return variation.lastSessionType === 'build' || variation.lastSessionType === 'switch'
+    ? [{ sessionType: variation.lastSessionType }]
+    : [];
+}
+
+function resolveSingleWorkoutSessionType(context, rotationPattern) {
+  const history = buildVariationSessionHistory(context.variation);
+  const pattern = rotationPattern || context.variation?.currentPattern || 'standard';
+  return getNextSessionType(history, pattern);
+}
+
 // ── Main: Generate Single Workout ────────────────────────────────────
 
 /**
@@ -469,9 +492,7 @@ export async function generateWorkout(options) {
   }
 
   // Step 2: Determine rotation (BUILD or SWITCH)
-  const sessionType = context.variation.lastSessionType
-    ? (context.variation.lastSessionType === 'build' ? 'switch' : 'build')
-    : 'build';
+  const sessionType = resolveSingleWorkoutSessionType(context, rotationPattern);
 
   // Step 3: Get exercise registry from DB (840+) with hardcoded fallback (81)
   const registry = await getExerciseRegistryFromDB();

@@ -7,6 +7,15 @@ vi.mock('../services/variationEngine.mjs', () => ({
   getExerciseRegistry: vi.fn(),
   getExerciseRegistryFromDB: vi.fn(),
   generateSwapSuggestions: vi.fn(() => null),
+  getNextSessionType: vi.fn((history = [], pattern = 'standard') => {
+    const buildCount = pattern === 'aggressive' ? 1 : pattern === 'conservative' ? 3 : 2;
+    let consecutiveBuilds = 0;
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+      if (history[i]?.sessionType !== 'build') break;
+      consecutiveBuilds += 1;
+    }
+    return consecutiveBuilds >= buildCount ? 'switch' : 'build';
+  }),
 }));
 vi.mock('../services/oneRepMaxService.mjs', () => ({
   getRecommendedWeight: vi.fn(() => null),
