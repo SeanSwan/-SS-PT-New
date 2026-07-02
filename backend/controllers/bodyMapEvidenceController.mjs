@@ -10,12 +10,21 @@ import {
 import { analyzeBodyMapEvidence as runVisionAnalysis } from '../services/ai/bodyMapVisionService.mjs';
 
 const STAFF_ROLES = new Set(['admin', 'trainer']);
+let evidenceSchemaReadyPromise = null;
+
 const isStaff = (user) => STAFF_ROLES.has(user?.role);
 const parsePositiveInt = (value) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 const toPlain = (record) => (record?.toJSON ? record.toJSON() : { ...record });
+
+async function ensureEvidenceSchema() {
+  if (!evidenceSchemaReadyPromise) {
+    evidenceSchemaReadyPromise = BodyMapEvidence.sync();
+  }
+  return evidenceSchemaReadyPromise;
+}
 
 function parseCaptureContext(body = {}) {
   if (body.captureContext) {
@@ -42,6 +51,7 @@ async function getEntry({ userId, entryId }) {
 }
 
 async function getEvidence({ userId, entryId, mediaId }) {
+  await ensureEvidenceSchema();
   return BodyMapEvidence.findOne({ where: { id: mediaId, userId, painEntryId: entryId, isDeleted: false } });
 }
 
@@ -113,6 +123,7 @@ export async function createBodyMapEvidence(req, res) {
 
     const entry = await getEntry({ userId, entryId });
     if (!entry) return res.status(404).json({ success: false, message: 'Entry not found' });
+    await ensureEvidenceSchema();
 
     const mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
     const stored = await uploadEvidenceFile(req.file, { userId, entryId });
@@ -144,6 +155,7 @@ export async function listBodyMapEvidence(req, res) {
     if (!userId || !entryId) return res.status(400).json({ success: false, message: 'Invalid entry identifier' });
     const entry = await getEntry({ userId, entryId });
     if (!entry) return res.status(404).json({ success: false, message: 'Entry not found' });
+    await ensureEvidenceSchema();
 
     const records = await BodyMapEvidence.findAll({
       where: { userId, painEntryId: entryId, isDeleted: false },
