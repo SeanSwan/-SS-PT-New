@@ -24,7 +24,7 @@ const CompanionV2InsightCard: React.FC<CompanionV2InsightCardProps> = ({
     <InsightShell aria-label="Companion insight">
       <InsightHeading><Sparkles size={14} aria-hidden /> {insight.title}</InsightHeading>
       <InsightCopy>{insight.body}</InsightCopy>
-      <InsightMeta>Progress {insight.bondPercent}% · {insight.nextActionLabel}</InsightMeta>
+      <InsightMeta>Progress {insight.bondPercent}% - {insight.nextActionLabel}</InsightMeta>
     </InsightShell>
   );
 };

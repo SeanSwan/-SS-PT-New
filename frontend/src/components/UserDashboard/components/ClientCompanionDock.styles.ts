@@ -59,8 +59,8 @@ export const DockIconButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 55%, transparent);
@@ -130,7 +130,7 @@ export const DockActions = styled.div`
 `;
 
 export const DockButton = styled.button<{ $primary?: boolean }>`
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 12px;
   border: 1px solid ${({ $primary }) => $primary
     ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)'
