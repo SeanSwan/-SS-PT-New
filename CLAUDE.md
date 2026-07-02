@@ -70,6 +70,10 @@ These four principles distill common LLM coding pitfalls (per Andrej Karpathy's 
 
 Trivial polish tasks may bypass formal planning overhead using judgment, but surgical scope, safety, and evidence requirements still apply. Anything that touches production data, security, auth, billing, shared infrastructure, or PII gets no bypass at all.
 
+## Prompt Reconstruction + Hostile Review Protocol
+Before creating anything substantial (docs, specs, plans, code slices): reconstruct the goal, audit the prompt, identify weak assumptions, improve the prompt/plan, execute the improved version, prove completion with evidence. Give the why; say what NOT to do; act when enough information exists; say less where possible; never reveal or request private reasoning.
+Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW-PROTOCOL.md`.
+
 ## MANDATORY Rules (Apply to ALL Tasks)
 1. **No Material-UI** — styled-components only with CSS custom properties + dark-theme fallbacks
 2. **44px min touch targets** on all interactive elements
