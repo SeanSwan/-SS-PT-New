@@ -194,6 +194,73 @@ describe('ClientHubGridCard', () => {
     expect(onQuickAction).toHaveBeenNthCalledWith(4, fixtureClient, 'coach');
   });
 
+  it('shows real next-session and account readiness when the data is present', () => {
+    const nextSessionDate = new Date(Date.now() + 6 * 86400000).toISOString();
+    const expectedDay = new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(nextSessionDate));
+
+    render(
+      <ClientHubGridCard
+        client={{ ...fixtureClient, nextSessionDate, accountStatus: 'active' }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(expectedDay)).toBeInTheDocument();
+    expect(screen.queryByText('check schedule')).not.toBeInTheDocument();
+    expect(screen.getByText('login ready')).toBeInTheDocument();
+  });
+
+  it('shows an honest empty state when no session is booked', () => {
+    render(
+      <ClientHubGridCard
+        client={{ ...fixtureClient, nextSessionDate: null }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('none booked')).toBeInTheDocument();
+  });
+
+  it('surfaces claim-pending accounts so admins stop guessing login readiness', () => {
+    render(
+      <ClientHubGridCard
+        client={{ ...fixtureClient, accountStatus: 'stub' }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('invite pending')).toBeInTheDocument();
+  });
+
+  it('badges deactivated clients on the identity line and readiness strip', () => {
+    render(
+      <ClientHubGridCard
+        client={{ ...fixtureClient, isActive: false }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText(/deactivated/i).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders the client photo when one exists', () => {
+    const { container } = render(
+      <ClientHubGridCard
+        client={{ ...fixtureClient, photo: 'https://cdn.example.test/client-42.jpg' }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    const image = container.querySelector('img');
+    expect(image).not.toBeNull();
+    expect(image).toHaveAttribute('src', 'https://cdn.example.test/client-42.jpg');
+    expect(screen.queryByText('FI')).not.toBeInTheDocument();
+  });
+
   it('falls back to email identity when client names are not captured yet', () => {
     render(
       <ClientHubGridCard

@@ -13,6 +13,10 @@ const RAW_ADMIN_CARD_SOURCE = readFileSync(
   resolve(__dirname, '../../DashBoard/workspaces/clients-team/ClientHubGridCard.tsx'),
   'utf8',
 );
+const RAW_CARD_READINESS_SOURCE = readFileSync(
+  resolve(__dirname, '../../DashBoard/workspaces/clients-team/clientCardReadiness.ts'),
+  'utf8',
+);
 const RAW_HOOK_SOURCE = readFileSync(resolve(__dirname, './useTrainerClients.ts'), 'utf8');
 
 const SOURCE = RAW_SOURCE
@@ -25,6 +29,9 @@ const CARD_SOURCE = RAW_CARD_SOURCE
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/[^\n]*/g, '');
 const ADMIN_CARD_SOURCE = RAW_ADMIN_CARD_SOURCE
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/[^\n]*/g, '');
+const CARD_READINESS_SOURCE = RAW_CARD_READINESS_SOURCE
   .replace(/\/\*[\s\S]*?\*\//g, '')
   .replace(/\/\/[^\n]*/g, '');
 const HOOK_SOURCE = RAW_HOOK_SOURCE
@@ -42,9 +49,9 @@ describe('MyClientsView workout-proof truth locks', () => {
     expect(HOOK_SOURCE).toMatch(/loggedClients/);
     expect(CARD_SOURCE).toMatch(/ClientHubGridCard/);
     expect(ADMIN_CARD_SOURCE).toMatch(/Workout Proof/);
-    expect(ADMIN_CARD_SOURCE).toMatch(/No logs yet/);
+    expect(CARD_READINESS_SOURCE).toMatch(/No logs yet/);
     expect(ADMIN_CARD_SOURCE).toMatch(/chart-ready activity/);
-    expect(ADMIN_CARD_SOURCE).toMatch(/Last logged:/);
+    expect(CARD_READINESS_SOURCE).toMatch(/Last logged:/);
     expect(CARD_SOURCE).toMatch(/lastSessionDate/);
     expect(CARD_SOURCE).toMatch(/assignedAt/);
     expect(SOURCE).not.toMatch(/improvingClients/);

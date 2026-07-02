@@ -122,6 +122,52 @@ describe('clientOptionMappers', () => {
     })).toBeNull();
   });
 
+  it('maps workout, session, join-date, and photo truth from the admin client API', () => {
+    expect(mapAdminClientToClientOption({
+      id: 92,
+      firstName: 'Truth',
+      lastName: 'Client',
+      email: 'truth.client@example.test',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      photo: 'https://cdn.example.test/photo-92.jpg',
+      lastWorkout: { completedAt: '2026-06-20T10:00:00.000Z', date: '2026-06-19T10:00:00.000Z' },
+      nextSession: { sessionDate: '2026-07-09T17:00:00.000Z', status: 'scheduled' },
+    })).toMatchObject({
+      lastSessionDate: '2026-06-20T10:00:00.000Z',
+      nextSessionDate: '2026-07-09T17:00:00.000Z',
+      joinDate: '2026-06-01T00:00:00.000Z',
+      photo: 'https://cdn.example.test/photo-92.jpg',
+    });
+  });
+
+  it('keeps known-empty session facts null instead of leaking placeholders', () => {
+    const option = mapAdminClientToClientOption({
+      id: 93,
+      firstName: 'Sparse',
+      lastName: 'Client',
+      email: 'sparse.client@example.test',
+      photo: '   ',
+    });
+
+    expect(option).toMatchObject({
+      lastSessionDate: null,
+      nextSessionDate: null,
+      joinDate: null,
+    });
+    expect(option?.photo).toBeUndefined();
+  });
+
+  it('falls back to the workout session date when completedAt is missing', () => {
+    expect(mapAdminClientToClientOption({
+      id: 94,
+      firstName: 'Fallback',
+      lastName: 'Client',
+      lastWorkout: { date: '2026-06-18T10:00:00.000Z' },
+    })).toMatchObject({
+      lastSessionDate: '2026-06-18T10:00:00.000Z',
+    });
+  });
+
   it('preserves onboarding field ledger data from the admin client API', () => {
     const option = mapAdminClientToClientOption({
       id: 91,

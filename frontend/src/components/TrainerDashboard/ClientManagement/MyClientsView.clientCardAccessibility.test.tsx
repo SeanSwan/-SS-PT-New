@@ -176,10 +176,12 @@ describe('TrainerClientCard accessibility', () => {
   it('surfaces paid-client readiness details before the trainer clicks into the client', () => {
     render(<TrainerClientCard assignment={assignment} {...handlers} />);
 
-    expect(screen.getByText('SwanStudios source')).toBeInTheDocument();
+    expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.getByText('beginner')).toBeInTheDocument();
     expect(screen.getByText('Strength and mobility')).toBeInTheDocument();
-    expect(screen.getByText('check schedule')).toBeInTheDocument();
+    // Fixture books 2026-06-12; the card now renders the real (stale) booking
+    // instead of the old hardcoded "check schedule" placeholder.
+    expect(screen.getByText('overdue: Jun 12')).toBeInTheDocument();
     expect(screen.getByText('in progress')).toBeInTheDocument();
     expect(screen.getByText('active')).toBeInTheDocument();
     expect(screen.getAllByText('4 paid sessions')).toHaveLength(1);
@@ -207,7 +209,7 @@ describe('TrainerClientCard accessibility', () => {
 
     render(<TrainerClientCard assignment={moveFitnessAssignment} {...handlers} />);
 
-    expect(screen.getByText('Move Fitness source')).toBeInTheDocument();
+    expect(screen.getByText('Move Fitness')).toBeInTheDocument();
     expect(screen.getByText('check schedule')).toBeInTheDocument();
     expect(screen.getAllByText('free tracking').length).toBeGreaterThan(0);
     expect(screen.getAllByText('no deduction').length).toBeGreaterThan(0);

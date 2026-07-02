@@ -34,7 +34,6 @@ import React from 'react';
 import type { AssignableTrainer, CreateClientRequest } from '../../../services/adminClientService';
 import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
 import {
-  CardGrid,
   ContentArea,
   DetailScrollWrap,
   HubContainer,
@@ -50,7 +49,7 @@ import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 import ClientLifecycleConfirmDialog, {
   type ClientLifecycleConfirmRequest,
 } from './clients-team/ClientLifecycleConfirmDialog';
-import ClientHubGridCard from './clients-team/ClientHubGridCard';
+import ClientHubGridSection from './clients-team/ClientHubGridSection';
 import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
 import { ClientDetailView } from './clients-team';
 import type { MiniCardClient } from './clients-team/ClientMiniCard';
@@ -214,16 +213,11 @@ const ClientGrid: React.FC<Pick<
   ClientsWorkspaceViewProps,
   'clients' | 'onSelectClient' | 'onClientCardQuickAction'
 >> = ({ clients, onSelectClient, onClientCardQuickAction }) => (
-  <CardGrid>
-    {clients.map((client) => (
-      <ClientHubGridCard
-        key={client.id}
-        client={client}
-        onSelect={onSelectClient}
-        onQuickAction={onClientCardQuickAction}
-      />
-    ))}
-  </CardGrid>
+  <ClientHubGridSection
+    clients={clients}
+    onSelectClient={onSelectClient}
+    onClientCardQuickAction={onClientCardQuickAction}
+  />
 );
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
