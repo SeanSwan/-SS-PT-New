@@ -4,8 +4,10 @@ import {
   buildCompanionActivityEventsForLedger,
   buildCompanionLedgerSummary,
   getCompanionActivityForWorkout,
+  getCompanionBridgeSummaries,
   recordCompanionActivityEvents,
   recordCompanionLedgerEvents,
+  runWithCompanionBridgeContext,
   scheduleCompanionLedgerEvents,
 } from '../../services/gamification/CompanionEventBridgeService.mjs';
 
@@ -53,6 +55,31 @@ describe('CompanionEventBridgeService', () => {
     expect(scheduled.events[0].activityType).toBe('strength_workouts');
     expect(skipped.status).toBe('skipped');
     expect(skipped.events).toEqual([]);
+  });
+
+  it('collects scheduled and skipped summaries inside request context', () => {
+    const service = { recordActivity: vi.fn(async () => ({})) };
+    const afterCommit = vi.fn();
+
+    runWithCompanionBridgeContext(() => {
+      scheduleCompanionLedgerEvents({
+        service,
+        result: { duplicate: false, pointsAwarded: 50 },
+        entry: { userId: 42, source: 'workout_completion', transactionType: 'earn' },
+        transaction: { afterCommit },
+        logger: { info: vi.fn(), error: vi.fn() },
+      });
+      scheduleCompanionLedgerEvents({
+        service,
+        result: { duplicate: true, pointsAwarded: 0 },
+        entry: { userId: 42, source: 'workout_completion', transactionType: 'earn' },
+        transaction: { afterCommit },
+        logger: { info: vi.fn(), error: vi.fn() },
+      });
+
+      const summaries = getCompanionBridgeSummaries();
+      expect(summaries.map((summary) => summary.status)).toEqual(['scheduled', 'skipped']);
+    });
   });
 
   it('records only allowlisted activity events through the companion service', async () => {
