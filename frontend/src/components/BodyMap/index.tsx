@@ -1,36 +1,14 @@
-/**
- * BodyMap — Orchestrator Component
- * =================================
- * Main export for the Pain/Injury Body Map system.
- * Manages state, API calls, and coordinates BodyMapSVG + PainEntryPanel.
- *
- * Supports two modes:
- *   - 'trainer': full admin/trainer view with all fields (default for admin/trainer)
- *   - 'client': simplified client view — clients can self-report pain
- *
- * Usage:
- *   <BodyMap userId={123} />                    // auto-detects mode from user role
- *   <BodyMap userId={123} mode="client" />      // force client mode
- *   <BodyMap userId={123} mode="trainer" />     // force trainer mode
- *
- * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
- */
 import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
 import styled from 'styled-components';
 import BodyMapSVG from './BodyMapSVG';
 import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
+import BodyMapEvidenceSection from './BodyMapEvidenceSection';
 import PainEntryPanel from './PainEntryPanel';
 import { getSeverityColor } from './bodyRegions';
-import {
-  createPainEntryService,
-  type PainEntry,
-  type CreatePainEntryPayload,
-} from '../../services/painEntryService';
+import { createPainEntryService, type PainEntry, type CreatePainEntryPayload } from '../../services/painEntryService';
 import { useAuth } from '../../context/AuthContext';
 import GlobalClientContext from '../../context/GlobalClientContext';
 import { device } from '../../styles/breakpoints';
-
-// ── Styled Components ───────────────────────────────────────────────────
 
 const BodyMapSection = styled.div`
   background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.4)'};
@@ -42,10 +20,7 @@ const BodyMapSection = styled.div`
   overflow-x: hidden;
   max-width: 100%;
   box-sizing: border-box;
-
-  ${device.sm} {
-    padding: 24px;
-  }
+  ${device.sm} { padding: 24px; }
 `;
 
 const SectionHeader = styled.div`
@@ -64,16 +39,6 @@ const SectionTitle = styled.h3`
   margin: 0;
 `;
 
-/** W3C relative luminance — determines if text should be light or dark on a given background */
-function getContrastColor(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-  return L > 0.179 ? '#002060' : '#E0ECF4';
-}
-
 const SummaryBadge = styled.span<{ $color: string }>`
   display: inline-flex;
   align-items: center;
@@ -87,9 +52,7 @@ const SummaryBadge = styled.span<{ $color: string }>`
   color: ${({ $color }) => $color};
 `;
 
-const ActiveEntriesList = styled.div`
-  margin-top: 20px;
-`;
+const ActiveEntriesList = styled.div` margin-top: 20px; `;
 
 const ActiveEntryRow = styled.div<{ $color: string }>`
   display: flex;
@@ -103,9 +66,7 @@ const ActiveEntryRow = styled.div<{ $color: string }>`
   cursor: pointer;
   transition: border-color 0.2s;
   min-height: 44px;
-  &:hover {
-    border-color: ${({ $color }) => $color};
-  }
+  &:hover { border-color: ${({ $color }) => $color}; }
 `;
 
 const DotIndicator = styled.div<{ $color: string }>`
@@ -153,29 +114,19 @@ const EntriesLabel = styled.div`
   margin-bottom: 8px;
 `;
 
-// ── Component ───────────────────────────────────────────────────────────
-
-interface BodyMapProps {
-  userId?: number;
-  mode?: 'trainer' | 'client';
-}
+interface BodyMapProps { userId?: number; mode?: 'trainer' | 'client'; }
 
 const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const { user, authAxios } = useAuth() as any;
   const globalClient = useContext(GlobalClientContext);
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
-  const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some(
-    (client) => client.id === globalClient.activeClient?.id,
-  )
+  const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some((client) => client.id === globalClient.activeClient?.id)
     ? globalClient.activeClient.id
     : undefined;
   const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
-  const painService = useMemo(
-    () => (authAxios ? createPainEntryService(authAxios) : null),
-    [authAxios],
-  );
+  const entryService = useMemo(() => (authAxios ? createPainEntryService(authAxios) : null), [authAxios]);
 
   const [entries, setEntries] = useState<PainEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -186,199 +137,126 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const [gender, setGender] = useState<AnatomyGender>('male');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
 
-  // Auto-detect mode from user role if not explicitly provided
   const effectiveMode = mode || (isTrainerOrAdmin ? 'trainer' : 'client');
   const isClientMode = effectiveMode === 'client';
-
-  // Determine if user can write: trainers/admins always, clients only for own data
   const isOwnData = user?.id === userId;
   const canWrite = Boolean(userId) && (isTrainerOrAdmin || (isClientMode && isOwnData));
 
-  // Fetch entries on mount
   const fetchEntries = useCallback(async () => {
-    if (!painService || !userId) {
-      setEntries([]);
-      setLoading(false);
-      setError(null);
-      return;
+    if (!entryService || !userId) {
+      setEntries([]); setLoading(false); setError(null); return;
     }
     try {
-      setLoading(true);
-      setError(null);
-      const result = await painService.getActive(userId);
+      setLoading(true); setError(null);
+      const result = await entryService.getActive(userId);
       setEntries(result.entries || []);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to load pain entries');
+      setError(err?.response?.data?.message || 'Failed to load entries');
     } finally {
       setLoading(false);
     }
-  }, [painService, userId]);
+  }, [entryService, userId]);
 
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+  useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  // Region click handler
-  const handleRegionClick = useCallback(
-    (regionId: string) => {
-      setSelectedRegion(regionId);
-      if (canWrite) {
-        setPanelOpen(true);
-      }
-    },
-    [canWrite],
-  );
+  const handleRegionClick = useCallback((regionId: string) => {
+    setSelectedRegion(regionId);
+    if (canWrite) setPanelOpen(true);
+  }, [canWrite]);
 
-  // Get existing entry for selected region
   const existingEntry = useMemo(() => {
     if (!selectedRegion) return null;
     return entries.find((e) => e.bodyRegion === selectedRegion && e.isActive) || null;
   }, [selectedRegion, entries]);
 
-  // Save handler
-  const handleSave = useCallback(
-    async (payload: CreatePainEntryPayload) => {
-      if (!painService || !canWrite || !userId) return;
-      setIsSaving(true);
-      try {
-        if (existingEntry) {
-          await painService.update(userId, existingEntry.id, payload);
-        } else {
-          await painService.create(userId, payload);
-        }
-        await fetchEntries();
-        setPanelOpen(false);
-        setSelectedRegion(null);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to save');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [painService, userId, existingEntry, canWrite, fetchEntries],
-  );
+  const handleSave = useCallback(async (payload: CreatePainEntryPayload) => {
+    if (!entryService || !canWrite || !userId) return;
+    setIsSaving(true);
+    try {
+      if (existingEntry) await entryService.update(userId, existingEntry.id, payload);
+      else await entryService.create(userId, payload);
+      await fetchEntries(); setPanelOpen(false); setSelectedRegion(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to save');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [entryService, userId, existingEntry, canWrite, fetchEntries]);
 
-  // Resolve handler
-  const handleResolve = useCallback(
-    async (entryId: number) => {
-      if (!painService || !canWrite || !userId) return;
-      setIsSaving(true);
-      try {
-        await painService.resolve(userId, entryId);
-        await fetchEntries();
-        setPanelOpen(false);
-        setSelectedRegion(null);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to resolve');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [painService, userId, canWrite, fetchEntries],
-  );
+  const handleResolve = useCallback(async (entryId: number) => {
+    if (!entryService || !canWrite || !userId) return;
+    setIsSaving(true);
+    try {
+      await entryService.resolve(userId, entryId);
+      await fetchEntries(); setPanelOpen(false); setSelectedRegion(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to resolve');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [entryService, userId, canWrite, fetchEntries]);
 
-  // Delete handler
-  const handleDelete = useCallback(
-    async (entryId: number) => {
-      if (!painService || !isAdmin || !userId) return;
-      setIsSaving(true);
-      try {
-        await painService.remove(userId, entryId);
-        await fetchEntries();
-        setPanelOpen(false);
-        setSelectedRegion(null);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || 'Failed to delete');
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [painService, userId, isAdmin, fetchEntries],
-  );
+  const handleDelete = useCallback(async (entryId: number) => {
+    if (!entryService || !isAdmin || !userId) return;
+    setIsSaving(true);
+    try {
+      await entryService.remove(userId, entryId);
+      await fetchEntries(); setPanelOpen(false); setSelectedRegion(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to delete');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [entryService, userId, isAdmin, fetchEntries]);
 
-  // Summary counts
-  const severeCount = entries.filter((e) => e.painLevel >= 7).length;
-  const moderateCount = entries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
-  const mildCount = entries.filter((e) => e.painLevel < 4).length;
-
-  const formatRegionLabel = (region: string) =>
-    region
-      .split('_')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
+  const highCount = entries.filter((e) => e.painLevel >= 7).length;
+  const mediumCount = entries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
+  const lowCount = entries.filter((e) => e.painLevel < 4).length;
+  const formatRegionLabel = (region: string) => region.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   return (
     <BodyMapSection>
       <SectionHeader>
-        <SectionTitle>Pain & Injury Map</SectionTitle>
+        <SectionTitle>Body Map</SectionTitle>
         {entries.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <SummaryBadge $color="#fff">
-              {entries.length} active
-            </SummaryBadge>
-            {severeCount > 0 && (
-              <SummaryBadge $color="#C6A84B">{severeCount} severe</SummaryBadge>
-            )}
-            {moderateCount > 0 && (
-              <SummaryBadge $color="#50A0F0">{moderateCount} moderate</SummaryBadge>
-            )}
-            {mildCount > 0 && (
-              <SummaryBadge $color="#60C0F0">{mildCount} mild</SummaryBadge>
-            )}
+            <SummaryBadge $color="#fff">{entries.length} active</SummaryBadge>
+            {highCount > 0 && <SummaryBadge $color="#C6A84B">{highCount} high</SummaryBadge>}
+            {mediumCount > 0 && <SummaryBadge $color="#50A0F0">{mediumCount} medium</SummaryBadge>}
+            {lowCount > 0 && <SummaryBadge $color="#60C0F0">{lowCount} low</SummaryBadge>}
           </div>
         )}
       </SectionHeader>
 
-      {loading && <StatusText>Loading pain entries...</StatusText>}
+      {loading && <StatusText>Loading entries...</StatusText>}
       {error && <ErrorText>{error}</ErrorText>}
 
       {!loading && (
         <>
-          <BodyMapToolbar
-            gender={gender}
-            labelMode={labelMode}
-            onGenderChange={setGender}
-            onLabelModeChange={setLabelMode}
-          />
-          <BodyMapSVG
-            painEntries={entries}
-            selectedRegion={selectedRegion}
-            onRegionClick={handleRegionClick}
-            gender={gender}
-            labelMode={labelMode}
-          />
+          <BodyMapToolbar gender={gender} labelMode={labelMode} onGenderChange={setGender} onLabelModeChange={setLabelMode} />
+          <BodyMapSVG painEntries={entries} selectedRegion={selectedRegion} onRegionClick={handleRegionClick} gender={gender} labelMode={labelMode} />
 
           {entries.length > 0 && (
             <ActiveEntriesList>
-              <EntriesLabel>Active Pain Entries</EntriesLabel>
+              <EntriesLabel>Active Entries</EntriesLabel>
               {entries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
-                  <ActiveEntryRow
-                    key={entry.id}
-                    $color={color}
-                    onClick={() => handleRegionClick(entry.bodyRegion)}
-                  >
+                  <ActiveEntryRow key={entry.id} $color={color} onClick={() => handleRegionClick(entry.bodyRegion)}>
                     <DotIndicator $color={color} />
-                    <EntryLabel>
-                      {formatRegionLabel(entry.bodyRegion)}
-                    </EntryLabel>
-                    <EntryMeta>
-                      {entry.painLevel}/10 &middot; {entry.painType}
-                    </EntryMeta>
+                    <EntryLabel>{formatRegionLabel(entry.bodyRegion)}</EntryLabel>
+                    <EntryMeta>{entry.painLevel}/10 &middot; {entry.painType}</EntryMeta>
                   </ActiveEntryRow>
                 );
               })}
             </ActiveEntriesList>
           )}
 
+          {selectedRegion && userId && <BodyMapEvidenceSection userId={userId} entryId={existingEntry?.id ?? null} isClientMode={isClientMode} />}
+
           {entries.length === 0 && !loading && (
             <StatusText>
-              {!userId
-                ? 'Select a client to view pain and injury entries.'
-                : isClientMode
-                ? 'Tap any area where you feel pain or discomfort to log it. Your trainer will see this when planning your workouts.'
-                : 'No active pain entries. Click a body region to add one.'}
+              {!userId ? 'Select a client to view entries.' : isClientMode ? 'Tap any area to log what you are feeling so your trainer can plan around it.' : 'No active entries. Click a body region to add one.'}
             </StatusText>
           )}
         </>
@@ -390,10 +268,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
           existingEntry={existingEntry}
           isOpen={panelOpen}
           isSaving={isSaving}
-          onClose={() => {
-            setPanelOpen(false);
-            setSelectedRegion(null);
-          }}
+          onClose={() => { setPanelOpen(false); setSelectedRegion(null); }}
           onSave={handleSave}
           onResolve={handleResolve}
           onDelete={handleDelete}
