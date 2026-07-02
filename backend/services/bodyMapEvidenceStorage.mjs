@@ -6,11 +6,17 @@ import {
   generatePlaybackUrl,
   generateThumbnailUrl,
   deleteObject,
-  r2Configured,
 } from './r2StorageService.mjs';
 import logger from '../utils/logger.mjs';
 
-const { R2_BUCKET_NAME } = process.env;
+const {
+  R2_ACCOUNT_ID,
+  R2_ACCESS_KEY_ID,
+  R2_SECRET_ACCESS_KEY,
+  R2_BUCKET_NAME,
+} = process.env;
+
+const storageReady = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET_NAME);
 
 async function streamToBuffer(stream) {
   const chunks = [];
@@ -32,7 +38,7 @@ export async function uploadEvidenceFile(file, { userId, entryId }) {
 
   const mediaKey = buildEvidenceKey({ userId, entryId, filename: file.originalname });
 
-  if (!r2Configured) {
+  if (!storageReady) {
     logger.warn('[BodyMapEvidenceStorage] R2 not configured; using local placeholder key for %s', mediaKey);
     return { mediaKey: `local://${mediaKey}`, thumbnailKey: null };
   }
