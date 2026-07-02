@@ -32,7 +32,11 @@ function mockNoPriorAwards() {
 
 describe('Unity Weaver prosocial XP service', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockUser.findByPk.mockReset();
+    mockDb.query.mockReset();
+    mockPointsService.recordLedgerEntry.mockReset();
+    mockCheckBadges.mockReset();
+
     mockUser.findByPk.mockResolvedValue(makeTargetUser());
     mockNoPriorAwards();
     mockPointsService.recordLedgerEntry.mockResolvedValue({
