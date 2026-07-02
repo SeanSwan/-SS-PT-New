@@ -27,15 +27,16 @@ import {
  *
  * Codex 2026-05-02 round-2 review prescribed this exact gate ordering for
  * the workout builder route after the role allowlist was expanded from
- * `['admin', 'trainer']` to `['admin', 'trainer', 'client']`:
+ * ['admin', 'trainer'] to ['admin', 'trainer', 'client', 'user']:
  *
  *   1. ENV flag (`ENABLE_CLIENT_PLAN_SELFGEN`) must be enabled before any
- *      `client` role can pass the gate. Default OFF — this is the
+ *      client-equivalent roles can pass the gate. Default OFF - this is the
  *      kill-switch that lets us roll back without a code deploy.
- *   2. CLIENT must be requesting their OWN data (`req.user.id === clientId`).
- *      Without this, an authenticated client with the flag could try to
+ *   2. CLIENT-EQUIVALENT user must be requesting their OWN data
+ *      (req.user.id === clientId).
+ *      Without this, an authenticated client-equivalent user could try to
  *      generate plans for OTHER clients.
- *   3. CLIENT must have `canGenerateWorkoutPlans = true` per a FRESH DB
+ *   3. CLIENT-EQUIVALENT user must have canGenerateWorkoutPlans = true per a FRESH DB
  *      read. JWT-based reads are unsafe — admin revocation must take
  *      effect on the next request, not at token rotation.
  *   4. TRAINER / ADMIN paths fall through to the existing
@@ -48,11 +49,13 @@ import {
 const CLIENT_SELFGEN_ENABLED = () =>
   process.env.ENABLE_CLIENT_PLAN_SELFGEN === 'true';
 
+const isClientSelfServiceRole = (role) => role === 'client' || role === 'user';
+
 async function enforceWorkoutGenAccess(req, res, parsedClientId) {
   const role = req.user?.role;
   const requesterId = Number(req.user?.id);
 
-  if (role === 'client') {
+  if (isClientSelfServiceRole(role)) {
     // Step 1 — feature kill switch.
     if (!CLIENT_SELFGEN_ENABLED()) {
       return res
@@ -147,12 +150,13 @@ function safeWorkoutBuilderDetails(err) {
 const router = Router();
 
 router.use(protect);
-// L5 (2026-05-02): allowlist now includes 'client' so self-service plan
-// generation is possible. Per-route enforceWorkoutGenAccess() applies the
-// 4-step gate (env kill switch + self-only + fresh-DB flag) before any
+// L5 (2026-05-02): allowlist now includes 'client'/'user' so self-service plan
+// generation is possible for client-equivalent accounts. Per-route
+// enforceWorkoutGenAccess() applies the 4-step gate (env kill switch +
+// self-only + fresh-DB flag) before any
 // service call. Trainer/admin paths are unchanged (still go through
 // assertAssignmentOrAdmin).
-router.use(authorize(['admin', 'trainer', 'client']));
+router.use(authorize(['admin', 'trainer', 'client', 'user']));
 router.use(workoutBuilderLimiter);
 
 /**
@@ -171,8 +175,8 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
 
-    // L5 (2026-05-02) — 4-step gate: env flag → self-only (clients) →
-    // fresh-DB canGenerateWorkoutPlans (clients) → assignment (trainers).
+    // L5 (2026-05-02) — 4-step gate: env flag → self-only
+    // (client-equivalent users) → fresh-DB canGenerateWorkoutPlans → assignment (trainers).
     const gateResult = await enforceWorkoutGenAccess(req, res, parsedClientId);
     if (gateResult !== null) return gateResult;
 
@@ -232,8 +236,8 @@ router.post('/plan', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
 
-    // L5 (2026-05-02) — 4-step gate: env flag → self-only (clients) →
-    // fresh-DB canGenerateWorkoutPlans (clients) → assignment (trainers).
+    // L5 (2026-05-02) — 4-step gate: env flag → self-only
+    // (client-equivalent users) → fresh-DB canGenerateWorkoutPlans → assignment (trainers).
     const gateResult = await enforceWorkoutGenAccess(req, res, parsedClientId);
     if (gateResult !== null) return gateResult;
 
@@ -296,7 +300,7 @@ router.post('/candidates', createWorkoutCandidatesHandler({
  *   inhibit, lengthen, activate, integrate } }
  *
  * Access: same gate as /generate and /plan — admin/trainer can call
- * for any clientId; client can only call for their own (with the
+ * for any clientId; client-equivalent users can only call for their own (with the
  * ENABLE_CLIENT_PLAN_SELFGEN env flag).
  *
  * Note (V3c scope): this slice takes compensations directly in the

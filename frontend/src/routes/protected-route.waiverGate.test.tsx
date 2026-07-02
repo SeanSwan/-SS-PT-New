@@ -99,6 +99,28 @@ describe('ProtectedRoute waiver mirror', () => {
     expect(screen.getByTestId('protected')).toHaveTextContent('protected dashboard');
   });
 
+  it('treats the legacy raw user role as a client for dashboard role checks', () => {
+    renderProtected('/dashboard/client/overview', {
+      id: '42',
+      role: 'user',
+    });
+
+    expect(screen.getByTestId('protected')).toHaveTextContent('protected dashboard');
+  });
+
+  it('still redirects a raw user dashboard session to waiver linkage when required', async () => {
+    renderProtected('/dashboard/client/overview', {
+      id: '42',
+      role: 'user',
+      hasLinkedWaiver: false,
+      waiverStatus: 'missing',
+    });
+
+    expect(await screen.findByTestId('location')).toHaveTextContent(
+      '/waiver?returnUrl=%2Fdashboard%2Fclient%2Foverview'
+    );
+  });
+
   it('does not require admin operators to have a client waiver', () => {
     renderProtected('/dashboard/admin/overview', {
       id: '1',

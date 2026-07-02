@@ -57,8 +57,232 @@ describe('WorkoutLogger.loadTodaysPlanIntoLogger', () => {
     }
 
     expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
-    expect(toastMock.info).toHaveBeenCalledWith('No active workout plan found for this client');
+    expect(toastMock.info).toHaveBeenCalledWith('No active workout plan found for this training profile');
     expect(toastMock.error).not.toHaveBeenCalled();
     expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('treats a 200 plan-pending response as no active plan when no route target is requested', async () => {
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        data: null,
+        plan: null,
+        todayAssignment: {
+          assignmentKey: null,
+          assignmentType: 'none',
+          status: 'none',
+          isLoggable: false,
+          title: 'Plan pending',
+          exercises: [],
+        },
+
+      },
+    });
+    const params = {
+      ...baseParams(),
+      setLoadedPlanContext: vi.fn(),
+    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+
+    await loadTodaysPlanIntoLogger(params);
+
+    expect(params.setExercises).not.toHaveBeenCalled();
+    expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(null);
+    expect(toastMock.info).toHaveBeenCalledWith('No active workout plan found for this training profile');
+    expect(toastMock.info).not.toHaveBeenCalledWith(expect.stringMatching(/not loggable/i));
+    expect(toastMock.success).not.toHaveBeenCalled();
+  });
+  it('loads a route-targeted generated picker day as a draft when todayAssignment is different', async () => {
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        currentSession: null,
+        todayAssignment: {
+          assignmentKey: 'plan-6m:w1:d1:homework',
+          assignmentType: 'homework',
+          isLoggable: true,
+          title: 'Today Homework',
+          exercises: [
+            { exerciseId: 'today-row', exerciseName: 'Today Row', sets: 2, targetReps: '8' },
+          ],
+        },
+        plan: { id: 'plan-6m', name: 'Six Month Arc', days: [] },
+        assignmentPicker: [
+          {
+            id: 'plan-6m:w1:d3:homework',
+            assignmentKey: 'plan-6m:w1:d3:homework',
+            assignmentType: 'homework',
+            planId: 'plan-6m',
+            planTitle: 'Six Month Arc',
+            isCurrent: false,
+            isLoadable: true,
+            canSubmitPlannedAssignment: false,
+            submitMode: 'draft_only',
+            title: 'Posterior Chain Draft',
+            weekNumber: 1,
+            dayNumber: 3,
+            dayLabel: 'Posterior Chain',
+            exercises: [
+              { exerciseId: 'rdl', exerciseName: 'Romanian Deadlift', sets: 3, targetReps: '8' },
+            ],
+          },
+        ],
+      },
+    });
+    const params = {
+      ...baseParams(),
+      routeAssignmentKey: 'plan-6m:w1:d3:homework',
+      routeAssignmentType: 'homework',
+      setLoadedPlanContext: vi.fn(),
+    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+
+    await loadTodaysPlanIntoLogger(params);
+
+    expect(params.setExercises).toHaveBeenCalledTimes(1);
+    const updateExercises = params.setExercises.mock.calls[0][0] as (previous: unknown[]) => unknown[];
+    expect(updateExercises([])).toEqual([
+      expect.objectContaining({
+        exerciseId: 'rdl',
+        exerciseName: 'Romanian Deadlift',
+        sets: expect.arrayContaining([
+          expect.objectContaining({ reps: 8, rpe: null, formQuality: null }),
+        ]),
+      }),
+    ]);
+    expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(expect.objectContaining({
+      assignmentKey: 'plan-6m:w1:d3:homework',
+      planId: 'plan-6m',
+      title: 'Posterior Chain Draft',
+    }));
+    expect(toastMock.success).toHaveBeenCalledWith('Loaded 1 exercise from Posterior Chain Draft as a draft.');
+    expect(toastMock.info).not.toHaveBeenCalledWith(expect.stringMatching(/assignment changed/i));
+  });
+  it('does not load homework exercises into a booked scheduled-session handoff', async () => {
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        currentSession: {
+          weekNumber: 2,
+          dayNumber: 3,
+          dayLabel: 'Homework Day',
+          exercises: [
+            { exerciseId: 'homework-row', exerciseName: 'Homework Row', sets: 2, targetReps: '10' },
+          ],
+        },
+        todayAssignment: {
+          assignmentKey: 'plan-6m:w2:d3:homework',
+          assignmentType: 'homework',
+          source: 'workout_plan',
+          isBillable: false,
+          shouldDeductSession: false,
+          isLoggable: true,
+          title: 'Off-Day Homework',
+          weekNumber: 2,
+          dayNumber: 3,
+          dayLabel: 'Homework Day',
+          exerciseCount: 1,
+          exercises: [
+            { exerciseId: 'homework-row', exerciseName: 'Homework Row', sets: 2, targetReps: '10' },
+          ],
+        },
+        plan: { id: 'plan-6m', name: 'Six Month Arc', days: [] },
+      },
+    });
+    const params = {
+      ...baseParams(),
+      routeAssignmentType: 'homework',
+      scheduledSessionId: '314',
+      setLoadedPlanContext: vi.fn(),
+    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+
+    await loadTodaysPlanIntoLogger(params);
+
+    expect(params.setExercises).not.toHaveBeenCalled();
+    expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(null);
+    expect(toastMock.info).toHaveBeenCalledWith(
+      'Today\'s assignment changed. Open it again from your dashboard before logging.',
+    );
+    expect(toastMock.success).not.toHaveBeenCalled();
+  });
+  it('does not load a legacy plan-day fallback into a booked scheduled-session handoff', async () => {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = dayNames[new Date().getDay()];
+
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        currentSession: null,
+        todayAssignment: null,
+        plan: {
+          id: 'legacy-plan',
+          name: 'Legacy Plan',
+          days: [{
+            dayName: todayName,
+            exercises: [
+              { exerciseId: 'legacy-row', exerciseName: 'Legacy Row', sets: 2, reps: '8' },
+            ],
+          }],
+        },
+      },
+    });
+    const params = {
+      ...baseParams(),
+      scheduledSessionId: '314',
+      setLoadedPlanContext: vi.fn(),
+    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+
+    await loadTodaysPlanIntoLogger(params);
+
+    expect(params.setExercises).not.toHaveBeenCalled();
+    expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(null);
+    expect(toastMock.info).toHaveBeenCalledWith(
+      'Today\'s assignment changed. Open it again from your dashboard before logging.',
+    );
+    expect(toastMock.success).not.toHaveBeenCalled();
+  });
+  it('preserves display context when loading the legacy plan-day fallback without planned submit metadata', async () => {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = dayNames[new Date().getDay()];
+
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        currentSession: null,
+        todayAssignment: null,
+        plan: {
+          id: 'legacy-plan',
+          name: 'Legacy Plan',
+          days: [{
+            dayName: todayName,
+            exercises: [
+              { exerciseId: 'legacy-squat', exerciseName: 'Legacy Squat', sets: 2, reps: '8' },
+            ],
+          }],
+        },
+      },
+    });
+    const params = {
+      ...baseParams(),
+      setLoadedPlanContext: vi.fn(),
+    } as ReturnType<typeof baseParams> & { setLoadedPlanContext: ReturnType<typeof vi.fn> };
+
+    await loadTodaysPlanIntoLogger(params);
+
+    expect(params.setExercises).toHaveBeenCalledTimes(1);
+    expect(params.setPlannedAssignment).toHaveBeenCalledWith(null);
+    expect(params.setLoadedPlanContext).toHaveBeenCalledWith(expect.objectContaining({
+      assignmentKey: null,
+      planId: 'legacy-plan',
+      source: 'workout_plan',
+      title: `${todayName}'s plan`,
+      dayLabel: todayName,
+      exerciseCount: 1,
+      firstExerciseName: 'Legacy Squat',
+    }));
+    expect(toastMock.success).toHaveBeenCalledWith(`Loaded 1 exercises from ${todayName}'s plan`);
   });
 });

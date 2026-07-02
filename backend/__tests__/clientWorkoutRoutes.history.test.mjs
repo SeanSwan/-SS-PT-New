@@ -12,6 +12,7 @@ import express from 'express';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
+const mockDailyWorkoutFormModel = { name: 'DailyWorkoutForm' };
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -47,6 +48,7 @@ beforeEach(() => {
     clientId: 42,
     models: {
       WorkoutSession: { findAll: mockWorkoutSessionFindAll },
+      DailyWorkoutForm: mockDailyWorkoutFormModel,
     },
   });
   mockWorkoutSessionFindAll.mockResolvedValue([]);
@@ -82,5 +84,55 @@ describe('clientWorkoutRoutes GET /:userId/history', () => {
       code: 'INTERNAL_ERROR',
     });
     expect(JSON.stringify(res.body)).not.toContain('sql detail: private table name');
+  });
+  it('returns planned-assignment context from joined daily workout forms', async () => {
+    mockWorkoutSessionFindAll.mockResolvedValue([{
+      id: 'session-1',
+      title: 'Personal Training Session - 2026-06-06',
+      completedAt: '2026-06-06T12:30:00.000Z',
+      duration: 42,
+      totalSets: 6,
+      dailyForms: [{
+        formData: {
+          plannedAssignment: {
+            assignmentKey: 'plan-6m:w4:d2:homework',
+            assignmentType: 'homework',
+            title: 'Coach Homework Lower Body',
+            weekNumber: 4,
+            dayNumber: 2,
+            firstExerciseName: 'Goblet Squat',
+          },
+          exercises: [{ exerciseName: 'Goblet Squat' }],
+        },
+      }],
+    }]);
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/history')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(mockWorkoutSessionFindAll).toHaveBeenCalledWith(expect.objectContaining({
+      include: [expect.objectContaining({
+        model: mockDailyWorkoutFormModel,
+        as: 'dailyForms',
+        attributes: ['id', 'formData', 'createdAt'],
+      })],
+    }));
+    expect(res.body.data[0]).toMatchObject({
+      id: 'session-1',
+      name: 'Coach Homework Lower Body',
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        assignmentType: 'homework',
+        title: 'Coach Homework Lower Body',
+        weekNumber: 4,
+        dayNumber: 2,
+        firstExerciseName: 'Goblet Squat',
+      },
+      exerciseCount: 1,
+      exerciseNames: ['Goblet Squat'],
+    });
   });
 });

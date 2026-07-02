@@ -9,7 +9,7 @@
 import * as hermesService from '../../hermes/hermesService.mjs';
 
 export const dispatchCreateHermesTask = async (params = {}, ctx = {}) => {
-  const task = hermesService.createTask({
+  const task = await hermesService.createTask({
     agentType: params.agentType,
     taskTitle: params.taskTitle,
     taskDescription: params.taskDescription,
@@ -29,8 +29,8 @@ export const dispatchCreateHermesTask = async (params = {}, ctx = {}) => {
 
 export const dispatchListHermesTasks = async (params = {}, ctx = {}) => {
   // Owner scope (IDOR fix): a non-admin operator sees only their own task counts;
-  // admins see all. Fail-closed — missing user context yields the deny-all path.
-  const result = hermesService.listTasks({
+  // admins see all. Fail-closed - missing user context yields the deny-all path.
+  const result = await hermesService.listTasks({
     agentType: params.agentType || undefined,
     status: params.status || undefined,
     requestedBy: ctx?.user?.id,

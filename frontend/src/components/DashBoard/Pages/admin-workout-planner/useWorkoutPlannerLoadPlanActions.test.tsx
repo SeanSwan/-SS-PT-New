@@ -83,6 +83,54 @@ describe('useWorkoutPlannerLoadPlanActions', () => {
     }));
   });
 
+  it('preserves Swan Coach planning metadata when reloading a generated plan', async () => {
+    const swanCoachPlanning = {
+      createdBy: 'swan_coach_planning',
+      identityMode: 'client_id_only',
+      horizonWeeks: 4,
+      dataCategoriesUsed: ['workout history'],
+    };
+    const trainingStyle = {
+      mode: 'hardcore',
+      method: 'standard',
+      label: 'Hardcore Sean Style',
+      cue: 'High-intent blocks with guardrails.',
+    };
+    const { hook, setters } = renderLoadHook({
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning,
+      trainingStyle,
+      planSummary: {
+        durationWeeks: 4,
+        sessionsPerWeek: 3,
+        totalSessions: 12,
+        primaryGoal: 'strength',
+        startingPhase: 3,
+        trainingStyle,
+      },
+      mesocycles: [{ mesocycle: 1, weeks: '1-4' }],
+      weeklySchedule: [{ dayNumber: 1, focus: 'full body', category: 'full_body' }],
+      recommendations: [],
+      weeks: [{
+        weekNumber: 1,
+        days: [{
+          dayNumber: 1,
+          exercises: [{ exerciseId: 'ex-1', exerciseName: 'Generated Squat' }],
+        }],
+      }],
+    });
+
+    await act(async () => {
+      await hook.result.current.loadPlanIntoBuilder('plan-3', 'Reloaded Swan Coach Plan');
+    });
+
+    expect(setters.setGeneratedPlan).toHaveBeenCalledWith(expect.objectContaining({
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning,
+      trainingStyle,
+    }));
+  });
+
   it('still hydrates manual saved plans into the builder rows', async () => {
     const { hook, setters } = renderLoadHook({
       goal: 'general_fitness',

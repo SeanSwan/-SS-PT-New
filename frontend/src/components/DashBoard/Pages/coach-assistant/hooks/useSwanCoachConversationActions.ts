@@ -48,9 +48,19 @@ export function useSwanCoachConversationActions({
     const nextActive = !macroLinkActive;
     setMacroLinkActive(nextActive);
     if (nextActive) {
+      const macroTargetClientId = selectedClient?.id;
+      if (typeof macroTargetClientId === 'number' && macroTargetClientId > 0) {
+        await chat.createConversation(
+          'macro_logging',
+          'Macro Context Session',
+          macroTargetClientId,
+        );
+        return;
+      }
+
       await chat.createConversation('macro_logging', 'Macro Context Session');
     }
-  }, [chat, macroLinkActive]);
+  }, [chat, macroLinkActive, selectedClient?.id]);
 
   const handleCreateIntakeDraft = useCallback(async (text: string) => {
     try {

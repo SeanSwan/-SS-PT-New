@@ -29,6 +29,18 @@ function workoutLoggedSummary({ r, forClient }: SummaryContext): string {
   return `Workout logged${forClient}.${count}${sets}${xp}`;
 }
 
+function workoutPlanDebateLabel(command: string): string {
+  if (command === 'create_nasm_program') return 'NASM program debate';
+  if (command === 'generate_periodization') return 'Periodization debate';
+  return 'Workout plan debate';
+}
+
+function workoutPlanDebateSummary({ command, r, forClient }: SummaryContext): string {
+  const jobId = stringValue(r, 'jobId')?.trim();
+  const status = jobId ? ` Track progress at /api/ai/debate/${jobId}/status.` : '';
+  return `${workoutPlanDebateLabel(command)} started${forClient}.${status} No workout plan has been saved yet.`;
+}
+
 function mealsLoggedSummary({ r, forClient }: SummaryContext): string {
   const count = numberOr(r, 'mealsLogged', 0);
   const dateStr = stringPart(r, 'date', value => ` on ${value}`);
@@ -198,6 +210,9 @@ function listHermesTasksSummary({ r }: SummaryContext): string {
 
 const COMMAND_SUMMARY_HANDLERS: Record<string, SummaryHandler> = {
   log_workout: workoutLoggedSummary,
+  build_workout_plan: workoutPlanDebateSummary,
+  create_nasm_program: workoutPlanDebateSummary,
+  generate_periodization: workoutPlanDebateSummary,
   log_meals: mealsLoggedSummary,
   create_client: clientOnboardingSummary,
   create_external_client: clientOnboardingSummary,

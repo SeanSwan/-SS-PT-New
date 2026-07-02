@@ -60,6 +60,7 @@ export const buildClientCoachDailyRoute = (
 export const buildClientCoachOnboardingRoute = () => {
   const params = new URLSearchParams({
     source: 'clients-team',
+    workspace: 'onboarding',
     returnTo: CLIENT_MANAGEMENT_BASE,
     intent: 'client_onboarding',
   });
@@ -71,6 +72,22 @@ export const buildClientWorkoutLoggerRoute = (clientId: number | string) => {
   return buildClientManagementReturnTo(clientId, 'logger');
 };
 
+export const buildClientWorkoutPlannerReturnTo = (clientId: number | string) => {
+  return buildClientManagementReturnTo(clientId, 'plans');
+};
+
 export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {
-  return buildClientManagementReturnTo(clientId, 'architect');
+  const parsedClientId = parseClientDailyRouteClientId(clientId);
+  if (!parsedClientId) return null;
+
+  const returnTo = buildClientWorkoutPlannerReturnTo(parsedClientId);
+  if (!returnTo) return null;
+
+  const params = new URLSearchParams({
+    clientId: String(parsedClientId),
+    source: 'clients-team',
+    returnTo,
+  });
+
+  return `/dashboard/admin/workout-planner?${params.toString()}`;
 };

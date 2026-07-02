@@ -112,7 +112,7 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('const userNumericId = parseStrictPositiveInteger(req.user.id);');
     expect(submitRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
     expect(submitRoute).toContain("message: 'Valid client ID is required'");
-    expect(submitRoute).toContain('isWorkoutSelfLogRole(userRole) && parsedClientId !== userNumericId');
+    expect(submitRoute).toContain("isWorkoutSelfLogRole(userRole) && parsedClientId !== userNumericId");
     expect(submitRoute).toContain('clientId: parsedClientId');
     expect(submitRoute).toContain('userId: parsedClientId');
     expect(submitRoute).not.toMatch(/parseInt\(clientId/);
@@ -160,6 +160,8 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('creditsRequired: billingReceiptCreditsRequired');
     expect(submitRoute).toContain('remainingSessions: billingReceiptRemainingSessions');
     expect(submitRoute).toContain('billing: billingReceipt');
+    expect(submitRoute).toContain('formData.scheduledSessionId = linkedScheduledSession.id');
+    expect(submitRoute).toContain('...(linkedScheduledSession ? { scheduledSessionId: linkedScheduledSession.id } : {})');
     expect(submitRoute).toContain('checkInTime: linkedScheduledSession.checkInTime || scheduledSessionCompletionDate');
     expect(submitRoute).toContain('const scheduledSessionAttendanceRecorderId = isSelfWorkoutLogActor');
     expect(submitRoute).toContain('markedPresentBy: scheduledSessionAttendanceRecorderId');

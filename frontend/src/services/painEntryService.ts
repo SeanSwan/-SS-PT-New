@@ -1,17 +1,7 @@
-/**
- * Pain Entry Service
- * ==================
- * Typed API layer for the Pain/Injury Tracking system.
- * Uses the production apiService (authAxios) for token refresh and auth headers.
- *
- * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
- */
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
 export type PainSide = 'left' | 'right' | 'center' | 'bilateral';
 export type PainType = 'sharp' | 'dull' | 'aching' | 'burning' | 'tingling' | 'numbness' | 'stiffness' | 'throbbing';
 export type PosturalSyndrome = 'upper_crossed' | 'lower_crossed' | 'none';
+export type BodyMapEvidenceStatus = 'pending' | 'processing' | 'needs_review' | 'approved' | 'rejected' | 'failed';
 
 export interface PainEntry {
   id: number;
@@ -52,45 +42,104 @@ export interface CreatePainEntryPayload {
 
 export interface UpdatePainEntryPayload extends Partial<CreatePainEntryPayload> {}
 
-// ── Service factory ────────────────────────────────────────────────────────
+export interface BodyMapEvidenceCaptureContext {
+  movement?: string | null;
+  exerciseName?: string | null;
+  phaseOfMovement?: string | null;
+  cameraAngle?: string | null;
+  moment?: string | null;
+  clientCaption?: string | null;
+}
+
+export interface BodyMapEvidence {
+  id: number;
+  painEntryId: number;
+  userId: number;
+  uploadedById: number | null;
+  reviewedById: number | null;
+  originalFilename: string | null;
+  mimeType: string;
+  fileSize: number;
+  mediaType: 'image' | 'video';
+  mediaUrl: string | null;
+  captureContext: BodyMapEvidenceCaptureContext;
+  analysisStatus: BodyMapEvidenceStatus;
+  aiAnalysis?: Record<string, any> | null;
+  trainerReview?: Record<string, any> | null;
+  analysisSummary?: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BodyMapEvidenceReviewPayload {
+  decision: 'approved' | 'rejected';
+  clientSummary?: string;
+  swanCoachNotes?: string;
+  safetyConstraints?: string[];
+  internalNotes?: string;
+}
 
 export function createPainEntryService(authAxios: any) {
   const BASE = '/api/pain-entries';
+  const EVIDENCE_BASE = '/api/body-map-evidence';
 
   return {
-    /** Get all pain entries for a user (active + resolved) */
     async getAll(userId: number): Promise<{ success: boolean; entries: PainEntry[]; count: number }> {
       const { data } = await authAxios.get(`${BASE}/${userId}`);
       return { success: data.success, entries: data.data || [], count: data.count || 0 };
     },
 
-    /** Get only active pain entries for a user */
     async getActive(userId: number): Promise<{ success: boolean; entries: PainEntry[]; count: number }> {
       const { data } = await authAxios.get(`${BASE}/${userId}/active`);
       return { success: data.success, entries: data.data || [], count: data.count || 0 };
     },
 
-    /** Create a new pain entry */
     async create(userId: number, payload: CreatePainEntryPayload): Promise<{ success: boolean; entry: PainEntry }> {
       const { data } = await authAxios.post(`${BASE}/${userId}`, payload);
       return data;
     },
 
-    /** Update an existing pain entry */
     async update(userId: number, entryId: number, payload: UpdatePainEntryPayload): Promise<{ success: boolean; entry: PainEntry }> {
       const { data } = await authAxios.put(`${BASE}/${userId}/${entryId}`, payload);
       return data;
     },
 
-    /** Mark a pain entry as resolved */
     async resolve(userId: number, entryId: number): Promise<{ success: boolean; entry: PainEntry }> {
       const { data } = await authAxios.put(`${BASE}/${userId}/${entryId}/resolve`);
       return data;
     },
 
-    /** Delete a pain entry (admin only) */
     async remove(userId: number, entryId: number): Promise<{ success: boolean; message: string }> {
       const { data } = await authAxios.delete(`${BASE}/${userId}/${entryId}`);
+      return data;
+    },
+
+    async getEvidence(userId: number, entryId: number): Promise<{ success: boolean; evidence: BodyMapEvidence[]; count: number }> {
+      const { data } = await authAxios.get(`${EVIDENCE_BASE}/${userId}/${entryId}`);
+      return { success: data.success, evidence: data.data || [], count: data.count || 0 };
+    },
+
+    async uploadEvidence(userId: number, entryId: number, file: File, captureContext: BodyMapEvidenceCaptureContext): Promise<{ success: boolean; evidence: BodyMapEvidence }> {
+      const formData = new FormData();
+      formData.append('media', file);
+      formData.append('captureContext', JSON.stringify(captureContext));
+      const { data } = await authAxios.post(`${EVIDENCE_BASE}/${userId}/${entryId}`, formData);
+      return { success: data.success, evidence: data.data };
+    },
+
+    async analyzeEvidence(userId: number, entryId: number, mediaId: number): Promise<{ success: boolean; evidence: BodyMapEvidence }> {
+      const { data } = await authAxios.post(`${EVIDENCE_BASE}/${userId}/${entryId}/${mediaId}/analyze`);
+      return { success: data.success, evidence: data.data };
+    },
+
+    async reviewEvidence(userId: number, entryId: number, mediaId: number, payload: BodyMapEvidenceReviewPayload): Promise<{ success: boolean; evidence: BodyMapEvidence }> {
+      const { data } = await authAxios.put(`${EVIDENCE_BASE}/${userId}/${entryId}/${mediaId}/review`, payload);
+      return { success: data.success, evidence: data.data };
+    },
+
+    async removeEvidence(userId: number, entryId: number, mediaId: number): Promise<{ success: boolean; message: string }> {
+      const { data } = await authAxios.delete(`${EVIDENCE_BASE}/${userId}/${entryId}/${mediaId}`);
       return data;
     },
   };

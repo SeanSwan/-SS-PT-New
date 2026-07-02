@@ -27,7 +27,7 @@ import {
   UploadPhotoButton,
 } from './UserDashboardBackgroundControls.styles';
 
-interface UserDashboardBackgroundControlsProps {
+export interface UserDashboardBackgroundControlsProps {
   preference: UserDashboardBackgroundPreference;
   activeBackground: UserDashboardBackgroundRecipe;
   customUploadError: string | null;

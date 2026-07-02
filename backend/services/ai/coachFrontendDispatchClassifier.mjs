@@ -6,7 +6,6 @@ const SAFE_FRONTEND_EVENTS = new Set([
   'AI_UPDATE_SET',
   'AI_TOGGLE_NASM_ITEM',
 ]);
-const WRITE_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
 const SAFE_FRONTEND_PAYLOAD_FIELDS = Object.freeze({
   AI_ADD_EXERCISE: ['exerciseName', 'sets', 'reps', 'weight', 'tempo', 'restSeconds', 'notes'],
   AI_LOAD_TEMPLATE: ['phase'],
@@ -64,11 +63,7 @@ export function parseSafeFrontendDispatch(block) {
     : null;
 }
 
-export function classifyWriteFrontendDispatch(payload, proposalTypes, meta = null) {
-  const parsed = safeParseFrontendDispatch(payload);
-  if (!parsed || !WRITE_FRONTEND_EVENTS.has(parsed.event)) return null;
-  return {
-    type: proposalTypes.FRONTEND_DISPATCH,
-    payload: meta ? { ...parsed, proposalMeta: meta } : parsed,
-  };
+export function classifyWriteFrontendDispatch() {
+  // Chat-authored final writes must use deterministic workout_log proposals or the confirmed command lane.
+  return null;
 }

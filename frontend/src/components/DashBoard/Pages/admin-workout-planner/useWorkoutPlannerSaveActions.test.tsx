@@ -102,6 +102,7 @@ describe('useWorkoutPlannerSaveActions', () => {
     expect(input.setStatusMsg).toHaveBeenCalledWith({
       type: 'success',
       text: 'Plan saved and made current. PDF attached from the saved plan.',
+      nextAction: 'current-plan-ready',
     });
   });
 

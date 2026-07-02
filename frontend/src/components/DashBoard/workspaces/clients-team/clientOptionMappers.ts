@@ -37,6 +37,7 @@ export const mapAdminClientToClientOption = (client: any): ClientOption | null =
     clientSource: client.clientSource || 'swanstudios',
     sessionBillingMode: client.sessionBillingMode || 'paid_sessions',
     isActive: client.isActive !== false,
+    accountStatus: typeof client.accountStatus === 'string' ? client.accountStatus : undefined,
     availableSessions: normalizeAvailableSessions(client.availableSessions),
     workoutCount: normalizeWorkoutCount(client.totalWorkouts),
     fitnessGoal: client.fitnessGoal || '',

@@ -64,7 +64,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
     pathname: location.pathname,
     search: location.search,
     selectedClientId,
-  }), [location.pathname, location.search, selectedClientId]);
+    generatedPlan,
+  }), [generatedPlan, location.pathname, location.search, selectedClientId]);
 
   return (
     <Page>
@@ -110,6 +111,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       <WorkoutPlannerStatusAssistantStrip
         statusMsg={statusMsg}
         plannerReturnTo={plannerReturnTo}
+        activePlanLoggerRoute={activePlanLoggerRoute}
         selectedClientId={selectedClientId}
         degradedIntelligence={degradedIntelligence}
         hasPlanExercises={hasPlanExercises}

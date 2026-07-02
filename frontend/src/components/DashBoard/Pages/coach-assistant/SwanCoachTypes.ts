@@ -216,6 +216,17 @@ export interface FrontendAction {
   payload?: Record<string, unknown>;
 }
 
+export interface CoachProposalAccessHandoff {
+  credentialMode?: string;
+  claimCode?: string | null;
+  claimUrl?: string | null;
+  claimExpiresAt?: string | null;
+  resetEmailSent?: boolean;
+  resetUrl?: string | null;
+  resetExpiresAt?: string | null;
+  credentialIssue?: string | null;
+}
+
 export interface CoachActionProposal {
   id: string;
   type:
@@ -232,6 +243,8 @@ export interface CoachActionProposal {
   summary: Record<string, string | number | null | undefined>;
   detail?: Record<string, unknown>;
   reviewToken?: string | null;
+  accessHandoff?: CoachProposalAccessHandoff | null;
+  client?: Record<string, unknown>;
   createdAt?: string;
 }
 

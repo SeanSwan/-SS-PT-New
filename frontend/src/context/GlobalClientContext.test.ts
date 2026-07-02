@@ -2,15 +2,7 @@
  * GlobalClientContext — client list normalizer unit tests
  * ========================================================
  * Phase 12 hotfix 2026-04-15: locks the response-shape contract between
- * /api/admin/clients (nested data.clients) and
- * /api/client-trainer-assignments/trainer/:id (flat assignment array or
- * nested assignments object), and the resulting ActiveClient[] shape.
- *
- * The Phase 9 ClientPicker had a broken inline normalizer that read
- * `data.clients || data.data` — which returned the paginated object
- * `{clients, pagination}` instead of an array, then crashed inside a
- * silent try/catch. This test file makes the correct shape-matching
- * a regression-locked contract.
+ * /api/admin/clients and /api/client-trainer-assignments/trainer/:id.
  */
 import { describe, expect, it } from 'vitest';
 import {
@@ -29,14 +21,14 @@ describe('normalizeClientListResponse — admin path', () => {
             firstName: 'Alice',
             lastName: 'Admin',
             email: 'alice@example.com',
-          profileImageUrl: 'https://cdn/alice.jpg',
-          role: 'client',
-          clientSource: 'move_fitness',
-          availableSessions: 0,
-          totalWorkouts: 6,
-          lastWorkout: { date: '2026-05-20T12:00:00.000Z' },
-          nextSession: { sessionDate: '2026-05-27T12:00:00.000Z' },
-        },
+            profileImageUrl: 'https://cdn/alice.jpg',
+            role: 'client',
+            clientSource: 'move_fitness',
+            availableSessions: 0,
+            totalWorkouts: 6,
+            lastWorkout: { date: '2026-05-20T12:00:00.000Z' },
+            nextSession: { sessionDate: '2026-05-27T12:00:00.000Z' },
+          },
           {
             id: 2,
             firstName: 'Bob',
@@ -66,10 +58,12 @@ describe('normalizeClientListResponse — admin path', () => {
       nextSessionDate: '2026-05-27T12:00:00.000Z',
     });
     expect(out[1].id).toBe(2);
-    // The normalizer uses `??` which collapses null → undefined (single
-    // canonical "no photo" marker). This is intentional — downstream
-    // consumers only need one absence sentinel.
     expect(out[1].photo).toBeUndefined();
+  });
+
+  it('carries anatomy display profile data when present', () => {
+    const response = { data: { clients: [{ id: 7, firstName: 'Morgan', email: 'm@x.com', gender: 'female' }] } };
+    expect(normalizeClientListResponse(response, 'admin')[0].gender).toBe('female');
   });
 
   it('falls back to data:[] when data is a bare array (defensive)', () => {
@@ -87,12 +81,7 @@ describe('normalizeClientListResponse — admin path', () => {
   });
 
   it('handles missing optional fields without crashing', () => {
-    const response = {
-      data: {
-        clients: [{ id: 42 }],
-        pagination: {},
-      },
-    };
+    const response = { data: { clients: [{ id: 42 }], pagination: {} } };
     const out = normalizeClientListResponse(response, 'admin');
     expect(out[0]).toEqual({
       id: 42,
@@ -111,13 +100,8 @@ describe('normalizeClientListResponse — admin path', () => {
   });
 
   it('does NOT accept the pre-Phase-12 broken shape (top-level data.clients)', () => {
-    // The old picker's normalizer would have tried `data.clients` first
-    // and fallen through to `data.data` (an object, not an array). This
-    // test locks that the normalizer ALWAYS reads `data.data.clients`
-    // for admin, never top-level `data.clients`.
     const brokenShape = { clients: [{ id: 99, firstName: 'Ghost' }] };
-    const out = normalizeClientListResponse(brokenShape, 'admin');
-    expect(out).toEqual([]);
+    expect(normalizeClientListResponse(brokenShape, 'admin')).toEqual([]);
   });
 });
 
@@ -126,30 +110,8 @@ describe('normalizeClientListResponse — trainer path', () => {
     const response = {
       success: true,
       data: [
-        {
-          id: 100,
-          clientId: 1,
-          trainerId: 7,
-          client: {
-            id: 1,
-            firstName: 'Alice',
-            lastName: 'Trained',
-            email: 'alice@example.com',
-            profileImageUrl: 'https://cdn/alice.jpg',
-          },
-        },
-        {
-          id: 101,
-          clientId: 2,
-          trainerId: 7,
-          Client: {
-            // Legacy capital-C shape
-            id: 2,
-            firstName: 'Bob',
-            lastName: 'Builder',
-            email: 'bob@example.com',
-          },
-        },
+        { id: 100, client: { id: 1, firstName: 'Alice', lastName: 'Trained', email: 'alice@example.com', profileImageUrl: 'https://cdn/alice.jpg' } },
+        { id: 101, Client: { id: 2, firstName: 'Bob', lastName: 'Builder', email: 'bob@example.com' } },
       ],
     };
     const out = normalizeClientListResponse(response, 'trainer');
@@ -161,23 +123,18 @@ describe('normalizeClientListResponse — trainer path', () => {
       email: 'alice@example.com',
       photo: 'https://cdn/alice.jpg',
       role: undefined,
+      availableSessions: undefined,
+      clientSource: undefined,
+      totalWorkouts: undefined,
+      lastWorkoutDate: undefined,
+      nextSessionDate: undefined,
     });
     expect(out[1].firstName).toBe('Bob');
     expect(out[1].lastName).toBe('Builder');
   });
 
   it('maps { data: { assignments: [...] } } shape', () => {
-    const response = {
-      success: true,
-      data: {
-        assignments: [
-          {
-            id: 200,
-            client: { id: 3, firstName: 'Carol', lastName: 'Cardio', email: 'c@x.com' },
-          },
-        ],
-      },
-    };
+    const response = { success: true, data: { assignments: [{ id: 200, client: { id: 3, firstName: 'Carol', lastName: 'Cardio', email: 'c@x.com' } }] } };
     const out = normalizeClientListResponse(response, 'trainer');
     expect(out).toHaveLength(1);
     expect(out[0].firstName).toBe('Carol');
@@ -190,52 +147,17 @@ describe('normalizeClientListResponse — trainer path', () => {
   });
 
   it('falls back to the assignment row itself when no nested client field exists', () => {
-    // Some legacy routes return the client flat in the assignment row.
-    const response = {
-      data: [{ id: 4, firstName: 'Dave', lastName: 'Dead', email: 'd@x.com' }],
-    };
+    const response = { data: [{ id: 4, firstName: 'Dave', lastName: 'Dead', email: 'd@x.com' }] };
     const out = normalizeClientListResponse(response, 'trainer');
     expect(out[0].firstName).toBe('Dave');
   });
 
   it('maps the LIVE flat root shape { success, assignments: [...], totalClients }', () => {
-    // Regression test for production incident 2026-05-01: backend returns
-    // assignments at the root of the response body, not nested under data.
-    // The previous normalizer fell back to []; the trainer-side dropdown
-    // (Client Progress, Coach Assistant, etc.) stayed empty even when the
-    // API returned active assignments. Verified via curl probe against
-    // /api/client-trainer-assignments/trainer/98 on production (3 rows).
     const response = {
       success: true,
       assignments: [
-        {
-          id: 50,
-          clientId: 99,
-          trainerId: 98,
-          status: 'active',
-          client: {
-            id: 99,
-            firstName: 'QaClient',
-            lastName: 'Test',
-            email: 'qa@example.com',
-            clientSource: 'move_fitness',
-            availableSessions: 0,
-          },
-        },
-        {
-          id: 51,
-          clientId: 91,
-          trainerId: 98,
-          status: 'active',
-          client: {
-            id: 91,
-            firstName: 'QA',
-            lastName: 'TestClient',
-            email: 'qa.tc@example.com',
-            clientSource: 'swanstudios',
-            availableSessions: 8,
-          },
-        },
+        { id: 50, status: 'active', client: { id: 99, firstName: 'QaClient', lastName: 'Test', email: 'qa@example.com', clientSource: 'move_fitness', availableSessions: 0 } },
+        { id: 51, status: 'active', client: { id: 91, firstName: 'QA', lastName: 'TestClient', email: 'qa.tc@example.com', clientSource: 'swanstudios', availableSessions: 8 } },
       ],
       totalClients: 2,
     };
@@ -250,6 +172,9 @@ describe('normalizeClientListResponse — trainer path', () => {
       role: undefined,
       clientSource: 'move_fitness',
       availableSessions: 0,
+      totalWorkouts: undefined,
+      lastWorkoutDate: undefined,
+      nextSessionDate: undefined,
     });
     expect(out[1].firstName).toBe('QA');
   });
@@ -257,10 +182,6 @@ describe('normalizeClientListResponse — trainer path', () => {
 
 describe('ADMIN_CLIENT_LIST_LIMIT constant', () => {
   it('exports a sane upper bound for the admin dropdown pre-fetch', () => {
-    // The actual value is a product decision, not a test target. Lock
-    // the type and order of magnitude: must be a positive integer in
-    // the 50-5000 range (above the realistic roster, below the point
-    // where a single dropdown is itself a UX regression).
     expect(typeof ADMIN_CLIENT_LIST_LIMIT).toBe('number');
     expect(Number.isInteger(ADMIN_CLIENT_LIST_LIMIT)).toBe(true);
     expect(ADMIN_CLIENT_LIST_LIMIT).toBeGreaterThanOrEqual(50);
@@ -268,8 +189,6 @@ describe('ADMIN_CLIENT_LIST_LIMIT constant', () => {
   });
 
   it('is large enough to cover the realistic current roster (>100)', () => {
-    // Per the vision doc, admin + trainer-managed combined is well
-    // under 100 active clients today. 500 gives 5x headroom.
     expect(ADMIN_CLIENT_LIST_LIMIT).toBeGreaterThan(100);
   });
 });

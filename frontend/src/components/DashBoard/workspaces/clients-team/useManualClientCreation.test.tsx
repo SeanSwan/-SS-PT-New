@@ -191,6 +191,35 @@ describe('useManualClientCreation', () => {
     expect(handoff).toHaveTextContent('reset_link_ready');
     expect(handoff).toHaveTextContent('https://sswanstudios.com/reset-password/raw-token');
   });
+  it('uses backend credentialMode reset-link-sent without downgrading the handoff', async () => {
+    const user = userEvent.setup();
+    const onClientsChanged = vi.fn();
+    mocks.createClient.mockResolvedValue({
+      success: true,
+      data: {
+        client: {
+          id: 7,
+          firstName: 'Mode',
+          lastName: 'Sent',
+          email: 'mode.sent@example.test',
+        },
+        credentialMode: 'reset_link_sent',
+      },
+    });
+
+    render(<Harness onClientsChanged={onClientsChanged} />);
+
+    await user.click(screen.getByRole('button', { name: /create swan/i }));
+
+    await waitFor(() => {
+      expect(mocks.createClient).toHaveBeenCalledTimes(1);
+    });
+    expect(mocks.sendClientPasswordReset).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('creation-handoff')).toHaveTextContent('reset_link_sent');
+    expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({
+      variant: 'default',
+    }));
+  });
   it('keeps Move Fitness manual creation on the claim-link activation path', async () => {
     const user = userEvent.setup();
     const onClientsChanged = vi.fn();

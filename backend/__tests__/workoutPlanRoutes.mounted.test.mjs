@@ -522,6 +522,59 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       }));
     });
 
+    it('trainer + assigned plan PUT /:id cannot activate without the transaction-safe activate route', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Direct Active Bypass Attempt',
+        status: 'draft',
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({ status: 'active' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/activate endpoint/i);
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('trainer + assigned plan PUT /:id cannot set primary flags through generic metadata updates', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Primary Metadata Bypass Attempt',
+        status: 'draft',
+        metadata: { planHorizon: 'three_month', painAware: true },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          metadata: {
+            planHorizon: 'six_month',
+            isPrimaryPlan: true,
+            primary: true,
+          },
+        });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        metadata: { planHorizon: 'six_month', painAware: true },
+      }));
+    });
+
     it('trainer + assigned plan PUT /:id/advance follows explicit numbered week/day cursors', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
@@ -853,6 +906,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         id: 'plan-9m',
         userId: 42,
         title: 'Nine Month Plan',
+        status: 'active',
         metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, primary: false, painAware: true },
         update: targetUpdate,
       });
@@ -860,6 +914,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         {
           id: 'plan-6m',
           userId: 42,
+          status: 'active',
           metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
           update: siblingUpdate,
         },

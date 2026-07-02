@@ -38,7 +38,7 @@ describe('CoachCommandOpsRail workout command panel', () => {
     );
     expect(within(opsRail).getByRole('link', { name: /open build plan/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
+      '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
     expect(within(opsRail).getByRole('link', { name: /resume workflow/i })).toHaveAttribute(
       'href',

@@ -61,6 +61,7 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
     bodyMeasurements,
     movementProfile,
     trainingVault,
+    activeProgram,
   ] = await Promise.all([
     fetchWorkoutSessions(userId, cutoffDate, models),
     fetchLatestBaseline(userId, models),
@@ -68,6 +69,7 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
     fetchBodyMeasurements(userId, cutoffDate, models),
     fetchMovementProfile(userId, models),
     fetchTrainingVaultContext(userId, models),
+    fetchActiveProgramPlan(userId, models),
   ]);
 
   // Extract per-set logs from sessions
@@ -109,6 +111,7 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
     bodyComposition,
     correctiveBias,
     trainingVault,
+    activeProgram,
   };
 }
 
@@ -216,6 +219,31 @@ async function fetchTrainingVaultContext(userId, models) {
     });
   } catch (err) {
     logger.warn('5C-B: Failed to fetch training vault context:', err.message);
+    return null;
+  }
+}
+
+async function fetchActiveProgramPlan(userId, models) {
+  try {
+    const { LongTermProgramPlan } = models || {};
+    if (!LongTermProgramPlan) return null;
+
+    const plan = await LongTermProgramPlan.findOne({
+      where: { userId, status: 'active' },
+      order: [['createdAt', 'DESC']],
+    });
+    if (!plan) return null;
+
+    const plain = typeof plan.get === 'function' ? plan.get({ plain: true }) : plan;
+    return {
+      id: plain.id,
+      horizonMonths: plain.horizonMonths,
+      goalProfile: plain.goalProfile,
+      status: plain.status,
+      sourceType: plain.sourceType,
+    };
+  } catch (err) {
+    logger.warn('5C-B: Failed to fetch active program plan:', err.message);
     return null;
   }
 }

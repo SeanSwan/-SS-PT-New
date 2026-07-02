@@ -207,8 +207,11 @@ const ClientsWorkspace: React.FC = () => {
     handleDeactivateClient,
     handleReactivateClient,
     handleSendPasswordReset,
+    handleGenerateClaimLink,
     deactivationConfirmation,
     closeDeactivationConfirmation,
+    passwordResetHandoff,
+    clearPasswordResetHandoff,
   } = useClientAccountLifecycle({
     authAxios,
     selectedClient,
@@ -225,16 +228,15 @@ const ClientsWorkspace: React.FC = () => {
     clearCreationHandoff,
     handleManualCreate,
   } = useManualClientCreation({ onClientsChanged: loadClients });
-
+  const clientAccessHandoff = passwordResetHandoff ?? creationHandoff;
+  const clearClientAccessHandoff = passwordResetHandoff ? clearPasswordResetHandoff : clearCreationHandoff;
   const handleCopyCreationHandoff = useCallback(async (value: string, label: string) => {
     const copied = await copyTextToClipboard(getBrowserClipboard(), value);
     toast(buildCreationHandoffCopyToast(label, copied));
   }, [toast]);
 
   const handleManageAssignments = useCallback(() => navigate('/dashboard/admin/client-trainer-assignments'), [navigate]);
-
-  const detailClient = useMemo(() => toMiniCardClient(selectedClient), [selectedClient]);
-  const {
+  const detailClient = useMemo(() => toMiniCardClient(selectedClient), [selectedClient]); const {
     renderTraining,
     renderProgress,
     renderNutrition,
@@ -259,7 +261,7 @@ const ClientsWorkspace: React.FC = () => {
       loading={loading}
       manualCreateOpen={manualCreateOpen}
       manualCreateTrainers={manualCreateTrainers}
-      creationHandoff={creationHandoff}
+      creationHandoff={clientAccessHandoff}
       deactivationConfirmation={deactivationConfirmation}
       renderTraining={renderTraining}
       renderProgress={renderProgress}
@@ -275,11 +277,12 @@ const ClientsWorkspace: React.FC = () => {
       onDeactivateClient={handleDeactivateClient}
       onReactivateClient={handleReactivateClient}
       onSendPasswordReset={handleSendPasswordReset}
+      onGenerateClaimLink={handleGenerateClaimLink}
       onManageAssignments={handleManageAssignments}
       onManualCreateClient={openManualCreate}
       onCloseManualCreate={closeManualCreate}
       onManualCreate={handleManualCreate}
-      onDismissCreationHandoff={clearCreationHandoff}
+      onDismissCreationHandoff={clearClientAccessHandoff}
       onCopyCreationHandoff={handleCopyCreationHandoff}
       onCloseDeactivationConfirmation={closeDeactivationConfirmation}
       onLogWorkout={handleLogWorkout}

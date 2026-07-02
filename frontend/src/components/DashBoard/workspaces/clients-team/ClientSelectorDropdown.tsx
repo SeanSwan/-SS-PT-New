@@ -45,6 +45,7 @@ export interface ClientOption {
   clientSource?: string;
   sessionBillingMode?: string;
   isActive?: boolean;
+  accountStatus?: string;
   availableSessions?: number;
   workoutCount?: number;
   lastSessionDate?: string | null;

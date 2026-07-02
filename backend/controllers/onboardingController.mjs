@@ -7,7 +7,12 @@ import { triggerSequence } from '../services/automationService.mjs';
 import { generateChallengesFromGoals } from '../services/gamification/goalChallengeService.mjs';
 import { transformQuestionnaireToMasterPrompt } from '../services/onboardingMasterPromptBuilder.mjs';
 import { computeDerivedFields } from '../utils/onboardingHelpers.mjs';
-import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
+import { buildOnboardingResetLinkHandoff } from '../services/onboardingResetHandoffService.mjs';
+import {
+  parseHeightInches,
+  parseOptionalFloat,
+  persistCompletedOnboardingQuestionnaire,
+} from '../services/onboardingCompletionPersistenceService.mjs';
 
 export { transformQuestionnaireToMasterPrompt };
 
@@ -15,6 +20,8 @@ const parsePositiveUserId = (value) => {
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
+
+const isClientSelfOnboardingRole = (role) => role === 'client' || role === 'user';
 
 /**
  * Onboarding Controller
@@ -81,9 +88,16 @@ export const createClientOnboarding = async (req, res) => {
         // Update other client-specific fields
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender,
-        weight: formData.currentWeight,
-        height: formData.heightFeet * 12 + formData.heightInches, // Convert to inches
-        fitnessGoal: formData.primaryGoal
+        weight: parseOptionalFloat(formData.currentWeight, user.weight),
+        height: parseHeightInches(formData, user.height),
+        fitnessGoal: formData.primaryGoal,
+        isOnboardingComplete: true
+      });
+
+      await persistCompletedOnboardingQuestionnaire({
+        userId: user.id,
+        createdBy: req.user?.id || null,
+        formData,
       });
 
       // Also update/create PII record
@@ -103,6 +117,10 @@ export const createClientOnboarding = async (req, res) => {
         }
       });
 
+      const resetHandoff = user.forcePasswordChange === true
+        ? await buildOnboardingResetLinkHandoff(user)
+        : {};
+
       return res.status(200).json({
         success: true,
         message: 'Client onboarding updated successfully',
@@ -110,6 +128,7 @@ export const createClientOnboarding = async (req, res) => {
           userId: user.id,
           clientId: `PT-${String(user.id).padStart(5, '0')}`,
           email: user.email,
+          ...resetHandoff,
           masterPromptCreated: true
         }
       });
@@ -124,21 +143,29 @@ export const createClientOnboarding = async (req, res) => {
         email: formData.email,
         username: formData.email.split('@')[0], // Use email prefix as username
         password: accountSeedPassword,
+        forcePasswordChange: true,
         phone: formData.phone,
         role: 'client',
         masterPromptJson: masterPromptJson,
         // Client-specific fields
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender,
-        weight: formData.currentWeight,
-        height: formData.heightFeet * 12 + formData.heightInches, // Convert to inches
+        weight: parseOptionalFloat(formData.currentWeight),
+        height: parseHeightInches(formData),
         fitnessGoal: formData.primaryGoal,
+        isOnboardingComplete: true,
         isActive: true
       });
 
       // Now set the anonymous alias using the auto-generated user ID
       const anonymousAlias = generateSpiritName(formData, user.id);
       await user.update({ spiritName: anonymousAlias });
+
+      await persistCompletedOnboardingQuestionnaire({
+        userId: user.id,
+        createdBy: req.user?.id || null,
+        formData,
+      });
 
       // Create PII record
       const clientId = `PT-${String(user.id).padStart(5, '0')}`;
@@ -168,13 +195,7 @@ export const createClientOnboarding = async (req, res) => {
         console.error('[Onboarding Controller] Challenge generation failed:', err.message);
       });
 
-      let resetEmailSent = false;
-      try {
-        const reset = await sendPasswordResetEmailForUser(user);
-        resetEmailSent = reset?.emailSent === true;
-      } catch (resetError) {
-        console.warn('[Onboarding Controller] Password reset handoff failed:', resetError.message);
-      }
+      const resetHandoff = await buildOnboardingResetLinkHandoff(user);
 
       return res.status(201).json({
         success: true,
@@ -183,8 +204,7 @@ export const createClientOnboarding = async (req, res) => {
           userId: user.id,
           clientId: `PT-${String(user.id).padStart(5, '0')}`,
           email: user.email,
-          credentialAction: resetEmailSent ? 'reset_link_sent' : 'reset_link_needed',
-          resetEmailSent,
+          ...resetHandoff,
           masterPromptCreated: true
         }
       });
@@ -262,6 +282,14 @@ export const createClientSelfOnboarding = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
+      });
+    }
+
+    if (!isClientSelfOnboardingRole(req.user?.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Client self-onboarding is only available to client accounts',
+        code: 'client_role_required'
       });
     }
 

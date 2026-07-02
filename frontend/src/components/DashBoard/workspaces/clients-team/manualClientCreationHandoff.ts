@@ -26,6 +26,7 @@ export type ManualClientCreationCredentialMode =
   | 'reset_link_sent'
   | 'reset_link_ready'
   | 'reset_link_needed'
+  | 'reset_link_unavailable'
   | 'claim_link_ready'
   | 'claim_link_needed';
 
@@ -42,6 +43,7 @@ export interface ManualClientCreationHandoff {
   resetUrl?: string;
   resetExpiresAt?: string;
   resetExpiresInMinutes?: number;
+  credentialIssue?: string;
   message: string;
 }
 
@@ -62,13 +64,16 @@ interface ManualClientCreationHandoffContext {
   resetUrl?: string;
   resetExpiresAt?: string;
   resetExpiresInMinutes?: number;
+  credentialIssue?: string;
+  credentialModeHint?: ManualClientCreationCredentialMode;
 }
 
 const CLAIM_READY_MESSAGE = 'Claim link is ready for account activation.';
 const CLAIM_NEEDED_MESSAGE = 'Client was created, but no claim link returned. Generate a claim link before the client logs in.';
-const RESET_SENT_MESSAGE = 'Secure login link sent. Copy link is also ready for direct handoff.';
+const RESET_SENT_MESSAGE = 'Secure login link was sent to the client. No password is shown in this handoff.';
 const RESET_READY_MESSAGE = 'Email delivery did not complete. Copy this one-hour reset link directly to the client.';
 const RESET_NEEDED_MESSAGE = 'Client was created, but no reset link returned. Use Send reset link before the client logs in.';
+const RESET_UNAVAILABLE_MESSAGE = 'Reset link could not be generated. Use Send reset link after the account issue is resolved.';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -103,6 +108,14 @@ const numberClientId = (value: unknown): string => (
 const toOptionalPositiveInteger = (value: unknown): number | undefined => (
   isPositiveSafeInteger(value) ? value : undefined
 );
+
+const normalizeResetCredentialMode = (value: unknown): ManualClientCreationCredentialMode | undefined => {
+  const mode = toOptionalString(value);
+  if (mode === 'reset_email_sent') return 'reset_link_sent';
+  if (mode === 'reset_email_needed') return 'reset_link_needed';
+  if (mode === 'reset_link_sent' || mode === 'reset_link_needed' || mode === 'reset_link_unavailable') return mode;
+  return undefined;
+};
 
 const trimmedString = (value: unknown): string => (
   typeof value === 'string' ? value.trim() : ''
@@ -158,6 +171,8 @@ const buildHandoffContext = ({
     resetUrl: toOptionalString(responseData.resetUrl),
     resetExpiresAt: toOptionalString(responseData.resetExpiresAt),
     resetExpiresInMinutes: toOptionalPositiveInteger(responseData.expiresInMinutes),
+    credentialIssue: toOptionalString(responseData.credentialIssue),
+    credentialModeHint: normalizeResetCredentialMode(responseData.credentialMode) ?? normalizeResetCredentialMode(responseData.credentialAction),
   };
 };
 
@@ -187,16 +202,21 @@ const resetCredentialMode = (
   context: ManualClientCreationHandoffContext,
   resetEmailSent: boolean | null,
 ): ManualClientCreationCredentialMode => {
-  if (resetEmailSent) return 'reset_link_sent';
-  return context.resetUrl ? 'reset_link_ready' : 'reset_link_needed';
+  if (resetEmailSent || context.credentialModeHint === 'reset_link_sent') return 'reset_link_sent';
+  if (context.resetUrl) return 'reset_link_ready';
+  if (context.credentialModeHint === 'reset_link_unavailable' || context.credentialIssue === 'reset_link_unavailable') return 'reset_link_unavailable';
+  return 'reset_link_needed';
 };
 
 const resetMessage = (
   context: ManualClientCreationHandoffContext,
   resetEmailSent: boolean | null,
 ): string => {
-  if (resetEmailSent) return RESET_SENT_MESSAGE;
-  return context.resetUrl ? RESET_READY_MESSAGE : RESET_NEEDED_MESSAGE;
+  const mode = resetCredentialMode(context, resetEmailSent);
+  if (mode === 'reset_link_sent') return RESET_SENT_MESSAGE;
+  if (mode === 'reset_link_ready') return RESET_READY_MESSAGE;
+  if (mode === 'reset_link_unavailable') return RESET_UNAVAILABLE_MESSAGE;
+  return RESET_NEEDED_MESSAGE;
 };
 
 const buildResetHandoff = (
@@ -212,6 +232,7 @@ const buildResetHandoff = (
   resetUrl: context.resetUrl,
   resetExpiresAt: context.resetExpiresAt,
   resetExpiresInMinutes: context.resetExpiresInMinutes,
+  credentialIssue: context.credentialIssue,
   message: resetMessage(context, resetEmailSent),
 });
 

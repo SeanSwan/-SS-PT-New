@@ -39,6 +39,8 @@ describe('CoachAudioInspectionResultCard identity contract', () => {
     expect(routeSource).toContain("router.post('/execute', protect");
     expect(messageSource).toContain('<ExecutionResultCard');
     expect(resultSource).toContain('<CoachAudioInspectionResultCard');
+    expect(resultSource).not.toContain('save_workout_plan');
+    expect(resultSource).not.toContain("create_client: 'Send the claim link to the client now?'");
   });
 
   it('uses deterministic audio item keys without falling back to map indexes', () => {

@@ -82,6 +82,19 @@ vi.mock('../utils/logger.mjs', () => ({
 vi.mock('../services/awardWorkoutXP.mjs', () => ({
   awardWorkoutXP: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('../services/gamification/challengeWorkoutCompletionBridge.mjs', () => ({
+  applyDailyWorkoutFormChallengeProgress: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../services/gamification/challengeProgressImpactReceipt.mjs', () => ({
+  buildChallengeProgressImpactReceipt: vi.fn(() => ({
+    status: 'processed',
+    updatedCount: 0,
+    skippedCount: 0,
+    headline: null,
+    updates: [],
+  })),
+}));
 
 const dailyWorkoutFormRoutes = (await import('../routes/dailyWorkoutFormRoutes.mjs')).default;
 
@@ -232,6 +245,9 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
     );
     expect(scheduledSession.update.mock.calls[0][0].deductionDate).toBeInstanceOf(Date);
     expect(res.body.form.sessionDeducted).toBe(true);
+    const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
+    expect(formCreate.formData.scheduledSessionId).toBe(777);
+    expect(res.body.form.scheduledSessionId).toBe(777);
     expect(res.body.message).toMatch(/session deducted/i);
   });
 
@@ -297,6 +313,11 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
       deductionDate: null,
     });
     expect(res.body.form.sessionDeducted).toBe(false);
+    expect(res.body.form.billing).toMatchObject({
+      status: 'not_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 0,
+    });
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 
@@ -324,6 +345,11 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
       deductionDate: existingDeductionDate,
     });
     expect(res.body.form.sessionDeducted).toBe(true);
+    expect(res.body.form.billing).toMatchObject({
+      status: 'previously_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 1,
+    });
     expect(res.body.message).toMatch(/previously deducted/i);
   });
 
@@ -345,6 +371,11 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
       deductionDate: null,
     });
     expect(res.body.form.sessionDeducted).toBe(false);
+    expect(res.body.form.billing).toMatchObject({
+      status: 'not_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 0,
+    });
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 

@@ -43,6 +43,12 @@ describe('CoachCommandCenterPage plan review route', () => {
         'Client #42 Build Plan review',
         42,
         'both',
+        null,
+        {
+          source: 'admin-workout-planner',
+          intent: 'plan_review',
+          surface: 'coach-command-center',
+        },
       );
     });
   });

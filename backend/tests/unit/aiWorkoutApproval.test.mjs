@@ -163,6 +163,21 @@ describe('validateApprovedDraftPlan — safety checks', () => {
     expect(result.valid).toBe(false);
     expect(result.errors.some(e => e.code === 'DUPLICATE_DAY_NUMBERS')).toBe(true);
   });
+
+  it('12b — rejects non-integer durationWeeks before persistence', () => {
+    const result = validateApprovedDraftPlan({ draft: makeValidDraft({ durationWeeks: 4.5 }) });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.code === 'INVALID_DURATION_WEEKS')).toBe(true);
+  });
+
+  it('12c — rejects out-of-range durationWeeks before persistence', () => {
+    const low = validateApprovedDraftPlan({ draft: makeValidDraft({ durationWeeks: 0 }) });
+    const high = validateApprovedDraftPlan({ draft: makeValidDraft({ durationWeeks: 53 }) });
+    expect(low.valid).toBe(false);
+    expect(high.valid).toBe(false);
+    expect(low.errors.some(e => e.code === 'INVALID_DURATION_WEEKS')).toBe(true);
+    expect(high.errors.some(e => e.code === 'INVALID_DURATION_WEEKS')).toBe(true);
+  });
 });
 
 describe('validateApprovedDraftPlan — warnings', () => {
@@ -189,6 +204,7 @@ describe('validateApprovedDraftPlan — valid payload', () => {
     expect(result.errors).toEqual([]);
     expect(result.normalizedDraft).toBeTruthy();
     expect(result.normalizedDraft.planName).toBe('Hypertrophy Block A');
+    expect(result.normalizedDraft.durationWeeks).toBe(4);
   });
 
   it('15 — trims whitespace in plan name', () => {
@@ -253,7 +269,7 @@ const makeMockModels = (overrides = {}) => ({
   Exercise: {
     findOne: vi.fn().mockResolvedValue(null),
   },
-  WorkoutPlan: { create: vi.fn() },
+  WorkoutPlan: { create: vi.fn(), update: vi.fn().mockResolvedValue([0]) },
   WorkoutPlanDay: { create: vi.fn() },
   WorkoutPlanDayExercise: { create: vi.fn() },
   AiInteractionLog: null,
@@ -584,6 +600,207 @@ describe('approveDraftPlan — check ordering verification', () => {
     const res = mockRes();
     await approveDraftPlan(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+});
+
+describe('approveDraftPlan — successful persistence shape', () => {
+  let approveDraftPlan;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const mod = await import('../../controllers/aiWorkoutController.mjs');
+    approveDraftPlan = mod.approveDraftPlan;
+  });
+
+  it('31b — persists approved drafts with planData for current-plan and logger handoff', async () => {
+    const models = makeMockModels({
+      Exercise: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: 'exercise-1', name: 'Bench Press' },
+          { id: 'exercise-2', name: 'Overhead Press' },
+          { id: 'exercise-3', name: 'Barbell Row' },
+        ]),
+        findOne: vi.fn().mockResolvedValue(null),
+      },
+      WorkoutPlan: {
+        create: vi.fn().mockResolvedValue({ id: 'approved-plan-1' }),
+      },
+      WorkoutPlanDay: {
+        create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
+      },
+      WorkoutPlanDayExercise: {
+        create: vi.fn().mockResolvedValue({ id: 'plan-day-exercise-1' }),
+      },
+    });
+    getAllModels.mockReturnValue(models);
+
+    const req = {
+      body: { userId: 1, plan: makeValidDraft() },
+      user: { id: 10, role: 'trainer' },
+    };
+    const res = mockRes();
+
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      success: true,
+      planId: 'approved-plan-1',
+      sourceType: 'coach_approved',
+    }));
+    expect(models.WorkoutPlan.create).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 1,
+      status: 'active',
+      currentWeek: 1,
+      currentDay: 1,
+      planData: expect.objectContaining({
+        assignmentDefaults: expect.objectContaining({
+          defaultAssignmentType: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          shouldDeductSession: false,
+        }),
+        weeks: expect.arrayContaining([
+          expect.objectContaining({
+            weekNumber: 1,
+            days: expect.arrayContaining([
+              expect.objectContaining({
+                dayNumber: 1,
+                name: 'Push Day',
+                exercises: expect.arrayContaining([
+                  expect.objectContaining({
+                    exerciseName: 'Bench Press',
+                    name: 'Bench Press',
+                  }),
+                ]),
+              }),
+            ]),
+          }),
+        ]),
+      }),
+      metadata: expect.objectContaining({
+        planSource: 'swan_coach_planning',
+        sourceType: 'coach_approved',
+        planHorizon: 'one_month',
+        horizonKey: 'one_month',
+        planDurationKey: 'one_month',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      }),
+    }), expect.objectContaining({ transaction: expect.any(Object) }));
+  });
+
+  it('31c — demotes an existing active plan before creating the approved plan', async () => {
+    const existingActivePlan = {
+      id: 'old-active-plan',
+      userId: 1,
+      status: 'active',
+      metadata: { planHorizon: 'three_month', isPrimaryPlan: true, primary: true, retainedFlag: true },
+      update: vi.fn().mockResolvedValue(undefined),
+    };
+    const models = makeMockModels({
+      Exercise: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: 'exercise-1', name: 'Bench Press' },
+          { id: 'exercise-2', name: 'Overhead Press' },
+          { id: 'exercise-3', name: 'Barbell Row' },
+        ]),
+        findOne: vi.fn().mockResolvedValue(null),
+      },
+      WorkoutPlan: {
+        findAll: vi.fn().mockResolvedValue([existingActivePlan]),
+        create: vi.fn().mockResolvedValue({ id: 'approved-plan-2' }),
+        update: vi.fn().mockResolvedValue([0]),
+      },
+      WorkoutPlanDay: {
+        create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
+      },
+      WorkoutPlanDayExercise: {
+        create: vi.fn().mockResolvedValue({ id: 'plan-day-exercise-1' }),
+      },
+    });
+    getAllModels.mockReturnValue(models);
+
+    const req = {
+      body: { userId: 1, plan: makeValidDraft() },
+      user: { id: 10, role: 'trainer' },
+    };
+    const res = mockRes();
+
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(models.WorkoutPlan.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 1, status: 'active' },
+      transaction: expect.any(Object),
+    }));
+    expect(existingActivePlan.update).toHaveBeenCalledWith({
+      status: 'paused',
+      metadata: expect.objectContaining({
+        planHorizon: 'three_month',
+        retainedFlag: true,
+        isPrimaryPlan: false,
+        primary: false,
+      }),
+    }, expect.objectContaining({ transaction: expect.any(Object) }));
+    expect(existingActivePlan.update.mock.invocationCallOrder[0])
+      .toBeLessThan(models.WorkoutPlan.create.mock.invocationCallOrder[0]);
+  });
+
+  it('31d - sanitizes approved draft planData before persistence', async () => {
+    const models = makeMockModels({
+      Exercise: {
+        findAll: vi.fn().mockResolvedValue([
+          { id: 'exercise-1', name: 'Bench Press' },
+        ]),
+        findOne: vi.fn().mockResolvedValue(null),
+      },
+      WorkoutPlan: {
+        create: vi.fn().mockResolvedValue({ id: 'approved-plan-privacy' }),
+      },
+      WorkoutPlanDay: {
+        create: vi.fn().mockImplementation(async (payload) => ({ id: `day-${payload.dayNumber}` })),
+      },
+      WorkoutPlanDayExercise: {
+        create: vi.fn().mockResolvedValue({ id: 'plan-day-exercise-1' }),
+      },
+    });
+    getAllModels.mockReturnValue(models);
+
+    const unsafeDraft = makeValidDraft({
+      recommendations: ['Email private@example.com or call (555) 555-0199.'],
+      days: [{
+        dayNumber: 1,
+        name: 'Push Day',
+        focus: 'Chest/Shoulders/Triceps',
+        dayType: 'training',
+        estimatedDuration: 60,
+        exercises: [{
+          name: 'Bench Press',
+          setScheme: '4x8',
+          repGoal: '8-10',
+          restPeriod: 90,
+          notes: 'Backup contact: private@example.com / 555-555-0199',
+        }],
+      }],
+    });
+
+    const req = {
+      body: { userId: 1, plan: unsafeDraft },
+      user: { id: 10, role: 'trainer' },
+    };
+    const res = mockRes();
+
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    const savedPlanData = models.WorkoutPlan.create.mock.calls[0][0].planData;
+    const serializedPlanData = JSON.stringify(savedPlanData);
+    expect(serializedPlanData).not.toContain('private@example.com');
+    expect(serializedPlanData).not.toContain('555-555-0199');
+    expect(serializedPlanData).not.toContain('(555) 555-0199');
+    expect(serializedPlanData).toContain('[redacted]');
+    expect(serializedPlanData).toContain('Bench Press');
   });
 });
 

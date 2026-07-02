@@ -22,6 +22,7 @@ const GoalCategorySchema = z.enum([
 
 const GoalPrioritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 const GoalStatusSchema = z.enum(['draft', 'active', 'completed', 'paused', 'cancelled', 'failed']);
+const CLIENT_FACING_READ_ROLES = ['admin', 'trainer', 'client', 'user'];
 
 const GoalIdSchema = z.union([z.string().trim().min(1), z.number().int().positive()])
   .transform((value) => String(value));
@@ -112,7 +113,7 @@ const commands = [
     method: 'GET', endpoint: '/api/gamification/leaderboard',
     inputSchema: LeaderboardSchema,
     destructive: false, requiresConfirmation: false,
-    roleRequired: ['admin', 'trainer', 'client'],
+    roleRequired: CLIENT_FACING_READ_ROLES,
     requiresClientRef: false, category: 'I',
   },
   {

@@ -10,6 +10,10 @@ import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { loadContentStudioCoveragePayload } from '../services/contentStudioCoverageService.mjs';
 import {
+  EMPTY_CONTENT_STUDIO_STORAGE_USAGE,
+  loadContentStudioStorageUsage,
+} from '../services/contentStudioStorageUsageService.mjs';
+import {
   ContentStudioVideoGenerationError,
   requestContentStudioVideoGeneration,
 } from '../services/contentStudioVideoGenerationService.mjs';
@@ -96,6 +100,21 @@ router.get('/coverage', protect, adminOnly, async (req, res) => {
   } catch (err) {
     console.error('[ContentStudio] Coverage query failed:', err.message);
     res.status(500).json({ success: false, error: 'Failed to fetch coverage data' });
+  }
+});
+
+// GET /api/content-studio/storage-usage
+// Returns the admin Content Studio R2 usage estimate used by the storage meter.
+router.get('/storage-usage', protect, adminOnly, async (req, res) => {
+  try {
+    const data = await loadContentStudioStorageUsage();
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('[ContentStudio] Storage usage query failed:', err.message);
+    res.json({
+      success: true,
+      data: { ...EMPTY_CONTENT_STUDIO_STORAGE_USAGE },
+    });
   }
 });
 

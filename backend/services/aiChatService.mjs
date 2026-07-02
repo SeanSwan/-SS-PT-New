@@ -25,7 +25,6 @@ import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mj
 import {
   appendSwanCoachPlanningGuidance,
   formatActiveWorkoutPlanContext,
-  safePlanId,
 } from './swanCoachPlanningContextService.mjs';
 
 export function getCoachRosterClientSourceLabel(clientSource) {
@@ -632,10 +631,7 @@ If the client has an ACTIVE WORKOUT PLAN in their data, you can navigate it:
 - "Skip this one" → Acknowledge skip, move to next exercise
 - "What week are we on?" → Report current_week and current_day from the plan
 
-When navigating a plan, also emit a save_workout_plan action to update the cursor position:
-\`\`\`json
-{"action": "save_workout_plan", "data": {"advanceSession": true}}
-\`\`\`
+Plan navigation is chat guidance only. Do not emit a write action for plan navigation; persisted plan advancement belongs to the workout logger or planner completion flow after deterministic validation.
 
 If NO active workout plan exists, offer to create one based on the client's OPT phase and goals.
 
@@ -965,103 +961,17 @@ Flow optimization: interleave fast/slow setup exercises.
 Reference recent bootcamp history to avoid repeating exercises.
 
 CLIENT CREATION (NEW CLIENT ONBOARDING):
-When the admin/trainer asks to onboard or create a NEW client, gather as much info as possible, then generate a create_client action block. The MORE fields you extract, the more of the 8-stage onboarding questionnaire gets pre-filled — saving the client time when they log in.
-
-REQUIRED: firstName, lastName (email is auto-generated from the name — do NOT include email in the action block, it gets stripped by the privacy proxy)
-CLIENT SOURCE (CRITICAL — always determine this):
-- "move_fitness" = Free tier. Client trains at the gym where the trainer works (Move Fitness). No session deduction. Free platform access for progress tracking.
-- "swanstudios" = Paid tier. Client purchases personal training sessions. Sessions are deducted after each completed workout.
-If the trainer says "gym client", "my studio client", "Move Fitness client" → move_fitness
-If the trainer says "buying sessions", "paid client", "SwanStudios client" → swanstudios
-If unclear, ASK which type before creating.
-
-THE MORE YOU EXTRACT, THE BETTER — these map to 8 onboarding stages:
-Stage 1 (Basic Info): firstName, lastName, email, phone, dateOfBirth, gender, emergencyContactName, emergencyContactPhone
-Stage 2 (Goals): fitnessGoal (primary fitness goal)
-Stage 3 (Health): healthConcerns (injuries/conditions), medications, doctorClearance ("Yes"/"No"/"Pending")
-Stage 4 (Nutrition): mealsPerDay, waterIntake (oz), dietaryPreferences, foodAllergies
-Stage 5 (Lifestyle): occupation, sleepHours, stressLevel (1-10), activityLevel
-Stage 6 (Training): trainingExperience ("beginner"/"intermediate"/"advanced"), workoutsPerWeek, workoutTypes, favoriteExercises, dislikedExercises, movementLimitations
-Stage 7 (AI Consent): NOT pre-filled — client must consent personally
-Stage 8 (Summary): NOT pre-filled — client provides their own notes
-
-Always ask for confirmation before creating: "I have the following info — shall I create their account now?"
-Include ALL fields you've gathered in the action block:
-\`\`\`json
-{
-  "action": "create_client",
-  "firstName": "Will",
-  "lastName": "Johnson",
-  "phone": "555-123-4567",
-  "clientSource": "move_fitness",
-  "fitnessGoal": "Build muscle and improve mobility",
-  "healthConcerns": "Right knee issue — previous ACL surgery 2024",
-  "gender": "male",
-  "dateOfBirth": "1994-03-15",
-  "weight": 185,
-  "height": 72,
-  "trainingExperience": "intermediate",
-  "occupation": "Construction worker",
-  "workoutsPerWeek": 3,
-  "movementLimitations": "Limited right knee flexion past 90 degrees"
-}
-\`\`\`
-The system automatically:
-1. Creates the client account with a temporary password
-2. Generates a SWAN-XXXXXXXX claim code (30-day expiry) for account activation
-3. Pre-fills the onboarding questionnaire with all extracted data
-4. Assigns the client to you as their trainer
-5. Creates their progress tracking record
-After creation, DO NOT write claim codes, URLs, passwords, or client IDs in your response text — the system automatically displays these in a secure card below your message. Just say something like:
-"Norma Patton's account has been created as a Move Fitness client! Check the card below for her claim code and login details. Send her the claim link so she can activate her account."
-NEVER fabricate or guess claim codes, URLs, or passwords — the system generates these securely and displays them separately.
-
+When the admin/trainer asks to onboard or create a NEW client, prepare a review-gated coach_action_proposal draft with proposal_type "client_onboarding". Do not emit legacy client-creation write blocks.
+Required: firstName, lastName, clientSource. If clientSource is unclear, ask whether this is move_fitness, swanstudios, or external before preparing the draft.
+Include non-contact training/onboarding context only: trainingGoal, limitations, painNotes, equipmentAccess, availability, firstSessionPriorities, communicationStyle, nutritionPrefs, preferredTrainingDays, questionnaireResponses, and coverageUpdates.
+Do not include email, phone, contact details, claim codes, reset links, passwords, or URLs in model-authored payloads. Deterministic services create the stub account, assign the trainer, pre-fill onboarding, and display the secure claim link or reset-link handoff in the protected UI card after approval.
+After approval, do not write claim codes, URLs, passwords, or client IDs in response text; the protected card owns the secure handoff.
 HISTORICAL WORKOUT LOG IMPORT:
-When a trainer/admin pastes a workout log from another platform, parse it and generate import_workout_log action blocks — one per workout date. This lets you backfill a client's entire training history.
-
-The trainer will paste text like:
-"Here are Will's workouts from Move Fitness:
-3/15 - Chest Day: Bench Press 135x10, 155x8, 175x6. Incline DB Press 50x12, 55x10. Cable Fly 30x15, 30x12.
-3/17 - Leg Day: Squat 185x8, 205x6, 225x5. Leg Press 270x12, 310x10. RDL 135x10, 155x8."
-
-Parse each dated workout and generate ONE action block PER DATE:
-\`\`\`json
-{
-  "action": "import_workout_log",
-  "clientId": 95,
-  "title": "Chest Day",
-  "date": "2026-03-15",
-  "duration": 60,
-  "intensity": 7,
-  "notes": "Imported from Move Fitness training log",
-  "exercises": [
-    {
-      "name": "Barbell Bench Press",
-      "sets": [
-        { "setNumber": 1, "reps": 10, "weight": 135 },
-        { "setNumber": 2, "reps": 8, "weight": 155 },
-        { "setNumber": 3, "reps": 6, "weight": 175 }
-      ]
-    },
-    {
-      "name": "Incline Dumbbell Press",
-      "sets": [
-        { "setNumber": 1, "reps": 12, "weight": 50 },
-        { "setNumber": 2, "reps": 10, "weight": 55 }
-      ]
-    }
-  ]
-}
-\`\`\`
-RULES for workout import:
-- clientId MUST match the selected client from the dropdown (use the client data from context)
-- Use full exercise names (e.g., "Barbell Bench Press" not "Bench")
-- Parse shorthand: "135x10" = 135 lbs, 10 reps. "3x12 @185" = 3 sets of 12 at 185 lbs
-- Dates must be ISO format (YYYY-MM-DD) — convert "3/15" to the appropriate year
-- Each date gets its own action block — the system creates one WorkoutSession per date
-- Estimate duration (45-90 min typical) and intensity (1-10) from the exercises if not provided
-- After import, summarize what was imported: "Imported 5 workouts (3/15 - 3/28) with 23 exercises and 67 total sets"
-
+When a trainer/admin pastes workout history or dictates a completed past session, parse it into one or more proposed workout-log drafts and use a coach_action_proposal block with proposal_type "workout_log" or "split_plan".
+Each historical workout_log payload must include source: "historical_import" unless the trainer explicitly identifies the import as Move Fitness; then use source: "move_fitness_historical_import".
+Dates must stay evidence-backed. If a year, client, date boundary, or selected booked-session context is unclear, ask one clarification or prepare a split_plan draft instead of guessing.
+Final writes require trainer approval. Do not emit direct legacy workout-import write blocks, do not claim anything was imported, and do not summarize the draft as a completed import.
+For multiple dates, prepare one reviewable draft per workout date or a split_plan proposal that lets the protected UI create separate review cards.
 BEHAVIOR:
 - You are proactive. If someone says "I just finished a session with Marcus," ask what they did and offer to log it.
 - You route requests to the appropriate sub-context internally — never ask the user to switch contexts.
@@ -1881,57 +1791,16 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       dataParts.push(`\n--- BUSINESS KPIs (Platform) ---\nActive Clients: ${bk.activeClients || 0} | New This Month: ${bk.newClientsThisMonth || 0}\nRevenue (30d): $${Number(bk.revenueThisMonth || 0).toLocaleString()} | Platform Workouts (7d): ${bk.platformWorkouts7d || 0}`);
     }
 
-    // ── 20. ACTIVE WORKOUT PLANS (enables "what's next?" voice queries) ──
-    // NOTE: Raw SQL returns snake_case column names (plan_data, current_week, etc.)
+    // 20. ACTIVE WORKOUT PLANS (enables "what is next?" voice queries)
+    // NOTE: Raw SQL returns snake_case column names (plan_data, current_week, etc.).
+    // All prompt formatting stays inside formatActiveWorkoutPlanContext so legacy
+    // plan JSON goes through the same privacy and prompt-injection filters.
     try {
       const activePlanContext = formatActiveWorkoutPlanContext(workoutPlans);
       if (activePlanContext) {
         dataParts.push(activePlanContext);
-      } else if (workoutPlans.length > 0) {
-        const planLines = workoutPlans.map(plan => {
-          const rawPd = plan.plan_data || plan.planData;
-          const pd = typeof rawPd === 'string' ? JSON.parse(rawPd) : rawPd;
-          const week = Number(plan.current_week || plan.currentWeek) || 1;
-          const day = Number(plan.current_day || plan.currentDay) || 1;
-
-          // Extract current session from plan data
-          let currentSessionStr = 'No session data';
-          if (pd?.weeks) {
-            const weekData = pd.weeks.find(w => w.weekNumber === week) || pd.weeks[week - 1];
-            if (weekData?.sessions) {
-              const sessionData = weekData.sessions.find(s => s.dayNumber === day) || weekData.sessions[day - 1];
-              if (sessionData) {
-                const exercises = (sessionData.exercises || []).map(ex =>
-                  `  • ${ex.name}: ${ex.sets}×${ex.reps}${ex.weight ? ` @${ex.weight}` : ''}${ex.tempo ? ` tempo:${ex.tempo}` : ''}${ex.rest ? ` rest:${ex.rest}` : ''}`
-                ).join('\n');
-                currentSessionStr = `${sessionData.name || `Day ${day}`}${sessionData.focus ? ` (${sessionData.focus})` : ''}\n${exercises || '  No exercises listed'}`;
-              }
-            }
-          }
-
-          // Count total sessions and completed
-          const totalSessions = pd?.weeks?.reduce((sum, w) => sum + (w.sessions?.length || 0), 0) || 0;
-          const rawPn = plan.progress_notes || plan.progressNotes;
-          const pn = typeof rawPn === 'string' ? JSON.parse(rawPn) : rawPn;
-          const completedSessions = Array.isArray(pn) ? pn.filter(n => n.type === 'session_complete').length : 0;
-          const nasmPhase = plan.nasm_phase || plan.nasmPhase;
-          const durWeeks = plan.duration_weeks || plan.durationWeeks;
-          const createdBy = plan.created_by || plan.createdBy;
-          const createdAt = plan.created_at || plan.createdAt;
-
-          return `Plan ID: ${safePlanId(plan)} [${String(plan.status || 'active').toUpperCase()}]
-NASM Phase: ${nasmPhase} | Duration: ${durWeeks} weeks | Progress: Week ${week}, Day ${day}
-Sessions Completed: ${completedSessions}/${totalSessions}
-Created: ${createdAt ? new Date(createdAt).toLocaleDateString() : '?'} by ${createdBy || 'unknown'}
---- CURRENT SESSION (Week ${week}, Day ${day}) ---
-${currentSessionStr}`;
-        });
-
-        dataParts.push(`\n--- ACTIVE WORKOUT PLANS ---
-${planLines.join('\n\n')}
---- VOICE HINT: If the trainer asks "what's next?" or "next exercise", read the CURRENT SESSION above and guide them through it. When they say an exercise is done, acknowledge and move to the next one in the list. ---`);
       }
-    } catch { /* workout_plans table may not exist yet — non-fatal */ }
+    } catch { /* workout_plans table may not exist yet - non-fatal */ }
 
     // 21. ANALYTICS: Exercise history + variety from canonical workout logs
     try {

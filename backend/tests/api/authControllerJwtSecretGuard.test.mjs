@@ -35,7 +35,11 @@ describe('auth controller JWT secret guard', () => {
     expect(compactSource).toContain('let resetSecret;');
     expect(compactSource).toContain('resetSecret = getPasswordResetSecret();');
     expect(compactSource).toContain('sendPasswordResetEmailForUser(user, { resetSecret })');
-    expect(compactSource).toContain('hashPasswordResetToken(token)');
+    expect(compactSource).toContain("message: 'Reset token and new password are required'");
+    expect(compactSource).toContain('hashPasswordResetToken(resetToken)');
+    expect(compactSource.indexOf("message: 'Reset token and new password are required'")).toBeLessThan(
+      compactSource.indexOf('hashPasswordResetToken(resetToken)')
+    );
     expect(runtimeSource).not.toContain("crypto.createHmac('sha256', resetSecret)");
   });
 });

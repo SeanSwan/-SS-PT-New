@@ -77,7 +77,7 @@ const parseStrictPositiveInteger = (value) => {
  * bug never surfaced in admin-driven testing because admins bypass.
  *
  * @param {number} userId - requester id (req.user.id)
- * @param {string} userRole - requester role ('admin' | 'trainer' | 'client')
+ * @param {string} userRole - requester role ('admin' | 'trainer' | 'client' | 'user')
  * @param {number} clientId - target client id to verify access against
  * @returns {Promise<boolean>}
  */
@@ -87,7 +87,7 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
 
   if (!targetClientId || (userRole !== 'admin' && !requesterId)) return false;
   if (userRole === 'admin') return true;
-  if (userRole === 'client') {
+  if (userRole === 'client' || userRole === 'user') {
     return requesterId === targetClientId;
   }
   if (userRole !== 'trainer') return false;
@@ -225,7 +225,7 @@ export async function filterPlansByTrainerAssignment(req, plans) {
   const userId = req.user?.id;
   const userRole = req.user?.role;
   if (userRole === 'admin') return plans;
-  if (userRole === 'client') {
+  if (userRole === 'client' || userRole === 'user') {
     const requesterId = parseStrictPositiveInteger(userId);
     if (!requesterId) return [];
     return plans.filter((p) => parseStrictPositiveInteger(p.userId) === requesterId);

@@ -109,6 +109,9 @@ export function buildLongHorizonPrompt({
     const trainingVaultSection = buildTrainingVaultSection(longHorizonContext.trainingVault);
     if (trainingVaultSection) parts.push(trainingVaultSection);
 
+    const activeProgramSection = buildActiveProgramSection(longHorizonContext.activeProgram);
+    if (activeProgramSection) parts.push(activeProgramSection);
+
     const ps = longHorizonContext.progressSummary;
     if (ps && ps.recentSessionCount > 0) {
       parts.push(
@@ -309,6 +312,28 @@ function countOrZero(value) {
 function nullableNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function buildActiveProgramSection(program) {
+  if (!program || typeof program !== 'object') return '';
+
+  const lines = ['--- Active Program Context (de-identified) ---'];
+  const horizon = nullableNumber(program.horizonMonths);
+  const sourceType = safePromptString(program.sourceType, 'unknown');
+  const status = safePromptString(program.status, 'unknown');
+  lines.push(`Active program: ${horizon ?? 'unknown'}-month ${sourceType} plan; status ${status}`);
+
+  const goal = program.goalProfile && typeof program.goalProfile === 'object'
+    ? safePromptString(
+      program.goalProfile.primaryGoal
+        || program.goalProfile.primary
+        || program.goalProfile.goal,
+      '',
+    )
+    : safePromptString(program.goalProfile, '');
+  if (goal) lines.push(`Primary program goal: ${goal}`);
+
+  return lines.join('\n');
 }
 
 function buildTrainingVaultSection(vault) {

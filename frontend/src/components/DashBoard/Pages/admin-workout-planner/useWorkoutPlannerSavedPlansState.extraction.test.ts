@@ -19,7 +19,7 @@ describe('WorkoutPlanner saved plans state extraction', () => {
     expect(pageSource).not.toContain('const handleCardDuplicate = useCallback');
     expect(pageSource).not.toContain('const handleCardArchive = useCallback');
     expect(pageSource).not.toContain('const archiveBlockedFor = useCallback');
-    expect(hookSource).toContain('/api/workout/plans?clientId=');
+    expect(hookSource).toContain('/api/workout-plans?clientId=');
     expect(hookSource).toContain('/api/workout-plans/${planId}/activate');
     expect(hookSource).toContain('/api/workout-plans/${planId}/primary');
     expect(hookSource).toContain('/api/workout-plans/${planId}/pdf/upload');

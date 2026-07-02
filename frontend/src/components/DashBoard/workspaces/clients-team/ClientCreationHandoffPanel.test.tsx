@@ -51,14 +51,17 @@ describe('ClientCreationHandoffPanel', () => {
           claimCode: undefined,
           claimUrl: undefined,
           resetEmailSent: true,
-          message: 'Secure login link sent.',
+          message: 'Secure login link was sent to the client. No password is shown in this handoff.',
         }}
         onDismiss={vi.fn()}
         onCopy={vi.fn()}
       />
     );
 
-    expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent('Secure login link sent');
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent('Secure login link sent');
+    expect(handoff).toHaveTextContent(/no password is shown/i);
+    expect(screen.queryByRole('button', { name: /copy reset link/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
   });
 
@@ -91,6 +94,32 @@ describe('ClientCreationHandoffPanel', () => {
     await user.click(screen.getByRole('button', { name: /copy reset link/i }));
 
     expect(onCopy).toHaveBeenCalledWith(resetUrl, 'Reset link');
+    expect(screen.queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
+  });
+
+  it('renders reset-link-unavailable handoffs without copy controls', () => {
+    render(
+      <ClientCreationHandoffPanel
+        handoff={{
+          ...baseHandoff,
+          clientSource: 'swanstudios',
+          credentialMode: 'reset_link_unavailable',
+          credentialIssue: 'reset_link_unavailable',
+          claimCode: undefined,
+          claimUrl: undefined,
+          resetEmailSent: false,
+          resetUrl: undefined,
+          message: 'Reset link could not be generated. Use Send reset link after the account issue is resolved.',
+        }}
+        onDismiss={vi.fn()}
+        onCopy={vi.fn()}
+      />
+    );
+
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent('Reset link unavailable');
+    expect(handoff).toHaveTextContent(/reset link could not be generated/i);
+    expect(screen.queryByRole('button', { name: /copy reset link/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
   });
   it('dismisses the handoff panel from a 44px touch target', async () => {

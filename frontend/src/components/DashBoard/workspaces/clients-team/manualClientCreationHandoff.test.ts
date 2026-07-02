@@ -89,6 +89,10 @@ describe('manualClientCreationHandoff', () => {
       credentialMode: 'reset_link_sent',
       resetEmailSent: true,
     });
+    expect(handoff.message).toMatch(/secure login link was sent to the client/i);
+    expect(handoff.message).toMatch(/no password is shown/i);
+    expect(handoff.message).not.toMatch(/copy link is also ready/i);
+    expect(handoff.resetUrl).toBeUndefined();
   });
   it('marks SwanStudios clients as reset-link-ready when email fails but a reset URL is returned', () => {
     const handoff = buildManualClientCreationHandoff({
@@ -128,5 +132,72 @@ describe('manualClientCreationHandoff', () => {
     });
     expect(handoff.message).toMatch(/copy this one-hour reset link/i);
     expect(JSON.stringify(handoff)).not.toContain('NeverExpose123!');
+  });
+  it('marks SwanStudios clients as reset-link-unavailable when no reset URL can be generated', () => {
+    const handoff = buildManualClientCreationHandoff({
+      data: {
+        ...baseRequest,
+        firstName: 'No',
+        lastName: 'Link',
+        email: 'no.link@example.test',
+        clientSource: 'swanstudios',
+      },
+      resetEmailSent: false,
+      response: {
+        data: {
+          client: {
+            id: '79',
+            firstName: 'No',
+            lastName: 'Link',
+            email: 'no.link@example.test',
+          },
+          credentialAction: 'reset_link_needed',
+          credentialIssue: 'reset_link_unavailable',
+          temporaryPassword: 'NeverExpose123!',
+        },
+      },
+    });
+
+    expect(handoff).toMatchObject({
+      clientId: '79',
+      clientName: 'No Link',
+      clientSource: 'swanstudios',
+      credentialMode: 'reset_link_unavailable',
+      credentialIssue: 'reset_link_unavailable',
+      resetEmailSent: false,
+    });
+    expect(handoff.message).toMatch(/reset link could not be generated/i);
+    expect(handoff.message).toMatch(/send reset link after the account issue is resolved/i);
+    expect(handoff.resetUrl).toBeUndefined();
+    expect(JSON.stringify(handoff)).not.toContain('NeverExpose123!');
+  });
+  it('honors backend credentialMode reset-link-unavailable without credentialIssue', () => {
+    const handoff = buildManualClientCreationHandoff({
+      data: {
+        ...baseRequest,
+        firstName: 'Mode',
+        lastName: 'Only',
+        email: 'mode.only@example.test',
+        clientSource: 'swanstudios',
+      },
+      resetEmailSent: false,
+      response: {
+        data: {
+          client: {
+            id: '80',
+            firstName: 'Mode',
+            lastName: 'Only',
+            email: 'mode.only@example.test',
+          },
+          credentialMode: 'reset_link_unavailable',
+        },
+      },
+    });
+
+    expect(handoff).toMatchObject({
+      clientId: '80',
+      credentialMode: 'reset_link_unavailable',
+    });
+    expect(handoff.message).toMatch(/reset link could not be generated/i);
   });
 });

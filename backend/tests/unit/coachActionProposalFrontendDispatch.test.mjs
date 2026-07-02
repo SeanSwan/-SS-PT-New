@@ -131,6 +131,53 @@ describe('coachActionProposalService frontend dispatch bridge', () => {
     expect(db.calls).toEqual([]);
   });
 
+  it('drops model-authored workout-submit dispatches instead of persisting dead-end proposal cards', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Workout submit prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'frontend_dispatch',
+        payload: {
+          event: 'AI_SUBMIT_WORKOUT',
+          payload: { intensity: 8, notes: 'Completed full-body lift' },
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
+  });
+
+  it('drops legacy workout-submit frontend dispatch blocks', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Workout submit prepared.',
+      '```json',
+      '{"action":"frontend_dispatch","event":"AI_SUBMIT_WORKOUT","payload":{"intensity":8}}',
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: 42 },
+      sequelizeOverride: db,
+    });
+
+    expect(result).toEqual({ proposals: [], frontendActions: [] });
+    expect(db.calls.some((call) => call.sql.includes('INSERT INTO coach_action_proposals'))).toBe(false);
+  });
   it('does not emit frontend draft actions for client-role conversations', async () => {
     const db = fakeSequelize();
     const content = [

@@ -60,7 +60,10 @@ interface ConversationSummary {
 
 type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
 type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
-interface AIRequestContext {
+export interface AIRequestContext {
+  source?: string | null;
+  intent?: string | null;
+  surface?: string | null;
   equipmentProfileId?: number | null;
   scheduledSessionId?: number | string | null;
   scheduledSessionDate?: string | null;
@@ -70,6 +73,13 @@ interface AIRequestContext {
 
 type FrontendAction = { event?: string; payload?: unknown };
 const BLOCKED_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+
+function safeRouteContextToken(value?: string | null): string | null {
+  if (typeof value !== 'string') return null;
+  const token = value.trim();
+  return ROUTE_CONTEXT_TOKEN_PATTERN.test(token) ? token : null;
+}
 
 function normalizeTargetUserId(value?: number | string | null): string | null {
   if (value === undefined || value === null || value === '') return null;
@@ -85,8 +95,15 @@ function activeConversationMatchesRequest(
   return normalizeTargetUserId(conversation.targetUserId) === normalizeTargetUserId(targetUserId);
 }
 
-function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContext | null {
+export function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContext | null {
   const safe: AIRequestContext = {};
+  const source = safeRouteContextToken(raw?.source);
+  if (source) safe.source = source;
+  const intent = safeRouteContextToken(raw?.intent);
+  if (intent) safe.intent = intent;
+  const surface = safeRouteContextToken(raw?.surface);
+  if (surface) safe.surface = surface;
+
   const equipmentProfileId = Number(raw?.equipmentProfileId);
   if (Number.isSafeInteger(equipmentProfileId) && equipmentProfileId > 0) {
     safe.equipmentProfileId = equipmentProfileId;
@@ -102,9 +119,16 @@ function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContex
     safe.scheduledSessionDate = scheduledSessionDate;
   }
 
-  const scheduledSessionCredits = Number(raw?.scheduledSessionCredits);
-  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
-    safe.scheduledSessionCredits = scheduledSessionCredits;
+  const rawScheduledSessionCredits = raw?.scheduledSessionCredits;
+  if (
+    rawScheduledSessionCredits !== undefined
+    && rawScheduledSessionCredits !== null
+    && String(rawScheduledSessionCredits).trim() !== ''
+  ) {
+    const scheduledSessionCredits = Number(rawScheduledSessionCredits);
+    if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits >= 0) {
+      safe.scheduledSessionCredits = scheduledSessionCredits;
+    }
   }
 
   const workoutDate = String(raw?.workoutDate ?? '').trim();
@@ -564,4 +588,4 @@ export function useAIChat() {
   };
 }
 
-export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle, AIRequestContext };
+export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle };

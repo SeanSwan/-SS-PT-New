@@ -13,6 +13,8 @@ const parseId = (value) => {
   return null;
 };
 
+const isClientEquivalentRole = (role) => role === 'client' || role === 'user';
+
 const isTrainerAssigned = async (models, clientId, trainerId) => {
   const { ClientTrainerAssignment } = models;
   if (!ClientTrainerAssignment) {
@@ -45,7 +47,7 @@ export const ensureClientAccess = async (req, clientIdInput) => {
   const { User } = models;
 
   const client = await User.findByPk(clientId, { attributes: ['id', 'role'] });
-  if (!client || client.role !== 'client') {
+  if (!client || !isClientEquivalentRole(client.role)) {
     return { allowed: false, status: 404, message: 'Client not found' };
   }
 
@@ -53,7 +55,7 @@ export const ensureClientAccess = async (req, clientIdInput) => {
     return { allowed: true, clientId, models };
   }
 
-  if (req.user?.role === 'client') {
+  if (isClientEquivalentRole(req.user?.role)) {
     if (requesterId === clientId) {
       return { allowed: true, clientId, models };
     }

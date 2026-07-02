@@ -141,6 +141,7 @@ const STATUS_COPY: Record<ManualClientCreationCredentialMode, { title: string; w
   reset_link_sent: { title: 'Secure login link sent', warning: false },
   reset_link_ready: { title: 'Reset link ready to copy', warning: false },
   reset_link_needed: { title: 'Login handoff needs review', warning: true },
+  reset_link_unavailable: { title: 'Reset link unavailable', warning: true },
 };
 
 const STATUS_ICONS: Record<ManualClientCreationCredentialMode, typeof AlertTriangle> = {
@@ -149,6 +150,7 @@ const STATUS_ICONS: Record<ManualClientCreationCredentialMode, typeof AlertTrian
   reset_link_sent: MailCheck,
   reset_link_ready: Link2,
   reset_link_needed: AlertTriangle,
+  reset_link_unavailable: AlertTriangle,
 };
 
 const clientEmailSuffix = (handoff: ManualClientCreationHandoff): string => (

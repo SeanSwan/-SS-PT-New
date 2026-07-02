@@ -1,7 +1,6 @@
 /**
  * Nonfatal bridge from Swan Coach workout writes into challenge progress.
  */
-import { applyDailyWorkoutFormChallengeProgress } from '../gamification/challengeWorkoutCompletionBridge.mjs';
 import { buildChallengeProgressImpactReceipt } from '../gamification/challengeProgressImpactReceipt.mjs';
 
 export const applyAiWorkoutChallengeProgress = async ({
@@ -15,6 +14,7 @@ export const applyAiWorkoutChallengeProgress = async ({
   exercises,
 } = {}) => {
   try {
+    const { applyDailyWorkoutFormChallengeProgress } = await import('../gamification/challengeWorkoutCompletionBridge.mjs');
     const result = await applyDailyWorkoutFormChallengeProgress({
       sequelize,
       models: {

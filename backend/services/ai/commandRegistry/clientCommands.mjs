@@ -32,14 +32,12 @@ const UpdateClientSchema = z.object({
 const commands = [
   {
     type: 'create_client',
-    description: 'Create a new client account',
+    description: 'Prepare a SwanStudios client onboarding draft',
     naturalLanguagePatterns: ['add a new client', 'create client', 'add {name} as a client', 'sign up {name}'],
     method: 'POST', endpoint: '/api/admin/clients',
     inputSchema: z.object({
       firstName: z.string().min(1).max(50),
       lastName: z.string().min(1).max(50),
-      email: z.string().email(),
-      phone: z.string().optional(),
       clientSource: ClientSourceSchema.optional(),
     }),
     destructive: false, requiresConfirmation: false,
@@ -49,14 +47,12 @@ const commands = [
   },
   {
     type: 'create_external_client',
-    description: 'Create a Move Fitness or external gym client',
+    description: 'Prepare a Move Fitness or external client onboarding draft',
     naturalLanguagePatterns: ['add {name} from move fitness', 'add {name} as a move fitness client', 'create external client'],
     method: 'POST', endpoint: '/api/admin/clients/create-external',
     inputSchema: z.object({
       firstName: z.string().min(1).max(50),
       lastName: z.string().min(1).max(50),
-      email: z.string().email().optional(),
-      phone: z.string().optional(),
       clientSource: ExternalClientSourceSchema.default('move_fitness'),
     }),
     destructive: false, requiresConfirmation: false,

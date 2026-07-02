@@ -7,6 +7,16 @@ import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { processAIDataUpdates } from '../aiDataWriteService.mjs';
 import { COACH_PROPOSAL_STATUS } from './coachActionProposalService.mjs';
 
+const UNSUPPORTED_UPDATE_TYPES = new Set(['save_workout_plan']);
+
+function normalizeUpdateType(update) {
+  return typeof update?.type === 'string' ? update.type.trim().toLowerCase() : '';
+}
+
+function findUnsupportedUpdate(updates) {
+  return updates.find((update) => UNSUPPORTED_UPDATE_TYPES.has(normalizeUpdateType(update))) || null;
+}
+
 export async function approveClientDataUpdateProposal({
   id,
   req,
@@ -49,6 +59,34 @@ export async function approveClientDataUpdateProposal({
   }
 
   if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
+
+  const unsupportedUpdate = findUnsupportedUpdate(updates);
+  if (unsupportedUpdate) {
+    const updateType = normalizeUpdateType(unsupportedUpdate);
+    const message = 'Workout plan saves must use the workout planner approval flow.';
+    const result = {
+      successful: 0,
+      errors: [{ type: updateType, code: 'UNSUPPORTED_CLIENT_DATA_UPDATE_TYPE', message }],
+    };
+    const updated = await updateProposalStatus({
+      id,
+      status: COACH_PROPOSAL_STATUS.FAILED,
+      result: { updates: result },
+      errorCode: 'CLIENT_DATA_UPDATE_UNSUPPORTED_TYPE',
+      db,
+    });
+    return {
+      status: 400,
+      body: {
+        success: false,
+        code: 'CLIENT_DATA_UPDATE_UNSUPPORTED_TYPE',
+        error: message,
+        proposal: updated,
+        updates: result,
+      },
+    };
+  }
+
   const result = await processAIDataUpdates(access.clientId, updates, req.user.id, db);
   const status = result.errors?.length > 0 && result.successful === 0
     ? COACH_PROPOSAL_STATUS.FAILED

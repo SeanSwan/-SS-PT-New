@@ -109,7 +109,60 @@ describe('Swan Coach onboarding client source normalization', () => {
     }, { id: 'conversation-1' }, { proposalTypes: PROPOSAL_TYPES, schemaVersion: '2026-06-08' });
 
     expect(classified.type).toBe('client_onboarding');
-    expect(classified.payload.data.clientSource).toBe('move_fitness');
+    expect(classified.payload.clientSource).toBe('move_fitness');
+  });
+
+  it('drops model-authored contact fields from client onboarding drafts before persistence', () => {
+    const classified = classifyActionBlock({
+      action: 'coach_action_proposal',
+      proposal_type: 'client_onboarding',
+      payload: {
+        firstName: 'Jackie',
+        lastName: 'Reed',
+        clientSource: 'Move Fitness',
+        email: 'private@example.test',
+        phone: '555-123-4567',
+        trainingGoal: 'Build strength',
+      },
+    }, { id: 'conversation-1' }, { proposalTypes: PROPOSAL_TYPES, schemaVersion: '2026-06-08' });
+
+    expect(classified.type).toBe('client_onboarding');
+    expect(classified.payload).toEqual(expect.objectContaining({
+      firstName: 'Jackie',
+      lastName: 'Reed',
+      clientSource: 'move_fitness',
+      trainingGoal: 'Build strength',
+    }));
+    expect(classified.payload).not.toHaveProperty('email');
+    expect(classified.payload).not.toHaveProperty('phone');
+  });
+
+  it('drops nested contact fields from legacy onboarding data blocks', () => {
+    const classified = classifyActionBlock({
+      action: 'create_client',
+      data: {
+        firstName: 'Jackie',
+        lastName: 'Reed',
+        clientSource: 'Move Fitness',
+        email: 'private@example.test',
+        phone: '555-123-4567',
+        contactPhone: '555-111-2222',
+        emergencyContactName: 'Private Contact',
+        trainingGoal: 'Build strength',
+      },
+    }, { id: 'conversation-1' }, { proposalTypes: PROPOSAL_TYPES, schemaVersion: '2026-06-08' });
+
+    expect(classified.type).toBe('client_onboarding');
+    expect(classified.payload.data).toEqual(expect.objectContaining({
+      firstName: 'Jackie',
+      lastName: 'Reed',
+      clientSource: 'move_fitness',
+      trainingGoal: 'Build strength',
+    }));
+    expect(classified.payload.data).not.toHaveProperty('email');
+    expect(classified.payload.data).not.toHaveProperty('phone');
+    expect(classified.payload.data).not.toHaveProperty('contactPhone');
+    expect(classified.payload.data).not.toHaveProperty('emergencyContactName');
   });
 
   it('normalizes approved onboarding drafts before applying session policy', () => {

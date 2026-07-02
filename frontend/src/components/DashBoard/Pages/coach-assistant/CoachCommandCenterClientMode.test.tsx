@@ -45,6 +45,46 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });
 
+  it('normalizes legacy raw user accounts into the client-safe Coach bridge', async () => {
+    renderPage('/dashboard/client/coach-assistant?sourcePath=%2Fdashboard%2Fclient%2Fworkouts&teachPrompt=Plan%20my%20next%20workout', 'user');
+
+    expect(useCoachIntakeQueueMock).toHaveBeenCalledWith({ scope: 'actionable', limit: 12, enabled: false });
+    expect(screen.getByText(/Your coach terminal/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Operations$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /back to client dashboard/i }))
+      .toHaveAttribute('href', '/dashboard/client/workouts');
+  });
+
+  it('auto-sends pending nutrition Coach food through the mounted client command center', async () => {
+    sessionStorage.setItem('swan:pending-coach-food', JSON.stringify({
+      message: 'Is this protein bowl a good fit today?',
+      foodContext: {
+        type: 'restaurant_food',
+        foodName: 'Swan Cafe Protein Bowl',
+        protein: 38,
+      },
+    }));
+
+    renderPage('/dashboard/client/coach-assistant', 'user');
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        'Is this protein bowl a good fit today?',
+        'macro_logging',
+        'Nutrition Coach',
+        null,
+        'both',
+        {
+          type: 'restaurant_food',
+          foodName: 'Swan Cafe Protein Bowl',
+          protein: 38,
+        },
+      );
+    });
+    expect(sessionStorage.getItem('swan:pending-coach-food')).toBeNull();
+    expect(executeCommandMock).not.toHaveBeenCalled();
+  });
   it('keeps client prompts in chat instead of sending them through the admin command lane', async () => {
     renderPage('/dashboard/client/coach-assistant', 'client');
 

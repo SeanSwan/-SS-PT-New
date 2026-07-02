@@ -35,9 +35,40 @@ export function normalizeWorkoutDate(raw: string | null, fallbackDate = new Date
     : parsed.toISOString().split('T')[0];
 }
 
-function numberOr(value: number | string | undefined, fallback: number): number {
-  const parsed = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+function prescriptionNumberOr(value: unknown, fallback: number): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value !== 'string') return fallback;
+
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+
+  const exact = Number(trimmed);
+  if (Number.isFinite(exact)) return exact;
+
+  const match = trimmed.match(/\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : fallback;
+}
+
+function prescriptionSetCountOr(value: unknown, fallback: number): number {
+  const parsed = Math.floor(prescriptionNumberOr(value, fallback));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function compactString(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function recordField(value: unknown, field: string): unknown {
+  return isPlainRecord(value) ? value[field] : undefined;
+}
+
+function prescriptionSetNumber(value: unknown, fallback: number): number {
+  const parsed = Math.floor(prescriptionNumberOr(value, fallback));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 let workoutLoggerSetIdCounter = 0;
@@ -101,23 +132,36 @@ export function plannedExerciseToEntry(
   exercise: PlannedExercise,
   createLocalId: () => string,
 ): ExerciseEntry {
-  const setCount = Array.isArray(exercise.sets) ? exercise.sets.length : numberOr(exercise.sets, 3);
+  const setCount = Array.isArray(exercise.sets)
+    ? exercise.sets.length
+    : prescriptionSetCountOr(exercise.sets ?? exercise.setScheme, 3);
+  const targetReps = prescriptionNumberOr(exercise.targetReps ?? exercise.reps ?? exercise.repGoal, 10);
+  const restTime = prescriptionNumberOr(exercise.restTime ?? exercise.restSeconds ?? exercise.restPeriod, 60);
+  const weight = prescriptionNumberOr(exercise.weight, 0);
+  const tempo = compactString(exercise.tempo);
+  const exerciseNotes = compactString(exercise.notes);
+  const buildSet = (set: unknown, index: number): ExerciseSet => ({
+    loggerSetId: createLocalId(),
+    setNumber: prescriptionSetNumber(recordField(set, 'setNumber'), index + 1),
+    weight: prescriptionNumberOr(recordField(set, 'weight'), weight),
+    reps: prescriptionNumberOr(recordField(set, 'reps') ?? recordField(set, 'targetReps'), targetReps),
+    rpe: null,
+    tempo: compactString(recordField(set, 'tempo')) || tempo,
+    restTime: prescriptionNumberOr(
+      recordField(set, 'restTime') ?? recordField(set, 'restSeconds') ?? recordField(set, 'rest'),
+      restTime,
+    ),
+    formQuality: null,
+    notes: compactString(recordField(set, 'notes')) || exerciseNotes,
+  });
 
   return {
     loggerExerciseId: createLocalId(),
     exerciseId: String(exercise.exerciseId || exercise.id || createLocalId()),
     exerciseName: exercise.exerciseName || exercise.name || 'Unknown Exercise',
-    sets: Array.from({ length: setCount }, (_, index) => ({
-      loggerSetId: createLocalId(),
-      setNumber: index + 1,
-      weight: numberOr(exercise.weight, 0),
-      reps: numberOr(exercise.targetReps ?? exercise.reps, 10),
-      rpe: null,
-      tempo: exercise.tempo || '',
-      restTime: numberOr(exercise.restTime ?? exercise.restSeconds, 60),
-      formQuality: null,
-      notes: '',
-    })),
+    sets: Array.isArray(exercise.sets)
+      ? exercise.sets.map(buildSet)
+      : Array.from({ length: setCount }, (_, index) => buildSet(null, index)),
     formRating: null,
     painLevel: 0,
     performanceNotes: '',

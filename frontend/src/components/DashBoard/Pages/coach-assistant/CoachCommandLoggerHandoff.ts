@@ -38,6 +38,29 @@ export function buildCoachWorkoutLoggerHandoffFromText(text: string): CoachWorko
   };
 }
 
-export function storeCoachWorkoutLoggerHandoff(payload: WorkoutPlanTransfer): boolean {
-  return appendPendingWorkoutPlan(payload);
+function getWorkoutLoggerRouteTargetClientId(route?: string | null): number | null {
+  if (!route) return null;
+  const queryStart = route.indexOf('?');
+  if (queryStart < 0) return null;
+
+  const rawClientId = new URLSearchParams(route.slice(queryStart + 1)).get('clientId');
+  if (!rawClientId || !/^\d+$/.test(rawClientId)) return null;
+
+  const parsed = Number(rawClientId);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+export function withWorkoutLoggerRouteTarget(
+  payload: WorkoutPlanTransfer,
+  workoutLoggerRoute?: string | null,
+): WorkoutPlanTransfer {
+  const targetClientId = getWorkoutLoggerRouteTargetClientId(workoutLoggerRoute);
+  return targetClientId ? { ...payload, targetClientId } : payload;
+}
+
+export function storeCoachWorkoutLoggerHandoff(
+  payload: WorkoutPlanTransfer,
+  workoutLoggerRoute?: string | null,
+): boolean {
+  return appendPendingWorkoutPlan(withWorkoutLoggerRouteTarget(payload, workoutLoggerRoute));
 }

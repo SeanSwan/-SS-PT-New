@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   executeCommandMock,
   renderPage,
@@ -8,6 +8,14 @@ import {
 } from './CoachCommandCenterPage.test.harness';
 const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 
+vi.mock('./CoachCommandCenterWorkbenchPanel', () => ({
+  default: ({ selectedClientLabel }: { selectedClientLabel: string }) => (
+    <section aria-label="Drafts">
+      <h2>Client Onboarding Workbench</h2>
+      <p>{selectedClientLabel}</p>
+    </section>
+  ),
+}));
 const PLACEHOLDER = 'Talk or type to Swan Coach...';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
 const sendButton = () => screen.getByRole('button', { name: /send to swan coach/i });
@@ -37,6 +45,12 @@ describe('CoachCommandCenterPage route context', () => {
         expect.stringContaining('Client #424242'),
         424242,
         'both',
+        null,
+        {
+          source: 'clients-team',
+          intent: 'log_workout',
+          surface: 'coach-command-center',
+        },
       );
     });
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
@@ -63,6 +77,12 @@ describe('CoachCommandCenterPage route context', () => {
         expect.stringContaining('Client #424242'),
         424242,
         'both',
+        null,
+        {
+          source: 'clients-team',
+          intent: 'log_workout',
+          surface: 'coach-command-center',
+        },
       );
     });
     const [message] = sendMessageWithConversationMock.mock.calls[0];
@@ -95,6 +115,9 @@ describe('CoachCommandCenterPage route context', () => {
         'both',
         null,
         {
+          source: 'master-schedule',
+          intent: 'log_workout',
+          surface: 'coach-command-center',
           scheduledSessionId: '777',
           scheduledSessionDate: '2026-06-07',
           scheduledSessionCredits: 2,
@@ -138,56 +161,28 @@ describe('CoachCommandCenterPage route context', () => {
     );
   });
 
-  it('hydrates new-client onboarding context from Client Hub', async () => {
+  it('opens the new-client onboarding Workbench from Client Hub', async () => {
     renderPage(
-      '/dashboard/admin/coach-assistant?intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management',
+      '/dashboard/admin/coach-assistant?intent=client_onboarding&source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management',
     );
 
-    const composer = composerInput();
-    await waitFor(() => {
-      expect((composer as HTMLTextAreaElement).value).toContain('New client onboarding intake');
-    });
-
-    expect(screen.getAllByText(/New client onboarding context loaded/i).length).toBeGreaterThan(0);
-
-    fireEvent.click(sendButton());
-
-    await waitFor(() => {
-      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
-        expect.stringContaining('client_onboarding proposal'),
-        'coach_assistant',
-        'New client onboarding',
-        null,
-        'both',
-      );
-    });
+    expect(await screen.findByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
   });
 
-  it('hydrates selected-client paid onboarding context from the activation queue', async () => {
+  it('opens selected-client onboarding routes in the Workbench as profile coverage updates', async () => {
     renderPage(
-      '/dashboard/admin/coach-assistant?clientId=424242&intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=client_onboarding&source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
     );
 
-    const composer = composerInput();
-    await waitFor(() => {
-      expect((composer as HTMLTextAreaElement).value).toContain('Selected paid client onboarding activation');
-    });
-
-    expect((composer as HTMLTextAreaElement).value).toContain('selectedClientId');
-    expect((composer as HTMLTextAreaElement).value).not.toContain('New client onboarding intake');
-    expect(screen.getAllByText(/Client #424242 onboarding context loaded/i).length).toBeGreaterThan(0);
-
-    fireEvent.click(sendButton());
-
-    await waitFor(() => {
-      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
-        expect.stringContaining('Selected paid client onboarding activation'),
-        'coach_assistant',
-        'Client #424242 onboarding',
-        424242,
-        'both',
-      );
-    });
+    expect(await screen.findByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/Client #424242/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Selected paid client onboarding activation/i)).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
   });
 
   it('hydrates admin overview command triage without requiring a selected client', async () => {
@@ -232,7 +227,12 @@ describe('CoachCommandCenterPage route context', () => {
         null,
         'both',
         null,
-        { workoutDate: '2026-06-18' },
+        {
+          source: 'admin-workout-logger',
+          intent: 'log_self_workout',
+          surface: 'coach-command-center',
+          workoutDate: '2026-06-18',
+        },
       );
     });
   });
@@ -259,4 +259,21 @@ describe('CoachCommandCenterPage route context', () => {
       .toHaveAttribute('href', '/dashboard/trainer/overview');
   });
 
+  it('drops cross-role workflow return links on trainer routes', async () => {
+    renderPage(
+      '/dashboard/trainer/coach-assistant?intent=trainer_daily_command&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42',
+      'trainer',
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Trainer day command context loaded/i).length).toBeGreaterThan(0);
+    });
+
+    const adminDashboardLinks = screen
+      .queryAllByRole('link')
+      .filter((link) => link.getAttribute('href')?.startsWith('/dashboard/admin/'));
+
+    expect(adminDashboardLinks.map((link) => link.getAttribute('href'))).toEqual([]);
+    expect(screen.queryAllByRole('link', { name: /back to client hub/i })).toHaveLength(0);
+  });
 });

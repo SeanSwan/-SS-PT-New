@@ -12,11 +12,12 @@ import {
 import { classifyNutritionLogPayload } from './coachNutritionProposalClassifier.mjs';
 import { classifyClientProfileCoveragePayload } from './coachClientProfileCoverageClassifier.mjs';
 import { normalizeOnboardingCoverageUpdates } from './coachOnboardingCoveragePayloadNormalizer.mjs';
+import { stripModelAuthoredOnboardingContactFields } from './coachOnboardingContactFieldSanitizer.mjs';
+import { WORKOUT_LOG_SOURCES, normalizeWorkoutLogSource } from '../workout/workoutLogSourcePolicy.mjs';
 import {
-  WORKOUT_LOG_SOURCES,
-  isHistoricalWorkoutLogSource,
-  normalizeWorkoutLogSource,
-} from '../workout/workoutLogSourcePolicy.mjs';
+  withSplitPlanRouteDefaults,
+  withWorkoutRouteDefaults,
+} from './coachWorkoutProposalRouteDefaults.mjs';
 
 export { parseSafeFrontendDispatch };
 
@@ -24,7 +25,6 @@ const ScheduledSessionIdSchema = z.union([
   z.number().int().positive(),
   z.string().regex(/^[1-9]\d*$/),
 ]);
-const ROUTE_CONTEXT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const REQUIRED_ONBOARDING_FIELDS = ['firstName', 'lastName', 'clientSource'];
 const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -75,6 +75,7 @@ const SplitCandidateSchema = z.object({
 });
 
 const SplitPlanPayloadSchema = z.object({
+  source: WorkoutLogSourceSchema.optional(),
   splits: z.array(SplitCandidateSchema).min(1).max(12),
 });
 
@@ -142,14 +143,17 @@ function onboardingClarificationPayload(missingFields, meta = null) {
 }
 
 function classifyClientOnboardingPayload(payload, proposalTypes, meta = null) {
-  const missingFields = missingOnboardingFields(payload);
+  const contactSafePayload = stripModelAuthoredOnboardingContactFields(payload);
+  const missingFields = missingOnboardingFields(contactSafePayload);
   if (missingFields.length > 0) {
     return {
       type: proposalTypes.CLARIFICATION,
       payload: onboardingClarificationPayload(missingFields, meta),
     };
   }
-  const normalizedPayload = normalizeOnboardingCoverageUpdates(normalizeOnboardingClientSource(payload));
+  const normalizedPayload = normalizeOnboardingCoverageUpdates(
+    normalizeOnboardingClientSource(contactSafePayload),
+  );
   return {
     type: proposalTypes.CLIENT_ONBOARDING,
     payload: meta ? { ...normalizedPayload, proposalMeta: meta } : normalizedPayload,
@@ -176,43 +180,6 @@ function proposalMeta(block, schemaVersion) {
     requiresConfirmation: true,
   };
   return intakeId ? { ...meta, intakeId } : meta;
-}
-
-function safeRouteDate(routeContext) {
-  const scheduledSessionDate = String(routeContext?.scheduledSessionDate || '').trim();
-  if (ROUTE_CONTEXT_DATE_PATTERN.test(scheduledSessionDate)) return scheduledSessionDate;
-  const workoutDate = String(routeContext?.workoutDate || '').trim();
-  return ROUTE_CONTEXT_DATE_PATTERN.test(workoutDate) ? workoutDate : null;
-}
-
-function safeRouteScheduledSessionId(routeContext) {
-  const scheduledSessionId = String(routeContext?.scheduledSessionId || '').trim();
-  return /^[1-9]\d*$/.test(scheduledSessionId) ? scheduledSessionId : null;
-}
-
-function safeWorkoutLogSource(payloadSource, routeContext) {
-  const routeAllowsHistoricalSource = routeContext?.intent === 'historical_import';
-  if (routeAllowsHistoricalSource) {
-    const requestedSource = normalizeWorkoutLogSource(payloadSource);
-    return isHistoricalWorkoutLogSource(requestedSource)
-      ? requestedSource
-      : WORKOUT_LOG_SOURCES.HISTORICAL_IMPORT;
-  }
-
-  return payloadSource ? WORKOUT_LOG_SOURCES.LIVE : null;
-}
-
-function withWorkoutRouteDefaults(payload, routeContext) {
-  const defaults = {};
-  const date = safeRouteDate(routeContext);
-  if (date && !payload.date) defaults.date = date;
-  const scheduledSessionId = safeRouteScheduledSessionId(routeContext);
-  if (scheduledSessionId && payload.scheduledSessionId == null) {
-    defaults.scheduledSessionId = scheduledSessionId;
-  }
-  const source = safeWorkoutLogSource(payload.source, routeContext);
-  if (source) defaults.source = source;
-  return Object.keys(defaults).length ? { ...payload, ...defaults } : payload;
 }
 
 export function parseJsonActionBlocks(content) {
@@ -274,7 +241,7 @@ export function classifyActionBlock(block, conversation, { proposalTypes, schema
       return payload ? { type: proposalTypes.CLARIFICATION, payload: { ...payload, proposalMeta: meta } } : null;
     }
     if (parsed.proposal_type === proposalTypes.SPLIT_PLAN) {
-      const payload = safeParseAction(SplitPlanPayloadSchema, parsed.payload);
+      const payload = safeParseAction(SplitPlanPayloadSchema, withSplitPlanRouteDefaults(parsed.payload, routeContext));
       return payload ? { type: proposalTypes.SPLIT_PLAN, payload: { ...payload, proposalMeta: meta } } : null;
     }
     return classifyWriteFrontendDispatch(

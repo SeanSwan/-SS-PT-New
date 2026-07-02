@@ -70,4 +70,15 @@ describe('commandResultSummary', () => {
     expect(commandResultSummary('view_goal_progress', {}, null)).toBe('View Goal Progress loaded.');
     expect(commandResultSummary('custom_command', {}, null)).toBe('custom command completed.');
   });
+  it('summarizes workout-plan debate receipts without claiming completion', () => {
+    const receipt = commandResultSummary('build_workout_plan', {
+      jobId: 'debate_job_42',
+      debateType: 'workout_plan',
+    }, client);
+
+    expect(receipt).toBe('Workout plan debate started for Sam. Track progress at /api/ai/debate/debate_job_42/status. No workout plan has been saved yet.');
+    expect(receipt).not.toContain('build workout plan completed');
+    expect(commandResultSummary('create_nasm_program', { jobId: 'debate_nasm_1' }, null)).toBe('NASM program debate started. Track progress at /api/ai/debate/debate_nasm_1/status. No workout plan has been saved yet.');
+    expect(commandResultSummary('generate_periodization', {}, null)).toBe('Periodization debate started. No workout plan has been saved yet.');
+  });
 });

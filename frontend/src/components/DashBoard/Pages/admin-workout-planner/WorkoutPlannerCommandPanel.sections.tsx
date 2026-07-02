@@ -21,6 +21,7 @@ import type {
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
 import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTypes';
+import { workoutPlannerReturnLabel } from './workoutPlannerReturnTo';
 import {
   OPT_PHASES,
   PLAN_DURATIONS,
@@ -117,7 +118,7 @@ export const WorkoutPlannerHeaderSection: React.FC<HeaderSectionProps> = ({
     {plannerReturnTo && (
       <TeachToggle type="button" onClick={onReturnToClientHub}>
         <ArrowLeft size={16} />
-        Back to Client Hub
+        {workoutPlannerReturnLabel(plannerReturnTo, 'back')}
       </TeachToggle>
     )}
     <TeachToggle type="button" $active={teachModeOpen} onClick={onTeachModeToggle}>

@@ -7,17 +7,93 @@ import CoachCommandLogEntry, { formatCommandLogBody } from './CoachCommandLogEnt
 import type { CommandLogEntry } from './CoachCommandCenter.data';
 import { PENDING_WORKOUT_QUEUE_KEY } from '../../../../utils/parseAIWorkoutPlan';
 
-const baseEntry: CommandLogEntry = {
-  id: 'entry-1',
-  actor: 'coach',
-  label: 'prepared draft',
-  body: '',
+const baseEntry: CommandLogEntry = { id: 'entry-1', actor: 'coach', label: 'prepared draft', body: '' };
+const mockClipboard = () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  return writeText;
 };
 
 describe('CoachCommandLogEntry', () => {
   afterEach(() => {
     sessionStorage.clear();
     vi.restoreAllMocks();
+  });
+
+  it('copies the claim link from the command-log access handoff', async () => {
+    const user = userEvent.setup();
+    const writeText = mockClipboard();
+
+    render(<CoachCommandLogEntry entry={{
+      ...baseEntry,
+      accessHandoff: {
+        credentialMode: 'claim_link_ready',
+        claimCode: 'SWAN-CLAIM77',
+        claimUrl: 'https://sswanstudios.com/claim/SWAN-CLAIM77',
+        clientName: 'Ava Stone',
+        clientSource: 'external',
+      },
+    }} />);
+
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    await user.click(within(handoff).getByRole('button', { name: /copy claim link/i }));
+
+    expect(writeText).toHaveBeenCalledWith('https://sswanstudios.com/claim/SWAN-CLAIM77');
+    expect(within(handoff).getByRole('button', { name: /claim link copied/i })).toBeInTheDocument();
+    expect(within(handoff).getByRole('link', { name: /open claim link/i })).toHaveAttribute(
+      'href',
+      'https://sswanstudios.com/claim/SWAN-CLAIM77',
+    );
+  });
+
+  it('renders claim-code-only access handoffs as ready with code copy controls', async () => {
+    const user = userEvent.setup();
+    const writeText = mockClipboard();
+
+    render(<CoachCommandLogEntry entry={{
+      ...baseEntry,
+      accessHandoff: {
+        credentialMode: 'claim_link_ready',
+        claimCode: 'SWAN-CODE77',
+        clientName: 'Ava Stone',
+        clientSource: 'external',
+      },
+    }} />);
+
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/Claim link ready/i);
+    expect(handoff).toHaveTextContent(/claim link or code/i);
+    expect(handoff).toHaveTextContent('SWAN-CODE77');
+    await user.click(within(handoff).getByRole('button', { name: /copy claim code/i }));
+    expect(writeText).toHaveBeenCalledWith('SWAN-CODE77');
+    expect(within(handoff).getByRole('button', { name: /claim code copied/i })).toBeInTheDocument();
+    expect(within(handoff).queryByRole('button', { name: /copy claim link/i })).not.toBeInTheDocument();
+    expect(within(handoff).queryByRole('link', { name: /open claim link/i })).not.toBeInTheDocument();
+  });
+  it('renders reset-link access handoffs without claim-link-only copy', async () => {
+    const user = userEvent.setup();
+    const resetUrl = 'https://sswanstudios.com/reset-password/raw-token';
+    const writeText = mockClipboard();
+
+    render(<CoachCommandLogEntry entry={{
+      ...baseEntry,
+      accessHandoff: {
+        credentialMode: 'reset_link_ready',
+        resetUrl,
+        clientName: 'Ava Stone',
+        clientSource: 'swanstudios',
+      },
+    }} />);
+
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/Reset link ready/i);
+    expect(handoff).toHaveTextContent(/secure reset link/i);
+    expect(handoff).not.toHaveTextContent(/claim link/i);
+    await user.click(within(handoff).getByRole('button', { name: /copy reset link/i }));
+
+    expect(writeText).toHaveBeenCalledWith(resetUrl);
+    expect(within(handoff).getByRole('button', { name: /reset link copied/i })).toBeInTheDocument();
+    expect(within(handoff).getByRole('link', { name: /open reset link/i })).toHaveAttribute('href', resetUrl);
   });
 
   it('switches a dual-mode Coach answer between Science and Keep It 100 without showing both at once', async () => {
@@ -159,6 +235,7 @@ describe('CoachCommandLogEntry', () => {
     expect(queued).toHaveLength(1);
     expect(queued[0]).toMatchObject({
       source: 'ai-chat',
+      targetClientId: 42,
       exercises: [
         { exerciseName: 'Goblet squat', sets: 3, reps: 10 },
         { exerciseName: 'Push-up', sets: 3, reps: 8 },

@@ -107,6 +107,15 @@ export interface Explanation {
   details?: string[];
 }
 
+export interface TrainingStyleMetadata {
+  mode: string;
+  method: string;
+  label: string;
+  cue: string;
+  safeguards?: string[];
+  [key: string]: unknown;
+}
+
 export interface GeneratedWorkout {
   clientId: number;
   trainerId: number;
@@ -114,6 +123,7 @@ export interface GeneratedWorkout {
   generatedAt: string;
   planningSystem: 'swan_coach_planning';
   swanCoachPlanning: SwanCoachPlanningFingerprint;
+  trainingStyle?: TrainingStyleMetadata;
   sessionType: 'build' | 'switch';
   category: string;
   nasmPhase: number;
@@ -212,6 +222,7 @@ export interface GeneratedPlan {
   generatedAt: string;
   planningSystem: 'swan_coach_planning';
   swanCoachPlanning: SwanCoachPlanningFingerprint;
+  trainingStyle?: TrainingStyleMetadata;
   planSummary: {
     durationWeeks: number;
     sessionsPerWeek: number;
@@ -219,6 +230,7 @@ export interface GeneratedPlan {
     primaryGoal: string;
     startingPhase: number;
     equipmentProfileId: number | null;
+    trainingStyle?: TrainingStyleMetadata;
   };
   mesocycles: Mesocycle[];
   weeklySchedule: { dayNumber: number; focus: string; category: string }[];

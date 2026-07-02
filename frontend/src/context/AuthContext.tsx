@@ -34,6 +34,7 @@ export interface User {
   profileImageUrl?: string;
   photo?: string;
   isActive: boolean;
+  isOnboardingComplete?: boolean;
   createdAt: string;
   updatedAt: string;
   trainerInfo?: any;
@@ -126,6 +127,15 @@ const hasOwn = (value: any, key: string) => (
   value && Object.prototype.hasOwnProperty.call(value, key)
 );
 
+const resolveOnboardingComplete = (
+  userData: any,
+  fallback?: Partial<User> | null
+): boolean | undefined => {
+  if (typeof userData.isOnboardingComplete === 'boolean') return userData.isOnboardingComplete;
+  if (typeof userData.onboardingComplete === 'boolean') return userData.onboardingComplete;
+  return fallback?.isOnboardingComplete;
+};
+
 const resolveWaiverFields = (userData: any, fallback?: Partial<User> | null) => {
   const serverSentWaiverState = (
     hasOwn(userData, 'hasLinkedWaiver') ||
@@ -168,6 +178,7 @@ const formatAuthUser = (
   profileImageUrl: userData.profileImageUrl || userData.photo,
   photo: userData.photo,
   isActive: userData.isActive !== false,
+  isOnboardingComplete: resolveOnboardingComplete(userData, fallback),
   createdAt: userData.createdAt,
   updatedAt: userData.updatedAt,
   trainerInfo: userData.trainerInfo,

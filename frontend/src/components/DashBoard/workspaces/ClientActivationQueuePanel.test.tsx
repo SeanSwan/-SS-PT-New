@@ -86,6 +86,80 @@ describe('ClientActivationQueuePanel', () => {
     expect(mobileToggle).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('navigates complete onboarding rows to the Coach onboarding Workbench', async () => {
+    const onNavigate = vi.fn();
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            queue: [
+              {
+                cartId: 9,
+                sessionId: 'cs_test_onboarding_handoff',
+                client: {
+                  id: 3,
+                  firstName: 'Ava',
+                  lastName: 'Client',
+                  email: 'ava.client@example.test',
+                  isActive: true,
+                  availableSessions: 10,
+                },
+                cart: {
+                  id: 9,
+                  status: 'completed',
+                  paymentStatus: 'paid',
+                  sessionsGranted: true,
+                  total: 500,
+                  completedAt: '2026-05-20T11:00:00.000Z',
+                  updatedAt: '2026-05-20T12:00:00.000Z',
+                },
+                activation: {
+                  paid: true,
+                  accountLinked: true,
+                  waiverComplete: true,
+                  onboardingComplete: false,
+                  sessionCreditsAllocated: true,
+                  orderRecorded: true,
+                  sessionsAvailable: 10,
+                  scheduledSessionCount: 0,
+                  forcePasswordChange: false,
+                  nextStep: 'complete_onboarding',
+                  nextRoute: '/dashboard/client/overview',
+                  nextAction: 'Complete onboarding',
+                },
+                nextSession: null,
+                updatedAt: '2026-05-20T12:00:00.000Z',
+              },
+            ],
+            summary: {
+              total: 1,
+              needsWaiver: 0,
+              needsOnboarding: 1,
+              awaitingSessionAllocation: 0,
+              readyToSchedule: 0,
+              byNextStep: { complete_onboarding: 1 },
+            },
+          },
+        },
+      }),
+    };
+
+    render(
+      <ClientActivationQueuePanel
+        authAxios={authAxios}
+        onSelectClient={vi.fn()}
+        onNavigate={onNavigate}
+      />
+    );
+
+    const cta = await screen.findByRole('button', { name: /complete onboarding for ava client/i });
+    fireEvent.click(cta);
+
+    expect(onNavigate).toHaveBeenCalledWith(
+      '/dashboard/admin/coach-assistant?clientId=3&source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D3&intent=client_profile_coverage_update',
+    );
+  });
   it('does not expose focus or navigation actions for malformed activation client ids', async () => {
     const onSelectClient = vi.fn();
     const onNavigate = vi.fn();

@@ -15,6 +15,8 @@ const blankNameClient: ClientOption = {
   availableSessions: 2,
 };
 
+const resetPath = '/api/admin/clients/7/send-password-reset';
+
 const Harness = ({ selectedClient }: { selectedClient: ClientOption }) => {
   const {
     handleDeactivateClient,
@@ -39,6 +41,51 @@ const Harness = ({ selectedClient }: { selectedClient: ClientOption }) => {
       />
     </>
   );
+};
+
+const renderResetHarness = (
+  postMock: ReturnType<typeof vi.fn>,
+  toast: ReturnType<typeof vi.fn>,
+  includeHandoff = false,
+) => {
+  const ResetHarness = () => {
+    const {
+      handleSendPasswordReset,
+      deactivationConfirmation,
+      closeDeactivationConfirmation,
+      passwordResetHandoff,
+    } = useClientAccountLifecycle({
+      authAxios: { delete: vi.fn(), post: postMock, put: vi.fn() },
+      selectedClient: blankNameClient,
+      setClients: vi.fn(),
+      setSelectedClient: vi.fn(),
+      toast,
+    });
+
+    return (
+      <>
+        <button type="button" onClick={handleSendPasswordReset}>Open reset dialog</button>
+        <ClientLifecycleConfirmDialog
+          request={deactivationConfirmation}
+          onClose={closeDeactivationConfirmation}
+        />
+        {includeHandoff && passwordResetHandoff && (
+          <section aria-label="reset handoff">
+            <span>{passwordResetHandoff.credentialMode}</span>
+            <span>{passwordResetHandoff.credentialIssue}</span>
+            <span>{passwordResetHandoff.message}</span>
+          </section>
+        )}
+      </>
+    );
+  };
+
+  render(<ResetHarness />);
+};
+
+const confirmPasswordReset = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /open reset dialog/i }));
+  await user.click(await screen.findByRole('button', { name: /send reset link/i }));
 };
 
 describe('useClientAccountLifecycle', () => {
@@ -67,7 +114,6 @@ describe('useClientAccountLifecycle', () => {
     const setClients = vi.fn();
     const setSelectedClient = vi.fn();
     const toast = vi.fn();
-
     const ActionHarness = () => {
       const {
         handleDeactivateClient,
@@ -126,31 +172,7 @@ describe('useClientAccountLifecycle', () => {
     });
     const toast = vi.fn();
 
-    const ActionHarness = () => {
-      const {
-        handleSendPasswordReset,
-        deactivationConfirmation,
-        closeDeactivationConfirmation,
-      } = useClientAccountLifecycle({
-        authAxios: { delete: vi.fn(), post: postMock, put: vi.fn() },
-        selectedClient: blankNameClient,
-        setClients: vi.fn(),
-        setSelectedClient: vi.fn(),
-        toast,
-      });
-
-      return (
-        <>
-          <button type="button" onClick={handleSendPasswordReset}>Open reset dialog</button>
-          <ClientLifecycleConfirmDialog
-            request={deactivationConfirmation}
-            onClose={closeDeactivationConfirmation}
-          />
-        </>
-      );
-    };
-
-    render(<ActionHarness />);
+    renderResetHarness(postMock, toast);
 
     await user.click(screen.getByRole('button', { name: /open reset dialog/i }));
     expect(postMock).not.toHaveBeenCalled();
@@ -160,9 +182,75 @@ describe('useClientAccountLifecycle', () => {
 
     await user.click(screen.getByRole('button', { name: /send reset link/i }));
 
-    expect(postMock).toHaveBeenCalledWith('/api/admin/clients/7/send-password-reset', {});
+    expect(postMock).toHaveBeenCalledWith(resetPath, {});
     expect(toast).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Reset link sent',
+    }));
+  });
+
+  it('honors credentialMode reset-link-sent from selected-client reset responses', async () => {
+    const user = userEvent.setup();
+    const postMock = vi.fn().mockResolvedValue({
+      data: { message: 'Password reset email sent.', data: { credentialMode: 'reset_link_sent' } },
+    });
+    const toast = vi.fn();
+
+    renderResetHarness(postMock, toast);
+    await confirmPasswordReset(user);
+
+    expect(postMock).toHaveBeenCalledWith(resetPath, {});
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Reset link sent',
+      variant: 'default',
+    }));
+  });
+
+  it('honors credentialMode reset-link-unavailable from selected-client reset responses', async () => {
+    const user = userEvent.setup();
+    const postMock = vi.fn().mockResolvedValue({
+      data: {
+        message: 'Password reset link could not be generated.',
+        data: { credentialMode: 'reset_link_unavailable', resetEmailSent: false },
+      },
+    });
+    const toast = vi.fn();
+
+    renderResetHarness(postMock, toast);
+    await confirmPasswordReset(user);
+
+    expect(postMock).toHaveBeenCalledWith(resetPath, {});
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Reset link unavailable',
+      variant: 'destructive',
+    }));
+  });
+
+  it('preserves reset-link-unavailable handoff from fail-closed selected-client reset errors', async () => {
+    const user = userEvent.setup();
+    const postMock = vi.fn().mockRejectedValue({
+      response: {
+        status: 503,
+        data: {
+          success: false,
+          message: 'Password reset link could not be generated.',
+          error: 'reset_link_unavailable',
+          credentialIssue: 'reset_link_unavailable',
+        },
+      },
+    });
+    const toast = vi.fn();
+
+    renderResetHarness(postMock, toast, true);
+    await confirmPasswordReset(user);
+
+    expect(postMock).toHaveBeenCalledWith(resetPath, {});
+    const handoff = await screen.findByRole('region', { name: /reset handoff/i });
+    expect(handoff).toHaveTextContent('reset_link_unavailable');
+    expect(handoff).toHaveTextContent(/send reset link after the account issue is resolved/i);
+    expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Reset link unavailable',
+      description: 'Password reset link could not be generated.',
+      variant: 'destructive',
     }));
   });
 

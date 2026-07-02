@@ -133,9 +133,9 @@ const TRAINERS_RESPONSE = {
 const mockAuthAxiosGet = mockAuthAxios.get as ReturnType<typeof vi.fn>;
 const mockAuthAxiosPost = mockAuthAxios.post as ReturnType<typeof vi.fn>;
 
-const renderWorkspace = () =>
+const renderWorkspace = (initialEntry = '/dashboard/admin/client-management') =>
   render(
-    <MemoryRouter initialEntries={['/dashboard/admin/client-management']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <ClientsWorkspace />
     </MemoryRouter>
   );
@@ -202,8 +202,85 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       title: 'Client created',
       description: expect.stringMatching(/Manual Client.*secure login link/i),
     }));
-    expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent(/secure login link sent/i);
+    const handoff = screen.getByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/secure login link sent/i);
+    expect(handoff).toHaveTextContent(/no password is shown/i);
+    expect(handoff).not.toHaveTextContent(/copy link is also ready/i);
+    expect(within(handoff).queryByRole('button', { name: /copy reset link/i })).not.toBeInTheDocument();
   }, 15000);
+
+  it('shows a copyable reset link handoff when selected-client reset email falls back to manual delivery', async () => {
+    const user = userEvent.setup();
+    const resetUrl = 'https://sswanstudios.com/reset-password/manual-token';
+    mockAuthAxiosPost.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients/424242/send-password-reset') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            message: 'Password reset link generated for manual handoff.',
+            data: {
+              credentialAction: 'reset_link_ready',
+              resetEmailSent: false,
+              resetUrl,
+              expiresInMinutes: 60,
+            },
+          },
+        });
+      }
+      return Promise.resolve(CREATED_CLIENT_RESPONSE);
+    });
+
+    renderWorkspace('/dashboard/admin/client-management?clientId=424242');
+
+    await user.click(await screen.findByRole('button', { name: /send password reset link to fixture client/i }));
+    await user.click(await screen.findByRole('button', { name: /send reset link/i }));
+
+    expect(mockAuthAxiosPost).toHaveBeenCalledWith('/api/admin/clients/424242/send-password-reset', {});
+    const handoff = await screen.findByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/reset link ready to copy/i);
+    expect(handoff).toHaveTextContent(/email delivery did not complete/i);
+    expect(handoff).toHaveTextContent(resetUrl);
+    expect(within(handoff).getByRole('button', { name: /copy reset link/i })).toBeInTheDocument();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Reset link ready to copy',
+    }));
+  });
+
+  it('shows reset-link-unavailable when selected-client reset generation fails closed', async () => {
+    const user = userEvent.setup();
+    mockAuthAxiosPost.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients/424242/send-password-reset') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            message: 'Password reset link could not be generated.',
+            data: {
+              credentialAction: 'reset_link_needed',
+              credentialIssue: 'reset_link_unavailable',
+              resetEmailSent: false,
+            },
+          },
+        });
+      }
+      return Promise.resolve(CREATED_CLIENT_RESPONSE);
+    });
+
+    renderWorkspace('/dashboard/admin/client-management?clientId=424242');
+
+    await user.click(await screen.findByRole('button', { name: /send password reset link to fixture client/i }));
+    await user.click(await screen.findByRole('button', { name: /send reset link/i }));
+
+    const handoff = await screen.findByRole('region', { name: /client access handoff/i });
+    expect(handoff).toHaveTextContent(/reset link unavailable/i);
+    expect(handoff).toHaveTextContent(/reset link could not be generated/i);
+    expect(handoff).toHaveTextContent(/send reset link after the account issue is resolved/i);
+    expect(within(handoff).queryByRole('button', { name: /copy reset link/i })).not.toBeInTheDocument();
+    expect(within(handoff).queryByRole('button', { name: /copy claim/i })).not.toBeInTheDocument();
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Reset link unavailable',
+      variant: 'destructive',
+    }));
+  });
 
   it('loads assignable trainers into the canonical manual client form', async () => {
     const user = userEvent.setup();

@@ -61,6 +61,71 @@ describe('WorkoutLogger helpers', () => {
     expect(entry.formRating).toBeNull();
   });
 
+  it('preserves approved plan prescription strings when prefilling logger rows', () => {
+    let nextId = 0;
+    const makeLocalId = () => `plan-${nextId += 1}`;
+
+    const entry = plannedExerciseToEntry(
+      {
+        id: 'approved-press',
+        name: 'Bench Press',
+        setScheme: '4x8',
+        repGoal: '8-10',
+        restPeriod: 90,
+        notes: 'Keep shoulder blades packed.',
+      },
+      makeLocalId,
+    );
+
+    expect(entry.exerciseId).toBe('approved-press');
+    expect(entry.exerciseName).toBe('Bench Press');
+    expect(entry.sets).toHaveLength(4);
+    expect(entry.sets[0]).toMatchObject({
+      reps: 8,
+      restTime: 90,
+      notes: 'Keep shoulder blades packed.',
+    });
+    expect(entry.sets[3]).toMatchObject({ setNumber: 4, reps: 8 });
+  });
+
+  it('preserves explicit generated-plan set rows when prefilling logger rows', () => {
+    let nextId = 0;
+    const makeLocalId = () => `set-array-${nextId += 1}`;
+
+    const entry = plannedExerciseToEntry(
+      {
+        id: 'coach-split-squat',
+        name: 'Split Squat',
+        sets: [
+          { setNumber: 1, reps: '8/side', weight: '35 lb', notes: 'Controlled eccentric.' },
+          { setNumber: 2, reps: 6, weight: 40, restTime: '75 sec' },
+        ],
+        restPeriod: 90,
+        tempo: '3-1-1',
+        notes: 'Keep knee tracking over toes.',
+      },
+      makeLocalId,
+    );
+
+    expect(entry.sets).toEqual([
+      expect.objectContaining({
+        setNumber: 1,
+        reps: 8,
+        weight: 35,
+        restTime: 90,
+        tempo: '3-1-1',
+        notes: 'Controlled eccentric.',
+      }),
+      expect.objectContaining({
+        setNumber: 2,
+        reps: 6,
+        weight: 40,
+        restTime: 75,
+        tempo: '3-1-1',
+        notes: 'Keep knee tracking over toes.',
+      }),
+    ]);
+  });
   it('reads currentSession from every backend-compatible response location', () => {
     const session = { exercises: [{ name: 'Pushup' }] };
     expect(getCurrentWorkoutCursorSession({ currentSession: session })).toBe(session);

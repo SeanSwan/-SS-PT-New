@@ -55,7 +55,7 @@ export type CommandResponse =
 
 export interface ConfirmResult {
   success: boolean;
-  type: 'executed' | 'error' | 'not_wired' | 'frontend_dispatch';
+  type: 'executed' | 'error' | 'not_wired' | 'frontend_dispatch' | 'debate_started';
   message: string;
   /** Execution result from the service (renamed from data — matches executeConfirmedOperation shape) */
   result: Record<string, unknown> | null;

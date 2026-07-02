@@ -323,6 +323,7 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       shouldDeduct: false,
       sessionDeducted: false,
       creditsDeducted: 0,
+      creditsRequired: 0,
       remainingSessions: 0,
     }));
   });
@@ -389,7 +390,11 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       previous: { week: 4, day: 2 },
       next: { week: 5, day: 1 },
     });
-    expect(result.billing.status).toBe('not_deducted');
+    expect(result.billing).toMatchObject({
+      status: 'not_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 0,
+    });
   });
 
   it('logs historical imports for paid clients without deducting session credits', async () => {

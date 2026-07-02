@@ -15,11 +15,14 @@ export const getVisitorGeo = async (req, res) => {
 
     const users = await User.findAll({
       where: {
-        lastLoginIP: { [Op.ne]: null },
+        [Op.or]: [
+          { lastLoginIP: { [Op.ne]: null } },
+          { registrationIP: { [Op.ne]: null } },
+        ],
         lastActive: { [Op.gte]: ninetyDaysAgo },
         role: { [Op.ne]: 'admin' },
       },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'lastLoginIP', 'lastActive', 'lastLogin'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'lastLoginIP', 'registrationIP', 'lastActive', 'lastLogin'],
       order: [['lastActive', 'DESC']],
       raw: true,
     });
@@ -28,14 +31,14 @@ export const getVisitorGeo = async (req, res) => {
     const results = [];
 
     for (const user of users) {
-      const ip = user.lastLoginIP;
+      const ip = user.lastLoginIP || user.registrationIP;
       if (!ipSet.has(ip)) ipSet.set(ip, await lookupGeo(ip));
       const geo = ipSet.get(ip);
       results.push({
         userId: user.id,
         name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
         role: user.role,
-        source: 'login',
+        source: user.lastLoginIP ? 'login' : 'signup',
         lastActive: user.lastActive,
         lastLogin: user.lastLogin,
         ip,
@@ -205,7 +208,7 @@ export const getVisitorHistory = async (req, res) => {
           { userAgent: { [Op.notILike]: '%playwright%' } },
         ],
         [Op.not]: [{ page: { [Op.iLike]: '/dashboard%' } }],
-        page: { [Op.notIn]: ['/login', '/register', '/auth'] },
+        page: { [Op.notIn]: ['/login', '/auth'] },
       },
       order: [['last_seen', 'DESC']],
       limit,

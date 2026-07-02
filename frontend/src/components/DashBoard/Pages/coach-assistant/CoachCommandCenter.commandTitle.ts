@@ -17,6 +17,9 @@ export function buildCoachCommandTitle({
   if (routeIntent === 'client_onboarding') {
     return routeClientLabel ? `${routeClientLabel} onboarding` : 'New client onboarding';
   }
+  if (routeIntent === 'client_profile_coverage_update') {
+    return routeClientLabel ? `${routeClientLabel} profile coverage update` : 'Client profile coverage update';
+  }
   if (routeIntent === 'plan_review') {
     return routeClientLabel ? `${routeClientLabel} Build Plan review` : 'Build Plan review';
   }

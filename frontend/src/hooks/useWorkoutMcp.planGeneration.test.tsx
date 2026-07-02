@@ -38,7 +38,7 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
     );
   });
 
-  it('routes Program Architect generation through Swan Coach planning', async () => {
+  it('routes Program Architect generation through Swan Coach planning and normalizes session aliases', async () => {
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
         success: true,
@@ -52,7 +52,7 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
           },
           weeks: [{
             weekNumber: 1,
-            days: [{
+            sessions: [{
               dayNumber: 1,
               name: 'Day 1: Push',
               focus: 'push',
@@ -156,6 +156,40 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
     }));
   });
 
+
+  it('maps legacy advanced difficulty to the backend hardcore training style', async () => {
+    vi.mocked(apiService.post).mockResolvedValue({
+      data: {
+        success: true,
+        plan: {
+          planningSystem: 'swan_coach_planning',
+          swanCoachPlanning: { createdBy: 'swan_coach_planning' },
+          planSummary: { durationWeeks: 8, sessionsPerWeek: 3, primaryGoal: 'strength' },
+          weeks: [],
+          recommendations: [],
+        },
+      },
+    });
+
+    const { result } = renderHook(() => useWorkoutMcp());
+
+    await act(async () => {
+      await result.current.generateWorkoutPlan({
+        trainerId: 'current-trainer',
+        clientId: '42',
+        name: 'Advanced Strength Arc',
+        goal: 'strength',
+        difficulty: 'advanced',
+        daysPerWeek: 3,
+      });
+    });
+
+    expect(apiService.post).toHaveBeenCalledWith('/api/workout-builder/plan', expect.objectContaining({
+      clientId: 42,
+      trainingIntensityMode: 'hardcore',
+      hardcoreMethod: 'standard',
+    }));
+  });
   it('persists generated Swan Coach plans into the Plan Vault save route and attaches the PDF artifact', async () => {
     vi.mocked(apiService.post).mockImplementation((url: string) => (
       url === '/api/workout-plans'

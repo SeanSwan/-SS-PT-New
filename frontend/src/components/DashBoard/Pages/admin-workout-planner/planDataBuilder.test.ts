@@ -117,7 +117,7 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     });
   });
 
-  it('persists every L1 additive field verbatim', () => {
+  it('persists every L1 additive field after privacy sanitization', () => {
     const equipmentContext = {
       profileId: 77,
       availableEquipment: ['Dumbbell (free_weights)', 'Bench (support)'],
@@ -135,10 +135,17 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
       missingDataCategories: ['nutrition/macros'],
       rules: ['Use Client # only'],
     };
+    const trainingStyle = {
+      mode: 'hardcore' as const,
+      method: 'standard' as const,
+      label: 'Hardcore Sean Style',
+      cue: 'High-intent blocks with guardrails.',
+    };
     const generatedPlan = buildGeneratedPlan({
       equipmentContext,
       planningSystem: 'swan_coach_planning',
       swanCoachPlanning,
+      trainingStyle,
     } as Partial<GeneratedPlan>);
     const result = buildPlanData({
       mode: 'generated',
@@ -155,6 +162,7 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     expect(result.planSummary).toEqual(generatedPlan.planSummary);
     expect(result.planningSystem).toBe('swan_coach_planning');
     expect(result.swanCoachPlanning).toEqual(swanCoachPlanning);
+    expect(result.trainingStyle).toEqual(trainingStyle);
     // Codex 2026-05-03 round-2: rationale[] must persist (backend emits it
     // at workoutBuilderService.mjs:721-727; was silently dropped before).
     expect(result.rationale).toEqual(generatedPlan.rationale);

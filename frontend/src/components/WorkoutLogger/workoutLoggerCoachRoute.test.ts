@@ -46,6 +46,18 @@ describe('buildWorkoutLoggerCoachRoute', () => {
     );
   });
 
+  it('treats legacy raw user accounts as client self-logging Coach handoffs', () => {
+    const route = buildWorkoutLoggerCoachRoute({
+      userRole: 'user',
+      clientId: 7,
+      workoutDate: '2026-06-19',
+    });
+
+    expect(route).toBe(
+      '/dashboard/client/coach-assistant?source=client-workout-logger&returnTo=%2Fdashboard%2Fclient%2Flog-workout%3FloadPlan%3Dtoday&intent=log_self_workout&workoutDate=2026-06-19',
+    );
+  });
+
   it('lets the admin personal logger return to Coach without pretending Sean is a selected client', () => {
     const route = buildWorkoutLoggerCoachRoute({
       userRole: 'admin',

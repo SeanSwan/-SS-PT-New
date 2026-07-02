@@ -48,7 +48,7 @@ function fakeContext(overrides = {}) {
       sessionBalancePolicy: 'paid_sessions_deduct_on_billable_training',
     },
     streak: null,
-    activeProgram: null,
+    activeProgram: overrides.activeProgram ?? null,
     trainingVault: overrides.trainingVault ?? null,
     workouts: { sessionsLast2Weeks: 0, avgFormRating: null },
     criticalDataUnavailable: overrides.criticalDataUnavailable ?? false,
@@ -150,6 +150,13 @@ describe('generatePlan - goal-driven phase progression', () => {
       nasmPhase: 2,
       goals: { primaryGoal: 'strength' },
       pain: { exclusions: [{ bodyRegion: 'knee' }], warnings: [] },
+      activeProgram: {
+        id: 'program-42',
+        horizonMonths: 6,
+        goalProfile: 'strength',
+        status: 'active',
+        sourceType: 'swan_coach_planning',
+      },
       trainingVault: {
         defaultHorizonKey: 'six_month',
         filledHorizonKeys: ['six_month'],
@@ -173,6 +180,12 @@ describe('generatePlan - goal-driven phase progression', () => {
     expect(plan.swanCoachPlanning.planInputsUsed.painInjury).toBe(true);
     expect(plan.swanCoachPlanning.planInputsUsed.planVault).toBe(true);
     expect(plan.swanCoachPlanning.planInputsUsed.clientSourcePolicy).toBe(true);
+    expect(plan.swanCoachPlanning.planInputsUsed.activeProgram).toBe(true);
+    expect(plan.clientIntelligence.activeProgram).toEqual(expect.objectContaining({
+      id: 'program-42',
+      status: 'active',
+      sourceType: 'swan_coach_planning',
+    }));
     expect(plan.clientIntelligence.trainingVault.filledHorizonKeys).toEqual(['six_month']);
     expect(plan.clientIntelligence.sourcePolicy).toEqual(expect.objectContaining({
       clientSource: 'swanstudios',

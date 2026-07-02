@@ -55,6 +55,21 @@ describe('CoachOnboardingWorkbench logic', () => {
     expect(workbenchCompletionPercent(sparseClient)).toBe(31);
   });
 
+  it('keeps client email out of Coach next-question prompts', () => {
+    const emailOnlyClient = {
+      ...sparseClient,
+      id: 88,
+      firstName: '',
+      lastName: '',
+      email: 'privacy.leak@example.test',
+    } as ClientOption;
+
+    const nextQuestion = buildNextWorkbenchQuestion(emailOnlyClient);
+
+    expect(nextQuestion?.command).toContain('For Client #88');
+    expect(nextQuestion?.command).not.toContain('privacy.leak@example.test');
+  });
+
   it('filters rosters safely and normalizes follow-up statuses', () => {
     const clients = Array.from({ length: 90 }, (_, index) => ({
       id: index + 1,

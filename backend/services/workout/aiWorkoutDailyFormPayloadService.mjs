@@ -24,6 +24,25 @@ export const parseNonNegativeInteger = (value, fallback = null) => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 };
 
+const parseRepTarget = (value, fallback = 0) => {
+  const exact = parseNonNegativeInteger(value, null);
+  if (exact !== null) return exact;
+
+  if (typeof value === 'string') {
+    const lowerBound = value.trim().match(/^\d+/)?.[0];
+    const parsed = lowerBound ? Number(lowerBound) : NaN;
+    if (Number.isSafeInteger(parsed) && parsed >= 0) return parsed;
+  }
+
+  return fallback;
+};
+
+const normalizeSetRpe = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : null;
+};
+
 export const toIsoDateOnly = (value) => {
   if (!value) return new Date().toISOString().split('T')[0];
   if (value instanceof Date && Number.isFinite(value.getTime())) {
@@ -73,15 +92,13 @@ export const normalizeIntensity = (value) => {
 
 const normalizeSet = (set, setNumber) => ({
   setNumber,
-  reps: parseNonNegativeInteger(set?.reps, 0) ?? 0,
+  reps: parseRepTarget(set?.reps, 0),
   weight: Number.isFinite(Number(set?.weight)) && Number(set?.weight) >= 0
     ? Number(set.weight)
     : 0,
   tempo: normalizeText(set?.tempo, null),
   restTime: parseNonNegativeInteger(set?.restTime ?? set?.rest ?? set?.restSeconds, null),
-  rpe: set?.rpe === undefined || set?.rpe === null || set?.rpe === ''
-    ? null
-    : Number(set.rpe),
+  rpe: normalizeSetRpe(set?.rpe),
   notes: normalizeText(set?.notes, null),
 });
 

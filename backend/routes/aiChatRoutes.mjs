@@ -63,7 +63,11 @@ import {
 } from '../services/aiChatService.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
-import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
+import {
+  checkClientAccess,
+  CLIENT_ACCESS_DENIED_MESSAGE,
+  parseContextClientId,
+} from '../services/ai/contextEngine/clientAccess.mjs';
 import {
   CURRENT_MESSAGE_WITHHELD,
   RESPONSE_MESSAGE_WITHHELD,
@@ -122,7 +126,8 @@ const AI_CHAT_WORKOUT_DATE_CONTEXTS = new Set([
 const AI_CHAT_COVERAGE_CONTEXTS = new Set(['coach_assistant', 'workout_generation']);
 
 function parseOptionalPositiveInteger(value) {
-  if (value === undefined || value === null || value === '') return null;
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
@@ -159,7 +164,7 @@ function parseOptionalIsoDate(value) {
 function parseOptionalCredits(value) {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
@@ -185,7 +190,8 @@ function buildSelectedScheduledSessionPromptBlock({
 }) {
   if (!scheduledSessionId || !AI_CHAT_SCHEDULE_CONTEXTS.has(context)) return '';
   const dateLine = scheduledSessionDate ? `\nSession date: ${scheduledSessionDate}` : '';
-  const creditLine = scheduledSessionCredits ? `\nCredit hint: ${scheduledSessionCredits}` : '';
+  const hasScheduledSessionCredits = scheduledSessionCredits !== null && scheduledSessionCredits !== undefined;
+  const creditLine = hasScheduledSessionCredits ? `\nCredit hint: ${scheduledSessionCredits}` : '';
   return `\n--- SELECTED BOOKED SESSION ---\nScheduled Session ID: ${scheduledSessionId}${dateLine}${creditLine}\nInstruction: when preparing a workout_log proposal for this booked session, include "scheduledSessionId": "${scheduledSessionId}". Do not invent or change scheduled session ids. Final approval will verify ownership, attendance status, and session deduction server-side.\n--- END SELECTED BOOKED SESSION ---`;
 }
 
@@ -213,7 +219,9 @@ function buildCoachProposalRouteContext({
   if (workoutDate) routeContext.workoutDate = workoutDate;
   if (scheduledSessionId) routeContext.scheduledSessionId = String(scheduledSessionId);
   if (scheduledSessionDate) routeContext.scheduledSessionDate = scheduledSessionDate;
-  if (scheduledSessionCredits) routeContext.scheduledSessionCredits = scheduledSessionCredits;
+  if (scheduledSessionCredits !== null && scheduledSessionCredits !== undefined) {
+    routeContext.scheduledSessionCredits = scheduledSessionCredits;
+  }
   if (Object.keys(routeContext).length === 0) return null;
   return {
     source: source || 'workout-logger',
@@ -337,11 +345,38 @@ router.post('/conversations', async (req, res) => {
     const validStyles = ['phd_only', 'simple_only', 'balanced', 'both'];
     const resolvedStyle = validStyles.includes(responseStyle) ? responseStyle : 'balanced';
 
-    // Only trainers/admins can set a target client
-    const resolvedTargetUserId = (userRole === 'admin' || userRole === 'trainer') && targetUserId
-      ? targetUserId
-      : null;
+    let resolvedTargetUserId = null;
+    const canTargetClient = userRole === 'admin' || userRole === 'trainer';
+    const hasRequestedTarget = targetUserId !== undefined && targetUserId !== null && targetUserId !== '';
 
+    if (canTargetClient && hasRequestedTarget) {
+      resolvedTargetUserId = parseContextClientId(targetUserId);
+      if (!resolvedTargetUserId) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_TARGET_USER_ID',
+          error: 'targetUserId must be a strict positive integer.',
+        });
+      }
+
+      if (userRole === 'trainer') {
+        const access = await checkClientAccess(req.user, resolvedTargetUserId, sequelize);
+        if (!access.allowed) {
+          if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT === 'true') {
+            logger.warn('[AIChatRoutes] SOFT MODE: trainer %d not verified for Client #%d at conversation creation (reason: %s) - allowing per AI_CHAT_CLIENT_ACCESS_SOFT',
+              req.user.id, resolvedTargetUserId, access.reason);
+          } else {
+            logger.warn('[AIChatRoutes] Trainer %d DENIED conversation target Client #%d (reason: %s)',
+              req.user.id, resolvedTargetUserId, access.reason);
+            return res.status(403).json({
+              success: false,
+              code: 'CLIENT_ACCESS_DENIED',
+              error: CLIENT_ACCESS_DENIED_MESSAGE,
+            });
+          }
+        }
+      }
+    }
     // Build create payload — only include targetUserId if it has a value
     // (column may not exist yet if migration hasn't run)
     const createPayload = {
@@ -539,7 +574,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     const selectedScheduledSessionCredits = hasScheduledCredits
       ? parseOptionalCredits(requestContext.scheduledSessionCredits)
       : null;
-    if (hasScheduledCredits && !selectedScheduledSessionCredits) {
+    if (hasScheduledCredits && selectedScheduledSessionCredits === null) {
       return res.status(400).json({
         success: false,
         code: 'VALID_SCHEDULED_SESSION_CREDITS_REQUIRED',

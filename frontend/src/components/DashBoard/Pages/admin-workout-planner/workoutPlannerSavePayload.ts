@@ -34,11 +34,18 @@ const getWeekCountDuration = (planData: unknown) => {
   return Array.isArray(weeks) && weeks.length > 0 ? weeks.length : 0;
 };
 
+const getGeneratedPlanDuration = (planData: unknown) => {
+  const summaryDuration = getPlanSummaryDuration(planData);
+  return summaryDuration > 0 ? summaryDuration : getWeekCountDuration(planData);
+};
+
 const inferWorkoutPlanDurationWeeks = (
   planData: unknown,
   planDuration: PlanDuration,
+  hasGeneratedHorizonPlan: boolean,
 ): number => {
   const candidates = [
+    hasGeneratedHorizonPlan ? getGeneratedPlanDuration(planData) : 0,
     planDuration === 'single' ? 1 : 0,
     toPositiveInteger(planDuration, 0),
     getPlanSummaryDuration(planData),
@@ -51,10 +58,11 @@ const inferWorkoutPlanDurationWeeks = (
 const inferWorkoutPlanHorizonKey = (
   planData: unknown,
   planDuration: PlanDuration,
+  hasGeneratedHorizonPlan: boolean,
 ): SwanPlanHorizonKey => {
-  if (planDuration === 'single') return 'one_day';
+  if (!hasGeneratedHorizonPlan && planDuration === 'single') return 'one_day';
 
-  const durationWeeks = inferWorkoutPlanDurationWeeks(planData, planDuration);
+  const durationWeeks = inferWorkoutPlanDurationWeeks(planData, planDuration, hasGeneratedHorizonPlan);
   return closestWorkoutPlanHorizon(durationWeeks).key;
 };
 
@@ -64,8 +72,8 @@ export const buildWorkoutPlanSaveFields = ({
   hasGeneratedHorizonPlan,
   userRole,
 }: WorkoutPlanSaveFieldsInput) => {
-  const durationWeeks = inferWorkoutPlanDurationWeeks(planData, planDuration);
-  const horizonKey = inferWorkoutPlanHorizonKey(planData, planDuration);
+  const durationWeeks = inferWorkoutPlanDurationWeeks(planData, planDuration, hasGeneratedHorizonPlan);
+  const horizonKey = inferWorkoutPlanHorizonKey(planData, planDuration, hasGeneratedHorizonPlan);
   const creatorRole = userRole === 'admin' ? 'admin' : 'trainer';
 
   return {
@@ -75,7 +83,7 @@ export const buildWorkoutPlanSaveFields = ({
       planHorizon: horizonKey,
       horizonKey,
       planDurationKey: horizonKey,
-      durationPreset: planDuration,
+      durationPreset: hasGeneratedHorizonPlan ? String(durationWeeks) : planDuration,
       durationWeeks,
       planSource: hasGeneratedHorizonPlan ? 'swan_coach_planning' : 'manual_builder',
       createdByRole: creatorRole,

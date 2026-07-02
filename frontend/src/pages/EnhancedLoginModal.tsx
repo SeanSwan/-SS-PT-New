@@ -15,6 +15,8 @@ import { useUniversalTheme } from "../context/ThemeContext";
 import apiService from "../services/api.service";
 import AuthLayout from "../layouts/AuthLayout";
 import { logger } from '@/utils/logger';
+import { PASSWORD_POLICY_COPY, isActivationPasswordStrong } from './activationPasswordPolicy';
+import { resolvePostPasswordChangeRoute } from './postPasswordChangeRoute';
 
 // --- Asset Paths ---
 const Logo = "/Logo.png";
@@ -387,6 +389,13 @@ const ErrorMessage = styled(motion.p)`
   font-size: 0.9rem;
 `;
 
+const PasswordPolicyHint = styled(motion.p)`
+  color: ${({ theme }) => theme.text.secondary || theme.text.muted};
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin: -8px 0 16px;
+`;
+
 const ConnectionStatus = styled(motion.div)<{ $connected: boolean }>`
   position: absolute;
   bottom: 10px;
@@ -402,6 +411,7 @@ const ConnectionStatus = styled(motion.div)<{ $connected: boolean }>`
  * EnhancedLoginModal Component
  * Enhanced login modal with optimized layout and compact footer
  */
+
 const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
   const { login, user, isAuthenticated } = useAuth();
@@ -570,8 +580,8 @@ const EnhancedLoginModal: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!isActivationPasswordStrong(newPassword)) {
+      setError(PASSWORD_POLICY_COPY);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -583,11 +593,8 @@ const EnhancedLoginModal: React.FC = () => {
     try {
       const result = await apiService.forceChangePassword(tempToken, newPassword);
       if (result.success && result.user) {
-        // Normal login completed — store token/user already handled by api.service
-        const { login: contextLogin } = { login };
-        // Re-login to set context state since forceChangePassword returns tokens
-        // The api.service already stored them, we just need to update React state
-        window.location.href = result.user.role === 'admin' ? '/dashboard/admin/coach-assistant' : result.user.role === 'trainer' ? '/dashboard/trainer/overview' : '/dashboard/client/overview';
+        // forceChangePassword persists auth before this hard navigation refreshes AuthContext.
+        window.location.href = resolvePostPasswordChangeRoute(result.user.role);
       } else {
         setError("Password change failed. Please try again.");
         setIsLoading(false);
@@ -683,13 +690,14 @@ const EnhancedLoginModal: React.FC = () => {
               <InputField
                 type="password"
                 name="newPassword"
-                placeholder="New Password (min 8 characters)"
+                placeholder="New Password"
                 value={newPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                 required
                 disabled={isLoading}
                 variants={itemVariants}
               />
+              <PasswordPolicyHint variants={itemVariants}>{PASSWORD_POLICY_COPY}</PasswordPolicyHint>
               <InputField
                 type="password"
                 name="confirmPassword"

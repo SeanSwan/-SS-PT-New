@@ -34,7 +34,7 @@ describe('CoachCommandCenterPage Floor Mode actions', () => {
     );
     expect(within(tools).getByRole('menuitem', { name: /^Open Build Plan$/i })).toHaveAttribute(
       'href',
-      '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=architect',
+      '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
 
     fireEvent.click(within(tools).getByRole('menuitem', { name: /^Audio$/i }));

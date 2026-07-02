@@ -5,6 +5,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import nutritionCommands from '../../services/ai/commandRegistry/nutritionCommands.mjs';
+import {
+  buildCommandSummaryForClassifier,
+  getCommandsForRole,
+  initializeRegistry,
+} from '../../services/ai/commandRegistry/index.mjs';
 
 const byType = (type) => nutritionCommands.find((command) => command.type === type);
 
@@ -20,6 +25,26 @@ describe('AI nutrition command source contracts', () => {
       requiresClientRef: false,
     });
     expect(scanFood.roleRequired).toEqual(expect.arrayContaining(['admin', 'trainer', 'client']));
+  });
+
+  it('exposes read-only scan_food to raw user accounts without exposing trainer nutrition writes', () => {
+    initializeRegistry();
+
+    const scanFood = byType('scan_food');
+    const userCommandTypes = new Set(getCommandsForRole('user').map((command) => command.type));
+    const classifierSummary = buildCommandSummaryForClassifier('user');
+
+    expect(scanFood).toMatchObject({
+      destructive: false,
+      requiresConfirmation: false,
+      requiresClientRef: false,
+    });
+    expect(scanFood.roleRequired).toEqual(expect.arrayContaining(['admin', 'trainer', 'client', 'user']));
+    expect(userCommandTypes).toContain('scan_food');
+    expect(userCommandTypes).not.toContain('log_meals');
+    expect(userCommandTypes).not.toContain('create_nutrition_plan');
+    expect(classifierSummary).toContain('scan_food:');
+    expect(classifierSummary).not.toContain('log_meals:');
   });
 
   it('scan_food accepts voice-friendly food names and barcode strings', () => {

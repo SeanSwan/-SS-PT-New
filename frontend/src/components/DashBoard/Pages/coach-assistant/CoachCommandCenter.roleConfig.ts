@@ -38,7 +38,9 @@ export function reviewSectionFromRoute(searchParams: URLSearchParams): CoachRevi
 }
 
 export function normalizeCoachCommandRole(role: unknown): CoachCommandRole {
-  return role === 'trainer' || role === 'client' ? role : 'admin';
+  if (role === 'trainer' || role === 'client') return role;
+  if (role === 'user') return 'client';
+  return 'admin';
 }
 
 export function isClientCoachRole(role: CoachCommandRole): boolean {

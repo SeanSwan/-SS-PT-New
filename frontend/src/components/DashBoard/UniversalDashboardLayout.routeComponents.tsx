@@ -144,8 +144,13 @@ export const AdminPlaudCommandCenterRedirect: React.FC = () => {
 
 export const ClientSelfOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const goToOverview = () => navigate('/dashboard/client/overview');
-  return <ClientSelfOnboardingWizard selfSubmit onComplete={goToOverview} onCancel={goToOverview} />;
+  const handleComplete = async () => {
+    await refreshUser();
+    goToOverview();
+  };
+  return <ClientSelfOnboardingWizard selfSubmit onComplete={handleComplete} onCancel={goToOverview} />;
 };
 
 export const AdminClientDetailsRedirect: React.FC = () => {

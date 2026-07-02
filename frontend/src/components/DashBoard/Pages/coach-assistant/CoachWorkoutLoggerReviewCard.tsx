@@ -87,7 +87,7 @@ function CoachWorkoutLoggerReviewCard({
           to={workoutLoggerRoute}
           aria-label={`Review ${handoff.exerciseCount} ${exerciseLabel} in Logger`}
           onClick={(event) => {
-            const staged = storeCoachWorkoutLoggerHandoff(handoff.payload);
+            const staged = storeCoachWorkoutLoggerHandoff(handoff.payload, workoutLoggerRoute);
             if (!staged) {
               event.preventDefault();
               setHandoffError('Could not stage this workout. Try again before opening Logger.');

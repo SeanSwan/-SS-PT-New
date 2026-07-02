@@ -49,10 +49,12 @@ import {
   CheckCheck,
   BarChart3,
   MessageCircle,
+  ClipboardList,
   Plus
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useCommunicationVoiceDraft } from './useCommunicationVoiceDraft';
+import HermesCoachReviewQueue from './HermesCoachReviewQueue';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -1432,6 +1434,10 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
           <BarChart3 size={18} />
           Analytics
         </TabButton>
+        <TabButton $active={activeTab === 3} onClick={() => setActiveTab(3)}>
+          <ClipboardList size={18} />
+          Coach Review
+        </TabButton>
       </TabBar>
 
       {communicationError && (
@@ -1672,6 +1678,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
       {/* Analytics Tab */}
       {activeTab === 2 && renderAnalytics()}
+
+      {/* Hermes Coach Review Tab */}
+      {activeTab === 3 && <HermesCoachReviewQueue />}
 
       {/* Speed Dial / Floating Action Button */}
       <SpeedDialContainer>

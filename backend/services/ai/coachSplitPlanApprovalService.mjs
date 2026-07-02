@@ -9,6 +9,10 @@ import {
   createCoachActionProposalDraft,
 } from './coachActionProposalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
+import {
+  isHistoricalWorkoutLogSource,
+  normalizeWorkoutLogSource,
+} from '../workout/workoutLogSourcePolicy.mjs';
 import { normalizeCoachIntakeId } from './coachActionProposalIntakeLinkService.mjs';
 
 const SAFE_REF_PATTERN = /^[A-Za-z0-9:_./-]{1,80}$/;
@@ -38,6 +42,13 @@ function validExercises(value) {
     .filter((exercise) => exercise && typeof exercise === 'object' && !Array.isArray(exercise))
     .filter((exercise) => optionalText(exercise.name, 120))
     .slice(0, 80);
+}
+
+function parentHistoricalWorkoutSource(proposal) {
+  const source = optionalText(proposal?.payload?.source, 80);
+  if (!source) return null;
+  const normalizedSource = normalizeWorkoutLogSource(source);
+  return isHistoricalWorkoutLogSource(normalizedSource) ? normalizedSource : null;
 }
 
 function parseSplitClientId(...candidates) {
@@ -83,11 +94,13 @@ function workoutPayloadFromSplit(split, proposal, row) {
   const parentMeta = proposal?.payload?.proposalMeta || {};
   const intakeId = normalizeCoachIntakeId(parentMeta.intakeId || parentMeta.intake_id || null);
   const parentProposalId = optionalText(row?.id, 64);
+  const sourceFromParent = parentHistoricalWorkoutSource(proposal);
   return {
     action: 'import_workout_log',
     clientId,
     date,
     exercises,
+    ...(sourceFromParent ? { source: sourceFromParent } : {}),
     title: optionalText(source.title, 160),
     notes: optionalText(source.notes, 1200) || optionalText(source.reason, 500),
     duration: source.duration ?? null,
@@ -164,22 +177,45 @@ export async function approveNonWriteCoachProposal({
   proposalNotPending,
 }) {
   if (!await claimPendingProposal({ id, userId, db })) return proposalNotPending();
-  const result = row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN
-    ? await buildSplitPlanApprovalResult({ proposal, row, req, db })
-    : { nextAction: 'open_deterministic_review_flow' };
-  const updated = await updateProposalStatus({
-    id,
-    status: COACH_PROPOSAL_STATUS.APPROVED,
-    result,
-    db,
-  });
-  return {
-    status: 200,
-    body: {
-      success: true,
-      proposal: updated,
-      applied: false,
-      ...(row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN ? { splitPlan: result } : {}),
-    },
-  };
+
+  try {
+    const result = row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN
+      ? await buildSplitPlanApprovalResult({ proposal, row, req, db })
+      : { nextAction: 'open_deterministic_review_flow' };
+    const updated = await updateProposalStatus({
+      id,
+      status: COACH_PROPOSAL_STATUS.APPROVED,
+      result,
+      db,
+    });
+    return {
+      status: 200,
+      body: {
+        success: true,
+        proposal: updated,
+        applied: false,
+        ...(row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN ? { splitPlan: result } : {}),
+      },
+    };
+  } catch (_err) {
+    const code = row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN
+      ? 'SPLIT_PLAN_APPROVAL_FAILED'
+      : 'PROPOSAL_APPROVAL_FAILED';
+    await updateProposalStatus({
+      id,
+      status: COACH_PROPOSAL_STATUS.FAILED,
+      errorCode: code,
+      db,
+    }).catch(() => null);
+    return {
+      status: 400,
+      body: {
+        success: false,
+        code,
+        error: row.proposal_type === COACH_PROPOSAL_TYPE.SPLIT_PLAN
+          ? 'Split-plan proposal could not be approved.'
+          : 'Coach proposal could not be approved.',
+      },
+    };
+  }
 }

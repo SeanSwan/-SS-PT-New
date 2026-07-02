@@ -2,6 +2,7 @@ import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 import type { CommandResponse, ConfirmResult } from '../../../../hooks/useCoachCommand';
 import type { CommandLogConfirmation, CommandLogResult } from './CoachCommandCenter.data';
 import { commandResultSummary } from './utils/coachCommandResultSummary';
+import { appendWorkoutPlannerDebateJobId } from '../admin-workout-planner/workoutPlannerDebateJob';
 
 export type ExecuteCoachCommand = (
   message: string,
@@ -17,6 +18,15 @@ export type CancelCoachCommand = (operationId: string) => Promise<void>;
 export type CommandConfirmationResult = { success: boolean; error?: string };
 
 type CommandLaneHandledResponse = Exclude<CommandResponse, { type: 'fallback_to_chat' } | { type: 'error' }>;
+type ConfirmedCommandLogResultOptions = { workoutPlannerRoute?: string | null };
+
+const WORKOUT_PLAN_DEBATE_COMMANDS = new Set([
+  'build_workout_plan',
+  'create_nasm_program',
+  'generate_periodization',
+]);
+
+const isWorkoutPlanDebateCommand = (command: string): boolean => WORKOUT_PLAN_DEBATE_COMMANDS.has(command);
 
 function isCoachRecallCommand(message: string): boolean {
   const normalized = message.trim().toLowerCase();
@@ -97,10 +107,27 @@ export function commandConfirmationResultBody(
 export function confirmedCommandLogResult(
   confirmation: CommandLogConfirmation,
   result: ConfirmResult,
+  options: ConfirmedCommandLogResultOptions = {},
 ): CommandLogResult | undefined {
-  if (!result.success || result.type !== 'executed') return undefined;
+  if (!result.success) return undefined;
+
+  const command = result.command || confirmation.command;
+  if (result.type === 'debate_started' && isWorkoutPlanDebateCommand(command)) {
+    const targetRoute = appendWorkoutPlannerDebateJobId(options.workoutPlannerRoute, result.result?.jobId);
+    return {
+      command,
+      result: {
+        ...(result.result ?? {}),
+        ...(targetRoute ? { targetRoute } : {}),
+      },
+      client: confirmation.client,
+      message: commandConfirmationResultBody(confirmation, result),
+    };
+  }
+
+  if (result.type !== 'executed') return undefined;
   return {
-    command: result.command || confirmation.command,
+    command,
     result: result.result,
     client: confirmation.client,
   };

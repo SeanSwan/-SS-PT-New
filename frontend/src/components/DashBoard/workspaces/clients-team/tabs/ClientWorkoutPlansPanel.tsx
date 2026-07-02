@@ -295,6 +295,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
           <Hint>{activeCount} current plan{activeCount === 1 ? '' : 's'} for {clientName || `client #${safeClientId}`}</Hint>
         </TitleBlock>
         <ClientWorkoutPlanActiveArcSelector
+          loading={loading}
           planVault={planVault}
           updatingPlanId={activatingPlanId || primaryUpdatingId}
           onSelectActiveArc={selectActiveArc}

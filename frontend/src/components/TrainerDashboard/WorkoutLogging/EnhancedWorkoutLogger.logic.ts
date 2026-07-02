@@ -1,11 +1,17 @@
-const UNSAFE_RETURN_TO_CHARACTERS = /[\r\n\t\\]/;
+const UNSAFE_RETURN_TO_CHARACTERS = /[\r\n\t\\]|%(?:0a|0d|09|2e|2f|5c)/i;
 const POSITIVE_INTEGER_PATTERN = /^[1-9]\d*$/;
+
+const hasDotOrDoubleSlashSegment = (value: string): boolean => {
+  const pathname = value.split(/[?#]/, 1)[0];
+  return pathname.includes('//') || pathname.split('/').some((segment) => segment === '.' || segment === '..');
+};
 
 const isSafeDashboardReturnTo = (value: string): boolean =>
   [
     value.startsWith('/dashboard/'),
     !value.startsWith('//'),
     !UNSAFE_RETURN_TO_CHARACTERS.test(value),
+    !hasDotOrDoubleSlashSegment(value),
   ].every(Boolean);
 
 export const normalizeDashboardReturnTo = (raw: string | null): string | null =>
@@ -80,6 +86,7 @@ const TRAINER_CLIENTS_PATH = '/dashboard/trainer/clients';
 const SOURCE_RETURN_LABELS: Record<string, string> = {
   'clients-team': 'Back to Client Hub',
   'master-schedule': 'Back to Schedule',
+  'workout-planner': 'Back to Workout Planner',
 };
 
 const getDefaultBackLabel = (isAdmin: boolean): string =>

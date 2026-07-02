@@ -43,6 +43,8 @@ interface TrainingTabContentProps {
   clientId: number | string;
   clientName?: string;
   initialSection?: TrainingSection;
+  loggerReturnTo?: string | null;
+  onLoggerReturnTo?: (returnTo: string) => void;
   onSectionChange?: (section: TrainingSection) => void;
   onOpenProgress?: () => void;
   scheduledSessionCreditHint?: number | null;
@@ -80,6 +82,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   clientId,
   clientName,
   initialSection,
+  loggerReturnTo = null,
+  onLoggerReturnTo,
   onSectionChange,
   onOpenProgress,
   scheduledSessionCreditHint = null,
@@ -128,8 +132,12 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   }, [handleSectionChange]);
 
   const handleWorkoutCancel = useCallback(() => {
+    if (loggerReturnTo && onLoggerReturnTo) {
+      onLoggerReturnTo(loggerReturnTo);
+      return;
+    }
     handleSectionChange('history');
-  }, [handleSectionChange]);
+  }, [handleSectionChange, loggerReturnTo, onLoggerReturnTo]);
 
   const handleOpenHistoryImport = useCallback(() => {
     handleSectionChange('import');

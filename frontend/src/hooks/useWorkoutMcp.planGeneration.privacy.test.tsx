@@ -36,7 +36,7 @@ describe('buildWorkoutPlanSavePayload privacy', () => {
             exercises: [{
               exerciseId: 'cable-row',
               exerciseName: 'Cable Row',
-              notes: 'Send report to private@example.com',
+              notes: 'Send report to private@example.com or call 555-555-0199',
             }],
           }],
         }],
@@ -48,6 +48,7 @@ describe('buildWorkoutPlanSavePayload privacy', () => {
     expect(serialized).not.toContain('Private Client');
     expect(serialized).not.toContain('private@example.com');
     expect(serialized).not.toContain('nested@example.com');
+    expect(serialized).not.toContain('555-555-0199');
     expect(serialized).toContain('[redacted]');
     expect(serialized).toContain('Day 1: Pull');
     expect(serialized).toContain('Cable Row');

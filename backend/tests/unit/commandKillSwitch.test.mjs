@@ -11,6 +11,9 @@ import AiCommandAuditLog from '../../models/AiCommandAuditLog.mjs';
 import { classifyIntent } from '../../services/ai/intentClassifier.mjs';
 import { getCommand } from '../../services/ai/commandRegistry/index.mjs';
 import { dispatch, hasDispatcher } from '../../services/ai/commandDispatcher.mjs';
+import { startDebate } from '../../services/ai/debate/debateOrchestrator.mjs';
+import { buildDebateClientContext } from '../../services/ai/debate/debateClientContextService.mjs';
+import { resolveClient } from '../../services/ai/clientResolver.mjs';
 import {
   executeCommandPipeline,
   executeConfirmedOperation,
@@ -48,6 +51,9 @@ const classifyMock = vi.mocked(classifyIntent);
 const getCommandMock = vi.mocked(getCommand);
 const dispatchMock = vi.mocked(dispatch);
 const hasDispatcherMock = vi.mocked(hasDispatcher);
+const startDebateMock = vi.mocked(startDebate);
+const buildDebateClientContextMock = vi.mocked(buildDebateClientContext);
+const resolveClientMock = vi.mocked(resolveClient);
 
 const ADMIN = { id: 1, role: 'admin', firstName: 'Sean', lastName: 'S' };
 const TRAINER = { id: 2, role: 'trainer', firstName: 'Tess', lastName: 'T' };
@@ -81,6 +87,18 @@ const ADMIN_ONLY_COMMAND = {
   roleRequired: ['admin'],
 };
 
+const DEBATE_COMMAND = {
+  type: 'build_workout_plan',
+  description: 'Build a workout plan',
+  roleRequired: ['admin', 'trainer'],
+  destructive: false,
+  requiresConfirmation: true,
+  requiresClientRef: true,
+  selfService: false,
+  inputSchema: null,
+  isDebateRequired: true,
+};
+
 const ENV_KEYS = ['AI_COMMAND_WRITES_ENABLED', 'AI_COMMANDS_ENABLED'];
 const savedEnv = {};
 
@@ -96,6 +114,16 @@ beforeEach(() => {
   dispatchMock.mockReset();
   hasDispatcherMock.mockReset();
   hasDispatcherMock.mockReturnValue(true);
+  startDebateMock.mockReset();
+  startDebateMock.mockReturnValue('debate_job_42');
+  buildDebateClientContextMock.mockReset();
+  buildDebateClientContextMock.mockResolvedValue({ deIdentified: { alias: 'Client-42' } });
+  resolveClientMock.mockReset();
+  resolveClientMock.mockResolvedValue({
+    resolved: { id: 42, firstName: 'Ava', lastName: 'Strong' },
+    suggestions: [],
+    error: null,
+  });
 });
 
 afterEach(() => {
@@ -181,6 +209,46 @@ describe('write kill switch (confirm lane)', () => {
   });
 });
 
+describe('debate command confirmation gate', () => {
+  it('starts workout-plan debates only after the confirmed operation runs', async () => {
+    hasDispatcherMock.mockReturnValue(false);
+    primeIntent('build_workout_plan', DEBATE_COMMAND);
+    const sequelize = {};
+
+    const ctx = await executeCommandPipeline('build a workout plan', ADMIN, {
+      selectedClientId: 42,
+      sequelize,
+    });
+
+    expect(ctx.error).toBeNull();
+    expect(ctx.result).toMatchObject({
+      type: 'confirmation_required',
+      command: 'build_workout_plan',
+      isDestructive: false,
+    });
+    expect(startDebateMock).not.toHaveBeenCalled();
+
+    const confirmed = await executeConfirmedOperation(ctx.result.operationId, ADMIN, sequelize);
+
+    expect(confirmed).toMatchObject({
+      success: true,
+      type: 'debate_started',
+      command: 'build_workout_plan',
+      result: {
+        jobId: 'debate_job_42',
+        debateType: 'workout_plan',
+      },
+      client: { id: 42 },
+    });
+    expect(buildDebateClientContextMock).toHaveBeenCalledWith(42, sequelize, { id: 42 });
+    expect(startDebateMock).toHaveBeenCalledWith(
+      'workout_plan',
+      { alias: 'Client-42' },
+      ADMIN.id,
+      expect.objectContaining({ clientId: 42 }),
+    );
+  });
+});
 describe('RBAC escalation baseline', () => {
   it('denies a trainer calling an admin-only command and audits the denial', async () => {
     primeIntent('view_business_kpis', ADMIN_ONLY_COMMAND);

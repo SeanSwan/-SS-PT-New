@@ -8,6 +8,7 @@ import {
   rejectCoachProposal,
 } from '../../../../services/coachProposalService';
 import type { CoachAccessHandoff } from '../../../../services/coachProposalService';
+import { PlaudApiError } from '../../../../services/plaudClipService';
 import { CoachProposalGateRail } from './CoachProposalGateRail';
 import {
   buildDetailRows,
@@ -16,9 +17,15 @@ import {
   safeProposalBlockingErrorMessage,
 } from './CoachActionProposalDetailRows';
 import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
+import { ProposalAccessLinkActions } from './CoachClaimLinkActions';
 import {
+  accessExpiryLabel,
+  accessHandoffLabel,
+  accessHandoffMessage,
+  approvalResultMessage,
   createdClientHubRoute,
   publishProposalAction,
+  publishWorkoutLoggedAfterProposalApproval,
   safeProposalStatus,
   safeProposalTitle,
   safeProposalTypeLabel,
@@ -32,7 +39,6 @@ import {
 } from './CoachActionProposalCard.logic';
 import {
   ActionButton,
-  ActionAnchor,
   ActionLink,
   Actions,
   Card,
@@ -43,19 +49,9 @@ import {
   StatusText,
   Value,
 } from './CoachActionProposalCard.styles';
-
-const accessHandoffLabel = (handoff: CoachAccessHandoff | null) => {
-  if (!handoff) return null;
-  if (handoff.credentialMode === 'claim_link_ready') return 'Claim link ready';
-  if (handoff.resetEmailSent === true) return 'Reset link sent';
-  return 'Login handoff needs review';
-};
-
-const claimExpiryLabel = (value?: string | null) => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-};
+const safeProposalActionError = (err: unknown, fallback: string) => (
+  err instanceof PlaudApiError ? err.message : fallback
+);
 
 export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
@@ -65,9 +61,13 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const [reviewToken, setReviewToken] = useState<string | null>(proposal.reviewToken || null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [createdClientRoute, setCreatedClientRoute] = useState<string | null>(null);
+  const [createdClientRoute, setCreatedClientRoute] = useState<string | null>(() => (
+    proposal.client
+      ? createdClientHubRoute(proposal.client, typeof window === 'undefined' ? null : window.location.pathname)
+      : null
+  ));
   const summary = proposal.summary || {};
-  const [accessHandoff, setAccessHandoff] = useState<CoachAccessHandoff | null>(null);
+  const [accessHandoff, setAccessHandoff] = useState<CoachAccessHandoff | null>(proposal.accessHandoff ?? null);
   const pending = status === 'PENDING';
   const approveLabel = (proposal.type === 'workout_log' || proposal.type === 'nutrition_log')
     ? 'Approve and log'
@@ -90,7 +90,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   ].filter((row) => row[1] != null), [proposal.type, summary]);
 
   const accessLabel = accessHandoffLabel(accessHandoff);
-  const accessExpires = claimExpiryLabel(accessHandoff?.claimExpiresAt);
+  const accessExpires = accessExpiryLabel(accessHandoff?.claimExpiresAt ?? accessHandoff?.resetExpiresAt);
   const runLoadDetails = async () => {
     setBusy('detail');
     setError(null);
@@ -109,7 +109,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
         setMessage('Draft details loaded for review.');
       }
     } catch (err) {
-      setError('Detail load failed');
+      setError(safeProposalActionError(err, 'Detail load failed'));
     } finally {
       setBusy(null);
     }
@@ -125,12 +125,15 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       const nextProposal = result.proposal || { ...proposal, status: result.applied ? 'APPLIED' : 'APPROVED' };
       setStatus(nextProposal.status);
       publishProposalAction(nextProposal, onProposalAction);
+      publishWorkoutLoggedAfterProposalApproval(proposal, result);
       if (result.client) {
         const nextAccessHandoff = result.accessHandoff || null;
-        setCreatedClientRoute(createdClientHubRoute(result.client));
+        setCreatedClientRoute(createdClientHubRoute(
+          result.client,
+          typeof window === 'undefined' ? null : window.location.pathname,
+        ));
         setAccessHandoff(nextAccessHandoff);
-        setMessage(nextAccessHandoff?.credentialMode === 'claim_link_ready'
-          ? 'Client created and claim link is ready for activation.' : 'Client created through deterministic onboarding approval.');
+        setMessage(accessHandoffMessage(nextAccessHandoff));
       } else if (proposal.type === 'client_data_update' && result.partial) {
         setMessage('Some client updates applied; review the remaining errors.');
       } else if (proposal.type === 'client_data_update' && result.applied) {
@@ -143,12 +146,10 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
           ? `${workoutDraftCount} workout log draft${workoutDraftCount === 1 ? '' : 's'} prepared for approval.`
           : `${splitCount || 'Split plan'} workout split candidates approved for deterministic workout-card preparation.`);
       } else {
-        setMessage(result.applied
-          ? 'Applied through the deterministic workout logger.'
-          : 'Draft approved for deterministic review.');
+        setMessage(approvalResultMessage(proposal.type, result));
       }
     } catch (err) {
-      setError('Approval failed');
+      setError(safeProposalActionError(err, 'Approval failed'));
     } finally {
       setBusy(null);
     }
@@ -164,7 +165,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       publishProposalAction(nextProposal, onProposalAction);
       setMessage('Clarification answer recorded for deterministic review.');
     } catch (err) {
-      setError('Clarification answer failed');
+      setError(safeProposalActionError(err, 'Clarification answer failed'));
     } finally {
       setBusy(null);
     }
@@ -180,7 +181,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
       publishProposalAction(nextProposal, onProposalAction);
       setMessage('Proposal rejected.');
     } catch (err) {
-      setError('Reject failed');
+      setError(safeProposalActionError(err, 'Reject failed'));
     } finally {
       setBusy(null);
     }
@@ -270,9 +271,10 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
         </DetailPanel>
       )}
       {accessHandoff?.claimUrl && (
-        <Actions aria-label="Client access handoff actions">
-          <ActionAnchor href={accessHandoff.claimUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Open claim link</ActionAnchor>
-        </Actions>
+        <ProposalAccessLinkActions url={accessHandoff.claimUrl} label="claim link" />
+      )}
+      {accessHandoff?.resetUrl && (
+        <ProposalAccessLinkActions url={accessHandoff.resetUrl} label="reset link" />
       )}
       {createdClientRoute && (
         <Actions aria-label="Onboarding next steps">

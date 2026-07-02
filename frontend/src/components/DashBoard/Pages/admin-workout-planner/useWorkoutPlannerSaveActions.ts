@@ -191,7 +191,11 @@ export const useWorkoutPlannerSaveActions = ({
       const pdfResult = planId
         ? await attachGeneratedPdf(planId, planData, client, saveFields.durationWeeks, saveFields.metadata.planHorizon)
         : 'skipped';
-      setStatusMsg({ type: 'success', text: saveStatusText(successText, pdfResult) });
+      setStatusMsg({
+        type: 'success',
+        text: saveStatusText(successText, pdfResult),
+        ...(activate ? { nextAction: 'current-plan-ready' as const } : {}),
+      });
       await fetchSavedPlans(selectedClientId);
     } catch (err) {
       logApiError(errorLogLabel, err);

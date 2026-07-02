@@ -240,6 +240,41 @@ describe('ExecutionResultCard route actions', () => {
     expect(screen.queryByText('queueRoute')).toBeNull();
   });
 
+  it('renders safe Build Plan route actions for workout-plan debate results', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="build_workout_plan"
+          client={{ id: 42, firstName: 'Ava' }}
+          message="Workout plan debate started for Ava. No workout plan has been saved yet."
+          result={{
+            jobId: 'debate_job_42',
+            debateType: 'workout_plan',
+            targetRoute: '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: /open build plan/i });
+    expect(link).toHaveAttribute('href', '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans');
+    expect(screen.queryByText('targetRoute')).toBeNull();
+  });
+  it('does not render traversal-shaped Build Plan route actions', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="build_workout_plan"
+          client={null}
+          result={{
+            targetRoute: '/dashboard/admin/workout-planner/../coach-assistant',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: /open build plan/i })).toBeNull();
+  });
   it('labels unified Coach intake routes as Coach intake actions', () => {
     render(
       <MemoryRouter>

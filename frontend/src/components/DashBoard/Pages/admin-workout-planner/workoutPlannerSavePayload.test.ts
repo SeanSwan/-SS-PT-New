@@ -53,6 +53,25 @@ describe('workout planner save payload metadata', () => {
     });
   });
 
+  it('uses generated plan duration over a stale selector when saving horizon metadata', () => {
+    const planData = makeGeneratedPlanData(26);
+
+    expect(buildWorkoutPlanSaveFields({
+      planData,
+      planDuration: 'single',
+      hasGeneratedHorizonPlan: true,
+      userRole: 'trainer',
+    })).toMatchObject({
+      durationWeeks: 26,
+      metadata: {
+        planHorizon: 'six_month',
+        planDurationKey: 'six_month',
+        durationPreset: '26',
+        planSource: 'swan_coach_planning',
+      },
+    });
+  });
+
   it('keeps manual single-session plans in the 1 Day vault slot with the operator role', () => {
     const planData = {
       weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [] }] }],

@@ -9,9 +9,9 @@
  *     panel's `planExercises` array. Pre-existing behavior.
  *
  *   - 'generated': full multi-month shape from `generatedPlan` produced
- *     by POST `/api/workout-builder/plan`. ALL L1 additive fields are
- *     carried through verbatim (weeks[], mesocycles, weeklySchedule,
- *     recommendations, recommendationDetails, rationale, planSummary).
+ *     by POST `/api/workout-builder/plan`. L1 additive fields are
+ *     carried through structurally after contact-detail sanitization
+ *     (weeks[], mesocycles, weeklySchedule, recommendations, rationale).
  *
  * Why this module exists (extracted 2026-05-02 in response to AI Village
  * CRITICAL-4 finding): the prior in-component `buildPlanData` produced
@@ -28,6 +28,7 @@ import {
   withTrainerSessionDaySemantics,
   withTrainerSessionPlanWeeks,
 } from '../../../../utils/workoutPlanAssignmentSemantics';
+import { sanitizeWorkoutPlanDataForPersistence } from '../../../../utils/workoutPlanDataPrivacy';
 
 interface ManualBuildInputs {
   mode: 'manual';
@@ -48,6 +49,9 @@ interface GeneratedBuildInputs {
 
 export type BuildPlanDataInputs = ManualBuildInputs | GeneratedBuildInputs;
 
+const sanitizePlanPayload = (payload: Record<string, unknown>): Record<string, unknown> =>
+  sanitizeWorkoutPlanDataForPersistence(payload) as Record<string, unknown>;
+
 /**
  * Produces the JSONB payload expected by the workout-plans backend route.
  * Backend stores whatever JSONB is sent and the L1 contract is strictly
@@ -64,8 +68,8 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     // just one day". Force category='full_body' regardless of UI state so
     // misleading metadata can never reach the database via this path.
     const generatedCategory = 'full_body';
-    // Carry through every L1 additive field exactly as the generator emitted
-    // it. Optional fields are included only when present so V1 / pre-L1
+    // Carry through every L1 additive field, then scrub contact details before
+    // persistence. Optional fields are included only when present so V1 / pre-L1
     // plan loaders that don't recognize them are unaffected.
     const payload: Record<string, unknown> = {
       weeks: withTrainerSessionPlanWeeks(generatedPlan.weeks),
@@ -87,13 +91,16 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     if (generatedPlan.swanCoachPlanning) {
       payload.swanCoachPlanning = generatedPlan.swanCoachPlanning;
     }
+    if (generatedPlan.trainingStyle) {
+      payload.trainingStyle = generatedPlan.trainingStyle;
+    }
     if (generatedPlan.recommendationDetails) {
       payload.recommendationDetails = generatedPlan.recommendationDetails;
     }
     if (generatedPlan.equipmentContext !== undefined) {
       payload.equipmentContext = generatedPlan.equipmentContext;
     }
-    return payload;
+    return sanitizePlanPayload(payload);
   }
 
   // Manual mode — pre-existing one-week, one-day shape.
@@ -102,7 +109,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     1: 'stabilization_endurance', 2: 'strength_endurance',
     3: 'hypertrophy', 4: 'maximal_strength', 5: 'power',
   };
-  return {
+  return sanitizePlanPayload({
     weeks: [{
       weekNumber: 1,
       days: [withTrainerSessionDaySemantics({
@@ -131,7 +138,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     goal,
     category,
     assignmentDefaults: TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
-  };
+  });
 }
 
 /**

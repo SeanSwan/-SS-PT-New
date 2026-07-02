@@ -13,6 +13,7 @@ import type { ExerciseEntry } from '../../services/nasmApiService';
 import { getErrorMessage } from './WorkoutLoggerCS';
 import type {
   CurrentWorkoutPlanResponse,
+  PlanAssignmentPickerItem,
   PlannedAssignment,
 } from './WorkoutLogger.localTypes';
 import {
@@ -23,6 +24,9 @@ import {
   getCurrentWorkoutTodayAssignmentExercises,
   getPlanDayForDate,
   isCurrentWorkoutAssignmentLoggable,
+  planAssignmentPickerItemToContext,
+  planAssignmentPickerItemToEntries,
+  planAssignmentPickerItemToSubmitAssignment,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
 
@@ -34,6 +38,7 @@ interface LoadTodaysPlanIntoLoggerParams {
   scheduledSessionId: string | null;
   setExercises: Dispatch<SetStateAction<ExerciseEntry[]>>;
   setIsLoadingPlan: Dispatch<SetStateAction<boolean>>;
+  setLoadedPlanContext?: Dispatch<SetStateAction<PlannedAssignment | null>>;
   setPlannedAssignment: Dispatch<SetStateAction<PlannedAssignment | null>>;
 }
 
@@ -44,14 +49,93 @@ function isMissingCurrentPlanContext(error: unknown): boolean {
   return response?.status === 404 && /client not found|workout plan/i.test(message);
 }
 
+function routeAssignmentKey(value: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+function routeAssignmentTypeIntent(value: string | null, scheduledSessionId: string | null): string | null {
+  if (scheduledSessionId) return 'trainer_session';
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+function currentAssignmentPicker(data: CurrentWorkoutPlanResponse): PlanAssignmentPickerItem[] {
+  const picker = data?.assignmentPicker
+    ?? data?.data?.assignmentPicker
+    ?? data?.plan?.assignmentPicker
+    ?? [];
+  return Array.isArray(picker) ? picker : [];
+}
+
+function isPendingCurrentAssignment(assignment: PlannedAssignment | null): boolean {
+  const assignmentType = assignment?.assignmentType?.trim().toLowerCase() ?? null;
+  const status = assignment?.status?.trim().toLowerCase() ?? null;
+  return assignmentType === 'none' || status === 'none';
+}
+
+function routeAssignmentPickerMatch(
+  data: CurrentWorkoutPlanResponse,
+  intent: { assignmentKey: string | null; assignmentType: string | null },
+): PlanAssignmentPickerItem | null {
+  if (!routeAssignmentKey(intent.assignmentKey)) return null;
+  return currentAssignmentPicker(data).find((assignment) => (
+    currentWorkoutAssignmentMatchesRouteIntent(assignment, intent)
+  )) ?? null;
+}
+
+function pickerAssignmentLabel(assignment: PlanAssignmentPickerItem): string {
+  return assignment.title || assignment.dayLabel || assignment.planTitle || 'generated plan day';
+}
+
+function loadPickerAssignmentIntoLogger({
+  assignment,
+  createWorkoutLoggerLocalId,
+  setExercises,
+  setLoadedPlanContext,
+  setPlannedAssignment,
+}: {
+  assignment: PlanAssignmentPickerItem;
+  createWorkoutLoggerLocalId: (prefix: string) => string;
+  setExercises: Dispatch<SetStateAction<ExerciseEntry[]>>;
+  setLoadedPlanContext?: Dispatch<SetStateAction<PlannedAssignment | null>>;
+  setPlannedAssignment: Dispatch<SetStateAction<PlannedAssignment | null>>;
+}): void {
+  const context = planAssignmentPickerItemToContext(assignment);
+  setLoadedPlanContext?.(context);
+
+  if (assignment.isLoadable === false) {
+    setPlannedAssignment(null);
+    toast.info('That generated day is not loadable.');
+    return;
+  }
+
+  const prefilled = planAssignmentPickerItemToEntries(assignment, createWorkoutLoggerLocalId);
+  if (prefilled.length === 0) {
+    setPlannedAssignment(null);
+    toast.info('That generated plan day has no exercises to load.');
+    return;
+  }
+
+  const submitAssignment = planAssignmentPickerItemToSubmitAssignment(assignment);
+  setExercises(prev => [...prev, ...prefilled]);
+  setPlannedAssignment(submitAssignment);
+
+  const label = pickerAssignmentLabel(assignment);
+  toast.success(
+    `Loaded ${prefilled.length} exercise${prefilled.length === 1 ? '' : 's'} from ${label}${submitAssignment ? '' : ' as a draft'}.`,
+  );
+}
+
 export async function loadTodaysPlanIntoLogger({
   effectiveClientId,
   createWorkoutLoggerLocalId,
-  routeAssignmentKey,
+  routeAssignmentKey: routeAssignmentKeyParam,
   routeAssignmentType,
   scheduledSessionId,
   setExercises,
   setIsLoadingPlan,
+  setLoadedPlanContext,
   setPlannedAssignment,
 }: LoadTodaysPlanIntoLoggerParams): Promise<void> {
   setIsLoadingPlan(true);
@@ -60,6 +144,7 @@ export async function loadTodaysPlanIntoLogger({
     if (typeof effectiveClientId !== 'number') {
       toast.info('No client context - cannot load a plan');
       setPlannedAssignment(null);
+      setLoadedPlanContext?.(null);
       return;
     }
 
@@ -67,12 +152,33 @@ export async function loadTodaysPlanIntoLogger({
     const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
     const todayAssignment = getCurrentWorkoutTodayAssignment(data);
     const currentPlanId = getCurrentWorkoutPlanId(data);
-    if (!currentWorkoutAssignmentMatchesRouteIntent(todayAssignment, {
-      assignmentKey: routeAssignmentKey,
-      assignmentType: routeAssignmentType,
-    })) {
+    const routeIntent = {
+      assignmentKey: routeAssignmentKeyParam,
+      assignmentType: routeAssignmentTypeIntent(routeAssignmentType, scheduledSessionId),
+    };
+    if (!currentWorkoutAssignmentMatchesRouteIntent(todayAssignment, routeIntent)) {
+      const pickerMatch = routeAssignmentPickerMatch(data, routeIntent);
+      if (pickerMatch) {
+        loadPickerAssignmentIntoLogger({
+          assignment: pickerMatch,
+          createWorkoutLoggerLocalId,
+          setExercises,
+          setLoadedPlanContext,
+          setPlannedAssignment,
+        });
+        return;
+      }
+
       setPlannedAssignment(null);
+      setLoadedPlanContext?.(null);
       toast.info('Today\'s assignment changed. Open it again from your dashboard before logging.');
+      return;
+    }
+
+    if (!currentPlanId && isPendingCurrentAssignment(todayAssignment)) {
+      setPlannedAssignment(null);
+      setLoadedPlanContext?.(null);
+      toast.info('No active workout plan found for this training profile');
       return;
     }
 
@@ -82,6 +188,7 @@ export async function loadTodaysPlanIntoLogger({
     if (!canLoadCurrentAssignment) {
       const assignmentLabel = todayAssignment?.title || todayAssignment?.dayLabel || 'Today\'s assignment';
       setPlannedAssignment(null);
+      setLoadedPlanContext?.(null);
       toast.info(`${assignmentLabel} is not loggable right now. Review your workout history or plan vault.`);
       return;
     }
@@ -128,7 +235,8 @@ export async function loadTodaysPlanIntoLogger({
 
     if (!data?.plan?.days?.length) {
       setPlannedAssignment(null);
-      toast.info('No active workout plan found for this client');
+      setLoadedPlanContext?.(null);
+      toast.info('No active workout plan found for this training profile');
       return;
     }
 
@@ -137,6 +245,7 @@ export async function loadTodaysPlanIntoLogger({
 
     if (!planDay?.exercises?.length) {
       setPlannedAssignment(null);
+      setLoadedPlanContext?.(null);
       toast.info(`No exercises scheduled for ${dayLabel} in the active plan`);
       return;
     }
@@ -144,13 +253,31 @@ export async function loadTodaysPlanIntoLogger({
     const prefilled = planDay.exercises.map((exercise) =>
       plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
     );
+    const firstExercise = planDay.exercises[0] ?? null;
     setExercises(prev => [...prev, ...prefilled]);
     setPlannedAssignment(null);
+    setLoadedPlanContext?.({
+      assignmentId: null,
+      assignmentKey: null,
+      planId: getCurrentWorkoutPlanId(data),
+      assignmentType: null,
+      source: 'workout_plan',
+      isLoggable: true,
+      isBillable: false,
+      shouldDeductSession: false,
+      status: null,
+      title: `${dayLabel}'s plan`,
+      dayLabel,
+      exerciseCount: prefilled.length,
+      firstExerciseName: firstExercise?.exerciseName || firstExercise?.name || null,
+      exercises: planDay.exercises,
+    });
     toast.success(`Loaded ${prefilled.length} exercises from ${dayLabel}'s plan`);
   } catch (error: unknown) {
     if (isMissingCurrentPlanContext(error)) {
       setPlannedAssignment(null);
-      toast.info('No active workout plan found for this client');
+      setLoadedPlanContext?.(null);
+      toast.info('No active workout plan found for this training profile');
       return;
     }
     console.error('Failed to load today\'s plan:', error);

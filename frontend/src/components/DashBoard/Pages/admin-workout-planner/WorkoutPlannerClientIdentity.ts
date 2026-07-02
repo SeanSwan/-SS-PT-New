@@ -30,6 +30,10 @@ const cleanPlannerClientText = (value: unknown, fallback: string): string => {
   return cleaned || fallback;
 };
 
+const normalizeCanGenerateWorkoutPlans = (value: unknown): boolean => (
+  value === true || (typeof value === 'string' && value.trim().toLowerCase() === 'true')
+);
+
 export const buildWorkoutPlannerSelfClient = (
   user: WorkoutPlannerSelfUser | null | undefined,
   selfMode: boolean,
@@ -58,7 +62,11 @@ export const normalizeWorkoutPlannerClients = (clients: unknown): PlannerClient[
     const normalizedId = parseWorkoutPlannerClientId((client as { id?: unknown }).id);
     if (!normalizedId) return [];
 
-    return [{ ...(client as PlannerClient), id: normalizedId }];
+    return [{
+      ...(client as PlannerClient),
+      id: normalizedId,
+      canGenerateWorkoutPlans: normalizeCanGenerateWorkoutPlans((client as { canGenerateWorkoutPlans?: unknown }).canGenerateWorkoutPlans),
+    }];
   });
 };
 

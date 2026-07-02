@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CoachActionProposalCard } from './CoachActionProposalCard';
+import { PlaudApiError } from '../../../../services/plaudClipService';
 import {
   approveCoachProposal,
   getCoachProposal,
@@ -65,6 +66,52 @@ describe('CoachActionProposalCard', () => {
     expect(await screen.findByText(/deterministic workout logger/i)).toBeInTheDocument();
   });
 
+
+  it('shows safe duplicate-date approval copy without exposing generic failure only', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...proposal,
+        reviewToken: 'review-token-1',
+        detail: {
+          workout: {
+            clientId: 42,
+            date: '2026-05-05',
+            exercises: [{ name: 'Squat' }],
+          },
+        },
+      },
+    });
+    vi.mocked(approveCoachProposal).mockRejectedValue(new PlaudApiError(
+      'DUPLICATE_DATE',
+      'A workout session already exists for this client on this date.',
+      400,
+    ));
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+    expect(await screen.findByText(/Draft details loaded for review/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /approve and log/i }));
+
+    expect(await screen.findByText(/A workout session already exists for this client on this date\./i)).toBeInTheDocument();
+    expect(screen.queryByText(/^Approval failed$/i)).toBeNull();
+  });
+
+  it('shows safe detail-load copy without exposing generic failure only', async () => {
+    vi.mocked(getCoachProposal).mockRejectedValue(new PlaudApiError(
+      'PROPOSAL_NOT_FOUND',
+      'Prepared draft was not found or is no longer available. Prepare an updated draft review.',
+      404,
+    ));
+
+    render(<CoachActionProposalCard proposal={proposal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+
+    expect(await screen.findByText(/Prepared draft was not found or is no longer available/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^Detail load failed$/i)).toBeNull();
+  });
   it('fails closed when loaded draft details do not include a review token', async () => {
     vi.mocked(getCoachProposal).mockResolvedValue({
       success: true,

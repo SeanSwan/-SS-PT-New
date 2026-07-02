@@ -39,3 +39,23 @@ export const reportDashboardDiagnostic = (meta: DashboardDiagnosticMeta): void =
     })
   );
 };
+
+export const CLIENT_ONBOARDING_ROUTE = '/dashboard/client/onboarding';
+
+export interface ClientOnboardingRedirectInput {
+  activeRole: string;
+  userRole: string;
+  isOnboardingComplete?: boolean;
+  pathname: string;
+}
+
+export const shouldRedirectClientToOnboarding = ({
+  activeRole,
+  userRole,
+  isOnboardingComplete,
+  pathname,
+}: ClientOnboardingRedirectInput): boolean => {
+  if (activeRole !== 'client' || userRole !== 'client') return false;
+  if (isOnboardingComplete !== false) return false;
+  return pathname !== CLIENT_ONBOARDING_ROUTE && !pathname.startsWith(`${CLIENT_ONBOARDING_ROUTE}/`);
+};

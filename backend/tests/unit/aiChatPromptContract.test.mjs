@@ -77,6 +77,31 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).toContain('move_fitness|external|swanstudios');
   });
 
+  it('keeps command-center onboarding guidance off temporary-password handoffs', () => {
+    const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
+
+    const serviceSource = readFileSync(new URL('../../services/aiChatService.mjs', import.meta.url), 'utf8');
+
+    expect(prompt).not.toMatch(/temporary password/i);
+    expect(prompt).not.toMatch(/login details/i);
+    expect(serviceSource).not.toMatch(/temporary password/i);
+    expect(serviceSource).not.toMatch(/login details/i);
+    expect(serviceSource).not.toContain('generate a create_client action block');
+    expect(serviceSource).not.toContain('"action": "create_client"');
+    expect(serviceSource).not.toContain('"phone": "555-123-4567"');
+    expect(serviceSource).not.toContain('Stage 1 (Basic Info): firstName, lastName, email, phone');
+    expect(prompt).toContain('secure claim link');
+    expect(prompt).toContain('No passwords are shown, copied, dictated, or generated for staff handoff');
+  });
+
+  it('keeps client-onboarding proposal guidance out of model-authored contact fields', () => {
+    const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
+
+    expect(prompt).not.toContain('Prefer firstName, lastName, email, phone');
+    expect(prompt).toContain('Do not include email, phone, contact details');
+    expect(prompt).toContain('secure claim link or reset-link handoff');
+  });
+
   it('teaches workout-log proposals to mark historical backfills with a source', () => {
     const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
 
@@ -85,6 +110,15 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).toContain('AI-estimated historical filler');
   });
 
+  it('keeps historical workout import source on review-gated proposals', () => {
+    const serviceSource = readFileSync(new URL('../../services/aiChatService.mjs', import.meta.url), 'utf8');
+
+    expect(serviceSource).not.toContain('generate import_workout_log action blocks');
+    expect(serviceSource).not.toContain('"action": "import_workout_log"');
+    expect(serviceSource).not.toContain('Parse each dated workout and generate ONE action block PER DATE');
+    expect(serviceSource).toContain('use a coach_action_proposal block with proposal_type "workout_log"');
+    expect(serviceSource).toContain('Final writes require trainer approval');
+  });
   it('teaches trainer Coach the same structured proposal contract', () => {
     const prompt = getSystemPrompt('trainer', 'coach_assistant', 'concise');
 
@@ -123,6 +157,14 @@ describe('Swan Coach prompt contract', () => {
     }
   });
 
+  it('does not teach Coach chat to persist workout-plan cursor state through legacy save actions', () => {
+    const serviceSource = readFileSync(new URL('../../services/aiChatService.mjs', import.meta.url), 'utf8');
+
+    for (const forbidden of ['also emit a save_workout_plan action', '{"action": "save_workout_plan"', '"advanceSession": true']) {
+      expect(serviceSource).not.toContain(forbidden);
+    }
+    expect(serviceSource).toContain('Do not emit a write action for plan navigation; persisted plan advancement belongs to the workout logger or planner completion flow');
+  });
   it('keeps dedicated onboarding prompts on review-gated client onboarding proposals', () => {
     for (const role of ['admin', 'trainer']) {
       const prompt = getSystemPrompt(role, 'client_onboarding', 'concise');

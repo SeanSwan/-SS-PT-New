@@ -29,6 +29,16 @@ const getWorkoutLogClientErrorMessage = (err = {}) => (
   || 'Workout log data is invalid. Check the workout details and try again.'
 );
 
+
+const DATE_ONLY_QUERY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseWorkoutHistoryDateBound = (value, { endOfDay = false } = {}) => {
+  const date = new Date(value);
+  if (endOfDay && typeof value === 'string' && DATE_ONLY_QUERY_RE.test(value)) {
+    date.setUTCHours(23, 59, 59, 999);
+  }
+  return date;
+};
 /**
  * POST /api/admin/clients/:clientId/workouts
  *
@@ -197,15 +207,15 @@ export const getClientWorkouts = async (req, res) => {
 
     const where = { userId: clientId };
     if (req.query.from || req.query.to) {
-      where.completedAt = {};
-      if (req.query.from) where.completedAt[Op.gte] = new Date(req.query.from);
-      if (req.query.to) where.completedAt[Op.lte] = new Date(req.query.to);
+      where.date = {};
+      if (req.query.from) where.date[Op.gte] = parseWorkoutHistoryDateBound(req.query.from);
+      if (req.query.to) where.date[Op.lte] = parseWorkoutHistoryDateBound(req.query.to, { endOfDay: true });
     }
 
     const { count, rows: workouts } = await WorkoutSession.findAndCountAll({
       where,
       include: [{ model: WorkoutLog, as: 'logs' }],
-      order: [['completedAt', 'DESC']],
+      order: [['date', 'DESC'], ['completedAt', 'DESC']],
       limit,
       offset,
     });
@@ -215,7 +225,8 @@ export const getClientWorkouts = async (req, res) => {
       workouts: workouts.map((w) => ({
         id: w.id,
         title: w.title,
-        date: w.completedAt,
+        date: w.date || w.completedAt,
+        completedAt: w.completedAt,
         duration: w.duration,
         intensity: w.intensity,
         status: w.status,

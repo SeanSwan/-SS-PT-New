@@ -26,6 +26,10 @@ describe('WorkoutPlanner workout history contract', () => {
     expect(plannerSource).not.toContain('`/api/workouts/history/${clientId}`');
     expect(plannerSource).toContain('extractWorkoutHistory');
     expect(plannerSource).not.toContain('response.data.history?.workoutSessions');
+    expect(plannerSource).toContain('Workout Sessions');
+    expect(plannerSource).toContain('Error fetching workout sessions:');
+    expect(plannerSource).toContain('Failed to fetch workout sessions');
+    expect(plannerSource).not.toContain('Failed to fetch workout plans');
   });
 
   it('saves sessions with the canonical workout-session payload shape', () => {

@@ -12,8 +12,10 @@ interface BuildWorkoutLoggerCoachRouteParams {
   scheduledSessionCreditHint?: number | null;
 }
 
-const parseRole = (userRole?: string | null): WorkoutLoggerCoachRole | null =>
-  userRole === 'admin' || userRole === 'trainer' || userRole === 'client' ? userRole : null;
+const parseRole = (userRole?: string | null): WorkoutLoggerCoachRole | null => {
+  if (userRole === 'user') return 'client';
+  return userRole === 'admin' || userRole === 'trainer' || userRole === 'client' ? userRole : null;
+};
 
 const parsePositiveId = (value?: number | string | null): string | null => {
   if (typeof value === 'number') {

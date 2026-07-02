@@ -12,56 +12,29 @@
  */
 import logger from './logger.mjs';
 import { buildExerciseLookupMap, findExerciseByName } from './exerciseLookup.mjs';
+import {
+  buildWorkoutPlanData,
+  demoteActiveWorkoutPlansForUser,
+  inferWorkoutPlanHorizonKey,
+  normalizeDayType,
+  normalizeOptPhase,
+  TRAINER_LED_WORKOUT_PLAN_METADATA,
+} from './workoutPlanPersistencePlanData.mjs';
+
+export {
+  ALLOWED_DAY_TYPES,
+  ALLOWED_OPT_PHASES,
+  OPT_PHASE_KEY_BY_NUMBER,
+  inferWorkoutPlanHorizonKey,
+  normalizeDayType,
+  normalizeOptPhase,
+  TRAINER_LED_WORKOUT_PLAN_METADATA,
+  toOptPhaseKey,
+} from './workoutPlanPersistencePlanData.mjs';
 
 // ── Constants ──────────────────────────────────────────────────
 
-export const ALLOWED_DAY_TYPES = new Set([
-  'training',
-  'active_recovery',
-  'rest',
-  'assessment',
-  'specialization',
-]);
-
-export const ALLOWED_OPT_PHASES = new Set([
-  'stabilization_endurance',
-  'strength_endurance',
-  'hypertrophy',
-  'maximal_strength',
-  'power',
-]);
-
-export const OPT_PHASE_KEY_BY_NUMBER = {
-  1: 'stabilization_endurance',
-  2: 'strength_endurance',
-  3: 'hypertrophy',
-  4: 'maximal_strength',
-  5: 'power',
-};
-
 export const MAX_EXERCISES_PER_DAY = 50;
-
-// ── Normalization ──────────────────────────────────────────────
-
-export function normalizeDayType(dayType) {
-  if (!dayType || typeof dayType !== 'string') return 'training';
-  return ALLOWED_DAY_TYPES.has(dayType) ? dayType : 'training';
-}
-
-export function normalizeOptPhase(optPhase) {
-  if (!optPhase || typeof optPhase !== 'string') return null;
-  return ALLOWED_OPT_PHASES.has(optPhase) ? optPhase : null;
-}
-
-export function toOptPhaseKey(optPhase) {
-  if (!optPhase) return null;
-  if (typeof optPhase === 'string') return normalizeOptPhase(optPhase);
-  if (typeof optPhase === 'number') return OPT_PHASE_KEY_BY_NUMBER[optPhase] || null;
-  if (typeof optPhase === 'object' && typeof optPhase?.phase === 'number') {
-    return OPT_PHASE_KEY_BY_NUMBER[optPhase.phase] || null;
-  }
-  return null;
-}
 
 // ── Pre-flight Validation ──────────────────────────────────────
 
@@ -134,17 +107,38 @@ export async function persistWorkoutPlan({ plan, userId, models, transaction, ta
   const unmatchedExercises = [];
   let createdExerciseCount = 0;
 
-  const durationWeeks = Number.isFinite(Number(plan.durationWeeks))
-    ? Math.max(1, Number(plan.durationWeeks))
+  const parsedDurationWeeks = Number(plan.durationWeeks);
+  const durationWeeks = Number.isFinite(parsedDurationWeeks)
+    ? Math.max(1, Math.min(52, Math.floor(parsedDurationWeeks)))
     : 4;
+  const planData = buildWorkoutPlanData(plan, durationWeeks);
+  const sourceType = tags.includes('coach_approved') ? 'coach_approved' : 'ai_generated';
+  const horizonKey = inferWorkoutPlanHorizonKey(durationWeeks);
 
-  // Create the plan record
+  await demoteActiveWorkoutPlansForUser(WorkoutPlan, userId, transaction);
+
+  // Create the plan record. Keep planData populated because current-plan and
+  // logger handoff routes read the JSONB shape, not the normalized child rows.
   const workoutPlan = await WorkoutPlan.create({
     userId,
     title: plan.planName || 'AI Workout Plan',
     description: plan.summary || 'AI-generated workout plan',
     durationWeeks,
     status: 'active',
+    currentWeek: 1,
+    currentDay: 1,
+    planData,
+    createdBy: 'swan_coach_planning',
+    metadata: {
+      planSource: 'swan_coach_planning',
+      sourceType,
+      planHorizon: horizonKey,
+      horizonKey,
+      planDurationKey: horizonKey,
+      ...TRAINER_LED_WORKOUT_PLAN_METADATA,
+      isPrimaryPlan: true,
+      primary: true,
+    },
     tags,
   }, { transaction });
 

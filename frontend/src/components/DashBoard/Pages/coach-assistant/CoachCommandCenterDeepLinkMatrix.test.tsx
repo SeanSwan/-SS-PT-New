@@ -86,6 +86,8 @@ describe('CoachCommandCenterPage deep-link matrix', () => {
     ['proposal for intake', '/dashboard/admin/coach-assistant?intake=clip-111&proposal=proposal-123', 'review', 'intake', 'clip-111'],
     ['PLAUD workspace', '/dashboard/admin/coach-assistant?workspace=plaud', 'review', 'audio'],
     ['onboarding workbench', '/dashboard/admin/coach-assistant?workspace=onboarding&clientId=77', 'review', 'drafts'],
+    ['new-client onboarding handoff', '/dashboard/admin/coach-assistant?source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding', 'review', 'drafts'],
+    ['activation queue onboarding handoff', '/dashboard/admin/coach-assistant?clientId=3&source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D3&intent=client_profile_coverage_update', 'review', 'drafts'],
     ['review next PLAUD', '/dashboard/admin/coach-assistant?review=next', 'review', 'audio'],
     ['direct PLAUD merge', `/dashboard/admin/coach-assistant?mergeRequestId=${MERGE_ID}`, 'review', 'audio', undefined, MERGE_ID],
     ['PLAUD wins over proposal', '/dashboard/admin/coach-assistant?workspace=plaud&proposal=proposal-123', 'review', 'audio'],

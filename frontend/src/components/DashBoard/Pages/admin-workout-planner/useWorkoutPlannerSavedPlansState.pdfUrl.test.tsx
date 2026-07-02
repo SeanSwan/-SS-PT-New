@@ -114,6 +114,31 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
     });
   });
 
+  it('marks an activated saved plan as ready for the current-plan logger handoff', async () => {
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),
+      post: vi.fn(),
+      put: vi.fn().mockResolvedValue({ data: { success: true } }),
+      delete: vi.fn(),
+    };
+    const setStatusMsg = vi.fn();
+
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState({
+      ...makeHookInput(authAxios),
+      setStatusMsg,
+    }));
+
+    await act(async () => {
+      await result.current.handleCardActivate('plan-current', 'Current Arc');
+    });
+
+    expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-current/activate');
+    expect(setStatusMsg).toHaveBeenCalledWith({
+      type: 'success',
+      text: 'Current Arc is now the current plan.',
+      nextAction: 'current-plan-ready',
+    });
+  });
   it('blocks archiving the only current plan when legacy status casing is uppercase', async () => {
     const authAxios = {
       get: vi.fn().mockResolvedValue({

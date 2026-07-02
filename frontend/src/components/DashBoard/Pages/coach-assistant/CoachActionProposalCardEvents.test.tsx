@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { approveCoachProposal, getCoachProposal } from '../../../../services/coachProposalService';
 import { COACH_PROPOSAL_ACTION_EVENT } from '../../../../services/coachProposalActionEvents';
+import { WORKOUT_LOGGED_EVENT } from '../../../../utils/workoutLoggedEvent';
 import { CoachActionProposalCard } from './CoachActionProposalCard';
 
 vi.mock('../../../../services/coachProposalService', () => ({
@@ -61,6 +62,48 @@ describe('CoachActionProposalCard workspace event bridge', () => {
       });
     } finally {
       window.removeEventListener(COACH_PROPOSAL_ACTION_EVENT, listener);
+    }
+  });
+
+  it('emits the workout logged event when approval applies a workout log', async () => {
+    const listener = vi.fn();
+    window.addEventListener(WORKOUT_LOGGED_EVENT, listener);
+    try {
+      vi.mocked(getCoachProposal).mockResolvedValue({
+        success: true,
+        proposal: {
+          ...proposal,
+          reviewToken: 'review-token-1',
+          detail: {
+            workout: {
+              clientId: 42,
+              date: '2026-05-05',
+              exercises: [{ name: 'Squat' }],
+            },
+          },
+        },
+      });
+      vi.mocked(approveCoachProposal).mockResolvedValue({
+        success: true,
+        applied: true,
+        proposal: { ...proposal, status: 'APPLIED' },
+        workout: { formId: 777, userId: 42, date: 'unsafe-date' },
+      });
+
+      render(<CoachActionProposalCard proposal={proposal} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+      expect(await screen.findByText(/Draft details loaded for review/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /approve and log/i }));
+
+      await waitFor(() => expect(listener).toHaveBeenCalledTimes(1));
+      expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({
+        clientId: 42,
+        formId: 777,
+        date: '2026-05-05',
+      });
+    } finally {
+      window.removeEventListener(WORKOUT_LOGGED_EVENT, listener);
     }
   });
 });

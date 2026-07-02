@@ -6,11 +6,20 @@ interface PlannerRouteContext {
   pathname: string;
   search: string;
   selectedClientId: number | null;
+  generatedPlan?: GeneratedPlan | null;
+  stripDebateJobId?: boolean;
 }
 
 interface PlannerCoachReviewContext extends PlannerRouteContext {
   generatedPlan: GeneratedPlan | null;
   selectedMesoDay: number;
+}
+
+interface PlannerReviewPromptContext {
+  generatedPlan: GeneratedPlan | null;
+  selectedMesoDay: number;
+  selectedClientId: number | null;
+  isSelfPlanner?: boolean;
 }
 
 const PROMPT_MAX_CHARS = 8000;
@@ -23,8 +32,46 @@ function plannerRoleFromPath(pathname: string): PlannerRole | null {
 }
 
 function safePositiveInteger(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) return null;
-  return value;
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!/^[1-9]\d*$/.test(trimmed)) return null;
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function safeNonNegativeInteger(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!/^(0|[1-9]\d*)$/.test(trimmed)) return null;
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+const hasUnsafeSessionContextCharacters = (value: string): boolean => /[\r\n\t\\]|%(?:0a|0d|09|2e|2f|5c)/i.test(value);
+const ISO_SESSION_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+
+function safeSessionDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed || hasUnsafeSessionContextCharacters(trimmed) || !ISO_SESSION_DATE_PATTERN.test(trimmed)) return null;
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : trimmed;
 }
 
 function cleanText(value: unknown, fallback = ''): string {
@@ -35,13 +82,37 @@ function cleanText(value: unknown, fallback = ''): string {
     .slice(0, 180);
 }
 
-function plannerReturnTo({ pathname, search, selectedClientId }: PlannerRouteContext): string | null {
+function plannerSearchParams(search: string): URLSearchParams {
+  return new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+}
+
+function appendSafeSessionContext(params: URLSearchParams, search: string): void {
+  const sourceParams = plannerSearchParams(search);
+  const sessionId = safePositiveInteger(sourceParams.get('sessionId'));
+  if (!sessionId) return;
+
+  params.set('sessionId', String(sessionId));
+
+  const sessionDate = safeSessionDate(sourceParams.get('sessionDate'));
+  if (sessionDate) params.set('sessionDate', sessionDate);
+
+  const sessionCredits = safeNonNegativeInteger(sourceParams.get('sessionCredits'));
+  if (sessionCredits !== null) params.set('sessionCredits', String(sessionCredits));
+}
+
+function isAdminSelfPlanner(search: string): boolean {
+  return plannerSearchParams(search).get('self') === '1';
+}
+
+function plannerReturnTo({ pathname, search, selectedClientId, generatedPlan, stripDebateJobId = false }: PlannerRouteContext): string | null {
   const role = plannerRoleFromPath(pathname);
   if (!role) return null;
   if (role === 'client') return '/dashboard/client/workouts';
 
-  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
-  if (selectedClientId) params.set('clientId', String(selectedClientId));
+  const params = plannerSearchParams(search);
+  if (stripDebateJobId) params.delete('debateJobId');
+  const clientId = safePositiveInteger(selectedClientId) || safePositiveInteger(generatedPlan?.clientId);
+  if (clientId && !isAdminSelfPlanner(search)) params.set('clientId', String(clientId));
   const query = params.toString();
   return `${pathname}${query ? `?${query}` : ''}`;
 }
@@ -81,15 +152,16 @@ export function buildWorkoutPlannerPlanReviewPrompt({
   generatedPlan,
   selectedMesoDay,
   selectedClientId,
-}: Pick<PlannerCoachReviewContext, 'generatedPlan' | 'selectedMesoDay' | 'selectedClientId'>): string | null {
+  isSelfPlanner = false,
+}: PlannerReviewPromptContext): string | null {
   if (!generatedPlan) return null;
-  const clientId = selectedRouteClientId(selectedClientId, generatedPlan);
+  const clientId = isSelfPlanner ? null : selectedRouteClientId(selectedClientId, generatedPlan);
   const scheduleDay = generatedPlan.weeklySchedule.find(day => day.dayNumber === selectedMesoDay);
   const day = generatedDay(generatedPlan, selectedMesoDay);
   const exerciseLines = (day?.exercises || []).map(exerciseLine).filter(Boolean).slice(0, 10);
   const lines = [
     'Workout planner generated day review.',
-    clientId ? `Client #${clientId}.` : 'No client id is selected.',
+    isSelfPlanner ? 'Personal admin workout review.' : clientId ? `Client #${clientId}.` : 'No client id is selected.',
     `Plan: ${generatedPlan.planSummary.durationWeeks} weeks, ${generatedPlan.planSummary.sessionsPerWeek} sessions/week, goal ${cleanText(generatedPlan.planSummary.primaryGoal)}.`,
     `Day ${selectedMesoDay}: ${cleanText(day?.focus || scheduleDay?.focus || 'selected workout')} (${cleanText(day?.category || scheduleDay?.category || 'workout')}).`,
     exerciseLines.length ? `Exercises: ${exerciseLines.join('; ')}.` : 'Detailed exercises are not available in this route preview.',
@@ -108,11 +180,12 @@ export function buildWorkoutPlannerCoachReviewRoute({
   generatedPlan,
 }: PlannerCoachReviewContext): string | null {
   const role = plannerRoleFromPath(pathname);
-  const returnTo = plannerReturnTo({ pathname, search, selectedClientId });
-  const prompt = buildWorkoutPlannerPlanReviewPrompt({ generatedPlan, selectedMesoDay, selectedClientId });
+  const isSelfPlanner = role === 'admin' && isAdminSelfPlanner(search);
+  const returnTo = plannerReturnTo({ pathname, search, selectedClientId, generatedPlan });
+  const prompt = buildWorkoutPlannerPlanReviewPrompt({ generatedPlan, selectedMesoDay, selectedClientId, isSelfPlanner });
   if (!role || !returnTo || !prompt) return null;
 
-  const clientId = selectedRouteClientId(selectedClientId, generatedPlan);
+  const clientId = isSelfPlanner ? null : selectedRouteClientId(selectedClientId, generatedPlan);
   const params = new URLSearchParams({
     source: `${role}-workout-planner`,
     returnTo,
@@ -127,19 +200,34 @@ export function buildWorkoutPlannerLoggerRoute({
   pathname,
   search,
   selectedClientId,
+  generatedPlan,
 }: PlannerRouteContext): string | null {
   const role = plannerRoleFromPath(pathname);
-  const clientId = safePositiveInteger(selectedClientId);
-  if (!role || !clientId) return null;
+  if (!role) return null;
+
+  if (role === 'admin' && isAdminSelfPlanner(search)) {
+    const params = new URLSearchParams({ loadPlan: 'today', source: 'workout-planner' });
+    const returnTo = plannerReturnTo({ pathname, search, selectedClientId, generatedPlan, stripDebateJobId: true });
+    if (returnTo) params.set('returnTo', returnTo);
+    appendSafeSessionContext(params, search);
+    return `/dashboard/admin/log-my-workout?${params.toString()}`;
+  }
+
+  const clientId = selectedRouteClientId(selectedClientId, generatedPlan);
+  if (!clientId) return null;
 
   if (role === 'admin') {
-    return `/dashboard/admin/client-management?${new URLSearchParams({
+    const params = new URLSearchParams({
       clientId: String(clientId),
       tab: 'training',
       trainingSection: 'logger',
       loadPlan: 'today',
       source: 'workout-planner',
-    }).toString()}`;
+    });
+    const returnTo = plannerReturnTo({ pathname, search, selectedClientId, generatedPlan, stripDebateJobId: true });
+    if (returnTo) params.set('returnTo', returnTo);
+    appendSafeSessionContext(params, search);
+    return `/dashboard/admin/client-management?${params.toString()}`;
   }
 
   const params = new URLSearchParams({
@@ -147,7 +235,8 @@ export function buildWorkoutPlannerLoggerRoute({
     source: 'workout-planner',
     loadPlan: 'today',
   });
-  const returnTo = plannerReturnTo({ pathname, search, selectedClientId });
+  const returnTo = plannerReturnTo({ pathname, search, selectedClientId, generatedPlan, stripDebateJobId: true });
   if (returnTo) params.set('returnTo', returnTo);
+  appendSafeSessionContext(params, search);
   return `/dashboard/${role}/log-workout?${params.toString()}`;
 }

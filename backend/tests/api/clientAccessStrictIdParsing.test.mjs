@@ -44,3 +44,39 @@ describe('clientAccess strict ID parsing', () => {
     expect(mocks.ClientTrainerAssignment.findOne).not.toHaveBeenCalled();
   });
 });
+
+describe('clientAccess client-equivalent role handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('allows a raw user requester to read their own client current-workout surface', async () => {
+    mocks.User.findByPk.mockResolvedValueOnce({ id: 42, role: 'client' });
+
+    const result = await ensureClientAccess({ user: { id: 42, role: 'user' } }, '42');
+
+    expect(result).toMatchObject({ allowed: true, clientId: 42 });
+    expect(mocks.ClientTrainerAssignment.findOne).not.toHaveBeenCalled();
+  });
+
+  it('treats persisted user-role client records as client-equivalent for assigned trainers', async () => {
+    mocks.User.findByPk.mockResolvedValueOnce({ id: 42, role: 'user' });
+    mocks.ClientTrainerAssignment.findOne.mockResolvedValueOnce({ id: 9 });
+
+    const result = await ensureClientAccess({ user: { id: 7, role: 'trainer' } }, 42);
+
+    expect(result).toMatchObject({ allowed: true, clientId: 42 });
+    expect(mocks.ClientTrainerAssignment.findOne).toHaveBeenCalledWith({
+      where: { clientId: 42, trainerId: 7, status: 'active' },
+    });
+  });
+
+  it('still rejects raw user cross-client access before trainer assignment checks', async () => {
+    mocks.User.findByPk.mockResolvedValueOnce({ id: 43, role: 'user' });
+
+    const result = await ensureClientAccess({ user: { id: 42, role: 'user' } }, '43');
+
+    expect(result).toMatchObject({ allowed: false, status: 403 });
+    expect(mocks.ClientTrainerAssignment.findOne).not.toHaveBeenCalled();
+  });
+});

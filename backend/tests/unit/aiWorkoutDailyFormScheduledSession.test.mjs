@@ -227,6 +227,42 @@ describe('submitAiWorkoutLogAsDailyForm scheduled-session truth', () => {
     }));
   });
 
+  it('keeps previously deducted AI scheduled sessions from double-charging while preserving the required-credit receipt', async () => {
+    const existingDeductionDate = new Date('2026-05-06T14:00:00.000Z');
+    const scheduledSession = makeScheduledSession({
+      sessionDeducted: true,
+      deductionDate: existingDeductionDate,
+    });
+    const {
+      client,
+      dailyFormRow,
+      scheduledSession: loadedScheduledSession,
+      sequelize,
+      submitAiWorkoutLogAsDailyForm,
+      tx,
+    } = await loadService({ scheduledSession });
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      scheduledSessionId: 777,
+      date: '2026-05-06',
+      exercises: [{ name: 'Push-up', sets: [{ reps: 10, weight: 0 }] }],
+      sequelize,
+    });
+
+    expect(client.decrement).not.toHaveBeenCalled();
+    expect(dailyFormRow.update).toHaveBeenCalledWith({ sessionDeducted: true }, { transaction: tx });
+    expect(loadedScheduledSession.update).toHaveBeenCalledWith(expect.objectContaining({
+      sessionDeducted: true,
+      deductionDate: existingDeductionDate,
+    }), { transaction: tx });
+    expect(result.billing).toEqual(expect.objectContaining({
+      status: 'previously_deducted',
+      creditsDeducted: 0,
+      creditsRequired: 2,
+    }));
+  });
   it('rejects no-show scheduled sessions before writing AI workout logs', async () => {
     const scheduledSession = makeScheduledSession({ attendanceStatus: 'no_show' });
     const {

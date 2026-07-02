@@ -40,6 +40,8 @@ describe('client onboarding proposal command dispatchers', () => {
       email: 'ava@example.test',
       phone: '555-0100',
       clientSource: 'swanstudios',
+      trainingGoal: 'Build strength without knee pain',
+      preferredContactMethod: 'Text after 5pm',
     }, {
       user: { id: 7, role: 'admin' },
       options: { conversationId: 'conv-1' },
@@ -53,9 +55,8 @@ describe('client onboarding proposal command dispatchers', () => {
         data: {
           firstName: 'Ava',
           lastName: 'Stone',
-          email: 'ava@example.test',
-          phone: '555-0100',
           clientSource: 'swanstudios',
+          trainingGoal: 'Build strength without knee pain',
         },
       },
     }));
@@ -70,10 +71,69 @@ describe('client onboarding proposal command dispatchers', () => {
       reviewRoute: '/dashboard/admin/coach-assistant?proposal=proposal-123',
       source: 'coach_action_proposals',
     });
+    const draftJson = JSON.stringify(createCoachActionProposalDraft.mock.calls[0][0].payload);
+    expect(draftJson).not.toContain('ava@example.test');
+    expect(draftJson).not.toContain('555-0100');
+    expect(draftJson).not.toContain('preferredContactMethod');
+    expect(draftJson).toContain('Build strength without knee pain');
     expect(JSON.stringify(result)).not.toContain('ava@example.test');
     expect(JSON.stringify(result)).not.toContain('Ava');
   });
 
+  it('strips nested contact fields from structured onboarding data before proposal review', async () => {
+    const { dispatchCreateClientProposal, createCoachActionProposalDraft } = await loadDispatchers();
+
+    await dispatchCreateClientProposal({
+      firstName: 'Ava',
+      lastName: 'Stone',
+      clientSource: 'swanstudios',
+      nutritionPrefs: {
+        proteinTarget: 'high',
+        deliveryAddress: '123 Hidden Street',
+      },
+      preferredTrainingDays: [
+        { day: 'Monday', phone: '555-9999', window: 'morning' },
+      ],
+      questionnaireResponses: {
+        readiness: {
+          goal: 'strength',
+          email: 'nested@example.test',
+        },
+        emergencyContact: {
+          name: 'Private Contact',
+          phone: '555-1212',
+        },
+      },
+      coverageUpdates: [
+        {
+          fieldKey: 'contact_communication_preferences',
+          status: 'ask_client_later',
+          value: { email: 'coverage@example.test', bestWindow: 'after work' },
+        },
+        {
+          fieldKey: 'goals_outcomes',
+          status: 'known',
+          value: { primaryGoal: 'strength' },
+        },
+      ],
+    }, {
+      user: { id: 7, role: 'admin' },
+      options: { conversationId: 'conv-nested' },
+    });
+
+    const payload = createCoachActionProposalDraft.mock.calls[0][0].payload;
+    const payloadJson = JSON.stringify(payload);
+    expect(payloadJson).not.toContain('nested@example.test');
+    expect(payloadJson).not.toContain('coverage@example.test');
+    expect(payloadJson).not.toContain('555-9999');
+    expect(payloadJson).not.toContain('555-1212');
+    expect(payloadJson).not.toContain('123 Hidden Street');
+    expect(payloadJson).toContain('strength');
+    expect(payloadJson).toContain('after work');
+    expect(payload.data.questionnaireResponses).toMatchObject({
+      readiness: { goal: 'strength' },
+    });
+  });
   it('defaults external client onboarding proposals to Move Fitness free tracking', async () => {
     const { dispatchCreateExternalClientProposal, createCoachActionProposalDraft } = await loadDispatchers();
 

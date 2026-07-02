@@ -9,6 +9,9 @@
 import { useState } from 'react';
 import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
 import {
+  AccessHandoffCard,
+  AccessHandoffHeader,
+  AccessHandoffToken,
   AttachmentRow,
   LogBody,
   LogEntry,
@@ -21,6 +24,13 @@ import { formatCommandLogBody } from './CoachCommandLogEntry.format';
 import { CoachFormattedLogContent } from './CoachFormattedLogContent';
 import { buildCoachWorkoutLoggerHandoff } from './CoachCommandLoggerHandoff';
 import CoachWorkoutLoggerReviewCard from './CoachWorkoutLoggerReviewCard';
+import { CommandLogAccessLinkActions, CommandLogClaimCodeCopyAction } from './CoachClaimLinkActions';
+import {
+  buildCommandResultAccessHandoff,
+  commandLogAccessHandoffDescription,
+  commandLogAccessHandoffLink,
+  commandLogAccessHandoffTitle,
+} from './CoachCommandCenter.accessHandoff';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
@@ -40,6 +50,12 @@ function CoachCommandLogEntry({
     ? buildCoachWorkoutLoggerHandoff(visibleBody)
     : null;
   const confirmation = entry.commandConfirmation;
+  const accessHandoff = entry.accessHandoff ?? buildCommandResultAccessHandoff(entry.commandResult);
+  const accessHandoffTitle = accessHandoff ? commandLogAccessHandoffTitle(accessHandoff) : null;
+  const accessLink = accessHandoff ? commandLogAccessHandoffLink(accessHandoff) : null;
+  const accessHandoffSource = accessHandoff?.clientSource
+    ? String(accessHandoff.clientSource).replace(/_/g, ' ')
+    : null;
 
   return (
     <LogEntry $actor={entry.actor}>
@@ -74,6 +90,25 @@ function CoachCommandLogEntry({
           />
         ) : null}
 
+        {accessHandoff ? (
+          <AccessHandoffCard aria-label="Client access handoff">
+            <AccessHandoffHeader>
+              <strong>{accessHandoffTitle}</strong>
+              {accessHandoffSource ? <span>{accessHandoffSource}</span> : null}
+            </AccessHandoffHeader>
+            <p>{commandLogAccessHandoffDescription(accessHandoff)}</p>
+            {accessHandoff.claimCode ? (
+              <AccessHandoffToken>
+                <span>Claim code</span>
+                <code>{accessHandoff.claimCode}</code>
+                <CommandLogClaimCodeCopyAction code={accessHandoff.claimCode} />
+              </AccessHandoffToken>
+            ) : null}
+            {accessLink ? (
+              <CommandLogAccessLinkActions url={accessLink.url} label={accessLink.label} />
+            ) : null}
+          </AccessHandoffCard>
+        ) : null}
         {formatted.structuredPacket ? (
           <PacketDetails>
             <summary>Structured packet</summary>
@@ -101,6 +136,7 @@ function CoachCommandLogEntry({
           result={entry.commandResult.result}
           client={entry.commandResult.client}
           message={entry.commandResult.message}
+          showAccessHandoff={false}
         />
       ) : null}
 
