@@ -111,8 +111,8 @@ const PROGRESS_POST_TYPES = new Set<string>([
 
 const PROGRESS_TERMS = [
   'progress',
-  'pr',
   'personal record',
+  'personal best',
   'transformation',
   'down ',
   'lost ',
@@ -121,6 +121,8 @@ const PROGRESS_TERMS = [
   'streak',
   'finished',
   'completed',
+  'hit my goal',
+  'new max',
 ];
 
 const GRATITUDE_TERMS = [
@@ -368,6 +370,8 @@ export const useSocialFeed = () => {
         });
       }
       
+      if (!newPost) return null;
+
       // Return enhanced result with point information
       return {
         ...newPost,
@@ -569,152 +573,4 @@ export const useSocialFeed = () => {
   const deletePost = useCallback(async (postId: string): Promise<boolean> => {
     if (!user) return false;
 
-    try {
-      await authAxios.delete(`/api/social/posts/${postId}`);
-
-      // Remove from local state
-      setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
-
-      toast({
-        title: 'Post deleted',
-        description: 'The post has been removed.',
-        variant: 'default',
-      });
-      return true;
-    } catch (err: any) {
-      console.error('Error deleting post:', err);
-      toast({
-        title: 'Error',
-        description: err.response?.data?.message || 'Unable to delete post.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [authAxios, user, toast]);
-
-  // Report a post
-  const reportPost = useCallback(async (
-    postId: string,
-    reason: string,
-    description?: string,
-  ): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      await authAxios.post(`/api/social/posts/${postId}/report`, {
-        reason,
-        description,
-      });
-
-      toast({
-        title: 'Report submitted',
-        description: 'Thank you. Our team will review this post.',
-        variant: 'default',
-      });
-      return true;
-    } catch (err: any) {
-      console.error('Error reporting post:', err);
-      const msg = err.response?.data?.message || 'Unable to submit report.';
-      toast({
-        title: 'Error',
-        description: msg,
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [authAxios, user, toast]);
-
-  // Repost/share a post
-  const repostPost = useCallback(async (postId: string, content?: string) => {
-    if (!user || !authAxios) return false;
-    try {
-      await authAxios.post(`/api/social/posts/${postId}/repost`, { content });
-      toast({ title: 'Shared!', description: 'Post shared to your feed.', variant: 'default' });
-      fetchPosts(true);
-      return true;
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Unable to share post.';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
-      return false;
-    }
-  }, [authAxios, user, toast, fetchPosts]);
-
-  // Get a single post with full details
-  const getPostDetails = useCallback(async (postId: string) => {
-    if (!user) return null;
-
-    try {
-      const response = await authAxios.get(`/api/social/posts/${postId}`);
-      return response.data.post;
-    } catch (err) {
-      console.error('Error fetching post details:', err);
-      return null;
-    }
-  }, [authAxios, user]);
-
-  // Load a post's full comment THREAD into feed state. The feed endpoint
-  // returns commentsCount only — without this, comments from other members
-  // (including coach answers) would never render in the stream.
-  const loadComments = useCallback(async (postId: string) => {
-    const details = await getPostDetails(postId);
-    if (!details) return;
-
-    setPosts(prevPosts =>
-      prevPosts.map(post => (post.id === postId
-        ? {
-          ...post,
-          comments: details.comments || [],
-          commentsCount: (details.comments || []).length,
-        }
-        : post))
-    );
-  }, [getPostDetails]);
-  
-  // Initial data fetch — depend only on user identity, not fetchPosts reference
-  // (fetchPosts changes on every offset/toast update which would cause infinite loops)
-  useEffect(() => {
-    if (user) {
-      fetchPosts(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  // Refresh when another surface publishes a post (e.g. the social Coach
-  // dock's inline milestone share — separate hook instances share no state,
-  // so the dock dispatches 'swan:social-post-created' after a confirmed 2xx).
-  // Ref keeps the listener stable: fetchPosts' identity changes per offset.
-  const fetchPostsRef = useRef(fetchPosts);
-  fetchPostsRef.current = fetchPosts;
-  useEffect(() => {
-    const onExternalPostCreated = () => fetchPostsRef.current(true);
-    window.addEventListener('swan:social-post-created', onExternalPostCreated);
-    return () => window.removeEventListener('swan:social-post-created', onExternalPostCreated);
-  }, []);
-  
-  return {
-    posts,
-    isLoading,
-    error,
-    hasMore,
-    loadMore,
-    isLoadingMore,
-    refreshPosts: () => fetchPosts(true),
-    createPost,
-    isCreatingPost,
-    likePost,
-    unlikePost,
-    reactToPost,
-    removeReaction,
-    addComment,
-    updatePost,
-    deletePost,
-    reportPost,
-    repostPost,
-    getPostDetails,
-    loadComments
-  };
-};
-
-/** Workstream O3: the full stateful feed API — HomeTab owns the single mount
-    and prop-drills it to the presentational community feed. */
-export type SocialFeedApi = ReturnType<typeof useSocialFeed>;
+  ... trimmed due tool limit? 
