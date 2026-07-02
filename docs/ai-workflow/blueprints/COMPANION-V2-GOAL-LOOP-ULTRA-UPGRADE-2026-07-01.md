@@ -83,6 +83,16 @@ The sixth implementation pass surfaces companion event metadata on the real work
 - explicit `companionEvents` response fields are never overwritten;
 - response injection is tested separately from controller business logic.
 
+## Phase 6 changes
+
+The seventh implementation pass restores documentation and hardens failure behavior:
+
+- `backend/routes/gamificationRoutes.mjs` now preserves its documented route contract while keeping the companion middleware wiring;
+- `/record-workout` keeps the route-scoped companion response middleware;
+- response middleware tests now simulate an after-commit companion write failure;
+- the successful workout response body remains stable when companion recording fails;
+- the bridge logs the failure through the injected logger without sending a second response or mutating the completed response.
+
 ## Recursive review fixes
 
 The first dock review found that every next-action button originally routed to workout logging. That was too blunt for low-health or low-happiness states. The dock now routes low-health companion states to Progress, low-happiness states to My Home, and momentum states to workout logging.
@@ -96,6 +106,8 @@ The ledger-wiring review found that patching the monolithic gamification control
 The observability review found that bridge work needed response-safe metadata without waiting for async companion writes. Ledger results now expose scheduled/skipped companion summaries while the writes remain after-commit and non-blocking.
 
 The endpoint response review found that rewriting `gamificationController.mjs` would be too risky for this slice. The response surfacing now uses route-scoped middleware and request context instead.
+
+The documentation review found that the previous route update had compacted too much inline route documentation. The documented route file has been restored while preserving the middleware wiring.
 
 ## Future architecture
 
