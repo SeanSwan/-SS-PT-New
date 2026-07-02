@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUser = { findByPk: vi.fn() };
-const mockDb = { query: vi.fn() };
+const mockDb = {
+  query: vi.fn(),
+  transaction: vi.fn(async (callback) => callback({ id: 'tx-unit-test' })),
+};
 const mockPointsService = { recordLedgerEntry: vi.fn() };
 const mockCheckBadges = vi.fn();
+const mockAwardSwanCoins = vi.fn();
 
 vi.mock('../../models/User.mjs', () => ({ default: mockUser }));
 vi.mock('../../database.mjs', () => ({ default: mockDb }));
@@ -12,6 +16,9 @@ vi.mock('../../services/gamification/GamificationPointsService.mjs', () => ({
 }));
 vi.mock('../../services/badgeGamificationBridge.mjs', () => ({
   checkBadgesForGamificationEvent: mockCheckBadges,
+}));
+vi.mock('../../services/avatarEconomy/swanCoinService.mjs', () => ({
+  awardSwanCoins: mockAwardSwanCoins,
 }));
 
 const {
@@ -34,8 +41,11 @@ describe('Unity Weaver prosocial XP service', () => {
   beforeEach(() => {
     mockUser.findByPk.mockReset();
     mockDb.query.mockReset();
+    mockDb.transaction.mockReset();
+    mockDb.transaction.mockImplementation(async (callback) => callback({ id: 'tx-unit-test' }));
     mockPointsService.recordLedgerEntry.mockReset();
     mockCheckBadges.mockReset();
+    mockAwardSwanCoins.mockReset();
 
     mockUser.findByPk.mockResolvedValue(makeTargetUser());
     mockNoPriorAwards();
@@ -46,6 +56,13 @@ describe('Unity Weaver prosocial XP service', () => {
       newBalance: 108,
       newLevel: 2,
       newTier: 'bronze_forge',
+    });
+    mockAwardSwanCoins.mockResolvedValue({
+      success: true,
+      swanCoinsAwarded: 2,
+      swanCoinBalance: 44,
+      currencyName: 'SwanCoins',
+      legacyField: 'crystalBalance',
     });
     mockCheckBadges.mockResolvedValue([]);
   });
@@ -60,7 +77,7 @@ describe('Unity Weaver prosocial XP service', () => {
       'deescalation_assist',
     ]));
     expect(events.find(event => event.id === 'safe_report_confirmed'))
-      .toEqual(expect.objectContaining({ requiresHumanOrSystemValidation: true }));
+      .toEqual(expect.objectContaining({ requiresHumanOrSystemValidation: true, swanCoins: 3 }));
   });
 
   it('rejects unknown events before any database or ledger work', async () => {
@@ -73,7 +90,9 @@ describe('Unity Weaver prosocial XP service', () => {
     expect(result).toEqual({ error: { status: 400, message: 'Unknown prosocial event' } });
     expect(mockUser.findByPk).not.toHaveBeenCalled();
     expect(mockDb.query).not.toHaveBeenCalled();
+    expect(mockDb.transaction).not.toHaveBeenCalled();
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
   it('blocks recipient-based self-awards', async () => {
@@ -87,6 +106,7 @@ describe('Unity Weaver prosocial XP service', () => {
 
     expect(result).toEqual({ error: { status: 400, message: 'You cannot award prosocial XP to yourself' } });
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
   it('requires a target user for recipient-based events', async () => {
@@ -99,6 +119,7 @@ describe('Unity Weaver prosocial XP service', () => {
 
     expect(result).toEqual({ error: { status: 400, message: 'targetUserId is required for this prosocial event' } });
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
   it('does not self-award validation-sensitive safety events', async () => {
@@ -115,6 +136,7 @@ describe('Unity Weaver prosocial XP service', () => {
       status: 'requires_validation',
     }));
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
   it('enforces exact event-specific daily limits before ledger writes', async () => {
@@ -146,6 +168,7 @@ describe('Unity Weaver prosocial XP service', () => {
       }),
     );
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
   it('enforces cooldown windows before ledger writes', async () => {
@@ -167,9 +190,10 @@ describe('Unity Weaver prosocial XP service', () => {
     }));
     expect(result.retryAfterSeconds).toBeGreaterThan(0);
     expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
-  it('awards low-risk prosocial XP through the central ledger with safe metadata only', async () => {
+  it('awards low-risk prosocial XP and SwanCoins atomically with safe metadata only', async () => {
     const result = await awardUnityWeaverProsocialXP({
       actorUserId: 7,
       eventId: 'encourage_friend',
@@ -184,8 +208,13 @@ describe('Unity Weaver prosocial XP service', () => {
       status: 'awarded',
       pointsAwarded: 8,
       newBalance: 108,
+      swanCoinsAwarded: 2,
+      swanCoinBalance: 44,
+      currencyName: 'SwanCoins',
+      legacyField: 'crystalBalance',
     }));
 
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
     expect(mockPointsService.recordLedgerEntry).toHaveBeenCalledWith(expect.objectContaining({
       userId: 7,
       points: 8,
@@ -203,7 +232,14 @@ describe('Unity Weaver prosocial XP service', () => {
         contextId: 'post-99',
         targetUserId: 22,
       },
-    }));
+    }), expect.objectContaining({ id: 'tx-unit-test' }));
+
+    expect(mockAwardSwanCoins).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 7,
+      amount: 2,
+      source: 'social_engagement',
+      reason: 'Unity Weaver: Encourage a Friend',
+    }), expect.objectContaining({ id: 'tx-unit-test' }));
 
     const ledgerPayload = mockPointsService.recordLedgerEntry.mock.calls[0][0];
     expect(JSON.stringify(ledgerPayload.metadata)).not.toMatch(/comment|content|draft|clientMetadata|rawText/i);
@@ -218,7 +254,7 @@ describe('Unity Weaver prosocial XP service', () => {
     }));
   });
 
-  it('does not run badge checks for duplicate ledger awards', async () => {
+  it('does not award SwanCoins or run badge checks for duplicate ledger awards', async () => {
     mockPointsService.recordLedgerEntry.mockResolvedValueOnce({
       success: true,
       duplicate: true,
@@ -238,7 +274,23 @@ describe('Unity Weaver prosocial XP service', () => {
       awarded: false,
       duplicate: true,
       status: 'duplicate',
+      swanCoinsAwarded: 0,
     }));
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
+    expect(mockCheckBadges).not.toHaveBeenCalled();
+  });
+
+  it('rolls back the combined award when SwanCoins cannot be awarded', async () => {
+    mockAwardSwanCoins.mockResolvedValueOnce({ error: { status: 400, message: 'SwanCoin amount must be between 1 and 25' } });
+
+    await expect(awardUnityWeaverProsocialXP({
+      actorUserId: 7,
+      eventId: 'encourage_friend',
+      targetUserId: 22,
+      contextType: 'post',
+      contextId: 'coin-fail',
+    })).rejects.toThrow('SwanCoin amount must be between 1 and 25');
+
     expect(mockCheckBadges).not.toHaveBeenCalled();
   });
 });
