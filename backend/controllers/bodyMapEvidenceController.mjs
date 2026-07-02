@@ -56,10 +56,13 @@ async function sanitizeEvidence(record, requester) {
   if (!isStaff(requester)) {
     delete data.mediaKey;
     delete data.thumbnailKey;
-    delete data.trainerReview;
     if (data.analysisStatus === 'approved') {
-      data.analysisSummary = data.aiAnalysis?.swanCoachNotesDraft || null;
+      data.analysisSummary = data.trainerReview?.clientSummary
+        || data.trainerReview?.swanCoachNotes
+        || data.aiAnalysis?.swanCoachNotesDraft
+        || null;
     }
+    delete data.trainerReview;
     delete data.aiAnalysis;
   }
   return data;
