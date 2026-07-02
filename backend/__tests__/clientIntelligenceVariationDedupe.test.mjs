@@ -3,7 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 // clientIntelligenceService imports the model registry and database at module
 // scope; stub them so this stays a pure-logic test of the dedupe helper.
 vi.mock('../models/index.mjs', () => new Proxy({}, {
-  get: (_target, prop) => (prop === 'Op' ? {} : vi.fn(() => ({}))),
+  get: (_target, prop) => {
+    // NEVER return a function for 'then': vitest awaits the mock factory's
+    // result, and a Proxy that yields a function for 'then' is a thenable
+    // whose callback is never invoked — the worker awaits forever and the
+    // whole suite hangs at collection (observed 2026-07-02, deterministic).
+    if (prop === 'then' || prop === Symbol.toStringTag) return undefined;
+    return prop === 'Op' ? {} : vi.fn(() => ({}));
+  },
 }));
 vi.mock('../database.mjs', () => ({ default: { query: vi.fn() } }));
 vi.mock('../utils/logger.mjs', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
