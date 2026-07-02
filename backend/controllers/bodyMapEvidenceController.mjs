@@ -65,6 +65,13 @@ async function sanitizeEvidence(record, requester) {
   return data;
 }
 
+function canRemoveEvidence(requester, evidence) {
+  if (isStaff(requester)) return true;
+  const ownUpload = Number(evidence.uploadedById) === Number(requester?.id);
+  const stillDraft = ['pending', 'failed'].includes(evidence.analysisStatus);
+  return ownUpload && stillDraft;
+}
+
 async function mergeApprovedReviewIntoEntry(entry, evidence, review) {
   const existingFindings = entry.assessmentFindings && typeof entry.assessmentFindings === 'object'
     ? entry.assessmentFindings
@@ -148,6 +155,7 @@ export async function listBodyMapEvidence(req, res) {
 }
 
 export async function analyzeBodyMapEvidence(req, res) {
+  let evidenceForFailure = null;
   try {
     if (!isStaff(req.user)) return res.status(403).json({ success: false, message: 'Trainer review is required' });
     const userId = parsePositiveInt(req.params.userId);
@@ -157,6 +165,7 @@ export async function analyzeBodyMapEvidence(req, res) {
 
     const entry = await getEntry({ userId, entryId });
     const evidence = await getEvidence({ userId, entryId, mediaId });
+    evidenceForFailure = evidence;
     if (!entry || !evidence) return res.status(404).json({ success: false, message: 'Evidence not found' });
     if (evidence.mediaType !== 'image') return res.status(400).json({ success: false, message: 'Vision analysis currently supports images only' });
 
@@ -177,6 +186,12 @@ export async function analyzeBodyMapEvidence(req, res) {
     await evidence.update({ analysisStatus: 'needs_review', aiAnalysis: result.analysis });
     return res.json({ success: true, data: await sanitizeEvidence(evidence, req.user) });
   } catch (error) {
+    if (evidenceForFailure) {
+      await evidenceForFailure.update({
+        analysisStatus: 'failed',
+        aiAnalysis: { error: error.message, failedAt: new Date().toISOString() },
+      }).catch(() => null);
+    }
     logger.error('[BodyMapEvidence] Analyze failed: %s', error.message);
     return res.status(500).json({ success: false, message: 'Failed to analyze evidence' });
   }
@@ -222,6 +237,7 @@ export async function deleteBodyMapEvidence(req, res) {
     if (!userId || !entryId || !mediaId) return res.status(400).json({ success: false, message: 'Invalid media identifier' });
     const evidence = await getEvidence({ userId, entryId, mediaId });
     if (!evidence) return res.status(404).json({ success: false, message: 'Evidence not found' });
+    if (!canRemoveEvidence(req.user, evidence)) return res.status(403).json({ success: false, message: 'Only staff or the draft uploader can remove this evidence' });
 
     await deleteEvidenceObjects({ mediaKey: evidence.mediaKey, thumbnailKey: evidence.thumbnailKey }).catch(() => null);
     await evidence.update({ isDeleted: true, deletedAt: new Date() });
