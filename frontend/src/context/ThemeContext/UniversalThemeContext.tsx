@@ -21,6 +21,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { ThemeProvider as StyledThemeProvider, type DefaultTheme } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
 import { swanStudiosTheme } from '../../core/theme';
@@ -1606,6 +1607,9 @@ interface ThemeContextType {
   setTheme: (themeId: ThemeId) => void;
   toggleTheme: () => void;
   availableThemes: Array<{ id: ThemeId; name: string }>;
+  /** Site-wide animations switch (persisted). false = collapse all motion. */
+  motionEnabled: boolean;
+  setMotionEnabled: (enabled: boolean) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -1621,6 +1625,20 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
   defaultTheme = 'crystalline-default'
 }) => {
   const [currentTheme, setCurrentThemeState] = useState<ThemeId>(defaultTheme);
+  const [motionEnabled, setMotionEnabledState] = useState<boolean>(
+    () => (typeof window === 'undefined' ? true : localStorage.getItem('swanstudios-motion') !== 'off')
+  );
+
+  // Reflect the animations switch onto <html data-motion> so the tokens.css
+  // kill-switch (and any CSS keyed on it) applies site-wide, and persist it.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-motion', motionEnabled ? 'on' : 'off');
+  }, [motionEnabled]);
+
+  const setMotionEnabled = (enabled: boolean) => {
+    setMotionEnabledState(enabled);
+    localStorage.setItem('swanstudios-motion', enabled ? 'on' : 'off');
+  };
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -1666,7 +1684,9 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     theme: themes[currentTheme],
     setTheme,
     toggleTheme,
-    availableThemes
+    availableThemes,
+    motionEnabled,
+    setMotionEnabled
   };
 
   // Merge the base swanStudiosTheme with the active Crystalline Swan theme
@@ -1679,9 +1699,11 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={contextValue}>
-      <StyledThemeProvider theme={mergedTheme as unknown as DefaultTheme}>
-        {children}
-      </StyledThemeProvider>
+      <MotionConfig reducedMotion={motionEnabled ? 'user' : 'always'}>
+        <StyledThemeProvider theme={mergedTheme as unknown as DefaultTheme}>
+          {children}
+        </StyledThemeProvider>
+      </MotionConfig>
     </ThemeContext.Provider>
   );
 };

@@ -118,6 +118,40 @@ describe('Universal theme cycle contract', () => {
   });
 });
 
+describe('theme changer control (2026-07-03 redesign)', () => {
+  const readSource = (rel: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('node:fs').readFileSync(require('node:path').resolve(__dirname, rel), 'utf8') as string;
+
+  it('keeps the toggle data-driven — no hardcoded per-theme style branches', () => {
+    const toggle = readSource('./UniversalThemeToggle.tsx');
+    const styles = readSource('./UniversalThemeToggle.styles.ts');
+    expect(toggle).not.toMatch(/case 'crystalline-/);
+    expect(styles).not.toMatch(/case 'crystalline-/);
+    expect(styles).toContain('$bg');
+    expect(styles).toContain('prefers-reduced-motion');
+  });
+
+  it('wires the site-wide animations switch end to end', () => {
+    const context = readSource('./UniversalThemeContext.tsx');
+    const panel = readSource('./UniversalThemeToggle.panel.tsx');
+    const tokens = readSource('../../styles/tokens.css');
+    expect(context).toContain("localStorage.getItem('swanstudios-motion')");
+    expect(context).toContain('MotionConfig');
+    expect(context).toContain("motionEnabled ? 'user' : 'always'");
+    expect(context).toContain("setAttribute('data-motion'");
+    expect(panel).toContain('Animations');
+    expect(tokens).toContain("html[data-motion='off']");
+  });
+
+  it('shows every registered theme in the picker groups (More bucket catches strays)', async () => {
+    const { buildThemeGroups } = await import('./UniversalThemeToggle.panel');
+    const grouped = buildThemeGroups().flatMap((group) => group.ids);
+    expect(new Set(grouped).size).toBe(grouped.length);
+    expect([...grouped].sort()).toEqual((Object.keys(themes) as ThemeId[]).sort());
+  });
+});
+
 describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
   const themeIds = Object.keys(themes) as ThemeId[];
 
