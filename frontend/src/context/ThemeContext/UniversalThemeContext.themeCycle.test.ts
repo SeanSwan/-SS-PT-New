@@ -14,6 +14,17 @@ const premiumThemeIds = [
   'graphite-luxe',
   'pearl-noir',
   'circuit-lime',
+  // 2026-07-03 identity wave
+  'sakura-midnight',
+  'indigo-pulse',
+  'sunset-mirage',
+  'steel-tempest',
+  'vapor-dream',
+  'burgundy-noir',
+  'tron-grid',
+  'orchid-veil',
+  'deep-jade',
+  'midnight-mango',
 ] as const;
 
 const hexToRgb = (hex: string) => {
@@ -72,8 +83,8 @@ describe('Universal theme cycle contract', () => {
     expect(themeToggleMetadata['crystalline-default'].description).toBe('Crystalline Swan');
   });
 
-  it('adds ten premium colorways to the theme changer without hiding them from the cycle', () => {
-    expect(premiumThemeIds).toHaveLength(10);
+  it('adds every premium colorway to the theme changer without hiding them from the cycle', () => {
+    expect(premiumThemeIds).toHaveLength(20);
 
     for (const themeId of premiumThemeIds) {
       const theme = themes[themeId as keyof typeof themes];

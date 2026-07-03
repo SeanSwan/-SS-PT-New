@@ -482,6 +482,16 @@ export const themeToggleMetadata: Record<ThemeId, {
   'graphite-luxe': { description: 'Graphite Luxe', icon: 'layers' },
   'pearl-noir': { description: 'Pearl Noir', icon: 'moon' },
   'circuit-lime': { description: 'Circuit Lime', icon: 'zap' },
+  'sakura-midnight': { description: 'Sakura Midnight', icon: 'flower' },
+  'indigo-pulse': { description: 'Indigo Pulse', icon: 'zap' },
+  'sunset-mirage': { description: 'Sunset Mirage', icon: 'sun' },
+  'steel-tempest': { description: 'Steel Tempest', icon: 'layers' },
+  'vapor-dream': { description: 'Vapor Dream', icon: 'orbit' },
+  'burgundy-noir': { description: 'Burgundy Noir', icon: 'gem' },
+  'tron-grid': { description: 'Tron Grid', icon: 'swords' },
+  'orchid-veil': { description: 'Orchid Veil', icon: 'flower' },
+  'deep-jade': { description: 'Deep Jade', icon: 'leaf' },
+  'midnight-mango': { description: 'Midnight Mango', icon: 'sparkles' },
 };
 
 // === THEME ICON MAPPING ===
