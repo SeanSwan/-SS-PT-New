@@ -7,9 +7,11 @@ import {
   EQUIPMENT_TYPES,
   EXERCISE_TYPES,
   ROW_HEIGHT,
-  parseEquipment,
+  applyEquipTypeFilters,
   useVisibleRowCount,
 } from './NASMExerciseRolodex.helpers';
+import RolodexRecentRow from './RolodexRecentRow';
+import { readRecentExercises, recordRecentExercise } from './recentExercises';
 import {
   EmptyState,
   ExMeta,
@@ -75,21 +77,10 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       : results.filter(ex => matchesSectionContext(ex, sectionContext))
   ), [results, sectionContext]);
 
-  const filteredResults = useMemo(() => {
-    let pool = sectionFiltered;
-    if (typeFilter) {
-      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === typeFilter.toLowerCase());
-    }
-    if (equipFilter) {
-      const norm = equipFilter.toLowerCase();
-      pool = pool.filter(ex => {
-        const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
-        if (norm === 'bodyweight') return eqArr.length === 0 || eqArr.some(e => e.toLowerCase().includes('body'));
-        return eqArr.some(e => e.toLowerCase().includes(norm));
-      });
-    }
-    return pool;
-  }, [sectionFiltered, typeFilter, equipFilter]);
+  const filteredResults = useMemo(
+    () => applyEquipTypeFilters(sectionFiltered, typeFilter, equipFilter),
+    [sectionFiltered, typeFilter, equipFilter],
+  );
 
   const filteredAllExercises = useMemo(() => (
     !sectionContext || sectionContext === 'main'
@@ -128,10 +119,18 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   }, [isOpen, onClose]);
 
   const handleSelect = useCallback((exercise: ExerciseSlim) => {
+    recordRecentExercise(exercise);
     onSelectExercise(exercise);
     setQuery('');
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
+
+  // Slice 10 one-tap recents (catalog = truth; stale ids drop; isOpen dep re-reads storage per open)
+  const recentExercises = useMemo(() => {
+    if (query || allExercises.length === 0) return [];
+    const byId = new Map(allExercises.map(ex => [String(ex.id), ex]));
+    return readRecentExercises().map(r => byId.get(r.id)).filter((ex): ex is ExerciseSlim => Boolean(ex));
+  }, [query, allExercises, isOpen]);
 
   const handlePreview = useCallback((exercise: ExerciseSlim, index: number) => {
     setHighlightIndex(index);
@@ -215,6 +214,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         {(isSearching || isLoading) && <SpinnerIcon size={16} />}
       </SearchRow>
 
+      <RolodexRecentRow recents={recentExercises} onPick={handleSelect} />
       <ExerciseFilterChips
         activeCategory={category}
         onCategoryChange={setCategory}
