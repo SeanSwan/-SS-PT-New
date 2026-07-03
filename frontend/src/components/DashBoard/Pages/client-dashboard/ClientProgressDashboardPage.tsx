@@ -44,7 +44,7 @@ import {
   type PersonalRecordView,
 } from './ClientProgressDashboardPage.records';
 import { loadClientWeeklyRecap } from './ClientProgressDashboardPage.recap';
-import { PersonalRecordsCard, WeeklyRecapCard } from './ClientProgressDashboardPage.cards';
+import { FirstWorkoutCta, PersonalRecordsCard, WeeklyRecapCard } from './ClientProgressDashboardPage.cards';
 import ProgressPulsePanel from './ProgressPulsePanel';
 // Do not re-introduce ProfileChartsGrid on /dashboard/client/progress.
 // The canonical chart registry is owned by CanonicalProgressChartsGrid + useClientProgressCharts.
@@ -186,6 +186,12 @@ const ClientProgressDashboardPage: React.FC = () => {
       {/* Coach compass — Guardian-gated like the charts it summarizes;
           self-hides on fetch failure so it never blocks the page. */}
       {hasAdvancedAccess && user?.id ? <ProgressPulsePanel /> : null}
+
+      {/* Slice 13: zero-history clients without the compass still get a
+          first-workout path (settled recap + no PRs + no workouts this week). */}
+      {!hasAdvancedAccess && weeklyRecapSettled && weekWorkouts === 0 && personalRecords.length === 0 && (
+        <FirstWorkoutCta onLog={() => navigate('/dashboard/client/log-workout?loadPlan=today')} />
+      )}
 
       <SplitRow>
         <Card>
