@@ -19,7 +19,11 @@ const slideUp = keyframes`
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  /* 2200 matches the PostMediaLightbox house precedent for full-screen
+     dialogs: it must clear the fixed header (--z-header: 1250), dropdowns
+     (1260), and toasts (1300). 1200 shipped the header ON TOP of this
+     dialog — caught in the post-deploy hostile review 2026-07-02. */
+  z-index: 2200;
   display: flex;
   align-items: center;
   justify-content: center;

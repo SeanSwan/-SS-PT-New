@@ -85,6 +85,20 @@ describe('WorkoutDayDrilldown', () => {
   });
 });
 
+describe('overlay stacking contract', () => {
+  it('keeps the dialog overlay above the fixed header/dropdown/toast tokens', () => {
+    // Header is --z-header: 1250 (tokens.css); dropdown 1260; toast 1300.
+    // The shipped 1200 put the header ON TOP of the open dialog (found in
+    // the 2026-07-02 post-deploy hostile review). Lock the house 2200.
+    const { readFileSync } = require('node:fs');
+    const { resolve } = require('node:path');
+    const styles = readFileSync(resolve(__dirname, './WorkoutDayDrilldown.styles.ts'), 'utf8');
+    const match = styles.match(/z-index:\s*(\d+)/);
+    expect(match).not.toBeNull();
+    expect(Number(match![1])).toBeGreaterThanOrEqual(2200);
+  });
+});
+
 describe('DurationTrendCard drill trigger', () => {
   const chartData = [
     { x: '06/28', y: 40 },
