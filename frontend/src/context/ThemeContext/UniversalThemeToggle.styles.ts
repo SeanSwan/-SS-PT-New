@@ -177,6 +177,11 @@ export const SwatchGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
+
+  /* Phone width: one readable column — two columns truncate most theme names */
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const SwatchItem = styled.button<{
