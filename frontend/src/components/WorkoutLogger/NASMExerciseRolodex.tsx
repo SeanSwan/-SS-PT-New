@@ -4,26 +4,22 @@ import ExerciseFilterChips from './ExerciseFilterChips';
 import NASMExerciseRolodexPreview from './NASMExerciseRolodexPreview';
 import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
 import {
-  EQUIPMENT_TYPES,
-  EXERCISE_TYPES,
   ROW_HEIGHT,
   applyEquipTypeFilters,
   useVisibleRowCount,
 } from './NASMExerciseRolodex.helpers';
 import RolodexRecentRow from './RolodexRecentRow';
+import RolodexFilterRows from './RolodexFilterRows';
+import useRolodexDeepLink from './useRolodexDeepLink';
 import { readRecentExercises, recordRecentExercise } from './recentExercises';
 import {
   EmptyState,
   ExMeta,
   ExName,
   ExerciseRow,
-  FilterLabel,
-  FilterRows,
   FilterToggle,
   ListContainer,
   ListSide,
-  MiniChip,
-  MiniChipRow,
   SearchIconStyled,
   SearchInput,
   SearchRow,
@@ -43,6 +39,10 @@ interface NASMExerciseRolodexProps {
   isOpen: boolean;
   onClose: () => void;
   sectionContext?: SectionContext;
+  /** Slice 11 deep-link: prefill the search (e.g. ?exercise= from /progress). */
+  initialQuery?: string | null;
+  /** Auto-select when a result matches initialQuery exactly (once per open). */
+  autoSelectExact?: boolean;
 }
 
 const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
@@ -50,6 +50,8 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   isOpen,
   onClose,
   sectionContext,
+  initialQuery = null,
+  autoSelectExact = false,
 }) => {
   const {
     results,
@@ -131,6 +133,11 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     const byId = new Map(allExercises.map(ex => [String(ex.id), ex]));
     return readRecentExercises().map(r => byId.get(r.id)).filter((ex): ex is ExerciseSlim => Boolean(ex));
   }, [query, allExercises, isOpen]);
+
+  useRolodexDeepLink({
+    isOpen, initialQuery, autoSelectExact,
+    results: filteredResults, setQuery, onExactMatch: handleSelect,
+  });
 
   const handlePreview = useCallback((exercise: ExerciseSlim, index: number) => {
     setHighlightIndex(index);
@@ -226,34 +233,12 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       </FilterToggle>
 
       {showFilters && (
-        <FilterRows>
-          <FilterLabel>Type:</FilterLabel>
-          <MiniChipRow>
-            {EXERCISE_TYPES.map(type => (
-              <MiniChip
-                key={type}
-                type="button"
-                $active={typeFilter === null ? type === 'All' : typeFilter.toLowerCase() === type.toLowerCase()}
-                onClick={() => setTypeFilter(type === 'All' ? null : type)}
-              >
-                {type}
-              </MiniChip>
-            ))}
-          </MiniChipRow>
-          <FilterLabel>Equipment:</FilterLabel>
-          <MiniChipRow>
-            {EQUIPMENT_TYPES.map(equipment => (
-              <MiniChip
-                key={equipment}
-                type="button"
-                $active={equipFilter === null ? equipment === 'All' : equipFilter.toLowerCase() === equipment.toLowerCase()}
-                onClick={() => setEquipFilter(equipment === 'All' ? null : equipment)}
-              >
-                {equipment}
-              </MiniChip>
-            ))}
-          </MiniChipRow>
-        </FilterRows>
+        <RolodexFilterRows
+          typeFilter={typeFilter}
+          equipFilter={equipFilter}
+          onTypeChange={setTypeFilter}
+          onEquipChange={setEquipFilter}
+        />
       )}
 
       <SplitView $hasPreview={!!previewExercise}>
