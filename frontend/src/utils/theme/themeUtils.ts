@@ -490,59 +490,25 @@ export const getAnimationConfig = (themeId: ThemeId) => {
     reducedMotion: 'prefers-reduced-motion: reduce',
   };
 
-  switch (themeId) {
-    case 'crystalline-default':
-      return {
-        ...baseConfig,
-        duration: '0.4s',
-        intensity: 'enhanced',
-        glow: true,
-      };
-    case 'crystalline-light':
-      return {
-        ...baseConfig,
-        duration: '0.3s',
-        intensity: 'standard',
-        glow: false,
-      };
-    case 'crystalline-dark':
-      return {
-        ...baseConfig,
-        duration: '0.35s',
-        intensity: 'enhanced',
-        glow: true,
-      };
-    case 'crystalline-mono':
-      return {
-        ...baseConfig,
-        duration: '0.3s',
-        intensity: 'minimal',
-        glow: false,
-      };
-    case 'obsidian-black':
-      return {
-        ...baseConfig,
-        duration: '0.3s',
-        intensity: 'standard',
-        glow: false,
-      };
-    case 'cinematic-ember':
-      return {
-        ...baseConfig,
-        duration: '0.35s',
-        intensity: 'enhanced',
-        glow: true,
-      };
-    case 'frozen-aurora':
-      return {
-        ...baseConfig,
-        duration: '0.3s',
-        intensity: 'standard',
-        glow: false,
-      };
-    default:
-      return baseConfig;
-  }
+  // Derived from each theme's own effects block, so every registered theme
+  // (all 38, not a hand-picked seven) gets correct motion tuning.
+  const effects = (themes[themeId] || themes['crystalline-default']).effects as {
+    glowIntensity?: 'subtle' | 'medium' | 'intense';
+    borderGlow?: boolean;
+  };
+  const glow = effects.borderGlow === true;
+  const intensity = !glow
+    ? 'minimal'
+    : effects.glowIntensity === 'subtle'
+      ? 'standard'
+      : 'enhanced';
+
+  return {
+    ...baseConfig,
+    duration: intensity === 'enhanced' ? '0.4s' : '0.3s',
+    intensity,
+    glow,
+  };
 };
 
 // === COMPONENT THEME MAPPING ===
