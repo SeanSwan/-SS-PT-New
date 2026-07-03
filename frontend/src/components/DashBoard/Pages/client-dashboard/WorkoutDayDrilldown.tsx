@@ -1,12 +1,15 @@
 /**
  * COMPONENT: WorkoutDayDrilldown
- * OWNER: Client Dashboard / Progress (Slice 8.4 — chart drill-down)
- * PURPOSE: Tap a chart point, see the exact workout behind it — set-level
- *          truth (exercise, reps, weight, RPE) for one training day.
- * DATA: GET /api/client/analytics/workout-day?md=MM/DD (JWT-derived user).
+ * OWNER: Client Dashboard / Progress (Slice 8.4 day mode; Slice 9 week mode)
+ * PURPOSE: Tap a chart point, see the exact workout(s) behind it — set-level
+ *          truth (exercise, reps, weight, RPE) for one training day, or a
+ *          whole training week grouped per day.
+ * DATA: GET /api/client/analytics/workout-day?md=MM/DD (mode="day")
+ *       GET /api/client/analytics/workout-week?md=MM/DD (mode="week",
+ *       md = the weekly chart's week-start label).
  * A11Y: role=dialog + aria-modal, Escape closes, focus moves to the close
  *       button on open and returns to the opener on close (WCAG 2.4.3).
- * STATES: loading skeleton / error note / empty day note / grouped sessions.
+ * STATES: loading skeleton / error note / empty note / grouped sessions.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -14,6 +17,7 @@ import { Clock, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   CloseButton,
+  DayHeading,
   DrillSkeleton,
   ExerciseName,
   Overlay,
@@ -36,7 +40,9 @@ interface DrillSession {
   startTime: string | null;
   exercises: DrillExercise[];
 }
-interface DayDetail { date: string | null; sessions: DrillSession[] }
+interface DrillDay { date: string | null; sessions: DrillSession[] }
+
+export type DrilldownMode = 'day' | 'week';
 
 export const formatSet = (set: DrillSet): string => {
   const reps = set.reps !== null ? `${set.reps} reps` : 'reps n/a';
@@ -45,10 +51,46 @@ export const formatSet = (set: DrillSet): string => {
   return `${reps}${weight}${rpe}`;
 };
 
-const WorkoutDayDrilldown: React.FC<{ md: string; onClose: () => void }> = ({ md, onClose }) => {
+/** Both endpoint payloads normalize to a list of day blocks. */
+export const normalizeDrillPayload = (mode: DrilldownMode, data: unknown): DrillDay[] | null => {
+  const d = data as { date?: string | null; sessions?: DrillSession[]; days?: DrillDay[] } | null;
+  if (!d) return null;
+  if (mode === 'week') return Array.isArray(d.days) ? d.days : null;
+  return Array.isArray(d.sessions) ? [{ date: d.date ?? null, sessions: d.sessions }] : null;
+};
+
+const SessionView: React.FC<{ session: DrillSession }> = ({ session }) => (
+  <SessionBlock data-testid="drilldown-session">
+    <SessionMeta>
+      <Clock size={13} aria-hidden="true" />
+      {session.startTime ?? 'Session'}
+      {session.duration !== null ? ` - ${session.duration} min` : ''}
+    </SessionMeta>
+    {session.exercises.length === 0 && (
+      <StateNote role="status">Session logged without exercise detail.</StateNote>
+    )}
+    {session.exercises.map((exercise) => (
+      <div key={exercise.name}>
+        <ExerciseName>{exercise.name}</ExerciseName>
+        {exercise.sets.map((set, i) => (
+          <SetRow key={i}>
+            <SetIndex>{`#${i + 1}`}</SetIndex>
+            {formatSet(set)}
+          </SetRow>
+        ))}
+      </div>
+    ))}
+  </SessionBlock>
+);
+
+const WorkoutDayDrilldown: React.FC<{
+  md: string;
+  onClose: () => void;
+  mode?: DrilldownMode;
+}> = ({ md, onClose, mode = 'day' }) => {
   const { authAxios } = useAuth();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [detail, setDetail] = useState<DayDetail | null>(null);
+  const [days, setDays] = useState<DrillDay[]>([]);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<Element | null>(null);
 
@@ -78,12 +120,16 @@ const WorkoutDayDrilldown: React.FC<{ md: string; onClose: () => void }> = ({ md
     if (!authAxios) { setStatus('error'); return; }
     let isMounted = true;
     setStatus('loading');
+    const endpoint = mode === 'week' ? 'workout-week' : 'workout-day';
     authAxios
-      .get(`/api/client/analytics/workout-day?md=${encodeURIComponent(md)}`)
-      .then((res: { data?: { success?: boolean; data?: DayDetail } }) => {
+      .get(`/api/client/analytics/${endpoint}?md=${encodeURIComponent(md)}`)
+      .then((res: { data?: { success?: boolean; data?: unknown } }) => {
         if (!isMounted) return;
-        if (res?.data?.success && res.data.data) {
-          setDetail(res.data.data);
+        const normalized = res?.data?.success
+          ? normalizeDrillPayload(mode, res.data.data)
+          : null;
+        if (normalized) {
+          setDays(normalized);
           setStatus('ready');
         } else {
           setStatus('error');
@@ -91,15 +137,22 @@ const WorkoutDayDrilldown: React.FC<{ md: string; onClose: () => void }> = ({ md
       })
       .catch(() => { if (isMounted) setStatus('error'); });
     return () => { isMounted = false; };
-  }, [authAxios, md]);
+  }, [authAxios, md, mode]);
+
+  const title = mode === 'week' ? `Week of ${md}` : `Workout — ${md}`;
+  const totalSessions = days.reduce((sum, d) => sum + d.sessions.length, 0);
 
   return (
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <Panel role="dialog" aria-modal="true" aria-label={`Workout detail for ${md}`}>
         <PanelHeader>
           <div>
-            <PanelTitle>Workout — {md}</PanelTitle>
-            <PanelSub>{detail?.date ?? 'from your logged history'}</PanelSub>
+            <PanelTitle>{title}</PanelTitle>
+            <PanelSub>
+              {mode === 'week' && status === 'ready'
+                ? `${totalSessions} ${totalSessions === 1 ? 'session' : 'sessions'} logged`
+                : days[0]?.date ?? 'from your logged history'}
+            </PanelSub>
           </div>
           <CloseButton ref={closeRef} type="button" onClick={onClose} aria-label="Close workout detail">
             <X size={18} aria-hidden="true" />
@@ -112,32 +165,23 @@ const WorkoutDayDrilldown: React.FC<{ md: string; onClose: () => void }> = ({ md
           <StateNote role="status">Could not load this workout right now.</StateNote>
         )}
 
-        {status === 'ready' && detail && detail.sessions.length === 0 && (
-          <StateNote role="status">No logged exercise detail for this day.</StateNote>
+        {status === 'ready' && totalSessions === 0 && (
+          <StateNote role="status">
+            {mode === 'week'
+              ? 'No logged workouts for this week.'
+              : 'No logged exercise detail for this day.'}
+          </StateNote>
         )}
 
-        {status === 'ready' && detail && detail.sessions.map((session) => (
-          <SessionBlock key={session.id} data-testid="drilldown-session">
-            <SessionMeta>
-              <Clock size={13} aria-hidden="true" />
-              {session.startTime ?? 'Session'}
-              {session.duration !== null ? ` - ${session.duration} min` : ''}
-            </SessionMeta>
-            {session.exercises.length === 0 && (
-              <StateNote role="status">Session logged without exercise detail.</StateNote>
+        {status === 'ready' && days.map((day) => (
+          <div key={day.date ?? 'day'}>
+            {mode === 'week' && day.sessions.length > 0 && (
+              <DayHeading>{day.date ?? 'Training day'}</DayHeading>
             )}
-            {session.exercises.map((exercise) => (
-              <div key={exercise.name}>
-                <ExerciseName>{exercise.name}</ExerciseName>
-                {exercise.sets.map((set, i) => (
-                  <SetRow key={i}>
-                    <SetIndex>{`#${i + 1}`}</SetIndex>
-                    {formatSet(set)}
-                  </SetRow>
-                ))}
-              </div>
+            {day.sessions.map((session) => (
+              <SessionView key={session.id} session={session} />
             ))}
-          </SessionBlock>
+          </div>
         ))}
       </Panel>
     </Overlay>

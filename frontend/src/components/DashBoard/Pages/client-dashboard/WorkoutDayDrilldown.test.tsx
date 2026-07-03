@@ -16,8 +16,8 @@ vi.mock('../../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 42 }, authAxios: mockAuthAxios }),
 }));
 
-import WorkoutDayDrilldown, { formatSet } from './WorkoutDayDrilldown';
-import { DurationTrendCard } from './CanonicalProgressChartsGrid.primaryCards';
+import WorkoutDayDrilldown, { formatSet, normalizeDrillPayload } from './WorkoutDayDrilldown';
+import { DurationTrendCard, WorkoutFrequencyCard } from './CanonicalProgressChartsGrid.primaryCards';
 
 const dayFixture = {
   date: '2026-07-01',
@@ -82,6 +82,57 @@ describe('WorkoutDayDrilldown', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Close workout detail' })).toHaveFocus();
     });
+  });
+});
+
+describe('week mode (Slice 9)', () => {
+  const weekFixture = {
+    weekStart: '2026-06-29',
+    days: [
+      { date: '2026-06-29', sessions: dayFixture.sessions },
+      { date: '2026-07-01', sessions: [{ id: 12, duration: 30, startTime: '18:00', exercises: [] }] },
+    ],
+  };
+
+  it('normalizes both payload shapes to day blocks', () => {
+    expect(normalizeDrillPayload('day', { date: 'd', sessions: [] })).toEqual([{ date: 'd', sessions: [] }]);
+    expect(normalizeDrillPayload('week', weekFixture)).toHaveLength(2);
+    expect(normalizeDrillPayload('week', { nope: true })).toBeNull();
+    expect(normalizeDrillPayload('day', { nope: true })).toBeNull();
+  });
+
+  it('fetches the week endpoint and renders per-day headings + session count', async () => {
+    mockAxiosGet.mockResolvedValue({ data: { success: true, data: weekFixture } });
+    render(<WorkoutDayDrilldown md="06/29" mode="week" onClose={vi.fn()} />);
+    expect(await screen.findByText('Week of 06/29')).toBeInTheDocument();
+    expect(mockAxiosGet).toHaveBeenCalledWith('/api/client/analytics/workout-week?md=06%2F29');
+    expect(screen.getByText('2026-06-29')).toBeInTheDocument();
+    expect(screen.getByText('2026-07-01')).toBeInTheDocument();
+    expect(screen.getByText('2 sessions logged')).toBeInTheDocument();
+    expect(screen.getByText('Bench Press')).toBeInTheDocument();
+  });
+
+  it('shows the week-specific honest empty state', async () => {
+    mockAxiosGet.mockResolvedValue({ data: { success: true, data: { weekStart: '2026-06-29', days: [] } } });
+    render(<WorkoutDayDrilldown md="06/29" mode="week" onClose={vi.fn()} />);
+    expect(await screen.findByText('No logged workouts for this week.')).toBeInTheDocument();
+  });
+});
+
+describe('WorkoutFrequencyCard week trigger (Slice 9)', () => {
+  it('opens the week drill-down for the latest bar via the 44px button', async () => {
+    mockAxiosGet.mockResolvedValue({
+      data: { success: true, data: { weekStart: '2026-06-29', days: [] } },
+    });
+    render(<WorkoutFrequencyCard data={[{ x: '06/22', y: 3 }, { x: '06/29', y: 2 }]} />);
+    await userEvent.click(screen.getByRole('button', { name: 'View week of 06/29' }));
+    expect(await screen.findByRole('dialog', { name: 'Workout detail for 06/29' })).toBeInTheDocument();
+    expect(mockAxiosGet).toHaveBeenCalledWith('/api/client/analytics/workout-week?md=06%2F29');
+  });
+
+  it('renders no trigger when the chart is empty', () => {
+    render(<WorkoutFrequencyCard data={[]} />);
+    expect(screen.queryByRole('button', { name: /View week/ })).not.toBeInTheDocument();
   });
 });
 

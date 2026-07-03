@@ -18,7 +18,7 @@
 
 import getProgressPulse from '../services/progressPulseService.mjs';
 import { computeNextBestAction, getNextBestAction } from '../services/nextBestActionService.mjs';
-import getWorkoutDayDetail from '../services/workoutDayDetailService.mjs';
+import getWorkoutDayDetail, { getWorkoutWeekDetail } from '../services/workoutDayDetailService.mjs';
 
 const parseUserId = (raw) => {
   const id = parseInt(raw, 10);
@@ -89,6 +89,28 @@ export async function getNextBestActionHandler(req, res) {
     return res.status(500).json({
       success: false,
       message: 'Unable to load next best action',
+      error: 'internal_error',
+    });
+  }
+}
+
+/** GET /api/client/analytics/workout-week?md=MM/DD — Slice 9 weekly drill-down. */
+export async function getWorkoutWeekHandler(req, res) {
+  try {
+    const userId = parseUserId(req.params?.userId || req.user?.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user context' });
+    }
+    const data = await getWorkoutWeekDetail(req.app.get('sequelize'), userId, req.query?.md);
+    if (data.invalidLabel) {
+      return res.status(400).json({ success: false, message: 'Invalid date label' });
+    }
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('[Workout Week Failed]', { message: error?.message, userId: req.params?.userId });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load week detail',
       error: 'internal_error',
     });
   }

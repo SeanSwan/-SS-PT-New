@@ -53,7 +53,7 @@ import {
   getMuscleRecoveryChart,
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
-import { getProgressPulseHandler, getWorkoutDayHandler } from '../controllers/progressPulseController.mjs';
+import { getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireFeature } from '../middleware/requireTier.mjs';
 
@@ -160,6 +160,9 @@ router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler)
 
 /** @route GET /api/client/analytics/workout-day?md=MM/DD (Slice 8.4 — chart drill-down) */
 router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);
+
+/** @route GET /api/client/analytics/workout-week?md=MM/DD (Slice 9 — weekly drill-down) */
+router.get('/workout-week', requireGuardianAnalytics, getWorkoutWeekHandler);
 
 /** @route GET /api/client/analytics/chart-workout-frequency    (Phase 14 #1) */
 router.get('/chart-workout-frequency', requireGuardianAnalytics, getWorkoutFrequencyChart);

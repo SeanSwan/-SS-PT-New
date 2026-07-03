@@ -149,6 +149,18 @@ export const SetIndex = styled.span`
   min-width: 3.2ch;
 `;
 
+export const DayHeading = styled.h4`
+  margin: 0.85rem 0 0.4rem;
+  color: var(--accent-gold, #C6A84B);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  &:first-of-type { margin-top: 0; }
+`;
+
 export const StateNote = styled.p`
   margin: 0;
   padding: 1rem 0;
