@@ -643,17 +643,19 @@ const obsidianBlack = {
     stardust: '#141419',
     void: '#050508',
 
-    // Midnight Sapphire as primary button color per CLAUDE.md
-    primary: '#002060',
-    primaryBlue: '#003080',
-    primaryDeep: '#001840',
-    primaryLight: '#004090',
-    primaryNeon: '#002060',
+    // Wing Purple as THE visible accent (this theme's own doc: "mostly black
+    // with subtle Wing Purple accents"). colors.primary is the system-wide
+    // accent role — #002060 here was 1.29:1 on the black base (invisible).
+    primary: '#8B5CF6',
+    primaryBlue: '#7C3AED',
+    primaryDeep: '#6D28D9',
+    primaryLight: '#A78BFA',
+    primaryNeon: '#8B5CF6',
 
-    // Wing Purple as secondary accent
-    secondary: '#8B5CF6',
-    secondaryLight: '#A78BFA',
-    secondaryDeep: '#7C3AED',
+    // Swan Lavender as the secondary accent (visible on black, sapphire-family)
+    secondary: '#4070C0',
+    secondaryLight: '#6090D0',
+    secondaryDeep: '#003080',
 
     accent: '#C6A84B',
     accentLight: '#D8C478',

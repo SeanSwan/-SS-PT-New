@@ -152,6 +152,101 @@ describe('theme changer control (2026-07-03 redesign)', () => {
   });
 });
 
+describe('all-theme WCAG contrast floor (2026-07-03 sweep)', () => {
+  // Approximate rgba()/hex text colors against a solid hex background by
+  // alpha-compositing before measuring. Gradients aren't measurable here —
+  // those pairs are covered by the visual sweep instead.
+  const parseColor = (value: string): { r: number; g: number; b: number; a: number } | null => {
+    const hex = value.match(/^#([0-9a-fA-F]{6})$/);
+    if (hex) {
+      const v = Number.parseInt(hex[1], 16);
+      return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255, a: 1 };
+    }
+    const rgba = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+    if (rgba) {
+      return { r: +rgba[1], g: +rgba[2], b: +rgba[3], a: rgba[4] === undefined ? 1 : +rgba[4] };
+    }
+    return null;
+  };
+
+  const compositeOver = (fg: string, bgHex: string): { r: number; g: number; b: number } | null => {
+    const f = parseColor(fg);
+    const b = parseColor(bgHex);
+    if (!f || !b) return null;
+    return {
+      r: f.r * f.a + b.r * (1 - f.a),
+      g: f.g * f.a + b.g * (1 - f.a),
+      b: f.b * f.a + b.b * (1 - f.a),
+    };
+  };
+
+  const luminanceOf = ({ r, g, b }: { r: number; g: number; b: number }) => {
+    const lin = (c: number) => {
+      const v = c / 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  };
+
+  const ratio = (fg: string, bgHex: string): number | null => {
+    const f = compositeOver(fg, bgHex);
+    const b = parseColor(bgHex);
+    if (!f || !b) return null;
+    const lf = luminanceOf(f);
+    const lb = luminanceOf(b);
+    return (Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05);
+  };
+
+  it('keeps body and secondary text >= 4.5:1 on primary and elevated surfaces for all 38 themes', () => {
+    const failures: string[] = [];
+    for (const id of Object.keys(themes) as ThemeId[]) {
+      const theme = themes[id];
+      const surfaces: Array<[string, string]> = [
+        ['bg.primary', theme.background.primary],
+        ['bg.secondary', theme.background.secondary],
+      ];
+      const elevated = theme.background.elevated;
+      if (/^#([0-9a-fA-F]{6})$/.test(elevated)) surfaces.push(['bg.elevated', elevated]);
+
+      for (const [surfaceName, surface] of surfaces) {
+        if (!/^#([0-9a-fA-F]{6})$/.test(surface)) continue;
+        for (const [textName, text] of [
+          ['text.primary', theme.text.primary],
+          ['text.secondary', theme.text.secondary],
+        ] as Array<[string, string]>) {
+          const r = ratio(text, surface);
+          if (r !== null && r < 4.5) {
+            failures.push(`${id}: ${textName} on ${surfaceName} = ${r.toFixed(2)}:1`);
+          }
+        }
+      }
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  it('keeps muted text >= 3:1 (large-text floor) on the primary surface for all 38 themes', () => {
+    const failures: string[] = [];
+    for (const id of Object.keys(themes) as ThemeId[]) {
+      const theme = themes[id];
+      if (!/^#([0-9a-fA-F]{6})$/.test(theme.background.primary)) continue;
+      const r = ratio(theme.text.muted, theme.background.primary);
+      if (r !== null && r < 3) failures.push(`${id}: text.muted = ${r.toFixed(2)}:1`);
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+
+  it('keeps the primary accent readable (>= 3:1) on the primary surface for all 38 themes', () => {
+    const failures: string[] = [];
+    for (const id of Object.keys(themes) as ThemeId[]) {
+      const theme = themes[id];
+      if (!/^#([0-9a-fA-F]{6})$/.test(theme.background.primary)) continue;
+      const r = ratio(theme.colors.primary, theme.background.primary);
+      if (r !== null && r < 3) failures.push(`${id}: colors.primary = ${r.toFixed(2)}:1`);
+    }
+    expect(failures, failures.join('\n')).toEqual([]);
+  });
+});
+
 describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
   const themeIds = Object.keys(themes) as ThemeId[];
 
