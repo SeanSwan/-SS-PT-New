@@ -64,6 +64,48 @@ const getReadableAccentText = (background: string): string => {
   const lightContrast = contrastRatio(LIGHT_TEXT_ON_ACCENT, background);
   return darkContrast >= lightContrast ? DARK_TEXT_ON_ACCENT : LIGHT_TEXT_ON_ACCENT;
 };
+
+/**
+ * Hex → "R, G, B" triplet for the tokens.css RGB-derivation bridge.
+ * Returns null for non-hex inputs (rgba strings, gradients) so callers
+ * can fail soft to the static brand value in tokens.css.
+ */
+const hexToRgbTriplet = (hex: string | undefined): string | null => {
+  if (!hex) return null;
+  const rgb = parseHexColor(hex);
+  return rgb ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : null;
+};
+
+/**
+ * Brand-token RGB bridge (theme-changer compatibility).
+ * tokens.css derives --wing-purple, --midnight-sapphire, every solid brand
+ * token AND their alpha variants from these --*-rgb triplets. Overriding the
+ * triplets per theme re-themes the whole brand-token family at once, so
+ * surfaces written against brand names (checkout, cart, dashboards) follow
+ * the theme changer instead of staying pinned to static Crystalline values.
+ * Non-hex theme fields emit nothing → static tokens.css value stays (fail-soft).
+ */
+const generateBrandRgbBridge = (theme: (typeof themes)[ThemeId]): string => {
+  const mappings: Array<[string, string | undefined]> = [
+    ['--midnight-sapphire-rgb', theme.background.secondary],
+    ['--royal-depth-rgb', theme.colors.secondaryDeep],
+    ['--swan-lavender-rgb', theme.colors.secondary],
+    ['--ice-wing-rgb', theme.colors.primary],
+    ['--ice-wing-text-rgb', theme.colors.primaryLight],
+    ['--arctic-cyan-rgb', theme.colors.primaryBlue],
+    ['--wing-purple-rgb', (theme.colors as { wingPurple?: string }).wingPurple ?? theme.colors.secondary],
+    ['--gilded-fern-rgb', theme.colors.accent],
+    ['--frost-white-rgb', theme.text.primary],
+  ];
+
+  return mappings
+    .map(([name, value]) => {
+      const triplet = hexToRgbTriplet(value);
+      return triplet ? `${name}: ${triplet};` : '';
+    })
+    .filter(Boolean)
+    .join('\n    ');
+};
 // === CSS CUSTOM PROPERTIES GENERATION ===
 
 /**
@@ -247,6 +289,44 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --schedule-notification-bg: color-mix(in srgb, ${commandPrimary} 10%, transparent);
     --schedule-notification-border: color-mix(in srgb, ${commandPrimary} 30%, transparent);
     --schedule-notification-accent: ${commandPrimary};
+
+    /* === BRAND-TOKEN RGB BRIDGE (theme-changer compat, 2026-07-03) === */
+    /* Re-points the tokens.css --*-rgb roots at the active theme so the
+       whole brand-token family (solids + alpha variants) follows the theme. */
+    ${generateBrandRgbBridge(theme)}
+
+    /* === PREVIOUSLY-UNDEFINED SEMANTIC ALIASES (theme-changer compat) === */
+    /* These names are consumed across mounted surfaces but were never
+       injected anywhere — they always rendered their static fallbacks.
+       Mapping them here makes those surfaces theme-responsive. */
+    --error: ${theme.colors.error};
+    --error-accent: ${theme.colors.error};
+    --danger-text: ${theme.colors.error};
+    --status-danger: ${theme.colors.error};
+    --status-error: ${theme.colors.error};
+    --status-success: ${theme.colors.success};
+    --status-warning: ${theme.colors.warning};
+    --feedback-success: ${theme.colors.success};
+    --feedback-warning: ${theme.colors.warning};
+    --feedback-danger: ${theme.colors.error};
+    --surface-base: ${theme.background.primary};
+    --surface-dark: ${theme.background.secondary};
+    --surface-muted: ${theme.background.surface};
+    --card-bg: ${theme.background.elevated};
+    --input-bg: ${theme.background.surface};
+    --accent-tertiary: ${theme.colors.secondaryLight || theme.colors.secondary};
+    --glow-accent: ${(theme.colors as { wingPurple?: string }).wingPurple ?? theme.colors.secondary};
+    --focus-ring: ${(theme.colors as { wingPurple?: string }).wingPurple ?? theme.colors.secondary};
+    --primary-cyan: ${theme.colors.primary};
+    --chart-primary: ${theme.colors.primaryLight || theme.colors.primary};
+    --border-accent: color-mix(in srgb, ${theme.colors.primary} 40%, transparent);
+    --border-accent-soft: color-mix(in srgb, ${theme.colors.primary} 18%, transparent);
+    --glass-bg: color-mix(in srgb, ${theme.background.secondary} 55%, transparent);
+    --glass-border: color-mix(in srgb, ${theme.colors.primary} 16%, transparent);
+    --shadow-strong: ${theme.shadows.elevation};
+    --achievement-text: ${theme.text.primary};
+    --achievement-accent: ${theme.colors.accent};
+    --achievement-border: color-mix(in srgb, ${theme.colors.accent} 35%, transparent);
   `;
 };
 

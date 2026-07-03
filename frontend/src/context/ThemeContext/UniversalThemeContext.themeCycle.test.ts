@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { themes, themeCycle } from './UniversalThemeContext';
+import { themes, themeCycle, type ThemeId } from './UniversalThemeContext';
 import { themeToggleMetadata } from './UniversalThemeToggle';
+import { generateCSSVariables } from '../../utils/theme/themeUtils';
 
 const premiumThemeIds = [
   'ruby-forge',
@@ -103,5 +104,48 @@ describe('Universal theme cycle contract', () => {
     expect(arcticDawn.background.surface).not.toContain('255, 255, 255');
     expect(arcticDawn.background.elevated).not.toContain('255, 255, 255');
     expect(arcticDawn.gradients.card).not.toContain('rgba(255, 255, 255');
+  });
+});
+
+describe('brand-token RGB bridge (theme-changer compat, 2026-07-03)', () => {
+  const themeIds = Object.keys(themes) as ThemeId[];
+
+  it('re-points --wing-purple-rgb at the active theme palette', () => {
+    const ruby = generateCSSVariables('ruby-forge' as ThemeId);
+    // ruby-forge wingPurple <- spec.secondary #BE123C -> 190, 18, 60
+    expect(ruby).toContain('--wing-purple-rgb: 190, 18, 60;');
+    expect(ruby).not.toContain('--wing-purple-rgb: 139, 92, 246;');
+  });
+
+  it('keeps the default theme identical to the static tokens.css values', () => {
+    const dflt = generateCSSVariables('crystalline-default' as ThemeId);
+    expect(dflt).toContain('--wing-purple-rgb: 139, 92, 246;');
+    expect(dflt).toContain('--ice-wing-rgb: 96, 192, 240;');
+  });
+
+  it('fails soft: no malformed --*-rgb line for any theme', () => {
+    for (const id of themeIds) {
+      const css = generateCSSVariables(id);
+      expect(css, `${id} emitted rgba into an rgb triplet`).not.toMatch(/--[a-z-]+-rgb:\s*rgba\(/);
+      expect(css, `${id} emitted an empty rgb triplet`).not.toMatch(/--[a-z-]+-rgb:\s*;/);
+    }
+  });
+
+  it('injects every previously-undefined semantic alias for every theme', () => {
+    const required = [
+      '--error:', '--status-danger:', '--status-success:', '--status-warning:',
+      '--feedback-success:', '--feedback-warning:', '--feedback-danger:',
+      '--surface-base:', '--surface-dark:', '--surface-muted:', '--card-bg:',
+      '--input-bg:', '--accent-tertiary:', '--glow-accent:', '--focus-ring:',
+      '--primary-cyan:', '--chart-primary:', '--border-accent:',
+      '--border-accent-soft:', '--glass-bg:', '--glass-border:',
+      '--shadow-strong:', '--achievement-text:', '--achievement-accent:'
+    ];
+    for (const id of themeIds) {
+      const css = generateCSSVariables(id);
+      for (const token of required) {
+        expect(css, `${id} missing ${token}`).toContain(token);
+      }
+    }
   });
 });
