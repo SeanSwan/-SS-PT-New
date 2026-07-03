@@ -81,3 +81,31 @@ Rule 2 (44px close/quantity/remove — were 40/32/28px) · Rule 3/6 (tokens-only
 - Shipped: `main @ cdc7a5b3d`, Render live-verified on entry chunk `index.BLUn-lIF.js` (new CartSummary `color-mix` CSS + `Loading cart` aria-label present; old `#1e1e3f` absent from cart code — remaining entry-chunk hit traced to `GlobalStyles.ts`).
 - Sean sign-off: pending (autonomous loop under standing authorization 2026-07-02/03).
 - Next action pointer: §10 hooks 1–2 = the dashboard beautification sweep backlog; hook 5 = the gated auth-error arc.
+
+---
+
+# ADDENDUM — Arc 4: Theme-System Ultra-Upgrade (same session, 2026-07-03)
+
+Sean's directive (~15:40): make everything compatible with the header theme changer, refactor/enhance it, add animations + an on/off switch, clearer picker with more options, +10 polished themes, themes truer to their names. Standing permission: beautify any UX/UI along the way. Run as /loop, hostile review + fixes for all slices.
+
+## Slices shipped (all on main, each gated by tests + tsc + build + secret scan)
+1. **A `3555fdf98` — brand-token RGB bridge.** [VERIFIED finding] tokens.css pinned the brand-token family (--wing-purple, --midnight-sapphire, …) statically, so checkout/cart/dashboard surfaces IGNORED theme switches; 24 more semantic names (--error 80×, --status-*, --feedback-*, --card-bg, --focus-ring, …) were never defined anywhere and always rendered fallbacks. generateCSSVariables now re-points the --*-rgb roots per theme (solids + alpha derivatives re-theme together; fail-soft on non-hex) and injects the missing aliases. Default theme emits byte-identical values (test-locked).
+2. **B `9b3a60df7` — ten identity themes**: sakura-midnight, indigo-pulse, sunset-mirage, steel-tempest, vapor-dream, burgundy-noir, tron-grid, orchid-veil, deep-jade, midnight-mango. All dark-first; auto-wired through bridge/registry/metadata (contract locks all 20 premium colorways).
+3. **C/C2 `a170c5b75` — picker + animations switch.** 640L toggle monolith (hardcoded switches skipped all 20 premium themes) → 186L shell + data-driven styles + grouped panel (Signature/Worlds/Jewels/New Wave + automatic More bucket: registry⊇groups is contract-locked). Site-wide Animations On/Off: localStorage `swanstudios-motion` → `html[data-motion]` → tokens.css kill-switch mirror + framer `MotionConfig reducedMotion`.
+4. **D `d89b1ac84` — identity polish.** Frozen Aurora converted light→dark arctic night (#060B14, aurora glow accents) per THEME-CHANGER-COMPAT's one-light-theme rule; getAnimationConfig switch (7 themes) → derived from every theme's own effects block.
+
+## Cross-slice hostile review (Rule 61, run at arc close)
+- **Checked + cleared:** header `overflow:hidden` clipping the panel (it's on icon buttons, not containers; panel z 1260 > header 1250) · injected-style cascade ordering (proven by pre-existing --font-heading behavior) · orphaned imports of removed toggle internals (none) · adjacent suites green (31/31: login-claim, StoreV3 fallback, ClientHomeTab).
+- **Pass-with-note (handed to Codex REQ):** --frost-white flips dark under crystalline-light on fixed-dark surfaces (same exposure class as pre-existing --text-primary); MotionConfig collapse vs framer layout/drag consumers; 414px panel width uses min(340px, 100vw-24px).
+- **Fixed in-arc:** orchid-veil mangled hex literal; test identifiers after file split; frozen-aurora light-theme violation; getAnimationConfig coverage gap.
+
+## Verification
+12/12 theme contract locks + 31/31 adjacent · tsc 0 · build 0 · mojibake clean · secret scans CLEAN ×4 · line caps: toggle 186/240/151 (was 640). Live chunk verification: pending Render serial queue at write time — markers: `--wing-purple-rgb` (A), `Sakura Midnight` (B), `Animations O` (C), `#060B14` (D), all entry-chunk.
+
+## Rollback
+Each slice reverts independently: `git revert d89b1ac84 a170c5b75 9b3a60df7 3555fdf98` (reverse order for clean apply). No migrations, no env, no API changes.
+
+## Future review hooks (adds to §10)
+7. When adding a theme: registry + themeToggleMetadata are contract-forced, group placement optional (More bucket catches strays) — confirm the More bucket stays empty in normal state.
+8. Audit remaining `getGlowButtonVariant` switches (context + themeUtils duplicates, 4-5 theme coverage) for the same effects-derivation treatment.
+9. Consider a visual QA pass cycling all 38 themes on /store + /dashboard at 414px (contrast spot-checks are code-level only so far).
