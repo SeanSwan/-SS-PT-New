@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
@@ -389,6 +389,17 @@ const ErrorMessage = styled(motion.p)`
   font-size: 0.9rem;
 `;
 
+const ClaimedWelcome = styled(motion.p)`
+  color: var(--accent-primary, #60C0F0);
+  text-align: center;
+  margin-bottom: 15px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+  font-size: 0.9rem;
+`;
+
 const PasswordPolicyHint = styled(motion.p)`
   color: ${({ theme }) => theme.text.secondary || theme.text.muted};
   font-size: 0.82rem;
@@ -416,7 +427,14 @@ const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
   const { login, user, isAuthenticated } = useAuth();
   const { theme } = useUniversalTheme();
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  // Slice 12 claim handoff: a freshly activated account arrives with
+  // ?username=&claimed=1 — prefill the field and greet, never re-type.
+  const [searchParams] = useSearchParams();
+  const isFreshlyClaimed = searchParams.get('claimed') === '1';
+  const [credentials, setCredentials] = useState({
+    username: searchParams.get('username') ?? "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState({ connected: false, checked: false });
@@ -683,6 +701,18 @@ const EnhancedLoginModal: React.FC = () => {
             >
               {error}
             </ErrorMessage>
+          )}
+
+          {isFreshlyClaimed && !error && !forcePasswordChange && (
+            <ClaimedWelcome
+              key="claimed-welcome"
+              role="status"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              Account activated — welcome to SwanStudios! Log in with your new password.
+            </ClaimedWelcome>
           )}
 
           {forcePasswordChange ? (
