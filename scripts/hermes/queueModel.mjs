@@ -21,8 +21,8 @@ import {
 
 // Mirrors command-effect-registry.md §3 (T3/T4) + DENIED rows. Slice 2 swaps in a live lookup.
 export const QUEUEABLE = {
-  'discord-alert': { tier: 'T3' },
-  'manual-maintenance': { tier: 'T4' },
+  'discord-alert': { tier: 'T3', killSwitch: 'SWITCH_DISCORD_BROKER' },
+  'manual-maintenance': { tier: 'T4', killSwitch: 'SWITCH_MASTER' },
 };
 const FORBIDDEN = ['raw-shell', 'direct-sql', 'env-read', 'mass-client-message', 'unreviewed-model-proxy'];
 const T2_ROWS = ['memory-note', 'queue-approve', 'queue-deny', 'switch-flip'];
@@ -239,6 +239,35 @@ export function transitionEntry(vaultRoot, switchesFile, move) {
     evidence: `runs/queue/${isoDateOf(move.at).slice(0, 7)}/queue-${isoDateOf(move.at)}.jsonl`,
   });
   return record;
+}
+
+/**
+ * Auto-revoke on kill-switch flip (approval-gates §6): flipping a switch OFF
+ * revokes every entry holding live authority (open/approved/armed) whose
+ * command depends on it; SWITCH_MASTER stops the whole broker, so it revokes
+ * all of them. DELIBERATELY not gated on checkSwitches — this runs as part of
+ * the flip act itself, possibly the moment after SWITCH_MASTER went off.
+ */
+export function autoRevokeForSwitch(vaultRoot, switchName, at) {
+  const revoked = [];
+  for (const entry of loadQueueState(vaultRoot).values()) {
+    if (!['open', 'approved', 'armed'].includes(entry.status)) continue;
+    const dependsOn = QUEUEABLE[entry.action]?.killSwitch;
+    if (switchName !== 'SWITCH_MASTER' && dependsOn !== switchName) continue;
+    appendJsonl(vaultPaths(vaultRoot, isoDateOf(at)).queueFile, {
+      type: 'transition', id: entry.id, from: entry.status, to: 'revoked', at,
+      by: 'system/kill-switch-flip', channel: 'internal',
+      detail: `kill-switch flip: ${switchName} off (approval-gates §6)`,
+    });
+    writeReceipt(vaultRoot, {
+      who: 'system/kill-switch-flip', what: 'queue-revoked (T2)', target: entry.id,
+      when: at, 'approved-by': `consequence of switch-flip ${switchName} (approval-gates §6 auto-revoke)`,
+      outcome: `ok — ${entry.id} ${entry.status}→revoked: kill-switch flip ${switchName} off`,
+      evidence: `runs/queue/${isoDateOf(at).slice(0, 7)}/queue-${isoDateOf(at)}.jsonl`,
+    });
+    revoked.push(entry.id);
+  }
+  return revoked;
 }
 
 export function listEntries(vaultRoot, switchesFile, { filter = 'open', at }) {
