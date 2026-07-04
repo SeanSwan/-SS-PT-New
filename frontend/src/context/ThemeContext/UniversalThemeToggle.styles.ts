@@ -222,6 +222,34 @@ export const SwatchItem = styled.button<{
   }
 `;
 
+export const ShowAllButton = styled.button<{ $accent: string; $text: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 0.6rem;
+  border-radius: 10px;
+  border: 1px dashed ${({ $accent }) => `color-mix(in srgb, ${$accent} 32%, transparent)`};
+  background: transparent;
+  color: ${({ $text }) => $text};
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    background: ${({ $accent }) => `color-mix(in srgb, ${$accent} 10%, transparent)`};
+    border-color: ${({ $accent }) => `color-mix(in srgb, ${$accent} 55%, transparent)`};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${({ $accent }) => $accent};
+    outline-offset: 2px;
+  }
+`;
+
 export const SwatchChip = styled.span<{ $bg: string; $primary: string; $accent: string }>`
   flex-shrink: 0;
   width: 26px;

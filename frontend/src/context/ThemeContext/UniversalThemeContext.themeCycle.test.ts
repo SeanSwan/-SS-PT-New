@@ -150,6 +150,17 @@ describe('theme changer control (2026-07-03 redesign)', () => {
     expect(new Set(grouped).size).toBe(grouped.length);
     expect([...grouped].sort()).toEqual((Object.keys(themes) as ThemeId[]).sort());
   });
+
+  it('keeps the featured set curated, valid, and never hiding the active theme', async () => {
+    const { FEATURED_THEME_IDS, buildFeaturedIds } = await import('./UniversalThemeToggle.panel');
+    expect(FEATURED_THEME_IDS.length).toBeGreaterThanOrEqual(8);
+    expect(FEATURED_THEME_IDS.length).toBeLessThanOrEqual(14);
+    for (const id of FEATURED_THEME_IDS) expect(themes[id]).toBeDefined();
+    expect(new Set(FEATURED_THEME_IDS).size).toBe(FEATURED_THEME_IDS.length);
+    // an off-list active theme is appended so it stays visible
+    expect(buildFeaturedIds('vapor-dream' as ThemeId)).toContain('vapor-dream');
+    expect(buildFeaturedIds('crystalline-default' as ThemeId)).toHaveLength(FEATURED_THEME_IDS.length);
+  });
 });
 
 describe('all-theme WCAG contrast floor (2026-07-03 sweep)', () => {

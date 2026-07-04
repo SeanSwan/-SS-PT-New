@@ -7,9 +7,9 @@
  * Any theme not in a named group lands in "More" automatically — future
  * themes can never silently vanish from the picker.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { type Variants } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { themes, type ThemeId } from './UniversalThemeContext';
 import {
   Panel,
@@ -18,7 +18,8 @@ import {
   GroupLabel,
   SwatchGrid,
   SwatchItem,
-  SwatchChip
+  SwatchChip,
+  ShowAllButton
 } from './UniversalThemeToggle.styles';
 
 const NAMED_GROUPS: Array<{ label: string; ids: ThemeId[] }> = [
@@ -65,6 +66,22 @@ export const buildThemeGroups = (): Array<{ label: string; ids: ThemeId[] }> => 
   return rest.length ? [...named, { label: 'More', ids: rest }] : named;
 };
 
+/**
+ * Curated default view (Sean, 2026-07-03: "too many" — show a featured set
+ * first, full catalog behind Show all). One strong pick per identity family;
+ * the ACTIVE theme is always appended so it can never disappear.
+ */
+export const FEATURED_THEME_IDS: ThemeId[] = ([
+  'crystalline-default', 'crystalline-dark', 'crystalline-light', 'obsidian-black',
+  'cinematic-ember', 'cyberpunk-edgerunners', 'ruby-forge', 'emerald-vault',
+  'amethyst-night', 'sakura-midnight', 'tron-grid', 'midnight-mango'
+] as ThemeId[]).filter((id) => id in themes);
+
+export const buildFeaturedIds = (currentTheme: ThemeId): ThemeId[] =>
+  FEATURED_THEME_IDS.includes(currentTheme)
+    ? FEATURED_THEME_IDS
+    : [...FEATURED_THEME_IDS, currentTheme];
+
 interface ThemePickerPanelProps {
   currentTheme: ThemeId;
   motionEnabled: boolean;
@@ -82,8 +99,12 @@ const ThemePickerPanel: React.FC<ThemePickerPanelProps> = ({
   panelBg, panelLine, panelText, panelMuted,
   onPick, onToggleMotion
 }) => {
-  const groups = buildThemeGroups();
+  const [showAll, setShowAll] = useState(false);
   const accent = themes[currentTheme].colors.primary;
+  const groups = showAll
+    ? buildThemeGroups()
+    : [{ label: 'Featured', ids: buildFeaturedIds(currentTheme) }];
+  const totalThemes = Object.keys(themes).length;
 
   return (
     <Panel
@@ -144,6 +165,26 @@ const ThemePickerPanel: React.FC<ThemePickerPanelProps> = ({
           </SwatchGrid>
         </div>
       ))}
+
+      <ShowAllButton
+        type="button"
+        $accent={accent}
+        $text={panelMuted}
+        onClick={() => setShowAll((current) => !current)}
+        aria-expanded={showAll}
+      >
+        {showAll ? (
+          <>
+            <ChevronUp size={15} aria-hidden="true" />
+            Show fewer
+          </>
+        ) : (
+          <>
+            <ChevronDown size={15} aria-hidden="true" />
+            {`Show all ${totalThemes} themes`}
+          </>
+        )}
+      </ShowAllButton>
     </Panel>
   );
 };
