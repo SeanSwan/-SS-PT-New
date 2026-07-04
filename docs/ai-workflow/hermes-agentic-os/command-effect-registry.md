@@ -62,6 +62,13 @@ Placeholder/demo content — targets and thresholds are illustrative until Sean 
 | `queue-deny` | Deny/expire a queue entry with reason | Human/Sean via Hermes | command-center, telegram | `queue-id, reason` | queue transition record | `SWITCH_MASTER` |
 | `switch-flip` | Flip a named kill switch (pause/resume an automation) | Human/Sean via Hermes | command-center, telegram (exact-match phrase) | `switch-name, direction` | switch state diff | none (see above) |
 
+**PROPOSED T2 rows (2026-07-04, slice 1 — pending Sean per §4; implemented fail-closed in `scripts/hermes/`, receipted as proposed-row acts until merged):**
+
+| name | description | owner | channels | inputs | receipt evidence | kill-switch |
+|---|---|---|---|---|---|---|
+| `receipt-prune` | Compress runs/-lane files older than the 90-day hot window into runs/archive (gzip, verified roundtrip, moved never deleted — open-questions Q4 DECIDED) | Deterministic Script | command-center, runner | `older-than-days: int (default 90), dry-run: bool` | archive file path + count | `SWITCH_MASTER` |
+| `vault-init` | One-time/idempotent vault runs/-lane scaffolding (index.md law) + switches-file seed if absent (all on) | Deterministic Script | command-center | none | vault + switches paths | `SWITCH_MASTER` (bootstrap: receipt writing itself is switchless by design) |
+
 ### T3 — external-visible (queue approval + receipt)
 
 | name | description | owner | channels | inputs | receipt evidence | kill-switch |

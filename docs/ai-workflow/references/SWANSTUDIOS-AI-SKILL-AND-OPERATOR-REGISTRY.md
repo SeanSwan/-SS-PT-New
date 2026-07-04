@@ -146,7 +146,9 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 
 ## 14. Open questions
 
-1. Confirm the T2 standing allowlist for Hermes (proposed: memory notes, approval-queue moves, briefing generation, receipt writes — nothing else).
-2. Should trainer-facing operators (2026-06-18 decision) get read access to THIS registry rendered in-product, or a filtered product-tier view?
-3. Which three buttons ship first in a real (non-prototype) command center? Proposed: health sweep (T0), morning briefing (T1), approval queue (T2).
-4. Cadence for the Fable skill audit pass: monthly, or triggered by skill-harvest findings?
+> **2026-07-04:** items 1–3 are DECIDED (Sean delegation to Fable's proposed defaults; canonical record in `../hermes-agentic-os/open-questions.md`). Item 4 decided below.
+
+1. ~~Confirm the T2 standing allowlist for Hermes.~~ **DECIDED** → open-questions Q1: exactly four rows — `memory-note`, `queue-approve`, `queue-deny`, `switch-flip`. (This item's older proposed list is superseded: briefing generation is T1 and needs no allowlist row; receipt writes are part of every command's lifecycle, not an allowlist entry.)
+2. **DECIDED 2026-07-04** (delegation): trainer-facing operators get a **filtered product-tier view** rendered in-product — never this raw operator registry. Scoped to their own available actions; ships with the trainer-lane product slice.
+3. ~~Which three buttons ship first?~~ **DECIDED** → open-questions Q5: health sweep (T0) · morning briefing (T1) · approval queue (T2), in that order.
+4. **DECIDED 2026-07-04** (delegation): skill-audit cadence = **quarterly floor + triggered early by `skill-harvest` findings** (matches the runtime registry's §4 audit rhythm; no monthly overhead until row count earns it).

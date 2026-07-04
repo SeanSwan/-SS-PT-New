@@ -104,7 +104,9 @@ All Fable artifacts (and prompts written *for* Fable) use construction-domain la
 
 ## 12. Open questions for Sean
 
-1. Should the Final Decider fallback chain be pinned per-surface (e.g., Opus for code arbitration, Gemini for design-only arbitration when no Claude is available), or stay strictly Claude-family?
-2. When Fable returns after the parallel-coding window, does Rule 67 pair-coding continue as-is, or does Fable take a standing orchestrator lane with Codex/Claude as executors?
-3. Do you want a standing "Fable session cadence" (e.g., one audit pass per week) written into C4 Cadence, or keep Fable passes on-demand?
-4. Should Fable-authored specs carry an expiry/stale-review date (like memory entries), given how fast the workflow evolves?
+> **2026-07-04:** all four DECIDED via Sean's delegation to Fable's recommendations ("we're gonna do what you recommend"). Each remains revisitable by Sean at any time.
+
+1. **DECIDED:** the Final Decider fallback chain stays **strictly Claude-family** (Fable → Opus 4.8 → Opus 4.x → Sonnet). Gemini remains Lead Design Authority under the Decider, never the Decider — design authority and commit arbitration stay separate powers (matches CLAUDE.md Co-Orchestrator Hierarchy).
+2. **DECIDED:** when Fable is present it takes the **standing orchestrator lane**; Rule 67 Claude↔Codex pair-coding continues beneath it as the execution layer. Fable arbitrates, assigns lanes, and owns verdicts; it builds directly only when the task passes the §4 spend test.
+3. **DECIDED:** Fable passes stay **on-demand plus phase-close audits** (rule 48 moments) — no fixed weekly cadence until C4 Cadence automation lands and earns it.
+4. **DECIDED:** yes — Fable-authored specs carry a **stale-review date, default 90 days** from last substantive edit (same provenance discipline as vault notes). A spec past its date is flagged in the next Fable pass, not auto-invalidated.

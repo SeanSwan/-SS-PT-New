@@ -108,6 +108,8 @@ Every T2+ action emits a receipt: `who (actor + channel) · what (command + tier
 
 ## 11. Open questions
 
+> **2026-07-04:** all four items below are consolidated and **DECIDED** in `../hermes-agentic-os/open-questions.md` (this section maps: 1→Q7, 2→Q2, 3→Q3, 4→Q4) via Sean's delegation to Fable's proposed defaults. Residual gates that stay live: Q2 exact template TEXT is a per-template Sean yes at slice-4 start, and Discord send-authority remains per-send queued (no §7 amendment granted).
+
 1. **Per-trainer operators (2026-06-18 decision):** when the role-scoped tool layer ships, which T2 allowlist entries extend to trainers, and does each trainer get their own audit lane? Proposed: yes — receipts partition by actor; Sean reviews trainer-lane receipts weekly at first.
 2. **Discord alert taxonomy:** which event classes justify a T3 Discord post (deploy health, stale-client alert, lead capture)? Needs a template list before the alert broker is built.
 3. **Approval expiry default:** proposed 24h for T3 approvals, single-use for T4 — confirm.

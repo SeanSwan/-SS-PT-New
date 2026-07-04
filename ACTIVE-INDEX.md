@@ -44,6 +44,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the latest Coach selected-client command push
 
 - `USER-DASHBOARD-N-SERIES-AUDIT-RECORD-2026-06-12.md` - rule-48 audit record for workstream N (M7+N1-N5): V3 Observatory as the canonical /user-dashboard hub, social absorbed, Home truth pass, cover editor, training proof, tab compaction
+- `FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md` — rule-48 audit record for the Fable control layer / Hermes Agentic OS / Design Brain docs + runtime Slice 1 (receipt/queue/digest/prune spine in `scripts/hermes/`, 31/31 tests); security posture, rollback, and future review hooks live here
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
