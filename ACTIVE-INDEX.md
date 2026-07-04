@@ -45,6 +45,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 
 - `USER-DASHBOARD-N-SERIES-AUDIT-RECORD-2026-06-12.md` - rule-48 audit record for workstream N (M7+N1-N5): V3 Observatory as the canonical /user-dashboard hub, social absorbed, Home truth pass, cover editor, training proof, tab compaction
 - `FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md` — rule-48 audit record for the Fable control layer / Hermes Agentic OS / Design Brain docs + runtime Slice 1 (receipt/queue/digest/prune spine in `scripts/hermes/`, 31/31 tests); security posture, rollback, and future review hooks live here
+- `OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md` — **the Hermes-OS build baton**: slice-by-slice ledger, component-by-component logic map w/ mermaid charts, system-wide hostile review (G-1…G-17 gaps), E1–E6 enhancement plan, and the §11 recursive build loop contract (Sean-authorized goal-driven auto-advance w/ hard-pause gates); Opus 4.8 (or any deputy builder) starts here
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
