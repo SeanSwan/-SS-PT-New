@@ -1191,7 +1191,11 @@ class AdminClientController {
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
-        transaction
+        transaction,
+        // Pessimistic row lock: a concurrent admin edit to the same client
+        // could otherwise make the previousState snapshot below stale
+        // (lost-update anomaly under READ COMMITTED). Serialize on this row.
+        lock: transaction.LOCK.UPDATE
       });
 
       if (!client) {
