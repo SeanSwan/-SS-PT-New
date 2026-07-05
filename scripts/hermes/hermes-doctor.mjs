@@ -21,7 +21,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { verifyChain, atomicWriteFileSync } from './spineLib.mjs';
 import {
-  LANES, ensureLanes, readSwitches, readReceipts,
+  LANES, ensureLanes, readSwitches, readReceipts, isoDateOf,
   resolveSwitchesFile, resolveVaultRoot, vaultPaths, writeReceipt,
 } from './hermesRunsLib.mjs';
 
@@ -84,7 +84,9 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
     who: 'harness/hermes-doctor', what: 'hermes-doctor (T0)', target: `self-diagnosis ${isoDate}`,
     when, 'approved-by': 'n/a', outcome, evidence: statePath(vaultRoot),
   });
-  const roundtripOk = readReceipts(vaultRoot, isoDate).some((r) => r.id === rec.id);
+  // Read back from the date the receipt actually landed in (its `when`), which may
+  // differ from the diagnosed isoDate when --date targets a past day.
+  const roundtripOk = readReceipts(vaultRoot, isoDateOf(when)).some((r) => r.id === rec.id);
   add('roundtrip', roundtripOk, roundtripOk ? `receipt ${rec.id} written + read back` : 'receipt write/read-back FAILED');
 
   const faults = checks.filter((c) => !c.ok);
