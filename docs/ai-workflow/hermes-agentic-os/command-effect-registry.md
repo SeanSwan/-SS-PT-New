@@ -44,6 +44,7 @@ Placeholder/demo content — targets and thresholds are illustrative until Sean 
 | `stale-client-report` | Read-only report: clients with no logged session in N days (IDs only, per rule 8) | Deterministic Script | command-center, runner | `days: int 7–90` | client-ID list pointer | `SWITCH_STALE_CLIENT` |
 | `switch-status` | Read every kill switch's current state | Deterministic Script | command-center, telegram | none | switch table | none (must work when everything else is off) |
 | `verify-chain` | Verify the tamper-evident hash chain of a day's receipt + queue streams and report any break (E2 spine) | Deterministic Script | command-center, runner | `date` | per-stream ok/break + line counts | none (integrity check must run during incidents) |
+| `hermes-doctor` | Self-diagnosis: lanes + index law, switches readable, chain integrity, clock regression, schedule, receipt roundtrip; the health-panel + runner-preflight data source (E4) | Deterministic Script | command-center, runner | `date` | per-check ok/fault + exit code (0 healthy/1 degraded/2 fault) | none (health check must run during incidents) |
 | `qa-session-start` | Open a supervised Browser Harness QA session (Sean authenticates; harness observes — read-only; ANY interaction beyond navigate/scroll/read/capture needs per-run human approval, bridge §6) | Browser Harness + Human | command-center | `target-url (allowlisted domains)` | QA receipt doc path | `SWITCH_BROWSER_HARNESS` |
 
 ### T1 — draft/propose (logged, output labeled DRAFT)

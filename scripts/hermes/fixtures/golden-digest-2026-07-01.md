@@ -10,8 +10,18 @@ T0: 3 · T1: 1 · T2: 2 · T3: 1 · T4: 0
 ## Refusal clusters (flood / injection watch)
 No refusal clusters.
 
+## Integrity
+No integrity issues.
+
 ## Approval flow
 opened 2 · approved 1 · denied 0 · expired 0 · median open→resolved: 120 min
+
+## By actor (24h)
+- hermes/runner: 2 receipt(s)
+- sean/telegram: 2 receipt(s)
+- hermes/command-center: 1 receipt(s)
+- sean/command-center: 1 receipt(s)
+- hermes/discord-broker/internal: 1 receipt(s)
 
 ## Switch activity
 - R-20260701-005 · SWITCH_STALE_CLIENT · ok — off→on (test flip)

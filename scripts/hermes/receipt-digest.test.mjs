@@ -115,6 +115,37 @@ test('digest headlines an approval-queue flood and clusters refusals by sender (
   assert.match(digest, /hermes\/runner: \d+ refusals/);
 });
 
+test('digest Integrity section surfaces a chain break (G-7)', () => {
+  const { root, swFile } = freshVault();
+  ensureLanes(root);
+  seedSwitches(swFile);
+  writeReceipt(root, { who: 'hermes/runner', what: 'health-sweep (T0)', target: 't', when: `${DAY}T06:00:00-07:00`, 'approved-by': 'n/a', outcome: 'ok — a', evidence: 'x' });
+  writeReceipt(root, { who: 'hermes/runner', what: 'health-sweep (T0)', target: 't', when: `${DAY}T06:01:00-07:00`, 'approved-by': 'n/a', outcome: 'ok — b', evidence: 'x' });
+  const f = vaultPaths(root, DAY).receiptsFile;
+  const lines = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean);
+  lines[0] = lines[0].replace('ok — a', 'ok — TAMPERED');
+  fs.writeFileSync(f, lines.join('\n') + '\n');
+  assert.match(renderDigest(root, DAY).digestMarkdown, /CHAIN BREAK/);
+});
+
+test('digest Integrity section flags a tier-less receipt (G-7)', () => {
+  const { root, swFile } = freshVault();
+  ensureLanes(root);
+  seedSwitches(swFile);
+  writeReceipt(root, { who: 'x/y', what: 'weird-command-no-tier', target: 't', when: `${DAY}T06:00:00-07:00`, 'approved-by': 'n/a', outcome: 'ok — x', evidence: 'e' });
+  assert.match(renderDigest(root, DAY).digestMarkdown, /tier-less/);
+});
+
+test('digest Integrity section headlines an armed>24h entry with no filed receipt (G-9)', () => {
+  const { root, swFile } = freshVault();
+  ensureLanes(root);
+  seedSwitches(swFile);
+  const e = createEntry(root, swFile, { action: 'manual-maintenance', tier: 'T4', target: 'reseed', requester: 'sean/telegram', evidence: 'drift', rollback: 'export' }, `${DAY}T06:00:00-07:00`);
+  transitionEntry(root, swFile, { id: e.id, to: 'approved', resolver: 'sean', channel: 'command-center', confirmed: true, at: `${DAY}T06:01:00-07:00` });
+  transitionEntry(root, swFile, { id: e.id, to: 'armed', resolver: 'sean', channel: 'telegram', phrase: `ARM ${e.id} manual-maintenance`, at: `${DAY}T06:05:00-07:00` });
+  assert.match(renderDigest(root, '2026-07-03').digestMarkdown, /ARMED > 24h/); // 2 days later, never executed
+});
+
 test('silence check reports a clean day and a missing schedule honestly', () => {
   const { root, swFile } = freshVault();
   ensureLanes(root);
