@@ -100,6 +100,21 @@ test('SWITCH_RECEIPT_DIGEST off → refusal receipt, no digest file', () => {
   assert.ok(readReceipts(root, DAY).some((r) => /SWITCH_RECEIPT_DIGEST/.test(r.outcome)));
 });
 
+test('digest headlines an approval-queue flood and clusters refusals by sender (G-4)', () => {
+  const { root, swFile } = freshVault();
+  ensureLanes(root);
+  seedSwitches(swFile);
+  const req = { action: 'discord-alert', tier: 'T3', requester: 'hermes/runner', evidence: 'e' };
+  for (let i = 0; i < 10; i++) createEntry(root, swFile, { ...req, target: `#ops · ${i}` }, `${DAY}T06:00:00-07:00`);
+  for (let i = 0; i < 6; i++) {
+    try { createEntry(root, swFile, { ...req, target: `#ops · flood${i}` }, `${DAY}T06:0${i}:30-07:00`); }
+    catch { /* refused at the cap — the refusal receipt is what the digest surfaces */ }
+  }
+  const digest = renderDigest(root, DAY).digestMarkdown;
+  assert.match(digest, /FLOOD CAP HIT/);
+  assert.match(digest, /hermes\/runner: \d+ refusals/);
+});
+
 test('silence check reports a clean day and a missing schedule honestly', () => {
   const { root, swFile } = freshVault();
   ensureLanes(root);

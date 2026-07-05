@@ -1,0 +1,392 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": [
+    "docs/ai-workflow/hermes-agentic-os/command-effect-registry.md",
+    "docs/ai-workflow/hermes-agentic-os/kill-switches.md"
+  ],
+  "commands": [
+    {
+      "name": "health-sweep",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "telegram",
+        "runner"
+      ],
+      "inputs": "none",
+      "receipt": "endpoint list + HTTP codes",
+      "description": "Ping SwanStudios API health endpoints + Render deploy status; report green/amber/red",
+      "killSwitch": "SWITCH_HEALTH_SWEEP",
+      "proposed": false
+    },
+    {
+      "name": "queue-list",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Hermes",
+      "channels": [
+        "command-center",
+        "telegram"
+      ],
+      "inputs": "`filter: open|expiring|all`",
+      "receipt": "queue snapshot hash",
+      "description": "List open approval-queue entries with tier + expiry",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "receipt-digest",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "digest file path",
+      "description": "Render the daily receipt digest (see `./audit-receipts.md` §5)",
+      "killSwitch": "SWITCH_RECEIPT_DIGEST",
+      "proposed": false
+    },
+    {
+      "name": "fable-context-compression-estimate",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "vscode",
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`paths (allowlisted repo/vault files), tier: high|standard`",
+      "receipt": "estimate report path or JSON hash",
+      "description": "Estimate whether safe local files are cheaper as semantically compressed or image-rendered Fable context; does not render images or call a model",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "wiki-search",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Hermes",
+      "channels": [
+        "command-center",
+        "telegram"
+      ],
+      "inputs": "`query (untrusted, ≤200 chars)`",
+      "receipt": "result count + note paths",
+      "description": "Search the Obsidian/Karpathy vault, return note titles + snippets",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "stale-client-report",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`days: int 7–90`",
+      "receipt": "client-ID list pointer",
+      "description": "Read-only report: clients with no logged session in N days (IDs only, per rule 8)",
+      "killSwitch": "SWITCH_STALE_CLIENT",
+      "proposed": false
+    },
+    {
+      "name": "switch-status",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "telegram"
+      ],
+      "inputs": "none",
+      "receipt": "switch table",
+      "description": "Read every kill switch's current state",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
+      "name": "verify-chain",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "per-stream ok/break + line counts",
+      "description": "Verify the tamper-evident hash chain of a day's receipt + queue streams and report any break (E2 spine)",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
+      "name": "qa-session-start",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Browser Harness + Human",
+      "channels": [
+        "command-center"
+      ],
+      "inputs": "`target-url (allowlisted domains)`",
+      "receipt": "QA receipt doc path",
+      "description": "Open a supervised Browser Harness QA session (Sean authenticates; harness observes — read-only; ANY interaction beyond navigate/scroll/read/capture needs per-run human approval, bridge §6)",
+      "killSwitch": "SWITCH_BROWSER_HARNESS",
+      "proposed": false
+    },
+    {
+      "name": "morning-briefing",
+      "tier": "T1",
+      "approval": "none-logged",
+      "owner": "Hermes",
+      "channels": [
+        "command-center",
+        "telegram",
+        "runner"
+      ],
+      "inputs": "none",
+      "receipt": "briefing file path",
+      "description": "Generate the daily operator briefing (health, receipts digest, queue, stale clients, calendar placeholder) as a DRAFT doc",
+      "killSwitch": "SWITCH_MORNING_BRIEFING",
+      "proposed": false
+    },
+    {
+      "name": "draft-client-followup",
+      "tier": "T1",
+      "approval": "none-logged",
+      "owner": "Hermes",
+      "channels": [
+        "command-center"
+      ],
+      "inputs": "`client-id`",
+      "receipt": "draft proposal id",
+      "description": "Draft (never send) a follow-up message for one stale client ID via the Swan Coach proposal path",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "propose-command",
+      "tier": "T1",
+      "approval": "none-logged",
+      "owner": "Hermes",
+      "channels": [
+        "telegram",
+        "command-center"
+      ],
+      "inputs": "`sketch (untrusted)`",
+      "receipt": "proposal doc path",
+      "description": "Draft a new registry row for an unregistered command Sean requested",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "memory-note",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Hermes",
+      "channels": [
+        "telegram",
+        "command-center"
+      ],
+      "inputs": "`text (untrusted, ≤2000 chars)`",
+      "receipt": "note id",
+      "description": "Append a note to Hermes working memory (never product data)",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "queue-approve",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Human/Sean via Hermes",
+      "channels": [
+        "command-center",
+        "telegram (exact-match phrase)"
+      ],
+      "inputs": "`queue-id, phrase`",
+      "receipt": "queue transition record",
+      "description": "Move a queue entry to approved — **the approval itself; Sean-only channels** (see `./approval-gates.md` §3)",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "queue-deny",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Human/Sean via Hermes",
+      "channels": [
+        "command-center",
+        "telegram"
+      ],
+      "inputs": "`queue-id, reason`",
+      "receipt": "queue transition record",
+      "description": "Deny/expire a queue entry with reason",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
+      "name": "switch-flip",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Human/Sean via Hermes",
+      "channels": [
+        "command-center",
+        "telegram (exact-match phrase)"
+      ],
+      "inputs": "`switch-name, direction`",
+      "receipt": "switch state diff",
+      "description": "Flip a named kill switch (pause/resume an automation)",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
+      "name": "receipt-prune",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`older-than-days: int (default 90), dry-run: bool`",
+      "receipt": "archive file path + count",
+      "description": "Compress runs/-lane files older than the 90-day hot window into runs/archive (gzip, verified roundtrip, moved never deleted — open-questions Q4 DECIDED)",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": true
+    },
+    {
+      "name": "vault-init",
+      "tier": "T2",
+      "approval": "allowlist",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center"
+      ],
+      "inputs": "none",
+      "receipt": "vault + switches paths",
+      "description": "One-time/idempotent vault runs/-lane scaffolding (index.md law) + switches-file seed if absent (all on)",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": true
+    },
+    {
+      "name": "discord-alert",
+      "tier": "T3",
+      "approval": "queue",
+      "owner": "Hermes (Discord broker)",
+      "channels": [
+        "runner",
+        "command-center"
+      ],
+      "inputs": "`template-id (enum), fill-values (validated per template)`",
+      "receipt": "Discord message id",
+      "description": "Post one templated alert to the ops Discord channel (template ids TBD — `./open-questions.md` Q2)",
+      "killSwitch": "SWITCH_DISCORD_BROKER",
+      "proposed": false
+    },
+    {
+      "name": "manual-maintenance",
+      "tier": "T4",
+      "approval": "queue+arm",
+      "owner": "Human/Sean",
+      "channels": [
+        "command-center",
+        "telegram (arm on the OTHER channel)"
+      ],
+      "inputs": "`act description + exact command text recorded + rollback pointer (required to arm)`",
+      "receipt": "outcome + rollback pointer filed against the armed entry id",
+      "description": "Reserved intent-class row: records queue + arm authorization for a Sean-run maintenance act (seeder run, migration, credential rotation). The broker queues, arms (cross-channel, `./approval-gates.md` §5), and receipts — execution is Sean at the keyboard, never a command",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    }
+  ],
+  "denied": [
+    {
+      "name": "raw-shell",
+      "status": "**FORBIDDEN — never registrable**",
+      "why": "Bridge boundary 5. The row exists so a request for shell gets a documented refusal receipt, not a \"command not found\" that tempts someone to add it"
+    },
+    {
+      "name": "direct-sql",
+      "status": "**FORBIDDEN — never registrable**",
+      "why": "Bridge boundary 7. All writes travel through SwanStudios APIs; a T4 maintenance exception is a Sean-run manual act recorded through the `manual-maintenance` intent row above — never an executable command"
+    },
+    {
+      "name": "env-read",
+      "status": "**FORBIDDEN — never registrable**",
+      "why": "Rule 59 read-time secret exposure. No command may return env/secret values through any channel"
+    },
+    {
+      "name": "mass-client-message",
+      "status": "**FORBIDDEN pending explicit design**",
+      "why": "Registry §12 manual-only; per-send approval until trust earned. Blanket messaging is exactly the failure mode approval gates exist to prevent"
+    },
+    {
+      "name": "unreviewed-model-proxy",
+      "status": "**FORBIDDEN pending provenance review**",
+      "why": "A base-URL/request proxy can see prompts, tool schemas, history, API keys, and outputs. It may be proposed only after the source/sandbox/network gates in `../references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` pass"
+    }
+  ],
+  "switches": [
+    {
+      "name": "SWITCH_MASTER",
+      "stops": "Every registered command except `switch-status` and `switch-flip` itself — the whole broker",
+      "flip": "Panel big-red · `KILL MASTER` · or Hermes daemon stop",
+      "owner": "Human/Sean"
+    },
+    {
+      "name": "SWITCH_HEADLESS_RUNNER",
+      "stops": "All scheduled/triggered runs; the runner idles (checks this before *each* run — `./headless-runner-spec.md` §3)",
+      "flip": "Panel · `KILL HEADLESS_RUNNER`",
+      "owner": "Human/Sean"
+    },
+    {
+      "name": "SWITCH_TELEGRAM_BROKER",
+      "stops": "Inbound Telegram command processing (bot may still answer \"broker paused\")",
+      "flip": "Panel · daemon config · or Telegram bot stop",
+      "owner": "Human/Sean"
+    },
+    {
+      "name": "SWITCH_DISCORD_BROKER",
+      "stops": "All outbound Discord alerts, approved or not",
+      "flip": "Panel · `KILL DISCORD_BROKER`",
+      "owner": "Human/Sean"
+    },
+    {
+      "name": "SWITCH_BROWSER_HARNESS",
+      "stops": "Harness session starts (running sessions end at next navigation)",
+      "flip": "Panel · `KILL BROWSER_HARNESS`",
+      "owner": "Human/Sean"
+    },
+    {
+      "name": "SWITCH_HEALTH_SWEEP",
+      "stops": "The health-sweep automation",
+      "flip": "Panel · phrase",
+      "owner": "Deterministic Script owner"
+    },
+    {
+      "name": "SWITCH_MORNING_BRIEFING",
+      "stops": "Briefing generation",
+      "flip": "Panel · phrase",
+      "owner": "Hermes"
+    },
+    {
+      "name": "SWITCH_STALE_CLIENT",
+      "stops": "Stale-client report generation",
+      "flip": "Panel · phrase",
+      "owner": "Deterministic Script owner"
+    },
+    {
+      "name": "SWITCH_RECEIPT_DIGEST",
+      "stops": "Digest rendering (receipts still *write* — only the view pauses; receipt writing has no switch by design, it is the one thing that must never be off)",
+      "flip": "Panel · phrase",
+      "owner": "Deterministic Script owner"
+    }
+  ]
+}

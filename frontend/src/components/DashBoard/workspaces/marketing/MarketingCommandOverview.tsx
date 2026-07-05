@@ -19,6 +19,7 @@ import {
   ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty,
   ChannelMeta, ChannelWon,
 } from './MarketingCommandOverview.styles';
+import MarketingReadinessCockpit from './MarketingReadinessCockpit';
 
 type CommandTarget = 'queue' | 'calendar' | 'leads' | 'analytics';
 
@@ -86,6 +87,8 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
 
   return (
     <Stack>
+      <MarketingReadinessCockpit />
+
       <OverviewGrid>
         <MarketingCard>
           <CardHeader>

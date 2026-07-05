@@ -286,3 +286,32 @@ This build runs as a **goal, not a task list**: the loop does not stop between s
 
 **READY-TO-PASTE LOOP PROMPT (Sean → Opus, verbatim):**
 > Read docs/ai-workflow/AI-HANDOFF/OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md end to end, then run its §11 recursive build loop starting at beat 1. Standing authorization per §11: auto-advance through unblocked E-slices and slices, tests-first, hostile review each slice, ship each beat; pause only at the HARD-PAUSE gates and tell me exactly what you need from me when you park one. Don't stop until the goal state or every remaining node is hard-paused.
+
+---
+
+## 12. Build progress log (loop beats — appended as each slice ships)
+
+- **E1 — registry-as-data + drift lock — SHIPPED** · 2026-07-04 · origin/main `389fbad85` (rebased over Codex's `cec1d21d6` Marketing Cockpit, no overlap) · closes **G-1**.
+  - NEW: `scripts/hermes/registryLib.mjs` (parser IS the validator — missing field / phantom kill-switch / duplicate name throws; generated-JSON loader; derived accessors `getQueueable`/`getForbidden`/`getT2Rows`/`getT2Standing`/`getSwitchInventory`) · `registry-build.mjs` (generate + `--check` semantic drift lock, CRLF-safe) · `registry.generated.json` (committed: 19 commands / 5 denied / 9 switches, parsed from `command-effect-registry.md` §3 + `kill-switches.md` §4) · `registry.test.mjs` (9 tests).
+  - REWIRED: `queueModel.mjs` (`QUEUEABLE`/`FORBIDDEN`/`T2_ROWS`) + `hermesRunsLib.mjs` (`SWITCH_SEED`) now read the generated data. **Zero hand-mirrored command constants remain** (source-locked in tests). `T2_ROWS` correctly gained the two proposed rows (`receipt-prune`, `vault-init`) — any T2 refuses to queue.
+  - Acceptance MET: blank any field in a doc row → parser throws; runtime has zero transcribed command constants. Drift now caught two ways: doc↔doc (a command naming a switch outside the inventory throws) and doc↔runtime (`registry-build --check` / drift test: fresh parse ≡ committed JSON).
+  - Verification: 48/48 hermes tests (9 new), rule-42 backend untouched, pre-commit secret scan CLEAN (6 files). Hostile self-review caught + fixed a CRLF-fragile byte-compare in `--check` (→ semantic compare; `autocrlf` is ON in these worktrees).
+  - Gate to close: **Codex hostile review** (REQ OPEN in `review-queue.md`). **2b note:** the Telegram broker's registered-command lookup should call the `registryLib` accessors, not re-transcribe the doc.
+  - **Next unblocked node: E2 (spine hardening — single-writer ids + hash chain + fsync/temp-rename durability; closes G-2/G-3/G-6).**
+
+- **E2 — spine hardening (single-writer + hash chain + durability) — SHIPPED** · 2026-07-05 · origin/main `0fc66e258` · closes **G-2 / G-3 / G-6**.
+  - NEW: `scripts/hermes/spineLib.mjs` (`withLock` — cross-process O_EXCL lockfile carrying the holder pid; a stale lock is broken only if its holder pid is DEAD, via a guarded unlink; inode-safe release · `chainedAppend`/`verifyChain` — per-record `prev` SHA-256 + monotonic `.head` anchor · `durableAppend` fsync · `atomicWriteFileSync` temp+fsync+rename with Windows-EPERM retry · `repairTornTail`) · `verify-chain.mjs` (registered **T0** — added to `command-effect-registry.md` §3 + regenerated `registry.generated.json`: **19→20 commands**, which live-proved E1's add-a-command flow).
+  - REWIRED: `writeReceipt` + `queueModel.createEntry` allocate the id and append under ONE lock (G-2); `appendJsonl`→chained/durable; `seedSwitches` + `switches.mjs` flip → atomic; `receipt-prune` guards its walk against the ephemeral sidecars, cleans the orphan `.head` on archive, and receipts a partial batch before rethrowing.
+  - Verification: **69/69** hermes tests — incl. a REAL 2-process concurrency race that mints **zero** duplicate ids — rule-42 backend untouched, secret scan CLEAN (10 files), all files ≤300L.
+  - **Adversarial review (2 rounds):** a 5-lens workflow surfaced **14 real findings**; two focused verifiers then *empirically reproduced* deeper bugs in the FIRST fixes (a double-acquire in the stale-break, a truncation-heal, a forged-append-passes-green). Every **fixable** defect fixed + test-locked.
+  - **Honest scope → E4 handoff (IMPORTANT):** a self-contained log cannot beat an attacker with vault WRITE access — single-append forgery (re-anchored by the next legit write) and `.head` deletion both defeat the heuristic `.head` anchor. Forgery-resistance + anchor-integrity need an **EXTERNAL / signed daily head-hash** → **this is now explicit E4 (hermes-doctor) scope.** The prev-chain (mid-stream edit/reorder/delete) is the sound self-contained guarantee E2 delivers.
+  - Gate to close: **Codex hostile review** (REQ OPEN in `review-queue.md`). **2b/5 note:** the runner + Telegram broker MUST write via `writeReceipt`/`createEntry` (the locked path), never raw-append to a chained stream.
+  - **Next unblocked nodes: E3 (flood caps — per-requester open-entry cap; closes G-4) and E4 (hermes-doctor + digest integrity + the EXTERNAL anchor above; closes G-5/G-7/G-9/G-10) — parallelizable per §7.**
+
+- **E3 — flood caps (per-requester open-entry cap + digest flood surface) — SHIPPED** · 2026-07-05 · origin/main `482b4eece` · closes **G-4**.
+  - `queueModel.createEntry`: per-requester cap (seed **10**) on UNEXPIRED open entries, checked inside the create lock; cap+1 refused with a receipt. Per-requester so it never DoSes legit multi-source use; a resolved/expired entry frees a slot.
+  - `receipt-digest`: new **"Refusal clusters (flood / injection watch)"** section — headlines a FLOOD CAP HIT + clusters refusals by sender (≥5/24h), because refusal clusters are the injection/flood signal. Golden fixture regenerated (verified by the golden test).
+  - Verification: **73/73** hermes tests (4 new) + live flood-digest render (`⚠ FLOOD CAP HIT 7×` + per-sender cluster) · rule-4 (queueModel 298L) · drift in sync · backend untouched · secret scan CLEAN (5 files).
+  - **Known limitation (flagged for E-review):** a *varied-requester* flood bypasses a per-requester cap — surfaced via the digest's opened-count, not a hard cap. A global cap would DoS legit multi-source operation, so per-spec this stays per-requester.
+  - Gate to close: **Codex hostile review** (REQ OPEN in `review-queue.md`).
+  - **Next unblocked node: E4 (hermes-doctor + digest integrity class + actor partition + the EXTERNAL/signed daily head-hash promoted from E2's review; closes G-5/G-7/G-9/G-10/G-15-partition + the E2-deferred anchor). LARGEST remaining E-node — worth a fresh context.**

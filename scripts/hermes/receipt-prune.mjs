@@ -32,8 +32,12 @@ function* datedFiles(vaultRoot) {
       const dir = stack.pop();
       for (const name of fs.readdirSync(dir)) {
         const full = path.join(dir, name);
-        if (fs.statSync(full).isDirectory()) stack.push(full);
-        else if (name !== 'index.md' && DATED.test(name)) {
+        let st;
+        try { st = fs.statSync(full); } catch { continue; } // ephemeral sidecar (.lock/.tmp) vanished mid-walk — skip
+        if (st.isDirectory()) stack.push(full);
+        // Only archive dated CONTENT files — skip the E2 spine sidecars
+        // (.lock / .head / .tmp) so they are never gzipped as orphan archives.
+        else if (/\.(jsonl|md|log)$/i.test(name) && DATED.test(name)) {
           yield { lane, full, rel: path.relative(base, full), date: DATED.exec(name)[1] };
         }
       }
@@ -52,25 +56,35 @@ export function pruneVault(vaultRoot, switchesFile, { olderThanDays = 90, now, d
   const cutoff = Date.parse(when) - Math.max(1, olderThanDays) * 24 * 60 * 60 * 1000;
   const candidates = [...datedFiles(vaultRoot)].filter((f) => Date.parse(f.date) < cutoff);
   const archived = [];
+  const receipt = (outcome, evidence) => writeReceipt(vaultRoot, {
+    who: 'harness/receipt-prune', what: 'receipt-prune (T2)',
+    target: `runs/ hot lanes older than ${olderThanDays}d`, when,
+    'approved-by': 'allowlist: deterministic retention prune (proposed row, pending Sean — registry §4)',
+    outcome, evidence,
+  });
   if (!dryRun) {
-    for (const f of candidates) {
-      const dest = path.join(vaultRoot, 'runs', 'archive', f.lane, `${f.rel}.gz`);
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      const original = fs.readFileSync(f.full);
-      fs.writeFileSync(dest, zlib.gzipSync(original));
-      if (!zlib.gunzipSync(fs.readFileSync(dest)).equals(original)) {
-        throw new Error(`archive roundtrip mismatch for ${f.rel} — original left in place`);
+    try {
+      for (const f of candidates) {
+        const dest = path.join(vaultRoot, 'runs', 'archive', f.lane, `${f.rel}.gz`);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        const original = fs.readFileSync(f.full);
+        fs.writeFileSync(dest, zlib.gzipSync(original));
+        if (!zlib.gunzipSync(fs.readFileSync(dest)).equals(original)) {
+          throw new Error(`archive roundtrip mismatch for ${f.rel} — original left in place`);
+        }
+        fs.rmSync(f.full);
+        try { fs.rmSync(`${f.full}.head`); } catch { /* no sidecar */ } // E2: retire the head anchor with its content file
+        archived.push(dest);
       }
-      fs.rmSync(f.full);
-      archived.push(dest);
+    } catch (err) {
+      // Every real move must be receipted even when the batch aborts mid-way (no receipt = it did not happen).
+      receipt(`partial — archived ${archived.length} of ${candidates.length} before error: ${err.message}`, archived[0] || 'none');
+      throw err;
     }
-    writeReceipt(vaultRoot, {
-      who: 'harness/receipt-prune', what: 'receipt-prune (T2)',
-      target: `runs/ hot lanes older than ${olderThanDays}d`, when,
-      'approved-by': 'allowlist: deterministic retention prune (proposed row, pending Sean — registry §4)',
-      outcome: `ok — ${archived.length} file(s) compressed into runs/archive (moved, never deleted)`,
-      evidence: archived[0] || 'no files met the cutoff',
-    });
+    receipt(
+      `ok — ${archived.length} file(s) compressed into runs/archive (moved, never deleted)`,
+      archived[0] || 'no files met the cutoff'
+    );
   }
   return { candidates, archived };
 }

@@ -20,6 +20,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { loadRegistry, getSwitchInventory } from './registryLib.mjs';
+import { atomicWriteFileSync, chainedAppend, withLock } from './spineLib.mjs';
 
 export const LANES = ['receipts', 'logs', 'queue', 'digests', 'archive'];
 const OUTCOMES = ['ok', 'failed', 'refused', 'partial'];
@@ -39,12 +41,10 @@ const LANE_INDEX = {
     'What belongs: gzip-compressed aged files moved by receipt-prune (90-day hot window), never deleted.\nWhat does not: hot files, anything uncompressed.\nWhere next: run-logs-and-self-improvement.md §3 for retention.',
 };
 
-// kill-switches.md §4 seed inventory — last-tested starts empty (slice 2 owns flips)
-const SWITCH_SEED = [
-  'SWITCH_MASTER', 'SWITCH_HEADLESS_RUNNER', 'SWITCH_TELEGRAM_BROKER',
-  'SWITCH_DISCORD_BROKER', 'SWITCH_BROWSER_HARNESS', 'SWITCH_HEALTH_SWEEP',
-  'SWITCH_MORNING_BRIEFING', 'SWITCH_STALE_CLIENT', 'SWITCH_RECEIPT_DIGEST',
-];
+// kill-switches.md §4 inventory — READ FROM THE GENERATED REGISTRY (E1, finding
+// G-1), never hand-mirrored. Doc order preserved; last-tested lives in the
+// switches file (slice 2 owns flips). Adding a switch is a doc edit + registry-build.
+const SWITCH_SEED = getSwitchInventory(loadRegistry());
 
 const SECRET_PATTERNS = [
   /\b(?:sk|rk|pk)_(?:live|test)_[0-9A-Za-z]{8,}\b/g,
@@ -102,7 +102,7 @@ export function seedSwitches(file, overrides = {}) {
   const state = {};
   for (const name of SWITCH_SEED) state[name] = true;
   for (const [k, v] of Object.entries(overrides)) state[k] = v;
-  fs.writeFileSync(file, JSON.stringify(state, null, 2) + '\n');
+  atomicWriteFileSync(file, JSON.stringify(state, null, 2) + '\n'); // temp+rename, never a torn switches file (G-6)
   return state;
 }
 
@@ -176,8 +176,9 @@ export function validateReceipt(receipt) {
 }
 
 export function appendJsonl(file, record) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.appendFileSync(file, JSON.stringify(record) + '\n');
+  // Every append is locked (single-writer), hash-chained (tamper-evident), and
+  // fsynced (durable) — see spineLib.mjs (G-2/G-3/G-6).
+  return chainedAppend(file, record);
 }
 
 export function readJsonl(file) {
@@ -207,11 +208,14 @@ export function writeReceipt(vaultRoot, receipt) {
   validateReceipt(receipt);
   const isoDate = isoDateOf(receipt.when);
   const { receiptsFile } = vaultPaths(vaultRoot, isoDate);
-  const stored = { id: nextSequencedId('R', readJsonl(receiptsFile).map((r) => r.id), isoDate) };
-  for (const field of RECEIPT_FIELDS) stored[field] = redactText(receipt[field]);
   ensureLanes(vaultRoot);
-  appendJsonl(receiptsFile, stored);
-  return stored;
+  // Allocate the R-id and append UNDER ONE LOCK so two writers can't read the
+  // same max id and mint a duplicate (G-2). chainedAppend re-enters this lock.
+  return withLock(`${receiptsFile}.lock`, () => {
+    const stored = { id: nextSequencedId('R', readJsonl(receiptsFile).map((r) => r.id), isoDate) };
+    for (const field of RECEIPT_FIELDS) stored[field] = redactText(receipt[field]);
+    return chainedAppend(receiptsFile, stored);
+  });
 }
 
 export function readReceipts(vaultRoot, isoDate) {
