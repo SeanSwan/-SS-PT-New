@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { verifyChain, atomicWriteFileSync } from './spineLib.mjs';
+import { auditAndRefresh } from './anchorLib.mjs';
 import {
   LANES, ensureLanes, readSwitches, readReceipts, isoDateOf,
   resolveSwitchesFile, resolveVaultRoot, vaultPaths, writeReceipt,
@@ -62,6 +63,15 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
     ? `REGRESSION: now ${when} is behind last-seen ${state.lastSeen} — expiry/arm windows may be silently extended; acknowledge before arming T4`
     : `monotonic (last-seen ${state.lastSeen || 'first run'})`);
 
+  // External signed anchor (E4b): forgery-resistance + downgrade + best-effort
+  // deletion detection over the whole chain. priorKeyed = doctor-state high-water.
+  const anchor = auditAndRefresh(vaultRoot, isoDate, { priorKeyed: state.keyed === true });
+  add('anchor', anchor.faults.length === 0, anchor.faults.length
+    ? anchor.faults.join(' | ')
+    : (!anchor.keyed
+      ? 'UNSIGNED — set HERMES_ANCHOR_KEY (off-vault) for tamper-evidence'
+      : (anchor.warns.length ? `signed chain OK · ${anchor.warns.join('; ')}` : 'signed chain verified')));
+
   let schedOk = true;
   let schedDetail = 'no schedule registered (pre-slice-5)';
   if (fs.existsSync(scheduleFile)) {
@@ -72,14 +82,16 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
 
   // Persist a monotonic last-seen high-water mark.
   const highWater = (lastMs !== null && lastMs > nowMs) ? state.lastSeen : when;
-  try { atomicWriteFileSync(statePath(vaultRoot), `${JSON.stringify({ ...state, lastSeen: highWater }, null, 2)}\n`); }
+  // keyed is a monotonic high-water (never un-set): so a later key-blank run is a downgrade (F4).
+  try { atomicWriteFileSync(statePath(vaultRoot), `${JSON.stringify({ ...state, lastSeen: highWater, keyed: state.keyed === true || anchor.keyed }, null, 2)}\n`); }
   catch { add('clock-state', false, 'could not persist doctor-state.json'); }
 
   // Receipt roundtrip: write the doctor's own receipt, then read it back.
+  const degraded = warns.length > 0 || anchor.warns.length > 0 || !anchor.keyed;
   const preFaults = checks.filter((c) => !c.ok);
   const outcome = preFaults.length
     ? `failed — ${preFaults.map((c) => `${c.name}: ${c.detail}`).join(' | ')}`
-    : (warns.length ? `partial — degraded: ${warns.map((c) => c.warn).join('; ')}` : `ok — ${checks.length} checks healthy`);
+    : (degraded ? `partial — degraded (${[...(anchor.keyed ? [] : ['anchors unsigned']), ...warns.map((c) => c.warn), ...anchor.warns].join('; ')})` : `ok — ${checks.length} checks healthy`);
   const rec = writeReceipt(vaultRoot, {
     who: 'harness/hermes-doctor', what: 'hermes-doctor (T0)', target: `self-diagnosis ${isoDate}`,
     when, 'approved-by': 'n/a', outcome, evidence: statePath(vaultRoot),
@@ -90,7 +102,7 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
   add('roundtrip', roundtripOk, roundtripOk ? `receipt ${rec.id} written + read back` : 'receipt write/read-back FAILED');
 
   const faults = checks.filter((c) => !c.ok);
-  const exitCode = faults.length ? 2 : (warns.length ? 1 : 0);
+  const exitCode = faults.length ? 2 : (degraded ? 1 : 0);
   return { ok: exitCode === 0, exitCode, checks, receiptId: rec.id };
 }
 
