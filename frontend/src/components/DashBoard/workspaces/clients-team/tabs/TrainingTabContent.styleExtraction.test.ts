@@ -17,6 +17,10 @@ describe('TrainingTabContent style extraction', () => {
       'LayoutWrapper',
       'Sidebar',
       'SidebarItem',
+      'ModeCopy',
+      'ModeSublabel',
+      'SectionChipRow',
+      'SectionChip',
       'ContentArea',
       'ShimmerLoader',
       'PlaceholderCard',
@@ -48,11 +52,16 @@ describe('TrainingTabContent style extraction', () => {
     expect(stylesSource).not.toContain('white-space: nowrap');
   });
 
-  it('wraps mobile training sub-tabs instead of adding another horizontal scrollbar', () => {
+  it('wraps mobile workflow modes instead of adding another horizontal scrollbar', () => {
     expect(stylesSource).toMatch(/@media \(max-width: 767px\)[\s\S]*display: grid;/);
-    expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+    expect(stylesSource).toContain('grid-template-columns: repeat(3, minmax(0, 1fr))');
     expect(stylesSource).toContain('overflow: visible');
     expect(stylesSource).not.toContain('overflow-x: auto');
+  });
+
+  it('keeps lane chips wrapping with 44px touch targets', () => {
+    expect(stylesSource).toMatch(/SectionChipRow[\s\S]*flex-wrap: wrap/);
+    expect(stylesSource).toMatch(/SectionChip = styled\.button[\s\S]*min-height: 44px/);
   });
 
   it('keeps the training tab shell readable on QHD and 4K screens', () => {

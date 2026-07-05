@@ -5,16 +5,20 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES:
- * Renders the selected client's training sub-sections with Log Workout as
- * the default daily workflow, then hands completed/canceled logs to history.
+ * Renders the selected client's training workflow as three modes -
+ * Today (log & coach the session), Plan (vault, builder, Coach drafts), and
+ * History & Inputs (history, imports, PLAUD) - with Today as the default.
+ * The seven legacy section ids remain the `trainingSection=` deep-link
+ * contract; the mode rail is DERIVED from the active section, so every
+ * existing quick action, view-as CTA, and coach handoff keeps working.
  *
  * HOW IT FITS IN THE APP:
  * UniversalDashboardLayout -> ClientsWorkspace -> ClientDetailView ->
  * renderTraining -> TrainingTabContent.
  *
  * DATA FLOW:
- * Props In: { clientId, clientName }
- * State: activeSection
+ * Props In: { clientId, clientName, initialSection, ... }
+ * State: activeSection (workflow mode derived via trainingWorkflowModes)
  * Children: ClientTrainingCommandBar plus lazy training workflow panels.
  */
 
@@ -31,12 +35,23 @@ import {
 import {
   ContentArea,
   LayoutWrapper,
+  ModeCopy,
+  ModeSublabel,
   PlaceholderCard,
+  SectionChip,
+  SectionChipRow,
   Sidebar,
   SidebarItem,
 } from './TrainingTabContent.styles';
 import { getNumericClientId } from './clientTabId';
 import TrainingTabSectionContent, { type TrainingSection } from './TrainingTabSectionContent';
+import {
+  TRAINING_SECTION_CHIPS,
+  TRAINING_WORKFLOW_MODES,
+  getTrainingModeConfig,
+  getTrainingModeForSection,
+  type TrainingWorkflowMode,
+} from './trainingWorkflowModes';
 import type { ClientTrainingSavedWorkout } from './ClientTrainingSaveReceipt';
 
 interface TrainingTabContentProps {
@@ -52,20 +67,21 @@ interface TrainingTabContentProps {
   scheduledSessionId?: string | null;
 }
 
-const SECTIONS: {
-  id: TrainingSection;
-  label: string;
-  shortLabel: string;
-  icon: React.ReactNode;
-}[] = [
-  { id: 'architect', label: 'Build Plan', shortLabel: 'Build', icon: <Wand2 size={18} /> },
-  { id: 'plans', label: 'Plan Library', shortLabel: 'Library', icon: <ClipboardList size={18} /> },
-  { id: 'logger', label: 'Log Workout', shortLabel: 'Log', icon: <Play size={18} /> },
-  { id: 'import', label: 'History Import', shortLabel: 'Import', icon: <UploadCloud size={18} /> },
-  { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },
-  { id: 'copilot', label: 'Ask Coach', shortLabel: 'Coach', icon: <Sparkles size={18} /> },
-  { id: 'history', label: 'Workout History', shortLabel: 'History', icon: <Archive size={18} /> },
-];
+const MODE_ICONS: Record<TrainingWorkflowMode, React.ReactNode> = {
+  today: <Play size={18} />,
+  plan: <ClipboardList size={18} />,
+  inputs: <Archive size={18} />,
+};
+
+const SECTION_ICONS: Record<TrainingSection, React.ReactNode> = {
+  logger: <Play size={15} />,
+  plans: <ClipboardList size={15} />,
+  architect: <Wand2 size={15} />,
+  copilot: <Sparkles size={15} />,
+  history: <Archive size={15} />,
+  import: <UploadCloud size={15} />,
+  plaud: <FileAudio size={15} />,
+};
 
 function shouldOpenLoggerForCommand(message: string): boolean {
   const normalized = message.trim().toLowerCase();
@@ -97,6 +113,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   const [commandOpen, setCommandOpen] = useState(false);
   const commandPanelId = useId();
   const numericClientId = getNumericClientId(clientId);
+  const activeMode = getTrainingModeForSection(activeSection);
+  const activeModeConfig = getTrainingModeConfig(activeMode);
 
   useEffect(() => {
     setActiveSection(initialSection ?? 'logger');
@@ -111,6 +129,11 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
     setActiveSection(section);
     onSectionChange?.(section);
   }, [onSectionChange]);
+
+  const handleModeChange = useCallback((mode: TrainingWorkflowMode) => {
+    if (mode === activeMode) return;
+    handleSectionChange(getTrainingModeConfig(mode).defaultSection);
+  }, [activeMode, handleSectionChange]);
 
   const handleCommandLaneStart = useCallback((message: string) => {
     if (shouldOpenLoggerForCommand(message)) handleSectionChange('logger');
@@ -145,30 +168,29 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 
   return (
     <LayoutWrapper>
-      <Sidebar role="tablist" aria-label="Training command modes">
-        {SECTIONS.map((section) => (
+      <Sidebar role="tablist" aria-label="Training workflow modes">
+        {TRAINING_WORKFLOW_MODES.map((mode) => (
           <SidebarItem
             type="button"
-            key={section.id}
+            key={mode.id}
             role="tab"
-            aria-selected={activeSection === section.id}
-            aria-controls={`training-panel-${section.id}`}
-            $active={activeSection === section.id}
-            onClick={() => handleSectionChange(section.id)}
-            title={section.label}
+            aria-selected={activeMode === mode.id}
+            aria-controls={`training-panel-${activeMode === mode.id ? activeSection : mode.defaultSection}`}
+            $active={activeMode === mode.id}
+            onClick={() => handleModeChange(mode.id)}
+            title={mode.label}
           >
-            {section.icon}
-            <span className="full-label">{section.label}</span>
-            <span className="short-label">{section.shortLabel}</span>
+            {MODE_ICONS[mode.id]}
+            <ModeCopy>
+              <span className="full-label">{mode.label}</span>
+              <span className="short-label">{mode.shortLabel}</span>
+              <ModeSublabel>{mode.sublabel}</ModeSublabel>
+            </ModeCopy>
           </SidebarItem>
         ))}
       </Sidebar>
 
-      <ContentArea
-        role="tabpanel"
-        id={`training-panel-${activeSection}`}
-        aria-label={SECTIONS.find((section) => section.id === activeSection)?.label}
-      >
+      <ContentArea>
         {numericClientId === null ? (
           <PlaceholderCard role="alert" aria-live="assertive">
             <p>Select a valid client before opening training tools.</p>
@@ -203,23 +225,49 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
                 )}
               </CommandPanel>
             </CommandDisclosure>
-            <TrainingTabSectionContent
-              activeSection={activeSection}
-              clientName={clientName}
-              lastSavedWorkout={lastSavedWorkout}
-              loadTodayPlanSignal={loadTodayPlanSignal}
-              planVaultRefreshSignal={planVaultRefreshSignal}
-              safeClientId={numericClientId}
-              scheduledSessionCreditHint={scheduledSessionCreditHint}
-              scheduledSessionDate={scheduledSessionDate}
-              scheduledSessionId={scheduledSessionId}
-              onArchitectPlanCreated={handlePlanCreated}
-              onLogTodayFromPlan={handleLogTodayFromPlan}
-              onOpenHistoryImport={handleOpenHistoryImport}
-              onOpenProgress={onOpenProgress}
-              onWorkoutCancel={handleWorkoutCancel}
-              onWorkoutComplete={handleWorkoutComplete}
-            />
+            {activeModeConfig.sections.length > 1 && (
+              <SectionChipRow role="tablist" aria-label={`${activeModeConfig.label} lanes`}>
+                {activeModeConfig.sections.map((sectionId) => (
+                  <SectionChip
+                    type="button"
+                    key={sectionId}
+                    role="tab"
+                    aria-selected={activeSection === sectionId}
+                    aria-controls={`training-panel-${sectionId}`}
+                    $active={activeSection === sectionId}
+                    onClick={() => handleSectionChange(sectionId)}
+                    title={TRAINING_SECTION_CHIPS[sectionId].label}
+                  >
+                    {SECTION_ICONS[sectionId]}
+                    <span className="full-label">{TRAINING_SECTION_CHIPS[sectionId].label}</span>
+                    <span className="short-label">{TRAINING_SECTION_CHIPS[sectionId].shortLabel}</span>
+                  </SectionChip>
+                ))}
+              </SectionChipRow>
+            )}
+            <div
+              role="tabpanel"
+              id={`training-panel-${activeSection}`}
+              aria-label={TRAINING_SECTION_CHIPS[activeSection].label}
+            >
+              <TrainingTabSectionContent
+                activeSection={activeSection}
+                clientName={clientName}
+                lastSavedWorkout={lastSavedWorkout}
+                loadTodayPlanSignal={loadTodayPlanSignal}
+                planVaultRefreshSignal={planVaultRefreshSignal}
+                safeClientId={numericClientId}
+                scheduledSessionCreditHint={scheduledSessionCreditHint}
+                scheduledSessionDate={scheduledSessionDate}
+                scheduledSessionId={scheduledSessionId}
+                onArchitectPlanCreated={handlePlanCreated}
+                onLogTodayFromPlan={handleLogTodayFromPlan}
+                onOpenHistoryImport={handleOpenHistoryImport}
+                onOpenProgress={onOpenProgress}
+                onWorkoutCancel={handleWorkoutCancel}
+                onWorkoutComplete={handleWorkoutComplete}
+              />
+            </div>
           </>
         )}
       </ContentArea>

@@ -5,6 +5,10 @@ import { swanClientActionButton, swanDataCardShell } from '../clientCardSystem';
  * Phase 13.2 scroll-ownership fix:
  * The embedded route owns scroll at the page level. The shell stays visible and
  * does not clip expanded workout sessions, notes, or edit controls.
+ *
+ * Client Command Center IA (2026-07-04): the rail carries THREE workflow modes
+ * (Today / Plan / History & Inputs); lanes within a mode render as SectionChip
+ * pills above the panel. Seven-section deep links stay intact underneath.
  */
 export const LayoutWrapper = styled.div`
   --swan-card-padding: 0;
@@ -39,8 +43,8 @@ export const LayoutWrapper = styled.div`
 export const Sidebar = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px;
+  gap: 6px;
+  padding: 10px;
   width: 240px;
   min-width: 0;
   flex-shrink: 0;
@@ -55,18 +59,18 @@ export const Sidebar = styled.div`
 
   @media (min-width: 2560px) {
     width: 280px;
-    gap: 4px;
-    padding: 10px;
+    gap: 8px;
+    padding: 12px;
   }
 
   @media (min-width: 3840px) {
     width: 320px;
-    padding: 12px;
+    padding: 14px;
   }
 
   @media (max-width: 767px) {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
     max-width: 100%;
     border-right: none;
@@ -74,6 +78,31 @@ export const Sidebar = styled.div`
     padding: 8px;
     gap: 6px;
     overflow: visible;
+  }
+`;
+
+export const ModeCopy = styled.span`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+`;
+
+export const ModeSublabel = styled.small`
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 45%, transparent));
+  overflow-wrap: anywhere;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 12px;
   }
 `;
 
@@ -90,16 +119,17 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
     $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
   ${swanClientActionButton}
 
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   min-width: 0;
-  min-height: 44px;
+  min-height: 56px;
   padding: 10px 14px;
   justify-content: flex-start;
+  align-items: center;
   text-align: left;
   font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  font-size: 14px;
+  font-weight: ${({ $active }) => ($active ? 600 : 500)};
   position: relative;
   overflow-wrap: anywhere;
   text-shadow: ${({ $active }) =>
@@ -114,8 +144,8 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
       content: '';
       position: absolute;
       left: 0;
-      top: 4px;
-      bottom: 4px;
+      top: 6px;
+      bottom: 6px;
       width: 3px;
       border-radius: 0 3px 3px 0;
       background: var(--accent-secondary, #8B5CF6);
@@ -146,7 +176,7 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
     width: 56px;
     min-height: 48px;
 
-    & > span {
+    ${ModeCopy} {
       display: none;
     }
 
@@ -169,10 +199,10 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
   @media (max-width: 767px) {
     width: 100%;
     min-height: 48px;
-    padding: 9px 10px;
+    padding: 9px 8px;
     gap: 6px;
     font-size: 12px;
-    justify-content: flex-start;
+    justify-content: center;
 
     &::before {
       display: none;
@@ -184,23 +214,98 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
       border: 1.5px solid var(--accent-secondary, #8B5CF6);
     `}
 
-    & > span.full-label {
+    .full-label {
       display: none;
     }
 
-    & > span.short-label {
+    .short-label {
       display: inline;
     }
   }
 
   @media (min-width: 768px) {
-    & > span.short-label {
+    .short-label {
       display: none;
     }
 
-    & > span.full-label {
+    .full-label {
       display: inline;
     }
+  }
+`;
+
+export const SectionChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+`;
+
+export const SectionChip = styled.button<{ $active: boolean }>`
+  --swan-action-border: ${({ $active }) =>
+    $active
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 70%, transparent)'
+      : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent)'};
+  --swan-action-bg: ${({ $active }) =>
+    $active
+      ? 'color-mix(in srgb, var(--surface-accent, #003080) 76%, transparent)'
+      : 'transparent'};
+  --swan-action-fg: ${({ $active }) =>
+    $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
+  ${swanClientActionButton}
+
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  overflow-wrap: anywhere;
+
+  &:hover {
+    --swan-action-bg: ${({ $active }) =>
+      $active
+        ? 'color-mix(in srgb, var(--surface-accent, #003080) 82%, transparent)'
+        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
+    color: var(--accent-primary, #60C0F0);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
+  }
+
+  svg {
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 767px) {
+    padding: 8px 12px;
+    font-size: 12px;
+
+    .full-label {
+      display: none;
+    }
+
+    .short-label {
+      display: inline;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .short-label {
+      display: none;
+    }
+
+    .full-label {
+      display: inline;
+    }
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 14px;
   }
 `;
 

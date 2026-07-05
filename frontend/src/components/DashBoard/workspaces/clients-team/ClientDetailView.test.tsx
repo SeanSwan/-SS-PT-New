@@ -74,6 +74,10 @@ const TRAINING_SECTION_SOURCE = readFileSync(
   resolve(__dirname, './tabs/TrainingTabSectionContent.tsx'),
   'utf8',
 );
+const TRAINING_MODES_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/trainingWorkflowModes.ts'),
+  'utf8',
+);
 
 describe('Phase 15.3 — Clients & Team Progress tab', () => {
   it('ClientDetailView TABS array includes a progress entry', () => {
@@ -145,9 +149,10 @@ describe('Phase 15.4 — Canonical consumer (ClientsWorkspace) Progress wiring',
 });
 
 describe('Phase 5.9 - Clients & Team PLAUD placement', () => {
-  it('Training tab exposes a PLAUD Uploads sub-section', () => {
-    expect(TRAINING_TAB_SOURCE).toMatch(/id:\s*['"]plaud['"]/);
-    expect(TRAINING_TAB_SOURCE).toMatch(/label:\s*['"]PLAUD Uploads['"]/);
+  it('Training tab exposes a PLAUD Uploads lane inside History & Inputs', () => {
+    expect(TRAINING_MODES_SOURCE).toMatch(/id:\s*['"]plaud['"]/);
+    expect(TRAINING_MODES_SOURCE).toMatch(/label:\s*['"]PLAUD Uploads['"]/);
+    expect(TRAINING_MODES_SOURCE).toMatch(/sections:\s*\['history',\s*'import',\s*'plaud'\]/);
   });
 
   it('PLAUD Uploads mounts the reusable merge workspace with editable selected-client context', () => {
