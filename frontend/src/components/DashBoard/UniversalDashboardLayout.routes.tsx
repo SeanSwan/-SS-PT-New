@@ -45,7 +45,7 @@ import {
   MarketingWorkspace,
   MessagingPageLazy,
   ModernUserManagementSystem,
-  MyClientsView,
+  TrainerClientsWorkspace,
   NotesManager,
   NutritionPlanBuilder,
   NutritionWorkspaceLazy,
@@ -148,7 +148,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
   trainer: {
     routes: [
       { path: '/overview', component: TrainerHomeTab, title: 'Home', description: 'Your trainer operations hub' },
-      { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
+      { path: '/clients', component: TrainerClientsWorkspace, title: 'My Clients', description: 'Assigned-client command center: Today/Plan training, progress proof, nutrition, biometrics' },
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },

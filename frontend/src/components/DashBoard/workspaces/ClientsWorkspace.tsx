@@ -34,7 +34,6 @@ import { useToast } from '../../../hooks/use-toast';
 import ClientsWorkspaceView from './ClientsWorkspace.view';
 import {
   buildClientDetailSearchParams,
-  buildClientOnboardingWorkbenchRoute,
   buildCreationHandoffCopyToast,
   copyTextToClipboard,
   getBrowserClipboard,
@@ -47,16 +46,15 @@ import {
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
 import {
-  fetchClientHubAdminClients,
+  fetchClientHubClients,
   fetchAdminClientById,
+  fetchTrainerClientById,
   resolveInitialClientSelection,
 } from './ClientsWorkspace.data';
 import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
-import {
-  buildClientCoachDailyRoute,
-  buildClientCoachOnboardingRoute,
-  buildClientWorkoutPlannerRoute,
-} from './clients-team/clientDailyTrainingRoutes';
+import { useClientHubAdminNav } from './useClientHubAdminNav';
+import { buildClientCoachDailyRoute, buildClientWorkoutPlannerRoute } from './clients-team/clientDailyTrainingRoutes';
+import { getClientHubAudienceConfig, type ClientHubAudience } from './clients-team/clientHubAudience';
 import { toMiniCardClient } from './clients-team/clientOptionMappers';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import { useClientAccountLifecycle } from './clients-team/useClientAccountLifecycle';
@@ -64,8 +62,12 @@ import { useManualClientCreation } from './clients-team/useManualClientCreation'
 import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
 import { buildClientCardQuickActionRoute } from './clients-team/clientCardQuickActions';
 
-const ClientsWorkspace: React.FC = () => {
-  const { authAxios } = useAuth() as any;
+/** audience: 'admin' (default, full controls) or 'trainer' (assigned clients only). */
+interface ClientsWorkspaceProps { audience?: ClientHubAudience }
+
+const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' }) => {
+  const { authAxios, user } = useAuth() as any;
+  const audienceConfig = getClientHubAudienceConfig(audience);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -109,25 +111,28 @@ const ClientsWorkspace: React.FC = () => {
     }
 
     if (intent === 'plan_next') {
-      return navigateClientDailyRoute(buildClientWorkoutPlannerRoute(client.id));
+      return navigateClientDailyRoute(buildClientWorkoutPlannerRoute(client.id, audience));
     }
 
     return false;
-  }, [navigateClientDailyRoute, showClientDetailTab]);
+  }, [audience, navigateClientDailyRoute, showClientDetailTab]);
 
   const loadClients = useCallback(async (): Promise<ClientOption[]> => {
     setLoading(true);
     try {
-      const mapped = await fetchClientHubAdminClients(authAxios);
+      const mapped = await fetchClientHubClients(authAxios, audience, user?.id);
       setClients(mapped);
       return mapped;
     } finally {
       setLoading(false);
     }
-  }, [authAxios]);
+  }, [audience, authAxios, user?.id]);
 
-  const loadClientById = useCallback((clientId: number): Promise<ClientOption | null> =>
-    fetchAdminClientById(authAxios, clientId), [authAxios]);
+  const loadClientById = useCallback((clientId: number): Promise<ClientOption | null> => (
+    audience === 'trainer'
+      ? fetchTrainerClientById(authAxios, user?.id, clientId)
+      : fetchAdminClientById(authAxios, clientId)
+  ), [audience, authAxios, user?.id]);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -151,21 +156,20 @@ const ClientsWorkspace: React.FC = () => {
     showClientDetailTab(client, 'training');
   }, [clientHubIntent, runClientHubIntent, showClientDetailTab]);
 
-  const handleNewClient = useCallback(() => {
-    navigate(buildClientCoachOnboardingRoute());
-  }, [navigate]);
+  const {
+    handleNewClient,
+    handleOpenOnboardingWorkbench,
+    handleViewAsClient,
+    handleManageAssignments,
+  } = useClientHubAdminNav(navigate, selectedClient);
 
   const handleOpenAI = useCallback(() => {
     if (selectedClient) {
-      navigateClientDailyRoute(buildClientCoachDailyRoute(selectedClient.id, 'log_workout'));
+      navigateClientDailyRoute(buildClientCoachDailyRoute(selectedClient.id, 'log_workout', audience));
     } else {
-      navigate('/dashboard/admin/coach-assistant');
+      navigate(audienceConfig.coachAssistantBase);
     }
-  }, [navigate, navigateClientDailyRoute, selectedClient]);
-
-  const handleOpenOnboardingWorkbench = useCallback(() => {
-    navigate(buildClientOnboardingWorkbenchRoute(selectedClient));
-  }, [navigate, selectedClient]);
+  }, [audience, audienceConfig.coachAssistantBase, navigate, navigateClientDailyRoute, selectedClient]);
 
   const handleLogWorkout = useCallback(() => {
     if (selectedClient) {
@@ -175,19 +179,13 @@ const ClientsWorkspace: React.FC = () => {
 
   const handlePlanNext = useCallback(() => {
     if (selectedClient) {
-      navigateClientDailyRoute(buildClientWorkoutPlannerRoute(selectedClient.id));
+      navigateClientDailyRoute(buildClientWorkoutPlannerRoute(selectedClient.id, audience));
     }
-  }, [navigateClientDailyRoute, selectedClient]);
+  }, [audience, navigateClientDailyRoute, selectedClient]);
 
   const handleViewProgress = useCallback(() => {
     if (selectedClient) showClientDetailTab(selectedClient, 'progress');
   }, [selectedClient, showClientDetailTab]);
-
-  const handleViewAsClient = useCallback(() => {
-    if (selectedClient) {
-      navigate(`/dashboard/admin/client-management/view-as/${selectedClient.id}`);
-    }
-  }, [navigate, selectedClient]);
 
   const handleClearSelectedClient = useCallback(() => {
     setSelectedClient(null);
@@ -198,10 +196,10 @@ const ClientsWorkspace: React.FC = () => {
   const handleClientCardQuickAction = useCallback((client: ClientOption, action: ClientHubQuickAction) => {
     if (action === 'log') return showClientDetailTab(client, 'training', 'logger');
 
-    const route = buildClientCardQuickActionRoute(client.id, action);
+    const route = buildClientCardQuickActionRoute(client.id, action, audience);
     if (route) return navigateClientDailyRoute(route);
     showClientDetailTab(client, 'progress');
-  }, [navigateClientDailyRoute, showClientDetailTab]);
+  }, [audience, navigateClientDailyRoute, showClientDetailTab]);
 
   const {
     handleDeactivateClient,
@@ -235,7 +233,6 @@ const ClientsWorkspace: React.FC = () => {
     toast(buildCreationHandoffCopyToast(label, copied));
   }, [toast]);
 
-  const handleManageAssignments = useCallback(() => navigate('/dashboard/admin/client-trainer-assignments'), [navigate]);
   const detailClient = useMemo(() => toMiniCardClient(selectedClient), [selectedClient]); const {
     renderTraining,
     renderProgress,
@@ -247,11 +244,13 @@ const ClientsWorkspace: React.FC = () => {
     selectedClient,
     getClientTrainingSectionFromSearchParams(searchParams),
     handleViewProgress,
-    scheduleLoggerContext
+    scheduleLoggerContext,
+    audience
   );
 
   return (
     <ClientsWorkspaceView
+      audience={audience}
       authAxios={authAxios}
       clients={clients}
       selectedClient={selectedClient}

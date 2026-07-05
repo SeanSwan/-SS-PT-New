@@ -5,6 +5,7 @@
  */
 
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
+import type { ClientHubAudience } from './clients-team/clientHubAudience';
 import { mapAdminClientToClientOption } from './clients-team/clientOptionMappers';
 import type { ClientDetailTab } from './ClientsWorkspace.logic';
 
@@ -85,6 +86,72 @@ export const fetchClientHubAdminClients = async (
     warnClientHubFetch('Failed to fetch clients:', error);
     return [];
   }
+};
+
+const getTrainerAssignmentRows = (data: unknown): unknown[] => {
+  const response = data as {
+    assignments?: unknown;
+    data?: { assignments?: unknown } | unknown;
+  } | null | undefined;
+  if (Array.isArray(response?.assignments)) return response.assignments;
+  if (Array.isArray(response?.data)) return response.data;
+  const nested = (response?.data as { assignments?: unknown } | undefined)?.assignments;
+  return Array.isArray(nested) ? nested : [];
+};
+
+const isInactiveAssignment = (row: unknown): boolean => {
+  const status = (row as { status?: unknown } | null | undefined)?.status;
+  return typeof status === 'string' && status !== 'active';
+};
+
+const mapTrainerAssignmentsResponse = (data: unknown): ClientOption[] =>
+  getTrainerAssignmentRows(data)
+    .filter((row) => !isInactiveAssignment(row))
+    .map((row) => {
+      const assignment = row as { client?: unknown; Client?: unknown } | null | undefined;
+      return mapAdminClientToClientOption(assignment?.client ?? assignment?.Client ?? row);
+    })
+    .filter(isClientOption);
+
+/** Assigned-clients-only roster for the trainer audience. */
+export const fetchClientHubTrainerClients = async (
+  authAxios: ClientHubAxios | null | undefined,
+  trainerUserId: number | string | null | undefined
+): Promise<ClientOption[]> => {
+  if (!authAxios || !trainerUserId) return [];
+
+  try {
+    const response = await authAxios.get(
+      `/api/client-trainer-assignments/trainer/${trainerUserId}`
+    );
+    return mapTrainerAssignmentsResponse(response.data);
+  } catch (error) {
+    warnClientHubFetch('Failed to fetch assigned clients:', error);
+    return [];
+  }
+};
+
+export const fetchClientHubClients = (
+  authAxios: ClientHubAxios | null | undefined,
+  audience: ClientHubAudience,
+  trainerUserId?: number | string | null
+): Promise<ClientOption[]> => (
+  audience === 'trainer'
+    ? fetchClientHubTrainerClients(authAxios, trainerUserId)
+    : fetchClientHubAdminClients(authAxios)
+);
+
+/**
+ * Trainer URL-selection loader: resolves ONLY within the assigned roster so a
+ * deep link to an unassigned clientId lands nowhere instead of leaking data.
+ */
+export const fetchTrainerClientById = async (
+  authAxios: ClientHubAxios | null | undefined,
+  trainerUserId: number | string | null | undefined,
+  clientId: number
+): Promise<ClientOption | null> => {
+  const roster = await fetchClientHubTrainerClients(authAxios, trainerUserId);
+  return roster.find((candidate) => candidate.id === clientId) ?? null;
 };
 
 export const fetchAdminClientById = async (
