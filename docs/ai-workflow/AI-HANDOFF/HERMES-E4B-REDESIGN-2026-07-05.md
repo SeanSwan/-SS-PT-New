@@ -58,5 +58,30 @@ Do NOT ship E4b claiming tamper-PROOF history. Ship it claiming forgery-resistan
 
 ---
 
+## 2b. ROUND 2 — v2 was BUILT, adversarially re-verified, and ALSO blocked (the decisive lesson)
+
+The corrected v2 design in §2 (per-vault salt + chained per-day anchors + signed manifest head + doctor-state keyed high-water + archive-aware reads) was **fully built and passed 13 targeted F1–F10 regression tests + 92/92 suite + a live smoke.** A second 3-lens adversarial pass then found **1 CRITICAL + 3 HIGH + 3 MEDIUM + 1 LOW** — and they all share ONE root cause:
+
+> **Every local anti-deletion signal is itself locally writable/deletable.** The manifest, `firstKeyedDate`, and `doctor-state.keyed` are all plain local files, so a delete-capable attacker keeps finding paths STRICTLY NARROWER than the accepted "delete everything" residual — each one "worse than residual (a) because doctor-state survives."
+
+Round-2 findings (v2 code preserved on branch `claude/hermes-e4b-v2-wip` for reference):
+- **[CRIT] firstKeyedDate reset:** delete the manifest → `firstKeyedDate` recomputes to *today* → every prior signed day is demoted to "pre-key" (a benign warn) → its anchor can be set `signed:false` and rewritten. Silent past-day tampering.
+- **[HIGH] altered-beneath-append:** `anchorLib` never re-checks the frozen prefix when `count > signed` (edit line 5 + append line 6 → `count` grows → no check fires). `spineLib.verifyChain` already guards this; anchorLib omitted it. (This one is a CLEAN independent fix.)
+- **[HIGH] manifest-deletion + tail-trim / head-anchor-deletion:** a missing manifest with anchors present is unguarded (the only missing-manifest fault requires `dates.length===0`); delete the manifest + the last day → silent erase. doctor-state holds no `count`/`headDate` high-water to notice.
+- **[MED] doctor-state.keyed flip:** it's unsigned local JSON — write `keyed:false` to downgrade the F4 hard-fault to a benign exit-1.
+- **[MED] manifest replay:** an older valid signed manifest (lower count) replayed back hides a multi-day tail deletion — nothing ratchets.
+- **[MED] corrupt .gz crashes the doctor:** `zlib.gunzipSync` in `streamHead` has no try/catch → one planted bad `.gz` throws out of `runDoctor` and disables the WHOLE auditor. (CLEAN independent fix.)
+- **[LOW] --date backfill chain-break:** `todayPrev` uses `lastSig` not `prevSigBefore` for a non-latest `--date`, mislinking the chain → false chain-break faults. (CLEAN independent fix — use `prevSigBefore` unconditionally.)
+
+**THE DECISIVE CONCLUSION:** a fully-LOCAL anchor is **whack-a-mole** against a delete-capable attacker (round 1 = 10 findings, round 2 = 8 narrower ones). The **forgery-resistance** half is genuinely sound and done (you cannot EDIT/replay/transplant a signed anchor without the key). The **deletion-resistance** half converges on needing an **authenticated high-water that survives local deletion — which is only truly achievable OFF-BOX.** Local hardening (signing doctor-state, a monotonic ratchet) closes the *current* narrower paths but the residual (delete every local artifact incl. the signed doctor-state) is irreducible locally.
+
+## 2c. THE PATH FORWARD (Sean's architecture decision)
+
+Two honest options — this is a genuine call, not a patch choice:
+- **(A) Ship forgery-resistant E4b now + off-box later.** Take the v2 forgery core (HMAC anchors + date-slot + vault-id binding), apply the 3 CLEAN fixes (altered-beneath-append, corrupt-.gz guard, --date backfill), and have the doctor HONESTLY report: *"forgery-resistant (a signed record can't be edited without the key); deletion of history is NOT locally preventable — see off-box."* Drop the misleading manifest/pre-key deletion-detection (it overclaims) or clearly label it best-effort. Then **E4c = off-box manifest sync** (push the signed manifest/head to the Pi over Tailscale or R2) is what actually closes deletion. Value now: an attacker can't silently REWRITE the audit trail; they can only DELETE it (which off-box then catches).
+- **(B) Off-box first (E4c), then E4b lands complete on top.** Build the off-box manifest sync as the real deletion-resistance foundation, then the local anchor + off-box together deliver both forgery- AND deletion-resistance. Needs the Pi/R2 connection (a C2-connections item) before it can start.
+
+Recommendation: **(A)** — it ships real, honest value (forgery-resistance) immediately and de-risks the audit trail's biggest silent threat (rewriting), while (B)'s off-box piece becomes E4c/a connections item. But it's Sean's call because it trades "ship a partial guarantee now" vs "wait for the complete one."
+
 ## 3. Why this got caught (process note for the loop)
 E4b passed **86/86 tests + a live smoke** and STILL had 3 critical security bypasses. Unit tests confirm the happy path + the attacks you thought of; they do not find the attacks you didn't. For any security-critical slice, the adversarial fan-out (independent skeptics reading the code to *break* it, with named scenarios) is non-optional — it is what caught F1–F10. Budget for it, and expect it to find real bugs in the *fixes* too (as it did on E2). Ship only after the redesign passes a fresh adversarial pass.
