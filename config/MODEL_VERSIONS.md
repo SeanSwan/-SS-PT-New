@@ -48,6 +48,10 @@ openrouter-minimax-m27:    minimax/minimax-m2.7
 # Policy: Chinese-provider models are allowed ONLY in the UX/UI design-debate slot (lowest sensitivity, no PII/security/code).
 # Wired as the LEAD designer (Creative Director / final say) in validation-orchestrator.mjs Phase 2C, opposite Gemini 3.1 Pro.
 openrouter-glm-52:         z-ai/glm-5.2
+# Claude Fable 5 (Anthropic) — verified 2026-07-04 via openrouter.ai/api/v1/models ($10/M in / $50/M out).
+# Wired as the standing Village FUSION_JUDGE (synthesis Final Decider) in validation-orchestrator.mjs.
+# CLAUDE.md Final-Decider chain: Fable 5 → Opus 4.8 fallback (anthropic/claude-opus-4.8) via SWAN_FUSION_JUDGE_MODEL.
+openrouter-fable-judge:    anthropic/claude-fable-5
 
 # OpenAI (direct API) — REMOVED 2026-04-20
 # No consumer script uses direct OpenAI API today. Codex CLI is used instead.
@@ -76,6 +80,7 @@ When a model is rotated or preflight flags a new TODO, edit the fenced `yaml` bl
 
 ## Change log
 
+- **2026-07-04:** Added `openrouter-fable-judge: anthropic/claude-fable-5` (Anthropic Fable 5). Slug + pricing ($10/M in, $50/M out) verified via openrouter.ai/api/v1/models. Wired as the standing Village FUSION_JUDGE (synthesis Final Decider) in `validation-orchestrator.mjs`, replacing the Opus 4.8 default (kept as env-override fallback per the CLAUDE.md Final-Decider chain). Requested by Sean ("add Fable 5 to the AI Village").
 - **2026-06-20:** Added `openrouter-glm-52: z-ai/glm-5.2` (Z.ai/China). Slug + pricing verified via openrouter.ai/z-ai/glm-5.2. Wired as the LEAD designer (Creative Director / final say) in `validation-orchestrator.mjs` Phase 2C design debate (planning + code-review + document modes), opposite Gemini 3.1 Pro as reviewer; MiniMax M2.7 retired from the design slot. On-test per Sean ("supposed to be really good at design"). Permitted only in the design slot — the audit-compliance guard still blocks `z-ai/` in Phase 1 / escalation / fusion-judge slots.
 - **2026-04-20:** First verification pass. Claude + Gemini IDs fetched from official docs; OpenRouter IDs taken from Sean's current orchestrator (already live in production AI Village runs). `openai-primary-model` entry removed — no consumer script uses it today. Next re-verification target: 2026-05-20 (monthly cadence).
 - **2026-04-19:** Registry created per v3 Patch 1 / Codex Q4 / CLAUDE.md Model-ID discipline.

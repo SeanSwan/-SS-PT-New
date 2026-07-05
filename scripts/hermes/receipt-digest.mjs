@@ -19,9 +19,13 @@ import {
   checkSwitches, readJsonl, readReceipts, resolveSwitchesFile, resolveVaultRoot,
   vaultPaths, writeReceipt,
 } from './hermesRunsLib.mjs';
+import { verifyChain } from './spineLib.mjs';
+import { loadQueueState } from './queueModel.mjs';
 
 const TIERS = ['T0', 'T1', 'T2', 'T3', 'T4'];
 const REFUSAL_CLUSTER_THRESHOLD = 5; // G-4: N+ refusals from one sender in 24h = a flood/injection cluster
+const ARMED_STALE_MS = 24 * 60 * 60 * 1000; // G-9: a T4 armed-but-unexecuted past this is a receipt gap
+const base = (f) => String(f).replace(/\\/g, '/').split('/').pop();
 
 function tierOf(what) {
   return /\((T[0-4])\)/.exec(String(what))?.[1] ?? 'T0';
@@ -52,6 +56,20 @@ export function renderDigest(vaultRoot, isoDate) {
   const bySender = {};
   for (const r of refusals) bySender[r.who] = (bySender[r.who] || 0) + 1;
   const clusters = Object.entries(bySender).filter(([, n]) => n >= REFUSAL_CLUSTER_THRESHOLD).sort((a, b) => b[1] - a[1]);
+
+  // Integrity (G-7 + G-9): surface what silently degrades to T0 or lingers armed.
+  const paths = vaultPaths(vaultRoot, isoDate);
+  const unparseable = receipts.filter((r) => r.__unparseable !== undefined);
+  const tierless = receipts.filter((r) => r.what !== undefined && !/\((T[0-4])\)/.test(String(r.what)));
+  const chainBroken = [paths.receiptsFile, paths.queueFile].map((f) => verifyChain(f)).filter((c) => !c.ok);
+  const refMs = Date.parse(`${isoDate}T23:59:59Z`);
+  const armedStale = [...loadQueueState(vaultRoot).values()].filter(
+    (e) => e.status === 'armed' && Number.isFinite(Date.parse(e.armedAt)) && refMs - Date.parse(e.armedAt) > ARMED_STALE_MS
+  );
+  // Actor partition (G-15): who did what, ranked (per-trainer review, Q7, builds on this).
+  const byActor = {};
+  for (const r of receipts) if (r.who) byActor[r.who] = (byActor[r.who] || 0) + 1;
+  const actorRows = Object.entries(byActor).sort((a, b) => b[1] - a[1]);
 
   const opened = queueRecords.filter((r) => r.type === 'create');
   const byOutcome = (to) => queueRecords.filter((r) => r.type === 'transition' && r.to === to);
@@ -99,8 +117,18 @@ export function renderDigest(vaultRoot, isoDate) {
     ...clusters.map(([who, n]) => `- ${who}: ${n} refusals in 24h — refusal clusters are the injection/flood signal, not noise.`),
     ...((!floodHit.length && !clusters.length) ? ['No refusal clusters.'] : []),
     '',
+    '## Integrity',
+    ...(unparseable.length ? [`**⚠ ${unparseable.length} unparseable/torn receipt line(s) — corrupt or crash-torn; inspect the JSONL source.**`] : []),
+    ...(tierless.length ? [`**⚠ ${tierless.length} tier-less receipt(s) (no (Tn) marker) — silently counted as T0; fix the caller's \`what\`.**`] : []),
+    ...chainBroken.map((c) => `**⚠ CHAIN BREAK ${base(c.file)} L${c.breakAt}: ${c.reason}**`),
+    ...armedStale.map((e) => `**⚠ ARMED > 24h, no filed receipt: ${e.id} (${e.action}) armed ${e.armedAt} — a T4 armed-but-unexecuted is a receipt gap; resolve it.**`),
+    ...((!unparseable.length && !tierless.length && !chainBroken.length && !armedStale.length) ? ['No integrity issues.'] : []),
+    '',
     '## Approval flow',
     `opened ${opened.length} · approved ${byOutcome('approved').length} · denied ${byOutcome('denied').length} · expired ${byOutcome('expired').length} · median open→resolved: ${med === null ? 'n/a' : `${med} min`}`,
+    '',
+    '## By actor (24h)',
+    ...(actorRows.length ? actorRows.map(([who, n]) => `- ${who}: ${n} receipt(s)`) : ['No activity.']),
     '',
     '## Switch activity',
     ...(flips.length

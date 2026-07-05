@@ -1,13 +1,19 @@
 /**
  * Authoritative SwanStudios leveling and rank helpers.
  *
- * The XP curve remains logarithmic for backward compatibility:
- * level = floor(0.1 * sqrt(totalPoints)). Public rank language now follows
- * the Swan 1-1000 ladder approved for the gamification redesign.
+ * The XP curve is a power curve: pointsForLevel(L) = floor(80 * (L-1)^1.6),
+ * with calculateLevel(xp) as its exact inverse. This replaces the retired sqrt
+ * curve (level = floor(0.1 * sqrt(points))) that made Level 25 require 62,500
+ * lifetime points. Public rank language follows the Swan 1-1000 ladder.
+ *
+ * NOTE: level must be driven by LIFETIME earned XP, never the spendable point
+ * balance — spending points must not lower a user's level or rank.
  */
 
 export const MAX_LEVEL = 1000;
-export const LEVEL_FORMULA_SCALE = 0.1;
+// Power-curve constants. pointsForLevel is the source of truth; calculateLevel inverts it.
+export const LEVEL_CURVE_SCALE = 80;
+export const LEVEL_CURVE_EXPONENT = 1.6;
 
 const RANK_TITLE_NAMES = [
   'First Flight',
@@ -175,16 +181,22 @@ export function getRankTitles() {
   return RANK_TITLES.map((rank) => ({ ...rank }));
 }
 
-export function calculateLevel(totalPoints) {
-  const numericPoints = Number(totalPoints);
-  if (!Number.isFinite(numericPoints) || numericPoints <= 0) return 1;
-  return Math.min(MAX_LEVEL, Math.max(1, Math.floor(LEVEL_FORMULA_SCALE * Math.sqrt(numericPoints))));
-}
-
 export function pointsForLevel(level) {
   const targetLevel = normalizeLevel(level);
   if (targetLevel <= 1) return 0;
-  return Math.ceil(Math.pow(targetLevel / LEVEL_FORMULA_SCALE, 2));
+  return Math.floor(LEVEL_CURVE_SCALE * Math.pow(targetLevel - 1, LEVEL_CURVE_EXPONENT));
+}
+
+export function calculateLevel(totalPoints) {
+  const numericPoints = Number(totalPoints);
+  if (!Number.isFinite(numericPoints) || numericPoints <= 0) return 1;
+  // Analytic inverse of pointsForLevel, corrected for floor() rounding drift so
+  // that calculateLevel(pointsForLevel(L)) === L for every L in [1, MAX_LEVEL].
+  const approxLevel = Math.floor(Math.pow(numericPoints / LEVEL_CURVE_SCALE, 1 / LEVEL_CURVE_EXPONENT)) + 1;
+  let level = Math.min(MAX_LEVEL, Math.max(1, approxLevel));
+  while (level < MAX_LEVEL && pointsForLevel(level + 1) <= numericPoints) level += 1;
+  while (level > 1 && pointsForLevel(level) > numericPoints) level -= 1;
+  return level;
 }
 
 export function getTier(level) {

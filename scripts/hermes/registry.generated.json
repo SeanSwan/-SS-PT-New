@@ -128,6 +128,21 @@
       "proposed": false
     },
     {
+      "name": "hermes-doctor",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "per-check ok/fault + exit code (0 healthy/1 degraded/2 fault)",
+      "description": "Self-diagnosis: lanes + index law, switches readable, chain integrity, clock regression, schedule, receipt roundtrip; the health-panel + runner-preflight data source (E4)",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
       "name": "qa-session-start",
       "tier": "T0",
       "approval": "none-logged",

@@ -14,7 +14,7 @@ import {
   SubTitle,
 } from './GamificationSettingsFrame.styles';
 import { StyledTable, TBody, THead, TableWrapper } from './GamificationSettingsControl.styles';
-import { LEVEL_FORMULA_SCALE, MAX_LEVEL, getRankTitles, pointsForLevel } from '../../../../../types/gamification';
+import { LEVEL_CURVE_SCALE, LEVEL_CURVE_EXPONENT, MAX_LEVEL, getRankTitles, pointsForLevel } from '../../../../../types/gamification';
 import { getUpcomingProgressionBeats } from '../../../../../types/gamificationProgression';
 
 const SAMPLE_LEVELS = [10, 25, 50, 100, 250, 500, 1000] as const;
@@ -46,7 +46,7 @@ export const GamificationSettingsProgressionTuningPanel: React.FC = () => (
     <GridContainer className="two-col">
       <div>
         <SubTitle>Current XP Curve</SubTitle>
-        <CodeBlock>Level = Math.floor({LEVEL_FORMULA_SCALE} * Math.sqrt(totalPoints))</CodeBlock>
+        <CodeBlock>XP for Level L = Math.floor({LEVEL_CURVE_SCALE} × (L − 1) ^ {LEVEL_CURVE_EXPONENT})</CodeBlock>
         <MutedText>
           The live rank ladder runs from Level 1 to Level {MAX_LEVEL}. Public rank titles unlock every 10 levels,
           with Sapphire and Crystalline Swan arcs reserved for long-term achievement.

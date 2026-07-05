@@ -206,6 +206,7 @@ export async function runFusionSynthesis({
       sections: parseSynthesisSections(text),
       analystCount: analysts.length,
       judgeModel,
+      finishReason: res?.finishReason || null,
       inputTokens,
       outputTokens,
       costUSD,

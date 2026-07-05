@@ -95,9 +95,9 @@ const MODELS = {
   // available Claude — Opus 4.8 now, Fable 5 when it returns (CLAUDE.md Final-Decider chain).
   // Opus is intentionally absent from the track models above (cost discipline), but the judge
   // runs ONCE per run, not per-track, so the premium model is justified here.
-  //   ⚠ The exact OpenRouter slug below is a [HYPOTHESIS] (follows the anthropic/claude-sonnet-4.6
-  //   pattern). Set SWAN_FUSION_JUDGE_MODEL to the verified slug — or to Fable 5 when it returns —
-  //   to override without a code change. A wrong slug only fails the (non-breaking) synthesis step.
+  //   The judge slug is now VERIFIED: anthropic/claude-fable-5 (openrouter.ai/api/v1/models,
+  //   2026-07-04). Set SWAN_FUSION_JUDGE_MODEL to override without a code change (e.g. the Opus 4.8
+  //   fallback anthropic/claude-opus-4.8). A wrong slug only fails the (non-breaking) synthesis step.
   // ── BANNED MODELS (NEVER USE) ──
   // No Grok. No X-AI models. Hard no, permanent ban. User explicit preference.
   // ── REMOVED (Privacy audit 2026-04-06) ──
@@ -114,13 +114,20 @@ const MODELS = {
 // (full rationale: memory/project_validation_orchestrator_drift_2026_04_22.md)
 // ─────────────────────────────────────────────
 
-// Fusion synthesis judge config — strongest available Claude (Opus 4.8 now → Fable 5 later).
-// Override model/price via env so the verified slug or Fable can be swapped without a code edit.
+// Fusion synthesis judge config — the Village Final Decider (CLAUDE.md Final-Decider chain).
+// Fable 5 is the standing judge (Sean 2026-07-04: "add Fable 5 to the AI Village"). Slug + pricing
+// verified 2026-07-04 via openrouter.ai/api/v1/models. Override via env to fall back to Opus 4.8
+// (anthropic/claude-opus-4.8, $5/$25) if Fable is ever unavailable — no code edit needed.
 const FUSION_JUDGE = {
-  model: process.env.SWAN_FUSION_JUDGE_MODEL || 'anthropic/claude-opus-4.8',
-  priceInputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_IN) || 5.0,   // Opus 4.8 est. $5/M in
-  priceOutputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_OUT) || 25.0, // Opus 4.8 est. $25/M out
+  model: process.env.SWAN_FUSION_JUDGE_MODEL || 'anthropic/claude-fable-5',
+  priceInputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_IN) || 10.0,   // Fable 5: $10/M in (OpenRouter, verified 2026-07-04)
+  priceOutputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_OUT) || 50.0, // Fable 5: $50/M out
 };
+
+// The judge synthesizes the WHOLE panel — it needs room to finish. The default 4096 cap
+// truncated Fable mid-verdict (Sean 2026-07-05). Raise the ceiling so it completes; the model
+// still stops when done, so this lifts the max, it does not force more output/spend.
+const JUDGE_MAX_TOKENS = Number(process.env.SWAN_FUSION_JUDGE_MAX_TOKENS) || 12000;
 
 const DISALLOWED_PROVIDER_PREFIXES = ['minimax/', 'stepfun/', 'qwen/', 'deepseek/', 'z-ai/'];
 
@@ -1518,7 +1525,7 @@ The Creative Director has FINAL SAY on design decisions. You challenge but ultim
 // OpenRouter API Caller (single unified caller)
 // ─────────────────────────────────────────────
 
-async function callOpenRouter(apiKey, model, prompt) {
+async function callOpenRouter(apiKey, model, prompt, opts = {}) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1530,7 +1537,7 @@ async function callOpenRouter(apiKey, model, prompt) {
     body: JSON.stringify({
       model,
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: 4096,
+      max_tokens: opts.maxTokens || 4096,
       temperature: 0.3,
     }),
     signal: AbortSignal.timeout(CONFIG.timeout),
@@ -1552,6 +1559,7 @@ async function callOpenRouter(apiKey, model, prompt) {
     inputTokens: data.usage?.prompt_tokens || estimateTokens(prompt),
     outputTokens: data.usage?.completion_tokens || estimateTokens(data.choices?.[0]?.message?.content || ''),
     model: data.model || model,
+    finishReason: data.choices?.[0]?.finish_reason || null,
   };
 }
 
@@ -1710,13 +1718,39 @@ function sleep(ms) {
 // here, and the synth result rides in the normal results array.
 // ─────────────────────────────────────────────
 
+// Dedicated permission gate for the premium Fable judge (Sean 2026-07-05): explicit opt-in
+// ONLY — SWAN_VILLAGE_FABLE_CONFIRM=yes, or an interactive y/N. Fail-closed when unattended
+// without the env, so the pricey judge can never run without a deliberate yes.
+async function confirmFableJudge(estUSD) {
+  if (String(process.env.SWAN_VILLAGE_FABLE_CONFIRM || '').toLowerCase() === 'yes') return true;
+  if (!process.stdin.isTTY) return false;
+  const { createInterface } = await import('node:readline');
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const ans = await new Promise((resolve) => rl.question(
+      `    Run the ${FUSION_JUDGE.model} FINAL judge (~$${estUSD.toFixed(2)} est.)? [y/N] `, resolve));
+    return /^y(es)?$/i.test(String(ans).trim());
+  } finally {
+    rl.close();
+  }
+}
+
 async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic, capUSD = null }) {
-  // Kill switch: the judge is a premium Opus-class call on EVERY run. Default ON
-  // (Sean approved the graft) but killable via env so it never spends without consent.
+  // Kill switch: the judge is a premium call on EVERY run. Default ON (Sean approved the
+  // graft) but killable via env so it never spends without consent.
   if (String(process.env.SWAN_FUSION_SYNTHESIS || 'on').toLowerCase() === 'off') {
     console.log('    [synthesis] disabled via SWAN_FUSION_SYNTHESIS=off');
     return;
   }
+
+  // Nothing to judge → do NOT call the judge (no spend). This is the guard that stops paying
+  // for a run that "did nothing" — the judge adds no value below the 2-analyst panel minimum.
+  const successfulAnalysts = (phase1Results || []).filter(r => r && r.status === 'SUCCESS');
+  if (successfulAnalysts.length < 2) {
+    console.log(`    [synthesis] skipped — only ${successfulAnalysts.length} successful analyst(s); nothing to judge (no Fable spend)`);
+    return;
+  }
+
   // Mid-run hard-cap guard: skip the (most expensive) judge call if Phase 1 already
   // blew the budget, so the cap can't be exceeded by the synthesis step.
   const priorCost = [...(phase1Results || []), ...(sink || [])].reduce((s, r) => s + (r.costUSD || 0), 0);
@@ -1724,10 +1758,19 @@ async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic,
     console.log(`    [synthesis] skipped — accumulated spend $${priorCost.toFixed(4)} already over cap $${Number(capUSD).toFixed(4)}`);
     return;
   }
+
+  // Permission gate — Fable must be explicitly approved before it spends (Sean 2026-07-05).
+  const judgeInputTok = successfulAnalysts.reduce((s, r) => s + (r.outputTokens || 0), 0);
+  const estFableUSD = (judgeInputTok / 1e6) * FUSION_JUDGE.priceInputPerM + (JUDGE_MAX_TOKENS / 1e6) * FUSION_JUDGE.priceOutputPerM;
+  if (!(await confirmFableJudge(estFableUSD))) {
+    console.log(`    [synthesis] SKIPPED — Fable judge not approved (~$${estFableUSD.toFixed(2)} est.). Set SWAN_VILLAGE_FABLE_CONFIRM=yes or answer y. No spend.`);
+    return;
+  }
+
   try {
     const synth = await runFusionSynthesis({
       analystResults: phase1Results,
-      callModel: (model, prompt) => callOpenRouter(apiKey, model, prompt),
+      callModel: (model, prompt) => callOpenRouter(apiKey, model, prompt, { maxTokens: JUDGE_MAX_TOKENS }),
       judgeModel: FUSION_JUDGE.model,
       priceInputPerM: FUSION_JUDGE.priceInputPerM,
       priceOutputPerM: FUSION_JUDGE.priceOutputPerM,
@@ -1735,7 +1778,13 @@ async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic,
       topic,
       log: (m) => console.log(`    ${m}`),
     });
-    if (synth) sink.push(synth);
+    if (synth) {
+      sink.push(synth);
+      // Completeness check — Fable must actually FINISH its verdict, not truncate (Sean 2026-07-05).
+      if (synth.status === 'SUCCESS' && (synth.finishReason === 'length' || !synth.sections?.fusedRecommendation)) {
+        console.warn(`    [synthesis] ⚠ Fable output looks INCOMPLETE (finish=${synth.finishReason || 'n/a'}, no fused-recommendation). Raise SWAN_FUSION_JUDGE_MAX_TOKENS (now ${JUDGE_MAX_TOKENS}).`);
+      }
+    }
   } catch (err) {
     console.error(`    [FAIL] Fusion synthesis: ${err.message}`);
   }
@@ -1901,6 +1950,10 @@ async function main() {
   loadEnv();
 
   const hasGemini31 = !!getGeminiKey();
+  // Debates (Phase 2/3) run with the OTHER AIs (Nemotron/Sonnet/GLM/Gemini — never Fable);
+  // ON by default (Sean 2026-07-05). Fable is reserved for the FINAL synthesis after debates.
+  // Turn debates off with SWAN_VILLAGE_DEBATES=off.
+  const debatesEnabled = hasGemini31 && String(process.env.SWAN_VILLAGE_DEBATES || 'on').toLowerCase() !== 'off';
   const brainCount = hasGemini31 ? 14 : 12;
 
   console.log('');
@@ -2165,7 +2218,7 @@ async function main() {
     if (groundedCount > 0) {
       console.log(`           ${groundedCount} brain(s) with Google Search Grounding (real-time web research)`);
     }
-    if (hasGemini31) {
+    if (debatesEnabled) {
       console.log(`  Phase 2: 3 Planning Specialty Debates...`);
       console.log(`    A. Security Planning: Nemotron Nano ↔ Nemotron 3 Super (both FREE)`);
       console.log(`    B. Architecture Planning: Claude Sonnet 4.6 ↔ Nemotron 3 Super`);
@@ -2197,9 +2250,6 @@ async function main() {
     let archDebateLog = null;
     let designDebateLog = null;
 
-    // ── Fusion Synthesis: one judge distills the whole Phase-1 panel ──
-    await runFusionSynthesisStep({ phase1Results, sink: debateResults, apiKey, ctx, topic: 'Plan Review (planning mode)', capUSD: gate.capUSD });
-
     async function callModelForDebate(provider, model, prompt) {
       if (provider === 'gemini-direct') {
         return callGeminiDirect(getGeminiKey(), model, prompt);
@@ -2208,7 +2258,7 @@ async function main() {
       }
     }
 
-    if (hasGemini31) {
+    if (debatesEnabled) {
       // ── Phase 2A: Security Planning Debate (FREE) ──
       console.log('');
       console.log('  ── Phase 2A: Security Planning Debate ──');
@@ -2359,6 +2409,14 @@ async function main() {
         console.log('  ── Phase 3: Smart Escalation — SKIPPED (no CRITICAL gaps, all debates reached consensus) ──');
       }
     }
+
+    // ── Fusion Synthesis (Fable): the FINAL review — runs LAST, judging every Phase-1
+    // analyst AND every debate/escalation verdict (Sean 2026-07-05: save Fable for last). ──
+    await runFusionSynthesisStep({
+      phase1Results: [...phase1Results, ...debateResults],
+      sink: debateResults,
+      apiKey, ctx, topic: 'Plan Review (planning mode)', capUSD: gate.capUSD,
+    });
 
     // ── Generate report ──
     const results = [...phase1Results, ...debateResults];
