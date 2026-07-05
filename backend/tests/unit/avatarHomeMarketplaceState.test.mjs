@@ -16,21 +16,21 @@ const routeSource = readFileSync(
 );
 
 const catalogItem = {
-  id: 'crystal_bed',
+  id: 'aurora_poster',
   type: 'furniture',
-  name: 'Crystalline Bed',
-  rarity: 'epic',
+  name: 'Aurora Poster',
+  rarity: 'rare',
   price: 500,
 };
 
 describe('avatarHomeMarketplaceState', () => {
   it('normalizes malformed owned item collections and balances', () => {
-    expect(normalizeOwnedMarketplaceItems({ id: 'crystal_bed' })).toEqual([]);
+    expect(normalizeOwnedMarketplaceItems({ id: 'aurora_poster' })).toEqual([]);
     expect(normalizeOwnedMarketplaceItems([
       null,
-      { id: 'crystal_bed', type: 'furniture', name: 'Crystalline Bed', rarity: 'epic', equippedIn: 12 },
+      { id: 'aurora_poster', type: 'furniture', name: 'Aurora Poster', rarity: 'rare', equippedIn: 12 },
     ])).toEqual([
-      { id: 'crystal_bed', type: 'furniture', name: 'Crystalline Bed', rarity: 'epic', equippedIn: null },
+      { id: 'aurora_poster', type: 'furniture', name: 'Aurora Poster', rarity: 'rare', equippedIn: null },
     ]);
 
     expect(normalizeCrystalBalance({ amount: 999 })).toBe(0);
@@ -39,9 +39,9 @@ describe('avatarHomeMarketplaceState', () => {
   });
 
   it('validates marketplace item IDs before route lookup', () => {
-    expect(normalizeMarketplaceItemId(' crystal_bed ')).toBe('crystal_bed');
+    expect(normalizeMarketplaceItemId(' aurora_poster ')).toBe('aurora_poster');
     expect(normalizeMarketplaceItemId('')).toBe(null);
-    expect(normalizeMarketplaceItemId({ id: 'crystal_bed' })).toBeUndefined();
+    expect(normalizeMarketplaceItemId({ id: 'aurora_poster' })).toBeUndefined();
     expect(normalizeMarketplaceItemId('x'.repeat(81))).toBeUndefined();
   });
 
@@ -54,11 +54,13 @@ describe('avatarHomeMarketplaceState', () => {
       error: null,
       status: 200,
       data: {
-        item: { id: 'crystal_bed', type: 'furniture', name: 'Crystalline Bed', rarity: 'epic', equippedIn: null },
+        item: { id: 'aurora_poster', type: 'furniture', name: 'Aurora Poster', rarity: 'rare', equippedIn: null },
         crystalBalance: 150,
+        swanCoins: 150,
+        balance: 150,
       },
       updates: {
-        ownedItems: [{ id: 'crystal_bed', type: 'furniture', name: 'Crystalline Bed', rarity: 'epic', equippedIn: null }],
+        ownedItems: [{ id: 'aurora_poster', type: 'furniture', name: 'Aurora Poster', rarity: 'rare', equippedIn: null }],
         crystalBalance: 150,
       },
     });
@@ -69,17 +71,17 @@ describe('avatarHomeMarketplaceState', () => {
       catalogItem,
       ownedItems: [],
       crystalBalance: { amount: 900 },
-    })).toMatchObject({ error: 'Not enough crystals', status: 400 });
+    })).toMatchObject({ error: 'Not enough SwanCoins', status: 400 });
 
     expect(buildMarketplaceEquipUpdate({
-      ownedItems: { id: 'crystal_bed' },
-      itemId: 'crystal_bed',
+      ownedItems: { id: 'aurora_poster' },
+      itemId: 'aurora_poster',
     })).toMatchObject({ error: 'Item not owned', status: 404 });
 
     expect(buildMarketplaceEquipUpdate({
-      ownedItems: [{ id: 'crystal_bed' }],
-      itemId: 'crystal_bed',
-      target: { slot: 'bed' },
+      ownedItems: [{ id: 'aurora_poster' }],
+      itemId: 'aurora_poster',
+      target: { slot: 'poster' },
     })).toMatchObject({ error: 'Invalid equip target', status: 400 });
   });
 
