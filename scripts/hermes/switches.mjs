@@ -18,12 +18,12 @@
  * slice 2 bot side); this module is the store + lifecycle they call into.
  * Usage: node switches.mjs status · node switches.mjs flip --switch NAME --direction on|off --resolver X --channel Y
  */
-import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import {
   readSwitches, resolveSwitchesFile, resolveVaultRoot, writeReceipt,
 } from './hermesRunsLib.mjs';
 import { autoRevokeForSwitch } from './queueModel.mjs';
+import { atomicWriteFileSync } from './spineLib.mjs';
 
 const ALLOWLIST_ROW = 'allowlist: switch ops, Sean-only channels (bridge §7 standing T2 row; open-questions Q1 DECIDED 2026-07-04)';
 
@@ -65,7 +65,7 @@ export function switchFlip(vaultRoot, switchesFile, { name, direction, resolver,
   const changed = prev !== next;
   if (changed) {
     const updated = { ...read.state, [name]: next };
-    fs.writeFileSync(switchesFile, JSON.stringify(updated, null, 2) + '\n');
+    atomicWriteFileSync(switchesFile, JSON.stringify(updated, null, 2) + '\n'); // temp+rename, never a torn switches file (G-6)
   }
   const revoked = changed && !next ? autoRevokeForSwitch(vaultRoot, name, when) : [];
   writeReceipt(vaultRoot, {

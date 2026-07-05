@@ -20,6 +20,7 @@ import {
   redactText, vaultPaths, writeReceipt,
 } from './hermesRunsLib.mjs';
 import { loadRegistry, getQueueable, getForbidden, getT2Rows } from './registryLib.mjs';
+import { withLock } from './spineLib.mjs';
 
 // The command vocabulary is DATA (registry.generated.json, built from
 // command-effect-registry.md §3). Adding/retiring a queueable command, a
@@ -135,21 +136,25 @@ export function createEntry(vaultRoot, switchesFile, req, nowIso) {
 
   const isoDate = isoDateOf(nowIso);
   const { queueFile } = vaultPaths(vaultRoot, isoDate);
-  const existing = readJsonl(queueFile).filter((r) => r.type === 'create').map((r) => r.entry.id);
-  const entry = {
-    id: nextSequencedId('Q', existing, isoDate),
-    action: req.action,
-    tier: row.tier,
-    target: redactText(req.target),
-    requester: redactText(req.requester),
-    evidence: redactText(req.evidence),
-    ...(req.rollback ? { rollback: redactText(req.rollback) } : {}),
-    created: nowIso,
-    expires: new Date(parseMs(nowIso) + T3_APPROVAL_MS).toISOString(),
-    status: 'open',
-  };
-  appendJsonl(queueFile, { type: 'create', entry });
-  return entry;
+  // Allocate the Q-id and append UNDER ONE LOCK (G-2): the runner and the
+  // Telegram broker are two writers; scan-then-append could mint a dup Q-id.
+  return withLock(`${queueFile}.lock`, () => {
+    const existing = readJsonl(queueFile).filter((r) => r.type === 'create').map((r) => r.entry.id);
+    const entry = {
+      id: nextSequencedId('Q', existing, isoDate),
+      action: req.action,
+      tier: row.tier,
+      target: redactText(req.target),
+      requester: redactText(req.requester),
+      evidence: redactText(req.evidence),
+      ...(req.rollback ? { rollback: redactText(req.rollback) } : {}),
+      created: nowIso,
+      expires: new Date(parseMs(nowIso) + T3_APPROVAL_MS).toISOString(),
+      status: 'open',
+    };
+    appendJsonl(queueFile, { type: 'create', entry });
+    return entry;
+  });
 }
 
 const PHRASES = {

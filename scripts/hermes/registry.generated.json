@@ -113,6 +113,21 @@
       "proposed": false
     },
     {
+      "name": "verify-chain",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "per-stream ok/break + line counts",
+      "description": "Verify the tamper-evident hash chain of a day's receipt + queue streams and report any break (E2 spine)",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
       "name": "qa-session-start",
       "tier": "T0",
       "approval": "none-logged",
