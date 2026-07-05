@@ -9,18 +9,23 @@
 `REVISE` (issues found, being fixed) · `CLEARED` (a hostile pass found zero issues) ·
 `ARCHIVED` (cleared + merged; moved to Archive).
 
+**Owner = the agent accountable for the work** (Prove-or-Named Rule, see [`README.md`](./README.md)):
+work shipped without proof of a hostile-review-to-zero-errors is auto-listed here with its owning
+agent named, and that agent stays named until a hostile pass CLEARS the entry.
+
 ## Summary
-| ID | Target | Status | Reviews |
-|----|--------|--------|---------|
-| HR-004 | Hostile Review Slam Registry (this PR) | OPEN | 0 |
-| HR-003 | PR #20 — companion pet security hardening | OPEN | 0 |
-| HR-002 | PR #19 — dormant `gamificationRoutes.mjs` deletion + Rule-48 audit | OPEN | 0 |
-| HR-001 | PR #15 — Companion V2 cleanup + branch refresh | OPEN | 0 |
+| ID | Target | Owner | Status | Reviews |
+|----|--------|-------|--------|---------|
+| HR-004 | Hostile Review Slam Registry (this PR) | Claude (Opus 4.8) | OPEN | 0 |
+| HR-003 | PR #20 — companion pet security hardening | Claude (Opus 4.8) | OPEN | 0 |
+| HR-002 | PR #19 — dormant `gamificationRoutes.mjs` deletion + Rule-48 audit | Claude (Opus 4.8) | OPEN | 0 |
+| HR-001 | PR #15 — Companion V2 cleanup + branch refresh | Claude (Opus 4.8) | OPEN | 0 |
 
 ---
 
 ### HR-001 — PR #15: Companion V2 cleanup + branch refresh
 - **Status:** OPEN
+- **Owner:** Claude (Opus 4.8) — accountable until CLEARED
 - **Link:** https://github.com/SeanSwan/-SS-PT-New/pull/15 (branch `feature/companion-v2-goal-loop-2026-07-01`)
 - **Added:** 2026-07-05
 - **Why review:** removed the non-functional companion response-injection layer that was wired
@@ -32,6 +37,7 @@
 
 ### HR-002 — PR #19: dormant `gamificationRoutes.mjs` deletion + Rule-48 audit
 - **Status:** OPEN
+- **Owner:** Claude (Opus 4.8) — accountable until CLEARED
 - **Link:** https://github.com/SeanSwan/-SS-PT-New/pull/19 (branch `claude/remove-dormant-gamification-routes-20260705`)
 - **Added:** 2026-07-05
 - **Why review:** deletes a fully-unmounted legacy route file that carried a latent IDOR pattern,
@@ -42,6 +48,7 @@
 
 ### HR-003 — PR #20: companion pet security hardening
 - **Status:** OPEN
+- **Owner:** Claude (Opus 4.8) — accountable until CLEARED
 - **Link:** https://github.com/SeanSwan/-SS-PT-New/pull/20 (branch `claude/harden-companion-pet-input-20260705`)
 - **Added:** 2026-07-05
 - **Why review:** adds `sanitizePetName` at the `CompanionPetService` boundary (control/XSS-char
@@ -53,6 +60,7 @@
 
 ### HR-004 — Hostile Review Slam Registry (this PR)
 - **Status:** OPEN
+- **Owner:** Claude (Opus 4.8) — accountable until CLEARED
 - **Link:** https://github.com/SeanSwan/-SS-PT-New/pull/21 (branch `claude/hostile-review-slam-protocol-20260705`) — `docs/ai-workflow/hostile-reviews/` (README + INDEX) + the `CLAUDE.md` / `AGENTS.md` `## AI Coordination` pointer.
 - **Added:** 2026-07-05
 - **Why review:** new cross-agent protocol. Confirm the pointer edits to `CLAUDE.md`/`AGENTS.md`
