@@ -102,6 +102,13 @@ const VALID_CONTEXT_TYPES = new Set([
   'moderation_review',
 ]);
 
+function getProsocialEventRule(eventId) {
+  if (typeof eventId !== 'string') return null;
+  return Object.prototype.hasOwnProperty.call(UNITY_WEAVER_PROSOCIAL_EVENTS, eventId)
+    ? UNITY_WEAVER_PROSOCIAL_EVENTS[eventId]
+    : null;
+}
+
 function normalizePositiveInteger(value) {
   if (value === undefined || value === null || value === '') return null;
   const normalized = String(value).trim();
@@ -201,7 +208,7 @@ export async function awardUnityWeaverProsocialXP({
 }) {
   const now = new Date();
   const numericActorId = normalizePositiveInteger(actorUserId);
-  const rule = UNITY_WEAVER_PROSOCIAL_EVENTS[eventId];
+  const rule = getProsocialEventRule(eventId);
 
   if (!numericActorId) {
     return { error: { status: 400, message: 'Invalid actor user ID' } };
