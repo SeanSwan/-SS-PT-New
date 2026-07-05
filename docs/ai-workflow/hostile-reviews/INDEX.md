@@ -53,8 +53,7 @@
 
 ### HR-004 — Hostile Review Slam Registry (this PR)
 - **Status:** OPEN
-- **Link:** this PR — `docs/ai-workflow/hostile-reviews/` (README + INDEX) + the `CLAUDE.md` /
-  `AGENTS.md` `## AI Coordination` pointer.
+- **Link:** https://github.com/SeanSwan/-SS-PT-New/pull/21 (branch `claude/hostile-review-slam-protocol-20260705`) — `docs/ai-workflow/hostile-reviews/` (README + INDEX) + the `CLAUDE.md` / `AGENTS.md` `## AI Coordination` pointer.
 - **Added:** 2026-07-05
 - **Why review:** new cross-agent protocol. Confirm the pointer edits to `CLAUDE.md`/`AGENTS.md`
   are additive and don't collide with a rule/section; confirm the protocol is clear enough for any
