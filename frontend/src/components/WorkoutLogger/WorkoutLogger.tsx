@@ -146,6 +146,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const autoLoadTodayPlan = searchParams.get('loadPlan') === 'today';
   const routeAssignmentKey = searchParams.get('assignmentKey');
   const routeAssignmentType = searchParams.get('assignmentType');
+  // Slice 11 deep-link: /progress smart targets land here with the exercise
+  // pre-queried; an exact match auto-adds (see useRolodexDeepLink).
+  const routeExercise = searchParams.get('exercise');
   const hasInitialExercises = Array.isArray(initialData) && initialData.length > 0;
 
   const userNumericId = coerceToNumericId(user?.id);
@@ -192,6 +195,16 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const pendingAiPlanPrefillLoadedRef = useRef(false);
   const workoutLoggerLocalIdCounterRef = useRef(0);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
+  // One-shot deep link: consumed by the first select OR the first close, so
+  // manual re-opens never surprise-add while ?exercise= lingers in the URL.
+  const [deepLinkExercise, setDeepLinkExercise] = useState<string | null>(routeExercise);
+  const routeExerciseOpenedRef = useRef(false);
+  useEffect(() => {
+    if (routeExercise && !routeExerciseOpenedRef.current) {
+      routeExerciseOpenedRef.current = true;
+      setShowExerciseSearch(true);
+    }
+  }, [routeExercise]);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isRepeatingSession, setIsRepeatingSession] = useState(false);
@@ -1089,9 +1102,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             </RolodexTrigger>
             <NASMExerciseRolodex
               isOpen={showExerciseSearch}
+              initialQuery={deepLinkExercise}
+              autoSelectExact={Boolean(deepLinkExercise)}
               onClose={() => {
                 setShowExerciseSearch(false);
                 setPendingSectionContext(null);
+                setDeepLinkExercise(null);
               }}
               sectionContext={pendingSectionContext ?? 'main'}
               onSelectExercise={(exercise) => {

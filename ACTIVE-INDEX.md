@@ -2,7 +2,7 @@
 
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
-**Paired with:** `CLAUDE.md` (operating rules + load order).
+**Paired with:** `AGENTS.md` / `CLAUDE.md` (operating rules + load order).
 **Last updated:** 2026-06-26 (global AI entrypoint archive indexed; social Try This Workout flow retained)
 
 > If you are here for "where does X live" — this is the right file.
@@ -18,8 +18,13 @@
 - **`docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md`** — plan-before-build, mandatory
 - **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — Swan visual source of truth (stack, narrative arc B2, C1-C12 pattern library)
 - **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes + Seedance 2.0 prompt templates
+- **`docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`** - who/what may do which job at which T0-T4 tier; unregistered = BLOCKED (Fable control layer, 2026-07-03)
+- **`docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`** - cost-control rule for Fable token economy: semantic compression, query-first reads, image-context estimator, and proxy safety gates
+- **Startup router rule:** fresh AI sessions read `AGENTS.md`/`CLAUDE.md`, then this index; keep bulky protocol details linked here instead of copied into startup context.
+- **`docs/ai-workflow/hermes-agentic-os/index.md`** - Hermes Agentic OS map: approval gates, receipts, kill switches, channels, command center
+- **`docs/ai-workflow/design-brain/index.md`** - Design Brain map: design.md (canonical) + design.html mirror, adapters, archetypes, QA gates
 
-These six files are the operating base. Everything else is loaded on-demand.
+These files are the operating base. Everything else is loaded on-demand.
 
 ---
 
@@ -39,6 +44,8 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the latest Coach selected-client command push
 
 - `USER-DASHBOARD-N-SERIES-AUDIT-RECORD-2026-06-12.md` - rule-48 audit record for workstream N (M7+N1-N5): V3 Observatory as the canonical /user-dashboard hub, social absorbed, Home truth pass, cover editor, training proof, tab compaction
+- `FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md` — rule-48 audit record for the Fable control layer / Hermes Agentic OS / Design Brain docs + runtime Slice 1 (receipt/queue/digest/prune spine in `scripts/hermes/`, 31/31 tests); security posture, rollback, and future review hooks live here
+- `OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md` — **the Hermes-OS build baton**: slice-by-slice ledger, component-by-component logic map w/ mermaid charts, system-wide hostile review (G-1…G-17 gaps), E1–E6 enhancement plan, and the §11 recursive build loop contract (Sean-authorized goal-driven auto-advance w/ hard-pause gates); Opus 4.8 (or any deputy builder) starts here
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
@@ -105,6 +112,7 @@ Core reference set (most frequently used):
 - `DASHBOARD-ARCHITECTURE.md`
 - `SWANSTUDIOS-DASHBOARD-VISION-BRIEF.md`
 - `BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`
+- `FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` (NEW 2026-07-04) - when/how to reduce Fable context spend; unreviewed proxies remain blocked
 - `NASM-OPT-PROTOCOL.md`
 - `GAMIFICATION-SYSTEM.md`
 - `CHART-ANALYTICS-SYSTEM.md`

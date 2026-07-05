@@ -63,6 +63,8 @@
 // SECTION: Shared helpers
 // ─────────────────────────────────────────────────────────────
 
+import { MOVEMENT_PATTERN_CASE_SQL } from '../services/analytics/movementPatternSql.mjs';
+
 const safeQuery = async (sequelize, sql, replacements, context = '') => {
   try {
     const [rows] = await sequelize.query(sql, { replacements });
@@ -532,55 +534,7 @@ export async function getMovementPatternBalanceChart(req, res) {
 
     const rows = await safeQuery(sequelize,
       `SELECT
-         CASE
-           WHEN wl."exerciseName" ILIKE '%squat%'
-             OR wl."exerciseName" ILIKE '%lunge%'
-             OR wl."exerciseName" ILIKE '%step-up%'
-             OR wl."exerciseName" ILIKE '%leg press%'
-             THEN 'squat'
-           WHEN wl."exerciseName" ILIKE '%deadlift%'
-             OR wl."exerciseName" ILIKE '%rdl%'
-             OR wl."exerciseName" ILIKE '%hip hinge%'
-             OR wl."exerciseName" ILIKE '%good morning%'
-             OR wl."exerciseName" ILIKE '%hip thrust%'
-             OR wl."exerciseName" ILIKE '%glute bridge%'
-             THEN 'hinge'
-           WHEN wl."exerciseName" ILIKE '%bench%'
-             OR wl."exerciseName" ILIKE '%push-up%'
-             OR wl."exerciseName" ILIKE '%pushup%'
-             OR wl."exerciseName" ILIKE '%overhead press%'
-             OR wl."exerciseName" ILIKE '%shoulder press%'
-             OR wl."exerciseName" ILIKE '%ohp%'
-             OR wl."exerciseName" ILIKE '%dip%'
-             OR wl."exerciseName" ILIKE '%chest fly%'
-             THEN 'push'
-           WHEN wl."exerciseName" ILIKE '%row%'
-             OR wl."exerciseName" ILIKE '%pull-up%'
-             OR wl."exerciseName" ILIKE '%pullup%'
-             OR wl."exerciseName" ILIKE '%chin-up%'
-             OR wl."exerciseName" ILIKE '%chinup%'
-             OR wl."exerciseName" ILIKE '%pulldown%'
-             OR wl."exerciseName" ILIKE '%face pull%'
-             OR wl."exerciseName" ILIKE '%curl%'
-             THEN 'pull'
-           WHEN wl."exerciseName" ILIKE '%carry%'
-             OR wl."exerciseName" ILIKE '%farmer%'
-             OR wl."exerciseName" ILIKE '%sled%'
-             OR wl."exerciseName" ILIKE '%suitcase%'
-             THEN 'carry'
-           WHEN wl."exerciseName" ILIKE '%plank%'
-             OR wl."exerciseName" ILIKE '%crunch%'
-             OR wl."exerciseName" ILIKE '%core%'
-             OR wl."exerciseName" ILIKE '%oblique%'
-             OR wl."exerciseName" ILIKE '%dead bug%'
-             OR wl."exerciseName" ILIKE '%bird dog%'
-             OR wl."exerciseName" ILIKE '%hollow%'
-             OR wl."exerciseName" ILIKE '%russian twist%'
-             OR wl."exerciseName" ILIKE '%sit-up%'
-             OR wl."exerciseName" ILIKE '%situp%'
-             THEN 'core'
-           ELSE 'other'
-         END AS pattern,
+         ${MOVEMENT_PATTERN_CASE_SQL} AS pattern,
          COALESCE(SUM(wl.weight * wl.reps), 0)::float AS volume,
          COUNT(*)::int AS sets
        FROM workout_logs wl

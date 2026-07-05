@@ -51,6 +51,7 @@ import {
   getMuscleRecoveryChart,
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
+import { getNextBestActionHandler } from '../controllers/progressPulseController.mjs';
 import { protect, authorize, requireOwnershipOrTrainer } from '../middleware/authMiddleware.mjs';
 import { requireTier } from '../middleware/requireTier.mjs';
 
@@ -159,6 +160,9 @@ router.get('/:userId/exercise-variety', requireOwnershipOrTrainer, getExerciseVa
 // Same tier gate + ownership check; same controller functions. The
 // canonical client-facing routes live in `clientAnalyticsRoutes.mjs`
 // under `/api/client/analytics/*` without a `:userId` in the URL.
+// Slice 8.5 — coach-voiced next-best-action for the admin/trainer surface.
+router.get('/:userId/next-best-action',               requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getNextBestActionHandler);
+
 router.get('/:userId/chart-workout-frequency',        requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWorkoutFrequencyChart);
 router.get('/:userId/chart-attendance-reliability',   requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getAttendanceReliabilityChart);
 router.get('/:userId/chart-weekly-volume',            requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeeklyVolumeChart);

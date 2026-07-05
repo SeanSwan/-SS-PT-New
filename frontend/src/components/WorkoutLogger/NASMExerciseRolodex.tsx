@@ -4,24 +4,22 @@ import ExerciseFilterChips from './ExerciseFilterChips';
 import NASMExerciseRolodexPreview from './NASMExerciseRolodexPreview';
 import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
 import {
-  EQUIPMENT_TYPES,
-  EXERCISE_TYPES,
   ROW_HEIGHT,
-  parseEquipment,
+  applyEquipTypeFilters,
   useVisibleRowCount,
 } from './NASMExerciseRolodex.helpers';
+import RolodexRecentRow from './RolodexRecentRow';
+import RolodexFilterRows from './RolodexFilterRows';
+import useRolodexDeepLink from './useRolodexDeepLink';
+import { readRecentExercises, recordRecentExercise } from './recentExercises';
 import {
   EmptyState,
   ExMeta,
   ExName,
   ExerciseRow,
-  FilterLabel,
-  FilterRows,
   FilterToggle,
   ListContainer,
   ListSide,
-  MiniChip,
-  MiniChipRow,
   SearchIconStyled,
   SearchInput,
   SearchRow,
@@ -41,6 +39,10 @@ interface NASMExerciseRolodexProps {
   isOpen: boolean;
   onClose: () => void;
   sectionContext?: SectionContext;
+  /** Slice 11 deep-link: prefill the search (e.g. ?exercise= from /progress). */
+  initialQuery?: string | null;
+  /** Auto-select when a result matches initialQuery exactly (once per open). */
+  autoSelectExact?: boolean;
 }
 
 const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
@@ -48,6 +50,8 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   isOpen,
   onClose,
   sectionContext,
+  initialQuery = null,
+  autoSelectExact = false,
 }) => {
   const {
     results,
@@ -75,21 +79,10 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       : results.filter(ex => matchesSectionContext(ex, sectionContext))
   ), [results, sectionContext]);
 
-  const filteredResults = useMemo(() => {
-    let pool = sectionFiltered;
-    if (typeFilter) {
-      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === typeFilter.toLowerCase());
-    }
-    if (equipFilter) {
-      const norm = equipFilter.toLowerCase();
-      pool = pool.filter(ex => {
-        const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
-        if (norm === 'bodyweight') return eqArr.length === 0 || eqArr.some(e => e.toLowerCase().includes('body'));
-        return eqArr.some(e => e.toLowerCase().includes(norm));
-      });
-    }
-    return pool;
-  }, [sectionFiltered, typeFilter, equipFilter]);
+  const filteredResults = useMemo(
+    () => applyEquipTypeFilters(sectionFiltered, typeFilter, equipFilter),
+    [sectionFiltered, typeFilter, equipFilter],
+  );
 
   const filteredAllExercises = useMemo(() => (
     !sectionContext || sectionContext === 'main'
@@ -128,10 +121,23 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   }, [isOpen, onClose]);
 
   const handleSelect = useCallback((exercise: ExerciseSlim) => {
+    recordRecentExercise(exercise);
     onSelectExercise(exercise);
     setQuery('');
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
+
+  // Slice 10 one-tap recents (catalog = truth; stale ids drop; isOpen dep re-reads storage per open)
+  const recentExercises = useMemo(() => {
+    if (query || allExercises.length === 0) return [];
+    const byId = new Map(allExercises.map(ex => [String(ex.id), ex]));
+    return readRecentExercises().map(r => byId.get(r.id)).filter((ex): ex is ExerciseSlim => Boolean(ex));
+  }, [query, allExercises, isOpen]);
+
+  useRolodexDeepLink({
+    isOpen, initialQuery, autoSelectExact,
+    results: filteredResults, setQuery, onExactMatch: handleSelect,
+  });
 
   const handlePreview = useCallback((exercise: ExerciseSlim, index: number) => {
     setHighlightIndex(index);
@@ -215,6 +221,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         {(isSearching || isLoading) && <SpinnerIcon size={16} />}
       </SearchRow>
 
+      <RolodexRecentRow recents={recentExercises} onPick={handleSelect} />
       <ExerciseFilterChips
         activeCategory={category}
         onCategoryChange={setCategory}
@@ -226,34 +233,12 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       </FilterToggle>
 
       {showFilters && (
-        <FilterRows>
-          <FilterLabel>Type:</FilterLabel>
-          <MiniChipRow>
-            {EXERCISE_TYPES.map(type => (
-              <MiniChip
-                key={type}
-                type="button"
-                $active={typeFilter === null ? type === 'All' : typeFilter.toLowerCase() === type.toLowerCase()}
-                onClick={() => setTypeFilter(type === 'All' ? null : type)}
-              >
-                {type}
-              </MiniChip>
-            ))}
-          </MiniChipRow>
-          <FilterLabel>Equipment:</FilterLabel>
-          <MiniChipRow>
-            {EQUIPMENT_TYPES.map(equipment => (
-              <MiniChip
-                key={equipment}
-                type="button"
-                $active={equipFilter === null ? equipment === 'All' : equipFilter.toLowerCase() === equipment.toLowerCase()}
-                onClick={() => setEquipFilter(equipment === 'All' ? null : equipment)}
-              >
-                {equipment}
-              </MiniChip>
-            ))}
-          </MiniChipRow>
-        </FilterRows>
+        <RolodexFilterRows
+          typeFilter={typeFilter}
+          equipFilter={equipFilter}
+          onTypeChange={setTypeFilter}
+          onEquipChange={setEquipFilter}
+        />
       )}
 
       <SplitView $hasPreview={!!previewExercise}>

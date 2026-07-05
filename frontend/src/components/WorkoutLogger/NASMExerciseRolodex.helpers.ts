@@ -78,3 +78,24 @@ export function getExerciseTips(ex: ExerciseSlim): string {
   if (name.includes('machine') || name.includes('leg press') || name.includes('lat pull')) return 'Adjust the machine to fit your body. Move through full range with control. Avoid locking joints.';
   return 'Controlled movement through full range of motion. Keep proper alignment, core engaged, and breathe out during exertion.';
 }
+
+/** Slice 10 extraction: equip/type narrowing shared by the Rolodex pool. */
+export function applyEquipTypeFilters<T extends { exerciseType?: string }>(
+  pool: T[],
+  typeFilter: string | null,
+  equipFilter: string | null,
+): T[] {
+  let next = pool;
+  if (typeFilter) {
+    next = next.filter(ex => (ex.exerciseType || '').toLowerCase() === typeFilter.toLowerCase());
+  }
+  if (equipFilter) {
+    const norm = equipFilter.toLowerCase();
+    next = next.filter(ex => {
+      const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
+      if (norm === 'bodyweight') return eqArr.length === 0 || eqArr.some(e => e.toLowerCase().includes('body'));
+      return eqArr.some(e => e.toLowerCase().includes(norm));
+    });
+  }
+  return next;
+}

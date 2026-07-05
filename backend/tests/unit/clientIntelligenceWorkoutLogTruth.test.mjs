@@ -25,7 +25,7 @@ describe('clientIntelligenceService recent workout truth path', () => {
         date: '2026-05-20T12:00:00.000Z',
         overallIntensity: 8,
         exercises: [
-          { exerciseName: 'Bench Press', rpe: 7 },
+          { exerciseName: 'Bench Press', rpe: 7, weight: 135, reps: 8 },
           { exerciseName: 'Goblet Squat', rpe: 8 },
         ],
       },
@@ -41,6 +41,8 @@ describe('clientIntelligenceService recent workout truth path', () => {
     expect(sql).toMatch(/ws\."userId"\s*=\s*:clientId/i);
     expect(sql).toMatch(/ws\.status\s*=\s*'completed'/i);
     expect(sql).toMatch(/'rpe',\s*wl\.rpe/i);
+    expect(sql).toMatch(/'weight',\s*wl\.weight/i);
+    expect(sql).toMatch(/'reps',\s*wl\.reps/i);
     expect(sql).not.toMatch(/'formRating',\s*wl\.rpe/i);
     expect(sql).not.toMatch(/daily_workout_forms/i);
     expect(sql).not.toMatch(/formData/i);
@@ -52,8 +54,8 @@ describe('clientIntelligenceService recent workout truth path', () => {
         formData: {
           overallIntensity: 8,
           exercises: [
-            { exerciseName: 'Bench Press', formRating: null, rpe: 7 },
-            { exerciseName: 'Goblet Squat', formRating: null, rpe: 8 },
+            { exerciseName: 'Bench Press', formRating: null, rpe: 7, weight: 135, reps: 8 },
+            { exerciseName: 'Goblet Squat', formRating: null, rpe: 8, weight: null, reps: null },
           ],
         },
       },
@@ -82,8 +84,8 @@ describe('clientIntelligenceService recent workout truth path', () => {
         formData: {
           overallIntensity: null,
           exercises: [
-            { exerciseName: 'Deadlift', formRating: null, rpe: null },
-            { exerciseName: 'Carry', formRating: null, rpe: null },
+            { exerciseName: 'Deadlift', formRating: null, rpe: null, weight: null, reps: null },
+            { exerciseName: 'Carry', formRating: null, rpe: null, weight: null, reps: null },
           ],
         },
       },

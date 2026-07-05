@@ -11,8 +11,8 @@ import axios from 'axios';
 // Styled components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #002060, #1e1e3f);
-  color: white;
+  background: linear-gradient(135deg, var(--bg-secondary, #002060), var(--bg-elevated, #1e1e3f));
+  color: var(--text-primary, #E0ECF4);
   padding: 1rem 1rem 6rem;
 `;
 

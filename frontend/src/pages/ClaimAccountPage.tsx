@@ -187,7 +187,9 @@ const ClaimAccountPage: React.FC = () => {
               {activatedUsername && <><br />Your username: <ActivatedUsername>{activatedUsername}</ActivatedUsername></>}
             </Subtitle>
             <SubmitButton
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(activatedUsername
+                ? `/login?username=${encodeURIComponent(activatedUsername)}&claimed=1`
+                : '/login?claimed=1')}
               whileTap={{ scale: 0.97 }}
             >
               Go to Login

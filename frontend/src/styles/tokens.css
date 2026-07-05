@@ -132,3 +132,18 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * SECTION: Animations Off (user switch in the theme changer)
+ * PURPOSE: Same collapse as reduced-motion, driven by the persistent
+ * html[data-motion="off"] attribute set by UniversalThemeProvider.
+ * framer-motion is handled separately via MotionConfig reducedMotion.
+ * ───────────────────────────────────────────────────────────── */
+html[data-motion='off'] *,
+html[data-motion='off'] *::before,
+html[data-motion='off'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

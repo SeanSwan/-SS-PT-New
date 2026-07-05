@@ -5,8 +5,10 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Dumbbell, Grid3X3, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { PriorityTargetButton } from './ExerciseCodexMatrix.targetButton';
 import {
   buildExerciseCodexMatrix,
   extractExerciseCatalogPayload,
@@ -63,6 +65,12 @@ const FILTERS: Array<{ id: StatusFilter; label: string }> = [
 const formatNumber = (value: number): string => new Intl.NumberFormat('en-US').format(value);
 
 const ExerciseCodexMatrix: React.FC<ExerciseCodexMatrixProps> = ({ loggedExercises }) => {
+  // Slice 11: smart targets deep-link into the logger — CLIENT surface only
+  // (the admin grid mounts this matrix too, but admin logging routes through
+  // the Client Hub, so its targets stay informational).
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const canDeepLinkToLogger = pathname.startsWith('/dashboard/client');
   const { authAxios } = useAuth();
   const [catalog, setCatalog] = useState<ExerciseCodexCatalogEntry[]>([]);
   const [isCatalogLoading, setIsCatalogLoading] = useState(false);
@@ -215,11 +223,24 @@ const ExerciseCodexMatrix: React.FC<ExerciseCodexMatrixProps> = ({ loggedExercis
                 <MutedText>0 gaps</MutedText>
               </PriorityItem>
             ) : matrix.summary.nextTargets.map((row) => (
-              <PriorityItem key={row.id}>
-                <StatusBadge $status={row.status} />
-                <span>{row.name}</span>
-                <MutedText>{row.bodyPartCategory}</MutedText>
-              </PriorityItem>
+              canDeepLinkToLogger ? (
+                <li key={row.id}>
+                  <PriorityTargetButton
+                    onClick={() => navigate(`/dashboard/client/log-workout?exercise=${encodeURIComponent(row.name)}`)}
+                    aria-label={`Log ${row.name} now`}
+                  >
+                    <StatusBadge $status={row.status} />
+                    <span>{row.name}</span>
+                    <MutedText>{row.bodyPartCategory}</MutedText>
+                  </PriorityTargetButton>
+                </li>
+              ) : (
+                <PriorityItem key={row.id}>
+                  <StatusBadge $status={row.status} />
+                  <span>{row.name}</span>
+                  <MutedText>{row.bodyPartCategory}</MutedText>
+                </PriorityItem>
+              )
             ))}
           </PriorityList>
         </Panel>

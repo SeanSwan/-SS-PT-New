@@ -6,7 +6,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Dumbbell, TrendingUp, Trophy, Zap } from 'lucide-react';
+import { Dumbbell, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   getSafeGamificationIdSegment,
@@ -25,17 +25,11 @@ import {
   PageHeader,
   PageTitle,
   PageWrap,
-  RecapGrid,
-  RecapEmptyState,
-  RecapItem,
-  RecapLabel,
-  RecapValue,
   Skeleton,
   SplitRow,
   StatCard,
   StatLabel,
   StatsStrip,
-  StatSub,
   StatValue,
   TrailingChevron,
   XpBarFill,
@@ -50,6 +44,8 @@ import {
   type PersonalRecordView,
 } from './ClientProgressDashboardPage.records';
 import { loadClientWeeklyRecap } from './ClientProgressDashboardPage.recap';
+import { FirstWorkoutCta, PersonalRecordsCard, WeeklyRecapCard } from './ClientProgressDashboardPage.cards';
+import ProgressPulsePanel from './ProgressPulsePanel';
 // Do not re-introduce ProfileChartsGrid on /dashboard/client/progress.
 // The canonical chart registry is owned by CanonicalProgressChartsGrid + useClientProgressCharts.
 const CanonicalProgressChartsGrid = React.lazy(
@@ -187,6 +183,16 @@ const ClientProgressDashboardPage: React.FC = () => {
         <XpBarPct>{nextLevelProgress}%</XpBarPct>
       </XpBarWrap>
 
+      {/* Coach compass — Guardian-gated like the charts it summarizes;
+          self-hides on fetch failure so it never blocks the page. */}
+      {hasAdvancedAccess && user?.id ? <ProgressPulsePanel /> : null}
+
+      {/* Slice 13: zero-history clients without the compass still get a
+          first-workout path (settled recap + no PRs + no workouts this week). */}
+      {!hasAdvancedAccess && weeklyRecapSettled && weekWorkouts === 0 && personalRecords.length === 0 && (
+        <FirstWorkoutCta onLog={() => navigate('/dashboard/client/log-workout?loadPlan=today')} />
+      )}
+
       <SplitRow>
         <Card>
           <CardTitle>Your Companion</CardTitle>
@@ -199,63 +205,18 @@ const ClientProgressDashboardPage: React.FC = () => {
           )}
         </Card>
 
-        <Card>
-          <CardTitle><Calendar size={16} /> This Week</CardTitle>
-          {weeklyRecap ? (
-            <RecapGrid>
-              <RecapItem>
-                <RecapValue>{weekWorkouts}</RecapValue>
-                <RecapLabel>Workouts</RecapLabel>
-              </RecapItem>
-              <RecapItem>
-                <RecapValue>{weekBonuses}</RecapValue>
-                <RecapLabel>Bonuses</RecapLabel>
-              </RecapItem>
-              <RecapItem>
-                <RecapValue>{weekXp}</RecapValue>
-                <RecapLabel>XP Earned</RecapLabel>
-              </RecapItem>
-              <RecapItem>
-                <RecapValue>{streakDays}</RecapValue>
-                <RecapLabel>Streak Days</RecapLabel>
-              </RecapItem>
-            </RecapGrid>
-          ) : weeklyRecapSettled ? (
-            <RecapEmptyState
-              role="status"
-              aria-live="polite"
-              aria-label="Weekly recap unavailable"
-            >
-              No weekly recap available yet.
-            </RecapEmptyState>
-          ) : (
-            <RecapGrid>
-              {[1, 2, 3, 4].map(i => (
-                <RecapItem key={i}>
-                  <Skeleton $h="28px" $w="60px" />
-                  <Skeleton $h="10px" $w="50px" />
-                </RecapItem>
-              ))}
-            </RecapGrid>
-          )}
-        </Card>
+        <WeeklyRecapCard
+          hasRecap={Boolean(weeklyRecap)}
+          settled={weeklyRecapSettled}
+          weekWorkouts={weekWorkouts}
+          weekBonuses={weekBonuses}
+          weekXp={weekXp}
+          streakDays={streakDays}
+        />
       </SplitRow>
 
       {personalRecords.length > 0 && (
-        <Card $bottom="1.25rem">
-          <CardTitle><Trophy size={16} /> Personal Records</CardTitle>
-          <StatsStrip $bottom="0">
-            {personalRecords.slice(0, 4).map((pr: PersonalRecordView, i: number) => (
-              <StatCard key={pr.key} $delay={i} $accent="var(--accent-gold, #C6A84B)">
-                <StatLabel>{pr.exerciseName}</StatLabel>
-                <StatValue $color="var(--accent-gold, #C6A84B)">
-                  {pr.valueText}
-                </StatValue>
-                <StatSub>{pr.detailText}</StatSub>
-              </StatCard>
-            ))}
-          </StatsStrip>
-        </Card>
+        <PersonalRecordsCard records={personalRecords} />
       )}
 
       <ChartsSection>

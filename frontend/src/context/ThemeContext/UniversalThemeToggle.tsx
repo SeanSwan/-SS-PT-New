@@ -1,454 +1,31 @@
 /**
- * UniversalThemeToggle.tsx
- * =======================
+ * UniversalThemeToggle.tsx — Crystalline Swan theme changer control
+ * ==================================================================
+ * Header-mounted control (Header/components/ActionIcons.tsx + client home
+ * rail). The swatch button previews the ACTIVE theme (data-driven — every
+ * registered theme styles it automatically) and opens a grouped picker with
+ * all themes plus the site-wide animations switch.
  *
- * Crystalline Swan Theme Toggle Component
- *
- * Features:
- * - Cycles through every registered theme in the shared themeCycle order
- * - Per-theme icons and accessible descriptions
- * - Per-theme styling: glass glow for dark themes, clean solid for light
- * - Smooth morphing animations between states
- * - Mobile-optimized touch interactions (44px minimum target)
- * - WCAG AA accessibility compliance
- * - Tooltips indicating current and next theme
+ * Architecture:
+ * - UniversalThemeToggle.styles.ts — data-driven styled components
+ * - UniversalThemeToggle.panel.tsx — grouped picker + animations switch
+ * - themeToggleMetadata (exported here) — per-theme icon + accessible name,
+ *   contract-locked against the theme registry.
  */
-
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords, Flower2, TreePine, Waves, Crown, Leaf, Gem, Orbit, Layers } from 'lucide-react';
-import { useUniversalTheme, ThemeId, themeCycle } from './UniversalThemeContext';
-
-// === KEYFRAME ANIMATIONS ===
-const stellarPulse = keyframes`
-  0%, 100% {
-    opacity: 0.8;
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-    filter: brightness(1.2);
-  }
-`;
-
-const orbitingParticles = keyframes`
-  0% { transform: rotate(0deg) translateX(20px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(20px) rotate(-360deg); }
-`;
-
-// === STYLED COMPONENTS ===
-const ThemeToggleContainer = styled(motion.div)`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ThemeToggleButton = styled(motion.button)<{ $currentTheme: ThemeId }>`
-  position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: ${({ $currentTheme }) =>
-    ($currentTheme === 'crystalline-light' || $currentTheme === 'frozen-aurora') ? '12px' : '50%'
-  };
-  border: ${({ $currentTheme }) => {
-    switch ($currentTheme) {
-      case 'crystalline-default':
-        return '2px solid rgba(96, 192, 240, 0.3)';
-      case 'crystalline-light':
-        return '2px solid #E2E8F0';
-      case 'crystalline-dark':
-        return '2px solid rgba(34, 211, 238, 0.4)';
-      case 'crystalline-mono':
-        return '2px solid rgba(255, 255, 255, 0.4)';
-      case 'cinematic-ember':
-        return '2px solid rgba(245, 158, 11, 0.4)';
-      case 'frozen-aurora':
-        return '2px solid rgba(99, 102, 241, 0.3)';
-      case 'obsidian-black':
-        return '2px solid rgba(139, 92, 246, 0.3)';
-      case 'cyberpunk-edgerunners':
-        return '2px solid rgba(247, 255, 0, 0.4)';
-      case 'obsidian-bloom':
-        return '2px solid rgba(255, 20, 147, 0.3)';
-      case 'frozen-canopy':
-        return '2px solid rgba(96, 192, 240, 0.3)';
-      case 'ember-realm':
-        return '2px solid rgba(255, 107, 44, 0.4)';
-      case 'twilight-lagoon':
-        return '2px solid rgba(0, 255, 178, 0.3)';
-      case 'nebula-crown':
-        return '2px solid rgba(147, 51, 234, 0.4)';
-      default:
-        return '2px solid transparent';
-    }
-  }};
-  background: ${({ $currentTheme }) => {
-    switch ($currentTheme) {
-      case 'crystalline-default':
-        return 'linear-gradient(135deg, #001545, #60C0F0)';
-      case 'crystalline-light':
-        return '#FFFFFF';
-      case 'crystalline-dark':
-        return 'linear-gradient(135deg, #030712, #22D3EE)';
-      case 'crystalline-mono':
-        return '#000000';
-      case 'cinematic-ember':
-        return 'linear-gradient(135deg, #1A0F0A, #F59E0B)';
-      case 'frozen-aurora':
-        return 'linear-gradient(135deg, #E2E8F0, #6366F1)';
-      case 'obsidian-black':
-        return '#0A0A0F';
-      case 'cyberpunk-edgerunners':
-        return 'linear-gradient(135deg, #0D0D0D, #F7FF00)';
-      case 'obsidian-bloom':
-        return 'linear-gradient(135deg, #0A0014, #FF1493)';
-      case 'frozen-canopy':
-        return 'linear-gradient(135deg, #001030, #60C0F0)';
-      case 'ember-realm':
-        return 'linear-gradient(135deg, #120808, #FF6B2C)';
-      case 'twilight-lagoon':
-        return 'linear-gradient(135deg, #060618, #00FFB2)';
-      case 'nebula-crown':
-        return 'linear-gradient(135deg, #0A0020, #9333EA)';
-      default:
-        return 'linear-gradient(135deg, #001545, #60C0F0)';
-    }
-  }};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: ${({ $currentTheme }) =>
-    $currentTheme === 'crystalline-light' ? 'visible' : 'hidden'
-  };
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  color: ${({ $currentTheme }) => {
-    switch ($currentTheme) {
-      case 'crystalline-default':
-        return '#E0ECF4';
-      case 'crystalline-light':
-        return '#2563EB';
-      case 'crystalline-dark':
-        return '#22D3EE';
-      case 'crystalline-mono':
-        return '#FFFFFF';
-      case 'cinematic-ember':
-        return '#FFF5EB';
-      case 'frozen-aurora':
-        return '#4F46E5';
-      case 'obsidian-black':
-        return '#8B5CF6';
-      case 'cyberpunk-edgerunners':
-        return '#F7FF00';
-      case 'obsidian-bloom':
-        return '#FF1493';
-      case 'frozen-canopy':
-        return '#60C0F0';
-      case 'ember-realm':
-        return '#FF6B2C';
-      case 'twilight-lagoon':
-        return '#00FFB2';
-      case 'nebula-crown':
-        return '#9333EA';
-      default:
-        return '#E0ECF4';
-    }
-  }};
-
-  /* Per-theme effects */
-  box-shadow: ${({ $currentTheme }) => {
-    switch ($currentTheme) {
-      case 'crystalline-default':
-        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 21, 69, 0.2)';
-      case 'crystalline-light':
-        return '0 2px 8px rgba(0, 32, 96, 0.1)';
-      case 'crystalline-dark':
-        return '0 0 25px rgba(34, 211, 238, 0.5), 0 0 50px rgba(167, 139, 250, 0.2)';
-      case 'crystalline-mono':
-        return '0 0 8px rgba(255, 255, 255, 0.15)';
-      case 'cinematic-ember':
-        return '0 0 20px rgba(245, 158, 11, 0.4), 0 0 40px rgba(225, 29, 72, 0.2)';
-      case 'frozen-aurora':
-        return '0 2px 12px rgba(99, 102, 241, 0.2)';
-      case 'obsidian-black':
-        return '0 0 12px rgba(139, 92, 246, 0.2)';
-      case 'cyberpunk-edgerunners':
-        return '0 0 25px rgba(247, 255, 0, 0.5), 0 0 50px rgba(255, 45, 106, 0.2)';
-      case 'obsidian-bloom':
-        return '0 0 20px rgba(255, 20, 147, 0.4), 0 0 40px rgba(147, 51, 234, 0.2)';
-      case 'frozen-canopy':
-        return '0 0 20px rgba(96, 192, 240, 0.4), 0 0 40px rgba(0, 255, 163, 0.2)';
-      case 'ember-realm':
-        return '0 0 20px rgba(255, 107, 44, 0.5), 0 0 40px rgba(220, 38, 38, 0.2)';
-      case 'twilight-lagoon':
-        return '0 0 20px rgba(0, 255, 178, 0.4), 0 0 40px rgba(0, 102, 255, 0.2)';
-      case 'nebula-crown':
-        return '0 0 25px rgba(147, 51, 234, 0.5), 0 0 50px rgba(236, 72, 153, 0.2)';
-      default:
-        return '0 0 20px rgba(96, 192, 240, 0.4)';
-    }
-  }};
-
-  /* Orbiting particle — only on dark themes (not mono) */
-  &::before {
-    content: '';
-    position: absolute;
-    width: 4px;
-    height: 4px;
-    background: ${({ $currentTheme }) => {
-      switch ($currentTheme) {
-        case 'crystalline-default':
-          return '#C6A84B';
-        case 'crystalline-dark':
-          return '#F59E0B';
-        case 'cinematic-ember':
-          return '#E11D48';
-        case 'cyberpunk-edgerunners':
-          return '#FF2D6A';
-        case 'obsidian-bloom':
-          return '#9333EA';
-        case 'frozen-canopy':
-          return '#00FFA3';
-        case 'ember-realm':
-          return '#DC2626';
-        case 'twilight-lagoon':
-          return '#0066FF';
-        case 'nebula-crown':
-          return '#EC4899';
-        default:
-          return 'transparent';
-      }
-    }};
-    border-radius: 50%;
-    animation: ${orbitingParticles} 3s linear infinite;
-    opacity: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? '0' : '0.8'
-    };
-  }
-
-  /* Orbiting particle — accent color per theme */
-  &::after {
-    content: '';
-    position: absolute;
-    width: 3px;
-    height: 3px;
-    background: ${({ $currentTheme }) => {
-      switch ($currentTheme) {
-        case 'crystalline-default':
-          return '#60C0F0';
-        case 'crystalline-dark':
-          return '#A78BFA';
-        case 'cinematic-ember':
-          return '#F59E0B';
-        case 'cyberpunk-edgerunners':
-          return '#00F0FF';
-        case 'obsidian-bloom':
-          return '#FF1493';
-        case 'frozen-canopy':
-          return '#C6A84B';
-        case 'ember-realm':
-          return '#FF6B2C';
-        case 'twilight-lagoon':
-          return '#00FFB2';
-        case 'nebula-crown':
-          return '#9333EA';
-        default:
-          return 'transparent';
-      }
-    }};
-    border-radius: 50%;
-    animation: ${orbitingParticles} 4s linear infinite reverse;
-    animation-delay: -1s;
-    opacity: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? '0' : '0.6'
-    };
-  }
-
-  &:hover {
-    transform: scale(1.1);
-    animation: ${({ $currentTheme }) =>
-      ['crystalline-light', 'crystalline-mono', 'frozen-aurora', 'obsidian-black'].includes($currentTheme) ? 'none' : stellarPulse
-    } 2s ease-in-out infinite;
-    box-shadow: ${({ $currentTheme }) => {
-      switch ($currentTheme) {
-        case 'crystalline-default':
-          return '0 0 30px rgba(96, 192, 240, 0.6), 0 0 60px rgba(198, 168, 75, 0.2)';
-        case 'crystalline-light':
-          return '0 4px 16px rgba(37, 99, 235, 0.2)';
-        case 'crystalline-dark':
-          return '0 0 35px rgba(34, 211, 238, 0.7), 0 0 70px rgba(167, 139, 250, 0.3)';
-        case 'crystalline-mono':
-          return '0 0 12px rgba(255, 255, 255, 0.25)';
-        case 'cinematic-ember':
-          return '0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(225, 29, 72, 0.3)';
-        case 'frozen-aurora':
-          return '0 4px 16px rgba(99, 102, 241, 0.3)';
-        case 'obsidian-black':
-          return '0 0 20px rgba(139, 92, 246, 0.35)';
-        case 'cyberpunk-edgerunners':
-          return '0 0 35px rgba(247, 255, 0, 0.7), 0 0 70px rgba(255, 45, 106, 0.3)';
-        case 'obsidian-bloom':
-          return '0 0 30px rgba(255, 20, 147, 0.6), 0 0 60px rgba(147, 51, 234, 0.3)';
-        case 'frozen-canopy':
-          return '0 0 30px rgba(96, 192, 240, 0.6), 0 0 60px rgba(0, 255, 163, 0.3)';
-        case 'ember-realm':
-          return '0 0 30px rgba(255, 107, 44, 0.7), 0 0 60px rgba(220, 38, 38, 0.3)';
-        case 'twilight-lagoon':
-          return '0 0 30px rgba(0, 255, 178, 0.6), 0 0 60px rgba(0, 102, 255, 0.3)';
-        case 'nebula-crown':
-          return '0 0 35px rgba(147, 51, 234, 0.7), 0 0 70px rgba(236, 72, 153, 0.3)';
-        default:
-          return '0 0 30px rgba(96, 192, 240, 0.6)';
-      }
-    }};
-  }
-
-  &:focus {
-    outline: 2px solid ${({ $currentTheme }) => {
-      switch ($currentTheme) {
-        case 'crystalline-default':
-          return '#C6A84B';
-        case 'crystalline-light':
-          return '#2563EB';
-        case 'crystalline-dark':
-          return '#F59E0B';
-        case 'crystalline-mono':
-          return '#FFFFFF';
-        case 'cinematic-ember':
-          return '#E11D48';
-        case 'frozen-aurora':
-          return '#6366F1';
-        case 'obsidian-black':
-          return '#60C0F0';
-        case 'cyberpunk-edgerunners':
-          return '#00F0FF';
-        case 'obsidian-bloom':
-          return '#9333EA';
-        case 'frozen-canopy':
-          return '#00FFA3';
-        case 'ember-realm':
-          return '#DC2626';
-        case 'twilight-lagoon':
-          return '#0066FF';
-        case 'nebula-crown':
-          return '#EC4899';
-        default:
-          return '#C6A84B';
-      }
-    }};
-    outline-offset: 3px;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-
-  @media (max-width: 768px) {
-    width: 44px;
-    height: 44px;
-  }
-`;
-
-const ThemeIcon = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  z-index: 2;
-  pointer-events: none;
-`;
-
-const TooltipContainer = styled(motion.div)`
-  position: absolute;
-  bottom: -45px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: ${({ theme }) =>
-    theme.id === 'crystalline-light'
-      ? '#FFFFFF'
-      : theme.id === 'crystalline-dark'
-        ? 'rgba(3, 7, 18, 0.95)'
-        : theme.id === 'crystalline-mono'
-          ? 'rgba(0, 0, 0, 0.95)'
-          : 'rgba(0, 21, 69, 0.95)'
-  };
-  color: ${({ theme }) =>
-    theme.id === 'crystalline-light' ? '#0F172A' : '#F1F5F9'
-  };
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 1000;
-  border: ${({ theme }) =>
-    theme.id === 'crystalline-light'
-      ? '1px solid #E2E8F0'
-      : theme.id === 'crystalline-dark'
-        ? '1px solid rgba(34, 211, 238, 0.2)'
-        : theme.id === 'crystalline-mono'
-          ? '1px solid rgba(255, 255, 255, 0.2)'
-          : '1px solid rgba(96, 192, 240, 0.18)'
-  };
-  backdrop-filter: ${({ theme }) =>
-    theme.id === 'crystalline-light' ? 'none' : 'blur(10px)'
-  };
-  box-shadow: ${({ theme }) =>
-    theme.id === 'crystalline-light'
-      ? '0 2px 8px rgba(0, 32, 96, 0.1)'
-      : theme.id === 'crystalline-dark'
-        ? '0 4px 16px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 211, 238, 0.1)'
-        : theme.id === 'crystalline-mono'
-          ? '0 4px 16px rgba(0, 0, 0, 0.8)'
-          : '0 4px 16px rgba(0, 0, 0, 0.4)'
-  };
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-bottom: 6px solid ${({ theme }) =>
-      theme.id === 'crystalline-light'
-        ? '#FFFFFF'
-        : theme.id === 'crystalline-dark'
-          ? 'rgba(3, 7, 18, 0.95)'
-          : theme.id === 'crystalline-mono'
-            ? 'rgba(0, 0, 0, 0.95)'
-            : 'rgba(0, 21, 69, 0.95)'
-    };
-  }
-`;
+import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, useReducedMotion, type Variants } from 'framer-motion';
+import {
+  Sparkles, Sun, Zap, Moon, Flame, Snowflake, Contrast, Swords,
+  Flower2, TreePine, Waves, Crown, Leaf, Gem, Orbit, Layers
+} from 'lucide-react';
+import { useUniversalTheme, type ThemeId } from './UniversalThemeContext';
+import ThemePickerPanel from './UniversalThemeToggle.panel';
+import { ToggleRoot, SwatchButton, IconHalo } from './UniversalThemeToggle.styles';
 
 type ThemeToggleIconKey =
-  | 'sparkles'
-  | 'sun'
-  | 'zap'
-  | 'moon'
-  | 'flame'
-  | 'snowflake'
-  | 'contrast'
-  | 'swords'
-  | 'flower'
-  | 'tree'
-  | 'waves'
-  | 'crown'
-  | 'leaf'
-  | 'gem'
-  | 'orbit'
-  | 'layers';
+  | 'sparkles' | 'sun' | 'zap' | 'moon' | 'flame' | 'snowflake' | 'contrast'
+  | 'swords' | 'flower' | 'tree' | 'waves' | 'crown' | 'leaf' | 'gem'
+  | 'orbit' | 'layers';
 
 export const themeToggleMetadata: Record<ThemeId, {
   description: string;
@@ -482,54 +59,40 @@ export const themeToggleMetadata: Record<ThemeId, {
   'graphite-luxe': { description: 'Graphite Luxe', icon: 'layers' },
   'pearl-noir': { description: 'Pearl Noir', icon: 'moon' },
   'circuit-lime': { description: 'Circuit Lime', icon: 'zap' },
+  'sakura-midnight': { description: 'Sakura Midnight', icon: 'flower' },
+  'indigo-pulse': { description: 'Indigo Pulse', icon: 'zap' },
+  'sunset-mirage': { description: 'Sunset Mirage', icon: 'sun' },
+  'steel-tempest': { description: 'Steel Tempest', icon: 'layers' },
+  'vapor-dream': { description: 'Vapor Dream', icon: 'orbit' },
+  'burgundy-noir': { description: 'Burgundy Noir', icon: 'gem' },
+  'tron-grid': { description: 'Tron Grid', icon: 'swords' },
+  'orchid-veil': { description: 'Orchid Veil', icon: 'flower' },
+  'deep-jade': { description: 'Deep Jade', icon: 'leaf' },
+  'midnight-mango': { description: 'Midnight Mango', icon: 'sparkles' },
 };
 
-// === THEME ICON MAPPING ===
 const getThemeIcon = (themeId: ThemeId, size = 20) => {
-  const icon = themeToggleMetadata[themeId].icon;
-
-  switch (icon) {
-    case 'sun':
-      return <Sun size={size} />;
-    case 'zap':
-      return <Zap size={size} />;
-    case 'moon':
-      return <Moon size={size} />;
-    case 'flame':
-      return <Flame size={size} />;
-    case 'snowflake':
-      return <Snowflake size={size} />;
-    case 'contrast':
-      return <Contrast size={size} />;
-    case 'swords':
-      return <Swords size={size} />;
-    case 'flower':
-      return <Flower2 size={size} />;
-    case 'tree':
-      return <TreePine size={size} />;
-    case 'waves':
-      return <Waves size={size} />;
-    case 'crown':
-      return <Crown size={size} />;
-    case 'leaf':
-      return <Leaf size={size} />;
-    case 'gem':
-      return <Gem size={size} />;
-    case 'orbit':
-      return <Orbit size={size} />;
-    case 'layers':
-      return <Layers size={size} />;
+  switch (themeToggleMetadata[themeId].icon) {
+    case 'sun': return <Sun size={size} />;
+    case 'zap': return <Zap size={size} />;
+    case 'moon': return <Moon size={size} />;
+    case 'flame': return <Flame size={size} />;
+    case 'snowflake': return <Snowflake size={size} />;
+    case 'contrast': return <Contrast size={size} />;
+    case 'swords': return <Swords size={size} />;
+    case 'flower': return <Flower2 size={size} />;
+    case 'tree': return <TreePine size={size} />;
+    case 'waves': return <Waves size={size} />;
+    case 'crown': return <Crown size={size} />;
+    case 'leaf': return <Leaf size={size} />;
+    case 'gem': return <Gem size={size} />;
+    case 'orbit': return <Orbit size={size} />;
+    case 'layers': return <Layers size={size} />;
     case 'sparkles':
-    default:
-      return <Sparkles size={size} />;
+    default: return <Sparkles size={size} />;
   }
 };
 
-const getThemeDescription = (themeId: ThemeId) => {
-  return themeToggleMetadata[themeId].description;
-};
-
-// === MAIN COMPONENT ===
 interface UniversalThemeToggleProps {
   showTooltip?: boolean;
   size?: 'small' | 'medium' | 'large';
@@ -537,103 +100,86 @@ interface UniversalThemeToggleProps {
 }
 
 const UniversalThemeToggle: React.FC<UniversalThemeToggleProps> = ({
-  showTooltip = true,
   size = 'medium',
   className
 }) => {
-  const { currentTheme, toggleTheme } = useUniversalTheme();
-  const [isHovered, setIsHovered] = useState(false);
-  const [showTooltipState, setShowTooltipState] = useState(false);
+  const { currentTheme, theme, setTheme, motionEnabled, setMotionEnabled } = useUniversalTheme();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
-  // Get next theme for tooltip
-  const currentIndex = themeCycle.indexOf(currentTheme);
-  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % themeCycle.length : 0;
-  const nextTheme = themeCycle[nextIndex];
-
-  // Handle tooltip display
+  // Close on outside click / Escape
   useEffect(() => {
-    if (isHovered && showTooltip) {
-      const timer = setTimeout(() => setShowTooltipState(true), 300);
-      return () => clearTimeout(timer);
-    } else {
-      setShowTooltipState(false);
-    }
-  }, [isHovered, showTooltip]);
-
-  // Animation variants
-  const iconVariants = {
-    idle: {
-      scale: 1,
-      rotate: 0,
-      transition: { duration: 0.3 }
-    },
-    hover: {
-      scale: 1.1,
-      rotate: 15,
-      transition: { duration: 0.3 }
-    },
-    tap: {
-      scale: 0.9,
-      rotate: -15,
-      transition: { duration: 0.1 }
-    }
-  };
-
-  const tooltipVariants = {
-    hidden: {
-      opacity: 0,
-      y: 10,
-      scale: 0.8
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
       }
-    }
-  };
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const collapse = prefersReducedMotion || !motionEnabled;
+  const panelVariants: Variants = collapse
+    ? {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.12 } }
+      }
+    : {
+        hidden: { opacity: 0, y: -8, scale: 0.96 },
+        visible: {
+          opacity: 1, y: 0, scale: 1,
+          transition: { type: 'spring', stiffness: 380, damping: 28 }
+        }
+      };
+
+  const iconSize = size === 'small' ? 16 : size === 'large' ? 24 : 20;
 
   return (
-    <ThemeToggleContainer className={className}>
-      <ThemeToggleButton
-        $currentTheme={currentTheme}
-        onClick={toggleTheme}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        whileHover="hover"
-        whileTap="tap"
-        aria-label={`Switch to ${getThemeDescription(nextTheme)}`}
-        title={`Current: ${getThemeDescription(currentTheme)} — Click to switch`}
+    <ToggleRoot ref={rootRef} className={className}>
+      <SwatchButton
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Theme: ${theme.name}. Open theme picker`}
+        title={`Theme: ${theme.name}`}
+        $bg={theme.background.primary}
+        $accent={theme.colors.primary}
+        $secondary={theme.colors.accent}
+        $text={theme.text.accent}
       >
-        <ThemeIcon
-          as={motion.div}
-          variants={iconVariants}
-          initial="idle"
-          animate={isHovered ? "hover" : "idle"}
-          whileTap="tap"
-        >
-          {getThemeIcon(currentTheme, size === 'small' ? 16 : size === 'large' ? 24 : 20)}
-        </ThemeIcon>
-      </ThemeToggleButton>
+        <IconHalo>{getThemeIcon(currentTheme, iconSize)}</IconHalo>
+      </SwatchButton>
 
-      {/* Tooltip */}
       <AnimatePresence>
-        {showTooltipState && (
-          <TooltipContainer
-            variants={tooltipVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-          >
-            Click for {getThemeDescription(nextTheme)}
-          </TooltipContainer>
+        {open && (
+          <ThemePickerPanel
+            currentTheme={currentTheme}
+            motionEnabled={motionEnabled}
+            variants={panelVariants}
+            panelBg={theme.background.primary}
+            panelLine={theme.colors.primary}
+            panelText={theme.text.primary}
+            panelMuted={theme.text.muted}
+            onPick={(id) => {
+              setTheme(id);
+            }}
+            onToggleMotion={() => setMotionEnabled(!motionEnabled)}
+          />
         )}
       </AnimatePresence>
-    </ThemeToggleContainer>
+    </ToggleRoot>
   );
 };
 

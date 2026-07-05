@@ -18,6 +18,19 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 - **C3 — Capabilities** (what we can do): 20 `.claude/skills/` (see Swan Visual Operating System below), AI Village (`scripts/validation-orchestrator.mjs`), repo `scripts/`.
 - **C4 — Cadence** (runs on trigger/schedule, not just manually): LIVE = continuity bridge, pre-commit secret scan, `prompt-watcher` UserPromptSubmit hook (rule 66). PLANNED (nightly admin briefing, stale-client alert, deploy-health watch) → same roadmap doc. Automation must earn trust: keys-not-prompts, owner, kill switch (rule 48/50).
 
+## Fable Control Layer (added 2026-07-03 - canonical routing for agents & operators)
+- **Fable usage policy:** when to spend Fable vs Codex/Claude/Hermes/Village -> `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md`
+- **Fable token-economy / context compression:** startup-visible cost-control rule for bulky Fable context; compact tool output, semantic-compress safe handoffs, query large logs, run the local estimator before image-rendered context, and keep unreviewed API/base-URL proxies blocked -> `docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`
+- **Hermes / SwanStudios boundary + T0-T4 command effect tiers** (T0 read; T1 draft; T2 bounded internal write; T3 external-visible; T4 destructive/financial/irreversible; T3/T4 = explicit approval + audit receipt; T4 is human-executed) -> `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`
+- **AI skill & operator registry** (who owns what, at which tier; unregistered command = BLOCKED; deterministic-vs-agentic boundary) -> `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`
+- **Hermes Agentic OS** (workflow-audit -> skills -> automations -> loops -> memory -> command center -> distribution; approval gates, audit receipts, kill switches, channels, headless runner) -> `docs/ai-workflow/hermes-agentic-os/index.md`
+- **Design Brain** (callable design system; `design.md` is canonical, `design.html` mirrors it - design.md wins on conflict; adapters per agent; website archetypes; cinematic factory; QA gates) -> `docs/ai-workflow/design-brain/index.md`. Subordinate to `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; loaded by `swan-design-router`.
+- **AI Village modes** (LIGHT/FULL/HOSTILE/DESIGN/SAFETY_GOVERNANCE/PRODUCT/IMPLEMENTATION/AGENTIC_OS/GRAPHIFY_OBSIDIAN/FABLE_WORKFLOW; paid modes stay rule-16 gated) -> `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/130-fable-ai-village-review-packet.md`
+- **Browser Harness:** read-only by default; supervised admin audits (human authenticates, harness observes); any interaction = per-run approval + receipt (bridge section 6).
+- **Obsidian/Karpathy routing + Graphify quarantine:** raw/wiki/outputs/runs/graph-imports/references/templates, index.md law, quarantine-first imports -> `docs/ai-workflow/design-brain/obsidian/` + `docs/ai-workflow/design-brain/graphify/` + `docs/ai-workflow/hermes-agentic-os/memory-and-state.md`
+- **Naming note:** "Paybolt" was a 2026-07 transcription error for "Fable" - it is not canonical anywhere and must not be reintroduced (see `docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/101-paybolt-mishearing-cleanup.md`).
+
+
 ## Product Core Loop
 SwanStudios is workout-progress-first. The main product loop is: log the workout -> save the workout diary entry -> turn it into charts/progress proof -> help the user, trainer, and admin decide the next training action -> make meaningful milestones shareable with the community.
 
@@ -69,6 +82,10 @@ These four principles distill common LLM coding pitfalls (per Andrej Karpathy's 
 4. **Goal-Driven Execution.** Define success criteria. Loop until verified. Transform tasks into verifiable goals: "add validation" → "write tests for invalid inputs, then make them pass." "Fix the bug" → "write a test that reproduces it, then make it pass." Strong success criteria let you loop independently; weak criteria ("make it work") require constant clarification. *(Reinforces: Rule 17 dual-pass, Bugfix standard, test-driven-development skill.)*
 
 Trivial polish tasks may bypass formal planning overhead using judgment, but surgical scope, safety, and evidence requirements still apply. Anything that touches production data, security, auth, billing, shared infrastructure, or PII gets no bypass at all.
+
+## Prompt Reconstruction + Hostile Review Protocol
+Before creating anything substantial (docs, specs, plans, code slices): reconstruct the goal, audit the prompt, identify weak assumptions, improve the prompt/plan, execute the improved version, prove completion with evidence. Give the why; say what NOT to do; act when enough information exists; say less where possible; never reveal or request private reasoning.
+Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW-PROTOCOL.md`.
 
 ## MANDATORY Rules (Apply to ALL Tasks)
 1. **No Material-UI** — styled-components only with CSS custom properties + dark-theme fallbacks
@@ -131,7 +148,7 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
 39. **Artifact Recurrence / .gitignore Rule (MANDATORY)** — If a hygiene scan identifies a recurring temp/log/build-artifact class (e.g. `combined.log`, `tsc-errors.txt`, ad hoc root `.png` QA dumps), Claude must propose the matching `.gitignore` update in the same cleanup plan so the same clutter does not repopulate the repo root after cleanup. The `.gitignore` proposal is part of Phase 1 planning output; the actual `.gitignore` edit happens only with Sean's explicit approval in Phase 2.
 
-40. **Design work routes through `swan-design-router` by default (MANDATORY)** — All UI/visual work auto-routes through the Swan design router. The router is the only default-exposed design brain. It loads `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` as its source-of-truth docs, and treats `frontend-design` + `ui-ux-pro-max` as reference libraries (not co-equal steering brains). The 7 narrow aesthetic skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are **explicit-invocation-only** — they do not steer default design work. For net-new pages and major redesigns, the router's 2-3 concept-direction ideation gate is mandatory before coding; small polish tasks can skip it. See `.claude/skills/swan-design-router/SKILL.md`.
+40. **Design work routes through `swan-design-router` by default (MANDATORY)** — All UI/visual work auto-routes through the Swan design router. The router is the only default-exposed design brain. It loads `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` as its source-of-truth docs, and treats `frontend-design` + `ui-ux-pro-max` as reference libraries (not co-equal steering brains). The 7 narrow aesthetic skills (`minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`) are **explicit-invocation-only** — they do not steer default design work. For net-new pages and major redesigns, the router's 2-3 concept-direction ideation gate is mandatory before coding; small polish tasks can skip it. See `.claude/skills/swan-design-router/SKILL.md`. The router also loads `docs/ai-workflow/design-brain/` (design.md canonical, design.html visual mirror); the Design Brain is subordinate to SWAN-CINEMATIC-DESIGN-SYSTEM.md.
 
 41. **Closeout routes through `closeout-evidence-lock` by default (MANDATORY)** — End-of-task closeout for any substantial task auto-routes through the Swan closeout skill. It enforces the Claim-to-Evidence Lock (rule 28), the dual-pass hostile review (rule 17), the post-task hygiene check (rule 38), and the forbidden-language filter (rule 34). It preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from the retired `requesting-code-review` skill. The `requesting-code-review` skill is **removed from default use** — it depends on a missing `superpowers:code-reviewer` subagent and silently fails. Do NOT dispatch to `requesting-code-review` from any new code path. See `.claude/skills/closeout-evidence-lock/SKILL.md`.
 
@@ -753,6 +770,10 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | R2 Video Migration | `docs/ai-workflow/references/R2-VIDEO-MIGRATION.md` | Adding/troubleshooting videos, R2 setup |
 | Recursive Planning | `docs/ai-workflow/references/RECURSIVE-PLANNING-PROTOCOL.md` | **MANDATORY** — read before ANY implementation task |
 | Four-C Connections/Cadence Roadmap | `docs/ai-workflow/references/FOUR-C-CONNECTIONS-CADENCE-ROADMAP.md` | Planned C2 (live-data connections) + C4 (scheduled/triggered automations) build-out. Pointed to by the Four-C Router. Read when scoping a connection or automation; loaded on demand to keep the operating files lean. |
+| Fable Workflow Integration | `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md` | Deciding whether/how to use Fable; writing Fable handoffs |
+| AI Skill & Operator Registry | `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md` | **MANDATORY** before granting any agent/automation a new capability; unregistered = BLOCKED |
+| Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
+| Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
 ## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11, `.claude/skills/` count = 20)
 

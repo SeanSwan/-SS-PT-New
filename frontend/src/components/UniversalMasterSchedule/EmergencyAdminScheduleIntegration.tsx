@@ -69,7 +69,7 @@ const FlexBox = styled.div`
 // Simple Content Box
 const ContentBox = styled.div`
   &.elevated {
-    background: #1e1e3f;
+    background: var(--bg-elevated, #1e1e3f);
     padding: 1.5rem;
     border-radius: 8px;
     max-width: 600px;

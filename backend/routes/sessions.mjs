@@ -30,6 +30,7 @@ import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import User from "../models/User.mjs";
+import AdminAccountAuditLog from "../models/AdminAccountAuditLog.mjs";
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyticsFavoriteExercisesService.mjs';
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
@@ -869,12 +870,29 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
       });
     }
 
+    const previousAvailableSessions = Number(user.availableSessions || 0);
     await user.increment('availableSessions', { by: sessionCount });
     if (typeof user.reload === 'function') {
       await user.reload();
     }
 
     const availableSessions = Number(user.availableSessions || 0);
+
+    // Append-only money-path forensics (EFT/cash/comp grants must be
+    // reconstructable later). Fail-soft: the grant itself already succeeded.
+    try {
+      await AdminAccountAuditLog.create({
+        actorUserId: req.user.id,
+        targetUserId: userId,
+        action: 'manual_session_grant',
+        reason,
+        previousState: { availableSessions: previousAvailableSessions },
+        nextState: { availableSessions },
+        metadata: { sessionsAdded: sessionCount, source: 'POST /api/sessions/add-to-user' },
+      });
+    } catch (auditError) {
+      logger.warn('Manual session grant audit write failed:', auditError.message);
+    }
 
     try {
       await realTimeScheduleService.broadcastAllocationUpdated({

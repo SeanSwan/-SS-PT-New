@@ -69,6 +69,9 @@ const toClientOption = (assignment: ClientAssignment): ClientOption => {
     availableSessions: numberOrFallback(client.availableSessions),
     workoutCount: numberOrFallback(client.totalSessionsCompleted),
     lastSessionDate: client.lastSessionDate ?? null,
+    // Pass through as-is: on the trainer surface an absent value means
+    // "unknown here", not "none booked" — the card renders neutral guidance.
+    nextSessionDate: client.nextSessionDate,
     assignedAt: assignment.assignedAt ?? null,
     joinDate: client.joinDate ?? null,
     fitnessGoal: client.fitnessGoal ?? '',

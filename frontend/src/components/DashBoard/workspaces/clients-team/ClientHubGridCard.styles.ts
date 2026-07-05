@@ -9,6 +9,7 @@ import {
 } from './clientCardSystem';
 import type { ClientSessionSignalTone } from './clientSessionSignal';
 import type { ClientSourceTone } from './clientSourceDisplay';
+import type { ClientReadinessTone } from './clientCardReadiness';
 
 export const CardShell = styled.article`
   --swan-card-padding: 16px;
@@ -96,6 +97,13 @@ export const Avatar = styled.span<{ $source?: ClientSourceTone }>`
   }
 `;
 
+export const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+`;
+
 export const CardBody = styled.span`
   min-width: 0;
   display: grid;
@@ -122,8 +130,16 @@ export const Name = styled.span`
   overflow-wrap: anywhere;
 `;
 
-export const Pill = styled.span`
+export const Pill = styled.span<{ $tone?: 'default' | 'danger' }>`
   ${swanPill}
+  border-color: ${({ $tone }) =>
+    $tone === 'danger'
+      ? 'color-mix(in srgb, var(--status-error, #EF4444) 55%, transparent)'
+      : undefined};
+  background: ${({ $tone }) =>
+    $tone === 'danger'
+      ? 'color-mix(in srgb, var(--bg-card, #141419) 76%, var(--status-error, #EF4444) 14%)'
+      : undefined};
 `;
 
 export const ContactLine = styled.span`
@@ -181,9 +197,13 @@ export const ReadinessLabel = styled.span`
   text-transform: uppercase;
 `;
 
-export const ReadinessValue = styled.span`
+export const ReadinessValue = styled.span<{ $tone?: ClientReadinessTone }>`
   min-width: 0;
-  color: var(--text-primary, #E0ECF4);
+  color: ${({ $tone = 'default' }) => {
+    if ($tone === 'danger') return 'var(--status-error, #F87171)';
+    if ($tone === 'warning') return 'color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, var(--accent-secondary, #8B5CF6))';
+    return 'var(--text-primary, #E0ECF4)';
+  }};
   font-family: 'Sora', sans-serif;
   font-size: clamp(12px, 2.5cqi, 14px);
   font-weight: 800;

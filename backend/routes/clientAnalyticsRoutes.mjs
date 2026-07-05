@@ -53,6 +53,7 @@ import {
   getMuscleRecoveryChart,
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
+import { getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireFeature } from '../middleware/requireTier.mjs';
 
@@ -153,6 +154,15 @@ router.get('/exercise-variety', getExerciseVariety);
 // is the source of truth so direct API calls cannot bypass the Ascension promise.
 // A live 30-day premium trial is treated as eligible by requireTier.mjs.
 // ─────────────────────────────────────────────────────────────
+
+/** @route GET /api/client/analytics/progress-pulse (Slice 8.1 — Progress Intelligence) */
+router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler);
+
+/** @route GET /api/client/analytics/workout-day?md=MM/DD (Slice 8.4 — chart drill-down) */
+router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);
+
+/** @route GET /api/client/analytics/workout-week?md=MM/DD (Slice 9 — weekly drill-down) */
+router.get('/workout-week', requireGuardianAnalytics, getWorkoutWeekHandler);
 
 /** @route GET /api/client/analytics/chart-workout-frequency    (Phase 14 #1) */
 router.get('/chart-workout-frequency', requireGuardianAnalytics, getWorkoutFrequencyChart);

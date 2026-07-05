@@ -193,4 +193,68 @@ export const premiumThemeAdditions = {
     secondary: '#22C55E', secondaryLight: '#86EFAC', secondaryDeep: '#166534', accent: '#38BDF8', accentLight: '#BAE6FD', accentWarm: '#0284C7',
     text: '#F7FEE7', textSecondary: 'rgba(247, 254, 231, 0.84)', muted: 'rgba(247, 254, 231, 0.62)',
   }),
+
+  /* === 2026-07-03 identity wave — ten more colorways, each committed to a
+     single strong mood: blossom, ultraviolet, dusk, steel, vaporwave, wine,
+     grid-neon, orchid, jade, and tropic gold. Dark-first per THEME-CHANGER-COMPAT. === */
+  'sakura-midnight': makePremiumTheme({
+    id: 'sakura-midnight', name: 'Sakura Midnight', bg: '#140812', bg2: '#241020', surface: 'rgba(52, 22, 46, 0.78)', elevated: '#3A1B33',
+    primary: '#F9A8C7', primaryBlue: '#F472B6', primaryDeep: '#9D2463', primaryLight: '#FCE0EC',
+    secondary: '#B786C9', secondaryLight: '#E3C5EE', secondaryDeep: '#6B3A7E', accent: '#E8E3EA', accentLight: '#F8F5F9', accentWarm: '#C4A8CE',
+    text: '#FFF2F8', textSecondary: 'rgba(255, 242, 248, 0.84)', muted: 'rgba(255, 242, 248, 0.62)',
+  }),
+  'indigo-pulse': makePremiumTheme({
+    id: 'indigo-pulse', name: 'Indigo Pulse', bg: '#0A0A1E', bg2: '#131238', surface: 'rgba(28, 26, 82, 0.78)', elevated: '#232059',
+    primary: '#818CF8', primaryBlue: '#6366F1', primaryDeep: '#4338CA', primaryLight: '#C7D2FE',
+    secondary: '#A78BFA', secondaryLight: '#DDD6FE', secondaryDeep: '#5B21B6', accent: '#38BDF8', accentLight: '#BAE6FD', accentWarm: '#0369A1',
+    text: '#EEF2FF', textSecondary: 'rgba(238, 242, 255, 0.84)', muted: 'rgba(238, 242, 255, 0.62)',
+  }),
+  'sunset-mirage': makePremiumTheme({
+    id: 'sunset-mirage', name: 'Sunset Mirage', bg: '#160B08', bg2: '#2A130C', surface: 'rgba(64, 26, 16, 0.78)', elevated: '#421E12',
+    primary: '#FB923C', primaryBlue: '#F97316', primaryDeep: '#C2410C', primaryLight: '#FED7AA',
+    secondary: '#E879A9', secondaryLight: '#F9C2D9', secondaryDeep: '#9D2463', accent: '#FBBF24', accentLight: '#FDE68A', accentWarm: '#B45309',
+    text: '#FFF4EC', textSecondary: 'rgba(255, 244, 236, 0.84)', muted: 'rgba(255, 244, 236, 0.62)',
+  }),
+  'steel-tempest': makePremiumTheme({
+    id: 'steel-tempest', name: 'Steel Tempest', bg: '#0B0E12', bg2: '#151B23', surface: 'rgba(32, 42, 54, 0.8)', elevated: '#232E3C',
+    primary: '#7DA7C7', primaryBlue: '#5B8AAE', primaryDeep: '#39586F', primaryLight: '#B8D2E4',
+    secondary: '#8B9BAB', secondaryLight: '#C4CFD9', secondaryDeep: '#4A5866', accent: '#D6DEE6', accentLight: '#F0F4F7', accentWarm: '#93A6B5',
+    text: '#F2F6F9', textSecondary: 'rgba(242, 246, 249, 0.84)', muted: 'rgba(242, 246, 249, 0.62)',
+  }),
+  'vapor-dream': makePremiumTheme({
+    id: 'vapor-dream', name: 'Vapor Dream', bg: '#120919', bg2: '#20112D', surface: 'rgba(46, 24, 64, 0.78)', elevated: '#331D47',
+    primary: '#F0ABFC', primaryBlue: '#E879F9', primaryDeep: '#A21CAF', primaryLight: '#FAE0FE',
+    secondary: '#67E8F9', secondaryLight: '#BAF5FD', secondaryDeep: '#0E7490', accent: '#FDA4AF', accentLight: '#FECDD3', accentWarm: '#E11D48',
+    text: '#FDF4FF', textSecondary: 'rgba(253, 244, 255, 0.84)', muted: 'rgba(253, 244, 255, 0.62)',
+  }),
+  'burgundy-noir': makePremiumTheme({
+    id: 'burgundy-noir', name: 'Burgundy Noir', bg: '#120608', bg2: '#220B10', surface: 'rgba(52, 16, 24, 0.8)', elevated: '#3C1420',
+    primary: '#C2637A', primaryBlue: '#A8455E', primaryDeep: '#6E2438', primaryLight: '#E5AFBE',
+    secondary: '#D4A56E', secondaryLight: '#EBCDA5', secondaryDeep: '#8A6134', accent: '#E8C39A', accentLight: '#F5E0C8', accentWarm: '#B07D45',
+    text: '#FBF0F2', textSecondary: 'rgba(251, 240, 242, 0.84)', muted: 'rgba(251, 240, 242, 0.62)',
+  }),
+  'tron-grid': makePremiumTheme({
+    id: 'tron-grid', name: 'Tron Grid', bg: '#04070C', bg2: '#081120', surface: 'rgba(10, 26, 46, 0.8)', elevated: '#0C1F38',
+    primary: '#5CE1FF', primaryBlue: '#22C8F0', primaryDeep: '#0E7490', primaryLight: '#BDF1FF',
+    secondary: '#3B82F6', secondaryLight: '#93C5FD', secondaryDeep: '#1D4ED8', accent: '#F8FAFC', accentLight: '#FFFFFF', accentWarm: '#94A3B8',
+    text: '#EDFBFF', textSecondary: 'rgba(237, 251, 255, 0.84)', muted: 'rgba(237, 251, 255, 0.62)',
+  }),
+  'orchid-veil': makePremiumTheme({
+    id: 'orchid-veil', name: 'Orchid Veil', bg: '#100714', bg2: '#1E0F26', surface: 'rgba(44, 22, 58, 0.78)', elevated: '#331C42',
+    primary: '#D8A7E8', primaryBlue: '#C77DDE', primaryDeep: '#8E44AD', primaryLight: '#EDD3F5',
+    secondary: '#9D8CD8', secondaryLight: '#CDC4EC', secondaryDeep: '#5B4A9E', accent: '#F5D8C0', accentLight: '#FBECDF', accentWarm: '#D8A374',
+    text: '#FAF2FD', textSecondary: 'rgba(250, 242, 253, 0.84)', muted: 'rgba(250, 242, 253, 0.62)',
+  }),
+  'deep-jade': makePremiumTheme({
+    id: 'deep-jade', name: 'Deep Jade', bg: '#051009', bg2: '#0A2013', surface: 'rgba(14, 44, 27, 0.78)', elevated: '#11361F',
+    primary: '#4FD1A1', primaryBlue: '#2EB584', primaryDeep: '#177452', primaryLight: '#A8EBD1',
+    secondary: '#8FD6B8', secondaryLight: '#C9EEDD', secondaryDeep: '#3D8A67', accent: '#E9E3C8', accentLight: '#F7F4E5', accentWarm: '#BBAE7A',
+    text: '#EFFCF5', textSecondary: 'rgba(239, 252, 245, 0.84)', muted: 'rgba(239, 252, 245, 0.62)',
+  }),
+  'midnight-mango': makePremiumTheme({
+    id: 'midnight-mango', name: 'Midnight Mango', bg: '#130D05', bg2: '#251A09', surface: 'rgba(56, 39, 13, 0.78)', elevated: '#3D2C10',
+    primary: '#FFC94D', primaryBlue: '#F5A623', primaryDeep: '#B27310', primaryLight: '#FFE4A3',
+    secondary: '#FF8B67', secondaryLight: '#FFC3B0', secondaryDeep: '#C2410C', accent: '#7FE0C3', accentLight: '#C2F2E3', accentWarm: '#2E9E7E',
+    text: '#FFF9EC', textSecondary: 'rgba(255, 249, 236, 0.84)', muted: 'rgba(255, 249, 236, 0.62)',
+  }),
 } as const;

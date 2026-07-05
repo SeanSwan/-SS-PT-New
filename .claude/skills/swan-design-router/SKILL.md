@@ -22,8 +22,11 @@ As of Phase 3:
 1. **`docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md`** — stack truth, page-level narrative arc (B2), visual grammar, layout/interaction pattern library (C1-C12), generic-pattern bans
 2. **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes, emotional jobs, per-section rules, Seedance 2.0 prompt templates
 3. **`CLAUDE.md`** — rules 1-11 (stack + WCAG + palette + charts), 22-25 (premium + responsive + motion), 26-27 (surface receipts), 40-41 (design + closeout routing)
-4. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
-5. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
+4. **`docs/ai-workflow/design-brain/index.md`** — the Design Brain (rule 40, added 2026-07-03). `design.md` is canonical; `design.html` is its visual mirror and design.md wins on any conflict. Load `design.md` plus only the topic files the task needs (`motion.md`, `components.md`, `anti-patterns.md`, `qa-gates.md`, `website-archetypes.md`, `cinematic-pages.md`, the matching `adapters/` file). The Design Brain is **subordinate** to SWAN-CINEMATIC-DESIGN-SYSTEM.md — on any conflict, item 1 wins. Adapters never coin tokens; semantic colors are success=Ice Wing / warn=Gilded Fern / info=Swan Lavender / danger=#E5484D.
+5. **`.agents/skills/frontend-design/SKILL.md`** — reference only, for implementation constraint language (accessibility, responsiveness, anti-generic). Router borrows language, router does not delegate arbitration.
+6. **`.agents/skills/ui-ux-pro-max/SKILL.md`** — reference only, for style-space and option generation. Router borrows breadth, router rejects Tailwind-biased suggestions.
+
+If `docs/ai-workflow/design-brain/` is missing at runtime, fall back to items 1-3 and report the missing Design Brain explicitly in the task thread rather than silently degrading (same policy as the reference libraries).
 
 If any of files 1-2 are missing or older than the current CLAUDE.md active palette, stop and notify Sean before proceeding — the design base is out of sync.
 

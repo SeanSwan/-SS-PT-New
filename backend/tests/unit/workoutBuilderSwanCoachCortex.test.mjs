@@ -62,6 +62,15 @@ async function loadWorkoutBuilder() {
     getExerciseRegistry: vi.fn(() => registry),
     getExerciseRegistryFromDB: vi.fn(async () => registry),
     generateSwapSuggestions: vi.fn(() => []),
+    getNextSessionType: vi.fn((history = [], pattern = 'standard') => {
+      const buildCount = pattern === 'aggressive' ? 1 : pattern === 'conservative' ? 3 : 2;
+      let consecutiveBuilds = 0;
+      for (let i = history.length - 1; i >= 0; i -= 1) {
+        if (history[i]?.sessionType !== 'build') break;
+        consecutiveBuilds += 1;
+      }
+      return consecutiveBuilds >= buildCount ? 'switch' : 'build';
+    }),
   }));
   vi.doMock('../../models/index.mjs', () => ({
     getExercise: () => null,

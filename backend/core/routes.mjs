@@ -119,6 +119,7 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import adminSocialPublishingRoutes from '../routes/adminSocialPublishingRoutes.mjs';
 import adminMarketingCalendarRoutes from '../routes/adminMarketingCalendarRoutes.mjs';
+import adminMarketingReadinessRoutes from '../routes/adminMarketingReadinessRoutes.mjs';
 import videoSessionRoutes from '../routes/videoSessionRoutes.mjs';
 import avatarHomeRoutes from '../routes/avatarHomeRoutes.mjs';
 import badgeCreatorRoutes from '../routes/badgeCreatorRoutes.mjs';
@@ -453,6 +454,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
   app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Native social publishing
   app.use('/api/admin/marketing-calendar', adminMarketingCalendarRoutes); // Persisted Marketing calendar + PT awareness
+  app.use('/api/admin/marketing-readiness', adminMarketingReadinessRoutes); // Read-only marketing subsystem readiness cockpit
   app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
   app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10
   app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Gemini Nano Banana

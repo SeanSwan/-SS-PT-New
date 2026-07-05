@@ -21,6 +21,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { ThemeProvider as StyledThemeProvider, type DefaultTheme } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
 import { swanStudiosTheme } from '../../core/theme';
@@ -535,85 +536,85 @@ const frozenAurora = {
   fonts,
   effects: {
     glassmorphism: true,
-    glowIntensity: 'subtle' as const,
+    glowIntensity: 'medium' as const,
     cardStyle: 'frosted' as const,
-    borderGlow: false,
+    borderGlow: true,
   },
   colors: {
-    deepSpace: '#F0F4F8',
-    stardust: '#E2E8F0',
-    void: '#F8FAFC',
+    deepSpace: '#060B14',
+    stardust: '#0B1626',
+    void: '#02050A',
 
-    primary: '#6366F1',
-    primaryBlue: '#818CF8',
-    primaryDeep: '#4F46E5',
-    primaryLight: '#A5B4FC',
-    primaryNeon: '#6366F1',
+    primary: '#818CF8',
+    primaryBlue: '#6366F1',
+    primaryDeep: '#4338CA',
+    primaryLight: '#C7D2FE',
+    primaryNeon: '#818CF8',
 
-    secondary: '#14B8A6',
-    secondaryLight: '#2DD4BF',
+    secondary: '#2DD4BF',
+    secondaryLight: '#7DF0E3',
     secondaryDeep: '#0D9488',
 
-    accent: '#C6A84B',
-    accentLight: '#D4B85A',
-    accentWarm: '#B8860B',
+    accent: '#A5F3FC',
+    accentLight: '#DFFBFF',
+    accentWarm: '#67E8F9',
 
-    wingPurple: '#6366F1',
-    wingPurpleLight: '#818CF8',
-    wingPurpleDeep: '#4F46E5',
+    wingPurple: '#818CF8',
+    wingPurpleLight: '#C7D2FE',
+    wingPurpleDeep: '#4338CA',
 
-    white: '#1E293B',
-    silver: '#334155',
-    muted: 'rgba(30, 41, 59, 0.45)',
-    error: '#DC2626',
-    success: '#16A34A',
-    warning: '#D97706',
+    white: '#EEF4FB',
+    silver: '#D7E4F2',
+    muted: 'rgba(238, 244, 251, 0.62)',
+    error: '#FB7185',
+    success: '#4ADE80',
+    warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #F0F4F8, #6366F1)',
-    secondary: 'linear-gradient(135deg, #E2E8F0, #14B8A6)',
-    cosmic: 'linear-gradient(135deg, #F0F4F8, #818CF8)',
-    hero: 'radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(20,184,166,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #E2E8F0 0%, #F0F4F8 70%)',
-    card: 'rgba(255, 255, 255, 0.7)',
-    accent: 'linear-gradient(135deg, #F0F4F8, #C6A84B)',
-    stellar: 'linear-gradient(45deg, #6366F1 0%, #14B8A6 100%)',
-    swanCosmic: 'linear-gradient(135deg, #6366F1, #14B8A6)',
-    glass: 'linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(99, 102, 241, 0.05))',
+    primary: 'linear-gradient(135deg, #4338CA, #818CF8)',
+    secondary: 'linear-gradient(135deg, #0B1626, #0D9488)',
+    cosmic: 'linear-gradient(135deg, #2DD4BF, #818CF8)',
+    hero: 'radial-gradient(ellipse at 20% 20%, rgba(129, 140, 248, 0.18) 0%, transparent 50%), radial-gradient(ellipse at 80% 75%, rgba(45, 212, 191, 0.14) 0%, transparent 52%), radial-gradient(ellipse at center, #0B1626 0%, #060B14 72%)',
+    card: 'linear-gradient(135deg, rgba(67, 56, 202, 0.26), rgba(129, 140, 248, 0.08))',
+    accent: 'linear-gradient(135deg, #060B14, #A5F3FC)',
+    stellar: 'linear-gradient(45deg, #818CF8 0%, #2DD4BF 100%)',
+    swanCosmic: 'linear-gradient(135deg, #818CF8, #2DD4BF)',
+    glass: 'linear-gradient(135deg, rgba(67, 56, 202, 0.2), rgba(129, 140, 248, 0.08))',
   },
   shadows: {
-    primary: '0 0 30px rgba(99, 102, 241, 0.15)',
-    secondary: '0 0 25px rgba(20, 184, 166, 0.12)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.08), 0 0 60px rgba(99, 102, 241, 0.08)',
-    accent: '0 0 20px rgba(198, 168, 75, 0.2)',
-    elevation: '0 10px 30px rgba(0, 0, 0, 0.1)',
+    primary: '0 0 24px rgba(129, 140, 248, 0.24)',
+    secondary: '0 0 22px rgba(45, 212, 191, 0.22)',
+    cosmic: '0 18px 48px rgba(0, 0, 0, 0.58), 0 0 52px rgba(129, 140, 248, 0.12)',
+    accent: '0 0 20px rgba(165, 243, 252, 0.26)',
+    elevation: '0 18px 42px rgba(0, 0, 0, 0.56)',
     glow: '0 0 20px currentColor',
-    glass: '0 8px 32px rgba(0, 0, 0, 0.06)',
-    button: '0 4px 20px rgba(99, 102, 241, 0.2)',
+    glass: '0 10px 34px rgba(6, 11, 20, 0.54)',
+    button: '0 8px 24px rgba(129, 140, 248, 0.22)',
   },
   borders: {
-    subtle: 'rgba(99, 102, 241, 0.1)',
-    elegant: 'rgba(99, 102, 241, 0.2)',
-    prominent: 'rgba(99, 102, 241, 0.35)',
-    glass: '1px solid rgba(99, 102, 241, 0.15)',
-    card: '1px solid rgba(99, 102, 241, 0.1)',
-    focus: '2px solid #6366F1',
-    glow: '1px solid rgba(99, 102, 241, 0.15)',
+    subtle: 'rgba(129, 140, 248, 0.1)',
+    elegant: 'rgba(129, 140, 248, 0.18)',
+    prominent: 'rgba(129, 140, 248, 0.34)',
+    glass: '1px solid rgba(129, 140, 248, 0.14)',
+    card: '1px solid rgba(129, 140, 248, 0.12)',
+    focus: '2px solid #818CF8',
+    glow: '1px solid rgba(45, 212, 191, 0.2)',
   },
   background: {
-    primary: '#F0F4F8',
-    secondary: '#E2E8F0',
-    surface: 'rgba(255, 255, 255, 0.6)',
-    elevated: 'rgba(255, 255, 255, 0.8)',
+    primary: '#060B14',
+    secondary: '#0B1626',
+    surface: 'rgba(13, 28, 48, 0.78)',
+    elevated: '#10203A',
   },
   text: {
-    primary: '#1E293B',
-    secondary: 'rgba(30, 41, 59, 0.75)',
-    muted: 'rgba(30, 41, 59, 0.45)',
-    heading: '#0F172A',
-    subheading: '#1E293B',
-    body: 'rgba(30, 41, 59, 0.75)',
-    label: 'rgba(30, 41, 59, 0.55)',
-    accent: '#6366F1',
+    primary: '#EEF4FB',
+    secondary: 'rgba(238, 244, 251, 0.84)',
+    muted: 'rgba(238, 244, 251, 0.62)',
+    heading: '#EEF4FB',
+    subheading: 'rgba(238, 244, 251, 0.9)',
+    body: 'rgba(238, 244, 251, 0.84)',
+    label: 'rgba(238, 244, 251, 0.68)',
+    accent: '#818CF8',
   },
 };
 
@@ -642,17 +643,19 @@ const obsidianBlack = {
     stardust: '#141419',
     void: '#050508',
 
-    // Midnight Sapphire as primary button color per CLAUDE.md
-    primary: '#002060',
-    primaryBlue: '#003080',
-    primaryDeep: '#001840',
-    primaryLight: '#004090',
-    primaryNeon: '#002060',
+    // Wing Purple as THE visible accent (this theme's own doc: "mostly black
+    // with subtle Wing Purple accents"). colors.primary is the system-wide
+    // accent role — #002060 here was 1.29:1 on the black base (invisible).
+    primary: '#8B5CF6',
+    primaryBlue: '#7C3AED',
+    primaryDeep: '#6D28D9',
+    primaryLight: '#A78BFA',
+    primaryNeon: '#8B5CF6',
 
-    // Wing Purple as secondary accent
-    secondary: '#8B5CF6',
-    secondaryLight: '#A78BFA',
-    secondaryDeep: '#7C3AED',
+    // Swan Lavender as the secondary accent (visible on black, sapphire-family)
+    secondary: '#4070C0',
+    secondaryLight: '#6090D0',
+    secondaryDeep: '#003080',
 
     accent: '#C6A84B',
     accentLight: '#D8C478',
@@ -1606,6 +1609,9 @@ interface ThemeContextType {
   setTheme: (themeId: ThemeId) => void;
   toggleTheme: () => void;
   availableThemes: Array<{ id: ThemeId; name: string }>;
+  /** Site-wide animations switch (persisted). false = collapse all motion. */
+  motionEnabled: boolean;
+  setMotionEnabled: (enabled: boolean) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -1621,6 +1627,20 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
   defaultTheme = 'crystalline-default'
 }) => {
   const [currentTheme, setCurrentThemeState] = useState<ThemeId>(defaultTheme);
+  const [motionEnabled, setMotionEnabledState] = useState<boolean>(
+    () => (typeof window === 'undefined' ? true : localStorage.getItem('swanstudios-motion') !== 'off')
+  );
+
+  // Reflect the animations switch onto <html data-motion> so the tokens.css
+  // kill-switch (and any CSS keyed on it) applies site-wide, and persist it.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-motion', motionEnabled ? 'on' : 'off');
+  }, [motionEnabled]);
+
+  const setMotionEnabled = (enabled: boolean) => {
+    setMotionEnabledState(enabled);
+    localStorage.setItem('swanstudios-motion', enabled ? 'on' : 'off');
+  };
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -1666,7 +1686,9 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     theme: themes[currentTheme],
     setTheme,
     toggleTheme,
-    availableThemes
+    availableThemes,
+    motionEnabled,
+    setMotionEnabled
   };
 
   // Merge the base swanStudiosTheme with the active Crystalline Swan theme
@@ -1679,9 +1701,11 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={contextValue}>
-      <StyledThemeProvider theme={mergedTheme as unknown as DefaultTheme}>
-        {children}
-      </StyledThemeProvider>
+      <MotionConfig reducedMotion={motionEnabled ? 'user' : 'always'}>
+        <StyledThemeProvider theme={mergedTheme as unknown as DefaultTheme}>
+          {children}
+        </StyledThemeProvider>
+      </MotionConfig>
     </ThemeContext.Provider>
   );
 };

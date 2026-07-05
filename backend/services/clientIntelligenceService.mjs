@@ -45,6 +45,7 @@ import {
   isNonDeductingClientSource,
   normalizeClientSource,
 } from './sessionBillingPolicy.mjs';
+import { buildRecentExercisePerformance } from './workoutProgressionService.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -168,7 +169,9 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
          ws.intensity AS "overallIntensity",
          json_agg(json_build_object(
            'exerciseName', wl."exerciseName",
-           'rpe', wl.rpe
+           'rpe', wl.rpe,
+           'weight', wl.weight,
+           'reps', wl.reps
          ) ORDER BY wl."exerciseName", wl."setNumber") AS exercises
        FROM workout_sessions ws
        JOIN workout_logs wl ON wl."sessionId" = ws.id
@@ -197,6 +200,8 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
               exerciseName: exercise.exerciseName,
               formRating: toNullablePositiveNumber(exercise.formRating),
               rpe: toNullablePositiveNumber(exercise.rpe),
+              weight: toNullablePositiveNumber(exercise.weight),
+              reps: toNullablePositiveNumber(exercise.reps),
             })),
         },
       };
@@ -212,10 +217,34 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
 
 // ── Body Region to NASM Muscle Taxonomy ──────────────────────────────
 
+/**
+ * Collapse variation-log rows to ONE per (templateCategory, UTC day),
+ * keeping the newest row for each. Rows arrive newest-first; the result is
+ * chronological (oldest-first) for rotation counting. This is what makes
+ * generation-time history writes safe: regenerating five times in one
+ * session still advances BUILD/SWITCH exactly once.
+ */
+export function dedupeVariationHistoryRows(rows = []) {
+  const seen = new Set();
+  const kept = [];
+  for (const log of rows) {
+    const timestamp = Date.parse(log?.sessionDate);
+    const day = Number.isFinite(timestamp)
+      ? new Date(timestamp).toISOString().slice(0, 10)
+      : `row-${kept.length}`;
+    const key = `${log?.templateCategory || 'any'}|${day}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    kept.push(log);
+  }
+  return kept.reverse();
+}
+
 export function buildClientWorkoutSummary(recentWorkouts = []) {
   const workouts = Array.isArray(recentWorkouts) ? recentWorkouts : [];
   const workoutSummary = {
     sessionsLast2Weeks: workouts.length,
+    recentExercisePerformance: buildRecentExercisePerformance(workouts),
     recentExercises: [],
     avgFormRating: null,
     avgIntensity: null,
@@ -778,10 +807,20 @@ export async function getClientContext(clientId, trainerId) {
 
   // ── Process Variation History ───────────────────────────────────
 
+  const variationHistory = dedupeVariationHistoryRows(recentVariations)
+    .map(log => ({
+      sessionType: log.sessionType,
+      sessionDate: log.sessionDate,
+      rotationPattern: log.rotationPattern || 'standard',
+      templateCategory: log.templateCategory || null,
+    }))
+    .filter(entry => entry.sessionType === 'build' || entry.sessionType === 'switch');
+
   const variationSummary = {
     recentSessions: recentVariations.length,
     lastSessionType: recentVariations[0]?.sessionType ?? null,
     lastSessionDate: recentVariations[0]?.sessionDate ?? null,
+    sessionHistory: variationHistory,
     recentlyUsedExercises: [],
     currentPattern: recentVariations[0]?.rotationPattern || 'standard',
   };

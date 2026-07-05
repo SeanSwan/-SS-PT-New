@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Hermes Agentic OS — Command Center · STATIC PROTOTYPE</title>
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  HERMES AGENTIC OS — COMMAND CENTER · STATIC VISUAL PROTOTYPE
+  ═══════════════════════════════════════════════════════════════════════════
+  Status:      STATIC PROTOTYPE — NON-PRODUCTION — DEMO DATA ONLY
+  Spec:        ../dashboard-command-center-spec.md (Level 5)
+  Buttons:     ../dashboard-button-registry.md
+  Tiers:       ../../references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md §4 (T0–T4)
+  Design:      Crystalline Cyberforest (operator mode — never leaks into client UI)
+  Constraints: fully self-contained · no external assets · no fetch · no secrets
+               JS is cosmetic-only (nav highlight, modal, toggles); the page
+               reads fully with JS disabled. Every actor, receipt, client ID,
+               and timestamp on this page is fabricated demo content.
+  Authority:   ZERO. This page is a window, not an engine. It brokers nothing.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<style>
+/* ═════════════════════════ TOKENS ═════════════════════════ */
+:root{
+  --obsidian:#0A0A0F;
+  --carbon:#141419;
+  --graphite:#1A1A24;
+  --sapphire:#002060;
+  --royal:#003080;
+  --ice:#60C0F0;
+  --arctic:#50A0F0;
+  --fern-gold:#C6A84B;
+  --frost:#E0ECF4;
+  --lavender:#4070C0;
+  --lavender-text:#8FB2EE;   /* accessible tint of Swan Lavender for text on dark */
+  --purple:#8B5CF6;
+  --purple-text:#B49CFA;     /* accessible tint of Wing Purple for text on dark */
+  --red:#E5484D;   /* danger — matches design.md §4 (--danger) */
+  --red-text:#F08A81;        /* accessible tint of restrained red for small text */
+  --forest-deep:#0E2A1E;
+  --forest-mid:#1A4032;
+  --muted:#9AA6B8;
+  --line:rgba(96,192,240,.14);
+  --line-strong:rgba(96,192,240,.28);
+  --glass:rgba(20,20,25,.72);
+  --glass-deep:rgba(10,10,15,.82);
+  --font-ui:'Sora','Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-head:'Plus Jakarta Sans','Sora',system-ui,sans-serif;
+  --font-data:'Fira Code','Cascadia Code',ui-monospace,'SFMono-Regular',Consolas,monospace;
+  --font-drama:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --radius:14px;
+  --radius-sm:9px;
+}
+
+/* ═════════════════════════ RESET / BASE ═════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:auto}
+body{
+  background:var(--obsidian);
+  color:var(--frost);
+  font-family:var(--font-ui);
+  font-size:15px;
+  line-height:1.6;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+img,svg{max-width:100%}
+a{color:var(--ice)}
+:focus-visible{outline:2px solid var(--ice);outline-offset:2px;border-radius:4px}
+::selection{background:rgba(96,192,240,.28);color:var(--frost)}
+
+/* ═════════════════════ SCENIC BACKGROUND — pure CSS gradients ═════════════════════
+   One fixed low-opacity layer: sunrise glow · glacier ranges · forest silhouette ·
+   crystal lake reflection · snowfall speckle. No images, ever.                     */
+.scene{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    /* snow speckle — two drifts */
+    radial-gradient(1.2px 1.2px at 18% 22%, rgba(224,236,244,.28) 50%, transparent 51%),
+    radial-gradient(1px 1px at 71% 14%, rgba(224,236,244,.22) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 44% 38%, rgba(224,236,244,.18) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 47%, rgba(224,236,244,.20) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 9% 55%, rgba(224,236,244,.16) 50%, transparent 51%),
+    /* sunrise glow behind the ridgeline */
+    radial-gradient(58% 34% at 52% 60%, rgba(198,168,75,.14), transparent 70%),
+    radial-gradient(30% 18% at 52% 62%, rgba(224,180,110,.10), transparent 75%),
+    /* far glacier range */
+    conic-gradient(from 152deg at 14% 56%, rgba(0,48,128,.34) 0 56deg, transparent 56.5deg),
+    conic-gradient(from 148deg at 33% 50%, rgba(0,32,96,.40) 0 64deg, transparent 64.5deg),
+    conic-gradient(from 155deg at 55% 54%, rgba(0,48,128,.30) 0 50deg, transparent 50.5deg),
+    conic-gradient(from 149deg at 76% 52%, rgba(0,32,96,.36) 0 62deg, transparent 62.5deg),
+    conic-gradient(from 154deg at 93% 57%, rgba(0,48,128,.30) 0 52deg, transparent 52.5deg),
+    /* near forest silhouette — steeper, darker evergreen wedges */
+    conic-gradient(from 166deg at 6% 76%, rgba(14,42,30,.85) 0 28deg, transparent 28.5deg),
+    conic-gradient(from 165deg at 17% 72%, rgba(26,64,50,.75) 0 30deg, transparent 30.5deg),
+    conic-gradient(from 167deg at 28% 78%, rgba(14,42,30,.85) 0 26deg, transparent 26.5deg),
+    conic-gradient(from 165deg at 41% 74%, rgba(26,64,50,.70) 0 30deg, transparent 30.5deg),
+    conic-gradient(from 167deg at 55% 77%, rgba(14,42,30,.82) 0 26deg, transparent 26.5deg),
+    conic-gradient(from 166deg at 68% 73%, rgba(26,64,50,.72) 0 28deg, transparent 28.5deg),
+    conic-gradient(from 167deg at 81% 78%, rgba(14,42,30,.85) 0 26deg, transparent 26.5deg),
+    conic-gradient(from 165deg at 94% 74%, rgba(26,64,50,.70) 0 30deg, transparent 30.5deg),
+    /* crystal lake — mirror band with a faint light path */
+    linear-gradient(to bottom, transparent 84%, rgba(0,48,128,.30) 86%, rgba(0,32,96,.22) 92%, rgba(10,10,15,.1) 100%),
+    radial-gradient(20% 8% at 52% 90%, rgba(198,168,75,.10), transparent 75%),
+    radial-gradient(45% 10% at 52% 88%, rgba(96,192,240,.07), transparent 80%),
+    /* sky base — dawn navy into obsidian */
+    linear-gradient(to bottom, #060810 0%, #071026 34%, #0A1B38 56%, #0A0A0F 88%);
+  opacity:.5;
+}
+.aurora{
+  position:fixed;inset:-20% -30%;z-index:0;pointer-events:none;
+  background:linear-gradient(104deg,
+    transparent 24%,
+    rgba(96,192,240,.05) 38%,
+    rgba(139,92,246,.055) 52%,
+    rgba(26,64,50,.05) 64%,
+    transparent 78%);
+  opacity:.8;
+}
+
+/* ═════════════════════════ PROTOTYPE BANNER ═════════════════════════ */
+.proto-banner{
+  position:sticky;top:0;z-index:60;
+  display:flex;align-items:center;justify-content:center;gap:.75rem;
+  min-height:44px;padding:.5rem 1rem;text-align:center;
+  background:linear-gradient(90deg, rgba(198,168,75,.16), rgba(20,20,25,.94) 30%, rgba(20,20,25,.94) 70%, rgba(198,168,75,.16));
+  border-bottom:1px solid rgba(198,168,75,.45);
+  backdrop-filter:blur(10px);
+  font-family:var(--font-data);font-size:.78rem;letter-spacing:.14em;
+  color:var(--fern-gold);text-transform:uppercase;
+}
+.proto-banner .dot{width:8px;height:8px;border-radius:50%;background:var(--fern-gold);flex:none}
+
+/* ═════════════════════════ SHELL GRID ═════════════════════════ */
+.shell{
+  position:relative;z-index:1;
+  display:grid;
+  grid-template-columns:236px minmax(0,1fr) 332px;
+  gap:1.5rem;
+  max-width:1720px;margin:0 auto;
+  padding:1.5rem 1.5rem 3rem;
+  align-items:start;
+}
+
+/* ═════════════════════════ LEFT NAV ═════════════════════════ */
+.sidenav{
+  position:sticky;top:64px;
+  display:flex;flex-direction:column;gap:1.25rem;
+  background:var(--glass);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:1.4rem 1rem 1.2rem;
+  backdrop-filter:blur(14px);
+}
+.wordmark{padding:0 .5rem}
+.wordmark .sigil{
+  font-family:var(--font-head);font-weight:700;font-size:1.35rem;letter-spacing:.32em;
+  background:linear-gradient(92deg,var(--ice) 0%,var(--frost) 45%,var(--purple-text) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.wordmark .sub{
+  display:block;margin-top:.15rem;
+  font-family:var(--font-data);font-size:.66rem;letter-spacing:.22em;
+  color:var(--muted);text-transform:uppercase;
+}
+.sidenav ul{list-style:none;display:flex;flex-direction:column;gap:2px}
+.sidenav a{
+  display:flex;align-items:center;gap:.65rem;
+  min-height:44px;padding:.45rem .75rem;
+  color:var(--frost);text-decoration:none;
+  font-size:.88rem;font-weight:500;letter-spacing:.02em;
+  border-radius:var(--radius-sm);
+  border:1px solid transparent;
+}
+.sidenav a:hover{background:rgba(96,192,240,.07)}
+.sidenav a[aria-current="true"]{
+  background:linear-gradient(90deg, rgba(0,48,128,.45), rgba(0,32,96,.18));
+  border-color:var(--line-strong);
+  color:#FFFFFF;
+}
+.sidenav a .glyph{
+  width:7px;height:7px;flex:none;border-radius:2px;
+  background:var(--lavender);transform:rotate(45deg);
+  box-shadow:0 0 6px rgba(64,112,192,.6);
+}
+.sidenav a[aria-current="true"] .glyph{background:var(--ice);box-shadow:0 0 8px rgba(96,192,240,.8)}
+.runtime{
+  border-top:1px solid var(--line);
+  padding:.9rem .5rem 0;
+  display:flex;flex-direction:column;gap:.55rem;
+  font-family:var(--font-data);font-size:.72rem;letter-spacing:.06em;color:var(--muted);
+}
+.runtime .rt{display:flex;align-items:center;gap:.55rem}
+.statdot{width:9px;height:9px;border-radius:50%;flex:none}
+.statdot.online{background:#5BE0A0;box-shadow:0 0 8px rgba(91,224,160,.65)}
+.statdot.standby{background:var(--fern-gold);box-shadow:0 0 8px rgba(198,168,75,.5)}
+.runtime strong{color:var(--frost);font-weight:500}
+
+/* ═════════════════════════ PANELS (glass) ═════════════════════════ */
+.panel{
+  background:var(--glass);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:1.5rem 1.6rem;
+  backdrop-filter:blur(14px);
+  margin-bottom:1.5rem;
+}
+.panel:last-child{margin-bottom:0}
+.panel-kicker{
+  font-family:var(--font-data);font-size:.68rem;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--ice);margin-bottom:.45rem;
+}
+.panel h2{
+  font-family:var(--font-head);font-weight:600;font-size:1.18rem;
+  letter-spacing:.01em;margin-bottom:1rem;color:#FFFFFF;
+}
+.footnote{
+  margin-top:1rem;font-family:var(--font-data);font-size:.72rem;
+  color:var(--muted);letter-spacing:.04em;
+}
+
+/* ═════════════════════════ TIER BADGES ═════════════════════════ */
+.tier{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--font-data);font-weight:600;font-size:.68rem;letter-spacing:.1em;
+  min-width:2.4rem;padding:.14rem .5rem;border-radius:999px;
+  border:1px solid;vertical-align:middle;
+}
+.tier-t0{color:var(--ice);border-color:rgba(96,192,240,.55);background:rgba(96,192,240,.09)}
+.tier-t1{color:var(--lavender-text);border-color:rgba(64,112,192,.65);background:rgba(64,112,192,.14)}
+.tier-t2{color:var(--fern-gold);border-color:rgba(198,168,75,.55);background:rgba(198,168,75,.09)}
+.tier-t3{color:var(--purple-text);border-color:rgba(139,92,246,.6);background:rgba(139,92,246,.11)}
+.tier-t4{color:var(--red-text);border-color:rgba(224,86,75,.6);background:rgba(224,86,75,.10)}
+
+/* ═════════════════════════ BUTTONS ═════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:44px;min-width:44px;padding:.55rem 1.1rem;
+  font-family:var(--font-ui);font-size:.85rem;font-weight:600;letter-spacing:.03em;
+  color:var(--frost);
+  background:linear-gradient(180deg, rgba(0,48,128,.55), rgba(0,32,96,.65));
+  border:1px solid var(--line-strong);
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+}
+.btn:hover{border-color:var(--ice)}
+.btn:active{transform:translateY(1px)}
+.btn .tier{margin-left:.1rem}
+.btn-quiet{background:rgba(26,26,36,.7);border-color:rgba(154,166,184,.28)}
+.btn-approve{background:linear-gradient(180deg, rgba(26,64,50,.75), rgba(14,42,30,.85));border-color:rgba(91,224,160,.4)}
+.btn-approve:hover{border-color:#5BE0A0}
+.btn-deny{background:rgba(26,26,36,.7);border-color:rgba(224,86,75,.45);color:var(--red-text)}
+.btn-deny:hover{border-color:var(--red)}
+.btn[disabled]{
+  opacity:.45;cursor:not-allowed;border-style:dashed;
+}
+.btn[disabled]:hover{border-color:var(--line-strong)}
+.disabled-reason{
+  display:block;margin-top:.4rem;
+  font-family:var(--font-data);font-size:.7rem;color:var(--muted);letter-spacing:.03em;
+}
+
+/* ═════════════════════════ SWITCH TOGGLES (pure CSS, no JS needed) ═════════════════════════ */
+.switch{
+  position:relative;display:inline-flex;align-items:center;gap:.65rem;
+  min-height:44px;padding:.25rem .25rem;cursor:pointer;user-select:none;
+  font-family:var(--font-data);font-size:.72rem;letter-spacing:.08em;color:var(--muted);
+}
+.switch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer}
+.switch .track{
+  position:relative;flex:none;width:48px;height:26px;border-radius:13px;
+  background:#23232F;border:1px solid rgba(154,166,184,.35);
+}
+.switch .track::after{
+  content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+  background:var(--muted);
+}
+.switch input:checked + .track{background:rgba(96,192,240,.22);border-color:var(--ice)}
+.switch input:checked + .track::after{left:24px;background:var(--ice);box-shadow:0 0 8px rgba(96,192,240,.7)}
+.switch input:focus-visible + .track{outline:2px solid var(--ice);outline-offset:2px}
+.switch .state::before{content:"PAUSED";color:var(--fern-gold)}
+.switch input:checked ~ .state::before{content:"ACTIVE";color:var(--ice)}
+.killrow .switch .state::before{content:"OFF";color:var(--red-text)}
+.killrow .switch input:checked ~ .state::before{content:"ON";color:var(--ice)}
+
+/* ═════════════════════════ HERO / BRIEFING ═════════════════════════ */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(150deg, rgba(0,32,96,.5) 0%, rgba(20,20,25,.82) 42%, rgba(14,42,30,.42) 100%);
+  border:1px solid var(--line-strong);
+}
+.hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(60% 90% at 85% 0%, rgba(139,92,246,.10), transparent 60%);
+}
+.hero-date{
+  font-family:var(--font-data);font-size:.74rem;letter-spacing:.2em;
+  color:var(--ice);text-transform:uppercase;margin-bottom:.6rem;
+}
+.hero h1{
+  font-family:var(--font-head);font-weight:700;font-size:clamp(1.5rem,2.6vw,2.1rem);
+  letter-spacing:.01em;color:#FFFFFF;line-height:1.2;
+}
+.hero-epigraph{
+  font-family:var(--font-drama);font-style:italic;font-size:1.22rem;
+  color:var(--fern-gold);margin:.5rem 0 1.1rem;letter-spacing:.01em;
+}
+.hero-brief{max-width:68ch;color:var(--frost)}
+.attention{margin-top:1.4rem;border-top:1px solid var(--line);padding-top:1.1rem}
+.attention h3{
+  font-family:var(--font-data);font-size:.7rem;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:.7rem;font-weight:500;
+}
+.attention ul{list-style:none;display:flex;flex-direction:column;gap:.55rem}
+.attention li{
+  display:flex;align-items:flex-start;gap:.7rem;
+  padding:.55rem .8rem;border-radius:var(--radius-sm);
+  background:rgba(10,10,15,.5);border:1px solid var(--line);
+  font-size:.87rem;
+}
+.attention li .tier{flex:none;margin-top:.1rem}
+.attention .meta{color:var(--muted);font-family:var(--font-data);font-size:.72rem;white-space:nowrap;margin-left:auto;padding-left:.75rem}
+
+/* ═════════════════════════ SKILL CARDS ═════════════════════════ */
+.cardgrid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1rem;
+}
+.skill{
+  display:flex;flex-direction:column;gap:.6rem;
+  background:linear-gradient(165deg, rgba(0,32,96,.30), rgba(20,20,25,.85) 55%);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:1.1rem 1.15rem 1rem;
+}
+.skill:hover{border-color:var(--line-strong)}
+.skill-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.skill-head h3{font-family:var(--font-head);font-size:.98rem;font-weight:600;color:#FFFFFF}
+.skill dl{
+  display:grid;grid-template-columns:auto 1fr;gap:.15rem .8rem;
+  font-size:.78rem;
+}
+.skill dt{color:var(--muted);font-family:var(--font-data);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding-top:.1rem}
+.skill dd{color:var(--frost)}
+.skill .ok{color:#5BE0A0}
+.skill-actions{
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  margin-top:auto;padding-top:.6rem;border-top:1px solid var(--line);
+}
+
+/* ═════════════════════════ RIGHT RAIL — QUEUE + SWITCHES ═════════════════════════ */
+.rail{position:sticky;top:64px;display:flex;flex-direction:column}
+.queue-item{
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:rgba(10,10,15,.55);
+  padding:.95rem 1rem;margin-bottom:.85rem;
+}
+.queue-item:last-of-type{margin-bottom:0}
+.queue-item.t4{border-color:rgba(224,86,75,.4)}
+.queue-item header{display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem}
+.queue-item header .qid{font-family:var(--font-data);font-size:.7rem;color:var(--muted);letter-spacing:.05em}
+.queue-item h3{font-size:.9rem;font-weight:600;color:#FFFFFF;line-height:1.4;margin-bottom:.35rem}
+.queue-item .qmeta{
+  font-family:var(--font-data);font-size:.72rem;color:var(--muted);
+  display:flex;flex-direction:column;gap:.1rem;margin-bottom:.7rem;
+}
+.queue-item .qmeta strong{color:var(--frost);font-weight:500}
+.queue-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.queue-actions .btn{flex:1 1 auto;font-size:.8rem;padding:.45rem .8rem}
+.arm-steps{display:flex;flex-direction:column;gap:.5rem}
+.arm-steps .steplabel{
+  font-family:var(--font-data);font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);
+}
+
+/* kill switches */
+.killpanel{border-color:rgba(198,168,75,.35)}
+.master{
+  display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+  border:1px solid rgba(198,168,75,.6);
+  border-radius:var(--radius);
+  background:linear-gradient(160deg, rgba(198,168,75,.10), rgba(10,10,15,.6) 60%);
+  padding:1rem 1.1rem;margin-bottom:1rem;
+}
+.master .mlabel{display:flex;flex-direction:column;gap:.1rem}
+.master .mlabel strong{
+  font-family:var(--font-head);font-size:1rem;letter-spacing:.14em;color:var(--fern-gold);
+}
+.master .mlabel span{font-family:var(--font-data);font-size:.68rem;color:var(--muted);letter-spacing:.06em}
+.master .switch .track{width:60px;height:32px;border-radius:16px}
+.master .switch .track::after{width:26px;height:26px}
+.master .switch input:checked + .track{border-color:var(--fern-gold);background:rgba(198,168,75,.18)}
+.master .switch input:checked + .track::after{left:30px;background:var(--fern-gold);box-shadow:0 0 10px rgba(198,168,75,.75)}
+.killrow{
+  display:flex;align-items:center;justify-content:space-between;gap:.7rem;
+  padding:.3rem 0;border-bottom:1px solid rgba(96,192,240,.08);
+}
+.killrow:last-of-type{border-bottom:none}
+.killrow code{
+  font-family:var(--font-data);font-size:.74rem;color:var(--frost);letter-spacing:.02em;
+}
+
+/* ═════════════════════════ RECEIPTS LEDGER ═════════════════════════ */
+.ledger{list-style:none;display:flex;flex-direction:column}
+.ledger li{
+  font-family:var(--font-data);font-size:.76rem;line-height:1.5;
+  padding:.5rem .65rem;color:var(--frost);
+  border-bottom:1px solid rgba(96,192,240,.09);
+  display:flex;flex-wrap:wrap;gap:.25rem .6rem;align-items:baseline;
+}
+.ledger li:nth-child(odd){background:rgba(10,10,15,.4)}
+.ledger .rid{color:var(--ice)}
+.ledger .actor{color:var(--lavender-text)}
+.ledger .out-ok{color:#5BE0A0}
+.ledger .rmeta{color:var(--muted)}
+.digestline{
+  margin-top:.9rem;padding:.65rem .8rem;
+  border:1px solid rgba(198,168,75,.35);border-radius:var(--radius-sm);
+  background:rgba(198,168,75,.06);
+  font-family:var(--font-data);font-size:.78rem;color:var(--fern-gold);letter-spacing:.04em;
+}
+
+/* ═════════════════════════ VAULT MAP ═════════════════════════ */
+.vault{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem}
+.lane{
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:rgba(10,10,15,.5);
+  padding:.8rem .9rem;
+}
+.lane code{font-family:var(--font-data);font-size:.8rem;color:var(--ice)}
+.lane .count{display:block;font-family:var(--font-head);font-size:1.25rem;font-weight:600;color:#FFFFFF;margin:.2rem 0 .05rem}
+.lane .what{font-size:.72rem;color:var(--muted);font-family:var(--font-data)}
+.lane.quarantine{border-color:rgba(198,168,75,.45)}
+.lane.quarantine .count{color:var(--fern-gold)}
+
+/* ═════════════════════════ GRAPH ═════════════════════════ */
+.graphwrap{
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:rgba(6,8,16,.6);overflow-x:auto;
+}
+.graphwrap svg{display:block;min-width:520px;width:100%;height:auto}
+.graph-caption{
+  margin-top:.7rem;font-family:var(--font-data);font-size:.74rem;color:var(--muted);
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+}
+.graph-caption .qmark{color:var(--fern-gold)}
+
+/* ═════════════════════════ STATUS STRIPS ═════════════════════════ */
+.striprow{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.strip{
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:linear-gradient(165deg, rgba(0,32,96,.22), rgba(20,20,25,.8) 60%);
+  padding:1rem 1.1rem;
+}
+.strip h3{
+  font-family:var(--font-data);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ice);margin-bottom:.55rem;font-weight:500;
+}
+.strip p{font-size:.82rem;color:var(--frost)}
+.strip p code{font-family:var(--font-data);font-size:.76rem;color:var(--frost)}
+.strip .good{color:#5BE0A0}
+.strip .gold{color:var(--fern-gold)}
+
+/* voice placeholder */
+.voice{
+  border-style:dashed;border-color:rgba(154,166,184,.3);
+  background:rgba(20,20,25,.5);color:var(--muted);
+}
+.voice h2{color:var(--muted)}
+.voice p{font-size:.84rem;max-width:60ch}
+
+/* ═════════════════════════ LEGEND FOOTER ═════════════════════════ */
+.legend{
+  border-top:1px solid var(--line);
+  margin-top:.5rem;padding:1.4rem 0 0;
+}
+.legend ul{list-style:none;display:flex;flex-direction:column;gap:.45rem}
+.legend li{display:flex;align-items:baseline;gap:.7rem;font-size:.8rem;color:var(--muted)}
+.legend li .tier{flex:none}
+.legend strong{color:var(--frost);font-weight:500}
+.colophon{
+  margin-top:1.4rem;font-family:var(--font-data);font-size:.68rem;
+  color:var(--muted);letter-spacing:.06em;line-height:1.9;
+}
+
+/* ═════════════════════════ MODAL ═════════════════════════ */
+dialog.confirm{
+  background:var(--graphite);color:var(--frost);
+  border:1px solid var(--line-strong);border-radius:var(--radius);
+  padding:1.6rem 1.7rem;max-width:440px;width:calc(100vw - 2.5rem);
+  font-family:var(--font-ui);
+  box-shadow:0 24px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(96,192,240,.06);
+}
+dialog.confirm::backdrop{background:rgba(6,8,16,.72);backdrop-filter:blur(4px)}
+dialog.confirm h3{
+  font-family:var(--font-head);font-size:1.05rem;font-weight:600;color:#FFFFFF;
+  margin-bottom:.9rem;display:flex;align-items:center;gap:.6rem;
+}
+dialog.confirm dl{
+  display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;
+  font-size:.84rem;margin-bottom:1rem;
+}
+dialog.confirm dt{color:var(--muted);font-family:var(--font-data);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;padding-top:.15rem}
+dialog.confirm dd{color:var(--frost)}
+dialog.confirm .modal-note{
+  font-family:var(--font-data);font-size:.72rem;color:var(--fern-gold);
+  border:1px dashed rgba(198,168,75,.4);border-radius:var(--radius-sm);
+  padding:.5rem .7rem;margin-bottom:1.1rem;
+}
+dialog.confirm .modal-actions{display:flex;gap:.6rem;justify-content:flex-end}
+
+/* ═════════════════════════ MOTION (opt-in only) ═════════════════════════ */
+@media (prefers-reduced-motion: no-preference){
+  html{scroll-behavior:smooth}
+  .aurora{animation:auroraDrift 46s ease-in-out infinite alternate}
+  @keyframes auroraDrift{
+    from{transform:translateX(-4%) skewX(0deg);opacity:.55}
+    50%{opacity:.9}
+    to{transform:translateX(4%) skewX(-2deg);opacity:.65}
+  }
+  .statdot.online{animation:breathe 3.2s ease-in-out infinite}
+  @keyframes breathe{
+    0%,100%{box-shadow:0 0 4px rgba(91,224,160,.4)}
+    50%{box-shadow:0 0 11px rgba(91,224,160,.85)}
+  }
+  .btn,.sidenav a,.skill,.switch .track,.switch .track::after{transition:all .18s ease}
+  .hero::after{
+    content:"";position:absolute;top:0;bottom:0;width:34%;
+    background:linear-gradient(100deg,transparent,rgba(224,236,244,.035),transparent);
+    animation:sheen 9s ease-in-out infinite;pointer-events:none;
+  }
+  @keyframes sheen{
+    0%,55%,100%{left:-40%}
+    25%{left:110%}
+  }
+}
+
+/* ═════════════════════════ RESPONSIVE ═════════════════════════ */
+@media (max-width:1360px){
+  .shell{grid-template-columns:220px minmax(0,1fr) 300px;gap:1.1rem}
+}
+@media (max-width:1120px){
+  .shell{grid-template-columns:minmax(0,1fr) 300px}
+  .sidenav{
+    position:static;grid-column:1 / -1;
+    flex-direction:row;align-items:center;flex-wrap:wrap;gap:.75rem;
+    padding:.75rem 1rem;
+  }
+  .sidenav ul{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:.15rem;flex:1 1 auto;scrollbar-width:thin}
+  .sidenav a{white-space:nowrap;padding:.45rem .7rem;font-size:.8rem}
+  .sidenav a .glyph{display:none}
+  .runtime{border-top:none;padding:0;flex-direction:row;gap:1rem;margin-left:auto}
+  .rail{position:static}
+}
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr);padding:1rem .9rem 2.5rem}
+  .panel{padding:1.15rem 1.05rem}
+  .hero-epigraph{font-size:1.08rem}
+  .attention .meta{margin-left:0;padding-left:0;flex-basis:100%}
+  .attention li{flex-wrap:wrap}
+}
+@media (max-width:460px){
+  body{font-size:14px}
+  .proto-banner{font-size:.64rem;letter-spacing:.08em}
+  .wordmark .sigil{font-size:1.1rem}
+  .runtime{margin-left:0;flex-basis:100%}
+  .queue-actions .btn{flex:1 1 100%}
+  .ledger li{font-size:.7rem}
+}
+</style>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true"></div>
+<div class="aurora" aria-hidden="true"></div>
+
+<!-- ══════════ 0 · PROTOTYPE BANNER ══════════ -->
+<div class="proto-banner" role="note">
+  <span class="dot" aria-hidden="true"></span>
+  STATIC PROTOTYPE — NON-PRODUCTION — DEMO DATA ONLY
+  <span class="dot" aria-hidden="true"></span>
+</div>
+
+<noscript>
+  <div class="proto-banner" role="note" style="border-color:rgba(96,192,240,.4);color:var(--ice)">
+    JavaScript disabled — demo interactions are inert; every panel remains fully readable.
+  </div>
+</noscript>
+
+<div class="shell">
+
+  <!-- ══════════ 1 · LEFT NAVIGATION ══════════ -->
+  <nav class="sidenav" aria-label="Command center sections">
+    <div class="wordmark">
+      <span class="sigil">HERMES</span>
+      <span class="sub">Agentic OS · Command Center</span>
+    </div>
+    <ul id="mainnav">
+      <li><a href="#briefing" aria-current="true"><span class="glyph" aria-hidden="true"></span>Briefing</a></li>
+      <li><a href="#skills"><span class="glyph" aria-hidden="true"></span>Skills &amp; Automations</a></li>
+      <li><a href="#queue"><span class="glyph" aria-hidden="true"></span>Approval Queue</a></li>
+      <li><a href="#receipts"><span class="glyph" aria-hidden="true"></span>Receipts</a></li>
+      <li><a href="#vault"><span class="glyph" aria-hidden="true"></span>Memory Vault</a></li>
+      <li><a href="#graph"><span class="glyph" aria-hidden="true"></span>Graph</a></li>
+      <li><a href="#design-brain"><span class="glyph" aria-hidden="true"></span>Design Brain</a></li>
+      <li><a href="#qa"><span class="glyph" aria-hidden="true"></span>QA</a></li>
+      <li><a href="#village"><span class="glyph" aria-hidden="true"></span>Village</a></li>
+      <li><a href="#switches"><span class="glyph" aria-hidden="true"></span>Kill Switches</a></li>
+    </ul>
+    <div class="runtime" aria-label="Runtime status">
+      <span class="rt"><span class="statdot online" aria-hidden="true"></span><strong>5090</strong>&nbsp;ONLINE</span>
+      <span class="rt"><span class="statdot standby" aria-hidden="true"></span><strong>Pi</strong>&nbsp;STANDBY</span>
+    </div>
+  </nav>
+
+  <!-- ══════════ CENTRAL COLUMN ══════════ -->
+  <main>
+
+    <!-- ══════════ 2 · COMMAND BRIEFING (hero) ══════════ -->
+    <section id="briefing" class="panel hero" aria-labelledby="briefing-h">
+      <p class="hero-date">Thursday · July 3, 2026 · 09:47 PDT · demo data</p>
+      <h1 id="briefing-h">Morning Command Briefing</h1>
+      <p class="hero-epigraph">The lake is still — every ripple on it is accounted for.</p>
+      <p class="hero-brief">
+        Good morning, Sean. The overnight lane is clean: five of five health endpoints answered
+        green, the last Render deploy is 14 hours old and stable, and receipts wrote without a
+        single gap — no silent automations. The stale-client report flagged three clients past
+        their cadence window — draft buttons ready in the panel. One PLAUD session note
+        (redacted, structured) is awaiting trainer review in the product pipeline, and lead
+        triage scored one new inquiry warm. Three items sit in the
+        approval queue; nothing in it expires before tonight, and there has been zero T4 activity
+        in the last 24 hours. The forest is quiet. Coffee first — the queue can wait twenty minutes.
+      </p>
+      <div class="attention">
+        <h3>Needs attention · 4 items</h3>
+        <ul>
+          <li>
+            <span class="tier tier-t3">T3</span>
+            <span>Follow-up message to <strong>Client&nbsp;#1042</strong> awaiting approval — template <code>stale-checkin-v2</code></span>
+            <span class="meta">expires 19:00 today</span>
+          </li>
+          <li>
+            <span class="tier tier-t0">T0</span>
+            <span>3 stale clients flagged (<strong>#1042 · #1077 · #1103</strong>) — draft buttons ready in the panel</span>
+            <span class="meta">reported 07:00</span>
+          </li>
+          <li>
+            <span class="tier tier-t2">T2</span>
+            <span>Graph quarantine holds <strong>2 imports</strong> awaiting promotion review</span>
+            <span class="meta">oldest 2 days</span>
+          </li>
+          <li>
+            <span class="tier tier-t4">T4</span>
+            <span>Maintenance proposal: storefront reseed (human-run) — approve → arm records authorization only</span>
+            <span class="meta">single-use</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ══════════ 3 · SKILLS & AUTOMATIONS ══════════ -->
+    <section id="skills" class="panel" aria-labelledby="skills-h">
+      <p class="panel-kicker">Registered commands · deterministic-first</p>
+      <h2 id="skills-h">Skills &amp; Automations</h2>
+      <div class="cardgrid">
+
+        <article class="skill" aria-label="Morning Briefing automation">
+          <div class="skill-head"><h3>Morning Briefing</h3><span class="tier tier-t1">T1</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>Daily · 06:00 · runner</dd>
+            <dt>Last run</dt><dd>Today 06:00 · <span class="ok">ok</span> — DRAFT filed</dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · switch on</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="morning-briefing — generate briefing draft"
+              data-tier="T1 · draft only, zero external effect"
+              data-target="runs/briefings/2026-07-03.md">Run <span class="tier tier-t1">T1</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume Morning Briefing — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="skill" aria-label="Stale-Client Sweep automation">
+          <div class="skill-head"><h3>Stale-Client Sweep</h3><span class="tier tier-t0">T0</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>Daily · 07:00 · runner</dd>
+            <dt>Last run</dt><dd>Today 07:00 · <span class="ok">ok</span> — flagged 3 clients</dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · draft buttons ready in the panel</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="stale-client-report — read-only report of clients past cadence window"
+              data-tier="T0 · read-only report; drafting is a separate button here, never runner-chained"
+              data-target="clients with cadence &gt; 14 days">Run <span class="tier tier-t0">T0</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume Stale-Client Sweep — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="skill" aria-label="Health Sweep automation">
+          <div class="skill-head"><h3>Health Sweep</h3><span class="tier tier-t0">T0</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>Daily 06:01 + deploy-detected · runner</dd>
+            <dt>Last run</dt><dd>Today 06:01 · <span class="ok">ok</span> — 5/5 green</dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · deploy age 14h · <code>SWITCH_HEALTH_SWEEP</code> on</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="health-sweep — poll production health endpoints"
+              data-tier="T0 · read-only, logged"
+              data-target="api.sswanstudios.com endpoints ×5">Run <span class="tier tier-t0">T0</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume Health Sweep — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="skill" aria-label="PLAUD Review Nudge automation">
+          <div class="skill-head"><h3>PLAUD Review Nudge</h3><span class="tier tier-t0">T0</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>On new session note · product pipeline</dd>
+            <dt>Last run</dt><dd>Yesterday 16:12 · <span class="ok">ok</span></dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · 1 pending trainer review</dd>
+            <dt>Registry</dt><dd>proposed — not yet registered</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="plaud-review-nudge (proposed — not yet registered) — surface session-note review reminder"
+              data-tier="T0 · read-only reminder, redaction-first"
+              data-target="product pipeline · PLAUD session note 07-02 (redacted, structured)">Run <span class="tier tier-t0">T0</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume PLAUD Review Nudge — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="skill" aria-label="Lead Triage automation">
+          <div class="skill-head"><h3>Lead Triage</h3><span class="tier tier-t1">T1</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>On new lead · webhook</dd>
+            <dt>Last run</dt><dd>Today 08:31 · <span class="ok">ok</span> — Lead #88 warm</dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · 1 queued for review</dd>
+            <dt>Registry</dt><dd>proposed — not yet registered</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="lead-triage (proposed — not yet registered) — score and route inbound lead"
+              data-tier="T1 · scoring draft, outreach stays queued T3"
+              data-target="Lead #88 · golf performance inquiry">Run <span class="tier tier-t1">T1</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume Lead Triage — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+        <article class="skill" aria-label="Receipt Digest automation">
+          <div class="skill-head"><h3>Receipt Digest</h3><span class="tier tier-t0">T0</span></div>
+          <dl>
+            <dt>Trigger</dt><dd>Daily 06:05 + on demand</dd>
+            <dt>Last run</dt><dd>Today 06:05 · <span class="ok">ok</span> — rendered</dd>
+            <dt>Status</dt><dd><span class="ok">green</span> · 0 silent automations</dd>
+          </dl>
+          <div class="skill-actions">
+            <button type="button" class="btn" data-confirm data-verb="Run command"
+              data-action="receipt-digest — render the daily receipts digest"
+              data-tier="T0 · read path, never gated"
+              data-target="runs/receipts/2026-07/receipts-2026-07-03.jsonl">Run <span class="tier tier-t0">T0</span></button>
+            <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Pause or resume Receipt Digest — switch-flip, tier T2"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+          </div>
+        </article>
+
+      </div>
+      <p class="footnote">Vending machine, not slot machine — if a job can be exact, it ships as a script, not an agent. Unregistered commands default to <em>blocked</em>, never to T0.</p>
+    </section>
+
+    <!-- ══════════ 5 · RUN RECEIPTS ══════════ -->
+    <section id="receipts" class="panel" aria-labelledby="receipts-h">
+      <p class="panel-kicker">Append-only · redacted at write time · no receipt = it didn't happen correctly</p>
+      <h2 id="receipts-h">Run Receipts</h2>
+      <ol class="ledger">
+        <li><span class="rid">R-20260703-101</span> · <span class="actor">hermes/runner</span> · health-sweep <span class="tier tier-t0">T0</span> · api endpoints ×5 · <span class="rmeta">06:01</span> · <span class="out-ok">ok</span> — 5/5 green</li>
+        <li><span class="rid">R-20260703-102</span> · <span class="actor">hermes/runner</span> · morning-briefing <span class="tier tier-t1">T1</span> · runs/briefings/2026-07-03.md · <span class="rmeta">06:00</span> · <span class="out-ok">ok</span> — DRAFT filed</li>
+        <li><span class="rid">R-20260703-103</span> · <span class="actor">hermes/runner</span> · receipt-digest <span class="tier tier-t0">T0</span> · receipts-2026-07-02.jsonl · <span class="rmeta">06:05</span> · <span class="out-ok">ok</span> — digest rendered</li>
+        <li><span class="rid">R-20260703-104</span> · <span class="actor">hermes/runner</span> · stale-client-report <span class="tier tier-t0">T0</span> · cadence &gt; 14d · <span class="rmeta">07:00</span> · <span class="out-ok">ok</span> — flagged 3 clients; draft buttons ready in the panel</li>
+        <li><span class="rid">R-20260703-105</span> · <span class="actor">hermes/broker</span> · lead-triage <span class="tier tier-t1">T1</span> · Lead #88 · <span class="rmeta">08:31</span> · <span class="out-ok">ok</span> — scored warm, queued</li>
+        <li><span class="rid">R-20260703-106</span> · <span class="actor">sean/telegram</span> · queue-approve <span class="tier tier-t2">T2</span> · Q-20260702-104 · <span class="rmeta">08:12</span> · <span class="out-ok">ok</span> — open → approved</li>
+        <li><span class="rid">R-20260703-107</span> · <span class="actor">hermes/discord-broker</span> · discord-alert <span class="tier tier-t3">T3</span> · #ops · deploy-health template · <span class="rmeta">08:13</span> · <span class="out-ok">ok</span> — approved by Q-20260702-104</li>
+        <li><span class="rid">R-20260703-108</span> · <span class="actor">harness/command-center</span> · qa-session-start <span class="tier tier-t0">T0</span> · admin dashboard audit · <span class="rmeta">09:02</span> · <span class="out-ok">ok</span> — supervised, Sean logs in; harness observes, read-only</li>
+      </ol>
+      <p class="digestline">receipts today: 14 · all automations green · 0 failed · 0 refused · 0 silent · T4 count: 0</p>
+    </section>
+
+    <!-- ══════════ 6 · MEMORY / VAULT MAP ══════════ -->
+    <section id="vault" class="panel" aria-labelledby="vault-h">
+      <p class="panel-kicker">Local vault · derived views only — Postgres stays the source of truth</p>
+      <h2 id="vault-h">Memory Vault</h2>
+      <div class="vault">
+        <div class="lane"><code>raw/</code><span class="count">128</span><span class="what">captures · intake notes (redacted)</span></div>
+        <div class="lane"><code>wiki/</code><span class="count">342</span><span class="what">distilled notes · protocols</span></div>
+        <div class="lane"><code>outputs/</code><span class="count">57</span><span class="what">briefings · reports · drafts</span></div>
+        <div class="lane"><code>runs/</code><span class="count">1,204</span><span class="what">receipts · logs · digests</span></div>
+        <div class="lane quarantine"><code>graph-imports/</code><span class="count">2</span><span class="what">quarantined · pending review</span></div>
+        <div class="lane"><code>references/</code><span class="count">88</span><span class="what">specs · registries · bridges</span></div>
+        <div class="lane"><code>templates/</code><span class="count">12</span><span class="what">approved message templates</span></div>
+      </div>
+      <p class="footnote">provenance enforced · PII forbidden — client IDs only, names never leave the app layer.</p>
+    </section>
+
+    <!-- ══════════ 7 · GRAPHIFY PREVIEW ══════════ -->
+    <section id="graph" class="panel" aria-labelledby="graph-h">
+      <p class="panel-kicker">Relationship graph · promotion is a human-reviewed act</p>
+      <h2 id="graph-h">Graph Preview</h2>
+      <div class="graphwrap">
+        <svg viewBox="0 0 560 300" role="img" aria-label="Knowledge graph preview: eight nodes linking NASM protocol, OPT Phase 2, Client #1042 program, progress charts, golf mobility block, retention playbook, and two quarantined imports — a PLAUD session note and Lead #88 intake.">
+          <defs>
+            <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#003080" stop-opacity=".9"/>
+              <stop offset="100%" stop-color="#0A0A0F" stop-opacity=".9"/>
+            </radialGradient>
+          </defs>
+          <!-- edges -->
+          <g stroke="#4070C0" stroke-opacity=".55" stroke-width="1.2">
+            <line x1="120" y1="72" x2="252" y2="46"/>
+            <line x1="252" y1="46" x2="268" y2="140"/>
+            <line x1="120" y1="72" x2="268" y2="140"/>
+            <line x1="268" y1="140" x2="420" y2="96"/>
+            <line x1="268" y1="140" x2="150" y2="204"/>
+            <line x1="420" y1="96" x2="432" y2="212"/>
+            <line x1="268" y1="140" x2="432" y2="212"/>
+          </g>
+          <!-- quarantined edges -->
+          <g stroke="#C6A84B" stroke-opacity=".6" stroke-width="1.2" stroke-dasharray="4 4">
+            <line x1="300" y1="252" x2="268" y2="140"/>
+            <line x1="486" y1="44" x2="420" y2="96"/>
+          </g>
+          <!-- promoted nodes -->
+          <g fill="url(#nodeGlow)" stroke="#60C0F0" stroke-opacity=".8" stroke-width="1.3">
+            <circle cx="120" cy="72" r="16"/>
+            <circle cx="252" cy="46" r="13"/>
+            <circle cx="268" cy="140" r="19"/>
+            <circle cx="420" cy="96" r="14"/>
+            <circle cx="150" cy="204" r="13"/>
+            <circle cx="432" cy="212" r="14"/>
+          </g>
+          <!-- quarantined nodes -->
+          <g fill="#141419" stroke="#C6A84B" stroke-width="1.3" stroke-dasharray="4 3">
+            <circle cx="300" cy="252" r="13"/>
+            <circle cx="486" cy="44" r="12"/>
+          </g>
+          <!-- labels -->
+          <g font-family="'Fira Code',ui-monospace,Consolas,monospace" font-size="10.5" fill="#E0ECF4">
+            <text x="120" y="42" text-anchor="middle">NASM protocol</text>
+            <text x="252" y="20" text-anchor="middle">OPT Phase 2</text>
+            <text x="268" y="176" text-anchor="middle">Client #1042 program</text>
+            <text x="420" y="70" text-anchor="middle">Progress charts</text>
+            <text x="150" y="234" text-anchor="middle">Golf mobility block</text>
+            <text x="432" y="242" text-anchor="middle">Retention playbook</text>
+          </g>
+          <g font-family="'Fira Code',ui-monospace,Consolas,monospace" font-size="10.5" fill="#C6A84B">
+            <text x="300" y="282" text-anchor="middle">PLAUD 07-02 session note</text>
+            <text x="486" y="22" text-anchor="middle">Lead #88 intake</text>
+          </g>
+        </svg>
+      </div>
+      <p class="graph-caption">
+        <span aria-hidden="true">◇</span> promoted · <span class="qmark" aria-hidden="true">◇</span>
+        <span class="qmark">quarantined imports: 2 awaiting promotion</span> — promotion happens in review, never on this screen.
+      </p>
+    </section>
+
+    <!-- ══════════ 8–10 · DESIGN BRAIN / QA / VILLAGE STRIPS ══════════ -->
+    <section class="panel" aria-labelledby="strips-h">
+      <p class="panel-kicker">Sibling systems · all read-only views</p>
+      <h2 id="strips-h">System Strips</h2>
+      <div class="striprow">
+        <article id="design-brain" class="strip" aria-label="Design Brain status">
+          <h3>Design Brain</h3>
+          <p><code>design.md v1</code> · <code>design.html</code> <span class="good">in sync</span><br>
+          last drift check 2026-07-03 · <span class="good">0 violations</span></p>
+        </article>
+        <article id="qa" class="strip" aria-label="Browser Harness QA status">
+          <h3>Browser Harness QA</h3>
+          <p><span class="good">read-only mode</span> · last supervised session: admin dashboard audit<br>
+          <span class="good">0 writes</span> · receipt filed <code>R-20260703-108</code></p>
+        </article>
+        <article id="village" class="strip" aria-label="AI Village status">
+          <h3>AI Village</h3>
+          <p>last run: design review · verdict: <span class="good">APPROVE</span> · spend <span class="gold">$0.84</span><br>
+          next: none scheduled — running the Village is never a button</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ══════════ 12 · VOICE PLACEHOLDER ══════════ -->
+    <section id="voice" class="panel voice" aria-labelledby="voice-h">
+      <p class="panel-kicker" style="color:var(--muted)">Planned · ships as a label, not a promise</p>
+      <h2 id="voice-h">Voice Layer — Planned</h2>
+      <p>Local voice ("Jarvis lane") is reserved for T0/T1 queries only: status, briefing readback,
+      search. Voice never approves actions — approvals stay typed, gated, and receipted.</p>
+    </section>
+
+    <!-- ══════════ 13 · FOOTER LEGEND ══════════ -->
+    <footer class="legend" aria-label="Effect-level legend">
+      <ul>
+        <li><span class="tier tier-t0">T0</span><span><strong>read</strong></span></li>
+        <li><span class="tier tier-t1">T1</span><span><strong>draft</strong></span></li>
+        <li><span class="tier tier-t2">T2</span><span><strong>bounded write</strong></span></li>
+        <li><span class="tier tier-t3">T3</span><span><strong>external</strong> — approval+receipt</span></li>
+        <li><span class="tier tier-t4">T4</span><span><strong>destructive</strong> — approval+receipt+rollback</span></li>
+      </ul>
+      <p class="footnote">full definitions: operator bridge §4</p>
+      <p class="colophon">
+        HERMES AGENTIC OS · CRYSTALLINE CYBERFOREST · window, not engine — this surface holds zero authority of its own.<br>
+        static prototype rendered 2026-07-03 · spec: dashboard-command-center-spec.md · every ID, client, receipt, and timestamp on this page is demo data.
+      </p>
+    </footer>
+
+  </main>
+
+  <!-- ══════════ RIGHT RAIL ══════════ -->
+  <aside class="rail" aria-label="Needs-you rail">
+
+    <!-- ══════════ 4 · APPROVAL QUEUE ══════════ -->
+    <section id="queue" class="panel" aria-labelledby="queue-h">
+      <p class="panel-kicker">Needs you · 3 open · nothing expires before tonight</p>
+      <h2 id="queue-h">Approval Queue</h2>
+
+      <article class="queue-item" aria-label="Queue entry Q-20260703-101, tier T3">
+        <header><span class="tier tier-t3">T3</span><span class="qid">Q-20260703-101</span></header>
+        <h3>Send progress-milestone Discord alert — template tmpl-milestone-01</h3>
+        <div class="qmeta">
+          <span>requester <strong>hermes/runner</strong> · channel <strong>Discord #ops</strong></span>
+          <span>evidence runs/queue/2026-07/queue-20260703.jsonl#L2 · expires <strong>24h</strong></span>
+        </div>
+        <div class="queue-actions">
+          <button type="button" class="btn btn-approve" data-confirm data-verb="Approve"
+            data-action="discord-alert — post one templated milestone alert, rendered text shown verbatim before send"
+            data-tier="T3 · external-visible; explicit approval + receipt"
+            data-target="Discord #ops · template tmpl-milestone-01">Approve <span class="tier tier-t3">T3</span></button>
+          <button type="button" class="btn btn-deny" data-confirm data-verb="Deny"
+            data-action="queue-deny — decline milestone alert (reason required); records a queue transition only"
+            data-tier="T3 · deny on a T3 entry; transition record only"
+            data-target="Q-20260703-101">Deny <span class="tier tier-t3">T3</span></button>
+        </div>
+      </article>
+
+      <article class="queue-item" aria-label="Queue entry Q-20260703-102, tier T3">
+        <header><span class="tier tier-t3">T3</span><span class="qid">Q-20260703-102</span></header>
+        <h3>Send follow-up message to Client #1042 · template stale-checkin-v2</h3>
+        <div class="qmeta">
+          <span>requester <strong>hermes/broker</strong> · channel <strong>in-app message</strong></span>
+          <span>draft outputs/drafts/followup-1042.md · expires <strong>19:00 today</strong></span>
+        </div>
+        <div class="queue-actions">
+          <button type="button" class="btn btn-approve" data-confirm data-verb="Approve"
+            data-action="send client follow-up — template stale-checkin-v2, rendered text shown verbatim before send"
+            data-tier="T3 · external-visible; explicit approval + receipt"
+            data-target="Client #1042 · in-app message">Approve <span class="tier tier-t3">T3</span></button>
+          <button type="button" class="btn btn-deny" data-confirm data-verb="Deny"
+            data-action="queue-deny — decline follow-up send (reason required); records a queue transition only"
+            data-tier="T3 · deny on a T3 entry; transition record only"
+            data-target="Q-20260703-102">Deny <span class="tier tier-t3">T3</span></button>
+        </div>
+      </article>
+
+      <article class="queue-item t4" aria-label="Queue entry Q-20260703-103, tier T4, two-step approve then arm — human-executed">
+        <header><span class="tier tier-t4">T4</span><span class="qid">Q-20260703-103</span></header>
+        <h3>Storefront reseed — human-run maintenance act, recorded + receipted</h3>
+        <div class="qmeta">
+          <span>requester <strong>hermes/broker</strong> · rollback plan attached · single-use</span>
+          <span>window <strong>Sun 02:00–03:00</strong> · executor <strong>human at the keyboard — never the broker</strong></span>
+        </div>
+        <div class="arm-steps">
+          <span class="steplabel">Step 1 of 2 — approve</span>
+          <button type="button" class="btn" data-confirm data-verb="Approve (step 1 of 2)"
+            data-action="approve maintenance intent — storefront reseed; the queue records intent and authorization only"
+            data-tier="T4 · destructive; approval + receipt + rollback plan — human-executed, never a broker command"
+            data-target="storefront reseed — human-run maintenance act, recorded + receipted">Approve <span class="tier tier-t4">T4</span></button>
+          <span class="steplabel">Step 2 of 2 — Arm — records authorization; execution is a human act at the keyboard, never a broker command</span>
+          <button type="button" class="btn btn-deny" disabled aria-describedby="arm-reason">Arm <span class="tier tier-t4">T4</span></button>
+          <span class="disabled-reason" id="arm-reason">Demo: arm step disabled — arming only records authorization against a real queue entry; the T4 act itself is performed by a human, then receipted.</span>
+        </div>
+      </article>
+
+      <p class="footnote">Blanket approvals are invalid for T3/T4 — every yes names one action, one tier, one target, one expiry.</p>
+    </section>
+
+    <!-- ══════════ 11 · KILL-SWITCH PANEL ══════════ -->
+    <section id="switches" class="panel killpanel" aria-labelledby="switches-h">
+      <p class="panel-kicker">Fail-closed · unreadable switch = pulled brake</p>
+      <h2 id="switches-h">Kill Switches</h2>
+
+      <div class="master">
+        <div class="mlabel">
+          <strong>MASTER</strong>
+          <span>halts every registered command · product uptime untouched</span>
+        </div>
+        <label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Master kill switch — switch-flip, tier T2 — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label>
+      </div>
+      <p class="footnote" style="margin-top:0;margin-bottom:.9rem">Real build: master pause = single confirm; any resume = confirm modal (button-registry §3).</p>
+
+      <div class="killrow"><code>SWITCH_HEADLESS_RUNNER</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: headless runner — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_TELEGRAM_BROKER</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: Telegram broker — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_DISCORD_BROKER</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: Discord broker — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_BROWSER_HARNESS</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: browser harness — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_HEALTH_SWEEP</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: health sweep — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_MORNING_BRIEFING</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: morning briefing — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_STALE_CLIENT</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: stale-client sweep — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+      <div class="killrow"><code>SWITCH_RECEIPT_DIGEST</code><label class="switch"><span class="tier tier-t2">T2</span><input type="checkbox" checked aria-label="Kill switch: receipt digest view — demo toggle only"><span class="track" aria-hidden="true"></span><span class="state" aria-hidden="true"></span></label></div>
+
+      <p class="footnote">Demo toggles only — flips nothing. Receipt <em>writing</em> has no switch by design: an OS that can act without accounting for itself has no off switch worth trusting.</p>
+    </section>
+
+  </aside>
+</div>
+
+<!-- ══════════ CONFIRM MODAL (cosmetic demo) ══════════ -->
+<dialog class="confirm" id="confirm-modal" aria-labelledby="modal-title">
+  <h3 id="modal-title"><span class="tier tier-t3" id="modal-badge">T3</span><span id="modal-verb">Confirm</span></h3>
+  <dl>
+    <dt>Action</dt><dd id="modal-action">—</dd>
+    <dt>Tier</dt><dd id="modal-tier">—</dd>
+    <dt>Target</dt><dd id="modal-target">—</dd>
+  </dl>
+  <p class="modal-note">STATIC PROTOTYPE — confirming here executes nothing and writes no receipt.</p>
+  <div class="modal-actions">
+    <button type="button" class="btn btn-quiet" data-modal-close>Cancel</button>
+    <button type="button" class="btn" data-modal-close>Confirm (demo)</button>
+  </div>
+</dialog>
+
+<script>
+/* Cosmetic demo interactions only — nav highlight, confirm modal.
+   Toggles are native checkboxes and need no JS. Nothing here fetches,
+   stores, or executes anything. The page reads fully with JS disabled. */
+(function () {
+  "use strict";
+
+  /* nav highlight on click */
+  var links = document.querySelectorAll("#mainnav a");
+  links.forEach(function (link) {
+    link.addEventListener("click", function () {
+      links.forEach(function (l) { l.removeAttribute("aria-current"); });
+      link.setAttribute("aria-current", "true");
+    });
+  });
+
+  /* confirm modal for tier-badged action buttons */
+  var modal = document.getElementById("confirm-modal");
+  if (!modal || typeof modal.showModal !== "function") return;
+
+  var badge = document.getElementById("modal-badge");
+  var verb = document.getElementById("modal-verb");
+  var action = document.getElementById("modal-action");
+  var tier = document.getElementById("modal-tier");
+  var target = document.getElementById("modal-target");
+  var tierClasses = ["tier-t0", "tier-t1", "tier-t2", "tier-t3", "tier-t4"];
+
+  document.querySelectorAll("[data-confirm]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var t = (btn.dataset.tier || "T?").slice(0, 2).toUpperCase();
+      badge.textContent = t;
+      tierClasses.forEach(function (c) { badge.classList.remove(c); });
+      badge.classList.add("tier-" + t.toLowerCase());
+      verb.textContent = btn.dataset.verb || "Confirm";
+      action.textContent = btn.dataset.action || "—";
+      tier.textContent = btn.dataset.tier || "—";
+      target.textContent = btn.dataset.target || "—";
+      modal.showModal();
+    });
+  });
+
+  modal.querySelectorAll("[data-modal-close]").forEach(function (btn) {
+    btn.addEventListener("click", function () { modal.close(); });
+  });
+})();
+</script>
+
+</body>
+</html>

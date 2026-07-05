@@ -10,9 +10,12 @@ import {
   VictoryBar,
   VictoryChart,
   VictoryLine,
+  VictoryScatter,
   VictoryTooltip,
   VictoryVoronoiContainer,
 } from 'victory';
+import WorkoutDayDrilldown from './WorkoutDayDrilldown';
+import ChartWeekDrillTrigger from './ChartWeekDrillTrigger';
 import { Activity, Calendar, Flame, Users } from 'lucide-react';
 import {
   type CanonicalProgressCharts,
@@ -22,6 +25,7 @@ import { CHART_COLORS, victoryTheme } from '../../../Charts/chartTheme';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
 import {
   durationLineProps,
+  durationScatterProps,
   intensityLineProps,
   workoutFrequencyBarProps,
 } from './CanonicalProgressChartsGrid.victoryProps';
@@ -32,6 +36,8 @@ import {
   CardTitle,
   ChartBody,
   ChartCard,
+  DrillTriggerButton,
+  DrillTriggerRow,
   RingLabel,
   RingNumber,
   RingWrap,
@@ -41,37 +47,56 @@ import {
   StatStack,
 } from './CanonicalProgressChartsGrid.styles';
 
-export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => (
-  <ChartCard data-testid="chart-card-workoutFrequency">
-    <CardHeader>
-      <CardIcon><Calendar size={16} /></CardIcon>
-      <CardTitle>Workout Frequency</CardTitle>
-      <CardSubtitle>12 weeks</CardSubtitle>
-    </CardHeader>
-    <ChartBody>
-      {data.length === 0 ? (
-        <EmptyCard label="No completed workouts yet" hint="Log your first session to start the streak." />
-      ) : (
-        <VictoryChart
-          theme={victoryTheme as any}
-          height={200}
-          padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-          containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-        >
-          <VictoryAxis tickFormat={(t) => String(t)} />
-          <VictoryAxis dependentAxis />
-          <VictoryBar
-            data={data}
-            {...workoutFrequencyBarProps}
-            labels={({ datum }) => `${datum.x}: ${datum.y}`}
-            labelComponent={<VictoryTooltip renderInPortal={false} />}
-            cornerRadius={{ top: 3 }}
-          />
-        </VictoryChart>
-      )}
-    </ChartBody>
-  </ChartCard>
-);
+export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => {
+  // Slice 9: tap a week bar (or the button) to open that training week.
+  const [tappedWeek, setTappedWeek] = React.useState<string | null>(null);
+  const latestWeek = data.length > 0 ? String(data[data.length - 1].x) : null;
+
+  return (
+    <ChartCard data-testid="chart-card-workoutFrequency">
+      <CardHeader>
+        <CardIcon><Calendar size={16} /></CardIcon>
+        <CardTitle>Workout Frequency</CardTitle>
+        <CardSubtitle>12 weeks - tap a bar</CardSubtitle>
+      </CardHeader>
+      <ChartBody>
+        {data.length === 0 ? (
+          <EmptyCard label="No completed workouts yet" hint="Log your first session to start the streak." />
+        ) : (
+          <VictoryChart
+            theme={victoryTheme as any}
+            height={200}
+            padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+          >
+            <VictoryAxis tickFormat={(t) => String(t)} />
+            <VictoryAxis dependentAxis />
+            <VictoryBar
+              data={data}
+              {...workoutFrequencyBarProps}
+              labels={({ datum }) => `${datum.x}: ${datum.y}`}
+              labelComponent={<VictoryTooltip renderInPortal={false} />}
+              cornerRadius={{ top: 3 }}
+              events={[{
+                target: 'data',
+                eventHandlers: {
+                  onClick: (_event, props) => {
+                    setTappedWeek(String((props as { datum: ChartPoint }).datum.x));
+                    return [];
+                  },
+                },
+              }]}
+            />
+          </VictoryChart>
+        )}
+      </ChartBody>
+      <ChartWeekDrillTrigger
+        latestWeekLabel={latestWeek}
+        openLabel={tappedWeek}
+        onDialogClose={() => setTappedWeek(null)}
+      />
+    </ChartCard>
+  );
+};
 
 export const AttendanceReliabilityCard: React.FC<{
   bundle: CanonicalProgressCharts['attendanceReliability'];
@@ -121,36 +146,66 @@ export const AttendanceReliabilityCard: React.FC<{
   </ChartCard>
 );
 
-export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => (
-  <ChartCard data-testid="chart-card-durationTrend">
-    <CardHeader>
-      <CardIcon $color={CHART_COLORS.iceWing}><Activity size={16} /></CardIcon>
-      <CardTitle>Session Duration</CardTitle>
-      <CardSubtitle>minutes - 90 days</CardSubtitle>
-    </CardHeader>
-    <ChartBody>
-      {data.length === 0 ? (
-        <EmptyCard label="No duration data yet" hint="Logged sessions with a recorded duration will appear here." />
-      ) : (
-        <VictoryChart
-          theme={victoryTheme as any}
-          height={200}
-          padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-          containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-        >
-          <VictoryAxis />
-          <VictoryAxis dependentAxis />
-          <VictoryLine
-            data={data}
-            {...durationLineProps}
-            labels={({ datum }) => `${datum.x}: ${datum.y}min`}
-            labelComponent={<VictoryTooltip renderInPortal={false} />}
-          />
-        </VictoryChart>
-      )}
-    </ChartBody>
-  </ChartCard>
-);
+export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => {
+  // Slice 8.4: tap a session point (or the always-visible button — the
+  // keyboard/touch-reliable path) to open the exact workout behind it.
+  const [drillMd, setDrillMd] = React.useState<string | null>(null);
+  const latest = data.length > 0 ? String(data[data.length - 1].x) : null;
+
+  return (
+    <ChartCard data-testid="chart-card-durationTrend">
+      <CardHeader>
+        <CardIcon $color={CHART_COLORS.iceWing}><Activity size={16} /></CardIcon>
+        <CardTitle>Session Duration</CardTitle>
+        <CardSubtitle>minutes - 90 days - tap a point</CardSubtitle>
+      </CardHeader>
+      <ChartBody>
+        {data.length === 0 ? (
+          <EmptyCard label="No duration data yet" hint="Logged sessions with a recorded duration will appear here." />
+        ) : (
+          <>
+            <VictoryChart
+              theme={victoryTheme as any}
+              height={200}
+              padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryLine data={data} {...durationLineProps} />
+              <VictoryScatter
+                data={data}
+                {...durationScatterProps}
+                labels={({ datum }) => `${datum.x}: ${datum.y}min`}
+                labelComponent={<VictoryTooltip renderInPortal={false} />}
+                events={[{
+                  target: 'data',
+                  eventHandlers: {
+                    onClick: (_event, props) => {
+                      setDrillMd(String((props as { datum: ChartPoint }).datum.x));
+                      return [];
+                    },
+                  },
+                }]}
+              />
+            </VictoryChart>
+            {latest && (
+              <DrillTriggerRow>
+                <DrillTriggerButton
+                  type="button"
+                  onClick={() => setDrillMd(latest)}
+                  aria-label={`View workout for ${latest}`}
+                >
+                  View workout - {latest}
+                </DrillTriggerButton>
+              </DrillTriggerRow>
+            )}
+          </>
+        )}
+      </ChartBody>
+      {drillMd && <WorkoutDayDrilldown md={drillMd} onClose={() => setDrillMd(null)} />}
+    </ChartCard>
+  );
+};
 
 export const IntensityRpeCard: React.FC<{
   data: CanonicalProgressCharts['intensityRpeTrend'];

@@ -21,6 +21,7 @@ import {
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import ProgressChartActionBar from '../../progress-proof/ProgressChartActionBar';
+import ChartWeekDrillTrigger from './ChartWeekDrillTrigger';
 import {
   buildProgressChartPulse,
   PROGRESS_CHART_RANGE_LABELS,
@@ -231,6 +232,11 @@ export const WeeklyVolumeCard: React.FC<{
           </VictoryChart>
         )}
       </ChartBody>
+      {/* Slice 9: set-level week drill-down (button path — the area chart has
+          no visible point targets and voronoi owns its pointer events). */}
+      <ChartWeekDrillTrigger
+        latestWeekLabel={visibleData.length > 0 ? String(visibleData[visibleData.length - 1].x) : null}
+      />
     </ChartCard>
   );
 };
