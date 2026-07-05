@@ -51,7 +51,7 @@ export const buildMarketplacePurchaseUpdate = ({ catalogItem, ownedItems, crysta
 
   const balance = normalizeCrystalBalance(crystalBalance);
   if (balance < catalogItem.price) {
-    return { error: 'Not enough crystals', status: 400, updates: {}, data: null };
+    return { error: 'Not enough SwanCoins', status: 400, updates: {}, data: null };
   }
 
   const newItem = {
@@ -68,7 +68,7 @@ export const buildMarketplacePurchaseUpdate = ({ catalogItem, ownedItems, crysta
     error: null,
     status: 200,
     updates: { ownedItems: updatedOwned, crystalBalance: newBalance },
-    data: { item: newItem, crystalBalance: newBalance },
+    data: { item: newItem, crystalBalance: newBalance, swanCoins: newBalance, balance: newBalance },
   };
 };
 
