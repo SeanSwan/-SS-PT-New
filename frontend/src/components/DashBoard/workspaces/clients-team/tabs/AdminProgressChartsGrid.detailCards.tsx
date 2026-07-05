@@ -1,6 +1,8 @@
 /**
  * COMPONENT: AdminProgressChartsGrid.detailCards
- * PURPOSE: Detail/admin coaching readouts for client progress charts.
+ * PURPOSE: Detail/admin coaching readouts for client progress charts - each
+ *          card is a C11 environment with a truthful facts rail (top item,
+ *          share, totals) above its visual, never a bare list.
  */
 
 import React from 'react';
@@ -14,6 +16,13 @@ import {
 } from 'victory';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import {
+  buildAnchorFacts,
+  buildCategoryFacts,
+  buildPrFacts,
+  buildRecoveryFacts,
+} from '../../../progress-proof/progressChartFacts';
+import ProgressChartInsightBar from '../../../progress-proof/ProgressChartInsightBar';
+import {
   isProgressChartVisible,
   type ProgressChartLensId,
 } from '../../../progress-proof/progressChartLens';
@@ -22,6 +31,7 @@ import {
   getAnchorLineProps,
   movementPatternLabelProps,
 } from './AdminProgressChartsGrid.chartConfig';
+import { EmptyState } from './AdminProgressChartsGrid.primaryCards';
 import type {
   ExerciseFrequencyPoint,
   RecoverySignalPoint,
@@ -37,7 +47,7 @@ import {
   CardBody,
   CardHeader,
   CardTitle,
-  Empty,
+  ChartStack,
   RecoveryIcon,
 } from './AdminProgressChartsGrid.styles';
 
@@ -72,19 +82,22 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>PR Highlights</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.prTimeline.length === 0 ? <Empty>No PRs recorded yet</Empty> : (() => {
+        {charts.prTimeline.length === 0 ? <EmptyState lead="No PRs recorded yet" hint="Heaviest verified sets per lift will land here." /> : (() => {
           const best = getBestPrs(charts.prTimeline);
           const percentages = getBarPercentages(best);
           return (
-            <BarList>
-              {best.map((record, index) => (
-                <BarRow key={record.exercise}>
-                  <BarLabel>{record.exercise}</BarLabel>
-                  <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.gildedFern} /></BarTrack>
-                  <BarValue>{record.y}lbs x {record.reps}</BarValue>
-                </BarRow>
-              ))}
-            </BarList>
+            <ChartStack>
+              <ProgressChartInsightBar facts={buildPrFacts(charts.prTimeline)} />
+              <BarList>
+                {best.map((record, index) => (
+                  <BarRow key={record.exercise}>
+                    <BarLabel>{record.exercise}</BarLabel>
+                    <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.gildedFern} /></BarTrack>
+                    <BarValue>{record.y}lbs x {record.reps}</BarValue>
+                  </BarRow>
+                ))}
+              </BarList>
+            </ChartStack>
           );
         })()}
       </CardBody>
@@ -96,20 +109,23 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>Anchor Lifts</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.anchorLifts.exercises.length === 0 ? <Empty>No anchor lifts yet</Empty> : (
-          <VictoryChart
-            theme={victoryTheme}
-            height={180}
-            padding={anchorPadding}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            {charts.anchorLifts.exercises.map((name, index) => {
-              const data = (charts.anchorLifts.data[name] || []).map((point) => ({ x: point.x, y: point.y }));
-              return data.length > 0 ? <VictoryLine key={name} data={data} {...getAnchorLineProps(index)} /> : null;
-            })}
-          </VictoryChart>
+        {charts.anchorLifts.exercises.length === 0 ? <EmptyState lead="No anchor lifts yet" hint="Your most-repeated lifts chart themselves here." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar facts={buildAnchorFacts(charts.anchorLifts)} />
+            <VictoryChart
+              theme={victoryTheme}
+              height={180}
+              padding={anchorPadding}
+              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              {charts.anchorLifts.exercises.map((name, index) => {
+                const data = (charts.anchorLifts.data[name] || []).map((point) => ({ x: point.x, y: point.y }));
+                return data.length > 0 ? <VictoryLine key={name} data={data} {...getAnchorLineProps(index)} /> : null;
+              })}
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -120,19 +136,24 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>Exercise Frequency</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.exerciseFrequency.length === 0 ? <Empty>No exercises logged yet</Empty> : (() => {
+        {charts.exerciseFrequency.length === 0 ? <EmptyState lead="No exercises logged yet" hint="Every logged exercise builds this ranking." /> : (() => {
           const rows = charts.exerciseFrequency.slice(0, 8) as ExerciseFrequencyPoint[];
           const percentages = getBarPercentages(rows);
           return (
-            <BarList>
-              {rows.map((row, index) => (
-                <BarRow key={row.x}>
-                  <BarLabel>{row.x}</BarLabel>
-                  <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.arcticCyan} /></BarTrack>
-                  <BarValue>{row.y}x{row.sets ?? 0}sets</BarValue>
-                </BarRow>
-              ))}
-            </BarList>
+            <ChartStack>
+              <ProgressChartInsightBar
+                facts={buildCategoryFacts(charts.exerciseFrequency, { unit: 'logs', itemLabel: 'exercises' })}
+              />
+              <BarList>
+                {rows.map((row, index) => (
+                  <BarRow key={row.x}>
+                    <BarLabel>{row.x}</BarLabel>
+                    <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.arcticCyan} /></BarTrack>
+                    <BarValue>{row.y}x{row.sets ?? 0}sets</BarValue>
+                  </BarRow>
+                ))}
+              </BarList>
+            </ChartStack>
           );
         })()}
       </CardBody>
@@ -144,16 +165,21 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>Movement Patterns</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.movementPatternBalance.length === 0 ? <Empty>No movement data yet</Empty> : (
-          <VictoryPie
-            data={charts.movementPatternBalance.map((row) => ({ x: row.x, y: row.y }))}
-            colorScale={FULL_PALETTE}
-            innerRadius={35}
-            padAngle={2}
-            height={180}
-            {...movementPatternLabelProps}
-            labels={({ datum }) => datum.x}
-          />
+        {charts.movementPatternBalance.length === 0 ? <EmptyState lead="No movement data yet" hint="Squat, hinge, push, pull balance appears after logging." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar
+              facts={buildCategoryFacts(charts.movementPatternBalance, { unit: 'lbs', itemLabel: 'patterns' })}
+            />
+            <VictoryPie
+              data={charts.movementPatternBalance.map((row) => ({ x: row.x, y: row.y }))}
+              colorScale={FULL_PALETTE}
+              innerRadius={35}
+              padAngle={2}
+              height={180}
+              {...movementPatternLabelProps}
+              labels={({ datum }) => datum.x}
+            />
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -164,18 +190,23 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>Muscle Group Volume</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.muscleGroupBalance.length === 0 ? <Empty>No muscle-group data yet</Empty> : (() => {
+        {charts.muscleGroupBalance.length === 0 ? <EmptyState lead="No muscle-group data yet" hint="Volume by muscle group builds as lifts are logged." /> : (() => {
           const percentages = getBarPercentages(charts.muscleGroupBalance);
           return (
-            <BarList>
-              {charts.muscleGroupBalance.map((row, index) => (
-                <BarRow key={row.x}>
-                  <BarLabel>{row.x}</BarLabel>
-                  <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.gildedFern} /></BarTrack>
-                  <BarValue>{Math.round(row.y).toLocaleString()}</BarValue>
-                </BarRow>
-              ))}
-            </BarList>
+            <ChartStack>
+              <ProgressChartInsightBar
+                facts={buildCategoryFacts(charts.muscleGroupBalance, { unit: 'lbs', itemLabel: 'groups' })}
+              />
+              <BarList>
+                {charts.muscleGroupBalance.map((row, index) => (
+                  <BarRow key={row.x}>
+                    <BarLabel>{row.x}</BarLabel>
+                    <BarTrack><BarFill $pct={percentages[index]} $color={CHART_COLORS.gildedFern} /></BarTrack>
+                    <BarValue>{Math.round(row.y).toLocaleString()}</BarValue>
+                  </BarRow>
+                ))}
+              </BarList>
+            </ChartStack>
           );
         })()}
       </CardBody>
@@ -187,26 +218,29 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
         <CardTitle>Recovery Signals</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.recoverySignal.length === 0 ? <Empty>No recovery flags</Empty> : (
-          <BarList>
-            {(charts.recoverySignal.slice(0, 6) as RecoverySignalPoint[]).map((row) => {
-              const painFlags = row.painFlags ?? 0;
-              const highRpeFlags = row.highRpeFlags ?? 0;
-              const totalSets = Math.max(row.totalSets ?? 1, 1);
-              const riskPct = Math.min(((painFlags + highRpeFlags) / totalSets) * 100, 100);
-              return (
-                <BarRow key={row.x}>
-                  <BarLabel><RecoveryIcon size={11} />{row.x}</BarLabel>
-                  <BarTrack><BarFill $pct={riskPct} $color={CHART_COLORS.crimsonFrost} /></BarTrack>
-                  <BarValue>
-                    {painFlags > 0 ? `${painFlags} pain` : ''}
-                    {painFlags > 0 && highRpeFlags > 0 ? ' / ' : ''}
-                    {highRpeFlags > 0 ? `${highRpeFlags} redline` : ''}
-                  </BarValue>
-                </BarRow>
-              );
-            })}
-          </BarList>
+        {charts.recoverySignal.length === 0 ? <EmptyState lead="No recovery flags" hint="Pain notes and redline RPE sets surface here for review." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar facts={buildRecoveryFacts(charts.recoverySignal)} />
+            <BarList>
+              {(charts.recoverySignal.slice(0, 6) as RecoverySignalPoint[]).map((row) => {
+                const painFlags = row.painFlags ?? 0;
+                const highRpeFlags = row.highRpeFlags ?? 0;
+                const totalSets = Math.max(row.totalSets ?? 1, 1);
+                const riskPct = Math.min(((painFlags + highRpeFlags) / totalSets) * 100, 100);
+                return (
+                  <BarRow key={row.x}>
+                    <BarLabel><RecoveryIcon size={11} />{row.x}</BarLabel>
+                    <BarTrack><BarFill $pct={riskPct} $color={CHART_COLORS.crimsonFrost} /></BarTrack>
+                    <BarValue>
+                      {painFlags > 0 ? `${painFlags} pain` : ''}
+                      {painFlags > 0 && highRpeFlags > 0 ? ' / ' : ''}
+                      {highRpeFlags > 0 ? `${highRpeFlags} redline` : ''}
+                    </BarValue>
+                  </BarRow>
+                );
+              })}
+            </BarList>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}

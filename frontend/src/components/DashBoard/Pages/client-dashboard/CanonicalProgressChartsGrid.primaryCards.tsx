@@ -22,6 +22,12 @@ import {
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import { CHART_COLORS, victoryTheme } from '../../../Charts/chartTheme';
+import { buildProgressChartPulse } from '../../progress-proof/progressChartActions';
+import {
+  buildSeriesFacts,
+  describeIntensitySource,
+} from '../../progress-proof/progressChartFacts';
+import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
 import {
   durationLineProps,
@@ -63,30 +69,36 @@ export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data })
         {data.length === 0 ? (
           <EmptyCard label="No completed workouts yet" hint="Log your first session to start the streak." />
         ) : (
-          <VictoryChart
-            theme={victoryTheme as any}
-            height={200}
-            padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-          >
-            <VictoryAxis tickFormat={(t) => String(t)} />
-            <VictoryAxis dependentAxis />
-            <VictoryBar
-              data={data}
-              {...workoutFrequencyBarProps}
-              labels={({ datum }) => `${datum.x}: ${datum.y}`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-              cornerRadius={{ top: 3 }}
-              events={[{
-                target: 'data',
-                eventHandlers: {
-                  onClick: (_event, props) => {
-                    setTappedWeek(String((props as { datum: ChartPoint }).datum.x));
-                    return [];
-                  },
-                },
-              }]}
+          <>
+            <ProgressChartInsightBar
+              pulse={buildProgressChartPulse(data, { label: 'Frequency Pulse', unit: 'workouts' })}
+              facts={buildSeriesFacts(data, { unit: 'workouts', pointsLabel: 'wks' })}
             />
-          </VictoryChart>
+            <VictoryChart
+              theme={victoryTheme as any}
+              height={200}
+              padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+            >
+              <VictoryAxis tickFormat={(t) => String(t)} />
+              <VictoryAxis dependentAxis />
+              <VictoryBar
+                data={data}
+                {...workoutFrequencyBarProps}
+                labels={({ datum }) => `${datum.x}: ${datum.y}`}
+                labelComponent={<VictoryTooltip renderInPortal={false} />}
+                cornerRadius={{ top: 3 }}
+                events={[{
+                  target: 'data',
+                  eventHandlers: {
+                    onClick: (_event, props) => {
+                      setTappedWeek(String((props as { datum: ChartPoint }).datum.x));
+                      return [];
+                    },
+                  },
+                }]}
+              />
+            </VictoryChart>
+          </>
         )}
       </ChartBody>
       <ChartWeekDrillTrigger
@@ -164,6 +176,9 @@ export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) =>
           <EmptyCard label="No duration data yet" hint="Logged sessions with a recorded duration will appear here." />
         ) : (
           <>
+            <ProgressChartInsightBar
+              facts={buildSeriesFacts(data, { unit: 'min', pointsLabel: 'sessions' })}
+            />
             <VictoryChart
               theme={victoryTheme as any}
               height={200}
@@ -220,22 +235,30 @@ export const IntensityRpeCard: React.FC<{
       {data.length === 0 ? (
         <EmptyCard label="No intensity data yet" hint="Add RPE to sets, or rate the session intensity 1-10." />
       ) : (
-        <VictoryChart
-          theme={victoryTheme as any}
-          height={200}
-          padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-          domain={{ y: [0, 10] }}
-          containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-        >
-          <VictoryAxis />
-          <VictoryAxis dependentAxis />
-          <VictoryLine
-            data={data}
-            {...intensityLineProps}
-            labels={({ datum }) => `${datum.x}: ${datum.y} (${datum.source})`}
-            labelComponent={<VictoryTooltip renderInPortal={false} />}
+        <>
+          <ProgressChartInsightBar
+            facts={[
+              ...buildSeriesFacts(data, { decimals: 1, pointsLabel: 'wks' }),
+              { id: 'source', label: 'Source', value: describeIntensitySource(data) },
+            ]}
           />
-        </VictoryChart>
+          <VictoryChart
+            theme={victoryTheme as any}
+            height={200}
+            padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+            domain={{ y: [0, 10] }}
+            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+          >
+            <VictoryAxis />
+            <VictoryAxis dependentAxis />
+            <VictoryLine
+              data={data}
+              {...intensityLineProps}
+              labels={({ datum }) => `${datum.x}: ${datum.y} (${datum.source})`}
+              labelComponent={<VictoryTooltip renderInPortal={false} />}
+            />
+          </VictoryChart>
+        </>
       )}
     </ChartBody>
   </ChartCard>

@@ -20,6 +20,8 @@ import {
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import { CHART_COLORS, FULL_PALETTE, victoryTheme } from '../../../Charts/chartTheme';
+import { buildAnchorFacts, buildCategoryFacts, buildPrFacts, buildRecoveryFacts } from '../../progress-proof/progressChartFacts';
+import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
 import { EmptyCard, useNumericBarWidth } from './CanonicalProgressChartsGrid.primitives';
 import {
   anchorLegendProps,
@@ -68,6 +70,8 @@ export const PRTimelineCard: React.FC<{
         {bestByExercise.length === 0 ? (
           <EmptyCard label="No PRs recorded yet" hint="Log lifts with weight to see PRs surface here." />
         ) : (
+          <>
+          <ProgressChartInsightBar facts={buildPrFacts(data)} />
           <BarList>
             {bestByExercise.map((row, i) => (
               <BarRow key={row.exercise}>
@@ -79,6 +83,7 @@ export const PRTimelineCard: React.FC<{
               </BarRow>
             ))}
           </BarList>
+          </>
         )}
       </ChartBody>
     </ChartCard>
@@ -107,6 +112,8 @@ export const AnchorLiftsCard: React.FC<{
         {series.length === 0 ? (
           <EmptyCard label="No anchor lifts yet" hint="Repeat 2-3 main lifts across sessions to surface progression." />
         ) : (
+          <>
+          <ProgressChartInsightBar facts={buildAnchorFacts(bundle)} />
           <VictoryChart
             theme={victoryTheme as any}
             height={200}
@@ -131,6 +138,7 @@ export const AnchorLiftsCard: React.FC<{
               />
             ))}
           </VictoryChart>
+          </>
         )}
       </ChartBody>
     </ChartCard>
@@ -150,8 +158,12 @@ export const ExerciseFrequencyCard: React.FC<{
       </CardHeader>
       <ChartBody>
         {data.length === 0 ? (
-          <EmptyCard label="No exercises logged yet" />
+          <EmptyCard label="No exercises logged yet" hint="Every logged exercise builds this ranking." />
         ) : (
+          <>
+          <ProgressChartInsightBar
+            facts={buildCategoryFacts(data, { unit: 'logs', itemLabel: 'exercises' })}
+          />
           <BarList>
             {data.slice(0, 8).map((row, i) => (
               <BarRow key={row.x}>
@@ -163,6 +175,7 @@ export const ExerciseFrequencyCard: React.FC<{
               </BarRow>
             ))}
           </BarList>
+          </>
         )}
       </ChartBody>
     </ChartCard>
@@ -182,6 +195,10 @@ export const MovementPatternBalanceCard: React.FC<{
       {data.length === 0 ? (
         <EmptyCard label="No movement data yet" hint="Squat, hinge, push, pull, carry, core logged over 90 days." />
       ) : (
+        <>
+        <ProgressChartInsightBar
+          facts={buildCategoryFacts(data, { unit: 'lbs', itemLabel: 'patterns' })}
+        />
         <VictoryPie
           data={data.map((r) => ({ x: r.x, y: r.y }))}
           colorScale={FULL_PALETTE}
@@ -191,6 +208,7 @@ export const MovementPatternBalanceCard: React.FC<{
           {...movementPieProps}
           labels={({ datum }) => `${datum.x}`}
         />
+        </>
       )}
     </ChartBody>
   </ChartCard>
@@ -209,8 +227,12 @@ export const MuscleGroupBalanceCard: React.FC<{
       </CardHeader>
       <ChartBody>
         {data.length === 0 ? (
-          <EmptyCard label="No muscle-group data yet" />
+          <EmptyCard label="No muscle-group data yet" hint="Volume by muscle group builds as lifts are logged." />
         ) : (
+          <>
+          <ProgressChartInsightBar
+            facts={buildCategoryFacts(data, { unit: 'lbs', itemLabel: 'groups' })}
+          />
           <BarList>
             {data.map((row, i) => (
               <BarRow key={row.x}>
@@ -222,6 +244,7 @@ export const MuscleGroupBalanceCard: React.FC<{
               </BarRow>
             ))}
           </BarList>
+          </>
         )}
       </ChartBody>
     </ChartCard>
@@ -244,6 +267,8 @@ export const RecoverySignalCard: React.FC<{
           hint="No pain notes or redline sets. Keep it up."
         />
       ) : (
+        <>
+        <ProgressChartInsightBar facts={buildRecoveryFacts(data)} />
         <BarList>
           {data.slice(0, 6).map((row) => (
             <BarRow key={row.x}>
@@ -265,6 +290,7 @@ export const RecoverySignalCard: React.FC<{
             </BarRow>
           ))}
         </BarList>
+        </>
       )}
     </ChartBody>
   </ChartCard>

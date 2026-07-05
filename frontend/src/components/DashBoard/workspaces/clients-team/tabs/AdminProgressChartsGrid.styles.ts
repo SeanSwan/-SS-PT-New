@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
 import { CHART_COLORS } from '../../../../Charts/chartTheme';
-import type { ProgressChartPulseTone } from '../../../progress-proof/progressChartActions';
 import { swanDataCardShell, swanPill } from '../clientCardSystem';
 
 export const GridWrap = styled.div`
@@ -65,68 +64,6 @@ export const ChartStack = styled.div`
   min-width: 0;
 `;
 
-const PULSE_TONE_BORDERS: Record<ProgressChartPulseTone, string> = {
-  building: 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))',
-  empty: 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))',
-  falling: 'var(--warning, #F59E0B)',
-  record: 'var(--accent-gold, #C6A84B)',
-  rising: 'var(--accent-primary, #60C0F0)',
-  steady: 'var(--accent-secondary, #8B5CF6)',
-};
-
-export const AdminPulseStrip = styled.div<{ $tone: ProgressChartPulseTone }>`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.25rem 0.75rem;
-  align-items: center;
-  min-width: 0;
-  padding: 0.62rem 0.72rem;
-  border: 1px solid ${({ $tone }) => PULSE_TONE_BORDERS[$tone]};
-  border-radius: 8px;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, ${({ $tone }) => PULSE_TONE_BORDERS[$tone]} 13%, transparent),
-      var(--bg-surface, #1A1A24) 62%
-    );
-  font-family: 'Sora', sans-serif;
-
-  @media (max-width: 520px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-export const AdminPulseLabel = styled.span`
-  min-width: 0;
-  color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent));
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
-`;
-
-export const AdminPulseValue = styled.strong`
-  min-width: 0;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.78rem;
-  justify-self: end;
-
-  @media (max-width: 520px) {
-    justify-self: start;
-  }
-`;
-
-export const AdminPulseDetail = styled.span`
-  grid-column: 1 / -1;
-  min-width: 0;
-  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent));
-  font-size: 0.66rem;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-`;
-
 export const AdminShareButton = styled.button`
   min-height: 44px;
   width: fit-content;
@@ -151,12 +88,27 @@ export const AdminShareButton = styled.button`
 `;
 
 export const Empty = styled.div`
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
   text-align: center;
-  padding: 1rem 0.5rem;
+  padding: 1.1rem 0.5rem;
   color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   overflow-wrap: anywhere;
+
+  em {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent));
+  }
+
+  span {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
 `;
 
 export const SummaryLine = styled.div`
@@ -276,6 +228,7 @@ export const AttendanceMeta = styled.div`
   color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent));
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
+  text-transform: uppercase;
   min-width: 0;
   overflow-wrap: anywhere;
 `;

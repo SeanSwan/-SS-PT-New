@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { describe, expect, it, vi } from 'vitest';
@@ -50,7 +51,7 @@ describe('AdminProgressChartsGrid mega stats', () => {
   });
 
   it('mounts the full exercise diary above the 12-chart grid', () => {
-    render(<AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" />);
+    render(<MemoryRouter><AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" /></MemoryRouter>);
 
     const board = screen.getByRole('region', { name: /client exercise mega stats/i });
     const rows = within(board).getAllByRole('listitem');
@@ -60,7 +61,7 @@ describe('AdminProgressChartsGrid mega stats', () => {
   });
 
   it('renders chart readouts with clean ASCII separators instead of mojibake', () => {
-    render(<AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" />);
+    render(<MemoryRouter><AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" /></MemoryRouter>);
 
     const grid = screen.getByTestId('admin-progress-charts-grid');
     expect(grid).toHaveTextContent('Fixture Client - Progress proof building - 3 of 12 charts populated');

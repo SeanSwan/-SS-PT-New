@@ -1,6 +1,8 @@
 /**
  * COMPONENT: AdminProgressChartsGrid.primaryCards
- * PURPOSE: Top six admin/trainer client progress charts.
+ * PURPOSE: Top six admin/trainer client progress chart environments (C11) -
+ *          every card carries a truthful momentum strip + facts rail via the
+ *          shared ProgressChartInsightBar, never a bare axes-only chart.
  */
 
 import React from 'react';
@@ -16,10 +18,13 @@ import {
   VictoryVoronoiContainer,
 } from 'victory';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
+import { buildProgressChartPulse } from '../../../progress-proof/progressChartActions';
 import {
-  buildProgressChartPulse,
-  type ProgressChartPulse,
-} from '../../../progress-proof/progressChartActions';
+  buildAttendanceFacts,
+  buildSeriesFacts,
+  describeIntensitySource,
+} from '../../../progress-proof/progressChartFacts';
+import ProgressChartInsightBar from '../../../progress-proof/ProgressChartInsightBar';
 import {
   isProgressChartVisible,
   type ProgressChartLensId,
@@ -33,7 +38,9 @@ import {
   durationLineProps,
   intensityLineProps,
   repsBarProps,
+  selectSetsRepsPulseSource,
   setsBarProps,
+  summaryForRows,
   weeklyVolumeAreaProps,
   workoutFrequencyBarProps,
 } from './AdminProgressChartsGrid.chartConfig';
@@ -41,10 +48,6 @@ import {
   AttendanceMeta,
   AttendancePercent,
   AttendanceSummary,
-  AdminPulseDetail,
-  AdminPulseLabel,
-  AdminPulseStrip,
-  AdminPulseValue,
   Card,
   CardBody,
   CardHeader,
@@ -62,22 +65,8 @@ const compactPadding = { top: 12, bottom: 36, left: 36, right: 8 };
 const volumePadding = { top: 12, bottom: 36, left: 48, right: 8 };
 const groupedPadding = { top: 20, bottom: 36, left: 44, right: 8 };
 
-const selectSetsRepsPulseSource = (bundle: CanonicalProgressCharts['setsRepsTrend']) => (
-  bundle.reps.length > 0
-    ? { label: 'Rep Pulse', points: bundle.reps, unit: 'reps' }
-    : { label: 'Set Pulse', points: bundle.sets, unit: 'sets' }
-);
-
-const AdminProgressPulse: React.FC<{ pulse: ProgressChartPulse }> = ({ pulse }) => (
-  <AdminPulseStrip $tone={pulse.tone} aria-label={`${pulse.label}: ${pulse.value}`}>
-    <AdminPulseLabel>{pulse.label}</AdminPulseLabel>
-    <AdminPulseValue>{pulse.value}</AdminPulseValue>
-    <AdminPulseDetail>{pulse.detail}</AdminPulseDetail>
-  </AdminPulseStrip>
-);
-
-const summaryForRows = (title: string, rowCount: number) => (
-  `Showing ${rowCount} verified ${title} point${rowCount === 1 ? '' : 's'} for this client.`
+export const EmptyState: React.FC<{ lead: string; hint: string }> = ({ lead, hint }) => (
+  <Empty><em>{lead}</em><span>{hint}</span></Empty>
 );
 
 export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps> = ({ charts, activeLensId }) => {
@@ -98,6 +87,8 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
   const workoutRows = chartRowsForPoints(charts.workoutFrequency, 'period', 'workouts');
   const volumeRows = chartRowsForPoints(charts.weeklyVolume, 'week', 'volume_lbs');
   const setsRepsRows = buildSetsRepsShareRows(charts.setsRepsTrend.sets, charts.setsRepsTrend.reps);
+  const attendanceFacts = buildAttendanceFacts(charts.attendanceReliability)
+    .filter((fact) => fact.id !== 'showRate');
 
   return (
     <>
@@ -107,9 +98,12 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Workout Frequency</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.workoutFrequency.length === 0 ? <Empty>No completed workouts yet</Empty> : (
+        {charts.workoutFrequency.length === 0 ? <EmptyState lead="No completed workouts yet" hint="Log the first session and this chart lights up." /> : (
           <ChartStack>
-            <AdminProgressPulse pulse={workoutPulse} />
+            <ProgressChartInsightBar
+              pulse={workoutPulse}
+              facts={buildSeriesFacts(charts.workoutFrequency, { unit: 'workouts', pointsLabel: 'wks' })}
+            />
             <AdminProgressProofShare
               chartId="admin-workout-frequency"
               csvRows={workoutRows}
@@ -145,14 +139,14 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Attendance Reliability</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.attendanceReliability.data.length === 0 ? <Empty>No attendance data yet</Empty> : (
-          <AttendanceSummary>
-            <AttendancePercent>{charts.attendanceReliability.reliabilityPercent}%</AttendancePercent>
-            <AttendanceMeta>
-              show-rate<br />
-              {charts.attendanceReliability.totals.completed} completed / {charts.attendanceReliability.totals.resolved} resolved
-            </AttendanceMeta>
-          </AttendanceSummary>
+        {charts.attendanceReliability.data.length === 0 ? <EmptyState lead="No attendance data yet" hint="Scheduled sessions build the reliability record." /> : (
+          <ChartStack>
+            <AttendanceSummary>
+              <AttendancePercent>{charts.attendanceReliability.reliabilityPercent}%</AttendancePercent>
+              <AttendanceMeta>show-rate</AttendanceMeta>
+            </AttendanceSummary>
+            <ProgressChartInsightBar facts={attendanceFacts} />
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -163,9 +157,12 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Weekly Volume</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.weeklyVolume.length === 0 ? <Empty>No logged lifts yet</Empty> : (
+        {charts.weeklyVolume.length === 0 ? <EmptyState lead="No logged lifts yet" hint="Weights and reps saved in the logger feed this proof." /> : (
           <ChartStack>
-            <AdminProgressPulse pulse={volumePulse} />
+            <ProgressChartInsightBar
+              pulse={volumePulse}
+              facts={buildSeriesFacts(charts.weeklyVolume, { unit: 'lbs', pointsLabel: 'wks' })}
+            />
             <AdminProgressProofShare
               chartId="admin-weekly-volume"
               csvRows={volumeRows}
@@ -185,7 +182,7 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
               <VictoryArea
                 data={charts.weeklyVolume}
                 {...weeklyVolumeAreaProps}
-                labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`}
+                labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs - ${datum.workouts ?? 0} workout${(datum.workouts ?? 0) === 1 ? '' : 's'}`}
                 labelComponent={<VictoryTooltip renderInPortal={false} />}
               />
             </VictoryChart>
@@ -200,9 +197,12 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Sets & Reps Trend</CardTitle>
       </CardHeader>
       <CardBody>
-        {!hasSetsRepsData ? <Empty>No sets or reps logged yet</Empty> : (
+        {!hasSetsRepsData ? <EmptyState lead="No sets or reps logged yet" hint="Each saved workout adds a set-and-rep proof point." /> : (
           <ChartStack>
-            <AdminProgressPulse pulse={setsRepsPulse} />
+            <ProgressChartInsightBar
+              pulse={setsRepsPulse}
+              facts={buildSeriesFacts(setsRepsSource.points, { unit: setsRepsSource.unit, pointsLabel: 'wks' })}
+            />
             <AdminProgressProofShare
               chartId="admin-sets-reps"
               csvRows={setsRepsRows}
@@ -235,22 +235,27 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Session Duration</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.durationTrend.length === 0 ? <Empty>No duration data yet</Empty> : (
-          <VictoryChart
-            theme={victoryTheme}
-            height={180}
-            padding={compactPadding}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryLine
-              data={charts.durationTrend}
-              {...durationLineProps}
-              labels={({ datum }) => `${datum.x}: ${datum.y}min`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
+        {charts.durationTrend.length === 0 ? <EmptyState lead="No duration data yet" hint="Sessions with tracked time appear here." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar
+              facts={buildSeriesFacts(charts.durationTrend, { unit: 'min', pointsLabel: 'sessions' })}
             />
-          </VictoryChart>
+            <VictoryChart
+              theme={victoryTheme}
+              height={180}
+              padding={compactPadding}
+              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+            >
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryLine
+                data={charts.durationTrend}
+                {...durationLineProps}
+                labels={({ datum }) => `${datum.x}: ${datum.y}min`}
+                labelComponent={<VictoryTooltip renderInPortal={false} />}
+              />
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}
@@ -261,12 +266,20 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
         <CardTitle>Effort Trend</CardTitle>
       </CardHeader>
       <CardBody>
-        {charts.intensityRpeTrend.length === 0 ? <Empty>No intensity data yet</Empty> : (
-          <VictoryChart theme={victoryTheme} height={180} padding={compactPadding} domain={{ y: [0, 10] }}>
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryLine data={charts.intensityRpeTrend} {...intensityLineProps} />
-          </VictoryChart>
+        {charts.intensityRpeTrend.length === 0 ? <EmptyState lead="No intensity data yet" hint="Logged RPE and session intensity feed this trend." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar
+              facts={[
+                ...buildSeriesFacts(charts.intensityRpeTrend, { decimals: 1, pointsLabel: 'wks' }),
+                { id: 'source', label: 'Source', value: describeIntensitySource(charts.intensityRpeTrend) },
+              ]}
+            />
+            <VictoryChart theme={victoryTheme} height={180} padding={compactPadding} domain={{ y: [0, 10] }}>
+              <VictoryAxis />
+              <VictoryAxis dependentAxis />
+              <VictoryLine data={charts.intensityRpeTrend} {...intensityLineProps} />
+            </VictoryChart>
+          </ChartStack>
         )}
       </CardBody>
     </Card>}

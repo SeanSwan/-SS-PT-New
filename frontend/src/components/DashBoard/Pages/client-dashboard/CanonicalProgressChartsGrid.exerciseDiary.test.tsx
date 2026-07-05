@@ -1,4 +1,5 @@
 import { act, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,7 +63,7 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
   });
 
   it('mounts a full ranked exercise diary for the client progress route', () => {
-    render(<CanonicalProgressChartsGrid />);
+    render(<MemoryRouter><CanonicalProgressChartsGrid /></MemoryRouter>);
 
     const diary = screen.getByRole('region', { name: /client exercise mega stats/i });
     const rows = within(diary).getAllByRole('listitem');
@@ -76,7 +77,7 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
   });
 
   it('refetches canonical charts when a workout log succeeds', () => {
-    render(<CanonicalProgressChartsGrid />);
+    render(<MemoryRouter><CanonicalProgressChartsGrid /></MemoryRouter>);
 
     act(() => {
       window.dispatchEvent(new Event('swan:workout-logged'));

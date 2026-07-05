@@ -10,6 +10,7 @@ import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/use
 import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
 import ProgressProofCockpit from '../../../progress-proof/ProgressProofCockpit';
 import type { ProgressChartLensId } from '../../../progress-proof/progressChartLens';
+import AdminBodyCompPanel from './AdminBodyCompPanel';
 import { AdminProgressChartDeck } from './AdminProgressChartsGrid.cards';
 import ClientExerciseMegaStats from '../../../progress/ClientExerciseMegaStats';
 import ExerciseCodexMatrix from '../../../progress/ExerciseCodexMatrix';
@@ -72,6 +73,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
       <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <AdminProgressChartDeck charts={charts} activeLensId={activeLensId} />
+      <AdminBodyCompPanel clientId={clientId} />
     </div>
   );
 };

@@ -73,8 +73,9 @@ export const ChartBody = styled.div`
   flex: 1;
   min-height: 180px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  gap: 0.55rem;
 `;
 
 export const EmptyState = styled.div`

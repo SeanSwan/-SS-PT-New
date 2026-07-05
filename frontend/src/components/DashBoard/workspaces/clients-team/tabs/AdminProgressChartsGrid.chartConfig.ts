@@ -53,6 +53,18 @@ export const getAnchorLineProps = (index: number) => ({
   },
 });
 
+export const selectSetsRepsPulseSource = (
+  bundle: { sets: { x: string; y: number }[]; reps: { x: string; y: number }[] },
+) => (
+  bundle.reps.length > 0
+    ? { label: 'Rep Pulse', points: bundle.reps, unit: 'reps' }
+    : { label: 'Set Pulse', points: bundle.sets, unit: 'sets' }
+);
+
+export const summaryForRows = (title: string, rowCount: number) => (
+  `Showing ${rowCount} verified ${title} point${rowCount === 1 ? '' : 's'} for this client.`
+);
+
 export type ExerciseFrequencyPoint = {
   x: string;
   y: number;
