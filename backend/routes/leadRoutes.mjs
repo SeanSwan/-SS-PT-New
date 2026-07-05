@@ -43,7 +43,15 @@ router.get('/', async (req, res) => {
     }
 
     if (status) where.status = status;
+    else if (req.query.hot === 'true' || req.query.followupsDue === 'true') {
+      // Hot / follow-up work queues never include closed leads.
+      where.status = { [Op.notIn]: ['converted', 'lost'] };
+    }
     if (source) where.source = source;
+    // Server-side work-queue filters so hot/follow-up lists are COMPLETE, not
+    // limited to the first page the client happened to fetch (LCC-1).
+    if (req.query.hot === 'true') where.score = { [Op.gte]: 70 };
+    if (req.query.followupsDue === 'true') where.nextFollowUpAt = { [Op.lte]: new Date() };
     if (search) {
       where[Op.or] = [
         { firstName: { [Op.iLike]: `%${search}%` } },

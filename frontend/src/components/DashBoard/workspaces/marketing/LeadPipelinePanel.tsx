@@ -6,7 +6,7 @@
  * email or call in one click. Optimistic updates with revert-on-error. Styles live
  * in LeadPipelinePanel.styles.ts (rule 4).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, Target, Users, Mail, Phone, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
@@ -83,10 +83,13 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
   const fetchLeadData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const params = new URLSearchParams({ limit: '50', sortBy: 'createdAt', sortOrder: 'DESC' });
+    if (activeFilter === 'hot') params.set('hot', 'true');
+    if (activeFilter === 'followups') params.set('followupsDue', 'true');
     try {
       const [statsRes, leadsRes] = await Promise.all([
         authAxios.get('/api/leads/stats'),
-        authAxios.get('/api/leads?limit=25&sortBy=createdAt&sortOrder=DESC'),
+        authAxios.get(`/api/leads?${params.toString()}`),
       ]);
       setStats({ ...DEFAULT_STATS, ...(statsRes.data?.stats || {}) });
       setLeads(Array.isArray(leadsRes.data?.leads) ? leadsRes.data.leads : []);
@@ -95,8 +98,10 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
     } finally {
       setLoading(false);
     }
-  }, [authAxios]);
+  }, [authAxios, activeFilter]);
 
+  // Refetch server-side whenever the operator changes the queue filter — hot / follow-up
+  // lists are now COMPLETE, not limited to the first page (LCC-1).
   useEffect(() => { fetchLeadData(); }, [fetchLeadData]);
 
   const updateLead = useCallback(async (id: LeadRecord['id'], patch: Partial<LeadRecord>) => {
@@ -113,19 +118,6 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
       setSavingId(null);
     }
   }, [leads, authAxios]);
-
-  // Deep-link filters apply client-side over the fetched page (no backend change).
-  const visibleLeads = useMemo(() => {
-    const now = Date.now();
-    return leads.filter((l) => {
-      if (activeFilter === 'hot') return (l.score || 0) >= 70;
-      if (activeFilter === 'followups') {
-        const due = l.nextFollowUpAt ? new Date(l.nextFollowUpAt).getTime() <= now : false;
-        return due && l.status !== 'converted' && l.status !== 'lost';
-      }
-      return true;
-    });
-  }, [leads, activeFilter]);
 
   return (
     <Stack>
@@ -168,12 +160,14 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
         ) : loading && leads.length === 0 ? (
           <EmptyState><RefreshCw size={28} />Loading leads...</EmptyState>
         ) : leads.length === 0 ? (
-          <EmptyState><Users size={28} />No leads yet — they'll appear here as they come in.</EmptyState>
-        ) : visibleLeads.length === 0 ? (
           <EmptyState>
             <Users size={28} />
-            No {FILTER_LABEL[activeFilter].toLowerCase()} right now.
-            <FilterChip type="button" onClick={() => setActiveFilter('all')} style={{ marginTop: 12 }}>Show all leads</FilterChip>
+            {activeFilter === 'all'
+              ? "No leads yet — they'll appear here as they come in."
+              : `No ${FILTER_LABEL[activeFilter].toLowerCase()} right now.`}
+            {activeFilter !== 'all' && (
+              <FilterChip type="button" onClick={() => setActiveFilter('all')} style={{ marginTop: 12 }}>Show all leads</FilterChip>
+            )}
           </EmptyState>
         ) : (
           <TableScroll>
@@ -182,7 +176,7 @@ const LeadPipelinePanel: React.FC<LeadPipelinePanelProps> = ({ filter = 'all' })
                 <tr><th>Contact</th><th>Source</th><th>Status</th><th>Score</th><th>Next follow-up</th><th>Reach out</th></tr>
               </thead>
               <tbody>
-                {visibleLeads.map((lead) => {
+                {leads.map((lead) => {
                   const status = lead.status || 'new';
                   const score = lead.score || 0;
                   const saving = savingId === lead.id;
