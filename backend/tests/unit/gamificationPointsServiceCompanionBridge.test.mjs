@@ -14,7 +14,7 @@ describe('GamificationPointsService companion bridge integration', () => {
   it('schedules companion ledger events from the shared idempotent point ledger', () => {
     expect(serviceSource).toContain("import { scheduleCompanionLedgerEvents } from './CompanionEventBridgeService.mjs';");
     expect(serviceSource).toContain('metadata,');
-    expect(serviceSource).toContain('result.companionEvents = scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: outerTransaction });');
-    expect(serviceSource).toContain('result.companionEvents = scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: null });');
+    expect(serviceSource).toContain('scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: outerTransaction });');
+    expect(serviceSource).toContain('scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: null });');
   });
 });

@@ -13,11 +13,6 @@
  * HOW IT FITS IN THE APP: Express router mounted at /api/gamification
  *   server.mjs → gamificationRoutes → gamificationController
  *
- * Companion V2 addition:
- * - /record-workout is wrapped with companionEventBridgeResponseMiddleware so
- *   workout completion responses can include request-scoped companionEvents
- *   summaries without rewriting the gamification controller monolith.
- *
  * Blueprint Reference: SwanStudios Personal Training Platform - Gamification System
  *
  * Base Path: /api/gamification
@@ -106,7 +101,6 @@
 import express from 'express';
 import gamificationController from '../controllers/gamificationController.mjs';
 import { protect, adminOnly, trainerOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
-import { companionEventBridgeResponseMiddleware } from '../middleware/companionEventBridgeResponseMiddleware.mjs';
 
 const router = express.Router();
 
@@ -312,9 +306,8 @@ router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, authorizeCl
  * @route   POST /api/gamification/record-workout
  * @desc    Record workout completion and award points
  * @access  Client, Trainer, Admin
- * @companion Injects request-scoped companionEvents summaries when companion bridge work is scheduled/skipped
  */
-router.post('/record-workout', authenticate, authorizeClientOrTrainer, companionEventBridgeResponseMiddleware, gamificationController.recordWorkoutCompletion);
+router.post('/record-workout', authenticate, authorizeClientOrTrainer, gamificationController.recordWorkoutCompletion);
 
 /**
  * Milestone routes

@@ -291,12 +291,12 @@ export class GamificationPointsService {
     if (outerTransaction) {
       const result = await execute(outerTransaction);
       scheduleLedgerRealtimeEvent(result, eventEntry, outerTransaction);
-      result.companionEvents = scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: outerTransaction });
+      scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: outerTransaction });
       return result;
     }
     const result = await db.transaction(execute);
     scheduleLedgerRealtimeEvent(result, eventEntry, null);
-    result.companionEvents = scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: null });
+    scheduleCompanionLedgerEvents({ result, entry: eventEntry, transaction: null });
     return result;
   }
 }

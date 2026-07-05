@@ -1,7 +1,4 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import { CompanionPetService } from './CompanionPetService.mjs';
-
-const bridgeContext = new AsyncLocalStorage();
 
 const POSITIVE_ACTIVITY_TYPES = new Set([
   'strength_workouts',
@@ -28,18 +25,6 @@ const normalizeAmount = (value, fallback = 1) => {
 };
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
-
-export const runWithCompanionBridgeContext = (callback) => bridgeContext.run({ summaries: [] }, callback);
-
-export const getCompanionBridgeSummaries = () => {
-  const store = bridgeContext.getStore();
-  return Array.isArray(store?.summaries) ? [...store.summaries] : [];
-};
-
-const appendCompanionBridgeSummary = (summary) => {
-  const store = bridgeContext.getStore();
-  if (store && Array.isArray(store.summaries) && summary) store.summaries.push(summary);
-};
 
 export const getCompanionActivityForWorkout = (metadata = {}) => {
   const focus = normalizeText(metadata.focus || metadata.workoutType || metadata.category || metadata.modality);
@@ -105,7 +90,6 @@ export const recordCompanionLedgerEvents = async ({ result, entry, service = Com
 
 export const scheduleCompanionLedgerEvents = ({ result, entry, transaction, service = CompanionPetService, logger = console }) => {
   const summary = buildCompanionLedgerSummary(result, entry);
-  appendCompanionBridgeSummary(summary);
   if (summary.status === 'skipped') return summary;
   const run = () => recordCompanionLedgerEvents({ result, entry, service })
     .then((records) => logger.info?.('[CompanionEventBridge] recorded', { source: summary.source, count: records.length }))
@@ -123,9 +107,7 @@ export default {
   buildCompanionActivityEventsForLedger,
   buildCompanionLedgerSummary,
   getCompanionActivityForWorkout,
-  getCompanionBridgeSummaries,
   recordCompanionActivityEvents,
   recordCompanionLedgerEvents,
-  runWithCompanionBridgeContext,
   scheduleCompanionLedgerEvents,
 };
