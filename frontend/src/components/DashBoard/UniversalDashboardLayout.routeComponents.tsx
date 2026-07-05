@@ -19,6 +19,7 @@ export const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-
 export const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-management/modern-user-management'));
 export const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));
 export const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'));
+export const AdminCreateSpecialView = React.lazy(() => import('./Pages/admin-specials/AdminCreateSpecialManager'));
 export const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
 export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
 export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
@@ -83,7 +84,6 @@ export const MarketingWorkspace = React.lazy(() => import('./workspaces/Marketin
 export const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 export const PlaudIntelligenceWorkspacePage = React.lazy(() => import('../../pages/dashboard/PlaudIntelligenceWorkspacePage'));
 export const ClientsWorkspace = React.lazy(() => import('./workspaces/ClientsWorkspace'));
-export const TrainerClientsWorkspace = React.lazy(() => import('./workspaces/TrainerClientsWorkspace'));
 export const ClientProgressDashboardPage = React.lazy(() => import('./Pages/client-dashboard/ClientProgressDashboardPage'));
 
 export const ClientProgressWrapper: React.FC = () => {

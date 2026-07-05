@@ -407,6 +407,38 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     // Find or create the user's active cart with schema-drift recovery.
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
 
+    // ── Special-offer guard (S1): if this storefront item is a per-client
+    // "SwanStudios Special", only its owning client may add it, and only once.
+    // Source of truth is the CustomPackage<->storefrontItem link (independent of
+    // loaded attributes). Fail closed on a denial; fail open (checkout re-verifies)
+    // only if the guard machinery itself errors, so normal items never break.
+    try {
+      const [{ default: CustomPackage }, svc] = await Promise.all([
+        import('../models/CustomPackage.mjs'),
+        import('../services/specialOfferService.mjs'),
+      ]);
+      const special = await CustomPackage.findOne({ where: { storefrontItemId: normalizedStorefrontItemId } });
+      if (special) {
+        svc.assertClientOwnsActiveSpecial({ customPackage: special, userId: req.authUserId });
+        if (normalizedQuantity > 1) {
+          return res.status(409).json({ success: false, message: 'A special offer can only be purchased once.', code: 'SPECIAL_QUANTITY' });
+        }
+        const alreadyInCart = await CartItem.findOne({
+          where: buildCartItemLookup(cart.id, normalizedStorefrontItemId, normalizedProductVariantId)
+        });
+        if (alreadyInCart) {
+          return res.status(409).json({ success: false, message: 'This special offer is already in your cart.', code: 'SPECIAL_ALREADY_IN_CART' });
+        }
+      }
+    } catch (specialErr) {
+      if (specialErr?.name === 'SpecialOfferError') {
+        return res.status(specialErr.status || 403).json({ success: false, message: specialErr.message, code: specialErr.code });
+      }
+      logger.warn('[Cart] special-offer guard machinery error (continuing; checkout re-verifies)', {
+        ...toCartErrorMetadata(specialErr, 'cart_special_guard_error')
+      });
+    }
+
     // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
       where: buildCartItemLookup(cart.id, normalizedStorefrontItemId, normalizedProductVariantId)
@@ -572,6 +604,36 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
       return res.status(409).json({
         success: false,
         message: 'Selected item quantity exceeds available stock'
+      });
+    }
+
+    // ── Special-offer guard (S1 hostile-review MED-2): a per-client "SwanStudios
+    // Special" is single-redemption — it may never reach qty>1 via the update path
+    // (add-to-cart + checkout already block this; the update path did not). Source of
+    // truth is the CustomPackage<->storefrontItem link. Fail closed on a denial; fail
+    // open (checkout re-verifies) only if the guard machinery itself errors.
+    try {
+      const [{ default: CustomPackage }, svc] = await Promise.all([
+        import('../models/CustomPackage.mjs'),
+        import('../services/specialOfferService.mjs'),
+      ]);
+      const special = await CustomPackage.findOne({ where: { storefrontItemId: cartItem.storefrontItemId } });
+      if (special) {
+        svc.assertClientOwnsActiveSpecial({ customPackage: special, userId: req.authUserId });
+        if (normalizedQuantity > 1) {
+          return res.status(409).json({
+            success: false,
+            code: 'SPECIAL_QUANTITY',
+            message: 'A special offer can only be purchased once per order.'
+          });
+        }
+      }
+    } catch (specialErr) {
+      if (specialErr?.name === 'SpecialOfferError') {
+        return res.status(specialErr.status || 403).json({ success: false, message: specialErr.message, code: specialErr.code });
+      }
+      logger.warn('[Cart] special-offer guard machinery error on update (continuing; checkout re-verifies)', {
+        ...toCartErrorMetadata(specialErr, 'cart_special_guard_update_error')
       });
     }
 

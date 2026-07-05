@@ -214,6 +214,22 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       getCartItemSessionCredits,
     });
 
+    // ── Record special-offer redemptions atomically within the grant txn (S1) ──
+    // Decrements remainingRedemptions / marks one-time specials redeemed so they
+    // can't be re-bought in a new cart. A module-load glitch skips (logged); a real
+    // DB failure propagates -> rolls back -> the other grant caller retries.
+    let SpecialCustomPackage = null;
+    let recordCartSpecialRedemptions = null;
+    try {
+      SpecialCustomPackage = (await import('../models/CustomPackage.mjs')).default;
+      ({ recordCartSpecialRedemptions } = await import('./specialOfferService.mjs'));
+    } catch (importErr) {
+      logger.warn(`[SessionGrant] special-offer module unavailable for cart ${cartId}: ${importErr.message}`);
+    }
+    if (SpecialCustomPackage && recordCartSpecialRedemptions) {
+      await recordCartSpecialRedemptions({ cartItems: cart.cartItems, CustomPackage: SpecialCustomPackage, transaction });
+    }
+
     await markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, transaction });
 
     await transaction.commit();

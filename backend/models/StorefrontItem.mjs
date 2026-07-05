@@ -197,6 +197,15 @@ StorefrontItem.init({
     allowNull: true, // physical self-ship logistics
     validate: { min: 0 }
   },
+  // ── Special-offer marker (S1, 2026-07-04) ─────────────────────────────────
+  // true = a hidden, client-scoped "SwanStudios Special" generated from a
+  // CustomPackage. MUST be excluded from the public catalog; only the owning
+  // client may add it to cart (ownership enforced server-side via CustomPackage).
+  isSpecialOffer: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   // createdAt and updatedAt are managed by Sequelize because timestamps: true
 }, {
   sequelize,

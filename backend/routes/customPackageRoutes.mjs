@@ -16,6 +16,8 @@
 import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
+import sequelize from '../database.mjs';
+import * as specialOffer from '../services/specialOfferService.mjs';
 
 const router = express.Router();
 
@@ -43,21 +45,20 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const {
       clientId,
       basePackageType,
-      bonusSessions = 0,
-      pricePerSession,
+      targetEffectiveRate,        // preferred: admin types the effective $/session
+      bonusSessions,              // alternative: explicit bonus-session count
       name = 'SwanStudios Special',
       description,
       adminNote,
       belowThresholdApproved = false,
+      overrideReason = null,      // required when effective rate < $100 floor
+      validityType = 'one_time',  // one_time | n_times | time_window | ongoing (default OFF)
+      maxRedemptions,             // required for validityType 'n_times'
       expiresAt,
     } = req.body;
 
-    // Validate required fields
-    if (!clientId || !basePackageType || !pricePerSession) {
-      return res.status(400).json({
-        success: false,
-        message: 'clientId, basePackageType, and pricePerSession are required'
-      });
+    if (!clientId || !basePackageType) {
+      return res.status(400).json({ success: false, message: 'clientId and basePackageType are required' });
     }
 
     const baseConfig = BASE_PACKAGES[basePackageType];
@@ -67,89 +68,124 @@ router.post('/', protect, adminOnly, async (req, res) => {
         message: `Invalid basePackageType. Must be one of: ${Object.keys(BASE_PACKAGES).join(', ')}`
       });
     }
-
     const paidSessions = baseConfig.paidSessions;
-    const totalSessions = paidSessions + bonusSessions;
-    const totalPrice = paidSessions * parseFloat(pricePerSession);
-    const effectiveHourlyRate = totalPrice / totalSessions;
 
-    // Pricing guardrails
-    if (effectiveHourlyRate < ABSOLUTE_MIN_PER_HOUR) {
-      return res.status(400).json({
-        success: false,
-        message: `Effective hourly rate ($${effectiveHourlyRate.toFixed(2)}) is below the absolute minimum of $${ABSOLUTE_MIN_PER_HOUR}/hr. Reduce bonus sessions or increase price.`,
-        effectiveHourlyRate,
-        absoluteMinimum: ABSOLUTE_MIN_PER_HOUR,
-      });
-    }
-
-    if (effectiveHourlyRate < WARNING_THRESHOLD_PER_HOUR && !belowThresholdApproved) {
-      return res.status(400).json({
-        success: false,
-        message: `Effective hourly rate ($${effectiveHourlyRate.toFixed(2)}) is below the recommended $${WARNING_THRESHOLD_PER_HOUR}/hr threshold. Set belowThresholdApproved=true to proceed.`,
-        effectiveHourlyRate,
-        warningThreshold: WARNING_THRESHOLD_PER_HOUR,
-        requiresApproval: true,
-      });
-    }
-
-    // Verify client exists
-    const { default: User } = await import('../models/User.mjs');
-    const client = await User.findByPk(clientId);
-    if (!client) {
-      return res.status(404).json({ success: false, message: 'Client not found' });
-    }
-
-    // Create the custom package
-    let CustomPackage;
+    // Compute pricing at the FIXED $175 sticker (never lowered) — discount = bonus sessions —
+    // then enforce the effective-rate floor with the audited override policy.
+    let pricing;
     try {
-      const mod = await import('../models/CustomPackage.mjs');
-      CustomPackage = mod.default;
-    } catch {
-      return res.status(503).json({ success: false, message: 'CustomPackage model not available. Run migrations first.' });
+      if (targetEffectiveRate !== undefined && targetEffectiveRate !== null && targetEffectiveRate !== '') {
+        pricing = specialOffer.computeBonusForTargetRate({ paidSessions, targetEffectiveRate: Number(targetEffectiveRate) });
+      } else {
+        pricing = specialOffer.computeSpecialPricing({ paidSessions, bonusSessions: Number(bonusSessions || 0) });
+      }
+      specialOffer.assertRateFloor({
+        effectiveHourlyRate: pricing.effectiveHourlyRate,
+        belowThresholdApproved,
+        overrideReason,
+      });
+    } catch (e) {
+      if (e instanceof specialOffer.SpecialOfferError) {
+        return res.status(e.status || 400).json({ success: false, code: e.code, message: e.message, details: e.details });
+      }
+      throw e;
     }
 
-    const pkg = await CustomPackage.create({
-      clientId,
-      createdByAdminId: req.user.id,
-      basePackageType,
-      name,
-      description: description || `${name} — ${totalSessions} sessions (${paidSessions} paid + ${bonusSessions} bonus)`,
-      paidSessions,
-      bonusSessions,
-      totalSessions,
-      pricePerSession,
-      totalPrice,
-      effectiveHourlyRate,
-      belowThresholdApproved,
-      adminNote,
-      status: 'active',
-      expiresAt: expiresAt || null,
+    // Resolve validity -> starting redemption limit (null = unlimited: ongoing/time_window)
+    let remainingRedemptions;
+    try {
+      remainingRedemptions = specialOffer.resolveRedemptionLimit(validityType, maxRedemptions);
+    } catch (e) {
+      if (e instanceof specialOffer.SpecialOfferError) {
+        return res.status(e.status || 400).json({ success: false, code: e.code, message: e.message });
+      }
+      throw e;
+    }
+
+    // time_window specials must carry a real end date, else they'd be evergreen. (MED-1)
+    try {
+      specialOffer.assertValidityRules({ validityType, expiresAt });
+    } catch (e) {
+      if (e instanceof specialOffer.SpecialOfferError) {
+        return res.status(e.status || 400).json({ success: false, code: e.code, message: e.message });
+      }
+      throw e;
+    }
+
+    const gate = specialOffer.evaluateRateGate(pricing.effectiveHourlyRate);
+    const usedOverride = gate.requiresOverride;
+
+    const { default: User } = await import('../models/User.mjs');
+    const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+    const { default: StorefrontItem } = await import('../models/StorefrontItem.mjs');
+
+    // Persist the package + its hidden client-scoped storefront item atomically.
+    const created = await sequelize.transaction(async (t) => {
+      const client = await User.findByPk(clientId, { transaction: t });
+      if (!client) {
+        const err = new Error('Client not found');
+        err.httpStatus = 404;
+        throw err;
+      }
+
+      const pkg = await CustomPackage.create({
+        clientId,
+        createdByAdminId: req.user.id,
+        basePackageType,
+        name,
+        description: description || `${name} — ${pricing.totalSessions} sessions (${paidSessions} paid + ${pricing.bonusSessions} bonus)`,
+        paidSessions,
+        bonusSessions: pricing.bonusSessions,
+        totalSessions: pricing.totalSessions,
+        pricePerSession: specialOffer.STICKER_PER_SESSION, // pinned $175 — the sticker is never lowered
+        totalPrice: pricing.totalPrice,
+        effectiveHourlyRate: pricing.effectiveHourlyRate,
+        belowThresholdApproved: !!belowThresholdApproved,
+        overrideReason: usedOverride ? (overrideReason || null) : null,
+        approvedByAdminId: usedOverride ? req.user.id : null,
+        approvedAt: usedOverride ? new Date() : null,
+        adminNote,
+        status: 'active',
+        validityType,
+        maxRedemptions: remainingRedemptions,
+        remainingRedemptions,
+        expiresAt: expiresAt || null,
+      }, { transaction: t });
+
+      const item = await specialOffer.createHiddenStorefrontItemForPackage(pkg, { StorefrontItem, transaction: t });
+      await pkg.update({ storefrontItemId: item.id }, { transaction: t });
+
+      return { pkg, storefrontItemId: item.id };
     });
 
-    logger.info(`Admin ${req.user.id} created custom package for client ${clientId}`, {
-      packageId: pkg.id,
-      effectiveRate: effectiveHourlyRate,
-      bonusSessions,
+    logger.info(`Admin ${req.user.id} created special for client ${clientId}`, {
+      packageId: created.pkg.id,
+      storefrontItemId: created.storefrontItemId,
+      effectiveRate: pricing.effectiveHourlyRate,
+      bonusSessions: pricing.bonusSessions,
+      validityType,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      package: pkg,
+      package: created.pkg,
+      storefrontItemId: created.storefrontItemId,
       pricing: {
         paidSessions,
-        bonusSessions,
-        totalSessions,
-        pricePerSession: parseFloat(pricePerSession),
-        totalPrice,
-        effectiveHourlyRate: Math.round(effectiveHourlyRate * 100) / 100,
-        belowRecommended: effectiveHourlyRate < RECOMMENDED_MIN_PER_SESSION,
-        belowWarning: effectiveHourlyRate < WARNING_THRESHOLD_PER_HOUR,
+        bonusSessions: pricing.bonusSessions,
+        totalSessions: pricing.totalSessions,
+        pricePerSession: specialOffer.STICKER_PER_SESSION,
+        totalPrice: pricing.totalPrice,
+        effectiveHourlyRate: pricing.effectiveHourlyRate,
+        gateTier: gate.tier,
       }
     });
   } catch (error) {
-    logger.error('Error creating custom package:', error);
-    res.status(500).json({ success: false, message: 'Failed to create custom package' });
+    if (error?.httpStatus === 404) {
+      return res.status(404).json({ success: false, message: error.message });
+    }
+    logger.error('Error creating special:', error);
+    return res.status(500).json({ success: false, message: 'Failed to create special' });
   }
 });
 

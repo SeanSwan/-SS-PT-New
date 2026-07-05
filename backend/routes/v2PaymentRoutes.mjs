@@ -398,6 +398,28 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
+    // ── Special-offer re-verification (S1): AUTHORITATIVE gate before payment.
+    // Re-assert client ownership + validity for any special in the cart; fail
+    // closed (503) if the guard can't run — never open a Stripe session we can't verify.
+    try {
+      const [{ default: CustomPackage }, svc] = await Promise.all([
+        import('../models/CustomPackage.mjs'),
+        import('../services/specialOfferService.mjs'),
+      ]);
+      await svc.assertCartSpecialsRedeemable({ cartItems: cart.cartItems, userId, CustomPackage });
+    } catch (specialErr) {
+      if (specialErr?.name === 'SpecialOfferError') {
+        return res.status(specialErr.status || 403).json({
+          success: false, message: specialErr.message, error: { code: specialErr.code }
+        });
+      }
+      logger.error('[v2 Payment] special-offer verification failed', { error: specialErr?.message });
+      return res.status(503).json({
+        success: false, message: 'Unable to verify offer eligibility. Please try again.',
+        error: { code: 'SPECIAL_VERIFY_FAILED' }
+      });
+    }
+
     // Step 2: Calculate totals. Stripe Tax owns taxable physical product tax.
     const checkoutLines = cart.cartItems.map(resolveCheckoutLineItem);
     const subtotal = checkoutLines.reduce((sum, item) => sum + item.subtotal, 0);

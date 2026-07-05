@@ -124,6 +124,47 @@ CustomPackage.init({
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  // ── Special-offer recurrence / validity (S1, 2026-07-04) ──────────────────
+  // How the special may be reused: one_time | n_times | time_window | ongoing.
+  // Default OFF (one_time) — reuse is a deliberate admin choice (fail-closed).
+  validityType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'one_time',
+    validate: {
+      isIn: {
+        args: [['one_time', 'n_times', 'time_window', 'ongoing']],
+        msg: 'Invalid validityType'
+      }
+    }
+  },
+  // Max redemptions (null = unlimited: ongoing / time_window; 1 = one_time; 2-4 = n_times)
+  maxRedemptions: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: { min: 1 }
+  },
+  // Redemptions left; decremented on each purchase (null = unlimited)
+  remainingRedemptions: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: { min: 0 }
+  },
+  // ── Below-floor override audit (S1) ───────────────────────────────────────
+  // Admin who approved an effective rate below the $120 / $100 gates
+  approvedByAdminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  approvedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  // Required reason when effective rate is below the $100 floor (audited)
+  overrideReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 }, {
   sequelize,
   modelName: 'CustomPackage',

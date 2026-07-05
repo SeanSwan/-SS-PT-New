@@ -2880,6 +2880,10 @@ const gamificationController = {
       pointTransaction = workoutLedgerResult.pointTransaction;
       updatedStats.points = workoutLedgerResult.newBalance ?? (user.points + baseWorkoutPoints);
 
+      // recordLedgerEntry is the single authority for level/tier (derived from lifetime XP).
+      // Track the latest result so level/tier are NEVER re-derived from the spendable balance.
+      let latestLedger = workoutLedgerResult;
+
       if (earnedStreakBonus > 0) {
         const streakLedgerResult = await GamificationPointsService.recordLedgerEntry({
           userId: normalizedUserId,
@@ -2894,11 +2898,14 @@ const gamificationController = {
           maxPoints: Number.MAX_SAFE_INTEGER
         }, transaction);
         updatedStats.points = streakLedgerResult.newBalance ?? updatedStats.points;
+        latestLedger = streakLedgerResult;
       }
 
-      updatedStats.level = calculateLevel(updatedStats.points);
-      updatedStats.tier = getTier(updatedStats.level);
-      
+      // Level/tier come from the ledger authority (lifetime XP), NOT the spendable balance.
+      updatedStats.level = latestLedger.newLevel ?? updatedStats.level;
+      updatedStats.tier = latestLedger.newTier ?? updatedStats.tier;
+      const workoutLeveledUp = (updatedStats.level ?? 0) > (workoutLedgerResult.previousLevel ?? 0);
+
       // Update user stats
       await user.update(updatedStats, { transaction });
       

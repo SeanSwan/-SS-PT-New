@@ -348,7 +348,19 @@ User.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0,
-      comment: 'Total points earned in the gamification system'
+      comment: 'Spendable point balance (wallet). Decreases on spend/redeem — do NOT use for level/rank; use lifetimePointsEarned.'
+    },
+    lifetimePointsEarned: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Lifetime earned points (earn+bonus+adjustment, never spend/expire). Drives level/rank; never reduced by spending.'
+    },
+    leaderboardOptIn: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether the user appears on public leaderboards (existing users preserved as visible).'
     },
     level: {
       type: DataTypes.INTEGER,

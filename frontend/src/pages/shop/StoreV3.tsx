@@ -37,6 +37,7 @@ import { useCart } from '../../context/CartContext';
 import { useUniversalTheme } from '../../context/ThemeContext/UniversalThemeContext';
 import api from '../../services/api.service';
 import { VIDEO } from '../../config/videoAssets';
+import YourSpecialCard from './components/YourSpecialCard';
 
 // Cinematic UI Components
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
@@ -882,6 +883,10 @@ const StoreV3: React.FC = () => {
         </ScrollReveal>
 
         <SectionDivider />
+
+        {/* Per-client "SwanStudios Special" (S3) — self-gates: renders null unless the
+            logged-in client has an active special. Above the standard packages grid. */}
+        <YourSpecialCard />
 
         {/* ============================================ */}
         {/* 2. PACKAGES SECTION — Personal Training      */}

@@ -5,6 +5,7 @@ import {
   AdminClientProgressView,
   AdminGamificationView,
   AdminPackagesView,
+  AdminCreateSpecialView,
   AdminPersonalWorkoutLogger,
   AdminPlaudCommandCenterRedirect,
   AdminViewAsWrapper,
@@ -45,7 +46,7 @@ import {
   MarketingWorkspace,
   MessagingPageLazy,
   ModernUserManagementSystem,
-  TrainerClientsWorkspace,
+  MyClientsView,
   NotesManager,
   NutritionPlanBuilder,
   NutritionWorkspaceLazy,
@@ -117,6 +118,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-trainer-assignments', component: ClientTrainerAssignments, title: 'Client-Trainer Assignments', description: 'Drag-and-drop client assignment management' },
       { path: '/trainer-permissions', component: TrainerPermissionsManager, title: 'Trainer Permissions', description: 'Granular trainer permission control' },
       { path: '/admin-packages', component: AdminPackagesView, title: 'Package Management', description: 'Training package configuration' },
+      { path: '/create-special', component: AdminCreateSpecialView, title: 'Create Special', description: 'Per-client bonus-session special pricing' },
       { path: '/revenue', component: RevenueAnalyticsPanel, title: 'Revenue Analytics', description: 'Financial performance tracking' },
       { path: '/pending-orders', component: PendingOrdersAdminPanel, title: 'Pending Orders', description: 'Order management system' },
       { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' },
@@ -148,7 +150,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
   trainer: {
     routes: [
       { path: '/overview', component: TrainerHomeTab, title: 'Home', description: 'Your trainer operations hub' },
-      { path: '/clients', component: TrainerClientsWorkspace, title: 'My Clients', description: 'Assigned-client command center: Today/Plan training, progress proof, nutrition, biometrics' },
+      { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
       { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
       { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: TrainerAssessmentsPage, title: 'Form Assessments', description: 'Swan Coach form checking' },

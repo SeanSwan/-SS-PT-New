@@ -328,7 +328,11 @@ router.get('/', async (req, res) => {
     
     // Add isActive filter if provided (convert string to boolean)
     whereClause.isActive = requestedIsActive;
-    
+
+    // Hidden per-client "SwanStudios Special" items must never appear in the
+    // public catalog — they're client-scoped and enforced at add-to-cart (S1).
+    whereClause.isSpecialOffer = false;
+
     // Check if the sortBy field exists in the model
     // FIXED: Checking if the requested sort field exists, falling back to 'id' if not
     const validColumns = Object.keys(StorefrontItem.rawAttributes);
