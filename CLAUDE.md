@@ -852,6 +852,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Task tracker:** `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
 - **Handoff protocol:** `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
 - **Master handbook:** `docs/MASTER-HANDBOOK.md`
+- **Hostile Review Slam Registry:** `docs/ai-workflow/hostile-reviews/INDEX.md` — durable, cloud-visible index of everything awaiting hostile review. Any AI can run a **Slam**: hostile-review every OPEN entry until zero issues remain (invite as many AIs as possible). Protocol: `docs/ai-workflow/hostile-reviews/README.md`. Complements (does not replace) the live 2-agent `.ai-workflow/coordination/review-queue.md`.
 
 ## Open Items — Session Continuity Index
 > Read the linked handoff docs for full context. This section is the quick-reference only.
