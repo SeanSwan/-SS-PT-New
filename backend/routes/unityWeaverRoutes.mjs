@@ -15,6 +15,13 @@ const prosocialAwardLimiter = rateLimiter({
   message: 'Too many good-energy XP actions. Please slow down and try again later.',
 });
 
+function getEventRule(eventId) {
+  if (typeof eventId !== 'string') return null;
+  return Object.prototype.hasOwnProperty.call(UNITY_WEAVER_PROSOCIAL_EVENTS, eventId)
+    ? UNITY_WEAVER_PROSOCIAL_EVENTS[eventId]
+    : null;
+}
+
 router.use(protect);
 
 router.get('/prosocial-events', async (_req, res) => {
@@ -27,7 +34,7 @@ router.get('/prosocial-events', async (_req, res) => {
 router.post('/prosocial-events/award', prosocialAwardLimiter, async (req, res) => {
   try {
     const eventId = req.body?.eventId;
-    const eventRule = UNITY_WEAVER_PROSOCIAL_EVENTS[eventId];
+    const eventRule = getEventRule(eventId);
 
     if (!eventRule) {
       return res.status(400).json({
