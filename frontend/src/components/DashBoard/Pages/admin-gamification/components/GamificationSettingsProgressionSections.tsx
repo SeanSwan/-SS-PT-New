@@ -40,7 +40,7 @@ import type {
   UpdateTierThreshold,
 } from './GamificationSettings.types';
 import { TIER_COLOR_MAP, TIER_PUBLIC_LABELS } from './GamificationSettings.types';
-import { LEVEL_FORMULA_SCALE, MAX_LEVEL, pointsForLevel } from '../../../../../types/gamification';
+import { LEVEL_CURVE_SCALE, LEVEL_CURVE_EXPONENT, MAX_LEVEL, pointsForLevel } from '../../../../../types/gamification';
 
 interface GamificationSettingsProgressionSectionsProps {
   levelSettings: LevelSettings;
@@ -115,7 +115,7 @@ export const GamificationSettingsProgressionSections: React.FC<GamificationSetti
 
         <FormulaBox>
           <SubTitle>Live Level Calculation Formula:</SubTitle>
-          <CodeBlock>Level = Math.floor({LEVEL_FORMULA_SCALE} * Math.sqrt(totalPoints))</CodeBlock>
+          <CodeBlock>XP for Level L = Math.floor({LEVEL_CURVE_SCALE} × (L − 1) ^ {LEVEL_CURVE_EXPONENT})</CodeBlock>
           <MutedText>
             Users start at Level 1. The selected cap of Level {currentCap} requires {capPoints.toLocaleString()} XP.
           </MutedText>

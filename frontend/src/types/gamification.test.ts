@@ -96,7 +96,7 @@ describe('frontend gamification level contract', () => {
     expect(pointsForLevel(1)).toBe(0);
     expect(progress.level).toBe(1);
     expect(progress.pointsIntoLevel).toBe(0);
-    expect(progress.pointsNeededForNext).toBe(400);
+    expect(progress.pointsNeededForNext).toBe(pointsForLevel(2));
     expect(progress.progressPercent).toBe(0);
   });
 

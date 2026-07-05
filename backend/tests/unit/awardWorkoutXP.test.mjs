@@ -103,8 +103,8 @@ describe('awardWorkoutXP progression sync', () => {
     expect(user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         points: 400,
-        level: 2,
-        tier: 'bronze_forge',
+        level: 3,
+        tier: 'first_flight',
       }),
       { transaction: mockTransaction }
     );
@@ -244,8 +244,8 @@ describe('awardWorkoutXP progression sync', () => {
     expect(user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         points: 400,
-        level: 2,
-        tier: 'bronze_forge',
+        level: 3,
+        tier: 'first_flight',
       }),
       { transaction: mockTransaction }
     );

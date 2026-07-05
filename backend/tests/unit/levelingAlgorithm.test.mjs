@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_LEVEL,
   calculateLevel,
   getLevelProgress,
   getRankTitles,
@@ -43,6 +44,13 @@ function extractAliasMap(source) {
   );
 }
 
+function extractNumericConst(source, constName) {
+  const escapedName = constName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = source.match(new RegExp('export const ' + escapedName + '\\s*=\\s*([0-9.]+)'));
+  if (!match) throw new Error('Missing ' + constName);
+  return Number(match[1]);
+}
+
 describe('levelingAlgorithm authoritative contract', () => {
   it('starts SwanStudios users at Level 1 with the approved first Swan rank', () => {
     expect(calculateLevel(0)).toBe(1);
@@ -51,10 +59,36 @@ describe('levelingAlgorithm authoritative contract', () => {
     expect(getTierDisplay(getTier(1)).name).toBe('First Flight');
   });
 
-  it('keeps the existing logarithmic thresholds above the starting level', () => {
+  it('uses the sane Swan XP curve — Level 25 is reachable, not 62,500', () => {
     expect(pointsForLevel(1)).toBe(0);
-    expect(calculateLevel(100)).toBe(1);
-    expect(calculateLevel(400)).toBe(2);
+    // Fast first win: a workout or two reaches Level 2.
+    expect(pointsForLevel(2)).toBeLessThanOrEqual(150);
+    // Regression: the retired sqrt curve required 62,500 lifetime points for Level 25.
+    expect(pointsForLevel(25)).toBeGreaterThan(8000);
+    expect(pointsForLevel(25)).toBeLessThan(20000);
+    // Meaningful long game without a multi-year wall.
+    expect(pointsForLevel(100)).toBeGreaterThan(90000);
+    expect(pointsForLevel(100)).toBeLessThan(200000);
+  });
+
+  it('keeps calculateLevel the exact inverse of pointsForLevel across the 1000-level ladder', () => {
+    for (let level = 1; level <= MAX_LEVEL; level += 1) {
+      expect(calculateLevel(pointsForLevel(level))).toBe(level);
+    }
+    for (let level = 2; level <= MAX_LEVEL; level += 1) {
+      expect(pointsForLevel(level)).toBeGreaterThan(pointsForLevel(level - 1));
+    }
+  });
+
+  it('keeps the XP curve constants in exact backend/frontend parity (prevents formula drift)', () => {
+    const backendSource = readSource('backend/utils/levelingAlgorithm.mjs');
+    const frontendSource = readSource('frontend/src/types/gamification.ts');
+
+    for (const constName of ['LEVEL_CURVE_SCALE', 'LEVEL_CURVE_EXPONENT']) {
+      expect(extractNumericConst(frontendSource, constName)).toBe(
+        extractNumericConst(backendSource, constName)
+      );
+    }
   });
 
   it('exposes the approved exact 100-rank ladder', () => {
@@ -123,9 +157,9 @@ describe('levelingAlgorithm authoritative contract', () => {
 
     expect(progress.level).toBe(1);
     expect(progress.pointsIntoLevel).toBe(0);
-    expect(progress.pointsNeededForNext).toBe(400);
+    expect(progress.pointsNeededForNext).toBe(pointsForLevel(2));
     expect(progress.progressPercent).toBe(0);
-    expect(progress.nextLevelAt).toBe(400);
+    expect(progress.nextLevelAt).toBe(pointsForLevel(2));
   });
 
   it('maps legacy tier keys to the new Swan rank language', () => {

@@ -4,7 +4,10 @@
  */
 
 export const MAX_LEVEL = 1000;
-export const LEVEL_FORMULA_SCALE = 0.1;
+// Power-curve constants (mirror backend/utils/levelingAlgorithm.mjs). pointsForLevel
+// is the source of truth; calculateLevel inverts it. Replaces the retired sqrt curve.
+export const LEVEL_CURVE_SCALE = 80;
+export const LEVEL_CURVE_EXPONENT = 1.6;
 
 const RANK_TITLE_NAMES = [
   'First Flight', 'Swan Initiate', 'Dawn Wing', 'River Spark', 'Meadow Current',
@@ -233,15 +236,21 @@ export interface GamificationProfile {
   recentAchievements: UserAchievement[];
 }
 
-export function calculateLevel(totalPoints: number): number {
-  if (!Number.isFinite(totalPoints) || totalPoints <= 0) return 1;
-  return Math.min(MAX_LEVEL, Math.max(1, Math.floor(LEVEL_FORMULA_SCALE * Math.sqrt(totalPoints))));
-}
-
 export function pointsForLevel(level: number): number {
   const targetLevel = normalizeLevel(level);
   if (targetLevel <= 1) return 0;
-  return Math.ceil(Math.pow(targetLevel / LEVEL_FORMULA_SCALE, 2));
+  return Math.floor(LEVEL_CURVE_SCALE * Math.pow(targetLevel - 1, LEVEL_CURVE_EXPONENT));
+}
+
+export function calculateLevel(totalPoints: number): number {
+  if (!Number.isFinite(totalPoints) || totalPoints <= 0) return 1;
+  // Analytic inverse of pointsForLevel, corrected for floor() rounding drift so
+  // that calculateLevel(pointsForLevel(L)) === L for every L in [1, MAX_LEVEL].
+  const approxLevel = Math.floor(Math.pow(totalPoints / LEVEL_CURVE_SCALE, 1 / LEVEL_CURVE_EXPONENT)) + 1;
+  let level = Math.min(MAX_LEVEL, Math.max(1, approxLevel));
+  while (level < MAX_LEVEL && pointsForLevel(level + 1) <= totalPoints) level += 1;
+  while (level > 1 && pointsForLevel(level) > totalPoints) level -= 1;
+  return level;
 }
 
 export function getTier(level: number): TierName {

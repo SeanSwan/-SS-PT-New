@@ -66,7 +66,7 @@ describe('GamificationSettings', () => {
     render(<GamificationSettings {...baseProps()} />);
 
     expect(screen.getByText('Swan Progression Tuning')).toBeInTheDocument();
-    expect(screen.getAllByText('Level = Math.floor(0.1 * Math.sqrt(totalPoints))')).toHaveLength(2);
+    expect(screen.getAllByText('XP for Level L = Math.floor(80', { exact: false })).toHaveLength(2);
     expect(screen.getByText('Cygnus Initiate')).toBeInTheDocument();
     expect(screen.getByText('Frostwing Ascendant')).toBeInTheDocument();
     expect(screen.queryByText('Bronze')).not.toBeInTheDocument();
