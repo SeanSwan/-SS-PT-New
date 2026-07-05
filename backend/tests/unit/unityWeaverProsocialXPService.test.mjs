@@ -95,6 +95,21 @@ describe('Unity Weaver prosocial XP service', () => {
     expect(mockAwardSwanCoins).not.toHaveBeenCalled();
   });
 
+  it('rejects prototype event IDs before any database or ledger work', async () => {
+    const result = await awardUnityWeaverProsocialXP({
+      actorUserId: 7,
+      eventId: '__proto__',
+      contextType: 'post',
+    });
+
+    expect(result).toEqual({ error: { status: 400, message: 'Unknown prosocial event' } });
+    expect(mockUser.findByPk).not.toHaveBeenCalled();
+    expect(mockDb.query).not.toHaveBeenCalled();
+    expect(mockDb.transaction).not.toHaveBeenCalled();
+    expect(mockPointsService.recordLedgerEntry).not.toHaveBeenCalled();
+    expect(mockAwardSwanCoins).not.toHaveBeenCalled();
+  });
+
   it('blocks recipient-based self-awards', async () => {
     const result = await awardUnityWeaverProsocialXP({
       actorUserId: 7,
