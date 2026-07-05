@@ -49,12 +49,19 @@ export function priceFor(model, extra = {}) {
   return extra[model] || PRICING[model] || { in: 0, out: 0 };
 }
 
+/**
+ * Standing hard-cap floor ($) applied when SWAN_VILLAGE_MAX_USD is unset or invalid
+ * (Sean 2026-07-04: "make sure we don't overspend"). A normal Village run estimates
+ * well under this; raise it per-run via SWAN_VILLAGE_MAX_USD for a deliberately larger pass.
+ */
+export const DEFAULT_MAX_USD = 8;
+
 /** Read the spend-gate config from the environment. */
 export function resolveBudget(env = process.env) {
   const capRaw = env.SWAN_VILLAGE_MAX_USD;
   const capUSD = capRaw != null && capRaw !== '' ? Number(capRaw) : null;
   return {
-    capUSD: Number.isFinite(capUSD) ? capUSD : null,
+    capUSD: Number.isFinite(capUSD) ? capUSD : DEFAULT_MAX_USD,
     preApproved: String(env.SWAN_VILLAGE_CONFIRM || '').toLowerCase() === 'yes',
   };
 }

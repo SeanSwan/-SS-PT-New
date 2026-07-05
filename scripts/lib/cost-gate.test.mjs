@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   priceFor,
   resolveBudget,
+  DEFAULT_MAX_USD,
   estimateRunCost,
   aggregateCostByModel,
   formatCostSummary,
@@ -25,8 +26,8 @@ test('priceFor: known paid, free, and runtime-injected models', () => {
 
 test('resolveBudget reads cap + pre-approval from env', () => {
   assert.deepEqual(resolveBudget({ SWAN_VILLAGE_MAX_USD: '2.50', SWAN_VILLAGE_CONFIRM: 'yes' }), { capUSD: 2.5, preApproved: true });
-  assert.deepEqual(resolveBudget({}), { capUSD: null, preApproved: false });
-  assert.deepEqual(resolveBudget({ SWAN_VILLAGE_MAX_USD: 'bogus' }), { capUSD: null, preApproved: false });
+  assert.deepEqual(resolveBudget({}), { capUSD: DEFAULT_MAX_USD, preApproved: false });
+  assert.deepEqual(resolveBudget({ SWAN_VILLAGE_MAX_USD: 'bogus' }), { capUSD: DEFAULT_MAX_USD, preApproved: false });
 });
 
 test('estimateRunCost: free tracks cost $0; paid tracks + judge counted', () => {
