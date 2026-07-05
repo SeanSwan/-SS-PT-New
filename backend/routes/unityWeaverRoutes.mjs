@@ -2,6 +2,7 @@ import express from 'express';
 import { protect, rateLimiter } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import {
+  UNITY_WEAVER_PROSOCIAL_EVENTS,
   awardUnityWeaverProsocialXP,
   getUnityWeaverProsocialEvents,
 } from '../services/unityWeaver/prosocialXPService.mjs';
@@ -25,23 +26,39 @@ router.get('/prosocial-events', async (_req, res) => {
 
 router.post('/prosocial-events/award', prosocialAwardLimiter, async (req, res) => {
   try {
+    const eventId = req.body?.eventId;
+    const eventRule = UNITY_WEAVER_PROSOCIAL_EVENTS[eventId];
+
+    if (!eventRule) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unknown prosocial event',
+      });
+    }
+
+    if (!eventRule.requiresHumanOrSystemValidation) {
+      return res.status(403).json({
+        success: false,
+        message: 'This prosocial event is awarded automatically after a verified social action, not through direct requests.',
+      });
+    }
+
     const result = await awardUnityWeaverProsocialXP({
       actorUserId: req.user.id,
-      eventId: req.body?.eventId,
+      eventId,
       targetUserId: req.body?.targetUserId,
-      contextType: req.body?.contextType || 'dashboard',
+      contextType: req.body?.contextType || 'moderation_review',
       contextId: req.body?.contextId,
     });
 
     if (result.error) {
       return res.status(result.error.status || 400).json({
         success: false,
-        message: result.error.message || 'Unable to award prosocial XP',
+        message: result.error.message || 'Unable to process prosocial event',
       });
     }
 
-    const statusCode = result.status === 'requires_validation' ? 202 : 200;
-    return res.status(statusCode).json(result);
+    return res.status(202).json(result);
   } catch (error) {
     logger.error('Unity Weaver prosocial XP award failed', {
       userId: req.user?.id,
@@ -51,7 +68,7 @@ router.post('/prosocial-events/award', prosocialAwardLimiter, async (req, res) =
 
     return res.status(error.statusCode || 500).json({
       success: false,
-      message: error.statusCode ? error.message : 'Failed to process prosocial XP action',
+      message: error.statusCode ? error.message : 'Failed to process prosocial event',
     });
   }
 });
