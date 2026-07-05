@@ -31,6 +31,7 @@ const FORBIDDEN = getForbidden(REGISTRY);          // DENIED rows — refuse by 
 const T2_ROWS = getT2Rows(REGISTRY);               // every T2 row (standing + proposed) — none queue
 const T3_APPROVAL_MS = 24 * 60 * 60 * 1000; // Q3 DECIDED 2026-07-04
 const T4_ARM_WINDOW_MS = 10 * 60 * 1000;    // Q3 DECIDED 2026-07-04
+const MAX_OPEN_PER_REQUESTER = 10;          // G-4 flood cap (handoff §7 seed): open entries per requester
 const ALLOWLIST_ROW = 'allowlist: sean-only queue ops (bridge §7 standing T2 row; open-questions Q1 DECIDED 2026-07-04)';
 
 function queueDir(vaultRoot) { return path.join(vaultRoot, 'runs', 'queue'); }
@@ -139,6 +140,11 @@ export function createEntry(vaultRoot, switchesFile, req, nowIso) {
   // Allocate the Q-id and append UNDER ONE LOCK (G-2): the runner and the
   // Telegram broker are two writers; scan-then-append could mint a dup Q-id.
   return withLock(`${queueFile}.lock`, () => {
+    // Flood cap (G-4): refuse if this requester already holds cap+ unexpired open entries (bury-under-noise defense).
+    const reqRedacted = redactText(req.requester);
+    const nowMs = parseMs(nowIso) ?? 0;
+    const openCount = [...loadQueueState(vaultRoot).values()].filter((e) => e.status === 'open' && e.requester === reqRedacted && (parseMs(e.expires) ?? 0) > nowMs).length;
+    if (openCount >= MAX_OPEN_PER_REQUESTER) refuse(vaultRoot, ctx, `flood cap: ${reqRedacted.slice(0, 48)} holds ${openCount} open entries (cap ${MAX_OPEN_PER_REQUESTER}) — refuse until some resolve/expire`);
     const existing = readJsonl(queueFile).filter((r) => r.type === 'create').map((r) => r.entry.id);
     const entry = {
       id: nextSequencedId('Q', existing, isoDate),

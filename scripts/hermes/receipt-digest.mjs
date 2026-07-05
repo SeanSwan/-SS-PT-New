@@ -21,6 +21,7 @@ import {
 } from './hermesRunsLib.mjs';
 
 const TIERS = ['T0', 'T1', 'T2', 'T3', 'T4'];
+const REFUSAL_CLUSTER_THRESHOLD = 5; // G-4: N+ refusals from one sender in 24h = a flood/injection cluster
 
 function tierOf(what) {
   return /\((T[0-4])\)/.exec(String(what))?.[1] ?? 'T0';
@@ -44,6 +45,13 @@ export function renderDigest(vaultRoot, isoDate) {
 
   const attention = receipts.filter((r) => /^(failed|refused|partial)/.test(String(r.outcome)));
   const flips = receipts.filter((r) => commandOf(r.what) === 'switch-flip');
+
+  // Refusal clusters (G-4): refusals are the injection/flood signal, not noise.
+  const refusals = receipts.filter((r) => /^refused/.test(String(r.outcome)));
+  const floodHit = refusals.filter((r) => /flood cap/i.test(String(r.outcome)));
+  const bySender = {};
+  for (const r of refusals) bySender[r.who] = (bySender[r.who] || 0) + 1;
+  const clusters = Object.entries(bySender).filter(([, n]) => n >= REFUSAL_CLUSTER_THRESHOLD).sort((a, b) => b[1] - a[1]);
 
   const opened = queueRecords.filter((r) => r.type === 'create');
   const byOutcome = (to) => queueRecords.filter((r) => r.type === 'transition' && r.to === to);
@@ -85,6 +93,11 @@ export function renderDigest(vaultRoot, isoDate) {
     ...(attention.length
       ? attention.map((r) => `- ${r.id} · ${r.what} · ${r.outcome} · evidence: ${r.evidence}`)
       : ['None — clean day.']),
+    '',
+    '## Refusal clusters (flood / injection watch)',
+    ...(floodHit.length ? [`**⚠ FLOOD CAP HIT ${floodHit.length}× in 24h — a requester was refused new queue entries; a buggy or hostile source may be flooding the approval queue. Investigate before approving.**`] : []),
+    ...clusters.map(([who, n]) => `- ${who}: ${n} refusals in 24h — refusal clusters are the injection/flood signal, not noise.`),
+    ...((!floodHit.length && !clusters.length) ? ['No refusal clusters.'] : []),
     '',
     '## Approval flow',
     `opened ${opened.length} · approved ${byOutcome('approved').length} · denied ${byOutcome('denied').length} · expired ${byOutcome('expired').length} · median open→resolved: ${med === null ? 'n/a' : `${med} min`}`,

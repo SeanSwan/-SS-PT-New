@@ -207,3 +207,27 @@ test('fail closed: SWITCH_MASTER off refuses queue writes', () => {
   const { root, swFile } = freshVault({ masterOn: false });
   assert.throws(() => createEntry(root, swFile, T3_REQ, NOW), /SWITCH_MASTER/i);
 });
+
+test('flood cap (G-4): an 11th open entry from the same requester is refused with a receipt', () => {
+  const { root, swFile } = freshVault();
+  for (let i = 0; i < 10; i++) createEntry(root, swFile, { ...T3_REQ, target: `#ops · ${i}` }, NOW);
+  assert.throws(() => createEntry(root, swFile, { ...T3_REQ, target: '#ops · 11' }, NOW), /flood cap/i);
+  assert.ok(readReceipts(root, '2026-07-01').some((r) => /flood cap/i.test(r.outcome)));
+});
+
+test('flood cap is per-requester: a different requester is unaffected', () => {
+  const { root, swFile } = freshVault();
+  for (let i = 0; i < 10; i++) createEntry(root, swFile, { ...T3_REQ, target: `#ops · ${i}` }, NOW);
+  const other = createEntry(root, swFile, { ...T3_REQ, requester: 'hermes/other-runner', target: '#ops · other' }, NOW);
+  assert.equal(other.status, 'open');
+});
+
+test('flood cap frees a slot when an entry resolves', () => {
+  const { root, swFile } = freshVault();
+  const first = createEntry(root, swFile, { ...T3_REQ, target: '#ops · 0' }, NOW);
+  for (let i = 1; i < 10; i++) createEntry(root, swFile, { ...T3_REQ, target: `#ops · ${i}` }, NOW);
+  assert.throws(() => createEntry(root, swFile, { ...T3_REQ, target: '#ops · x' }, NOW), /flood cap/i); // at cap
+  transitionEntry(root, swFile, { id: first.id, to: 'denied', resolver: 'sean', channel: 'command-center', reason: 'noise', at: '2026-07-01T08:05:00-07:00' });
+  const admitted = createEntry(root, swFile, { ...T3_REQ, target: '#ops · admitted' }, '2026-07-01T08:06:00-07:00');
+  assert.equal(admitted.status, 'open'); // a resolved entry frees a slot
+});
