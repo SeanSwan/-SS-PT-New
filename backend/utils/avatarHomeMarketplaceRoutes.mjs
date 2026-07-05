@@ -75,12 +75,16 @@ export function registerAvatarHomeMarketplaceRoutes(router, { requireUnlockedHom
       await home.update(purchase.updates);
 
       logger.info(`[AUDIT] User ${req.user.id} purchased "${catalogItem.name}" for ${catalogItem.price} SwanCoins`);
-      res.json({ success: true, data: {
-        ...purchase.data,
-        swanCoins: purchase.data.balance,
-        currencyName: 'SwanCoins',
-        legacyField: 'crystalBalance',
-      } });
+      res.json({
+        success: true,
+        data: {
+          ...purchase.data,
+          swanCoins: purchase.data.swanCoins,
+          balance: purchase.data.balance,
+          currencyName: 'SwanCoins',
+          legacyField: 'crystalBalance',
+        },
+      });
     } catch (err) {
       logger.error('Marketplace purchase error:', err.message);
       res.status(500).json({ success: false, message: 'Purchase failed' });
