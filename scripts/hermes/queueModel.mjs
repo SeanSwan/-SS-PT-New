@@ -7,10 +7,11 @@
  *  §5 T4 approve → CROSS-CHANNEL arm within 10 min → HUMAN-executed ·
  *  §6 auto-revoke · §7 blanket-approval ban (there is no bulk operation here).
  *
- * Only registered T3/T4 rows queue (command-effect-registry.md §1/§3); the seed
- * set below mirrors the registry's queueable rows — slice 2's broker replaces
- * this constant with a real registry lookup. T2 never queues by doctrine.
- * Storage is append-only JSONL in the vault runs/queue lane; state is replay.
+ * Only registered T3/T4 rows queue (command-effect-registry.md §1/§3); the
+ * queueable / forbidden / T2 sets are READ FROM THE GENERATED REGISTRY (E1,
+ * finding G-1) — no hand-mirrored constants, so doc and runtime cannot drift.
+ * T2 never queues by doctrine. Storage is append-only JSONL in the vault
+ * runs/queue lane; state is replay.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,14 +19,15 @@ import {
   appendJsonl, checkSwitches, isoDateOf, nextSequencedId, readJsonl,
   redactText, vaultPaths, writeReceipt,
 } from './hermesRunsLib.mjs';
+import { loadRegistry, getQueueable, getForbidden, getT2Rows } from './registryLib.mjs';
 
-// Mirrors command-effect-registry.md §3 (T3/T4) + DENIED rows. Slice 2 swaps in a live lookup.
-export const QUEUEABLE = {
-  'discord-alert': { tier: 'T3', killSwitch: 'SWITCH_DISCORD_BROKER' },
-  'manual-maintenance': { tier: 'T4', killSwitch: 'SWITCH_MASTER' },
-};
-const FORBIDDEN = ['raw-shell', 'direct-sql', 'env-read', 'mass-client-message', 'unreviewed-model-proxy'];
-const T2_ROWS = ['memory-note', 'queue-approve', 'queue-deny', 'switch-flip'];
+// The command vocabulary is DATA (registry.generated.json, built from
+// command-effect-registry.md §3). Adding/retiring a queueable command, a
+// forbidden row, or a T2 row is a doc edit + `registry-build.mjs`, never a code edit.
+const REGISTRY = loadRegistry();
+export const QUEUEABLE = getQueueable(REGISTRY);   // T3/T4 rows → { name: { tier, killSwitch } }
+const FORBIDDEN = getForbidden(REGISTRY);          // DENIED rows — refuse by name
+const T2_ROWS = getT2Rows(REGISTRY);               // every T2 row (standing + proposed) — none queue
 const T3_APPROVAL_MS = 24 * 60 * 60 * 1000; // Q3 DECIDED 2026-07-04
 const T4_ARM_WINDOW_MS = 10 * 60 * 1000;    // Q3 DECIDED 2026-07-04
 const ALLOWLIST_ROW = 'allowlist: sean-only queue ops (bridge §7 standing T2 row; open-questions Q1 DECIDED 2026-07-04)';

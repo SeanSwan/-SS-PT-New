@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { loadRegistry, getSwitchInventory } from './registryLib.mjs';
 
 export const LANES = ['receipts', 'logs', 'queue', 'digests', 'archive'];
 const OUTCOMES = ['ok', 'failed', 'refused', 'partial'];
@@ -39,12 +40,10 @@ const LANE_INDEX = {
     'What belongs: gzip-compressed aged files moved by receipt-prune (90-day hot window), never deleted.\nWhat does not: hot files, anything uncompressed.\nWhere next: run-logs-and-self-improvement.md §3 for retention.',
 };
 
-// kill-switches.md §4 seed inventory — last-tested starts empty (slice 2 owns flips)
-const SWITCH_SEED = [
-  'SWITCH_MASTER', 'SWITCH_HEADLESS_RUNNER', 'SWITCH_TELEGRAM_BROKER',
-  'SWITCH_DISCORD_BROKER', 'SWITCH_BROWSER_HARNESS', 'SWITCH_HEALTH_SWEEP',
-  'SWITCH_MORNING_BRIEFING', 'SWITCH_STALE_CLIENT', 'SWITCH_RECEIPT_DIGEST',
-];
+// kill-switches.md §4 inventory — READ FROM THE GENERATED REGISTRY (E1, finding
+// G-1), never hand-mirrored. Doc order preserved; last-tested lives in the
+// switches file (slice 2 owns flips). Adding a switch is a doc edit + registry-build.
+const SWITCH_SEED = getSwitchInventory(loadRegistry());
 
 const SECRET_PATTERNS = [
   /\b(?:sk|rk|pk)_(?:live|test)_[0-9A-Za-z]{8,}\b/g,
