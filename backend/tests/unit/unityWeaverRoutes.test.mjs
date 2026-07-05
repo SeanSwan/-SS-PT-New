@@ -105,4 +105,14 @@ describe('Unity Weaver routes', () => {
     expect(response.body).toEqual({ success: false, message: 'Unknown prosocial event' });
     expect(mockAwardUnityWeaverProsocialXP).not.toHaveBeenCalled();
   });
+
+  it('rejects prototype event IDs before service calls', async () => {
+    const response = await request(buildApp())
+      .post('/api/social/unity-weaver/prosocial-events/award')
+      .send({ eventId: '__proto__' })
+      .expect(400);
+
+    expect(response.body).toEqual({ success: false, message: 'Unknown prosocial event' });
+    expect(mockAwardUnityWeaverProsocialXP).not.toHaveBeenCalled();
+  });
 });
