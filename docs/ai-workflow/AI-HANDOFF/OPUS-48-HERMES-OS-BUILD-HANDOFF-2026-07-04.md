@@ -286,3 +286,15 @@ This build runs as a **goal, not a task list**: the loop does not stop between s
 
 **READY-TO-PASTE LOOP PROMPT (Sean → Opus, verbatim):**
 > Read docs/ai-workflow/AI-HANDOFF/OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md end to end, then run its §11 recursive build loop starting at beat 1. Standing authorization per §11: auto-advance through unblocked E-slices and slices, tests-first, hostile review each slice, ship each beat; pause only at the HARD-PAUSE gates and tell me exactly what you need from me when you park one. Don't stop until the goal state or every remaining node is hard-paused.
+
+---
+
+## 12. Build progress log (loop beats — appended as each slice ships)
+
+- **E1 — registry-as-data + drift lock — SHIPPED** · 2026-07-04 · origin/main `389fbad85` (rebased over Codex's `cec1d21d6` Marketing Cockpit, no overlap) · closes **G-1**.
+  - NEW: `scripts/hermes/registryLib.mjs` (parser IS the validator — missing field / phantom kill-switch / duplicate name throws; generated-JSON loader; derived accessors `getQueueable`/`getForbidden`/`getT2Rows`/`getT2Standing`/`getSwitchInventory`) · `registry-build.mjs` (generate + `--check` semantic drift lock, CRLF-safe) · `registry.generated.json` (committed: 19 commands / 5 denied / 9 switches, parsed from `command-effect-registry.md` §3 + `kill-switches.md` §4) · `registry.test.mjs` (9 tests).
+  - REWIRED: `queueModel.mjs` (`QUEUEABLE`/`FORBIDDEN`/`T2_ROWS`) + `hermesRunsLib.mjs` (`SWITCH_SEED`) now read the generated data. **Zero hand-mirrored command constants remain** (source-locked in tests). `T2_ROWS` correctly gained the two proposed rows (`receipt-prune`, `vault-init`) — any T2 refuses to queue.
+  - Acceptance MET: blank any field in a doc row → parser throws; runtime has zero transcribed command constants. Drift now caught two ways: doc↔doc (a command naming a switch outside the inventory throws) and doc↔runtime (`registry-build --check` / drift test: fresh parse ≡ committed JSON).
+  - Verification: 48/48 hermes tests (9 new), rule-42 backend untouched, pre-commit secret scan CLEAN (6 files). Hostile self-review caught + fixed a CRLF-fragile byte-compare in `--check` (→ semantic compare; `autocrlf` is ON in these worktrees).
+  - Gate to close: **Codex hostile review** (REQ OPEN in `review-queue.md`). **2b note:** the Telegram broker's registered-command lookup should call the `registryLib` accessors, not re-transcribe the doc.
+  - **Next unblocked node: E2 (spine hardening — single-writer ids + hash chain + fsync/temp-rename durability; closes G-2/G-3/G-6).**
