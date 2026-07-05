@@ -263,6 +263,7 @@
 // backend/controllers/adminClientController.mjs
 import crypto from 'crypto';
 import { getAllModels } from '../models/index.mjs';
+import AdminAccountAuditLog from '../models/AdminAccountAuditLog.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -1201,10 +1202,46 @@ class AdminClientController {
         });
       }
 
+      // Money/lifecycle/permission fields carry an append-only forensics trail
+      // (billing mode, client source, account status, lock, plan-gen opt-in).
+      // Snapshot BEFORE client.update mutates the row (mirrors sessions.mjs:884).
+      const AUDITED_ACCOUNT_FIELDS = [
+        'sessionBillingMode', 'clientSource', 'accountStatus', 'isLocked', 'canGenerateWorkoutPlans',
+      ];
+      const auditPreviousState = {};
+      const auditNextState = {};
+      for (const field of AUDITED_ACCOUNT_FIELDS) {
+        if (safeUpdates[field] !== undefined && safeUpdates[field] !== client[field]) {
+          auditPreviousState[field] = client[field] ?? null;
+          auditNextState[field] = safeUpdates[field];
+        }
+      }
+
       // Update client data (whitelisted fields only)
       await client.update(safeUpdates, { transaction });
 
       // Retired bridge decommissioned; profile is already saved via client.update() above.
+
+      // Append-only money-path forensics: any sensitive account-control change
+      // (esp. paid <-> free billing) must be reconstructable later. Written INSIDE
+      // the transaction so a failed audit rolls back the change — no silent
+      // billing/account mutation without a record (fail-closed).
+      if (Object.keys(auditNextState).length > 0) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: client.id,
+          action: 'admin_client_account_update',
+          reason: (typeof updates.reason === 'string' && updates.reason.trim())
+            ? updates.reason.trim().slice(0, 500)
+            : `Admin updated ${Object.keys(auditNextState).join(', ')}`,
+          previousState: auditPreviousState,
+          nextState: auditNextState,
+          metadata: {
+            source: 'PUT /api/admin/clients/:clientId',
+            changedFields: Object.keys(auditNextState),
+          },
+        }, { transaction });
+      }
 
       await transaction.commit();
 
