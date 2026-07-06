@@ -414,7 +414,6 @@ import GamificationPointsService from '../services/gamification/GamificationPoin
 import { checkBadgesForGamificationEvent } from '../services/badgeGamificationBridge.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
-import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 import {
   buildRankTitleSelectionPayload,
   validateSelectedRankTitleKey,
@@ -2880,6 +2879,9 @@ const gamificationController = {
       pointTransaction = workoutLedgerResult.pointTransaction;
       updatedStats.points = workoutLedgerResult.newBalance ?? (user.points + baseWorkoutPoints);
 
+      // recordLedgerEntry is the single authority for level/tier (derived from lifetime XP).
+      // Track the latest ledger result so level/tier are NEVER re-derived from the spendable balance.
+      let latestLedger = workoutLedgerResult;
       if (earnedStreakBonus > 0) {
         const streakLedgerResult = await GamificationPointsService.recordLedgerEntry({
           userId: normalizedUserId,
@@ -2894,10 +2896,13 @@ const gamificationController = {
           maxPoints: Number.MAX_SAFE_INTEGER
         }, transaction);
         updatedStats.points = streakLedgerResult.newBalance ?? updatedStats.points;
+        latestLedger = streakLedgerResult;
       }
 
-      updatedStats.level = calculateLevel(updatedStats.points);
-      updatedStats.tier = getTier(updatedStats.level);
+      // Level/tier come from the ledger authority (lifetime XP), NOT the spendable balance,
+      // so a spend/redeem recorded elsewhere never retro-lowers the level on the next award.
+      updatedStats.level = latestLedger.newLevel ?? updatedStats.level;
+      updatedStats.tier = latestLedger.newTier ?? updatedStats.tier;
       
       // Update user stats
       await user.update(updatedStats, { transaction });

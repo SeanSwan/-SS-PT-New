@@ -23,7 +23,6 @@ import PointTransaction from '../models/PointTransaction.mjs';
 import GamificationPointsService from './gamification/GamificationPointsService.mjs';
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
-import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 import {
   buildWorkoutProgressStats,
   collectWorkoutMilestones,
@@ -161,6 +160,9 @@ export async function awardWorkoutXP({
 
   updatedStats.points = workoutLedgerResult.newBalance ?? (user.points + workoutPointsOnly);
 
+  // recordLedgerEntry is the single authority for level/tier (derived from lifetime XP).
+  // Track the latest ledger result so level/tier are NEVER re-derived from the spendable balance.
+  let latestLedger = workoutLedgerResult;
   if (updatedStats.streakDays % 7 === 0 && settings?.pointsPerStreak) {
     const streakBonus = settings.pointsPerStreak;
     const streakLedgerResult = await GamificationPointsService.recordLedgerEntry({
@@ -176,11 +178,14 @@ export async function awardWorkoutXP({
       maxPoints: Number.MAX_SAFE_INTEGER,
     }, transaction);
     updatedStats.points = streakLedgerResult.newBalance ?? (updatedStats.points + streakBonus);
+    latestLedger = streakLedgerResult;
   }
 
   // ── Update user stats ──────────────────────────────────────────────
-  updatedStats.level = calculateLevel(updatedStats.points);
-  updatedStats.tier = getTier(updatedStats.level);
+  // Level/tier come from the ledger authority (lifetime XP), NOT the spendable balance,
+  // so a spend/redeem recorded elsewhere never retro-lowers the level on the next award.
+  updatedStats.level = latestLedger.newLevel ?? updatedStats.level;
+  updatedStats.tier = latestLedger.newTier ?? updatedStats.tier;
 
   await user.update(updatedStats, { transaction });
 
@@ -209,8 +214,9 @@ export async function awardWorkoutXP({
     }, transaction);
 
     const finalBalance = milestoneLedgerResult.newBalance ?? (updatedStats.points + totalMilestoneBonus);
-    const finalLevel = calculateLevel(finalBalance);
-    const finalTier = getTier(finalLevel);
+    // Level/tier from the ledger authority (lifetime XP), not the spendable balance.
+    const finalLevel = milestoneLedgerResult.newLevel ?? updatedStats.level;
+    const finalTier = milestoneLedgerResult.newTier ?? updatedStats.tier;
 
     await user.update({
       points: finalBalance,
