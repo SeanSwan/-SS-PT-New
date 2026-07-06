@@ -87,16 +87,18 @@ While this audit ran against baseline `87680741e`, the parallel Fable vision-arc
 
 ---
 
-## 4. Sean Decision Queue (pricing/product calls the audit cannot make)
+## 4. Sean Decision Queue — ✅ ALL SIX LOCKED BY SEAN 2026-07-06 (build against these; do not re-litigate)
 
-| # | Decision | Tension | Doc |
+| # | Decision | SEAN'S CALL (2026-07-06) | Doc |
 |---|---|---|---|
-| D1 | Un-gate NBA rungs 1-3 (log_first_workout / return_after_gap / streak_at_risk) for free tier? | Activation guidance vs `analytics.advanced` paywall — free trainees currently get ZERO engine guidance in their critical first 7 days | 06, 01 |
-| D2 | Starter proof-teaser (2 free charts + de-scoped compass)? | First visible progress proof ≤7 days (strategy gate) vs Guardian chart paywall — today a Starter's first workout earns a lock overlay | 02, 07 |
-| D3 | Free client↔assigned-trainer DMs? | "First coach interaction ≤7 days" vs Crystalline messaging gate (`tierCatalog.mjs:179`) | 05, 07 |
-| D4 | Converge the two homes (user + client) into one composition? | Feature-fork today: ticker/enrichment/streak-rescue vs assignment-card/chart-cube/next-session — each home lacks the other's best half | 01 |
-| D5 | Admin default landing: keep /master-schedule or flip to /overview (where the proof-of-value intel lives)? Or exceptions ribbon on master-schedule? | 08 | |
-| D6 | Consent model for celebration shares (client opt-in flag) — also fixes auto-post public-by-default | Trust posture | 04, 08 |
+| D1 | Free-tier NBA guidance | **Un-gate rungs 1-3 ONLY** (log_first_workout / return_after_gap / streak_at_risk). Rich analytics rungs + full pulse stay paid. | 06, 01 |
+| D2 | Starter progress proof | **2 teaser charts (workout-frequency + weekly-volume) + de-scoped compass** via a new `analytics.teaser` feature key. Other 10 charts + full compass stay Guardian — the teaser IS the upsell. | 02, 07 |
+| D3 | Client↔coach messaging | **Free DMs with the ASSIGNED trainer only.** General member-to-member messaging stays Crystalline. | 05, 07 |
+| D4 | Two homes | **Converge to ONE role-framed home composition** — schedule as its own arc AFTER the current activation wave; do not start it as a side effect of another slice. | 01 |
+| D5 | Admin landing | **Keep /master-schedule as landing; add the exceptions ribbon there** (at-risk count · new-client-stalled · celebrations-pending, each 1 tap into the full view). Do NOT flip defaultPath. | 08 |
+| D6 | Celebration consent | **Auto-posts stay PUBLIC by default** (opt-out toggle shipped 5eb96a41b); **staff-initiated celebration shares require a one-time per-client consent flag** before any client-specific content hits the feed. | 04, 08 |
+
+Implementation sequencing notes: D1 touches the NBA route family (active fable-arc lane — coordinate via Rule 67); D2 changes `requireTier` feature map + Ascension copy in the same slice; D3 edits `tierCatalog` messaging gate + needs the messaging-notification bridge (doc 05 P1) to be worth it; D6's consent flag co-designs with the staff celebration pipeline (doc 08 P1).
 
 ---
 
