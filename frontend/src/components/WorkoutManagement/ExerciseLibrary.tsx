@@ -753,7 +753,9 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       const response = await getWorkoutRecommendations({
         userId: 'admin-library', // Special ID for admin library view
         goal: filters.goal,
-        limit: 50
+        // 2.3-prep data-truth fix: 50 silently hid ~790 of the 840-exercise
+        // library from this picker (useWorkoutMcp slices to params.limit).
+        limit: 1000
       });
 
       if (response?.exercises && response.exercises.length > 0) {
