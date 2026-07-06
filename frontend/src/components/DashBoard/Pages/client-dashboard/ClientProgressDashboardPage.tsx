@@ -226,21 +226,12 @@ const ClientProgressDashboardPage: React.FC = () => {
           </CardTitle>
         </ChartsSectionHeader>
         {user?.id ? (
-          hasAdvancedAccess ? (
-            <Suspense fallback={<ChartsLoading>Loading charts...</ChartsLoading>}>
-              <CanonicalProgressChartsGrid />
-            </Suspense>
-          ) : (
-            <CrystallineLockOverlay
-              isLocked
-              featureName="Swan Guardian Analytics"
-              description="Unlock the canonical 12-chart progress cockpit, trend insights, PR timelines, recovery signals, and advanced analytics."
-              badgeLabel="Swan Guardian Required"
-              ariaLabel="Swan Guardian Analytics requires Swan Guardian or an active premium trial"
-            >
-              <ChartsLoading>Advanced progress analytics preview locked.</ChartsLoading>
-            </CrystallineLockOverlay>
-          )
+          /* D2 (Sean lock 2026-07-06): the grid is always mounted — Starter
+             sees the two live teaser charts and per-chart Guardian upsell
+             cards (server 402 truth); the teaser IS the upsell. */
+          <Suspense fallback={<ChartsLoading>Loading charts...</ChartsLoading>}>
+            <CanonicalProgressChartsGrid />
+          </Suspense>
         ) : (
           <Skeleton $h="300px" />
         )}

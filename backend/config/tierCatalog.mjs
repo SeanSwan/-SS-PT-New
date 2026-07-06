@@ -78,6 +78,7 @@ export const TIER_DEFINITIONS = {
       'Social feed & community',
       'Gamification (XP, levels, badges, streaks)',
       'Basic progress summaries and workout stats',
+      '2 progress teaser charts (workout frequency + weekly volume)',
       'BMI calculator',
       'Pain & injury body map',
       'Session booking',
@@ -167,6 +168,9 @@ export const FEATURE_GATES = {
   'calculator.bmi':       'free',
   'pain.bodymap':         'free',
   'booking.sessions':     'free',
+  // D2 (Sean lock 2026-07-06): Starter teaser — workout-frequency +
+  // weekly-volume charts only; the other 10 + full compass stay pro.
+  'analytics.teaser':     'free',
 
   // Guardian tier (pro)
   'calculator.all':       'pro',
@@ -207,6 +211,7 @@ export const FEATURE_LABELS = {
   'social.feed':          'Social Feed',
   'gamification.basic':   'Gamification',
   'charts.basic':         'Progress Charts',
+  'analytics.teaser':     'Progress Teaser Charts',
   'calculator.bmi':       'BMI Calculator',
   'pain.bodymap':         'Pain & Injury Map',
   'booking.sessions':     'Session Booking',

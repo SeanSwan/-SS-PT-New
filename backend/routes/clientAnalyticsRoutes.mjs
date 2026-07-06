@@ -59,6 +59,9 @@ import { requireFeature } from '../middleware/requireTier.mjs';
 
 const router = express.Router();
 const requireGuardianAnalytics = requireFeature('analytics.advanced');
+// D2 (Sean lock 2026-07-06): the teaser pair is Starter-visible; the key
+// exists for the named contract + source locks (tier 'free' never 402s).
+const requireTeaserAnalytics = requireFeature('analytics.teaser');
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Authentication gate
@@ -167,13 +170,13 @@ router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);
 router.get('/workout-week', requireGuardianAnalytics, getWorkoutWeekHandler);
 
 /** @route GET /api/client/analytics/chart-workout-frequency    (Phase 14 #1) */
-router.get('/chart-workout-frequency', requireGuardianAnalytics, getWorkoutFrequencyChart);
+router.get('/chart-workout-frequency', requireTeaserAnalytics, getWorkoutFrequencyChart);
 
 /** @route GET /api/client/analytics/chart-attendance-reliability (Phase 14 #2) */
 router.get('/chart-attendance-reliability', requireGuardianAnalytics, getAttendanceReliabilityChart);
 
 /** @route GET /api/client/analytics/chart-weekly-volume          (Phase 14 #3) */
-router.get('/chart-weekly-volume', requireGuardianAnalytics, getWeeklyVolumeChart);
+router.get('/chart-weekly-volume', requireTeaserAnalytics, getWeeklyVolumeChart);
 
 /** @route GET /api/client/analytics/chart-sets-reps-trend        (Phase 14 #4) */
 router.get('/chart-sets-reps-trend', requireGuardianAnalytics, getSetsRepsTrendChart);
