@@ -243,7 +243,14 @@ export class GamificationPointsService {
         throw error;
       }
       const newBalance = this.calculateBalance(currentBalance, pointsToRecord, transactionType);
-      const newLevel = calculateLevel(Math.max(newBalance, 0));
+      // Level/rank are driven by LIFETIME earned points, never the spendable balance, so
+      // spending/redeeming/expiring never lowers a user's level or rank (AI Village 2026-07-04).
+      // The user row is locked (LOCK.UPDATE) above, so read-then-write of lifetimePointsEarned
+      // is race-safe per user — no SUM query, no insert-ordering hazard.
+      const lifetimeDelta = isSpendLike ? 0 : pointsToRecord;
+      const currentLifetime = normalizeBalance(user.lifetimePointsEarned);
+      const newLifetime = currentLifetime + lifetimeDelta;
+      const newLevel = calculateLevel(newLifetime);
       const newTier = getTier(newLevel);
       const ledgerMetadata = withIdempotencyMetadata(metadata, normalizedKey);
       const previousLevel = user.level;
@@ -263,6 +270,7 @@ export class GamificationPointsService {
       }, { transaction });
 
       const userUpdates = { points: newBalance };
+      if (lifetimeDelta > 0) userUpdates.lifetimePointsEarned = newLifetime;
       if (newLevel !== previousLevel) userUpdates.level = newLevel;
       if (newTier !== previousTier) userUpdates.tier = newTier;
       await user.update(userUpdates, { transaction });
@@ -272,6 +280,7 @@ export class GamificationPointsService {
         duplicate: false,
         pointsAwarded: pointsToRecord,
         newBalance,
+        newLifetime,
         newLevel,
         newTier,
         previousLevel,
