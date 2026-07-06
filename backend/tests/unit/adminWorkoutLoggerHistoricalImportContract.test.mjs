@@ -20,9 +20,10 @@ describe('admin workout logger historical import contract', () => {
     expect(CONTROLLER).not.toMatch(/source\s*!==\s*['"]plaud_merge['"][\s\S]{0,120}suppressEngagementSideEffects/);
   });
 
-  it('passes the historical import flag into the shared workout write service', () => {
+  it('threads the raw source into the unified adapter, which derives suppression via the shared policy (Phase 1.1a)', () => {
     expect(CONTROLLER).toMatch(/const isHistoricalImport\s*=\s*isHistoricalWorkoutLogSource\(source\)/);
-    expect(CONTROLLER).toMatch(/logWorkoutForClient\(\{[\s\S]{0,420}suppressEngagementSideEffects:\s*isHistoricalImport/);
-    expect(CONTROLLER).toMatch(/historicalImport:\s*isHistoricalImport/);
+    expect(CONTROLLER).toMatch(/submitAiWorkoutLogAsDailyForm\(\{[\s\S]{0,500}source,/);
+    expect(CONTROLLER).not.toMatch(/logWorkoutForClient\(/);
+    expect(CONTROLLER).toMatch(/historicalImport:\s*serviceResult\.historicalImport\s*\?\?\s*isHistoricalImport/);
   });
 });

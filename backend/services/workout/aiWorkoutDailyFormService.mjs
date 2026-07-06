@@ -12,11 +12,13 @@ import { randomUUID } from 'node:crypto';
 import { getAllModels } from '../../models/index.mjs';
 import {
   buildWorkoutSessionBillingDecision,
+  buildWorkoutBillingSummary,
   normalizePaidSessionCount,
 } from '../sessionBillingPolicy.mjs';
 import {
   AiWorkoutDailyFormError,
   buildWorkoutRows,
+  ensureWorkoutModels,
   normalizeAiExercises,
   normalizeIntensity,
   normalizeText,
@@ -24,6 +26,7 @@ import {
   parsePositiveInteger,
   toIsoDateOnly,
 } from './aiWorkoutDailyFormPayloadService.mjs';
+import { runWorkoutXpAwardStep } from './workoutXpAwardStep.mjs';
 import {
   advanceAiPlannedAssignmentAfterLog,
   isAiNonBillablePlannedAssignment,
@@ -39,15 +42,6 @@ import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
 import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
-
-function ensureWorkoutModels(models) {
-  const missing = ['User', 'DailyWorkoutForm', 'WorkoutSession', 'WorkoutLog']
-    .filter((name) => !models?.[name]);
-  if (missing.length > 0) throw new AiWorkoutDailyFormError(
-    `Missing workout persistence model: ${missing.join(', ')}`,
-    'WORKOUT_APPLY_FAILED',
-  );
-}
 
 export async function submitAiWorkoutLogAsDailyForm({
   clientId,
@@ -234,28 +228,28 @@ export async function submitAiWorkoutLogAsDailyForm({
       transaction,
     });
 
-    const billingStatus = billingDecision.sessionDeducted
-      ? (billingDecision.creditsToDeduct > 0 ? 'deducted' : 'previously_deducted')
-      : 'not_deducted';
-    const billingCreditsRequired = sourcePolicy.suppressPaidSessionDeduction
-      ? 0
-      : billingDecision.creditsToDeduct > 0
-        ? billingDecision.creditsToDeduct
-        : billingDecision.sessionDeducted
-          ? normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired)
-          : 0;
-    const billing = {
-      status: billingStatus,
-      shouldDeduct: billingDecision.shouldDeduct,
-      sessionDeducted: billingDecision.sessionDeducted,
-      creditsDeducted: billingDecision.creditsToDeduct,
-      creditsRequired: billingCreditsRequired,
-      remainingSessions: Math.max(0, availableSessionsBeforeSave - billingDecision.creditsToDeduct),
-    };
+    const billing = buildWorkoutBillingSummary({
+      billingDecision,
+      sourcePolicy,
+      scheduledCreditsRequired,
+      availableSessionsBeforeSave,
+    });
     await transaction.commit();
     const challengeProgress = await applyAiWorkoutChallengeProgress({
       sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
       workoutDateIso, estimatedDuration, exercises: normalizedExercises,
+    });
+    // Phase 1.1a: every unified-lane write feeds streaks/levels identically.
+    const xp = await runWorkoutXpAwardStep({
+      sequelize,
+      userId: parsedClientId,
+      workoutId: dailyForm.id,
+      sessionId: workoutSession.id,
+      duration: estimatedDuration,
+      exercisesCompleted: normalizedExercises.length,
+      workoutDate,
+      awardedBy: parsedTrainerId,
+      suppress: sourcePolicy.suppressEngagementSideEffects,
     });
 
     return {
@@ -272,9 +266,9 @@ export async function submitAiWorkoutLogAsDailyForm({
       totalSets,
       totalReps,
       totalWeight,
-      xpAwarded: null,
-      streakDays: null,
-      xp: null,
+      xpAwarded: xp?.pointsAwarded ?? null,
+      streakDays: xp?.streakDays ?? null,
+      xp,
       source: sourcePolicy.source,
       historicalImport: sourcePolicy.isHistoricalImport,
       billing,

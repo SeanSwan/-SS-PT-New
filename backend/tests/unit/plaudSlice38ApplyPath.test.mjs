@@ -56,7 +56,8 @@ describe('Slice 3.8 — adminWorkoutLogger apply path augmentation', () => {
     expect(SRC).toMatch(/cipher_purged_at\s*=\s*NOW\(\)/);
   });
 
-  it('approval invariant failure rolls back workout logs and canonical workout session', () => {
+  it('approval invariant failure rolls back the diary form, workout logs, and canonical workout session', () => {
+    expect(SRC).toMatch(/DELETE\s+FROM\s+daily_workout_forms\s+WHERE\s+id\s*=\s*:formId/);
     expect(SRC).toMatch(/DELETE\s+FROM\s+workout_logs\s+WHERE\s+"sessionId"\s*=\s*:sessionId/);
     expect(SRC).toMatch(/DELETE\s+FROM\s+workout_sessions\s+WHERE\s+id\s*=\s*:sessionId/);
     expect(SRC).not.toMatch(/DELETE\s+FROM\s+"WorkoutSessions"/);
@@ -67,8 +68,9 @@ describe('Slice 3.8 — adminWorkoutLogger apply path augmentation', () => {
     expect(SRC).toMatch(/MERGE_NOT_APPROVABLE/);
   });
 
-  it('non-PLAUD apply path is unchanged (existing logWorkoutForClient still called)', () => {
-    expect(SRC).toMatch(/logWorkoutForClient/);
+  it('non-PLAUD apply path writes through the unified canonical adapter (Phase 1.1a)', () => {
+    expect(SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(SRC).not.toMatch(/logWorkoutForClient\(/);
     // The new code wraps in a `if (isPlaudMergeApply)` block - non-PLAUD
     // requests skip the markApproved logic entirely
     expect(SRC).toMatch(/isPlaudMergeApply/);

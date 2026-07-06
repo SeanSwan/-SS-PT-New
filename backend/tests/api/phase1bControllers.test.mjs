@@ -332,10 +332,12 @@ describe('adminWorkoutLoggerController input validation', () => {
       path.resolve(__dirname, '../../controllers/adminWorkoutLoggerController.mjs'),
       'utf8'
     );
+    const catchAnchor = '(err instanceof AiWorkoutDailyFormError || err instanceof WorkoutLogError)';
     const catchBlock = source.slice(
-      source.indexOf('if (err instanceof WorkoutLogError)'),
-      source.indexOf('throw err;', source.indexOf('if (err instanceof WorkoutLogError)'))
+      source.indexOf(catchAnchor),
+      source.indexOf('throw err;', source.indexOf(catchAnchor))
     );
+    expect(source.indexOf(catchAnchor)).toBeGreaterThan(-1);
 
     expect(source).toContain("DUPLICATE_DATE: 'A workout session already exists for this client on this date.'");
     expect(source).toContain("VALIDATION_ERROR: 'Workout log data is invalid. Check the workout details and try again.'");

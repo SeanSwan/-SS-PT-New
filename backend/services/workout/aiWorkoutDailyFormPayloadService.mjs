@@ -152,3 +152,19 @@ export function buildWorkoutRows(exercises, sessionId) {
     exerciseNote: exercise.exerciseNote,
   })));
 }
+
+/**
+ * Guard: the unified write adapter needs these models registered before it
+ * can persist the canonical footprint (moved from aiWorkoutDailyFormService
+ * in Phase 1.1a for the 300-line cap).
+ */
+export function ensureWorkoutModels(models) {
+  const missing = ['User', 'DailyWorkoutForm', 'WorkoutSession', 'WorkoutLog']
+    .filter((name) => !models?.[name]);
+  if (missing.length > 0) {
+    throw new AiWorkoutDailyFormError(
+      `Missing workout persistence model: ${missing.join(', ')}`,
+      'WORKOUT_APPLY_FAILED',
+    );
+  }
+}

@@ -40,4 +40,15 @@ describe('workoutLogSourcePolicy', () => {
     expect(isHistoricalWorkoutLogSource('move_fitness_historical_import')).toBe(true);
     expect(isHistoricalWorkoutLogSource('live')).toBe(false);
   });
+
+  it('classifies PLAUD merges: billing suppressed (Sean owns the flip), data-truth side effects active', () => {
+    for (const alias of ['plaud_merge', 'plaud_merge_segment', 'plaud', 'PLAUD MERGE']) {
+      const policy = deriveWorkoutLogSourcePolicy(alias);
+      expect(policy.source).toBe('plaud_merge');
+      expect(policy.isHistoricalImport).toBe(false);
+      expect(policy.suppressPaidSessionDeduction).toBe(true);
+      expect(policy.suppressPlanAdvancement).toBe(false);
+      expect(policy.suppressEngagementSideEffects).toBe(false);
+    }
+  });
 });

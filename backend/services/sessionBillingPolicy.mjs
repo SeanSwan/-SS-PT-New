@@ -198,3 +198,33 @@ export function buildWorkoutSessionBillingDecision(client, options = {}) {
     message: 'Workout logged successfully and session deducted',
   };
 }
+/**
+ * Build the billing summary block returned by the unified workout write
+ * adapter (Phase 1.1a). Pure function over the billing decision + source
+ * policy so route/controller responses stay drift-free.
+ */
+export function buildWorkoutBillingSummary({
+  billingDecision,
+  sourcePolicy,
+  scheduledCreditsRequired,
+  availableSessionsBeforeSave,
+}) {
+  const billingStatus = billingDecision.sessionDeducted
+    ? (billingDecision.creditsToDeduct > 0 ? 'deducted' : 'previously_deducted')
+    : 'not_deducted';
+  const creditsRequired = sourcePolicy.suppressPaidSessionDeduction
+    ? 0
+    : billingDecision.creditsToDeduct > 0
+      ? billingDecision.creditsToDeduct
+      : billingDecision.sessionDeducted
+        ? normalizePaidSessionCount(scheduledCreditsRequired === undefined ? 1 : scheduledCreditsRequired)
+        : 0;
+  return {
+    status: billingStatus,
+    shouldDeduct: billingDecision.shouldDeduct,
+    sessionDeducted: billingDecision.sessionDeducted,
+    creditsDeducted: billingDecision.creditsToDeduct,
+    creditsRequired,
+    remainingSessions: Math.max(0, availableSessionsBeforeSave - billingDecision.creditsToDeduct),
+  };
+}

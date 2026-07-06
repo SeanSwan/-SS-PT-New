@@ -243,6 +243,12 @@ function buildLogRows(exercises, sessionId) {
  *
  * @throws {WorkoutLogError} code='VALIDATION_ERROR' | 'DUPLICATE_DATE'
  */
+/**
+ * @deprecated Phase 1.1a (Fable Vision arc): the admin HTTP route now writes
+ * through submitAiWorkoutLogAsDailyForm (full canonical footprint). This
+ * function remains only for its unit-test coverage and is slated for
+ * retirement in slice 1.1b. Do NOT add new callers.
+ */
 export async function logWorkoutForClient({
   clientId,
   exercises,

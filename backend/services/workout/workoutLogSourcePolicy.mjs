@@ -10,6 +10,7 @@ export const WORKOUT_LOG_SOURCES = Object.freeze({
   HISTORICAL_IMPORT: 'historical_import',
   MOVE_FITNESS_HISTORICAL_IMPORT: 'move_fitness_historical_import',
   AI_GENERATED_BACKFILL: 'ai_generated_backfill',
+  PLAUD_MERGE: 'plaud_merge',
 });
 
 export const HISTORICAL_WORKOUT_LOG_SOURCES = new Set([
@@ -32,6 +33,9 @@ const SOURCE_ALIASES = new Map([
   ['move_fitness_history', WORKOUT_LOG_SOURCES.MOVE_FITNESS_HISTORICAL_IMPORT],
   ['move_fitness_historical_import', WORKOUT_LOG_SOURCES.MOVE_FITNESS_HISTORICAL_IMPORT],
   ['movefitness_historical_import', WORKOUT_LOG_SOURCES.MOVE_FITNESS_HISTORICAL_IMPORT],
+  ['plaud_merge', WORKOUT_LOG_SOURCES.PLAUD_MERGE],
+  ['plaud_merge_segment', WORKOUT_LOG_SOURCES.PLAUD_MERGE],
+  ['plaud', WORKOUT_LOG_SOURCES.PLAUD_MERGE],
 ]);
 
 export function normalizeWorkoutLogSource(source) {
@@ -47,11 +51,17 @@ export function isHistoricalWorkoutLogSource(source) {
 export function deriveWorkoutLogSourcePolicy(source) {
   const normalizedSource = normalizeWorkoutLogSource(source);
   const isHistorical = HISTORICAL_WORKOUT_LOG_SOURCES.has(normalizedSource);
+  const isPlaudMerge = normalizedSource === WORKOUT_LOG_SOURCES.PLAUD_MERGE;
 
   return {
     source: normalizedSource,
     isHistoricalImport: isHistorical,
-    suppressPaidSessionDeduction: isHistorical,
+    // PLAUD applies keep their pre-unification no-billing behavior (Phase
+    // 1.1a, Fable Vision arc). Whether a live PLAUD-applied session should
+    // deduct a paid credit is Sean's classification call — flipping this
+    // one flag activates billing on that lane. Data-truth side effects
+    // (diary form, XP, plan advance, challenges) stay ON for PLAUD.
+    suppressPaidSessionDeduction: isHistorical || isPlaudMerge,
     suppressPlanAdvancement: isHistorical,
     suppressEngagementSideEffects: isHistorical,
   };
