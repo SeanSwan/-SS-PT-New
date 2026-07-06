@@ -2,7 +2,8 @@
  * FILE: MessagingView.tsx
  * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
@@ -16,6 +17,9 @@ import type { CreateConversationRequest } from './MessagingTypes';
 
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const composeTo = searchParams.get('composeTo');
+
 
   const reduxUser = useSelector((state: any) => state.auth?.user || state.user?.user);
   const { user: authUser } = useAuth();
@@ -49,6 +53,21 @@ const MessagingView: React.FC = () => {
     dismissError,
     pendingMessages,
   } = useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading });
+
+
+  // Auto-start or switch to conversation if ?composeTo= is in the URL
+  useEffect(() => {
+    if (composeTo && messagingEnabled && currentUserId && !loading) {
+      const targetId = parseInt(composeTo, 10);
+      if (targetId && targetId !== currentUserId) {
+        createConversation(targetId).catch(() => {});
+      }
+      setSearchParams(params => {
+        params.delete('composeTo');
+        return params;
+      }, { replace: true });
+    }
+  }, [composeTo, messagingEnabled, currentUserId, loading, createConversation, setSearchParams]);
 
   const activeConversation = useMemo(
     () => conversations.find(c => String(c.id) === String(activeConversationId)) || null,

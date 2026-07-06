@@ -74,12 +74,12 @@ describe('ClientComplianceDashboard intervention actions', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?clientId=44');
   });
 
-  it("'Send check-in' routes to the admin messages surface", async () => {
+  it("'Send check-in' routes to the admin messages surface with composeTo param", async () => {
     mockAuthAxios.get.mockResolvedValueOnce(ONE_CLIENT);
     render(<ClientComplianceDashboard />);
     await waitFor(() => expect(screen.getByText('Live Client')).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole('button', { name: /send check-in to live client/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/messages');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/messages?composeTo=44');
   });
 });

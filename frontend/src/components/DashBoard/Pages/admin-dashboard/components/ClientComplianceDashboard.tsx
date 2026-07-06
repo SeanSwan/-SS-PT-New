@@ -121,8 +121,8 @@ const ClientComplianceDashboard: React.FC = () => {
     if (route) navigate(route);
   }, [navigate]);
 
-  const openCheckInCompose = useCallback(() => {
-    navigate(ADMIN_MESSAGES_ROUTE);
+  const openCheckInCompose = useCallback((clientId: number) => {
+    navigate(`${ADMIN_MESSAGES_ROUTE}?composeTo=${clientId}`);
   }, [navigate]);
 
   const filtered = filter === 'all' ? clients : clients.filter(c => c.riskLevel === filter);
@@ -230,7 +230,7 @@ const ClientComplianceDashboard: React.FC = () => {
                     <SessionBadge><TrendingDown size={12} /> {client.sessionsRemaining} left</SessionBadge>
                   )}
                   <ActionBtns>
-                    <SmallBtn type="button" onClick={openCheckInCompose} aria-label={`Send check-in to ${client.firstName} ${client.lastName}`}><Send size={14} /></SmallBtn>
+                    <SmallBtn type="button" onClick={() => openCheckInCompose(client.id)} aria-label={`Send check-in to ${client.firstName} ${client.lastName}`}><Send size={14} /></SmallBtn>
                     <SmallBtn type="button" onClick={() => openClientProfile(client.id)} aria-label={`View ${client.firstName} ${client.lastName} profile`}><Eye size={14} /></SmallBtn>
                   </ActionBtns>
                 </Actions>
