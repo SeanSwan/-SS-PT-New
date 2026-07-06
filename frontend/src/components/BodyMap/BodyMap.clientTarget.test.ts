@@ -8,8 +8,8 @@ describe('BodyMap client target selection', () => {
   it('does not fall back to a trainer/admin account id for client pain-entry reads', () => {
     expect(source).toContain("import GlobalClientContext from '../../context/GlobalClientContext'");
     expect(source).not.toContain('const userId = userIdProp ?? user?.id;');
-    expect(source).toContain('const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some(');
-    expect(source).toContain('const staffTargetClientId = userIdProp ?? verifiedActiveClientId;');
+    expect(source).toContain('const verifiedActiveClient = globalClient?.activeClient && globalClient.clientList.some(');
+    expect(source).toContain('const staffTargetClientId = userIdProp ?? verifiedActiveClient?.id;');
     expect(source).toContain('const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;');
     expect(source).toContain('if (!entryService || !userId) {');
     expect(source).toContain('Select a client to view pain and injury entries.');
@@ -19,5 +19,13 @@ describe('BodyMap client target selection', () => {
     expect(source).toContain('const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;');
     expect(source).toContain('profilePhotoUrl={profilePhotoUrl}');
     expect(source).toContain('<BodyMapEvidenceSection');
+  });
+
+  it('keeps standalone staff Pain Charts editable through an explicit target selector', () => {
+    expect(source).toContain("import BodyMapClientTargetSelector from './BodyMapClientTargetSelector';");
+    expect(source).toContain('const showStaffClientSelector = isTrainerOrAdmin && !userIdProp;');
+    expect(source).toContain('<BodyMapClientTargetSelector');
+    expect(source).toContain("setTargetNotice('Select a client before adding pain details.');");
+    expect(source).toContain('setPanelOpen(true);');
   });
 });
