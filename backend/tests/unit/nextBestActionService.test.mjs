@@ -174,4 +174,123 @@ describe('getNextBestAction (DB-backed) + controller embedding', () => {
     expect(body.data.nextBestAction.primary.code).toBe('log_first_workout');
     expect(body.data.nextBestAction.secondary.length).toBeLessThanOrEqual(2);
   });
+
+});
+
+describe('Phase 1.5a — coach-guided context rungs', () => {
+  const ctx = (over = {}) => ({
+    plan: null, pain: null, nextSession: null, credits: null,
+    hasTrainer: false, recentDays: [], ...over,
+  });
+  const planToday = {
+    isLoggable: true, dayLabel: 'Lower Body Strength', title: 'Week 4 Day 2',
+    exerciseCount: 5, firstExerciseName: 'Goblet Squat',
+  };
+
+  it('rest_day fires on 3 consecutive trained days incl. today and outranks streak_at_risk', () => {
+    const pulse = basePulse({
+      streak: { currentWeekPending: true, daysThisWeek: 1, weekTarget: 3, weeklyCurrent: 2 },
+      lastWorkout: { date: '2026-07-03', daysAgo: 0 },
+    });
+    const recentDays = ['2026-07-03', '2026-07-02', '2026-07-01'];
+    const { primary } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({ recentDays }));
+    expect(primary.code).toBe('rest_day');
+    expect(primary.cta).toBeNull();
+  });
+
+  it('rest_day fires on severe active pain (>=7) with comfort framing', () => {
+    const pulse = basePulse();
+    const { primary, constraints } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({
+      pain: { activeCount: 2, maxLevel: 8, regions: ['lower_back', 'left_knee'] },
+    }));
+    expect(primary.code).toBe('rest_day');
+    expect(constraints).not.toBeNull();
+    expect(constraints.regions).toEqual(['lower_back', 'left_knee']);
+    expect(constraints.note).toMatch(/comfortable ranges/i);
+  });
+
+  it('rest_day does NOT fire from consecutive days when today is untrained', () => {
+    const pulse = basePulse();
+    const recentDays = ['2026-07-02', '2026-07-01', '2026-06-30'];
+    const { primary } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({ recentDays }));
+    expect(primary.code).not.toBe('rest_day');
+  });
+
+  it('plan_next wins over adaptive balance/variety/volume rungs (coach-guided default)', () => {
+    const pulse = basePulse({
+      pushPull: { label: 'push_heavy', ratio: 3 },
+      variety: { score: 20, patternsCovered: 2 },
+      lastWorkout: { date: '2026-07-02', daysAgo: 1 },
+    });
+    const { primary, secondary } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({ plan: planToday }));
+    expect(primary.code).toBe('plan_next');
+    expect(primary.title).toContain('Lower Body Strength');
+    expect(primary.message).toContain('Goblet Squat + 4 more');
+    expect(secondary.map((a) => a.code)).toContain('balance_pull');
+  });
+
+  it('plan_next loses to return_after_gap and rest_day', () => {
+    const gapPulse = basePulse({ lastWorkout: { date: '2026-06-20', daysAgo: 13 } });
+    const gap = computeNextBestAction(gapPulse, { now: FRIDAY }, ctx({ plan: planToday }));
+    expect(gap.primary.code).toBe('return_after_gap');
+
+    const restPulse = basePulse({ lastWorkout: { date: '2026-07-03', daysAgo: 0 } });
+    const rest = computeNextBestAction(restPulse, { now: FRIDAY }, ctx({
+      plan: planToday, recentDays: ['2026-07-03', '2026-07-02', '2026-07-01'],
+    }));
+    expect(rest.primary.code).toBe('rest_day');
+  });
+
+  it('plan_next is skipped when today is already trained', () => {
+    const pulse = basePulse({ lastWorkout: { date: '2026-07-03', daysAgo: 0 } });
+    const { primary } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({ plan: planToday }));
+    expect(primary.code).not.toBe('plan_next');
+  });
+
+  it('credit_nudge appears secondary-only for client role with low balance and a trainer', () => {
+    const pulse = basePulse();
+    const low = ctx({ credits: { availableSessions: 1 }, hasTrainer: true });
+    const client = computeNextBestAction(pulse, { now: FRIDAY, role: 'client' }, low);
+    expect(client.primary.code).not.toBe('credit_nudge');
+    expect(client.secondary.map((a) => a.code)).toContain('credit_nudge');
+    expect(client.secondary.length).toBeLessThanOrEqual(2);
+
+    const user = computeNextBestAction(pulse, { now: FRIDAY, role: 'user' }, low);
+    expect(user.secondary.map((a) => a.code)).not.toContain('credit_nudge');
+
+    const noTrainer = computeNextBestAction(pulse, { now: FRIDAY, role: 'client' }, ctx({
+      credits: { availableSessions: 1 }, hasTrainer: false,
+    }));
+    expect(noTrainer.secondary.map((a) => a.code)).not.toContain('credit_nudge');
+  });
+
+  it('never uses treatment or medical language in pain-derived copy', () => {
+    const { primary, constraints } = computeNextBestAction(basePulse(), { now: FRIDAY }, ctx({
+      pain: { activeCount: 1, maxLevel: 9, regions: ['right_shoulder'] },
+    }));
+    const text = `${primary.title} ${primary.message} ${constraints?.note ?? ''}`.toLowerCase();
+    for (const banned of ['treat', 'therapy', 'diagnos', 'heal', 'rehab', 'medical advice', 'injury protocol']) {
+      expect(text).not.toContain(banned);
+    }
+  });
+
+  it('response stays additive: meta marks the rules engine and legacy keys survive', () => {
+    const result = computeNextBestAction(basePulse(), { now: FRIDAY }, ctx());
+    expect(result.meta).toEqual({ engine: 'rules', version: 2 });
+    expect(result.primary).toBeDefined();
+    expect(Array.isArray(result.secondary)).toBe(true);
+    expect(result.constraints).toBeNull();
+
+    const legacy = computeNextBestAction(basePulse(), { now: FRIDAY });
+    expect(legacy.primary).toBeDefined();
+    expect(legacy.meta).toEqual({ engine: 'rules', version: 2 });
+  });
+
+  it('coach audience keeps coach voice for the new rungs (no CTA)', () => {
+    const pulse = basePulse({ lastWorkout: { date: '2026-07-02', daysAgo: 1 } });
+    const { primary } = computeNextBestAction(pulse, { now: FRIDAY, audience: 'coach' }, ctx({ plan: planToday }));
+    expect(primary.code).toBe('plan_next');
+    expect(primary.title).toBe('Planned session due today');
+    expect(primary.cta).toBeNull();
+  });
 });

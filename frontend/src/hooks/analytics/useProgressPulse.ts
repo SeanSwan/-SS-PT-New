@@ -48,7 +48,13 @@ export interface ProgressPulse {
   variety: PulseVariety;
   volume: { thisWeek: number; priorWeek: number; deltaPct: number | null };
   lastWorkout: { date: string | null; daysAgo: number | null };
-  nextBestAction: { primary: PulseAction; secondary: PulseAction[] };
+  nextBestAction: {
+    primary: PulseAction;
+    secondary: PulseAction[];
+    /** Phase 1.5a additive keys — comfort-modification framing only. */
+    constraints?: { regions: string[]; note: string } | null;
+    meta?: { engine: string; version: number };
+  };
 }
 
 export type ProgressPulseStatus = 'loading' | 'ready' | 'error';

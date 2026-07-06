@@ -1,13 +1,14 @@
 /**
  * ============================================================================
  * FILE: HomeTabNextBestAction.tsx
- * PURPOSE: The Next Best Action panel for Home's right rail (workstream O3,
- *          extracted from HomeTabVisionRightRail for the rule-4 cap) — now
- *          with STREAK RESCUE: when a live streak has no logged session today
- *          and the evening window opens (assessStreakRisk), the panel
- *          escalates to an urgent gold state so the streak survives.
+ * PURPOSE: The Next Best Action panel for Home's right rail — Phase 1.5a:
+ *          now powered by the deterministic NBA rules engine via the shared
+ *          NextBestActionCard (plan cursor, rest-day, pain-aware caution),
+ *          while keeping the STREAK RESCUE gold escalation: when a live
+ *          streak has no logged session today and the evening window opens
+ *          (assessStreakRisk), the panel escalates urgently.
  * DATA TRUTH: urgency derives from real logged sessions + the real streak —
- *          never fabricated pressure.
+ *          never fabricated pressure; guidance comes from the rules engine.
  * ============================================================================
  */
 import React from 'react';
@@ -15,11 +16,8 @@ import styled, { css } from 'styled-components';
 import { Flame } from 'lucide-react';
 import { Eyebrow, Panel } from './HomeTabVision.styles';
 import { Chip } from './HomeTabVisionCards.styles';
-import {
-  FullWidthAction,
-  RailHeader,
-  SoftParagraph,
-} from './HomeTabVisionRightRail.styles';
+import { FullWidthAction, RailHeader, SoftParagraph } from './HomeTabVisionRightRail.styles';
+import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
 
 const UrgentPanel = styled(Panel)<{ $urgent?: boolean }>`
   ${({ $urgent }) => $urgent && css`
@@ -52,14 +50,17 @@ const HomeTabNextBestAction: React.FC<HomeTabNextBestActionProps> = ({
         </Chip>
       )}
     </RailHeader>
-    <SoftParagraph>
-      {streakAtRisk
-        ? `Your ${streakDays}-day streak ends tonight without a logged workout — keep it alive.`
-        : "Log today's training — workouts become visible progress proof."}
-    </SoftParagraph>
-    <FullWidthAction type="button" $variant="accent" onClick={onLogWorkout}>
-      {streakAtRisk ? `Save my ${streakDays}-day streak` : 'Log a Workout'}
-    </FullWidthAction>
+    {streakAtRisk && (
+      <>
+        <SoftParagraph>
+          {`Your ${streakDays}-day streak ends tonight without a logged workout — keep it alive.`}
+        </SoftParagraph>
+        <FullWidthAction type="button" $variant="accent" onClick={onLogWorkout}>
+          {`Save my ${streakDays}-day streak`}
+        </FullWidthAction>
+      </>
+    )}
+    <NextBestActionCard bare hideHeader onLogWorkout={onLogWorkout} />
   </UrgentPanel>
 );
 
