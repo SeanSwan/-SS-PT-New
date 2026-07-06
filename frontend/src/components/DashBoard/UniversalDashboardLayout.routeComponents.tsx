@@ -83,6 +83,7 @@ export const MarketingWorkspace = React.lazy(() => import('./workspaces/Marketin
 export const SecurityWorkspace = React.lazy(() => import('./workspaces/SecurityWorkspace'));
 export const PlaudIntelligenceWorkspacePage = React.lazy(() => import('../../pages/dashboard/PlaudIntelligenceWorkspacePage'));
 export const ClientsWorkspace = React.lazy(() => import('./workspaces/ClientsWorkspace'));
+export const TrainerClientsWorkspace = React.lazy(() => import('./workspaces/TrainerClientsWorkspace'));
 export const ClientProgressDashboardPage = React.lazy(() => import('./Pages/client-dashboard/ClientProgressDashboardPage'));
 
 export const ClientProgressWrapper: React.FC = () => {

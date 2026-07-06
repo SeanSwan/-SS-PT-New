@@ -47,16 +47,19 @@ import { getNumericClientId } from './clientTabId';
 import TrainingTabSectionContent, { type TrainingSection } from './TrainingTabSectionContent';
 import {
   TRAINING_SECTION_CHIPS,
-  TRAINING_WORKFLOW_MODES,
+  coerceTrainingSectionForAudience,
   getTrainingModeConfig,
   getTrainingModeForSection,
+  getTrainingModesForAudience,
   type TrainingWorkflowMode,
 } from './trainingWorkflowModes';
-import type { ClientTrainingSavedWorkout } from './ClientTrainingSaveReceipt';
+import type { ClientHubAudience } from '../clientHubAudience';
+import ClientTrainingSaveReceipt, { type ClientTrainingSavedWorkout } from './ClientTrainingSaveReceipt';
 
 interface TrainingTabContentProps {
   clientId: number | string;
   clientName?: string;
+  audience?: ClientHubAudience;
   initialSection?: TrainingSection;
   loggerReturnTo?: string | null;
   onLoggerReturnTo?: (returnTo: string) => void;
@@ -97,6 +100,7 @@ function shouldOpenLoggerForCommand(message: string): boolean {
 const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   clientId,
   clientName,
+  audience = 'admin',
   initialSection,
   loggerReturnTo = null,
   onLoggerReturnTo,
@@ -106,19 +110,22 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   scheduledSessionDate = null,
   scheduledSessionId = null,
 }) => {
-  const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
+  const [activeSection, setActiveSection] = useState<TrainingSection>(
+    coerceTrainingSectionForAudience(audience, initialSection ?? 'logger'),
+  );
   const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
   const [loadTodayPlanSignal, setLoadTodayPlanSignal] = useState(0);
   const [planVaultRefreshSignal, setPlanVaultRefreshSignal] = useState(0);
   const [commandOpen, setCommandOpen] = useState(false);
   const commandPanelId = useId();
   const numericClientId = getNumericClientId(clientId);
+  const visibleModes = getTrainingModesForAudience(audience);
   const activeMode = getTrainingModeForSection(activeSection);
   const activeModeConfig = getTrainingModeConfig(activeMode);
 
   useEffect(() => {
-    setActiveSection(initialSection ?? 'logger');
-  }, [clientId, initialSection]);
+    setActiveSection(coerceTrainingSectionForAudience(audience, initialSection ?? 'logger'));
+  }, [audience, clientId, initialSection]);
 
   useEffect(() => {
     setLastSavedWorkout(null);
@@ -151,16 +158,16 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 
   const handleWorkoutComplete = useCallback((savedWorkout: unknown) => {
     setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
-    handleSectionChange('history');
-  }, [handleSectionChange]);
+    handleSectionChange(coerceTrainingSectionForAudience(audience, 'history'));
+  }, [audience, handleSectionChange]);
 
   const handleWorkoutCancel = useCallback(() => {
     if (loggerReturnTo && onLoggerReturnTo) {
       onLoggerReturnTo(loggerReturnTo);
       return;
     }
-    handleSectionChange('history');
-  }, [handleSectionChange, loggerReturnTo, onLoggerReturnTo]);
+    handleSectionChange(coerceTrainingSectionForAudience(audience, 'history'));
+  }, [audience, handleSectionChange, loggerReturnTo, onLoggerReturnTo]);
 
   const handleOpenHistoryImport = useCallback(() => {
     handleSectionChange('import');
@@ -169,7 +176,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   return (
     <LayoutWrapper>
       <Sidebar role="tablist" aria-label="Training workflow modes">
-        {TRAINING_WORKFLOW_MODES.map((mode) => (
+        {visibleModes.map((mode) => (
           <SidebarItem
             type="button"
             key={mode.id}
@@ -225,6 +232,13 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
                 )}
               </CommandPanel>
             </CommandDisclosure>
+            {audience === 'trainer' && lastSavedWorkout && activeSection === 'logger' && (
+              <ClientTrainingSaveReceipt
+                clientName={clientName || 'Client'}
+                savedWorkout={lastSavedWorkout}
+                onOpenProgress={onOpenProgress}
+              />
+            )}
             {activeModeConfig.sections.length > 1 && (
               <SectionChipRow role="tablist" aria-label={`${activeModeConfig.label} lanes`}>
                 {activeModeConfig.sections.map((sectionId) => (

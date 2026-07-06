@@ -40,6 +40,7 @@ const makeModels = (over = {}) => ({
   Subscriber: { count: vi.fn().mockResolvedValue(0) },
   Lead: { count: vi.fn().mockResolvedValue(42) },
   MarketingCalendarItem: { count: vi.fn().mockResolvedValue(0) },
+  MarketingCampaign: { count: vi.fn().mockResolvedValue(0) },
   ...over,
 });
 
@@ -167,5 +168,16 @@ describe('marketingReadinessService', () => {
     expect(json).not.toMatch(/"phone"/);
     expect(json).not.toContain('sendgrid_api_key');
     expect(json).not.toContain('present'); // the mock secret value must not surface
+  });
+
+  it('reports campaign totals from the model registry', async () => {
+    const r = await svc({
+      models: makeModels({
+        MarketingCampaign: { count: vi.fn().mockResolvedValueOnce(4).mockResolvedValueOnce(2) },
+      }),
+    }).getReadiness();
+    expect(r.subsystems.campaigns.status).toBe('ready');
+    expect(r.subsystems.campaigns.totalCampaigns).toBe(4);
+    expect(r.subsystems.campaigns.activeCampaigns).toBe(2);
   });
 });

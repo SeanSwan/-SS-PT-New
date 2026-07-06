@@ -1,7 +1,10 @@
+import {
+  getClientHubAudienceConfig,
+  type ClientHubAudience,
+} from './clientHubAudience';
+
 export type ClientDailyIntent = 'log_workout' | 'plan_next';
 type ClientDailyReturnSection = 'architect' | 'logger' | 'plans' | 'history';
-
-const CLIENT_MANAGEMENT_BASE = '/dashboard/admin/client-management';
 
 const parseClientDailyRouteClientId = (clientId: number | string): number | null => {
   const trimmed = String(clientId).trim();
@@ -14,6 +17,7 @@ const parseClientDailyRouteClientId = (clientId: number | string): number | null
 const buildClientManagementReturnTo = (
   clientId: number | string,
   trainingSection?: ClientDailyReturnSection,
+  audience: ClientHubAudience = 'admin',
 ) => {
   const parsedClientId = parseClientDailyRouteClientId(clientId);
   if (!parsedClientId) return null;
@@ -25,17 +29,18 @@ const buildClientManagementReturnTo = (
     if (trainingSection === 'logger') params.set('loadPlan', 'today');
   }
 
-  return `${CLIENT_MANAGEMENT_BASE}?${params.toString()}`;
+  return `${getClientHubAudienceConfig(audience).clientManagementBase}?${params.toString()}`;
 };
 
 const buildClientDailyParams = (
   clientId: number | string,
   extraParams: Record<string, string> = {},
   returnSection?: ClientDailyReturnSection,
+  audience: ClientHubAudience = 'admin',
 ) => {
   const parsedClientId = parseClientDailyRouteClientId(clientId);
   if (!parsedClientId) return null;
-  const returnTo = buildClientManagementReturnTo(parsedClientId, returnSection);
+  const returnTo = buildClientManagementReturnTo(parsedClientId, returnSection, audience);
   if (!returnTo) return null;
 
   const params = new URLSearchParams({
@@ -50,37 +55,49 @@ const buildClientDailyParams = (
 
 export const buildClientCoachDailyRoute = (
   clientId: number | string,
-  intent: ClientDailyIntent = 'log_workout'
+  intent: ClientDailyIntent = 'log_workout',
+  audience: ClientHubAudience = 'admin',
 ) => {
   const returnSection: ClientDailyReturnSection = intent === 'plan_next' ? 'plans' : 'logger';
-  const params = buildClientDailyParams(clientId, { intent }, returnSection);
-  return params ? `/dashboard/admin/coach-assistant?${params}` : null;
+  const params = buildClientDailyParams(clientId, { intent }, returnSection, audience);
+  return params
+    ? `${getClientHubAudienceConfig(audience).coachAssistantBase}?${params}`
+    : null;
 };
 
 export const buildClientCoachOnboardingRoute = () => {
   const params = new URLSearchParams({
     source: 'clients-team',
     workspace: 'onboarding',
-    returnTo: CLIENT_MANAGEMENT_BASE,
+    returnTo: getClientHubAudienceConfig('admin').clientManagementBase,
     intent: 'client_onboarding',
   });
 
-  return `/dashboard/admin/coach-assistant?${params.toString()}`;
+  return `${getClientHubAudienceConfig('admin').coachAssistantBase}?${params.toString()}`;
 };
 
-export const buildClientWorkoutLoggerRoute = (clientId: number | string) => {
-  return buildClientManagementReturnTo(clientId, 'logger');
+export const buildClientWorkoutLoggerRoute = (
+  clientId: number | string,
+  audience: ClientHubAudience = 'admin',
+) => {
+  return buildClientManagementReturnTo(clientId, 'logger', audience);
 };
 
-export const buildClientWorkoutPlannerReturnTo = (clientId: number | string) => {
-  return buildClientManagementReturnTo(clientId, 'plans');
+export const buildClientWorkoutPlannerReturnTo = (
+  clientId: number | string,
+  audience: ClientHubAudience = 'admin',
+) => {
+  return buildClientManagementReturnTo(clientId, 'plans', audience);
 };
 
-export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {
+export const buildClientWorkoutPlannerRoute = (
+  clientId: number | string,
+  audience: ClientHubAudience = 'admin',
+) => {
   const parsedClientId = parseClientDailyRouteClientId(clientId);
   if (!parsedClientId) return null;
 
-  const returnTo = buildClientWorkoutPlannerReturnTo(parsedClientId);
+  const returnTo = buildClientWorkoutPlannerReturnTo(parsedClientId, audience);
   if (!returnTo) return null;
 
   const params = new URLSearchParams({
@@ -89,5 +106,5 @@ export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {
     returnTo,
   });
 
-  return `/dashboard/admin/workout-planner?${params.toString()}`;
+  return `${getClientHubAudienceConfig(audience).workoutPlannerBase}?${params.toString()}`;
 };

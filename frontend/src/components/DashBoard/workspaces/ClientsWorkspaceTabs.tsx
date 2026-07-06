@@ -11,6 +11,7 @@ import type {
   ClientTrainingSection,
 } from './ClientsWorkspace.logic';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
+import type { ClientHubAudience } from './clients-team/clientHubAudience';
 import { getClientDisplayName } from './clients-team/clientIdentity';
 
 const TrainingTabContent = lazy(() => import('./clients-team/tabs/TrainingTabContent'));
@@ -28,6 +29,7 @@ export const useClientsWorkspaceTabRenderers = (
   initialTrainingSection: ClientTrainingSection | null = null,
   onOpenProgress?: () => void,
   scheduleLoggerContext: ClientScheduleWorkoutLoggerContext | null = null,
+  audience: ClientHubAudience = 'admin',
 ) => {
   const [, setSearchParams] = useSearchParams();
 
@@ -58,6 +60,7 @@ export const useClientsWorkspaceTabRenderers = (
       <TrainingTabContent
         clientId={clientId}
         clientName={clientName(selectedClient)}
+        audience={audience}
         initialSection={initialTrainingSection ?? undefined}
         onSectionChange={writeTrainingSectionRoute}
         onOpenProgress={onOpenProgress}
@@ -66,7 +69,7 @@ export const useClientsWorkspaceTabRenderers = (
         scheduledSessionId={scheduleLoggerContext?.scheduledSessionId ?? null}
       />
     </Suspense>
-  ), [initialTrainingSection, onOpenProgress, scheduleLoggerContext, selectedClient, writeTrainingSectionRoute]);
+  ), [audience, initialTrainingSection, onOpenProgress, scheduleLoggerContext, selectedClient, writeTrainingSectionRoute]);
 
   const renderProgress = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>
@@ -82,9 +85,9 @@ export const useClientsWorkspaceTabRenderers = (
 
   const renderBiometrics = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading biometrics...</LoadingPulse>}>
-      <BiometricsTabContent clientId={clientId} clientName={clientName(selectedClient)} />
+      <BiometricsTabContent clientId={clientId} clientName={clientName(selectedClient)} audience={audience} />
     </Suspense>
-  ), [selectedClient]);
+  ), [audience, selectedClient]);
 
   const renderOverview = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading overview...</LoadingPulse>}>

@@ -12,6 +12,8 @@ interface ClientsWorkspaceTopBarProps {
   clients: ClientOption[];
   selectedClient: ClientOption | null;
   loading: boolean;
+  /** false hides every admin account-control action (trainer audience). */
+  canManageAccounts?: boolean;
   onSelectClient: (client: ClientOption) => void;
   onNewClient: () => void;
   onOpenAI: () => void;
@@ -29,6 +31,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
   clients,
   selectedClient,
   loading,
+  canManageAccounts = true,
   onSelectClient,
   onNewClient,
   onOpenAI,
@@ -50,30 +53,34 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
         clients={clients}
         selectedId={selectedClient?.id ?? null}
         onSelect={onSelectClient}
-        onNewClient={onNewClient}
+        onNewClient={canManageAccounts ? onNewClient : undefined}
         loading={loading}
       />
       <TopBarActions data-swan-client-workspace-actions>
           {!selectedClient && (
             <>
-              <ActionBtn
-                type="button"
-                onClick={onNewClient}
-                aria-label="New Client"
-                title="Onboard a new client via Swan Coach"
-              >
-                <UserPlus size={16} />
-                <span>New Client</span>
-              </ActionBtn>
-              <ActionBtn
-                type="button"
-                onClick={onManualCreateClient}
-                aria-label="Manual Add"
-                title="Add a client manually with the form"
-              >
-                <ClipboardList size={16} />
-                <span>Manual Add</span>
-              </ActionBtn>
+              {canManageAccounts && (
+                <>
+                  <ActionBtn
+                    type="button"
+                    onClick={onNewClient}
+                    aria-label="New Client"
+                    title="Onboard a new client via Swan Coach"
+                  >
+                    <UserPlus size={16} />
+                    <span>New Client</span>
+                  </ActionBtn>
+                  <ActionBtn
+                    type="button"
+                    onClick={onManualCreateClient}
+                    aria-label="Manual Add"
+                    title="Add a client manually with the form"
+                  >
+                    <ClipboardList size={16} />
+                    <span>Manual Add</span>
+                  </ActionBtn>
+                </>
+              )}
               <ActionBtn
                 type="button"
                 onClick={onOpenAI}
@@ -84,27 +91,31 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
                 <MessageCircle size={16} />
                 <span>Swan Coach</span>
               </ActionBtn>
-              <ActionBtn
-                type="button"
-                onClick={onOpenOnboardingWorkbench}
-                aria-label="Open onboarding workbench"
-                title="Open onboarding workbench"
-              >
-                <ClipboardCheck size={16} />
-                <span>Workbench</span>
-              </ActionBtn>
-              <ActionBtn
-                type="button"
-                onClick={onManageAssignments}
-                aria-label="Trainer assignments"
-                title="Manage trainer/client assignments"
-              >
-                <UserCheck size={16} />
-                <span>Trainer Assignments</span>
-              </ActionBtn>
+              {canManageAccounts && (
+                <>
+                  <ActionBtn
+                    type="button"
+                    onClick={onOpenOnboardingWorkbench}
+                    aria-label="Open onboarding workbench"
+                    title="Open onboarding workbench"
+                  >
+                    <ClipboardCheck size={16} />
+                    <span>Workbench</span>
+                  </ActionBtn>
+                  <ActionBtn
+                    type="button"
+                    onClick={onManageAssignments}
+                    aria-label="Trainer assignments"
+                    title="Manage trainer/client assignments"
+                  >
+                    <UserCheck size={16} />
+                    <span>Trainer Assignments</span>
+                  </ActionBtn>
+                </>
+              )}
             </>
           )}
-          {selectedClient && (
+          {selectedClient && canManageAccounts && (
             <ActionBtn
               type="button"
               onClick={onOpenOnboardingWorkbench}
@@ -115,7 +126,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Workbench</span>
             </ActionBtn>
           )}
-          {selectedClient && (
+          {selectedClient && canManageAccounts && (
             <ActionBtn
               type="button"
               onClick={onViewAsClient}
@@ -126,7 +137,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>View As</span>
             </ActionBtn>
           )}
-          {selectedClient && selectedClient.isActive !== false && (
+          {selectedClient && canManageAccounts && selectedClient.isActive !== false && (
             <ActionBtn
               type="button"
               onClick={onDeactivateClient}
@@ -138,7 +149,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Deactivate</span>
             </ActionBtn>
           )}
-          {selectedClient && selectedClient.isActive !== false && isClaimPending && (
+          {selectedClient && canManageAccounts && selectedClient.isActive !== false && isClaimPending && (
             <ActionBtn
               type="button"
               onClick={onGenerateClaimLink}
@@ -149,7 +160,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Claim Link</span>
             </ActionBtn>
           )}
-          {selectedClient && selectedClient.isActive !== false && !isClaimPending && (
+          {selectedClient && canManageAccounts && selectedClient.isActive !== false && !isClaimPending && (
             <ActionBtn
               type="button"
               onClick={onSendPasswordReset}
@@ -160,7 +171,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Reset Link</span>
             </ActionBtn>
           )}
-          {selectedClient && selectedClient.isActive === false && (
+          {selectedClient && canManageAccounts && selectedClient.isActive === false && (
             <ActionBtn
               type="button"
               onClick={onReactivateClient}
@@ -172,7 +183,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Reactivate</span>
             </ActionBtn>
           )}
-          {selectedClient && (
+          {selectedClient && canManageAccounts && (
             <ActionBtn
               type="button"
               onClick={onManageAssignments}
@@ -183,7 +194,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
               <span>Trainer Assignments</span>
             </ActionBtn>
           )}
-          {selectedClient && (
+          {selectedClient && canManageAccounts && (
             <>
               <ActionBtn
                 type="button"

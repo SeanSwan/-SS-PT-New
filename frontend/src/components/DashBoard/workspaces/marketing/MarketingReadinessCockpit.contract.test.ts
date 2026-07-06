@@ -34,8 +34,8 @@ describe('MarketingReadinessCockpit contract', () => {
     expect(src).not.toContain('/publish');
   });
 
-  it('surfaces all six marketing subsystems', () => {
-    for (const key of ['socialPublishing', 'automation', 'email', 'leadCapture', 'calendar', 'contentTools']) {
+  it('surfaces all seven marketing subsystems', () => {
+    for (const key of ['socialPublishing', 'automation', 'email', 'leadCapture', 'calendar', 'campaigns', 'contentTools']) {
       expect(src).toContain(key);
     }
   });

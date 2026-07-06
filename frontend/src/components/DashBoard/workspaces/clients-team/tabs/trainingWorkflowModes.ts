@@ -11,6 +11,7 @@
  */
 
 import type { TrainingSection } from './TrainingTabSectionContent';
+import type { ClientHubAudience } from '../clientHubAudience';
 
 export type TrainingWorkflowMode = 'today' | 'plan' | 'inputs';
 
@@ -80,4 +81,33 @@ export const getTrainingModeForSection = (section: TrainingSection): TrainingWor
 
 export const getTrainingModeConfig = (mode: TrainingWorkflowMode): TrainingModeConfig => (
   TRAINING_WORKFLOW_MODES.find((candidate) => candidate.id === mode) ?? TRAINING_WORKFLOW_MODES[0]
+);
+
+/**
+ * History & Inputs lanes call /api/admin/clients/:id/workouts, which the
+ * backend's /api/admin router-level authorize(['admin']) gate blocks for
+ * trainers today. Until that lane is opened server-side, trainers get the
+ * Today + Plan workflow only.
+ */
+const TRAINER_HIDDEN_MODES: readonly TrainingWorkflowMode[] = ['inputs'];
+
+export const getTrainingModesForAudience = (
+  audience: ClientHubAudience,
+): TrainingModeConfig[] => (
+  audience === 'trainer'
+    ? TRAINING_WORKFLOW_MODES.filter((mode) => !TRAINER_HIDDEN_MODES.includes(mode.id))
+    : TRAINING_WORKFLOW_MODES
+);
+
+export const isTrainingSectionAllowedForAudience = (
+  audience: ClientHubAudience,
+  section: TrainingSection,
+): boolean => getTrainingModesForAudience(audience)
+  .some((mode) => mode.sections.includes(section));
+
+export const coerceTrainingSectionForAudience = (
+  audience: ClientHubAudience,
+  section: TrainingSection,
+): TrainingSection => (
+  isTrainingSectionAllowedForAudience(audience, section) ? section : 'logger'
 );

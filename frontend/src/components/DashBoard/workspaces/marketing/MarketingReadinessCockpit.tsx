@@ -10,7 +10,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, CalendarDays, GaugeCircle, Mail, RefreshCw, Share2, Users, Zap, FlaskConical, Loader2,
+  AlertTriangle, CalendarDays, GaugeCircle, Mail, RefreshCw, Share2, Users, Zap, FlaskConical, Loader2, Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import * as S from './MarketingReadinessCockpit.styles';
@@ -34,6 +34,8 @@ interface Subsystem {
   totalLeads?: number; capturePoints?: Record<string, boolean>;
   // calendar
   totalItems?: number; upcoming?: number;
+  // campaigns
+  totalCampaigns?: number; activeCampaigns?: number;
   // content tools
   tools?: { id: string; label: string; mode: string }[];
 }
@@ -42,7 +44,7 @@ interface Readiness {
   generatedAt: string;
   subsystems: {
     socialPublishing: Subsystem; automation: Subsystem; email: Subsystem;
-    leadCapture: Subsystem; calendar: Subsystem; contentTools: Subsystem;
+    leadCapture: Subsystem; calendar: Subsystem; campaigns: Subsystem; contentTools: Subsystem;
   };
 }
 
@@ -70,6 +72,7 @@ const buildCards = (s: Readiness['subsystems']): CardModel[] => {
   const email = s.email;
   const lead = s.leadCapture;
   const cal = s.calendar;
+  const camp = s.campaigns;
   const tools = s.contentTools;
 
   return [
@@ -114,6 +117,13 @@ const buildCards = (s: Readiness['subsystems']): CardModel[] => {
       metrics: [
         { k: 'Total items', v: String(num(cal.totalItems)), tone: 'muted' },
         { k: 'Upcoming scheduled', v: String(num(cal.upcoming)), tone: 'good' },
+      ],
+    },
+    {
+      key: 'campaigns', name: 'Campaigns', icon: <Megaphone size={16} />, sub: camp,
+      metrics: [
+        { k: 'Total', v: String(num(camp.totalCampaigns)), tone: 'muted' },
+        { k: 'Active', v: String(num(camp.activeCampaigns)), tone: 'good' },
       ],
     },
     {

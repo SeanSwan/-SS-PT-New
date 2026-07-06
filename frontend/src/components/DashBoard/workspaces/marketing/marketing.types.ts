@@ -133,3 +133,35 @@ export const CADENCE_CONFIG = {
   blogMaxPerWeek: 1,
   emailMaxPerMonth: 2,
 } as const;
+
+// ─── Marketing Campaign (spine) ────────────────────────────────
+export type CampaignObjective =
+  | 'lead_generation' | 'booking_assessments' | 'newsletter_growth'
+  | 'local_seo' | 'product_sale' | 'retention';
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'archived';
+
+export interface MarketingCampaign {
+  id: string;
+  name: string;
+  objective: CampaignObjective;
+  offer?: string | null;
+  audience?: string | null;
+  status: CampaignStatus;
+  startAt?: string | null;
+  endAt?: string | null;
+  budget?: string | number | null; // Sequelize DECIMAL serializes as a string
+  primaryChannel?: string | null;
+  utmCampaign?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const CAMPAIGN_OBJECTIVES: { value: CampaignObjective; label: string }[] = [
+  { value: 'lead_generation', label: 'Lead Generation' },
+  { value: 'booking_assessments', label: 'Book Assessments' },
+  { value: 'newsletter_growth', label: 'Newsletter Growth' },
+  { value: 'local_seo', label: 'Local SEO' },
+  { value: 'product_sale', label: 'Product Sale' },
+  { value: 'retention', label: 'Retention' },
+];
+export const CAMPAIGN_STATUSES: CampaignStatus[] = ['draft', 'active', 'paused', 'completed', 'archived'];

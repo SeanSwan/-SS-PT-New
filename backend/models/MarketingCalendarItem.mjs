@@ -27,6 +27,7 @@ MarketingCalendarItem.init({
     allowNull: true,
   },
   campaignName: { type: DataTypes.STRING(120), allowNull: true },
+  campaignId: { type: DataTypes.UUID, allowNull: true }, // FK → marketing_campaigns (Slice 3b); kept alongside legacy campaignName during transition
   status: {
     type: DataTypes.STRING(32),
     allowNull: false,

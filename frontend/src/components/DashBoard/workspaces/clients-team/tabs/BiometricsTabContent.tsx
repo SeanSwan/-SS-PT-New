@@ -100,6 +100,8 @@ const ROMAssessment = React.lazy(
 interface BiometricsTabContentProps {
   clientId: number | string;
   clientName?: string;
+  /** ROM assessment writes /api/admin/baseline-measurements (admin-gated). */
+  audience?: 'admin' | 'trainer';
 }
 
 type CardId = 'body-map' | 'measurements' | 'movement-analysis' | 'form-analysis' | 'rom-assessment';
@@ -170,9 +172,13 @@ const SuspenseFallback: React.FC = () => (
 const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
   clientId,
   clientName,
+  audience = 'admin',
 }) => {
   const [expandedCard, setExpandedCard] = useState<CardId | null>(null);
   const numericClientId = getNumericClientId(clientId);
+  const visibleCards = audience === 'trainer'
+    ? BIOMETRIC_CARDS.filter((card) => card.id !== 'rom-assessment')
+    : BIOMETRIC_CARDS;
 
   const handleCardClick = useCallback((cardId: CardId) => {
     setExpandedCard(cardId);
@@ -253,7 +259,7 @@ const BiometricsTabContent: React.FC<BiometricsTabContentProps> = ({
   // Default: show the bento grid
   return (
     <BentoGrid role="group" aria-label={`Biometrics for ${clientName || 'client'}`}>
-      {BIOMETRIC_CARDS.map((card) => (
+      {visibleCards.map((card) => (
         <BentoCardWrapper
           type="button"
           key={card.id}

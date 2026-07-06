@@ -27,7 +27,7 @@ describe('OverviewTabContent auth pipeline', () => {
     expect(routesSource).toContain("{ path: '/client-management'");
     expect(routesSource).toContain('component: ClientsWorkspace');
     expect(clientsWorkspaceSource).toMatch(
-      /useClientsWorkspaceTabRenderers\(\s*selectedClient,\s*getClientTrainingSectionFromSearchParams\(searchParams\),\s*handleViewProgress,\s*scheduleLoggerContext\s*\)/,
+      /useClientsWorkspaceTabRenderers\(\s*selectedClient,\s*getClientTrainingSectionFromSearchParams\(searchParams\),\s*handleViewProgress,\s*scheduleLoggerContext,\s*audience\s*\)/,
     );
     expect(clientsWorkspaceSource).toMatch(/renderOverview=\{renderOverview\}/);
     expect(clientsWorkspaceTabsSource).toMatch(/const OverviewTabContent = lazy\(\(\) => import\('\.\/clients-team\/tabs\/OverviewTabContent'\)\)/);

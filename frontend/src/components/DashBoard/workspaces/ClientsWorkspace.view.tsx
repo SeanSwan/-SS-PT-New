@@ -52,6 +52,10 @@ import ClientLifecycleConfirmDialog, {
 import ClientHubGridSection from './clients-team/ClientHubGridSection';
 import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
 import { ClientDetailView } from './clients-team';
+import {
+  getClientHubAudienceConfig,
+  type ClientHubAudience,
+} from './clients-team/clientHubAudience';
 import type { MiniCardClient } from './clients-team/ClientMiniCard';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
@@ -67,6 +71,7 @@ interface ClientHubAxios {
 }
 
 interface ClientsWorkspaceViewProps {
+  audience?: ClientHubAudience;
   authAxios: ClientHubAxios | null;
   clients: ClientOption[];
   selectedClient: ClientOption | null;
@@ -149,6 +154,7 @@ const ClientActivationQueueSlot: React.FC<{
 
 const SelectedClientDetail: React.FC<Pick<
   ClientsWorkspaceViewProps,
+  | 'audience'
   | 'selectedClient'
   | 'detailClient'
   | 'detailTab'
@@ -165,6 +171,7 @@ const SelectedClientDetail: React.FC<Pick<
   | 'onShowDetailTab'
   | 'onClearSelectedClient'
 >> = ({
+  audience = 'admin',
   selectedClient,
   detailClient,
   detailTab,
@@ -196,6 +203,7 @@ const SelectedClientDetail: React.FC<Pick<
       <ClientDetailView
         client={detailClient}
         activeTab={detailTab}
+        visibleTabs={getClientHubAudienceConfig(audience).visibleDetailTabs}
         onTabChange={(tab) => onShowDetailTab(selectedClient, tab)}
         onBack={onClearSelectedClient}
         renderTraining={renderTraining}
@@ -222,12 +230,17 @@ const ClientGrid: React.FC<Pick<
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
 const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
-const EmptyContent: ContentRenderer = (props) => (
-  <ClientsWorkspaceEmptyState
-    onNewClient={props.onNewClient}
-    onManualCreate={props.onManualCreateClient}
-  />
-);
+const EmptyContent: ContentRenderer = (props) => {
+  const config = getClientHubAudienceConfig(props.audience ?? 'admin');
+  return (
+    <ClientsWorkspaceEmptyState
+      copy={config.emptyRosterCopy}
+      showCreateActions={config.canManageAccounts}
+      onNewClient={props.onNewClient}
+      onManualCreate={props.onManualCreateClient}
+    />
+  );
+};
 const GridContent: ContentRenderer = (props) => <ClientGrid {...props} />;
 
 const CONTENT_RENDERERS: Record<ContentMode, ContentRenderer> = {
@@ -242,45 +255,58 @@ const ClientsWorkspaceContent: React.FC<ClientsWorkspaceViewProps> = (props) => 
   return <Content {...props} />;
 };
 
-const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
-  <HubContainer>
-    <ClientsWorkspaceTopBar
-      clients={props.clients}
-      selectedClient={props.selectedClient}
-      loading={props.loading}
-      onSelectClient={props.onSelectClient}
-      onNewClient={props.onNewClient}
-      onOpenAI={props.onOpenAI}
-      onOpenOnboardingWorkbench={props.onOpenOnboardingWorkbench}
-      onViewAsClient={props.onViewAsClient}
-      onDeactivateClient={props.onDeactivateClient}
-      onReactivateClient={props.onReactivateClient}
-      onSendPasswordReset={props.onSendPasswordReset}
-      onGenerateClaimLink={props.onGenerateClaimLink}
-      onManageAssignments={props.onManageAssignments}
-      onManualCreateClient={props.onManualCreateClient}
-    />
-    <ClientsWorkspaceIntentBanner
-      intent={props.clientHubIntent}
-      selectedClientId={props.selectedClient?.id ?? null}
-    />
-    <CreateClientModal open={props.manualCreateOpen} onClose={props.onCloseManualCreate} onSubmit={props.onManualCreate} trainers={props.manualCreateTrainers} />
-    <ClientCreationHandoffPanel
-      handoff={props.creationHandoff}
-      onDismiss={props.onDismissCreationHandoff}
-      onCopy={props.onCopyCreationHandoff}
-    />
-    <ClientLifecycleConfirmDialog
-      request={props.deactivationConfirmation}
-      onClose={props.onCloseDeactivationConfirmation}
-    />
-    <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
-    <ClientNutritionRosterTriagePanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
-    <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
-    <ContentArea>
-      <ClientsWorkspaceContent {...props} />
-    </ContentArea>
-  </HubContainer>
-);
+const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
+  const audienceConfig = getClientHubAudienceConfig(props.audience ?? 'admin');
+
+  return (
+    <HubContainer>
+      <ClientsWorkspaceTopBar
+        clients={props.clients}
+        selectedClient={props.selectedClient}
+        loading={props.loading}
+        canManageAccounts={audienceConfig.canManageAccounts}
+        onSelectClient={props.onSelectClient}
+        onNewClient={props.onNewClient}
+        onOpenAI={props.onOpenAI}
+        onOpenOnboardingWorkbench={props.onOpenOnboardingWorkbench}
+        onViewAsClient={props.onViewAsClient}
+        onDeactivateClient={props.onDeactivateClient}
+        onReactivateClient={props.onReactivateClient}
+        onSendPasswordReset={props.onSendPasswordReset}
+        onGenerateClaimLink={props.onGenerateClaimLink}
+        onManageAssignments={props.onManageAssignments}
+        onManualCreateClient={props.onManualCreateClient}
+      />
+      <ClientsWorkspaceIntentBanner
+        intent={props.clientHubIntent}
+        selectedClientId={props.selectedClient?.id ?? null}
+      />
+      {audienceConfig.canManageAccounts && (
+        <>
+          <CreateClientModal open={props.manualCreateOpen} onClose={props.onCloseManualCreate} onSubmit={props.onManualCreate} trainers={props.manualCreateTrainers} />
+          <ClientCreationHandoffPanel
+            handoff={props.creationHandoff}
+            onDismiss={props.onDismissCreationHandoff}
+            onCopy={props.onCopyCreationHandoff}
+          />
+          <ClientLifecycleConfirmDialog
+            request={props.deactivationConfirmation}
+            onClose={props.onCloseDeactivationConfirmation}
+          />
+        </>
+      )}
+      {audienceConfig.showRosterOpsPanels && (
+        <>
+          <ClientActivationQueueSlot authAxios={props.authAxios} selectedClient={props.selectedClient} onSelectClient={props.onSelectClient} onNavigate={props.onNavigate} />
+          <ClientNutritionRosterTriagePanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
+          <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
+        </>
+      )}
+      <ContentArea>
+        <ClientsWorkspaceContent {...props} />
+      </ContentArea>
+    </HubContainer>
+  );
+};
 
 export default ClientsWorkspaceView;

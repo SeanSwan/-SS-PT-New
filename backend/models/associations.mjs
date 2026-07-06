@@ -211,6 +211,7 @@ const setupAssociations = async () => {
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
     const MarketingCalendarItemModule = await import('./MarketingCalendarItem.mjs');
+    const MarketingCampaignModule = await import('./MarketingCampaign.mjs');
     const ContentProjectModule = await import('./ContentProject.mjs');
     const SocialPublishingAccountModule = await import('./SocialPublishingAccount.mjs');
     const SocialPublishingJobModule = await import('./SocialPublishingJob.mjs');
@@ -417,6 +418,7 @@ const setupAssociations = async () => {
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
     const MarketingCalendarItem = MarketingCalendarItemModule.default;
+    const MarketingCampaign = MarketingCampaignModule.default;
     const ContentProject = ContentProjectModule.default;
     const SocialPublishingAccount = SocialPublishingAccountModule.default;
     const SocialPublishingJob = SocialPublishingJobModule.default;
@@ -527,7 +529,7 @@ const setupAssociations = async () => {
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
-        MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+        MarketingCalendarItem, MarketingCampaign, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
@@ -1315,6 +1317,10 @@ const setupAssociations = async () => {
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
     User.hasMany(MarketingCalendarItem, { foreignKey: 'updatedBy', as: 'updatedMarketingCalendarItems', constraints: false });
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
+    // Campaign spine ↔ calendar items (Marketing OS Slice 3b)
+    MarketingCampaign.hasMany(MarketingCalendarItem, { foreignKey: 'campaignId', as: 'calendarItems', constraints: false });
+    MarketingCalendarItem.belongsTo(MarketingCampaign, { foreignKey: 'campaignId', as: 'campaign', constraints: false });
+    MarketingCampaign.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
     console.log('✅ Marketing Calendar model integrated');
 
     // Native Social Publishing Associations
@@ -1507,7 +1513,7 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
-      Lead, LeadActivity, MarketingCalendarItem, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
+      Lead, LeadActivity, MarketingCalendarItem, MarketingCampaign, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
 
       // AI Chat & Macro Logging Models
       AiConversation,

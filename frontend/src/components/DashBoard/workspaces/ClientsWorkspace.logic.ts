@@ -127,7 +127,7 @@ export const getClientLoggerReturnToFromSearchParams = (
   }
 
   if (parsed.origin !== CLIENT_HUB_RETURN_BASE) return null;
-  if (!/^\/dashboard\/admin\/workout-planner\/?$/.test(parsed.pathname)) return null;
+  if (!/^\/dashboard\/(admin|trainer)\/workout-planner\/?$/.test(parsed.pathname)) return null;
 
   const currentClientId = getClientIdFromSearchParams(searchParams);
   const returnClientId = getClientIdFromSearchParams(parsed.searchParams);

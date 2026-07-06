@@ -208,6 +208,32 @@ export function createMarketingReadinessService({
     }
   };
 
+  // ─── Campaigns (spine registry count) ────────────────────────────
+  const buildCampaigns = async () => {
+    try {
+      const m = resolveModels();
+      const MarketingCampaign = m?.MarketingCampaign;
+      let totalCampaigns = 0;
+      let activeCampaigns = 0;
+      if (MarketingCampaign) {
+        totalCampaigns = await MarketingCampaign.count();
+        activeCampaigns = await MarketingCampaign.count({ where: { status: 'active' } });
+      }
+      return {
+        status: STATUS.READY,
+        totalCampaigns,
+        activeCampaigns,
+        note: totalCampaigns === 0
+          ? 'No campaigns yet — the spine is ready; create one in the Overview.'
+          : `${activeCampaigns} active of ${totalCampaigns} total.`,
+        nextAction: totalCampaigns === 0 ? 'Create your first campaign to organize marketing work.' : null,
+      };
+    } catch (err) {
+      logger.warn('[marketingReadiness] campaigns subsystem unavailable:', err?.message);
+      return { status: STATUS.DEGRADED, error: 'campaign state unavailable' };
+    }
+  };
+
   // ─── Content tools (honest labs/demo flag) ───────────────────────
   const buildContentTools = () => ({
     status: STATUS.DEMO,
@@ -223,19 +249,20 @@ export function createMarketingReadinessService({
   });
 
   const getReadiness = async () => {
-    const [socialPublishing, automation, email, leadCapture, calendar] = await Promise.all([
+    const [socialPublishing, automation, email, leadCapture, calendar, campaigns] = await Promise.all([
       buildSocial(),
       buildAutomation(),
       buildEmail(),
       buildLeadCapture(),
       buildCalendar(),
+      buildCampaigns(),
     ]);
     const contentTools = buildContentTools();
-    const overall = rollup([socialPublishing, automation, email, leadCapture, calendar]);
+    const overall = rollup([socialPublishing, automation, email, leadCapture, calendar, campaigns]);
     return {
       overall,
       generatedAt: new Date().toISOString(),
-      subsystems: { socialPublishing, automation, email, leadCapture, calendar, contentTools },
+      subsystems: { socialPublishing, automation, email, leadCapture, calendar, campaigns, contentTools },
     };
   };
 

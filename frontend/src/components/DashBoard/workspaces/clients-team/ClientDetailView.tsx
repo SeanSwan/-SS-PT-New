@@ -48,6 +48,8 @@ interface ClientDetailViewProps {
   onBack: () => void;
   activeTab?: DetailTab;
   onTabChange?: (tab: DetailTab) => void;
+  /** Role-scoped tab allowlist; omit for the full admin tab set. */
+  visibleTabs?: DetailTab[];
   /** Render props for tab content — keeps this component lean */
   renderTraining?: (clientId: number | string) => React.ReactNode;
   /** Phase 15.3: truthful 12-chart progress view for the selected client. */
@@ -84,6 +86,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   onBack,
   activeTab: controlledActiveTab,
   onTabChange,
+  visibleTabs,
   renderTraining,
   renderProgress,
   renderNutrition,
@@ -92,7 +95,13 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   renderSettings,
 }) => {
   const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<DetailTab>('training');
-  const activeTab = controlledActiveTab ?? uncontrolledActiveTab;
+  const tabs = useMemo(() => (
+    visibleTabs ? TABS.filter((tab) => visibleTabs.includes(tab.id)) : TABS
+  ), [visibleTabs]);
+  const requestedActiveTab = controlledActiveTab ?? uncontrolledActiveTab;
+  const activeTab = tabs.some((tab) => tab.id === requestedActiveTab)
+    ? requestedActiveTab
+    : (tabs[0]?.id ?? 'training');
   const clientName = getClientDisplayName(client);
   const clientEmail = client.email?.trim() || 'No email on file';
   const clientStatus = client.status || 'status pending';
@@ -169,7 +178,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         </DetailHeader>
 
         <DetailTabBar role="tablist" aria-label="Client detail tabs">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <DetailTabButton
               type="button"
               key={tab.id}
