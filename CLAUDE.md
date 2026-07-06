@@ -543,6 +543,17 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
     - **R8 lanes:** keep a standing "owned area" in your lane file; current split — Codex = storefront purchase path + Coach + Social; Claude = admin product/catalog UI + money-path safety tests + cross-cutting infra; shared = `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, the coordination dir.
     - **Retention:** lane files overwrite in place (no growth); `review-queue.md`/`activity.log.md` pruned to 30 days / 256 KB by `scripts/coordination-prune.mjs` (gitignored+local → no history loss). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`. **Why:** Sean 2026-06-13 — tight real-time Claude↔Codex communication to avoid collisions, build faster, and catch each other's work via mutual hostile review, for the ~month until Fable 5 returns.
 
+68. **Fable-Grade Plan → Worker-Bot Build → Hermes Learning Loop (MANDATORY routing for major "Fable vision" initiatives)** — Established 2026-07-05 by Sean. Fable is expensive, so its highest-leverage use is producing **plans so complete a lower-tier worker-bot executes them verbatim in Fable's exact vision** — not hand-writing every line. The standing pipeline for any major remake/vision initiative:
+    ```
+    Opus 4.8 enhances the prompt + runs a grounded deep audit  →  AI Village 15-brain synthesis (paid, Rule 16 gated)
+      →  Fable synthesis = the FINAL ultra-comprehensive plan (mermaid + wireframes desktop&mobile + per-field data/API contract + numbered independently-shippable slices, each executable with ZERO further questions)
+      →  worker-bot builds slice-by-slice with recursive hostile review (Rule 17/41/61) until zero errors  →  push to Render
+      →  Hermes Learning Packet emitted from the Fable-tier output
+    ```
+    - **Fable's output contract** (11 required parts per workstream) lives in `docs/ai-workflow/brainstorms/FABLE-VISION-MASTER-BRIEF-2026-07-05.md §2`; the grounded reality it plans against lives in `docs/ai-workflow/AI-HANDOFF/FABLE-VISION-REBUILD-DEEP-AUDIT-2026-07-05.md`. A plan a worker-bot would have to ask Fable about is **incomplete** — that is the detail bar.
+    - **Hermes learns from Fable ONLY.** After any substantial workstream/phase/Fable synthesis, emit a **Hermes Learning Packet** via the `hermes-learning-packet` skill (`.claude/skills/hermes-learning-packet/SKILL.md`) so Hermes evolves without Sean re-typing. **Source gate is fail-closed to Fable-tier** (`claude-fable-5` or a future model Sean designates at/near Fable's level) — Opus 4.8, Codex, Gemini, and anything below Fable route to quarantine, NEVER the learning corpus. Because Sean has **subscriptions, not API keys**, tier is a stamped/trusted `originating_model` provenance tag, not an API check. Packets are privacy-safe (IDs/roles only, two-layer secret scan reusing `continuity-append.mjs` plumbing), **durable/compounding** at `docs/ai-workflow/hermes-learning-packets/` (not the 30 KB-trimmed continuity log), and delivered over the **already-proven** Pi daemon SSH/cat read path (`HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md`) — extend that read list; do not invent a new transport. Trigger is manual by default ("feed Hermes"); auto-after-Fable is opt-in via the `prompt-watcher` hook model.
+    - **Guardrails:** AI Village stays Rule-16 paid/gated; the Karpathy Wiki (intended long-term Hermes corpus) is BLOCKED on Pi SSD/power hardware, so packets compound in-repo until it clears; never touch the Pi without Sean. **Why:** Sean 2026-07-05 — "have Fable give us as much plans as possible… so we can build it as though Fable were going to build it, but a worker bot builds it… and give Hermes a summary at the end of everything worth it so Hermes can learn and evolve without me typing it in all the time — from Fable and Fable only."
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -775,11 +786,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11, `.claude/skills/` count = 20)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05, `.claude/skills/` documented count = 21)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 20 entries
+### Default-exposed `.claude/skills/` = 21 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -790,7 +801,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (6):**
+**Swan orchestration (7):**
 | Skill | Role |
 |---|---|
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
@@ -799,6 +810,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
+| `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
 
 **KEEP core (9):**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-workout-video`, `seedance-swan-cinematic-video`
