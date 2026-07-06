@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   const sendGridEmail = vi.fn();
   const sendPasswordResetEmailForUser = vi.fn();
   const generateClaimToken = vi.fn();
+  const adminAuditCreate = vi.fn().mockResolvedValue({ id: 1 });
   const getAllModels = vi.fn(() => ({
     User: userModel,
     ClientProgress: clientProgressModel,
@@ -36,6 +37,7 @@ const mocks = vi.hoisted(() => {
     sendGridEmail,
     sendPasswordResetEmailForUser,
     generateClaimToken,
+    adminAuditCreate,
     getAllModels
   };
 });
@@ -55,7 +57,7 @@ vi.mock('../../database.mjs', () => ({
 // create/update of sensitive account fields; stub it so the direct import does
 // not init the real model against the mocked database (and audit writes no-op).
 vi.mock('../../models/AdminAccountAuditLog.mjs', () => ({
-  default: { create: vi.fn().mockResolvedValue({ id: 1 }) }
+  default: { create: mocks.adminAuditCreate }
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
@@ -574,5 +576,45 @@ describe('admin client lifecycle controller runtime behavior', () => {
     });
     expect(res.body.data).not.toHaveProperty('temporaryPassword');
     expect(JSON.stringify(res.body)).not.toContain(generatedSecret);
+  });
+
+  it('updateClient writes exactly one append-only audit row for a billing-mode flip', async () => {
+    mocks.userModel.findOne.mockResolvedValue(
+      buildClient({ sessionBillingMode: 'paid_sessions', reload: vi.fn().mockResolvedValue({ id: 301 }) }),
+    );
+    const res = buildResponse();
+    await adminClientController.updateClient(
+      { params: { clientId: '301' }, body: { sessionBillingMode: 'no_session_required' }, user: { id: 7, role: 'admin' } },
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    // pessimistic lock requested on the fetch (race-safe snapshot)
+    expect(mocks.userModel.findOne.mock.calls[0][0]).toMatchObject({ lock: true });
+    expect(mocks.adminAuditCreate).toHaveBeenCalledTimes(1);
+    const [payload, opts] = mocks.adminAuditCreate.mock.calls[0];
+    expect(payload).toMatchObject({
+      actorUserId: 7,
+      targetUserId: 301,
+      action: 'admin_client_account_update',
+      previousState: { sessionBillingMode: 'paid_sessions' },
+      nextState: { sessionBillingMode: 'no_session_required' },
+    });
+    expect(opts).toMatchObject({ transaction: mocks.transaction });
+    expect(mocks.transaction.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('updateClient does NOT audit a profile-only change (no sensitive field touched)', async () => {
+    mocks.userModel.findOne.mockResolvedValue(
+      buildClient({ firstName: 'Old', reload: vi.fn().mockResolvedValue({ id: 301 }) }),
+    );
+    const res = buildResponse();
+    await adminClientController.updateClient(
+      { params: { clientId: '301' }, body: { firstName: 'New' }, user: { id: 7, role: 'admin' } },
+      res,
+    );
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(mocks.adminAuditCreate).not.toHaveBeenCalled();
   });
 });
