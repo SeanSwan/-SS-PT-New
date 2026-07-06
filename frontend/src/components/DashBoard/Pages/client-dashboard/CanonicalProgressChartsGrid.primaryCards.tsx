@@ -28,6 +28,8 @@ import {
   describeIntensitySource,
 } from '../../progress-proof/progressChartFacts';
 import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
+import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
+import { buildWorkoutFrequencyRows } from './CanonicalProgressChartsGrid.expandRows';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
 import {
   durationLineProps,
@@ -57,28 +59,15 @@ export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data })
   // Slice 9: tap a week bar (or the button) to open that training week.
   const [tappedWeek, setTappedWeek] = React.useState<string | null>(null);
   const latestWeek = data.length > 0 ? String(data[data.length - 1].x) : null;
-
-  return (
-    <ChartCard data-testid="chart-card-workoutFrequency">
-      <CardHeader>
-        <CardIcon><Calendar size={16} /></CardIcon>
-        <CardTitle>Workout Frequency</CardTitle>
-        <CardSubtitle>12 weeks - tap a bar</CardSubtitle>
-      </CardHeader>
-      <ChartBody>
-        {data.length === 0 ? (
-          <EmptyCard label="No completed workouts yet" hint="Log your first session to start the streak." />
-        ) : (
-          <>
-            <ProgressChartInsightBar
-              pulse={buildProgressChartPulse(data, { label: 'Frequency Pulse', unit: 'workouts' })}
-              facts={buildSeriesFacts(data, { unit: 'workouts', pointsLabel: 'wks' })}
-            />
-            <VictoryChart
-              theme={victoryTheme as any}
-              height={200}
-              padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-            >
+  const freqPulse = buildProgressChartPulse(data, { label: 'Frequency Pulse', unit: 'workouts' });
+  const freqFacts = buildSeriesFacts(data, { unit: 'workouts', pointsLabel: 'wks' });
+  const renderFrequencyChart = (width?: number, height = 200) => (
+    <VictoryChart
+      theme={victoryTheme as any}
+      height={height}
+      {...(width ? { width } : {})}
+      padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+    >
               <VictoryAxis tickFormat={(t) => String(t)} />
               <VictoryAxis dependentAxis />
               <VictoryBar
@@ -97,7 +86,31 @@ export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data })
                   },
                 }]}
               />
-            </VictoryChart>
+    </VictoryChart>
+  );
+
+  return (
+    <ChartCard data-testid="chart-card-workoutFrequency">
+      <CardHeader>
+        <CardIcon><Calendar size={16} /></CardIcon>
+        <CardTitle>Workout Frequency</CardTitle>
+        <CardSubtitle>12 weeks - tap a bar</CardSubtitle>
+        <ChartExpandTrigger
+          title="Workout Frequency"
+          subtitle="Distinct training days per week"
+          renderChart={renderFrequencyChart}
+          rows={buildWorkoutFrequencyRows(data)}
+          pulse={freqPulse}
+          facts={freqFacts}
+        />
+      </CardHeader>
+      <ChartBody>
+        {data.length === 0 ? (
+          <EmptyCard label="No completed workouts yet" hint="Log your first session to start the streak." />
+        ) : (
+          <>
+            <ProgressChartInsightBar pulse={freqPulse} facts={freqFacts} />
+            {renderFrequencyChart()}
           </>
         )}
       </ChartBody>

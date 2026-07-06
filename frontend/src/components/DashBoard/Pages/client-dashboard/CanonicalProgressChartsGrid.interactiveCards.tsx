@@ -21,6 +21,8 @@ import {
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import ProgressChartActionBar from '../../progress-proof/ProgressChartActionBar';
+import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
+import { buildWeeklyVolumeCsvRows, buildWeeklyVolumeDrilldownRows } from './CanonicalProgressChartsGrid.expandRows';
 import ChartWeekDrillTrigger from './ChartWeekDrillTrigger';
 import {
   buildProgressChartPulse,
@@ -182,12 +184,25 @@ export const WeeklyVolumeCard: React.FC<{
     unit: 'lbs',
   }), [visibleData]);
   const summary = summarizeTopPoint(visibleData, 'lbs');
-  const rows = visibleData.map((row) => ({
-    id: row.x,
-    label: row.x,
-    value: `${formatWhole(row.y)} lbs`,
-    detail: `${row.workouts ?? 0} logged workout${row.workouts === 1 ? '' : 's'} in this point.`,
-  }));
+  const rows = buildWeeklyVolumeDrilldownRows(visibleData);
+  const renderVolumeChart = (width?: number, height = 200) => (
+    <VictoryChart
+      theme={victoryTheme as any}
+      height={height}
+      {...(width ? { width } : {})}
+      padding={{ top: 16, bottom: 40, left: 52, right: 12 }}
+      containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+    >
+      <VictoryAxis />
+      <VictoryAxis dependentAxis />
+      <VictoryArea
+        data={visibleData}
+        {...weeklyVolumeAreaProps}
+        labels={({ datum }) => `${datum.x}: ${formatWhole(datum.y)} lbs`}
+        labelComponent={<VictoryTooltip renderInPortal={false} />}
+      />
+    </VictoryChart>
+  );
 
   return (
     <ChartCard data-testid="chart-card-weeklyVolume">
@@ -195,15 +210,18 @@ export const WeeklyVolumeCard: React.FC<{
         <CardIcon $color={CHART_COLORS.wingPurple}><BarChart3 size={16} /></CardIcon>
         <CardTitle>Weekly Training Volume</CardTitle>
         <CardSubtitle>{PROGRESS_CHART_RANGE_LABELS[range]}</CardSubtitle>
+        <ChartExpandTrigger
+          title="Weekly Training Volume"
+          subtitle={PROGRESS_CHART_RANGE_LABELS[range]}
+          renderChart={renderVolumeChart}
+          rows={rows}
+          pulse={pulse}
+        />
       </CardHeader>
       <ProgressChartActionBar
         chartId="weekly-volume"
         chartTitle="Weekly Training Volume"
-        csvRows={visibleData.map((row) => ({
-          week: row.x,
-          volume_lbs: Math.round(row.y),
-          workouts: row.workouts,
-        }))}
+        csvRows={buildWeeklyVolumeCsvRows(visibleData)}
         drilldownRows={rows}
         filename="swan-weekly-volume.csv"
         pulse={pulse}
@@ -214,23 +232,7 @@ export const WeeklyVolumeCard: React.FC<{
       <ChartBody data-chart-export="weekly-volume">
         {visibleData.length === 0 ? (
           <EmptyCard label="No logged lifts yet" hint="Sets x reps x weight will populate once workouts are logged." />
-        ) : (
-          <VictoryChart
-            theme={victoryTheme as any}
-            height={200}
-            padding={{ top: 16, bottom: 40, left: 52, right: 12 }}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryArea
-              data={visibleData}
-              {...weeklyVolumeAreaProps}
-              labels={({ datum }) => `${datum.x}: ${formatWhole(datum.y)} lbs`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryChart>
-        )}
+        ) : renderVolumeChart()}
       </ChartBody>
       {/* Slice 9: set-level week drill-down (button path — the area chart has
           no visible point targets and voronoi owns its pointer events). */}
