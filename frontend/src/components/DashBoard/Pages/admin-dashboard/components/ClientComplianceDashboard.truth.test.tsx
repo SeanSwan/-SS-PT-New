@@ -1,4 +1,5 @@
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
@@ -51,7 +52,7 @@ describe('ClientComplianceDashboard truth handling', () => {
       },
     });
 
-    render(<ClientComplianceDashboard />);
+    render(<MemoryRouter><ClientComplianceDashboard /></MemoryRouter>);
 
     await waitFor(() => expect(screen.getByText('Live Client')).toBeInTheDocument());
     expect(screen.getByText('Compliance dropped to 42%')).toBeInTheDocument();
@@ -78,7 +79,7 @@ describe('ClientComplianceDashboard truth handling', () => {
       },
     });
 
-    render(<ClientComplianceDashboard />);
+    render(<MemoryRouter><ClientComplianceDashboard /></MemoryRouter>);
 
     await waitFor(() => expect(screen.getByText('Free Tracking')).toBeInTheDocument());
     expect(screen.getByText('No workouts in 12 days')).toBeInTheDocument();
@@ -88,7 +89,7 @@ describe('ClientComplianceDashboard truth handling', () => {
   it('shows unavailable state instead of demo clients when the API fails', async () => {
     mockAuthAxios.get.mockRejectedValueOnce(new Error('network down'));
 
-    render(<ClientComplianceDashboard />);
+    render(<MemoryRouter><ClientComplianceDashboard /></MemoryRouter>);
 
     await waitFor(() => expect(screen.getByText('Compliance data could not be loaded.')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();

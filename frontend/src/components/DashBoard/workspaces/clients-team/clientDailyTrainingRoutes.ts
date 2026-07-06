@@ -53,6 +53,13 @@ const buildClientDailyParams = (
   return params.toString();
 };
 
+/** Plain Client Hub deep link (no training section) — the canonical
+ *  "open this client's profile" target for intervention surfaces. */
+export const buildClientProfileRoute = (
+  clientId: number | string,
+  audience: ClientHubAudience = 'admin',
+) => buildClientManagementReturnTo(clientId, undefined, audience);
+
 export const buildClientCoachDailyRoute = (
   clientId: number | string,
   intent: ClientDailyIntent = 'log_workout',

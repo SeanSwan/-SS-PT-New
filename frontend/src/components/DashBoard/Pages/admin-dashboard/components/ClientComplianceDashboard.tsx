@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
@@ -16,6 +17,7 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { buildClientProfileRoute } from '../../../workspaces/clients-team/clientDailyTrainingRoutes';
 import { CommandCard } from '../AdminDashboardCards';
 import {
   ActionBtns,
@@ -79,8 +81,14 @@ type FilterType = 'all' | RiskLevel;
 const filters: FilterType[] = ['all', 'critical', 'warning', 'watch'];
 const isRiskFilter = (value: FilterType): value is RiskLevel => value !== 'all';
 
+/** Messages surface for check-ins. Client preselect needs deep-link support
+ *  in the messaging page — owned by the comms lane (unmerged WIP branch),
+ *  so this routes to the surface without touching messaging internals. */
+const ADMIN_MESSAGES_ROUTE = '/dashboard/admin/messages';
+
 const ClientComplianceDashboard: React.FC = () => {
   const { authAxios } = useAuth();
+  const navigate = useNavigate();
   const [clients, setClients] = useState<AtRiskClient[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
@@ -107,6 +115,15 @@ const ClientComplianceDashboard: React.FC = () => {
   useEffect(() => {
     fetchCompliance();
   }, [fetchCompliance]);
+
+  const openClientProfile = useCallback((clientId: number) => {
+    const route = buildClientProfileRoute(clientId);
+    if (route) navigate(route);
+  }, [navigate]);
+
+  const openCheckInCompose = useCallback(() => {
+    navigate(ADMIN_MESSAGES_ROUTE);
+  }, [navigate]);
 
   const filtered = filter === 'all' ? clients : clients.filter(c => c.riskLevel === filter);
   const counts: Record<RiskLevel, number> = {
@@ -213,8 +230,8 @@ const ClientComplianceDashboard: React.FC = () => {
                     <SessionBadge><TrendingDown size={12} /> {client.sessionsRemaining} left</SessionBadge>
                   )}
                   <ActionBtns>
-                    <SmallBtn type="button" aria-label={`Send check-in to ${client.firstName} ${client.lastName}`}><Send size={14} /></SmallBtn>
-                    <SmallBtn type="button" aria-label={`View ${client.firstName} ${client.lastName} profile`}><Eye size={14} /></SmallBtn>
+                    <SmallBtn type="button" onClick={openCheckInCompose} aria-label={`Send check-in to ${client.firstName} ${client.lastName}`}><Send size={14} /></SmallBtn>
+                    <SmallBtn type="button" onClick={() => openClientProfile(client.id)} aria-label={`View ${client.firstName} ${client.lastName} profile`}><Eye size={14} /></SmallBtn>
                   </ActionBtns>
                 </Actions>
               </ClientRow>
