@@ -100,6 +100,7 @@ describe('ChartExpandTrigger', () => {
     );
     expect(interactive).toContain('<ChartExpandTrigger');
     expect(interactive).toContain('title="Weekly Training Volume"');
+    expect(interactive).toContain('title="Total Sets & Reps"');
     expect(primary).toContain('<ChartExpandTrigger');
     expect(primary).toContain('title="Workout Frequency"');
     // §3 guardrail: the milestone-share surface ships untouched in 2.2a.
