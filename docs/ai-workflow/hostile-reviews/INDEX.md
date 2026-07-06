@@ -16,6 +16,10 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
 ## Summary
 | ID | Target | Owner | Status | Reviews |
 |----|--------|-------|--------|---------|
+| HR-008 | Gamification progression fix (level curve + progress charts) | Fable | OPEN | 0 |
+| HR-007 | Dynamic session pricing / specials (WIP, money path) | Fable/Codex | OPEN | 0 |
+| HR-006 | Client Command Center / trainer-clients dashboard | Fable | OPEN | 0 |
+| HR-005 | Marketing OS batch (marketing command center) | Fable/Codex | OPEN | 0 |
 | HR-004 | Hostile Review Slam Registry (this PR) | Claude (Opus 4.8) | OPEN | 0 |
 | HR-003 | PR #20 — companion pet security hardening | Claude (Opus 4.8) | OPEN | 0 |
 | HR-002 | PR #19 — dormant `gamificationRoutes.mjs` deletion + Rule-48 audit | Claude (Opus 4.8) | OPEN | 0 |
@@ -67,6 +71,44 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
   are additive and don't collide with a rule/section; confirm the protocol is clear enough for any
   AI to run a Slam unattended; confirm it doesn't duplicate or contradict the coordination
   review-queue.
+- **Review passes:**
+  - _(none yet — needs a hostile pass)_
+
+---
+
+### HR-005 — Marketing OS batch (marketing command center)
+- **Status:** OPEN
+- **Owner:** Fable/Codex (recent `origin/main` push — confirm owner)
+- **Link:** `origin/main` @ `5ce21ea0c` "feat(marketing): Marketing OS batch — campaign spine + UI + calendar link + lead filters (Slices 2/3a/3b/LCC-1)"; related WIP on `origin/wip/handoff-2026-07-05` @ `80af9c3e5`.
+- **Added:** 2026-07-05 (Sean-directed handoff)
+- **Why review:** the Marketing Command Center is the #1 acquisition focus. Viciously review the campaign spine, lead filters, calendar link, and lead-capture path — authorization on admin marketing routes, input validation, secrets, PII in campaigns (Rule 8), and lead/money-path correctness.
+- **Review passes:**
+  - _(none yet — needs a hostile pass)_
+
+### HR-006 — Client Command Center / trainer-clients dashboard
+- **Status:** OPEN
+- **Owner:** Fable (SESSION-Q) — confirm owner
+- **Link:** `origin/main` @ `3f4808d56` "feat(trainer): mount the selected-client command workspace at /dashboard/trainer/clients" + `628233f6f` "SESSION-Q Client Command Center handoff + rule-48 audit record".
+- **Added:** 2026-07-05 (Sean-directed handoff)
+- **Why review:** recently-shipped dashboard/workspace. Confirm canonical-surface mount (Rule 26), per-user/role scoping (a trainer sees only assigned clients — IDOR), data-truth of the surfaced charts, and mobile/4K responsiveness (Rule 24).
+- **Review passes:**
+  - _(none yet — needs a hostile pass)_
+
+### HR-007 — Dynamic session pricing / specials (WIP — money path)
+- **Status:** OPEN
+- **Owner:** Fable/Codex (WIP — confirm owner + the branch/PR it lands on)
+- **Link:** WIP snapshot on `origin/wip/handoff-2026-07-05` @ `80af9c3e5` (marketing/specials). NOTE: not yet on a clean feature branch/main — locate the real branch/PR when it lands before clearing.
+- **Added:** 2026-07-05 (Sean-directed handoff)
+- **Why review:** **MONEY PATH — highest stakes (Rule 16/50).** Vicious review of price computation correctness, who can set/override pricing (authorization, no client-side price trust), rounding/currency, and any path that could under/over-charge. Flag anything Stripe/billing-adjacent for the paid-Village gate before merge.
+- **Review passes:**
+  - _(none yet — needs a hostile pass)_
+
+### HR-008 — Gamification progression fix (level curve + progress charts)
+- **Status:** OPEN
+- **Owner:** Fable (SESSION-M / progress) — confirm owner
+- **Link:** `origin/main` @ `5e190ea3e` "fix(gamification): replace sqrt level curve with sane power curve (L25 62.5k->~12.9k)" + `3d1e636d7` "feat(progress): truthful chart insight layer + body-composition panel across admin and client grids"; handoff `8408a06cf`.
+- **Added:** 2026-07-05 (Sean-directed handoff)
+- **Why review:** progression/leveling curve + progress charts. Confirm the new level-curve math is correct + monotonic (no regression to existing users' displayed levels), idempotency on awards (no double-award), schema drift on progress data (Rule 58), and data-truth of the chart insight layer.
 - **Review passes:**
   - _(none yet — needs a hostile pass)_
 
