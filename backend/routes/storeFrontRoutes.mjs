@@ -595,16 +595,22 @@ router.get('/:id', async (req, res) => {
 
     const item = await StorefrontItem.findOne({
       where: {
-        id: itemId
-        // Removed pricing constraint to ensure all packages are visible
+        id: itemId,
+        // Hidden per-client "SwanStudios Special" items are NEVER served by the
+        // public single-item endpoint (HR-007-F1): this route has no auth, and ids
+        // are sequential, so without this filter anyone could enumerate a special
+        // by id and read another client's private deal terms. The owning client
+        // reads their special via the authenticated GET /api/custom-packages/my.
+        // Mirrors the public list filter (GET '/' -> whereClause.isSpecialOffer=false).
+        isSpecialOffer: false
       },
       include: await resolveProductVariantInclude()
     });
-    
+
     if (!item) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Item not found or does not meet pricing requirements' 
+        message: 'Item not found or does not meet pricing requirements'
       });
     }
     
