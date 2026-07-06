@@ -59,6 +59,8 @@ import {
 } from '../utils/stripeCheckoutSessionErrors.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import archiver from 'archiver';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 const router = express.Router();
 
@@ -86,6 +88,18 @@ const downloadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 200,
   message: { success: false, error: 'Download limit reached. Please try again later.' },
+});
+
+// Tighter limiter for full-gallery ZIP downloads (each request streams the whole
+// event through the server). Keyed per-visitor (auth runs first, so the token's
+// visitorId is always present) so one client can't be blocked by a shared IP.
+const downloadAllLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 15,
+  message: { success: false, error: 'Too many full-gallery downloads. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `ga_${req.galleryAccess?.visitorId ?? 'anon'}`,
 });
 
 /**
@@ -385,6 +399,134 @@ router.get('/photos/:id/download', downloadLimiter, requireGalleryAccess, async 
   } catch (err) {
     logger.error('[Gallery] Download error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to download photo' });
+  }
+});
+
+/**
+ * GET /api/gallery/events/:slug/download-all
+ * Stream every photo in the event as a single ZIP (requires gallery access).
+ * Streams one R2 object at a time to keep memory flat on Render; JPEGs are
+ * STORED (level 0 — already compressed). ALL guards run BEFORE any bytes/headers
+ * are written, because once the zip stream starts a JSON error can't be sent.
+ * The bytes served are the same watermarked storage_key objects the single
+ * download serves — no un-watermarked path is introduced.
+ * Auth runs before the limiter so unauthenticated hits don't burn the budget.
+ */
+router.get('/events/:slug/download-all', requireGalleryAccess, downloadAllLimiter, async (req, res) => {
+  if (req.galleryAccess.slug !== req.params.slug) {
+    return res.status(403).json({ success: false, error: 'Access token does not match this event' });
+  }
+
+  let photos;
+  try {
+    [photos] = await sequelize.query(
+      `SELECT photo_number as "photoNumber", display_name as "displayName", storage_key as "storageKey"
+       FROM gallery_photos WHERE event_id = :eventId ORDER BY photo_number ASC`,
+      { replacements: { eventId: req.galleryAccess.eventId } }
+    );
+  } catch (err) {
+    logger.error('[Gallery] download-all query error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load photos' });
+  }
+
+  if (!photos || photos.length === 0) {
+    return res.status(404).json({ success: false, error: 'No photos to download' });
+  }
+
+  // R2 must be configured to stream originals (local dev may use data: URIs).
+  let r2Client;
+  try {
+    const { getR2Client, r2Configured } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.status(503).json({ success: false, error: 'Photo storage is not configured for downloads' });
+    }
+    r2Client = getR2Client();
+  } catch (err) {
+    logger.error('[Gallery] download-all R2 init error:', err.message);
+    return res.status(503).json({ success: false, error: 'Photo storage is unavailable' });
+  }
+
+  const bucket = process.env.R2_BUCKET_NAME;
+  const zipName = `${req.params.slug}-photos.zip`;
+
+  // ── From here on bytes may flow — no more JSON responses. ──
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`);
+
+  const archive = archiver('zip', { store: true });
+  let aborted = false;
+
+  archive.on('warning', (err) => logger.warn('[Gallery] download-all archive warning:', err?.message));
+  archive.on('error', (err) => {
+    logger.error('[Gallery] download-all archive error:', err?.message);
+    aborted = true;
+    if (!res.writableEnded) res.destroy(err);
+  });
+
+  // Client disconnected mid-stream — stop reading R2 and tear down.
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      aborted = true;
+      archive.destroy();
+    }
+  });
+
+  archive.pipe(res);
+
+  const usedNames = new Set();
+  let added = 0;
+
+  for (const photo of photos) {
+    if (aborted) break;
+    if (!photo.storageKey) continue;
+
+    const safeName = String(photo.displayName || 'photo')
+      .replace(/[\\/:*?"<>| -]/g, '_')
+      .slice(0, 120);
+    let entryName = `${String(photo.photoNumber).padStart(3, '0')}_${safeName}.jpg`;
+    let dedupe = 1;
+    while (usedNames.has(entryName)) {
+      entryName = `${String(photo.photoNumber).padStart(3, '0')}_${dedupe++}_${safeName}.jpg`;
+    }
+    usedNames.add(entryName);
+
+    try {
+      const obj = await r2Client.send(new GetObjectCommand({ Bucket: bucket, Key: photo.storageKey }));
+      // Append this stream and wait until archiver finishes consuming it before
+      // opening the next R2 object — keeps ~1 object in flight (flat memory).
+      // Settle on the entry event OR any error (never hang the loop).
+      await new Promise((resolve, reject) => {
+        const onEntry = () => { cleanup(); resolve(); };
+        const onErr = (e) => { cleanup(); reject(e); };
+        const cleanup = () => {
+          archive.off('entry', onEntry);
+          archive.off('error', onErr);
+          obj.Body.off('error', onErr);
+        };
+        archive.once('entry', onEntry);
+        archive.once('error', onErr);
+        obj.Body.once('error', onErr);
+        archive.append(obj.Body, { name: entryName });
+      });
+      added += 1;
+    } catch (err) {
+      logger.error(`[Gallery] download-all skip ${photo.storageKey}:`, err?.message);
+      // Skip a single unreadable object rather than failing the whole zip.
+    }
+  }
+
+  if (aborted) return;
+
+  if (added === 0) {
+    // Nothing could be read — the stream has started, so we can only end it.
+    logger.error('[Gallery] download-all: no readable photos for event', req.galleryAccess.eventId);
+  }
+
+  try {
+    await archive.finalize();
+  } catch (err) {
+    logger.error('[Gallery] download-all finalize error:', err?.message);
+    if (!res.writableEnded) res.destroy(err);
   }
 });
 
