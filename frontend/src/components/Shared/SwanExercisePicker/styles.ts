@@ -158,6 +158,34 @@ export const AddButton = styled.button`
   }
 `;
 
+export const DetailsButton = styled.button`
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.2));
+  background: transparent;
+  color: var(--accent-primary, #60c0f0);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-glow, #8b5cf6);
+    outline-offset: 2px;
+  }
+`;
+
+export const RowMedia = styled.div`
+  width: 72px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg-base, #0a0a0f);
+`;
+
 export const StateMessage = styled.p`
   margin: 0;
   padding: 1.25rem 0.75rem;

@@ -35,8 +35,10 @@ export interface SwanPickerModeConfig {
   showEquipmentFilter: boolean;
   /** Section-context narrowing (warmup/balance_core/cooldown) — logger lane. */
   showSectionFilter: boolean;
-  /** Media thumbnails in rows — 2.3b surface, typed now for the contract. */
+  /** Media thumbnails in rows (2.3b). */
   showMedia: boolean;
+  /** Row details trigger + coaching-cues preview sheet (2.3b). */
+  showPreview: boolean;
   /** Accessible action: `${actionLabel} ${exercise.name}${actionAriaSuffix}`. */
   actionLabel: string;
   actionAriaSuffix: string;
@@ -51,6 +53,7 @@ export const SWAN_PICKER_MODES: Record<SwanPickerMode, SwanPickerModeConfig> = {
     showEquipmentFilter: true,
     showSectionFilter: true,
     showMedia: true,
+    showPreview: true,
     actionLabel: 'Select',
     actionAriaSuffix: '',
     rowHeight: 96,
@@ -62,6 +65,7 @@ export const SWAN_PICKER_MODES: Record<SwanPickerMode, SwanPickerModeConfig> = {
     showEquipmentFilter: true,
     showSectionFilter: false,
     showMedia: true,
+    showPreview: true,
     actionLabel: 'Add',
     actionAriaSuffix: ' to class',
     rowHeight: 96,
@@ -73,6 +77,7 @@ export const SWAN_PICKER_MODES: Record<SwanPickerMode, SwanPickerModeConfig> = {
     showEquipmentFilter: false,
     showSectionFilter: false,
     showMedia: false,
+    showPreview: false,
     actionLabel: 'Add',
     actionAriaSuffix: ' to workout',
     rowHeight: 88,
@@ -84,6 +89,7 @@ export const SWAN_PICKER_MODES: Record<SwanPickerMode, SwanPickerModeConfig> = {
     showEquipmentFilter: true,
     showSectionFilter: false,
     showMedia: false,
+    showPreview: true,
     actionLabel: 'Add',
     actionAriaSuffix: ' to workout',
     rowHeight: 88,
@@ -95,6 +101,7 @@ export const SWAN_PICKER_MODES: Record<SwanPickerMode, SwanPickerModeConfig> = {
     showEquipmentFilter: false,
     showSectionFilter: false,
     showMedia: false,
+    showPreview: true,
     actionLabel: 'Add',
     actionAriaSuffix: ' to workout',
     rowHeight: 88,

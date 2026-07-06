@@ -10,8 +10,10 @@
 import React, { useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { List } from 'react-window';
+import { Eye } from 'lucide-react';
+import ExerciseMediaPreview from '../../WorkoutLogger/ExerciseMediaPreview';
 import { exerciseLevel } from './filters';
-import { AddButton, ListViewport, MetaTag, RowBody, RowCard, RowMeta, RowName } from './styles';
+import { AddButton, DetailsButton, ListViewport, MetaTag, RowBody, RowCard, RowMedia, RowMeta, RowName } from './styles';
 import type { ExerciseSlim, SwanPickerModeConfig } from './types';
 
 const MAX_VISIBLE_MUSCLES = 3;
@@ -20,12 +22,15 @@ export interface SwanExercisePickerListProps {
   exercises: ExerciseSlim[];
   config: SwanPickerModeConfig;
   onSelect: (exercise: ExerciseSlim) => void;
+  /** Opens the coaching-cues preview sheet (rendered when config.showPreview). */
+  onPreview?: (exercise: ExerciseSlim) => void;
 }
 
 const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
   exercises,
   config,
   onSelect,
+  onPreview,
 }) => {
   const RowRenderer = useCallback(({ index, style }: { index: number; style: CSSProperties }) => {
     const exercise = exercises[index];
@@ -36,6 +41,11 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
     return (
       <div style={style}>
         <RowCard>
+          {config.showMedia && (
+            <RowMedia data-testid="swan-picker-row-media">
+              <ExerciseMediaPreview exercise={exercise} variant="thumbnail" />
+            </RowMedia>
+          )}
           <RowBody>
             <RowName>{exercise.name}</RowName>
             <RowMeta>
@@ -47,6 +57,15 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
               {hidden > 0 && <MetaTag>+{hidden} more</MetaTag>}
             </RowMeta>
           </RowBody>
+          {config.showPreview && onPreview && (
+            <DetailsButton
+              type="button"
+              onClick={() => onPreview(exercise)}
+              aria-label={`Preview ${exercise.name}`}
+            >
+              <Eye size={16} aria-hidden="true" />
+            </DetailsButton>
+          )}
           <AddButton
             type="button"
             onClick={() => onSelect(exercise)}
@@ -57,7 +76,7 @@ const SwanExercisePickerList: React.FC<SwanExercisePickerListProps> = ({
         </RowCard>
       </div>
     );
-  }, [exercises, config.actionLabel, onSelect]);
+  }, [exercises, config, onSelect, onPreview]);
 
   const height = Math.min(exercises.length, config.visibleRows) * config.rowHeight;
 

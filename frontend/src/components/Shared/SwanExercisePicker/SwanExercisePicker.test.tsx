@@ -7,7 +7,7 @@
  * virtualization + 44px touch targets.
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -61,7 +61,13 @@ vi.mock('../../WorkoutLogger/useExerciseSearch', () => ({
   }),
 }));
 
+/* Preview's lazy cues fetch — not under test here. */
+vi.mock('../../../features/teach-mode/hooks/useExerciseTeachData', () => ({
+  useExerciseTeachData: () => ({ data: null, isLoading: false, error: null, refetch: vi.fn() }),
+}));
+
 import SwanExercisePicker from './SwanExercisePicker';
+import { SWAN_PICKER_MODES } from './types';
 
 const setPool = (pool: ExerciseSlim[]) => {
   searchState.results = pool;
@@ -120,6 +126,31 @@ describe('SwanExercisePicker', () => {
     render(<SwanExercisePicker mode="workout-page" onSelect={vi.fn()} />);
     expect(screen.getByText(/840 of 840 exercises/i)).toBeInTheDocument();
     expect(screen.getByTestId('swan-picker-virtual-list')).toBeInTheDocument();
+  });
+
+  it('opens the preview sheet from the row details trigger, and adding from it emits + closes (workout-page)', () => {
+    const pool = [makeExercise(1, { name: 'Barbell Squat' })];
+    setPool(pool);
+    const onSelect = vi.fn();
+    render(<SwanExercisePicker mode="workout-page" onSelect={onSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /preview barbell squat/i }));
+    const dialog = screen.getByRole('dialog', { name: /barbell squat/i });
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /add barbell squat to workout/i }));
+    expect(onSelect).toHaveBeenCalledWith(pool[0]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('locks preview ON for the live workout-page mode and renders row media only when the mode says so', () => {
+    expect(SWAN_PICKER_MODES['workout-page'].showPreview).toBe(true);
+    setPool([makeExercise(1)]);
+    const { unmount } = render(<SwanExercisePicker mode="bootcamp-station" onSelect={vi.fn()} />);
+    expect(screen.getByTestId('swan-picker-row-media')).toBeInTheDocument();
+    unmount();
+    render(<SwanExercisePicker mode="workout-page" onSelect={vi.fn()} />);
+    expect(screen.queryByTestId('swan-picker-row-media')).toBeNull();
   });
 
   it('virtualizes via react-window and keeps 44px touch targets (source locks)', () => {

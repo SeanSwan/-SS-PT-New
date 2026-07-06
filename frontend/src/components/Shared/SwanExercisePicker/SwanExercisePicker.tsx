@@ -9,9 +9,11 @@
  * consumer maps to its own shape at its own edge (see the workout-page
  * ExerciseSelector adapter for the reference pattern).
  */
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import SwanExercisePickerSearchBar from './SwanExercisePickerSearchBar';
 import SwanExercisePickerList from './SwanExercisePickerList';
+import SwanExercisePickerPreview from './SwanExercisePickerPreview';
+import SwanExercisePickerSheet from './SwanExercisePickerSheet';
 import { useSwanExercisePicker } from './useSwanExercisePicker';
 import { PickerContainer, PickerHeader, ResultCount, StateMessage } from './styles';
 import { SWAN_PICKER_MODES } from './types';
@@ -29,6 +31,13 @@ const SwanExercisePicker: React.FC<SwanExercisePickerProps> = ({
 }) => {
   const config = SWAN_PICKER_MODES[options.mode];
   const picker = useSwanExercisePicker(options);
+  const [previewExercise, setPreviewExercise] = useState<ExerciseSlim | null>(null);
+
+  // Adding from the preview both emits and dismisses the sheet — one tap.
+  const handlePreviewAction = useCallback((exercise: ExerciseSlim) => {
+    onSelect(exercise);
+    setPreviewExercise(null);
+  }, [onSelect]);
 
   return (
     <PickerContainer>
@@ -66,7 +75,21 @@ const SwanExercisePicker: React.FC<SwanExercisePickerProps> = ({
           exercises={picker.visible}
           config={config}
           onSelect={onSelect}
+          onPreview={config.showPreview ? setPreviewExercise : undefined}
         />
+      )}
+
+      {config.showPreview && previewExercise && (
+        <SwanExercisePickerSheet
+          title={previewExercise.name}
+          onClose={() => setPreviewExercise(null)}
+        >
+          <SwanExercisePickerPreview
+            exercise={previewExercise}
+            config={config}
+            onAction={handlePreviewAction}
+          />
+        </SwanExercisePickerSheet>
       )}
     </PickerContainer>
   );
