@@ -65,7 +65,11 @@ if (isStripeEnabled()) {
 router.get('/', async (req, res) => {
   try {
     const packages = await StorefrontItem.findAll({
-      where: { isActive: true },
+      // Exclude hidden per-client "SwanStudios Special" items — they must NOT appear in
+      // this PUBLIC package list (same leak class as HR-007-F1: storeFrontRoutes GET /:id).
+      // The owner buys their special via the authed cart flow (YourSpecialCard ->
+      // /api/custom-packages/my), never this generic listing.
+      where: { isActive: true, isSpecialOffer: false },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
     });
     const sessionPackages = packages
@@ -114,6 +118,12 @@ router.post('/purchase', protect, async (req, res) => {
       where: {
         id: normalizedPackageId,
         isActive: true,
+        // A per-client special is NOT purchasable via this generic path — it would skip
+        // the assertClientOwnsActiveSpecial ownership + redemption guards, letting any
+        // authenticated user buy another client's special (IDOR on the money path).
+        // Specials are bought only via the owner's cart -> v2 checkout flow, which
+        // enforces those guards. Excluding them here 400s "Invalid package". (HR-007-F4)
+        isSpecialOffer: false,
       },
     });
     

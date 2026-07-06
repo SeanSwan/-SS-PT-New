@@ -23,6 +23,10 @@ const source = readFileSync(
   resolve(__dirname, '../../routes/storeFrontRoutes.mjs'),
   'utf8',
 );
+const sessionPkgSource = readFileSync(
+  resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'),
+  'utf8',
+);
 
 // Isolate a single route handler body: from its `router.get(...)` marker to the
 // next top-level route registration, so an assertion targets THAT handler only.
@@ -45,5 +49,18 @@ describe('public storefront endpoints hide per-client specials (HR-007-F1)', () 
     const body = handlerBody("router.get('/',");
     expect(body.length).toBeGreaterThan(0);
     expect(body).toMatch(/isSpecialOffer\s*=\s*false/);
+  });
+});
+
+describe('session-package endpoints hide/deny per-client specials (HR-007-F3/F4)', () => {
+  // Both StorefrontItem reads in sessionPackageRoutes must exclude specials: the public
+  // GET '/' (leak, F3) and the authed POST '/purchase' lookup (IDOR purchase, F4 — a
+  // non-owner must not buy another client's special via this generic path).
+  it('excludes isSpecialOffer in BOTH the public list and the purchase lookup', () => {
+    const matches = sessionPkgSource.match(/isSpecialOffer:\s*false/g) || [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+  it('the public GET / where-clause carries the isSpecialOffer filter', () => {
+    expect(sessionPkgSource).toMatch(/where:\s*\{\s*isActive:\s*true,\s*isSpecialOffer:\s*false\s*\}/);
   });
 });
