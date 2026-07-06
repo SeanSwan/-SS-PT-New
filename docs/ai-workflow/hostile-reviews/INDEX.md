@@ -6,6 +6,7 @@
 | Date | Item | Handoff / audit doc | Review status | Next action |
 |------|------|---------------------|---------------|-------------|
 | 2026-07-05 | **Equipment Michelin Upgrade** — Slice 1 (discoverability + stability) shipped & deployed; P0.2–P3.6 remain | [`EQUIPMENT-REMAINING-SLICES-HANDOFF-2026-07-05.md`](./EQUIPMENT-REMAINING-SLICES-HANDOFF-2026-07-05.md) · audit: [`../AI-HANDOFF/EQUIPMENT-SUBSYSTEM-DEEP-AUDIT-2026-07-05.md`](../AI-HANDOFF/EQUIPMENT-SUBSYSTEM-DEEP-AUDIT-2026-07-05.md) | Slice 1 deployed; **Codex R7 review OPEN** (review queue) | Codex hostile-review Slice 1 → fold findings into the handoff; then build **Slice 2 = P0 backend safety bundle** |
+| 2026-07-05 | **Gallery Photo Studio** — admin upload UI + batch ZIP download shipped; print-lab fulfillment (Slice 3) pending | [`GALLERY-PHOTO-FEATURE-HANDOFF-2026-07-05.md`](./GALLERY-PHOTO-FEATURE-HANDOFF-2026-07-05.md) | see doc | per handoff (Slice 3 Stripe/webhook = high-stakes, gate) |
 
 ## How to use this folder
 - Read the linked handoff for full context (each is self-contained — files, slices, gates, hooks).
