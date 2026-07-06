@@ -16,12 +16,12 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
 ## Summary
 | ID | Target | Owner | Status | Reviews |
 |----|--------|-------|--------|---------|
-| HR-008 | Gamification progression fix (level curve + progress charts) | Fable | REVISE (1 HIGH) | 1 |
-| HR-007 | Dynamic session pricing / specials (WIP, money path) | Fable/Codex | REVISE (1 HIGH) | 1 |
-| HR-006 | Client Command Center / trainer-clients dashboard | Fable | REVISE (1 low) | 1 |
-| HR-005 | Marketing OS batch (marketing command center) | Fable/Codex | REVISE (2 low) | 1 |
+| HR-008 | Gamification progression fix (level curve + progress charts) | Fable | REVISE → **fix PR #23** (to main) | 1 |
+| HR-007 | Dynamic session pricing / specials (WIP, money path) | Fable/Codex | REVISE → **fix PR #22** (money-path gate) | 1 |
+| HR-006 | Client Command Center / trainer-clients dashboard | Fable | REVISE (1 low — owner) | 1 |
+| HR-005 | Marketing OS batch (marketing command center) | Fable/Codex | REVISE (2 low — owner) | 1 |
 | HR-004 | Hostile Review Slam Registry (this PR) | Claude (Opus 4.8) | CLEARED | 1 |
-| HR-003 | PR #20 — companion pet security hardening | Claude (Opus 4.8) | REVISE (2 low) | 1 |
+| HR-003 | PR #20 — companion pet security hardening | Claude (Opus 4.8) | **CLEARED** (fixed `2adc436a6`) | 1 |
 | HR-002 | PR #19 — dormant `gamificationRoutes.mjs` deletion + Rule-48 audit | Claude (Opus 4.8) | CLEARED | 1 |
 | HR-001 | PR #15 — Companion V2 cleanup + branch refresh | Claude (Opus 4.8) | CLEARED | 1 |
 
@@ -32,6 +32,14 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
 > session, so reads went straight to git objects). **Net: 2 HIGH (HR-007-F1 info-disclosure, HR-008-F1
 > spend-lowers-level), 5 low, 1 finding killed by verification.** The two HIGH were also independently
 > re-verified by the lead (Opus 4.8) — 3 concurring reads each. No CLEARED entry has a surviving finding.
+
+> **Slam pass 1 — Fixes applied (2026-07-05, Sean-directed).** Each fix: failing-first proof + `node --check` + secret-scan CLEAN + Rule 42/20 audits; full `vitest` deferred to CI (fresh worktrees, Rule 56).
+> - **HR-003 → CLEARED** — fixed on PR #20 (`2adc436a6`): `sanitizePetName` now strips C1 controls (0x7f–0x9f) + caps by code point (surrogate-safe). 13/13 algorithm proof; old code proven to leak C1 + leave a lone surrogate.
+> - **HR-007-F1 → fix PR #22** (`2aefd4f24`, base `wip/handoff-2026-07-05`): `GET /api/storefront/:id` now filters `isSpecialOffer:false` (hidden specials 404 publicly; owner path via authed `/api/custom-packages/my` unaffected). **Money-path (Rule 16/50) — Codex/Fable review + fold into the clean pricing branch before merge.**
+> - **HR-008-F1 → fix PR #23** (`31e5c9cba`, base `main`): level/rank now derived from `User.lifetimePointsEarned` (not the spendable balance) across `recordLedgerEntry` + `awardWorkoutXP` + `gamificationController`; migration `20260705010000` adds the column + backfills from the ledger. Rule-20 sweep found + fixed `gamificationController:2899`; `GamificationEngine.mjs` legacy level calc flagged as a residual (left untouched per the approved design). **Touches production gamification + a migration — Sean's merge decision.**
+> - **Deferred to owners (Sean's call):** HR-005 (2 low, `leadRoutes.mjs`), HR-006 (1 low, stale comment) — recorded with exact fixes; their owning lanes clear them.
+>
+> ⚠️ **REGISTRY COLLISION (reconcile before PR #21 merges):** `origin/main` now carries a *different* `docs/ai-workflow/hostile-reviews/INDEX.md` — a `# Hostile-Review Registry` (Equipment + Gallery handoff tracker) added by a parallel session. This Slam registry (`# Hostile Review Slam — Registry Index`, HR-001..008) lives on PR #21 and will hard-conflict on that file. Decision needed: merge the two into one registry (keep both sections, or adopt one format and fold the other's rows).
 
 ---
 
