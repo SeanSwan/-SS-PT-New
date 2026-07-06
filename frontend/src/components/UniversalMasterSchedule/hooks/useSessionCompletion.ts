@@ -6,7 +6,12 @@ import {
   isValidTrainerRating,
 } from '../SessionDetailModal.actions';
 import type { SessionDetail } from '../SessionDetailModal.types';
-import { canDeductScheduledSessionCredit } from './sessionCreditEligibility';
+import {
+  canDeductScheduledSessionCredit,
+  isCompletionBillingApplicable,
+} from './sessionCreditEligibility';
+
+const WAIVE_REASON_MIN_LENGTH = 5;
 
 interface UseSessionCompletionInput {
   open: boolean;
@@ -29,7 +34,15 @@ export const useSessionCompletion = ({
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
   const [deductCompletionSessionCredit, setDeductCompletionSessionCredit] = useState(false);
+  const [completionWaiveReason, setCompletionWaiveReason] = useState('');
   const canDeductCompletionSessionCredit = canDeductScheduledSessionCredit(session);
+  const completionBillingApplicable = isCompletionBillingApplicable(session);
+  // A completion that will NOT deduct a billable client's credit is a waive
+  // and needs a recorded reason (server enforces this once server-side
+  // completion billing is enabled; the UI enforces it up front).
+  const completionWaiveReasonRequired =
+    completionBillingApplicable
+    && !(canDeductCompletionSessionCredit && deductCompletionSessionCredit);
 
   useEffect(() => {
     if (!open || !session) {
@@ -37,6 +50,7 @@ export const useSessionCompletion = ({
       setTrainerRating('');
       setClientFeedback('');
       setDeductCompletionSessionCredit(false);
+      setCompletionWaiveReason('');
       return;
     }
 
@@ -45,6 +59,7 @@ export const useSessionCompletion = ({
     setTrainerRating(!hasSubmittedClientFeedback && session.rating ? String(session.rating) : '');
     setClientFeedback(!hasSubmittedClientFeedback ? session.feedback || '' : '');
     setDeductCompletionSessionCredit(canDeductCompletionSessionCredit);
+    setCompletionWaiveReason('');
   }, [canDeductCompletionSessionCredit, open, session]);
 
   const handleComplete = useCallback(async () => {
@@ -61,6 +76,13 @@ export const useSessionCompletion = ({
       return;
     }
 
+    const trimmedWaiveReason = completionWaiveReason.trim();
+    if (completionWaiveReasonRequired && trimmedWaiveReason.length < WAIVE_REASON_MIN_LENGTH) {
+      setFormError('Add a short reason (5+ characters) for completing without deducting a session credit.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await apiService.patch(`/api/sessions/${session.id}/complete`, buildCompleteSessionPayload({
         notes,
@@ -69,6 +91,7 @@ export const useSessionCompletion = ({
         deductSessionCredit: canDeductCompletionSessionCredit
           ? deductCompletionSessionCredit
           : false,
+        waiveReason: completionWaiveReasonRequired ? trimmedWaiveReason : undefined,
       }));
       const result = response.data;
       if (result?.success === false) {
@@ -87,6 +110,8 @@ export const useSessionCompletion = ({
   }, [
     canDeductCompletionSessionCredit,
     clientFeedback,
+    completionWaiveReason,
+    completionWaiveReasonRequired,
     deductCompletionSessionCredit,
     notes,
     onClose,
@@ -102,10 +127,14 @@ export const useSessionCompletion = ({
     trainerRating,
     clientFeedback,
     canDeductCompletionSessionCredit,
+    completionBillingApplicable,
+    completionWaiveReasonRequired,
+    completionWaiveReason,
     deductCompletionSessionCredit,
     setNotes,
     setTrainerRating,
     setClientFeedback,
+    setCompletionWaiveReason,
     setDeductCompletionSessionCredit,
     handleComplete,
   };

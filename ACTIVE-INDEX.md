@@ -32,6 +32,8 @@ These files are the operating base. Everything else is loaded on-demand.
 
 Location: `docs/ai-workflow/AI-HANDOFF/`
 
+- **⭐ USER-DASHBOARD 7★ UPGRADE AUDIT (2026-07-06, active):** `USER-DASHBOARD-7STAR-UPGRADE-AUDIT-2026-07-06/` — 10-doc upgrade audit for future AI builders (read `00-MASTER-ROADMAP.md` first: engraved prompt, domain scorecard, "wire what exists" Wave 1-3 roadmap, Sean decision queue D1-D6, trust flags incl. verified feed private-post leak, algorithm spec index). 9 domain docs: home IA · chart truth · gamification · social · nudges · NBA extension · activation · trainer/admin proof · mobile polish. Complements (does not repeat) FABLE-VISION-REBUILD-DEEP-AUDIT; excludes the workout-logger lane.
+- **⭐ FABLE VISION REBUILD (2026-07-05, active):** **`FABLE-VISION-BUILD-HANDOFF-PROMPT-2026-07-05.md` = paste-ready prompt for a fresh Fable build session (creative authority, not a spec)** · `../brainstorms/FABLE-VISION-MASTER-BRIEF-2026-07-05.md` (**v3 master brief**; §6 = locked Village decisions) · `FABLE-VISION-REBUILD-DEEP-AUDIT-2026-07-05.md` (11-surface ground truth) · `FABLE-VISION-VILLAGE-OUTPUT-2026-07-05/synthesis.md` (Fable-5 Village verdict, $1.76) · first Hermes learning packet at `../hermes-learning-packets/2026-07-05-fable-vision-village-verdict.md`. Preserved on branch `claude/fable-vision-brief-20260705`. Receipt correction: SessionContext is DORMANT (not a data-loss hotfix — retire-or-wire, Rule 34). Next: Fable builds in its own vision from the handoff prompt.
 - `SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md` — broader product vision, revenue priorities, premium-gating intent
 - `SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md` — Swan Coach phase history, verified command-lane status, blocked areas, next-slice logic
 - `CURRENT-TASK.md` — active task tracker
@@ -47,6 +49,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md` — rule-48 audit record for the Fable control layer / Hermes Agentic OS / Design Brain docs + runtime Slice 1 (receipt/queue/digest/prune spine in `scripts/hermes/`, 31/31 tests); security posture, rollback, and future review hooks live here
 - `OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md` — **the Hermes-OS build baton**: slice-by-slice ledger, component-by-component logic map w/ mermaid charts, system-wide hostile review (G-1…G-17 gaps), E1–E6 enhancement plan, and the §11 recursive build loop contract (Sean-authorized goal-driven auto-advance w/ hard-pause gates); Opus 4.8 (or any deputy builder) starts here
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
+- `CLIENT-BILLING-ACCOUNT-AUDIT-HANDOFF-2026-07-05.md` — **SHIPPED backend account-control audit trail** (updateClient/createClient/createExternalClient fail-closed AdminAccountAuditLog, 318 tests) + the remaining-slice roadmap (S1-S4 fable-arc frontend billing/FormAnalysis/charts/Overview; S5 deactivate-reactivate lifecycle audit; S6 fulfillment decision) + paste-ready next-AI prompt. Pairs with `CLIENTS-TEAM-COMMAND-CENTER-FABLE-AUDIT-2026-07-05.md` (§8 recipes). Open for hostile review + finish-up.
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
 

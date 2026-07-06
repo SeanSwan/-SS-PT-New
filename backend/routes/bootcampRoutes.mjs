@@ -151,8 +151,8 @@ router.post('/log', async (req, res) => {
   try {
     const { templateId, classDate, dayType, actualParticipants, exercisesUsed, modificationsMade, trainerNotes, classRating, energyLevel, overflowActivated } = req.body;
 
-    if (!classDate || !exercisesUsed) {
-      return res.status(400).json({ success: false, error: 'classDate and exercisesUsed are required' });
+    if (!classDate || !Array.isArray(exercisesUsed) || exercisesUsed.length === 0) {
+      return res.status(400).json({ success: false, error: 'classDate and a non-empty exercisesUsed array are required' });
     }
 
     const log = await logBootcampClass({

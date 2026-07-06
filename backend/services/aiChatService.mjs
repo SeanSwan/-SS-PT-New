@@ -1414,7 +1414,7 @@ You can log workouts, check progress, and manage plans for ANY of these clients.
             `SELECT bcl.id, bcl."classDate", bcl."dayType", bcl."actualParticipants",
                     bcl."classRating", bcl."energyLevel",
                     bt.name AS "templateName", bt."classFormat", bt."classStyle"
-             FROM bootcamp_class_logs bcl
+             FROM bootcamp_class_log bcl
              LEFT JOIN bootcamp_templates bt ON bcl."templateId" = bt.id
              WHERE bcl."trainerId" = :trainerId
              ORDER BY bcl."classDate" DESC LIMIT 5`,

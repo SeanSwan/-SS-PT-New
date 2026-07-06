@@ -18,6 +18,7 @@
 
 import getProgressPulse from '../services/progressPulseService.mjs';
 import { computeNextBestAction, getNextBestAction } from '../services/nextBestActionService.mjs';
+import getNextBestActionContext from '../services/nextBestActionContext.mjs';
 import getWorkoutDayDetail, { getWorkoutWeekDetail } from '../services/workoutDayDetailService.mjs';
 
 const parseUserId = (raw) => {
@@ -32,10 +33,16 @@ export async function getProgressPulseHandler(req, res) {
       return res.status(400).json({ success: false, message: 'Invalid user context' });
     }
     const sequelize = req.app.get('sequelize');
-    const data = await getProgressPulse(sequelize, userId);
     // One round trip: the pulse payload carries its own coach guidance so the
     // client surface never needs a second request for "what do I do next?".
-    const nextBestAction = computeNextBestAction(data);
+    // Phase 1.5a: coach-guided context (plan cursor, pain, credits, schedule)
+    // rides the same round trip; role gates the client-only credit nudge.
+    const [data, context] = await Promise.all([
+      getProgressPulse(sequelize, userId),
+      getNextBestActionContext(sequelize, userId, {}),
+    ]);
+    const role = req.user?.role === 'client' ? 'client' : 'user';
+    const nextBestAction = computeNextBestAction(data, { role }, context);
     return res.json({ success: true, data: { ...data, nextBestAction } });
   } catch (error) {
     console.error('[Progress Pulse Failed]', {
@@ -45,6 +52,30 @@ export async function getProgressPulseHandler(req, res) {
     return res.status(500).json({
       success: false,
       message: 'Unable to load progress pulse',
+      error: 'internal_error',
+    });
+  }
+}
+
+/**
+ * GET /api/client/analytics/nba-lite — D1 (Sean 2026-07-06): free-tier
+ * next-best-action, rungs 1-3 only. No pulse payload, no context
+ * enrichments — the rich compass stays behind analytics.advanced.
+ */
+export async function getNbaLiteHandler(req, res) {
+  try {
+    const userId = parseUserId(req.params?.userId || req.user?.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user context' });
+    }
+    const pulse = await getProgressPulse(req.app.get('sequelize'), userId);
+    const nextBestAction = computeNextBestAction(pulse, { tier: 'lite' });
+    return res.json({ success: true, data: { nextBestAction } });
+  } catch (error) {
+    console.error('[NBA Lite Failed]', { message: error?.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load guidance',
       error: 'internal_error',
     });
   }

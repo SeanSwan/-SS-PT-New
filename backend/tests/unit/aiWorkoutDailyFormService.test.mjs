@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let models;
 let challengeBridge;
+let xpStep;
 
 function makeTransaction() {
   return {
@@ -113,6 +114,12 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     getAllModels: () => models,
   }));
   vi.doMock('../../services/gamification/challengeWorkoutCompletionBridge.mjs', () => challengeBridge);
+  xpStep = {
+    runWorkoutXpAwardStep: vi.fn(async ({ suppress }) => (suppress
+      ? null
+      : { pointsAwarded: 50, newBalance: 150, streakDays: 3, milestones: [] })),
+  };
+  vi.doMock('../../services/workout/workoutXpAwardStep.mjs', () => xpStep);
   const service = await import('../../services/workout/aiWorkoutDailyFormService.mjs');
   return {
     ...service,
@@ -121,6 +128,7 @@ async function loadService({ client = makeClient(), existingForm = null, activeP
     models,
     sequelize: { transaction: vi.fn(async () => tx) },
     challengeBridge,
+    xpStep,
     tx,
     workoutSession,
     activePlan,
@@ -490,5 +498,66 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
     expect(models.WorkoutLog.destroy).not.toHaveBeenCalled();
     expect(tx.rollback).toHaveBeenCalledTimes(1);
     expect(tx.commit).not.toHaveBeenCalled();
+  });
+
+  it('awards XP through the shared post-commit step for live sources (Phase 1.1a)', async () => {
+    const { submitAiWorkoutLogAsDailyForm, sequelize, xpStep } = await loadService();
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      exercises: [{ exerciseName: 'Goblet Squat', sets: 2, reps: 10, weight: 20 }],
+      sequelize,
+    });
+
+    expect(xpStep.runWorkoutXpAwardStep).toHaveBeenCalledTimes(1);
+    expect(xpStep.runWorkoutXpAwardStep).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+      workoutId: 'form-1',
+      sessionId: 'session-1',
+      awardedBy: 7,
+      suppress: false,
+    }));
+    expect(result.xpAwarded).toBe(50);
+    expect(result.streakDays).toBe(3);
+    expect(result.xp).toEqual(expect.objectContaining({ pointsAwarded: 50 }));
+  });
+
+  it('suppresses XP for historical imports via the source policy', async () => {
+    const { submitAiWorkoutLogAsDailyForm, sequelize, xpStep } = await loadService();
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      source: 'historical_import',
+      exercises: [{ exerciseName: 'Goblet Squat', sets: 2, reps: 10, weight: 20 }],
+      sequelize,
+    });
+
+    expect(xpStep.runWorkoutXpAwardStep).toHaveBeenCalledWith(expect.objectContaining({ suppress: true }));
+    expect(result.xpAwarded).toBeNull();
+    expect(result.xp).toBeNull();
+  });
+
+  it('keeps PLAUD merges billing-suppressed but XP-active (Sean owns the billing flip)', async () => {
+    const client = makeClient({ availableSessions: 2 });
+    const { submitAiWorkoutLogAsDailyForm, sequelize, xpStep } = await loadService({ client });
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-05',
+      source: 'plaud_merge',
+      exercises: [{ exerciseName: 'Goblet Squat', sets: 2, reps: 10, weight: 20 }],
+      sequelize,
+    });
+
+    expect(client.decrement).not.toHaveBeenCalled();
+    expect(result.billing.status).toBe('not_deducted');
+    expect(xpStep.runWorkoutXpAwardStep).toHaveBeenCalledWith(expect.objectContaining({ suppress: false }));
+    expect(result.xpAwarded).toBe(50);
+    expect(result.historicalImport).toBe(false);
   });
 });

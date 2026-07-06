@@ -56,6 +56,7 @@ import ActivePlanContextStrip from './ActivePlanContextStrip';
 import WorkoutPlanAssignmentPicker from './WorkoutPlanAssignmentPicker';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
+import SaveSuccessPanel from './SaveSuccessPanel';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import { shouldBlockWorkoutSubmitForSessionBalance } from './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
@@ -101,6 +102,8 @@ import {
   planAssignmentPickerItemToContext,
   planAssignmentPickerItemToEntries,
   planAssignmentPickerItemToSubmitAssignment,
+  isSelfLoggingDashboardRole,
+  isWorkoutSubmitCanceled,
 } from './WorkoutLogger.helpers';
 import { loadTodaysPlanIntoLogger } from './WorkoutLogger.loadTodaysPlan';
 import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
@@ -114,19 +117,6 @@ import StickyLogActionBar from './StickyLogActionBar';
 import QuickLogMode from './QuickLogMode';
 import { readQuickLogPreference, writeQuickLogPreference } from './WorkoutLogger.preferences';
 import { useRestTimer } from './useRestTimer';
-
-const SELF_LOGGING_DASHBOARD_ROLES = new Set(['client', 'user']);
-
-const isSelfLoggingDashboardRole = (role?: string | null): boolean =>
-  typeof role === 'string' && SELF_LOGGING_DASHBOARD_ROLES.has(role.toLowerCase());
-
-const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
-  typeof error === 'object' && error !== null ? error as { code?: unknown; name?: unknown } : {};
-
-const isWorkoutSubmitCanceled = (error: unknown): boolean => {
-  const { code, name } = getWorkoutSubmitErrorSignal(error);
-  return name === 'AbortError' || name === 'CanceledError' || code === 'ERR_CANCELED';
-};
 
 const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   clientId,
@@ -211,6 +201,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
   const [lastChallengeProgress, setLastChallengeProgress] = useState<DailyWorkoutForm['challengeProgress'] | null>(null);
+  // Phase 2.1a: saved form powers SaveSuccessPanel; onComplete deferred to Done.
+  const [lastSaveResponse, setLastSaveResponse] = useState<DailyWorkoutForm | null>(null);
   const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(readQuickLogPreference);
@@ -829,7 +821,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           formId: response.data.id || response.data.formId || null,
           date: response.data.date || workoutDateValue,
         });
-        resolvedOnComplete(response.data);
+        // Phase 2.1a: onComplete deferred to SaveSuccessPanel's Done action.
+        setLastSaveResponse(response.data);
       } else {
         setLastChallengeProgress(null);
         const existingFormId = response.data?.id || response.data?.formId || null;
@@ -1208,7 +1201,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
+        {lastSaveResponse ? (
+          <SaveSuccessPanel
+            form={lastSaveResponse}
+            completedSets={sessionStats.completedSets}
+            formattedVolume={sessionStats.formattedVolume}
+            isSelfMode={isClientSelfMode}
+            challengeProgress={lastChallengeProgress}
+            onDone={() => resolvedOnComplete(lastSaveResponse)}
+            onBuyMore={() => navigate('/store')}
+            onBookNext={isClientSelfMode ? () => navigate('/dashboard/client/schedule') : null}
+          />
+        ) : (
+          <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />
+        )}
         <LiveRegion role="status" aria-live="polite" aria-atomic="true">
           {exercises.length > 0 && `${exercises.length} exercise${exercises.length !== 1 ? 's' : ''} logged, ${totalSets} total sets`}
         </LiveRegion>

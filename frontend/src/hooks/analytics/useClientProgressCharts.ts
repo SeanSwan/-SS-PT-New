@@ -25,11 +25,13 @@ export type {
   ChartPoint,
 } from './useClientProgressCharts.types';
 
+/** D2: 402 = tier-locked (server truth), distinguishable from outage; the
+ * background flag stops the global FrostedPaywall popping on grid loads. */
 const fetchChartResponse = (authAxios: any, suffix: string) => (
   authAxios
-    .get(`/api/client/analytics/${suffix}`)
+    .get(`/api/client/analytics/${suffix}`, { _isBackgroundRequest: true })
     .then((res: any) => res?.data)
-    .catch(() => null)
+    .catch((err: any) => (err?.response?.status === 402 ? { locked: true } : null))
 );
 
 const fetchClientChartResponses = (authAxios: any) => Promise.all(

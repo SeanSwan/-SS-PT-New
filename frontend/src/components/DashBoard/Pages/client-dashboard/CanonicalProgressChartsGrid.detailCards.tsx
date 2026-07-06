@@ -23,6 +23,8 @@ import { CHART_COLORS, FULL_PALETTE, victoryTheme } from '../../../Charts/chartT
 import { buildAnchorFacts, buildCategoryFacts, buildPrFacts, buildRecoveryFacts } from '../../progress-proof/progressChartFacts';
 import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
 import { EmptyCard, useNumericBarWidth } from './CanonicalProgressChartsGrid.primitives';
+import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
+import PrHighlightsBars, { buildPrDrilldownRows } from './CanonicalProgressChartsGrid.prBars';
 import {
   anchorLegendProps,
   lineStyleProps,
@@ -47,17 +49,7 @@ import {
 export const PRTimelineCard: React.FC<{
   data: CanonicalProgressCharts['prTimeline'];
 }> = ({ data }) => {
-  const bestByExercise = useMemo(() => {
-    const map = new Map<string, typeof data[number]>();
-    for (const row of data) {
-      const cur = map.get(row.exercise);
-      if (!cur || row.y > cur.y) map.set(row.exercise, row);
-    }
-    return Array.from(map.values())
-      .sort((a, b) => b.y - a.y)
-      .slice(0, 6);
-  }, [data]);
-  const fills = useNumericBarWidth(bestByExercise.map((r) => ({ x: r.exercise, y: r.y })));
+  const hasPrs = data.length > 0;
 
   return (
     <ChartCard data-testid="chart-card-prTimeline">
@@ -65,24 +57,21 @@ export const PRTimelineCard: React.FC<{
         <CardIcon $color={CHART_COLORS.gildedFern}><Trophy size={16} /></CardIcon>
         <CardTitle>PR Highlights</CardTitle>
         <CardSubtitle>180 days</CardSubtitle>
+        <ChartExpandTrigger
+          title="PR Highlights"
+          subtitle="Best lift per exercise — 180 days"
+          renderChart={() => <PrHighlightsBars data={data} />}
+          rows={buildPrDrilldownRows(data)}
+          facts={buildPrFacts(data)}
+        />
       </CardHeader>
       <ChartBody>
-        {bestByExercise.length === 0 ? (
+        {!hasPrs ? (
           <EmptyCard label="No PRs recorded yet" hint="Log lifts with weight to see PRs surface here." />
         ) : (
           <>
           <ProgressChartInsightBar facts={buildPrFacts(data)} />
-          <BarList>
-            {bestByExercise.map((row, i) => (
-              <BarRow key={row.exercise}>
-                <BarLabel title={row.exercise}>{row.exercise}</BarLabel>
-                <BarTrack>
-                  <BarFill $pct={fills[i] ?? 0} $color={CHART_COLORS.gildedFern} />
-                </BarTrack>
-                <BarValue>{row.y} lbs x {row.reps}</BarValue>
-              </BarRow>
-            ))}
-          </BarList>
+          <PrHighlightsBars data={data} />
           </>
         )}
       </ChartBody>

@@ -31,7 +31,12 @@ describe('chart data controller security contract', () => {
     // Baseline repair 2026-07-02 (Slice 8.1): the client chart route gained the
     // requireGuardianAnalytics tier gate after this lock was written — assert the
     // STRONGER current contract (gate present) instead of the stale ungated string.
-    expect(clientRoutesSource).toContain("router.get('/chart-workout-frequency', requireGuardianAnalytics, getWorkoutFrequencyChart)");
+    // D2 (Sean lock 2026-07-06): the teaser pair is Starter-visible; every
+    // other chart + the pulse stays Guardian-gated.
+    expect(clientRoutesSource).toContain("router.get('/chart-workout-frequency', requireTeaserAnalytics, getWorkoutFrequencyChart)");
+    expect(clientRoutesSource).toContain("router.get('/chart-weekly-volume', requireTeaserAnalytics, getWeeklyVolumeChart)");
+    expect(clientRoutesSource).toContain("router.get('/chart-sets-reps-trend', requireGuardianAnalytics, getSetsRepsTrendChart)");
+    expect(clientRoutesSource).toContain("const requireTeaserAnalytics = requireFeature('analytics.teaser')");
     expect(clientRoutesSource).toContain("router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler)");
     expect(analyticsRoutesSource).toContain('router.use(protect)');
     expect(analyticsRoutesSource).toContain("router.get('/:userId/chart-workout-frequency'");

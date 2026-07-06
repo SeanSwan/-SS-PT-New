@@ -54,7 +54,8 @@ vi.mock('../../models/index.mjs', () => ({
   getSession: vi.fn(() => ({})),
   getSessionType: vi.fn(() => ({})),
   getFinancialTransaction: vi.fn(() => ({})),
-  getClientTrainerAssignment: vi.fn(() => ({}))
+  getClientTrainerAssignment: vi.fn(() => ({})),
+  getDailyWorkoutForm: vi.fn(() => ({}))
 }));
 
 const { UnifiedSessionService } = await import('../../services/sessions/session.service.mjs');

@@ -3,7 +3,8 @@
 > The standing list of everything awaiting a hostile review. Run a **Slam**: hostile-review
 > every `OPEN` / `REVISE` entry below until zero issues remain. Protocol + rules:
 > [`README.md`](./README.md). Add an entry when you ship a substantial slice — **link** the
-> target, don't copy it.
+> target, don't copy it. This file also carries a **[Parked-Work Handoff Tracker](#parked-work-handoff-tracker)**
+> (Equipment / Gallery) near the bottom — merged from `origin/main`'s parallel index.
 
 **Status legend:** `OPEN` (needs review) · `IN-REVIEW` (a pass is underway) ·
 `REVISE` (issues found, being fixed) · `CLEARED` (a hostile pass found zero issues) ·
@@ -39,7 +40,7 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
 > - **HR-008-F1 → MERGED to main** (PR #23 `31e5c9cba` → merge `d97b3ace3`, 2026-07-06, Sean-directed): level/rank now derived from `User.lifetimePointsEarned` (not the spendable balance) across `recordLedgerEntry` + `awardWorkoutXP` + `gamificationController`; migration `20260705010000` adds the column + backfills from the ledger. Rule-20 sweep found + fixed `gamificationController:2899`; `GamificationEngine.mjs` legacy level calc flagged as a residual (left untouched per the approved design). Pre-merge due diligence: conflict-free (0 commits on the 4 modified files across an 18-commit main advance), `lifetimePointsEarned` new (no redundancy/collision), bug still live on pre-merge main, new `workoutXpAwardStep` adapter delegates to the fixed `awardWorkoutXP`. Render auto-deploy in progress (build-phase `migrate:production`); health-watched. **Residual: verify the backfill on the live DB (Rule 47 read-only launcher) once deployed.**
 > - **Deferred to owners (Sean's call):** HR-005 (2 low, `leadRoutes.mjs`), HR-006 (1 low, stale comment) — recorded with exact fixes; their owning lanes clear them.
 >
-> ⚠️ **REGISTRY COLLISION (reconcile before PR #21 merges):** `origin/main` now carries a *different* `docs/ai-workflow/hostile-reviews/INDEX.md` — a `# Hostile-Review Registry` (Equipment + Gallery handoff tracker) added by a parallel session. This Slam registry (`# Hostile Review Slam — Registry Index`, HR-001..008) lives on PR #21 and will hard-conflict on that file. Decision needed: merge the two into one registry (keep both sections, or adopt one format and fold the other's rows).
+> ✅ **Registry unified (2026-07-06):** `origin/main`'s parallel `hostile-reviews/INDEX.md` (a `# Hostile-Review Registry` Equipment + Gallery handoff tracker) has been **merged into this file** as the [Parked-Work Handoff Tracker](#parked-work-handoff-tracker) section below, so PR #21 merges cleanly. One file now holds two indexes: the **HR-NNN Slam registry** (discrete findings → Prove-or-Named) and the **handoff tracker** (parked feature work → self-contained handoff docs).
 
 ---
 
@@ -143,6 +144,25 @@ agent named, and that agent stays named until a hostile pass CLEARS the entry.
     - **HR008-F1** (HIGH, correctness): level is derived from the SPENDABLE point balance, so redeeming a reward LOWERS level/rank — violating `levelingAlgorithm.mjs`'s own header ("level driven by LIFETIME earned XP, never spendable balance"). `GamificationPointsService.mjs:246` `calculateLevel(Math.max(newBalance,0))` + `:265` persists lowered level/tier; same pattern `awardWorkoutXP.mjs:182`. A user at 12,924 lifetime (L25) redeeming 5,000 pts → balance 7,924 → **L18 (drops 7 levels**; the old sqrt curve dropped only 3). 2 verify lenses + lead Opus re-read = CONFIRMED.
     - **FIX ALREADY IN-FLIGHT on `origin/wip/handoff-2026-07-05` (NOT yet on main):** adds `User.lifetimePointsEarned` (migration `20260705010000-add-lifetime-points-earned-to-users`) + rewrites `GamificationPointsService.mjs:251-254` to `lifetimeDelta = isSpendLike ? 0 : pointsToRecord; newLevel = calculateLevel(newLifetime)`. **Recommendation:** land that fix on main (migration + service + verify the `awardWorkoutXP` path is also switched to lifetime). Do NOT write a duplicate.
     - CLEAN: award idempotency (idempotencyKey on every ledger entry + `recordLedgerEntry` dedup returns existing balance on dup); chart IDOR (`requireOwnershipOrTrainer`); `useAdminBodyCompCharts` ↔ `chartDataController` response-shape parity exact (Rule 58); data-truth empty-states honest (facts return `[]` on 0 points, pulse `tone:'empty'`, no mock/zero mislabeled; body-fat/weight use neutral signed delta, never labeled "improvement").
+
+---
+
+## Parked-Work Handoff Tracker
+> Merged from `origin/main`'s parallel `hostile-reviews/INDEX.md` (2026-07-06). Substantial work parked
+> here to **come back to, hostile-review, fix, and finish** — each row links a self-contained handoff/audit
+> an AI (or Sean) can pick up cold. Distinct from the HR-NNN Slam registry above: this tracks parked
+> *feature* work by handoff doc; the Slam registry tracks discrete *findings* through Prove-or-Named. Add new rows on top.
+
+| Date | Item | Handoff / audit doc | Review status | Next action |
+|------|------|---------------------|---------------|-------------|
+| 2026-07-05 | **Equipment Michelin Upgrade** — Slice 1 (discoverability + stability) shipped & deployed; P0.2–P3.6 remain | [`EQUIPMENT-REMAINING-SLICES-HANDOFF-2026-07-05.md`](./EQUIPMENT-REMAINING-SLICES-HANDOFF-2026-07-05.md) · audit: [`../AI-HANDOFF/EQUIPMENT-SUBSYSTEM-DEEP-AUDIT-2026-07-05.md`](../AI-HANDOFF/EQUIPMENT-SUBSYSTEM-DEEP-AUDIT-2026-07-05.md) | Slice 1 deployed; **Codex R7 review OPEN** (review queue) | Codex hostile-review Slice 1 → fold findings into the handoff; then build **Slice 2 = P0 backend safety bundle** |
+| 2026-07-05 | **Gallery Photo Studio** — admin upload UI + batch ZIP download shipped; print-lab fulfillment (Slice 3) pending | [`GALLERY-PHOTO-FEATURE-HANDOFF-2026-07-05.md`](./GALLERY-PHOTO-FEATURE-HANDOFF-2026-07-05.md) | see doc | per handoff (Slice 3 Stripe/webhook = high-stakes, gate) |
+
+### How to use the handoff tracker
+- Read the linked handoff for full context (each is self-contained — files, slices, gates, hooks).
+- Do the hostile review; record findings in the linked doc (append a "Review Log" section).
+- When a slice ships, update the row's status and next action.
+- Build in an isolated worktree off `origin/main`, never the shared desktop tree.
 
 ---
 

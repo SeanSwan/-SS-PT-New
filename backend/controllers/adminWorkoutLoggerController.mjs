@@ -13,10 +13,13 @@ import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import {
-  logWorkoutForClient,
   parseWorkoutLogDate,
   WorkoutLogError,
 } from '../services/workout/workoutLogService.mjs';
+import {
+  submitAiWorkoutLogAsDailyForm,
+  AiWorkoutDailyFormError,
+} from '../services/workout/aiWorkoutDailyFormService.mjs';
 import { isHistoricalWorkoutLogSource } from '../services/workout/workoutLogSourcePolicy.mjs';
 
 const WORKOUT_LOG_CLIENT_ERROR_MESSAGES = {
@@ -82,9 +85,15 @@ export const logWorkout = async (req, res) => {
     }
     const isHistoricalImport = isHistoricalWorkoutLogSource(source);
 
+    // Phase 1.1a (Fable Vision arc): this route now writes through the
+    // unified canonical adapter — same transactional footprint as the
+    // trainer-facing daily-workout-form route (WorkoutSession + WorkoutLog +
+    // DailyWorkoutForm + billing policy + plan advance + challenges + XP).
+    // The legacy logWorkoutForClient path left no diary form (charts blind),
+    // no billing decision, and no challenge/plan progress.
     let serviceResult;
     try {
-      serviceResult = await logWorkoutForClient({
+      serviceResult = await submitAiWorkoutLogAsDailyForm({
         clientId,
         exercises,
         date,
@@ -92,12 +101,17 @@ export const logWorkout = async (req, res) => {
         title,
         duration,
         intensity,
+        scheduledSessionId: req.body.scheduledSessionId,
         trainerId: req.user?.id ?? null,
+        userRole: req.user?.role || 'trainer',
+        source,
         sequelize,
-        suppressEngagementSideEffects: isHistoricalImport,
       });
     } catch (err) {
-      if (err instanceof WorkoutLogError) {
+      if (
+        (err instanceof AiWorkoutDailyFormError || err instanceof WorkoutLogError)
+        && err.code !== 'WORKOUT_APPLY_FAILED'
+      ) {
         const status = err.code === 'DUPLICATE_DATE' ? 409 : 400;
         return res.status(status).json({
           success: false,
@@ -134,7 +148,7 @@ export const logWorkout = async (req, res) => {
             clientId: Number(clientId),
             actingUserId: Number(req.user?.id ?? 0),
             role: req.user?.role || 'trainer',
-            formId: serviceResult.formId || serviceResult.sessionId, // sessionId fallback if service shape lacks formId
+            formId: serviceResult.formId || serviceResult.sessionId, // real DailyWorkoutForm id since Phase 1.1a; sessionId fallback retained defensively
           },
         },
       );
@@ -145,6 +159,10 @@ export const logWorkout = async (req, res) => {
         // delete fails, surface 409 anyway — the failure to mark
         // approved is the bigger problem the trainer must see.
         try {
+          await sequelize.query(
+            `DELETE FROM daily_workout_forms WHERE id = :formId`,
+            { replacements: { formId: serviceResult.formId } },
+          );
           await sequelize.query(
             `DELETE FROM workout_logs WHERE "sessionId" = :sessionId`,
             { replacements: { sessionId: serviceResult.sessionId } },
@@ -178,9 +196,11 @@ export const logWorkout = async (req, res) => {
         totalReps: serviceResult.totalReps,
         totalWeight: serviceResult.totalWeight,
         exerciseCount: serviceResult.exerciseCount,
-        historicalImport: isHistoricalImport,
+        historicalImport: serviceResult.historicalImport ?? isHistoricalImport,
       },
       xp: serviceResult.xp,
+      form: serviceResult.form,
+      billing: serviceResult.billing,
       ...(isPlaudMergeApply ? { plaudMergeApproved: true } : {}),
     });
   } catch (error) {

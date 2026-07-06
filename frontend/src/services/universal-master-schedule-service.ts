@@ -307,9 +307,10 @@ class UniversalMasterScheduleService {
         message: string;
         session: Session;
       }> = await this.api.patch(`/api/sessions/${sessionId}/complete`, {
+        // No deductSessionCredit key: the server decides billing (an explicit
+        // false is a waive request that requires a recorded reason).
         notes,
-        completeWithoutLog: true,
-        deductSessionCredit: false
+        completeWithoutLog: true
       });
       
       return response.data;

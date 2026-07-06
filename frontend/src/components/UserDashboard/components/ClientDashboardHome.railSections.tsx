@@ -20,12 +20,17 @@ import {
   TinyText,
 } from './ClientDashboardHome.cardStyles';
 import { TagGrid, TagPill } from './ClientDashboardHome.feedStyles';
+import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 
 export function ClientRightRail({ activeChallenge, challengeLoading, badges, leaderboardRows, trendingTags, trendingLoading, onTarget }: Pick<ClientDashboardHomeProps,
   'activeChallenge' | 'challengeLoading' | 'badges' | 'leaderboardRows' | 'trendingTags' | 'trendingLoading' | 'onTarget'>) {
   return (
     <>
+      <PanelCard>
+        <PanelHeader><Kicker>Coach compass</Kicker></PanelHeader>
+        <NextBestActionCard bare hideHeader />
+      </PanelCard>
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
       <RailList
         title="Recent unlocks"

@@ -16,8 +16,12 @@ describe('UniversalMasterSchedule lifecycle route wiring', () => {
     expect(bulkOperations).toContain("sessionService.cancelSession(sessionId, actionData?.reason || 'Bulk cancellation')");
     expect(bulkOperations).toContain('sessionService.assignSessionToTrainer(sessionId, actionData?.newTrainerId)');
     expect(calendarHandlers).toContain('sessionService.completeSession(sessionId)');
-    expect(directSessionService).toContain('deductSessionCredit: false');
-    expect(universalScheduleService).toContain('deductSessionCredit: false');
+    // Slice 0.1 server-side billing: these services must NOT send any
+    // deductSessionCredit value — an explicit false is a waive request that
+    // requires a recorded reason, and only the SessionDetailModal flow
+    // collects one. The server decides billing for bare completions.
+    expect(directSessionService).not.toContain('deductSessionCredit:');
+    expect(universalScheduleService).not.toContain('deductSessionCredit:');
 
     expect(bulkOperations).not.toContain("status: 'confirmed'");
     expect(bulkOperations).not.toContain("status: 'cancelled'");

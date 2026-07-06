@@ -57,6 +57,7 @@ import {
   normalizePlannedWorkoutAssignmentInput,
 } from '../services/plannedWorkoutAssignmentLogService.mjs';
 import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
+import { estimateBrzycki1RM } from '../services/oneRepMaxService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -1845,13 +1846,9 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     const legacyFormsCount = forms.length;
     forms = buildProgressDetailedAnalysisRows({ forms, workoutSessions: canonicalWorkoutSessions });
 
-    // ========== Helper: Epley 1RM ==========
-    const calcEpley1RM = (weight, reps) => {
-      if (!weight || weight <= 0) return 0;
-      if (!reps || reps <= 0) return 0;
-      if (reps === 1) return weight;
-      return Math.round(weight * (1 + reps / 30));
-    };
+    // 1RM estimates use the canonical Brzycki service (oneRepMaxService) —
+    // the same formula /progress PRs use. An inline Epley here produced two
+    // different PR numbers for the same set one click apart (Wave 1.8 fix).
 
     // ========== 1. Volume Progression (same pattern as existing endpoint) ==========
     const volumeProgression = forms.map(form => {
@@ -1872,7 +1869,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     // canonical-surface-audit 2026-04-13 (Phase 3 wireup):
     // Single pass over every persisted set captures everything four
     // previously-hidden charts need: RPE zone counts, per-exercise PR
-    // (best raw set by Epley 1RM, weight > 0 only), per-exercise frequency,
+    // (best raw set by Brzycki 1RM, weight > 0 only), per-exercise frequency,
     // and per-exercise last-performed date. Adding new aggregates here
     // costs one extra branch per set and avoids a second pass.
     const exerciseByDate = {}; // { exerciseName: { date: { max1RM, volume } } }
@@ -1903,7 +1900,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
         for (const set of (ex.sets || [])) {
           const w = parseFloat(set.weight) || 0;
           const r = parseInt(set.reps) || 0;
-          const rm = calcEpley1RM(w, r);
+          const rm = estimateBrzycki1RM(w, r) ?? 0;
           if (rm > bestSetRM) bestSetRM = rm;
           exVolume += w * r;
 
@@ -1918,8 +1915,8 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
           }
 
           // Personal record: track best raw set per exercise. Filter w > 0
-          // so bodyweight exercises do not produce meaningless "PR: 0 lbs"
-          // rows from Epley(0, r) === 0.
+          // and rm > 0 so bodyweight rows and >15-rep sets (Brzycki returns
+          // null, wrapped to 0) never produce a fake PR.
           if (w > 0 && rm > 0) {
             const existingPR = bestPRByExercise[name];
             if (!existingPR || rm > existingPR.estimated1RM) {

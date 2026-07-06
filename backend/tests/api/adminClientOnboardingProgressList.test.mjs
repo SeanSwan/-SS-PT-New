@@ -66,6 +66,12 @@ vi.mock('../../database.mjs', () => ({
   }
 }));
 
+// adminClientController now imports AdminAccountAuditLog directly; stub it so the
+// import does not init the real model against the mocked database.
+vi.mock('../../models/AdminAccountAuditLog.mjs', () => ({
+  default: { create: vi.fn().mockResolvedValue({ id: 1 }) }
+}));
+
 vi.mock('../../utils/logger.mjs', () => ({
   default: {
     error: vi.fn(),

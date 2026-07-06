@@ -52,4 +52,18 @@ describe('TrainerStellarSidebar navigation priority', () => {
     expect(trainerBlock).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
     expect(trainerBlock).not.toContain("{ path: '/coach-assistant', component: SwanCoachAssistantPage");
   });
+
+  it('surfaces the Equipment manager in the BUILD cluster so the trainer route is not orphaned', () => {
+    const equipmentItem = trainerNavConfig
+      .find((group) => group.section === 'BUILD')
+      ?.items.find((item) => item.label === 'Equipment');
+
+    expect(equipmentItem?.path).toBe('/dashboard/trainer/equipment');
+  });
+
+  it('mounts the trainer Equipment route the sidebar entry points at', () => {
+    const trainerBlock = trainerRoutesBlock();
+
+    expect(trainerBlock).toContain("{ path: '/equipment', component: EquipmentManagerPage");
+  });
 });

@@ -40,14 +40,17 @@ describe('sessionService lifecycle route contract', () => {
     expect(apiMock.put).not.toHaveBeenCalled();
   });
 
-  it('completes through the backend PATCH lifecycle endpoint without implicit paid-credit deduction', async () => {
+  it('completes through the backend PATCH lifecycle endpoint letting the server decide billing', async () => {
     await sessionService.completeSession('42', 'Strong session');
 
+    // No deductSessionCredit key: an explicit false is a waive request that
+    // requires a recorded reason (server-side completion billing, Slice 0.1).
     expect(apiMock.patch).toHaveBeenCalledWith('/api/sessions/42/complete', {
       notes: 'Strong session',
-      completeWithoutLog: true,
-      deductSessionCredit: false
+      completeWithoutLog: true
     });
+    const [, payload] = apiMock.patch.mock.calls[0];
+    expect(payload).not.toHaveProperty('deductSessionCredit');
     expect(apiMock.put).not.toHaveBeenCalled();
   });
 

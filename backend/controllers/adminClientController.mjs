@@ -263,6 +263,7 @@
 // backend/controllers/adminClientController.mjs
 import crypto from 'crypto';
 import { getAllModels } from '../models/index.mjs';
+import AdminAccountAuditLog from '../models/AdminAccountAuditLog.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -1066,6 +1067,28 @@ class AdminClientController {
         await Session.bulkCreate(sessions, { transaction });
       }
 
+      // Append-only forensics: record the admin who created this client and the
+      // initial billing posture (esp. a no-pay/free grant — the other admin path
+      // besides updateClient that can set no_session_required). Fail-closed inside
+      // the txn; skipped only when no admin actor is present (defensive).
+      if (req.user?.id) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: newClient.id,
+          action: 'admin_client_create',
+          reason: (typeof req.body?.reason === 'string' && req.body.reason.trim())
+            ? req.body.reason.trim().slice(0, 500)
+            : `Admin created client (${normalizedSessionBillingMode})`,
+          previousState: {},
+          nextState: {
+            clientSource: normalizedClientSource,
+            sessionBillingMode: normalizedSessionBillingMode,
+            availableSessions: normalizedAvailableSessions,
+          },
+          metadata: { source: 'POST /api/admin/clients', createdBy: 'admin' },
+        }, { transaction });
+      }
+
       await transaction.commit();
 
       let resetEmailSent = false;
@@ -1190,7 +1213,12 @@ class AdminClientController {
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
-        transaction
+        transaction,
+        // Pessimistic row lock (FOR UPDATE): a concurrent admin edit to the same
+        // client could otherwise make the previousState snapshot below stale
+        // (lost-update anomaly under READ COMMITTED). `lock: true` == LOCK.UPDATE
+        // and avoids dereferencing transaction.LOCK (robust under mocked txns).
+        lock: true
       });
 
       if (!client) {
@@ -1201,10 +1229,46 @@ class AdminClientController {
         });
       }
 
+      // Money/lifecycle/permission fields carry an append-only forensics trail
+      // (billing mode, client source, account status, lock, plan-gen opt-in).
+      // Snapshot BEFORE client.update mutates the row (mirrors sessions.mjs:884).
+      const AUDITED_ACCOUNT_FIELDS = [
+        'sessionBillingMode', 'clientSource', 'accountStatus', 'isLocked', 'canGenerateWorkoutPlans',
+      ];
+      const auditPreviousState = {};
+      const auditNextState = {};
+      for (const field of AUDITED_ACCOUNT_FIELDS) {
+        if (safeUpdates[field] !== undefined && safeUpdates[field] !== client[field]) {
+          auditPreviousState[field] = client[field] ?? null;
+          auditNextState[field] = safeUpdates[field];
+        }
+      }
+
       // Update client data (whitelisted fields only)
       await client.update(safeUpdates, { transaction });
 
       // Retired bridge decommissioned; profile is already saved via client.update() above.
+
+      // Append-only money-path forensics: any sensitive account-control change
+      // (esp. paid <-> free billing) must be reconstructable later. Written INSIDE
+      // the transaction so a failed audit rolls back the change — no silent
+      // billing/account mutation without a record (fail-closed).
+      if (Object.keys(auditNextState).length > 0) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: client.id,
+          action: 'admin_client_account_update',
+          reason: (typeof updates.reason === 'string' && updates.reason.trim())
+            ? updates.reason.trim().slice(0, 500)
+            : `Admin updated ${Object.keys(auditNextState).join(', ')}`,
+          previousState: auditPreviousState,
+          nextState: auditNextState,
+          metadata: {
+            source: 'PUT /api/admin/clients/:clientId',
+            changedFields: Object.keys(auditNextState),
+          },
+        }, { transaction });
+      }
 
       await transaction.commit();
 
@@ -1918,6 +1982,27 @@ class AdminClientController {
         clientSource: normalizedClientSource,
         transaction
       });
+
+      // Append-only forensics: record the admin who created this external
+      // (Move Fitness / claim-link) client and its non-deducting posture.
+      // Fail-closed inside the txn; skipped only when no admin actor is present.
+      if (req.user?.id) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: newClient.id,
+          action: 'admin_client_create_external',
+          reason: (typeof req.body?.reason === 'string' && req.body.reason.trim())
+            ? req.body.reason.trim().slice(0, 500)
+            : `Admin created external client (${normalizedClientSource})`,
+          previousState: {},
+          nextState: {
+            clientSource: newClient.clientSource,
+            availableSessions: newClient.availableSessions,
+            accountStatus: newClient.accountStatus,
+          },
+          metadata: { source: 'POST /api/admin/clients/create-external', createdBy: 'admin' },
+        }, { transaction });
+      }
 
       await transaction.commit();
 

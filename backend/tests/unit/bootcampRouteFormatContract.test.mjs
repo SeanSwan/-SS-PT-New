@@ -35,3 +35,16 @@ describe('bootcamp route format contract', () => {
     expect(trendApproveRoute).not.toContain('error: err.message');
   });
 });
+
+describe('bootcamp log route contract (Slice 0.2)', () => {
+  it('rejects empty or non-array exercisesUsed at the route boundary', () => {
+    expect(routeSource).toContain('!Array.isArray(exercisesUsed) || exercisesUsed.length === 0');
+    expect(routeSource).toContain('classDate and a non-empty exercisesUsed array are required');
+  });
+
+  it('Coach context reads the real bootcamp_class_log table (Rule 58 drift lock)', () => {
+    const aiChatSource = readFileSync(resolve(__dirname, '../../services/aiChatService.mjs'), 'utf8');
+    expect(aiChatSource).toContain('FROM bootcamp_class_log bcl');
+    expect(aiChatSource).not.toContain('FROM bootcamp_class_logs bcl');
+  });
+});

@@ -3,7 +3,9 @@ import styled from 'styled-components';
 import BodyMapSVG from './BodyMapSVG';
 import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
 import BodyMapEvidenceSection from './BodyMapEvidenceSection';
+import BodyMapClientTargetSelector from './BodyMapClientTargetSelector';
 import PainEntryPanel from './PainEntryPanel';
+import PainChartInsightPanel from './PainChartInsightPanel';
 import { getSeverityColor } from './bodyRegions';
 import { createPainEntryService, type PainEntry, type CreatePainEntryPayload } from '../../services/painEntryService';
 import { useAuth } from '../../context/AuthContext';
@@ -129,11 +131,13 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const globalClient = useContext(GlobalClientContext);
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
-  const activeClientProfile = globalClient?.activeClient as any;
-  const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some((client) => client.id === globalClient.activeClient?.id)
-    ? globalClient.activeClient.id
-    : undefined;
-  const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
+  const verifiedActiveClient = globalClient?.activeClient && globalClient.clientList.some(
+    (client) => client.id === globalClient.activeClient?.id,
+  )
+    ? globalClient.activeClient
+    : null;
+  const activeClientProfile = verifiedActiveClient as any;
+  const staffTargetClientId = userIdProp ?? verifiedActiveClient?.id;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
   const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender;
   const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;
@@ -144,6 +148,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [targetNotice, setTargetNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [gender, setGender] = useState<AnatomyGender>('male');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
@@ -157,14 +162,36 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const isClientMode = effectiveMode === 'client';
   const isOwnData = user?.id === userId;
   const canWrite = Boolean(userId) && (isTrainerOrAdmin || (isClientMode && isOwnData));
+  const activeEntries = useMemo(() => entries.filter((entry) => entry.isActive), [entries]);
+  const showStaffClientSelector = isTrainerOrAdmin && !userIdProp;
+  const resolvedCount = entries.length - activeEntries.length;
+
+  const handleTargetClientChange = useCallback((clientId: number | null) => {
+    if (!globalClient) return;
+
+    if (!clientId) {
+      globalClient.clearActiveClient();
+      setTargetNotice(null);
+      setPanelOpen(false);
+      setSelectedRegion(null);
+      return;
+    }
+
+    const nextClient = globalClient.clientList.find((client) => client.id === clientId);
+    if (nextClient) {
+      globalClient.setActiveClient(nextClient);
+      setTargetNotice(null);
+    }
+  }, [globalClient]);
 
   const fetchEntries = useCallback(async () => {
     if (!entryService || !userId) {
       setEntries([]); setLoading(false); setError(null); return;
     }
     try {
-      setLoading(true); setError(null);
-      const result = await entryService.getActive(userId);
+      setLoading(true);
+      setError(null);
+      const result = await entryService.getAll(userId);
       setEntries(result.entries || []);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load entries');
@@ -175,15 +202,34 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
 
   useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
-  const handleRegionClick = useCallback((regionId: string) => {
-    setSelectedRegion(regionId);
-    if (canWrite) setPanelOpen(true);
-  }, [canWrite]);
+  // Region click handler
+  const handleRegionClick = useCallback(
+    (regionId: string) => {
+      setSelectedRegion(regionId);
+      if (canWrite) {
+        setTargetNotice(null);
+        setPanelOpen(true);
+        return;
+      }
+      if (isTrainerOrAdmin && !userId) {
+        setTargetNotice('Select a client before adding pain details.');
+      }
+    },
+    [canWrite, isTrainerOrAdmin, userId],
+  );
 
+  useEffect(() => {
+    if (selectedRegion && canWrite && !panelOpen) {
+      setTargetNotice(null);
+      setPanelOpen(true);
+    }
+  }, [selectedRegion, canWrite, panelOpen]);
+
+  // Get existing entry for selected region
   const existingEntry = useMemo(() => {
     if (!selectedRegion) return null;
-    return entries.find((e) => e.bodyRegion === selectedRegion && e.isActive) || null;
-  }, [selectedRegion, entries]);
+    return activeEntries.find((e) => e.bodyRegion === selectedRegion) || null;
+  }, [selectedRegion, activeEntries]);
 
   const handleSave = useCallback(async (payload: CreatePainEntryPayload) => {
     if (!entryService || !canWrite || !userId) return;
@@ -225,10 +271,16 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
     }
   }, [entryService, userId, isAdmin, fetchEntries]);
 
-  const highCount = entries.filter((e) => e.painLevel >= 7).length;
-  const mediumCount = entries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
-  const lowCount = entries.filter((e) => e.painLevel < 4).length;
-  const formatRegionLabel = (region: string) => region.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  // Summary counts
+  const severeCount = activeEntries.filter((e) => e.painLevel >= 7).length;
+  const moderateCount = activeEntries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
+  const mildCount = activeEntries.filter((e) => e.painLevel < 4).length;
+
+  const formatRegionLabel = (region: string) =>
+    region
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
 
   return (
     <BodyMapSection>
@@ -236,10 +288,21 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         <SectionTitle>Body Map</SectionTitle>
         {entries.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <SummaryBadge $color="#fff">{entries.length} active</SummaryBadge>
-            {highCount > 0 && <SummaryBadge $color="#C6A84B">{highCount} high</SummaryBadge>}
-            {mediumCount > 0 && <SummaryBadge $color="#50A0F0">{mediumCount} medium</SummaryBadge>}
-            {lowCount > 0 && <SummaryBadge $color="#60C0F0">{lowCount} low</SummaryBadge>}
+            <SummaryBadge $color="#E0ECF4">
+              {activeEntries.length} active
+            </SummaryBadge>
+            {resolvedCount > 0 && (
+              <SummaryBadge $color="#4070C0">{resolvedCount} resolved</SummaryBadge>
+            )}
+            {severeCount > 0 && (
+              <SummaryBadge $color="#C6A84B">{severeCount} severe</SummaryBadge>
+            )}
+            {moderateCount > 0 && (
+              <SummaryBadge $color="#50A0F0">{moderateCount} moderate</SummaryBadge>
+            )}
+            {mildCount > 0 && (
+              <SummaryBadge $color="#60C0F0">{mildCount} mild</SummaryBadge>
+            )}
           </div>
         )}
       </SectionHeader>
@@ -247,15 +310,37 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       {loading && <StatusText>Loading entries...</StatusText>}
       {error && <ErrorText>{error}</ErrorText>}
 
+      {showStaffClientSelector && (
+        <BodyMapClientTargetSelector
+          clients={globalClient?.clientList ?? []}
+          selectedClientId={staffTargetClientId ?? null}
+          loading={Boolean(globalClient?.loadingClients)}
+          notice={targetNotice}
+          onChange={handleTargetClientChange}
+        />
+      )}
+
       {!loading && (
         <>
-          <BodyMapToolbar gender={gender} labelMode={labelMode} onGenderChange={setGender} onLabelModeChange={setLabelMode} />
-          <BodyMapSVG painEntries={entries} selectedRegion={selectedRegion} onRegionClick={handleRegionClick} gender={gender} labelMode={labelMode} profilePhotoUrl={profilePhotoUrl} />
+          <BodyMapToolbar
+            gender={gender}
+            labelMode={labelMode}
+            onGenderChange={setGender}
+            onLabelModeChange={setLabelMode}
+          />
+          <BodyMapSVG
+            painEntries={activeEntries}
+            selectedRegion={selectedRegion}
+            onRegionClick={handleRegionClick}
+            gender={gender}
+            labelMode={labelMode}
+            profilePhotoUrl={profilePhotoUrl}
+          />
 
-          {entries.length > 0 && (
+          {activeEntries.length > 0 && (
             <ActiveEntriesList>
-              <EntriesLabel>Active Entries</EntriesLabel>
-              {entries.map((entry) => {
+              <EntriesLabel>Active Pain Entries</EntriesLabel>
+              {activeEntries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
                   <ActiveEntryRow key={entry.id} $color={color} onClick={() => handleRegionClick(entry.bodyRegion)}>
@@ -270,9 +355,22 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
 
           {selectedRegion && userId && <BodyMapEvidenceSection userId={userId} entryId={existingEntry?.id ?? null} isClientMode={isClientMode} />}
 
-          {entries.length === 0 && !loading && (
+          {entries.length > 0 && (
+            <PainChartInsightPanel
+              entries={entries}
+              isClientMode={isClientMode}
+              onSelectRegion={handleRegionClick}
+            />
+          )}
+          {activeEntries.length === 0 && !loading && (
             <StatusText>
-              {!userId ? 'Select a client to view pain and injury entries.' : isClientMode ? 'Tap any area to log what you are feeling so your trainer can plan around it.' : 'No active entries. Click a body region to add one.'}
+              {!userId
+                ? 'Select a client to view pain and injury entries.'
+                : entries.length > 0
+                ? 'No active pain entries right now. Resolved history is available below.'
+                : isClientMode
+                ? 'Tap any area where you feel pain or discomfort to log it. Your trainer will see this when planning your workouts.'
+                : 'No active pain entries. Click a body region to add one.'}
             </StatusText>
           )}
         </>

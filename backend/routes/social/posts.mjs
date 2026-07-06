@@ -17,6 +17,7 @@ import { cleanupSocialPostDeletionSideEffects } from '../../services/social/soci
 import { getIO } from '../../socket/socketManager.mjs';
 import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
+import { buildFeedVisibilityWhere, normalizePostType } from './feedPolicy.mjs';
 
 const router = express.Router();
 
@@ -304,18 +305,14 @@ router.get('/feed', async (req, res) => {
       f.requesterId === req.user.id ? f.recipientId : f.requesterId
     );
     
-    // Include user's own posts and friends' posts, plus public posts
-    const userIds = [req.user.id, ...friendIds];
     
-    // Build where clause with optional hashtag/category filters
+    // Build where clause with optional hashtag/category filters.
+    // Visibility policy (trust fix 2026-07-06): own posts at ANY visibility,
+    // friends' posts only public/friends, strangers only public — friends'
+    // PRIVATE posts must never leak into the feed (see feedPolicy.mjs).
     const feedWhere = {
       [Op.and]: [
-        {
-          [Op.or]: [
-            { userId: { [Op.in]: userIds } },
-            { visibility: 'public' }
-          ]
-        },
+        buildFeedVisibilityWhere(req.user.id, friendIds),
         { moderationStatus: { [Op.or]: ['approved', null] } }
       ]
     };
@@ -705,11 +702,13 @@ router.post('/', upload.single('media'), async (req, res) => {
       });
     }
     
-    // Create post data
+    // Create post data. Type is normalized against the model enum — unknown
+    // or composer-alias types (e.g. 'transformation') used to reach the ENUM
+    // raw and 500 the live Home composer.
     const postData = {
       userId: req.user.id,
       content,
-      type,
+      type: normalizePostType(type, SocialPost.rawAttributes.type.values),
       visibility
     };
     

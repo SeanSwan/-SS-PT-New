@@ -21,6 +21,15 @@ import {
   type ChartPoint,
 } from '../../../../hooks/analytics/useClientProgressCharts';
 import ProgressChartActionBar from '../../progress-proof/ProgressChartActionBar';
+import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
+import { buildWeeklyVolumeCsvRows, buildWeeklyVolumeDrilldownRows } from './CanonicalProgressChartsGrid.expandRows';
+import {
+  buildSetsRepsSummary,
+  hasAnySetsRepsData,
+  hasAnyVisibleSeries,
+  toggleVisibleSeries,
+  visiblePulse,
+} from './CanonicalProgressChartsGrid.setsRepsState';
 import ChartWeekDrillTrigger from './ChartWeekDrillTrigger';
 import {
   buildProgressChartPulse,
@@ -93,44 +102,15 @@ const visibleChartPoints = (enabled: boolean, points: ChartPoint[]) => (
   enabled ? points : []
 );
 
-const isSeriesId = (id: string): id is SeriesId => id === 'sets' || id === 'reps';
-
-const buildSetsRepsSummary = (hasData: boolean) => (
-  hasData
-    ? 'Toggle sets and reps to isolate the work signal behind this trend.'
-    : 'No verified set or rep rows are available yet.'
-);
-
-const visiblePulse = (
-  hasVisibleSeries: boolean,
-  pulse: ReturnType<typeof buildProgressChartPulse>,
-) => (
-  hasVisibleSeries ? pulse : undefined
-);
-
-const hasAnyVisibleSeries = (visibleSeries: Record<SeriesId, boolean>) => (
-  Boolean(visibleSeries.sets || visibleSeries.reps)
-);
-
-const hasAnySetsRepsData = (sets: ChartPoint[], reps: ChartPoint[]) => (
-  Boolean(sets.length || reps.length)
-);
-
-const toggleVisibleSeries = (
-  setVisibleSeries: React.Dispatch<React.SetStateAction<Record<SeriesId, boolean>>>,
-  id: string,
-) => {
-  if (!isSeriesId(id)) return;
-  setVisibleSeries((current) => ({ ...current, [id]: !current[id] }));
-};
-
 const SetsRepsChartBody: React.FC<{
   hasData: boolean;
   hasVisibleSeries: boolean;
   visibleReps: ChartPoint[];
   visibleSeries: Record<SeriesId, boolean>;
   visibleSets: ChartPoint[];
-}> = ({ hasData, hasVisibleSeries, visibleReps, visibleSeries, visibleSets }) => {
+  width?: number;
+  height?: number;
+}> = ({ hasData, hasVisibleSeries, visibleReps, visibleSeries, visibleSets, width, height = 200 }) => {
   if (!hasData) return <EmptyCard label="No sets or reps logged yet" />;
   if (!hasVisibleSeries) return <EmptyCard label="All series hidden" hint="Turn Sets or Reps back on to view the chart." />;
 
@@ -140,7 +120,8 @@ const SetsRepsChartBody: React.FC<{
   return (
     <VictoryChart
       theme={victoryTheme as any}
-      height={200}
+      height={height}
+      {...(width ? { width } : {})}
       padding={{ top: 24, bottom: 40, left: 50, right: 12 }}
       containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
     >
@@ -182,12 +163,25 @@ export const WeeklyVolumeCard: React.FC<{
     unit: 'lbs',
   }), [visibleData]);
   const summary = summarizeTopPoint(visibleData, 'lbs');
-  const rows = visibleData.map((row) => ({
-    id: row.x,
-    label: row.x,
-    value: `${formatWhole(row.y)} lbs`,
-    detail: `${row.workouts ?? 0} logged workout${row.workouts === 1 ? '' : 's'} in this point.`,
-  }));
+  const rows = buildWeeklyVolumeDrilldownRows(visibleData);
+  const renderVolumeChart = (width?: number, height = 200) => (
+    <VictoryChart
+      theme={victoryTheme as any}
+      height={height}
+      {...(width ? { width } : {})}
+      padding={{ top: 16, bottom: 40, left: 52, right: 12 }}
+      containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+    >
+      <VictoryAxis />
+      <VictoryAxis dependentAxis />
+      <VictoryArea
+        data={visibleData}
+        {...weeklyVolumeAreaProps}
+        labels={({ datum }) => `${datum.x}: ${formatWhole(datum.y)} lbs`}
+        labelComponent={<VictoryTooltip renderInPortal={false} />}
+      />
+    </VictoryChart>
+  );
 
   return (
     <ChartCard data-testid="chart-card-weeklyVolume">
@@ -195,15 +189,18 @@ export const WeeklyVolumeCard: React.FC<{
         <CardIcon $color={CHART_COLORS.wingPurple}><BarChart3 size={16} /></CardIcon>
         <CardTitle>Weekly Training Volume</CardTitle>
         <CardSubtitle>{PROGRESS_CHART_RANGE_LABELS[range]}</CardSubtitle>
+        <ChartExpandTrigger
+          title="Weekly Training Volume"
+          subtitle={PROGRESS_CHART_RANGE_LABELS[range]}
+          renderChart={renderVolumeChart}
+          rows={rows}
+          pulse={pulse}
+        />
       </CardHeader>
       <ProgressChartActionBar
         chartId="weekly-volume"
         chartTitle="Weekly Training Volume"
-        csvRows={visibleData.map((row) => ({
-          week: row.x,
-          volume_lbs: Math.round(row.y),
-          workouts: row.workouts,
-        }))}
+        csvRows={buildWeeklyVolumeCsvRows(visibleData)}
         drilldownRows={rows}
         filename="swan-weekly-volume.csv"
         pulse={pulse}
@@ -214,23 +211,7 @@ export const WeeklyVolumeCard: React.FC<{
       <ChartBody data-chart-export="weekly-volume">
         {visibleData.length === 0 ? (
           <EmptyCard label="No logged lifts yet" hint="Sets x reps x weight will populate once workouts are logged." />
-        ) : (
-          <VictoryChart
-            theme={victoryTheme as any}
-            height={200}
-            padding={{ top: 16, bottom: 40, left: 52, right: 12 }}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryArea
-              data={visibleData}
-              {...weeklyVolumeAreaProps}
-              labels={({ datum }) => `${datum.x}: ${formatWhole(datum.y)} lbs`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryChart>
-        )}
+        ) : renderVolumeChart()}
       </ChartBody>
       {/* Slice 9: set-level week drill-down (button path — the area chart has
           no visible point targets and voronoi owns its pointer events). */}
@@ -267,6 +248,23 @@ export const SetsRepsTrendCard: React.FC<{
         <CardIcon $color={CHART_COLORS.arcticCyan}><Layers size={16} /></CardIcon>
         <CardTitle>Total Sets &amp; Reps</CardTitle>
         <CardSubtitle>{PROGRESS_CHART_RANGE_LABELS[range]}</CardSubtitle>
+        <ChartExpandTrigger
+          title="Total Sets & Reps"
+          subtitle={PROGRESS_CHART_RANGE_LABELS[range]}
+          renderChart={(w, h) => (
+            <SetsRepsChartBody
+              hasData={hasData}
+              hasVisibleSeries={hasVisibleSeries}
+              visibleReps={visibleReps}
+              visibleSeries={visibleSeries}
+              visibleSets={visibleSets}
+              width={w}
+              height={h}
+            />
+          )}
+          rows={buildSetsRepsDrilldownRows(csvRows)}
+          pulse={visiblePulse(hasVisibleSeries, pulse)}
+        />
       </CardHeader>
       <ProgressChartActionBar
         chartId="sets-reps-trend"

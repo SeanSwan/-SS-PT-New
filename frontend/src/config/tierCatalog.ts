@@ -68,6 +68,8 @@ export const FEATURE_GATES: Record<string, TierId> = {
   'calculator.bmi':       'free',
   'pain.bodymap':         'free',
   'booking.sessions':     'free',
+  // D2 (Sean lock 2026-07-06): Starter teaser pair (mirror of backend).
+  'analytics.teaser': 'free',
 
   'calculator.all':       'pro',
   'charts.full':          'pro',
@@ -98,6 +100,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   'social.feed':          'Social Feed',
   'gamification.basic':   'Gamification',
   'charts.basic':         'Progress Charts',
+  'analytics.teaser': 'Progress Teaser Charts',
   'calculator.bmi':       'BMI Calculator',
   'pain.bodymap':         'Pain & Injury Map',
   'booking.sessions':     'Session Booking',

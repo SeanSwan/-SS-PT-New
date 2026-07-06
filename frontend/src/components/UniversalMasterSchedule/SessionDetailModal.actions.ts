@@ -8,6 +8,7 @@ export interface CompleteSessionPayloadInput {
   trainerRating: string;
   clientFeedback: string;
   deductSessionCredit?: boolean;
+  waiveReason?: string;
 }
 
 export interface CancellationActionInput {
@@ -46,12 +47,16 @@ export const buildCompleteSessionPayload = ({
   trainerRating,
   clientFeedback,
   deductSessionCredit,
+  waiveReason,
 }: CompleteSessionPayloadInput) => ({
   notes: notes.trim() || undefined,
   trainerRating: trainerRating ? Number(trainerRating) : undefined,
   clientFeedback: clientFeedback.trim() || undefined,
   completeWithoutLog: true,
   ...(typeof deductSessionCredit === 'boolean' ? { deductSessionCredit } : {}),
+  ...(typeof waiveReason === 'string' && waiveReason.trim()
+    ? { waiveReason: waiveReason.trim() }
+    : {}),
 });
 
 export const buildAttendancePayload = (

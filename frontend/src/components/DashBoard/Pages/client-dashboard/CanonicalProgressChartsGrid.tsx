@@ -15,6 +15,7 @@ import ProgressChartCube from '../../progress/ProgressChartCube';
 import ProgressChartRecoveryObservatory from '../../progress/ProgressChartRecoveryObservatory';
 import ProgressChartWarRoomBoard from '../../progress/ProgressChartWarRoomBoard';
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
+import LockedChartCard from './CanonicalProgressChartsGrid.lockedCard';
 import {
   isProgressChartVisible,
   type ProgressChartLensId,
@@ -45,7 +46,7 @@ import {
 } from './CanonicalProgressChartsGrid.styles';
 
 const CanonicalProgressChartsGrid: React.FC = () => {
-  const { charts, isLoading, error, refetch, nonEmptyChartCount, unavailableChartCount } = useClientProgressCharts();
+  const { charts, isLoading, error, refetch, nonEmptyChartCount, unavailableChartCount , lockedChartIds } = useClientProgressCharts();
   const [activeLensId, setActiveLensId] = useState<ProgressChartLensId>('all');
 
   useEffect(() => {
@@ -85,17 +86,17 @@ const CanonicalProgressChartsGrid: React.FC = () => {
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>
         {isProgressChartVisible(activeLensId, 'workoutFrequency') && <WorkoutFrequencyCard data={charts.workoutFrequency} />}
-        {isProgressChartVisible(activeLensId, 'attendanceReliability') && <AttendanceReliabilityCard bundle={charts.attendanceReliability} />}
+        {isProgressChartVisible(activeLensId, 'attendanceReliability') && (lockedChartIds.includes('attendanceReliability') ? <LockedChartCard title="Attendance Reliability" /> : <AttendanceReliabilityCard bundle={charts.attendanceReliability} />)}
         {isProgressChartVisible(activeLensId, 'weeklyVolume') && <WeeklyVolumeCard data={charts.weeklyVolume} />}
-        {isProgressChartVisible(activeLensId, 'setsRepsTrend') && <SetsRepsTrendCard bundle={charts.setsRepsTrend} />}
-        {isProgressChartVisible(activeLensId, 'durationTrend') && <DurationTrendCard data={charts.durationTrend} />}
-        {isProgressChartVisible(activeLensId, 'intensityRpeTrend') && <IntensityRpeCard data={charts.intensityRpeTrend} />}
-        {isProgressChartVisible(activeLensId, 'prTimeline') && <PRTimelineCard data={charts.prTimeline} />}
-        {isProgressChartVisible(activeLensId, 'anchorLifts') && <AnchorLiftsCard bundle={charts.anchorLifts} />}
-        {isProgressChartVisible(activeLensId, 'exerciseFrequency') && <ExerciseFrequencyCard data={charts.exerciseFrequency} />}
-        {isProgressChartVisible(activeLensId, 'movementPatternBalance') && <MovementPatternBalanceCard data={charts.movementPatternBalance} />}
-        {isProgressChartVisible(activeLensId, 'muscleGroupBalance') && <MuscleGroupBalanceCard data={charts.muscleGroupBalance} />}
-        {isProgressChartVisible(activeLensId, 'recoverySignal') && <RecoverySignalCard data={charts.recoverySignal} />}
+        {isProgressChartVisible(activeLensId, 'setsRepsTrend') && (lockedChartIds.includes('setsRepsTrend') ? <LockedChartCard title="Total Sets & Reps" /> : <SetsRepsTrendCard bundle={charts.setsRepsTrend} />)}
+        {isProgressChartVisible(activeLensId, 'durationTrend') && (lockedChartIds.includes('durationTrend') ? <LockedChartCard title="Duration Trend" /> : <DurationTrendCard data={charts.durationTrend} />)}
+        {isProgressChartVisible(activeLensId, 'intensityRpeTrend') && (lockedChartIds.includes('intensityRpeTrend') ? <LockedChartCard title="Intensity & RPE" /> : <IntensityRpeCard data={charts.intensityRpeTrend} />)}
+        {isProgressChartVisible(activeLensId, 'prTimeline') && (lockedChartIds.includes('prTimeline') ? <LockedChartCard title="PR Highlights" /> : <PRTimelineCard data={charts.prTimeline} />)}
+        {isProgressChartVisible(activeLensId, 'anchorLifts') && (lockedChartIds.includes('anchorLifts') ? <LockedChartCard title="Anchor Lifts" /> : <AnchorLiftsCard bundle={charts.anchorLifts} />)}
+        {isProgressChartVisible(activeLensId, 'exerciseFrequency') && (lockedChartIds.includes('exerciseFrequency') ? <LockedChartCard title="Exercise Frequency" /> : <ExerciseFrequencyCard data={charts.exerciseFrequency} />)}
+        {isProgressChartVisible(activeLensId, 'movementPatternBalance') && (lockedChartIds.includes('movementPatternBalance') ? <LockedChartCard title="Movement Pattern Balance" /> : <MovementPatternBalanceCard data={charts.movementPatternBalance} />)}
+        {isProgressChartVisible(activeLensId, 'muscleGroupBalance') && (lockedChartIds.includes('muscleGroupBalance') ? <LockedChartCard title="Muscle Group Balance" /> : <MuscleGroupBalanceCard data={charts.muscleGroupBalance} />)}
+        {isProgressChartVisible(activeLensId, 'recoverySignal') && (lockedChartIds.includes('recoverySignal') ? <LockedChartCard title="Recovery Signal" /> : <RecoverySignalCard data={charts.recoverySignal} />)}
       </GridWrap>
     </div>
   );

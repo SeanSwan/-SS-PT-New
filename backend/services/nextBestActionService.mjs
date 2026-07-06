@@ -17,17 +17,28 @@
  *   drops neutrally (could be a planned recovery week).
  *
  * PRIORITY LADDER (first match wins as PRIMARY; up to 2 secondaries follow):
- *   1 log_first_workout   — no completed history at all
- *   2 return_after_gap    — 7+ days since the last workout
- *   3 streak_at_risk      — current week under target with <=2 days left
- *   4 balance_pull/push   — push/pull ratio outside the balanced band
- *   5 add_variety         — variety score < 40 with a real 30d sample
- *   6 volume_drop         — this week down 30%+ vs prior (neutral check-in)
- *   7 celebrate_streak    — 4+ qualifying weeks and nothing urgent
- *   8 keep_momentum       — default: keep the cadence going
+ *   1   log_first_workout — no completed history at all
+ *   2   return_after_gap  — 7+ days since the last workout
+ *   2.5 rest_day          — 3+ consecutive trained days incl. today, or
+ *                           active pain >= 7/10 (recovery beats streak pressure)
+ *   3   streak_at_risk    — current week under target with <=2 days left
+ *   3.5 plan_next         — active coach plan has a loggable day today
+ *                           (coach-guided default: the plan WINS over 4-6)
+ *   4   balance_pull/push — push/pull ratio outside the balanced band
+ *   5   add_variety       — variety score < 40 with a real 30d sample
+ *   6   volume_drop       — this week down 30%+ vs prior (neutral check-in)
+ *   7   celebrate_streak  — 4+ qualifying weeks and nothing urgent
+ *   8   keep_momentum     — default: keep the cadence going
+ *   9   credit_nudge      — client role only, secondary-only: balance <= 2
+ *
+ * Phase 1.5a additions ride an optional `context` (see
+ * nextBestActionContext.mjs); missing context degrades to the pulse-only
+ * ladder. Pain copy is comfort-modification framing only — never
+ * treatment/medical language (FDA general-wellness posture).
  */
 
 import getProgressPulse from './progressPulseService.mjs';
+import getNextBestActionContext from './nextBestActionContext.mjs';
 import { NAMED_MOVEMENT_PATTERNS } from './analytics/movementPatternSql.mjs';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -44,13 +55,30 @@ const action = (code, priority, title, message, cta = null) => (
 
 const LOG_HREF = '/dashboard/client/workouts';
 const PROGRESS_HREF = '/dashboard/client/progress';
+const STORE_HREF = '/store';
+
+/** D1 (Sean 2026-07-06): the only rungs un-gated for the free tier. */
+export const LITE_RUNG_CODES = new Set(['log_first_workout', 'return_after_gap', 'streak_at_risk']);
+
+/** Consecutive trained calendar days ending today (UTC date strings). */
+export function countConsecutiveTrainedDays(recentDays, now) {
+  const trained = new Set(Array.isArray(recentDays) ? recentDays : []);
+  let count = 0;
+  const cursor = new Date(now);
+  while (trained.has(cursor.toISOString().slice(0, 10))) {
+    count += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return count;
+}
 
 /**
  * @param {object} pulse getProgressPulse payload
- * @param {{ now?: Date }} opts injectable clock for tests
- * @returns {{ primary: object, secondary: object[] }}
+ * @param {{ now?: Date, audience?: 'coach', role?: 'user'|'client' }} opts
+ * @param {object} context getNextBestActionContext payload (optional)
+ * @returns {{ primary: object, secondary: object[], constraints, meta }}
  */
-export function computeNextBestAction(pulse, opts = {}) {
+export function computeNextBestAction(pulse, opts = {}, context = {}) {
   const { now = new Date() } = opts;
   const candidates = [];
   const streak = pulse?.streak ?? {};
@@ -58,6 +86,8 @@ export function computeNextBestAction(pulse, opts = {}) {
   const variety = pulse?.variety ?? {};
   const volume = pulse?.volume ?? {};
   const lastWorkout = pulse?.lastWorkout ?? {};
+  const pain = context?.pain ?? null;
+  const plan = context?.plan ?? null;
 
   const daysAgo = lastWorkout.daysAgo;
   const hasHistory = lastWorkout.date !== null && lastWorkout.date !== undefined;
@@ -76,6 +106,29 @@ export function computeNextBestAction(pulse, opts = {}) {
         ? `It has been ${daysAgo} days since your last logged session. One easy session this week restarts the engine — start light and rebuild.`
         : `It has been ${daysAgo} days since your last logged session. A single session this week keeps your momentum from resetting.`,
       { label: 'Log a workout', href: LOG_HREF }));
+  }
+
+  const consecutiveDays = countConsecutiveTrainedDays(context?.recentDays, now);
+  const severePain = Number.isFinite(pain?.maxLevel) && pain.maxLevel >= 7;
+  if (consecutiveDays >= 3 || severePain) {
+    candidates.push(action('rest_day', 2.5,
+      'Recovery day',
+      severePain
+        ? 'You have active discomfort logged at a high level. Today is a good day for rest or gentle movement in comfortable ranges — recovery is training too.'
+        : `You have trained ${consecutiveDays} days in a row. A recovery day lets the adaptation catch up — rest is where the gains land.`,
+      null));
+  }
+
+  const trainedToday = Number.isFinite(daysAgo) && daysAgo === 0;
+  if (plan?.isLoggable && !trainedToday) {
+    const extraCount = Math.max(0, (plan.exerciseCount ?? 0) - 1);
+    const lead = plan.firstExerciseName
+      ? `${plan.firstExerciseName}${extraCount > 0 ? ` + ${extraCount} more` : ''} is on your plan for today.`
+      : 'Your coach-assigned session is on the plan for today.';
+    candidates.push(action('plan_next', 3.5,
+      `Today: ${plan.dayLabel || plan.title || 'your planned session'}`,
+      `${lead} Logging it keeps your program on schedule.`,
+      { label: 'Start today\'s workout', href: LOG_HREF }));
   }
 
   const daysLeft = daysLeftInIsoWeek(now);
@@ -136,9 +189,56 @@ export function computeNextBestAction(pulse, opts = {}) {
     { label: 'Log a workout', href: LOG_HREF }));
 
   candidates.sort((a, b) => a.priority - b.priority);
-  const ranked = { primary: candidates[0], secondary: candidates.slice(1, 3) };
+
+  // D1 free-tier lite: rungs 1-3 only; analytics-free fallback; no context
+  // enrichments, no coach voice, no nudges (rich guidance stays paid).
+  if (opts.tier === 'lite') {
+    const lite = candidates.filter((c) => LITE_RUNG_CODES.has(c.code));
+    const fallback = action('keep_momentum', 8,
+      'Keep the cadence',
+      'Your next logged session writes the next data point on every chart here.',
+      { label: 'Log a workout', href: LOG_HREF });
+    return {
+      primary: lite[0] ?? fallback,
+      secondary: lite.slice(1, 2),
+      constraints: null,
+      meta: { engine: 'rules', version: 2, tier: 'lite' },
+    };
+  }
+
+  let secondary = candidates.slice(1, 3);
+
+  // Client-role, secondary-only: low balance nudge (never a primary, never
+  // shown to role-less users, never in coach voice).
+  if (
+    opts.role === 'client'
+    && opts.audience !== 'coach'
+    && context?.hasTrainer
+    && Number.isFinite(context?.credits?.availableSessions)
+    && context.credits.availableSessions <= 2
+  ) {
+    const n = context.credits.availableSessions;
+    const nudge = action('credit_nudge', 9,
+      'Sessions running low',
+      `${n} session credit${n === 1 ? '' : 's'} left. Topping up now keeps your training schedule unbroken.`,
+      { label: 'View packages', href: STORE_HREF });
+    secondary = [secondary[0], nudge].filter(Boolean);
+  }
+
+  // Comfort-modification framing only (FDA general-wellness posture) —
+  // never treatment/medical language.
+  const constraints = pain && pain.activeCount > 0
+    ? {
+      regions: pain.regions ?? [],
+      note: `Active discomfort noted${pain.regions?.length ? ` (${pain.regions.join(', ')})` : ''}. Choose comfortable ranges and skip movements that aggravate it today.`,
+    }
+    : null;
+  const meta = { engine: 'rules', version: 2 };
+
+  const ranked = { primary: candidates[0], secondary, constraints, meta };
   if (opts.audience === 'coach') {
     return {
+      ...ranked,
       primary: coachify(ranked.primary, pulse),
       secondary: ranked.secondary.map((a) => coachify(a, pulse)),
     };
@@ -177,15 +277,22 @@ export function coachify(a, pulse) {
       'A real habit has formed. A shout-out or share nudge reinforces it.'],
     keep_momentum: ['On track',
       'Cadence is healthy. Next best action: keep the current plan rolling.'],
+    rest_day: ['Recovery day indicated',
+      'Consecutive training days or active discomfort suggest programming a recovery day before the next loaded session.'],
+    plan_next: ['Planned session due today',
+      'The active program has a loggable session today — logging it keeps the plan cursor advancing.'],
   };
   const [title, message] = COACH_COPY[a.code] ?? [a.title, a.message];
   return { ...a, title, message, cta: null };
 }
 
-/** DB-backed entry point: pulse + decision in one call. */
+/** DB-backed entry point: pulse + coach-guided context + decision in one call. */
 export async function getNextBestAction(sequelize, userId, opts = {}) {
-  const pulse = await getProgressPulse(sequelize, userId);
-  return { ...computeNextBestAction(pulse, opts), pulse };
+  const [pulse, context] = await Promise.all([
+    getProgressPulse(sequelize, userId),
+    getNextBestActionContext(sequelize, userId, { now: opts.now }),
+  ]);
+  return { ...computeNextBestAction(pulse, opts, context), pulse };
 }
 
 export default getNextBestAction;

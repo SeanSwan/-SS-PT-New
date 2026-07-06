@@ -206,3 +206,65 @@ describe('mounted sessions lifecycle disclosure routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private required');
   });
 });
+
+describe('Slice 0.1 server-side completion billing route contract', () => {
+  beforeEach(() => {
+    completeSession.mockReset();
+  });
+
+  it('PATCH /api/sessions/:id/complete forwards waiveReason to the unified service', async () => {
+    completeSession.mockResolvedValueOnce({ success: true });
+
+    await request(app)
+      .patch('/api/sessions/42/complete')
+      .send({ completeWithoutLog: true, deductSessionCredit: false, waiveReason: 'comp for referral' });
+
+    expect(completeSession).toHaveBeenCalledWith(
+      '42',
+      expect.objectContaining({ role: 'admin' }),
+      expect.objectContaining({
+        completeWithoutLog: true,
+        deductSessionCredit: false,
+        waiveReason: 'comp for referral',
+      })
+    );
+  });
+
+  it('maps waive-validation errors to 400 without internal disclosure', async () => {
+    completeSession.mockRejectedValueOnce(
+      new Error('Invalid waive request: waiveReason (min 5 chars) is required to complete without deducting a session credit')
+    );
+
+    const response = await request(app)
+      .patch('/api/sessions/42/complete')
+      .send({ completeWithoutLog: true, deductSessionCredit: false });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('waive reason');
+  });
+
+  it('maps insufficient-credit completion errors to 400 instead of 500', async () => {
+    completeSession.mockRejectedValueOnce(new Error('Insufficient session credits (need 1, have 0)'));
+
+    const response = await request(app)
+      .patch('/api/sessions/42/complete')
+      .send({ completeWithoutLog: true });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Insufficient session credits to complete with deduction',
+    });
+  });
+
+  it('PUT /api/sessions/:id completion alias forwards waiveReason (source contract, Rule 20 sibling)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const source = readFileSync(resolve(__dirname, '../routes/sessions.mjs'), 'utf8');
+    const aliasStart = source.indexOf("req.body?.status === 'completed'");
+    const aliasBlock = source.slice(aliasStart, source.indexOf('allowedStatusUpdates', aliasStart));
+    expect(aliasStart).toBeGreaterThan(-1);
+    expect(aliasBlock).toContain('waiveReason: req.body?.waiveReason');
+  });
+});

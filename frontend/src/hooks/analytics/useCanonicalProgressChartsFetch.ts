@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CANONICAL_CHART_IDS,
+  type CanonicalChartId,
   type CanonicalProgressCharts,
 } from './useClientProgressCharts.types';
 import {
@@ -29,6 +30,7 @@ export interface UseCanonicalProgressChartsFetchReturn {
   refetch: () => void;
   nonEmptyChartCount: number;
   unavailableChartCount: number;
+  lockedChartIds: CanonicalChartId[];
 }
 
 const resolveChartResponses = async (
@@ -56,12 +58,14 @@ export function useCanonicalProgressChartsFetch(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unavailableChartCount, setUnavailableChartCount] = useState(0);
+  const [lockedChartIds, setLockedChartIds] = useState<CanonicalChartId[]>([]);
 
   const fetchAll = useCallback(async () => {
     if (!isEnabled) return;
     setIsLoading(true);
     setError(null);
     setUnavailableChartCount(0);
+    setLockedChartIds([]);
 
     const result = await resolveChartResponses(fetchResponses);
     if (!result.ok) {
@@ -69,6 +73,10 @@ export function useCanonicalProgressChartsFetch(
       setUnavailableChartCount(CANONICAL_CHART_IDS.length);
     } else {
       setUnavailableChartCount(countUnavailableChartResponses(result.responses));
+      // D2: 402-locked charts (server tier truth) render as upsell cards.
+      setLockedChartIds(CANONICAL_CHART_IDS.filter(
+        (_, index) => (result.responses[index] as { locked?: boolean } | null)?.locked === true,
+      ));
       setCharts(buildCanonicalProgressChartsFromResponses(result.responses));
     }
     setIsLoading(false);
@@ -88,7 +96,8 @@ export function useCanonicalProgressChartsFetch(
       refetch: fetchAll,
       nonEmptyChartCount,
       unavailableChartCount,
+      lockedChartIds,
     }),
-    [charts, isLoading, error, fetchAll, nonEmptyChartCount, unavailableChartCount],
+    [charts, isLoading, error, fetchAll, nonEmptyChartCount, unavailableChartCount, lockedChartIds],
   );
 }

@@ -336,6 +336,34 @@ const LoadingMsg = styled.div`
   font-size: 14px;
 `;
 
+// Non-silent failure surface. Replaces the prior swallowed catches so a failed
+// load/action reads as an error the trainer can retry — never as a false empty
+// state ("you have no equipment") on a network blip.
+const ErrorNotice = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: rgba(255, 107, 122, 0.12);
+  border: 1px solid var(--error, #ff6b7a);
+  border-radius: 10px;
+  color: var(--error, #ff6b7a);
+  font-size: 14px;
+`;
+
+const ErrorNoticeText = styled.span`
+  flex: 1;
+  min-width: 180px;
+`;
+
+const ErrorActions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
 const Input = styled.input`
   width: 100%;
   padding: 10px 14px;
@@ -660,6 +688,10 @@ const EquipmentManagerPage: React.FC = () => {
   const [selectedProfile, setSelectedProfile] = useState<EquipmentProfile | null>(null);
   const [items, setItems] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemsError, setItemsError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
@@ -690,6 +722,7 @@ const EquipmentManagerPage: React.FC = () => {
 
   const loadProfiles = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [profileRes, statsRes] = await Promise.all([
         api.listProfiles(),
@@ -697,19 +730,25 @@ const EquipmentManagerPage: React.FC = () => {
       ]);
       setProfiles(profileRes.profiles);
       setStats(statsRes.stats);
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to load profiles', err);
+      setLoadError(getEquipmentApiErrorMessage(err, 'Could not load your equipment locations. Check your connection and try again.'));
     } finally {
       setLoading(false);
     }
   }, [api]);
 
   const loadItems = useCallback(async (profileId: number) => {
+    setItemsLoading(true);
+    setItemsError(null);
     try {
       const res = await api.listItems(profileId);
       setItems(res.items);
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to load items', err);
+      setItemsError(getEquipmentApiErrorMessage(err, 'Could not load equipment for this location. Check your connection and try again.'));
+    } finally {
+      setItemsLoading(false);
     }
   }, [api]);
 
@@ -726,28 +765,37 @@ const EquipmentManagerPage: React.FC = () => {
   const handleSelectProfile = async (profile: EquipmentProfile) => {
     setSelectedProfile(profile);
     setView('detail');
+    // Clear the prior profile's items so opening a new location never flashes
+    // stale equipment or a false empty state while the fetch is in flight (ST2).
+    setItems([]);
+    setItemsError(null);
+    setActionError(null);
     await loadItems(profile.id);
   };
 
   const handleCreateProfile = async () => {
     if (!newProfile.name.trim()) return;
+    setActionError(null);
     try {
       await api.createProfile(newProfile);
       setShowCreateProfile(false);
       setNewProfile({ name: '', locationType: 'custom', description: '' });
       loadProfiles();
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to create profile', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not create the location profile. Please try again.'));
     }
   };
 
   const handleDeleteProfile = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
+    setActionError(null);
     try {
       await api.deleteProfile(id);
       loadProfiles();
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to archive profile', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not archive this location. Please try again.'));
     }
   };
 
@@ -755,6 +803,7 @@ const EquipmentManagerPage: React.FC = () => {
 
   const handleAddItem = async () => {
     if (!selectedProfile || !newItem.name.trim()) return;
+    setActionError(null);
     try {
       await api.addItem(selectedProfile.id, {
         name: newItem.name,
@@ -773,13 +822,15 @@ const EquipmentManagerPage: React.FC = () => {
       setLastScanBatch(null);
       loadItems(selectedProfile.id);
       loadProfiles();
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to add item', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not add this equipment item. Please try again.'));
     }
   };
 
   const handleDeleteItem = async (itemId: number) => {
     if (!selectedProfile) return;
+    setActionError(null);
     try {
       await api.deleteItem(selectedProfile.id, itemId);
       loadItems(selectedProfile.id);
@@ -787,8 +838,9 @@ const EquipmentManagerPage: React.FC = () => {
       setLastScanBatch(current => (current
         ? { ...current, createdItems: current.createdItems.filter(item => item.id !== itemId) }
         : current));
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to remove item', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not remove this equipment item. Please try again.'));
     }
   };
 
@@ -955,6 +1007,7 @@ const EquipmentManagerPage: React.FC = () => {
 
   const handleApprove = async () => {
     if (!selectedProfile || !showApproval) return;
+    setActionError(null);
     try {
       const approveRes = await api.approveItem(selectedProfile.id, showApproval.id, {
         name: approvalOverrides.name || undefined,
@@ -968,13 +1021,15 @@ const EquipmentManagerPage: React.FC = () => {
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to approve item', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not approve this equipment item. Please try again.'));
     }
   };
 
   const handleReject = async () => {
     if (!selectedProfile || !showApproval) return;
+    setActionError(null);
     try {
       await api.rejectItem(selectedProfile.id, showApproval.id);
       setItems(current => current.map(item => (
@@ -986,8 +1041,9 @@ const EquipmentManagerPage: React.FC = () => {
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
       loadProfiles();
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('[EquipmentManager] Failed to reject item', err);
+      setActionError(getEquipmentApiErrorMessage(err, 'Could not reject this equipment item. Please try again.'));
     }
   };
 
@@ -1232,8 +1288,24 @@ const EquipmentManagerPage: React.FC = () => {
             </StatBox>
           </StatsBar>
 
+          {actionError && (
+            <ErrorNotice role="alert">
+              <ErrorNoticeText>{actionError}</ErrorNoticeText>
+              <ErrorActions>
+                <GhostButton onClick={() => setActionError(null)}>Dismiss</GhostButton>
+              </ErrorActions>
+            </ErrorNotice>
+          )}
+
           {loading ? (
             <LoadingMsg>Loading profiles...</LoadingMsg>
+          ) : loadError ? (
+            <ErrorNotice role="alert">
+              <ErrorNoticeText>{loadError}</ErrorNoticeText>
+              <ErrorActions>
+                <PrimaryButton onClick={loadProfiles}>Try again</PrimaryButton>
+              </ErrorActions>
+            </ErrorNotice>
           ) : profiles.length === 0 ? (
             <EmptyState>
               <EmptyTitle>No equipment profiles yet</EmptyTitle>
@@ -1372,6 +1444,15 @@ const EquipmentManagerPage: React.FC = () => {
           </ScanActionGroup>
         </Header>
 
+        {actionError && (
+          <ErrorNotice role="alert">
+            <ErrorNoticeText>{actionError}</ErrorNoticeText>
+            <ErrorActions>
+              <GhostButton onClick={() => setActionError(null)}>Dismiss</GhostButton>
+            </ErrorActions>
+          </ErrorNotice>
+        )}
+
         {/* Hidden file inputs: camera capture stays separate from mobile gallery picking. */}
         <HiddenFileInput
           ref={cameraInputRef}
@@ -1466,7 +1547,16 @@ const EquipmentManagerPage: React.FC = () => {
         )}
 
         {/* Equipment Items List */}
-        {items.length === 0 && !scanning ? (
+        {itemsLoading && items.length === 0 ? (
+          <LoadingMsg>Loading equipment...</LoadingMsg>
+        ) : itemsError ? (
+          <ErrorNotice role="alert">
+            <ErrorNoticeText>{itemsError}</ErrorNoticeText>
+            <ErrorActions>
+              <PrimaryButton onClick={() => selectedProfile && loadItems(selectedProfile.id)}>Try again</PrimaryButton>
+            </ErrorActions>
+          </ErrorNotice>
+        ) : items.length === 0 && !scanning ? (
           <EmptyState>
             <EmptyTitle>No equipment here yet</EmptyTitle>
             <p>Tap Swan Coach Scan or choose multiple library photos to queue equipment scans.</p>
@@ -1703,6 +1793,12 @@ const EquipmentManagerPage: React.FC = () => {
                       {showApproval.description}
                     </DescriptionText>
                   </FormGroup>
+                )}
+
+                {actionError && (
+                  <ErrorNotice role="alert">
+                    <ErrorNoticeText>{actionError}</ErrorNoticeText>
+                  </ErrorNotice>
                 )}
 
                 <FormRow $top>

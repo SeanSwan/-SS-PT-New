@@ -59,6 +59,10 @@ export interface SessionDetailBodyPanelsProps {
   onTrainerRatingChange: (value: string) => void;
   onClientFeedbackChange: (value: string) => void;
   canDeductCompletionSessionCredit: boolean;
+  completionBillingApplicable: boolean;
+  completionWaiveReasonRequired: boolean;
+  completionWaiveReason: string;
+  onCompletionWaiveReasonChange: (value: string) => void;
   deductCompletionSessionCredit: boolean;
   onDeductCompletionSessionCreditChange: (value: boolean) => void;
   clientRating: number;
@@ -122,6 +126,10 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
   onTrainerRatingChange,
   onClientFeedbackChange,
   canDeductCompletionSessionCredit,
+  completionBillingApplicable,
+  completionWaiveReasonRequired,
+  completionWaiveReason,
+  onCompletionWaiveReasonChange,
   deductCompletionSessionCredit,
   onDeductCompletionSessionCreditChange,
   clientRating,
@@ -210,9 +218,13 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
     )}
 
     <SessionDetailCompletionBillingPanel
-      show={canManage && canDeductCompletionSessionCredit}
+      show={canManage && completionBillingApplicable}
+      canDeductSessionCredit={canDeductCompletionSessionCredit}
       deductSessionCredit={deductCompletionSessionCredit}
       onDeductSessionCreditChange={onDeductCompletionSessionCreditChange}
+      showWaiveReason={completionWaiveReasonRequired}
+      waiveReason={completionWaiveReason}
+      onWaiveReasonChange={onCompletionWaiveReasonChange}
     />
 
     <SessionDetailTrainerNotesPanel
