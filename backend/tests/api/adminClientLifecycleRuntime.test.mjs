@@ -51,6 +51,13 @@ vi.mock('../../database.mjs', () => ({
   }
 }));
 
+// adminClientController now writes an append-only AdminAccountAuditLog row on
+// create/update of sensitive account fields; stub it so the direct import does
+// not init the real model against the mocked database (and audit writes no-op).
+vi.mock('../../models/AdminAccountAuditLog.mjs', () => ({
+  default: { create: vi.fn().mockResolvedValue({ id: 1 }) }
+}));
+
 vi.mock('../../utils/logger.mjs', () => ({
   default: {
     info: vi.fn(),
