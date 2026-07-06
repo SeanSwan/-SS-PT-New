@@ -7,10 +7,30 @@
  */
 
 import SocialPost from '../models/social/SocialPost.mjs';
+import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 import { getIO } from '../socket/socketManager.mjs';
 
 const STREAK_MILESTONES = [7, 14, 30, 60, 90, 180, 365];
+
+/**
+ * Consent gate for AUTO-generated posts (trust triple 2026-07-06).
+ * Default ON (no preference set = legacy behavior). Opt-out lives at
+ * notificationPreferences.autoShareWorkoutsToFeed === false (settings hub).
+ * Fails CLOSED: if consent can't be verified, the (decorative) auto-post
+ * is suppressed rather than published. User-INITIATED shares are not gated.
+ */
+export async function isAutoShareEnabled(userId) {
+  try {
+    const user = await User.findByPk(userId, { attributes: ['id', 'notificationPreferences'] });
+    if (!user) return false;
+    const prefs = user.notificationPreferences;
+    return !(prefs && typeof prefs === 'object' && prefs.autoShareWorkoutsToFeed === false);
+  } catch (err) {
+    logger.warn(`Auto-post: consent check failed for user ${userId} — suppressing auto-post: ${err.message}`);
+    return false;
+  }
+}
 
 const WORKOUT_MESSAGES = [
   'Just crushed a workout!',
@@ -27,6 +47,7 @@ const WORKOUT_MESSAGES = [
  */
 export async function createWorkoutAutoPost(userId, workoutData) {
   try {
+    if (!(await isAutoShareEnabled(userId))) return;
     const { duration, exercisesCompleted, pointsAwarded } = workoutData;
     const msg = WORKOUT_MESSAGES[Math.floor(Math.random() * WORKOUT_MESSAGES.length)];
 
@@ -73,6 +94,7 @@ export async function createWorkoutAutoPost(userId, workoutData) {
 export async function createStreakAutoPost(userId, streakDays) {
   try {
     if (!STREAK_MILESTONES.includes(streakDays)) return;
+    if (!(await isAutoShareEnabled(userId))) return;
 
     const content = `${streakDays}-day workout streak! Consistency is key!`;
 
@@ -111,6 +133,7 @@ export async function createStreakAutoPost(userId, streakDays) {
  */
 export async function createAchievementAutoPost(userId, achievement) {
   try {
+    if (!(await isAutoShareEnabled(userId))) return;
     const content = `Achievement Unlocked: ${achievement.name}! ${achievement.description || ''}`.trim();
 
     await SocialPost.create({
@@ -181,4 +204,4 @@ export async function createWearableSharePost(userId, shareData) {
   }
 }
 
-export default { createWorkoutAutoPost, createStreakAutoPost, createAchievementAutoPost, createWearableSharePost };
+export default { createWorkoutAutoPost, createStreakAutoPost, createAchievementAutoPost, createWearableSharePost, isAutoShareEnabled };

@@ -19,7 +19,7 @@ type SettingsProfile = UserProfile & {
   showStats?: boolean;
   showWorkoutHistory?: boolean;
   showLevel?: boolean;
-  notificationPreferences?: { email?: boolean; sms?: boolean; push?: boolean; [key: string]: unknown };
+  notificationPreferences?: { email?: boolean; sms?: boolean; push?: boolean; autoShareWorkoutsToFeed?: boolean; [key: string]: unknown };
 };
 
 interface SettingsForm {
@@ -36,6 +36,7 @@ interface SettingsForm {
   emailNotifications: boolean;
   smsNotifications: boolean;
   pushNotifications: boolean;
+  autoShareWorkouts: boolean;
   chartVisibility: ProfileChartVisibility;
 }
 
@@ -70,6 +71,7 @@ const buildForm = (profile: UserProfile | null): SettingsForm => {
     emailNotifications: p?.emailNotifications ?? prefs.email ?? true,
     smsNotifications: p?.smsNotifications ?? prefs.sms ?? true,
     pushNotifications: prefs.push ?? true,
+    autoShareWorkouts: prefs.autoShareWorkoutsToFeed !== false,
     chartVisibility: buildChartVisibility(p),
   };
 };
@@ -90,7 +92,7 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
   }, []);
 
   const toggle = useCallback((key: keyof Pick<SettingsForm,
-    'showBadges' | 'showAchievements' | 'showStats' | 'showWorkoutHistory' | 'showLevel' | 'emailNotifications' | 'smsNotifications' | 'pushNotifications'
+    'showBadges' | 'showAchievements' | 'showStats' | 'showWorkoutHistory' | 'showLevel' | 'emailNotifications' | 'smsNotifications' | 'pushNotifications' | 'autoShareWorkouts'
   >) => {
     setForm(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
@@ -125,6 +127,7 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
         email: form.emailNotifications,
         sms: form.smsNotifications,
         push: form.pushNotifications,
+        autoShareWorkoutsToFeed: form.autoShareWorkouts,
       },
       chartVisibility: form.chartVisibility,
     };
@@ -173,6 +176,7 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
           <Toggle label="Show stats" active={form.showStats} onClick={() => toggle('showStats')} />
           <Toggle label="Show workout history" active={form.showWorkoutHistory} onClick={() => toggle('showWorkoutHistory')} />
           <Toggle label="Show level and XP" active={form.showLevel} onClick={() => toggle('showLevel')} />
+          <Toggle label="Auto-share completed workouts to the community feed" active={form.autoShareWorkouts} onClick={() => toggle('autoShareWorkouts')} />
         </Panel>
 
         <Panel>

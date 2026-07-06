@@ -95,22 +95,28 @@ const socialController = {
         followedAt: new Date()
       }, { transaction });
 
-      // Create notification for the followed user
-      if (Notification) {
-        await Notification.create({
-          userId: targetUserId,
-          senderId: followerId,
-          type: 'new_follower',
-          title: 'New Follower',
-          message: `${req.user.firstName || 'Someone'} started following you!`,
-          metadata: {
-            followerId,
-            followId: follow.id
-          }
-        }, { transaction });
-      }
-
       await transaction.commit();
+
+      // Notify the followed user AFTER commit — best-effort, never fails the
+      // follow. 'new_follower' is not in Notification.mjs's type allowlist and
+      // the old in-transaction create rolled the whole follow back with a 500
+      // (trust triple 2026-07-06). The model also has no metadata column, so
+      // use the relatedEntity pattern it actually defines.
+      if (Notification) {
+        try {
+          await Notification.create({
+            userId: targetUserId,
+            senderId: followerId,
+            type: 'system',
+            title: 'New Follower',
+            message: `${req.user.firstName || 'Someone'} started following you!`,
+            relatedEntityType: 'follow',
+            relatedEntityId: follow.id
+          });
+        } catch (notificationError) {
+          console.error('Follow succeeded but follower notification failed:', notificationError?.message);
+        }
+      }
 
       return res.status(200).json({
         success: true,
