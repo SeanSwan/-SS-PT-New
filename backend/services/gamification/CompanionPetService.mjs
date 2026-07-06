@@ -40,10 +40,13 @@ export const sanitizePetName = (value) => {
   let cleaned = '';
   for (const ch of collapsed) {
     const code = ch.codePointAt(0);
-    if (code < 0x20 || code === 0x7f || ch === '<' || ch === '>') continue;
+    // Strip C0 controls (<0x20), DEL + C1 controls (0x7f-0x9f), and angle brackets.
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f) || ch === '<' || ch === '>') continue;
     cleaned += ch;
   }
-  return cleaned.trim().slice(0, MAX_PET_NAME_LENGTH);
+  // Cap length by CODE POINT (not UTF-16 unit) so an astral glyph straddling the
+  // boundary is never cut mid-surrogate into a lone (invalid) surrogate half.
+  return [...cleaned.trim()].slice(0, MAX_PET_NAME_LENGTH).join('');
 };
 
 const buildInitialState = () => ({

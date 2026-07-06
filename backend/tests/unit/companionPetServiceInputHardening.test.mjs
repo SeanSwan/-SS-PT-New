@@ -30,6 +30,33 @@ describe('sanitizePetName', () => {
     expect(sanitizePetName(withControls)).toBe('Rex');
   });
 
+  it('strips C1 control characters (U+0080-U+009F, e.g. NEL)', () => {
+    // HR-003-F1: C1 controls previously survived the C0-only strip.
+    const withC1 = 'Rex' + String.fromCharCode(0x80, 0x85, 0x9f);
+    expect(sanitizePetName(withC1)).toBe('Rex');
+    // legitimate Latin-1 letters just above the C1 range must be preserved
+    expect(sanitizePetName('Renée')).toBe('Renée');
+  });
+
+  it('caps by code point without splitting a surrogate pair at the boundary', () => {
+    // HR-003-F2: a UTF-16 slice(0,50) cut an astral glyph straddling index 50
+    // into a lone high surrogate. Detect any lone surrogate in the output.
+    const hasLoneSurrogate = (s) =>
+      [...s].some((c) => {
+        const cp = c.codePointAt(0);
+        return cp >= 0xd800 && cp <= 0xdfff;
+      });
+    // 49 ASCII + 1 astral emoji = 50 code points -> whole emoji kept, no split
+    const keepsEmoji = sanitizePetName('a'.repeat(49) + '😀');
+    expect(hasLoneSurrogate(keepsEmoji)).toBe(false);
+    expect(keepsEmoji.endsWith('😀')).toBe(true);
+    expect([...keepsEmoji].length).toBe(50);
+    // 50 ASCII + astral -> emoji dropped cleanly, no lone surrogate left behind
+    const dropsEmoji = sanitizePetName('a'.repeat(50) + '😀');
+    expect(hasLoneSurrogate(dropsEmoji)).toBe(false);
+    expect([...dropsEmoji].length).toBe(50);
+  });
+
   it('strips angle brackets to defuse stored-XSS payloads', () => {
     const out = sanitizePetName('<script>alert(1)</script>');
     expect(out).not.toContain('<');
