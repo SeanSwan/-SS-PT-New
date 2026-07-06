@@ -78,4 +78,29 @@ describe('admin client account-control audit contract', () => {
     const { source } = updateClientRegion();
     expect(source).toContain('if (Object.keys(auditNextState).length > 0)');
   });
+
+  // Sibling coverage: createClient is the OTHER admin path that can set a
+  // no-pay/free grant (sessionBillingMode: no_session_required at creation).
+  it('audits the admin client CREATE path (fail-closed, before commit)', () => {
+    const s = controllerSource.indexOf('async createClient(req, res)');
+    const e = controllerSource.indexOf('async createExternalClient(req, res)', s);
+    const region = controllerSource.slice(s, e);
+    expect(region).toContain("action: 'admin_client_create'");
+    expect(region).toContain('targetUserId: newClient.id');
+    expect(region).toContain('sessionBillingMode: normalizedSessionBillingMode');
+    expect(region).toContain('if (req.user?.id)');
+    const createIdx = region.indexOf('AdminAccountAuditLog.create(');
+    expect(createIdx).toBeGreaterThan(-1);
+    expect(createIdx).toBeLessThan(region.indexOf('await transaction.commit()'));
+  });
+
+  it('audits the admin external-client CREATE path (fail-closed, before commit)', () => {
+    const s = controllerSource.indexOf('async createExternalClient(req, res)');
+    const region = controllerSource.slice(s);
+    expect(region).toContain("action: 'admin_client_create_external'");
+    expect(region).toContain('if (req.user?.id)');
+    const createIdx = region.indexOf('AdminAccountAuditLog.create(');
+    expect(createIdx).toBeGreaterThan(-1);
+    expect(createIdx).toBeLessThan(region.indexOf('await transaction.commit()'));
+  });
 });

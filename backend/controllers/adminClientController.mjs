@@ -1067,6 +1067,28 @@ class AdminClientController {
         await Session.bulkCreate(sessions, { transaction });
       }
 
+      // Append-only forensics: record the admin who created this client and the
+      // initial billing posture (esp. a no-pay/free grant — the other admin path
+      // besides updateClient that can set no_session_required). Fail-closed inside
+      // the txn; skipped only when no admin actor is present (defensive).
+      if (req.user?.id) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: newClient.id,
+          action: 'admin_client_create',
+          reason: (typeof req.body?.reason === 'string' && req.body.reason.trim())
+            ? req.body.reason.trim().slice(0, 500)
+            : `Admin created client (${normalizedSessionBillingMode})`,
+          previousState: {},
+          nextState: {
+            clientSource: normalizedClientSource,
+            sessionBillingMode: normalizedSessionBillingMode,
+            availableSessions: normalizedAvailableSessions,
+          },
+          metadata: { source: 'POST /api/admin/clients', createdBy: 'admin' },
+        }, { transaction });
+      }
+
       await transaction.commit();
 
       let resetEmailSent = false;
@@ -1959,6 +1981,27 @@ class AdminClientController {
         clientSource: normalizedClientSource,
         transaction
       });
+
+      // Append-only forensics: record the admin who created this external
+      // (Move Fitness / claim-link) client and its non-deducting posture.
+      // Fail-closed inside the txn; skipped only when no admin actor is present.
+      if (req.user?.id) {
+        await AdminAccountAuditLog.create({
+          actorUserId: req.user.id,
+          targetUserId: newClient.id,
+          action: 'admin_client_create_external',
+          reason: (typeof req.body?.reason === 'string' && req.body.reason.trim())
+            ? req.body.reason.trim().slice(0, 500)
+            : `Admin created external client (${normalizedClientSource})`,
+          previousState: {},
+          nextState: {
+            clientSource: normalizedClientSource,
+            availableSessions: 0,
+            accountStatus: 'stub',
+          },
+          metadata: { source: 'POST /api/admin/clients/create-external', createdBy: 'admin' },
+        }, { transaction });
+      }
 
       await transaction.commit();
 
