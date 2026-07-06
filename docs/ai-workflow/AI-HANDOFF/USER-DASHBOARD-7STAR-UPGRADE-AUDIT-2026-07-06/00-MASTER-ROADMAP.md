@@ -17,6 +17,12 @@
 
 ---
 
+## 0.5 POST-AUDIT CORRECTION (2026-07-06 ~02:00 — read before building Wave 1.2)
+
+While this audit ran against baseline `87680741e`, the parallel Fable vision-arc session shipped **Phase 1.5a to origin/main @ `8d332d83d`**: a shared `NextBestActionCard` now mounts on BOTH homes (user `HomeTabNextBestAction` + client `ClientDashboardHome.railSections`), backed by new `nextBestActionContext.mjs` and three new engine rungs (`rest_day` 2.5, `plan_next` 3.5, `credit_nudge` secondary). **The "NBA engine reaches zero home surfaces" finding in docs 01/06 is therefore true of the baseline but superseded on latest main.** Still open from Wave 1.2 (verify against `8d332d83d` before building): the `LOG_HREF` misroute to the history page, free-tier NBA-lite un-gating (Sean D1), and the streak-semantics unification. All other findings in this folder audit surfaces untouched by 1.5a.
+
+---
+
 ## 1. Domain Scorecard
 
 | Doc | Domain | Grade | One-line verdict |
