@@ -57,7 +57,13 @@ export interface ProgressPulse {
   };
 }
 
-export type ProgressPulseStatus = 'loading' | 'ready' | 'error';
+export type ProgressPulseStatus = 'loading' | 'ready' | 'lite' | 'error';
+
+/** D1 free-tier payload: rungs 1-3 guidance without the paid pulse. */
+export interface LiteNextBestAction {
+  primary: PulseAction;
+  secondary: PulseAction[];
+}
 
 const isPulseShape = (data: unknown): data is ProgressPulse => {
   const d = data as ProgressPulse | null;
@@ -67,11 +73,13 @@ const isPulseShape = (data: unknown): data is ProgressPulse => {
 export function useProgressPulse(): {
   status: ProgressPulseStatus;
   pulse: ProgressPulse | null;
+  liteNba: LiteNextBestAction | null;
   refetch: () => void;
 } {
   const { authAxios, user } = useAuth();
   const [status, setStatus] = useState<ProgressPulseStatus>('loading');
   const [pulse, setPulse] = useState<ProgressPulse | null>(null);
+  const [liteNba, setLiteNba] = useState<LiteNextBestAction | null>(null);
   const [nonce, setNonce] = useState(0);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
@@ -100,12 +108,31 @@ export function useProgressPulse(): {
       .catch(() => {
         if (!isMounted) return;
         setPulse(null);
-        setStatus('error');
+        // D1 (Sean 2026-07-06): gated tiers fall back to the free rungs-1-3
+        // guidance instead of a dead card. Any lite failure -> plain error.
+        authAxios
+          .get('/api/client/analytics/nba-lite')
+          .then((res: { data?: { success?: boolean; data?: { nextBestAction?: LiteNextBestAction } } }) => {
+            if (!isMounted) return;
+            const nba = res?.data?.data?.nextBestAction;
+            if (res?.data?.success && nba?.primary?.title) {
+              setLiteNba(nba);
+              setStatus('lite');
+            } else {
+              setLiteNba(null);
+              setStatus('error');
+            }
+          })
+          .catch(() => {
+            if (!isMounted) return;
+            setLiteNba(null);
+            setStatus('error');
+          });
       });
     return () => { isMounted = false; };
   }, [authAxios, user?.id, nonce]);
 
-  return { status, pulse, refetch };
+  return { status, pulse, liteNba, refetch };
 }
 
 export default useProgressPulse;

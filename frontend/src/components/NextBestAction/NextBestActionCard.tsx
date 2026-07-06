@@ -127,13 +127,17 @@ export interface NextBestActionCardProps {
 const LOG_CODES = new Set(['log_first_workout', 'return_after_gap', 'streak_at_risk', 'plan_next', 'keep_momentum']);
 
 const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ bare, hideHeader, onLogWorkout }) => {
-  const { status, pulse } = useProgressPulse();
+  const { status, pulse, liteNba } = useProgressPulse();
   const navigate = useNavigate();
 
-  const nba = pulse?.nextBestAction ?? null;
+  // D1: free tier renders the rungs-1-3 lite guidance; paid renders the
+  // full context-enriched compass. Same card, honest either way.
+  const nba = pulse?.nextBestAction ?? liteNba ?? null;
   const primary = nba?.primary ?? null;
   const secondary = (nba?.secondary ?? []).slice(0, 2);
-  const constraints = nba?.constraints ?? null;
+  // Constraints ride only the paid pulse (lite has none by design — D1).
+  const constraints = pulse?.nextBestAction?.constraints ?? null;
+  const hasGuidance = (status === 'ready' || status === 'lite') && Boolean(primary);
 
   const handleCta = () => {
     if (primary?.cta && LOG_CODES.has(primary.code) && onLogWorkout) return onLogWorkout();
@@ -151,7 +155,7 @@ const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ bare, hideHeade
         </HeaderRow>
       )}
       {status === 'loading' && <Skeleton aria-hidden="true" />}
-      {status === 'ready' && primary && (
+      {hasGuidance && primary && (
         <>
           <Title>{primary.title}</Title>
           <Message>{primary.message}</Message>

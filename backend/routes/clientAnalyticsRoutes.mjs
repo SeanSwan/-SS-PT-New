@@ -53,7 +53,7 @@ import {
   getMuscleRecoveryChart,
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
-import { getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
+import { getNbaLiteHandler, getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireFeature } from '../middleware/requireTier.mjs';
 
@@ -157,6 +157,8 @@ router.get('/exercise-variety', getExerciseVariety);
 
 /** @route GET /api/client/analytics/progress-pulse (Slice 8.1 — Progress Intelligence) */
 router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler);
+// D1 (Sean 2026-07-06): free-tier NBA rungs 1-3 — deliberately NO tier gate.
+router.get('/nba-lite', getNbaLiteHandler);
 
 /** @route GET /api/client/analytics/workout-day?md=MM/DD (Slice 8.4 — chart drill-down) */
 router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);

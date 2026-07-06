@@ -57,6 +57,9 @@ const LOG_HREF = '/dashboard/client/workouts';
 const PROGRESS_HREF = '/dashboard/client/progress';
 const STORE_HREF = '/store';
 
+/** D1 (Sean 2026-07-06): the only rungs un-gated for the free tier. */
+export const LITE_RUNG_CODES = new Set(['log_first_workout', 'return_after_gap', 'streak_at_risk']);
+
 /** Consecutive trained calendar days ending today (UTC date strings). */
 export function countConsecutiveTrainedDays(recentDays, now) {
   const trained = new Set(Array.isArray(recentDays) ? recentDays : []);
@@ -186,6 +189,23 @@ export function computeNextBestAction(pulse, opts = {}, context = {}) {
     { label: 'Log a workout', href: LOG_HREF }));
 
   candidates.sort((a, b) => a.priority - b.priority);
+
+  // D1 free-tier lite: rungs 1-3 only; analytics-free fallback; no context
+  // enrichments, no coach voice, no nudges (rich guidance stays paid).
+  if (opts.tier === 'lite') {
+    const lite = candidates.filter((c) => LITE_RUNG_CODES.has(c.code));
+    const fallback = action('keep_momentum', 8,
+      'Keep the cadence',
+      'Your next logged session writes the next data point on every chart here.',
+      { label: 'Log a workout', href: LOG_HREF });
+    return {
+      primary: lite[0] ?? fallback,
+      secondary: lite.slice(1, 2),
+      constraints: null,
+      meta: { engine: 'rules', version: 2, tier: 'lite' },
+    };
+  }
+
   let secondary = candidates.slice(1, 3);
 
   // Client-role, secondary-only: low balance nudge (never a primary, never

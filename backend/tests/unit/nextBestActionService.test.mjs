@@ -294,3 +294,52 @@ describe('Phase 1.5a — coach-guided context rungs', () => {
     expect(primary.cta).toBeNull();
   });
 });
+
+describe('D1 free-tier lite (Sean lock 2026-07-06) — rungs 1-3 only', () => {
+  it('serves gap guidance and never leaks paid rungs, context, or nudges', () => {
+    const pulse = basePulse({
+      pushPull: { label: 'push_heavy', ratio: 3 },
+      variety: { score: 10, patternsCovered: 1 },
+      lastWorkout: { date: '2026-06-20', daysAgo: 13 },
+    });
+    const context = {
+      plan: { isLoggable: true, dayLabel: 'Leg Day', exerciseCount: 5, firstExerciseName: 'Squat' },
+      pain: { activeCount: 1, maxLevel: 9, regions: ['knee'] },
+      credits: { availableSessions: 1 },
+      hasTrainer: true,
+      recentDays: ['2026-07-03', '2026-07-02', '2026-07-01'],
+    };
+    const result = computeNextBestAction(pulse, { now: FRIDAY, tier: 'lite', role: 'client' }, context);
+    expect(result.primary.code).toBe('return_after_gap');
+    const codes = [result.primary.code, ...result.secondary.map((a) => a.code)];
+    for (const paid of ['plan_next', 'rest_day', 'credit_nudge', 'balance_pull', 'add_variety', 'volume_drop', 'celebrate_streak']) {
+      expect(codes).not.toContain(paid);
+    }
+    expect(result.constraints).toBeNull();
+    expect(result.meta).toEqual({ engine: 'rules', version: 2, tier: 'lite' });
+  });
+
+  it('falls back to analytics-free cadence copy when no lite rung fires', () => {
+    const result = computeNextBestAction(basePulse(), { now: FRIDAY, tier: 'lite' });
+    expect(result.primary.code).toBe('keep_momentum');
+    expect(result.primary.message).not.toMatch(/\d+ training day/);
+    expect(result.secondary).toEqual([]);
+  });
+
+  it('keeps streak_at_risk available to free users', () => {
+    const pulse = basePulse({
+      streak: { currentWeekPending: true, daysThisWeek: 1, weekTarget: 3, weeklyCurrent: 2 },
+    });
+    const result = computeNextBestAction(pulse, { now: FRIDAY, tier: 'lite' });
+    expect(result.primary.code).toBe('streak_at_risk');
+  });
+
+  it('nba-lite route ships WITHOUT the analytics.advanced gate (source lock)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const source = readFileSync(resolve(process.cwd(), 'routes/clientAnalyticsRoutes.mjs'), 'utf8');
+    expect(source).toContain("router.get('/nba-lite', getNbaLiteHandler);");
+    expect(source).not.toContain("router.get('/nba-lite', requireGuardianAnalytics");
+    expect(source).toContain("router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler);");
+  });
+});

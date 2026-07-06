@@ -57,6 +57,30 @@ export async function getProgressPulseHandler(req, res) {
   }
 }
 
+/**
+ * GET /api/client/analytics/nba-lite — D1 (Sean 2026-07-06): free-tier
+ * next-best-action, rungs 1-3 only. No pulse payload, no context
+ * enrichments — the rich compass stays behind analytics.advanced.
+ */
+export async function getNbaLiteHandler(req, res) {
+  try {
+    const userId = parseUserId(req.params?.userId || req.user?.id);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user context' });
+    }
+    const pulse = await getProgressPulse(req.app.get('sequelize'), userId);
+    const nextBestAction = computeNextBestAction(pulse, { tier: 'lite' });
+    return res.json({ success: true, data: { nextBestAction } });
+  } catch (error) {
+    console.error('[NBA Lite Failed]', { message: error?.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load guidance',
+      error: 'internal_error',
+    });
+  }
+}
+
 /** GET /api/client/analytics/workout-day?md=MM/DD — Slice 8.4 drill-down. */
 export async function getWorkoutDayHandler(req, res) {
   try {
