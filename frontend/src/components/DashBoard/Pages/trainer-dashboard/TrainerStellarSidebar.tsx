@@ -23,7 +23,7 @@ import {
   Users, ClipboardCheck, BarChart3,
   Video, Brain, Apple, Calendar, MessageSquare, Dumbbell,
   ChevronRight, ChevronLeft, Menu, X, Flame,
-  Zap, Home,
+  Zap, Home, Wrench,
 } from 'lucide-react';
 import {
   Overlay,
@@ -73,6 +73,7 @@ export const trainerNavConfig = [
       { label: 'PLAUD Intake', path: '/dashboard/trainer/plaud', icon: Brain },
       { label: 'Plan Library', path: '/dashboard/trainer/workout-planner', icon: Dumbbell },
       { label: 'Bootcamp Creator', path: '/dashboard/trainer/bootcamp', icon: Flame },
+      { label: 'Equipment', path: '/dashboard/trainer/equipment', icon: Wrench },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
     ],
   },
