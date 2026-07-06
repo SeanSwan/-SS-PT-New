@@ -1214,10 +1214,11 @@ class AdminClientController {
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
         transaction,
-        // Pessimistic row lock: a concurrent admin edit to the same client
-        // could otherwise make the previousState snapshot below stale
-        // (lost-update anomaly under READ COMMITTED). Serialize on this row.
-        lock: transaction.LOCK.UPDATE
+        // Pessimistic row lock (FOR UPDATE): a concurrent admin edit to the same
+        // client could otherwise make the previousState snapshot below stale
+        // (lost-update anomaly under READ COMMITTED). `lock: true` == LOCK.UPDATE
+        // and avoids dereferencing transaction.LOCK (robust under mocked txns).
+        lock: true
       });
 
       if (!client) {
@@ -1995,9 +1996,9 @@ class AdminClientController {
             : `Admin created external client (${normalizedClientSource})`,
           previousState: {},
           nextState: {
-            clientSource: normalizedClientSource,
-            availableSessions: 0,
-            accountStatus: 'stub',
+            clientSource: newClient.clientSource,
+            availableSessions: newClient.availableSessions,
+            accountStatus: newClient.accountStatus,
           },
           metadata: { source: 'POST /api/admin/clients/create-external', createdBy: 'admin' },
         }, { transaction });
