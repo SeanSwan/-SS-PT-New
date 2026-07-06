@@ -8,11 +8,9 @@
 import React from 'react';
 import { Activity, BarChart3, Calendar, Flame, Layers, Users } from 'lucide-react';
 import {
-  VictoryArea,
   VictoryAxis,
   VictoryBar,
   VictoryChart,
-  VictoryGroup,
   VictoryLine,
   VictoryTooltip,
   VictoryVoronoiContainer,
@@ -34,15 +32,14 @@ import AdminProgressProofShare, {
   chartRowsForPoints,
 } from './AdminProgressChartsGrid.share';
 import { CHART_COLORS, victoryTheme } from '../../../../Charts/chartTheme';
+import ChartExpandTrigger from '../../../progress-proof/ChartExpandTrigger';
+import { AdminFrequencyChart, AdminSetsRepsChart, AdminVolumeChart } from './AdminProgressChartsGrid.chartBodies';
+import { buildWeeklyVolumeDrilldownRows, buildWorkoutFrequencyRows } from '../../../Pages/client-dashboard/CanonicalProgressChartsGrid.expandRows';
 import {
   durationLineProps,
   intensityLineProps,
-  repsBarProps,
   selectSetsRepsPulseSource,
-  setsBarProps,
   summaryForRows,
-  weeklyVolumeAreaProps,
-  workoutFrequencyBarProps,
 } from './AdminProgressChartsGrid.chartConfig';
 import {
   AttendanceMeta,
@@ -62,8 +59,6 @@ interface AdminProgressPrimaryCardsProps {
 }
 
 const compactPadding = { top: 12, bottom: 36, left: 36, right: 8 };
-const volumePadding = { top: 12, bottom: 36, left: 48, right: 8 };
-const groupedPadding = { top: 20, bottom: 36, left: 44, right: 8 };
 
 export const EmptyState: React.FC<{ lead: string; hint: string }> = ({ lead, hint }) => (
   <Empty><em>{lead}</em><span>{hint}</span></Empty>
@@ -96,6 +91,13 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
       <CardHeader>
         <Calendar size={14} color={CHART_COLORS.iceWing} />
         <CardTitle>Workout Frequency</CardTitle>
+        <ChartExpandTrigger
+          title="Workout Frequency"
+          subtitle="Distinct training days per week"
+          renderChart={(w, h) => <AdminFrequencyChart data={charts.workoutFrequency} width={w} height={h} />}
+          rows={buildWorkoutFrequencyRows(charts.workoutFrequency)}
+          pulse={workoutPulse}
+        />
       </CardHeader>
       <CardBody>
         {charts.workoutFrequency.length === 0 ? <EmptyState lead="No completed workouts yet" hint="Log the first session and this chart lights up." /> : (
@@ -112,22 +114,7 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
               summary={summaryForRows('workout frequency', workoutRows.length)}
               title="Workout Frequency"
             />
-            <VictoryChart
-              theme={victoryTheme}
-              height={180}
-              padding={compactPadding}
-              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-            >
-              <VictoryAxis />
-              <VictoryAxis dependentAxis />
-              <VictoryBar
-                data={charts.workoutFrequency}
-                {...workoutFrequencyBarProps}
-                cornerRadius={{ top: 3 }}
-                labels={({ datum }) => `${datum.x}: ${datum.y}`}
-                labelComponent={<VictoryTooltip renderInPortal={false} />}
-              />
-            </VictoryChart>
+            <AdminFrequencyChart data={charts.workoutFrequency} />
           </ChartStack>
         )}
       </CardBody>
@@ -155,6 +142,13 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
       <CardHeader>
         <BarChart3 size={14} color={CHART_COLORS.wingPurple} />
         <CardTitle>Weekly Volume</CardTitle>
+        <ChartExpandTrigger
+          title="Weekly Volume"
+          subtitle="Total lbs moved per week"
+          renderChart={(w, h) => <AdminVolumeChart data={charts.weeklyVolume} width={w} height={h} />}
+          rows={buildWeeklyVolumeDrilldownRows(charts.weeklyVolume)}
+          pulse={volumePulse}
+        />
       </CardHeader>
       <CardBody>
         {charts.weeklyVolume.length === 0 ? <EmptyState lead="No logged lifts yet" hint="Weights and reps saved in the logger feed this proof." /> : (
@@ -171,21 +165,7 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
               summary={summaryForRows('weekly volume', volumeRows.length)}
               title="Weekly Volume"
             />
-            <VictoryChart
-              theme={victoryTheme}
-              height={180}
-              padding={volumePadding}
-              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-            >
-              <VictoryAxis />
-              <VictoryAxis dependentAxis />
-              <VictoryArea
-                data={charts.weeklyVolume}
-                {...weeklyVolumeAreaProps}
-                labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs - ${datum.workouts ?? 0} workout${(datum.workouts ?? 0) === 1 ? '' : 's'}`}
-                labelComponent={<VictoryTooltip renderInPortal={false} />}
-              />
-            </VictoryChart>
+            <AdminVolumeChart data={charts.weeklyVolume} />
           </ChartStack>
         )}
       </CardBody>
@@ -195,6 +175,13 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
       <CardHeader>
         <Layers size={14} color={CHART_COLORS.arcticCyan} />
         <CardTitle>Sets & Reps Trend</CardTitle>
+        <ChartExpandTrigger
+          title="Sets & Reps Trend"
+          subtitle="Weekly totals"
+          renderChart={(w, h) => <AdminSetsRepsChart sets={charts.setsRepsTrend.sets} reps={charts.setsRepsTrend.reps} width={w} height={h} />}
+          rows={setsRepsRows.map((r, i) => ({ id: String(r.period ?? i), label: String(r.period ?? i), value: `${r.sets ?? 0} sets / ${r.reps ?? 0} reps` }))}
+          pulse={setsRepsPulse}
+        />
       </CardHeader>
       <CardBody>
         {!hasSetsRepsData ? <EmptyState lead="No sets or reps logged yet" hint="Each saved workout adds a set-and-rep proof point." /> : (
@@ -211,19 +198,7 @@ export const AdminProgressPrimaryCards: React.FC<AdminProgressPrimaryCardsProps>
               summary={summaryForRows('sets and reps', setsRepsRows.length)}
               title="Sets & Reps Trend"
             />
-            <VictoryChart
-              theme={victoryTheme}
-              height={180}
-              padding={groupedPadding}
-              containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-            >
-              <VictoryAxis />
-              <VictoryAxis dependentAxis />
-              <VictoryGroup offset={8}>
-                <VictoryBar data={charts.setsRepsTrend.sets} {...setsBarProps} />
-                <VictoryBar data={charts.setsRepsTrend.reps} {...repsBarProps} />
-              </VictoryGroup>
-            </VictoryChart>
+            <AdminSetsRepsChart sets={charts.setsRepsTrend.sets} reps={charts.setsRepsTrend.reps} />
           </ChartStack>
         )}
       </CardBody>
