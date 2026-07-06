@@ -1,36 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import {
-  EXERCISE_LIBRARY_URL,
-  EXERCISE_TYPES,
-  MUSCLE_GROUPS,
-  getExerciseLevel,
-  getFilteredExercises,
-  getHiddenMuscleCount,
-  getVisibleMuscles,
-  normalizeExercises,
-  type ExerciseSelectorExercise
-} from './ExerciseSelector.logic';
-import {
-  AddButton,
-  ErrorMessage,
-  ExerciseCard,
-  ExerciseDifficulty,
-  ExerciseFooter,
-  ExerciseHeader,
-  ExerciseList,
-  ExerciseName,
-  ExerciseType,
-  FilterRow,
-  FilterSection,
-  FilterSelect,
-  MuscleGroups,
-  MuscleTag,
-  SearchInput,
-  SelectorContainer,
-  SelectorHeader,
-  StateMessage
-} from './ExerciseSelector.styles';
+/**
+ * ExerciseSelector — workout-page adapter over SwanExercisePicker (2.3a)
+ * ======================================================================
+ * First adopter of the shared picker family. This file used to own its
+ * own fetch + filter + card list; all of that now lives in
+ * components/Shared/SwanExercisePicker (worker-backed search over the
+ * role-open /api/exercises/library, virtualized to the full 840-exercise
+ * library instead of this page's old unvirtualized list).
+ *
+ * The adapter's whole job: keep the WorkoutPlanner contract stable —
+ * same props, and onAddExercise still receives ExerciseSelectorExercise
+ * (mapped from the picker's always-emit ExerciseSlim at this edge).
+ * `clientId` stays in the props for caller compatibility; the library
+ * endpoint is role-open so the fetch no longer gates on it.
+ */
+import React from 'react';
+import SwanExercisePicker from '../../../components/Shared/SwanExercisePicker/SwanExercisePicker';
+import type { ExerciseSlim } from '../../../components/Shared/SwanExercisePicker/types';
+import type { ExerciseSelectorExercise } from './ExerciseSelector.logic';
 
 interface ExerciseSelectorProps {
   clientId: string | null;
@@ -38,119 +24,27 @@ interface ExerciseSelectorProps {
   selectedExerciseIds: string[];
 }
 
+export const toSelectorExercise = (exercise: ExerciseSlim): ExerciseSelectorExercise => ({
+  id: exercise.id,
+  name: exercise.name,
+  exerciseType: exercise.exerciseType,
+  primaryMuscles: exercise.primaryMuscles ?? [],
+  difficulty: exercise.difficulty ?? 0,
+  recommendedSets: exercise.recommendedSets ?? undefined,
+  recommendedReps: exercise.recommendedReps ?? undefined,
+  recommendedRest: exercise.restInterval ?? exercise.defaultRestSeconds ?? undefined,
+});
+
 const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
-  clientId,
   onAddExercise,
   selectedExerciseIds
-}) => {
-  const { authAxios } = useAuth();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [exercises, setExercises] = useState<ExerciseSelectorExercise[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterMuscle, setFilterMuscle] = useState<string>('all');
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchExercises = async () => {
-      if (!clientId) return;
-
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await authAxios.get(EXERCISE_LIBRARY_URL);
-        if (isMounted) setExercises(normalizeExercises(response.data?.exercises));
-      } catch (err) {
-        console.error('Error fetching exercises:', err);
-        if (isMounted) {
-          setExercises([]);
-          setError('Failed to fetch exercises');
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchExercises();
-    return () => {
-      isMounted = false;
-    };
-  }, [authAxios, clientId]);
-
-  const availableExercises = useMemo(() => getFilteredExercises(exercises, {
-    filterMuscle,
-    filterType,
-    searchQuery,
-    selectedExerciseIds
-  }), [exercises, filterMuscle, filterType, searchQuery, selectedExerciseIds]);
-
-  return (
-    <SelectorContainer>
-      <SelectorHeader>
-        <h3>Exercise Library</h3>
-      </SelectorHeader>
-
-      <FilterSection>
-        <SearchInput
-          type="text"
-          placeholder="Search exercises..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <FilterRow>
-          <FilterSelect value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-            {EXERCISE_TYPES.map(type => (
-              <option key={type.value} value={type.value}>{type.label}</option>
-            ))}
-          </FilterSelect>
-          <FilterSelect value={filterMuscle} onChange={(e) => setFilterMuscle(e.target.value)}>
-            {MUSCLE_GROUPS.map(muscle => (
-              <option key={muscle.value} value={muscle.value}>{muscle.label}</option>
-            ))}
-          </FilterSelect>
-        </FilterRow>
-      </FilterSection>
-
-      {isLoading ? (
-        <StateMessage>Loading exercises...</StateMessage>
-      ) : error ? (
-        <ErrorMessage>{error}</ErrorMessage>
-      ) : availableExercises.length === 0 ? (
-        <StateMessage>No exercises found. Try adjusting your filters.</StateMessage>
-      ) : (
-        <ExerciseList>
-          {availableExercises.map(exercise => {
-            const hiddenMuscles = getHiddenMuscleCount(exercise);
-
-            return (
-              <ExerciseCard key={exercise.id}>
-                <ExerciseHeader>
-                  <ExerciseType>{exercise.exerciseType}</ExerciseType>
-                  <ExerciseDifficulty>Level {getExerciseLevel(exercise.difficulty)}</ExerciseDifficulty>
-                </ExerciseHeader>
-                <ExerciseName>{exercise.name}</ExerciseName>
-                <MuscleGroups>
-                  {getVisibleMuscles(exercise).map((muscle, index) => (
-                    <MuscleTag key={`${exercise.id}-${muscle}-${index}`}>{muscle}</MuscleTag>
-                  ))}
-                  {hiddenMuscles > 0 && <MuscleTag>+{hiddenMuscles} more</MuscleTag>}
-                </MuscleGroups>
-                <ExerciseFooter>
-                  <AddButton
-                    onClick={() => onAddExercise(exercise)}
-                    disabled={selectedExerciseIds.includes(exercise.id)}
-                  >
-                    Add to Workout
-                  </AddButton>
-                </ExerciseFooter>
-              </ExerciseCard>
-            );
-          })}
-        </ExerciseList>
-      )}
-    </SelectorContainer>
-  );
-};
+}) => (
+  <SwanExercisePicker
+    mode="workout-page"
+    title="Exercise Library"
+    excludeIds={selectedExerciseIds}
+    onSelect={(exercise) => onAddExercise(toSelectorExercise(exercise))}
+  />
+);
 
 export default ExerciseSelector;
