@@ -365,9 +365,11 @@ class SessionService {
    */
   async completeSession(sessionId: string, notes?: string): Promise<Session> {
     try {
+      // No deductSessionCredit key: the server decides billing (an explicit
+      // false is a waive request that requires a recorded reason).
       const response = await this.apiService.patch<Session>(
         `/api/sessions/${sessionId}/complete`,
-        { notes, completeWithoutLog: true, deductSessionCredit: false }
+        { notes, completeWithoutLog: true }
       );
       return response.data;
     } catch (error) {

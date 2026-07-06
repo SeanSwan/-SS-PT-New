@@ -39,6 +39,12 @@ import moment from 'moment';
 import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
 import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';
+import {
+  isServerCompletionBillingEnabled,
+  resolveCompletionBillingAction,
+  findSameDayBilledWorkoutForm,
+  buildWaiveAuditPayload
+} from './sessionCompletionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
 
@@ -54,7 +60,8 @@ import {
   getSession,
   getSessionType,
   getFinancialTransaction,
-  getClientTrainerAssignment
+  getClientTrainerAssignment,
+  getDailyWorkoutForm
 } from '../../models/index.mjs';
 
 // Import notification utilities
@@ -1876,7 +1883,8 @@ class UnifiedSessionService {
         clientFeedback,
         actualDuration,
         completeWithoutLog,
-        deductSessionCredit
+        deductSessionCredit,
+        waiveReason
       } = normalizedData;
 
       // Find the session with related data
@@ -1966,7 +1974,67 @@ class UnifiedSessionService {
       const shouldDeductCompletionCredit = deductSessionCredit === true;
       let deductionResult = null;
       if (!session.sessionDeducted && session.userId && session.client) {
-        if (isNonDeductingClient(session.client)) {
+        if (isServerCompletionBillingEnabled()) {
+          // Server-side billing policy (Slice 0.1): the server decides.
+          // Deduct when eligible; explicit false = audited waive request.
+          const billingAction = resolveCompletionBillingAction({
+            deductSessionCredit,
+            waiveReason,
+            client: session.client
+          });
+
+          if (billingAction.action === 'skip') {
+            deductionResult = {
+              success: true,
+              deducted: false,
+              creditsDeducted: 0,
+              remainingSessions: session.client.availableSessions ?? null,
+              reason: billingAction.reason
+            };
+          } else if (billingAction.action === 'waive') {
+            const FinancialTransaction = getFinancialTransaction();
+            await FinancialTransaction.create(
+              buildWaiveAuditPayload({
+                session,
+                actorUserId: completionRecorderId,
+                actorRole: user.role,
+                waiveReason: billingAction.waiveReason
+              }),
+              { transaction }
+            );
+            const waiveNote = `[Credit waived by user ${completionRecorderId}] ${billingAction.waiveReason}`;
+            session.notes = session.notes ? `${session.notes}\n${waiveNote}` : waiveNote;
+            deductionResult = {
+              success: true,
+              deducted: false,
+              creditsDeducted: 0,
+              remainingSessions: session.client.availableSessions ?? null,
+              reason: 'waived_by_manager',
+              waiveReason: billingAction.waiveReason
+            };
+          } else {
+            const priorBilledForm = await findSameDayBilledWorkoutForm({
+              DailyWorkoutForm: getDailyWorkoutForm(),
+              clientId: session.userId,
+              sessionDate: session.sessionDate,
+              transaction
+            });
+            if (priorBilledForm) {
+              deductionResult = {
+                success: true,
+                deducted: false,
+                creditsDeducted: 0,
+                remainingSessions: session.client.availableSessions ?? null,
+                reason: 'already_billed_via_workout_log'
+              };
+            } else {
+              deductionResult = await processSessionDeduction(session, session.client, transaction);
+              if (!deductionResult?.success) {
+                throw new Error(deductionResult?.message || 'Failed to deduct session credits');
+              }
+            }
+          }
+        } else if (isNonDeductingClient(session.client)) {
           deductionResult = {
             success: true,
             deducted: false,
@@ -2036,7 +2104,8 @@ class UnifiedSessionService {
           deducted: Boolean(deductionResult.deducted),
           creditsDeducted: deductionResult.creditsDeducted || 0,
           remainingSessions: deductionResult.remainingSessions ?? null,
-          reason: deductionResult.reason
+          reason: deductionResult.reason,
+          ...(deductionResult.waiveReason ? { waiveReason: deductionResult.waiveReason } : {})
         } : null
       };
     } catch (error) {

@@ -1580,7 +1580,8 @@ router.put("/:id", protect, async (req, res) => {
       const result = await unifiedSessionService.completeSession(sessionId, req.user, {
         notes: req.body?.notes,
         completeWithoutLog: req.body?.completeWithoutLog === true,
-        deductSessionCredit: req.body?.deductSessionCredit
+        deductSessionCredit: req.body?.deductSessionCredit,
+        waiveReason: req.body?.waiveReason
       });
       return res.status(200).json(result);
     }
@@ -1669,7 +1670,7 @@ router.put("/:id", protect, async (req, res) => {
       });
     }
 
-    if (normalizedMessage.includes('invalid') || normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
+    if (normalizedMessage.includes('invalid') || normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled') || normalizedMessage.includes('insufficient session credits')) {
       return res.status(400).json({
         success: false,
         message: 'Invalid session update'
@@ -2539,7 +2540,8 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
       clientFeedback,
       actualDuration,
       completeWithoutLog,
-      deductSessionCredit
+      deductSessionCredit,
+      waiveReason
     } = req.body;
     const result = await unifiedSessionService.completeSession(req.params.id, req.user, {
       notes,
@@ -2547,7 +2549,8 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
       clientFeedback,
       actualDuration,
       completeWithoutLog: completeWithoutLog === true,
-      deductSessionCredit
+      deductSessionCredit,
+      waiveReason
     });
     
     return res.status(200).json(result);
@@ -2579,13 +2582,27 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
+    if (normalizedMessage.includes('waive')) {
+      return res.status(400).json({
+        success: false,
+        message: 'A waive reason (minimum 5 characters) is required to complete without deducting a session credit'
+      });
+    }
+
+    if (normalizedMessage.includes('insufficient session credits')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient session credits to complete with deduction'
+      });
+    }
+
     if (normalizedMessage.includes('invalid')) {
       return res.status(400).json({
         success: false,
         message: 'Invalid completion request'
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: 'Server error completing session'

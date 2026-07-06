@@ -66,10 +66,14 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     trainerRating,
     clientFeedback,
     canDeductCompletionSessionCredit,
+    completionBillingApplicable,
+    completionWaiveReasonRequired,
+    completionWaiveReason,
     deductCompletionSessionCredit,
     setNotes,
     setTrainerRating,
     setClientFeedback,
+    setCompletionWaiveReason,
     setDeductCompletionSessionCredit,
     handleComplete,
   } = useSessionCompletion({
@@ -253,6 +257,10 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         onTrainerRatingChange={setTrainerRating}
         onClientFeedbackChange={setClientFeedback}
         canDeductCompletionSessionCredit={canDeductCompletionSessionCredit}
+        completionBillingApplicable={completionBillingApplicable}
+        completionWaiveReasonRequired={completionWaiveReasonRequired}
+        completionWaiveReason={completionWaiveReason}
+        onCompletionWaiveReasonChange={setCompletionWaiveReason}
         deductCompletionSessionCredit={deductCompletionSessionCredit}
         onDeductCompletionSessionCreditChange={setDeductCompletionSessionCredit}
         clientRating={clientRating}

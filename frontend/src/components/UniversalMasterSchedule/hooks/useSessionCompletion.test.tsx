@@ -127,7 +127,7 @@ describe('useSessionCompletion', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('lets managers waive direct-completion deduction for paid sessions', async () => {
+  it('lets managers waive direct-completion deduction for paid sessions with a recorded reason', async () => {
     vi.mocked(apiService.patch).mockResolvedValueOnce({
       data: { success: true },
     });
@@ -136,10 +136,19 @@ describe('useSessionCompletion', () => {
     await waitFor(() => {
       expect(result.current.canDeductCompletionSessionCredit).toBe(true);
       expect(result.current.deductCompletionSessionCredit).toBe(true);
+      expect(result.current.completionWaiveReasonRequired).toBe(false);
     });
 
     await act(async () => {
       result.current.setDeductCompletionSessionCredit(false);
+    });
+
+    await waitFor(() => {
+      expect(result.current.completionWaiveReasonRequired).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.setCompletionWaiveReason('  comp session for referral  ');
     });
 
     await act(async () => {
@@ -152,10 +161,33 @@ describe('useSessionCompletion', () => {
       clientFeedback: undefined,
       completeWithoutLog: true,
       deductSessionCredit: false,
+      waiveReason: 'comp session for referral',
     });
   });
 
-  it('completes without deduction when a paid client has no known credits left', async () => {
+  it('blocks a waive without a 5+ character reason before calling the endpoint', async () => {
+    const { result, setFormError } = setup();
+
+    await waitFor(() => {
+      expect(result.current.deductCompletionSessionCredit).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.setDeductCompletionSessionCredit(false);
+      result.current.setCompletionWaiveReason('abc');
+    });
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+
+    expect(apiService.patch).not.toHaveBeenCalled();
+    expect(setFormError).toHaveBeenCalledWith(
+      'Add a short reason (5+ characters) for completing without deducting a session credit.'
+    );
+  });
+
+  it('requires a waive reason when a paid client has no known credits left (unpaid completion is a waive)', async () => {
     vi.mocked(apiService.patch).mockResolvedValueOnce({
       data: { success: true },
     });
@@ -167,6 +199,40 @@ describe('useSessionCompletion', () => {
     await waitFor(() => {
       expect(result.current.canDeductCompletionSessionCredit).toBe(false);
       expect(result.current.deductCompletionSessionCredit).toBe(false);
+      expect(result.current.completionBillingApplicable).toBe(true);
+      expect(result.current.completionWaiveReasonRequired).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.setCompletionWaiveReason('client out of credits, renewal pending');
+    });
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+
+    expect(apiService.patch).toHaveBeenCalledWith('/api/sessions/66/complete', {
+      notes: undefined,
+      trainerRating: undefined,
+      clientFeedback: undefined,
+      completeWithoutLog: true,
+      deductSessionCredit: false,
+      waiveReason: 'client out of credits, renewal pending',
+    });
+  });
+
+  it('does not require a waive reason for non-deducting client sources', async () => {
+    vi.mocked(apiService.patch).mockResolvedValueOnce({
+      data: { success: true },
+    });
+    const { result } = setup({
+      ...baseSession,
+      clientSource: 'move_fitness',
+    });
+
+    await waitFor(() => {
+      expect(result.current.completionBillingApplicable).toBe(false);
+      expect(result.current.completionWaiveReasonRequired).toBe(false);
     });
 
     await act(async () => {

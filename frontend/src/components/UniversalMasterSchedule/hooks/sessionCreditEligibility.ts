@@ -49,3 +49,17 @@ export const canDeductScheduledSessionCredit = (session: SessionDetail | null): 
   const availableSessions = getKnownAvailablePaidSessions(session);
   return availableSessions === null || availableSessions >= creditsRequired;
 };
+
+/**
+ * Billing applicability for direct completion, independent of balance:
+ * a billable-source client with credits required and no prior deduction.
+ * Under server-side completion billing, completing such a session without
+ * a deduction is a waive that requires a recorded reason — including when
+ * the known balance is insufficient (that too is an unpaid completion).
+ */
+export const isCompletionBillingApplicable = (session: SessionDetail | null): boolean => {
+  if (!session?.userId) return false;
+  if (session.sessionDeducted === true) return false;
+  if (isNonDeductingClientSource(session.clientSource)) return false;
+  return getScheduleCreditsRequired(session) >= 1;
+};
