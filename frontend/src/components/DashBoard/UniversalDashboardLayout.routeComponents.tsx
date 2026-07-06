@@ -28,6 +28,7 @@ export const ClientSelfOnboardingWizard = React.lazy(() => import('../../pages/o
 export const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'));
 export const NotesManager = React.lazy(() => import('../Admin/NotesManager'));
 export const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'));
+export const AdminGalleryStudio = React.lazy(() => import('./Pages/admin-gallery/AdminGalleryStudio'));
 export const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'));
 export const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'));
 export const EnhancedUserDataManagement = React.lazy(() => import('./Pages/admin-users/EnhancedUserDataManagement'));
