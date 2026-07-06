@@ -7,6 +7,7 @@ import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import GalleryVisitor from '../models/GalleryVisitor.mjs';
 import GalleryDonation from '../models/GalleryDonation.mjs';
+import PrintOrder from '../models/PrintOrder.mjs';
 import Lead from '../models/Lead.mjs';
 import LeadActivity from '../models/LeadActivity.mjs';
 import logger from '../utils/logger.mjs';
@@ -89,6 +90,10 @@ const stripeWebhookHandler = async (req, res) => {
         }
         if (session.metadata?.type === 'gallery_donation') {
           await fulfillGalleryDonation(session);
+          break;
+        }
+        if (session.metadata?.type === 'print_order') {
+          await fulfillPrintOrder(session);
           break;
         }
 
@@ -667,6 +672,154 @@ async function fulfillGalleryDonation(session) {
     });
   } catch (notifyErr) {
     logger.warn(`[Gallery Donation Webhook] Admin notification failed: ${notifyErr.message}`);
+  }
+}
+
+/**
+ * Fulfill a paid gallery PRINT order (Slice 3b — the money loop).
+ * Called from checkout.session.completed when metadata.type === 'print_order'.
+ *
+ * Design (plan §3):
+ *  - Signature is already verified by the outer handler (constructEvent).
+ *  - ATOMIC replay guard: processed_stripe_sessions INSERT … ON CONFLICT — the
+ *    first delivery of a session wins; Stripe's at-least-once redelivery no-ops.
+ *  - Map the PrintOrder from the SESSION'S OWN id (server-set on the order at
+ *    checkout), falling back to the server-set metadata.orderId — never client
+ *    input.
+ *  - Fail-closed: capture (pending → paid) FIRST. The print-lab submission is
+ *    Slice 3c (a separate step); if it later fails the order stays 'paid' and
+ *    surfaces in the admin view — a captured order is never left invisible.
+ *  - Idempotent by construction: the flip is `WHERE status = 'pending'`, and the
+ *    replay-guard INSERT + the flip share ONE transaction — a fulfillment failure
+ *    rolls back the 'processed' marker so Stripe's retry re-processes (no
+ *    stuck-in-pending-after-payment hole).
+ */
+async function fulfillPrintOrder(session) {
+  const meta = session.metadata || {};
+
+  // Only fulfill genuinely-paid sessions (mirror the donation guard).
+  if (session.payment_status && session.payment_status !== 'paid') {
+    logger.warn(`[Print Webhook] Session ${session.id} completed with payment_status=${session.payment_status}; not marking paid`);
+    return;
+  }
+
+  const amount = typeof session.amount_total === 'number'
+    ? Math.round(session.amount_total) / 100
+    : null;
+
+  let flippedOrder = null;
+  let recordedStatus = null;
+  const t = await sequelize.transaction();
+  try {
+    // Atomic replay guard. Concurrent same-session deliveries serialize on the
+    // unique index: the second blocks, then sees no row and skips.
+    const [processed] = await sequelize.query(
+      `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
+       VALUES (:sessionId, :userId, 'gallery-print', :amount)
+       ON CONFLICT ("sessionId") DO NOTHING
+       RETURNING id`,
+      {
+        replacements: { sessionId: session.id, userId: null, amount },
+        type: sequelize.QueryTypes.SELECT,
+        transaction: t,
+      }
+    );
+
+    if (!processed) {
+      await t.rollback();
+      logger.info(`[Print Webhook] Duplicate print-order session ${session.id} skipped`);
+      return;
+    }
+
+    // Resolve by the session's own id (server-set at checkout), then by the
+    // server-set metadata.orderId. Row-locked to serialize any concurrent edit.
+    let order = await PrintOrder.findOne({
+      where: { stripeSessionId: session.id },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!order) {
+      const orderId = Number.parseInt(meta.orderId, 10);
+      if (Number.isInteger(orderId) && orderId > 0) {
+        order = await PrintOrder.findByPk(orderId, { transaction: t, lock: t.LOCK.UPDATE });
+      }
+    }
+    if (!order) {
+      await t.rollback();
+      // A PAID session with no local order = money captured, no record. This
+      // should never happen (the order is created before the session), but if it
+      // does, the plan's "never leave a captured order invisible" rule applies:
+      // don't silently drop it — alert an admin to reconcile in Stripe. Ack 200
+      // (a retry cannot conjure a deleted order); the alert is the safety net.
+      logger.error(`[Print Webhook] PAID session ${session.id} has NO matching PrintOrder (metadata.orderId=${meta.orderId}) — alerting admin`);
+      try {
+        await sendNotification({
+          type: 'ADMIN_NOTIFICATION',
+          title: 'Print Payment Needs Attention',
+          message: `A print payment completed (session ${session.id}) but no matching order was found. Verify in Stripe — money may be captured with no local order.`,
+          data: {
+            type: 'print_order_orphan',
+            stripeSessionId: session.id,
+            metadataOrderId: meta.orderId ?? null,
+            amount,
+            timestamp: new Date().toISOString(),
+          },
+          recipients: ['admin'],
+        });
+      } catch (notifyErr) {
+        logger.warn(`[Print Webhook] Orphan-payment admin alert failed: ${notifyErr.message}`);
+      }
+      return;
+    }
+
+    // Fail-closed capture: pending → paid. No-op if already advanced.
+    const [flipped] = await sequelize.query(
+      `UPDATE print_orders SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+       WHERE id = :id AND status = 'pending'
+       RETURNING id`,
+      {
+        replacements: { id: order.id },
+        type: sequelize.QueryTypes.SELECT,
+        transaction: t,
+      }
+    );
+
+    flippedOrder = flipped ? order : null;
+    recordedStatus = order.status;
+    await t.commit();
+  } catch (err) {
+    try { await t.rollback(); } catch { /* already settled */ }
+    logger.error(`[Print Webhook] fulfillPrintOrder failed for session ${session.id}: ${err.message}`);
+    throw err; // 500 → Stripe retries; the rolled-back processed marker lets the retry re-process.
+  }
+
+  if (!flippedOrder) {
+    logger.info(`[Print Webhook] print-order session ${session.id} recorded; order already beyond pending (status=${recordedStatus}), no re-flip`);
+    return;
+  }
+
+  logger.info(`[Print Webhook] PrintOrder ${flippedOrder.id} → paid (session ${session.id})`);
+
+  // Best-effort admin notification (outside the txn — a notify failure must not
+  // un-capture the payment). Slice 3c will hang print-lab submission off 'paid'.
+  try {
+    await sendNotification({
+      type: 'ADMIN_NOTIFICATION',
+      title: 'Print Order Paid',
+      message: `Print order #${flippedOrder.id} paid ($${amount != null ? amount.toFixed(2) : flippedOrder.priceUsd}). Ready to fulfill.`,
+      data: {
+        type: 'print_order',
+        orderId: flippedOrder.id,
+        visitorId: flippedOrder.visitorId,
+        eventId: flippedOrder.eventId,
+        amount,
+        stripeSessionId: session.id,
+        timestamp: new Date().toISOString(),
+      },
+      recipients: ['admin'],
+    });
+  } catch (notifyErr) {
+    logger.warn(`[Print Webhook] Admin notification failed: ${notifyErr.message}`);
   }
 }
 

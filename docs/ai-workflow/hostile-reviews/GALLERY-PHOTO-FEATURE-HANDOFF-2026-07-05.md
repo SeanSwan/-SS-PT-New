@@ -8,8 +8,9 @@
 
 ## 0. TL;DR STATUS
 - ✅ **SHIPPED** to `origin/main @ 63deeb0da` (Render auto-deploying): **Slice 1** (admin Photo Gallery Studio) + **Slice 2** (batch "download all" ZIP).
-- 🔍 **NEEDS HOSTILE REVIEW:** Codex review of slices 1+2 (REQs open in `.ai-workflow/coordination/review-queue.md`, targeting `9670eeb83` / `63deeb0da`) + the residual-risk list in §3.
-- 🏗️ **REMAINING TO FINISH:** **Slice 3** — selling prints via **Prodigi drop-ship**. 6 sub-slices, plan free-triangle-approved, **NOT built**. Full spec: [`AI-HANDOFF/GALLERY-PRINT-FULFILLMENT-SLICE-3-PLAN-2026-07-05.md`](../AI-HANDOFF/GALLERY-PRINT-FULFILLMENT-SLICE-3-PLAN-2026-07-05.md).
+- 🧱 **BUILT 2026-07-06, UNCOMMITTED (pending EOD Codex batch review):** **Slice 3a** (un-watermarked master pipeline) + **Slice 3b** (Stripe webhook money-loop + the missing `print_orders` table). Worktree `c:/tmp/ss-gallery-slice3a-20260706` @ `origin/main 3205bb4aa`, branch `claude/gallery-slice3a-master-pipeline-20260706`. Full review packet in **§7 below** — this is the batch-review target for Codex today.
+- 🔍 **NEEDS HOSTILE REVIEW:** Codex review of slices 1+2 (REQs open in `.ai-workflow/coordination/review-queue.md`, targeting `9670eeb83` / `63deeb0da`) + **3a+3b (§7)** + the residual-risk list in §3.
+- 🏗️ **REMAINING TO FINISH:** **Slice 3** — selling prints via **Prodigi drop-ship**. After 3a+3b: **3c** Prodigi fulfillment · **3d** admin fulfillment view · **3e** Stripe Tax · **3f** enable storefront UI. Full spec: [`AI-HANDOFF/GALLERY-PRINT-FULFILLMENT-SLICE-3-PLAN-2026-07-05.md`](../AI-HANDOFF/GALLERY-PRINT-FULFILLMENT-SLICE-3-PLAN-2026-07-05.md).
 - ⚠️ **ENVIRONMENT TRAP (READ FIRST):** the shared checkout `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` is on branch **`wip/comms-notifications-2026-07-05`** — **132 commits behind `origin/main`, with 762 files staged** (the whole comms/notifications/challenges/messaging workstream, NOT gallery work). **DO NOT `git add`/commit from that checkout.** Work in a clean git worktree off `origin/main` (see §6). This trap was independently hit by two Claude sessions on 2026-07-05.
 
 ---
@@ -105,3 +106,59 @@ RULES: styled-components + Crystalline Swan tokens (var(--token,#hex)) · ≤300
 - **Open Codex REQs:** slice-1 + slice-2 in `review-queue.md` (target `9670eeb83`/`63deeb0da`) + the slice-3 PLAN review Codex leg (async triangle).
 - **Stale comms branch:** `wip/comms-notifications-2026-07-05` (762 staged, 132 behind main) is a SEPARATE issue — the comms/notifications/challenges/messaging workstream is NOT on main. Needs Sean/Codex to reconcile; left 100% untouched by this gallery work.
 - **Worktree from this session:** `c:/tmp/ss-gallery-slices` on branch `claude/gallery-photo-studio-20260705` (== main @ 63deeb0da). Safe to remove with `git worktree remove` once merged (it is merged into main).
+
+---
+
+## 7. SLICES 3a + 3b — BUILT 2026-07-06, PENDING EOD CODEX HOSTILE REVIEW
+
+> **State:** built + self-hostile-reviewed + free multi-agent adversarially verified, **UNCOMMITTED, NOT pushed**. Worktree `c:/tmp/ss-gallery-slice3a-20260706` @ `origin/main 3205bb4aa`, branch `claude/gallery-slice3a-master-pipeline-20260706`. Sean is batching all Codex hostile reviews to end-of-day — **this section is the review target.** Nothing deploys until Sean commits + pushes.
+
+### 7.1 Files (8 modified, 4 new — commit together per Rule 42)
+**Backend (modified):** `models/GalleryPhoto.mjs` · `routes/adminGalleryRoutes.mjs` · `services/r2StorageService.mjs` · `webhooks/stripeWebhook.mjs`
+**Backend (new):** `migrations/20260706010000-add-original-storage-key-to-gallery-photos.cjs` · `migrations/20260706020000-create-print-orders-table.cjs` · `tests/api/galleryPrintMasterContract.test.mjs` · `tests/api/galleryPrintWebhookContract.test.mjs`
+**Frontend (modified):** `admin-gallery/AdminGalleryStudio.tsx` · `admin-gallery/adminGalleryApi.ts` · `admin-gallery/components/PhotoUploader.tsx` · `admin-gallery/hooks/useGalleryUpload.ts`
+Combined diff: **322 insertions, 13 deletions.**
+
+### 7.2 Slice 3a — un-watermarked master pipeline
+- `GalleryPhoto.originalStorageKey` (nullable `original_storage_key`) + additive/idempotent migration.
+- Single (`upload-single`) + batch (`upload`) handlers: gated by a new opt-in **`storeMaster`** flag (default OFF → storage only doubles for print galleries; new-galleries-only, no back-fill). When on, they PUT the **pristine pre-watermark** buffer to an **UNGUESSABLE private key** `gallery-originals/{slug}/{n}-{randomBytes(16)hex}.jpg` (`CacheControl: private, no-store`, **never `buildUrl()`'d**), and record `original_storage_key` (single = raw INSERT column; batch = ORM create field).
+- `r2StorageService.generateGalleryOriginalUrl()` — short-lived (900s) `attachment` presigned GET (mirrors the video presign pattern) — the ONLY delivery path.
+- New admin-gated `GET /api/admin/gallery/photos/:photoId/original-url` (inherits the file-wide admin|trainer gate; `parseInt` id guard; 404-no-master; 503-no-R2).
+- Frontend: "Store print master" toggle (default OFF) threaded `PhotoUploader → useGalleryUpload → adminGalleryApi` FormData.
+- **PAYWALL AUDIT (self, hostile):** every public + admin photo read uses EXPLICIT columns without `original_storage_key` (public grid `galleryRoutes.mjs:364`, admin grid `adminGalleryRoutes.mjs:1398`); download-all zip selects only `storage_key`; the 3 `findOne`-without-attributes (vote/print-order/analyze-form) never serialize the full photo object. **No leak path found.**
+
+**3a review asks:** (a) any serialization path that leaks the master key I missed (Stripe metadata? enhancement include? serve-photo proxy §3.2)? (b) is `randomBytes(16)` unguessable-enough given the bucket is public via `R2_PUBLIC_URL`, or force a private bucket/prefix? (c) IDOR on `/original-url` — any admin can fetch any gallery's master (judged acceptable: staff-wide, no per-event ownership anywhere in this router).
+
+### 7.3 Slice 3b — Stripe webhook money-loop  ⚠ HIGH-STAKES BILLING
+- New `metadata.type==='print_order'` case in `stripeWebhook.mjs` → `fulfillPrintOrder(session)`.
+- **Idempotency = the proven gallery pattern:** `processed_stripe_sessions` INSERT `ON CONFLICT ("sessionId") DO NOTHING RETURNING id` (tier `'gallery-print'`) — first delivery wins, Stripe at-least-once redelivery no-ops. Mirrors `fulfillGalleryCredits`/`fulfillGalleryDonation`.
+- **Mapping is server-set only:** resolve `PrintOrder` by `stripeSessionId = session.id` (stored server-side at checkout, `galleryRoutes.mjs:1822`), fallback to server-set `metadata.orderId` (parsed+validated). **Never client input.** Row-locked (`lock: t.LOCK.UPDATE`).
+- **Fail-closed capture:** conditional `UPDATE print_orders SET status='paid', paid_at=NOW() WHERE id AND status='pending'` — idempotent by construction. `payment_status !== 'paid'` → skip.
+- **One transaction** wraps the replay-guard INSERT + the flip → a fulfillment failure rolls back the 'processed' marker so Stripe's retry re-processes (closes the stuck-in-pending hole the existing credit/donation handlers technically have, since they insert `processed` outside a txn).
+- **Orphan-payment safety** (implements the plan's "never leave a captured order invisible"): a PAID session with no matching order → rollback + `logger.error` + **best-effort admin alert** ('Print Payment Needs Attention'), then 200-ack (a retry can't conjure a deleted order).
+- Prodigi/print-lab submission is **DEFERRED to 3c** — 3b stops at `paid` (no `printProviderOrderId` write, no `processing`).
+
+> **⚠ CORRECTION to §4's 3b line:** §4 said "ATOMIC idempotency (compare-and-set on `printProviderOrderId`)". That was a plan mis-statement — `printProviderOrderId` is NULL until Prodigi (3c), so it can't be 3b's idempotency key. 3b's atomic idempotency is the `processed_stripe_sessions` ON-CONFLICT ledger + the `status='pending'` conditional flip, both inside one transaction. The `printProviderOrderId` CAS belongs to **3c** (never resubmit to Prodigi).
+
+**3b review asks (attack the money loop):** (a) any double-charge/double-fulfill under Stripe at-least-once + concurrent delivery? (b) is the ON-CONFLICT-in-transaction serialization of two concurrent same-session deliveries correct (2nd blocks → sees no row → skips)? (c) stuck-pending recovery — does the txn rollback truly let a retry re-process? (d) the orphan-payment branch 200-acks instead of 500-retrying (agent rated `low`, "unreachable with real payment") — agree, or force a retry? (e) defense-in-depth: session `amount_total` is NOT cross-checked vs `order.priceUsd` (agent: not exploitable — amounts are server-set + Stripe-signed) — want the check anyway?
+
+### 7.4 ⚠⚠ CRITICAL Rule-58 FINDING — the `print_orders` table never existed
+Direct **read-only live-DB check** (2026-07-06): **`print_orders` does NOT exist in production** (no table matching `%print%`, no indexes). `processed_stripe_sessions` exists (3b's replay guard is fine). Root cause: no `createTable` migration was ever written (the Slice-3 plan §1 mis-stated one existed); the May 2026 idempotency-index migration `20260520000001` calls `describeTable('print_orders')` which **threw** on the missing table, and Render's safe-migrate marked it COMPLETED (silent-fail) — so it's in `SequelizeMeta` as done, never created the table OR the idempotency unique index, and will not re-run. Invisible only because the storefront is dormant (nothing hits it).
+- **Fix (in 3b):** `migrations/20260706020000-create-print-orders-table.cjs` — creates `print_orders` matching `PrintOrder.mjs` exactly (all columns + enums) **plus** the `idx_print_orders_idempotency_key` partial UNIQUE index the checkout's `claimIdempotentRecord` depends on (May never applied it). Guarded idempotent (skips if the table exists; cleans orphaned enum types).
+- **Codex verify:** the createTable matches the model 1:1; the unique index arg-order/partial-predicate matches what the checkout race-safety needs; enum-type cleanup is safe; and confirm no OTHER model has the same silent-fail-marked-complete table-absence (spot-check: does `Order`/`orders` exist? the same May migration touches it).
+
+### 7.5 Verification (this build)
+- Backend: **`galleryPrintWebhookContract` 15/15 + `galleryPrintMasterContract` 18/18** + adjacent (`galleryCreditWebhookIdempotency`, `galleryDonationWebhook`, `adminGalleryRouteDisclosure`, `adminGalleryUploadFilenameEntropy`, `galleryDownloadAllRouteContract`) all green; `node --check` on all touched/new files.
+- Frontend (3a): `tsc --noEmit` 0 (whole project, 8GB); `vite build` OK 12.43s.
+- **Free multi-agent adversarial verification** (7 skeptics × replay/race/stuck-pending/IDOR/fail-open/schema-drift/cross-handler → independent refute pass): **0 confirmed bugs**; the two `low`/note items are folded into §7.3 asks (d)(e). (Agents verified vs the model+migrations; they could NOT see the live DB — §7.4 is the human-added DB catch.)
+- Secret scan CLEAN. **Rule 56:** vitest/tsc ran against `node_modules` junctioned from the 132-behind shared checkout (deps may lag) → CI must re-run. **Rule 55:** no R2/Stripe in dev → live staging probe required (see below).
+
+### 7.6 Live staging probes required before go-live (Rule 55)
+1. **3a:** upload with "Store print master" ON → confirm a `gallery-originals/` object exists, is NOT reachable at a public URL, and `GET /photos/:id/original-url` returns a working signed link; download-all + public grid must NOT expose it.
+2. **3b:** with the new migration deployed (creates `print_orders`), run a **Stripe test-mode** print checkout → confirm the webhook flips the order `pending→paid` + sets `paid_at`; redeliver the same event from the Stripe dashboard → confirm it no-ops (no double flip); confirm the admin 'Print Order Paid' notification fires.
+
+### 7.7 Residuals (named, not fixed)
+- Deleting a photo orphans its R2 objects TODAY (public+thumb+medium already; the 3a master is no special case) → future R2-GC slice.
+- `storeMaster` is per-upload, not per-event → a print gallery uploaded across 2 sessions needs re-ticking; per-event flag is 3d/3f polish.
+- 3b orphan-payment branch 200-acks (see §7.3 ask d); amount cross-check deferred (ask e).
+- `PrintOrder` still not in `associations.mjs` (needed for 3d eager-loads, NOT for 3b's raw-SQL/findByPk path).
