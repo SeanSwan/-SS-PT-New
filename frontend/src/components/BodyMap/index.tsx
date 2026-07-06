@@ -19,7 +19,9 @@ import React, { useState, useEffect, useCallback, useContext, useMemo } from 're
 import styled from 'styled-components';
 import BodyMapSVG from './BodyMapSVG';
 import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
+import BodyMapClientTargetSelector from './BodyMapClientTargetSelector';
 import PainEntryPanel from './PainEntryPanel';
+import PainChartInsightPanel from './PainChartInsightPanel';
 import { getSeverityColor } from './bodyRegions';
 import {
   createPainEntryService,
@@ -165,12 +167,12 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const globalClient = useContext(GlobalClientContext);
   const isAdmin = user?.role === 'admin';
   const isTrainerOrAdmin = user?.role === 'admin' || user?.role === 'trainer';
-  const verifiedActiveClientId = globalClient?.activeClient && globalClient.clientList.some(
+  const verifiedActiveClient = globalClient?.activeClient && globalClient.clientList.some(
     (client) => client.id === globalClient.activeClient?.id,
   )
-    ? globalClient.activeClient.id
-    : undefined;
-  const staffTargetClientId = userIdProp ?? verifiedActiveClientId;
+    ? globalClient.activeClient
+    : null;
+  const staffTargetClientId = userIdProp ?? verifiedActiveClient?.id;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
   const painService = useMemo(
     () => (authAxios ? createPainEntryService(authAxios) : null),
@@ -182,6 +184,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [targetNotice, setTargetNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [gender, setGender] = useState<AnatomyGender>('male');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
@@ -193,6 +196,27 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   // Determine if user can write: trainers/admins always, clients only for own data
   const isOwnData = user?.id === userId;
   const canWrite = Boolean(userId) && (isTrainerOrAdmin || (isClientMode && isOwnData));
+  const activeEntries = useMemo(() => entries.filter((entry) => entry.isActive), [entries]);
+  const showStaffClientSelector = isTrainerOrAdmin && !userIdProp;
+  const resolvedCount = entries.length - activeEntries.length;
+
+  const handleTargetClientChange = useCallback((clientId: number | null) => {
+    if (!globalClient) return;
+
+    if (!clientId) {
+      globalClient.clearActiveClient();
+      setTargetNotice(null);
+      setPanelOpen(false);
+      setSelectedRegion(null);
+      return;
+    }
+
+    const nextClient = globalClient.clientList.find((client) => client.id === clientId);
+    if (nextClient) {
+      globalClient.setActiveClient(nextClient);
+      setTargetNotice(null);
+    }
+  }, [globalClient]);
 
   // Fetch entries on mount
   const fetchEntries = useCallback(async () => {
@@ -205,7 +229,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await painService.getActive(userId);
+      const result = await painService.getAll(userId);
       setEntries(result.entries || []);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to load pain entries');
@@ -223,17 +247,29 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
     (regionId: string) => {
       setSelectedRegion(regionId);
       if (canWrite) {
+        setTargetNotice(null);
         setPanelOpen(true);
+        return;
+      }
+      if (isTrainerOrAdmin && !userId) {
+        setTargetNotice('Select a client before adding pain details.');
       }
     },
-    [canWrite],
+    [canWrite, isTrainerOrAdmin, userId],
   );
+
+  useEffect(() => {
+    if (selectedRegion && canWrite && !panelOpen) {
+      setTargetNotice(null);
+      setPanelOpen(true);
+    }
+  }, [selectedRegion, canWrite, panelOpen]);
 
   // Get existing entry for selected region
   const existingEntry = useMemo(() => {
     if (!selectedRegion) return null;
-    return entries.find((e) => e.bodyRegion === selectedRegion && e.isActive) || null;
-  }, [selectedRegion, entries]);
+    return activeEntries.find((e) => e.bodyRegion === selectedRegion) || null;
+  }, [selectedRegion, activeEntries]);
 
   // Save handler
   const handleSave = useCallback(
@@ -297,9 +333,9 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   );
 
   // Summary counts
-  const severeCount = entries.filter((e) => e.painLevel >= 7).length;
-  const moderateCount = entries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
-  const mildCount = entries.filter((e) => e.painLevel < 4).length;
+  const severeCount = activeEntries.filter((e) => e.painLevel >= 7).length;
+  const moderateCount = activeEntries.filter((e) => e.painLevel >= 4 && e.painLevel < 7).length;
+  const mildCount = activeEntries.filter((e) => e.painLevel < 4).length;
 
   const formatRegionLabel = (region: string) =>
     region
@@ -313,9 +349,12 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         <SectionTitle>Pain & Injury Map</SectionTitle>
         {entries.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <SummaryBadge $color="#fff">
-              {entries.length} active
+            <SummaryBadge $color="#E0ECF4">
+              {activeEntries.length} active
             </SummaryBadge>
+            {resolvedCount > 0 && (
+              <SummaryBadge $color="#4070C0">{resolvedCount} resolved</SummaryBadge>
+            )}
             {severeCount > 0 && (
               <SummaryBadge $color="#C6A84B">{severeCount} severe</SummaryBadge>
             )}
@@ -332,6 +371,16 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       {loading && <StatusText>Loading pain entries...</StatusText>}
       {error && <ErrorText>{error}</ErrorText>}
 
+      {showStaffClientSelector && (
+        <BodyMapClientTargetSelector
+          clients={globalClient?.clientList ?? []}
+          selectedClientId={staffTargetClientId ?? null}
+          loading={Boolean(globalClient?.loadingClients)}
+          notice={targetNotice}
+          onChange={handleTargetClientChange}
+        />
+      )}
+
       {!loading && (
         <>
           <BodyMapToolbar
@@ -341,17 +390,17 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
             onLabelModeChange={setLabelMode}
           />
           <BodyMapSVG
-            painEntries={entries}
+            painEntries={activeEntries}
             selectedRegion={selectedRegion}
             onRegionClick={handleRegionClick}
             gender={gender}
             labelMode={labelMode}
           />
 
-          {entries.length > 0 && (
+          {activeEntries.length > 0 && (
             <ActiveEntriesList>
               <EntriesLabel>Active Pain Entries</EntriesLabel>
-              {entries.map((entry) => {
+              {activeEntries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
                   <ActiveEntryRow
@@ -371,11 +420,19 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
               })}
             </ActiveEntriesList>
           )}
-
-          {entries.length === 0 && !loading && (
+          {entries.length > 0 && (
+            <PainChartInsightPanel
+              entries={entries}
+              isClientMode={isClientMode}
+              onSelectRegion={handleRegionClick}
+            />
+          )}
+          {activeEntries.length === 0 && !loading && (
             <StatusText>
               {!userId
                 ? 'Select a client to view pain and injury entries.'
+                : entries.length > 0
+                ? 'No active pain entries right now. Resolved history is available below.'
                 : isClientMode
                 ? 'Tap any area where you feel pain or discomfort to log it. Your trainer will see this when planning your workouts.'
                 : 'No active pain entries. Click a body region to add one.'}
