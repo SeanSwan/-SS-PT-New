@@ -320,3 +320,17 @@ export function getPlanDayForDate(
     || days[dayOfWeek % days.length]
     || null;
 }
+
+// ── Extracted from WorkoutLogger.tsx (Phase 2.1a ratchet) ───────────────────
+const SELF_LOGGING_DASHBOARD_ROLES = new Set(['client', 'user']);
+
+export const isSelfLoggingDashboardRole = (role?: string | null): boolean =>
+  typeof role === 'string' && SELF_LOGGING_DASHBOARD_ROLES.has(role.toLowerCase());
+
+const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
+  typeof error === 'object' && error !== null ? error as { code?: unknown; name?: unknown } : {};
+
+export const isWorkoutSubmitCanceled = (error: unknown): boolean => {
+  const { code, name } = getWorkoutSubmitErrorSignal(error);
+  return name === 'AbortError' || name === 'CanceledError' || code === 'ERR_CANCELED';
+};

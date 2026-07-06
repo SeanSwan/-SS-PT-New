@@ -177,7 +177,11 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     // so the default navigation fires on self-route. If a future edit
     // reverts to raw `onComplete(response.data)`, the self-route would
     // silently swallow success again.
-    expect(SOURCE).toMatch(/resolvedOnComplete\s*\(\s*response\.data\s*\)/);
+    // Phase 2.1a: onComplete is deferred behind the SaveSuccessPanel's Done
+    // action — the success handler stores the response; the panel invokes
+    // resolvedOnComplete(lastSaveResponse) so every mount still navigates.
+    expect(SOURCE).toMatch(/setLastSaveResponse\s*\(\s*response\.data\s*\)/);
+    expect(SOURCE).toMatch(/onDone=\{\(\) => resolvedOnComplete\(lastSaveResponse\)\}/);
   });
 
   it('requires a saved workout form id before generating and sending a summary', () => {
