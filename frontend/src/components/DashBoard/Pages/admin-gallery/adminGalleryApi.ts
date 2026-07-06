@@ -100,6 +100,8 @@ export async function getStats(): Promise<GalleryStats> {
 // ── Upload (the proven path: one file at a time, multipart, with progress) ─
 export interface UploadOptions {
   watermark: boolean;
+  /** Keep an un-watermarked private master for paid-print fulfillment (Slice 3a). */
+  storeMaster: boolean;
   onProgress?: (percent: number) => void;
   signal?: AbortSignal;
 }
@@ -114,11 +116,12 @@ export interface UploadOptions {
 export async function uploadSinglePhoto(
   eventId: number,
   file: File,
-  { watermark, onProgress, signal }: UploadOptions,
+  { watermark, storeMaster, onProgress, signal }: UploadOptions,
 ): Promise<UploadSingleResult> {
   const form = new FormData();
   form.append('photo', file);
   form.append('watermark', watermark ? 'true' : 'false');
+  form.append('storeMaster', storeMaster ? 'true' : 'false');
 
   try {
     const { data } = await apiService.post<{ success: boolean; photo?: GalleryPhoto; error?: string }>(

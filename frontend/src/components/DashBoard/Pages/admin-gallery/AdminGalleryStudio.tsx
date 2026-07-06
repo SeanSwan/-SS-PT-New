@@ -34,6 +34,9 @@ const AdminGalleryStudio: React.FC = () => {
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [watermark, setWatermark] = useState(true);
+  // Store an un-watermarked print master for this gallery (Slice 3a). OFF by
+  // default so storage only doubles for galleries the admin sells prints from.
+  const [storeMaster, setStoreMaster] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
@@ -59,13 +62,13 @@ const AdminGalleryStudio: React.FC = () => {
   const handleFiles = (files: File[]) => {
     if (!selectedEvent) return;
     const id = selectedEvent.id;
-    void upload.start(id, files, watermark, insertIfCurrent(id)).then(() => syncCount(id));
+    void upload.start(id, files, watermark, storeMaster, insertIfCurrent(id)).then(() => syncCount(id));
   };
 
   const handleRetry = () => {
     if (!selectedEvent) return;
     const id = selectedEvent.id;
-    void upload.retryFailed(id, watermark, insertIfCurrent(id)).then(() => syncCount(id));
+    void upload.retryFailed(id, watermark, storeMaster, insertIfCurrent(id)).then(() => syncCount(id));
   };
 
   const confirmDeletePhoto = (photo: GalleryPhoto) => setConfirm({
@@ -138,6 +141,8 @@ const AdminGalleryStudio: React.FC = () => {
                 eventName={selectedEvent.name}
                 watermark={watermark}
                 onWatermarkChange={setWatermark}
+                storeMaster={storeMaster}
+                onStoreMasterChange={setStoreMaster}
                 fileStatuses={upload.fileStatuses}
                 uploading={upload.uploading}
                 overallProgress={upload.overallProgress}

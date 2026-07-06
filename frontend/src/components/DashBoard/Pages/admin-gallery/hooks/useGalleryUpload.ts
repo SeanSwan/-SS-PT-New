@@ -28,8 +28,8 @@ interface UseGalleryUpload {
   overallProgress: number;
   resultMessage: UploadResultMessage | null;
   failedCount: number;
-  start: (eventId: number, files: File[], watermark: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => Promise<void>;
-  retryFailed: (eventId: number, watermark: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => Promise<void>;
+  start: (eventId: number, files: File[], watermark: boolean, storeMaster: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => Promise<void>;
+  retryFailed: (eventId: number, watermark: boolean, storeMaster: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => Promise<void>;
   cancel: () => void;
   reset: () => void;
 }
@@ -50,7 +50,7 @@ export function useGalleryUpload(): UseGalleryUpload {
   }, []);
 
   const runUpload = useCallback(
-    async (eventId: number, files: File[], watermark: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => {
+    async (eventId: number, files: File[], watermark: boolean, storeMaster: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => {
       if (!files.length) return;
 
       // ── client-side pre-flight ──
@@ -90,6 +90,7 @@ export function useGalleryUpload(): UseGalleryUpload {
 
         const result = await uploadSinglePhoto(eventId, files[i], {
           watermark,
+          storeMaster,
           signal: abortRef.current.signal,
           onProgress: (percent) =>
             setStatusAt(i, { progress: percent, status: percent >= 100 ? 'processing' : 'uploading' }),
@@ -132,16 +133,16 @@ export function useGalleryUpload(): UseGalleryUpload {
   );
 
   const start = useCallback(
-    (eventId: number, files: File[], watermark: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) =>
-      runUpload(eventId, files, watermark, onPhotoUploaded),
+    (eventId: number, files: File[], watermark: boolean, storeMaster: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) =>
+      runUpload(eventId, files, watermark, storeMaster, onPhotoUploaded),
     [runUpload],
   );
 
   const retryFailed = useCallback(
-    (eventId: number, watermark: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => {
+    (eventId: number, watermark: boolean, storeMaster: boolean, onPhotoUploaded: (p: GalleryPhoto) => void) => {
       const files = failedFilesRef.current;
       if (!files.length) return Promise.resolve();
-      return runUpload(eventId, files, watermark, onPhotoUploaded);
+      return runUpload(eventId, files, watermark, storeMaster, onPhotoUploaded);
     },
     [runUpload],
   );

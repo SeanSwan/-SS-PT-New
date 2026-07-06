@@ -18,6 +18,8 @@ interface Props {
   eventName: string;
   watermark: boolean;
   onWatermarkChange: (v: boolean) => void;
+  storeMaster: boolean;
+  onStoreMasterChange: (v: boolean) => void;
   fileStatuses: UploadFileStatus[];
   uploading: boolean;
   overallProgress: number;
@@ -40,7 +42,7 @@ const DOT_COLOR: Record<UploadStatus, string> = {
 const fmtElapsed = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 const PhotoUploader: React.FC<Props> = ({
-  eventName, watermark, onWatermarkChange, fileStatuses, uploading, overallProgress, resultMessage, failedCount, onFiles, onCancel, onRetry,
+  eventName, watermark, onWatermarkChange, storeMaster, onStoreMasterChange, fileStatuses, uploading, overallProgress, resultMessage, failedCount, onFiles, onCancel, onRetry,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -70,6 +72,14 @@ const PhotoUploader: React.FC<Props> = ({
         hint="Protects previews. Turn off only for final delivered copies."
         checked={watermark}
         onChange={onWatermarkChange}
+        disabled={uploading}
+      />
+
+      <ToggleField
+        label="Store print master"
+        hint="Keeps a private un-watermarked original so this gallery can sell prints. Doubles storage — turn on only for print galleries."
+        checked={storeMaster}
+        onChange={onStoreMasterChange}
         disabled={uploading}
       />
 

@@ -25,6 +25,12 @@ GalleryPhoto.init(
     mediumKey: { type: DataTypes.STRING(500), allowNull: true, field: 'medium_key' },
     mediumUrl: { type: DataTypes.TEXT, allowNull: true, field: 'medium_url' },
     thumbKey: { type: DataTypes.STRING(500), allowNull: true, field: 'thumb_key' },
+    // Print-fulfillment master: un-watermarked ORIGINAL stored at a private,
+    // unguessable R2 key (gallery-originals/…). Populated only when the admin
+    // opts a gallery into print-selling (storeMaster). Never public-URL'd and
+    // never surfaced to the public gallery or the download-all zip — delivered
+    // only via a short-lived presigned GET for paid-print fulfillment (Slice 3c).
+    originalStorageKey: { type: DataTypes.STRING(500), allowNull: true, field: 'original_storage_key' },
   },
   {
     sequelize,

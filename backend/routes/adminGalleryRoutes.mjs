@@ -330,6 +330,12 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     if (!file) return res.status(400).json({ success: false, error: 'No photo uploaded' });
 
     const enableWatermark = req.body.watermark !== 'false';
+    // storeMaster: when true, keep an un-watermarked ORIGINAL for paid-print
+    // fulfillment (Slice 3a). Default OFF so storage only doubles for galleries
+    // the admin opts into print-selling (new-galleries-only — no back-fill).
+    // Independent of the watermark flag: original_storage_key always holds the
+    // pristine original so Slice 3c has one reliable source.
+    const storeMaster = req.body.storeMaster === 'true';
     // sourceType removed — JPEG only workflow
 
     // Get next photo number
@@ -341,6 +347,13 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       : `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
     const displayName = originalBaseName;
     const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
+    // Un-watermarked master lives at an UNGUESSABLE private key. The public
+    // watermarked object is at the guessable gallery/{slug}/{n}.jpg and the
+    // bucket is public-readable via R2_PUBLIC_URL, so the master MUST NOT be
+    // guessable or the paywall leaks — it is never turned into a public URL.
+    const masterKey = storeMaster
+      ? `gallery-originals/${event.slug}/${photoNumber}-${randomBytes(16).toString('hex')}.jpg`
+      : null;
 
     // Reject RAW files — they should be exported from Lightroom as JPEG Q95 4000px before upload
     const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
@@ -412,6 +425,10 @@ router.post('/events/:id/upload-single', (req, res, next) => {
       throw outerErr;
     }
 
+    // Capture the pristine original for the print master BEFORE watermarking and
+    // before inputBuffer is freed. Stored privately at masterKey; never public.
+    const masterBuffer = masterKey ? inputBuffer : null;
+
     // Apply watermark
     const processedBuffer = await applyWatermark(inputBuffer, { applyWatermark: enableWatermark });
     inputBuffer = null;
@@ -441,6 +458,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     let url = '';
     let thumbUrl = '';
     let mediumUrl = '';
+    let originalStorageKey = null;
     if (r2Client && R2_BUCKET) {
       // Upload full-size
       await r2Client.send(new PutObjectCommand({
@@ -451,6 +469,20 @@ router.post('/events/:id/upload-single', (req, res, next) => {
         CacheControl: 'public, max-age=31536000, immutable',
       }));
       url = buildUrl(storageKey);
+
+      // Store the un-watermarked master privately (opt-in print galleries only):
+      // unguessable key + private cache headers, and never buildUrl()'d so it
+      // cannot leak into any public response or the download-all zip.
+      if (masterBuffer && masterKey) {
+        await r2Client.send(new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: masterKey,
+          Body: masterBuffer,
+          ContentType: 'image/jpeg',
+          CacheControl: 'private, no-store',
+        }));
+        originalStorageKey = masterKey;
+      }
 
       // Upload variants (thumb + medium)
       if (variants) {
@@ -495,8 +527,8 @@ router.post('/events/:id/upload-single', (req, res, next) => {
 
     // Use raw SQL insert to avoid Sequelize referencing columns not yet migrated
     const [insertResult] = await sequelize.query(
-      `INSERT INTO gallery_photos (event_id, photo_number, display_name, storage_key, thumbnail_key, url, thumbnail_url, original_filename, file_size, width, height, mime_type, metadata, created_at, updated_at)
-       VALUES (:eventId, :photoNumber, :displayName, :storageKey, :thumbnailKey, :url, :thumbnailUrl, :originalFilename, :fileSize, :width, :height, :mimeType, :metadata, NOW(), NOW())
+      `INSERT INTO gallery_photos (event_id, photo_number, display_name, storage_key, thumbnail_key, url, thumbnail_url, original_filename, file_size, width, height, mime_type, metadata, original_storage_key, created_at, updated_at)
+       VALUES (:eventId, :photoNumber, :displayName, :storageKey, :thumbnailKey, :url, :thumbnailUrl, :originalFilename, :fileSize, :width, :height, :mimeType, :metadata, :originalStorageKey, NOW(), NOW())
        RETURNING id, photo_number as "photoNumber", display_name as "displayName", url, thumbnail_url as "thumbnailUrl", width, height, file_size as "fileSize"`,
       {
         replacements: {
@@ -513,6 +545,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
           height: variants?.height || null,
           mimeType: 'image/jpeg',
           metadata: JSON.stringify(metadata),
+          originalStorageKey: originalStorageKey ?? null,
         },
       }
     );
@@ -585,6 +618,8 @@ router.post('/events/:id/upload', (req, res, next) => {
     // Watermark toggle: default ON, can be turned off via request body
     // "watermark" param: "true" (default) or "false"
     const enableWatermark = req.body.watermark !== 'false';
+    // storeMaster: opt-in un-watermarked print master (Slice 3a); see upload-single.
+    const storeMaster = req.body.storeMaster === 'true';
 
     // Get current max photo number for this event
     const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
@@ -614,6 +649,9 @@ router.post('/events/:id/upload', (req, res, next) => {
           : `${event.slug.toUpperCase()}-${String(photoNumber).padStart(3, '0')}`;
         const displayName = originalBaseName;
         const storageKey = `gallery/${event.slug}/${photoNumber}.jpg`;
+        const masterKey = storeMaster
+          ? `gallery-originals/${event.slug}/${photoNumber}-${randomBytes(16).toString('hex')}.jpg`
+          : null;
 
         // Reject RAW files — must be exported from Lightroom as JPEG before upload
         const RAW_EXT = /\.(arw|cr2|cr3|nef|nrw|orf|raf|rw2|pef|srw|dng|raw|tiff?)$/i;
@@ -623,6 +661,9 @@ router.post('/events/:id/upload', (req, res, next) => {
           throw new Error(`RAW files are not accepted. Please convert "${file.originalname}" to JPEG (Quality 95%, sRGB, 4000px long edge) before uploading.`);
         }
         const inputBuffer = file.buffer;
+        // Capture the pristine original for the print master before we release
+        // the source buffer (un-watermarked; stored privately, never public).
+        const masterBuffer = masterKey ? inputBuffer : null;
 
         // Release original buffer to help GC
         file.buffer = null;
@@ -648,6 +689,7 @@ router.post('/events/:id/upload', (req, res, next) => {
         let url = '';
         let thumbnailUrl = '';
         let mediumUrl = '';
+        let originalStorageKey = null;
 
         if (r2Client && R2_BUCKET) {
           // Upload full-size watermarked photo to R2
@@ -660,6 +702,19 @@ router.post('/events/:id/upload', (req, res, next) => {
           }));
 
           url = buildUrl(storageKey);
+
+          // Store the un-watermarked master privately (opt-in print galleries):
+          // unguessable key, private cache headers, never buildUrl()'d.
+          if (masterBuffer && masterKey) {
+            await r2Client.send(new PutObjectCommand({
+              Bucket: R2_BUCKET,
+              Key: masterKey,
+              Body: masterBuffer,
+              ContentType: 'image/jpeg',
+              CacheControl: 'private, no-store',
+            }));
+            originalStorageKey = masterKey;
+          }
 
           // Upload variants (thumb + medium)
           if (variants) {
@@ -718,6 +773,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           width: variants?.width || null,
           height: variants?.height || null,
           mimeType: 'image/jpeg',
+          originalStorageKey,
           metadata,
         });
 
@@ -1350,6 +1406,47 @@ router.get('/events/:id/photos', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] List photos error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to list photos' });
+  }
+});
+
+/**
+ * GET /api/admin/gallery/photos/:photoId/original-url
+ * Return a short-lived presigned GET URL for the un-watermarked print MASTER
+ * (Slice 3a). Admin|trainer-gated (inherited from router.use above). The master
+ * key is private + unguessable and is NEVER exposed as a public URL — this is
+ * the only delivery path, for admin fulfillment and (Slice 3c) the print lab.
+ * 404 when the photo has no stored master (gallery not opted into print-selling).
+ */
+router.get('/photos/:photoId/original-url', async (req, res) => {
+  try {
+    const photoId = parseInt(req.params.photoId, 10);
+    if (!Number.isInteger(photoId) || photoId <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid photo id' });
+    }
+
+    const [rows] = await sequelize.query(
+      'SELECT id, original_storage_key AS "originalStorageKey" FROM gallery_photos WHERE id = :photoId',
+      { replacements: { photoId } }
+    );
+    const photoRow = rows?.[0];
+    if (!photoRow) {
+      return res.status(404).json({ success: false, error: 'Photo not found' });
+    }
+    if (!photoRow.originalStorageKey) {
+      return res.status(404).json({ success: false, error: 'No print master stored for this photo' });
+    }
+
+    const { r2Configured, generateGalleryOriginalUrl } = await import('../services/r2StorageService.mjs');
+    if (!r2Configured) {
+      return res.status(503).json({ success: false, error: 'Object storage is not configured' });
+    }
+
+    const expiresInSeconds = 900;
+    const url = await generateGalleryOriginalUrl(photoRow.originalStorageKey, { expiresInSeconds });
+    return res.json({ success: true, url, expiresInSeconds });
+  } catch (err) {
+    logger.error('[AdminGallery] original-url failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to generate print-master URL' });
   }
 });
 

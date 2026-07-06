@@ -308,5 +308,39 @@ export function generatePhotoKey({ userId, category, filename }) {
   return `photos/${category}/${userId}/${yearMonth}/${id}.${ext}`;
 }
 
+// ── Gallery Print Master (un-watermarked original) ──────────────────────────
+
+const GALLERY_ORIGINAL_TTL_SECONDS = 900; // 15 min — short-lived admin/fulfillment fetch
+
+/**
+ * Generate a short-lived presigned GET URL for a gallery print master.
+ *
+ * The master is the un-watermarked ORIGINAL kept at a private, unguessable key
+ * (see original_storage_key). The public gallery serves the watermarked object
+ * via a guessable public URL, so the master is NEVER turned into a public URL —
+ * it is only ever delivered through this presigned GET, for admin fulfillment
+ * and (later) the print-lab provider. `attachment` disposition so a browser
+ * fetch downloads rather than inlines the full-res original.
+ *
+ * @param {string} objectKey - The stored original_storage_key value.
+ * @param {Object} [opts]
+ * @param {number} [opts.expiresInSeconds=900] - Signed-URL TTL (seconds).
+ * @returns {Promise<string>} Signed URL.
+ */
+export async function generateGalleryOriginalUrl(objectKey, { expiresInSeconds = GALLERY_ORIGINAL_TTL_SECONDS } = {}) {
+  const client = getR2Client();
+
+  const command = new GetObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: objectKey,
+    ResponseContentDisposition: 'attachment',
+  });
+
+  const url = await getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+
+  logger.info('[R2StorageService] Generated gallery-original URL for key: %s (ttl: %ds)', objectKey, expiresInSeconds);
+  return url;
+}
+
 /** Whether R2 env vars are configured. */
 export { r2Configured };
