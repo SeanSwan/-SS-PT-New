@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Panel, PanelTitle, SectionDivider, InsightCard, PrimaryButton, TimingBadge } from './BootcampBuilderStyles';
 import { buildBootcampBoardViews } from './BootcampBoardViews';
 import BootcampCommandDeck from './BootcampCommandDeck';
+import BootcampTaughtPanel from './BootcampTaughtPanel';
 import ClassPreviewAlternatives from './ClassPreviewAlternatives';
 import ClassPreviewMainBoard from './ClassPreviewMainBoard';
 import BootcampDemoMode from './BootcampDemoMode';
@@ -185,6 +186,8 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
       </AnimatePresence>
 
       {!bootcamp && !loading && <EmptyPanelState>Configure your class and click Generate</EmptyPanelState>}
+
+      <BootcampTaughtPanel bootcamp={bootcamp ?? null} floorMode={floorMode} />
     </Panel>
   );
 };
