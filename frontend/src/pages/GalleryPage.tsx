@@ -1131,6 +1131,7 @@ const GalleryPage: React.FC = () => {
   // State
   const [events, setEvents] = useState<GalleryEventSummary[]>([]);
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [printStorefrontEnabled, setPrintStorefrontEnabled] = useState(false); // Slice 3f flag (from the photos response)
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<GalleryEventSummary | null>(null);
   const [galleryToken, setGalleryToken] = useState<string | null>(() => {
@@ -1367,6 +1368,7 @@ const GalleryPage: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setPhotos(data.photos);
+        setPrintStorefrontEnabled(!!data.printStorefrontEnabled);
         setFailedImageIds(new Set()); // Reset failed images on fresh load
         // Cache photos in sessionStorage for navigation resilience
         try {
@@ -2064,6 +2066,7 @@ const GalleryPage: React.FC = () => {
           downloadUrl={lightboxIndex !== null && photos[lightboxIndex] ? photos[lightboxIndex].url : ''}
           enhancementRequested={lightboxIndex !== null && photos[lightboxIndex] ? enhanceSelections.has(photos[lightboxIndex].id) : false}
           galleryToken={galleryToken || undefined}
+          printStorefrontEnabled={printStorefrontEnabled}
         />
 
         {/* Upgrade Modal */}

@@ -243,3 +243,16 @@ Refund does not auto-cancel a Prodigi order already in production (admin cancels
 - No hardcoded rate (avoids the pre-existing v2PaymentRoutes 8% gotcha) — test-locked.
 - **Codex ask:** confirm the flag-off byte-identity, the tax_code choice for prints, and that `priceUsd`/`commissionUsd` stay pre-tax (tax is added on top + remitted via Stripe Tax).
 - **Live activation (Sean):** enable Stripe Tax in the Stripe dashboard + register for sales tax (CDTFA seller's permit / resale cert for the Prodigi wholesale) → `PRINT_STRIPE_TAX_ENABLED=true`.
+
+---
+
+## 11. SLICE 3f — enable the client storefront (BUILT, flag-OFF) — LAST PRINT SLICE
+
+> Un-gates the **pre-existing** `PrintStore.tsx` (product/size/qty picker + Stripe checkout) that was built-but-unreachable. Files: `backend/routes/galleryRoutes.mjs` (photos response), `frontend/src/pages/GalleryPage.tsx` (thread the flag), `frontend/src/pages/gallery/PhotoDetailModal.tsx` (un-gate the "Order Print" button), `backend/tests/api/galleryPrintStorefrontContract.test.mjs`. **46/46 tests, tsc 0, build OK.**
+- Runtime flag `PRINT_STOREFRONT_ENABLED` (backend env, default OFF) → surfaced in the gallery photos response → threaded to `PhotoDetailModal`.
+- **OFF (default) = byte-identical**: the "Order Print" card stays `disabled` + "Coming Soon" (current UX). **ON**: the card enables → `onClick` opens the existing `PrintStore` → POST `/print-order` → Stripe checkout (now with shipping-address collection + Stripe Tax + Prodigi fulfillment behind it) → webhook flips to paid.
+- No new checkout code — reuses 3a–3e's chain. Ordering still requires a valid gallery access token (`requireGalleryAccess`).
+- **⚠ Review item before go-live:** `PrintStore.tsx` is PRE-EXISTING code (from an earlier session), not part of this slice's build — it should get its own hostile review before the flag flips live (it's the client-facing checkout UI). Confirmed only that its checkout wiring hits `/print-order` + redirects to `checkoutUrl`.
+- **Live activation (Sean, the final flip):** after Prodigi (§8.6) + Stripe Tax (§10) are ready and sandbox-verified → `PRINT_STOREFRONT_ENABLED=true`. That's the whole feature live.
+
+### Print feature status: 3a✅ 3b✅ 3c✅ 3d✅ 3e✅ 3f✅ — CODE-COMPLETE, all flag-OFF. Go-live = Sean's Prodigi account + Stripe Tax + flip the 3 flags.

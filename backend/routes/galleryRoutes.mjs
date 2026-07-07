@@ -369,7 +369,9 @@ router.get('/events/:slug/photos', requireGalleryAccess, async (req, res) => {
       { replacements: { eventId: req.galleryAccess.eventId } }
     );
 
-    return res.json({ success: true, photos });
+    // Slice 3f: the client "Order prints" storefront is flag-gated OFF until the whole
+    // print chain (masters + webhook + Prodigi + tax) is verified. Flip PRINT_STOREFRONT_ENABLED.
+    return res.json({ success: true, photos, printStorefrontEnabled: process.env.PRINT_STOREFRONT_ENABLED === 'true' });
   } catch (err) {
     logger.error('[Gallery] Get photos error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to load photos' });

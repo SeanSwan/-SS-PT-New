@@ -412,6 +412,7 @@ interface PhotoDetailModalProps {
   downloadUrl: string;
   enhancementRequested?: boolean;
   galleryToken?: string;
+  printStorefrontEnabled?: boolean;
 }
 
 // ── Component ────────────────────────────────────────────────────────────
@@ -434,6 +435,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   downloadUrl,
   enhancementRequested,
   galleryToken,
+  printStorefrontEnabled,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [imgLoaded, setImgLoaded] = React.useState(false);
@@ -635,21 +637,22 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 )}
               </AnimatePresence>
 
-              {/* Print-on-Demand Option — Coming Soon */}
+              {/* Print-on-Demand Option (Slice 3f) — flag-gated; "Coming Soon" until PRINT_STOREFRONT_ENABLED */}
               <OptionCard
                 $accent={GILDED}
                 $glowColor={GILDED}
-                disabled
-                aria-label="Order prints — coming soon"
+                disabled={!printStorefrontEnabled}
+                onClick={printStorefrontEnabled ? () => setShowPrintStore(true) : undefined}
+                aria-label={printStorefrontEnabled ? 'Order prints of this photo' : 'Order prints — coming soon'}
                 $animationDelay="0.25s"
-                $muted
+                $muted={!printStorefrontEnabled}
               >
                 <OptionIcon $bg={GILDED}>
                   <PrintIconGlyph>&#x1F5BC;</PrintIconGlyph>
                 </OptionIcon>
                 <OptionContent>
                   <OptionTitle $color={GILDED}>Order Print</OptionTitle>
-                  <OptionBadge $color="rgba(224,236,244,0.4)">Coming Soon</OptionBadge>
+                  {!printStorefrontEnabled && <OptionBadge $color="rgba(224,236,244,0.4)">Coming Soon</OptionBadge>}
                   <OptionDesc>
                     Premium fine art prints, canvas, and metal — delivered to your door.
                   </OptionDesc>
