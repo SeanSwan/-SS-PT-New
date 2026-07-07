@@ -18,6 +18,19 @@ vi.mock('../../hooks/analytics/useProgressPulse', () => ({
   useProgressPulse: () => mockUsePulse(),
 }));
 
+const mockAxiosPost = vi.fn();
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ authAxios: { post: mockAxiosPost } }),
+}));
+
+const shareExercises = [
+  {
+    exerciseId: 'ex-1',
+    exerciseName: 'Barbell Squat',
+    sets: [{ id: 's0', setNumber: 1, weight: 135, reps: 8, completed: true }],
+  },
+];
+
 const baseForm = (over: Record<string, unknown> = {}) => ({
   id: 'form-1',
   clientId: 42,
@@ -58,6 +71,31 @@ describe('SaveSuccessPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePulse.mockReturnValue({ status: 'error', pulse: null, refetch: vi.fn() });
+  });
+
+  it('offers Share to feed in self-mode only, and shares with a truthful confirmation', async () => {
+    mockAxiosPost.mockResolvedValue({ data: { post: { id: 3 } } });
+    renderPanel({ exercisesForShare: shareExercises });
+    const share = screen.getByRole('button', { name: /share to feed/i });
+    fireEvent.click(share);
+    expect(await screen.findByText(/shared to your community feed/i)).toBeInTheDocument();
+    expect(mockAxiosPost).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /share to feed/i })).toBeNull();
+  });
+
+  it('reports share failure honestly and keeps the panel usable', async () => {
+    mockAxiosPost.mockRejectedValue(new Error('network'));
+    renderPanel({ exercisesForShare: shareExercises });
+    fireEvent.click(screen.getByRole('button', { name: /share to feed/i }));
+    expect(await screen.findByText(/couldn't share right now/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /done/i })).toBeInTheDocument();
+  });
+
+  it('hides the share CTA outside self-mode and when there is nothing to share', () => {
+    renderPanel({ isSelfMode: false, exercisesForShare: shareExercises });
+    expect(screen.queryByRole('button', { name: /share to feed/i })).toBeNull();
+    renderPanel({ exercisesForShare: [] });
+    expect(screen.queryByRole('button', { name: /share to feed/i })).toBeNull();
   });
 
   it('renders the headline beat and fires Done exactly once (deferred onComplete)', () => {

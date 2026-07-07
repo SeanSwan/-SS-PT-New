@@ -92,10 +92,12 @@ export function useProgressPulse(): {
     }
     let isMounted = true;
     setStatus('loading');
-    authAxios
+    // Promise.resolve guards non-promise axios doubles (same defect class
+    // as the addExercise ghost fetch — .then on undefined threw unhandled).
+    Promise.resolve(authAxios
       // _isBackgroundRequest: gated tiers must NOT pop the global 402
       // FrostedPaywall from a passive home-card probe (D2 hostile finding).
-      .get('/api/client/analytics/progress-pulse', { _isBackgroundRequest: true } as never)
+      .get('/api/client/analytics/progress-pulse', { _isBackgroundRequest: true } as never))
       .then((res: { data?: { success?: boolean; data?: unknown } }) => {
         if (!isMounted) return;
         const payload = res?.data?.data;
@@ -112,8 +114,8 @@ export function useProgressPulse(): {
         setPulse(null);
         // D1 (Sean 2026-07-06): gated tiers fall back to the free rungs-1-3
         // guidance instead of a dead card. Any lite failure -> plain error.
-        authAxios
-          .get('/api/client/analytics/nba-lite', { _isBackgroundRequest: true } as never)
+        Promise.resolve(authAxios
+          .get('/api/client/analytics/nba-lite', { _isBackgroundRequest: true } as never))
           .then((res: { data?: { success?: boolean; data?: { nextBestAction?: LiteNextBestAction } } }) => {
             if (!isMounted) return;
             const nba = res?.data?.data?.nextBestAction;

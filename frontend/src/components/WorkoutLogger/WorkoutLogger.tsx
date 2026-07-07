@@ -110,6 +110,7 @@ import { repeatLastSessionIntoLogger } from './WorkoutLogger.repeatLastSession';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
 import { useGhostPreFill } from './useGhostPreFill';
+import { reapplyGhostPreFill } from './WorkoutLogger.ghostReapply';
 import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
@@ -629,8 +630,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   );
 
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {
+    const loggerExerciseId = createWorkoutLoggerLocalId('exercise');
     if (!isClientSelfMode) {
-      ghostPreFill.fetchExerciseHistory(exercise.name);
+      Promise.resolve(ghostPreFill.fetchExerciseHistory(exercise.name)).then(() => {
+        setExercises(prev => reapplyGhostPreFill(prev, loggerExerciseId, ghostPreFill.getPreFill(exercise.name, 0)));
+      });
     }
     const preFilled = ensureWorkoutLoggerSetId(
       ghostPreFill.createPreFilledSet(exercise.name, 1),
@@ -648,7 +652,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       .filter((value): value is string => typeof value === 'string' && value.length > 0);
 
     setExercises(prev => [...prev, {
-      loggerExerciseId: createWorkoutLoggerLocalId('exercise'),
+      loggerExerciseId,
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       sets: [preFilled],
@@ -1211,6 +1215,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             onDone={() => resolvedOnComplete(lastSaveResponse)}
             onBuyMore={() => navigate('/store')}
             onBookNext={isClientSelfMode ? () => navigate('/dashboard/client/schedule') : null}
+            exercisesForShare={isClientSelfMode ? exercises : null}
           />
         ) : (
           <WorkoutLoggerChallengeReceipt progress={lastChallengeProgress} />

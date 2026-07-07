@@ -12,12 +12,15 @@
  *          no xp key — awards land asynchronously server-side).
  * ============================================================================
  */
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { CheckCircle2 } from 'lucide-react';
 import type { DailyWorkoutForm } from '../../services/nasmApiService';
 import WorkoutLoggerChallengeReceipt from './WorkoutLoggerChallengeReceipt';
 import useProgressPulse from '../../hooks/analytics/useProgressPulse';
+import { useAuth } from '../../context/AuthContext';
+import { buildShareWorkoutPostData, shareWorkoutToFeed } from './shareWorkoutPost';
+import type { ShareableExercise } from './shareWorkoutPost';
 
 const Panel = styled.section`
   margin-top: 16px;
@@ -93,6 +96,8 @@ export interface SaveSuccessPanelProps {
   onDone: () => void;
   onBuyMore: () => void;
   onBookNext?: (() => void) | null;
+  /** Session exercises for the self-mode Share CTA (rich feed attachment). */
+  exercisesForShare?: ShareableExercise[] | null;
 }
 
 const toCount = (value: unknown): number | null => {
@@ -137,13 +142,37 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
   onDone,
   onBuyMore,
   onBookNext,
+  exercisesForShare,
 }) => {
+  const { authAxios } = useAuth();
   const { status: pulseStatus, pulse } = useProgressPulse();
+  const [shareState, setShareState] = useState<'idle' | 'posting' | 'shared' | 'failed'>('idle');
   const billingLine = buildBillingLine(form, isSelfMode);
   const planLine = buildPlanLine(form);
   const remaining = toCount(form.billing?.remainingSessions);
   const showBuyMore = isSelfMode && form.billing?.status === 'deducted' && remaining !== null && remaining <= 2;
   const streak = isSelfMode && pulseStatus === 'ready' ? pulse?.streak : null;
+
+  // User-initiated share: consent-exempt by contract (socialAutoPost.mjs
+  // gates only AUTOMATED posts) — this rich post is the user's own action.
+  const shareData = useMemo(
+    () => (isSelfMode ? buildShareWorkoutPostData(exercisesForShare ?? []) : null),
+    [isSelfMode, exercisesForShare],
+  );
+
+  const handleShare = async () => {
+    if (!shareData || shareState === 'posting') return;
+    setShareState('posting');
+    try {
+      await shareWorkoutToFeed(authAxios, {
+        content: `${completedSets} set${completedSets === 1 ? '' : 's'} · ${formattedVolume} — logged on SwanStudios.`,
+        workoutData: shareData,
+      });
+      setShareState('shared');
+    } catch {
+      setShareState('failed');
+    }
+  };
 
   return (
     <Panel aria-label="Workout saved" role="status">
@@ -163,7 +192,16 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
       {billingLine && <SoftLine>{billingLine}</SoftLine>}
       {planLine && <SoftLine>{planLine}</SoftLine>}
       <WorkoutLoggerChallengeReceipt progress={challengeProgress} />
+      {shareState === 'shared' && <SoftLine>Shared to your community feed.</SoftLine>}
+      {shareState === 'failed' && (
+        <SoftLine>Couldn't share right now — you can post it from the Community feed.</SoftLine>
+      )}
       <ActionRow>
+        {shareData && shareState !== 'shared' && (
+          <ActionButton type="button" onClick={handleShare} disabled={shareState === 'posting'}>
+            {shareState === 'posting' ? 'Sharing...' : 'Share to feed'}
+          </ActionButton>
+        )}
         {showBuyMore && (
           <ActionButton type="button" onClick={onBuyMore}>
             Top up sessions
