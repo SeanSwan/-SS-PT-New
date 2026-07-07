@@ -18,6 +18,8 @@ import type {
   GalleryPhoto,
   GalleryStats,
   NewEventDraft,
+  PrintOrder,
+  PrintOrderStatus,
   UploadSingleResult,
 } from './types';
 
@@ -145,5 +147,44 @@ export async function uploadSinglePhoto(
       || (error as { name?: string }).name === 'CanceledError';
     if (isCancel) return { success: false, error: 'Cancelled' };
     return { success: false, error: messageFrom(error, 'Network error during upload') };
+  }
+}
+
+// ── Print orders (Slice 3d — admin fulfillment) ───────────────────────────
+type ActionResult = { ok: boolean; error?: string };
+
+export async function listPrintOrders(status?: PrintOrderStatus | 'all'): Promise<PrintOrder[]> {
+  const q = status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : '';
+  const { data } = await apiService.get<{ success: boolean; orders: PrintOrder[] }>(`${BASE}/print-orders${q}`);
+  return data?.orders ?? [];
+}
+
+export async function retryPrintFulfillment(orderId: number): Promise<ActionResult> {
+  try {
+    const { data } = await apiService.post<{ success: boolean }>(`${BASE}/print-orders/${orderId}/retry-fulfillment`, {});
+    return { ok: !!data?.success };
+  } catch (error) {
+    return { ok: false, error: messageFrom(error, 'Retry failed') };
+  }
+}
+
+export async function markPrintOrderShipped(orderId: number, trackingNumber?: string): Promise<ActionResult> {
+  try {
+    const { data } = await apiService.post<{ success: boolean }>(
+      `${BASE}/print-orders/${orderId}/mark-shipped`,
+      { trackingNumber: trackingNumber || undefined },
+    );
+    return { ok: !!data?.success };
+  } catch (error) {
+    return { ok: false, error: messageFrom(error, 'Mark-shipped failed') };
+  }
+}
+
+export async function refundPrintOrder(orderId: number): Promise<ActionResult> {
+  try {
+    const { data } = await apiService.post<{ success: boolean }>(`${BASE}/print-orders/${orderId}/refund`, {});
+    return { ok: !!data?.success };
+  } catch (error) {
+    return { ok: false, error: messageFrom(error, 'Refund failed') };
   }
 }

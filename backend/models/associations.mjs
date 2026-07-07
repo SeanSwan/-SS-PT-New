@@ -206,6 +206,7 @@ const setupAssociations = async () => {
     const GalleryReferralModule = await import('./GalleryReferral.mjs');
     const PhotoVoteModule = await import('./PhotoVote.mjs');
     const GalleryMessageModule = await import('./GalleryMessage.mjs');
+    const PrintOrderModule = await import('./PrintOrder.mjs');
 
     // CRM Lead Management Models
     const LeadModule = await import('./Lead.mjs');
@@ -413,6 +414,7 @@ const setupAssociations = async () => {
     const GalleryReferral = GalleryReferralModule.default;
     const PhotoVote = PhotoVoteModule.default;
     const GalleryMessage = GalleryMessageModule.default;
+    const PrintOrder = PrintOrderModule.default;
 
     // CRM Lead Management Models
     const Lead = LeadModule.default;
@@ -528,7 +530,7 @@ const setupAssociations = async () => {
         // Boot Camp Sprint Planner (Phase 10B)
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
-        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
+        GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage, PrintOrder,
         MarketingCalendarItem, MarketingCampaign, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
@@ -1284,6 +1286,13 @@ const setupAssociations = async () => {
 
     GalleryDonation.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
     GalleryDonation.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+
+    // Print orders (Slice 3d — admin fulfillment view eager-loads visitor/photo/event)
+    PrintOrder.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
+    PrintOrder.belongsTo(GalleryPhoto, { foreignKey: 'photoId', as: 'photo' });
+    PrintOrder.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });
+    GalleryEvent.hasMany(PrintOrder, { foreignKey: 'eventId', as: 'printOrders' });
+    GalleryVisitor.hasMany(PrintOrder, { foreignKey: 'visitorId', as: 'printOrders' });
 
     GalleryReferral.belongsTo(GalleryVisitor, { foreignKey: 'visitorId', as: 'visitor' });
     GalleryReferral.belongsTo(GalleryEvent, { foreignKey: 'eventId', as: 'event' });

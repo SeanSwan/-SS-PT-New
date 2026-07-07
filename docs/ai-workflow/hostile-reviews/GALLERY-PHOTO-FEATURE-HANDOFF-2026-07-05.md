@@ -202,3 +202,33 @@ Pre-existing: access-endpoint lateral impersonation; single-upload raw INSERT om
 
 ### 8.6 LIVE ACTIVATION checklist (Sean, later)
 Prodigi account → set `PRODIGI_API_KEY` + `PRODIGI_WEBHOOK_SECRET` → fill real SKUs in `PRODIGI_SKU_MAP` → configure Prodigi to send status callbacks to `/api/print/webhooks/prodigi/status` with the `x-prodigi-webhook-secret` header → `PRINT_FULFILLMENT_PRODIGI_ENABLED=true` (sandbox `PRODIGI_ENV` first) → sandbox test end-to-end → `PRODIGI_ENV=live`.
+
+---
+
+## 9. SLICE 3d — admin fulfillment view (BUILT, hostile-reviewed, UNCOMMITTED)
+
+> **State:** built + self-review + 5-agent adversarial verify (refute pass); **76/76 backend tests, tsc 0, build OK**. Same worktree/branch. **UNCOMMITTED.** Resolves the §8.5 "no admin print-order list" residual + registers `PrintOrder` associations.
+
+### 9.1 Files
+**Modified:** `backend/models/associations.mjs` (register PrintOrder belongsTo visitor/photo/event) · `backend/routes/adminGalleryRoutes.mjs` (3 routes) · frontend `admin-gallery/{adminGalleryApi.ts, types.ts, AdminGalleryStudio.tsx}`.
+**New:** `backend/tests/api/galleryPrintAdminFulfillmentContract.test.mjs` · frontend `admin-gallery/{hooks/usePrintOrders.ts, components/PrintOrdersPanel.tsx, components/PrintOrderStatusBadge.tsx}`.
+
+### 9.2 Design
+- `GET /print-orders?status=` — list with buyer/photo/event eager-load (admin|trainer); **commissionUsd excluded for the trainer role**; status-filter allowlisted; limit 200.
+- `POST /print-orders/:id/mark-shipped {trackingNumber?}` — idempotent; only advances a **paid/processing** order (never a never-paid `pending` one).
+- `POST /print-orders/:id/refund` — **ADMIN-ONLY**; server-side PaymentIntent resolution (`checkout.sessions.retrieve` → `payment_intent`); `stripe.refunds.create` with a stable **idempotency key** (`print-refund:{id}`) so a double-click/retry never double-refunds; refundable-states-only; → `cancelled`.
+- Frontend `PrintOrdersPanel` (filter, order cards, retry/ship/refund) mounted in the studio; refund is inline two-step confirm **and** hidden from non-admins; `PrintOrderStatusBadge` tokenized; `usePrintOrders` hook.
+
+### 9.3 Hostile-review fixes (all applied + test-locked)
+1. Refund gated **admin-only** (was admin|trainer — trainers shouldn't reverse payments).
+2. mark-shipped guard `status IN ('paid','processing')` — a never-paid `pending` order can no longer be flipped to shipped via a direct API call.
+3. List excludes `commissionUsd` (internal margin) for the trainer role.
+4. Refund button hidden from non-admins (matches the backend gate); tracking input raised to 44px (Rule 2).
+
+### 9.4 Codex EOD review asks
+- Refund atomicity: refund-succeeds-then-status-write-fails returns a misleading 500 but self-heals on retry (idempotency key) — acceptable, or make it cleaner?
+- Confirm the admin-only refund gate + the trainer margin-exclude are complete; any other trainer-visible margin/PII surface?
+- List: 200-row cap has no pagination (silent truncation of oldest) — v1 acceptable?
+
+### 9.5 Residuals (documented)
+Refund does not auto-cancel a Prodigi order already in production (admin cancels provider-side separately); list truncates at 200 (pagination = follow-up); manual-fulfillment full ship-to address is not shown in the list row (name + city/state only — a detail view is a follow-up); shared `busyId` cross-order (money-safe, idempotent).

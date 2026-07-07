@@ -22,6 +22,7 @@ import PhotoUploader from './components/PhotoUploader';
 import EventPhotoGrid from './components/EventPhotoGrid';
 import Lightbox from './components/Lightbox';
 import ConfirmModal, { type ConfirmRequest } from './components/ConfirmModal';
+import PrintOrdersPanel from './components/PrintOrdersPanel';
 import {
   Banner, EmptyState, MainArea, Panel, PageHeader, PageSubtitle, PageTitle, PageWrap, Rail, SectionTitle, TwoColLayout,
 } from './styles';
@@ -170,6 +171,8 @@ const AdminGalleryStudio: React.FC = () => {
           )}
         </MainArea>
       </TwoColLayout>
+
+      <PrintOrdersPanel />
 
       <Lightbox
         photo={lightboxPhoto}

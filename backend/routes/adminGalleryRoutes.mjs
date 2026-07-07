@@ -22,6 +22,7 @@ import GalleryDonation from '../models/GalleryDonation.mjs';
 import GalleryReferral from '../models/GalleryReferral.mjs';
 import PhotoVote from '../models/PhotoVote.mjs';
 import GalleryMessage from '../models/GalleryMessage.mjs';
+import PrintOrder from '../models/PrintOrder.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import sharp from 'sharp';
 import { applyWatermark, isWatermarkAvailable } from '../services/watermarkService.mjs';
@@ -1468,6 +1469,123 @@ router.post('/print-orders/:orderId/retry-fulfillment', async (req, res) => {
   } catch (err) {
     logger.error('[AdminGallery] retry-fulfillment failed:', err.message);
     return res.status(500).json({ success: false, error: 'Fulfillment retry failed' });
+  }
+});
+
+/**
+ * GET /api/admin/gallery/print-orders?status=<enum>
+ * Admin fulfillment view (Slice 3d): list print orders with buyer/photo/event context.
+ * Admin|trainer gated (inherited). Full rows (shipping address + commission) are for staff.
+ */
+router.get('/print-orders', async (req, res) => {
+  try {
+    const VALID = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const status = typeof req.query.status === 'string' && VALID.includes(req.query.status) ? req.query.status : null;
+    const isAdmin = req.user?.role === 'admin';
+    const orders = await PrintOrder.findAll({
+      where: status ? { status } : undefined,
+      // Trainers can fulfill orders but must not see SwanStudios' internal margin.
+      attributes: isAdmin ? undefined : { exclude: ['commissionUsd'] },
+      include: [
+        { model: GalleryVisitor, as: 'visitor', attributes: ['id', 'email', 'firstName', 'lastName'] },
+        { model: GalleryPhoto, as: 'photo', attributes: ['id', 'photoNumber', 'displayName', 'thumbnailUrl'] },
+        { model: GalleryEvent, as: 'event', attributes: ['id', 'name', 'slug'] },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 200,
+    });
+    return res.json({ success: true, orders });
+  } catch (err) {
+    logger.error('[AdminGallery] list print-orders failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to list print orders' });
+  }
+});
+
+/**
+ * POST /api/admin/gallery/print-orders/:orderId/mark-shipped  { trackingNumber? }
+ * Manual admin mark-shipped (manually-fulfilled orders or an override). Idempotent —
+ * only advances a non-terminal order; never regresses shipped/delivered/cancelled.
+ */
+router.post('/print-orders/:orderId/mark-shipped', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid order id' });
+    }
+    const trackingNumber = typeof req.body?.trackingNumber === 'string'
+      ? req.body.trackingNumber.trim().slice(0, 255) || null
+      : null;
+    const [row] = await sequelize.query(
+      `UPDATE print_orders
+         SET status='shipped', tracking_number=COALESCE(:tn, tracking_number),
+             shipped_at=COALESCE(shipped_at, NOW()), updated_at=NOW()
+       WHERE id=:id AND status IN ('paid','processing')
+       RETURNING id`,
+      { replacements: { id: orderId, tn: trackingNumber }, type: sequelize.QueryTypes.SELECT }
+    );
+    if (!row) {
+      return res.status(409).json({ success: false, error: 'Order is not in a shippable state (already shipped/delivered/cancelled, or not found)' });
+    }
+    logger.info('[AdminGallery] print order %d manually marked shipped by user %s', orderId, req.user?.id);
+    return res.json({ success: true, orderId, status: 'shipped', trackingNumber });
+  } catch (err) {
+    logger.error('[AdminGallery] mark-shipped failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Mark-shipped failed' });
+  }
+});
+
+/**
+ * POST /api/admin/gallery/print-orders/:orderId/refund
+ * Manual Stripe refund (Sean's v1 decision) → status='cancelled'. Idempotent via a stable
+ * Stripe idempotency key (a double-click never double-refunds). Server-side PI resolution
+ * (never trusts client). NOTE: does NOT auto-cancel a Prodigi order already in production —
+ * the admin handles provider cancellation separately if the order already shipped.
+ */
+router.post('/print-orders/:orderId/refund', async (req, res) => {
+  try {
+    // Refunds move real money — admin only (the file gate allows trainers for operational
+    // routes, but a financial reversal is not a trainer capability).
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Refunds require admin access' });
+    }
+    const orderId = parseInt(req.params.orderId, 10);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid order id' });
+    }
+    const order = await PrintOrder.findByPk(orderId);
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+    if (order.status === 'cancelled') return res.status(409).json({ success: false, error: 'Order already cancelled/refunded' });
+    if (order.status === 'pending') return res.status(409).json({ success: false, error: 'Order was never paid — nothing to refund' });
+    if (!order.stripeSessionId) return res.status(409).json({ success: false, error: 'No Stripe session recorded on this order' });
+
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    const { default: Stripe } = await import('stripe');
+    const stripe = new Stripe(stripeKey);
+
+    // Resolve the PaymentIntent from the Checkout Session server-side (never trust client).
+    const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+    const paymentIntentId = typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : (session.payment_intent?.id || null);
+    if (!paymentIntentId) return res.status(409).json({ success: false, error: 'No captured payment to refund' });
+
+    // Stable idempotency key → a double-click / retry returns the same refund, never a second.
+    await stripe.refunds.create(
+      { payment_intent: paymentIntentId },
+      { idempotencyKey: `print-refund:${order.id}` }
+    );
+
+    await sequelize.query(
+      `UPDATE print_orders SET status='cancelled', updated_at=NOW() WHERE id=:id AND status <> 'cancelled'`,
+      { replacements: { id: order.id } }
+    );
+
+    logger.info('[AdminGallery] print order %d refunded (PI %s) by user %s', order.id, paymentIntentId, req.user?.id);
+    return res.json({ success: true, orderId: order.id, status: 'cancelled' });
+  } catch (err) {
+    logger.error('[AdminGallery] refund failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Refund failed' });
   }
 });
 

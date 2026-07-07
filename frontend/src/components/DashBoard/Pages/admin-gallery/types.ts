@@ -99,3 +99,27 @@ export const UPLOAD_LIMITS = {
   maxFiles: 500,
   maxSizeMB: 25,
 } as const;
+
+// ── Print orders (Slice 3d — admin fulfillment view) ──────────────────────
+export type PrintOrderStatus =
+  | 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+/** One print order row from GET /api/admin/gallery/print-orders (admin fulfillment). */
+export interface PrintOrder {
+  id: number;
+  productType: string;
+  size: string;
+  quantity: number;
+  priceUsd: string;      // DECIMAL(10,2) serialized as string
+  commissionUsd: string; // admin-only internal margin
+  status: PrintOrderStatus;
+  printProviderOrderId?: string | null;
+  trackingNumber?: string | null;
+  shippingAddress?: Record<string, unknown> | null;
+  paidAt?: string | null;
+  shippedAt?: string | null;
+  createdAt?: string;
+  visitor?: { id: number; email?: string | null; firstName?: string | null; lastName?: string | null } | null;
+  photo?: { id: number; photoNumber?: number; displayName?: string | null; thumbnailUrl?: string | null } | null;
+  event?: { id: number; name?: string | null; slug?: string | null } | null;
+}
