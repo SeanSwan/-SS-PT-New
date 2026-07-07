@@ -84,17 +84,21 @@ export const buildExerciseFrequencyRows = (
   }));
 
 export const buildRecoverySignalRows = (
-  points: Array<{ x: string; painFlags: number; highRpeFlags: number; totalSets: number }>
+  points: Array<{ x: string; painFlags?: number; highRpeFlags?: number; totalSets?: number }>
 ): ProgressChartDrilldownRow[] =>
-  points.map((row) => ({
-    id: String(row.x),
-    label: String(row.x),
-    value: [
-      row.painFlags > 0 ? `${row.painFlags} pain` : null,
-      row.highRpeFlags > 0 ? `${row.highRpeFlags} redline` : null,
-    ].filter(Boolean).join(' · ') || 'clear',
-    detail: `${row.totalSets} sets in window`,
-  }));
+  points.map((row) => {
+    const pain = row.painFlags ?? 0;
+    const redline = row.highRpeFlags ?? 0;
+    return {
+      id: String(row.x),
+      label: String(row.x),
+      value: [
+        pain > 0 ? `${pain} pain` : null,
+        redline > 0 ? `${redline} redline` : null,
+      ].filter(Boolean).join(' · ') || 'clear',
+      detail: `${row.totalSets ?? 0} sets in window`,
+    };
+  });
 
 type AnchorSeries = { exerciseName: string; points: Array<{ x: string | number; y: number }> };
 

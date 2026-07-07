@@ -114,13 +114,15 @@ describe('ChartExpandModal', () => {
     );
     expect(interactive).toContain('canShareToFeed');
     expect(primary).toContain('canShareToFeed');
-    // The staff grid's trigger mount stays PNG/copy-only (no feed opt-in).
-    const adminTriggers = readFileSync(
-      resolve(__dirname, '../workspaces/clients-team/tabs/AdminProgressChartsGrid.primaryCards.tsx'),
-      'utf8',
-    );
-    expect(adminTriggers).toContain('<ChartExpandTrigger');
-    expect(adminTriggers).not.toContain('canShareToFeed');
+    // The staff grid's trigger mounts stay PNG/copy-only (no feed opt-in).
+    for (const staffFile of ['AdminProgressChartsGrid.primaryCards.tsx', 'AdminProgressChartsGrid.detailCards.tsx']) {
+      const adminTriggers = readFileSync(
+        resolve(__dirname, `../workspaces/clients-team/tabs/${staffFile}`),
+        'utf8',
+      );
+      expect(adminTriggers).toContain('<ChartExpandTrigger');
+      expect(adminTriggers).not.toContain('canShareToFeed');
+    }
   });
 });
 
