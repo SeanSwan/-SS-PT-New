@@ -54,6 +54,7 @@ import {
   getRPEByExerciseChart,
 } from '../controllers/chartDataController.mjs';
 import { getNbaLiteHandler, getProgressPulseHandler, getWorkoutDayHandler, getWorkoutWeekHandler } from '../controllers/progressPulseController.mjs';
+import { getRecoveryBoardHandler, postRecoveryCompletionHandler } from '../controllers/recoveryBoardController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireFeature } from '../middleware/requireTier.mjs';
 
@@ -162,6 +163,11 @@ router.get('/exercise-variety', getExerciseVariety);
 router.get('/progress-pulse', requireGuardianAnalytics, getProgressPulseHandler);
 // D1 (Sean 2026-07-06): free-tier NBA rungs 1-3 — deliberately NO tier gate.
 router.get('/nba-lite', getNbaLiteHandler);
+
+// 4B.2/4B.3 (launch charter): Recovery Board — deterministic zero-LLM guidance
+// + completion log. Guidance class, deliberately un-tier-gated (like nba-lite).
+router.get('/recovery-board', getRecoveryBoardHandler);
+router.post('/recovery-board/complete', postRecoveryCompletionHandler);
 
 /** @route GET /api/client/analytics/workout-day?md=MM/DD (Slice 8.4 — chart drill-down) */
 router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);
