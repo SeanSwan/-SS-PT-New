@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildProgressShareCard } from './progressShareCard';
-import { shareProgressCardToFeed } from './progressSocialShare';
+import { buildChartMomentCaption, shareChartMomentToFeed, shareProgressCardToFeed } from './progressSocialShare';
 
 const buildShareableCard = () => buildProgressShareCard({
   chartTitle: 'Weekly Training Volume',
@@ -51,5 +51,40 @@ describe('progressSocialShare', () => {
 
     expect(result).toBe(false);
     expect(post).not.toHaveBeenCalled();
+  });
+});
+
+describe('chart-moment share (2.5)', () => {
+  const pulse = { label: 'Weekly volume', value: '9,100 lbs', detail: 'up from 8,450', tone: 'rising' as const };
+
+  it('builds a truthful caption from title + pulse + facts', () => {
+    const caption = buildChartMomentCaption({
+      title: 'Weekly Training Volume',
+      pulse,
+      facts: [{ id: 'f1', label: 'Best week', value: '9,100 lbs' }],
+    });
+    expect(caption).toContain('Weekly Training Volume');
+    expect(caption).toContain('Weekly volume');
+    expect(caption).toContain('9,100 lbs');
+    expect(caption).toContain('Best week');
+  });
+
+  it('returns null when there is no meaningful moment to share', () => {
+    expect(buildChartMomentCaption({ title: '', pulse: null, facts: [] })).toBeNull();
+    expect(buildChartMomentCaption({ title: 'Chart', pulse: null, facts: [] })).toBeNull();
+  });
+
+  it('posts the chart moment as a milestone post and reports honestly', async () => {
+    const post = vi.fn().mockResolvedValue({ data: { post: { id: 12 } } });
+    const ok = await shareChartMomentToFeed({ post } as never, 'Weekly Training Volume: 9,100 lbs');
+    expect(ok).toBe(true);
+    const [url, body] = post.mock.calls[0];
+    expect(url).toBe('/api/social/posts');
+    expect(body.get('type')).toBe('milestone');
+    expect(body.get('content')).toBe('Weekly Training Volume: 9,100 lbs');
+
+    const failing = vi.fn().mockResolvedValue({ data: {} });
+    expect(await shareChartMomentToFeed({ post: failing } as never, 'x')).toBe(false);
+    expect(await shareChartMomentToFeed({ post } as never, '')).toBe(false);
   });
 });

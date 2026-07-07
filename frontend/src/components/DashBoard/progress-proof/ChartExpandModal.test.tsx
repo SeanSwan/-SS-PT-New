@@ -11,6 +11,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+const mockAxiosPost = vi.fn();
+vi.mock('../../../context/AuthContext', () => ({
+  useAuth: () => ({ authAxios: { post: mockAxiosPost } }),
+}));
+
 import ChartExpandModal from './ChartExpandModal';
 import ChartExpandTrigger from './ChartExpandTrigger';
 
@@ -66,6 +71,56 @@ describe('ChartExpandModal', () => {
   it('focuses the close button on open', () => {
     render(<ChartExpandModal {...baseProps()} />);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: /close weekly training volume/i }));
+  });
+
+  it('offers milestone share only when the mount opts in, with truthful outcomes (2.5)', async () => {
+    mockAxiosPost.mockResolvedValue({ data: { post: { id: 4 } } });
+    const props = {
+      ...baseProps(),
+      pulse: { label: 'Weekly volume', value: '9,100 lbs', detail: 'up', tone: 'rising' },
+      canShareToFeed: true,
+    };
+    render(<ChartExpandModal {...(props as never)} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /share weekly training volume to your feed/i }));
+    expect(await screen.findByText(/shared to your community feed/i)).toBeInTheDocument();
+    expect(mockAxiosPost).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /share weekly training volume to your feed/i })).toBeNull();
+  });
+
+  it('hides milestone share by default and reports failure honestly', async () => {
+    render(<ChartExpandModal {...baseProps()} />);
+    expect(screen.queryByRole('button', { name: /share .* to your feed/i })).toBeNull();
+
+    mockAxiosPost.mockRejectedValue(new Error('network'));
+    const props = {
+      ...baseProps(),
+      pulse: { label: 'Weekly volume', value: '9,100 lbs', detail: 'up', tone: 'rising' },
+      canShareToFeed: true,
+    };
+    render(<ChartExpandModal {...(props as never)} />);
+    fireEvent.click(screen.getByRole('button', { name: /share weekly training volume to your feed/i }));
+    expect(await screen.findByText(/couldn't share right now/i)).toBeInTheDocument();
+  });
+
+  it('share opt-in is wired on the client cards and absent from the staff grid (source truth)', () => {
+    const interactive = readFileSync(
+      resolve(__dirname, '../Pages/client-dashboard/CanonicalProgressChartsGrid.interactiveCards.tsx'),
+      'utf8',
+    );
+    const primary = readFileSync(
+      resolve(__dirname, '../Pages/client-dashboard/CanonicalProgressChartsGrid.primaryCards.tsx'),
+      'utf8',
+    );
+    expect(interactive).toContain('canShareToFeed');
+    expect(primary).toContain('canShareToFeed');
+    // The staff grid's trigger mount stays PNG/copy-only (no feed opt-in).
+    const adminTriggers = readFileSync(
+      resolve(__dirname, '../workspaces/clients-team/tabs/AdminProgressChartsGrid.primaryCards.tsx'),
+      'utf8',
+    );
+    expect(adminTriggers).toContain('<ChartExpandTrigger');
+    expect(adminTriggers).not.toContain('canShareToFeed');
   });
 });
 

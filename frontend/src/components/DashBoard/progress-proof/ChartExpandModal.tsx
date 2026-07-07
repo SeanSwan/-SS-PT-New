@@ -16,7 +16,9 @@
  */
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { Share2, X } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
+import { buildChartMomentCaption, shareChartMomentToFeed } from './progressSocialShare';
 import ProgressChartInsightBar from './ProgressChartInsightBar';
 import ChartExpandDataTable from './ChartExpandDataTable';
 import type { ProgressChartDrilldownRow, ProgressChartPulse } from './progressChartActions';
@@ -25,11 +27,13 @@ import {
   ChartStage,
   CloseButton,
   HeaderRow,
+  HeaderShareButton,
   ModalSubtitle,
   ModalTitle,
   Overlay,
   Panel,
   SectionLabel,
+  ShareOutcome,
   TitleBlock,
 } from './ChartExpandModal.styles';
 
@@ -40,6 +44,8 @@ export interface ChartExpandModalProps {
   rows: ProgressChartDrilldownRow[];
   pulse?: ProgressChartPulse | null;
   facts?: ProgressChartFact[];
+  /** Client-dashboard mounts opt in; staff grids stay PNG/copy-only. */
+  canShareToFeed?: boolean;
   onClose: () => void;
 }
 
@@ -50,8 +56,25 @@ const ChartExpandModal: React.FC<ChartExpandModalProps> = ({
   rows,
   pulse,
   facts,
+  canShareToFeed = false,
   onClose,
 }) => {
+  const { authAxios } = useAuth();
+  const [shareState, setShareState] = useState<'idle' | 'posting' | 'shared' | 'failed'>('idle');
+  const shareCaption = canShareToFeed
+    ? buildChartMomentCaption({ title, pulse: pulse ?? null, facts })
+    : null;
+
+  const handleShare = async () => {
+    if (!shareCaption || shareState === 'posting') return;
+    setShareState('posting');
+    try {
+      setShareState((await shareChartMomentToFeed(authAxios, shareCaption)) ? 'shared' : 'failed');
+    } catch {
+      setShareState('failed');
+    }
+  };
+
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<Element | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -101,10 +124,25 @@ const ChartExpandModal: React.FC<ChartExpandModalProps> = ({
             <ModalTitle id={titleId}>{title}</ModalTitle>
             {subtitle && <ModalSubtitle>{subtitle}</ModalSubtitle>}
           </TitleBlock>
+          {shareCaption && shareState !== 'shared' && (
+            <HeaderShareButton
+              type="button"
+              onClick={handleShare}
+              disabled={shareState === 'posting'}
+              aria-label={`Share ${title} to your feed`}
+            >
+              <Share2 size={15} aria-hidden="true" />
+              {shareState === 'posting' ? 'Sharing...' : 'Share'}
+            </HeaderShareButton>
+          )}
           <CloseButton ref={closeRef} type="button" onClick={onClose} aria-label={`Close ${title} detail view`}>
             <X size={18} aria-hidden="true" />
           </CloseButton>
         </HeaderRow>
+        {shareState === 'shared' && <ShareOutcome>Shared to your community feed.</ShareOutcome>}
+        {shareState === 'failed' && (
+          <ShareOutcome>Couldn't share right now — you can post it from the Progress share studio.</ShareOutcome>
+        )}
         <ChartStage ref={stageRef}>
           {stageWidth > 0 && renderChart(stageWidth, chartHeight)}
         </ChartStage>

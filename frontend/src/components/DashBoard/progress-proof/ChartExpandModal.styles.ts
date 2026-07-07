@@ -164,3 +164,33 @@ export const DataTable = styled.table`
     border-bottom: none;
   }
 `;
+
+export const ShareOutcome = styled.p`
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary, #9fb6c8);
+`;
+
+export const HeaderShareButton = styled.button`
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60c0f0) 35%, transparent);
+  background: transparent;
+  color: var(--text-primary, #e0ecf4);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-glow, #8b5cf6);
+    outline-offset: 2px;
+  }
+  &:disabled { opacity: 0.55; cursor: progress; }
+`;

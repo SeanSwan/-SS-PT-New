@@ -96,6 +96,7 @@ export const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data })
         <CardTitle>Workout Frequency</CardTitle>
         <CardSubtitle>12 weeks - tap a bar</CardSubtitle>
         <ChartExpandTrigger
+            canShareToFeed
           title="Workout Frequency"
           subtitle="Distinct training days per week"
           renderChart={renderFrequencyChart}

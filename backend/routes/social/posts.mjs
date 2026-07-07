@@ -108,6 +108,8 @@ const SOCIAL_POINT_RULES = {
   post_create_workout: 25,
   post_create_transformation: 50,
   post_create_achievement: 30,
+  // 2.5: milestone shares (progress-proof/chart moments) earn like achievements.
+  post_create_milestone: 30,
   post_create_challenge: 20,
   post_create_creative: 20,
   post_create_dance: 20,

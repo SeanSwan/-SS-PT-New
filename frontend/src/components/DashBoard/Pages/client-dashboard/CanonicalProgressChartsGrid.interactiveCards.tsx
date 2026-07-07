@@ -190,6 +190,7 @@ export const WeeklyVolumeCard: React.FC<{
         <CardTitle>Weekly Training Volume</CardTitle>
         <CardSubtitle>{PROGRESS_CHART_RANGE_LABELS[range]}</CardSubtitle>
         <ChartExpandTrigger
+            canShareToFeed
           title="Weekly Training Volume"
           subtitle={PROGRESS_CHART_RANGE_LABELS[range]}
           renderChart={renderVolumeChart}
@@ -249,6 +250,7 @@ export const SetsRepsTrendCard: React.FC<{
         <CardTitle>Total Sets &amp; Reps</CardTitle>
         <CardSubtitle>{PROGRESS_CHART_RANGE_LABELS[range]}</CardSubtitle>
         <ChartExpandTrigger
+            canShareToFeed
           title="Total Sets & Reps"
           subtitle={PROGRESS_CHART_RANGE_LABELS[range]}
           renderChart={(w, h) => (
