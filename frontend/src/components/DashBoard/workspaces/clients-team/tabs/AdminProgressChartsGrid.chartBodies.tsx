@@ -12,11 +12,14 @@ import {
   VictoryBar,
   VictoryChart,
   VictoryGroup,
+  VictoryLine,
   VictoryTooltip,
   VictoryVoronoiContainer,
 } from 'victory';
 import { victoryTheme } from '../../../../Charts/chartTheme';
 import {
+  durationLineProps,
+  intensityLineProps,
   repsBarProps,
   setsBarProps,
   weeklyVolumeAreaProps,
@@ -83,5 +86,38 @@ export const AdminSetsRepsChart: React.FC<{ sets: ChartPoint[]; reps: ChartPoint
       <VictoryBar data={sets} {...setsBarProps} />
       <VictoryBar data={reps} {...repsBarProps} />
     </VictoryGroup>
+  </VictoryChart>
+);
+
+export const AdminDurationChart: React.FC<{ data: ChartPoint[] } & SizeProps> = ({ data, width, height = 180 }) => (
+  <VictoryChart
+    theme={victoryTheme}
+    height={height}
+    {...(width ? { width } : {})}
+    padding={compactPadding}
+    containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+  >
+    <VictoryAxis />
+    <VictoryAxis dependentAxis />
+    <VictoryLine
+      data={data}
+      {...durationLineProps}
+      labels={({ datum }) => `${datum.x}: ${datum.y}min`}
+      labelComponent={<VictoryTooltip renderInPortal={false} />}
+    />
+  </VictoryChart>
+);
+
+export const AdminEffortChart: React.FC<{ data: ChartPoint[] } & SizeProps> = ({ data, width, height = 180 }) => (
+  <VictoryChart
+    theme={victoryTheme}
+    height={height}
+    {...(width ? { width } : {})}
+    padding={compactPadding}
+    domain={{ y: [0, 10] }}
+  >
+    <VictoryAxis />
+    <VictoryAxis dependentAxis />
+    <VictoryLine data={data} {...intensityLineProps} />
   </VictoryChart>
 );
