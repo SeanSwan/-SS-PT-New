@@ -184,10 +184,17 @@ describe('Phase 16.1-UX — loadPhaseTemplate no longer revives the giant checkl
     expect(body).toMatch(/setSelectedWarmup\s*\(/);
     expect(body).toMatch(/setSelectedBalanceCore\s*\(/);
     expect(body).toMatch(/setSelectedCooldown\s*\(/);
-    // The records are built via findProtocolDefaultById (the shared
-    // helper), not by marking `.completed` on the old static arrays.
-    expect(body).toMatch(/findProtocolDefaultById/);
+    // Phase 3c.1 extraction: records are built via templateIdsToSelections
+    // (WorkoutLogger.phaseTemplate.ts), which resolves through
+    // findProtocolDefaultById — not by marking `.completed` on the old
+    // static arrays. The registry resolution is locked in the module.
+    expect(body).toMatch(/templateIdsToSelections/);
     expect(body).not.toMatch(/completed:\s*template\./);
+    const templateModule = readFileSync(
+      resolve(__dirname, './WorkoutLogger.phaseTemplate.ts'),
+      'utf8',
+    );
+    expect(templateModule).toMatch(/findProtocolDefaultById/);
   });
 });
 

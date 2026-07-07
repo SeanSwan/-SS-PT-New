@@ -75,13 +75,14 @@ import CompactProtocolSection, {
 } from './CompactProtocolSection';
 import {
   getRecommendedProtocolItems,
-  findProtocolDefaultById,
   findProtocolDefaultByName,
   type NASMDefaultItem,
 } from './NASMProtocolDefaults';
 import { NASMLearningProvider, LearningModeToggle } from './NASMLearningMode';
 import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
+import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
+import { useWorkoutDraft, WorkoutDraftRestoreBanner } from './useWorkoutDraft';
 import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
@@ -230,6 +231,17 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
 
+  // Phase 3c.1: in-gym autosave — draft persists per user+client+date, restored on remount.
+  const workoutDraft = useWorkoutDraft({
+    userId: userNumericId,
+    clientId: effectiveClientId,
+    date: workoutDateValue,
+    exercises,
+    sessionNotes,
+    overallIntensity,
+    enabled: !hasInitialExercises && !lastSaveResponse,
+  });
+
   useEffect(() => {
     exercisesRef.current = exercises;
   }, [exercises]);
@@ -301,45 +313,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     const template = getPhaseTemplate(phase);
     if (!template) return;
 
-    const templateExercises: ExerciseEntry[] = template.exercises.map((ex, i) => ({
-      loggerExerciseId: createWorkoutLoggerLocalId('exercise'),
-      exerciseId: `template-${phase}-${i}-${Date.now()}`,
-      exerciseName: ex.name,
-      sets: Array.from({ length: Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3) }, (_, s) => ({
-        loggerSetId: createWorkoutLoggerLocalId('set'),
-        setNumber: s + 1,
-        weight: 0,
-        reps: ex.reps,
-        rpe: null,
-        tempo: ex.tempo,
-        restTime: ex.restSeconds,
-        formQuality: null,
-        notes: ex.notes || '',
-      })),
-      formRating: null,
-      painLevel: 0,
-      performanceNotes: '',
-    }));
-
-    const toSelections = (ids: string[]): ProtocolSelection[] => {
-      const out: ProtocolSelection[] = [];
-      for (const id of ids) {
-        const item = findProtocolDefaultById(id);
-        if (item) {
-          out.push({
-            id: item.id,
-            name: item.name,
-            source: 'template',
-            category: item.category,
-          });
-        }
-      }
-      return out;
-    };
-
-    setSelectedWarmup(toSelections(template.warmupIds));
-    setSelectedBalanceCore(toSelections(template.balanceCoreIds));
-    setSelectedCooldown(toSelections(template.cooldownIds));
+    const templateExercises = buildPhaseTemplateEntries(template, phase, createWorkoutLoggerLocalId);
+    setSelectedWarmup(templateIdsToSelections(template.warmupIds));
+    setSelectedBalanceCore(templateIdsToSelections(template.balanceCoreIds));
+    setSelectedCooldown(templateIdsToSelections(template.cooldownIds));
 
     setExercises(templateExercises);
     setCurrentOPTPhase(phase);
@@ -827,11 +804,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         });
         // Phase 2.1a: onComplete deferred to SaveSuccessPanel's Done action.
         setLastSaveResponse(response.data);
+        workoutDraft.clear();
       } else {
         setLastChallengeProgress(null);
         const existingFormId = response.data?.id || response.data?.formId || null;
         if (existingFormId) {
           setSubmittedFormId(existingFormId);
+          workoutDraft.clear();
           toast.warning(response.message || 'Workout already exists for this date. Summary tools are unlocked.');
         } else {
           toast.error(response.message || 'Workout was not saved. Please review and try again.');
@@ -1008,6 +987,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           scheduledSessionId={scheduledSessionId}
         />
         <ActivePlanContextStrip assignment={plannedAssignment || loadedPlanContext} />
+
+        {workoutDraft.pendingDraft && exercises.length === 0 && !sessionNotes && !autoLoadTodayPlan && (
+          <WorkoutDraftRestoreBanner
+            draft={workoutDraft.pendingDraft}
+            onRestore={() => {
+              const draft = workoutDraft.restore();
+              if (!draft) return;
+              setExercises(draft.exercises.map((entry) => ensureWorkoutLoggerExerciseRowIdentity(entry)));
+              setSessionNotes(draft.sessionNotes);
+              setOverallIntensity(draft.overallIntensity);
+            }}
+            onDiscard={workoutDraft.discard}
+          />
+        )}
 
         {!isClientSelfMode && typeof effectiveClientId === 'number' && (
           <VoiceImportPanel aria-label="Voice and file workout import">
