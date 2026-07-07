@@ -121,6 +121,23 @@ export function computeNextBestAction(pulse, opts = {}, context = {}) {
       { label: "Open today's recovery plan", href: '/dashboard/client/overview' }));
   }
 
+  // Charter v3 P1 (COACH audience only): the plan-runway watchdog. A trainer
+  // should never discover an empty queue by accident — this fires when the
+  // active plan's estimated calendar runway drops below the 14-day threshold
+  // (urgent < 7) or when no active plan exists. Copy is third-person coach
+  // voice by construction (coachify preserves it; CTA stays null per the
+  // coach-surface contract).
+  const planQueue = context?.planQueue ?? null;
+  if (opts.audience === 'coach' && planQueue && (planQueue.hasActivePlan === false || planQueue.belowThreshold)) {
+    const days = Number(planQueue.estimatedCalendarDaysLeft) || 0;
+    candidates.push(action('plan_queue_low', 1.5,
+      'Plan queue low',
+      planQueue.hasActivePlan === false
+        ? 'No active program on file — queue the next training block so the client always has two weeks programmed ahead.'
+        : `About ${days} estimated day${days === 1 ? '' : 's'} of programmed work remain${days === 1 ? 's' : ''}${planQueue.urgent ? ' — queue the next block now.' : ' — plan the next block soon.'}`,
+      null));
+  }
+
   const trainedToday = Number.isFinite(daysAgo) && daysAgo === 0;
   if (plan?.isLoggable && !trainedToday) {
     const extraCount = Math.max(0, (plan.exerciseCount ?? 0) - 1);

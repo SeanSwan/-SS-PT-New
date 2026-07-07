@@ -169,6 +169,17 @@ router.get('/nba-lite', getNbaLiteHandler);
 router.get('/recovery-board', getRecoveryBoardHandler);
 router.post('/recovery-board/complete', postRecoveryCompletionHandler);
 
+// Charter v3 P1: self-service plan-queue runway (days of programmed work left).
+router.get('/plan-queue', async (req, res) => {
+  try {
+    const { getPlanQueueDepth } = await import('../services/planQueueService.mjs');
+    const queue = await getPlanQueueDepth(Number(req.user?.id));
+    return res.status(200).json({ success: true, queue });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Could not compute plan queue depth' });
+  }
+});
+
 /** @route GET /api/client/analytics/workout-day?md=MM/DD (Slice 8.4 — chart drill-down) */
 router.get('/workout-day', requireGuardianAnalytics, getWorkoutDayHandler);
 

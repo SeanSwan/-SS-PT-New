@@ -111,16 +111,24 @@ const fetchRecentDays = (sequelize, userId) => quiet('recentDays', async () => {
  * Gather all NBA context inputs in parallel. Every field is null-safe;
  * the engine treats missing context as "no signal", never as an error.
  */
+const fetchPlanQueue = (userId) => quiet('planQueue', async () => {
+  // Charter v3 P1: queue-depth runway for the coach rung. Lazy import keeps
+  // context assembly resilient if the service is absent in an environment.
+  const { getPlanQueueDepth } = await import('./planQueueService.mjs');
+  return getPlanQueueDepth(userId);
+});
+
 export async function getNextBestActionContext(sequelize, userId, { now = new Date() } = {}) {
-  const [plan, pain, nextSession, credits, hasTrainer, recentDays] = await Promise.all([
+  const [plan, pain, nextSession, credits, hasTrainer, recentDays, planQueue] = await Promise.all([
     fetchPlanNext(userId),
     fetchPain(userId),
     fetchNextSession(userId, now),
     fetchCredits(userId),
     fetchHasTrainer(userId),
     fetchRecentDays(sequelize, userId),
+    fetchPlanQueue(userId),
   ]);
-  return { plan, pain, nextSession, credits, hasTrainer: Boolean(hasTrainer), recentDays: recentDays || [] };
+  return { plan, pain, nextSession, credits, hasTrainer: Boolean(hasTrainer), recentDays: recentDays || [], planQueue };
 }
 
 export default getNextBestActionContext;
