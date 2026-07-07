@@ -40,7 +40,8 @@ function fakeClarificationDb({ row = pendingClarificationRow } = {}) {
 
 async function loadApprovalService() {
   vi.resetModules();
-  const logWorkoutForClient = vi.fn();
+  // 1.1b: lock points at the unified write path (legacy fn retired).
+  const submitAiWorkoutLogAsDailyForm = vi.fn();
   vi.doMock('../../database.mjs', () => ({ default: {} }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
     decryptPayload: vi.fn(() => ({
@@ -51,8 +52,11 @@ async function loadApprovalService() {
     })),
   }));
   vi.doMock('../../services/workout/workoutLogService.mjs', () => ({
-    logWorkoutForClient,
     WorkoutLogError: class WorkoutLogError extends Error {},
+  }));
+  vi.doMock('../../services/workout/aiWorkoutDailyFormService.mjs', () => ({
+    submitAiWorkoutLogAsDailyForm,
+    AiWorkoutDailyFormError: class AiWorkoutDailyFormError extends Error {},
   }));
   vi.doMock('../../utils/clientAccess.mjs', () => ({
     ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
@@ -63,7 +67,7 @@ async function loadApprovalService() {
   }));
   vi.doMock('../../services/aiDataWriteService.mjs', () => ({ processAIDataUpdates: vi.fn() }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, logWorkoutForClient };
+  return { ...service, submitAiWorkoutLogAsDailyForm };
 }
 
 afterEach(() => {
@@ -74,7 +78,7 @@ afterEach(() => {
 describe('coach clarification proposal approval', () => {
   it('records clarification answers without running deterministic writers', async () => {
     const db = fakeClarificationDb();
-    const { answerCoachActionProposalClarification, logWorkoutForClient } = await loadApprovalService();
+    const { answerCoachActionProposalClarification, submitAiWorkoutLogAsDailyForm } = await loadApprovalService();
 
     const result = await answerCoachActionProposalClarification({
       id: pendingClarificationRow.id,
@@ -85,7 +89,7 @@ describe('coach clarification proposal approval', () => {
 
     expect(result.status).toBe(200);
     expect(result.body).toMatchObject({ applied: false, clarificationAnswer: 'client_candidate:C1' });
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     const approvedCall = db.calls.find((call) => call.options.replacements?.status === 'APPROVED');
     expect(JSON.parse(approvedCall.options.replacements.resultJson)).toEqual({
       clarificationAnswer: 'client_candidate:C1',

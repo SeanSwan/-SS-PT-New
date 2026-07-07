@@ -225,19 +225,26 @@ describe('workoutLogService — XP failure isolation', () => {
     const __filename = fileURLToPath(import.meta.url);
     const baseDir = path.resolve(path.dirname(__filename), '../..');
 
-    // XP isolation lives in the service (controller is a thin adapter)
-    const svcSource = fs.readFileSync(
-      path.join(baseDir, 'services/workout/workoutLogService.mjs'),
+    // 1.1b: XP isolation now lives in the shared post-commit step
+    // (workoutXpAwardStep) invoked by the unified service AFTER commit.
+    const stepSource = fs.readFileSync(
+      path.join(baseDir, 'services/workout/workoutXpAwardStep.mjs'),
       'utf-8'
     );
-    // XP block must be in try/catch AFTER main transaction.commit()
-    expect(svcSource).toMatch(/transaction\.commit\(\)/);
     // Must have separate xpTx
-    expect(svcSource).toMatch(/let\s+xpTx\s*=/);
-    // Must catch and log XP errors
-    expect(svcSource).toMatch(/XP award failed/);
-    // Must set xpResult = null on failure
-    expect(svcSource).toMatch(/xpResult\s*=\s*null/);
+    expect(stepSource).toMatch(/let\s+xpTx\s*=/);
+    // Must catch and log XP errors, never failing the workout write
+    expect(stepSource).toMatch(/XP award failed/);
+    // The unified service commits BEFORE the XP step runs (post-commit).
+    const unifiedSource = fs.readFileSync(
+      path.join(baseDir, 'services/workout/aiWorkoutDailyFormService.mjs'),
+      'utf-8'
+    );
+    const commitIdx = unifiedSource.indexOf('transaction.commit()');
+    // lastIndexOf: the first hit is the import line; the CALL comes post-commit.
+    const stepIdx = unifiedSource.lastIndexOf('runWorkoutXpAwardStep');
+    expect(commitIdx).toBeGreaterThan(-1);
+    expect(stepIdx).toBeGreaterThan(commitIdx);
 
     // Controller thin adapter must still return 201
     const ctrlSource = fs.readFileSync(
@@ -266,17 +273,17 @@ describe('workoutLogService — XP failure isolation', () => {
 // ===== Service XP-State Mapping (2 tests) =====
 // (XP-state logic moved from controller to workoutLogService — thin adapter pattern)
 
-describe('workoutLogService — XP-state mapping', () => {
+describe('workoutXpAwardStep — XP-state mapping (rehomed 1.1b)', () => {
   test('15 — sameDay XP result maps to xp: null in service return value', async () => {
     const fs = await import('fs');
     const path = await import('path');
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
-    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
+    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutXpAwardStep.mjs');
     const source = fs.readFileSync(svcPath, 'utf-8');
 
     expect(source).toMatch(/xpResult\.sameDay/);
-    expect(source).toMatch(/xpResponse.*sameDay.*alreadyAwarded/s);
+    expect(source).toMatch(/sameDay \|\| xpResult\.alreadyAwarded\) return null/);
   });
 
   test('16 — alreadyAwarded XP result maps to xp: null in service return value', async () => {
@@ -284,10 +291,10 @@ describe('workoutLogService — XP-state mapping', () => {
     const path = await import('path');
     const { fileURLToPath } = await import('url');
     const __filename = fileURLToPath(import.meta.url);
-    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutLogService.mjs');
+    const svcPath = path.resolve(path.dirname(__filename), '../../services/workout/workoutXpAwardStep.mjs');
     const source = fs.readFileSync(svcPath, 'utf-8');
 
     expect(source).toMatch(/xpResult\.alreadyAwarded/);
-    expect(source).toMatch(/xp:\s*xpResponse/);
+    expect(source).toMatch(/return null/);
   });
 });

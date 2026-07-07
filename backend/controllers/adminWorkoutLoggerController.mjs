@@ -89,7 +89,7 @@ export const logWorkout = async (req, res) => {
     // unified canonical adapter — same transactional footprint as the
     // trainer-facing daily-workout-form route (WorkoutSession + WorkoutLog +
     // DailyWorkoutForm + billing policy + plan advance + challenges + XP).
-    // The legacy logWorkoutForClient path left no diary form (charts blind),
+    // The retired legacy write path left no diary form (charts blind),
     // no billing decision, and no challenge/plan progress.
     let serviceResult;
     try {
@@ -154,7 +154,7 @@ export const logWorkout = async (req, res) => {
       );
       if (!approvalRows || approvalRows.length === 0) {
         // Approval invariant failed. Roll back the workout form.
-        // logWorkoutForClient is its own transaction, so we delete the
+        // The retired legacy write ran its own transaction, so we delete the
         // freshly-created session + form rows here. If this best-effort
         // delete fails, surface 409 anyway — the failure to mark
         // approved is the bigger problem the trainer must see.

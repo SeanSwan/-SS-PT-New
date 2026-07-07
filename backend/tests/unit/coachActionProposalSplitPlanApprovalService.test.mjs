@@ -87,7 +87,9 @@ async function loadApprovalService({ order = [], decryptedProposal = defaultSpli
   vi.resetModules();
   const encryptedPayloads = [];
   const ensureClientAccess = vi.fn(async () => ({ allowed: true, clientId: 42 }));
-  const logWorkoutForClient = vi.fn(async () => {
+  // 1.1b: the write path is the unified service now — the lock below
+  // asserts split PREP never writes a workout through it.
+  const submitAiWorkoutLogAsDailyForm = vi.fn(async () => {
     order.push('workout-write');
     return { id: 'workout-1' };
   });
@@ -108,8 +110,11 @@ async function loadApprovalService({ order = [], decryptedProposal = defaultSpli
     decryptPayload: vi.fn(() => decryptedProposal),
   }));
   vi.doMock('../../services/workout/workoutLogService.mjs', () => ({
-    logWorkoutForClient,
     WorkoutLogError: class WorkoutLogError extends Error {},
+  }));
+  vi.doMock('../../services/workout/aiWorkoutDailyFormService.mjs', () => ({
+    submitAiWorkoutLogAsDailyForm,
+    AiWorkoutDailyFormError: class AiWorkoutDailyFormError extends Error {},
   }));
   vi.doMock('../../services/coachClientOnboardingApprovalService.mjs', () => ({
     createClientFromCoachOnboardingProposal: vi.fn(),
@@ -119,7 +124,7 @@ async function loadApprovalService({ order = [], decryptedProposal = defaultSpli
     processAIDataUpdates: vi.fn(),
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, encryptedPayloads, ensureClientAccess, logWorkoutForClient };
+  return { ...service, encryptedPayloads, ensureClientAccess, submitAiWorkoutLogAsDailyForm };
 }
 async function approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db }) {
   const detailResult = await getCoachActionProposal({
@@ -155,7 +160,7 @@ describe('split-plan Coach proposal approval', () => {
       approveCoachActionProposal,
       encryptedPayloads,
       getCoachActionProposal,
-      logWorkoutForClient,
+      submitAiWorkoutLogAsDailyForm,
     } = await loadApprovalService({ order });
 
     const result = await approveSplitProposal({ approveCoachActionProposal, getCoachActionProposal, db });
@@ -198,7 +203,7 @@ describe('split-plan Coach proposal approval', () => {
       parentProposalId: splitPlanRow.id,
       parentProposalType: 'split_plan',
     });
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     expect(order).toEqual(['claim', 'insert:workout_log', 'insert:workout_log']);
   });
 
