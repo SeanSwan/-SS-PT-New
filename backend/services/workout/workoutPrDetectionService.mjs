@@ -80,6 +80,11 @@ export async function detectAndRecordPersonalRecords({
   sessionId = null,
   exercises = [],
   date = null,
+  // Charter v3 H integrity rails: historical/backfilled sources RECORD
+  // baselines (they represent real training, stamped at the workout date)
+  // but must NEVER earn points or celebration.
+  awardPoints = true,
+  achievedAt = null,
 }) {
   const numericUserId = Number(userId);
   if (!Number.isInteger(numericUserId) || numericUserId <= 0) return { prEvents: [] };
@@ -114,7 +119,7 @@ export async function detectAndRecordPersonalRecords({
           reps: best.reps,
           sessionId,
           formId: formId ? String(formId) : null,
-          achievedAt: new Date(),
+          achievedAt: achievedAt ? new Date(achievedAt) : new Date(),
         }).catch((err) => {
           // Unique-index race (double submit): safe to ignore — the row exists.
           logger.warn('[PrDetection] create raced/failed', { userId: numericUserId, key, error: err?.message });
@@ -140,7 +145,7 @@ export async function detectAndRecordPersonalRecords({
             reps: best.reps,
             sessionId,
             formId: formId ? String(formId) : null,
-            achievedAt: new Date(),
+            achievedAt: achievedAt ? new Date(achievedAt) : new Date(),
           })
           .catch((err) => {
             logger.warn('[PrDetection] update failed', { userId: numericUserId, key, error: err?.message });
@@ -154,22 +159,24 @@ export async function detectAndRecordPersonalRecords({
           first: false,
         });
 
-        try {
-          await GamificationPointsService.recordLedgerEntry({
-            userId: numericUserId,
-            points: PR_POINTS,
-            source: 'achievement_earned',
-            description: `Personal record: ${candidate.exerciseName} (${metric === 'weight' ? 'top weight' : 'est. 1RM'})`,
-            // Name sliced to keep the key inside PointTransaction's 128-char column.
-            idempotencyKey: `pr:${numericUserId}:${candidate.exerciseName.slice(0, 60)}:${metric}:${dateKey}`,
-            metadata: { exerciseName: candidate.exerciseName, metric, value: best.value, previous },
-          });
-        } catch (awardErr) {
-          logger.warn('[PrDetection] PR award failed (record kept, non-critical)', {
-            userId: numericUserId,
-            key,
-            error: awardErr?.message,
-          });
+        if (awardPoints) {
+          try {
+            await GamificationPointsService.recordLedgerEntry({
+              userId: numericUserId,
+              points: PR_POINTS,
+              source: 'achievement_earned',
+              description: `Personal record: ${candidate.exerciseName} (${metric === 'weight' ? 'top weight' : 'est. 1RM'})`,
+              // Name sliced to keep the key inside PointTransaction's 128-char column.
+              idempotencyKey: `pr:${numericUserId}:${candidate.exerciseName.slice(0, 60)}:${metric}:${dateKey}`,
+              metadata: { exerciseName: candidate.exerciseName, metric, value: best.value, previous },
+            });
+          } catch (awardErr) {
+            logger.warn('[PrDetection] PR award failed (record kept, non-critical)', {
+              userId: numericUserId,
+              key,
+              error: awardErr?.message,
+            });
+          }
         }
       }
     }

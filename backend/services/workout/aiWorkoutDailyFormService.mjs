@@ -264,6 +264,10 @@ export async function submitAiWorkoutLogAsDailyForm({
         sessionId: workoutSession.id,
         exercises: normalizedExercises,
         date: workoutDateIso,
+        // Charter v3 H rails: historical/backfilled sources record baselines
+        // at the WORKOUT date but never earn points or celebration.
+        awardPoints: !sourcePolicy.suppressEngagementSideEffects,
+        achievedAt: workoutDateIso,
       });
       prEvents = prResult.prEvents || [];
     } catch (prErr) {
