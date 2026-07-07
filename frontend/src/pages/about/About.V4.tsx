@@ -10,7 +10,7 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import SeoHead from '../../components/Seo/SeoHead';
+import SeoHead from '../../components/seo/SeoHead';
 import { useAnimationTier, useTierFlags } from '../../hooks/useAnimationTier';
 import { ScrollProgress, SectionTransition } from '../../components/ui/animations';
 
