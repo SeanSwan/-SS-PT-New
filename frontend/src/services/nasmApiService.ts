@@ -203,6 +203,15 @@ export interface ChallengeProgressImpactReceipt {
   updates: ChallengeProgressImpactUpdate[];
 }
 
+/** Launch charter 4a: one server-detected PR (or first-lift baseline). */
+export interface WorkoutPrEvent {
+  exerciseName: string;
+  metric: 'weight' | 'est1rm';
+  value: number;
+  previous: number | null;
+  first: boolean;
+}
+
 export interface DailyWorkoutForm {
   id: string;
   formId?: string;
@@ -228,6 +237,8 @@ export interface DailyWorkoutForm {
   mcpProcessed: boolean;
   billing?: WorkoutSessionBillingReceipt;
   challengeProgress?: ChallengeProgressImpactReceipt;
+  /** Launch charter 4a: server-detected personal records from THIS save. */
+  prEvents?: WorkoutPrEvent[];
   submittedAt: string;
   mcpProcessedAt?: string;
   processingErrors?: any;

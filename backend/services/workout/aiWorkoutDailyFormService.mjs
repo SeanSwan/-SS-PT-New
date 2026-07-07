@@ -27,6 +27,7 @@ import {
   toIsoDateOnly,
 } from './aiWorkoutDailyFormPayloadService.mjs';
 import { runWorkoutXpAwardStep } from './workoutXpAwardStep.mjs';
+import { detectAndRecordPersonalRecords } from './workoutPrDetectionService.mjs';
 import {
   advanceAiPlannedAssignmentAfterLog,
   isAiNonBillablePlannedAssignment,
@@ -252,6 +253,27 @@ export async function submitAiWorkoutLogAsDailyForm({
       suppress: sourcePolicy.suppressEngagementSideEffects,
     });
 
+    // Launch charter 4a: PR detection = third post-commit step, same never-fail
+    // contract as the XP step. Historical imports (plaud_merge etc.) still
+    // record baselines/records; celebration is a caller concern.
+    let prEvents = [];
+    try {
+      const prResult = await detectAndRecordPersonalRecords({
+        userId: parsedClientId,
+        formId: dailyForm.id,
+        sessionId: workoutSession.id,
+        exercises: normalizedExercises,
+        date: workoutDateIso,
+      });
+      prEvents = prResult.prEvents || [];
+    } catch (prErr) {
+      logger.warn('[aiWorkoutDailyForm] PR detection failed (non-critical)', {
+        userId: parsedClientId,
+        formId: dailyForm.id,
+        error: prErr?.message,
+      });
+    }
+
     return {
       id: dailyForm.id,
       formId: dailyForm.id,
@@ -269,6 +291,7 @@ export async function submitAiWorkoutLogAsDailyForm({
       xpAwarded: xp?.pointsAwarded ?? null,
       streakDays: xp?.streakDays ?? null,
       xp,
+      prEvents,
       source: sourcePolicy.source,
       historicalImport: sourcePolicy.isHistoricalImport,
       billing,

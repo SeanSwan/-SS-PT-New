@@ -58,6 +58,7 @@ import {
 } from '../services/plannedWorkoutAssignmentLogService.mjs';
 import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
 import { estimateBrzycki1RM } from '../services/oneRepMaxService.mjs';
+import { detectAndRecordPersonalRecords } from '../services/workout/workoutPrDetectionService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -1246,6 +1247,27 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       clientSource: client.clientSource
     });
 
+    // Launch charter 4a: PR detection runs synchronously (cheap indexed reads +
+    // idempotent award) so the 201 carries truthful prEvents for the save
+    // celebration. Never blocks the save — failures degrade to no events.
+    let prEvents = [];
+    try {
+      const prResult = await detectAndRecordPersonalRecords({
+        userId: parsedClientId,
+        formId: dailyForm.id,
+        sessionId: workoutSession?.id || null,
+        exercises: formData?.exercises || [],
+        date: workoutDateIso,
+      });
+      prEvents = prResult.prEvents || [];
+    } catch (prErr) {
+      logger.warn('PR detection failed (non-critical)', {
+        clientId: parsedClientId,
+        formId: dailyForm.id,
+        ...toWorkoutFormErrorMetadata(prErr, 'workout_form_pr_detection_failed'),
+      });
+    }
+
     res.status(201).json({
       success: true,
       form: {
@@ -1261,6 +1283,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         plannedAssignment: plannedAssignmentMetadata,
         planProgress: planProgress?.advanced ? planProgress : null,
         challengeProgress,
+        prEvents,
         submittedAt: dailyForm.submittedAt
       },
       message: billingDecision.message

@@ -140,6 +140,27 @@ describe('SaveSuccessPanel', () => {
     expect(screen.queryByText(/plan advanced/i)).toBeNull();
   });
 
+  it('celebrates server-detected PRs loudest-first and reports baselines quietly (4a)', () => {
+    renderPanel({
+      form: baseForm({
+        prEvents: [
+          { exerciseName: 'Bench Press', metric: 'weight', value: 205, previous: 195, first: false },
+          { exerciseName: 'Deadlift', metric: 'est1rm', value: 405, previous: 315, first: false },
+          { exerciseName: 'Bulgarian Split Squat', metric: 'weight', value: 60, previous: null, first: true },
+        ],
+      }),
+    });
+    expect(screen.getByText(/New PR — Deadlift: 405 lb est\. 1RM \(prev 315\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/New PR — Bench Press: 205 lb top weight \(prev 195\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Baseline recorded for 1 lift/i)).toBeInTheDocument();
+  });
+
+  it('renders no PR beat when the save produced no events (truthful absence)', () => {
+    renderPanel({ form: baseForm({ prEvents: [] }) });
+    expect(screen.queryByText(/New PR/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Baseline recorded/i)).not.toBeInTheDocument();
+  });
+
   it('renders the plan-advance line from planProgress', () => {
     renderPanel({
       form: baseForm({ planProgress: { advanced: true, planCompleted: false, next: { weekNumber: 4, dayNumber: 2 } } }),

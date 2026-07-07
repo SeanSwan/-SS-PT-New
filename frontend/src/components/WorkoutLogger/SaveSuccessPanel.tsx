@@ -58,6 +58,15 @@ const SoftLine = styled.p`
   line-height: 1.5;
 `;
 
+/* Launch charter 4a: the PR celebration line — gold, no motion (text beat). */
+const PrLine = styled.p`
+  margin: 0;
+  color: var(--accent-gold, #c6a84b);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+`;
+
 const ActionRow = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -133,6 +142,27 @@ const buildPlanLine = (form: DailyWorkoutForm): string | null => {
   return 'Plan advanced — your program cursor moved forward.';
 };
 
+/**
+ * Launch charter 4a: split server-detected prEvents into celebrated records
+ * (beat-a-prior-best, loudest first by % improvement, capped at 3 lines) and
+ * a quiet count of first-lift baselines. Exported for tests.
+ */
+export const buildPrBeat = (
+  form: DailyWorkoutForm
+): { records: NonNullable<DailyWorkoutForm['prEvents']>; firstCount: number } => {
+  const events = Array.isArray(form.prEvents) ? form.prEvents : [];
+  const records = events
+    .filter((event) => !event.first && event.previous != null && event.value > 0)
+    .sort((a, b) => {
+      const gainA = a.previous ? (a.value - a.previous) / a.previous : 0;
+      const gainB = b.previous ? (b.value - b.previous) / b.previous : 0;
+      return gainB - gainA;
+    })
+    .slice(0, 3);
+  const firstCount = events.filter((event) => event.first).length;
+  return { records, firstCount };
+};
+
 const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
   form,
   completedSets,
@@ -149,6 +179,7 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
   const [shareState, setShareState] = useState<'idle' | 'posting' | 'shared' | 'failed'>('idle');
   const billingLine = buildBillingLine(form, isSelfMode);
   const planLine = buildPlanLine(form);
+  const prBeat = buildPrBeat(form);
   const remaining = toCount(form.billing?.remainingSessions);
   const showBuyMore = isSelfMode && form.billing?.status === 'deducted' && remaining !== null && remaining <= 2;
   const streak = isSelfMode && pulseStatus === 'ready' ? pulse?.streak : null;
@@ -183,6 +214,18 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
       <BeatLine>
         {completedSets} set{completedSets === 1 ? '' : 's'} · {formattedVolume} moved — another data point on every chart.
       </BeatLine>
+      {prBeat.records.map((pr) => (
+        <PrLine key={`${pr.exerciseName}-${pr.metric}`}>
+          🏆 New PR — {pr.exerciseName}: {Math.round(pr.value)} lb{' '}
+          {pr.metric === 'est1rm' ? 'est. 1RM' : 'top weight'}
+          {pr.previous != null ? ` (prev ${Math.round(pr.previous)})` : ''}
+        </PrLine>
+      ))}
+      {prBeat.firstCount > 0 && (
+        <SoftLine>
+          Baseline recorded for {prBeat.firstCount} lift{prBeat.firstCount === 1 ? '' : 's'} — beat it next time for a PR.
+        </SoftLine>
+      )}
       {streak && Number.isFinite(streak.weeklyCurrent) && streak.weeklyCurrent > 0 && (
         <BeatLine>
           {streak.weeklyCurrent}-week streak alive · {streak.daysThisWeek} training day{streak.daysThisWeek === 1 ? '' : 's'} this week.
