@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer, CHART_COLORS, hexAlpha } from '../../chartTheme';
+import { useAnalytics } from '../../../../hooks/useAnalytics';
+import SkeletonChart from '../../../ui/SkeletonChart';
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const WEEKS = 12;
@@ -48,12 +50,55 @@ const Cell = styled.div<{ $intensity: number; $isDemo: boolean }>`
 
 interface Props {
   data?: number[][];
+  /** When set (profile/analytics mounts), real logged sessions feed the grid. */
+  userId?: number | string;
 }
 
-const WorkoutHeatmapCalendar: React.FC<Props> = ({ data }) => {
-  const hasRealData = !!(data && data.length > 0);
-  const allowDemoFallback = !hasRealData && import.meta.env.DEV;
-  const chartData = hasRealData ? data! : (allowDemoFallback ? DEMO_DATA : []);
+/**
+ * Builds the 7xWEEKS day-grid from the per-session duration-trend series
+ * (one point per logged session day, 'MM/DD' labels, last 90 days) by
+ * walking back from today — 84 cells cannot collide across years.
+ */
+export const buildHeatmapGridFromSessions = (
+  points: Array<{ x: string }>,
+  today = new Date(),
+): number[][] | null => {
+  if (!points.length) return null;
+  const counts = new Map<string, number>();
+  points.forEach((point) => {
+    counts.set(point.x, (counts.get(point.x) ?? 0) + 1);
+  });
+  // grid[dayOfWeek Mon=0][weekIndex oldest=0]
+  const grid: number[][] = Array.from({ length: 7 }, () => Array.from({ length: WEEKS }, () => 0));
+  for (let daysBack = 0; daysBack < WEEKS * 7; daysBack += 1) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - daysBack);
+    const label = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    const dayRow = (date.getDay() + 6) % 7; // JS Sunday=0 -> Monday-first rows
+    const weekCol = WEEKS - 1 - Math.floor(daysBack / 7);
+    if (weekCol >= 0) grid[dayRow][weekCol] = counts.get(label) ?? 0;
+  }
+  return grid;
+};
+
+const WorkoutHeatmapCalendar: React.FC<Props> = ({ data, userId }) => {
+  const shouldFetch = !data && userId != null;
+  const { data: sessionsRes, loading } = useAnalytics<{ data: Array<{ x: string }> }>(
+    userId,
+    'chart-duration-trend',
+    shouldFetch,
+  );
+  const fetchedGrid = useMemo(
+    () => (shouldFetch && sessionsRes?.data?.length ? buildHeatmapGridFromSessions(sessionsRes.data) : null),
+    [shouldFetch, sessionsRes],
+  );
+
+  const realData = (data && data.length > 0) ? data : fetchedGrid;
+  const hasRealData = !!(realData && realData.length > 0);
+  const allowDemoFallback = !hasRealData && !shouldFetch && import.meta.env.DEV;
+  const chartData = hasRealData ? realData! : (allowDemoFallback ? DEMO_DATA : []);
+
+  if (shouldFetch && loading) return <SkeletonChart height={280} />;
 
   if (chartData.length === 0) {
     return (
