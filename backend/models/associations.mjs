@@ -1519,7 +1519,7 @@ const setupAssociations = async () => {
       BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
 
       // Photo Gallery & Lead Generation Models
-      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
+      GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage, PrintOrder,
 
       // CRM Lead Management Models
       Lead, LeadActivity, MarketingCalendarItem, MarketingCampaign, ContentProject, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,

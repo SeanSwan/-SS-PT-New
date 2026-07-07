@@ -14,6 +14,22 @@ describe('3f: backend surfaces the storefront flag', () => {
   it('the gallery photos response carries printStorefrontEnabled from a default-OFF env flag', () => {
     expect(gallery).toContain("printStorefrontEnabled: process.env.PRINT_STOREFRONT_ENABLED === 'true'");
   });
+
+  it('the MONEY endpoint POST /print-order is itself server-flag-gated (not just the UI) — 10-review fix', () => {
+    const start = gallery.indexOf("router.post('/print-order'");
+    const end = gallery.indexOf("router.get('/print-orders'", start);
+    const block = gallery.slice(start, end);
+    expect(block).toContain("process.env.PRINT_STOREFRONT_ENABLED !== 'true'");
+    expect(block).toMatch(/Print ordering is not currently available/);
+  });
+
+  it('checkout rejects a photo with no print master (never charge for an un-fulfillable print) — 10-review fix', () => {
+    const start = gallery.indexOf("router.post('/print-order'");
+    const end = gallery.indexOf("router.get('/print-orders'", start);
+    const block = gallery.slice(start, end);
+    expect(block).toContain('if (!photo.originalStorageKey)');
+    expect(block).toMatch(/Prints are not available for this photo/);
+  });
 });
 
 describe('3f: frontend un-gates the Order Print button behind the flag', () => {

@@ -199,15 +199,17 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState(false);
 
   // Fetch products on mount
   useEffect(() => {
     fetch(`${API_BASE}/api/gallery/print-products`)
       .then(r => r.json())
       .then(data => {
-        if (data.success) setProducts(data.products);
+        if (data.success && Array.isArray(data.products)) setProducts(data.products);
+        else setCatalogError(true);
       })
-      .catch(() => {})
+      .catch(() => setCatalogError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -216,6 +218,7 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
   const rafRef = useRef<number>(0);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>, type: string) => {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
       const card = cardRefs.current.get(type);
@@ -298,10 +301,14 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
           <ProductGrid>
             {[1,2,3,4,5].map(i => <CrystallineSkeleton key={i} style={{ height: 120 }} />)}
           </ProductGrid>
+        ) : catalogError ? (
+          <CheckoutError role="alert" style={{ marginTop: 16 }}>
+            Couldn&apos;t load print options right now. Please close and try again.
+          </CheckoutError>
         ) : (
           <>
             <SectionLabel>Choose Product</SectionLabel>
-            <ProductGrid>
+            <ProductGrid role="radiogroup" aria-label="Choose a print product">
               {products.map(p => (
                 <CardWrapper
                   key={p.type}
@@ -310,7 +317,9 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
                   onMouseMove={e => handleMouseMove(e, p.type)}
                   onMouseLeave={() => handleMouseLeave(p.type)}
                   onClick={() => { setSelectedProduct(p); setSelectedSize(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedProduct(p); setSelectedSize(null); } }}
                   role="radio"
+                  tabIndex={0}
                   aria-checked={selectedProduct?.type === p.type}
                 >
                   <CardIcon>{PRODUCT_ICONS[p.type] || '🖼️'}</CardIcon>
@@ -345,6 +354,27 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
 
             {selectedSize && (
               <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '4px 0 12px' }}>
+                  <span style={{ color: 'var(--text-muted, rgba(224,236,244,0.6))', fontFamily: 'Sora, sans-serif', fontSize: '0.875rem' }}>Quantity</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      aria-label="Decrease quantity"
+                      style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity <= 1 ? 'not-allowed' : 'pointer', opacity: quantity <= 1 ? 0.4 : 1 }}
+                    >−</button>
+                    <span aria-live="polite" style={{ minWidth: 28, textAlign: 'center', color: 'var(--text-primary, #E0ECF4)', fontFamily: 'Sora, sans-serif', fontSize: '1rem' }}>{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                      disabled={quantity >= 10}
+                      aria-label="Increase quantity"
+                      style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border-subtle, rgba(224,236,244,0.15))', background: 'transparent', color: 'var(--text-primary, #E0ECF4)', fontSize: '1.25rem', cursor: quantity >= 10 ? 'not-allowed' : 'pointer', opacity: quantity >= 10 ? 0.4 : 1 }}
+                    >+</button>
+                  </div>
+                </div>
+
                 <TotalLine>
                   <span className="label">{selectedProduct?.label} — {selectedSize.size} × {quantity}</span>
                   <span className="price">${total}</span>
@@ -361,6 +391,9 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
                 >
                   {submitting ? 'Processing...' : `Order for $${total}`}
                 </GildedButton>
+                <p style={{ color: 'var(--text-faint, rgba(224,236,244,0.4))', fontFamily: 'Sora, sans-serif', fontSize: '0.75rem', textAlign: 'center', margin: '8px 0 0' }}>
+                  Shipping &amp; any sales tax are calculated at checkout.
+                </p>
               </>
             )}
           </>

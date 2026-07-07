@@ -1708,6 +1708,11 @@ router.get('/print-products', (_req, res) => {
  */
 router.post('/print-order', requireGalleryAccess, async (req, res) => {
   try {
+    // Server-side storefront gate (3f review fix): the flag must gate the MONEY endpoint,
+    // not just the UI — otherwise the "dormant" storefront accepts real orders by direct API.
+    if (process.env.PRINT_STOREFRONT_ENABLED !== 'true') {
+      return res.status(403).json({ success: false, error: 'Print ordering is not currently available.' });
+    }
     const { photoId, productType, size, quantity, cropData } = req.body;
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
@@ -1727,6 +1732,11 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
     const photo = await GalleryPhoto.findOne({ where: { id: photoId, eventId } });
     if (!photo) {
       return res.status(404).json({ success: false, error: 'Photo not found in this event' });
+    }
+    // Print-master precondition (3f review fix): never charge for a photo with no
+    // un-watermarked master — it can't be fulfilled and would strand the order at 'paid'.
+    if (!photo.originalStorageKey) {
+      return res.status(409).json({ success: false, error: 'Prints are not available for this photo yet.' });
     }
 
     const totalPrice = (unitPrice * qty).toFixed(2);

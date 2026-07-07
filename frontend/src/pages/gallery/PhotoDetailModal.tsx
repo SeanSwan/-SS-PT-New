@@ -687,17 +687,20 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             </ControlsPanel>
           </ModalContainer>
 
-          {/* Print Store Overlay */}
+          {/* Print Store Overlay — stop pointer/click bubbling to the Backdrop's onClose,
+              or any interaction inside the store would close the whole photo modal (3f review fix). */}
           <AnimatePresence>
             {showPrintStore && photo && galleryToken && (
               <React.Suspense fallback={null}>
-                <PrintStore
-                  photoId={photo.id}
-                  photoUrl={photo.url}
-                  photoName={photo.displayName}
-                  galleryToken={galleryToken}
-                  onClose={() => setShowPrintStore(false)}
-                />
+                <div onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                  <PrintStore
+                    photoId={photo.id}
+                    photoUrl={photo.url}
+                    photoName={photo.displayName}
+                    galleryToken={galleryToken}
+                    onClose={() => setShowPrintStore(false)}
+                  />
+                </div>
               </React.Suspense>
             )}
           </AnimatePresence>

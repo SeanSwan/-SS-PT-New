@@ -1277,7 +1277,8 @@ const GalleryPage: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const creditStatus = params.get('credits');
     const donationStatus = params.get('donation');
-    if (!creditStatus && !donationStatus) return;
+    const printStatus = params.get('print');
+    if (!creditStatus && !donationStatus && !printStatus) return;
 
     if (creditStatus === 'success') {
       showToast('Enhancement credits are ready. Select your photos when you are ready.');
@@ -1292,10 +1293,18 @@ const GalleryPage: React.FC = () => {
       showToast('Donation checkout cancelled. Your gallery is still open.');
     }
 
+    if (printStatus === 'success') {
+      showToast('Print order placed! You will get an email confirmation and shipping updates.');
+    } else if (printStatus === 'cancelled') {
+      showToast('Print checkout cancelled. Your gallery is still open.');
+    }
+
     const url = new URL(window.location.href);
     url.searchParams.delete('credits');
     url.searchParams.delete('donation');
     url.searchParams.delete('package');
+    url.searchParams.delete('print');
+    url.searchParams.delete('orderId');
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   }, [fetchCredits, galleryToken, showToast]);
 
