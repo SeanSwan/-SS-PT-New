@@ -1,0 +1,9 @@
+{
+  "note": "Seed schedule per headless-runner-spec.md §6. Installed into the vault by a HUMAN act: node scripts/hermes/runner.mjs --init-schedule (schedule edits are T1 proposals applied by Sean). `scheduled` is derived from enabled entries for the digest's silence check. Event cadences (deploy-detected) wait on an emitter (7-star P-4) and are recorded disabled.",
+  "entries": [
+    { "command": "receipt-digest", "cadence": "daily 06:00", "timeout": 300, "enabled": true },
+    { "command": "health-sweep", "cadence": "daily 06:01", "timeout": 300, "enabled": true },
+    { "command": "morning-briefing", "cadence": "daily 06:05", "timeout": 300, "enabled": true },
+    { "command": "health-sweep-on-deploy", "cadence": "event deploy-detected", "timeout": 300, "enabled": false }
+  ]
+}
