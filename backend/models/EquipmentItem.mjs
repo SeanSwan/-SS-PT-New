@@ -51,6 +51,9 @@ EquipmentItem.init({
       isIn: [[
         'barbell', 'dumbbell', 'kettlebell', 'cable_machine', 'resistance_band',
         'bodyweight', 'machine', 'bench', 'rack', 'cardio', 'foam_roller',
+        // 4B.1: lacrosse_ball — SMR exercises reference it (blueprint 05 gap #5);
+        // it previously could only land as 'other', breaking equipment filtering.
+        'lacrosse_ball',
         'stability_ball', 'medicine_ball', 'pull_up_bar', 'trx', 'other'
       ]]
     },
