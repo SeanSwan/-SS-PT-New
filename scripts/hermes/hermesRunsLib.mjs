@@ -20,7 +20,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { loadRegistry, getSwitchInventory } from './registryLib.mjs';
+import { loadRegistry, getSwitchDefaults, getSwitchInventory } from './registryLib.mjs';
 import { atomicWriteFileSync, chainedAppend, withLock } from './spineLib.mjs';
 
 export const LANES = ['receipts', 'logs', 'queue', 'digests', 'archive'];
@@ -45,6 +45,7 @@ const LANE_INDEX = {
 // G-1), never hand-mirrored. Doc order preserved; last-tested lives in the
 // switches file (slice 2 owns flips). Adding a switch is a doc edit + registry-build.
 const SWITCH_SEED = getSwitchInventory(loadRegistry());
+const SWITCH_DEFAULTS = getSwitchDefaults(loadRegistry()); // UX-9: unbuilt surfaces seed OFF
 
 const SECRET_PATTERNS = [
   /\b(?:sk|rk|pk)_(?:live|test)_[0-9A-Za-z]{8,}\b/g,
@@ -100,7 +101,7 @@ export function ensureLanes(vaultRoot) {
 export function seedSwitches(file, overrides = {}) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const state = {};
-  for (const name of SWITCH_SEED) state[name] = true;
+  for (const name of SWITCH_SEED) state[name] = SWITCH_DEFAULTS[name] !== false; // doc-driven default (UX-9)
   for (const [k, v] of Object.entries(overrides)) state[k] = v;
   atomicWriteFileSync(file, JSON.stringify(state, null, 2) + '\n'); // temp+rename, never a torn switches file (G-6)
   return state;

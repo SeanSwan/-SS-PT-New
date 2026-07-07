@@ -88,6 +88,9 @@ test('no-change flip is receipted honestly as no change', () => {
 
 test('flip OFF auto-revokes dependent open entries only (approval-gates §6)', () => {
   const { root, swFile } = fresh();
+  // UX-9: SWITCH_DISCORD_BROKER now seeds OFF (unbuilt surface). Arm it first —
+  // mirrors real life: the broker slice ships, Sean arms, entries queue, kill revokes.
+  seedSwitches(swFile, { SWITCH_DISCORD_BROKER: true });
   const alert = createEntry(root, swFile, {
     action: 'discord-alert', tier: 'T3', target: '#ops · template deploy-health',
     requester: 'hermes/runner', evidence: 'sweep receipt',

@@ -33,7 +33,7 @@ export const SCHEMA_VERSION = 1;
 // the doc groups rows by tier heading, so those two are never table columns.
 const CMD_HEADER = ['name', 'description', 'owner', 'channels', 'inputs', 'receipt evidence', 'kill-switch'];
 const DENIED_HEADER = ['name', 'status', 'why the row exists'];
-const SWITCH_HEADER = ['name', 'stops', 'flip', 'owner'];
+const SWITCH_HEADER = ['name', 'stops', 'flip', 'owner', 'default'];
 // command-effect-registry.md §2 `approval` field: derived from tier, never inferred at runtime.
 const APPROVAL_BY_TIER = { T0: 'none-logged', T1: 'none-logged', T2: 'allowlist', T3: 'queue', T4: 'queue+arm' };
 
@@ -98,16 +98,19 @@ export function parseRegistryMarkdown(cmdText, switchText) {
   for (const t of tables(switchText)) {
     if (!headerMatches(t.header, SWITCH_HEADER)) continue;
     for (const { cells, lineNo } of t.rows) {
-      if (cells.length !== SWITCH_HEADER.length) fail(`switch row has ${cells.length} cells, expected 4 (line ${lineNo})`);
-      const [nameC, stops, flip, owner] = cells;
+      if (cells.length !== SWITCH_HEADER.length) fail(`switch row has ${cells.length} cells, expected ${SWITCH_HEADER.length} (line ${lineNo})`);
+      const [nameC, stops, flip, owner, dflt] = cells;
       const name = stripCode(nameC);
-      for (const [k, v] of [['name', name], ['stops', stops], ['flip', flip], ['owner', owner]]) {
+      for (const [k, v] of [['name', name], ['stops', stops], ['flip', flip], ['owner', owner], ['default', dflt]]) {
         if (!v) fail(`switch row missing field '${k}' (line ${lineNo})`);
       }
       if (!/^SWITCH_[A-Z0-9_]+$/.test(name)) fail(`switch name '${name}' is not a SWITCH_* constant (line ${lineNo})`);
+      // UX-9: seed posture is doc-driven — unbuilt surfaces ship OFF so day-1
+      // status never shows green brakes for vapor, and a landing slice is never pre-armed.
+      if (!/^(on|off)$/.test(dflt)) fail(`switch default '${dflt}' must be 'on' or 'off' (line ${lineNo})`);
       if (switchNames.has(name)) fail(`duplicate switch '${name}' (line ${lineNo})`);
       switchNames.add(name);
-      switches.push({ name, stops, flip, owner });
+      switches.push({ name, stops, flip, owner, default: dflt === 'on' });
     }
   }
   if (!switches.length) fail(`no switch inventory found in ${SWITCH_DOC_REL} §4`);
@@ -205,3 +208,4 @@ export function getForbidden(reg) { return reg.denied.map((d) => d.name); }
 export function getT2Rows(reg) { return reg.commands.filter((c) => c.tier === 'T2').map((c) => c.name); }
 export function getT2Standing(reg) { return reg.commands.filter((c) => c.tier === 'T2' && !c.proposed).map((c) => c.name); }
 export function getSwitchInventory(reg) { return reg.switches.map((s) => s.name); }
+export function getSwitchDefaults(reg) { return Object.fromEntries(reg.switches.map((s) => [s.name, s.default !== false])); } // UX-9 doc-driven seed posture

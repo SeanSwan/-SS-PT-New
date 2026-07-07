@@ -115,3 +115,19 @@ test('ZERO hand-mirrored command constants left in runtime source (G-1)', () => 
   assert.ok(lib.includes('getSwitchInventory('), 'hermesRunsLib derives the switch seed from the registry');
   assert.ok(!lib.includes('SWITCH_HEADLESS_RUNNER'), 'no hand-mirrored switch-inventory array in hermesRunsLib');
 });
+
+test('UX-9: doc-driven seed defaults — unbuilt surfaces ship OFF, day-1 status stays honest', async () => {
+  const os = (await import('node:os')).default;
+  const { seedSwitches } = await import('./hermesRunsLib.mjs');
+  const reg = parseRegistryMarkdown(CMD_DOC, SWITCH_DOC);
+  const byName = Object.fromEntries(reg.switches.map((s) => [s.name, s.default]));
+  assert.equal(byName.SWITCH_MASTER, true);
+  for (const off of ['SWITCH_HEADLESS_RUNNER', 'SWITCH_DISCORD_BROKER', 'SWITCH_BROWSER_HARNESS', 'SWITCH_STALE_CLIENT']) {
+    assert.equal(byName[off], false, `${off} must default OFF until its surface ships`);
+  }
+  const swFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-seed-')), 'switches.json');
+  const state = seedSwitches(swFile);
+  assert.equal(state.SWITCH_HEADLESS_RUNNER, false, 'a landing runner slice must not be pre-armed');
+  assert.equal(state.SWITCH_RECEIPT_DIGEST, true);
+  assert.equal(state.SWITCH_HEALTH_SWEEP, true);
+});

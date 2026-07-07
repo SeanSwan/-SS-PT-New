@@ -368,55 +368,64 @@
       "name": "SWITCH_MASTER",
       "stops": "Every registered command except `switch-status` and `switch-flip` itself — the whole broker",
       "flip": "Panel big-red · `KILL MASTER` · or Hermes daemon stop",
-      "owner": "Human/Sean"
+      "owner": "Human/Sean",
+      "default": true
     },
     {
       "name": "SWITCH_HEADLESS_RUNNER",
       "stops": "All scheduled/triggered runs; the runner idles (checks this before *each* run — `./headless-runner-spec.md` §3)",
       "flip": "Panel · `KILL HEADLESS_RUNNER`",
-      "owner": "Human/Sean"
+      "owner": "Human/Sean",
+      "default": false
     },
     {
       "name": "SWITCH_TELEGRAM_BROKER",
       "stops": "Inbound Telegram command processing (bot may still answer \"broker paused\")",
       "flip": "Panel · daemon config · or Telegram bot stop",
-      "owner": "Human/Sean"
+      "owner": "Human/Sean",
+      "default": true
     },
     {
       "name": "SWITCH_DISCORD_BROKER",
       "stops": "All outbound Discord alerts, approved or not",
       "flip": "Panel · `KILL DISCORD_BROKER`",
-      "owner": "Human/Sean"
+      "owner": "Human/Sean",
+      "default": false
     },
     {
       "name": "SWITCH_BROWSER_HARNESS",
       "stops": "Harness session starts (running sessions end at next navigation)",
       "flip": "Panel · `KILL BROWSER_HARNESS`",
-      "owner": "Human/Sean"
+      "owner": "Human/Sean",
+      "default": false
     },
     {
       "name": "SWITCH_HEALTH_SWEEP",
       "stops": "The health-sweep automation",
       "flip": "Panel · phrase",
-      "owner": "Deterministic Script owner"
+      "owner": "Deterministic Script owner",
+      "default": true
     },
     {
       "name": "SWITCH_MORNING_BRIEFING",
       "stops": "Briefing generation",
       "flip": "Panel · phrase",
-      "owner": "Hermes"
+      "owner": "Hermes",
+      "default": true
     },
     {
       "name": "SWITCH_STALE_CLIENT",
       "stops": "Stale-client report generation",
       "flip": "Panel · phrase",
-      "owner": "Deterministic Script owner"
+      "owner": "Deterministic Script owner",
+      "default": false
     },
     {
       "name": "SWITCH_RECEIPT_DIGEST",
       "stops": "Digest rendering (receipts still *write* — only the view pauses; receipt writing has no switch by design, it is the one thing that must never be off)",
       "flip": "Panel · phrase",
-      "owner": "Deterministic Script owner"
+      "owner": "Deterministic Script owner",
+      "default": true
     }
   ]
 }

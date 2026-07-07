@@ -34,17 +34,17 @@ Both masters work when the switches file itself is the problem. Neither touches 
 
 ## 4. Inventory (seed — placeholder entries, `last-tested` starts empty until slice 2 lands)
 
-| name | stops | flip | owner |
-|---|---|---|---|
-| `SWITCH_MASTER` | Every registered command except `switch-status` and `switch-flip` itself — the whole broker | Panel big-red · `KILL MASTER` · or Hermes daemon stop | Human/Sean |
-| `SWITCH_HEADLESS_RUNNER` | All scheduled/triggered runs; the runner idles (checks this before *each* run — `./headless-runner-spec.md` §3) | Panel · `KILL HEADLESS_RUNNER` | Human/Sean |
-| `SWITCH_TELEGRAM_BROKER` | Inbound Telegram command processing (bot may still answer "broker paused") | Panel · daemon config · or Telegram bot stop | Human/Sean |
-| `SWITCH_DISCORD_BROKER` | All outbound Discord alerts, approved or not | Panel · `KILL DISCORD_BROKER` | Human/Sean |
-| `SWITCH_BROWSER_HARNESS` | Harness session starts (running sessions end at next navigation) | Panel · `KILL BROWSER_HARNESS` | Human/Sean |
-| `SWITCH_HEALTH_SWEEP` | The health-sweep automation | Panel · phrase | Deterministic Script owner |
-| `SWITCH_MORNING_BRIEFING` | Briefing generation | Panel · phrase | Hermes |
-| `SWITCH_STALE_CLIENT` | Stale-client report generation | Panel · phrase | Deterministic Script owner |
-| `SWITCH_RECEIPT_DIGEST` | Digest rendering (receipts still *write* — only the view pauses; receipt writing has no switch by design, it is the one thing that must never be off) | Panel · phrase | Deterministic Script owner |
+| name | stops | flip | owner | default |
+|---|---|---|---|---|
+| `SWITCH_MASTER` | Every registered command except `switch-status` and `switch-flip` itself — the whole broker | Panel big-red · `KILL MASTER` · or Hermes daemon stop | Human/Sean | on |
+| `SWITCH_HEADLESS_RUNNER` | All scheduled/triggered runs; the runner idles (checks this before *each* run — `./headless-runner-spec.md` §3) | Panel · `KILL HEADLESS_RUNNER` | Human/Sean | off |
+| `SWITCH_TELEGRAM_BROKER` | Inbound Telegram command processing (bot may still answer "broker paused") | Panel · daemon config · or Telegram bot stop | Human/Sean | on |
+| `SWITCH_DISCORD_BROKER` | All outbound Discord alerts, approved or not | Panel · `KILL DISCORD_BROKER` | Human/Sean | off |
+| `SWITCH_BROWSER_HARNESS` | Harness session starts (running sessions end at next navigation) | Panel · `KILL BROWSER_HARNESS` | Human/Sean | off |
+| `SWITCH_HEALTH_SWEEP` | The health-sweep automation | Panel · phrase | Deterministic Script owner | on |
+| `SWITCH_MORNING_BRIEFING` | Briefing generation | Panel · phrase | Hermes | on |
+| `SWITCH_STALE_CLIENT` | Stale-client report generation | Panel · phrase | Deterministic Script owner | off |
+| `SWITCH_RECEIPT_DIGEST` | Digest rendering (receipts still *write* — only the view pauses; receipt writing has no switch by design, it is the one thing that must never be off) | Panel · phrase | Deterministic Script owner | on |
 
 Note the deliberate asymmetry: **receipt writing itself has no kill switch.** If receipts can't be written, the executing command fails closed instead. An OS that can act without accounting for itself has no off switch worth trusting.
 
