@@ -83,6 +83,17 @@ describe('WorkoutDayDrilldown', () => {
       expect(screen.getByRole('button', { name: 'Close workout detail' })).toHaveFocus();
     });
   });
+
+  it('offers the session-PDF export once loaded, and hides it on empty days (P6)', async () => {
+    render(<WorkoutDayDrilldown md="07/01" onClose={vi.fn()} />);
+    await screen.findByText('Bench Press');
+    expect(screen.getByRole('button', { name: 'Download this workout as a PDF' })).toBeInTheDocument();
+
+    mockAxiosGet.mockResolvedValue({ data: { success: true, data: { date: '2026-07-01', sessions: [] } } });
+    render(<WorkoutDayDrilldown md="07/02" onClose={vi.fn()} />);
+    await screen.findByText('No logged exercise detail for this day.');
+    expect(screen.getAllByRole('button', { name: /Download this workout as a PDF/i })).toHaveLength(1);
+  });
 });
 
 describe('week mode (Slice 9)', () => {

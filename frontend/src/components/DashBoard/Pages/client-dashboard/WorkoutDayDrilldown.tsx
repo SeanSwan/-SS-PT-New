@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Clock, X } from 'lucide-react';
+import { Clock, FileDown, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import {
   CloseButton,
@@ -25,6 +25,7 @@ import {
   PanelHeader,
   PanelSub,
   PanelTitle,
+  PdfExportButton,
   SessionBlock,
   SessionMeta,
   SetIndex,
@@ -88,9 +89,10 @@ const WorkoutDayDrilldown: React.FC<{
   onClose: () => void;
   mode?: DrilldownMode;
 }> = ({ md, onClose, mode = 'day' }) => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [days, setDays] = useState<DrillDay[]>([]);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<Element | null>(null);
 
@@ -142,6 +144,24 @@ const WorkoutDayDrilldown: React.FC<{
   const title = mode === 'week' ? `Week of ${md}` : `Workout — ${md}`;
   const totalSessions = days.reduce((sum, d) => sum + d.sessions.length, 0);
 
+  const handleSessionPdf = async () => {
+    setPdfBusy(true);
+    try {
+      const { downloadWorkoutSessionPdf } = await import('../../../../services/pdf/workoutSessionPdf');
+      const clientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+      await downloadWorkoutSessionPdf({
+        clientName: clientName || 'SwanStudios Client',
+        title,
+        days: days.map((day) => ({
+          dateLabel: day.date ?? (mode === 'week' ? 'Training day' : md),
+          sessions: day.sessions,
+        })),
+      });
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   return (
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <Panel role="dialog" aria-modal="true" aria-label={`Workout detail for ${md}`}>
@@ -154,6 +174,16 @@ const WorkoutDayDrilldown: React.FC<{
                 : days[0]?.date ?? 'from your logged history'}
             </PanelSub>
           </div>
+          {status === 'ready' && totalSessions > 0 && (
+            <PdfExportButton
+              type="button"
+              onClick={handleSessionPdf}
+              disabled={pdfBusy}
+              aria-label="Download this workout as a PDF"
+            >
+              <FileDown size={16} aria-hidden="true" />
+            </PdfExportButton>
+          )}
           <CloseButton ref={closeRef} type="button" onClick={onClose} aria-label="Close workout detail">
             <X size={18} aria-hidden="true" />
           </CloseButton>

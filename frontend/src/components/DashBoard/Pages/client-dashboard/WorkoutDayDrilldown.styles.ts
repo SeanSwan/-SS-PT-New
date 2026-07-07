@@ -103,6 +103,16 @@ export const CloseButton = styled.button`
   }
 `;
 
+/** Same 44px chrome as CloseButton; sits beside it for the session-PDF export. */
+export const PdfExportButton = styled(CloseButton)`
+  color: var(--text-secondary, #9FB6C8);
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+`;
+
 export const SessionBlock = styled.div`
   padding: 0.85rem;
   border-radius: 10px;
