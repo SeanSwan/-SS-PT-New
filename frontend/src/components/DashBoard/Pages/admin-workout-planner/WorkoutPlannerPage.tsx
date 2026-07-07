@@ -290,7 +290,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
     onToggleExplanations: handleToggleExplanations, onSelectGuidedCandidate: handleSelectGuidedCandidate,
     onClearGuidedCandidates: clearGuidedCandidates, onSelectedMesoDayChange: setSelectedMesoDay,
-    onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
+    onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename, onPlansChanged: () => { void fetchSavedPlans(selectedClientId); },
     onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onSetPrimary: handlePlanSetPrimary,
     pdfDialogPlan, pdfDialogMode, pdfSaving, pdfOpening, onViewPdf: handlePlanPdfView, onUpdatePdf: handlePlanPdfUpdate,
     onSavePdf: handlePlanPdfSave, onUploadPdf: handlePlanPdfUpload, onClosePdfDialog: closePlanPdfDialog, onClose: closeConfirmDialog,

@@ -7,6 +7,7 @@
 import React from 'react';
 import { ClipboardList, Dumbbell, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
+import WorkoutPlannerBackupPanel from './WorkoutPlannerBackupPanel';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import {
@@ -49,6 +50,7 @@ interface WorkoutPlannerSavedPlansSectionProps {
   onUploadPdf: (planId: string, file: File) => void;
   onClosePdfDialog: () => void;
   activePlanLoggerRoute?: string | null;
+  onPlansChanged: () => void;
 }
 
 const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionProps> = ({
@@ -73,6 +75,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   onUploadPdf,
   onClosePdfDialog,
   activePlanLoggerRoute,
+  onPlansChanged,
 }) => {
   if (!selectedClientId) return null;
 
@@ -103,6 +106,12 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
             </SavedPlansCount>
           )}
         </MesocycleSectionTitle>
+
+        <WorkoutPlannerBackupPanel
+          selectedClientId={selectedClientId}
+          onLoad={onLoad}
+          onPlansChanged={onPlansChanged}
+        />
 
         {savedPlansLoading ? (
           <SavedPlansLoading>

@@ -50,7 +50,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onSelectGuidedCandidate, onClearGuidedCandidates, onToggleExplanations, teachModeProps,
   generatedPlan, selectedMesoDay, guidedCandidates, generatingCandidates, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
-  pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
+  pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose, onPlansChanged,
 }) => {
   const location = useLocation();
   const generatedPlanCoachReviewRoute = React.useMemo(() => buildWorkoutPlannerCoachReviewRoute({
@@ -200,6 +200,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onUploadPdf={onUploadPdf}
         onClosePdfDialog={onClosePdfDialog}
         activePlanLoggerRoute={activePlanLoggerRoute}
+        onPlansChanged={onPlansChanged}
       />
       <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
     </Page>
