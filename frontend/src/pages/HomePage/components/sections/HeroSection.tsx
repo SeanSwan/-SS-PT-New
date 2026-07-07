@@ -47,6 +47,16 @@ const pulse = keyframes`0%,100%{opacity:.6}50%{opacity:1}`;
 /* ── Styled Components ──────────────────────────────────────────────────── */
 const Wrap = styled.section`position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg-base,#030712);`;
 const VideoBg = styled(motion.video)`position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.35;pointer-events:none;`;
+// Reduced-motion / essential tier: a real static backdrop (committed asset)
+// layered over the deep-sapphire base so the hero is never blank even if the
+// image or R2 video is unavailable.
+const StaticBg = styled.div`
+  position:absolute;inset:0;pointer-events:none;opacity:0.35;
+  background:
+    linear-gradient(180deg, rgba(0,32,96,0.35) 0%, rgba(3,7,18,0.65) 100%),
+    url('/images/parallax/hero-swan-bg.png') center/cover no-repeat,
+    var(--bg-base,#030712);
+`;
 const Overlay = styled.div`position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,7,18,0.5) 0%,rgba(3,7,18,0.85) 100%);`;
 const Content = styled(motion.div)`position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.5rem;padding:2rem 1rem;max-width:800px;`;
 const Logo = styled.img<{ $animate: boolean }>`width:120px;height:120px;filter:drop-shadow(0 0 24px rgba(96,192,240,0.4));animation:${({ $animate }) => ($animate ? floatLogo : 'none')} 4s ease-in-out infinite;`;
@@ -99,7 +109,7 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
       </Helmet>
 
       {isEssential ? (
-        <VideoBg as="video" poster="/swans-poster.webp" style={{ opacity: 0.35 }} muted />
+        <StaticBg />
       ) : (
         <VideoBg
           src={VIDEO.swans}
