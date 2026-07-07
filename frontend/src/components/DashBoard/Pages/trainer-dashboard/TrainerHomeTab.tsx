@@ -26,6 +26,7 @@ import {
 import TrainerHomeNextActionCard from './TrainerHomeNextActionCard';
 import TrainerHomeObservatoryHero from './TrainerHomeObservatoryHero';
 import TrainerHomeObservatoryWidgets from './TrainerHomeObservatoryWidgets';
+import TrainerInterventionQueue from './TrainerInterventionQueue';
 import { TRAINER_OBSERVATORY_LENSES } from './TrainerHomeObservatoryData';
 import {
   buildTrainerHomeCoachPath,
@@ -221,6 +222,7 @@ const TrainerHomeTab: React.FC = () => {
         </TrainerHomePrimaryColumn>
 
         <TrainerHomeSideColumn>
+          <TrainerInterventionQueue />
           <TrainerHomeObservatoryWidgets
             stats={stats}
             loading={loading}
