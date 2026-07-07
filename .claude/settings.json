@@ -303,6 +303,16 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/hermes-inbox-reminder.mjs"
+          }
+        ]
+      }
     ]
   },
   "_guidance": {

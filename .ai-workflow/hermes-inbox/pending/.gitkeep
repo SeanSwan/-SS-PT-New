@@ -1,0 +1,2 @@
+# Unread Hermes memos land here (one file per memo). Hermes drains this dir, then entries
+# are archived to ../consumed/. Keep this .gitkeep so the empty dir survives in git.

@@ -447,6 +447,7 @@ bearer-token.*
 .ai-workflow/*
 !.ai-workflow/continuity/
 !.ai-workflow/coordination/
+!.ai-workflow/hermes-inbox/
 .ai-workflow/audit/**
 # Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
 .ai-workflow/continuity/*
@@ -456,6 +457,10 @@ bearer-token.*
 # carry zero commit churn and can never cause a merge conflict between Claude & Codex.
 .ai-workflow/coordination/*
 !.ai-workflow/coordination/README.md
+# Hermes Inbox (2026-07-06, Rule 69): the WHOLE subtree is TRACKED — unlike continuity/
+# coordination (local-only runtime scratch), the inbox IS the transport: memos must travel
+# via git to reach Hermes on the Pi. Committed + LLM-read, so IDs/roles only + secret-scanned.
+!.ai-workflow/hermes-inbox/**
 scripts/continuity-config.local.json
 SOUL.archive/
 SOUL.archive/**

@@ -578,6 +578,8 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
 68. **Fable-Grade Plan → Worker-Bot Build → Hermes Learning Loop (MANDATORY routing for major "Fable vision" initiatives)** — Established 2026-07-05 by Sean. (Full text is authoritative in CLAUDE.md Rule 68; mirrored here so Codex routes the same. Note: Rule 67 pair-coding lives in CLAUDE.md and the Four-C router — AGENTS.md numbered list has pre-existing 67 drift.) Fable's highest-leverage use is producing plans so complete a lower-tier worker-bot executes them verbatim in Fable's exact vision. Standing pipeline: **Opus enhances prompt + grounded deep audit → AI Village 15-brain (paid, Rule 16 gated) → Fable synthesis = FINAL ultra-plan (mermaid + desktop&mobile wireframes + per-field data/API contract + numbered slices executable with ZERO further questions) → worker-bot builds slice-by-slice with recursive hostile review (Rule 17/41/61) until zero errors → Render → Hermes Learning Packet.** Contract + grounded reality: `docs/ai-workflow/brainstorms/FABLE-VISION-MASTER-BRIEF-2026-07-05.md` + `docs/ai-workflow/AI-HANDOFF/FABLE-VISION-REBUILD-DEEP-AUDIT-2026-07-05.md`. **Hermes learns from Fable ONLY:** after substantial/Fable work, emit a Hermes Learning Packet via `.claude/skills/hermes-learning-packet/SKILL.md` — **source gate fail-closed to Fable-tier** (`claude-fable-5` or a future Sean-designated near-Fable model; Opus/Codex/Gemini → quarantine, never the corpus). Subscriptions-not-API means tier is a stamped/trusted `originating_model` tag. Packets: privacy-safe (IDs/roles, two-layer secret scan reusing `continuity-append.mjs`), durable/compounding at `docs/ai-workflow/hermes-learning-packets/`, delivered over the proven Pi SSH/cat read path (`HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md` — extend the read list, don't invent transport). Manual trigger default; auto-after-Fable opt-in via the `prompt-watcher` hook. Guardrails: Village stays Rule-16 gated; Karpathy Wiki corpus BLOCKED on Pi hardware; never touch the Pi without Sean.
 
+69. **Hermes Inbox — any-agent → Hermes working channel (MANDATORY at substantial terminal task/session close)** — Established 2026-07-06 by Sean. (Full text authoritative in CLAUDE.md Rule 69; mirrored here so Codex routes the same.) Work done **outside** Hermes (VS Code Claude/Codex, local Qwen, scripts) drops a short memo into `.ai-workflow/hermes-inbox/pending/` — **one file per memo** (`<UTC-ts>-<surface>-<slug>.md`, never append to a shared file), IDs/roles only + secret-scanned (Rules 8/44/59). Hermes reads all pending memos at session start (proven daemon repo-read path — extend the read list, don't invent transport), absorbs them, then they're **archived to `consumed/<YYYY-MM>/` — never hard-deleted (Rule 34)**; the Pi stays read-only (Rule 47) and records a high-water mark. **Distinct from Rule 68** (Fable-tier durable *lessons*) **and the continuity bridge** (Sean-triggered closeout): this is the any-agent, ephemeral, drained *daily memo*. Fires via this rule + the `hermes-inbox` skill + a `closeout-evidence-lock` (Rule 41) fold + a `SessionStart` hook (`scripts/hooks/hermes-inbox-reminder.mjs`, wired in `.claude/settings.json`). Procedure: `.claude/skills/hermes-inbox/SKILL.md` + `.ai-workflow/hermes-inbox/README.md`.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -805,11 +807,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05, `.claude/skills/` documented count = 21)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06, `.claude/skills/` documented count = 22)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 21 entries
+### Default-exposed `.claude/skills/` = 22 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -820,7 +822,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (7):**
+**Swan orchestration (8):**
 | Skill | Role |
 |---|---|
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
@@ -830,6 +832,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 | `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
+| `hermes-inbox` | Any-agent → Hermes working channel (rule 69). Work done OUTSIDE Hermes (terminal Claude/Codex, local Qwen, scripts) drops a short IDs-only memo in `.ai-workflow/hermes-inbox/pending/`; Hermes reads at session start, absorbs, then memos archive to `consumed/` (Rule 34). Ephemeral + any-agent — distinct from the Fable-tier-only durable learning-packet and the Sean-triggered continuity bridge. Fires via rule 69 + closeout-evidence-lock fold + a SessionStart hook. |
 
 **KEEP core (9):**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-workout-video`, `seedance-swan-cinematic-video`
