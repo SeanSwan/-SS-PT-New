@@ -19,7 +19,6 @@ const videoSessionRoutesSource = read('../../../../backend/routes/videoSessionRo
 const sources = {
   page: stripComments(read('./VideoCallPage.tsx')),
   room: stripComments(read('./VideoRoom.tsx')),
-  wearable: stripComments(read('./WearableDataPanel.tsx')),
   rom: stripComments(read('./ROMTrackingPanel.tsx')),
 };
 
@@ -64,11 +63,12 @@ describe('Video Call auth pipeline', () => {
     expect(sources.room).toMatch(/apiService\.patch/);
     expect(sources.room).toMatch(/apiService\.post/);
 
-    expect(sources.wearable).toContain('/wearable');
-    expect(sources.wearable).toMatch(/apiService\.get/);
-    expect(sources.wearable).toMatch(/apiService\.post/);
-
     expect(sources.rom).toContain('/rom');
     expect(sources.rom).toMatch(/apiService\.post/);
+  });
+
+  it('does not mount the simulated wearable vitals panel (launch audit P0-1: fabricated health data)', () => {
+    expect(sources.room).not.toContain('WearableDataPanel');
+    expect(sources.room).not.toContain('showWearable');
   });
 });

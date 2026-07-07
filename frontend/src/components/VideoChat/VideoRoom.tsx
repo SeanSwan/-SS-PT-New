@@ -12,13 +12,12 @@ import styled from 'styled-components';
 import {
   Mic, MicOff, Camera, CameraOff, PhoneOff, Maximize, Minimize,
   MessageSquare, FileText, Shield, CameraIcon, Sparkles,
-  Activity, Watch,
+  Activity,
 } from 'lucide-react';
 import FreezeFrameAnnotator from './FreezeFrameAnnotator';
 import AssessmentNotesPanel from './AssessmentNotesPanel';
 import MicroWinOverlay, { type MicroWinType } from './MicroWinOverlay';
 import ROMTrackingPanel from './ROMTrackingPanel';
-import WearableDataPanel from './WearableDataPanel';
 import apiService from '../../services/api.service';
 
 const RoomWrapper = styled.div<{ $fullscreen: boolean }>`
@@ -239,7 +238,6 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
   // Phase 3: ROM tracking, wearable data
   const [showROM, setShowROM] = useState(false);
   const [recoveryScore, setRecoveryScore] = useState<number | null>(null);
-  const [showWearable, setShowWearable] = useState(false);
 
   // Timer
   React.useEffect(() => {
@@ -381,9 +379,6 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
             <ControlBtn onClick={() => setShowROM(!showROM)} title="ROM Tracking">
               <Activity size={22} />
             </ControlBtn>
-            <ControlBtn onClick={() => setShowWearable(!showWearable)} title="Wearable Data">
-              <Watch size={22} />
-            </ControlBtn>
             <div style={{ position: 'relative' }}>
               <ControlBtn onClick={() => setShowMicroWinMenu(!showMicroWinMenu)} title="Award Micro-Win">
                 <Sparkles size={22} />
@@ -457,15 +452,6 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
           videoSessionId={videoSessionId}
           recoveryScore={recoveryScore}
           onScoreUpdate={setRecoveryScore}
-        />
-      )}
-
-      {/* Phase 3: Wearable Data Panel */}
-      {isTrainer && (
-        <WearableDataPanel
-          open={showWearable}
-          onClose={() => setShowWearable(false)}
-          videoSessionId={videoSessionId}
         />
       )}
 
