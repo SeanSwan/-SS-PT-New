@@ -31,7 +31,10 @@ export function buildAtRiskComplianceQuery({ user, limit = 50 } = {}) {
         u."sessionBillingMode",
         MAX(ws.date) AS "lastWorkoutDate",
         COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
-        COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
+        COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d",
+        (SELECT COUNT(*) FROM recovery_completions rc
+          WHERE rc."userId" = u.id
+            AND rc."completedDate" >= NOW() - INTERVAL '14 days') AS "recovery14d"
       FROM "Users" u
       ${trainerJoin}
       LEFT JOIN workout_sessions ws
@@ -75,6 +78,15 @@ export function buildAtRiskComplianceClient(c, nowMs = Date.now()) {
     reason = `Moderate activity - ${w7d} workout${w7d !== 1 ? 's' : ''} this week`;
   } else {
     return null;
+  }
+
+  // 4B.5 (launch charter): the "skipping recovery" coaching signal — the
+  // client IS training but has logged zero Recovery Board work in 14 days.
+  // Only appended to already-at-risk rows; fully-inactive clients' reasons
+  // already cover their absence.
+  const recovery14d = Number(c.recovery14d || 0);
+  if (recovery14d === 0 && w30d > 0) {
+    reason += '; no recovery work logged in 14+ days';
   }
 
   return {

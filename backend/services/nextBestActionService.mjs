@@ -116,7 +116,9 @@ export function computeNextBestAction(pulse, opts = {}, context = {}) {
       severePain
         ? 'You have active discomfort logged at a high level. Today is a good day for rest or gentle movement in comfortable ranges — recovery is training too.'
         : `You have trained ${consecutiveDays} days in a row. A recovery day lets the adaptation catch up — rest is where the gains land.`,
-      null));
+      // 4B.5: the rung now lands somewhere actionable — the Recovery Board
+      // lives on the client home rail ("Today's recovery").
+      { label: "Open today's recovery plan", href: '/dashboard/client/overview' }));
   }
 
   const trainedToday = Number.isFinite(daysAgo) && daysAgo === 0;

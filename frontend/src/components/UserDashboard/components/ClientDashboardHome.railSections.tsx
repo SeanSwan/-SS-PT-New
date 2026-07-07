@@ -21,6 +21,7 @@ import {
 } from './ClientDashboardHome.cardStyles';
 import { TagGrid, TagPill } from './ClientDashboardHome.feedStyles';
 import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
+import RecoveryBoardPanel from '../../RecoveryBoard/RecoveryBoardPanel';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 
 export function ClientRightRail({ activeChallenge, challengeLoading, badges, leaderboardRows, trendingTags, trendingLoading, onTarget }: Pick<ClientDashboardHomeProps,
@@ -30,6 +31,10 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
       <PanelCard>
         <PanelHeader><Kicker>Coach compass</Kicker></PanelHeader>
         <NextBestActionCard bare hideHeader />
+      </PanelCard>
+      <PanelCard>
+        <PanelHeader><Kicker>Today's recovery</Kicker></PanelHeader>
+        <RecoveryBoardPanel />
       </PanelCard>
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
       <RailList

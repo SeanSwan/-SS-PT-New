@@ -195,7 +195,8 @@ describe('Phase 1.5a — coach-guided context rungs', () => {
     const recentDays = ['2026-07-03', '2026-07-02', '2026-07-01'];
     const { primary } = computeNextBestAction(pulse, { now: FRIDAY }, ctx({ recentDays }));
     expect(primary.code).toBe('rest_day');
-    expect(primary.cta).toBeNull();
+    // 4B.5: the rung now lands on the Recovery Board (was cta: null pre-board).
+    expect(primary.cta).toEqual({ label: "Open today's recovery plan", href: '/dashboard/client/overview' });
   });
 
   it('rest_day fires on severe active pain (>=7) with comfort framing', () => {

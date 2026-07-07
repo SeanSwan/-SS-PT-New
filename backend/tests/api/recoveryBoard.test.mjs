@@ -136,3 +136,26 @@ describe('completion log + wiring contracts', () => {
     expect(ROUTES).toMatch(/router\.post\('\/recovery-board\/complete'/);
   });
 });
+
+describe('4B.5 integration contracts', () => {
+  const NBA = read('../../services/nextBestActionService.mjs');
+  const COMPLIANCE = read('../../utils/adminComplianceHelpers.mjs');
+
+  it('the rest_day NBA rung now carries the recovery-board CTA (was cta: null)', () => {
+    const rungBlock = NBA.slice(NBA.indexOf("action('rest_day'"), NBA.indexOf("action('rest_day'") + 800);
+    expect(rungBlock).toMatch(/Open today's recovery plan/);
+    expect(rungBlock).toMatch(/\/dashboard\/client\/overview/);
+  });
+
+  it('at-risk SQL counts recovery via a correlated subquery (no JOIN row inflation)', () => {
+    expect(COMPLIANCE).toMatch(/SELECT COUNT\(\*\) FROM recovery_completions rc/);
+    // Must NOT be a JOIN — joining alongside workout_sessions would multiply
+    // the ws aggregate counts.
+    expect(COMPLIANCE).not.toMatch(/JOIN recovery_completions/);
+  });
+
+  it('skipping-recovery reason appends only for training-but-no-recovery clients', () => {
+    expect(COMPLIANCE).toMatch(/recovery14d === 0 && w30d > 0/);
+    expect(COMPLIANCE).toMatch(/no recovery work logged in 14\+ days/);
+  });
+});
