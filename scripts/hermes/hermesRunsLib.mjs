@@ -223,3 +223,27 @@ export function writeReceipt(vaultRoot, receipt) {
 export function readReceipts(vaultRoot, isoDate) {
   return readJsonl(vaultPaths(vaultRoot, isoDate).receiptsFile);
 }
+
+/** E5/G-8: classify + verify CHECKABLE evidence at queue-create. A receipt-id or
+ *  path that FAILS to resolve is refused upstream (fabricated-evidence defense);
+ *  URLs/free text stay allowed (verified: null) — the approval surface renders
+ *  those as unverified for Sean's judgment. Never throws. */
+export function classifyEvidence(vaultRoot, evidence) {
+  const s = String(evidence || '').trim();
+  const rid = /^R-(\d{4})(\d{2})(\d{2})-\d{3,}$/.exec(s);
+  if (rid) {
+    const found = readReceipts(vaultRoot, `${rid[1]}-${rid[2]}-${rid[3]}`).some((r) => r.id === s);
+    return { kind: 'receipt-id', verified: found, ...(found ? {} : { reason: `receipt ${s} not found in its day's stream` }) };
+  }
+  if (/^https?:\/\//i.test(s)) return { kind: 'url', verified: null };
+  if (/^runs[\/]/.test(s)) {
+    const p = s.split('#')[0];
+    const ok = fs.existsSync(path.join(vaultRoot, p));
+    return { kind: 'vault-path', verified: ok, ...(ok ? {} : { reason: `vault path ${p} does not exist` }) };
+  }
+  if (/^([A-Za-z]:[\/]|\/)/.test(s)) {
+    const ok = fs.existsSync(s.split('#')[0]);
+    return { kind: 'path', verified: ok, ...(ok ? {} : { reason: 'path does not exist' }) };
+  }
+  return { kind: 'text', verified: null };
+}

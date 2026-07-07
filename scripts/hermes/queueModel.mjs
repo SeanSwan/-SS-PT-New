@@ -16,8 +16,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  appendJsonl, checkSwitches, isoDateOf, nextSequencedId, readJsonl,
-  redactText, vaultPaths, writeReceipt,
+  appendJsonl, checkSwitches, classifyEvidence, isoDateOf, nextSequencedId,
+  readJsonl, redactText, vaultPaths, writeReceipt,
 } from './hermesRunsLib.mjs';
 import { loadRegistry, getQueueable, getForbidden, getT2Rows } from './registryLib.mjs';
 import { withLock } from './spineLib.mjs';
@@ -133,6 +133,8 @@ export function createEntry(vaultRoot, switchesFile, req, nowIso) {
   if (req.tier !== row.tier) refuse(vaultRoot, ctx, `tier mismatch: ${req.action} is ${row.tier}, request said ${req.tier}`);
   if (!req.target || /^various$/i.test(String(req.target).trim())) refuse(vaultRoot, ctx, '"various" is not a target (approval-gates §2)');
   if (!req.requester || !req.evidence) refuse(vaultRoot, ctx, 'requester and evidence are required (approval-gates §2)');
+  const ev = classifyEvidence(vaultRoot, req.evidence); // E5/G-8: checkable evidence must open or the approval is blind
+  if (ev.verified === false) refuse(vaultRoot, ctx, `evidence does not resolve — ${ev.reason}`);
   if (row.tier === 'T4' && !req.rollback) refuse(vaultRoot, ctx, 'T4 entries require a rollback pointer at create — no rollback pointer, no arm (approval-gates §5)');
 
   const isoDate = isoDateOf(nowIso);

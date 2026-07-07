@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { ensureLanes, seedSwitches, readReceipts } from './hermesRunsLib.mjs';
+import { ensureLanes, seedSwitches, readReceipts, writeReceipt } from './hermesRunsLib.mjs';
 import {
   createEntry,
   listEntries,
@@ -29,6 +29,12 @@ function freshVault({ switches = true, masterOn = true } = {}) {
   ensureLanes(root);
   const swFile = path.join(root, 'switches.json');
   if (switches) seedSwitches(swFile, { SWITCH_MASTER: masterOn });
+  // Seed one real receipt so the T3_REQ fixture's vault-path evidence RESOLVES
+  // (E5/G-8 validates checkable evidence at create — fixtures stay honest).
+  writeReceipt(root, {
+    who: 'hermes/runner', what: 'health-sweep (T0)', target: 'seed', when: '2026-07-01T05:00:00-07:00',
+    'approved-by': 'n/a', outcome: 'ok — seed', evidence: 'runs/logs/x.log',
+  });
   return { root, swFile };
 }
 
@@ -230,4 +236,30 @@ test('flood cap frees a slot when an entry resolves', () => {
   transitionEntry(root, swFile, { id: first.id, to: 'denied', resolver: 'sean', channel: 'command-center', reason: 'noise', at: '2026-07-01T08:05:00-07:00' });
   const admitted = createEntry(root, swFile, { ...T3_REQ, target: '#ops · admitted' }, '2026-07-01T08:06:00-07:00');
   assert.equal(admitted.status, 'open'); // a resolved entry frees a slot
+});
+
+test('E5/G-8: vault-path evidence that does not exist → refused at create', () => {
+  const { root, swFile } = freshVault();
+  assert.throws(
+    () => createEntry(root, swFile, { ...T3_REQ, evidence: 'runs/receipts/2026-07/receipts-2026-06-30.jsonl' }, NOW),
+    /evidence does not resolve/
+  );
+  assert.ok(readReceipts(root, '2026-07-01').some((r) => /does not resolve/.test(r.outcome)));
+});
+
+test('E5/G-8: receipt-id evidence — real id accepted, phantom id refused', () => {
+  const { root, swFile } = freshVault();
+  const seeded = readReceipts(root, '2026-07-01')[0].id; // R-20260701-001 from the fixture seed
+  const e = createEntry(root, swFile, { ...T3_REQ, evidence: seeded }, NOW);
+  assert.equal(e.status, 'open');
+  assert.throws(
+    () => createEntry(root, swFile, { ...T3_REQ, evidence: 'R-20260701-999' }, NOW),
+    /evidence does not resolve/
+  );
+});
+
+test('E5/G-8: free text and URLs stay allowed (unverifiable ≠ dangling)', () => {
+  const { root, swFile } = freshVault();
+  assert.equal(createEntry(root, swFile, { ...T3_REQ, evidence: 'discord message id 118842' }, NOW).status, 'open');
+  assert.equal(createEntry(root, swFile, { ...T3_REQ, evidence: 'https://dash.render.com/web/srv-x/deploys' }, NOW).status, 'open');
 });
