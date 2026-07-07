@@ -29,6 +29,7 @@ import StatsSection from './sections/StatsSection';
 import SocialSection from './sections/SocialSection';
 import CTASection from './sections/CTASection';
 import NewsletterSection from './sections/NewsletterSection';
+import { YEARS_EXPERIENCE_CLAIM } from '../../../content/marketingStats';
 
 const MainWrapper = styled.main`
   position: relative;
@@ -55,7 +56,7 @@ const HomePageV4: React.FC = () => {
     <>
       <Helmet>
         <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content="Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with 26 years experience, Swan Coach programming, serving Orange County and LA." />
+        <meta name="description" content={`Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with ${YEARS_EXPERIENCE_CLAIM} years experience, Swan Coach programming, serving Orange County and LA.`} />
       </Helmet>
 
       <ScrollProgress enabled={isFull} />

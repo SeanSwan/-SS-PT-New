@@ -6,6 +6,7 @@ import { ModeBar, ModeBtn, TimingAlert } from './BootcampModeStyles';
 import type { BuildMode } from './BootcampBuilderPage.constants';
 import { BOOTCAMP_TEACH_ME_CONTENT } from './BootcampBuilderPage.constants';
 import { HeaderActions } from './BootcampBuilderChrome.styles';
+import { EXERCISE_LIBRARY_CLAIM } from '../../content/marketingStats';
 
 interface BootcampBuilderChromeProps {
   bootcamp: GeneratedBootcamp | null;
@@ -32,7 +33,7 @@ const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
     <TopBar>
       <div>
         <Title>Boot Camp Class Builder</Title>
-        <Subtitle>Swan Coach + manual class creation with 840+ exercises and inline regressions</Subtitle>
+        <Subtitle>Swan Coach + manual class creation with {EXERCISE_LIBRARY_CLAIM} exercises and inline regressions</Subtitle>
       </div>
       <HeaderActions>
         {bootcamp && (

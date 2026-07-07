@@ -8,9 +8,14 @@ import {
   Sparkles, Mic2, Gamepad2, Paintbrush, Laugh, MapPin,
   Award, TrendingUp, Flame,
 } from 'lucide-react';
+import {
+  MARKETING_STATS,
+  YEARS_EXPERIENCE_CLAIM,
+  EXERCISE_LIBRARY_CLAIM,
+} from '../../../../content/marketingStats';
 
 export const FEATURES = [
-  { icon: Dumbbell, title: 'Elite Personal Training', desc: 'Personalized coaching from NCEP-certified experts with 26 years experience. Science-based programming tailored to your goals.' },
+  { icon: Dumbbell, title: 'Elite Personal Training', desc: `Personalized coaching from NCEP-certified experts with ${YEARS_EXPERIENCE_CLAIM} years experience. Science-based programming tailored to your goals.` },
   { icon: Activity, title: 'Performance Assessment', desc: 'Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program.' },
   { icon: Apple, title: 'Nutrition Coaching', desc: 'Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.' },
   { icon: Heart, title: 'Recovery & Mobility', desc: 'Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles.' },
@@ -71,12 +76,12 @@ export const TESTIMONIALS = [
 ];
 
 export const STATS = [
-  { target: 26, suffix: '+', label: 'Years Experience', icon: Award },
-  { target: 500, suffix: '+', label: 'Clients Transformed', icon: Users },
-  { target: 10000, suffix: '+', label: 'Sessions Delivered', icon: TrendingUp, display: '10k' },
-  { target: 312, suffix: '', label: 'Swimmers Taught', icon: Activity },
-  { target: 12450, suffix: '+', label: 'Lbs Lost Together', icon: Flame, display: '12.4k' },
-  { target: 98, suffix: '%', label: 'Client Satisfaction', icon: Star },
+  { target: MARKETING_STATS.yearsExperience.value, suffix: MARKETING_STATS.yearsExperience.suffix, label: 'Years Experience', icon: Award },
+  { target: MARKETING_STATS.clientsTransformed.value, suffix: MARKETING_STATS.clientsTransformed.suffix, label: 'Clients Transformed', icon: Users },
+  { target: MARKETING_STATS.sessionsDelivered.value, suffix: MARKETING_STATS.sessionsDelivered.suffix, label: 'Sessions Delivered', icon: TrendingUp, display: MARKETING_STATS.sessionsDelivered.display },
+  { target: MARKETING_STATS.swimmersTaught.value, suffix: MARKETING_STATS.swimmersTaught.suffix, label: 'Swimmers Taught', icon: Activity },
+  { target: MARKETING_STATS.lbsLostTogether.value, suffix: MARKETING_STATS.lbsLostTogether.suffix, label: 'Lbs Lost Together', icon: Flame, display: MARKETING_STATS.lbsLostTogether.display },
+  { target: MARKETING_STATS.satisfactionPct.value, suffix: MARKETING_STATS.satisfactionPct.suffix, label: 'Client Satisfaction', icon: Star },
 ];
 
 export const SOCIAL_CATEGORIES = [
@@ -91,7 +96,7 @@ export const SOCIAL_CATEGORIES = [
 ];
 
 export const TRAINER_FEATURES = [
-  { icon: Dumbbell, title: '840+ Exercises', desc: 'Full NASM OPT 5-phase periodization library with Swan Coach workout builder.' },
+  { icon: Dumbbell, title: `${EXERCISE_LIBRARY_CLAIM} Exercises`, desc: 'Full NASM OPT 5-phase periodization library with Swan Coach workout builder.' },
   { icon: Mic2, title: 'Voice-First Swan Coach', desc: 'Log workouts hands-free, get real-time client insights, and manage sessions by voice.' },
   { icon: Shield, title: 'Fair Fees, Always', desc: 'Small transparent fee (~10%). No surprises. Your clients stay yours forever.' },
   { icon: MapPin, title: 'Works Anywhere', desc: 'Run your sessions, collect payments, and build your brand from any city, any country.' },

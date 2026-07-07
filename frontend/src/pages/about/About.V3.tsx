@@ -91,7 +91,7 @@ const certifications = [
 
 const statsData = [
   { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
-  { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
+  { numericValue: 500, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
   { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
   { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
 ];
@@ -937,7 +937,7 @@ const AboutV3: React.FC = () => {
             <TypewriterText text="Achieve Your Best Self" as="span" speed={55} />
           </HeroHeadline>
           <HeroSubtitle>
-            Discover a training experience built on 25+ years of expertise,
+            Discover a training experience built on 26+ years of expertise,
             cutting-edge science, and an unwavering commitment to your success.
           </HeroSubtitle>
           <HeroButtons>

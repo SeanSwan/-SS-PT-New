@@ -4,6 +4,11 @@
 
 import { Brain, Target, Shield, Heart } from 'lucide-react';
 import React from 'react';
+import {
+  MARKETING_STATS,
+  YEARS_EXPERIENCE_CLAIM,
+  EXERCISE_LIBRARY_CLAIM,
+} from '../../../../content/marketingStats';
 
 export const certifications = [
   { name: 'NCEP Certified', full: 'National College of Exercise Professionals (2000)' },
@@ -17,10 +22,10 @@ export const certifications = [
 ];
 
 export const statsData = [
-  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
-  { numericValue: 1000, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
-  { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
-  { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
+  { numericValue: MARKETING_STATS.yearsExperience.value, suffix: MARKETING_STATS.yearsExperience.suffix, label: 'Years Experience', delay: 0, color: '#8B5CF6' },
+  { numericValue: MARKETING_STATS.clientsTransformed.value, suffix: MARKETING_STATS.clientsTransformed.suffix, label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
+  { numericValue: MARKETING_STATS.satisfactionPct.value, suffix: MARKETING_STATS.satisfactionPct.suffix, label: 'Client Satisfaction', delay: 0.4, color: '#60C0F0' },
+  { numericValue: MARKETING_STATS.swimmersTaught.value, suffix: MARKETING_STATS.swimmersTaught.suffix, label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
 ];
 
 export const featureList = [
@@ -83,7 +88,7 @@ export const competitiveEdgeCards = [
   {
     title: 'NASM-Protocol Coaching',
     subtitle: 'Not generic ChatGPT advice',
-    body: 'Every workout follows the NASM Optimum Performance Training model — 5-phase periodization, tempo prescriptions, and correct %1RM calculations built from 25+ years of real coaching.',
+    body: `Every workout follows the NASM Optimum Performance Training model — 5-phase periodization, tempo prescriptions, and correct %1RM calculations built from ${YEARS_EXPERIENCE_CLAIM} years of real coaching.`,
   },
   {
     title: 'Your History, Forever',
@@ -96,7 +101,7 @@ export const competitiveEdgeCards = [
     body: 'Direct messaging with NASM-protocol trainers who review your form, adjust your programming, and know your injury history. Technology amplifies human coaching — it never replaces it.',
   },
   {
-    title: '900+ Exercise Library',
+    title: `${EXERCISE_LIBRARY_CLAIM} Exercise Library`,
     subtitle: 'Not "try some push-ups"',
     body: 'A curated database with instructions, equipment tags, difficulty ratings, and muscle-group targeting. Every exercise mapped to the NASM OPT protocol phases.',
   },

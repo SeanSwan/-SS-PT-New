@@ -999,7 +999,7 @@ const HomePageV3: React.FC = () => {
           <TypewriterText text="Where Excellence Meets Precision" as="span" speed={50} />
         </HeroHeadline>
         <HeroSubtitle>
-          NCEP-Certified Personal Training &middot; 25+ Years of Experience &middot; NASM-Guided Protocols
+          NCEP-Certified Personal Training &middot; 26+ Years of Experience &middot; NASM-Guided Protocols
         </HeroSubtitle>
         <HeroButtons>
           <GlowButton
@@ -1166,7 +1166,7 @@ const HomePageV3: React.FC = () => {
                 <p>
                   <strong>Sean Swan</strong> is an NCEP-certified personal trainer
                   (National College of Exercise Professionals, 1998) with{' '}
-                  <strong>25+ years of experience</strong> helping clients transform
+                  <strong>26+ years of experience</strong> helping clients transform
                   their lives. Trained in NASM protocols and workshops, Sean applies the
                   NASM Optimum Performance Training (OPT) model to every program he builds.
                 </p>
@@ -1367,7 +1367,7 @@ const HomePageV3: React.FC = () => {
             <CTAText>
               Your journey to a stronger, healthier, more confident you starts with
               a single step. Let our NCEP-certified coaches guide you with proven
-              NASM protocols and 25+ years of expertise.
+              NASM protocols and 26+ years of expertise.
             </CTAText>
             <CTAButtons>
               <GlowButton

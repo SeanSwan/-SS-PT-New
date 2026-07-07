@@ -1,4 +1,5 @@
 import React from 'react';
+import { EXERCISE_LIBRARY_CLAIM } from '../../content/marketingStats';
 import {
   AdminClientDetailsRedirect,
   AdminLogWorkoutRedirect,
@@ -130,7 +131,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/log-workout', component: AdminLogWorkoutRedirect, title: 'Log Client Workout', description: 'Redirects to the Client Hub workout logger' },
       { path: '/log-my-workout', component: AdminPersonalWorkoutLogger, title: 'Log My Workout', description: 'Owner personal workout logger' },
       { path: '/plaud', component: AdminPlaudCommandCenterRedirect, title: 'Coach Command Center', description: 'Redirects PLAUD intake into the unified admin Coach Command Center' },
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
       { path: '/equipment', component: EquipmentManagerPage, title: 'Equipment Manager', description: 'Manage training environments and equipment profiles' },
       { path: '/bootcamp', component: BootcampBuilderPage, title: 'Bootcamp Creator', description: 'Swan Coach group fitness class builder with pyramids, supersets, and flow optimization' },
       { path: '/marketing', component: MarketingWorkspace, title: 'Marketing', description: 'Campaign approvals, publishing cadence, lead follow-up, and performance signals' },
@@ -158,7 +159,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/workout-forge', component: TrainerWorkoutForgePage, title: 'Workout Intelligence', description: 'Swan Coach workout generation' },
       { path: '/challenges', component: ChallengeCommandWorkspace, title: 'Challenges', description: 'Create and monitor client challenge campaigns' },
       { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
-      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
+      { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalSchedule, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },

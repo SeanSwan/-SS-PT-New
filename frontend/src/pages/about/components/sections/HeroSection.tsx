@@ -11,6 +11,7 @@ import ParallaxHero from '../../../../components/ui-kit/cinematic/ParallaxHero';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import logoImg from '../../../../assets/Logo.png';
 import { VIDEO } from '../../../../config/videoAssets';
+import { YEARS_EXPERIENCE_CLAIM } from '../../../../content/marketingStats';
 
 interface HeroSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -92,7 +93,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ tier }) => {
         )}
       </HeroHeadline>
       <HeroSubtitle>
-        Discover a training experience built on 25+ years of expertise,
+        Discover a training experience built on {YEARS_EXPERIENCE_CLAIM} years of expertise,
         cutting-edge science, and an unwavering commitment to your success.
       </HeroSubtitle>
       <HeroButtons>

@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiService, { ProductionTokenManager } from '../../services/api.service';
+import { YEARS_EXPERIENCE_CLAIM } from '../../content/marketingStats';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -884,7 +885,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         </TrustBullet>
         <TrustBullet>
           <BulletIcon>&#10003;</BulletIcon>
-          25+ Yrs Experience
+          {YEARS_EXPERIENCE_CLAIM} Yrs Experience
         </TrustBullet>
         <TrustBullet>
           <BulletIcon>&#10003;</BulletIcon>

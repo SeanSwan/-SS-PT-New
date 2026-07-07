@@ -23,6 +23,7 @@ import TimelineSection from './components/sections/TimelineSection';
 import PhilosophySection from './components/sections/PhilosophySection';
 import CompetitiveEdgeSection from './components/sections/CompetitiveEdgeSection';
 import CTASection from './components/sections/CTASection';
+import { YEARS_EXPERIENCE_CLAIM } from '../../content/marketingStats';
 
 const MainWrapper = styled.main`
   position: relative;
@@ -47,8 +48,8 @@ const AboutV4: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>About SwanStudios | 25+ Years of Elite Personal Training + Swan Coach Technology</title>
-        <meta name="description" content="Meet Sean Swan — NCEP-certified, NASM-protocol trainer with 26 years experience. SwanStudios combines elite personal training with Swan Coach technology for truly personalized fitness." />
+        <title>{`About SwanStudios | ${YEARS_EXPERIENCE_CLAIM} Years of Elite Personal Training + Swan Coach Technology`}</title>
+        <meta name="description" content={`Meet Sean Swan — NCEP-certified, NASM-protocol trainer with ${YEARS_EXPERIENCE_CLAIM} years experience. SwanStudios combines elite personal training with Swan Coach technology for truly personalized fitness.`} />
       </Helmet>
 
       <ScrollProgress enabled={isFull} />

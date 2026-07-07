@@ -522,7 +522,7 @@ export const TEACH_ME_CONTENT: Record<string, { title: string; content: string }
       <strong>AI Scan Feature:</strong><br/>
       Take a photo of a piece of equipment → Gemini Vision identifies it → creates an equipment item → you approve or edit. Saves time vs manual entry for large gyms.
       <br/><br/>
-      <strong>"Any Equipment"</strong> means no filtering — the AI can pick any of 840+ exercises regardless of equipment. Use this when you don't have a profile set up yet, or for bodyweight-only classes.
+      <strong>"Any Equipment"</strong> means no filtering — the AI can pick any of 900+ exercises regardless of equipment. Use this when you don't have a profile set up yet, or for bodyweight-only classes.
       <br/><br/>
       <strong>Pro tip:</strong> Create separate profiles for different scenarios: "Full Gym" (everything), "Park Day" (bodyweight + bands), "Rainy Day" (indoor only). Switch between them when generating classes.
     `,
@@ -590,7 +590,7 @@ export const TEACH_ME_CONTENT: Record<string, { title: string; content: string }
       <br/><br/>
 
       <strong>Manual</strong><br/>
-      <em>What:</em> Browse the 840+ exercise Rolodex and add exercises to stations yourself.<br/>
+      <em>What:</em> Browse the 900+ exercise Rolodex and add exercises to stations yourself.<br/>
       <em>When to use:</em> When you have a specific class in mind. You know exactly which exercises you want at each station. Good for signature classes you run every week.<br/>
       <em>How it works:</em> The format you selected determines how many stations and exercises per station. Click the purple "+" to add exercises. They fill stations round-robin (Station 1 first, then 2, etc.).<br/>
       <em>Pro tip:</em> Click an exercise card (not the "+" button) to see the detail panel first — check the difficulty, equipment, and modifications before adding.
