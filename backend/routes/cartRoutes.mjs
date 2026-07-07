@@ -3,6 +3,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
 import { 
   getShoppingCart,
@@ -370,6 +371,16 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       return res.status(400).json({
         success: false,
         message: 'Valid product variant ID is required'
+      });
+    }
+
+    // Launch P1-1: store purchasing is invitation-only — requires the
+    // admin-granted store-prices flag (admins always pass).
+    if (!(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
       });
     }
 

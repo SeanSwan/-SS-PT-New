@@ -156,6 +156,7 @@ export const getMyFeatureFlags = async (req, res) => {
         data: {
           'content-studio': true,
           'workout-planner-pro': true,
+          'store-prices': true,
         },
         isAdmin: true,
       });

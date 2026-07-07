@@ -658,7 +658,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
                 height: '100%'
               }}
             >
-              <LoginMessage>Login to view premium prices and purchase</LoginMessage>
+              <LoginMessage>Pricing is by invitation — contact SwanStudios for access</LoginMessage>
             </motion.div>
           )}
         </PriceBox>

@@ -84,12 +84,11 @@ describe('ProductCard', () => {
     expect(onAddToCart).toHaveBeenCalledWith(stockedProduct, stockedProduct.variants[1]);
   });
 
-  it('does not show product price to logged-out visitors', () => {
+  it('does not show product price to non-granted visitors (invitation model)', () => {
     render(<ProductCard product={product} canViewPrices={false} />);
 
-    expect(screen.getByText('Login to view')).toBeInTheDocument();
-    expect(screen.getAllByText(/login price/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/by invitation/i).length).toBeGreaterThan(0);
     expect(screen.queryByText('$6.50')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /login to add product/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /purchase by invitation/i })).toBeDisabled();
   });
 });

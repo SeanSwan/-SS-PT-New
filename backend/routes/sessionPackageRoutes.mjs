@@ -3,6 +3,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { resolvePriceVisibility, isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
@@ -68,10 +69,13 @@ router.get('/', async (req, res) => {
       where: { isActive: true },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
     });
+    // Launch P1-1: strip price for non-granted callers (packages stay listed)
+    const pricesVisible = await resolvePriceVisibility(req);
     const sessionPackages = packages
       .map(serializeStorefrontSessionPackage)
-      .filter(isPurchasableSessionPackage);
-    
+      .filter(isPurchasableSessionPackage)
+      .map((pkg) => (pricesVisible ? pkg : { ...pkg, price: null }));
+
     res.json(sessionPackages);
   } catch (error) {
     logger.error('Error fetching session packages:', error);
@@ -101,6 +105,15 @@ router.post('/purchase', protect, async (req, res) => {
   try {
     const { packageId } = req.body;
     const userId = req.user.id;
+
+    // Launch P1-1: purchasing requires the admin-granted store-prices flag
+    if (!(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
+      });
+    }
     const normalizedPackageId = Number(packageId);
     
     if (!Number.isInteger(normalizedPackageId) || normalizedPackageId <= 0) {

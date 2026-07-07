@@ -527,10 +527,13 @@ const StoreV2: React.FC = () => {
   const [packages, setPackages] = useState<StoreItem[]>([]);
   const [isLoadingPackages, setIsLoadingPackages] = useState(true);
   const [packagesError, setPackagesError] = useState<string | null>(null);
+  // Launch P1-1: price visibility is SERVER truth (admin-granted store-prices
+  // flag) — being logged in no longer reveals prices.
+  const [pricesVisible, setPricesVisible] = useState(false);
 
   // Computed
-  const canViewPrices = isAuthenticated && !!user;
-  const canPurchase = canViewPrices;
+  const canViewPrices = pricesVisible;
+  const canPurchase = pricesVisible && isAuthenticated && !!user;
   const cartItemCount = cart?.itemCount || 0;
 
   // ----------------------------------------------------------
@@ -542,6 +545,8 @@ const StoreV2: React.FC = () => {
       setPackagesError(null);
 
       const response = await api.get('/api/storefront');
+
+      setPricesVisible(response.data?.pricesVisible === true);
 
       const packagesData = Array.isArray(response.data)
         ? response.data

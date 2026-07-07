@@ -201,7 +201,7 @@ const hasSelectedVariantStock = (
 
 const getPriceCopy = (canViewPrices: boolean, displayedPrice: number | null | undefined) => ({
   label: canViewPrices ? 'Selected Price' : 'Price Access',
-  value: canViewPrices ? formatStorePrice(displayedPrice) : 'Login to view',
+  value: canViewPrices ? formatStorePrice(displayedPrice) : 'By invitation',
 });
 
 const getProductNotices = (product: StoreItem, productStatus: string): string[] => (
@@ -236,7 +236,7 @@ const getActionLabel = (
   isAdding: boolean,
   productStatus: string
 ): string => {
-  if (!canPurchase) return 'Login to add product';
+  if (!canPurchase) return 'Purchase by invitation';
   if (isAdding) return 'Adding...';
   if (productStatus !== 'Ready for cart') return productStatus;
   return 'Add Product';

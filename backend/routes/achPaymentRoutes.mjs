@@ -17,6 +17,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
@@ -56,6 +57,15 @@ router.post('/create-intent', protect, async (req, res) => {
 
     if (!items?.length || !total) {
       return res.status(400).json({ success: false, message: 'Items and total are required' });
+    }
+
+    // Launch P1-1: purchasing is invitation-only across all rails
+    if (!(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
+      });
     }
 
     // Validate idempotency key (must be UUIDv4)

@@ -31,6 +31,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
@@ -283,6 +284,16 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           code: 'INVALID_CART_ID',
           details: 'A valid cart id is required before checkout'
         }
+      });
+    }
+
+    // Launch P1-1 defense-in-depth: checkout re-verifies the store-prices
+    // grant even though cart add already enforced it.
+    if (!(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        error: { code: 'PRICE_ACCESS_REQUIRED' }
       });
     }
 

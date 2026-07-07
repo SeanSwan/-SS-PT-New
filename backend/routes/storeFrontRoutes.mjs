@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { resolvePriceVisibility, stripItemPrices, isPriceGatedItem } from '../services/store/priceVisibilityService.mjs';
 // 🚀 ENHANCED: Coordinated model imports with associations
 import { getStorefrontItem, getAdminSpecial, getProductVariant } from '../models/index.mjs';
 
@@ -270,8 +271,10 @@ router.get('/', async (req, res) => {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
     const AdminSpecial = getAdminSpecial();
-    
-    const { 
+    // Launch P1-1: prices are invitation-only — resolve per-request visibility
+    const pricesVisible = await resolvePriceVisibility(req);
+
+    const {
       // Default to displayOrder so storefront renders in curated order.
       // Fallback to id occurs automatically if displayOrder isn't a column.
       sortBy = 'displayOrder', 
@@ -352,7 +355,10 @@ router.get('/', async (req, res) => {
       logger.warn('Could not fetch active specials (table may not exist):', specialsErr.message);
     }
 
-    const transformedItems = items.map(mapStorefrontItem);
+    const transformedItems = items.map((item) => {
+      const mapped = mapStorefrontItem(item);
+      return pricesVisible || !isPriceGatedItem(mapped) ? mapped : stripItemPrices(mapped);
+    });
 
     if (items.length === 0) {
       // Check if ANY packages exist (including inactive) before attempting seed
@@ -369,8 +375,11 @@ router.get('/', async (req, res) => {
             offset: safeOffset,
             include: variantInclude
           });
-          const seededTransformed = seededItems.map(mapStorefrontItem);
-          return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
+          const seededTransformed = seededItems.map((seeded) => {
+            const mapped = mapStorefrontItem(seeded);
+            return pricesVisible || !isPriceGatedItem(mapped) ? mapped : stripItemPrices(mapped);
+          });
+          return res.json({ success: true, pricesVisible, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
         } catch (seedErr) {
           logger.error('Auto-seed storefront failed:', seedErr.message);
         }
@@ -412,6 +421,7 @@ router.get('/', async (req, res) => {
     // Return success response with data structure frontend expects
     res.json({
       success: true,
+      pricesVisible,
       items: packagesWithSpecials,
       data: {
         packages: packagesWithSpecials,
@@ -469,6 +479,16 @@ router.get('/', async (req, res) => {
  */
 router.get('/calculate-price', async (req, res) => {
   try {
+    // Launch P1-1: price math is gated the same as prices themselves
+    const calculatorVisible = await resolvePriceVisibility(req);
+    if (!calculatorVisible) {
+      return res.status(403).json({
+        success: false,
+        message: 'Pricing is by invitation. Contact SwanStudios for access.',
+        code: 'PRICE_ACCESS_REQUIRED'
+      });
+    }
+
     const sessions = parseStrictInteger(req.query.sessions);
     const basePricePerSession = parseOptionalPrice(req.query.pricePerSession, 175); // Default: single session price
 
@@ -605,10 +625,15 @@ router.get('/:id', async (req, res) => {
     }
     
     // Transform to meet frontend expectations
-    const transformedItem = mapStorefrontItem(item);
+    const pricesVisible = await resolvePriceVisibility(req);
+    const mappedItem = mapStorefrontItem(item);
+    const transformedItem = pricesVisible || !isPriceGatedItem(mappedItem)
+      ? mappedItem
+      : stripItemPrices(mappedItem);
 
     res.json({
       success: true,
+      pricesVisible,
       item: transformedItem
     });
   } catch (error) {

@@ -162,7 +162,7 @@ const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
             >
               <VariantName>{variant.label}</VariantName>
               <VariantMeta>
-                {canViewPrices ? formatStorePrice(variantPrice(variant, parentPrice)) : 'Login price'} - {stockLabel(variant)}
+                {canViewPrices ? formatStorePrice(variantPrice(variant, parentPrice)) : 'By invitation'} - {stockLabel(variant)}
               </VariantMeta>
             </VariantButton>
           );

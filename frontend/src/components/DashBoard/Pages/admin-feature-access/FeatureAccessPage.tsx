@@ -334,6 +334,7 @@ const SkeletonRow = styled.div`
 const FEATURES = [
   { key: 'content-studio', label: 'Content Studio' },
   { key: 'workout-planner-pro', label: 'Workout Planner Pro' },
+  { key: 'store-prices', label: 'Store Prices (invitation-only pricing)' },
 ];
 
 // ─────────────────────────────────────────────────────────────
