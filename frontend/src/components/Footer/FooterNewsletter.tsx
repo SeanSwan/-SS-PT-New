@@ -24,6 +24,7 @@ const Title = styled.h4`
 
 const Row = styled.form`
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 `;
 
@@ -36,7 +37,10 @@ const Honeypot = styled.input`
 `;
 
 const Input = styled.input`
-  flex: 1;
+  /* M.2 sweep fix (2026-07-07): in the narrow footer column the input used to
+     collapse to ~25px beside the button. flex-basis + wrap keeps it usable and
+     drops the button to its own line on tight widths instead of squeezing. */
+  flex: 1 1 180px;
   min-width: 0;
   min-height: 44px;
   padding: 0.5rem 0.85rem;

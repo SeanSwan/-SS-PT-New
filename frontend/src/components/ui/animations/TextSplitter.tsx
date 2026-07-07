@@ -54,10 +54,47 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
     return <Tag className={className}>{text}</Tag>;
   }
 
-  const items = mode === 'chars' ? text.split('') : text.split(' ');
-
   const MotionTag = motion[as] as typeof motion.span;
 
+  // Launch M.2 sweep catch (2026-07-07): naked inline-block char spans wrap
+  // INDEPENDENTLY — the hero rendered "Community Al / ways." on the #1 US
+  // viewport (414px). Chars now live inside per-WORD nowrap groups, so line
+  // breaks only happen between words while the per-char stagger cadence
+  // continues across the whole string.
+  if (mode === 'chars') {
+    const words = text.split(' ');
+    let charIndex = 0;
+    return (
+      <MotionTag
+        className={className}
+        style={{ display: 'inline' }}
+        variants={containerVariants}
+        custom={staggerDelay}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.5 }}
+      >
+        {words.map((word, w) => (
+          <React.Fragment key={`${word}-${w}`}>
+            <span data-word style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+              {word.split('').map((ch) => {
+                const idx = charIndex;
+                charIndex += 1;
+                return (
+                  <motion.span key={idx} variants={charVariants} style={{ display: 'inline-block' }}>
+                    {ch}
+                  </motion.span>
+                );
+              })}
+            </span>
+            {w < words.length - 1 ? ' ' : null}
+          </React.Fragment>
+        ))}
+      </MotionTag>
+    );
+  }
+
+  const items = text.split(' ');
   return (
     <MotionTag
       className={className}
@@ -74,7 +111,7 @@ const TextSplitter: React.FC<TextSplitterProps> = ({
           variants={charVariants}
           style={{ display: 'inline-block', whiteSpace: 'pre' }}
         >
-          {mode === 'words' && i > 0 ? ` ${item}` : item}
+          {i > 0 ? ` ${item}` : item}
         </motion.span>
       ))}
     </MotionTag>
