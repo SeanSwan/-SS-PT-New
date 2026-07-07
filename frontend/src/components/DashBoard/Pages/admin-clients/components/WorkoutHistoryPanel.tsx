@@ -35,8 +35,9 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, History } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
+import HistoryBackfillDialog from './HistoryBackfillDialog';
 import {
   useWorkoutAnalytics,
   type WorkoutSession,
@@ -78,6 +79,29 @@ const ScrollBody = styled.div<{ $variant: 'modal' | 'embedded' }>`
   ${p => p.$variant === 'modal'
     ? 'overflow-y: auto; max-height: 60vh;'
     : 'overflow: visible;'}
+`;
+
+const BackfillBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 24px;
+`;
+
+const BackfillTrigger = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+  background: transparent;
+  color: var(--text-secondary, #9FB6C8);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { color: var(--text-primary, #E0ECF4); }
 `;
 
 // Layout/status styles live in WorkoutHistoryPanel.layoutStyles.ts.
@@ -125,6 +149,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<WorkoutHistoryPanelTab>('history');
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [shareSession, setShareSession] = useState<WorkoutSession | null>(null);
+  const [backfillOpen, setBackfillOpen] = useState(false);
   const sortedPersonalRecords = useMemo(
     () => sortPersonalRecords(data?.personalRecords ?? []),
     [data?.personalRecords],
@@ -186,6 +211,19 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         onTabChange={setActiveTab}
       />
 
+      {!readOnly && (
+        <BackfillBar>
+          <BackfillTrigger
+            type="button"
+            onClick={() => setBackfillOpen(true)}
+            aria-label="Backfill workout history for this client"
+          >
+            <History size={14} aria-hidden="true" />
+            Backfill history
+          </BackfillTrigger>
+        </BackfillBar>
+      )}
+
       <ScrollBody $variant={variant}>
         <WorkoutHistoryPanelContent
           activeTab={activeTab}
@@ -224,6 +262,14 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
           postType={shareModalState.postType}
           workoutSessionId={shareModalState.workoutSessionId}
           prefilledContent={shareModalState.prefilledContent}
+        />
+      )}
+      {!readOnly && (
+        <HistoryBackfillDialog
+          open={backfillOpen}
+          clientId={clientId}
+          onClose={() => setBackfillOpen(false)}
+          onCommitted={refetch}
         />
       )}
     </>
