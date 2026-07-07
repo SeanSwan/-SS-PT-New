@@ -284,6 +284,46 @@ router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
     }
   });
 
+/**
+ * @route POST /api/workout-plans/blend — compose a NEW draft plan from picks
+ * against two of the client's plans (charter v3 P3; typically primary + backup).
+ * Body: { planAId, planBId, picks: [{source:'A'|'B', weekNumber, dayNumbers?}], title? }
+ */
+router.post('/blend', protect, trainerOrAdminOnly,
+  // Shim: surface the A-side plan id as :id so the STANDARD access middleware
+  // runs natively (service re-verifies both sources share one client).
+  (req, res, next) => {
+    const parsedA = parseInt(req.body?.planAId, 10);
+    const parsedB = parseInt(req.body?.planBId, 10);
+    if (!parsedA || !parsedB || parsedA === parsedB) {
+      return res.status(400).json({ success: false, message: 'Two distinct source plan ids are required' });
+    }
+    req.params.id = String(parsedA);
+    return next();
+  },
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  async (req, res) => {
+    try {
+      const { planAId, planBId, picks, title } = req.body || {};
+      const { blendPlans } = await import('../services/planBlendService.mjs');
+      const result = await blendPlans({
+        trainerId: req.user.id,
+        planAId: parseInt(planAId, 10),
+        planBId: parseInt(planBId, 10),
+        picks,
+        title,
+      });
+      return res.status(201).json({ success: true, blendedPlanId: result.blended.id, plan: result.blended });
+    } catch (error) {
+      const status = Number(error?.statusCode) || 500;
+      if (status >= 500) logger.error('[WorkoutPlan] blend error: %s', error.message);
+      return res.status(status).json({
+        success: false,
+        message: status >= 500 ? 'Failed to blend plans' : error.message,
+      });
+    }
+  });
+
 /** @route POST /api/workout-plans/:id/promote-backup — THE SWAP (transactional) */
 router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
   verifyClientAccessByPlanId({ paramName: 'id' }),
