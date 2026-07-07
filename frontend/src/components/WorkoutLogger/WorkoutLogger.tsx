@@ -83,6 +83,7 @@ import NASMPhaseGuide from './NASMPhaseGuide';
 import { getPhaseTemplate } from './NASMPhaseTemplates';
 import { buildPhaseTemplateEntries, templateIdsToSelections } from './WorkoutLogger.phaseTemplate';
 import { useWorkoutDraft, WorkoutDraftRestoreBanner } from './useWorkoutDraft';
+import { toggleSupersetLink, isLinkedToPrevious, renumberSupersetGroups } from './WorkoutLogger.supersets';
 import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
@@ -711,9 +712,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, []);
 
   const removeExercise = useCallback((exerciseIndex: number) => {
-    setExercises(prev => prev.filter((_, index) => index !== exerciseIndex));
+    setExercises(prev => renumberSupersetGroups(prev.filter((_, index) => index !== exerciseIndex)));
     toast.info('Exercise removed from workout');
   }, []);
+
+  const toggleSuperset = useCallback((exerciseIndex: number) =>
+    setExercises(prev => toggleSupersetLink(prev, exerciseIndex)), []);
 
   const handleExportPDF = useCallback(() => {
     if (exercises.length === 0) {
@@ -1137,6 +1141,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
                 exercise={exercise}
                 exerciseIndex={exerciseIndex}
                 clientId={effectiveClientId}
+                supersetGroup={exercise.supersetGroup ?? undefined}
+                linkedToPrevious={isLinkedToPrevious(exercises, exerciseIndex)}
+                onToggleSupersetLink={exerciseIndex > 0 ? () => toggleSuperset(exerciseIndex) : undefined}
                 onUpdateExercise={updateExercise}
                 onUpdateSet={updateSet}
                 onAddSet={addSet}

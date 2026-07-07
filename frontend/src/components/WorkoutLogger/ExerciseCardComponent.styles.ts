@@ -235,3 +235,30 @@ export const SupersetBadge = styled.span`
   border: 1px solid ${withAlpha(CS.secondary, 0.3)};
   text-transform: uppercase;
 `;
+
+/* Phase 3c.2: link/unlink-with-previous superset control (44px target). */
+export const SupersetLinkButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 44px;
+  min-width: 44px;
+  margin-top: 0.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  background: transparent;
+  color: ${CS.gaming};
+  border: 1px solid ${withAlpha(CS.secondary, 0.35)};
+
+  &[aria-pressed='true'] {
+    background: ${withAlpha(CS.secondary, 0.18)};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${CS.secondary};
+    outline-offset: 2px;
+  }
+`;

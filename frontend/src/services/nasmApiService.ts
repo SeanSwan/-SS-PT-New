@@ -106,6 +106,9 @@ export interface ExerciseEntry {
   // Phase 16: null = not rated.
   formRating: number | null; // 1-5, null = not rated
   painLevel: number; // 0-10 (kept as number, painLevel null-honesty deferred to Phase 16.1)
+  // Phase 3c.2: contiguous 1..N superset run id (null = ungrouped) — recorded
+  // into formData so supersets are loggable, not display-only.
+  supersetGroup?: number | null;
   performanceNotes?: string;
   category?: string;
   exerciseFamily?: string;

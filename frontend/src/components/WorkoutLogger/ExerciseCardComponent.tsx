@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dumbbell, Minus, Plus, Star, X } from 'lucide-react';
+import { Dumbbell, Link2, Minus, Plus, Star, Unlink, X } from 'lucide-react';
 import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import GhostDataRow from './GhostDataRow';
 import OverloadSuggestion from './OverloadSuggestion';
@@ -20,6 +20,7 @@ import {
   StarButton,
   StarRatingContainer,
   SupersetBadge,
+  SupersetLinkButton,
 } from './ExerciseCardComponent.styles';
 import {
   AddSetButton,
@@ -39,6 +40,9 @@ interface ExerciseCardComponentProps {
   exerciseIndex: number;
   clientId?: number;
   supersetGroup?: number;
+  /** Phase 3c.2: link/unlink this exercise with its predecessor (superset pair/group). */
+  linkedToPrevious?: boolean;
+  onToggleSupersetLink?: () => void;
   onUpdateExercise: (exerciseIndex: number, field: keyof ExerciseEntry, value: any) => void;
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => void;
   onAddSet: (exerciseIndex: number) => void;
@@ -54,6 +58,8 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
   exerciseIndex,
   clientId,
   supersetGroup,
+  linkedToPrevious = false,
+  onToggleSupersetLink,
   onUpdateExercise,
   onUpdateSet,
   onAddSet,
@@ -75,6 +81,22 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
           {exercise.exerciseName}
           {supersetGroup != null && supersetGroup > 0 && <SupersetBadge>SS{supersetGroup}</SupersetBadge>}
         </h3>
+        {onToggleSupersetLink && (
+          <SupersetLinkButton
+            type="button"
+            onClick={onToggleSupersetLink}
+            aria-pressed={linkedToPrevious}
+            aria-label={
+              linkedToPrevious
+                ? `Unlink ${exercise.exerciseName} from the superset above`
+                : `Superset ${exercise.exerciseName} with the exercise above`
+            }
+            title={linkedToPrevious ? 'Unlink superset' : 'Superset with previous'}
+          >
+            {linkedToPrevious ? <Unlink size={16} /> : <Link2 size={16} />}
+            <span>{linkedToPrevious ? 'Unlink' : 'Superset'}</span>
+          </SupersetLinkButton>
+        )}
       </ExerciseTitle>
       <ExerciseRatings>
         <RatingGroup>

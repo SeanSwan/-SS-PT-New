@@ -77,6 +77,7 @@ interface SanitizedExercise {
   performanceNotes?: string;
   sets: SanitizedSet[];
   formRating?: number;
+  supersetGroup?: number;
   category?: string;
   exerciseFamily?: string;
   movementPattern?: string;
@@ -206,6 +207,10 @@ export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[
     };
     if (ex.formRating !== null && ex.formRating !== undefined) {
       out.formRating = ex.formRating;
+    }
+    // Phase 3c.2: superset grouping rides the wire only when live (>0).
+    if (ex.supersetGroup !== null && ex.supersetGroup !== undefined && ex.supersetGroup > 0) {
+      out.supersetGroup = ex.supersetGroup;
     }
     copyExerciseClassificationMetadata(out, ex);
     return out;
