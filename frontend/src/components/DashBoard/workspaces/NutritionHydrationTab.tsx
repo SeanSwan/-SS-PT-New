@@ -7,9 +7,11 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders a visual daily water intake tracker with
- * clickable glass icons. Stores progress in localStorage per date.
+ * clickable glass icons, SERVER-SYNCED via /api/hydration (useHydration —
+ * localStorage is only the unauth/offline fallback) plus a 7-day trend strip
+ * from /api/hydration/weekly (BP02 5.2: that endpoint's first consumer).
  * HOW IT FITS IN THE APP: NutritionWorkspace → Hydration tab
- * KEY DECISIONS: localStorage for MVP (API integration in future sprint)
+ * KEY DECISIONS: server truth first; trainers see the same synced data.
  *
  * ┌─── SUB-COMPONENT: NutritionHydrationTab ────────────────────┐
  * │ PARENT: NutritionWorkspace                                   │
@@ -24,6 +26,7 @@ import React, { useCallback } from 'react';
 import styled from 'styled-components';
 import { Droplets, RotateCcw, Trophy } from 'lucide-react';
 import { useHydration } from '../../../hooks/useHydration';
+import HydrationWeekStrip from './NutritionHydrationTab.weekStrip';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -89,6 +92,8 @@ const NutritionHydrationTab: React.FC = () => {
           </GlassBtn>
         ))}
       </GlassGrid>
+
+      <HydrationWeekStrip refreshKey={filled} />
 
       <TipCard>
         <TipTitle>Hydration Tips</TipTitle>
