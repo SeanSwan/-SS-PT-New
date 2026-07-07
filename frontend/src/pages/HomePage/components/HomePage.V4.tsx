@@ -10,7 +10,7 @@
 
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Helmet } from 'react-helmet-async';
+import SeoHead from '../../../components/Seo/SeoHead';
 import { useAnimationTier, useTierFlags } from '../../../hooks/useAnimationTier';
 import { ScrollProgress } from '../../../components/ui/animations';
 import { SectionTransition } from '../../../components/ui/animations';
@@ -54,10 +54,11 @@ const HomePageV4: React.FC = () => {
 
   return (
     <>
-      <Helmet>
-        <title>SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision</title>
-        <meta name="description" content={`Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with ${YEARS_EXPERIENCE_CLAIM} years experience, Swan Coach programming, serving Orange County and LA.`} />
-      </Helmet>
+      <SeoHead
+        title="SwanStudios | Elite Performance Training — Where Human Excellence Meets AI Precision"
+        description={`Transform your fitness with SwanStudios' elite personal training. NASM-protocol coaching with ${YEARS_EXPERIENCE_CLAIM} years experience, Swan Coach programming, serving Orange County and LA.`}
+        path="/"
+      />
 
       <ScrollProgress enabled={isFull} />
 

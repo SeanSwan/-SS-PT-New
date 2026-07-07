@@ -5,7 +5,6 @@
  */
 import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { UserCircle, Camera, FileSignature, LayoutDashboard, Award } from 'lucide-react';
@@ -103,16 +102,18 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
 
   return (
     <Wrap ref={ref} id="hero">
-      <Helmet>
-        <title>SwanStudios — Premium Personal Training &amp; Community</title>
-        <meta name="description" content="Transform your fitness journey with SwanStudios. Expert personal training, community support, and cutting-edge technology." />
-      </Helmet>
+      {/* 6.4: page-level meta lives in HomePage.V4 (SeoHead) — the hero's
+          duplicate <Helmet> used to race it and could win with generic copy. */}
 
       {isEssential ? (
         <StaticBg />
       ) : (
         <VideoBg
           src={VIDEO.swans}
+          /* 6.4 LCP: first paint is the committed backdrop on EVERY tier —
+             previously balanced/full painted nothing until the R2 video arrived. */
+          poster="/images/parallax/hero-swan-bg.png"
+          preload="metadata"
           autoPlay loop muted playsInline
           style={isFull ? { scale: videoScale } : undefined}
         />
