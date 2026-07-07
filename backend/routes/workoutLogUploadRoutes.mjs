@@ -124,13 +124,40 @@ async function extractTranscriptFromFile(file) {
   return extractText(file.buffer, file.mimetype);
 }
 
-// All routes require authentication + admin/trainer role
+// All routes require authentication; per-route role scopes below.
 router.use(protect);
+
+const SELF_VOICE_UPLOAD_ROLES = new Set(['client', 'user']);
+
+/**
+ * Phase 3c.3 (launch charter): voice-log access scope, pure + exported for tests.
+ * - admin/trainer: any client (unchanged coaching flow).
+ * - client/user: SELF ONLY — requestedClientId must equal the caller's id.
+ *   The check runs IN-HANDLER (clientId arrives in the multipart body, which
+ *   multer parses after route-level middleware). Fails closed on anything else.
+ * Rule 8 note: the parser already redacts the transcript + never sends the
+ * client name to the LLM (workoutLogParserService.mjs:112,433).
+ */
+export const resolveVoiceUploadScope = ({ role, requestedClientId, userId }) => {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (normalizedRole === 'admin' || normalizedRole === 'trainer') {
+    return { allowed: true, selfMode: false };
+  }
+  if (SELF_VOICE_UPLOAD_ROLES.has(normalizedRole)) {
+    const allowed =
+      Number.isInteger(requestedClientId) &&
+      Number.isInteger(userId) &&
+      requestedClientId === userId;
+    return { allowed, selfMode: true };
+  }
+  return { allowed: false, selfMode: false };
+};
 
 /**
  * POST /upload -- Upload voice memo or text file, get parsed workout
+ * (admin/trainer for any client; client/user for SELF only — Phase 3c.3)
  */
-router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile, async (req, res) => {
+router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLimiter, uploadFile, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
@@ -151,6 +178,15 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
 
     if (!parsedTrainerId) {
       return res.status(400).json({ error: 'Valid trainer identity is required' });
+    }
+
+    const scope = resolveVoiceUploadScope({
+      role: req.user?.role,
+      requestedClientId: parsedClientId,
+      userId: parsedTrainerId,
+    });
+    if (!scope.allowed) {
+      return res.status(403).json({ error: 'You can only upload voice logs for your own workouts' });
     }
 
     if (sessionId && !parsedSessionId) {

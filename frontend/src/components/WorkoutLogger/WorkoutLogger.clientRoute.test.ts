@@ -512,10 +512,12 @@ describe('Phase 16.2 - Phase 16 + 16.1-UX contracts preserved', () => {
 });
 
 describe('WorkoutLogger voice/file import surface', () => {
-  it('mounts VoiceMemoUpload for trainer/admin client-context logging only', () => {
-    expect(SOURCE).toMatch(/import\s+VoiceMemoUpload/);
-    expect(SOURCE).toMatch(/!\s*isClientSelfMode\s*&&\s*typeof\s+effectiveClientId\s*===\s*['"]number['"]/);
-    expect(SOURCE).toMatch(/<VoiceMemoUpload[\s\S]*?clientId=\{effectiveClientId\}/);
+  it('mounts the voice import section for ANY numeric client context (3c.3 un-gate)', () => {
+    // Phase 3c.3: clients dictate their OWN workouts too. Self-only scope is
+    // enforced server-side (resolveVoiceUploadScope); the section omits the
+    // display name in self mode (see WorkoutLoggerVoiceImportSection locks).
+    expect(SOURCE).toMatch(/<WorkoutLoggerVoiceImportSection[\s\S]*?clientId=\{effectiveClientId\}/);
+    expect(SOURCE).toMatch(/isSelfMode=\{isClientSelfMode\}/);
     expect(SOURCE).toMatch(/onParsed=\{handleVoiceMemoParsed\}/);
   });
 

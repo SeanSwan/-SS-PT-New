@@ -40,8 +40,6 @@ import {
   LoadingSpinner,
   RolodexTrigger,
   TimerFAB,
-  VoiceImportHeader,
-  VoiceImportPanel,
   WarmupProtocolIcon,
   WorkoutLoggerContainer,
 } from './WorkoutLogger.styles';
@@ -61,7 +59,8 @@ import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import { shouldBlockWorkoutSubmitForSessionBalance } from './WorkoutLogger.submitGuard';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
-import VoiceMemoUpload, { type ParsedWorkout } from './VoiceMemoUpload';
+import { type ParsedWorkout } from './VoiceMemoUpload';
+import WorkoutLoggerVoiceImportSection from './WorkoutLoggerVoiceImportSection';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
 import {
@@ -1006,18 +1005,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           />
         )}
 
-        {!isClientSelfMode && typeof effectiveClientId === 'number' && (
-          <VoiceImportPanel aria-label="Voice and file workout import">
-            <VoiceImportHeader>
-              <h2>Voice or file import</h2>
-              <p>Upload audio, text, CSV, or PDF. Review parsed exercises before applying.</p>
-            </VoiceImportHeader>
-            <VoiceMemoUpload
-              clientId={effectiveClientId}
-              clientName={`${client.firstName} ${client.lastName}`}
-              onParsed={handleVoiceMemoParsed}
-            />
-          </VoiceImportPanel>
+        {typeof effectiveClientId === 'number' && (
+          <WorkoutLoggerVoiceImportSection
+            clientId={effectiveClientId}
+            isSelfMode={isClientSelfMode}
+            clientName={`${client.firstName} ${client.lastName}`}
+            onParsed={handleVoiceMemoParsed}
+          />
         )}
         {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
         {exercises.length > 0 && (
