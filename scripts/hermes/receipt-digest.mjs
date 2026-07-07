@@ -40,9 +40,31 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export function renderDigest(vaultRoot, isoDate) {
-  const receipts = readReceipts(vaultRoot, isoDate);
-  const queueRecords = readJsonl(vaultPaths(vaultRoot, isoDate).queueFile);
+/** UX-8: a local calendar day for an operator at `offsetMinutes` east of UTC
+ *  (PDT = -420) spans two UTC-dated stream files. No storage change — the
+ *  local mode gathers both files and filters records by the local day of `when`. */
+export function localWindow(localDate, offsetMinutes) {
+  const startMs = Date.parse(`${localDate}T00:00:00Z`) - offsetMinutes * 60000;
+  const endMs = startMs + 24 * 60 * 60 * 1000;
+  const utcDates = [...new Set([new Date(startMs).toISOString().slice(0, 10), new Date(endMs - 1).toISOString().slice(0, 10)])];
+  return { startMs, endMs, utcDates };
+}
+
+export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes = 0 } = {}) {
+  let receipts;
+  let queueRecords;
+  let streamDates = [isoDate];
+  if (local) {
+    const w = localWindow(isoDate, offsetMinutes);
+    streamDates = w.utcDates;
+    const inWindow = (iso) => { const ms = Date.parse(iso); return Number.isFinite(ms) && ms >= w.startMs && ms < w.endMs; };
+    receipts = streamDates.flatMap((d) => readReceipts(vaultRoot, d)).filter((r) => inWindow(r.when));
+    queueRecords = streamDates.flatMap((d) => readJsonl(vaultPaths(vaultRoot, d).queueFile))
+      .filter((r) => inWindow(r.type === 'create' ? r.entry?.created : r.at));
+  } else {
+    receipts = readReceipts(vaultRoot, isoDate);
+    queueRecords = readJsonl(vaultPaths(vaultRoot, isoDate).queueFile);
+  }
 
   const counts = Object.fromEntries(TIERS.map((t) => [t, 0]));
   for (const r of receipts) counts[tierOf(r.what)] += 1;
@@ -61,7 +83,9 @@ export function renderDigest(vaultRoot, isoDate) {
   const paths = vaultPaths(vaultRoot, isoDate);
   const unparseable = receipts.filter((r) => r.__unparseable !== undefined);
   const tierless = receipts.filter((r) => r.what !== undefined && !/\((T[0-4])\)/.test(String(r.what)));
-  const chainBroken = [paths.receiptsFile, paths.queueFile].map((f) => verifyChain(f)).filter((c) => !c.ok);
+  const chainBroken = streamDates
+    .flatMap((d) => { const p = vaultPaths(vaultRoot, d); return [p.receiptsFile, p.queueFile]; })
+    .map((f) => verifyChain(f)).filter((c) => !c.ok);
   const refMs = Date.parse(`${isoDate}T23:59:59Z`);
   const armedStale = [...loadQueueState(vaultRoot).values()].filter(
     (e) => e.status === 'armed' && Number.isFinite(Date.parse(e.armedAt)) && refMs - Date.parse(e.armedAt) > ARMED_STALE_MS
@@ -100,8 +124,9 @@ export function renderDigest(vaultRoot, isoDate) {
     }
   }
 
+  const utcOff = offsetMinutes === 0 ? 'UTC' : `UTC${offsetMinutes > 0 ? '+' : '-'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
   const lines = [
-    `# Receipt digest — ${isoDate}`,
+    `# Receipt digest — ${isoDate}${local ? ` (LOCAL day, ${utcOff}; spans UTC files ${streamDates.join(' + ')})` : ''}`,
     '',
     '## Counts by tier (24h)',
     TIERS.map((t) => `${t}: ${counts[t]}`).join(' · '),
@@ -152,29 +177,37 @@ export function renderDigest(vaultRoot, isoDate) {
   return { digestMarkdown: lines.join('\n'), viewMarkdown: view.join('\n') };
 }
 
-export function writeDigest(vaultRoot, switchesFile, isoDate, { now } = {}) {
+export function writeDigest(vaultRoot, switchesFile, isoDate, { now, local = false, offsetMinutes = 0 } = {}) {
   const when = now || new Date().toISOString();
   checkSwitches(vaultRoot, switchesFile, ['SWITCH_MASTER', 'SWITCH_RECEIPT_DIGEST'], {
     who: 'harness/receipt-digest', what: 'receipt-digest (T0)',
-    target: `daily digest ${isoDate}`, when,
+    target: `daily digest ${isoDate}${local ? ' (local)' : ''}`, when,
   });
-  const { digestMarkdown, viewMarkdown } = renderDigest(vaultRoot, isoDate);
-  const { digestFile, receiptsView } = vaultPaths(vaultRoot, isoDate);
+  const { digestMarkdown, viewMarkdown } = renderDigest(vaultRoot, isoDate, { local, offsetMinutes });
+  let { digestFile, receiptsView } = vaultPaths(vaultRoot, isoDate);
+  // Local mode writes a SIBLING file — the canonical UTC digest stays deterministic
+  // (golden-locked) and the two views never clobber each other.
+  if (local) digestFile = digestFile.replace(/\.md$/, '-local.md');
   fs.writeFileSync(digestFile, digestMarkdown);
-  fs.writeFileSync(receiptsView, viewMarkdown);
+  if (!local) fs.writeFileSync(receiptsView, viewMarkdown);
   writeReceipt(vaultRoot, {
     who: 'harness/receipt-digest', what: 'receipt-digest (T0)',
     target: `daily digest ${isoDate}`, when, 'approved-by': 'n/a',
     outcome: 'ok — digest + human view rendered',
     evidence: digestFile,
   });
-  return { digestFile, viewFile: receiptsView };
+  return { digestFile, viewFile: local ? null : receiptsView };
 }
 
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replaceAll('\\', '/').split('/').pop());
 if (isMain) {
-  const { values } = parseArgs({ options: { date: { type: 'string' } } });
-  const isoDate = values.date || new Date().toISOString().slice(0, 10);
-  const out = writeDigest(resolveVaultRoot(), resolveSwitchesFile(), isoDate, {});
-  console.log(`digest: ${out.digestFile}\nview:   ${out.viewFile}`);
+  const { values } = parseArgs({ options: { date: { type: 'string' }, local: { type: 'boolean' }, offset: { type: 'string' } } });
+  // --local: render the OPERATOR's calendar day (UX-8). Offset = minutes east of
+  // UTC; defaults to this machine's current zone (PDT → -420).
+  const offsetMinutes = values.offset !== undefined ? Number(values.offset) : -new Date().getTimezoneOffset();
+  const isoDate = values.date || (values.local
+    ? new Date(Date.now() + offsetMinutes * 60000).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10));
+  const out = writeDigest(resolveVaultRoot(), resolveSwitchesFile(), isoDate, { local: values.local ?? false, offsetMinutes });
+  console.log(`digest: ${out.digestFile}${out.viewFile ? `\nview:   ${out.viewFile}` : ''}`);
 }

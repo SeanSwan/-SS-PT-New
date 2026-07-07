@@ -163,3 +163,40 @@ test('silence check reports a clean day and a missing schedule honestly', () => 
   const clean = renderDigest(root, DAY).digestMarkdown;
   assert.match(clean, /All scheduled commands receipted/);
 });
+
+test('UX-8: local-day digest gathers both UTC files and filters by the operator day', async () => {
+  const { localWindow } = await import('./receipt-digest.mjs');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-dg-'));
+  const swFile = path.join(root, 'switches.json');
+  ensureLanes(root);
+  seedSwitches(swFile);
+  const R = (when, outcome) => writeReceipt(root, {
+    who: 'hermes/runner', what: 'health-sweep (T0)', target: 't', when,
+    'approved-by': 'n/a', outcome, evidence: 'runs/logs/x.log',
+  });
+  R('2026-07-02T02:00:00Z', 'failed — evening deploy check red');   // 7pm PDT 07-01 → UTC 07-02 file
+  R('2026-07-01T03:00:00Z', 'failed — belongs to local 06-30');          // 8pm PDT 06-30 → excluded from local 07-01
+  const w = localWindow('2026-07-01', -420);
+  assert.deepEqual(w.utcDates, ['2026-07-01', '2026-07-02']);
+  const local = renderDigest(root, '2026-07-01', { local: true, offsetMinutes: -420 }).digestMarkdown;
+  assert.match(local, /LOCAL day, UTC-07:00/);
+  assert.match(local, /evening deploy check red/, 'evening work lands in TODAY local digest');
+  assert.ok(!local.includes('belongs to local 06-30'), 'pre-midnight-local records excluded');
+  const utc = renderDigest(root, '2026-07-01').digestMarkdown;
+  assert.ok(utc.includes('belongs to local 06-30'), 'default UTC mode unchanged');
+});
+
+test('UX-8: local mode writes a SIBLING -local.md; canonical digest + view untouched', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-dg-'));
+  const swFile = path.join(root, 'switches.json');
+  ensureLanes(root);
+  seedSwitches(swFile);
+  writeReceipt(root, {
+    who: 'hermes/runner', what: 'health-sweep (T0)', target: 't', when: '2026-07-01T12:00:00Z',
+    'approved-by': 'n/a', outcome: 'ok — green', evidence: 'runs/logs/x.log',
+  });
+  const out = writeDigest(root, swFile, '2026-07-01', { now: '2026-07-01T23:00:00Z', local: true, offsetMinutes: -420 });
+  assert.match(out.digestFile.replace(/\\/g, '/'), /digest-2026-07-01-local\.md$/);
+  assert.equal(out.viewFile, null);
+  assert.ok(fs.existsSync(out.digestFile));
+});
