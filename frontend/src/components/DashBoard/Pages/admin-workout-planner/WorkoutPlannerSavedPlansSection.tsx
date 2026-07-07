@@ -4,10 +4,11 @@
  * empty state, and card actions outside the planner page shell.
  */
 
-import React from 'react';
-import { ClipboardList, Dumbbell, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { ClipboardList, Dumbbell, GitMerge, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
 import WorkoutPlannerBackupPanel from './WorkoutPlannerBackupPanel';
+import WorkoutPlannerBlendDialog from './WorkoutPlannerBlendDialog';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import {
@@ -77,6 +78,8 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   activePlanLoggerRoute,
   onPlansChanged,
 }) => {
+  const [blendOpen, setBlendOpen] = useState(false);
+
   if (!selectedClientId) return null;
 
   const hasCurrentPlan = savedPlans.some(plan => isWorkoutPlanActiveStatus(plan.status));
@@ -149,6 +152,17 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
                   Log Current Plan
                 </PlannerHandoffLink>
               )}
+              {savedPlans.length >= 2 && (
+                <PlannerHandoffLink
+                  as="button"
+                  type="button"
+                  onClick={() => setBlendOpen(true)}
+                  aria-label="Blend two plans into a new draft"
+                >
+                  <GitMerge size={14} />
+                  Blend Plans
+                </PlannerHandoffLink>
+              )}
             </PlanModeBar>
             <MesocycleGrid>
               {savedPlans.map((plan, index) => (
@@ -172,6 +186,12 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
           </>
         )}
       </MesocycleSection>
+      <WorkoutPlannerBlendDialog
+        open={blendOpen}
+        savedPlans={savedPlans}
+        onClose={() => setBlendOpen(false)}
+        onBlended={onPlansChanged}
+      />
       <WorkoutPlanPdfDialog
         plan={pdfDialogPlan}
         mode={pdfDialogMode}
