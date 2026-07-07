@@ -12,6 +12,10 @@ import path from 'node:path';
 import { ensureLanes, seedSwitches, writeReceipt, readReceipts, vaultPaths } from './hermesRunsLib.mjs';
 import { runDoctor } from './hermes-doctor.mjs';
 
+// E4b-final: the doctor's anchor check treats an unkeyed run as degraded (never
+// healthy), so these healthy-path contracts run keyed like a real deployment.
+process.env.HERMES_ANCHOR_KEY = 'doctor-test-key-not-for-prod';
+
 const DAY = '2026-07-01';
 function fresh() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-doc-'));

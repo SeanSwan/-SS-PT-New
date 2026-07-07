@@ -13,7 +13,7 @@
 
 ## 2. Mechanics (Windows 5090 runtime)
 
-Switch state lives in one place: a local switches file (`~/.hermes/switches.json` — placeholder path pending implementation slice 2, `./implementation-slices.md`), one boolean per named switch, read fresh before **every** execution — never cached across runs. Flipping is a T2 act (`switch-flip` in the registry): via the command-center kill-switch panel, or the Telegram exact-match phrase `KILL <switch-name>` / `RESUME <switch-name>` from an allowlisted chat-id. Every flip emits a receipt and auto-revokes open approvals for dependent commands (`./approval-gates.md` §6).
+Switch state lives in one place: a local switches file (`~/.hermes/switches.json` — placeholder path pending implementation slice 2, `./implementation-slices.md`), one boolean per named switch, read fresh before **every** execution — never cached across runs. Flipping is a T2 act (`switch-flip` in the registry): via the command-center kill-switch panel, or the Telegram exact-match phrase `KILL <switch-name>` / `RESUME <switch-name>` from an allowlisted chat-id. Every flip **via the registered command path** emits a receipt and auto-revokes open approvals for dependent commands (`./approval-gates.md` §6). Honest limit (2026-07-07 adversarial pass): a direct write to the switches file bypasses both — there is no file watcher; same-user malware can flip silently. The receipt promise binds the command path, not the filesystem; the doctor's switch check + the digest's switch-activity section are the detection layer.
 
 The **master switches** are coarser and deliberately duller than the file:
 - **Hermes daemon stop** — stopping the Hermes process/service on the 5090 halts everything Hermes brokers, no file read required.

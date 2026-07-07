@@ -24,6 +24,8 @@
 - **`docs/ai-workflow/hermes-agentic-os/index.md`** - Hermes Agentic OS map: approval gates, receipts, kill switches, channels, command center
 - **`docs/ai-workflow/design-brain/index.md`** - Design Brain map: design.md (canonical) + design.html mirror, adapters, archetypes, QA gates
 - **`docs/ai-workflow/AI-HANDOFF/HERMES-OS-SECOND-BRAIN-CONSULT-REVIEW-2026-07-07.md`** - consult verdict on the Hermes Agentic OS (finish-first + F-1..F-10 enhancement queue), ARMS/Four-C second-brain verification + SB gaps (deterministic `brain-query` retrieval is the top miss), doc-drift findings, Sean decision queue
+- **`docs/ai-workflow/AI-HANDOFF/HERMES-OS-7STAR-GAP-REVIEW-2026-07-07.md`** - three-lens 7★ gap review (UX/security/integration) + Final-Decider rulings: E4b-final ship record, Delivery-Quartet build order, product-slice queue (operator credential, Stripe webhook health, stale-client endpoint), Sean decisions
+- **`docs/ai-workflow/FABLE-HERMES-WORKFLOW-UPGRADE/170-hermes-performance-upgrade-prompt.md`** - Hermes performance+utilization upgrade: live-install inventory (keep-alive cold-reload bug, unread inbox), 5090/Qwen3 tuning table, /settings panel spec, §E paste-ready maintainer prompt
 - **`.claude/skills/fable-mode/SKILL.md`** - Rule 71: portable Fable working discipline (five gates) + model/effort routing table; mandatory for fallback Final Deciders
 
 These files are the operating base. Everything else is loaded on-demand.

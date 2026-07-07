@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { verifyChain, atomicWriteFileSync } from './spineLib.mjs';
+import { recordAnchors, anchorStatus } from './anchorLedger.mjs';
 import {
   LANES, ensureLanes, readSwitches, readReceipts, isoDateOf,
   resolveSwitchesFile, resolveVaultRoot, vaultPaths, writeReceipt,
@@ -70,16 +71,36 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
   }
   add('schedule', schedOk, schedDetail);
 
+  // Anchor (E4b-final): freeze today's high-water into the signed ledger, then
+  // verify every witnessed day's streams against it. Forgery-resistance locally;
+  // deletion-resistance only once the ledger syncs off-box and the doctor reads
+  // that copy back (HERMES_OFFBOX_WITNESS — E4C runbook §2). A crash here must
+  // never disable the rest of the auditor (round-2 corrupt-.gz lesson).
+  const anchorWarns = [];
+  try {
+    const recd = recordAnchors(vaultRoot, isoDate);
+    const st = anchorStatus(vaultRoot, { today: isoDate });
+    const anchorFaults = [...st.faults, ...recd.regressions.map((r) => `record-time: ${r}`)];
+    anchorWarns.push(...st.warns);
+    if (recd.skippedBackdated.length) anchorWarns.push(`backdated un-anchored day(s) skipped (ledger is append-only in time): ${recd.skippedBackdated.join(', ')} — investigate how they appeared`);
+    add('anchor', anchorFaults.length === 0, anchorFaults.length
+      ? anchorFaults.join(' | ')
+      : [`${st.entries} ledger entrie(s), ${st.witnessedDates} day(s) witnessed`, ...anchorWarns, ...st.notes].join(' · '));
+  } catch (err) {
+    add('anchor', false, `anchor check crashed: ${String(err && err.message).slice(0, 160)}`);
+  }
+
   // Persist a monotonic last-seen high-water mark.
   const highWater = (lastMs !== null && lastMs > nowMs) ? state.lastSeen : when;
   try { atomicWriteFileSync(statePath(vaultRoot), `${JSON.stringify({ ...state, lastSeen: highWater }, null, 2)}\n`); }
   catch { add('clock-state', false, 'could not persist doctor-state.json'); }
 
   // Receipt roundtrip: write the doctor's own receipt, then read it back.
+  const warnMsgs = [...warns.map((c) => c.warn), ...anchorWarns];
   const preFaults = checks.filter((c) => !c.ok);
   const outcome = preFaults.length
     ? `failed — ${preFaults.map((c) => `${c.name}: ${c.detail}`).join(' | ')}`
-    : (warns.length ? `partial — degraded: ${warns.map((c) => c.warn).join('; ')}` : `ok — ${checks.length} checks healthy`);
+    : (warnMsgs.length ? `partial — degraded: ${warnMsgs.join('; ')}` : `ok — ${checks.length} checks healthy`);
   const rec = writeReceipt(vaultRoot, {
     who: 'harness/hermes-doctor', what: 'hermes-doctor (T0)', target: `self-diagnosis ${isoDate}`,
     when, 'approved-by': 'n/a', outcome, evidence: statePath(vaultRoot),
@@ -90,8 +111,8 @@ export function runDoctor(vaultRoot, switchesFile, isoDate, { now } = {}) {
   add('roundtrip', roundtripOk, roundtripOk ? `receipt ${rec.id} written + read back` : 'receipt write/read-back FAILED');
 
   const faults = checks.filter((c) => !c.ok);
-  const exitCode = faults.length ? 2 : (warns.length ? 1 : 0);
-  return { ok: exitCode === 0, exitCode, checks, receiptId: rec.id };
+  const exitCode = faults.length ? 2 : (warnMsgs.length ? 1 : 0);
+  return { ok: exitCode === 0, exitCode, checks, warns: warnMsgs, receiptId: rec.id };
 }
 
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replaceAll('\\', '/').split('/').pop());

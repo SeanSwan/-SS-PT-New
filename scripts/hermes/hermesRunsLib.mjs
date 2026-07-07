@@ -193,7 +193,9 @@ export function nextSequencedId(prefix, existingIds, isoDate) {
   const day = isoDate.replaceAll('-', '');
   let max = 0;
   for (const id of existingIds) {
-    const m = new RegExp(`^${prefix}-${day}-(\\d{3})$`).exec(id);
+    // {3,} not {3}: past 999 ids/day the sequence grows a digit instead of every
+    // later id colliding at -1000 forever (refusal-flood id-corruption, F-9).
+    const m = new RegExp(`^${prefix}-${day}-(\\d{3,})$`).exec(id);
     if (m) max = Math.max(max, Number(m[1]));
   }
   return `${prefix}-${day}-${String(max + 1).padStart(3, '0')}`;
