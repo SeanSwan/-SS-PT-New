@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "updated": "2026-07-07",
+  "note": "health-sweep target manifest (7-star review INT-11): versioned data, not code. auth:'admin-jwt' rows are SKIPPED until the operator credential slice (P-1) lands — reported as 'unchecked', never fake-green and never a standing amber.",
+  "endpoints": [
+    { "name": "backend-health", "url": "https://ss-pt-new.onrender.com/health", "auth": "public", "weight": "critical", "note": "canonical backend health (render.yaml) — the real one; sswanstudios.com/health is the SPA catch-all trap" },
+    { "name": "backend-api-health", "url": "https://ss-pt-new.onrender.com/api/health", "auth": "public", "weight": "critical" },
+    { "name": "frontend-root", "url": "https://sswanstudios.com/", "auth": "public", "weight": "critical", "note": "SPA shell only — any path on this host returns index.html" },
+    { "name": "contact-health", "url": "https://ss-pt-new.onrender.com/api/contact/health", "auth": "admin-jwt", "weight": "normal", "skip": "operator credential not provisioned (P-1)" },
+    { "name": "system-health", "url": "https://ss-pt-new.onrender.com/api/admin/analytics/system-health", "auth": "admin-jwt", "weight": "normal", "skip": "operator credential not provisioned (P-1)" }
+  ]
+}
