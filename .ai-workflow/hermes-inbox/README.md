@@ -66,11 +66,11 @@ blocker Sean owns). Skip pure mechanics (a typo fix needs no memo).
 3. **Clear (archive, never hard-delete — Rule 34):** move consumed memos to `consumed/<YYYY-MM>/`.
    This keeps `pending/` empty (fresh for the next batch, exactly as intended) **without destroying
    the record** — a future audit can still read what Hermes was told and when.
-   - Because the Pi runs **read-only** by preference (Rule 47) and is currently **SSD-power blocked**
-     (see `MEMORY.md`), the safe division of labor is: **Hermes records a high-water mark**
+   - Hermes now runs on the desktop 5090 and SHARES this filesystem (Pi RETIRED — doc 170 §A), but
+     the safe division of labor stays: **Hermes records a high-water mark**
      (last-consumed UTC timestamp) in its own memory and reports *"consumed through <ts>"*; the
      physical archive move is done in-repo by a terminal agent or a small prune step
-     (mirror `scripts/coordination-prune.mjs`). Hermes does not need to git-write from the Pi.
+     (mirror `scripts/coordination-prune.mjs`). Hermes stays a repo READER by doctrine — a third repo-writer needs Rule 67 lane claims, not habits.
 4. **Report** back in Sean's channel: what was absorbed, and the high-water mark.
 
 ---
@@ -103,7 +103,7 @@ The write side is enforced at four levels so it isn't left to chance:
 ## Guardrails
 - **Privacy (Rules 8 / 44 / 59):** committed + LLM-read → IDs/roles only, secret-scan every entry.
 - **Archive, never hard-delete (Rule 34):** consumed memos move to `consumed/`, are not destroyed.
-- **Pi is read-only + currently blocked (Rule 47 / `MEMORY.md`):** the Hermes-drains-and-reports
-  loop is spec'd here but wires up when the Pi SSD/powered-hub blocker clears; the write side + this
-  convention work today.
+- **Drain wiring status (2026-07-07):** Hermes shares this filesystem now (desktop 5090; Pi retired) —
+  the drain is one session-start hook away (FABLE-HERMES-WORKFLOW-UPGRADE/170 §E step 8 wires it);
+  the write side + this convention work today.
 - **No new transport invented:** reuses the proven daemon repo-read path (same as learning-packets).

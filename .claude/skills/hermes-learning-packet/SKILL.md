@@ -5,7 +5,7 @@ description: Turns substantial, high-tier work — ESPECIALLY Fable-authored pla
 
 # Hermes Learning Packet
 
-**Role:** the loop that lets Hermes level up from the best work the operating system produces — automatically, so Sean doesn't have to hand-carry knowledge to the Pi. Everyone using an AI gets the same base model; what makes Hermes *Sean's* operator is the accumulated context it's fed. Sean's rule: Hermes should learn **only from Fable-tier intelligence** — Fable, or a new model that comes out at/near Fable's level — **never** from Opus 4.8 or anything below it. This skill is the gate + emitter that enforces that and delivers the packet.
+**Role:** the loop that lets Hermes level up from the best work the operating system produces — automatically, so Sean doesn't have to hand-carry knowledge to Hermes. Everyone using an AI gets the same base model; what makes Hermes *Sean's* operator is the accumulated context it's fed. Sean's rule: Hermes should learn **only from Fable-tier intelligence** — Fable, or a new model that comes out at/near Fable's level — **never** from Opus 4.8 or anything below it. This skill is the gate + emitter that enforces that and delivers the packet.
 
 > Sean 2026-07-05: "We need to give Hermes a summary at the end of everything that is worth giving a Hermes summary report so Hermes can learn from this and be able to upgrade itself and evolve without me necessarily having to type it in all the time… I really want my Hermes to learn from Fable and Fable only to be on that level."
 
@@ -24,8 +24,8 @@ description: Turns substantial, high-tier work — ESPECIALLY Fable-authored pla
    - When in doubt about tier, ask Sean one question: "What model authored this — is it Fable-tier?" Bias to quarantine.
 2. **Decide it's worth a packet.** Not every close deserves one. A packet is warranted when the work contains a *transferable lesson* Hermes should carry forward — a decision + its rationale, a pattern, a corrected root cause, a new capability, a risk. Skip pure status/mechanics.
 3. **Draft the packet (privacy-safe).** Structured, compact, IDs/roles only. No client names, medical/immigration/PII, secrets, keys, tokens, DB URLs. Reuse the existing two-layer sanitizer discipline from `scripts/continuity-append.mjs`: Layer 1 = `scripts/scan-secrets.sh --stdin` (hard-fail on any hit — see rule 44/59); Layer 2 = scrub path shapes / username / host+IP via `scripts/continuity-config.json` (+ gitignored `.local.json`). Honor rule 8 (zero PII to LLMs) — the packet is committed and will be read by Hermes.
-4. **Write it durably (compounding, not trimmed).** Packets live at `docs/ai-workflow/hermes-learning-packets/<YYYY-MM-DD>-<kebab-topic>.md` (session date, never a date function). This is **tracked and durable on purpose** — unlike the 30 KB-trimmed continuity closeout log (`.ai-workflow/continuity/rolling-last-done.md`), the learning corpus must *accumulate* so Hermes evolves. (If/when the Karpathy Wiki corpus on the Pi is unblocked — currently BLOCKED on SSD/powered-hub hardware — promote packets there.)
-5. **Deliver over the proven transport (don't invent a new one).** The Pi Hermes daemon already SSH/cat-reads repo files at session start and prepends them to Hermes's system prompt (`docs/ai-workflow/AI-HANDOFF/HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md`, smoke-tested PASS 2026-04-22). Ingest = **extend that daemon's read list** to include the learning-packet store (or add one manifest file Hermes reads the same way). Update that handoff doc — it is the only spec/rollback surface, since `run_agent.py` is not in git. Delivery is **pull + session-cached**: a fresh packet reaches Hermes at its next session start.
+4. **Write it durably (compounding, not trimmed).** Packets live at `docs/ai-workflow/hermes-learning-packets/<YYYY-MM-DD>-<kebab-topic>.md` (session date, never a date function). This is **tracked and durable on purpose** — unlike the 30 KB-trimmed continuity closeout log (`.ai-workflow/continuity/rolling-last-done.md`), the learning corpus must *accumulate* so Hermes evolves. (Karpathy-Wiki-on-Pi is RETIRED with the Pi; the future long-term corpus home is the 5090 brain-vault — doc 170 §A/C2.)
+5. **Deliver over the proven transport (don't invent a new one).** The Hermes daemon (now local on the 5090; the pattern survives the retired Pi unchanged) already reads repo files at session start and prepends them to Hermes's system prompt (`docs/ai-workflow/AI-HANDOFF/HERMES-DAEMON-PHASE-B-PATCH-2026-04-22.md`, smoke-tested PASS 2026-04-22). Ingest = **extend that daemon's read list** to include the learning-packet store (or add one manifest file Hermes reads the same way). Update that handoff doc — it is the only spec/rollback surface, since `run_agent.py` is not in git. Delivery is **pull + session-cached**: a fresh packet reaches Hermes at its next session start.
 6. **Trigger semantics = manual by default.** Mirror the continuity precedent ("log this and close") — human-triggered emission is the safe default and matches Sean's pattern. Auto-emit-after-Fable is opt-in and, if wanted, rides the existing `prompt-watcher` UserPromptSubmit hook model (`.claude/settings.json`) — do not build a new automation surface without Sean's yes.
 
 ## Output — the learning packet
@@ -48,7 +48,7 @@ surfaces: [<file/area IDs, no PII>]
 ## Provenance & privacy: originating_model, sanitizer PASS, IDs-only confirmed
 ```
 
-Then tell Sean in chat: packet written (path), tier-gate result, and whether the Pi daemon read-list needs the one-time extension for a new store.
+Then tell Sean in chat: packet written (path), tier-gate result, and whether the Hermes daemon read-list needs the one-time extension for a new store.
 
 ## Integration
 - **Reuses, does not reinvent:** `scripts/continuity-append.mjs` plumbing (surface gate, two-layer sanitizer, atomic write) — propose a sibling emitter `scripts/hermes-learning-append.mjs` rather than new plumbing; register its command in `.claude/settings.json` `permissions.ask`.
@@ -60,6 +60,6 @@ Then tell Sean in chat: packet written (path), tier-gate result, and whether the
 ## Non-goals
 - Does **not** ingest sub-Fable output — the source gate is fail-closed; Opus/Codex/Gemini output goes to quarantine, never the corpus.
 - Does **not** call Claude/Codex APIs — Sean has subscriptions, not keys; provenance is stamped, not API-verified.
-- Does **not** invent a new Hermes transport — it extends the proven Pi SSH/cat read path.
+- Does **not** invent a new Hermes transport — it extends the proven daemon repo-read path (now local on the 5090).
 - Does **not** auto-emit by default — manual "feed Hermes" trigger unless Sean opts into auto.
-- Does **not** touch the Pi without Sean (Hermes Pi work is currently SSD-power BLOCKED, per MEMORY.md).
+- Does **not** modify the Hermes runtime without Sean (config edits = T2 per the operator bridge; the Pi deployment is RETIRED).

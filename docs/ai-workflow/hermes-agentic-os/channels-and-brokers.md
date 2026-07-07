@@ -19,7 +19,7 @@ The Sean-only command lane. Its rules are the 2026-04-18 lockdown made permanent
 - **Inbound text = untrusted input.** Even from Sean's own chat-id. Free text is parsed for a registered command name + declared inputs; free-text *parameters* are typed `untrusted` in the registry schema and validated, never interpolated anywhere executable — there is nothing executable to interpolate into, by construction.
 - **Tier ceiling: T2 broker requests.** T0/T1/allowlisted-T2 commands execute and receipt. **T3/T4 requests become approval-queue entries, never actions** — the message creates the entry; nothing external happens (`./approval-gates.md` §2).
 - **Approvals are exact-match phrases.** `APPROVE Q-YYYYMMDD-NNN <action-name>` and the T4 `ARM …` phrase, verbatim, from an allowlisted chat-id (`./approval-gates.md` §3/§5). Paraphrase, emoji, "yes go ahead" — not approvals; the broker replies with the required phrase. The exact-match rule *is* the injection defense on this lane.
-- **Kill:** `SWITCH_TELEGRAM_BROKER` pauses inbound processing (bot may answer "broker paused"); the Pi relay's Hermes-down behavior is architecture §5.
+- **Kill:** `SWITCH_TELEGRAM_BROKER` pauses inbound processing (bot may answer "broker paused"); Hermes-down behavior (post-Pi): architecture §5 — silence until the P-5 heartbeat deadman ships.
 
 ## 3. Discord alert broker (outbound, broadcast)
 

@@ -56,10 +56,10 @@ Full protocol lives at `.ai-workflow/hermes-inbox/README.md`. This skill is the 
 2. **Absorb** into Hermes memory; promote anything worth keeping *forever* into durable Hermes
    memory / the learning corpus (the inbox is not the long-term store).
 3. **Clear = archive, never hard-delete (Rule 34):** consumed memos move to `consumed/<YYYY-MM>/`.
-   Because the Pi runs read-only (Rule 47) and is SSD-power blocked (`MEMORY.md`), Hermes records a
+   Hermes shares this filesystem now (desktop 5090; Pi RETIRED — doc 170 §A) but stays a repo READER: it records a
    **high-water mark** (last-consumed UTC) in its own memory and reports *"consumed through <ts>"*;
    the physical archive move is done in-repo by a terminal agent / a prune step (mirror
-   `scripts/coordination-prune.mjs`). Hermes does not git-write from the Pi.
+   `scripts/coordination-prune.mjs`). Hermes does not git-write — three repo-writers need Rule 67 claims, not habits.
 4. **Report** in Sean's channel: what was absorbed + the high-water mark.
 
 ## Guarantee it fires (Sean's #1 ask: "this can't be a maybe")
@@ -89,12 +89,12 @@ Layered so it doesn't:
 - **Wired into BOTH operating files:** CLAUDE.md Rule 69 + AGENTS.md mirror + the skills table (a
   skill isn't done until Claude AND Codex see it).
 - Honors Rule 8 (zero PII), Rule 34 (archive not delete), Rule 44/59 (write/read-time secret scan),
-  Rule 47 (Pi read-only).
+  Rule 47 (read-only launcher posture; the Pi deployment itself is retired).
 
 ## Non-goals
 - Does **not** hard-delete memos — archive to `consumed/` (Rule 34).
-- Does **not** touch the Pi without Sean (Hermes Pi work is SSD-power BLOCKED per `MEMORY.md`); the
-  drain/report loop wires up when that clears — the write side works today.
+- Does **not** modify the Hermes runtime without Sean (config edits = T2 per the operator bridge);
+  the drain hook wires via doc 170 §E step 8 — the write side works today.
 - Does **not** invent a new Hermes transport — extends the proven daemon repo-read path.
 - Does **not** replace the learning-packet or continuity bridge — it's the third, lower-friction lane.
 - Does **not** carry PII/secrets — committed + LLM-read, so IDs/roles only.

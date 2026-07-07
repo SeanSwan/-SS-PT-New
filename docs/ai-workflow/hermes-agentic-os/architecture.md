@@ -34,7 +34,7 @@
                                                              ▼
                                               SwanStudios Postgres (source of truth)
 
-  Raspberry Pi ── bridge/fallback only: Telegram relay + Tailscale hop when the 5090 is offline.
+  Desktop-down deadman ── PLANNED (7-star P-5): heartbeat receipt + cloud-side alert. (Pi relay RETIRED 2026-07 — doc 170 §A.)
                   It never becomes the brain; it never gets its own write authority.
   Discord ─────── OUTBOUND alerts only (templated, T3). Inbound Discord text is untrusted input.
 ```
@@ -44,7 +44,7 @@ Three properties make this shape safe: **one broker** (every operator command pa
 ## 2. Runtimes
 
 - **Windows 5090 — primary.** Hermes broker, working memory, local models (Ollama), approval queue, receipt writer, command-center server. It sits behind the LAN boundary and does the thinking.
-- **Raspberry Pi — bridge/fallback only.** Telegram relay and Tailscale hop. If the 5090 is down, the Pi's job is to *say so* and queue messages — degraded mode is honest mode, not improvised authority. Rationale: bridge §2, boundary 3 (SD-card fragility, USB power limits).
+- **Pi relay — RETIRED (2026-07; live install receipt: FABLE-HERMES-WORKFLOW-UPGRADE/170 §A).** Hermes runs ON the 5090 (WSL, hermes-agent v0.18.0, local Qwen3 via Windows-host Ollama). Honest consequence: desktop-down now means Telegram SILENCE — currently indistinguishable from allowlist silence. Planned replacement (7-star review P-5): Hermes posts a T0 heartbeat receipt; an independent cloud-side check alerts Sean when it stops. Until that ships: silence = check the desktop.
 - **Render — product.** SwanStudios backend + Postgres. Hermes is a *client* of this runtime through the public API layer, holding an operator-scoped app JWT like any other authenticated caller. It has no privileged tunnel into the product.
 
 ## 3. Where memory lives
@@ -64,7 +64,7 @@ Rule of arbitration: the vault and Hermes memory are **derived views**. When the
 Concentric, each authenticated at its own layer — a command's tier never substitutes for channel auth (bridge §5):
 
 1. **LAN (5090 + local devices).** The innermost ring. Local model traffic, working memory, and the command center never leave it. No public inbound ports, ever (bridge boundary 6).
-2. **Tailscale mesh.** The only sanctioned path between Pi ↔ 5090 ↔ laptop. Outbound-initiated, identity-pinned. Anything not on the tailnet does not talk to Hermes.
+2. **Tailscale mesh.** The only sanctioned path between the 5090 ↔ laptop (the Pi node is retired). Outbound-initiated, identity-pinned. Anything not on the tailnet does not talk to Hermes.
 3. **Telegram chat-id allowlist.** The private command lane accepts commands only from enumerated chat IDs. An unlisted sender gets silence, not an error message (don't confirm the bot's existence). Even allowlisted messages carry at most T2 broker requests; T3/T4 text creates queue entries, not actions.
 4. **SwanStudios app JWT + role.** The outermost ring. Every product write presents a real token to the real API and is subject to the same validation, rate limits, and audit as any user. Hermes being "trusted" upstream buys it nothing here — by design.
 
@@ -77,7 +77,7 @@ Crossing rule: data may flow inward freely (API responses → Hermes memory, wit
 - SwanStudios (Render + Postgres) has zero runtime dependency on Hermes. Clients log workouts, trainers run sessions, payments clear. Hermes is an operator convenience layered *beside* the product, never load-bearing under it.
 - Scheduled automations simply don't fire (kill switches fail closed — `./kill-switches.md`). A missed morning briefing is an inconvenience; a half-executed one would be a bug class. Skipped runs are logged as skipped on restart, not silently backfilled.
 - The approval queue persists on disk; pending T3/T4 items are exactly where Sean left them when the broker returns. No approval is ever inferred from downtime.
-- The Pi relay answers Telegram with a canned "Hermes offline" status (T0) and queues nothing that requires the brain.
+- RETIRED: the Pi relay's canned "Hermes offline" answer went with the Pi — desktop-down = Telegram silence until the P-5 heartbeat deadman ships (7-star gap review).
 - Recovery order: restart broker → broker replays its receipt log to confirm last completed action → resume queue. No automation resumes before the receipt log is consistent.
 
 The test we hold this to: if Hermes vanished permanently tomorrow, SwanStudios revenue, client experience, and data integrity would be untouched. Only Sean's leverage would shrink.

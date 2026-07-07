@@ -12,7 +12,7 @@ This doc holds the *planned* Connections and Cadence build-out so the always-loa
 - Render PostgreSQL (production DB; local dev uses `DATABASE_URL` too).
 - Cloudflare R2 (video/media assets; `frontend/src/config/videoAssets.ts`, `scripts/upload-videos-to-r2.mjs`).
 - `node scripts/consult-gemini.mjs` / `consult-codex.mjs` (CTO design + hostile review).
-- Hermes (Pi+Telegram) bridge — operator/continuity, Sean-only, privacy-gated.
+- Hermes (desktop-5090 + Telegram; Pi RETIRED 2026-07) — operator/continuity, Sean-only, privacy-gated, local Qwen3 fail-closed; live install receipt: FABLE-HERMES-WORKFLOW-UPGRADE/170 §A.
 - Swan Oracle / SerpAPI (`SWAN_ORACLE_API_KEY`) — teaching widgets, intel.
 
 **PLANNED (prioritize when Sean greenlights; each needs its own gated slice):**
