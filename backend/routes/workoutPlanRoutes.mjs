@@ -219,6 +219,24 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
  * @route GET /api/workout-plans/:id
  * @access Trainer/Admin
  */
+/**
+ * @route GET /api/workout-plans/backup/:userId — backup + staleness verdict
+ * (charter v3 P2). MOUNTED BEFORE GET /:id — Rule 31: '/:id' would otherwise
+ * swallow 'backup' as a plan id.
+ */
+router.get('/backup/:userId', protect, trainerOrAdminOnly,
+  verifyClientAccessByUserId({ paramName: 'userId' }),
+  async (req, res) => {
+    try {
+      const { getBackupPlan } = await import('../services/backupPlanService.mjs');
+      const result = await getBackupPlan(parseInt(req.params.userId, 10));
+      return res.json({ success: true, ...result });
+    } catch (error) {
+      logger.error('[WorkoutPlan] backup fetch error: %s', error.message);
+      return res.status(500).json({ success: false, message: 'Failed to load backup plan' });
+    }
+  });
+
 router.get('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
   try {
     // Phase B: middleware attached req.workoutPlan; reuse instead of refetching.
@@ -236,6 +254,56 @@ router.get('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
 // SECTION: POST /api/workout-plans
 // PURPOSE: Create a new workout plan
 // ─────────────────────────────────────────────────────────────
+
+/**
+ * ─── Charter v3 P2: the AI BACKUP PLAN variant ─────────────────────────────
+ * One data-grounded backup per client (deterministic registry pipeline —
+ * real training history, never template filler). Trainer-chosen swap only;
+ * nothing auto-activates.
+ */
+
+/** @route POST /api/workout-plans/backup/:userId/generate — create/refresh (in place) */
+router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,
+  verifyClientAccessByUserId({ paramName: 'userId' }),
+  async (req, res) => {
+    try {
+      const { generateBackupPlan } = await import('../services/backupPlanService.mjs');
+      const { durationWeeks, sessionsPerWeek, primaryGoal, equipmentProfileId } = req.body || {};
+      const result = await generateBackupPlan({
+        userId: parseInt(req.params.userId, 10),
+        trainerId: req.user.id,
+        durationWeeks: Math.min(Math.max(parseInt(durationWeeks, 10) || 4, 1), 52),
+        sessionsPerWeek: Math.min(Math.max(parseInt(sessionsPerWeek, 10) || 3, 1), 7),
+        primaryGoal,
+        equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : null,
+      });
+      return res.status(result.refreshed ? 200 : 201).json({ success: true, ...result });
+    } catch (error) {
+      logger.error('[WorkoutPlan] backup generate error: %s', error.message);
+      return res.status(500).json({ success: false, message: 'Failed to generate backup plan' });
+    }
+  });
+
+/** @route POST /api/workout-plans/:id/promote-backup — THE SWAP (transactional) */
+router.post('/:id/promote-backup', protect, trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  async (req, res) => {
+    try {
+      const { promoteBackupPlan } = await import('../services/backupPlanService.mjs');
+      const result = await promoteBackupPlan({
+        planId: parseInt(req.params.id, 10),
+        trainerId: req.user.id,
+      });
+      return res.json({ success: true, promotedPlanId: result.promoted.id, archivedPlanIds: result.archived });
+    } catch (error) {
+      const status = Number(error?.statusCode) || 500;
+      if (status >= 500) logger.error('[WorkoutPlan] promote-backup error: %s', error.message);
+      return res.status(status).json({
+        success: false,
+        message: status >= 500 ? 'Failed to promote backup plan' : error.message,
+      });
+    }
+  });
 
 /**
  * Create a new workout plan for a client.
