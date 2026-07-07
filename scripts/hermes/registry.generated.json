@@ -143,6 +143,21 @@
       "proposed": false
     },
     {
+      "name": "brain-view",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "rendered page path",
+      "description": "Render the GRAPHICAL command center: the ARMS/Four-C second-brain graph (applications, routines, memory, skills) around the Hermes core, live-lit from local stores, with thought-stream + vitals HUD - static HTML/SVG, zero buttons, no broker path (F-2/SB-2)",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
       "name": "status-page",
       "tier": "T0",
       "approval": "none-logged",

@@ -14,4 +14,5 @@ node scripts\hermes\health-sweep.mjs >> "%LOG%" 2>&1
 node scripts\hermes\receipt-digest.mjs >> "%LOG%" 2>&1
 node scripts\hermes\morning-briefing.mjs >> "%LOG%" 2>&1
 node scripts\hermes\status-page.mjs >> "%LOG%" 2>&1
+node scripts\hermes\brain-view.mjs >> "%LOG%" 2>&1
 echo === chain end %date% %time% >> "%LOG%"

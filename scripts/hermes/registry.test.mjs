@@ -46,7 +46,7 @@ function mutateHealthSweep(cellIndex, value) {
 test('parses the real canon docs into the expected shape', () => {
   const reg = parseRegistryMarkdown(CMD_DOC, SWITCH_DOC);
   assert.equal(reg.schemaVersion, 1);
-  assert.equal(reg.commands.length, 22); // 11 T0 (incl. verify-chain E2, hermes-doctor E4, status-page slice-3 v0) + 3 T1 + 4 T2 + 2 proposed-T2 + 1 T3 + 1 T4
+  assert.equal(reg.commands.length, 23); // 12 T0 (incl. verify-chain E2, hermes-doctor E4, status-page + brain-view slice-3 v0) + 3 T1 + 4 T2 + 2 proposed-T2 + 1 T3 + 1 T4
   assert.equal(reg.denied.length, 5);
   assert.equal(reg.switches.length, 9);
   const hs = reg.commands.find((c) => c.name === 'health-sweep');

@@ -31,9 +31,10 @@ node "%RR%\scripts\hermes\health-sweep.mjs"
 node "%RR%\scripts\hermes\receipt-digest.mjs"
 node "%RR%\scripts\hermes\morning-briefing.mjs"
 
-for /f "delims=" %%p in ('node "%RR%\scripts\hermes\status-page.mjs"') do set "PAGE=%%p"
+node "%RR%\scripts\hermes\status-page.mjs" >nul
+for /f "delims=" %%p in ('node "%RR%\scripts\hermes\brain-view.mjs"') do set "PAGE=%%p"
 if not defined PAGE (
-  echo [!] status page did not render - scroll up for the failing check.
+  echo [!] brain view did not render - scroll up for the failing check.
   pause & exit /b 1
 )
 start "" "%PAGE%"
