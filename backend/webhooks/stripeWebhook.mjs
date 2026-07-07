@@ -706,6 +706,11 @@ async function fulfillPrintOrder(session) {
   const amount = typeof session.amount_total === 'number'
     ? Math.round(session.amount_total) / 100
     : null;
+  // Prodigi (3c) needs a recipient address; capture what Stripe collected. Read across
+  // API-version shapes (shipping_details moved under collected_information in newer versions).
+  const shippingDetails = session.shipping_details
+    || session.collected_information?.shipping_details
+    || null;
 
   let flippedOrder = null;
   let recordedStatus = null;
@@ -774,11 +779,12 @@ async function fulfillPrintOrder(session) {
 
     // Fail-closed capture: pending → paid. No-op if already advanced.
     const [flipped] = await sequelize.query(
-      `UPDATE print_orders SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+      `UPDATE print_orders SET status = 'paid', paid_at = NOW(),
+              shipping_address = :shipping::jsonb, updated_at = NOW()
        WHERE id = :id AND status = 'pending'
        RETURNING id`,
       {
-        replacements: { id: order.id },
+        replacements: { id: order.id, shipping: shippingDetails ? JSON.stringify(shippingDetails) : null },
         type: sequelize.QueryTypes.SELECT,
         transaction: t,
       }
@@ -820,6 +826,19 @@ async function fulfillPrintOrder(session) {
     });
   } catch (notifyErr) {
     logger.warn(`[Print Webhook] Admin notification failed: ${notifyErr.message}`);
+  }
+
+  // Slice 3c: hand the captured order off to the print lab as a SEPARATE, flag-gated step.
+  // The flip is already committed, so a provider failure keeps the order 'paid' (visible +
+  // retryable). Inline flag check + LAZY import so this LIVE payment webhook never
+  // hard-depends on the print modules at load — a print-module fault can't crash payments.
+  if (process.env.PRINT_FULFILLMENT_PRODIGI_ENABLED === 'true') {
+    try {
+      const { submitToProvider } = await import('../services/print/printFulfillmentService.mjs');
+      await submitToProvider(flippedOrder.id, { source: 'stripe_webhook' });
+    } catch (fulfillErr) {
+      logger.warn(`[Print Webhook] Prodigi hand-off error (order stays paid): ${fulfillErr.message}`);
+    }
   }
 }
 

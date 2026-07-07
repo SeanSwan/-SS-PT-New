@@ -1451,6 +1451,27 @@ router.get('/photos/:photoId/original-url', async (req, res) => {
 });
 
 /**
+ * POST /api/admin/gallery/print-orders/:orderId/retry-fulfillment
+ * Manually (re)submit a paid print order to the print lab (Slice 3c). Admin|trainer
+ * gated (inherited). Idempotent + fail-closed via the fulfillment service (a stuck
+ * 'paid' order — provider outage, missing SKU/master — is retryable from the admin view).
+ */
+router.post('/print-orders/:orderId/retry-fulfillment', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.orderId, 10);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid order id' });
+    }
+    const { submitToProvider } = await import('../services/print/printFulfillmentService.mjs');
+    const result = await submitToProvider(orderId, { source: 'admin_retry' });
+    return res.json({ success: !!result.ok, result });
+  } catch (err) {
+    logger.error('[AdminGallery] retry-fulfillment failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Fulfillment retry failed' });
+  }
+});
+
+/**
  * DELETE /api/admin/gallery/photos/:photoId
  * Delete an individual photo from an event
  */

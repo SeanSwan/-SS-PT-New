@@ -162,3 +162,43 @@ Direct **read-only live-DB check** (2026-07-06): **`print_orders` does NOT exist
 - `storeMaster` is per-upload, not per-event → a print gallery uploaded across 2 sessions needs re-ticking; per-event flag is 3d/3f polish.
 - 3b orphan-payment branch 200-acks (see §7.3 ask d); amount cross-check deferred (ask e).
 - `PrintOrder` still not in `associations.mjs` (needed for 3d eager-loads, NOT for 3b's raw-SQL/findByPk path).
+
+---
+
+## 8. SLICE 3c — Prodigi fulfillment (BUILT flag-OFF, 19-hostile-review-HARDENED, UNCOMMITTED)
+
+> **State:** built + hardened through **19 hostile reviews** (2 multi-agent workflow waves + refute passes + manual rounds), each followed by fixes; **65/65 contract tests green**. Same worktree/branch as §7. **UNCOMMITTED.** Sean's decisions: build the scaffold now, **flag-OFF**; free verify + this EOD Codex batch (no paid Village).
+
+### 8.1 Files (all new/changed commit together — Rule 42; stripeWebhook is LIVE)
+**New:** `backend/services/print/{prodigiConfig,prodigiClient,printFulfillmentService}.mjs` · `backend/routes/print/prodigiWebhookRoutes.mjs` · `backend/tests/api/galleryPrintFulfillmentContract.test.mjs`.
+**Modified:** `backend/webhooks/stripeWebhook.mjs` (shipping capture + LAZY flag-gated hand-off) · `backend/routes/galleryRoutes.mjs` (checkout `shipping_address_collection`, removed `commission` from response, PII exclude on `/print-orders`) · `backend/routes/adminGalleryRoutes.mjs` (`POST /print-orders/:id/retry-fulfillment`) · `backend/core/routes.mjs` (mount `/api/print/webhooks`).
+
+### 8.2 Design
+- **Flag-OFF** (`PRINT_FULFILLMENT_PRODIGI_ENABLED`, default off; sandbox `PRODIGI_ENV`). SKU map is placeholders → `resolveProdigiSku` returns null for `REPLACE_ME` → **fail-closed** (never a wrong print).
+- **submitToProvider** (webhook hand-off / admin retry): fail-closed preconditions (no SKU / no shipping / no master → order stays `paid` + admin alert); **atomic + EXCLUSIVE claim** (`paid` immediately; `processing` only if >5min stale → concurrent submits can't double-claim); signed-master asset (3a presigned, 1h); Prodigi `createOrder` with **Idempotency-Key** (belt) + DB CAS (suspenders); on Prodigi-accept-but-write-fail → held at `processing` (NOT reverted — Prodigi has it); reconcile via `getProdigiOrder` on retry.
+- **applyProviderStatus** (Prodigi status webhook, shared-secret **header-only + timingSafeEqual**): idempotent `→ shipped` + tracking (+ tracking backfill on a later callback).
+
+### 8.3 The 11 hostile-review fixes (all applied + test-locked)
+1. Stuck-`processing` recovery **+ 5-min staleness gate** (the gate closes a concurrent double-claim race my own recovery fix first re-opened).
+2. No-revert after Prodigi accepted (`provider_id_write_failed` held at `processing`, never re-charge).
+3. **PII:** exclude `shippingAddress` + `commissionUsd` from `GET /print-orders`.
+4. **Rule-20 sibling:** remove `commission` from the `POST /print-order` checkout response (the fix's missed twin).
+5. Webhook secret **header-only + constant-time** (was a query-param log-leak).
+6. **Boot-safety:** LAZY-import 3c from the LIVE `stripeWebhook` (was static — partial commit / print-module fault could crash all payments).
+7. Shipping capture across Stripe API-version shapes (`shipping_details || collected_information`).
+8. `reconcileFromProvider` wires the previously-dead `getProdigiOrder` + closes a missed-shipped-callback gap.
+9. Tracking backfill after `shipped`.
+10. De-dup Prodigi body parsing into one exported `extractProviderStatus` (Rule 63).
+11. Un-export `PRODIGI_SKU_MAP` (Rule 63 dead export).
+
+### 8.4 Codex EOD review asks
+- Re-attack the **5-min staleness gate**: any remaining concurrent double-submit, or a legit slow order wrongly re-claimed? (submitted orders short-circuit to reconcile before the claim.)
+- The **lazy-import** boot-safety: confirm `core/routes` static mount of `prodigiWebhookRoutes` is the only remaining static print dep, and that Rule-42 commit-together fully covers it.
+- Prodigi **API fidelity** [HYPOTHESIS, TODO-live]: payload shape, status vocabulary (`isShippedStatus` regex), and idempotency same-key⇒same-body semantics — confirm against Prodigi docs when the account exists.
+- Confirm the PII fixes are complete (no third leak surface) and the pre-existing **access-endpoint lateral-visitor** issue (email + shared password mints a token for an existing visitor) is correctly classified pre-existing/out-of-scope.
+
+### 8.5 Residuals (documented, not fixed)
+Pre-existing: access-endpoint lateral impersonation; single-upload raw INSERT omits medium/thumb keys; oversized `adminGalleryRoutes`/`stripeWebhook`. Out-of-3c-scope: presign/confirm upload path doesn't wire `storeMaster`; no admin print-order list (=3d); Prodigi crop (`cropData` ignored until the 3f crop UI). TODO-live: Prodigi status vocab + idempotency-body semantics.
+
+### 8.6 LIVE ACTIVATION checklist (Sean, later)
+Prodigi account → set `PRODIGI_API_KEY` + `PRODIGI_WEBHOOK_SECRET` → fill real SKUs in `PRODIGI_SKU_MAP` → configure Prodigi to send status callbacks to `/api/print/webhooks/prodigi/status` with the `x-prodigi-webhook-secret` header → `PRINT_FULFILLMENT_PRODIGI_ENABLED=true` (sandbox `PRODIGI_ENV` first) → sandbox test end-to-end → `PRODIGI_ENV=live`.

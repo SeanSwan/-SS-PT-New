@@ -1809,6 +1809,9 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
       }],
       success_url: `${baseUrl}/gallery?print=success&orderId=${order.id}`,
       cancel_url: `${baseUrl}/gallery?print=cancelled`,
+      // Prints are physically shipped by the print lab (Slice 3c) — collect a
+      // recipient address. Expand allowed_countries as fulfillment coverage grows.
+      shipping_address_collection: { allowed_countries: ['US', 'CA'] },
       metadata: {
         type: 'print_order',
         orderId: String(order.id),
@@ -1845,7 +1848,8 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
       checkoutUrl: session.url,
       orderId: order.id,
       total: totalPrice,
-      commission,
+      // NOTE: never return `commission` — that is SwanStudios' internal margin (Rule 8),
+      // mirrors the exclude on GET /print-orders.
     });
   } catch (err) {
     logger.error('[Gallery] Print order error:', err.message);
@@ -1861,6 +1865,9 @@ router.get('/print-orders', requireGalleryAccess, async (req, res) => {
   try {
     const orders = await PrintOrder.findAll({
       where: { visitorId: req.galleryAccess.visitorId },
+      // Never echo the recipient's home address (PII — Rule 8; families may include
+      // minors) or SwanStudios' internal margin/payment refs back to the client.
+      attributes: { exclude: ['shippingAddress', 'commissionUsd', 'idempotencyKey', 'stripeSessionId', 'printProviderOrderId'] },
       order: [['createdAt', 'DESC']],
     });
     return res.json({ success: true, orders });

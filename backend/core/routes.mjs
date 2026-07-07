@@ -245,6 +245,7 @@ import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
 
 // ===================== WEBHOOKS =====================
 import stripeWebhookRouter from '../webhooks/stripeWebhook.mjs';
+import prodigiWebhookRouter from '../routes/print/prodigiWebhookRoutes.mjs';
 
 // ===================== MISCELLANEOUS =====================
 import apiRoutes from '../routes/api.mjs';
@@ -691,6 +692,8 @@ export const setupRoutes = async (app) => {
   app.use('/webhooks/stripe', stripeWebhookRouter);
   // Alias: Stripe dashboard is configured to POST /api/webhook/stripe
   app.use('/api/webhook/stripe', stripeWebhookRouter);
+  // Prodigi print-lab status callbacks (Slice 3c) — shared-secret auth inside the router.
+  app.use('/api/print/webhooks', prodigiWebhookRouter);
 
   // ===================== DEVELOPMENT ROUTES =====================
   if (!isProduction) {
