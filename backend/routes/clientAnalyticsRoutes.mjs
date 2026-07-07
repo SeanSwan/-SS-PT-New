@@ -43,6 +43,7 @@ import {
   getMuscleGroupBalanceChart,
   getRecoverySignalChart,
   getEstOneRmTrendChart,
+  getExerciseTimelineChart,
   // Legacy-but-truthful body-composition endpoints (other consumers)
   getWeightProgressionChart,
   getBodyFatTrendChart,
@@ -229,6 +230,11 @@ router.get('/chart-recovery-signal', requireGuardianAnalytics, getRecoverySignal
  * pre-existing consumers (useClientAnalytics gallery) depend on them; gating
  * is a one-line flip here if Sean tightens the tier decision later. */
 router.get('/chart-est-one-rm', requireGuardianAnalytics, getEstOneRmTrendChart);
+
+/** @route GET /api/client/analytics/exercise-timeline?exercise=NAME — the
+ * Workout Rolodex drill (charter v3 4d): per-day heaviest set + set count
+ * for one exercise across the client's full logged history. */
+router.get('/exercise-timeline', requireGuardianAnalytics, getExerciseTimelineChart);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Legacy body-composition chart endpoints (truthful)

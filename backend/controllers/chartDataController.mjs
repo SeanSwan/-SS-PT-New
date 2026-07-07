@@ -919,3 +919,51 @@ export async function getEstOneRmTrendChart(req, res) {
     return sendChartError(res);
   }
 }
+// ─────────────────────────────────────────────────────────────
+// SECTION: 14. Exercise Timeline — the Workout Rolodex drill (charter v3 4d):
+// full per-exercise history for one named exercise — heaviest set, reps at
+// that weight, and set count per training day. Exact-name match against the
+// client's own logs (names come from the exercise-frequency chart, so the
+// lookup is always grounded in real logged spellings).
+// ─────────────────────────────────────────────────────────────
+
+export async function getExerciseTimelineChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const exerciseName = String(req.query.exercise ?? '').trim();
+    if (!exerciseName || exerciseName.length > 120) {
+      return res.status(400).json({ success: false, message: 'exercise query param is required' });
+    }
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `SELECT DISTINCT ON (ws.date::date)
+         TO_CHAR(ws.date::date, 'YYYY-MM-DD') AS day,
+         wl.weight::float AS top_weight,
+         wl.reps::int AS top_reps,
+         (SELECT COUNT(*)::int FROM workout_logs w2
+            WHERE w2."sessionId" = ws.id AND w2."exerciseName" = wl."exerciseName") AS sets
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND wl."exerciseName" = :exerciseName
+       ORDER BY ws.date::date DESC, wl.weight DESC NULLS LAST
+       LIMIT 100`,
+      { userId, exerciseName }, 'getExerciseTimelineChart');
+
+    res.json({
+      success: true,
+      exercise: exerciseName,
+      data: rows.reverse().map(r => ({
+        x: r.day,
+        y: r.top_weight ?? 0,
+        reps: r.top_reps ?? 0,
+        sets: r.sets ?? 0,
+      })),
+    });
+  } catch (error) {
+    console.error('Error getting exercise timeline chart:', error);
+    return sendChartError(res);
+  }
+}

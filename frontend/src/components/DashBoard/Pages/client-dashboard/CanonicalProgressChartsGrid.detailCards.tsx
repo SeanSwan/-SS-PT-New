@@ -4,8 +4,9 @@
  * PURPOSE: Detail and balance chart cards for the canonical progress grid.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { BarChart3, Dumbbell, HeartPulse, Trophy } from 'lucide-react';
+import ExerciseTimelineDrilldown, { RolodexRowTap } from './ExerciseTimelineDrilldown';
 import {
   type CanonicalProgressCharts,
   type ChartPoint,
@@ -72,16 +73,31 @@ export { AnchorLiftsCard, MovementPatternBalanceCard } from './CanonicalProgress
 export const ExerciseFrequencyCard: React.FC<{
   data: CanonicalProgressCharts['exerciseFrequency'];
 }> = ({ data }) => {
+  // 4d Rolodex: tap a ranking row to flip through that exercise's history.
+  const [rolodexExercise, setRolodexExercise] = useState<string | null>(null);
   const fills = useNumericBarWidth(data as ChartPoint[]);
-  const renderBars = () => (
+  const rowContent = (row: CanonicalProgressCharts['exerciseFrequency'][number], i: number) => (
+    <>
+      <BarLabel title={row.x}>{row.x}</BarLabel>
+      <BarTrack>
+        <BarFill $pct={fills[i] ?? 0} $color={CHART_COLORS.arcticCyan} />
+      </BarTrack>
+      <BarValue>{row.y} x {row.sets} sets</BarValue>
+    </>
+  );
+  const renderBars = (tappable = false) => (
     <BarList>
       {data.slice(0, 8).map((row, i) => (
         <BarRow key={row.x}>
-          <BarLabel title={row.x}>{row.x}</BarLabel>
-          <BarTrack>
-            <BarFill $pct={fills[i] ?? 0} $color={CHART_COLORS.arcticCyan} />
-          </BarTrack>
-          <BarValue>{row.y} x {row.sets} sets</BarValue>
+          {tappable ? (
+            <RolodexRowTap
+              type="button"
+              onClick={() => setRolodexExercise(String(row.x))}
+              aria-label={`View full history for ${row.x}`}
+            >
+              {rowContent(row, i)}
+            </RolodexRowTap>
+          ) : rowContent(row, i)}
         </BarRow>
       ))}
     </BarList>
@@ -91,12 +107,12 @@ export const ExerciseFrequencyCard: React.FC<{
       <CardHeader>
         <CardIcon $color={CHART_COLORS.arcticCyan}><Dumbbell size={16} /></CardIcon>
         <CardTitle>Exercise Frequency</CardTitle>
-        <CardSubtitle>top 8 - all time</CardSubtitle>
+        <CardSubtitle>top 8 - tap for history</CardSubtitle>
         <ChartExpandTrigger
           canShareToFeed
           title="Exercise Frequency"
           subtitle="Most-logged exercises, all time"
-          renderChart={renderBars}
+          renderChart={() => renderBars(false)}
           rows={buildExerciseFrequencyRows(data)}
           facts={buildCategoryFacts(data, { unit: 'logs', itemLabel: 'exercises' })}
         />
@@ -109,10 +125,16 @@ export const ExerciseFrequencyCard: React.FC<{
           <ProgressChartInsightBar
             facts={buildCategoryFacts(data, { unit: 'logs', itemLabel: 'exercises' })}
           />
-          {renderBars()}
+          {renderBars(true)}
           </>
         )}
       </ChartBody>
+      {rolodexExercise && (
+        <ExerciseTimelineDrilldown
+          exerciseName={rolodexExercise}
+          onClose={() => setRolodexExercise(null)}
+        />
+      )}
     </ChartCard>
   );
 };
