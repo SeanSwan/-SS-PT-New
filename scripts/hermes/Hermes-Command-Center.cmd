@@ -9,13 +9,17 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
-if not exist "%RR%\scripts\hermes\status-page.mjs" (
+rem Activated = the 6am task exists (not just the runtime folder - a half-finished
+rem activation must resume, caught live 2026-07-07).
+schtasks /Query /TN "HermesOS-Daily" >nul 2>nul
+if errorlevel 1 (
   echo ============================================================
-  echo  FIRST RUN - activating the Hermes Agentic OS...
+  echo  ACTIVATION - setting up the Hermes Agentic OS...
   echo  (key + vault + pinned runtime + 6am task; ~30 seconds)
   echo ============================================================
   powershell -NoProfile -ExecutionPolicy Bypass -File "c:\tmp\hermes-os-activate.ps1"
-  if not exist "%RR%\scripts\hermes\status-page.mjs" (
+  schtasks /Query /TN "HermesOS-Daily" >nul 2>nul
+  if errorlevel 1 (
     echo [!] Activation did not complete - see c:\tmp\hermes-os-activate.out.txt
     pause & exit /b 1
   )
