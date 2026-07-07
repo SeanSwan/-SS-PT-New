@@ -322,7 +322,10 @@ describe('NutritionWorkspace macro summary refresh', () => {
     await user.click(screen.getByRole('tab', { name: /my macros/i }));
     await screen.findByTestId('nutrition-radar');
 
-    expect(mocks.useHydration).toHaveBeenCalledTimes(1);
+    // Intent lock: hydration initializes only AFTER the tab opens. Exact
+    // call-count was brittle — BP02 5.1's adherence fetch legitimately adds a
+    // state-driven re-render of the panel (each render calls the hook once).
+    expect(mocks.useHydration).toHaveBeenCalled();
   });
 
   it('keeps the mounted nutrition workspace modules under the Swan line cap', () => {
