@@ -232,3 +232,14 @@ Prodigi account → set `PRODIGI_API_KEY` + `PRODIGI_WEBHOOK_SECRET` → fill re
 
 ### 9.5 Residuals (documented)
 Refund does not auto-cancel a Prodigi order already in production (admin cancels provider-side separately); list truncates at 200 (pagination = follow-up); manual-fulfillment full ship-to address is not shown in the list row (name + city/state only — a detail view is a follow-up); shared `busyId` cross-order (money-safe, idempotent).
+
+---
+
+## 10. SLICE 3e — Stripe Tax on the print checkout (BUILT, flag-OFF)
+
+> One focused, flag-gated change to `backend/routes/galleryRoutes.mjs` (`POST /print-order`) + `backend/tests/api/galleryPrintTaxContract.test.mjs`. **44/44 tests, node-check clean.**
+- `PRINT_STRIPE_TAX_ENABLED` (default OFF). When ON: `automatic_tax: { enabled: true }` + line-item `tax_behavior: 'exclusive'` + `product_data.tax_code: 'txcd_99999999'` (tangible goods). Stripe computes sales tax from the collected ship-to address (3c's `shipping_address_collection`).
+- **Flag OFF = byte-identical** to the prior checkout (the spreads collapse to `...{}`). It MUST stay off until Stripe Tax is enabled in the dashboard — enabling `automatic_tax` without Stripe Tax active errors checkout.
+- No hardcoded rate (avoids the pre-existing v2PaymentRoutes 8% gotcha) — test-locked.
+- **Codex ask:** confirm the flag-off byte-identity, the tax_code choice for prints, and that `priceUsd`/`commissionUsd` stay pre-tax (tax is added on top + remitted via Stripe Tax).
+- **Live activation (Sean):** enable Stripe Tax in the Stripe dashboard + register for sales tax (CDTFA seller's permit / resale cert for the Prodigi wholesale) → `PRINT_STRIPE_TAX_ENABLED=true`.

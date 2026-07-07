@@ -1793,6 +1793,11 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
       });
     }
 
+    // Slice 3e: Stripe Tax on the print checkout, flag-gated OFF. Enabling automatic_tax
+    // without Stripe Tax active in the dashboard ERRORS checkout — flip
+    // PRINT_STRIPE_TAX_ENABLED only after Stripe Tax + a tax registration are set up.
+    // When off, the spread fields collapse to no-ops (behavior byte-identical to before).
+    const printStripeTaxEnabled = process.env.PRINT_STRIPE_TAX_ENABLED === 'true';
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -1802,8 +1807,12 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
           product_data: {
             name: `${product.label} — ${size}`,
             description: `${photo.displayName || 'Gallery Photo'} printed on ${product.label}`,
+            // Tangible-goods tax classification (only sent when Stripe Tax is on).
+            ...(printStripeTaxEnabled ? { tax_code: 'txcd_99999999' } : {}),
           },
           unit_amount: Math.round(unitPrice * 100),
+          // Tax added on top of the listed price (exclusive) when Stripe Tax is on.
+          ...(printStripeTaxEnabled ? { tax_behavior: 'exclusive' } : {}),
         },
         quantity: qty,
       }],
@@ -1812,6 +1821,8 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
       // Prints are physically shipped by the print lab (Slice 3c) — collect a
       // recipient address. Expand allowed_countries as fulfillment coverage grows.
       shipping_address_collection: { allowed_countries: ['US', 'CA'] },
+      // Stripe Tax computes sales tax from the collected ship-to address (Slice 3e).
+      ...(printStripeTaxEnabled ? { automatic_tax: { enabled: true } } : {}),
       metadata: {
         type: 'print_order',
         orderId: String(order.id),
