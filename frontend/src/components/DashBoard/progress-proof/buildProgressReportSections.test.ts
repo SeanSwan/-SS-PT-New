@@ -19,12 +19,15 @@ const emptyCharts: CanonicalProgressCharts = {
   movementPatternBalance: [],
   muscleGroupBalance: [],
   recoverySignal: [],
+  weightTrend: [],
+  bodyFatTrend: [],
+  estOneRm: { exercise: null, data: [] },
 } as CanonicalProgressCharts;
 
 describe('buildProgressReportSections', () => {
-  it('maps all twelve canonical charts to sections, empty rows for empty charts', () => {
+  it('maps all fifteen canonical charts to sections, empty rows for empty charts', () => {
     const sections = buildProgressReportSections(emptyCharts);
-    expect(sections).toHaveLength(12);
+    expect(sections).toHaveLength(15);
     expect(sections.map((s) => s.title)).toContain('Workout Frequency');
     expect(sections.map((s) => s.title)).toContain('Recovery Signals');
     expect(sections.every((s) => s.rows.length === 0)).toBe(true);

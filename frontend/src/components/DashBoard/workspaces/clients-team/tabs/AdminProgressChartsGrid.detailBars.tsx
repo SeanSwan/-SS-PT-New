@@ -127,6 +127,25 @@ export const AdminMuscleBars: React.FC<{ data: CanonicalProgressCharts['muscleGr
   );
 };
 
+export const AdminTrendLine: React.FC<{ data: Array<{ x: string; y: number }>; color: string } & SizeProps> = ({
+  data,
+  color,
+  width,
+  height = 180,
+}) => (
+  <VictoryChart
+    theme={victoryTheme}
+    height={height}
+    {...(width ? { width } : {})}
+    padding={anchorPadding}
+    containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
+  >
+    <VictoryAxis />
+    <VictoryAxis dependentAxis />
+    <VictoryLine data={data} style={{ data: { stroke: color, strokeWidth: 2 } }} />
+  </VictoryChart>
+);
+
 export const AdminRecoveryBars: React.FC<{ data: RecoverySignalPoint[] }> = ({ data }) => (
   <BarList>
     {data.slice(0, 6).map((row) => {

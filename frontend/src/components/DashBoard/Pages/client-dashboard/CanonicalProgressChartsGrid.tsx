@@ -37,6 +37,11 @@ import {
   WorkoutFrequencyCard,
 } from './CanonicalProgressChartsGrid.primaryCards';
 import {
+  BodyFatTrendCard,
+  EstOneRmTrendCard,
+  WeightTrendCard,
+} from './CanonicalProgressChartsGrid.bodyCards';
+import {
   SetsRepsTrendCard,
   WeeklyVolumeCard,
 } from './CanonicalProgressChartsGrid.interactiveCards';
@@ -100,6 +105,9 @@ const CanonicalProgressChartsGrid: React.FC = () => {
         {isProgressChartVisible(activeLensId, 'movementPatternBalance') && <SafeChart chartName="Movement Pattern Balance">{lockedChartIds.includes('movementPatternBalance') ? <LockedChartCard title="Movement Pattern Balance" /> : <MovementPatternBalanceCard data={charts.movementPatternBalance} />}</SafeChart>}
         {isProgressChartVisible(activeLensId, 'muscleGroupBalance') && <SafeChart chartName="Muscle Group Balance">{lockedChartIds.includes('muscleGroupBalance') ? <LockedChartCard title="Muscle Group Balance" /> : <MuscleGroupBalanceCard data={charts.muscleGroupBalance} />}</SafeChart>}
         {isProgressChartVisible(activeLensId, 'recoverySignal') && <SafeChart chartName="Recovery Signal">{lockedChartIds.includes('recoverySignal') ? <LockedChartCard title="Recovery Signal" /> : <RecoverySignalCard data={charts.recoverySignal} />}</SafeChart>}
+        {isProgressChartVisible(activeLensId, 'weightTrend') && <SafeChart chartName="Weight Trend">{lockedChartIds.includes('weightTrend') ? <LockedChartCard title="Weight Trend" /> : <WeightTrendCard data={charts.weightTrend} />}</SafeChart>}
+        {isProgressChartVisible(activeLensId, 'bodyFatTrend') && <SafeChart chartName="Body Fat Trend">{lockedChartIds.includes('bodyFatTrend') ? <LockedChartCard title="Body Fat Trend" /> : <BodyFatTrendCard data={charts.bodyFatTrend} />}</SafeChart>}
+        {isProgressChartVisible(activeLensId, 'estOneRm') && <SafeChart chartName="Est. 1RM Trend">{lockedChartIds.includes('estOneRm') ? <LockedChartCard title="Est. 1RM Trend" /> : <EstOneRmTrendCard bundle={charts.estOneRm} />}</SafeChart>}
       </GridWrap>
     </div>
   );

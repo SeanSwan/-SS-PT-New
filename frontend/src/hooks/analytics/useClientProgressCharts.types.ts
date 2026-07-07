@@ -19,6 +19,9 @@ export const CANONICAL_CHART_IDS = [
   'movementPatternBalance',
   'muscleGroupBalance',
   'recoverySignal',
+  'weightTrend',
+  'bodyFatTrend',
+  'estOneRm',
 ] as const;
 
 export type CanonicalChartId = typeof CANONICAL_CHART_IDS[number];
@@ -40,6 +43,9 @@ export const CANONICAL_CHART_ROUTES: Record<CanonicalChartId, string> = {
   movementPatternBalance: 'chart-movement-pattern-balance',
   muscleGroupBalance: 'chart-muscle-group-balance',
   recoverySignal: 'chart-recovery-signal',
+  weightTrend: 'chart-weight-progression',
+  bodyFatTrend: 'chart-body-fat-trend',
+  estOneRm: 'chart-est-one-rm',
 };
 
 export interface ChartPoint {
@@ -103,6 +109,12 @@ export interface AnchorLiftsBundle {
   exercises: string[];
 }
 
+export interface EstOneRmBundle {
+  /** The most-logged weighted exercise the series tracks (null = none yet). */
+  exercise: string | null;
+  data: ChartPoint[];
+}
+
 /**
  * Single canonical bundle returned by `useClientProgressCharts`.
  * Every field defaults to an empty array or zeroed object on failure.
@@ -120,4 +132,7 @@ export interface CanonicalProgressCharts {
   movementPatternBalance: MovementPatternPoint[];
   muscleGroupBalance: MuscleGroupPoint[];
   recoverySignal: RecoveryPoint[];
+  weightTrend: ChartPoint[];
+  bodyFatTrend: ChartPoint[];
+  estOneRm: EstOneRmBundle;
 }

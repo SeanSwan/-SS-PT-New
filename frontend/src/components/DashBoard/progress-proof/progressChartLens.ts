@@ -12,6 +12,7 @@ const PROGRESS_CHART_LENS_IDS = [
   'strength',
   'balance',
   'recovery',
+  'body',
 ] as const;
 
 export type ProgressChartLensId = typeof PROGRESS_CHART_LENS_IDS[number];
@@ -27,7 +28,7 @@ export const PROGRESS_CHART_LENSES: readonly ProgressChartLens[] = [
   {
     id: 'all',
     label: 'All',
-    description: 'Full 12-chart proof deck.',
+    description: 'Full 15-chart proof deck.',
     chartIds: [
       'workoutFrequency',
       'attendanceReliability',
@@ -41,6 +42,9 @@ export const PROGRESS_CHART_LENSES: readonly ProgressChartLens[] = [
       'movementPatternBalance',
       'muscleGroupBalance',
       'recoverySignal',
+      'weightTrend',
+      'bodyFatTrend',
+      'estOneRm',
     ],
   },
   {
@@ -53,7 +57,7 @@ export const PROGRESS_CHART_LENSES: readonly ProgressChartLens[] = [
     id: 'strength',
     label: 'Strength',
     description: 'Volume, set/reps work, PRs, and anchor lifts.',
-    chartIds: ['weeklyVolume', 'setsRepsTrend', 'prTimeline', 'anchorLifts', 'exerciseFrequency'],
+    chartIds: ['weeklyVolume', 'setsRepsTrend', 'prTimeline', 'anchorLifts', 'exerciseFrequency', 'estOneRm'],
   },
   {
     id: 'balance',
@@ -66,6 +70,12 @@ export const PROGRESS_CHART_LENSES: readonly ProgressChartLens[] = [
     label: 'Recovery',
     description: 'Effort trend and red-flag recovery signals.',
     chartIds: ['intensityRpeTrend', 'recoverySignal', 'durationTrend'],
+  },
+  {
+    id: 'body',
+    label: 'Body',
+    description: 'Weight, body composition, and top-lift strength estimate.',
+    chartIds: ['weightTrend', 'bodyFatTrend', 'estOneRm'],
   },
 ];
 

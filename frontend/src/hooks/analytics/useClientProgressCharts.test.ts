@@ -65,7 +65,28 @@ const DETAIL_CARDS_SOURCE = readFileSync(
   ),
   'utf8',
 );
-const GRID_CARD_SOURCE = `${GRID_SOURCE}\n${PRIMARY_CARDS_SOURCE}\n${INTERACTIVE_CARDS_SOURCE}\n${DETAIL_CARDS_SOURCE}`;
+const EFFORT_CARD_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.effortCard.tsx',
+  ),
+  'utf8',
+);
+const BALANCE_CARDS_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.balanceCards.tsx',
+  ),
+  'utf8',
+);
+const BODY_CARDS_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.bodyCards.tsx',
+  ),
+  'utf8',
+);
+const GRID_CARD_SOURCE = `${GRID_SOURCE}\n${PRIMARY_CARDS_SOURCE}\n${INTERACTIVE_CARDS_SOURCE}\n${DETAIL_CARDS_SOURCE}\n${EFFORT_CARD_SOURCE}\n${BALANCE_CARDS_SOURCE}\n${BODY_CARDS_SOURCE}`;
 const PAGE_SOURCE = readFileSync(
   resolve(
     __dirname,
@@ -75,8 +96,8 @@ const PAGE_SOURCE = readFileSync(
 );
 
 describe('Phase 14 — canonical chart ID registry', () => {
-  it('exports exactly 12 canonical chart IDs', () => {
-    expect(CANONICAL_CHART_IDS).toHaveLength(12);
+  it('exports exactly 15 canonical chart IDs (12 Phase-14 + 3 charter-v3 4c)', () => {
+    expect(CANONICAL_CHART_IDS).toHaveLength(15);
   });
 
   it('registers the expected canonical IDs in the expected order', () => {
@@ -93,6 +114,9 @@ describe('Phase 14 — canonical chart ID registry', () => {
       'movementPatternBalance',
       'muscleGroupBalance',
       'recoverySignal',
+      'weightTrend',
+      'bodyFatTrend',
+      'estOneRm',
     ]);
   });
 
@@ -219,9 +243,9 @@ describe('Phase 14 — hook fetch contract', () => {
 describe('Phase 14 — CanonicalProgressChartsGrid source contract', () => {
   it('mounts exactly 12 card components', () => {
     // One <SomethingCard ... /> mount per canonical chart.
-    const cardMountPattern = /<(WorkoutFrequency|AttendanceReliability|WeeklyVolume|SetsRepsTrend|DurationTrend|IntensityRpe|PRTimeline|AnchorLifts|ExerciseFrequency|MovementPatternBalance|MuscleGroupBalance|RecoverySignal)Card\b/g;
+    const cardMountPattern = /<(WorkoutFrequency|AttendanceReliability|WeeklyVolume|SetsRepsTrend|DurationTrend|IntensityRpe|PRTimeline|AnchorLifts|ExerciseFrequency|MovementPatternBalance|MuscleGroupBalance|RecoverySignal|WeightTrend|BodyFatTrend|EstOneRmTrend)Card\b/g;
     const mounts = [...GRID_SOURCE.matchAll(cardMountPattern)];
-    expect(mounts).toHaveLength(12);
+    expect(mounts).toHaveLength(15);
   });
 
   it('each card has a stable data-testid for QA locking', () => {
@@ -238,6 +262,9 @@ describe('Phase 14 — CanonicalProgressChartsGrid source contract', () => {
       'chart-card-movementPatternBalance',
       'chart-card-muscleGroupBalance',
       'chart-card-recoverySignal',
+      'chart-card-weightTrend',
+      'chart-card-bodyFatTrend',
+      'chart-card-estOneRm',
     ];
     for (const id of TESTIDS) {
       expect(GRID_CARD_SOURCE).toContain(`data-testid="${id}"`);

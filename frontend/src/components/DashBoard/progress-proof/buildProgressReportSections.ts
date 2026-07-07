@@ -102,4 +102,21 @@ export const buildProgressReportSections = (charts: CanonicalProgressCharts): Pr
     subtitle: 'Exercises flagged by pain notes or redline sets, 90 days',
     rows: buildRecoverySignalRows(charts.recoverySignal),
   },
+  {
+    title: 'Weight Trend',
+    subtitle: 'Body weight from logged measurements',
+    rows: buildUnitSeriesRows(charts.weightTrend, 'lbs', 1),
+  },
+  {
+    title: 'Body Fat Trend',
+    subtitle: 'Body-fat percentage from logged measurements',
+    rows: buildUnitSeriesRows(charts.bodyFatTrend, '%', 1),
+  },
+  {
+    title: 'Est. 1RM Trend',
+    subtitle: charts.estOneRm.exercise
+      ? `Weekly best Brzycki estimate - ${charts.estOneRm.exercise}`
+      : 'Weekly best Brzycki estimate for the top lift',
+    rows: buildUnitSeriesRows(charts.estOneRm.data, 'lbs'),
+  },
 ];

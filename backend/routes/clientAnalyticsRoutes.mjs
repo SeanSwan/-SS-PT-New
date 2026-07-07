@@ -42,6 +42,7 @@ import {
   getMovementPatternBalanceChart,
   getMuscleGroupBalanceChart,
   getRecoverySignalChart,
+  getEstOneRmTrendChart,
   // Legacy-but-truthful body-composition endpoints (other consumers)
   getWeightProgressionChart,
   getBodyFatTrendChart,
@@ -221,6 +222,13 @@ router.get('/chart-muscle-group-balance', requireGuardianAnalytics, getMuscleGro
 
 /** @route GET /api/client/analytics/chart-recovery-signal        (Phase 14 #12) */
 router.get('/chart-recovery-signal', requireGuardianAnalytics, getRecoverySignalChart);
+
+/** @route GET /api/client/analytics/chart-est-one-rm — weekly best Brzycki
+ * est-1RM for the client's most-logged lift (charter v3 4c, Guardian-gated).
+ * NOTE: chart-weight-progression / chart-body-fat-trend below stay UNGATED —
+ * pre-existing consumers (useClientAnalytics gallery) depend on them; gating
+ * is a one-line flip here if Sean tightens the tier decision later. */
+router.get('/chart-est-one-rm', requireGuardianAnalytics, getEstOneRmTrendChart);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Legacy body-composition chart endpoints (truthful)

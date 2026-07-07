@@ -867,3 +867,55 @@ export async function getMuscleRecoveryChart(req, res) {
 export async function getRPEByExerciseChart(req, res) {
   res.json({ success: true, data: {}, deprecated: 'chart-intensity-rpe-trend' });
 }
+// ─────────────────────────────────────────────────────────────
+// SECTION: 13. Est-1RM Trend — weekly best Brzycki estimate for the
+// client's most-logged weighted exercise (charter v3 4c).
+//
+// Formula mirrors services/oneRepMaxService.mjs estimateBrzycki1RM:
+// weight / (1.0278 - 0.0278 * reps), reps clamped to 1..15, capped at
+// the same 1500 lb human ceiling. One exercise per chart keeps the
+// series honest — mixing lifts would fabricate a meaningless line.
+// ─────────────────────────────────────────────────────────────
+
+export async function getEstOneRmTrendChart(req, res) {
+  try {
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const sequelize = req.app.get('sequelize');
+
+    const rows = await safeQuery(sequelize,
+      `WITH target AS (
+         SELECT wl."exerciseName" AS name
+         FROM workout_logs wl
+         JOIN workout_sessions ws ON wl."sessionId" = ws.id
+         WHERE ws."userId" = :userId AND ws.status = 'completed'
+           AND wl.weight > 0 AND wl.reps BETWEEN 1 AND 15
+           AND ws.date >= NOW() - INTERVAL '180 days'
+         GROUP BY wl."exerciseName"
+         ORDER BY COUNT(*) DESC, MAX(wl.weight) DESC
+         LIMIT 1
+       )
+       SELECT
+         TO_CHAR(DATE_TRUNC('week', ws.date), 'MM/DD') AS week,
+         LEAST(MAX(ROUND(wl.weight / (1.0278 - 0.0278 * wl.reps))), 1500)::float AS est,
+         (SELECT name FROM target) AS exercise
+       FROM workout_logs wl
+       JOIN workout_sessions ws ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :userId AND ws.status = 'completed'
+         AND wl."exerciseName" = (SELECT name FROM target)
+         AND wl.weight > 0 AND wl.reps BETWEEN 1 AND 15
+         AND ws.date >= NOW() - INTERVAL '180 days'
+       GROUP BY DATE_TRUNC('week', ws.date)
+       ORDER BY DATE_TRUNC('week', ws.date)`,
+      { userId }, 'getEstOneRmTrendChart');
+
+    res.json({
+      success: true,
+      exercise: rows[0]?.exercise ?? null,
+      data: rows.map(r => ({ x: r.week, y: r.est })),
+    });
+  } catch (error) {
+    console.error('Error getting est-1RM trend chart:', error);
+    return sendChartError(res);
+  }
+}

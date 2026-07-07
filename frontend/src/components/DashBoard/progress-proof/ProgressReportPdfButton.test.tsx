@@ -29,6 +29,9 @@ const charts = {
   movementPatternBalance: [],
   muscleGroupBalance: [],
   recoverySignal: [],
+  weightTrend: [],
+  bodyFatTrend: [],
+  estOneRm: { exercise: null, data: [] },
 } as CanonicalProgressCharts;
 
 describe('ProgressReportPdfButton', () => {
@@ -45,7 +48,7 @@ describe('ProgressReportPdfButton', () => {
     await waitFor(() => expect(mocks.download).toHaveBeenCalledTimes(1));
     const input = mocks.download.mock.calls[0][0];
     expect(input.clientName).toBe('Client FortyTwo');
-    expect(input.sections).toHaveLength(12);
+    expect(input.sections).toHaveLength(15);
     expect(input.sections[0].rows).toEqual([{ id: 'Wk 1', label: 'Wk 1', value: '3 workouts' }]);
   });
 

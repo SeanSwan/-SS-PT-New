@@ -50,11 +50,11 @@ export const buildAttendanceRows = (bundle: AttendanceBundle): ProgressChartDril
 ];
 
 export const buildUnitSeriesRows = (
-  points: Array<{ x: string | number; y: number; source?: string }>,
+  points: Array<{ x: string | number; y: number; source?: string }> | null | undefined,
   unit: string,
   decimals = 0
 ): ProgressChartDrilldownRow[] =>
-  points.map((row) => ({
+  (points ?? []).map((row) => ({
     id: String(row.x),
     label: String(row.x),
     value: `${decimals > 0 ? row.y.toFixed(decimals) : whole(row.y)} ${unit}`.trim(),

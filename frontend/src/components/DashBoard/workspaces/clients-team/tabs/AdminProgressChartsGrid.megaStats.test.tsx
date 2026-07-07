@@ -29,6 +29,9 @@ const charts = {
   recoverySignal: [
     { x: 'Low Back', y: 3, painFlags: 1, highRpeFlags: 2, totalSets: 10 },
   ],
+  weightTrend: [],
+  bodyFatTrend: [],
+  estOneRm: { exercise: null, data: [] },
 };
 
 vi.mock('../../../../../hooks/analytics/useAdminClientProgressCharts', () => ({

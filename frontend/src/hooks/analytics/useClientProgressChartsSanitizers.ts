@@ -123,5 +123,13 @@ export function sanitizeClientProgressChartsBundle(raw: Partial<CanonicalProgres
       highRpeFlags: toFiniteNumber(row.highRpeFlags),
       totalSets: toFiniteNumber(row.totalSets),
     })),
+    weightTrend: points<ChartPoint>(raw.weightTrend),
+    bodyFatTrend: points<ChartPoint>(raw.bodyFatTrend),
+    estOneRm: {
+      exercise: typeof raw.estOneRm?.exercise === 'string' && raw.estOneRm.exercise.trim()
+        ? raw.estOneRm.exercise
+        : null,
+      data: points<ChartPoint>(raw.estOneRm?.data),
+    },
   };
 }

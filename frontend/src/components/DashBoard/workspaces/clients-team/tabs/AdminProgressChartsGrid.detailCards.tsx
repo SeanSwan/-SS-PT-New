@@ -8,13 +8,14 @@
  */
 
 import React from 'react';
-import { BarChart3, Dumbbell, HeartPulse, Target, TrendingUp as TrendIcon, Trophy } from 'lucide-react';
+import { Award, BarChart3, Dumbbell, HeartPulse, Percent, Scale, Target, TrendingUp as TrendIcon, Trophy } from 'lucide-react';
 import type { CanonicalProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import {
   buildAnchorFacts,
   buildCategoryFacts,
   buildPrFacts,
   buildRecoveryFacts,
+  buildSeriesFacts,
 } from '../../../progress-proof/progressChartFacts';
 import ProgressChartInsightBar from '../../../progress-proof/ProgressChartInsightBar';
 import ChartExpandTrigger from '../../../progress-proof/ChartExpandTrigger';
@@ -29,6 +30,7 @@ import {
   buildExerciseFrequencyRows,
   buildNamedValueRows,
   buildRecoverySignalRows,
+  buildUnitSeriesRows,
 } from '../../../Pages/client-dashboard/CanonicalProgressChartsGrid.expandRows';
 import {
   AdminAnchorChart,
@@ -37,6 +39,7 @@ import {
   AdminMuscleBars,
   AdminPrBars,
   AdminRecoveryBars,
+  AdminTrendLine,
 } from './AdminProgressChartsGrid.detailBars';
 import { EmptyState } from './AdminProgressChartsGrid.primaryCards';
 import type { ExerciseFrequencyPoint, RecoverySignalPoint } from './AdminProgressChartsGrid.chartConfig';
@@ -163,6 +166,72 @@ export const AdminProgressDetailCards: React.FC<AdminProgressDetailCardsProps> =
               facts={buildCategoryFacts(charts.muscleGroupBalance, { unit: 'lbs', itemLabel: 'groups' })}
             />
             <AdminMuscleBars data={charts.muscleGroupBalance} />
+          </ChartStack>
+        )}
+      </CardBody>
+    </Card>}
+
+    {isProgressChartVisible(activeLensId, 'weightTrend') && <Card data-testid="admin-chart-weightTrend">
+      <CardHeader>
+        <Scale size={14} color={CHART_COLORS.iceWing} />
+        <CardTitle>Weight Trend</CardTitle>
+        <ChartExpandTrigger
+          title="Weight Trend"
+          subtitle="Body weight from logged measurements"
+          renderChart={(w, h) => <AdminTrendLine data={charts.weightTrend} color={CHART_COLORS.iceWing} width={w} height={h} />}
+          rows={buildUnitSeriesRows(charts.weightTrend, 'lbs', 1)}
+          facts={buildSeriesFacts(charts.weightTrend, { unit: 'lbs', pointsLabel: 'entries', decimals: 1 })}
+        />
+      </CardHeader>
+      <CardBody>
+        {charts.weightTrend.length === 0 ? <EmptyState lead="No weight entries yet" hint="Logged body measurements chart here." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar facts={buildSeriesFacts(charts.weightTrend, { unit: 'lbs', pointsLabel: 'entries', decimals: 1 })} />
+            <AdminTrendLine data={charts.weightTrend} color={CHART_COLORS.iceWing} />
+          </ChartStack>
+        )}
+      </CardBody>
+    </Card>}
+
+    {isProgressChartVisible(activeLensId, 'bodyFatTrend') && <Card data-testid="admin-chart-bodyFatTrend">
+      <CardHeader>
+        <Percent size={14} color={CHART_COLORS.wingPurple} />
+        <CardTitle>Body Fat Trend</CardTitle>
+        <ChartExpandTrigger
+          title="Body Fat Trend"
+          subtitle="Body-fat percentage from logged measurements"
+          renderChart={(w, h) => <AdminTrendLine data={charts.bodyFatTrend} color={CHART_COLORS.wingPurple} width={w} height={h} />}
+          rows={buildUnitSeriesRows(charts.bodyFatTrend, '%', 1)}
+          facts={buildSeriesFacts(charts.bodyFatTrend, { unit: '%', pointsLabel: 'entries', decimals: 1 })}
+        />
+      </CardHeader>
+      <CardBody>
+        {charts.bodyFatTrend.length === 0 ? <EmptyState lead="No body-fat entries yet" hint="Measurements with body-fat percentage appear here." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar facts={buildSeriesFacts(charts.bodyFatTrend, { unit: '%', pointsLabel: 'entries', decimals: 1 })} />
+            <AdminTrendLine data={charts.bodyFatTrend} color={CHART_COLORS.wingPurple} />
+          </ChartStack>
+        )}
+      </CardBody>
+    </Card>}
+
+    {isProgressChartVisible(activeLensId, 'estOneRm') && <Card data-testid="admin-chart-estOneRm">
+      <CardHeader>
+        <Award size={14} color={CHART_COLORS.gildedFern} />
+        <CardTitle>Est. 1RM {charts.estOneRm.exercise ? `- ${charts.estOneRm.exercise}` : ''}</CardTitle>
+        <ChartExpandTrigger
+          title="Est. 1RM Trend"
+          subtitle="Weekly best Brzycki estimate for the top lift"
+          renderChart={(w, h) => <AdminTrendLine data={charts.estOneRm.data} color={CHART_COLORS.gildedFern} width={w} height={h} />}
+          rows={buildUnitSeriesRows(charts.estOneRm.data, 'lbs')}
+          facts={buildSeriesFacts(charts.estOneRm.data, { unit: 'lbs', pointsLabel: 'wks' })}
+        />
+      </CardHeader>
+      <CardBody>
+        {charts.estOneRm.data.length === 0 ? <EmptyState lead="No strength estimate yet" hint="Weighted sets (1-15 reps) build the top-lift estimate." /> : (
+          <ChartStack>
+            <ProgressChartInsightBar facts={buildSeriesFacts(charts.estOneRm.data, { unit: 'lbs', pointsLabel: 'wks' })} />
+            <AdminTrendLine data={charts.estOneRm.data} color={CHART_COLORS.gildedFern} />
           </ChartStack>
         )}
       </CardBody>

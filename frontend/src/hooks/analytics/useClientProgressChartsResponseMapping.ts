@@ -11,6 +11,7 @@ import {
   type AnchorLiftsBundle,
   type AttendanceBundle,
   type CanonicalProgressCharts,
+  type EstOneRmBundle,
   type SetsRepsBundle,
 } from './useClientProgressCharts.types';
 import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
@@ -25,6 +26,8 @@ const EMPTY_SETS_REPS: SetsRepsBundle = { sets: [], reps: [] };
 
 const EMPTY_ANCHOR_LIFTS: AnchorLiftsBundle = { data: {}, exercises: [] };
 
+const EMPTY_EST_ONE_RM: EstOneRmBundle = { exercise: null, data: [] };
+
 export const EMPTY_CANONICAL_PROGRESS_CHARTS: CanonicalProgressCharts = {
   workoutFrequency: [],
   attendanceReliability: EMPTY_ATTENDANCE,
@@ -38,6 +41,9 @@ export const EMPTY_CANONICAL_PROGRESS_CHARTS: CanonicalProgressCharts = {
   movementPatternBalance: [],
   muscleGroupBalance: [],
   recoverySignal: [],
+  weightTrend: [],
+  bodyFatTrend: [],
+  estOneRm: EMPTY_EST_ONE_RM,
 };
 
 const arrayOrEmpty = (value: unknown): any[] => (Array.isArray(value) ? value : []);
@@ -86,6 +92,14 @@ const anchorLiftsFrom = (response: any): AnchorLiftsBundle => {
   };
 };
 
+const estOneRmFrom = (response: any): EstOneRmBundle => {
+  if (!isSuccessResponse(response)) return EMPTY_EST_ONE_RM;
+  return {
+    exercise: typeof response.exercise === 'string' && response.exercise.trim() ? response.exercise : null,
+    data: arrayOrEmpty(response.data),
+  };
+};
+
 export const buildCanonicalProgressChartsFromResponses = (
   responses: any[],
 ): CanonicalProgressCharts => {
@@ -102,6 +116,9 @@ export const buildCanonicalProgressChartsFromResponses = (
     movementPatternRes,
     muscleGroupRes,
     recoveryRes,
+    weightTrendRes,
+    bodyFatTrendRes,
+    estOneRmRes,
   ] = responses;
 
   return sanitizeClientProgressChartsBundle({
@@ -117,6 +134,9 @@ export const buildCanonicalProgressChartsFromResponses = (
     movementPatternBalance: listOrEmpty(movementPatternRes),
     muscleGroupBalance: listOrEmpty(muscleGroupRes),
     recoverySignal: listOrEmpty(recoveryRes),
+    weightTrend: listOrEmpty(weightTrendRes),
+    bodyFatTrend: listOrEmpty(bodyFatTrendRes),
+    estOneRm: estOneRmFrom(estOneRmRes),
   });
 };
 
@@ -137,4 +157,7 @@ export const countNonEmptyCharts = (charts: CanonicalProgressCharts) => ([
   charts.movementPatternBalance,
   charts.muscleGroupBalance,
   charts.recoverySignal,
+  charts.weightTrend,
+  charts.bodyFatTrend,
+  charts.estOneRm.data,
 ].filter((series) => series.length > 0).length);

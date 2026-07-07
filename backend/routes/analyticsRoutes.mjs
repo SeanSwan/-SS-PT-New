@@ -40,6 +40,7 @@ import {
   getMovementPatternBalanceChart,
   getMuscleGroupBalanceChart,
   getRecoverySignalChart,
+  getEstOneRmTrendChart,
   // Legacy-but-truthful body-composition endpoints
   getWeightProgressionChart,
   getBodyFatTrendChart,
@@ -175,6 +176,7 @@ router.get('/:userId/chart-exercise-frequency',       requireTier('pro', 'charts
 router.get('/:userId/chart-movement-pattern-balance', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMovementPatternBalanceChart);
 router.get('/:userId/chart-muscle-group-balance',     requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getMuscleGroupBalanceChart);
 router.get('/:userId/chart-recovery-signal',          requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getRecoverySignalChart);
+router.get('/:userId/chart-est-one-rm',               requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getEstOneRmTrendChart);
 
 // Legacy body-composition (truthful, unchanged)
 router.get('/:userId/chart-weight-progression', requireTier('pro', 'charts.full'), requireOwnershipOrTrainer, getWeightProgressionChart);
