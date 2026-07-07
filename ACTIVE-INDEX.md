@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `AGENTS.md` / `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-06-26 (global AI entrypoint archive indexed; social Try This Workout flow retained)
+**Last updated:** 2026-07-07 (fable-mode skill + Rule 71 landed; Hermes-OS/second-brain consult review indexed)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -23,6 +23,8 @@
 - **Startup router rule:** fresh AI sessions read `AGENTS.md`/`CLAUDE.md`, then this index; keep bulky protocol details linked here instead of copied into startup context.
 - **`docs/ai-workflow/hermes-agentic-os/index.md`** - Hermes Agentic OS map: approval gates, receipts, kill switches, channels, command center
 - **`docs/ai-workflow/design-brain/index.md`** - Design Brain map: design.md (canonical) + design.html mirror, adapters, archetypes, QA gates
+- **`docs/ai-workflow/AI-HANDOFF/HERMES-OS-SECOND-BRAIN-CONSULT-REVIEW-2026-07-07.md`** - consult verdict on the Hermes Agentic OS (finish-first + F-1..F-10 enhancement queue), ARMS/Four-C second-brain verification + SB gaps (deterministic `brain-query` retrieval is the top miss), doc-drift findings, Sean decision queue
+- **`.claude/skills/fable-mode/SKILL.md`** - Rule 71: portable Fable working discipline (five gates) + model/effort routing table; mandatory for fallback Final Deciders
 
 These files are the operating base. Everything else is loaded on-demand.
 

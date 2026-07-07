@@ -64,6 +64,7 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 ## Fable Control Layer (added 2026-07-03 - canonical routing for agents & operators)
 - **Fable usage policy:** when to spend Fable vs Codex/Claude/Hermes/Village -> `docs/ai-workflow/references/FABLE-WORKFLOW-INTEGRATION-SPEC.md`
 - **Fable token-economy / context compression:** startup-visible cost-control rule for bulky Fable context; compact tool output, semantic-compress safe handoffs, query large logs, run the local estimator before image-rendered context, and keep unreviewed API/base-URL proxies blocked -> `docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`
+- **Fable-mode portable discipline + model/effort routing (rule 71):** the Fable method as a loadable skill for fallback Final Deciders (five gates + standing habits) + the cost/intelligence/taste routing table (orchestrator-smart / executor-cheap) for subagent fleets -> `.claude/skills/fable-mode/SKILL.md`; consult review + ARMS/Four-C second-brain gap analysis -> `docs/ai-workflow/AI-HANDOFF/HERMES-OS-SECOND-BRAIN-CONSULT-REVIEW-2026-07-07.md`
 - **Hermes / SwanStudios boundary + T0-T4 command effect tiers** (T0 read; T1 draft; T2 bounded internal write; T3 external-visible; T4 destructive/financial/irreversible; T3/T4 = explicit approval + audit receipt; T4 is human-executed) -> `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`
 - **AI skill & operator registry** (who owns what, at which tier; unregistered command = BLOCKED; deterministic-vs-agentic boundary) -> `docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`
 - **Hermes Agentic OS** (workflow-audit -> skills -> automations -> loops -> memory -> command center -> distribution; approval gates, audit receipts, kill switches, channels, headless runner) -> `docs/ai-workflow/hermes-agentic-os/index.md`
@@ -582,6 +583,8 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
 70. **Batch-Push Cadence — no per-slice deploy waits (MANDATORY)** — Established 2026-07-06 by Sean. (Full text authoritative in CLAUDE.md Rule 70; mirrored so Codex routes the same.) during the Fable vision /loop: "no need to wait that long… go back to back… I would rather just do the work and then push everything at the end. that waiting takes too long." Multi-slice working sessions run **back-to-back**: build slice → run ALL local gates per slice (affected vitest, tsc true-exit from `frontend/`, vite build, `node --check` + import-execution smoke on touched backend modules, Rule 42 audit, secret scan) → **commit per slice locally (explicit paths — clean history, per-slice revertability) → do NOT push → start the next slice immediately.** Push the WHOLE batch once at session/batch end (rebase onto origin/main if it moved, re-verify the rebased tree), which triggers ONE Render deploy, then run ONE §4.9-style deploy verification (backend health + release-marker chunk walk; do the targeted chunk-name hunt — local dist names the chunk, find its reference in the deployed graph — before declaring a marker absent). Waiting/sleeping between slices is justified ONLY when a deploy is actually in flight AND its verification blocks the next decision. Exceptions that still push immediately: production-outage fixes (boot crash, revenue-path down) and anything Sean explicitly asks to ship now. Why: the per-slice push→wait→probe cadence turned most loop ticks into deploy-babysitting and multiplied Render deploys; batching removes the wait and the churn without giving up per-slice gates or verification truth.
 
+71. **Fable-Mode Continuity + Model/Effort Routing (MANDATORY)** — Established 2026-07-07 by Sean. (Full text authoritative in CLAUDE.md Rule 71; mirrored so Codex routes the same.) "You can't keep the model's intelligence, but you can keep its process." (a) **Fable-mode:** `.claude/skills/fable-mode/SKILL.md` = Fable's working discipline as a loadable mode — five gates (scope adversarially → evidence before reasoning → attack your own reasoning → verify before declaring → report calibrated) + standing habits (training memory ≠ current knowledge; implied files may not exist — check; answer first, then at most one question; own mistakes plainly). MANDATORY load for any non-Fable model acting as Final Decider; on-demand for hard problems. Bypasses no gate; does NOT elevate rule-68 provenance (Opus-in-fable-mode is still Opus-tier → quarantine, never the Hermes learning corpus). (b) **Model/effort routing:** pick the cheapest model+effort meeting the task's intelligence/taste bar (table in the skill); smart model scopes + verifies, cheap models (Sonnet/Haiku) execute — verified ≈ same quality at ~3× less cost. Don't default to xhigh/max effort (overthinks routine work); reserve top effort for judge/verify stages and security cores. Rules 12 and 16 still govern.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -810,11 +813,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06, `.claude/skills/` documented count = 22)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` documented count = 23)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 22 entries
+### Default-exposed `.claude/skills/` = 23 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -825,10 +828,11 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (8):**
+**Swan orchestration (9):**
 | Skill | Role |
 |---|---|
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
+| `fable-mode` | Portable Fable working discipline (rule 71). Five gates (scope adversarially / evidence first / attack own reasoning / verify before declaring / report calibrated) + the model/effort routing table (orchestrator-smart, executor-cheap). MANDATORY load for any fallback Final Decider acting in Fable's absence; on-demand for hard problems ("fable mode"). Does NOT elevate rule-68 provenance. |
 | `swan-orchestrator` | Pre-task gate. Enforces rules 15/17/26/32 with a structured checklist before any implementation. Dispatches to the right Swan skill for the task type. |
 | `canonical-surface-audit` | Standardized execution surface for rules 26-31. Produces Canonical Surface Receipt, Surface Classification Table, Schema Cross-Check Artifact, Backend Route Ownership walk. |
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
