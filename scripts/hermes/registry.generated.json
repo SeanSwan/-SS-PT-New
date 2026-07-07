@@ -143,6 +143,21 @@
       "proposed": false
     },
     {
+      "name": "status-page",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "runner"
+      ],
+      "inputs": "`date`",
+      "receipt": "rendered page path",
+      "description": "Render the read-only command-center v0: one static HTML page (switch posture, open queue, anchor level, today's receipts, briefing pointer) from local stores — slice-3 v0, zero buttons, no broker path",
+      "killSwitch": null,
+      "proposed": false
+    },
+    {
       "name": "qa-session-start",
       "tier": "T0",
       "approval": "none-logged",
