@@ -73,6 +73,29 @@ export const buildNamedValueRows = (
     value: `${whole(Number(row.y ?? row.value ?? 0))}${unit ? ` ${unit}` : ''}`,
   }));
 
+export const buildExerciseFrequencyRows = (
+  points: Array<{ x: string; y: number; sets?: number }>
+): ProgressChartDrilldownRow[] =>
+  points.map((row) => ({
+    id: String(row.x),
+    label: String(row.x),
+    value: `${row.y}×`,
+    detail: row.sets != null ? `${row.sets} total sets` : undefined,
+  }));
+
+export const buildRecoverySignalRows = (
+  points: Array<{ x: string; painFlags: number; highRpeFlags: number; totalSets: number }>
+): ProgressChartDrilldownRow[] =>
+  points.map((row) => ({
+    id: String(row.x),
+    label: String(row.x),
+    value: [
+      row.painFlags > 0 ? `${row.painFlags} pain` : null,
+      row.highRpeFlags > 0 ? `${row.highRpeFlags} redline` : null,
+    ].filter(Boolean).join(' · ') || 'clear',
+    detail: `${row.totalSets} sets in window`,
+  }));
+
 type AnchorSeries = { exerciseName: string; points: Array<{ x: string | number; y: number }> };
 
 export const buildAnchorLiftRows = (series: AnchorSeries[]): ProgressChartDrilldownRow[] =>
