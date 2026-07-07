@@ -422,7 +422,6 @@ const EnhancedFooter: React.FC = () => {
         <BottomLinks>
           <SmallFooterLink to="/privacy">Privacy Policy</SmallFooterLink>
           <SmallFooterLink to="/terms">Terms of Service</SmallFooterLink>
-          <SmallFooterLink to="/sitemap">Sitemap</SmallFooterLink>
         </BottomLinks>
 
         <p style={{

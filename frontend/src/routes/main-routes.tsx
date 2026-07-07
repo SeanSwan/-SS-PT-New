@@ -104,6 +104,16 @@ const PublicWaiverPage = lazyLoadWithErrorHandling(
   () => import('../pages/PublicWaiverPage.V2')
 );
 
+// Legal surfaces (launch charter BP04 §6.3 — footer links previously bounced to Home)
+const PrivacyPolicyPage = lazyLoadWithErrorHandling(
+  () => import('../pages/legal/PrivacyPolicyPage'),
+  'Privacy Policy Page'
+);
+const TermsOfServicePage = lazyLoadWithErrorHandling(
+  () => import('../pages/legal/TermsOfServicePage'),
+  'Terms of Service Page'
+);
+
 // Video Library (public) — V3 primary, V2 fallback
 const VideoLibrary = lazyLoadWithErrorHandling(
   () => import('../pages/VideoLibraryV3'),
@@ -403,6 +413,24 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <PublicWaiverPage />
+        </Suspense>
+      )
+    },
+
+    // Legal surfaces (launch gate)
+    {
+      path: 'privacy',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <PrivacyPolicyPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'terms',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <TermsOfServicePage />
         </Suspense>
       )
     },
