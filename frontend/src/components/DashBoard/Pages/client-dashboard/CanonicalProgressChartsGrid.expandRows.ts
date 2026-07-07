@@ -33,3 +33,53 @@ export const buildWorkoutFrequencyRows = (points: FrequencyPoint[]): ProgressCha
     label: String(row.x),
     value: `${row.y} workout${row.y === 1 ? '' : 's'}`,
   }));
+
+/* ── Phase 4b sweep: builders for the remaining canonical cards ── */
+
+type AttendanceBundle = {
+  reliabilityPercent: number;
+  totals: { completed: number; skipped: number; cancelled: number; resolved: number };
+};
+
+export const buildAttendanceRows = (bundle: AttendanceBundle): ProgressChartDrilldownRow[] => [
+  { id: 'show-rate', label: 'Show-rate', value: `${bundle.reliabilityPercent}%` },
+  { id: 'completed', label: 'Completed', value: whole(bundle.totals.completed) },
+  { id: 'skipped', label: 'Skipped', value: whole(bundle.totals.skipped) },
+  { id: 'cancelled', label: 'Cancelled', value: whole(bundle.totals.cancelled) },
+  { id: 'resolved', label: 'Resolved', value: whole(bundle.totals.resolved) },
+];
+
+export const buildUnitSeriesRows = (
+  points: Array<{ x: string | number; y: number; source?: string }>,
+  unit: string,
+  decimals = 0
+): ProgressChartDrilldownRow[] =>
+  points.map((row) => ({
+    id: String(row.x),
+    label: String(row.x),
+    value: `${decimals > 0 ? row.y.toFixed(decimals) : whole(row.y)} ${unit}`.trim(),
+    ...(row.source ? { detail: `Source: ${row.source}` } : {}),
+  }));
+
+type NamedValuePoint = { x?: string | number; label?: string; y?: number; value?: number };
+
+export const buildNamedValueRows = (
+  points: NamedValuePoint[],
+  unit = ''
+): ProgressChartDrilldownRow[] =>
+  points.map((row, index) => ({
+    id: String(row.x ?? row.label ?? index),
+    label: String(row.x ?? row.label ?? `#${index + 1}`),
+    value: `${whole(Number(row.y ?? row.value ?? 0))}${unit ? ` ${unit}` : ''}`,
+  }));
+
+type AnchorSeries = { exerciseName: string; points: Array<{ x: string | number; y: number }> };
+
+export const buildAnchorLiftRows = (series: AnchorSeries[]): ProgressChartDrilldownRow[] =>
+  series.flatMap((lift) =>
+    lift.points.map((point) => ({
+      id: `${lift.exerciseName}-${point.x}`,
+      label: `${lift.exerciseName} — ${point.x}`,
+      value: `${whole(point.y)} lbs`,
+    }))
+  );

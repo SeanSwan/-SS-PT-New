@@ -29,7 +29,7 @@ import {
 } from '../../progress-proof/progressChartFacts';
 import ProgressChartInsightBar from '../../progress-proof/ProgressChartInsightBar';
 import ChartExpandTrigger from '../../progress-proof/ChartExpandTrigger';
-import { buildWorkoutFrequencyRows } from './CanonicalProgressChartsGrid.expandRows';
+import { buildWorkoutFrequencyRows, buildAttendanceRows, buildUnitSeriesRows } from './CanonicalProgressChartsGrid.expandRows';
 import { EmptyCard } from './CanonicalProgressChartsGrid.primitives';
 import {
   durationLineProps,
@@ -132,6 +132,20 @@ export const AttendanceReliabilityCard: React.FC<{
       <CardIcon $color={CHART_COLORS.gildedFern}><Users size={16} /></CardIcon>
       <CardTitle>Attendance Reliability</CardTitle>
       <CardSubtitle>90 days</CardSubtitle>
+      <ChartExpandTrigger
+        canShareToFeed
+        title="Attendance Reliability"
+        subtitle="Booked-session outcomes, last 90 days"
+        renderChart={() => (
+          <RingWrap>
+            <div>
+              <RingNumber>{bundle.reliabilityPercent}%</RingNumber>
+              <RingLabel>Show-rate</RingLabel>
+            </div>
+          </RingWrap>
+        )}
+        rows={buildAttendanceRows(bundle)}
+      />
     </CardHeader>
     <ChartBody>
       {bundle.data.length === 0 ? (
@@ -177,6 +191,33 @@ export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) =>
   // keyboard/touch-reliable path) to open the exact workout behind it.
   const [drillMd, setDrillMd] = React.useState<string | null>(null);
   const latest = data.length > 0 ? String(data[data.length - 1].x) : null;
+  const renderDurationChart = (width?: number, height = 200) => (
+    <VictoryChart
+      theme={victoryTheme as any}
+      height={height}
+      {...(width ? { width } : {})}
+      padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
+    >
+      <VictoryAxis />
+      <VictoryAxis dependentAxis />
+      <VictoryLine data={data} {...durationLineProps} />
+      <VictoryScatter
+        data={data}
+        {...durationScatterProps}
+        labels={({ datum }) => `${datum.x}: ${datum.y}min`}
+        labelComponent={<VictoryTooltip renderInPortal={false} />}
+        events={[{
+          target: 'data',
+          eventHandlers: {
+            onClick: (_event, props) => {
+              setDrillMd(String((props as { datum: ChartPoint }).datum.x));
+              return [];
+            },
+          },
+        }]}
+      />
+    </VictoryChart>
+  );
 
   return (
     <ChartCard data-testid="chart-card-durationTrend">
@@ -184,6 +225,14 @@ export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) =>
         <CardIcon $color={CHART_COLORS.iceWing}><Activity size={16} /></CardIcon>
         <CardTitle>Session Duration</CardTitle>
         <CardSubtitle>minutes - 90 days - tap a point</CardSubtitle>
+        <ChartExpandTrigger
+          canShareToFeed
+          title="Session Duration"
+          subtitle="Minutes per session, last 90 days"
+          renderChart={renderDurationChart}
+          rows={buildUnitSeriesRows(data, 'min')}
+          facts={buildSeriesFacts(data, { unit: 'min', pointsLabel: 'sessions' })}
+        />
       </CardHeader>
       <ChartBody>
         {data.length === 0 ? (
@@ -193,30 +242,7 @@ export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) =>
             <ProgressChartInsightBar
               facts={buildSeriesFacts(data, { unit: 'min', pointsLabel: 'sessions' })}
             />
-            <VictoryChart
-              theme={victoryTheme as any}
-              height={200}
-              padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-            >
-              <VictoryAxis />
-              <VictoryAxis dependentAxis />
-              <VictoryLine data={data} {...durationLineProps} />
-              <VictoryScatter
-                data={data}
-                {...durationScatterProps}
-                labels={({ datum }) => `${datum.x}: ${datum.y}min`}
-                labelComponent={<VictoryTooltip renderInPortal={false} />}
-                events={[{
-                  target: 'data',
-                  eventHandlers: {
-                    onClick: (_event, props) => {
-                      setDrillMd(String((props as { datum: ChartPoint }).datum.x));
-                      return [];
-                    },
-                  },
-                }]}
-              />
-            </VictoryChart>
+            {renderDurationChart()}
             {latest && (
               <DrillTriggerRow>
                 <DrillTriggerButton
@@ -236,44 +262,5 @@ export const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) =>
   );
 };
 
-export const IntensityRpeCard: React.FC<{
-  data: CanonicalProgressCharts['intensityRpeTrend'];
-}> = ({ data }) => (
-  <ChartCard data-testid="chart-card-intensityRpeTrend">
-    <CardHeader>
-      <CardIcon $color={CHART_COLORS.wingPurple}><Flame size={16} /></CardIcon>
-      <CardTitle>Effort Trend</CardTitle>
-      <CardSubtitle>RPE / intensity</CardSubtitle>
-    </CardHeader>
-    <ChartBody>
-      {data.length === 0 ? (
-        <EmptyCard label="No intensity data yet" hint="Add RPE to sets, or rate the session intensity 1-10." />
-      ) : (
-        <>
-          <ProgressChartInsightBar
-            facts={[
-              ...buildSeriesFacts(data, { decimals: 1, pointsLabel: 'wks' }),
-              { id: 'source', label: 'Source', value: describeIntensitySource(data) },
-            ]}
-          />
-          <VictoryChart
-            theme={victoryTheme as any}
-            height={200}
-            padding={{ top: 16, bottom: 40, left: 40, right: 12 }}
-            domain={{ y: [0, 10] }}
-            containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}
-          >
-            <VictoryAxis />
-            <VictoryAxis dependentAxis />
-            <VictoryLine
-              data={data}
-              {...intensityLineProps}
-              labels={({ datum }) => `${datum.x}: ${datum.y} (${datum.source})`}
-              labelComponent={<VictoryTooltip renderInPortal={false} />}
-            />
-          </VictoryChart>
-        </>
-      )}
-    </ChartBody>
-  </ChartCard>
-);
+// Phase 4b extraction (Rule 4): the Effort card lives in its own module.
+export { IntensityRpeCard } from './CanonicalProgressChartsGrid.effortCard';
