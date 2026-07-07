@@ -247,6 +247,14 @@ test('E5/G-8: vault-path evidence that does not exist → refused at create', ()
   assert.ok(readReceipts(root, '2026-07-01').some((r) => /does not resolve/.test(r.outcome)));
 });
 
+test('E5/G-8: existing directories are not valid evidence pointers', () => {
+  const { root, swFile } = freshVault();
+  assert.throws(
+    () => createEntry(root, swFile, { ...T3_REQ, evidence: 'runs/receipts/2026-07' }, NOW),
+    /evidence does not resolve/
+  );
+  assert.ok(readReceipts(root, '2026-07-01').some((r) => /not a file/.test(r.outcome)));
+});
 test('E5/G-8: receipt-id evidence — real id accepted, phantom id refused', () => {
   const { root, swFile } = freshVault();
   const seeded = readReceipts(root, '2026-07-01')[0].id; // R-20260701-001 from the fixture seed

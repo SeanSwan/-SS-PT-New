@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { atomicWriteFileSync } from './spineLib.mjs';
+import { atomicWriteFileSync, verifyChain } from './spineLib.mjs';
 import { loadRegistry } from './registryLib.mjs';
 import { checkSwitches, isoDateOf, vaultPaths, writeReceipt } from './hermesRunsLib.mjs';
 
@@ -32,8 +32,21 @@ export const MAX_ATTEMPTS = 3;               // 1 run + 2 bounded retries, each 
 export const DEMOTE_AFTER = 3;               // consecutive failed RUNS → auto-demote (spec §4)
 
 export const statePath = (vaultRoot) => path.join(vaultRoot, 'runs', 'digests', 'runner-state.json');
+const emptyState = () => ({ handled: {}, fails: {}, demoted: {}, lastTickAt: null });
+const isPlainObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
 export function readState(vaultRoot) {
-  try { return JSON.parse(fs.readFileSync(statePath(vaultRoot), 'utf8')); } catch { return { handled: {}, fails: {}, demoted: {}, lastTickAt: null }; }
+  const file = statePath(vaultRoot);
+  if (!fs.existsSync(file)) return emptyState();
+  let parsed;
+  try { parsed = JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch (err) { throw new Error(`runner state unreadable (${err.message})`); }
+  if (!isPlainObject(parsed)) throw new Error('runner state unreadable (root is not an object)');
+  return {
+    handled: isPlainObject(parsed.handled) ? parsed.handled : {},
+    fails: isPlainObject(parsed.fails) ? parsed.fails : {},
+    demoted: isPlainObject(parsed.demoted) ? parsed.demoted : {},
+    lastTickAt: typeof parsed.lastTickAt === 'string' ? parsed.lastTickAt : null,
+  };
 }
 const saveState = (vaultRoot, st) => atomicWriteFileSync(statePath(vaultRoot), `${JSON.stringify(st, null, 2)}\n`);
 
@@ -77,10 +90,15 @@ export function runnerTick(vaultRoot, switchesFile, { now, execImpl = spawnExec,
   const nowMs = Date.parse(when);
   const isoDate = isoDateOf(when);
   const out = { ran: [], skipped: [], refused: [], demoted: [], halted: false };
-  const st = readState(vaultRoot);
 
   const halt = (why) => { out.halted = true; const e = new Error(`RUNNER HALT: ${why}`); e.runnerHalt = true; throw e; };
   const receipt = (...a) => { try { return rec(vaultRoot, ...a); } catch (err) { halt(`receipt store unwritable (${err.message}) — an unaccountable runner is a stopped runner`); } };
+  let st;
+  try { st = readState(vaultRoot); }
+  catch (err) {
+    receipt('headless-runner', 'T0', when, `failed — runner state unreadable: ${String(err.message).slice(0, 140)} — scheduling halted`, statePath(vaultRoot));
+    halt(`runner state unreadable (${String(err.message).slice(0, 140)})`);
+  }
 
   // Clock discipline (spec §5): a backward jump pauses scheduling, loudly.
   if (st.lastTickAt && Number.isFinite(nowMs) && nowMs < Date.parse(st.lastTickAt) - CLOCK_SKEW_MS) {
@@ -153,12 +171,32 @@ export function runnerTick(vaultRoot, switchesFile, { now, execImpl = spawnExec,
   return out;
 }
 
+function runnerHalt(message) {
+  const err = new Error(`RUNNER HALT: ${message}`);
+  err.runnerHalt = true;
+  return err;
+}
+
+function assertStartupChains(vaultRoot, isoDate) {
+  const { receiptsFile, queueFile } = vaultPaths(vaultRoot, isoDate);
+  const checks = [verifyChain(receiptsFile), verifyChain(queueFile)];
+  const broken = checks.filter((c) => !c.ok);
+  if (broken.length) {
+    const detail = broken.map((b) => `${path.basename(b.file)} L${b.breakAt}: ${b.reason}`).join(' | ');
+    throw runnerHalt(`startup consistency failed — ${detail}`);
+  }
+}
+
 /** Restart consistency (spec §5): receipt store must be provably writable and
  *  today's chain well-formed BEFORE any command executes at boot. */
 export function startupCheck(vaultRoot, isoDate, when) {
-  const r = rec(vaultRoot, 'headless-runner', 'T0', when, 'ok — startup consistency: receipt store writable, resuming schedule', statePath(vaultRoot));
-  const back = fs.readFileSync(vaultPaths(vaultRoot, isoDateOf(when)).receiptsFile, 'utf8').includes(r.id);
-  if (!back) throw new Error('RUNNER HALT: startup receipt did not read back — store untrustworthy');
+  assertStartupChains(vaultRoot, isoDate);
+  const r = rec(vaultRoot, 'headless-runner', 'T0', when, 'ok — startup consistency: receipt+queue chains verified, receipt store writable, resuming schedule', statePath(vaultRoot));
+  const { receiptsFile } = vaultPaths(vaultRoot, isoDateOf(when));
+  const back = fs.readFileSync(receiptsFile, 'utf8').includes(r.id);
+  if (!back) throw runnerHalt('startup receipt did not read back — store untrustworthy');
+  const post = verifyChain(receiptsFile);
+  if (!post.ok) throw runnerHalt(`startup receipt broke the chain — ${path.basename(post.file)} L${post.breakAt}: ${post.reason}`);
   return r.id;
 }
 

@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { ensureLanes, seedSwitches, readReceipts } from './hermesRunsLib.mjs';
+import { ensureLanes, seedSwitches, readReceipts, writeReceipt, vaultPaths } from './hermesRunsLib.mjs';
 import { runnerTick, startupCheck, initSchedule, readState, statePath, GRACE_MS } from './runnerLib.mjs';
 
 process.env.HERMES_ANCHOR_KEY = 'runner-test-key';
@@ -29,6 +29,10 @@ function fresh({ runnerOn = true } = {}) {
 const okExec = () => ({ ok: true, detail: 'exit 0' });
 const failExec = () => ({ ok: false, detail: 'exit 1: boom' });
 const outcomes = (root, cmd) => readReceipts(root, DAY).filter((r) => r.what.startsWith(cmd)).map((r) => r.outcome);
+const seedReceipt = (root, label) => writeReceipt(root, {
+  who: 'test/runner', what: 'health-sweep (T0)', target: `test-${label}`,
+  when: `${DAY}T05:55:00Z`, 'approved-by': 'n/a', outcome: `ok — ${label}`, evidence: 'runner.test',
+});
 
 test('SHIPS DARK: switch off → due slot yields a loud refusal receipt, nothing runs', () => {
   const { root, swFile } = fresh({ runnerOn: false });
@@ -158,6 +162,27 @@ test('startupCheck: writes + reads back its own receipt before any command may r
   assert.match(id, /^R-20260701-/);
 });
 
+test('startupCheck halts on an existing receipt-chain break before writing a startup receipt', () => {
+  const { root } = fresh();
+  seedReceipt(root, 'before');
+  seedReceipt(root, 'after');
+  const file = vaultPaths(root, DAY).receiptsFile;
+  const lines = fs.readFileSync(file, 'utf8').trim().split('\n');
+  const tampered = JSON.parse(lines[0]);
+  tampered.outcome = 'ok — tampered beneath the tail';
+  lines[0] = JSON.stringify(tampered);
+  fs.writeFileSync(file, `${lines.join('\n')}\n`);
+
+  assert.throws(() => startupCheck(root, DAY, `${DAY}T05:59:00Z`), /RUNNER HALT: startup consistency failed/);
+  assert.equal(readReceipts(root, DAY).filter((r) => r.what === 'headless-runner (T0)').length, 0, 'startup must not launder a broken stream with a fresh receipt');
+});
+
+test('corrupt runner-state.json halts loudly instead of silently re-enabling schedule state', () => {
+  const { root, swFile } = fresh();
+  fs.writeFileSync(statePath(root), '{not json');
+  assert.throws(() => runnerTick(root, swFile, { now: AT_SLOT, execImpl: okExec }), /RUNNER HALT: runner state unreadable/);
+  assert.ok(readReceipts(root, DAY).some((r) => /runner state unreadable/.test(r.outcome)));
+});
 test('init-schedule derives the digest-compat scheduled list from enabled entries', () => {
   const { root } = fresh();
   const sched = JSON.parse(fs.readFileSync(path.join(root, 'runs', 'digests', 'schedule.json'), 'utf8'));

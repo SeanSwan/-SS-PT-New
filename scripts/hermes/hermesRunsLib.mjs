@@ -243,6 +243,17 @@ export function readReceipts(vaultRoot, isoDate) {
  *  path that FAILS to resolve is refused upstream (fabricated-evidence defense);
  *  URLs/free text stay allowed (verified: null) — the approval surface renders
  *  those as unverified for Sean's judgment. Never throws. */
+function verifyEvidenceFile(file, label) {
+  try {
+    const st = fs.lstatSync(file);
+    if (st.isSymbolicLink()) return { ok: false, reason: `${label} is a symlink, not a direct evidence file` };
+    if (!st.isFile()) return { ok: false, reason: `${label} is not a file` };
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: `${label} does not exist` };
+  }
+}
+
 export function classifyEvidence(vaultRoot, evidence) {
   const s = String(evidence || '').trim();
   const rid = /^R-(\d{4})(\d{2})(\d{2})-\d{3,}$/.exec(s);
@@ -253,12 +264,13 @@ export function classifyEvidence(vaultRoot, evidence) {
   if (/^https?:\/\//i.test(s)) return { kind: 'url', verified: null };
   if (/^runs[\/]/.test(s)) {
     const p = s.split('#')[0];
-    const ok = fs.existsSync(path.join(vaultRoot, p));
-    return { kind: 'vault-path', verified: ok, ...(ok ? {} : { reason: `vault path ${p} does not exist` }) };
+    const checked = verifyEvidenceFile(path.join(vaultRoot, p), `vault path ${p}`);
+    return { kind: 'vault-path', verified: checked.ok, ...(checked.ok ? {} : { reason: checked.reason }) };
   }
   if (/^([A-Za-z]:[\/]|\/)/.test(s)) {
-    const ok = fs.existsSync(s.split('#')[0]);
-    return { kind: 'path', verified: ok, ...(ok ? {} : { reason: 'path does not exist' }) };
+    const p = s.split('#')[0];
+    const checked = verifyEvidenceFile(p, 'path');
+    return { kind: 'path', verified: checked.ok, ...(checked.ok ? {} : { reason: checked.reason }) };
   }
   return { kind: 'text', verified: null };
 }
