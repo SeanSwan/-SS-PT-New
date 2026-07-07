@@ -38,7 +38,7 @@
  */
 
 import React from 'react';
-import { Sparkles, Info } from 'lucide-react';
+import { Sparkles, Info, AlertTriangle } from 'lucide-react';
 import type { TemplateEntry } from './copilot-types';
 import { OverrideSection, OverrideTextArea } from './copilot-local-styles';
 import {
@@ -90,6 +90,30 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
       Swan Coach will analyze {clientName}&apos;s profile, training history, and NASM assessment
       to draft a personalized workout plan for your review.
     </p>
+
+    {/* Launch P1-7: the backend rejected the first generate for a missing
+        override reason. Without this notice the button appears to "do nothing"
+        on the first click — the two-click consent-override trap. */}
+    {overrideReasonRequired && (
+      <div
+        role="alert"
+        style={{
+          width: '100%', maxWidth: 500,
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          padding: '10px 14px', borderRadius: 8,
+          border: '1px solid rgba(255,170,0,0.4)',
+          background: 'rgba(255,170,0,0.1)',
+          color: '#ffca66', fontSize: '0.85rem', textAlign: 'left',
+        }}
+      >
+        <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <span>
+          A reason is required to override this client&apos;s consent before Swan Coach
+          can generate a draft. Enter your justification below, then click
+          &ldquo;Swan Coach Planning Draft&rdquo; again.
+        </span>
+      </div>
+    )}
 
     {(isAdmin || overrideReasonRequired) && (
       <OverrideSection style={{ width: '100%', maxWidth: 500 }}>
