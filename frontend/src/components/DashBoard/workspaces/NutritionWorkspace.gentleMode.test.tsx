@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import React from 'react';
@@ -92,7 +93,7 @@ describe('NutritionWorkspace Gentle Mode', () => {
 
   it('hides calorie and macro-number surfaces and persists the recovery setting', async () => {
     const user = userEvent.setup();
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     expect(await screen.findByLabelText(/nutrition today diary/i, {}, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText('820')).toBeInTheDocument();
@@ -122,7 +123,7 @@ describe('NutritionWorkspace Gentle Mode', () => {
   it('restores Gentle Mode from local storage on first render', async () => {
     localStorage.setItem('ss-nutrition-gentle-mode', 'true');
 
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     expect(await screen.findByRole('button', { name: /turn gentle mode off/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText('820')).not.toBeInTheDocument();

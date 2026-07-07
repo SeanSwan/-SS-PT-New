@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -85,7 +86,7 @@ describe('NutritionWorkspace Today landing', () => {
   it('defaults to Today and lets the Today panel route into existing tabs', async () => {
     const user = userEvent.setup();
 
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('aria-selected', 'true');
     expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
@@ -101,7 +102,7 @@ describe('NutritionWorkspace Today landing', () => {
     mocks.macroSummary.summary = null;
     mocks.macroSummary.error = 'Macro summary unavailable. Try refreshing your dashboard.';
 
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     const alert = await screen.findByRole('alert', { name: /nutrition totals unavailable/i });
     expect(alert).toHaveTextContent(/Macro summary unavailable/i);
@@ -121,7 +122,7 @@ describe('NutritionWorkspace Today landing', () => {
     };
     mocks.workoutSessions.data = [{ id: 'workout-1', date: '2026-06-20T18:00:00.000Z' }];
 
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     expect(await screen.findByText(/training-day support/i)).toBeInTheDocument();
     expect(screen.getByText(/protein-forward meal and a water check-in/i)).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -91,7 +92,7 @@ describe('NutritionWorkspace Nutrition OS command center', () => {
   });
 
   it('surfaces the unified Today capture actions', async () => {
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     const commandCenter = await screen.findByRole('region', { name: /log food command center/i });
     expect(commandCenter).toBeInTheDocument();
@@ -106,7 +107,7 @@ describe('NutritionWorkspace Nutrition OS command center', () => {
   it('routes restaurant foods into the shared review drawer before saving macros', async () => {
     const user = userEvent.setup();
 
-    render(<NutritionWorkspace />);
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
     await user.click(await screen.findByRole('button', { name: /restaurant/i }));
     await user.click(await screen.findByRole('button', { name: /send restaurant food to review/i }));
