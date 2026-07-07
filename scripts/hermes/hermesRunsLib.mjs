@@ -20,6 +20,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { loadRegistry, getSwitchDefaults, getSwitchInventory } from './registryLib.mjs';
 import { atomicWriteFileSync, chainedAppend, withLock } from './spineLib.mjs';
 
@@ -222,7 +223,20 @@ export function writeReceipt(vaultRoot, receipt) {
 }
 
 export function readReceipts(vaultRoot, isoDate) {
-  return readJsonl(vaultPaths(vaultRoot, isoDate).receiptsFile);
+  const hot = vaultPaths(vaultRoot, isoDate).receiptsFile;
+  if (fs.existsSync(hot)) return readJsonl(hot);
+  // E6/G-16 archive reader: a pruned day answers transparently from its .gz —
+  // the quarterly audit, old --date digests, and receipt-id evidence checks need
+  // no manual gunzip. Corrupt archive = an __unparseable marker (never a throw,
+  // never a silent []) so the digest's integrity section flags it.
+  const rel = path.relative(path.join(vaultRoot, 'runs', 'receipts'), hot);
+  const gz = path.join(vaultRoot, 'runs', 'archive', 'receipts', `${rel}.gz`);
+  if (!fs.existsSync(gz)) return [];
+  try {
+    return zlib.gunzipSync(fs.readFileSync(gz)).toString('utf8').split('\n').filter(Boolean).map((line) => {
+      try { return JSON.parse(line); } catch { return { __unparseable: capText(line, 80) }; }
+    });
+  } catch { return [{ __unparseable: `archived receipts for ${isoDate} unreadable (corrupt .gz)` }]; }
 }
 
 /** E5/G-8: classify + verify CHECKABLE evidence at queue-create. A receipt-id or

@@ -74,3 +74,34 @@ test('lane index.md files are never pruned; SWITCH_MASTER off refuses', () => {
   seedSwitches(swFile, { SWITCH_MASTER: false });
   assert.throws(() => pruneVault(root, swFile, { olderThanDays: 90, now: NOW }), /SWITCH_MASTER/i);
 });
+
+test('E6/G-16: readReceipts answers transparently from the archive after prune', async () => {
+  const { readReceipts, ensureLanes, seedSwitches, writeReceipt } = await import('./hermesRunsLib.mjs');
+  const zlib = (await import('node:zlib')).default;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-arc-'));
+  ensureLanes(root);
+  const day = '2026-03-01';
+  writeReceipt(root, {
+    who: 'hermes/runner', what: 'health-sweep (T0)', target: 'old day', when: `${day}T06:00:00Z`,
+    'approved-by': 'n/a', outcome: 'ok — archived era', evidence: 'runs/logs/x.log',
+  });
+  const hot = path.join(root, 'runs', 'receipts', '2026-03', `receipts-${day}.jsonl`);
+  const dest = path.join(root, 'runs', 'archive', 'receipts', '2026-03', `receipts-${day}.jsonl.gz`);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, zlib.gzipSync(fs.readFileSync(hot)));
+  fs.rmSync(hot); fs.rmSync(`${hot}.head`);
+  const recs = readReceipts(root, day);
+  assert.equal(recs.length, 1);
+  assert.match(recs[0].outcome, /archived era/);
+  // corrupt archive → marker, never a throw or a silent []
+  fs.writeFileSync(dest, Buffer.from('not-gzip'));
+  const bad = readReceipts(root, day);
+  assert.ok(bad[0].__unparseable, 'corrupt .gz surfaces as an __unparseable marker');
+});
+
+test('E6/G-13: design-mirror check parses and the live pair is in sync', async () => {
+  const { checkMirror } = await import('./design-mirror-check.mjs');
+  const out = checkMirror();
+  assert.equal(out.ok, true, `canonical tokens missing from design.html: ${out.missing.join(', ')}`);
+  assert.ok(out.canonical >= 20, 'canonical token extraction found the palette');
+});
