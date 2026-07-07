@@ -1115,7 +1115,7 @@ const SelfEmployedSection: React.FC = () => (
     </SelfEmployedStatusRow>
 
     <BodyText>
-      Why it fits: 26 years NASM-certified Personal Trainer. The program specifically includes
+      Why it fits: 26 years as an NCEP-certified, NASM workshop-trained Personal Trainer. The program specifically includes
       athletic trainers and coaches in its eligible occupations.
     </BodyText>
 

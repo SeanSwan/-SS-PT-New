@@ -89,7 +89,7 @@ const GOLF_PRESETS = {
 // SECTION: Meal Plan Generation
 // ─────────────────────────────────────────────────────────────
 
-const MEAL_PLAN_PROMPT = `You are a NASM-certified sports nutritionist creating a personalized meal plan. Generate a structured daily meal plan based on the user's requirements.
+const MEAL_PLAN_PROMPT = `You are a NASM-protocol sports nutritionist creating a personalized meal plan. Generate a structured daily meal plan based on the user's requirements.
 
 Return ONLY valid JSON with this exact structure:
 {

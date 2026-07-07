@@ -48,7 +48,7 @@ const AboutV4: React.FC = () => {
     <>
       <Helmet>
         <title>About SwanStudios | 25+ Years of Elite Personal Training + Swan Coach Technology</title>
-        <meta name="description" content="Meet Sean Swan — NCEP/NASM-certified trainer with 26 years experience. SwanStudios combines elite personal training with Swan Coach technology for truly personalized fitness." />
+        <meta name="description" content="Meet Sean Swan — NCEP-certified, NASM-protocol trainer with 26 years experience. SwanStudios combines elite personal training with Swan Coach technology for truly personalized fitness." />
       </Helmet>
 
       <ScrollProgress enabled={isFull} />

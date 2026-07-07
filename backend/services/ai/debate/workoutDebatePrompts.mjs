@@ -18,7 +18,7 @@ import { appendSwanCoachPlanningGuidance } from '../../swanCoachPlanningContextS
  * @returns {string}
  */
 export function buildNASMSpecialistPrompt(clientContext) {
-  return appendSwanCoachPlanningGuidance(`You are a NASM-certified personal trainer and exercise scientist specializing in the NASM Optimum Performance Training (OPT) Model. You are designing a workout plan.
+  return appendSwanCoachPlanningGuidance(`You are a NASM-protocol personal trainer and exercise scientist specializing in the NASM Optimum Performance Training (OPT) Model. You are designing a workout plan.
 
 CLIENT PROFILE (de-identified):
 - Alias: ${clientContext.clientAlias}
@@ -164,7 +164,7 @@ export function buildFinalIntegrationPrompt(clientContext, previousRounds) {
     `Round ${i + 1} (${r.role}): ${r.recommendation}\nModifications: ${JSON.stringify(r.modifications || [])}\nConsensus: ${r.consensus || 'N/A'}`
   ).join('\n\n');
 
-  return appendSwanCoachPlanningGuidance(`You are the lead NASM-certified trainer making the final workout plan decision. You have received feedback from a safety reviewer and periodization expert.
+  return appendSwanCoachPlanningGuidance(`You are the lead NASM-protocol trainer making the final workout plan decision. You have received feedback from a safety reviewer and periodization expert.
 
 CLIENT: ${clientContext.clientAlias}
 NASM Phase: ${clientContext.nasmPhase || 1}

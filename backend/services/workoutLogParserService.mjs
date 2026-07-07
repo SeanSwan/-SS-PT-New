@@ -38,7 +38,7 @@ import logger from '../utils/logger.mjs';
 //          continue to work without any shape change.
 // ─────────────────────────────────────────────────────────────
 function buildSystemPrompt(contextBlock) {
-  return `You are a fitness workout log parser for SwanStudios, a NASM-certified personal training platform.
+  return `You are a fitness workout log parser for SwanStudios, a NASM-protocol personal training platform.
 
 Your job: Parse a trainer's voice memo or session notes into a structured workout log JSON.
 

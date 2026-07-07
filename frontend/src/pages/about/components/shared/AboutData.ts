@@ -93,7 +93,7 @@ export const competitiveEdgeCards = [
   {
     title: 'Real Trainer Connection',
     subtitle: 'Not a faceless algorithm',
-    body: 'Direct messaging with NASM-certified trainers who review your form, adjust your programming, and know your injury history. Technology amplifies human coaching — it never replaces it.',
+    body: 'Direct messaging with NASM-protocol trainers who review your form, adjust your programming, and know your injury history. Technology amplifies human coaching — it never replaces it.',
   },
   {
     title: '900+ Exercise Library',

@@ -73,7 +73,7 @@ export async function analyzeForm(imageBuffer, exerciseType = 'general') {
 
   try {
     const base64Image = imageBuffer.toString('base64');
-    const prompt = `You are an expert NASM-certified personal trainer analyzing exercise form from a photo.
+    const prompt = `You are an expert NASM-protocol personal trainer analyzing exercise form from a photo.
 
 Analyze this image and return ONLY valid JSON (no markdown, no code blocks):
 {

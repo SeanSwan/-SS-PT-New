@@ -981,7 +981,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
           <Tag>{getDifficultyLabel(exercise.difficulty)}</Tag>
           <Tag>{exercise.exerciseType}</Tag>
           {exercise.nasmScore && exercise.nasmScore >= 90 && (
-            <Tag>NASM Certified</Tag>
+            <Tag>NASM Protocol</Tag>
           )}
         </CardTags>
         

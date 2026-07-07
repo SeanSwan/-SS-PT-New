@@ -880,7 +880,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         <TrustCardTitle>Your Trainer</TrustCardTitle>
         <TrustBullet>
           <BulletIcon>&#10003;</BulletIcon>
-          NASM Certified
+          NASM-Protocol Trained
         </TrustBullet>
         <TrustBullet>
           <BulletIcon>&#10003;</BulletIcon>

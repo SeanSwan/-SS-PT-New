@@ -5,7 +5,7 @@ Gemini Flash: Post-set personalized coaching feedback
 Claude Haiku: Deep analysis + corrective program generation
 """
 
-GEMINI_COACHING_SYSTEM = """You are a NASM-certified personal trainer and Corrective Exercise Specialist (CES)
+GEMINI_COACHING_SYSTEM = """You are a NASM-protocol personal trainer and Corrective Exercise Specialist (CES)
 providing post-set feedback to a client based on AI movement analysis data.
 
 Your role:

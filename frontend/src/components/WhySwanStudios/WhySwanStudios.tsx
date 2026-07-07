@@ -324,12 +324,12 @@ const COMPARISONS = [
   { feature: 'Progress Tracking', generic: 'No', swan: '50+ Victory charts, 1RM trends, body comp over time' },
   { feature: 'NASM OPT Protocol', generic: 'Generic advice', swan: '5-phase periodization, tempo prescriptions, correct %1RM' },
   { feature: 'Exercise Library', generic: 'Can describe exercises', swan: '900+ exercises with instructions, equipment, difficulty' },
-  { feature: 'Trainer Knowledge', generic: 'Generic AI', swan: 'AI trained on 25+ years of NASM-certified methodology' },
+  { feature: 'Trainer Knowledge', generic: 'Generic AI', swan: 'AI trained on 25+ years of NASM-protocol methodology' },
   { feature: 'Community', generic: 'Zero', swan: 'Social feed, challenges, friends, leaderboards' },
   { feature: 'Gamification', generic: 'Zero', swan: 'XP, badges, 5-tier progression, skill trees, streaks' },
   { feature: 'Persistent History', generic: 'Forgets each chat', swan: 'Remembers every workout, every PR, every trend' },
   { feature: 'Nutrition Tracking', generic: 'Can suggest meals', swan: 'Macro counter with daily tracking and goals' },
-  { feature: 'Trainer Connection', generic: 'None', swan: 'Direct messaging with real NASM-certified trainers' },
+  { feature: 'Trainer Connection', generic: 'None', swan: 'Direct messaging with real NASM-protocol trainers' },
 ];
 
 // ─────────────────────────────────────────────────────────────
