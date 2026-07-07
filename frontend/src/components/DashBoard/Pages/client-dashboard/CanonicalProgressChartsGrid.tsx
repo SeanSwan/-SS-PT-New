@@ -15,6 +15,7 @@ import ProgressChartCube from '../../progress/ProgressChartCube';
 import ProgressChartRecoveryObservatory from '../../progress/ProgressChartRecoveryObservatory';
 import ProgressChartWarRoomBoard from '../../progress/ProgressChartWarRoomBoard';
 import ProgressProofCockpit from '../../progress-proof/ProgressProofCockpit';
+import ProgressReportPdfButton from '../../progress-proof/ProgressReportPdfButton';
 import LockedChartCard from './CanonicalProgressChartsGrid.lockedCard';
 import SafeChart from '../../../Charts/SafeChart';
 import {
@@ -82,6 +83,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
       <SectionHeader>
         <TrendingUp size={13} />
         <span>Progress overview - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
+        <ProgressReportPdfButton charts={charts} />
       </SectionHeader>
       <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />

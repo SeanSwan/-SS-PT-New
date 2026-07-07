@@ -1,0 +1,78 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildProgressReportPdfFile } from './progressReportPdf';
+import type { AutoTableOptions } from '../pdfAutoTable';
+
+const mocks = vi.hoisted(() => ({
+  pdfText: [] as string[],
+  tables: [] as AutoTableOptions[],
+}));
+
+vi.mock('jspdf', () => ({
+  jsPDF: class {
+    internal = { pageSize: { getWidth: () => 210, getHeight: () => 297 } };
+    setFillColor() {}
+    setDrawColor() {}
+    rect() {}
+    line() {}
+    setFont() {}
+    setFontSize() {}
+    setTextColor() {}
+    addPage() {}
+    setPage() {}
+    getNumberOfPages() { return 1; }
+    splitTextToSize(text: string) { return [text]; }
+    text(value: string | string[]) {
+      mocks.pdfText.push(...(Array.isArray(value) ? value : [value]));
+    }
+    output() { return new Blob([mocks.pdfText.join('\n')], { type: 'application/pdf' }); }
+  },
+}));
+
+vi.mock('../pdfAutoTable', () => ({
+  addAutoTable: (_doc: unknown, options: AutoTableOptions) => { mocks.tables.push(options); },
+  getLastAutoTableY: (_doc: unknown, fallbackY: number) => fallbackY + 20,
+}));
+
+describe('progressReportPdf', () => {
+  beforeEach(() => {
+    mocks.pdfText.length = 0;
+    mocks.tables.length = 0;
+  });
+
+  it('renders one branded table per non-empty section and skips empty sections', async () => {
+    const file = await buildProgressReportPdfFile({
+      clientName: 'Client FortyTwo',
+      generatedOnLabel: '7/7/2026',
+      sections: [
+        { title: 'Workout Frequency', rows: [{ label: 'Wk 1', value: '3 workouts' }] },
+        { title: 'Empty Section', rows: [] },
+        {
+          title: 'Recovery Signals',
+          rows: [{ label: 'Squat', value: '1 pain', detail: '12 sets in window' }],
+        },
+      ],
+    });
+
+    expect(file).not.toBeNull();
+    expect(file?.name).toBe('SwanStudios-Progress-Report-Client-FortyTwo.pdf');
+    expect(mocks.pdfText).toContain('SwanStudios');
+    expect(mocks.pdfText).toContain('PROGRESS REPORT');
+    expect(mocks.pdfText).toContain('Workout Frequency');
+    expect(mocks.pdfText).not.toContain('Empty Section');
+    expect(mocks.tables).toHaveLength(2);
+    // Detail column appears only when a section has detail on some row.
+    expect(mocks.tables[0].head).toEqual([['', 'Value']]);
+    expect(mocks.tables[1].head).toEqual([['', 'Value', 'Detail']]);
+    expect(mocks.tables[1].body).toEqual([['Squat', '1 pain', '12 sets in window']]);
+  });
+
+  it('states the honest empty condition when nothing is logged yet', async () => {
+    await buildProgressReportPdfFile({
+      clientName: 'New Client',
+      generatedOnLabel: '7/7/2026',
+      sections: [{ title: 'Workout Frequency', rows: [] }],
+    });
+    expect(mocks.tables).toHaveLength(0);
+    expect(mocks.pdfText.join(' ')).toContain('No logged training data in this window yet');
+  });
+});

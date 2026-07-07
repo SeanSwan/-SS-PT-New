@@ -296,5 +296,4 @@ const WorkoutPlannerPage: React.FC = () => {
     onSavePdf: handlePlanPdfSave, onUploadPdf: handlePlanPdfUpload, onClosePdfDialog: closePlanPdfDialog, onClose: closeConfirmDialog,
   }} />;
 };
-
 export default WorkoutPlannerPage;

@@ -9,6 +9,7 @@ import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
 import ProgressProofCockpit from '../../../progress-proof/ProgressProofCockpit';
+import ProgressReportPdfButton from '../../../progress-proof/ProgressReportPdfButton';
 import type { ProgressChartLensId } from '../../../progress-proof/progressChartLens';
 import AdminBodyCompPanel from './AdminBodyCompPanel';
 import { AdminProgressChartDeck } from './AdminProgressChartsGrid.cards';
@@ -59,6 +60,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
       <SummaryLine>
         <TrendingUp size={13} />
         <span>{clientName} - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
+        <ProgressReportPdfButton charts={charts} clientName={clientName} />
       </SummaryLine>
       <ProgressChartCube
         charts={charts}
