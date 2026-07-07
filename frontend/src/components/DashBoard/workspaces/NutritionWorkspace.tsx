@@ -4,6 +4,7 @@
  * HOW IT FITS: UniversalDashboardLayout -> role /meal-planner route -> NutritionWorkspace.
  */
 import React, { useCallback, useState, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
@@ -65,6 +66,7 @@ const VoiceNutritionPanel = lazy(() => import('../../FoodTracker/VoiceNutritionP
 const NutritionTodayPanel = lazy(() => import('./NutritionTodayPanel'));
 
 const NutritionWorkspace: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
   const [reviewDraft, setReviewDraft] = useState<NutritionEntryDraft | null>(null);
@@ -111,12 +113,14 @@ const NutritionWorkspace: React.FC = () => {
       restaurant: 'restaurant',
     };
     if (command === 'scan') {
-      window.location.href = '/food-scanner';
+      // BP02 5.3: SPA navigation — the old full-page reload dropped auth
+      // context and re-downloaded the bundle on every scan tap.
+      navigate('/food-scanner');
       return;
     }
     const nextTab = tabByCommand[command];
     if (nextTab) setActiveTab(nextTab);
-  }, []);
+  }, [navigate]);
 
   const macroUnavailablePanel = macroError ? (
     <MacroHiddenPanel role="alert" aria-live="assertive" aria-label="Nutrition totals unavailable">
