@@ -39,7 +39,6 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
-import { applyDailyWorkoutFormChallengeProgress } from '../services/gamification/challengeWorkoutCompletionBridge.mjs';
 import { buildChallengeProgressImpactReceipt } from '../services/gamification/challengeProgressImpactReceipt.mjs';
 import { buildWorkoutSessionBillingDecision, normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
@@ -1156,6 +1155,11 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
     let challengeProgress = buildChallengeProgressImpactReceipt();
     try {
+      // Lazy import: the bridge chains to GamificationPointsService, which
+      // defines Sequelize models at module load — a static import here
+      // collection-kills any route test that mocks database.mjs.
+      const { applyDailyWorkoutFormChallengeProgress } =
+        await import('../services/gamification/challengeWorkoutCompletionBridge.mjs');
       const challengeExercises = formData?.exercises || [];
       const challengeProgressResult = await applyDailyWorkoutFormChallengeProgress({
         sequelize,
