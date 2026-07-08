@@ -37,10 +37,12 @@ const walk = (dir: string, hits: string[]): void => {
 };
 
 describe('credential phrasing lock', () => {
+  // The full-tree fs walk takes 3.5-6s on Windows depending on disk cache;
+  // the 5s default timeout false-reds under parallel suite load.
   it('no source file claims "NASM-certified" (frontend src + backend services/routes/controllers)', () => {
     const hits: string[] = [];
     walk(FRONTEND_SRC, hits);
     for (const dir of BACKEND_DIRS) walk(dir, hits);
     expect(hits).toEqual([]);
-  });
+  }, 30000);
 });
