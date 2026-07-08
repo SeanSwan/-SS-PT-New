@@ -200,6 +200,18 @@ const MacroChartsPanel: React.FC<MacroChartsPanelProps> = ({ summary, loading, g
           </SoftNote>
         </AdherencePanel>
       )}
+      {adherence.status === 'loading' && (
+        <AdherencePanel aria-label="Checking your nutrition targets">
+          <AdherenceTitle>Today vs your targets</AdherenceTitle>
+          <SoftNote>Checking your targets…</SoftNote>
+        </AdherencePanel>
+      )}
+      {adherence.status === 'error' && (
+        <AdherencePanel aria-label="Nutrition targets unavailable">
+          <AdherenceTitle>Today vs your targets</AdherenceTitle>
+          <SoftNote>Couldn&apos;t load your targets right now — they&apos;ll be back on the next refresh.</SoftNote>
+        </AdherencePanel>
+      )}
       <MacroDonut
         protein={summary?.totalProtein}
         carbs={summary?.totalCarbs}
