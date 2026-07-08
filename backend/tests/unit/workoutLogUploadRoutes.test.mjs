@@ -209,16 +209,20 @@ describe('workoutLogUploadRoutes — route mount + middleware chain', () => {
     expect(layer).toBeTruthy();
   });
 
-  it('POST /upload requires authenticated admin or trainer', () => {
-    // router.use(protect) is applied at the router level, and the
-    // /upload route itself adds authorize(['admin','trainer']). The
-    // `protect` function's name IS introspectable; the `authorize`
-    // function returns an anonymous closure with no .name, so we
+  it('POST /upload allows admin/trainer/client/user roles with in-handler scope enforcement (3c.3)', () => {
+    // router.use(protect) is applied at the router level. Launch 3c.3
+    // un-gated /upload for client voice logging: the route-level
+    // authorize now admits client/user too, and per-caller authority is
+    // enforced INSIDE the handler by resolveVoiceUploadScope (clients
+    // may only upload for themselves — 403 on any other clientId; see
+    // tests/api/workoutLogUploadSelfAccess.test.mjs for the IDOR suite).
+    // `authorize` returns an anonymous closure with no .name, so we
     // lock its presence via source-text match instead (same pattern
     // as bodyMeasurementWriterChain.test.mjs).
     expect(routeSource).toMatch(
-      /router\.post\(\s*['"]\/upload['"][\s\S]{0,200}authorize\(\[['"]admin['"],\s*['"]trainer['"]\]\)/,
+      /router\.post\(\s*['"]\/upload['"][\s\S]{0,200}authorize\(\[['"]admin['"],\s*['"]trainer['"],\s*['"]client['"],\s*['"]user['"]\]\)/,
     );
+    expect(routeSource).toMatch(/resolveVoiceUploadScope\(\{/);
   });
 
   it('router-level protect middleware is still applied', () => {
