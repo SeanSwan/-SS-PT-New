@@ -123,6 +123,14 @@ describe('integrity rails', () => {
     expect(pr).toMatch(/achievedAt/);
   });
 
+  it('the adapter challenge step honors suppression (backfill never moves live challenges)', () => {
+    // Challenge events stamp submittedAt (today), not the backdated workout
+    // date — an ungated 60-session backfill would instantly complete active
+    // challenges. AD-2 review catch.
+    const adapter = read('../../services/workout/aiWorkoutDailyFormService.mjs');
+    expect(adapter).toMatch(/sourcePolicy\.suppressEngagementSideEffects\s*\n?\s*\?\s*\{ status: 'suppressed_historical'/);
+  });
+
   it('commit requires attestation and undo deletes in FK-safe order', () => {
     const service = read('../../services/workout/historyBackfillService.mjs');
     expect(service).toMatch(/attestation/);

@@ -237,10 +237,17 @@ export async function submitAiWorkoutLogAsDailyForm({
       availableSessionsBeforeSave,
     });
     await transaction.commit();
-    const challengeProgress = await applyAiWorkoutChallengeProgress({
-      sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
-      workoutDateIso, estimatedDuration, exercises: normalizedExercises,
-    });
+    // Charter v3 H rail: historical/backfilled sessions never move live
+    // challenges — their events would stamp submittedAt (today), not the
+    // backdated workout date, so a 60-session backfill would instantly
+    // complete active challenges. PLAUD-applied live sessions keep
+    // challenge progress (suppressEngagementSideEffects is false there).
+    const challengeProgress = sourcePolicy.suppressEngagementSideEffects
+      ? { status: 'suppressed_historical', updatedCount: 0, skippedCount: 0, headline: null, updates: [] }
+      : await applyAiWorkoutChallengeProgress({
+        sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
+        workoutDateIso, estimatedDuration, exercises: normalizedExercises,
+      });
     // Phase 1.1a: every unified-lane write feeds streaks/levels identically.
     const xp = await runWorkoutXpAwardStep({
       sequelize,
