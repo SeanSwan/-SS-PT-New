@@ -236,12 +236,19 @@ export async function commitBackfill({ userId, trainerId, days, attestation, gro
 }
 
 /** Undo a run: delete workout_logs → workout_sessions → daily_workout_forms. */
-export async function undoBackfillRun({ runId, trainerId }) {
+export async function undoBackfillRun({ runId, trainerId, assertAccess = null }) {
   const run = await getHistoryBackfillRun().findByPk(runId);
   if (!run) {
     const err = new Error('Backfill run not found');
     err.statusCode = 404;
     throw err;
+  }
+  // Coach↔client pairing check on the run's OWN client before we delete
+  // anything — run ids are sequential, so this closes cross-coach undo.
+  // assertAccess(userId) resolves when allowed and throws a statusCode error
+  // otherwise; the route supplies it so request/pairing logic stays there.
+  if (typeof assertAccess === 'function') {
+    await assertAccess(run.userId);
   }
   if (run.undoneAt) {
     const err = new Error('This backfill run was already undone');

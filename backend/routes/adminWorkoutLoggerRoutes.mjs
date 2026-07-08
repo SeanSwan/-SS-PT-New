@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { logWorkout, getClientWorkouts, editWorkout, deleteWorkoutLog } from '../controllers/adminWorkoutLoggerController.mjs';
+import { ensureClientAccess } from '../utils/clientAccess.mjs';
 
 const router = express.Router();
 
@@ -14,6 +15,12 @@ router.use(authorize(['admin', 'trainer']));
  */
 router.post('/clients/:clientId/workouts/backfill/preview', async (req, res) => {
   try {
+    // Same coach↔client pairing check the sibling log/edit routes use — a
+    // coach only previews backfill for a client they're actually paired with.
+    const access = await ensureClientAccess(req, req.params.clientId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
     const { buildBackfillPreview } = await import('../services/workout/historyBackfillService.mjs');
     const { startDate, endDate, sessionsPerWeek, dominantExercises, breaks } = req.body || {};
     if (!startDate || !endDate) {
@@ -36,6 +43,11 @@ router.post('/clients/:clientId/workouts/backfill/preview', async (req, res) => 
 
 router.post('/clients/:clientId/workouts/backfill/commit', async (req, res) => {
   try {
+    // Commit WRITES sessions — re-check the pairing before persisting anything.
+    const access = await ensureClientAccess(req, req.params.clientId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
     const { commitBackfill } = await import('../services/workout/historyBackfillService.mjs');
     const { days, attestation, grounding } = req.body || {};
     const result = await commitBackfill({
@@ -61,6 +73,16 @@ router.post('/backfill-runs/:runId/undo', async (req, res) => {
     const result = await undoBackfillRun({
       runId: parseInt(req.params.runId, 10),
       trainerId: req.user.id,
+      // The run stores which client it backfilled; only a coach paired with
+      // THAT client may undo it (run ids are sequential/enumerable).
+      assertAccess: async (clientUserId) => {
+        const access = await ensureClientAccess(req, clientUserId);
+        if (!access.allowed) {
+          const err = new Error(access.message);
+          err.statusCode = access.status;
+          throw err;
+        }
+      },
     });
     return res.json({ success: true, ...result });
   } catch (error) {
