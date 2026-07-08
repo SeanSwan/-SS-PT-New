@@ -55,8 +55,12 @@ function classifyDeterministicClientReadIntent(trimmed) {
   match = new RegExp(`^(?:show|view|pull\\s+up|open)\\s+(?:profile\\s+for\\s+)?${CLIENT_REF_PATTERN}(?:'s)?\\s+(?:profile|client\\s+profile)$`, 'i').exec(trimmed);
   if (match) return clientIntent('view_client_profile', match[1]);
 
-  match = new RegExp(`^(?:what\\s+did|show|view)\\s+${CLIENT_REF_PATTERN}(?:\\s+do)?\\s+(?:last\\s+(?:workout|session)|previous\\s+(?:workout|session))$`, 'i').exec(trimmed);
-  if (match) return clientIntent('view_last_workout', match[1]);
+  // "what did <name> do …" requires the "do" AFTER the name — with an
+  // optional (?:\s+do)? the greedy name pattern (its class includes spaces)
+  // swallowed the word: clientRef "Ava Stone do". Split alternation keeps
+  // "show/view <name> last workout" working without the trap.
+  match = new RegExp(`^(?:what\\s+did\\s+${CLIENT_REF_PATTERN}\\s+do|(?:show|view)\\s+${CLIENT_REF_PATTERN})\\s+(?:last\\s+(?:workout|session)|previous\\s+(?:workout|session))$`, 'i').exec(trimmed);
+  if (match) return clientIntent('view_last_workout', match[1] ?? match[2]);
 
   if (/^(?:what\s+did\s+we\s+do\s+last\s+time|show\s+last\s+workout|view\s+last\s+session)$/i.test(trimmed)) {
     return fixedIntent('view_last_workout');
