@@ -28,7 +28,7 @@ import {
   shouldScrollPlaudReview,
   toggleBoolean,
 } from './CoachCommandCenter.logic';
-import { buildChatRouteRequestContext, buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
+import { buildChatRouteRequestContext, buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildTeachPromptRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 import { useCoachCommandCenterPendingFood } from './hooks/useCoachCommandCenterPendingFood';
 import type { DrawerSide } from './CoachCommandCenter.types';
@@ -124,14 +124,7 @@ export function useCoachCommandCenterController({
   const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
     () => routeTeachPrompt
-      ? {
-        prompt: routeTeachPrompt,
-        status: routeIntent === 'trainer_daily_command'
-          ? 'Trainer day command context loaded'
-          : routeIntent === 'plan_review'
-            ? 'Build Plan review context loaded'
-            : 'Coach route prompt loaded',
-      }
+      ? buildTeachPromptRouteContext(routeTeachPrompt, routeIntent)
       : buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
     [routeClientLabel, routeIntent, routeTeachPrompt, scheduledSessionContext],
   );
@@ -236,7 +229,6 @@ export function useCoachCommandCenterController({
     searchKey,
     plaudReviewRef,
   );
-
 
   return {
     activeIntakeId: searchParams.get('intake'),

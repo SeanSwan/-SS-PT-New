@@ -172,4 +172,4 @@ export function buildThreadSelectionSearchParams(
 }
 
 export type { RouteContextCopy } from './CoachCommandCenter.routeCopy';
-export { buildEffectiveRouteContext, buildRouteContext, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeCopy';
+export { buildEffectiveRouteContext, buildRouteContext, buildTeachPromptRouteContext, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeCopy';

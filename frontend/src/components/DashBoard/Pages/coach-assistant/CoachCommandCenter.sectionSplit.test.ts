@@ -57,7 +57,10 @@ describe('CoachCommandCenter section split', () => {
 
     SECTION_FILES.forEach((fileName) => {
       expect(
-        readCoachFile(fileName).split(/\r?\n/).length,
+        // trimEnd: the raw split counts the phantom empty string after the
+        // trailing newline, failing files at EXACTLY the 300 cap (house
+        // counter pattern, see WorkoutLogger *.typeContract tests).
+        readCoachFile(fileName).trimEnd().split(/\r?\n/).length,
         `${fileName} should stay within the project file-size cap`,
       ).toBeLessThanOrEqual(300);
     });

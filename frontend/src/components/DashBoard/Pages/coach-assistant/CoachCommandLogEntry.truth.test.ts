@@ -57,7 +57,10 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
       ['CoachCommandLogEntry.types.ts', typesSource],
     ].forEach(([fileName, source]) => {
       expect(
-        source.split(/\r?\n/).length,
+        // trimEnd: the raw split counts the phantom empty string after the
+        // trailing newline, failing files at EXACTLY the 300 cap (house
+        // counter pattern, see WorkoutLogger *.typeContract tests).
+        source.trimEnd().split(/\r?\n/).length,
         `${fileName} should stay within the project file-size cap`,
       ).toBeLessThanOrEqual(300);
     });

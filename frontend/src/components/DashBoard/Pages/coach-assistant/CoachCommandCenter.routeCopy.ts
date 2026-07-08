@@ -149,6 +149,21 @@ export function buildRouteContext(
     : EMPTY_ROUTE_CONTEXT;
 }
 
+/** Route context when a teach prompt rides the URL: the prompt IS the context. */
+export function buildTeachPromptRouteContext(
+  routeTeachPrompt: string,
+  routeIntent: string | null,
+): RouteContextCopy {
+  return {
+    prompt: routeTeachPrompt,
+    status: routeIntent === 'trainer_daily_command'
+      ? 'Trainer day command context loaded'
+      : routeIntent === 'plan_review'
+        ? 'Build Plan review context loaded'
+        : 'Coach route prompt loaded',
+  };
+}
+
 const HISTORICAL_IMPORT_DRAFT_KEY = /^swan-historical-import-[1-9]\d*-\d+$/;
 
 function safeSessionStorageItem(key: string): string | null {
