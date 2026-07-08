@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildGoalTrackingData } from '../../services/clientProgress/goalTrackingReadModel.mjs';
 
+// The active goal's forward-looking dates are RELATIVE to the test run —
+// hardcoded deadlines turned into time bombs (a '2026-07-01' deadline made
+// this suite start failing on 2026-07-02 with the goal counted overdue).
+const daysFromNow = (days) => new Date(Date.now() + days * 86_400_000).toISOString();
+
 describe('client progress goal tracking builder', () => {
   it('maps real Goal rows into trainer goal tracking data without seeded stories', () => {
     const result = buildGoalTrackingData({
@@ -15,9 +20,9 @@ describe('client progress goal tracking builder', () => {
           currentValue: 20,
           targetValue: 50,
           unit: 'reps',
-          startDate: '2026-01-01T00:00:00.000Z',
-          deadline: '2026-07-01T00:00:00.000Z',
-          estimatedCompletionDate: '2026-06-15T00:00:00.000Z',
+          startDate: daysFromNow(-180),
+          deadline: daysFromNow(30),
+          estimatedCompletionDate: daysFromNow(20),
           confidenceLevel: 8,
           averageProgressPerWeek: 4,
           milestones: [

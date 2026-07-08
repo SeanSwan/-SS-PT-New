@@ -42,7 +42,9 @@ describe('goal command dispatchers', () => {
           title: 'Private goal text',
           status: 'active',
           progressPercentage: 40,
-          deadline: '2026-07-01T00:00:00.000Z',
+          // Relative deadline: a hardcoded '2026-07-01' became a time bomb —
+          // the goal counted overdue once the calendar passed it.
+          deadline: new Date(Date.now() + 30 * 86_400_000).toISOString(),
         },
         {
           id: 'goal-2',
