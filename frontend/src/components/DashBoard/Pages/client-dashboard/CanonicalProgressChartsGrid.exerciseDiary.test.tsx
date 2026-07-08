@@ -39,12 +39,18 @@ vi.mock('../../../../hooks/analytics/useClientProgressCharts', () => ({
       movementPatternBalance: [],
       muscleGroupBalance: [],
       recoverySignal: [],
+      // 4c body-lens cards (deck 12 → 15).
+      weightTrend: [],
+      bodyFatTrend: [],
+      estOneRm: { exercise: null, data: [] },
     },
     isLoading: false,
     error: null,
     refetch: refetchCharts,
     nonEmptyChartCount: 1,
     unavailableChartCount: 0,
+    // 4c tier gating: the grid renders LockedChartCard for ids listed here.
+    lockedChartIds: [],
   }),
 }));
 
@@ -73,7 +79,9 @@ describe('CanonicalProgressChartsGrid exercise diary', () => {
     expect(within(rows[rows.length - 1]).getByText('Band Pull Apart')).toBeInTheDocument();
     expect(within(diary).getByText(/11 exercises tracked/i)).toBeInTheDocument();
     expect(screen.getByTestId('canonical-progress-charts-grid')).toBeInTheDocument();
-    expect(screen.getByText(/top 8 - all time/i)).toBeInTheDocument();
+    // The frequency card renders beside the diary; its visible subtitle became
+    // "top 8 - tap for history" when the Rolodex drill-down landed (4d).
+    expect(screen.getByText(/top 8 - tap for history/i)).toBeInTheDocument();
   });
 
   it('refetches canonical charts when a workout log succeeds', () => {

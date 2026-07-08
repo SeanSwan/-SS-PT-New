@@ -72,17 +72,23 @@ describe('LeadPipelinePanel — actionable (B1)', () => {
     expect(select.value).toBe('new'); // reverted from optimistic 'lost'
   });
 
-  it('filter="hot" shows only score>=70 leads + a clear chip', async () => {
+  it('filter="hot" requests server-side hot filtering + shows a clear chip', async () => {
+    // Hot filtering moved SERVER-side (?hot=true) — the mock honors the query
+    // param the way the real API does, and the test locks that the panel
+    // actually sends it (a client-side score filter no longer exists).
     authGet.mockImplementation((url: string) =>
       url.includes('/stats')
         ? Promise.resolve({ data: { stats: { total: 2, hotLeads: 1, needsFollowUp: 0 } } })
-        : Promise.resolve({ data: { leads: [
-            { id: 7, firstName: 'Ava', lastName: 'Stone', email: 'ava@x.com', status: 'new', score: 30 },
-            { id: 8, firstName: 'Hot', lastName: 'Lead', email: 'hot@x.com', status: 'qualified', score: 85 },
-          ] } })
+        : Promise.resolve({ data: { leads: url.includes('hot=true')
+            ? [{ id: 8, firstName: 'Hot', lastName: 'Lead', email: 'hot@x.com', status: 'qualified', score: 85 }]
+            : [
+              { id: 7, firstName: 'Ava', lastName: 'Stone', email: 'ava@x.com', status: 'new', score: 30 },
+              { id: 8, firstName: 'Hot', lastName: 'Lead', email: 'hot@x.com', status: 'qualified', score: 85 },
+            ] } })
     );
     render(<LeadPipelinePanel filter="hot" />);
     await screen.findByText('Hot Lead');
+    expect(authGet.mock.calls.some(([url]: [string]) => url.includes('/api/leads?') && url.includes('hot=true'))).toBe(true);
     expect(screen.queryByText('Ava Stone')).toBeNull(); // cold lead filtered out
     expect(screen.getByRole('button', { name: /Filtered by Hot leads/i })).toBeTruthy();
   });

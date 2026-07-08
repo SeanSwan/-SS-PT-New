@@ -141,7 +141,12 @@ describe('useGamificationData cache hardening', () => {
 
     await waitFor(() => expect(result.current.profile.isSuccess).toBe(true));
     expect(result.current.profile.data?.nextLevelProgress).toBeGreaterThan(0);
-    expect(result.current.profile.data?.nextLevelPoints).toBe(3600);
+    // Curve-agnostic: the lock is that the fallback comes from the shared
+    // leveling helper, not a hardcoded threshold (the logarithmic-leveling
+    // rework in ee111b3ae turned the old 3600 literal into a time bomb).
+    const { getLevelProgress } = await import('../../types/gamification');
+    expect(result.current.profile.data?.nextLevelPoints).toBe(getLevelProgress(2800).nextLevelAt);
+    expect(result.current.profile.data?.nextLevelPoints).toBeGreaterThan(2800);
   });
 
   it('falls back to formula progress when backend progression hints are array-shaped', async () => {

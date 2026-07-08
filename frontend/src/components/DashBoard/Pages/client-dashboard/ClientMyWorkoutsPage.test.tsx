@@ -23,6 +23,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  // The page reads location.state.workoutChallengeProgress (logger handoff).
+  useLocation: () => ({ pathname: '/dashboard/my-workouts', search: '', hash: '', state: null, key: 'test' }),
 }));
 
 // ── Mock useWorkoutSessions so we can drive page=1 vs page=2 payloads ────
