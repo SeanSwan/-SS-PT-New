@@ -19,8 +19,11 @@ const mocks = vi.hoisted(() => ({
   getExerciseHistoryFromLogs: vi.fn(),
   submitAiWorkoutLogAsDailyForm: vi.fn(),
   formFindAll: vi.fn(),
+  sessionFindAll: vi.fn(),
+  prDestroy: vi.fn(),
   runFindByPk: vi.fn(),
   runCreate: vi.fn(),
+  runUpdate: vi.fn(),
   dbQuery: vi.fn(),
   dbTransaction: vi.fn(),
 }));
@@ -57,6 +60,8 @@ vi.mock('../../utils/logger.mjs', () => ({
 
 vi.mock('../../models/index.mjs', () => ({
   getDailyWorkoutForm: () => ({ findAll: mocks.formFindAll }),
+  getWorkoutSession: () => ({ findAll: mocks.sessionFindAll }),
+  getPersonalRecord: () => ({ destroy: mocks.prDestroy }),
   getHistoryBackfillRun: () => ({ findByPk: mocks.runFindByPk, create: mocks.runCreate }),
 }));
 
@@ -119,8 +124,11 @@ describe('history backfill coach↔client pairing guards', () => {
     vi.clearAllMocks();
     mocks.getExerciseHistoryFromLogs.mockResolvedValue(exercisePool);
     mocks.formFindAll.mockResolvedValue([]);
+    mocks.sessionFindAll.mockResolvedValue([]);
+    mocks.prDestroy.mockResolvedValue(0);
     mocks.submitAiWorkoutLogAsDailyForm.mockResolvedValue({ formId: 21, sessionId: 11 });
-    mocks.runCreate.mockResolvedValue({ id: 7 });
+    mocks.runCreate.mockResolvedValue({ id: 7, update: mocks.runUpdate });
+    mocks.runUpdate.mockResolvedValue(undefined);
     mocks.dbQuery.mockResolvedValue([]);
     mocks.dbTransaction.mockImplementation(async (cb) => cb('txn'));
   });
@@ -160,7 +168,23 @@ describe('history backfill coach↔client pairing guards', () => {
     expect(mocks.ensureClientAccess.mock.calls[0][1]).toBe(99);
     expect(mocks.dbTransaction).not.toHaveBeenCalled();
     expect(mocks.dbQuery).not.toHaveBeenCalled();
+    expect(mocks.prDestroy).not.toHaveBeenCalled();
     expect(run.update).not.toHaveBeenCalled();
+  });
+
+  it('commit: dates that already hold real training are skipped, never rewritten', async () => {
+    mocks.ensureClientAccess.mockResolvedValue(PAIRED);
+    // A form-less real session exists on the commit date (older-lane rows).
+    mocks.sessionFindAll.mockResolvedValue([{ date: new Date('2026-04-06T00:00:00.000Z') }]);
+
+    const res = await request(app)
+      .post('/api/admin/clients/55/workouts/backfill/commit')
+      .send(commitBody);
+
+    expect(res.status).toBe(201);
+    expect(res.body.created).toEqual([]);
+    expect(res.body.skipped).toMatchObject([{ date: '2026-04-06' }]);
+    expect(mocks.submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
   });
 
   it('preview: a paired coach still gets a working preview', async () => {
@@ -195,5 +219,8 @@ describe('history backfill coach↔client pairing guards', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true, removedSessions: 2, removedForms: 2 });
     expect(run.update).toHaveBeenCalledTimes(1);
+    // PR baselines minted by the deleted fake sessions go with them.
+    expect(mocks.prDestroy).toHaveBeenCalledTimes(1);
+    expect(mocks.prDestroy.mock.calls[0][0].where.userId).toBe(99);
   });
 });

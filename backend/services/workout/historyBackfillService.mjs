@@ -12,12 +12,18 @@
  * DETERMINISM: the generator is seeded from the date+exercise strings, so the
  * same inputs always preview identically (stable re-preview, testable).
  * CAPS: 120 days per run, 60 sessions max (charter V3-C). UNDO: every run is
- * recorded with its created form/session ids; undo deletes logs → sessions →
- * forms in one transaction (FK-safe) and stamps the run undone.
+ * recorded BEFORE its sessions are written (checkpointed per day, so a crash
+ * mid-commit stays undoable); undo deletes logs → sessions → the PR baselines
+ * they minted → forms in one transaction (FK-safe) and stamps the run undone.
  */
 import { Op } from 'sequelize';
 import sequelize from '../../database.mjs';
-import { getDailyWorkoutForm, getHistoryBackfillRun } from '../../models/index.mjs';
+import {
+  getDailyWorkoutForm,
+  getHistoryBackfillRun,
+  getPersonalRecord,
+  getWorkoutSession,
+} from '../../models/index.mjs';
 import { getExerciseHistoryFromLogs } from '../analyticsExerciseHistoryService.mjs';
 import { submitAiWorkoutLogAsDailyForm } from './aiWorkoutDailyFormService.mjs';
 import logger from '../../utils/logger.mjs';
@@ -120,7 +126,13 @@ export function generateBackfillDays({
       // Gentle progression: later weeks push closer to the observed max.
       const progress = weeks > 1 ? w / (weeks - 1) : 1;
 
-      while (exercises.length < exerciseCount && used.size < weighted.length) {
+      // Bounded attempts: the xorshift state map is not bijective, so a
+      // degenerate state could re-pick the same used exercise forever —
+      // never hang a request thread over a pathological seed.
+      let attempts = 0;
+      const maxAttempts = weighted.length * 8;
+      while (exercises.length < exerciseCount && used.size < weighted.length && attempts < maxAttempts) {
+        attempts += 1;
         const pick = pickExercise(state);
         state = pick.state;
         if (used.has(pick.picked.exerciseName)) continue;
@@ -152,6 +164,32 @@ export function generateBackfillDays({
   return days;
 }
 
+/**
+ * Every date in [startDate, endDate] that already has ANY real training —
+ * a daily form OR a bare workout_sessions row. Older lanes wrote sessions
+ * with no form; the unified write path would otherwise ADOPT such a session,
+ * destroy its real logged sets, and rebuild the day from generated filler
+ * (and undo would then delete the real session row). Both preview and
+ * commit treat these dates as untouchable.
+ */
+async function listExistingTrainingDates({ userId, startDate, endDate }) {
+  const toIso = (value) =>
+    (value instanceof Date ? value.toISOString() : String(value)).slice(0, 10);
+  const [forms, sessions] = await Promise.all([
+    getDailyWorkoutForm().findAll({
+      where: { clientId: userId, date: { [Op.between]: [startDate, endDate] } },
+      attributes: ['date'],
+      raw: true,
+    }),
+    getWorkoutSession().findAll({
+      where: { userId, date: { [Op.between]: [startDate, `${endDate}T23:59:59.999Z`] } },
+      attributes: ['date'],
+      raw: true,
+    }),
+  ]);
+  return [...new Set([...forms, ...sessions].map((r) => toIso(r.date)))].sort();
+}
+
 /** Preview for a client: real pool + conflict detection (nothing persisted). */
 export async function buildBackfillPreview({
   userId,
@@ -169,13 +207,7 @@ export async function buildBackfillPreview({
     maxReps: row.maxReps,
   }));
 
-  const DailyWorkoutForm = getDailyWorkoutForm();
-  const existing = await DailyWorkoutForm.findAll({
-    where: { clientId: userId, date: { [Op.between]: [startDate, endDate] } },
-    attributes: ['date'],
-    raw: true,
-  });
-  const conflictDates = existing.map((r) => String(r.date).slice(0, 10));
+  const conflictDates = await listExistingTrainingDates({ userId, startDate, endDate });
 
   const days = generateBackfillDays({
     startDate, endDate, sessionsPerWeek, exercisePool, dominantExercises, breaks, conflictDates,
@@ -201,9 +233,38 @@ export async function commitBackfill({ userId, trainerId, days, attestation, gro
     throw err;
   }
 
+  const dayDates = days.map((d) => d?.date).filter(Boolean).sort();
+  const rangeStart = dayDates[0] ?? null;
+  const rangeEnd = dayDates[dayDates.length - 1] ?? null;
+
+  // Commit re-checks conflicts itself (the caller's days array may be stale
+  // or hand-edited) — dates with ANY real training are skipped, never
+  // adopted-and-rewritten by the unified write path.
+  const existingDates = rangeStart
+    ? new Set(await listExistingTrainingDates({ userId, startDate: rangeStart, endDate: rangeEnd }))
+    : new Set();
+
+  // The run row is created BEFORE any session so the undo map can never be
+  // orphaned: if this create fails nothing has been written yet, and the
+  // map is checkpointed after every day so a mid-loop crash stays undoable.
+  const run = await getHistoryBackfillRun().create({
+    userId,
+    trainerId,
+    startDate: rangeStart,
+    endDate: rangeEnd,
+    attestation: attestation.trim(),
+    grounding,
+    created: [],
+    skipped: [],
+  });
+
   const created = [];
   const skipped = [];
   for (const day of days) {
+    if (existingDates.has(day?.date)) {
+      skipped.push({ date: day.date, reason: 'Existing training on this date — left untouched' });
+      continue;
+    }
     try {
       const result = await submitAiWorkoutLogAsDailyForm({
         clientId: userId,
@@ -216,21 +277,17 @@ export async function commitBackfill({ userId, trainerId, days, attestation, gro
         sequelize,
       });
       created.push({ date: day.date, formId: result.formId, sessionId: result.sessionId });
+      // Checkpoint the undo map after every created session (non-fatal —
+      // the final update below retries the full arrays).
+      await run.update({ created: [...created] }).catch((err) => {
+        logger.warn('[HistoryBackfill] run #%d checkpoint failed (retried at end): %s', run.id, err?.message);
+      });
     } catch (err) {
       skipped.push({ date: day.date, reason: err?.message?.slice(0, 120) ?? 'failed' });
     }
   }
 
-  const run = await getHistoryBackfillRun().create({
-    userId,
-    trainerId,
-    startDate: days[0]?.date ?? null,
-    endDate: days[days.length - 1]?.date ?? null,
-    attestation: attestation.trim(),
-    grounding,
-    created,
-    skipped,
-  });
+  await run.update({ created: [...created], skipped: [...skipped] });
   logger.info('[HistoryBackfill] run #%d: %d created, %d skipped (client %d)', run.id, created.length, skipped.length, userId);
   return { runId: run.id, created, skipped };
 }
@@ -266,6 +323,14 @@ export async function undoBackfillRun({ runId, trainerId, assertAccess = null })
       });
       await sequelize.query('DELETE FROM workout_sessions WHERE id IN (:sessionIds)', {
         replacements: { sessionIds }, transaction,
+      });
+      // Personal-record baselines minted by (or overwritten to point at)
+      // these generated sessions go too — a client's "current best" must
+      // never reference deleted filler. The next real workout quietly
+      // re-baselines via the PR engine's first-ever path.
+      await getPersonalRecord().destroy({
+        where: { userId: run.userId, sessionId: { [Op.in]: sessionIds } },
+        transaction,
       });
     }
     if (formIds.length > 0) {
