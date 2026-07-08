@@ -11,7 +11,7 @@
  *       POST /api/admin/backfill-runs/:runId/undo
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { History, X } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
@@ -54,6 +54,31 @@ const HistoryBackfillDialog: React.FC<HistoryBackfillDialogProps> = ({
   const [undone, setUndone] = useState(false);
   const [busy, setBusy] = useState<'preview' | 'commit' | 'undo' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<Element | null>(null);
+
+  // House dialog contract (WorkoutDayDrilldown): focus in on open, restore on
+  // close, lock background scroll. Keyed on `open` because this component
+  // stays mounted while closed.
+  useEffect(() => {
+    if (!open) return undefined;
+    openerRef.current = document.activeElement;
+    closeRef.current?.focus();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+      const opener = openerRef.current;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -134,7 +159,7 @@ const HistoryBackfillDialog: React.FC<HistoryBackfillDialogProps> = ({
         <TitleRow>
           <History size={16} aria-hidden="true" />
           Backfill Workout History
-          <IconButton type="button" onClick={onClose} aria-label="Close backfill dialog">
+          <IconButton ref={closeRef} type="button" onClick={onClose} aria-label="Close backfill dialog">
             <X size={16} aria-hidden="true" />
           </IconButton>
         </TitleRow>

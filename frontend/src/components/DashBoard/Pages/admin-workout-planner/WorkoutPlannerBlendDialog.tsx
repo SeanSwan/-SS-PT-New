@@ -7,7 +7,7 @@
  * DATA: GET /api/workout-plans/:id (week counts) · POST /api/workout-plans/blend
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { GitMerge, X } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -16,7 +16,10 @@ import type { SavedPlanSummary } from './SavedPlanCard';
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  /* 2200 = house precedent for full-screen dialogs (WorkoutDayDrilldown,
+     PostMediaLightbox): clears the fixed header (1250), dropdowns (1260),
+     and toasts (1300). */
+  z-index: 2200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -127,20 +130,24 @@ interface WorkoutPlannerBlendDialogProps {
 const useWeekCount = (planId: string) => {
   const { authAxios } = useAuth();
   const [weeks, setWeeks] = useState<number | null>(null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (!authAxios || !planId) { setWeeks(null); return; }
+    if (!authAxios || !planId) { setWeeks(null); setFailed(false); return; }
     let mounted = true;
     setWeeks(null);
+    setFailed(false);
     authAxios.get(`/api/workout-plans/${planId}`)
       .then((res: { data?: { success?: boolean; plan?: { planData?: { weeks?: unknown[] } } } }) => {
         if (!mounted) return;
         const count = res?.data?.plan?.planData?.weeks?.length ?? 0;
         setWeeks(count);
       })
-      .catch(() => { if (mounted) setWeeks(0); });
+      // A fetch failure is NOT "this plan has no weeks" — keep them distinct
+      // so a coach with two valid plans isn't told their plans are empty.
+      .catch(() => { if (mounted) { setWeeks(0); setFailed(true); } });
     return () => { mounted = false; };
   }, [authAxios, planId]);
-  return weeks;
+  return { weeks, failed };
 };
 
 const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
@@ -156,6 +163,8 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
   const [picks, setPicks] = useState<Record<number, 'A' | 'B'>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -166,13 +175,37 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
     setPlanBId(savedPlans.find((plan) => plan.id !== (savedPlans.find((p) => p.isPrimary)?.id ?? savedPlans[0]?.id))?.id ?? '');
   }, [open, savedPlans]);
 
-  const weeksA = useWeekCount(open ? planAId : '');
-  const weeksB = useWeekCount(open ? planBId : '');
+  // House dialog contract (WorkoutDayDrilldown): focus in on open, restore on
+  // close, lock background scroll, Escape closes. Keyed on `open` because
+  // this component stays mounted while closed.
+  useEffect(() => {
+    if (!open) return undefined;
+    openerRef.current = document.activeElement;
+    closeRef.current?.focus();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+      const opener = openerRef.current;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const { weeks: weeksA, failed: weeksAFailed } = useWeekCount(open ? planAId : '');
+  const { weeks: weeksB, failed: weeksBFailed } = useWeekCount(open ? planBId : '');
 
   if (!open) return null;
 
   const maxWeeks = Math.max(weeksA ?? 0, weeksB ?? 0);
   const loadingWeeks = (planAId && weeksA === null) || (planBId && weeksB === null);
+  const weeksFailed = weeksAFailed || weeksBFailed;
   const sourceFor = (week: number): 'A' | 'B' =>
     picks[week] ?? (week <= (weeksA ?? 0) ? 'A' : 'B');
 
@@ -214,7 +247,7 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
         <TitleRow>
           <GitMerge size={16} aria-hidden="true" />
           Blend Plans
-          <CloseButton type="button" onClick={onClose} aria-label="Close blend dialog">
+          <CloseButton ref={closeRef} type="button" onClick={onClose} aria-label="Close blend dialog">
             <X size={16} aria-hidden="true" />
           </CloseButton>
         </TitleRow>
@@ -251,7 +284,10 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
 
         {planAId === planBId && <Note role="status">Choose two different plans to blend.</Note>}
         {loadingWeeks && <Note role="status">Loading plan weeks...</Note>}
-        {!loadingWeeks && planAId !== planBId && maxWeeks === 0 && (
+        {!loadingWeeks && weeksFailed && (
+          <Note role="alert">Couldn&apos;t load these plans&apos; weeks right now — close and reopen to try again.</Note>
+        )}
+        {!loadingWeeks && !weeksFailed && planAId !== planBId && maxWeeks === 0 && (
           <Note role="status">These plans have no week structure to blend.</Note>
         )}
 

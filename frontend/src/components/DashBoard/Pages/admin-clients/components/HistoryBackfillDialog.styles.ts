@@ -8,7 +8,10 @@ import styled from 'styled-components';
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1300;
+  /* 2200 = house precedent for full-screen dialogs (WorkoutDayDrilldown,
+     PostMediaLightbox): clears the fixed header (1250), dropdowns (1260),
+     and toasts (1300). */
+  z-index: 2200;
   display: flex;
   align-items: center;
   justify-content: center;

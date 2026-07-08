@@ -87,6 +87,13 @@ const ExerciseTimelineDrilldown: React.FC<{
   }, [onClose]);
 
   useEffect(() => {
+    // Lock background scroll while the dialog is open (mobile especially).
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, []);
+
+  useEffect(() => {
     if (!authAxios) { setStatus('error'); return; }
     let isMounted = true;
     setStatus('loading');
