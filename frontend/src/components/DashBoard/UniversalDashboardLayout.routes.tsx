@@ -161,6 +161,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
+      { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Set client nutrition targets (assignment-checked server-side)' },
       { path: '/schedule', component: UniversalSchedule, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },

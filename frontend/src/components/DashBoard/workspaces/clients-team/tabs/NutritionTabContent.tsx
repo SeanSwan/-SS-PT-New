@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiService from '../../../../../services/api.service';
+import { useAuth } from '../../../../../context/AuthContext';
 import { formatLocalCalendarDate } from '../nutritionDate';
 import { getNumericClientId } from './clientTabId';
 import {
@@ -34,6 +36,7 @@ import {
   NutritionTimelineTitle,
   NutritionTimelineTitleGroup,
   NutritionTimelineVerifyButton,
+  SetTargetsButton,
 } from './NutritionTabContent.styles';
 
 interface NutritionTabContentProps {
@@ -73,6 +76,9 @@ const getVerifiedEntryFromResponse = (response: TimelineVerifyResponse): Nutriti
 
 const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, clientName = 'Selected client' }) => {
   const numericClientId = useMemo(() => getNumericClientId(clientId), [clientId]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const canSetTargets = user?.role === 'admin' || user?.role === 'trainer';
   const [entries, setEntries] = useState<NutritionTimelineEntry[]>([]);
   const [status, setStatus] = useState<TimelineState>('loading');
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -144,6 +150,16 @@ const NutritionTabContent: React.FC<NutritionTabContentProps> = ({ clientId, cli
           <NutritionTimelineTitle>Nutrition Timeline</NutritionTimelineTitle>
           <NutritionTimelineClient>{clientName}</NutritionTimelineClient>
         </NutritionTimelineTitleGroup>
+        {canSetTargets && numericClientId && (
+          <SetTargetsButton
+            type="button"
+            onClick={() => navigate(`/dashboard/${user?.role}/nutrition/${numericClientId}`)}
+            aria-label={`Set nutrition targets for ${clientName}`}
+          >
+            <Target size={14} aria-hidden="true" />
+            Set targets
+          </SetTargetsButton>
+        )}
         <NutritionTimelineDate>{date}</NutritionTimelineDate>
       </NutritionTimelineHeader>
 

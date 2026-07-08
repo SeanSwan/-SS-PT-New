@@ -268,3 +268,25 @@ export const NutritionTimelineState = styled.div`
   font-weight: 800;
   text-align: center;
 `;
+
+/** 5.4: context path to the Nutrition Plan Builder (staff-only header action). */
+export const SetTargetsButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  background: transparent;
+  color: var(--text-secondary, #9FB6C8);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { color: var(--text-primary, #E0ECF4); }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;

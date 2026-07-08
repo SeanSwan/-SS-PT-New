@@ -1,4 +1,12 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import React from 'react';
+import { cleanup, render as rtlRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+
+const navigateMock = vi.hoisted(() => vi.fn());
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => navigateMock,
+}));
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +21,13 @@ vi.mock('../../../../../services/api.service', () => ({
     patch: apiPatchMock,
   },
 }));
+
+vi.mock('../../../../../context/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 7, role: 'admin' } }),
+}));
+
+// 5.4: the tab now uses useNavigate for the Set-targets context path.
+const render = (ui: React.ReactElement) => rtlRender(<MemoryRouter>{ui}</MemoryRouter>);
 
 import NutritionTabContent from './NutritionTabContent';
 import { formatLocalCalendarDate } from '../nutritionDate';
@@ -218,12 +233,12 @@ describe('NutritionTabContent', () => {
     apiPatchMock.mockRejectedValueOnce(new Error('SQLSTATE raw tenant trace'));
 
     const user = userEvent.setup();
-    const { rerender } = render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+    const { rerender } = rtlRender(<MemoryRouter><NutritionTabContent clientId={101} clientName="Alpha Client" /></MemoryRouter>);
 
     await user.click(await screen.findByRole('button', { name: /mark lunch verified/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Nutrition verification unavailable');
 
-    rerender(<NutritionTabContent clientId={202} clientName="Beta Client" />);
+    rerender(<MemoryRouter><NutritionTabContent clientId={202} clientName="Beta Client" /></MemoryRouter>);
 
     expect(await screen.findByText('salmon plate')).toBeInTheDocument();
     expect(screen.getByText('Beta Client')).toBeInTheDocument();
@@ -254,5 +269,24 @@ describe('NutritionTabContent', () => {
     expect(await screen.findByText('Nutrition timeline unavailable')).toBeInTheDocument();
     expect(screen.queryByText(/provider table trace/i)).not.toBeInTheDocument();
     expect(screen.queryByText('No meals logged for this date')).not.toBeInTheDocument();
+  });
+});
+
+describe('NutritionTabContent 5.4 set-targets path', () => {
+  beforeEach(() => {
+    apiGetMock.mockReset();
+    navigateMock.mockReset();
+    apiGetMock.mockResolvedValue({ data: { success: true, entries: [] } });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('staff header action routes to the Nutrition Plan Builder in client context', async () => {
+    render(<NutritionTabContent clientId={101} clientName="Alpha Client" />);
+    const button = await screen.findByRole('button', { name: 'Set nutrition targets for Alpha Client' });
+    await userEvent.click(button);
+    expect(navigateMock).toHaveBeenCalledWith('/dashboard/admin/nutrition/101');
   });
 });

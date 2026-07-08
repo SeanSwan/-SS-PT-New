@@ -215,17 +215,9 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Manage bonus session promotions',
     isNew: true,
   },
-  {
-    key: 'nutrition-plans',
-    label: 'Nutrition Plans',
-    icon: 'UtensilsCrossed',
-    order: 9.1,
-    status: 'real',
-    section: 'management',
-    route: '/dashboard/admin/nutrition',
-    description: 'Create and update client nutrition plans',
-    isNew: true,
-  },
+  // 5.4 consolidation: the Nutrition Plan Builder is no longer a nav
+  // destination — it is reached in context via "Set targets" on the Client
+  // Hub nutrition tab. The /nutrition/:clientId route stays mounted.
   {
     key: 'workout-plans',
     label: 'Plan Client Workout',
