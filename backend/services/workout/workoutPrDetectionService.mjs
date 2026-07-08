@@ -27,6 +27,10 @@ import { estimateBrzycki1RM } from '../oneRepMaxService.mjs';
 import logger from '../../utils/logger.mjs';
 
 export const PR_POINTS = 25;
+/** Same sanity ceiling the est-1RM engine uses — a fat-fingered 3150 instead
+ * of 315 must never become the permanent weight baseline every future real
+ * set is compared against. */
+export const PR_MAX_WEIGHT = 1500;
 
 const toPositiveNumber = (value) => {
   const n = Number(value);
@@ -42,7 +46,7 @@ export function buildPrCandidates(exercises = []) {
     for (const set of exercise?.sets || []) {
       const weight = toPositiveNumber(set?.weight);
       const reps = toPositiveNumber(set?.reps);
-      if (!weight || !reps) continue;
+      if (!weight || !reps || weight > PR_MAX_WEIGHT) continue;
       const entry = candidates.get(name) || { exerciseName: name, weight: null, est1rm: null };
       if (!entry.weight || weight > entry.weight.value) {
         entry.weight = { value: weight, weight, reps };
@@ -138,7 +142,10 @@ export async function detectAndRecordPersonalRecords({
 
       if (best.value > Number(prior.value)) {
         const previous = Number(prior.value);
-        await prior
+        // Celebrate + award ONLY when the record row actually persisted —
+        // otherwise a transient DB failure would celebrate/point today and
+        // re-celebrate the same "PR" against the stale prior tomorrow.
+        const updated = await prior
           .update({
             value: best.value,
             weight: best.weight,
@@ -147,9 +154,12 @@ export async function detectAndRecordPersonalRecords({
             formId: formId ? String(formId) : null,
             achievedAt: achievedAt ? new Date(achievedAt) : new Date(),
           })
+          .then(() => true)
           .catch((err) => {
             logger.warn('[PrDetection] update failed', { userId: numericUserId, key, error: err?.message });
+            return false;
           });
+        if (!updated) continue;
 
         prEvents.push({
           exerciseName: candidate.exerciseName,
