@@ -117,4 +117,13 @@ describe('price gating — source contracts (server-side enforcement wired)', ()
   it('feature-flag registry knows store-prices (admin map)', () => {
     expect(flagController).toContain("'store-prices'");
   });
+
+  it('public health/store readiness endpoint never selects or serializes prices (AD-2 leak fix)', () => {
+    // healthRoutes is mounted UNAUTHENTICATED at /health and /api/health —
+    // any price field it returns bypasses the entire storefront gate.
+    const health = read('../../routes/healthRoutes.mjs');
+    expect(health).not.toContain("'price'");
+    expect(health).not.toContain("'totalCost'");
+    expect(health).not.toMatch(/price:\s*pkg\./);
+  });
 });

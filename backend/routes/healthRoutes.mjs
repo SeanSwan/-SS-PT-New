@@ -120,10 +120,14 @@ router.get('/store', async (req, res) => {
     const timeoutController = new AbortController();
     const timeoutId = setTimeout(() => timeoutController.abort(), 3000);
     
+    // Readiness diagnostics only — NO price fields. This endpoint is public
+    // (mounted unauthenticated at /health and /api/health), so returning
+    // price/totalCost here would bypass the invitation-only price gate that
+    // /api/storefront enforces via priceVisibilityService.
     const queryPromise = StorefrontItem.findAll({
       where: { isActive: true },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
-      attributes: ['id', 'name', 'price', 'totalCost', 'sessions', 'totalSessions', 'packageType']
+      attributes: ['id', 'name', 'sessions', 'totalSessions', 'packageType']
     });
 
     const packages = await Promise.race([
@@ -144,7 +148,6 @@ router.get('/store', async (req, res) => {
       packages: packages.map(pkg => ({
         id: pkg.id,
         name: pkg.name,
-        price: pkg.price || pkg.totalCost,
         sessions: pkg.sessions || pkg.totalSessions,
         type: pkg.packageType
       }))
