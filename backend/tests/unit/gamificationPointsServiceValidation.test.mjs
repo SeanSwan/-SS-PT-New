@@ -92,7 +92,8 @@ describe('GamificationPointsService validation', () => {
       { transaction: mockTransaction }
     );
     expect(user.update).toHaveBeenCalledWith(
-      { points: 770, level: 2, tier: 'silver_glade' },
+      // HR-008-F1: the trusted bonus also accumulates lifetime XP.
+      { points: 770, lifetimePointsEarned: 750, level: 2, tier: 'silver_glade' },
       { transaction: mockTransaction }
     );
     expect(result).toEqual(expect.objectContaining({

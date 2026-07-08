@@ -100,7 +100,9 @@ describe('GamificationPointsService central ledger', () => {
       { transaction: mockTransaction }
     );
     expect(user.update).toHaveBeenCalledWith(
-      { points: 17, level: 2, tier: 'silver_glade' },
+      // HR-008-F1: earns also accumulate lifetimePointsEarned (level/rank
+      // derive from lifetime XP; legacy rows without the column start at 0).
+      { points: 17, lifetimePointsEarned: 5, level: 2, tier: 'silver_glade' },
       { transaction: mockTransaction }
     );
     expect(result).toEqual(expect.objectContaining({

@@ -109,7 +109,8 @@ describe('GamificationPointsService spend ledger', () => {
       { transaction: mockTransaction }
     );
     expect(user.update).toHaveBeenCalledWith(
-      { points: 15, level: 2, tier: 'silver_glade' },
+      // HR-008-F1: the earn also accumulates lifetime XP (0 + 5 here).
+      { points: 15, lifetimePointsEarned: 5, level: 2, tier: 'silver_glade' },
       { transaction: mockTransaction }
     );
     expect(result).toEqual(expect.objectContaining({

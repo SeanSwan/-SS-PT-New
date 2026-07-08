@@ -90,6 +90,14 @@ describe('awardWorkoutXP progression sync', () => {
       points: 350,
     });
     mockUserModel.findByPk.mockResolvedValue(user);
+    // HR-008-F1: the central ledger is the level/tier AUTHORITY — the service
+    // adopts newLevel/newTier from the ledger result (lifetime-XP-derived).
+    mockGamificationPointsService.recordLedgerEntry.mockResolvedValue({
+      pointsAwarded: 50,
+      newBalance: 400,
+      newLevel: 3,
+      newTier: 'first_flight',
+    });
 
     const result = await awardWorkoutXP({
       userId: 42,
@@ -229,7 +237,8 @@ describe('awardWorkoutXP progression sync', () => {
     });
     mockGamificationPointsService.recordLedgerEntry.mockImplementation(async ({ points }) => {
       balance += points;
-      return { pointsAwarded: points, newBalance: balance };
+      // HR-008-F1: ledger authority reports the lifetime-derived level/tier.
+      return { pointsAwarded: points, newBalance: balance, newLevel: 3, newTier: 'first_flight' };
     });
 
     const result = await awardWorkoutXP({

@@ -78,7 +78,9 @@ describe('gamification schema drift regressions', () => {
     expect(source).toContain('sourceId: null');
     expect(source).not.toContain('sourceId: achievement.id');
     expect(source).not.toContain('sourceId: userAchievement.achievement.id');
-    expect(pointsServiceSource).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(Math\.max\(newBalance,\s*0\)\)/);
+    // HR-008-F1: level derives from LIFETIME earned XP, never the spendable
+    // balance (spending points must not lower a member's level or rank).
+    expect(pointsServiceSource).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(newLifetime\)/);
     expect(pointsServiceSource).toMatch(/const\s+newTier\s*=\s*getTier\(newLevel\)/);
     expect(pointsServiceSource).toMatch(/await\s+user\.update\(userUpdates,\s*\{\s*transaction\s*\}/);
   });
@@ -150,7 +152,9 @@ describe('gamification schema drift regressions', () => {
     expect(checkSource).toContain('idempotencyKey: `milestone:check:${normalizedUserId}:${milestoneKey}`');
     expect(checkSource).not.toContain('await PointTransaction.create({');
     expect(checkSource).not.toMatch(/user\.update\(\{\s*points:\s*finalBalance/);
-    expect(pointsServiceSource).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(Math\.max\(newBalance,\s*0\)\)/);
+    // HR-008-F1: level derives from LIFETIME earned XP, never the spendable
+    // balance (spending points must not lower a member's level or rank).
+    expect(pointsServiceSource).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(newLifetime\)/);
     expect(pointsServiceSource).toMatch(/const\s+newTier\s*=\s*getTier\(newLevel\)/);
     expect(pointsServiceSource).toMatch(/await\s+user\.update\(userUpdates,\s*\{\s*transaction\s*\}/);
   });
