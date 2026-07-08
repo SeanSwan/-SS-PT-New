@@ -5,6 +5,15 @@
  * stay focused on behavior instead of duplicating challenge setup data.
  */
 import { vi } from 'vitest';
+
+// Relative fixture dates (vi.hoisted so the mocks block can read them): the
+// default draft must START IN THE FUTURE, or the schedule-vs-publish-now
+// branch flips the day the calendar passes a hardcoded date.
+const { DEFAULT_CHALLENGE_START, DEFAULT_CHALLENGE_END } = vi.hoisted(() => ({
+  DEFAULT_CHALLENGE_START: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+  DEFAULT_CHALLENGE_END: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+}));
+
 const mocks = vi.hoisted(() => ({
   reload: vi.fn(() => Promise.resolve()),
   reloadManaged: vi.fn(() => Promise.resolve()),
@@ -95,8 +104,8 @@ const mocks = vi.hoisted(() => ({
         xpReward: 140,
         maxProgress: 12,
         progressUnit: 'sessions',
-        startDate: '2026-07-06T12:00:00.000Z',
-        endDate: '2026-07-13T12:00:00.000Z',
+        startDate: DEFAULT_CHALLENGE_START,
+        endDate: DEFAULT_CHALLENGE_END,
         status: 'draft',
         currentParticipants: 4,
         maxParticipants: 16,
@@ -260,8 +269,8 @@ vi.mock('./useChallengeDraftCreator', async () => {
 export { mocks };
 export const resetChallengeWorkspaceMocks = () => {
     mocks.managed.challenges[0].status = 'draft';
-    mocks.managed.challenges[0].startDate = '2026-07-06T12:00:00.000Z';
-    mocks.managed.challenges[0].endDate = '2026-07-13T12:00:00.000Z';
+    mocks.managed.challenges[0].startDate = DEFAULT_CHALLENGE_START;
+    mocks.managed.challenges[0].endDate = DEFAULT_CHALLENGE_END;
     mocks.managed.challenges[0].currentParticipants = 4;
     mocks.managed.challenges[0].maxParticipants = 16;
     mocks.managed.challenges[0].completionRate = 50;
