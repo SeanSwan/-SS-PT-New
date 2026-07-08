@@ -57,13 +57,17 @@ const sessionMetaLine = (session: SessionPdfSession): string => {
 
 const sessionTableBody = (session: SessionPdfSession): string[][] =>
   session.exercises.flatMap((exercise) =>
-    exercise.sets.map((set, index) => [
-      index === 0 ? exercise.name : '',
-      `#${index + 1}`,
-      set.reps != null ? String(set.reps) : '-',
-      set.weight != null ? `${set.weight} lb` : '-',
-      set.rpe != null ? String(set.rpe) : '-',
-    ]),
+    // An exercise with no logged sets still HAPPENED — one placeholder row
+    // keeps it on the receipt instead of silently vanishing from the PDF.
+    exercise.sets.length === 0
+      ? [[exercise.name, '-', '-', '-', '-']]
+      : exercise.sets.map((set, index) => [
+        index === 0 ? exercise.name : '',
+        `#${index + 1}`,
+        set.reps != null ? String(set.reps) : '-',
+        set.weight != null ? `${set.weight} lb` : '-',
+        set.rpe != null ? String(set.rpe) : '-',
+      ]),
   );
 
 export const renderWorkoutSessionPdf = (doc: PdfDoc, input: WorkoutSessionPdfInput): Blob => {

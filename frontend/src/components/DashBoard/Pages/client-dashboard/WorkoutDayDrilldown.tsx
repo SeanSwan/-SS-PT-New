@@ -93,6 +93,7 @@ const WorkoutDayDrilldown: React.FC<{
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [days, setDays] = useState<DrillDay[]>([]);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const openerRef = useRef<Element | null>(null);
 
@@ -146,6 +147,7 @@ const WorkoutDayDrilldown: React.FC<{
 
   const handleSessionPdf = async () => {
     setPdfBusy(true);
+    setPdfError(false);
     try {
       const { downloadWorkoutSessionPdf } = await import('../../../../services/pdf/workoutSessionPdf');
       const clientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
@@ -157,6 +159,10 @@ const WorkoutDayDrilldown: React.FC<{
           sessions: day.sessions,
         })),
       });
+    } catch {
+      // A jspdf chunk-load failure would otherwise reset the spinner with
+      // no feedback (unhandled rejection) — tell the member honestly.
+      setPdfError(true);
     } finally {
       setPdfBusy(false);
     }
@@ -193,6 +199,10 @@ const WorkoutDayDrilldown: React.FC<{
 
         {status === 'error' && (
           <StateNote role="status">Could not load this workout right now.</StateNote>
+        )}
+
+        {pdfError && (
+          <StateNote role="status">The PDF download didn&apos;t start — check your connection and try again.</StateNote>
         )}
 
         {status === 'ready' && totalSessions === 0 && (

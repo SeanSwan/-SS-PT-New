@@ -43,8 +43,17 @@ export const addWrappedText = (
   lineHeight = 5,
 ): number => {
   const lines = doc.splitTextToSize(text, maxWidth) as string[];
-  doc.text(lines, x, y);
-  return y + (lines.length * lineHeight);
+  // Line-by-line with page breaks: a hostile-length title/note would
+  // otherwise render past the page bottom and silently vanish (and push
+  // every later section off-page with it). Non-breaking output is
+  // position-identical to the previous single text() call.
+  let cursor = y;
+  for (const line of lines) {
+    cursor = addPageIfNeeded(doc, cursor, lineHeight);
+    doc.text(line, x, cursor);
+    cursor += lineHeight;
+  }
+  return cursor;
 };
 
 export const addSectionTitle = (doc: PdfDoc, title: string, y: number): number => {
