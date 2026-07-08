@@ -70,12 +70,18 @@ export const buildHeatmapGridFromSessions = (
   });
   // grid[dayOfWeek Mon=0][weekIndex oldest=0]
   const grid: number[][] = Array.from({ length: 7 }, () => Array.from({ length: WEEKS }, () => 0));
-  for (let daysBack = 0; daysBack < WEEKS * 7; daysBack += 1) {
+  // Columns are MONDAY-ALIGNED calendar weeks (GitHub-style). Rolling
+  // 7-day blocks anchored to today would mix two calendar weeks in every
+  // column (except when today is Sunday) and disagree with the weekly
+  // charts' DATE_TRUNC('week') buckets.
+  const mondayOffset = (today.getDay() + 6) % 7; // days since this week's Monday
+  for (let daysBack = 0; daysBack < WEEKS * 7 + mondayOffset; daysBack += 1) {
     const date = new Date(today);
     date.setDate(date.getDate() - daysBack);
     const label = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
     const dayRow = (date.getDay() + 6) % 7; // JS Sunday=0 -> Monday-first rows
-    const weekCol = WEEKS - 1 - Math.floor(daysBack / 7);
+    const weeksBack = Math.floor((daysBack - mondayOffset + 6) / 7);
+    const weekCol = WEEKS - 1 - weeksBack;
     if (weekCol >= 0) grid[dayRow][weekCol] = counts.get(label) ?? 0;
   }
   return grid;

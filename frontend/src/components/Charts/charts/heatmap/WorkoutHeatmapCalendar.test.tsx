@@ -32,6 +32,20 @@ describe('buildHeatmapGridFromSessions', () => {
     expect(grid![2][11]).toBe(0);
   });
 
+  it('keeps columns Monday-aligned: last Sunday lands one column left of this Monday', () => {
+    // Fixed today: Tue 2026-07-07. Sunday 07/05 is the PREVIOUS calendar
+    // week — a rolling 7-day window would wrongly put it in column 11.
+    const today = new Date(2026, 6, 7);
+    const grid = buildHeatmapGridFromSessions(
+      [{ x: '07/05' }, { x: '07/06' }],
+      today,
+    );
+
+    expect(grid![6][10]).toBe(1); // Sunday row, previous week column
+    expect(grid![6][11]).toBe(0); // NOT in the current week column
+    expect(grid![0][11]).toBe(1); // Monday stays in the current week
+  });
+
   it('returns null for empty history so the honest empty state renders', () => {
     expect(buildHeatmapGridFromSessions([])).toBeNull();
   });
