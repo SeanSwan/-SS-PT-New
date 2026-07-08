@@ -52,7 +52,9 @@ const VideoBg = styled(motion.video)`position:absolute;inset:0;width:100%;height
 const StaticBg = styled.div`
   position:absolute;inset:0;pointer-events:none;opacity:0.35;
   background:
-    linear-gradient(180deg, rgba(0,32,96,0.35) 0%, rgba(3,7,18,0.65) 100%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--primary, #002060) 35%, transparent) 0%,
+      color-mix(in srgb, var(--bg-base, #030712) 65%, transparent) 100%),
     url('/images/parallax/hero-swan-bg.png') center/cover no-repeat,
     var(--bg-base,#030712);
 `;

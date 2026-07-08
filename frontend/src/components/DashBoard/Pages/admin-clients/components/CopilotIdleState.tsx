@@ -101,9 +101,9 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
           width: '100%', maxWidth: 500,
           display: 'flex', alignItems: 'flex-start', gap: 8,
           padding: '10px 14px', borderRadius: 8,
-          border: '1px solid rgba(255,170,0,0.4)',
-          background: 'rgba(255,170,0,0.1)',
-          color: '#ffca66', fontSize: '0.85rem', textAlign: 'left',
+          border: '1px solid color-mix(in srgb, var(--warning, #C6A84B) 40%, transparent)',
+          background: 'color-mix(in srgb, var(--warning, #C6A84B) 10%, transparent)',
+          color: 'var(--warning, #C6A84B)', fontSize: '0.85rem', textAlign: 'left',
         }}
       >
         <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
