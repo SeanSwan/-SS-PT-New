@@ -102,6 +102,10 @@ const setupAssociations = async () => {
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
     const TrainerAvailabilityModule = await import('./TrainerAvailability.mjs');
     const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
+    // Launch charter 2026-07: PR engine (4a), Recovery Board (4B.3), History Backfill (H)
+    const PersonalRecordModule = await import('./PersonalRecord.mjs');
+    const RecoveryCompletionModule = await import('./RecoveryCompletion.mjs');
+    const HistoryBackfillRunModule = await import('./HistoryBackfillRun.mjs');
     // Phase 3 (PLAUD multi-clip merge ingestion) — Slice 3.1
     const PlaudClipModule = await import('./PlaudClip.mjs');
     const PlaudMergeRequestModule = await import('./PlaudMergeRequest.mjs');
@@ -313,6 +317,9 @@ const setupAssociations = async () => {
     const TrainerPermissions = TrainerPermissionsModule.default;
     const TrainerAvailability = TrainerAvailabilityModule.default;
     const DailyWorkoutForm = DailyWorkoutFormModule.default;
+    const PersonalRecord = PersonalRecordModule.default;
+    const RecoveryCompletion = RecoveryCompletionModule.default;
+    const HistoryBackfillRun = HistoryBackfillRunModule.default;
     // Phase 3 PLAUD models (Slice 3.1)
     const PlaudClip = PlaudClipModule.default;
     const PlaudMergeRequest = PlaudMergeRequestModule.default;
@@ -497,6 +504,7 @@ const setupAssociations = async () => {
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
+        PersonalRecord, RecoveryCompletion, HistoryBackfillRun,
         ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
@@ -1439,6 +1447,10 @@ const setupAssociations = async () => {
       TrainerPermissions,
       TrainerAvailability,
       DailyWorkoutForm,
+      // Launch charter 2026-07 (PR engine / Recovery Board / History Backfill)
+      PersonalRecord,
+      RecoveryCompletion,
+      HistoryBackfillRun,
       ClientOnboardingQuestionnaire,
       ClientOnboardingCoverageItem,
       ClientBaselineMeasurements,

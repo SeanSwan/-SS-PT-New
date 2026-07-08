@@ -17,8 +17,7 @@
  */
 import { Op } from 'sequelize';
 import sequelize from '../../database.mjs';
-import HistoryBackfillRun from '../../models/HistoryBackfillRun.mjs';
-import { getDailyWorkoutForm } from '../../models/index.mjs';
+import { getDailyWorkoutForm, getHistoryBackfillRun } from '../../models/index.mjs';
 import { getExerciseHistoryFromLogs } from '../analyticsExerciseHistoryService.mjs';
 import { submitAiWorkoutLogAsDailyForm } from './aiWorkoutDailyFormService.mjs';
 import logger from '../../utils/logger.mjs';
@@ -222,7 +221,7 @@ export async function commitBackfill({ userId, trainerId, days, attestation, gro
     }
   }
 
-  const run = await HistoryBackfillRun.create({
+  const run = await getHistoryBackfillRun().create({
     userId,
     trainerId,
     startDate: days[0]?.date ?? null,
@@ -238,7 +237,7 @@ export async function commitBackfill({ userId, trainerId, days, attestation, gro
 
 /** Undo a run: delete workout_logs → workout_sessions → daily_workout_forms. */
 export async function undoBackfillRun({ runId, trainerId }) {
-  const run = await HistoryBackfillRun.findByPk(runId);
+  const run = await getHistoryBackfillRun().findByPk(runId);
   if (!run) {
     const err = new Error('Backfill run not found');
     err.statusCode = 404;

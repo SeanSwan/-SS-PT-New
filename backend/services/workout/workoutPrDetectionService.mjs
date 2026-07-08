@@ -22,9 +22,8 @@
  * { prEvents } for the response so SaveSuccessPanel celebrates truthfully.
  */
 import { Op } from 'sequelize';
-import PersonalRecord from '../../models/PersonalRecord.mjs';
+import { getPersonalRecord } from '../../models/index.mjs';
 import { estimateBrzycki1RM } from '../oneRepMaxService.mjs';
-import GamificationPointsService from '../gamification/GamificationPointsService.mjs';
 import logger from '../../utils/logger.mjs';
 
 export const PR_POINTS = 25;
@@ -93,6 +92,7 @@ export async function detectAndRecordPersonalRecords({
   if (candidates.length === 0) return { prEvents: [] };
 
   const names = candidates.map((c) => c.exerciseName);
+  const PersonalRecord = getPersonalRecord();
   const existing = await PersonalRecord.findAll({
     where: { userId: numericUserId, exerciseName: { [Op.in]: names } },
   });
@@ -161,6 +161,10 @@ export async function detectAndRecordPersonalRecords({
 
         if (awardPoints) {
           try {
+            // Lazy import: GamificationPointsService defines Sequelize models at
+            // module load, which breaks route tests that mock database.mjs.
+            const { default: GamificationPointsService } =
+              await import('../gamification/GamificationPointsService.mjs');
             await GamificationPointsService.recordLedgerEntry({
               userId: numericUserId,
               points: PR_POINTS,

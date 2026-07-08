@@ -18,8 +18,7 @@
  * separation).
  */
 import { Op } from 'sequelize';
-import RecoveryCompletion from '../models/RecoveryCompletion.mjs';
-import { getMovementProfile, getExercise } from '../models/index.mjs';
+import { getMovementProfile, getExercise, getRecoveryCompletion } from '../models/index.mjs';
 import { getCorrectiveExercisesForCompensations } from './ai/correctiveExerciseService.mjs';
 import GamificationPointsService from './gamification/GamificationPointsService.mjs';
 import logger from '../utils/logger.mjs';
@@ -120,7 +119,7 @@ export function composeRecoveryBoard({
 
 /** Days since the user's most recent recovery completion (null = never). */
 export async function getDaysSinceLastRecovery(userId) {
-  const latest = await RecoveryCompletion.findOne({
+  const latest = await getRecoveryCompletion().findOne({
     where: { userId },
     order: [['completedDate', 'DESC']],
     attributes: ['completedDate'],
@@ -212,7 +211,7 @@ export async function recordRecoveryCompletion({ userId, exerciseKey, date = nul
   }
 
   const completedDate = String(date || new Date().toISOString().slice(0, 10)).slice(0, 10);
-  const [completion, created] = await RecoveryCompletion.findOrCreate({
+  const [completion, created] = await getRecoveryCompletion().findOrCreate({
     where: { userId: numericUserId, exerciseKey: key, completedDate },
     defaults: { exerciseName: registryRow.name, source: 'board' },
   });

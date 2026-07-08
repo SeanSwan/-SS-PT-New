@@ -158,6 +158,10 @@ export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignmen
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
 export const getTrainerAvailability = () => getModel('TrainerAvailability');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
+// Launch charter 2026-07 (PR engine / Recovery Board / History Backfill)
+export const getPersonalRecord = () => getModel('PersonalRecord');
+export const getRecoveryCompletion = () => getModel('RecoveryCompletion');
+export const getHistoryBackfillRun = () => getModel('HistoryBackfillRun');
 export const getClientOnboardingCoverageItem = () => getModel('ClientOnboardingCoverageItem');
 export const getAdminSettings = () => getModel('AdminSettings');
 export const getAutomationSequence = () => getModel('AutomationSequence');
