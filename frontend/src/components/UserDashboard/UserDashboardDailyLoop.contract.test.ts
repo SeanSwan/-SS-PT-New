@@ -382,15 +382,18 @@ describe('UserDashboard V3 daily loop contract', () => {
     const feedSource = readSource('src/components/UserDashboard/components/HomeCommunityFeed.tsx');
     const queriesSource = readSource('src/hooks/useDashboardQueries.ts');
 
-    expect(homeSource).toContain("const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'))");
-    expect(centerSource).not.toContain("lazy(() => import('./HomeCommunityFeed'))");
-    expect(centerSource).not.toContain('<HomeCommunityFeed');
-    expect(centerSource).not.toContain('Your first post will land here');
+    // Stats-ticker rework: the vision center (now the LAST home section)
+    // owns the single lazy feed MOUNT; HomeTab still owns the ONE stateful
+    // fetch and threads it down — feed intent (after the mission/coach
+    // stack) is preserved with the mount inside the trailing section.
+    expect(centerSource).toContain("const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'))");
+    expect(centerSource).toContain('<HomeCommunityFeed');
+    expect(homeSource).not.toContain("lazy(() => import('./HomeCommunityFeed'))");
+    expect(homeSource).toContain('communityFeed={communityFeed}');
 
-    expect(homeSource.indexOf('<HomeTabVisionCenter')).toBeLessThan(homeSource.indexOf('<HomeTabTrainingProof'));
     expect(homeSource.indexOf('<HomeTabTrainingProof')).toBeLessThan(homeSource.indexOf('<DailyHealthLoop'));
     expect(homeSource.indexOf('<DailyHealthLoop')).toBeLessThan(homeSource.indexOf('<SwanCoachDock'));
-    expect(homeSource.indexOf('<SwanCoachDock')).toBeLessThan(homeSource.indexOf('<HomeCommunityFeed'));
+    expect(homeSource.indexOf('<SwanCoachDock')).toBeLessThan(homeSource.indexOf('<HomeTabVisionCenter'));
 
     // O3 unification: HomeTab owns the ONE stateful feed mount; the stream
     // component is presentational (no duplicate fetch on Home).
