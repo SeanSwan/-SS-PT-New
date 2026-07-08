@@ -762,14 +762,19 @@ export async function getWeightProgressionChart(req, res) {
     if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
+    // Latest 50 (displayed oldest→newest). A plain ASC LIMIT froze the card
+    // at the OLDEST 50 measurements — new weigh-ins never appeared (AD-2).
     const rows = await safeQuery(sequelize,
-      `SELECT
-         TO_CHAR("measurementDate", 'MM/DD') AS date,
-         weight::float AS weight
-       FROM body_measurements
-       WHERE "userId" = :userId AND weight IS NOT NULL
-       ORDER BY "measurementDate" ASC
-       LIMIT 50`,
+      `SELECT date, weight FROM (
+         SELECT "measurementDate",
+                TO_CHAR("measurementDate", 'MM/DD') AS date,
+                weight::float AS weight
+         FROM body_measurements
+         WHERE "userId" = :userId AND weight IS NOT NULL
+         ORDER BY "measurementDate" DESC
+         LIMIT 50
+       ) recent
+       ORDER BY "measurementDate" ASC`,
       { userId }, 'getWeightProgressionChart');
 
     res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.weight })) });
@@ -785,14 +790,18 @@ export async function getBodyFatTrendChart(req, res) {
     if (!userId) return;
     const sequelize = req.app.get('sequelize');
 
+    // Latest 50 (displayed oldest→newest) — same stale-window fix as weight.
     const rows = await safeQuery(sequelize,
-      `SELECT
-         TO_CHAR("measurementDate", 'MM/DD') AS date,
-         "bodyFatPercentage"::float AS bf
-       FROM body_measurements
-       WHERE "userId" = :userId AND "bodyFatPercentage" IS NOT NULL
-       ORDER BY "measurementDate" ASC
-       LIMIT 50`,
+      `SELECT date, bf FROM (
+         SELECT "measurementDate",
+                TO_CHAR("measurementDate", 'MM/DD') AS date,
+                "bodyFatPercentage"::float AS bf
+         FROM body_measurements
+         WHERE "userId" = :userId AND "bodyFatPercentage" IS NOT NULL
+         ORDER BY "measurementDate" DESC
+         LIMIT 50
+       ) recent
+       ORDER BY "measurementDate" ASC`,
       { userId }, 'getBodyFatTrendChart');
 
     res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.bf })) });
