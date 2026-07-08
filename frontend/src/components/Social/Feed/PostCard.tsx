@@ -7,11 +7,12 @@
  * UX: destructive actions use in-app confirmations, not browser dialogs.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Star, X } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
+import { usePostCardModeration } from './hooks/usePostCardModeration';
 import type { PostCardProps } from './types/PostCardTypes';
 import { CATEGORY_GRADIENTS } from './types/PostCardTypes';
 
@@ -31,8 +32,6 @@ import {
   Toast,
   ToastCloseBtn,
 } from './styles/PostCardStyles';
-import { logger } from '@/utils/logger';
-import { buildSocialPostShareUrl } from '../../../utils/socialPostShareUrl';
 
 const PostCard: React.FC<PostCardProps> = ({
   post,
@@ -56,17 +55,15 @@ const PostCard: React.FC<PostCardProps> = ({
   const [commentsRequested, setCommentsRequested] = useState(false);
   const [transformationSliderValue] = useState(50);
 
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const [editMode, setEditMode] = useState(false);
-  const [editContent, setEditContent] = useState(post.content);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
-  const [reportModalOpen, setReportModalOpen] = useState(false);
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const {
+    menuOpen, setMenuOpen, menuRef,
+    editMode, setEditMode, editContent, setEditContent, isSavingEdit,
+    reportModalOpen, setReportModalOpen,
+    shareDialogOpen, setShareDialogOpen,
+    deleteConfirmOpen, setDeleteConfirmOpen, isDeletingPost,
+    handleCopyLink, handleMute, handleEditPost, handleSaveEdit,
+    handleDeletePost, handleConfirmDeletePost, handleReportSubmit, handleRepost,
+  } = usePostCardModeration({ post, onEdit, onDelete, onReport, onRepost });
 
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
@@ -77,17 +74,6 @@ const PostCard: React.FC<PostCardProps> = ({
   const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
   const isOwnPost = !!(user?.id && user.id === post.user.id);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
 
   useEffect(() => {
     if (showPointNotification) {
@@ -137,61 +123,6 @@ const PostCard: React.FC<PostCardProps> = ({
     setToastVisible(false);
     setTimeout(() => setShowPointNotification(false), 300);
   };
-
-  const handleCopyLink = useCallback(() => {
-    const url = buildSocialPostShareUrl(post.id);
-    navigator.clipboard.writeText(url).catch(() => {
-      // Fallback silent
-    });
-  }, [post.id]);
-
-  const handleMute = useCallback(() => {
-    // TODO: Wire to POST /api/social/mute/:userId when backend supports it
-    logger.warn('TODO: implement mute user', post.user.id);
-  }, [post.user.id]);
-
-  const handleEditPost = useCallback(() => {
-    setEditContent(post.content);
-    setEditMode(true);
-  }, [post.content]);
-
-  const handleSaveEdit = useCallback(async () => {
-    if (!onEdit || !editContent.trim() || editContent === post.content) {
-      setEditMode(false);
-      return;
-    }
-    setIsSavingEdit(true);
-    const ok = await onEdit(post.id, editContent.trim());
-    setIsSavingEdit(false);
-    if (ok) setEditMode(false);
-  }, [onEdit, editContent, post.id, post.content]);
-
-  const handleDeletePost = useCallback(() => {
-    if (!onDelete) return;
-    setDeleteConfirmOpen(true);
-  }, [onDelete]);
-
-  const handleConfirmDeletePost = useCallback(async () => {
-    if (!onDelete) return;
-    setIsDeletingPost(true);
-    try {
-      await onDelete(post.id);
-      setDeleteConfirmOpen(false);
-    } finally {
-      setIsDeletingPost(false);
-    }
-  }, [onDelete, post.id]);
-
-  const handleReportSubmit = useCallback(async (reason: string, description?: string) => {
-    if (!onReport) return false;
-    return onReport(post.id, reason, description);
-  }, [onReport, post.id]);
-
-  const handleRepost = useCallback(async () => {
-    if (!onRepost) return;
-    await onRepost(post.id);
-    setShareDialogOpen(false);
-  }, [onRepost, post.id]);
 
   /* Comment threads load on first open: feed payloads carry counts only, so
      existing comments (including coach answers) must be fetched here. */
