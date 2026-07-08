@@ -9,6 +9,7 @@
  * WorkoutLog, and paid-session deduction policy.
  */
 import { randomUUID } from 'node:crypto';
+import logger from '../../utils/logger.mjs';
 import { getAllModels } from '../../models/index.mjs';
 import {
   buildWorkoutSessionBillingDecision,
