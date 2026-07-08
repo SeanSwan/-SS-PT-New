@@ -128,7 +128,9 @@ describe('ClientWorkoutPlansPanel homework summary', () => {
 
     renderPanel();
 
-    expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
+    // Render-settled anchor: the panel's heading is "Plan Library" (was
+    // "Training Plans" before the plan-library redesign).
+    expect(await screen.findByRole('heading', { name: /plan library/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/off-day homework summary/i)).toBeNull();
   });
 });

@@ -54,11 +54,13 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
   it('gates direct client detailed analytics links before paid charts mount', () => {
     const source = readFileSync(routeComponentsSourcePath, 'utf8');
 
+    // Tier consolidation: the Guardian gate replaced the isPro/isElite pair;
+    // the intent (server-tier truth, no trial creep) is unchanged.
     expect(source).toContain("import { useSubscription } from '../../hooks/useSubscription';");
-    expect(source).toContain('const { isPro, isElite, loading: subscriptionLoading } = useSubscription();');
+    expect(source).toContain('const { hasGuardianAccess, loading: subscriptionLoading } = useSubscription();');
     expect(source).toContain("const isStaffRole = userRole === 'admin' || userRole === 'trainer';");
-    expect(source).toContain('const hasDetailedProgressAccess = isStaffRole || isPro || isElite;');
-    expect(source).not.toContain('const hasDetailedProgressAccess = isStaffRole || isPro || isElite || isTrial;');
+    expect(source).toContain('const hasDetailedProgressAccess = isStaffRole || hasGuardianAccess;');
+    expect(source).not.toContain('isTrial');
     expect(source).toContain('if (subscriptionLoading && !isStaffRole) {');
     expect(source).toContain('if (!hasDetailedProgressAccess) {');
     expect(source).toContain('<h2>Guardian analytics required</h2>');
@@ -68,8 +70,8 @@ describe('UniversalDashboardLayout client detailed progress identity', () => {
   it('keeps the client progress CTA gate aligned with backend charts.full Pro tier', () => {
     const source = readFileSync(clientProgressPageSourcePath, 'utf8');
 
-    expect(source).toContain('const { isPro, isElite } = useSubscription();');
-    expect(source).toContain('const hasAdvancedAccess = isPro || isElite;');
-    expect(source).not.toContain('const hasAdvancedAccess = isPro || isElite || isTrial;');
+    expect(source).toContain('const { hasGuardianAccess } = useSubscription();');
+    expect(source).toContain('const hasAdvancedAccess = hasGuardianAccess;');
+    expect(source).not.toContain('isTrial');
   });
 });

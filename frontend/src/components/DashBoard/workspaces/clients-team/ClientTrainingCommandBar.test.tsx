@@ -154,7 +154,9 @@ describe('ClientTrainingCommandBar', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
-    expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
+    // Query by accessible name: the button's visible text became Save/Confirm
+    // while aria-label="Confirm action" stays the stable contract.
+    expect(await screen.findByRole('button', { name: /confirm action/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
 
     await waitFor(() => expect(commandMock.confirmCommand).toHaveBeenCalledWith('op-workout-42'));
@@ -180,7 +182,7 @@ describe('ClientTrainingCommandBar', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
 
-    expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /confirm action/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /cancel action/i }));
 
     await waitFor(() => expect(commandMock.cancelCommand).toHaveBeenCalledWith('op-workout-cancel'));

@@ -16,7 +16,8 @@ describe('AdminOverviewQuickActions config', () => {
     actions.find(action => action.id === 'coach-client-intake')?.action();
 
     expect(navigate).toHaveBeenCalledWith(
-      '/dashboard/admin/coach-assistant?source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
+      // The intake route now also opens the onboarding workspace pane.
+      '/dashboard/admin/coach-assistant?source=clients-team&workspace=onboarding&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
     );
   });
 

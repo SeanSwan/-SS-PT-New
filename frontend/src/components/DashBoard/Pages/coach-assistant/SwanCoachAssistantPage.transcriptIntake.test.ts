@@ -922,7 +922,14 @@ describe('Phase 13 — WorkoutHistoryPanel consolidation', () => {
   });
 
   it('Clients & Team history section label is "Workout History" (not "Vault History")', () => {
-    expect(TRAINING_TAB_SOURCE).toMatch(/label:\s*['"]Workout History['"]/);
+    // The section labels moved from TrainingTabContent.tsx into the
+    // trainingWorkflowModes registry when the three-mode rail landed.
+    const trainingModesSource = readFileSync(
+      resolve(__dirname, '../../workspaces/clients-team/tabs/trainingWorkflowModes.ts'),
+      'utf8',
+    );
+    expect(trainingModesSource).toMatch(/label:\s*['"]Workout History['"]/);
+    expect(trainingModesSource).not.toMatch(/label:\s*['"]Vault History['"]/);
     expect(TRAINING_TAB_SOURCE).not.toMatch(/label:\s*['"]Vault History['"]/);
   });
 });

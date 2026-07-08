@@ -38,10 +38,13 @@ describe('nutrition hooks auth pipeline', () => {
     expect(routeRegistrySource).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
     expect(workspaceSource).toContain('const { summary, loading: macroLoading, error: macroError, refetch: refetchMacroSummary } = useMacroSummary()');
     expect(workspaceSource).toContain('const macroUnavailablePanel = macroError ? (');
-    expect(workspaceSource).toContain('const { filled: hydrationGlasses, dailyGoal: hydrationGoalGlasses, glassOz, loading: hydrationLoading } = useHydration()');
-    expect(workspaceSource).toContain('hydrationMl={hydrationMl}');
-    expect(workspaceSource).toContain('loading={loading || hydrationLoading}');
-    expect(workspaceSource).toContain("{activeTab === 'restaurant' && <RestaurantTab />}");
+    // Hydration consolidation: the workspace no longer fetches hydration
+    // itself — the hydration tab and the Today panel own their useHydration
+    // calls, so the workspace mounts the tab without a duplicate fetch.
+    expect(workspaceSource).not.toContain('useHydration()');
+    const todayPanelSource = readSource('frontend/src/components/DashBoard/workspaces/NutritionTodayPanel.tsx');
+    expect(todayPanelSource).toContain('useHydration');
+    expect(workspaceSource).toContain("{activeTab === 'restaurant' && <RestaurantTab onAddFood={handleRestaurantFood} />}");
     expect(workspaceSource).toContain("{activeTab === 'hydration' && <NutritionHydrationTab />}");
     expect(hydrationTabSource).toContain('const { filled, dailyGoal: DAILY_GOAL, glassOz, loading, updateFilled } = useHydration()');
     expect(hydrationTabSource).toContain('const ounces = Math.round(filled * glassOz * 10) / 10');

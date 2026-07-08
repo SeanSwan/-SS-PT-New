@@ -166,10 +166,13 @@ describe('TrainerClientCard accessibility', () => {
     const card = document.querySelector('[data-swan-client-card="admin"]');
 
     expect(card).toBeInTheDocument();
+    // The shared CardShell stretch contract moved from height:100% to
+    // align-self:stretch + min-height:100% so tall content can grow.
     expect(card).toHaveStyle({
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
+      alignSelf: 'stretch',
+      minHeight: '100%',
     });
   });
 

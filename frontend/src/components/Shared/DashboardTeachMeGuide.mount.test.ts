@@ -41,15 +41,16 @@ describe('DashboardTeachMeGuide mounts', () => {
     expect(dashboardShellSource).not.toContain('onAskCoach={\n                activeRole');
   });
 
-  it('lets Coach Assistant own its guide inside the command header', () => {
+  it('lets Coach Assistant own its teach experience instead of the shell guide', () => {
     const dashboardShell = read('src/components/DashBoard/UniversalDashboardLayout.shell.tsx');
-    const coachPage = read('src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx');
-    const coachClientBar = read('src/components/DashBoard/Pages/coach-assistant/CoachClientBar.tsx');
+    const coachController = read('src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts');
 
+    // The voice-command-center rebuild (29202be1d) removed the header guide
+    // popover; the command center now carries its own teach mode. The shell
+    // still suppresses its guide on coach routes so nothing double-teaches.
     expect(dashboardShell).toContain('isCoachAssistantRoute');
     expect(dashboardShell).toContain('!isCoachAssistantRoute');
-    expect(coachPage).toContain('guideConfig={{ role: userRole');
-    expect(coachClientBar).toContain('className="coach-header-guide"');
-    expect(coachClientBar).toContain('variant="headerPopover"');
+    expect(coachController).toContain('teachMode');
+    expect(coachController).toContain('toggleTeachMode');
   });
 });

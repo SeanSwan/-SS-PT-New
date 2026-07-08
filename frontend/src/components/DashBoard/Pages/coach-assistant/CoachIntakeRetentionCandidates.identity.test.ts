@@ -22,7 +22,11 @@ describe('CoachIntakeRetentionCandidates identity contract', () => {
 
     expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
     expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
-    expect(pageSource).toContain('<CoachIntakeWorkspace');
+    // Floor Mode refactor: the page mounts the review panel, which mounts the
+    // intake workspace — follow the real chain instead of the old direct mount.
+    const reviewPanelSource = readCoachFile('CoachCommandCenterReviewPanel.tsx');
+    expect(pageSource).toContain('<CoachCommandCenterReviewPanel');
+    expect(reviewPanelSource).toContain('<CoachIntakeWorkspace');
     expect(workspaceSource).toContain('retention={queue.retention}');
     expect(healthStripSource).toContain('<CoachIntakeRetentionCandidates retention={retention} />');
     expect(serviceSource).toContain("'/api/coach/intake/retention'");

@@ -61,7 +61,8 @@ describe('PlaudClientResolver new-client flow', () => {
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reed' } });
     fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'taylor@example.com' } });
     fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'taylor.reed' } });
-    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
+    // No password field anymore: new SwanStudios clients get a secure reset
+    // link after creation (CreateClientModal strips password from the payload).
 
     fireEvent.click(screen.getByRole('button', { name: /create client/i }));
 

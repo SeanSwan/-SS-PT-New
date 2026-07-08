@@ -134,7 +134,8 @@ describe('DashboardTeachMeGuide', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /teach me: admin self workout planning/i }));
-    expect(screen.getByRole('link', { name: /^start now: plan my workout$/i }))
+    // The self-planner guide's primary action label is now "Build My Plan".
+    expect(screen.getByRole('link', { name: /^start now: build my plan$/i }))
       .toHaveAttribute('href', '/dashboard/admin/workout-planner?self=1');
   });
 
