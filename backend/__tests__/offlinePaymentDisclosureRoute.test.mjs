@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   storeFindAll: vi.fn(),
+  flagFindOne: vi.fn(),
 }));
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
@@ -33,6 +34,15 @@ vi.mock('../utils/logger.mjs', () => ({
   },
 }));
 
+// P1-1 price privacy: the offline rail refuses non-granted callers before any
+// storefront lookup, so the disclosure path under test requires a granted user.
+vi.mock('../models/UserFeatureFlag.mjs', () => ({
+  default: { findOne: mocks.flagFindOne },
+}));
+vi.mock('../models/User.mjs', () => ({
+  default: { findByPk: vi.fn() },
+}));
+
 const { default: offlinePaymentRoutes } = await import('../routes/offlinePaymentRoutes.mjs');
 
 function buildApp() {
@@ -45,6 +55,8 @@ function buildApp() {
 describe('offline payment disclosure guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Caller id 3 holds the store-prices grant (P1-1)
+    mocks.flagFindOne.mockResolvedValue({ id: 900 });
   });
 
   it('does not expose storefront lookup internals during server-side price validation', async () => {

@@ -14,6 +14,9 @@ const mocks = vi.hoisted(() => ({
   storefrontItem: {
     findAll: vi.fn(),
   },
+  userFeatureFlag: {
+    findOne: vi.fn(),
+  },
   transaction: { id: 'offline-order-tx' },
 }));
 
@@ -33,6 +36,11 @@ vi.mock('../../database.mjs', () => ({
 vi.mock('../../models/Order.mjs', () => ({ default: mocks.order }));
 vi.mock('../../models/OrderItem.mjs', () => ({ default: mocks.orderItem }));
 vi.mock('../../models/StorefrontItem.mjs', () => ({ default: mocks.storefrontItem }));
+// P1-1 price privacy: purchase rails require the store-prices grant (fail closed).
+// User.mjs must be mocked too — priceVisibilityService.getModels() imports both,
+// and the real model init throws under the mocked database (→ spurious fail-closed).
+vi.mock('../../models/UserFeatureFlag.mjs', () => ({ default: mocks.userFeatureFlag }));
+vi.mock('../../models/User.mjs', () => ({ default: { findByPk: vi.fn() } }));
 
 const offlinePaymentRoutes = (await import('../../routes/offlinePaymentRoutes.mjs')).default;
 
@@ -65,6 +73,8 @@ function requestBody(overrides = {}) {
 describe('offline payment order item truth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Caller id 42 holds the store-prices grant (P1-1) — purchase rail open
+    mocks.userFeatureFlag.findOne.mockResolvedValue({ id: 900 });
     mocks.order.findOne.mockResolvedValue(null);
     mocks.order.findOrCreate.mockResolvedValue([
       {
@@ -152,5 +162,18 @@ describe('offline payment order item truth', () => {
         subtotal: '200.00',
       }),
     ], expect.objectContaining({ validate: true }));
+  });
+
+  it('refuses callers without the store-prices grant (P1-1, fail closed)', async () => {
+    mocks.userFeatureFlag.findOne.mockResolvedValue(null);
+
+    const response = await request(makeApp())
+      .post('/api/payments/offline')
+      .send(requestBody())
+      .expect(403);
+
+    expect(response.body.code).toBe('PRICE_ACCESS_REQUIRED');
+    expect(mocks.order.findOrCreate).not.toHaveBeenCalled();
+    expect(mocks.orderItem.bulkCreate).not.toHaveBeenCalled();
   });
 });

@@ -6,12 +6,19 @@
  */
 import express from 'express';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   checkoutCreate: vi.fn(),
   mockStorefrontItem: {
     findAll: vi.fn(),
+    findOne: vi.fn(),
+  },
+  mockUser: {
+    findByPk: vi.fn(),
+  },
+  mockUserFeatureFlag: {
     findOne: vi.fn(),
   },
 }));
@@ -53,11 +60,17 @@ vi.mock('../utils/logger.mjs', () => ({
 }));
 
 vi.mock('../models/User.mjs', () => ({
-  default: {},
+  default: mocks.mockUser,
 }));
 
 vi.mock('../models/StorefrontItem.mjs', () => ({
   default: mocks.mockStorefrontItem,
+}));
+
+// P1-1 price privacy: list strips prices / purchase refuses without the
+// store-prices grant. Mocked so the real gate logic runs against a grant row.
+vi.mock('../models/UserFeatureFlag.mjs', () => ({
+  default: mocks.mockUserFeatureFlag,
 }));
 
 vi.mock('../services/sessionPackageCheckoutFulfillmentService.mjs', () => ({
@@ -68,7 +81,11 @@ vi.mock('../services/sessionPackageCheckoutFulfillmentService.mjs', () => ({
 }));
 
 vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_catalogtruth');
+vi.stubEnv('JWT_SECRET', 'catalog-truth-test-secret');
 const { default: sessionPackageRoutes } = await import('../routes/sessionPackageRoutes.mjs');
+
+// The public list route identifies callers via soft Bearer-token auth (P1-1)
+const grantedBearer = `Bearer ${jwt.sign({ id: 3, tokenType: 'access' }, 'catalog-truth-test-secret')}`;
 
 function buildApp() {
   const app = express();
@@ -96,6 +113,9 @@ describe('direct session-package purchase catalog truth', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Caller id 3 holds the store-prices grant (P1-1)
+    mocks.mockUser.findByPk.mockResolvedValue({ id: 3, role: 'client' });
+    mocks.mockUserFeatureFlag.findOne.mockResolvedValue({ id: 900 });
     mocks.mockStorefrontItem.findAll.mockResolvedValue([]);
     mocks.mockStorefrontItem.findOne.mockResolvedValue(makeStorefrontPackage());
     mocks.checkoutCreate.mockResolvedValue({
@@ -120,7 +140,9 @@ describe('direct session-package purchase catalog truth', () => {
       }),
     ]);
 
-    const response = await request(buildApp()).get('/api/session-packages');
+    const response = await request(buildApp())
+      .get('/api/session-packages')
+      .set('Authorization', grantedBearer);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -172,5 +194,34 @@ describe('direct session-package purchase catalog truth', () => {
     }), expect.objectContaining({
       idempotencyKey: expect.any(String),
     }));
+  });
+
+  it('strips prices from the list for callers without the store-prices grant (P1-1)', async () => {
+    mocks.mockUserFeatureFlag.findOne.mockResolvedValue(null);
+    mocks.mockStorefrontItem.findAll.mockResolvedValue([makeStorefrontPackage()]);
+
+    const response = await request(buildApp()).get('/api/session-packages');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: 10,
+        name: 'SwanStudios 10-Pack',
+        sessions: 10,
+        price: null,
+      }),
+    ]);
+  });
+
+  it('refuses purchase for callers without the store-prices grant (P1-1, fail closed)', async () => {
+    mocks.mockUserFeatureFlag.findOne.mockResolvedValue(null);
+
+    const response = await request(buildApp())
+      .post('/api/session-packages/purchase')
+      .send({ packageId: 10 });
+
+    expect(response.status).toBe(403);
+    expect(response.body.code).toBe('PRICE_ACCESS_REQUIRED');
+    expect(mocks.checkoutCreate).not.toHaveBeenCalled();
   });
 });

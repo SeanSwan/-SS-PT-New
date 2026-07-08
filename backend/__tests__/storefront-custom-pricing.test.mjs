@@ -16,10 +16,22 @@ import request from 'supertest';
 import express from 'express';
 import storeFrontRoutes from '../routes/storeFrontRoutes.mjs';
 
-// Create Express app for testing
+// Launch P1-1 (price privacy): /calculate-price is gated by resolvePriceVisibility —
+// ungranted callers get 403 PRICE_ACCESS_REQUIRED. The pricing-math suite below runs
+// as an ADMIN (admins always see prices, no DB flag lookup); the gate contract itself
+// is locked in the "Price privacy gate" block at the bottom.
 const app = express();
 app.use(express.json());
+app.use((req, _res, next) => {
+  req.user = { id: 1, role: 'admin' };
+  next();
+});
 app.use('/api/storefront', storeFrontRoutes);
+
+// No req.user, no Bearer token → anonymous → prices hidden (FAIL CLOSED)
+const ungrantedApp = express();
+ungrantedApp.use(express.json());
+ungrantedApp.use('/api/storefront', storeFrontRoutes);
 
 describe('Custom Package Pricing Endpoint - /api/storefront/calculate-price', () => {
 
@@ -465,6 +477,30 @@ describe('Custom Package Pricing Endpoint - /api/storefront/calculate-price', ()
       expect(typeof response.body.pricing.discountTier).toBe('string');
       expect(typeof response.body.pricing.savingsMessage).toBe('string');
       expect(typeof response.body.pricing.metadata.nextTierMessage).toBe('string');
+    });
+  });
+
+  // ===================== PRICE PRIVACY GATE (Launch P1-1) =====================
+
+  describe('Price privacy gate (P1-1)', () => {
+    it('should refuse anonymous callers with 403 PRICE_ACCESS_REQUIRED', async () => {
+      const response = await request(ungrantedApp)
+        .get('/api/storefront/calculate-price')
+        .query({ sessions: 25 });
+
+      expect(response.status).toBe(403);
+      expect(response.body.success).toBe(false);
+      expect(response.body.code).toBe('PRICE_ACCESS_REQUIRED');
+      expect(response.body.pricing).toBeUndefined();
+    });
+
+    it('should gate before validation — invalid input from anonymous caller still gets 403, not 400', async () => {
+      const response = await request(ungrantedApp)
+        .get('/api/storefront/calculate-price')
+        .query({ sessions: 5 });
+
+      expect(response.status).toBe(403);
+      expect(response.body.code).toBe('PRICE_ACCESS_REQUIRED');
     });
   });
 });
