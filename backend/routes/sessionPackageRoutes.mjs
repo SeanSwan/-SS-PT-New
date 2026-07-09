@@ -66,7 +66,8 @@ if (isStripeEnabled()) {
 router.get('/', async (req, res) => {
   try {
     const packages = await StorefrontItem.findAll({
-      where: { isActive: true },
+      // Hidden per-client specials never appear in the public session list (HR-007-F3).
+      where: { isActive: true, isSpecialOffer: false },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
     });
     // Launch P1-1: strip price for non-granted callers (packages stay listed)
@@ -106,8 +107,16 @@ router.post('/purchase', protect, async (req, res) => {
     const { packageId } = req.body;
     const userId = req.user.id;
 
-    // Launch P1-1: purchasing requires the admin-granted store-prices flag
-    if (!(await isPriceAccessGranted(req.user))) {
+    // Launch P1-1: purchasing requires the admin-granted store-prices flag.
+    // EXCEPTION: a client with an active per-client special is "invited" (the
+    // ownership guard below still confirms they buy only their own special).
+    let purchaseInvited = await isPriceAccessGranted(req.user);
+    if (!purchaseInvited) {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { clientHasActiveSpecial } = await import('../services/specialOfferService.mjs');
+      purchaseInvited = await clientHasActiveSpecial({ userId, CustomPackage });
+    }
+    if (!purchaseInvited) {
       return res.status(403).json({
         success: false,
         message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
@@ -129,12 +138,30 @@ router.post('/purchase', protect, async (req, res) => {
         isActive: true,
       },
     });
-    
+
     if (!selectedPackage) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid package selected' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid package selected'
       });
+    }
+
+    // HR-007-F4: a hidden per-client special can be purchased ONLY by the
+    // client it belongs to. Confirm ownership + active/unexpired/redeemable
+    // before this route lets anyone check it out.
+    if (selectedPackage.isSpecialOffer) {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { assertClientOwnsActiveSpecial, findSpecialByStorefrontItemId, SpecialOfferError } =
+        await import('../services/specialOfferService.mjs');
+      try {
+        const special = await findSpecialByStorefrontItemId(selectedPackage.id, { CustomPackage });
+        assertClientOwnsActiveSpecial({ customPackage: special, userId: req.user.id });
+      } catch (e) {
+        if (e instanceof SpecialOfferError) {
+          return res.status(e.status || 403).json({ success: false, message: e.message, code: e.code });
+        }
+        throw e;
+      }
     }
 
     const packageSessions = getStorefrontSessionCredits(selectedPackage);

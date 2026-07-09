@@ -203,6 +203,29 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
 
     await user.update(buildUserPurchaseUpdate(user, sessionsToAdd), { transaction });
 
+    // Burn down any per-client "SwanStudios Special" in this cart, atomically
+    // with the credit — so a one_time/n_times deal can't be re-purchased. Gated
+    // on a cheap in-memory check of the already-loaded cart items, so ordinary
+    // carts do ZERO extra work and have no dependency on the special feature.
+    const cartHasSpecial = Array.isArray(cart.cartItems)
+      && cart.cartItems.some((ci) => ci?.storefrontItem?.isSpecialOffer === true);
+    if (cartHasSpecial) {
+      try {
+        const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+        const { recordCartSpecialRedemptions } = await import('./specialOfferService.mjs');
+        await recordCartSpecialRedemptions({
+          cartItems: cart.cartItems,
+          CustomPackage,
+          transaction,
+        });
+      } catch (specialErr) {
+        // A special-redemption failure MUST abort the whole grant (don't credit
+        // sessions for a deal we couldn't record) — rethrow into the outer catch.
+        logger.error(`[SessionGrant] special redemption recording failed for cart ${cartId}: ${specialErr.message}`);
+        throw specialErr;
+      }
+    }
+
     const fulfillment = await createCartOrderIfPossible({
       cart,
       user,

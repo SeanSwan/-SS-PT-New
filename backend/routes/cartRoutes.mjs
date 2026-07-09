@@ -374,26 +374,8 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
-    // Launch P1-1: store purchasing is invitation-only — requires the
-    // admin-granted store-prices flag (admins always pass).
-    if (!(await isPriceAccessGranted(req.user))) {
-      return res.status(403).json({
-        success: false,
-        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
-        code: 'PRICE_ACCESS_REQUIRED'
-      });
-    }
-
-    logger.debug('[Cart] Add item request accepted', {
-      userId: req.authUserId,
-      role: req.user.role,
-      storefrontItemId: normalizedStorefrontItemId,
-      productVariantId: normalizedProductVariantId,
-      quantity: normalizedQuantity
-    });
-
-    // 🚀 ENHANCED: Using coordinated model imports
-    // Get the storefront item to check price
+    // Resolve the item FIRST — we need to know whether it's the client's own
+    // per-client special before applying the invitation gate below.
     const snapshot = await resolveCartItemSnapshot({
       StorefrontItem,
       ProductVariant,
@@ -408,7 +390,42 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
         message: snapshot.message
       });
     }
-    
+
+    // Per-client "SwanStudios Special": only its owning client may add it, and
+    // only while it's active/unexpired/redeemable. Ordinary items skip this.
+    // A validated owned special is itself the invitation (see the gate below).
+    let isOwnedSpecial = false;
+    if (snapshot.storefrontItem?.isSpecialOffer) {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { assertClientOwnsActiveSpecial, findSpecialByStorefrontItemId, SpecialOfferError } =
+        await import('../services/specialOfferService.mjs');
+      try {
+        const special = await findSpecialByStorefrontItemId(normalizedStorefrontItemId, { CustomPackage });
+        assertClientOwnsActiveSpecial({ customPackage: special, userId: req.authUserId });
+        if (normalizedQuantity > 1) {
+          return res.status(409).json({ success: false, message: 'A special offer can only be purchased once per order.' });
+        }
+        isOwnedSpecial = true;
+      } catch (e) {
+        if (e instanceof SpecialOfferError) {
+          return res.status(e.status || 403).json({ success: false, message: e.message, code: e.code });
+        }
+        throw e;
+      }
+    }
+
+    // Launch P1-1: store purchasing is invitation-only — requires the
+    // admin-granted store-prices flag (admins always pass). EXCEPTION: a
+    // client's OWN active special is itself the invitation (its price is shown
+    // to them on the store), so it bypasses the global flag requirement.
+    if (!isOwnedSpecial && !(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
+      });
+    }
+
     logger.debug('[Cart] Adding storefront item to active cart', {
       userId: req.authUserId,
       storefrontItemId: normalizedStorefrontItemId,

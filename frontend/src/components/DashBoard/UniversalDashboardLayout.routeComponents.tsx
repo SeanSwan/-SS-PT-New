@@ -19,6 +19,7 @@ export const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-
 export const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-management/modern-user-management'));
 export const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));
 export const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'));
+export const AdminCreateSpecialManager = React.lazy(() => import('./Pages/admin-specials/AdminCreateSpecialManager'));
 export const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
 export const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
 export const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));

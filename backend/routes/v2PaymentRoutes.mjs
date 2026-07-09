@@ -288,8 +288,16 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     }
 
     // Launch P1-1 defense-in-depth: checkout re-verifies the store-prices
-    // grant even though cart add already enforced it.
-    if (!(await isPriceAccessGranted(req.user))) {
+    // grant even though cart add already enforced it. EXCEPTION: a client with
+    // an active per-client special is "invited" and may check out (the cart
+    // guard below still confirms they only bought their own special).
+    let checkoutInvited = await isPriceAccessGranted(req.user);
+    if (!checkoutInvited) {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { clientHasActiveSpecial } = await import('../services/specialOfferService.mjs');
+      checkoutInvited = await clientHasActiveSpecial({ userId: req.user.id, CustomPackage });
+    }
+    if (!checkoutInvited) {
       return res.status(403).json({
         success: false,
         message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
@@ -407,6 +415,24 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           availableStock: stockValidationError.availableStock
         }
       });
+    }
+
+    // Defense-in-depth: re-verify every per-client special in the cart belongs
+    // to this user and is still redeemable, right before we mint a Stripe
+    // session (the cart guard runs at add-time; this catches an expired/redeemed
+    // deal sitting in a stale cart). No-op for ordinary carts.
+    {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { assertCartSpecialsRedeemable, SpecialOfferError } =
+        await import('../services/specialOfferService.mjs');
+      try {
+        await assertCartSpecialsRedeemable({ cartItems: cart.cartItems, userId, CustomPackage });
+      } catch (e) {
+        if (e instanceof SpecialOfferError) {
+          return res.status(e.status || 409).json({ success: false, message: e.message, code: e.code });
+        }
+        throw e;
+      }
     }
 
     // Step 2: Calculate totals. Stripe Tax owns taxable physical product tax.

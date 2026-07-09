@@ -321,14 +321,17 @@ router.get('/', async (req, res) => {
     
     // Build the where clause for filtering
     const whereClause = {
-      // We're removing the price filter to ensure all packages can be accessed
+      // Hidden per-client "SwanStudios Special" items are NEVER in the public
+      // catalog (HR-007) — they're reachable only through the client's own
+      // /api/custom-packages/my. Legacy rows default isSpecialOffer=false.
+      isSpecialOffer: false,
     };
-    
+
     // Add packageType filter if provided
     if (requestedPackageType) {
       whereClause.packageType = requestedPackageType;
     }
-    
+
     // Add isActive filter if provided (convert string to boolean)
     whereClause.isActive = requestedIsActive;
     
@@ -611,14 +614,15 @@ router.get('/:id', async (req, res) => {
 
     const item = await StorefrontItem.findOne({
       where: {
-        id: itemId
-        // Removed pricing constraint to ensure all packages are visible
+        id: itemId,
+        // Never let a hidden per-client special be enumerated by id (HR-007-F1).
+        isSpecialOffer: false,
       },
       include: await resolveProductVariantInclude()
     });
-    
+
     if (!item) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
         message: 'Item not found or does not meet pricing requirements' 
       });
