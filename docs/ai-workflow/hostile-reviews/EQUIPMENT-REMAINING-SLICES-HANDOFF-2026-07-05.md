@@ -43,6 +43,12 @@
 `frontend/src/components/DashBoard/Pages/trainer-dashboard/TrainerStellarSidebar.tsx` (+ `.navigation.test.ts`),
 new `EquipmentManagerPage.errorStates.test.tsx`.
 
+### Reconciliation update (2026-07-08 — other agents advanced this area; READ before building)
+- **Slice 1 is COMPLETE** — the inline approval-modal error + its regression test shipped in `4c84cb368` on main; 3/3 error-state tests pass. (Codex R7 review never ran — deployed-but-unreviewed; low risk, frontend-only.)
+- **P0.4 (FK → "Users") is DONE** — landed via the 2026-07-07 legacy-user FK re-point migration (`20260708000000-repoint-legacy-user-fks.cjs`, re-targeted `equipment_profiles` among 6 tables), armed by Sean. **Do not redo.**
+- **P1.2 is DONE for the bootcamp path** — Codex's Bootcamp Intelligence Builder reads confirmed `EquipmentExerciseMap` rows as high-confidence evidence (`bootcampEquipmentContext.mjs:64-71`). The MAIN workout-planner path (`workoutBuilderCandidateService.mjs`) is unconfirmed — treat as still-open there only.
+- **⚠ LANE OWNERSHIP:** the equipment **intelligence/accuracy lane (P1.x) is now Codex's active lane** (Bootcamp Intelligence Builder — strict equipment context, evidence scoring, ExerciseIntelligencePicker; next: inline equipment/mapping, station roles). **Do NOT build P1 without coordinating with Codex** (Rule 52/67). The clean, non-colliding lane is **P0 backend safety (P0.2/P0.3/P0.5)** — Claude's active lane 2026-07-08 (branch `claude/equipment-p0-safety`).
+
 ---
 
 ## 2. REMAINING SLICES (in order). Each = one reviewable unit.
@@ -50,8 +56,9 @@ new `EquipmentManagerPage.errorStates.test.tsx`.
 > Phase order is **risk-then-value** and was ratified by the triangle. P0 = safety/correctness,
 > P1 = the accuracy engine (the marquee value), P2 = reach, P3 = Michelin polish.
 
-### P0 — Backend safety bundle (**RECOMMENDED NEXT = "Slice 2"**)
+### P0 — Backend safety bundle (**RECOMMENDED NEXT = "Slice 2"**; P0.4 already done → Slice 2 = P0.2 + P0.3 + P0.5)
 Do as ONE backend slice, each fix with a regression test. Coordinate commit timing with Codex.
+**Migration risk (P0.3):** the partial-index migration auto-runs on Render deploy — it must pre-check/reconcile existing soft-deleted duplicate rows or the index build fails and breaks the deploy. Treat P0.3 as its own guarded, reviewed sub-slice; land P0.5 (IDOR, pure code) + P0.2 (transaction, no schema) first.
 - **P0.2 — Atomic multi-item scan write.** Wrap the per-candidate `EquipmentItem.create` loop +
   `EquipmentExerciseMap.bulkCreate` + `persistEquipmentScanReviewSession` in a `sequelize.transaction`
   (`backend/routes/equipmentRoutes.mjs` ~541-615). Prevents partial-write corruption. *Test:* forced
@@ -61,8 +68,9 @@ Do as ONE backend slice, each fix with a regression test. Coordinate commit timi
   Fixes the "can't re-add a rejected/archived item" 409/500. *Test:* reject "Barbell" → re-add succeeds.
   **Data-order note (triangle):** existing soft-deleted duplicate rows may block the new partial index
   build — reconcile/clean before or during the migration.
-- **P0.4 — FK → `"Users"`.** ALTER `equipment_profiles_trainerId_fkey` from stale lowercase `users`
-  to `"Users"` (migration `…000001.cjs:16` targets the wrong table). Align the model.
+- **P0.4 — FK → `"Users"`. ✅ DONE 2026-07-07** — landed in the legacy-user FK re-point migration
+  `20260708000000-repoint-legacy-user-fks.cjs` (re-targeted `equipment_profiles` among 6 tables),
+  armed by Sean. Do not redo.
 - **P0.5 — variationRoutes IDOR.** Add the trainer/admin ownership gate to
   `backend/routes/variationRoutes.mjs:103-106` (copy the correct pattern at `aiChatRoutes.mjs:239`).
   Stops cross-trainer equipment-inventory enumeration. *Test:* trainer B's profileId → 403.
@@ -72,8 +80,9 @@ Do as ONE backend slice, each fix with a regression test. Coordinate commit timi
   (`equipmentRoutes.mjs:590-599`): populate `customExerciseId`/`isCustomExercise`, flag `needsReview`
   on no-match. **Triangle-mandated:** include a **one-off backfill script** for ALL existing free-text
   `EquipmentExerciseMap` rows (same matcher).
-- **P1.2 — candidate generation READS the confirmed `EquipmentExerciseMap`** (today it's write-only —
-  `workoutBuilderCandidateService.mjs`). This is the single highest-value integration fix.
+- **P1.2 — READ the confirmed `EquipmentExerciseMap`. 🟡 DONE for the BOOTCAMP path** (Codex —
+  `bootcampEquipmentContext.mjs:64-71`). Still open for the MAIN workout-planner
+  (`workoutBuilderCandidateService.mjs`). **Codex owns this lane — coordinate before touching.**
 - **P1.3 — Equipment as a RANKING signal**, not just a gate (`scoreCandidate`
   `workoutBuilderCandidateService.mjs:150-158`). Dynamic/configurable weight by goal/phase (§12 decision b).
 - **P1.4 — AI post-generation equipment validator** — check each Coach-proposed exercise against the
