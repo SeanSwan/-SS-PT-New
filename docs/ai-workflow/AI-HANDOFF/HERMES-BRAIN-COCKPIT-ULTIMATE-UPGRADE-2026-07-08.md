@@ -260,3 +260,60 @@ Extractable primitives (the tokenized-skin split already proves the pattern): sn
 1. **Ratify the plan** (or adjust the theme order / feature phasing).
 2. **Greenlight Slice 1** (readability + layout foundation) as the next build — highest bang for the "weak/unreadable" pain, and it stands alone.
 3. When Fable capacity returns, optionally have Fable ratify this Opus-rendered verdict (nothing here should conflict).
+
+---
+
+# v2 — HARDENED PLAN (post-hostile-review, 2026-07-08) — SUPERSEDES v1 WHERE THEY CONFLICT
+
+Two independent adversarial red-teams (technical/perf + governance/security/PII) plus the deputy-decider's own pass attacked v1 and found **6 blockers + 5 majors** the first draft got wrong or under-specified. The Codex build prompt is derived from THIS section, not the v1 draft. Full findings: `c:/tmp/brain-hostile/technical.md` + `governance.md`.
+
+## A. Corrected architecture
+
+**A1 — Label↔camera sync (v1 BLOCKER; "shared transform" was a hope).** Percentage-positioned HTML labels cannot track an SVG `<g>` camera transform (different coordinate systems), and `preserveAspectRatio="xMidYMid meet"` letterboxes the graph so even the STATIC slice-1 math is offset. DECISION (mandatory, approach a):
+- Lock the graph pane to `aspect-ratio: 1280 / 640` (kills the letterbox; label percentage math is exact at rest).
+- The camera is ONE transform applied identically to BOTH the SVG content `<g class="camera">` (user units) AND the HTML `.label-layer` container (converted): `translate(tx*pxPerUnit, ty*pxPerUnit) scale(s)`, `pxPerUnit = renderedGraphWidth / 1280`. Labels are positioned ONCE in the container's coordinate space (px), ride the container transform, and NEVER get per-label `left/top` rewrites (that is layout thrash). Only the container `transform` changes per frame (GPU-composited, write-only).
+- Acceptance: a Playwright spec drives wheel-zoom + drag and asserts each label's bounding rect stays within 2px of its paired SVG node's rect at 3 zoom levels.
+
+**A2 — Source-file module split (v1 BLOCKER; brainClient cannot be ≤300 lines).** JS is inlined into the one generated file, but SOURCE splits (Rule 4): `brainCamera.mjs` (pan/zoom/pinch/fly-to/keyboard/semantic-zoom/focus-drill) · `brainReplay.mjs` (replay + scrubber + diff) · `brainClient.mjs` (search + theme + reduced-motion + aria-live + bootstrap) · plus `brainGather.mjs`, `brainThemes.mjs`, `brainAtmosphere.mjs`, `brainViewTemplate.mjs`, `brain-view.mjs`. Each ≤300 lines; all inlined into ONE runtime file.
+
+**A3 — 14-day gather is NEW plumbing, not "call it 14x" (v1 BLOCKER).** (1) `runnerLib.readState()` returns a single CURRENT snapshot — routine per-day state must be RE-DERIVED from that day's receipts (`receipts.filter(commandOf === cmd)`). (2) `receipt-digest.mjs` analytics are module-private and return Markdown. REQUIRED refactor: extract `computeDigestData(vaultRoot, isoDate, opts) -> structured object` as a pure exported function; `renderDigest()` calls it (zero behavior change; existing golden test covers); `brainGather` calls the same function per day. **Replay-the-Day is TODAY-ONLY**; the other 13 scrub-days embed DERIVED AGGREGATES ONLY (state/color/counts), never raw receipts.
+
+**A4 — File-size budget (v1 BLOCKER; no math).** Empty-data fixture is already 33KB. Today's full receipts + 13-day aggregates + inlined JS/CSS/themes + HTML labels must stay ≤~250KB on a REAL populated day — do the arithmetic before Slice 4/5 closes. Compact per-day schema is the lever.
+
+**A5 — Canvas2D fallback gets its OWN lower ceiling (v1 MAJOR).** GPU-instanced particles + value-noise nebula are WebGL-only. Canvas2D path = genuinely cheaper: far fewer particles, no per-particle glow, a pre-baked noise texture blended via `globalCompositeOperation` for the nebula, its own perf target (not "60fps like WebGL").
+
+**A6 — Tokenization completeness sweep (v1 MAJOR).** Beyond the two named bugs (`--aur` undeclared; core baked `${PAL.*}` -> `var()`), sweep ALL hardcoded hex into tokens in Slice 1: body gradient `#131a2e`/`#171229`, `.orbit #22293d`, `.star #9fb4dd`, orb gradient `#232b45`/`#101018`, `.thought code #50A0F0`, `.chip #2a3142`, and decide `PAL.dim #39415a` -> fold into `--c-muted` or add a 12th var. Else 9 themes get retrofitted at once in Slice 5.
+
+## B. Security & privacy mandates (NON-NEGOTIABLE)
+
+**B1 — Receipt-content XSS (BLOCKER).** Attacker text reaches `outcome`/`target`/`what` verbatim by design (the refusal trail); the redesign's JSON-embed + JS-built DOM re-open injection, and an injected remote `<img>`/`fetch` would break the "zero network" claim itself. MANDATE: (i) embed the snapshot via a helper escaping `<`,`>`,`&`,U+2028/2029 and specifically neutralizing `</script` (`JSON.stringify(x).replace(/</g,'[backslash]u003c')`); (ii) ALL data-derived DOM in the client modules uses `textContent`/`createElement`, NEVER `innerHTML` with interpolated snapshot fields; (iii) a regression test plants a receipt with an XSS-shaped `outcome` and asserts, when the generated file is loaded in jsdom/happy-dom, it does NOT execute (not a grep). Embed-helper lands Slice 1; DOM discipline lands before any interactivity (Slice 2).
+
+**B2 — Replace the doctrine test, do not delete it (BLOCKER).** `brain-view.test.mjs` asserts no `<script>/<button>/<form>/<input>/onclick/javascript:` — that IS Zero-JS-doctrine enforced. Slice 2 REPLACES it (same commit) with the real invariant: no `<script src=` (inline only), no `fetch(`/`XMLHttpRequest`/`WebSocket(`/`sendBeacon(`, no `<img src=http`/`<form action=http`, no remote-origin navigation. Update canonical registry row 48 (`command-effect-registry.md`) to interactive/overlay/replay reality with params `date, window-days`, and add one line to the `brainViewStyles.mjs` "Zero JS by doctrine" header pointing at this amendment. The registry is canonical governance — an AI-HANDOFF doc does not reach it; the row edit does.
+
+**B3 — PII amplification (MAJOR).** v1 widens a 1-day/6-receipt/88-char excerpt into a 14-day/full-corpus/searchable/shareable surface. MANDATE: search index scoped to STRUCTURED fields (`what`/`target`/labels), never full `outcome` prose; `evidence` paths normalized to vault-relative before embed (strip the `C:\Users\<name>` segment); the PNG export excludes raw receipt/thought prose (visual + counts only); by-actor stays roles (`hermes/runner`), never names; document the 14-day embed as a retention exception in `memory-and-state.md` privacy floor.
+
+**B4 — localStorage is UI-preference-only (MAJOR).** Namespaced (`hermesBrain:v1:theme`), theme/zoom only. FORBID persisting search text/history (an operator could type a client name). Test: type a query, reload, assert it is gone. Add "no client-influenceable text in localStorage" to acceptance.
+
+**B5 — PNG export mechanics (MINOR).** MUST use `canvas.drawImage` compositing of the app's OWN layers (WebGL + rasterized SVG + HTML overlay); NEVER `getDisplayMedia`/screen-capture (a permission prompt is itself an action surface and captures more than intended). Zero permission dialogs.
+
+**B6 — Reduced-motion hard gate (verify in review).** JS gates the FIRST `requestAnimationFrame` schedule at init (matchMedia), not just skips work inside a scheduled callback; the boot sequence + first-touch theme flourish are SKIPPED, not shortened.
+
+**B7 — Determinism boundary (doc).** The GENERATED FILE is byte-identical given an identical snapshot AND generation timestamp; runtime rAF animation (camera easing, particles, replay) is legitimately non-deterministic. Slice 6 idle-variety may use runtime randomness but must never bake a wall-clock value into the embedded snapshot.
+
+## C. Re-sequenced slice plan (supersedes v1 §8)
+
+- **Slice 0 — Feasibility spike + locked decisions (NO shipped UI).** Real-day byte-budget arithmetic; confirm label-sync approach (a) with the formula; write the module split; decide routine-per-day-state reconstruction; lock Replay = today-only; inventory hardcoded colors; extract `computeDigestData()` from `receipt-digest` (golden tests green, zero behavior change). Output: decisions appended to this spec. Cheap; de-risks BLOCKERs 1/3/4 + the budget before any pixels.
+- **Slice 1 — Readability + layout foundation (static, identity transform).** Grid shell (regions A-D), type ramp, 8px spacing, HTML label overlay in the aspect-locked shared container (so Slice 2 only adds the transform — no rework), NBA hero + ranked rail, state-differentiated HUD, fault strip; `--aur` declared; core -> `var()`; full hardcoded-color -> token sweep; the embed-escaper helper (B1-i); the network-invariant test replacement + registry row 48 update + header amendment (B2); determinism-boundary doc (B7); responsive to the phone tab model. Ships static. **Acceptance: every label ≥13px, readable at 375px and 4K; NBA loudest; zero-network + XSS-embed tests green.**
+- **Slice 2 — Interactivity.** `brainCamera` inlined; the converted camera transform on both SVG `<g>` and label container (A1); semantic zoom; focus/drill + inspector; keyboard nav + SVG-node/HTML-label event sync; aria-live announcer; reduced-motion FIRST-frame gate (B6); textContent-only DOM discipline + jsdom XSS regression (B1); Playwright label-tracks-node bbox test (A1). **Acceptance: labels within 2px of nodes across zoom; fully keyboard-operable; reduced-motion static-but-navigable.**
+- **Slice 3 — Data density (uses computeDigestData from Slice 0).** Tier rings, refusal thorns, integrity-crack, approval countdowns, by-actor ring (roles), 30-day heat-strip, SwanStudios satellite, "+N more" skills; search index scoped to structured fields; evidence-path normalization (B3). **Acceptance: the visual shows what the digest computes; no raw prose indexed.**
+- **Slice 4 — Replay (today-only) + time-scrubber (aggregates).** `brainReplay` inlined; `brainGather` embeds today-full + 13-day aggregates (A3/A4); routine per-day state re-derived from that day's receipts; trend arrows; "what changed" diff; real-day byte-budget verified ≤250KB. **Acceptance: play -> today fires; scrub -> prior day from aggregates; file ≤250KB on a real day.**
+- **Slice 5 — Themes (10) + atmosphere.** `brainThemes` full 10 behind the switcher (all swept colors tokenized); `brainAtmosphere` WebGL + Canvas2D lower-ceiling fallback + nebula substitute (A5); localStorage theme namespaced (B4); 7-pair contrast lint per theme. **Acceptance: all 10 pass the lint; WebGL 60fps desktop / Canvas2D its own floor; reduced-motion kills the rAF loop.**
+- **Slice 6 — Reach polish.** Fuzzy search (NO query persistence, B4), jump-to-problem pill, ambient idle mode, threat radar, per-command reliability board, PNG export (canvas-composite own layers, excludes raw prose, no getDisplayMedia — B5/B3), optional sound. **Acceptance: search cross-highlights, no localStorage query; PNG leaks no receipt prose.**
+
+## D. Added acceptance gates (append to v1 §9)
+
+Zero-network test (real invariant, replacing the `<script>` ban) green every slice from Slice 1 · XSS-embed jsdom test green from Slice 1, textContent discipline from Slice 2 · Playwright label-tracks-node (≤2px across zoom) from Slice 2 · PII: structured-field-only search, PNG excludes prose, evidence vault-relative, no client text in localStorage, by-actor = roles · file ≤250KB on a REAL day (arithmetic recorded) · canonical registry row 48 matches shipped reality; `memory-and-state.md` privacy floor notes the 14-day exception · each source module ≤300 lines; runtime = one self-contained file; deterministic given snapshot+timestamp; reduced-motion first-frame gated.
+
+## E. What v1 got RIGHT (kept, do not re-litigate)
+
+Hybrid render (SVG + HTML-overlay text + optional WebGL); view-only JS doctrine (with the escaping + boundary mandates); the readability type-ramp + grid; the 10-theme tokenized system; Replay-the-Day as the hero (now today-only); the two named CSS bugs; ~60-node DOM is negligible; the 14-day window is within the 90-day hot retention (`readReceipts` degrades to `.gz`); reduced-motion + determinism INTENT (gaps were test/registry follow-through, now closed).
