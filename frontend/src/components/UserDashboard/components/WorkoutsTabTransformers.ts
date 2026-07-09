@@ -26,7 +26,7 @@ const GROUP_TO_CATEGORY: Record<string, string> = {
   Core: 'Core',
   Cardio: 'Cardio',
   'Full Body': 'Full Body',
-  Other: 'Core',
+  Other: 'Other',
 };
 
 export function extractWorkoutSessions(payload: unknown): RawSession[] {
@@ -47,7 +47,7 @@ export function transformWorkoutLogs(sessions: RawSession[]): CategoryData[] {
     }
 
     for (const name of exercisesInSession) {
-      const category = GROUP_TO_CATEGORY[classifyMuscleGroup(name)] || 'Core';
+      const category = GROUP_TO_CATEGORY[classifyMuscleGroup(name)] || 'Other';
       counts[category] = counts[category] || {};
       counts[category][name] = (counts[category][name] || 0) + 1;
     }
