@@ -27,6 +27,10 @@ const sessionPkgSource = readFileSync(
   resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'),
   'utf8',
 );
+const healthSource = readFileSync(
+  resolve(__dirname, '../../routes/healthRoutes.mjs'),
+  'utf8',
+);
 
 // Isolate a single route handler body: from its `router.get(...)` marker to the
 // next top-level route registration, so an assertion targets THAT handler only.
@@ -69,5 +73,24 @@ describe('session-package endpoints hide/deny per-client specials (HR-007-F3/F4)
     const purchaseLookup = sessionPkgSource.slice(sessionPkgSource.indexOf("router.post('/purchase'"));
     const lookupWhere = purchaseLookup.slice(0, purchaseLookup.indexOf('assertClientOwnsActiveSpecial'));
     expect(lookupWhere).not.toMatch(/isSpecialOffer:\s*false/);
+  });
+});
+
+describe('public /health/store hides per-client specials (HR-007)', () => {
+  // /health and /api/health are mounted UNAUTHENTICATED. The store-readiness
+  // handler lists item name/session counts and returns package counts — hidden
+  // specials must be excluded from BOTH so a private deal never appears (even
+  // without price) in a public response.
+  it('the /store readiness list excludes isSpecialOffer', () => {
+    // The findAll that serializes item name/sessions must carry the filter.
+    expect(healthSource).toMatch(/where:\s*\{\s*isActive:\s*true,\s*isSpecialOffer:\s*false\s*\}/);
+  });
+  it('every readiness count excludes isSpecialOffer', () => {
+    // No StorefrontItem.count in the health route may omit the specials filter.
+    const counts = healthSource.match(/StorefrontItem\.count\([^)]*\)/g) || [];
+    expect(counts.length).toBeGreaterThanOrEqual(3);
+    for (const c of counts) {
+      expect(c).toMatch(/isSpecialOffer:\s*false/);
+    }
   });
 });
