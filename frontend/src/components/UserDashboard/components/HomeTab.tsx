@@ -224,7 +224,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <HomeTabVisionCenter
           points={points}
-          activeLens={activeLens}
           postText={composer.postText}
           activeMood={composer.activeMood}
           selectedMediaName={composer.selectedMedia?.name}

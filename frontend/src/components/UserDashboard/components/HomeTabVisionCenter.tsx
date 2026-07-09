@@ -14,7 +14,7 @@ import {
 import type { HomeLatestPostView, HomeTopBarAction, HomeTopBarTarget } from './HomeTabViewModel';
 import type { SocialFeedApi } from '../../../hooks/social/useSocialFeed';
 import type { FeedEnrichmentItem } from '../../../hooks/social/useFeedEnrichment';
-import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
+import { POST_MOODS, type VisionTarget } from './HomeTabVision.data';
 import {
   CenterColumn,
   Eyebrow,
@@ -45,17 +45,11 @@ import {
 } from './HomeTabVisionCenter.styles';
 import HomeTabSelectedMediaPreview from './HomeTabSelectedMediaPreview';
 import UserDashboardQuickStatsTicker, { type QuickStatsTickerStat } from './UserDashboardQuickStatsTicker';
-import {
-  LensButton,
-  LensPuck,
-  LensStrip,
-} from './HomeTabVisionHero.styles';
 
 const HomeCommunityFeed = lazy(() => import('./HomeCommunityFeed'));
 
 interface HomeTabVisionCenterProps {
   points: number;
-  activeLens: string;
   postText: string;
   activeMood: string;
   selectedMediaName?: string;
@@ -86,7 +80,6 @@ interface HomeTabVisionCenterProps {
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   points,
-  activeLens,
   postText,
   activeMood,
   selectedMediaName,
@@ -134,17 +127,6 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         {points.toLocaleString()} XP
       </XpPill>
     </TopBar>
-
-    <LensStrip aria-label="Creator dashboard sections">
-      {HERO_LENSES.map(({ id, label, Icon, target }) => (
-        <LensButton key={id} type="button" $active={activeLens === id} onClick={() => onAction(target)}>
-          <LensPuck $active={activeLens === id}>
-            <Icon size={25} aria-hidden="true" />
-          </LensPuck>
-          <span>{label}</span>
-        </LensButton>
-      ))}
-    </LensStrip>
 
     <CenterGrid>
       <Panel $tone="violet">

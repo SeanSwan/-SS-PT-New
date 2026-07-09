@@ -165,6 +165,14 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(coverHookSource).toContain('bannerStickyCarousel={coverBanner.bannerStickyCarousel}');
     expect(coverHookSource).not.toContain('bannerStickyCarousel={false}');
   });
+  it('removes the redundant Home hero lens strip (Apex redesign Phase 1a) so the tab bar is the sole Home nav', () => {
+    const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
+    // HERO_LENSES was a third parallel nav duplicating the top tab bar + Home left rail.
+    // Phase 1a removes it; the top tab bar (and, until Phase 2, the left rail) carry Home nav.
+    expect(centerSource).not.toContain('HERO_LENSES');
+    expect(centerSource).not.toContain('<LensStrip');
+    expect(centerSource).not.toContain('activeLens');
+  });
   it('keeps Quick Post, smart hashtag preview, and a tier-gated inbox poll on user Home', () => {
     const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const composerSource = readSource('src/components/UserDashboard/components/useHomeComposer.ts');
