@@ -58,6 +58,14 @@ const normalizeFoodResult = (food: FoodResult): FoodResult => ({
   source: food.source === 'OFF' ? 'OFF' : 'USDA',
 });
 
+const hasStableFoodIdentity = (food: FoodResult): boolean => {
+  const id = food.id;
+  return id !== null
+    && id !== undefined
+    && String(id).trim().length > 0
+    && String(food.name || '').trim().length > 0;
+};
+
 const deduplicateResults = (items: FoodResult[]): FoodResult[] => {
   const seen = new Map<string, FoodResult>();
   for (const item of items) {
@@ -81,7 +89,9 @@ export const fetchFoodSearchResults = async (query: string): Promise<FoodResult[
       `/api/nutrition/food-search?q=${encodeURIComponent(query)}&pageSize=15`,
     );
     if (!response.data?.success) return [];
-    return deduplicateResults((response.data.foods || []).map(normalizeFoodResult));
+    return deduplicateResults((response.data.foods || [])
+      .map(normalizeFoodResult)
+      .filter(hasStableFoodIdentity));
   } catch {
     return [];
   }

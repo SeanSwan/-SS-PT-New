@@ -23,7 +23,7 @@ const titleCase = (value = '') => String(value)
 
 const strictFoodMacro = (value) => {
   const parsed = parsePlainDecimalNumber(value);
-  return parsed === null ? null : Math.round(parsed);
+  return parsed === null || parsed < 0 ? null : Math.round(parsed);
 };
 
 const servingLabel = (value, unit = 'g') => {

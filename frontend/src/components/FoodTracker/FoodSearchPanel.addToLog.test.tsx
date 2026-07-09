@@ -24,7 +24,7 @@ const chickenFood = {
 };
 
 const mockFoodSearch = (foods = [chickenFood]) => {
-  apiMocks.get.mockResolvedValue({ data: { ok: true, data: { foods } } });
+  apiMocks.get.mockResolvedValue({ data: { success: true, foods } });
 };
 
 describe('FoodSearchPanel add-to-log (Nutrition search proxy)', () => {
@@ -41,7 +41,7 @@ describe('FoodSearchPanel add-to-log (Nutrition search proxy)', () => {
     await user.type(screen.getByPlaceholderText(/search foods/i), 'chicken');
 
     await screen.findByRole('button', { name: /add chicken breast to snack/i }, { timeout: 2000 });
-    expect(apiMocks.get).toHaveBeenCalledWith('/api/free/food-search?q=chicken&pageSize=15');
+    expect(apiMocks.get).toHaveBeenCalledWith('/api/nutrition/food-search?q=chicken&pageSize=15');
   });
 
   it('logs a searched food to /api/macros with DB macros (usda_lookup, verified:false) and refreshes macros', async () => {

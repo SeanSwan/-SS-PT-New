@@ -62,7 +62,7 @@ export const CaptureGrid = styled.div`
   gap: 14px;
   align-items: stretch;
 
-  @media (max-width: 980px) {
+  @media (max-width: 1024px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -75,7 +75,7 @@ export const CaptureRail = styled.div`
   padding: 12px;
   border-radius: 18px;
 
-  @media (max-width: 980px) {
+  @media (max-width: 1024px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -96,6 +96,9 @@ export const CaptureTile = styled(motion.button)<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => ($active
     ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 58%, transparent)'
     : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)')};
+  border-left: 3px solid ${({ $active }) => ($active
+    ? 'var(--ice-wing, var(--accent-primary, #60C0F0))'
+    : 'transparent')};
   background: ${({ $active }) => ($active
     ? 'linear-gradient(135deg, color-mix(in srgb, var(--primary, #002060) 80%, var(--accent-secondary, #8B5CF6) 12%), color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent))'
     : 'color-mix(in srgb, var(--bg-base, #0A0A0F) 58%, transparent)')};
@@ -186,6 +189,87 @@ export const SourcePill = styled.div`
     flex: 0 0 auto;
     color: var(--accent-primary, #60C0F0);
   }
+`;
+
+export const MacroPulsePanel = styled.div`
+  display: grid;
+  grid-template-columns: minmax(128px, 150px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0 10px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const MacroPulseChart = styled.div`
+  position: relative;
+  width: min(150px, 100%);
+  min-height: 150px;
+  justify-self: center;
+
+  svg {
+    overflow: visible;
+  }
+`;
+
+export const MacroPulseCenter = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+
+  strong {
+    color: var(--text-primary, #E0ECF4);
+    font: 900 1.02rem/1 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  }
+
+  span {
+    margin-top: 5px;
+    color: var(--text-secondary, #94a3b8);
+    font: 800 0.62rem/1 var(--font-ui, 'Sora', sans-serif);
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+`;
+
+export const MacroPulseLegend = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+
+  > strong {
+    color: var(--text-primary, #E0ECF4);
+    font: 900 0.85rem/1.2 var(--font-heading, 'Plus Jakarta Sans', sans-serif);
+  }
+
+  > span {
+    color: var(--text-secondary, #94a3b8);
+    font: 700 0.74rem/1.35 var(--font-ui, 'Sora', sans-serif);
+  }
+`;
+
+export const MacroPulseLegendItem = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary, #E0ECF4);
+  font: 800 0.72rem/1.2 var(--font-ui, 'Sora', sans-serif);
+`;
+
+export const MacroPulseSwatch = styled.i<{ $color: string }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: ${({ $color }) => $color};
+  box-shadow: 0 0 10px ${({ $color }) => $color};
 `;
 
 export const DecisionRail = styled.div`

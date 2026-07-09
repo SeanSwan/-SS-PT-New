@@ -14,6 +14,7 @@ import {
   Sparkles,
   Utensils,
 } from 'lucide-react';
+import { VictoryPie } from 'victory';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
 import { nutritionPanelId, nutritionTabId, type Tab } from './NutritionWorkspace.tabs';
 import {
@@ -28,6 +29,12 @@ import {
   DecisionRail,
   DecisionStep,
   DecisionStepCopy,
+  MacroPulseCenter,
+  MacroPulseChart,
+  MacroPulseLegend,
+  MacroPulseLegendItem,
+  MacroPulsePanel,
+  MacroPulseSwatch,
   RibbonCard,
   RibbonEyebrow,
   RibbonLabel,
@@ -79,9 +86,37 @@ const DECISION_STEPS = [
   { title: 'Review', copy: 'Trainer review remains separate from client self-logging.' },
 ];
 
+const MACRO_PULSE_META = [
+  { key: 'totalProtein', label: 'Protein', color: 'var(--accent-secondary, #8B5CF6)' },
+  { key: 'totalCarbs', label: 'Carbs', color: 'var(--accent-primary, #60C0F0)' },
+  { key: 'totalFat', label: 'Fat', color: 'var(--accent-luxury, #C6A84B)' },
+] as const;
+
 const metricValue = (value: number | null | undefined, suffix = '') => {
   if (value === null || value === undefined) return '--';
   return `${Math.round(value)}${suffix ? ` ${suffix}` : ''}`;
+};
+
+const macroPulseValue = (value: number | null | undefined) =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+
+const buildMacroPulse = (summary: MacroSummary | null) => {
+  const grams = MACRO_PULSE_META.map((item) => macroPulseValue(summary?.[item.key]));
+  const total = grams.reduce((sum, value) => sum + value, 0);
+  const fallback = total <= 0;
+  return {
+    total,
+    data: MACRO_PULSE_META.map((item, index) => {
+      const value = fallback ? 1 : grams[index];
+      return {
+        x: item.label,
+        y: value,
+        grams: grams[index],
+        percent: fallback ? 0 : Math.round((grams[index] / total) * 100),
+        color: item.color,
+      };
+    }),
+  };
 };
 
 const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
@@ -97,6 +132,19 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
   const proteinValue = gentleMode ? 'Hidden' : metricValue(summary?.totalProtein, 'g');
   const fiberValue = gentleMode ? 'Hidden' : metricValue(summary?.totalFiber, 'g');
   const dayStatus = macroLoading ? 'Loading' : trainingDay ? 'Training' : 'Recovery';
+  const macroPulse = buildMacroPulse(summary);
+  const macroPulseCenter = gentleMode
+    ? 'Gentle'
+    : macroLoading
+      ? 'Sync'
+      : macroPulse.total > 0
+        ? `${Math.round(macroPulse.total)}g`
+        : 'No log';
+  const macroPulseCopy = gentleMode
+    ? 'Macro numbers hidden'
+    : macroPulse.total > 0
+      ? 'Saved protein, carbs, and fat'
+      : 'Awaiting today\'s diary';
 
   return (
     <CaptureShell aria-label="Nutrition decision logger overview">
@@ -159,6 +207,43 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
           <SourcePill><CheckCircle2 size={16} /> USDA lookup stays behind Swan API</SourcePill>
           <SourcePill><CheckCircle2 size={16} /> Open Food Facts is proxied and source-tagged</SourcePill>
           <SourcePill><HeartPulse size={16} /> Gentle Mode keeps macro pressure optional</SourcePill>
+          <MacroPulsePanel role="group" aria-label={gentleMode ? 'Macro composition hidden by Gentle Mode' : 'Macro composition from saved diary entries'}>
+            <MacroPulseChart aria-hidden="true">
+              <VictoryPie
+                data={macroPulse.data}
+                x="x"
+                y="y"
+                width={150}
+                height={150}
+                innerRadius={48}
+                padAngle={3}
+                padding={10}
+                labels={() => ''}
+                style={{
+                  data: {
+                    fill: ({ datum }) => String(datum?.color || 'var(--accent-primary, #60C0F0)'),
+                    opacity: gentleMode || macroPulse.total <= 0 ? 0.46 : 0.95,
+                    stroke: 'var(--primary, #002060)',
+                    strokeWidth: 2,
+                  },
+                }}
+              />
+              <MacroPulseCenter>
+                <strong>{macroPulseCenter}</strong>
+                <span>Macro Pulse</span>
+              </MacroPulseCenter>
+            </MacroPulseChart>
+            <MacroPulseLegend>
+              <strong>Macro Composition</strong>
+              <span>{macroPulseCopy}</span>
+              {!gentleMode && macroPulse.total > 0 && macroPulse.data.map((slice) => (
+                <MacroPulseLegendItem key={slice.x}>
+                  <MacroPulseSwatch $color={slice.color} />
+                  {slice.x} {slice.percent}%
+                </MacroPulseLegendItem>
+              ))}
+            </MacroPulseLegend>
+          </MacroPulsePanel>
           <DecisionRail>
             {DECISION_STEPS.map((step, index) => (
               <DecisionStep key={step.title}>
