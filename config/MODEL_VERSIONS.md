@@ -49,6 +49,13 @@ openrouter-minimax-m27:    minimax/minimax-m2.7
 # Wired as the LEAD designer (Creative Director / final say) in validation-orchestrator.mjs Phase 2C, opposite Gemini 3.1 Pro.
 openrouter-glm-52:         z-ai/glm-5.2
 
+# Fable 5 (Anthropic — Final Decider) — verified 2026-07-08 via OpenRouter model catalog
+# (openrouter.ai/api/v1/models: id "anthropic/claude-fable-5", 1M ctx, $10/M in / $50/M out).
+# Reaches Fable via the OpenRouter wallet — a DISTINCT wallet from the Claude-subscription Fable
+# (which has its own hard usage cap). Set SWAN_FUSION_JUDGE_MODEL to this to Fable-judge a Village
+# run, or use scripts/consult-fable.mjs for a standalone pure-Fable Final-Decider review.
+openrouter-fable-5:        anthropic/claude-fable-5
+
 # OpenAI (direct API) — REMOVED 2026-04-20
 # No consumer script uses direct OpenAI API today. Codex CLI is used instead.
 # If you add a direct-OpenAI consumer, uncomment and verify:
@@ -76,6 +83,7 @@ When a model is rotated or preflight flags a new TODO, edit the fenced `yaml` bl
 
 ## Change log
 
+- **2026-07-08:** Added `openrouter-fable-5: anthropic/claude-fable-5` (Anthropic Fable 5, Final Decider). Verified live via the OpenRouter model catalog (`openrouter.ai/api/v1/models` — 1M ctx, $10/$50 per M). Enables Fable-as-judge for `validation-orchestrator.mjs` (set `SWAN_FUSION_JUDGE_MODEL`) and the standalone `scripts/consult-fable.mjs` pure-Fable Final-Decider review. Reaches Fable through OpenRouter credits — a separate wallet from the capped Claude-subscription Fable. Resolves the long-standing `[HYPOTHESIS]` slug note in `validation-orchestrator.mjs`.
 - **2026-06-20:** Added `openrouter-glm-52: z-ai/glm-5.2` (Z.ai/China). Slug + pricing verified via openrouter.ai/z-ai/glm-5.2. Wired as the LEAD designer (Creative Director / final say) in `validation-orchestrator.mjs` Phase 2C design debate (planning + code-review + document modes), opposite Gemini 3.1 Pro as reviewer; MiniMax M2.7 retired from the design slot. On-test per Sean ("supposed to be really good at design"). Permitted only in the design slot — the audit-compliance guard still blocks `z-ai/` in Phase 1 / escalation / fusion-judge slots.
 - **2026-04-20:** First verification pass. Claude + Gemini IDs fetched from official docs; OpenRouter IDs taken from Sean's current orchestrator (already live in production AI Village runs). `openai-primary-model` entry removed — no consumer script uses it today. Next re-verification target: 2026-05-20 (monthly cadence).
 - **2026-04-19:** Registry created per v3 Patch 1 / Codex Q4 / CLAUDE.md Model-ID discipline.
