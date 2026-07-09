@@ -23,6 +23,47 @@ const router = express.Router();
 
 // Barcode validation: must be 8-14 digits (UPC-A, EAN-8, EAN-13, ITF-14)
 const isValidBarcode = (barcode) => /^\d{8,14}$/.test(barcode);
+const FOOD_PRODUCT_UPDATE_FIELDS = [
+  'name',
+  'brand',
+  'barcode',
+  'description',
+  'ingredientsList',
+  'ingredients',
+  'nutritionalInfo',
+  'overallRating',
+  'ratingReasons',
+  'healthConcerns',
+  'isOrganic',
+  'isNonGMO',
+  'category',
+  'imageUrl',
+  'healthierAlternatives',
+  'dataSource',
+  'lastVerified',
+  'scanCount',
+];
+
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value || {}, key);
+
+const buildFoodProductUpdatePayload = (body = {}) => {
+  const update = {};
+  for (const field of FOOD_PRODUCT_UPDATE_FIELDS) {
+    if (hasOwn(body, field)) update[field] = body[field];
+  }
+
+  if (!hasOwn(update, 'nutritionalInfo') && hasOwn(body, 'nutritionFacts')) {
+    update.nutritionalInfo = body.nutritionFacts;
+  }
+  if (!hasOwn(update, 'overallRating') && hasOwn(body, 'healthScore')) {
+    update.overallRating = body.healthScore;
+  }
+  if (!hasOwn(update, 'healthConcerns') && hasOwn(body, 'allergens')) {
+    update.healthConcerns = body.allergens;
+  }
+
+  return update;
+};
 
 /**
  * @route   GET /api/food-scanner/scan/:barcode
@@ -371,9 +412,15 @@ router.put('/admin/product/:id', protect, async (req, res) => {
         message: 'Product not found'
       });
     }
-    
-    const { name, brand, barcode, ingredients, nutritionFacts, healthScore, category, allergens } = req.body;
-    await product.update({ name, brand, barcode, ingredients, nutritionFacts, healthScore, category, allergens });
+    const productUpdate = buildFoodProductUpdatePayload(req.body);
+    if (productUpdate.overallRating !== undefined && !['good', 'bad', 'okay'].includes(productUpdate.overallRating)) {
+      return res.status(400).json({
+        success: false,
+        message: 'overallRating must be one of good, bad, or okay'
+      });
+    }
+
+    await product.update(productUpdate);
 
     return res.status(200).json({
       success: true,

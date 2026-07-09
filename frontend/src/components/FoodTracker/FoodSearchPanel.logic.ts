@@ -22,22 +22,10 @@ export interface FoodResult {
   isGMO?: boolean;
 }
 
-interface ProviderFoodResult {
-  id?: string | number;
-  name?: string;
-  description?: string;
-  brand?: string;
-  category?: string;
-  calories?: unknown;
-  protein?: unknown;
-  protein_g?: unknown;
-  carbs?: unknown;
-  carbohydrates_total_g?: unknown;
-  fat?: unknown;
-  fat_total_g?: unknown;
-  servingSize?: string;
-  serving_size_g?: unknown;
-  source?: string;
+interface FoodSearchProxyResponse {
+  success: boolean;
+  foods?: FoodResult[];
+  message?: string;
 }
 
 export const CATEGORIES = [
@@ -56,43 +44,19 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   International: ['sushi', 'ramen', 'curry', 'kimchi', 'naan', 'hummus', 'falafel', 'taco', 'burrito', 'gyoza', 'pho', 'pad thai', 'tikka', 'dim sum', 'samosa', 'empanada', 'pierogi', 'borscht', 'paella', 'bibimbap', 'miso', 'tempura', 'dosa', 'biryani'],
 };
 
-const titleCase = (value: string): string =>
-  value.toLowerCase().replace(/(?:^|\s|[-/,(])\S/g, (char) => char.toUpperCase());
-
 const strictFoodMacro = (value: unknown): number | null => {
   const cleaned = cleanMacro(value);
   return cleaned === null ? null : Math.round(cleaned);
 };
 
-const servingLabel = (value: unknown, fallback?: string): string => {
-  if (fallback?.trim()) return fallback.trim();
-  const cleaned = cleanMacro(value);
-  return cleaned === null || cleaned <= 0 ? '100g' : `${cleaned}g`;
-};
-
-const sourceLabel = (value: unknown): FoodSource | undefined => {
-  if (value === 'USDA' || value === 'OFF') return value;
-  return undefined;
-};
-
-const mapProviderFood = (item: ProviderFoodResult): FoodResult | null => {
-  const id = item.id;
-  const name = item.name || item.description;
-  if (!id || !name) return null;
-
-  return {
-    id,
-    name: titleCase(String(name)),
-    brand: item.brand || undefined,
-    category: item.category || undefined,
-    calories: strictFoodMacro(item.calories),
-    protein: strictFoodMacro(item.protein ?? item.protein_g),
-    carbs: strictFoodMacro(item.carbs ?? item.carbohydrates_total_g),
-    fat: strictFoodMacro(item.fat ?? item.fat_total_g),
-    servingSize: servingLabel(item.serving_size_g, item.servingSize),
-    source: sourceLabel(item.source),
-  };
-};
+const normalizeFoodResult = (food: FoodResult): FoodResult => ({
+  ...food,
+  calories: strictFoodMacro(food.calories),
+  protein: strictFoodMacro(food.protein),
+  carbs: strictFoodMacro(food.carbs),
+  fat: strictFoodMacro(food.fat),
+  source: food.source === 'OFF' ? 'OFF' : 'USDA',
+});
 
 const deduplicateResults = (items: FoodResult[]): FoodResult[] => {
   const seen = new Map<string, FoodResult>();
@@ -112,12 +76,13 @@ export const matchesCategory = (food: FoodResult, category: string): boolean => 
 };
 
 export const fetchFoodSearchResults = async (query: string): Promise<FoodResult[]> => {
-  const params = new URLSearchParams({ q: query, pageSize: '15' });
-  const response = await apiService.get(`/api/free/food-search?${params}`);
-  const foods = Array.isArray(response.data?.data?.foods) ? response.data.data.foods : [];
-  return deduplicateResults(
-    foods
-      .map((item: ProviderFoodResult) => mapProviderFood(item))
-      .filter((item: FoodResult | null): item is FoodResult => item !== null),
-  );
+  try {
+    const response = await apiService.get<FoodSearchProxyResponse>(
+      `/api/nutrition/food-search?q=${encodeURIComponent(query)}&pageSize=15`,
+    );
+    if (!response.data?.success) return [];
+    return deduplicateResults((response.data.foods || []).map(normalizeFoodResult));
+  } catch {
+    return [];
+  }
 };
