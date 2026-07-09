@@ -94,19 +94,38 @@ router.post('/suggest', async (req, res) => {
         .slice(-2)
         .flatMap(h => h.exercisesUsed || []);
 
-      // Get equipment at location (if specified)
+      // Get equipment at location (if specified). Ownership gate (P0.5 IDOR fix):
+      // a non-admin trainer may only read equipment from a profile they own.
+      // Prevents cross-trainer inventory enumeration; returns the same 403 whether
+      // the profile is foreign or absent (no existence oracle). Mirrors the gate in
+      // aiChatRoutes.mjs (admin bypass OR ep.trainerId === requester).
       let availableEquipment = [];
       if (equipmentProfileId) {
         try {
           const { getEquipmentItem, getEquipmentProfile } = await import('../models/index.mjs');
+          const parsedProfileId = parseInt(equipmentProfileId, 10);
+          const EquipmentProfile = getEquipmentProfile();
+          const profile = Number.isNaN(parsedProfileId)
+            ? null
+            : await EquipmentProfile.findByPk(parsedProfileId, {
+                attributes: ['id', 'trainerId', 'isActive'],
+              });
+          const ownsProfile = !!profile && profile.isActive
+            && (req.user.role === 'admin' || profile.trainerId === req.user.id);
+          if (!ownsProfile) {
+            return res.status(403).json({ success: false, error: 'Access denied' });
+          }
           const EquipmentItem = getEquipmentItem();
           const items = await EquipmentItem.findAll({
-            where: { profileId: parseInt(equipmentProfileId, 10), isActive: true },
+            where: { profileId: parsedProfileId, isActive: true },
             attributes: ['category', 'name'],
           });
           availableEquipment = items.map(i => i.toJSON());
-        } catch {
-          // Silent — proceed without equipment filter
+        } catch (err) {
+          // Non-fatal: a transient lookup error proceeds WITHOUT the equipment
+          // filter (never leaks, never hard-fails the suggestion). Ownership
+          // denials return 403 above, before any item read.
+          logger.warn('[VariationRoutes] equipment profile gate/read failed (non-fatal):', err.message);
         }
       }
 
