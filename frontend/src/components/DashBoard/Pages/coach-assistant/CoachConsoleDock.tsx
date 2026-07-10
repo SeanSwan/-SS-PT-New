@@ -20,20 +20,21 @@ import {
   Volume2,
 } from 'lucide-react';
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
-
+import CoachNotebookMenuItems from './CoachNotebookMenuItems';
+import type { CoachNotebookControls } from './hooks/useCoachClientNotebook';
 type VoiceOverlayProps = {
   isOpen: boolean;
   onClose: () => void;
   onEditTranscript?: (text: string) => void;
   onTranscribed: (text: string) => void;
 };
-
 type CoachConsoleDockProps = {
   commandBusy?: boolean;
   commandFormRef: React.RefObject<HTMLFormElement>;
   commandText: string;
   commandTextRef: React.RefObject<HTMLTextAreaElement>;
   nextActionLabel?: string | null;
+  notebook?: CoachNotebookControls;
   selectedStatus: string;
   voiceActive: boolean;
   voiceCaptureMode?: 'browser' | 'recorder' | 'none';
@@ -57,13 +58,13 @@ type CoachConsoleDockProps = {
   onToggleVoiceReplies?: () => void;
   onVoice: () => void;
 };
-
 const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   commandBusy = false,
   commandFormRef,
   commandText,
   commandTextRef,
   nextActionLabel,
+  notebook,
   selectedStatus,
   voiceActive,
   voiceCaptureMode = 'browser',
@@ -88,7 +89,8 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   onVoice,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
-  const sendDisabled = commandBusy || !commandText.trim();
+  const dockBusy = commandBusy || Boolean(notebook?.saving);
+  const sendDisabled = dockBusy || !commandText.trim();
   const menuId = useId();
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,16 +100,15 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   const voiceLabel = voiceActive
     ? voiceCaptureMode === 'recorder' ? 'Voice recorder open' : 'Listening - tap to stop'
     : voiceCaptureMode === 'recorder' ? 'Start voice recording' : 'Start voice dictation';
-
   const closeMoreMenu = () => {
     setMoreOpen(false);
     moreButtonRef.current?.focus();
   };
-
   const focusMenuItem = (target: EventTarget | null, direction: 1 | -1 | 'first' | 'last') => {
     const menu = target instanceof HTMLElement ? target.closest('[role="menu"]') : null;
     if (!menu) return;
-    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]'));
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]'))
+      .filter((item) => !(item instanceof HTMLButtonElement && item.disabled));
     if (!items.length) return;
     const activeIndex = items.findIndex((item) => item === document.activeElement);
     let nextIndex = 0;
@@ -117,10 +118,10 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     else nextIndex = (activeIndex + direction + items.length) % items.length;
     items[nextIndex]?.focus();
   };
-
   useEffect(() => {
     if (!moreOpen) return;
-    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]')?.focus();
+    Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]') || [])
+      .find((item) => !(item instanceof HTMLButtonElement && item.disabled))?.focus();
   }, [moreOpen]);
   useEffect(() => {
     if (!moreOpen) return undefined;
@@ -133,7 +134,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     window.addEventListener('keydown', handleWindowKeyDown);
     return () => window.removeEventListener('keydown', handleWindowKeyDown);
   }, [moreOpen]);
-
   const handleMoreMenuKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -141,7 +141,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
       closeMoreMenu();
       return;
     }
-
     const keyActions: Record<string, 1 | -1 | 'first' | 'last'> = {
       ArrowDown: 1,
       ArrowRight: 1,
@@ -156,17 +155,14 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     event.stopPropagation();
     focusMenuItem(event.target, action);
   };
-
   const handleMoreWrapBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     const nextFocus = event.relatedTarget instanceof Node ? event.relatedTarget : null;
     if (!nextFocus || !event.currentTarget.contains(nextFocus)) setMoreOpen(false);
   };
-
   const runMoreAction = (action: () => void) => {
     setMoreOpen(false);
     action();
   };
-
   return (
     <>
       <div className="console-dock">
@@ -176,8 +172,12 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
             <span className="next-action-text">{workflowReturnLabel}</span>
           </Link>
         ) : null}
-
-        <form className="dock-form" ref={commandFormRef} onSubmit={commandBusy ? (event) => event.preventDefault() : onSubmit} aria-label="Talk to Swan Coach">
+        <form
+          className={'dock-form ' + (notebook?.active ? 'is-notebook' : '')}
+          ref={commandFormRef}
+          onSubmit={dockBusy ? (event) => event.preventDefault() : onSubmit}
+          aria-label={notebook?.active ? 'Capture client note' : 'Talk to Swan Coach'}
+        >
           <textarea
             className="dock-textarea"
             ref={commandTextRef}
@@ -187,20 +187,18 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
               if (event.key !== 'Enter') return;
               if (event.nativeEvent.isComposing) return;
               if (event.shiftKey && !event.metaKey && !event.ctrlKey) return;
-
               event.preventDefault();
               event.currentTarget.form?.requestSubmit();
             }}
-            placeholder="Talk or type to Swan Coach..."
-            aria-label="Message Swan Coach"
+            placeholder={notebook?.active ? 'Dictate or type a client note...' : 'Talk or type to Swan Coach...'}
+            aria-label={notebook?.active ? 'Client note' : 'Message Swan Coach'}
             aria-describedby="coach-dock-status coach-dock-trust"
-            readOnly={commandBusy}
+            readOnly={dockBusy}
             rows={2}
           />
-
           <div className="dock-primary-row">
             <div className="dock-safety-stack">
-              <span id="coach-dock-trust" className="dock-trust-pill">Confirm before save</span>
+              <span id="coach-dock-trust" className="dock-trust-pill">{notebook?.active ? 'Saves to client profile' : 'Confirm before save'}</span>
               {nextActionLabel ? (
                 <span className="dock-next-pill" role="status" aria-label="Recommended coach action">
                   Next: {nextActionLabel}
@@ -210,7 +208,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                 {voiceReplySpeaking ? 'Swan Coach is speaking' : selectedStatus}
               </span>
             </div>
-
             <div className="dock-main-actions">
               <div className="dock-more-wrap" onBlur={handleMoreWrapBlur}>
                 <button
@@ -227,6 +224,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                 </button>
                 {moreOpen ? (
                   <div className="dock-more-menu" id={menuId} ref={menuRef} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
+                    {notebook ? <CoachNotebookMenuItems controls={notebook} onSelect={runMoreAction} /> : null}
                     {onReviewIntake ? (
                       <button type="button" role="menuitem" onClick={() => runMoreAction(onReviewIntake)}>
                         <Inbox size={17} aria-hidden="true" />
@@ -265,19 +263,23 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                   </div>
                 ) : null}
               </div>
-
               <button
                 type="button"
                 className={`dock-mic ${voiceActive ? 'is-listening' : ''}`}
                 aria-pressed={voiceActive}
-                disabled={!voiceSupported}
+                disabled={!voiceSupported || dockBusy}
                 onClick={onVoice}
                 title={voiceTitle}
                 aria-label={voiceLabel}
               >
                 <Mic size={22} aria-hidden="true" />
               </button>
-              <button type="submit" className="dock-send" disabled={sendDisabled} aria-label={commandBusy ? 'Sending to Swan Coach' : 'Send to Swan Coach'}>
+              <button
+                type="submit"
+                className="dock-send"
+                disabled={sendDisabled}
+                aria-label={notebook?.active ? (notebook.saving ? 'Saving client note' : 'Save client note') : (commandBusy ? 'Sending to Swan Coach' : 'Send to Swan Coach')}
+              >
                 <ArrowUp size={22} aria-hidden="true" />
               </button>
             </div>
@@ -295,5 +297,4 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     </>
   );
 };
-
 export default CoachConsoleDock;

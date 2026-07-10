@@ -154,6 +154,7 @@ const CoachCommandCenterPage: React.FC = () => {
       <div className={`bridge-shell ${activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
+          clientPin={commandCenter.clientPin}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
           contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
@@ -228,6 +229,7 @@ const CoachCommandCenterPage: React.FC = () => {
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
             nextActionLabel={nextActionLabel}
+            notebook={commandCenter.notebook}
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceCaptureMode={commandCenter.voiceCaptureMode}

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
@@ -11,6 +11,7 @@ const sendMessageWithConversationMock = vi.hoisted(() => vi.fn());
 const executeCommandMock = vi.hoisted(() => vi.fn());
 const confirmCommandMock = vi.hoisted(() => vi.fn());
 const cancelCommandMock = vi.hoisted(() => vi.fn());
+const speechHookParams = vi.hoisted(() => ({ current: null as any }));
 const speechMock = vi.hoisted(() => ({
   cancelPillVisible: false,
   clearInterim: vi.fn(),
@@ -43,8 +44,22 @@ vi.mock('../../../../hooks/useCoachCommand', () => ({
   }),
 }));
 
+vi.mock('../../../../context/GlobalClientContext', () => ({
+  useGlobalClient: () => ({
+    activeClient: null,
+    clearActiveClient: vi.fn(),
+    clientList: [],
+    loadingClients: false,
+    refreshClients: vi.fn(),
+    setActiveClient: vi.fn(),
+  }),
+}));
+
 vi.mock('./hooks/useCoachBrowserSpeechInput', () => ({
-  useCoachBrowserSpeechInput: () => speechMock,
+  useCoachBrowserSpeechInput: (params: unknown) => {
+    speechHookParams.current = params;
+    return speechMock;
+  },
 }));
 
 vi.mock('./VoiceRecordingOverlay', () => ({
@@ -129,6 +144,7 @@ describe('CoachCommandCenter voice input', () => {
     speechMock.interim = '';
     speechMock.listening = false;
     speechMock.speechSupported = true;
+    speechHookParams.current = null;
     setRecorderSupport(false);
 
     listConversationsMock.mockResolvedValue([]);
@@ -205,6 +221,24 @@ describe('CoachCommandCenter voice input', () => {
     fireEvent.click(screen.getByRole('button', { name: /mock transcribe/i }));
     expect(screen.getByPlaceholderText(/talk or type to swan coach/i)).toHaveValue('Log squats 3 by 10');
     expect(screen.getByText(/voice command captured - press send to continue/i)).toBeInTheDocument();
+  });
+
+  it('opens recorder capture when browser speech fails at runtime', () => {
+    setRecorderSupport(true);
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
+    expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      speechHookParams.current?.onRuntimeUnavailable?.({
+        message: 'Browser speech service failed.',
+        canTryRecorder: true,
+      });
+    });
+
+    expect(screen.getByRole('dialog', { name: /voice recording/i })).toBeInTheDocument();
+    expect(screen.getByText(/recorder fallback opened/i)).toBeInTheDocument();
   });
 
   it('routes transcribed workout commands through the approval-gated command lane', async () => {

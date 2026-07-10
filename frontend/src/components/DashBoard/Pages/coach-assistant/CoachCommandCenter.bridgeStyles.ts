@@ -14,6 +14,7 @@ import { coachCommandBridgeMobileDockStyles } from './CoachCommandCenter.bridgeM
 import { coachCommandCrystallineFocusStyles } from './CoachCommandCenter.crystallineFocusStyles';
 import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationStyles';
 import { coachCommandHeaderActionStyles } from './CoachCommandCenter.headerActionStyles';
+import { coachCommandNotebookStyles } from './CoachCommandCenter.notebookStyles';
 import { coachCommandOpsMissionStyles } from './CoachCommandCenter.opsMissionStyles';
 import { coachCommandOpsStyles } from './CoachCommandCenter.opsStyles';
 import { coachCommandOwnerControlsStyles } from './CoachCommandCenter.ownerControlsStyles';
@@ -283,6 +284,7 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandFoundationStyles}
   ${coachCommandBridgeStyles}
   ${coachCommandHeaderActionStyles}
+  ${coachCommandNotebookStyles}
   ${coachCommandThreadHeaderStyles}
   ${coachCommandDockStyles}
   ${coachCommandOpsStyles}
