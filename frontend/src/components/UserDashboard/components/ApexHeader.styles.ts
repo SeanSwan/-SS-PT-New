@@ -12,10 +12,12 @@ import styled, { css } from 'styled-components';
 export const Header = styled.header`
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Apex Phase 1b polish: status packs as one left cluster (intro + rings) rather
+     than spreading edge-to-edge, which left a dead gap on wide desktops. */
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: clamp(1rem, 3vw, 2.5rem);
+  gap: clamp(1.25rem, 3.5vw, 3rem);
   max-width: 1760px;
   margin: 0 auto clamp(1rem, 1.6vw, 1.5rem);
   padding: clamp(1.1rem, 2vw, 1.75rem) clamp(1.1rem, 2.2vw, 2rem);
@@ -26,9 +28,18 @@ export const Header = styled.header`
     linear-gradient(150deg, var(--bg-elevated, #141419), var(--bg-surface, #1a1a24));
 
   @media (max-width: 860px) {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
     gap: 1.5rem;
   }
+`;
+
+/* Left cluster: intro copy + CTA + level/XP. Content-width so the rings sit next
+   to it, not at the far edge. */
+export const Intro = styled.div`
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 640px;
 `;
 
 export const Eyebrow = styled.p`
@@ -152,6 +163,7 @@ export const XpFill = styled.div<{ $pct: number }>`
 `;
 
 export const Rings = styled.div`
+  flex: none;
   display: flex;
   gap: clamp(0.9rem, 2vw, 1.75rem);
 

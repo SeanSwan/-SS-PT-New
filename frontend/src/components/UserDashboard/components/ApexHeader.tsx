@@ -28,6 +28,7 @@ import {
   Eyebrow,
   Fill,
   Header,
+  Intro,
   LevelHex,
   LevelRow,
   LogButton,
@@ -129,7 +130,7 @@ const ApexHeader: React.FC<ApexHeaderProps> = ({
   onLogWorkout,
 }) => (
   <Header aria-label="Your ascension status">
-    <div>
+    <Intro>
       <Eyebrow>Today</Eyebrow>
       <Title>Ready to train?</Title>
       <Subtitle>
@@ -164,7 +165,7 @@ const ApexHeader: React.FC<ApexHeaderProps> = ({
           </XpTrack>
         </XpBlock>
       </LevelRow>
-    </div>
+    </Intro>
 
     <Rings>
       <AscensionRing
