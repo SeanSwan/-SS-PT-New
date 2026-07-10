@@ -37,7 +37,7 @@ describe('CoachCommandCenterPage Floor Mode actions', () => {
       '/dashboard/admin/workout-planner?clientId=42&source=swan-coach&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans',
     );
 
-    fireEvent.click(within(tools).getByRole('menuitem', { name: /^Audio$/i }));
+    fireEvent.click(within(tools).getByRole('menuitem', { name: /^Import audio$/i }));
     expect(screen.getByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
     await waitFor(() => expect(clickSpy).toHaveBeenCalled());

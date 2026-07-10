@@ -261,15 +261,14 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     });
   };
 
-  const handleAttach = () => {
-    props.setSelectedStatus('Attachment staged for transcript/audio review');
+  const handleReviewIntake = () => {
+    props.setSelectedStatus('Intake review lane ready');
     addLog({
       actor: 'system',
-      label: 'attachment staged',
-      body: 'Attachment lane opened for audio, transcript, or note review. Parsed content remains blocked from final write until approved.',
-      attachments: ['attachment pending'],
+      label: 'intake review ready',
+      body: 'Intake review lane opened for notes, transcript uploads, holds, and prepared drafts. Use Import audio for saved recorder clips; final writes remain blocked until approval.',
+      attachments: ['intake queue open', 'operator approval required'],
     });
-    focusComposer();
   };
 
   const handleReadback = () => {
@@ -285,7 +284,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
 
   return {
     closeDrawer,
-    handleAttach,
+    handleReviewIntake,
     handleCancelCommand,
     handleConfirmCommand,
     handleNewThread,

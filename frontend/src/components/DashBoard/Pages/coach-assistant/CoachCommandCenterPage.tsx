@@ -4,14 +4,14 @@
  * Review-gated: Swan Coach prepares operator drafts; final writes need approval.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../hooks/useAuth';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
 import CoachChatTranscript from './CoachChatTranscript';
 import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
-import CoachCommandOpsRail from './CoachCommandOpsRail';
+import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanel';
 import CoachConsoleDock from './CoachConsoleDock';
@@ -28,13 +28,15 @@ import {
   hasCoachOperatorRouteContext,
   isClientCoachRole,
   normalizeCoachCommandRole,
+  resolveCoachCommandDashboardRole,
   reviewSectionFromRoute,
   routeForcedTabForRole,
 } from './CoachCommandCenter.roleConfig';
 
 const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
-  const userRole = normalizeCoachCommandRole(authUser?.role);
+  const authenticatedRole = normalizeCoachCommandRole(authUser?.role);
+  const userRole = resolveCoachCommandDashboardRole(useLocation().pathname, authenticatedRole);
   const commandCenter = useCoachCommandCenterController({ userRole });
   useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,11 +46,11 @@ const CoachCommandCenterPage: React.FC = () => {
   const hasOperatorRouteContext = hasCoachOperatorRouteContext(searchParams);
   const initialTab = routeForcedTab || 'talk';
   const [activeTab, setActiveTab] = useState<CoachTab>(() => coerceCoachTabForRole(initialTab, userRole));
-  const [, setOperatorTouchedTab] = useState(false);
   const [activeReviewSection, setActiveReviewSection] = useState<CoachReviewSection | null>(() => routeReviewSection);
   const [plaudUploadRequest, setPlaudUploadRequest] = useState(0);
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const handledPlaudUploadRequestRef = useRef(0);
+  const pendingReviewFocusRef = useRef(false);
   useCoachCommandCenterDrawerEffects({
     commandFormRef: commandCenter.commandFormRef,
     commandText: commandCenter.commandText,
@@ -59,12 +61,10 @@ const CoachCommandCenterPage: React.FC = () => {
     shellRef: commandCenter.shellRef,
   });
 
-  const nextActionLabel = isClientMode
-    ? CLIENT_NEXT_ACTION_LABEL
-    : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
+  const nextActionLabel = isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
   const plaudCount = isClientMode ? 0 : commandCenter.summary.readyReview;
-  const draftCount = isClientMode ? 0 : commandCenter.summary.preparedDrafts + commandCenter.summary.pendingDrafts;
+  const draftCount = isClientMode ? 0 : commandCenter.summary.pendingDrafts;
   const availableTabs = coachTabsForRole(userRole);
   const selectedDisplayLabel = isClientMode ? 'My training' : commandCenter.selectedClientLabel;
   const workoutLoggerRoute = useMemo(
@@ -85,19 +85,22 @@ const CoachCommandCenterPage: React.FC = () => {
   );
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
   const workoutLoggerLabel = isClientMode ? 'Log Today' : commandCenter.routeClientId ? 'Logger' : 'My Logger';
-  const clientPickerRoute = userRole === 'trainer'
-    ? '/dashboard/trainer/clients?intent=log_workout'
-    : '/dashboard/admin/client-management?intent=log_workout';
+  const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
+
+  const requestReviewWorkspaceFocus = () => { pendingReviewFocusRef.current = true; };
+
+  const handleSuggestedPrompt = (prompt: string) => {
+    commandCenter.setCommandText(prompt);
+    commandCenter.commandTextRef.current?.focus({ preventScroll: true });
+  };
 
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => {
     commandCenter.handleThreadSelect(thread);
-    setOperatorTouchedTab(true);
     setActiveTab('talk');
   };
 
   useEffect(() => {
     if (routeForcedTab) {
-      setOperatorTouchedTab(false);
       setActiveTab(routeForcedTab);
       if (routeForcedTab === 'review') setActiveReviewSection(routeReviewSection);
       return;
@@ -107,57 +110,48 @@ const CoachCommandCenterPage: React.FC = () => {
   }, [hasOperatorRouteContext, isClientMode, routeForcedTab, routeReviewSection, userRole]);
 
   useEffect(() => {
-    if (userRole !== 'admin' && accountControlsOpen) {
-      setAccountControlsOpen(false);
-    }
+    if (userRole !== 'admin' && accountControlsOpen) setAccountControlsOpen(false);
   }, [accountControlsOpen, userRole]);
 
   useEffect(() => {
-    if (
-      activeTab !== 'review' ||
-      activeReviewSection !== 'audio' ||
-      plaudUploadRequest === 0 ||
-      handledPlaudUploadRequestRef.current === plaudUploadRequest
-    ) return;
+    if (activeTab !== 'review' || activeReviewSection !== 'audio' || plaudUploadRequest === 0 || handledPlaudUploadRequestRef.current === plaudUploadRequest) return;
     handledPlaudUploadRequestRef.current = plaudUploadRequest;
     commandCenter.handleStartPlaudUpload();
   }, [activeReviewSection, activeTab, commandCenter, plaudUploadRequest]);
 
+  useEffect(() => {
+    if (activeTab !== 'review' || !pendingReviewFocusRef.current) return;
+    pendingReviewFocusRef.current = false;
+    document.getElementById('coach-tabpanel-review')?.focus({ preventScroll: true });
+  }, [activeReviewSection, activeTab]);
+
   const handleStartPlaudUpload = () => {
-    setOperatorTouchedTab(true);
     setActiveTab('review');
     setActiveReviewSection('audio');
     setPlaudUploadRequest((count) => count + 1);
+    requestReviewWorkspaceFocus();
   };
+
+  const openIntakeReview = () => {
+    setActiveTab('review');
+    setActiveReviewSection('intake');
+    requestReviewWorkspaceFocus();
+  };
+  const handleReviewIntakeFromDock = () => { openIntakeReview(); commandCenter.handleReviewIntake(); };
 
   const handleAccountControlsToggle = () => {
     setAccountControlsOpen((current) => !current);
   };
 
-  const handleOpenIntakeFromOps = () => {
-    setOperatorTouchedTab(true);
-    setActiveTab('review');
-    setActiveReviewSection('intake');
-    commandCenter.closeDrawer(false);
-  };
+  const handleOpenIntakeFromOps = () => { openIntakeReview(); commandCenter.closeDrawer(false); };
 
   const handleTabChange = (tab: CoachTab) => {
-    setOperatorTouchedTab(true);
     setActiveTab(coerceCoachTabForRole(tab, userRole));
   };
 
   return (
     <CommandBridgeShell ref={commandCenter.shellRef}>
       <div className={`bridge-shell ${activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
-        {isClientMode ? null : (
-          <button
-            type="button"
-            className={`drawer-scrim ${commandCenter.drawer ? 'is-open' : ''}`}
-            aria-label="Close operator tools"
-            onClick={() => commandCenter.closeDrawer()}
-          />
-        )}
-
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
           opsOpen={commandCenter.drawer === 'right'}
@@ -174,6 +168,7 @@ const CoachCommandCenterPage: React.FC = () => {
           tabs={availableTabs}
           intakeCount={intakeCount}
           plaudCount={plaudCount}
+          draftCount={draftCount}
         />
 
         <div className="tab-content">
@@ -181,10 +176,12 @@ const CoachCommandCenterPage: React.FC = () => {
             <div className="chat-panel" id="coach-tabpanel-talk" role="tabpanel" aria-labelledby="coach-tab-talk">
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
+                clientFacing={isClientMode}
                 logs={commandCenter.logs}
                 onCancelCommand={commandCenter.handleCancelCommand}
                 onConfirmCommand={commandCenter.handleConfirmCommand}
                 onReset={commandCenter.resetLogs}
+                onSuggestedPrompt={handleSuggestedPrompt}
                 workoutLoggerRoute={workoutLoggerRoute}
                 workoutLoggerScopeLabel={workoutLoggerScopeLabel}
               />
@@ -209,8 +206,7 @@ const CoachCommandCenterPage: React.FC = () => {
 
           {activeTab === 'history' ? (
             <div className="tab-scroll" id="coach-tabpanel-history" role="tabpanel" aria-labelledby="coach-tab-history">
-              <CoachCommandLeftRail
-                activeThreadId={commandCenter.activeThreadId}
+              <CoachCommandLeftRail activeThreadId={commandCenter.activeThreadId} userRole={userRole}
                 clientContextTiles={commandCenter.clientContextTiles}
                 coachThreads={commandCenter.coachThreads}
                 drawer={null}
@@ -227,6 +223,7 @@ const CoachCommandCenterPage: React.FC = () => {
 
         {activeTab === 'talk' ? (
           <CoachConsoleDock
+            commandBusy={commandCenter.commandBusy}
             commandFormRef={commandCenter.commandFormRef}
             commandText={commandCenter.commandText}
             commandTextRef={commandCenter.commandTextRef}
@@ -248,9 +245,8 @@ const CoachCommandCenterPage: React.FC = () => {
             workflowReturnLabel={commandCenter.workflowReturnLabel}
             workflowReturnTo={commandCenter.workflowReturnTo}
             onCommandTextChange={commandCenter.setCommandText}
-            onAttach={commandCenter.handleAttach}
+            onReviewIntake={isClientMode ? undefined : handleReviewIntakeFromDock}
             onStartPlaudUpload={handleStartPlaudUpload}
-            onReadback={commandCenter.handleReadback}
             onSubmit={commandCenter.handleSubmit}
             onToggleVoiceReplies={commandCenter.toggleVoiceReplies}
             onVoice={commandCenter.handleVoice}
@@ -258,7 +254,7 @@ const CoachCommandCenterPage: React.FC = () => {
         ) : null}
 
         {!isClientMode ? (
-          <CoachCommandOpsRail
+          <CoachCommandOpsSurface
             accountControlsOpen={accountControlsOpen}
             clientPickerRoute={clientPickerRoute}
             drawer={commandCenter.drawer}

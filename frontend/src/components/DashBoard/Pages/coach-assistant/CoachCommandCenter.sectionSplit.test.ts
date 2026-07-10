@@ -21,6 +21,7 @@ const SECTION_FILES = [
   'CoachConsoleDock.tsx',
   'CoachCommandLeftRail.tsx',
   'CoachCommandOpsRail.tsx',
+  'CoachCommandOpsSurface.tsx',
 ];
 
 const readCoachFile = (fileName: string) =>
@@ -41,14 +42,14 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain("from './CoachCommandTabBar'");
     expect(pageSource).toContain("from './CoachConsoleDock'");
     expect(pageSource).toContain("from './CoachCommandLeftRail'");
-    expect(pageSource).toContain("from './CoachCommandOpsRail'");
+    expect(pageSource).toContain("from './CoachCommandOpsSurface'");
     expect(pageSource).toContain('<CoachClientBar');
     expect(pageSource).toContain('<CoachCommandTabBar');
     expect(pageSource).toContain('<CoachCommandCenterReviewPanel');
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('<CoachConsoleDock');
     expect(pageSource).toContain('<CoachCommandLeftRail');
-    expect(pageSource).toContain('<CoachCommandOpsRail');
+    expect(pageSource).toContain('<CoachCommandOpsSurface');
 
     expect(reviewPanelSource).toContain("from './CoachReviewHub'");
     expect(reviewPanelSource).toContain("from './CoachCommandCenterWorkbenchPanel'");

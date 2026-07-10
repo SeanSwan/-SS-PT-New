@@ -52,7 +52,7 @@ describe('useAIChat conversation target isolation', () => {
               id: nextConversationId,
               title: payload.title ?? null,
               context: payload.context,
-              role: 'admin',
+              role: payload.audienceRole ?? 'admin',
               status: 'active',
               messages: [],
               messageCount: 0,
@@ -175,6 +175,24 @@ describe('useAIChat conversation target isolation', () => {
       expect.any(Object)
     );
   });
+
+  it('scopes conversation creation and history to the requested audience role', async () => {
+    getMock.mockResolvedValue({ status: 200, data: { success: true, conversations: [] } });
+    const { result } = renderHook(() => useAIChat('client'));
+
+    await act(async () => { await result.current.listConversations('active', true); });
+    await act(async () => {
+      await result.current.sendMessageWithConversation('Plan my next workout', 'coach_assistant');
+    });
+
+    expect(getMock).toHaveBeenCalledWith('/api/ai-chat/conversations?status=active&limit=20&audienceRole=client');
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/ai-chat/conversations',
+      expect.objectContaining({ audienceRole: 'client', context: 'coach_assistant' }),
+      expect.any(Object),
+    );
+  });
+
   it('keeps the newest requested conversation active when history loads resolve out of order', async () => {
     let resolveFirst!: (value: unknown) => void;
     let resolveSecond!: (value: unknown) => void;

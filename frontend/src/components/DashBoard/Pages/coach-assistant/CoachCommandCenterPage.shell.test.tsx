@@ -12,7 +12,6 @@ import {
   sendMessageWithConversationMock,
   setCoachCommandCenterActiveConversation,
 } from './CoachCommandCenterPage.test.harness';
-
 const COACH_COMMAND_CENTER_TEST_TIMEOUT = 15000;
 const PLACEHOLDER = 'Talk or type to Swan Coach...';
 const composerInput = () => screen.getByPlaceholderText(PLACEHOLDER);
@@ -21,33 +20,28 @@ const openCommandTools = () => {
   fireEvent.click(screen.getByRole('button', { name: /^More command tools$/i }));
   return screen.getByRole('menu', { name: /^More command tools$/i });
 };
-
 describe('CoachCommandCenterPage shell', () => {
   beforeEach(resetCoachCommandCenterMocks);
-
   it('renders Floor Mode with Talk, Review, History, and a minimal command dock', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
     expect(screen.getByText(/Now coaching/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^New chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^More coach actions$/i })).toBeInTheDocument();
-
     expect(screen.getByRole('tab', { name: /^Talk$/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /^Review/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /^History$/i })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
-
     expect(screen.getByText(/Talk to Swan Coach/i)).toBeInTheDocument();
-    expect(screen.getByText(/Log Sean's workout: bench 4x8 at 185/i)).toBeInTheDocument();
+    expect(screen.getByText(/Log today's workout: bench 4x8 at 185/i)).toBeInTheDocument();
     expect(screen.getByText(/Nothing saves until you confirm/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Use suggestion: Log workout/i })).toBeInTheDocument();
     expect(screen.queryByText(/Ready when you are/i)).not.toBeInTheDocument();
-
     expect(composerInput()).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^More command tools$/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Attach$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^Review intake$/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start voice dictation/i })).toBeInTheDocument();
     expect(sendButton()).toBeInTheDocument();
     expect(screen.getByText(/Confirm before save/i)).toBeInTheDocument();
@@ -55,30 +49,56 @@ describe('CoachCommandCenterPage shell', () => {
 
   it('keeps secondary tools inside the dock More menu', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-
     const menu = openCommandTools();
-
-    expect(within(menu).getByRole('menuitem', { name: /^Attach$/i })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /^Audio$/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /^Review intake$/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /^Import audio$/i })).toBeInTheDocument();
     expect(within(menu).queryByText(/PLAUD/i)).not.toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /^Readback$/i })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: /^Readback help$/i })).not.toBeInTheDocument();
+    expect(within(menu).getByRole('menuitemcheckbox', { name: /Read replies aloud/i })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Open workout logger/i })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Open Build Plan/i })).toBeInTheDocument();
   });
+  it('turns empty transcript suggestions into composer drafts without submitting', () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    fireEvent.click(screen.getByRole('button', { name: /Use suggestion: Log workout/i }));
+    expect(composerInput()).toHaveValue("Log today's workout: ");
+    expect(composerInput()).toHaveFocus();
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+  });
+
   it('closes the dock More menu with Escape and returns focus to the trigger', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-
     const moreButton = screen.getByRole('button', { name: /^More command tools$/i });
     fireEvent.click(moreButton);
     const menu = screen.getByRole('menu', { name: /^More command tools$/i });
-
     fireEvent.keyDown(menu, { key: 'Escape' });
-
     expect(screen.queryByRole('menu', { name: /^More command tools$/i })).not.toBeInTheDocument();
     expect(moreButton).toHaveFocus();
   });
+  it('supports arrow, Home, and End keyboard movement inside the dock More menu', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    const menu = openCommandTools();
+    const reviewIntake = within(menu).getByRole('menuitem', { name: /^Review intake$/i });
+    const importAudio = within(menu).getByRole('menuitem', { name: /^Import audio$/i });
+    const buildPlan = within(menu).getByRole('menuitem', { name: /Open Build Plan/i });
+    await waitFor(() => expect(reviewIntake).toHaveFocus());
+    fireEvent.keyDown(reviewIntake, { key: 'ArrowDown' });
+    expect(importAudio).toHaveFocus();
+    fireEvent.keyDown(importAudio, { key: 'End' });
+    expect(buildPlan).toHaveFocus();
+    fireEvent.keyDown(buildPlan, { key: 'Home' });
+    expect(reviewIntake).toHaveFocus();
+  });
 
+  it('opens the intake review lane from the dock More menu and moves focus to the review workspace', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    fireEvent.click(within(openCommandTools()).getByRole('menuitem', { name: /^Review intake$/i }));
+    expect(screen.getByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('tabpanel', { name: /^Review/i })).toHaveFocus());
+    fireEvent.click(screen.getByRole('tab', { name: /^Talk$/i }));
+    expect(within(document.querySelector('.transcript-stream') as HTMLElement).getByText(/Intake review lane opened for notes/i)).toBeInTheDocument();
+  });
 
   it('groups intake, audio, and draft work under Review', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
@@ -89,10 +109,10 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /open intake review/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open intake review queue/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /open audio review/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open audio import review/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   });
 
@@ -113,8 +133,9 @@ describe('CoachCommandCenterPage shell', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
-    fireEvent.click(within(openCommandTools()).getByRole('menuitem', { name: /^Audio$/i }));
+    fireEvent.click(within(openCommandTools()).getByRole('menuitem', { name: /^Import audio$/i }));
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('tabpanel', { name: /^Review/i })).toHaveFocus());
     await waitFor(() => expect(clickSpy).toHaveBeenCalled());
     clickSpy.mockRestore();
   });
@@ -148,7 +169,7 @@ describe('CoachCommandCenterPage shell', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     expect(screen.getByText(/We reviewed Ava squat pattern and left knee note/i)).toBeInTheDocument();
-    expect(screen.getByText(/check pain before loading/i)).toBeInTheDocument();
+    expect(within(document.querySelector('.transcript-stream') as HTMLElement).getByText(/check pain before loading/i)).toBeInTheDocument();
   });
 
   it('submits the command dock through the real coach conversation API', async () => {
@@ -188,7 +209,7 @@ describe('CoachCommandCenterPage shell', () => {
     });
 
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/2 of 2 active clients loaded/i)).toBeInTheDocument();
+    expect(within(document.querySelector('.transcript-stream') as HTMLElement).getByText(/2 of 2 active clients loaded/i)).toBeInTheDocument();
   });
 
   it('renders command-created onboarding drafts as actionable prepared-draft cards', async () => {
@@ -246,7 +267,7 @@ describe('CoachCommandCenterPage shell', () => {
     await waitFor(() => {
       expect(confirmCommandMock).toHaveBeenCalledWith('op-session-42');
     });
-    expect(await screen.findByText(/Session #42 cancelled for Ava/i)).toBeInTheDocument();
+    expect(await within(document.querySelector('.transcript-stream') as HTMLElement).findByText(/Session #42 cancelled for Ava/i)).toBeInTheDocument();
   });
 
   it('lets admins cancel command-lane approval holds without confirming writes', async () => {
@@ -272,6 +293,6 @@ describe('CoachCommandCenterPage shell', () => {
       expect(cancelCommandMock).toHaveBeenCalledWith('op-session-cancel');
     });
     expect(confirmCommandMock).not.toHaveBeenCalled();
-    expect(await screen.findByText(/cancel session cancelled. No data was changed/i)).toBeInTheDocument();
+    expect(await within(document.querySelector('.transcript-stream') as HTMLElement).findByText(/cancel session cancelled. No data was changed/i)).toBeInTheDocument();
   });
 });

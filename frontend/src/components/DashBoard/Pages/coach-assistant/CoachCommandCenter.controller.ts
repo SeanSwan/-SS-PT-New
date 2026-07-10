@@ -40,8 +40,8 @@ export function useCoachCommandCenterController({
   userRole = 'admin',
 }: { userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const chat = useAIChat();
-  const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
+  const chat = useAIChat(userRole);
+  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
   const tts = usePremiumTTS();
   const operatorEnabled = userRole !== 'client';
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
@@ -69,12 +69,12 @@ export function useCoachCommandCenterController({
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const coachThreads = useMemo(
-    () => buildCoachThreads(chat.conversations, threadSearch),
-    [chat.conversations, threadSearch],
+    () => buildCoachThreads(chat.conversations, threadSearch, userRole),
+    [chat.conversations, threadSearch, userRole],
   );
   const allCoachThreads = useMemo(
-    () => buildCoachThreads(chat.conversations, ''),
-    [chat.conversations],
+    () => buildCoachThreads(chat.conversations, '', userRole),
+    [chat.conversations, userRole],
   );
 
   const activeThread = useMemo(
@@ -237,13 +237,14 @@ export function useCoachCommandCenterController({
     clientContextTiles,
     coachQueue,
     coachThreads,
+    commandBusy: chat.sending || executingCommand,
     commandFormRef,
     commandText,
     commandTextRef,
     closeDrawer: actions.closeDrawer,
     dossierTiles,
     drawer,
-    handleAttach: actions.handleAttach,
+    handleReviewIntake: actions.handleReviewIntake,
     handleCancelCommand: actions.handleCancelCommand,
     handleConfirmCommand: actions.handleConfirmCommand,
     handleGuidePrompt,

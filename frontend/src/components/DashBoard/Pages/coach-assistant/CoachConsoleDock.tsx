@@ -3,10 +3,10 @@
  * PURPOSE: Bottom command dock for talk-first Swan Coach Floor Mode.
  *
  * The trainer-floor path is intentionally sparse: More, Mic, Send, and a clear
- * confirmation promise. Attachment, audio import, readback, logger, and plan
- * tools live behind More so talking stays the primary action.
+ * confirmation promise. Review intake, audio import, voice-read toggle, logger, and
+ * plan tools live behind More so talking stays the primary action.
  */
-import React, { useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -14,9 +14,9 @@ import {
   ClipboardList,
   Dumbbell,
   FileAudio,
+  Inbox,
   Mic,
   MoreHorizontal,
-  Paperclip,
   Volume2,
 } from 'lucide-react';
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
@@ -29,6 +29,7 @@ type VoiceOverlayProps = {
 };
 
 type CoachConsoleDockProps = {
+  commandBusy?: boolean;
   commandFormRef: React.RefObject<HTMLFormElement>;
   commandText: string;
   commandTextRef: React.RefObject<HTMLTextAreaElement>;
@@ -50,15 +51,15 @@ type CoachConsoleDockProps = {
   workflowReturnLabel?: string | null;
   workflowReturnTo?: string | null;
   onCommandTextChange: (value: string) => void;
-  onAttach: () => void;
+  onReviewIntake?: () => void;
   onStartPlaudUpload: () => void;
-  onReadback: () => void;
   onSubmit: (event: React.FormEvent) => void;
   onToggleVoiceReplies?: () => void;
   onVoice: () => void;
 };
 
 const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
+  commandBusy = false,
   commandFormRef,
   commandText,
   commandTextRef,
@@ -80,16 +81,17 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   workflowReturnLabel,
   workflowReturnTo,
   onCommandTextChange,
-  onAttach,
+  onReviewIntake,
   onStartPlaudUpload,
-  onReadback,
   onSubmit,
   onToggleVoiceReplies,
   onVoice,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
+  const sendDisabled = commandBusy || !commandText.trim();
   const menuId = useId();
   const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const voiceTitle = voiceSupported
     ? voiceCaptureMode === 'recorder' ? 'Record and transcribe voice' : 'Voice dictation'
     : 'Voice dictation is not available in this browser';
@@ -102,11 +104,62 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
     moreButtonRef.current?.focus();
   };
 
+  const focusMenuItem = (target: EventTarget | null, direction: 1 | -1 | 'first' | 'last') => {
+    const menu = target instanceof HTMLElement ? target.closest('[role="menu"]') : null;
+    if (!menu) return;
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]'));
+    if (!items.length) return;
+    const activeIndex = items.findIndex((item) => item === document.activeElement);
+    let nextIndex = 0;
+    if (direction === 'first') nextIndex = 0;
+    else if (direction === 'last') nextIndex = items.length - 1;
+    else if (activeIndex < 0) nextIndex = direction === -1 ? items.length - 1 : 0;
+    else nextIndex = (activeIndex + direction + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"], [role="menuitemcheckbox"]')?.focus();
+  }, [moreOpen]);
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    const handleWindowKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setMoreOpen(false);
+      moreButtonRef.current?.focus();
+    };
+    window.addEventListener('keydown', handleWindowKeyDown);
+    return () => window.removeEventListener('keydown', handleWindowKeyDown);
+  }, [moreOpen]);
+
   const handleMoreMenuKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Escape') return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMoreMenu();
+      return;
+    }
+
+    const keyActions: Record<string, 1 | -1 | 'first' | 'last'> = {
+      ArrowDown: 1,
+      ArrowRight: 1,
+      ArrowUp: -1,
+      ArrowLeft: -1,
+      Home: 'first',
+      End: 'last',
+    };
+    const action = keyActions[event.key];
+    if (!action) return;
     event.preventDefault();
     event.stopPropagation();
-    closeMoreMenu();
+    focusMenuItem(event.target, action);
+  };
+
+  const handleMoreWrapBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    const nextFocus = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+    if (!nextFocus || !event.currentTarget.contains(nextFocus)) setMoreOpen(false);
   };
 
   const runMoreAction = (action: () => void) => {
@@ -124,7 +177,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           </Link>
         ) : null}
 
-        <form className="dock-form" ref={commandFormRef} onSubmit={onSubmit} aria-label="Talk to Swan Coach">
+        <form className="dock-form" ref={commandFormRef} onSubmit={commandBusy ? (event) => event.preventDefault() : onSubmit} aria-label="Talk to Swan Coach">
           <textarea
             className="dock-textarea"
             ref={commandTextRef}
@@ -139,7 +192,9 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
               event.currentTarget.form?.requestSubmit();
             }}
             placeholder="Talk or type to Swan Coach..."
+            aria-label="Message Swan Coach"
             aria-describedby="coach-dock-status coach-dock-trust"
+            readOnly={commandBusy}
             rows={2}
           />
 
@@ -157,7 +212,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
             </div>
 
             <div className="dock-main-actions">
-              <div className="dock-more-wrap">
+              <div className="dock-more-wrap" onBlur={handleMoreWrapBlur}>
                 <button
                   ref={moreButtonRef}
                   type="button"
@@ -171,21 +226,19 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                   <MoreHorizontal size={20} aria-hidden="true" />
                 </button>
                 {moreOpen ? (
-                  <div className="dock-more-menu" id={menuId} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
-                    <button type="button" role="menuitem" onClick={() => runMoreAction(onAttach)}>
-                      <Paperclip size={17} aria-hidden="true" />
-                      <span>Attach</span>
-                    </button>
+                  <div className="dock-more-menu" id={menuId} ref={menuRef} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
+                    {onReviewIntake ? (
+                      <button type="button" role="menuitem" onClick={() => runMoreAction(onReviewIntake)}>
+                        <Inbox size={17} aria-hidden="true" />
+                        <span>Review intake</span>
+                      </button>
+                    ) : null}
                     {showPlaudAction ? (
                       <button type="button" role="menuitem" onClick={() => runMoreAction(onStartPlaudUpload)}>
                         <FileAudio size={17} aria-hidden="true" />
-                        <span>Audio</span>
+                        <span>Import audio</span>
                       </button>
                     ) : null}
-                    <button type="button" role="menuitem" onClick={() => runMoreAction(onReadback)}>
-                      <Volume2 size={17} aria-hidden="true" />
-                      <span>Readback</span>
-                    </button>
                     {onToggleVoiceReplies ? (
                       <button
                         type="button"
@@ -194,7 +247,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                         onClick={() => runMoreAction(onToggleVoiceReplies)}
                       >
                         <Volume2 size={17} aria-hidden="true" />
-                        <span>{voiceReplyEnabled ? 'Voice replies on' : 'Voice replies off'}</span>
+                        <span>{voiceReplyEnabled ? 'Reading replies aloud' : 'Read replies aloud'}</span>
                       </button>
                     ) : null}
                     {workoutLoggerRoute ? (
@@ -224,7 +277,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
               >
                 <Mic size={22} aria-hidden="true" />
               </button>
-              <button type="submit" className="dock-send" aria-label="Send to Swan Coach">
+              <button type="submit" className="dock-send" disabled={sendDisabled} aria-label={commandBusy ? 'Sending to Swan Coach' : 'Send to Swan Coach'}>
                 <ArrowUp size={22} aria-hidden="true" />
               </button>
             </div>

@@ -285,9 +285,9 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandHeaderActionStyles}
   ${coachCommandThreadHeaderStyles}
   ${coachCommandDockStyles}
-  ${coachCommandBridgeMobileDockStyles}
   ${coachCommandOpsStyles}
   ${coachCommandOwnerControlsStyles}
   ${coachCommandOpsMissionStyles}
   ${coachCommandCrystallineFocusStyles}
+  ${coachCommandBridgeMobileDockStyles}
 `;

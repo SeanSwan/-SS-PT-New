@@ -7,17 +7,17 @@
 import { css } from 'styled-components';
 
 export const coachCommandCrystallineFocusStyles = css`
-  --coach-focus-canvas: var(--bg-base, #070b12);
-  --coach-focus-surface: var(--bg-surface, #0b111a);
-  --coach-focus-elevated: var(--bg-elevated, #0e1723);
-  --coach-focus-interactive: var(--surface-soft, color-mix(in srgb, var(--bg-elevated, #0e1723) 84%, var(--text-primary, #f4f7fb) 8%));
-  --coach-focus-text: var(--text-primary, #f4f7fb);
+  --coach-focus-canvas: var(--bg-base, #0A0A0F);
+  --coach-focus-surface: var(--bg-surface, #141419);
+  --coach-focus-elevated: var(--bg-elevated, #1A1A24);
+  --coach-focus-interactive: var(--surface-soft, color-mix(in srgb, var(--bg-elevated, #1A1A24) 84%, var(--text-primary, #E0ECF4) 8%));
+  --coach-focus-text: var(--text-primary, #E0ECF4);
   --coach-focus-muted: var(--text-muted, #8794a8);
   --coach-focus-soft: var(--text-secondary, #a9b6c8);
   --coach-focus-line: var(--border-subtle, rgba(184, 207, 232, 0.13));
-  --coach-focus-line-active: var(--border-active, var(--border-focus, rgba(105, 215, 208, 0.34)));
-  --coach-focus-accent: var(--accent-primary, #69d7d0);
-  --coach-focus-blue: var(--brand-primary, var(--accent-secondary, #7ea5ff));
+  --coach-focus-line-active: var(--border-active, var(--border-focus, rgba(96, 192, 240, 0.34)));
+  --coach-focus-accent: var(--accent-primary, #60C0F0);
+  --coach-focus-blue: var(--brand-primary, var(--accent-secondary, #4070C0));
 
   .bridge-shell { gap: 14px; max-width: min(100%, 1680px); width: 100%; }
   .client-bar {
@@ -152,14 +152,16 @@ export const coachCommandCrystallineFocusStyles = css`
     margin: 4px 0 0;
     padding: 0;
   }
-  .transcript-empty-actions li {
+  .transcript-empty-actions button {
     background: color-mix(in srgb, var(--coach-focus-interactive) 82%, transparent);
     border: 1px solid var(--coach-focus-line);
     border-radius: 999px;
     color: var(--coach-focus-soft);
+    cursor: pointer;
     font-size: 12px;
     line-height: 1;
-    padding: 8px 10px;
+    min-height: 44px;
+    padding: 8px 12px;
   }
 
   .console-dock {
