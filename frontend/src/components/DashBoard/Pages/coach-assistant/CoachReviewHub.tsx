@@ -59,7 +59,7 @@ const CoachReviewHub: React.FC<CoachReviewHubProps> = ({
 }) => {
   const cards: ReviewCard[] = [
     {
-      ariaLabel: 'Open intake review',
+      ariaLabel: 'Open intake review queue',
       count: intakeCount,
       description: 'Client notes, transcripts, and items that need a staff decision.',
       icon: Inbox,
@@ -67,7 +67,7 @@ const CoachReviewHub: React.FC<CoachReviewHubProps> = ({
       section: 'intake',
     },
     {
-      ariaLabel: 'Open audio review',
+      ariaLabel: 'Open audio import review',
       count: plaudCount,
       description: 'Uploaded audio and synced clips waiting for transcript or merge review.',
       icon: FileAudio,
@@ -75,7 +75,7 @@ const CoachReviewHub: React.FC<CoachReviewHubProps> = ({
       section: 'audio',
     },
     {
-      ariaLabel: 'Open drafts',
+      ariaLabel: 'Open prepared draft review',
       count: draftCount,
       description: 'Client setup and staged profile/workout drafts.',
       icon: Layers3,
@@ -85,7 +85,7 @@ const CoachReviewHub: React.FC<CoachReviewHubProps> = ({
   ];
 
   return (
-    <div className="tab-scroll" id="coach-tabpanel-review" role="tabpanel" aria-labelledby="coach-tab-review">
+    <div className="tab-scroll" id="coach-tabpanel-review" role="tabpanel" aria-labelledby="coach-tab-review" tabIndex={-1}>
       <section className="review-hub panel" aria-label="Coach review hub">
         <div className="review-hub-top">
           <span className="review-eyebrow">Waiting</span>

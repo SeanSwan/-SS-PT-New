@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../services/analyticsExerciseHistoryService.mjs', () => ({
+  getExerciseHistoryFromLogs: vi.fn().mockResolvedValue({ exercises: [] }),
+}));
 import {
   sanitizeAiChatMetadataForClient,
   sanitizeAiFailoverTrace,

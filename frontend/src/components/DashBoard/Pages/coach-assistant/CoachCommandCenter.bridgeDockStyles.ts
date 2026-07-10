@@ -22,6 +22,15 @@ export const coachCommandDockStyles = css`
     overflow-y: auto;
     padding: 4px 4px 8px;
   }
+  .transcript-live-announcement {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
   .transcript-empty {
     color: var(--coach-muted);
     display: grid;
@@ -62,15 +71,21 @@ export const coachCommandDockStyles = css`
     margin: 4px 0 0;
     padding: 0;
   }
-  .transcript-empty-actions li {
+  .transcript-empty-actions button {
     background: color-mix(in srgb, var(--coach-cyan) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--coach-cyan) 18%, var(--coach-line));
     border-radius: 999px;
     color: var(--coach-text-soft);
+    cursor: pointer;
     font-size: 12px;
     font-weight: 760;
-    min-height: 32px;
-    padding: 7px 11px;
+    min-height: 44px;
+    padding: 7px 12px;
+  }
+  .transcript-empty-actions button:hover,
+  .transcript-empty-actions button:focus-visible {
+    border-color: color-mix(in srgb, var(--coach-cyan) 38%, var(--coach-line));
+    color: var(--coach-text);
   }
   .console-dock {
     display: grid;
@@ -236,7 +251,10 @@ export const coachCommandDockStyles = css`
     box-shadow: 0 10px 30px color-mix(in srgb, var(--coach-cyan) 30%, transparent);
     color: #ffffff;
   }
-  .drawer-scrim {
+  .dock-send:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }  .drawer-scrim {
     background: color-mix(in srgb, var(--coach-bg) 70%, transparent);
     border: 0;
     display: block;

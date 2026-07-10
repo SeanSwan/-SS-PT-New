@@ -33,9 +33,9 @@ function expectActiveTab(tab: ExpectedTab) {
   expect(talk).toHaveAttribute('aria-selected', String(tab === 'talk'));
   expect(review).toHaveAttribute('aria-selected', String(tab === 'review'));
   expect(history).toHaveAttribute('aria-selected', 'false');
-  expect(talk).toHaveAttribute('aria-pressed', String(tab === 'talk'));
-  expect(review).toHaveAttribute('aria-pressed', String(tab === 'review'));
-  expect(history).toHaveAttribute('aria-pressed', 'false');
+  expect(talk).not.toHaveAttribute('aria-pressed');
+  expect(review).not.toHaveAttribute('aria-pressed');
+  expect(history).not.toHaveAttribute('aria-pressed');
 
   expect(screen.queryByRole('tab', { name: /^Intake/i })).not.toBeInTheDocument();
   expect(screen.queryByRole('tab', { name: /^PLAUD/i })).not.toBeInTheDocument();
@@ -54,20 +54,20 @@ async function expectMountedWorkspace(tab: ExpectedTab, section?: 'intake' | 'au
   expect(screen.getByRole('heading', { name: /^Review$/i })).toBeInTheDocument();
 
   if (section === 'drafts') {
-    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open prepared draft review/i }));
     expect(await screen.findByRole('region', { name: /^Drafts$/i })).toBeInTheDocument();
     return;
   }
 
   if (section === 'intake') {
-    fireEvent.click(screen.getByRole('button', { name: /open intake review/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open intake review queue/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-plaud-merge-workspace')).not.toBeInTheDocument();
     expect(screen.getByText(`Active intake ${activeIntakeId || 'none'}`)).toBeInTheDocument();
     return;
   }
 
-  fireEvent.click(screen.getByRole('button', { name: /open audio review/i }));
+  fireEvent.click(screen.getByRole('button', { name: /open audio import review/i }));
   expect(screen.getByTestId('mock-plaud-merge-workspace')).toBeInTheDocument();
   expect(screen.queryByTestId('mock-coach-intake-workspace')).not.toBeInTheDocument();
   if (mergeLabel) {

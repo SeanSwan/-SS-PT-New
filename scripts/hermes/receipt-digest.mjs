@@ -50,7 +50,15 @@ export function localWindow(localDate, offsetMinutes) {
   return { startMs, endMs, utcDates };
 }
 
-export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes = 0 } = {}) {
+/**
+ * computeDigestData — the pure ANALYTICS layer, extracted so consumers other than
+ * the markdown renderer (the brain-view cockpit's per-day gather, v2 plan A3) can
+ * read structured numbers instead of parsing rendered Markdown. `renderDigest`
+ * consumes this and formats; the golden-file test guarantees the formatting is
+ * byte-identical to before the extraction. Returns everything the digest AND a
+ * data client need for one day (or one local-window day).
+ */
+export function computeDigestData(vaultRoot, isoDate, { local = false, offsetMinutes = 0 } = {}) {
   let receipts;
   let queueRecords;
   let streamDates = [isoDate];
@@ -80,7 +88,6 @@ export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes 
   const clusters = Object.entries(bySender).filter(([, n]) => n >= REFUSAL_CLUSTER_THRESHOLD).sort((a, b) => b[1] - a[1]);
 
   // Integrity (G-7 + G-9): surface what silently degrades to T0 or lingers armed.
-  const paths = vaultPaths(vaultRoot, isoDate);
   const unparseable = receipts.filter((r) => r.__unparseable !== undefined);
   const tierless = receipts.filter((r) => r.what !== undefined && !/\((T[0-4])\)/.test(String(r.what)));
   const chainBroken = streamDates
@@ -97,6 +104,9 @@ export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes 
 
   const opened = queueRecords.filter((r) => r.type === 'create');
   const byOutcome = (to) => queueRecords.filter((r) => r.type === 'transition' && r.to === to);
+  const approved = byOutcome('approved').length;
+  const denied = byOutcome('denied').length;
+  const expired = byOutcome('expired').length;
   const resolvedMinutes = [];
   for (const t of [...byOutcome('approved'), ...byOutcome('denied')]) {
     const created = opened.find((c) => c.entry.id === t.id)?.entry.created;
@@ -125,6 +135,21 @@ export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes 
   }
 
   const utcOff = offsetMinutes === 0 ? 'UTC' : `UTC${offsetMinutes > 0 ? '+' : '-'}${String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, '0')}:${String(Math.abs(offsetMinutes) % 60).padStart(2, '0')}`;
+  return {
+    isoDate, local, offsetMinutes, utcOff, streamDates, receipts,
+    counts, attention, flips, floodHit, clusters,
+    unparseable, tierless, chainBroken, armedStale, actorRows,
+    approvalFlow: { opened: opened.length, approved, denied, expired, medianMin: med },
+    silence,
+  };
+}
+
+export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes = 0 } = {}) {
+  const d = computeDigestData(vaultRoot, isoDate, { local, offsetMinutes });
+  const {
+    receipts, streamDates, utcOff, counts, attention, flips, floodHit, clusters,
+    unparseable, tierless, chainBroken, armedStale, actorRows, approvalFlow, silence,
+  } = d;
   const lines = [
     `# Receipt digest — ${isoDate}${local ? ` (LOCAL day, ${utcOff}; spans UTC files ${streamDates.join(' + ')})` : ''}`,
     '',
@@ -150,7 +175,7 @@ export function renderDigest(vaultRoot, isoDate, { local = false, offsetMinutes 
     ...((!unparseable.length && !tierless.length && !chainBroken.length && !armedStale.length) ? ['No integrity issues.'] : []),
     '',
     '## Approval flow',
-    `opened ${opened.length} · approved ${byOutcome('approved').length} · denied ${byOutcome('denied').length} · expired ${byOutcome('expired').length} · median open→resolved: ${med === null ? 'n/a' : `${med} min`}`,
+    `opened ${approvalFlow.opened} · approved ${approvalFlow.approved} · denied ${approvalFlow.denied} · expired ${approvalFlow.expired} · median open→resolved: ${approvalFlow.medianMin === null ? 'n/a' : `${approvalFlow.medianMin} min`}`,
     '',
     '## By actor (24h)',
     ...(actorRows.length ? actorRows.map(([who, n]) => `- ${who}: ${n} receipt(s)`) : ['No activity.']),

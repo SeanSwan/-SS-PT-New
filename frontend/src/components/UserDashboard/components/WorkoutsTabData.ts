@@ -29,6 +29,7 @@ export const CATEGORY_META: Record<string, { icon: string; color: string }> = {
   Shoulders: { icon: 'SH', color: 'var(--text-primary, #E0ECF4)' },
   'Full Body': { icon: 'FB', color: 'var(--accent-primary, #60C0F0)' },
   Cardio: { icon: 'HR', color: 'var(--accent-gold, #C6A84B)' },
+  Other: { icon: 'OT', color: 'var(--text-muted, #b8c9db)' },
 };
 
 export const MOCK_CATEGORIES: CategoryData[] = Object.entries(CATEGORY_META).map(([key, meta], index) => ({

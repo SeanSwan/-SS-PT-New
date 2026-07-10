@@ -62,14 +62,23 @@ describe('CoachCommandCenter style split', () => {
     const dockComponentSource = readFileSync(resolve(__dirname, 'CoachConsoleDock.tsx'), 'utf8');
 
     expect(bridgeSource).toContain('coachCommandBridgeMobileDockStyles');
+    expect(bridgeSource.lastIndexOf('coachCommandBridgeMobileDockStyles'))
+      .toBeGreaterThan(bridgeSource.lastIndexOf('coachCommandCrystallineFocusStyles'));
+    expect(mobileDockSource).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*?height:\s*max\(480px,\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\)\)\);/);
     expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?position:\s*sticky;/);
     expect(mobileDockSource).toMatch(/\.console-dock[\s\S]*?bottom:\s*0;/);
     expect(mobileDockSource).toContain('env(safe-area-inset-bottom)');
+    expect(mobileDockSource).toMatch(/\.tab-bar[\s\S]*?minmax\(80px,\s*1fr\)/);
     expect(mobileDockSource).toMatch(/\.dock-primary-row[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/);
     expect(mobileDockSource).toMatch(/\.dock-main-actions[\s\S]*?gap:\s*7px;/);
     expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-width:\s*54px;/);
     expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-height:\s*54px;/);
     expect(mobileDockSource).toMatch(/\.dock-more-menu[\s\S]*?min-width:\s*min\(244px,\s*calc\(100vw - 24px\)\);/);
+    expect(mobileDockSource).toMatch(/@media \(max-width:\s*380px\)[\s\S]*?\.dock-more-menu[\s\S]*?left:\s*0;[\s\S]*?right:\s*auto;/);
+    expect(mobileDockSource).toMatch(/@media \(max-width:\s*380px\)[\s\S]*?\.transcript-empty[\s\S]*?margin:\s*0 auto;/);
+    expect(mobileDockSource).toMatch(/@media \(max-width:\s*380px\)[\s\S]*?\.transcript-empty-actions[\s\S]*?repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+    expect(mobileDockSource).toContain('.bridge-shell .transcript-empty-actions');
+    expect(mobileDockSource).toMatch(/@media \(max-width:\s*380px\)[\s\S]*?\.dock-next-pill,[\s\S]*?\.dock-status[\s\S]*?display:\s*none;/);
     expect(dockComponentSource).toContain('aria-label="More command tools"');
     expect(dockComponentSource).toContain('Audio');
   });

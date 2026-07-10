@@ -317,3 +317,35 @@ Zero-network test (real invariant, replacing the `<script>` ban) green every sli
 ## E. What v1 got RIGHT (kept, do not re-litigate)
 
 Hybrid render (SVG + HTML-overlay text + optional WebGL); view-only JS doctrine (with the escaping + boundary mandates); the readability type-ramp + grid; the 10-theme tokenized system; Replay-the-Day as the hero (now today-only); the two named CSS bugs; ~60-node DOM is negligible; the 14-day window is within the 90-day hot retention (`readReceipts` degrades to `.gz`); reduced-motion + determinism INTENT (gaps were test/registry follow-through, now closed).
+
+---
+
+# SLICE 0 — FEASIBILITY SPIKE: RESULTS + LOCKED DECISIONS (2026-07-08, shipped)
+
+Slice 0 is complete. No UI shipped (as scoped); it de-risked the three v2 blockers that gate everything and locked the decisions Codex builds on. All results are VERIFIED by tests/measurement, not asserted.
+
+## S0.1 — A1 label<->camera sync: PROVEN (was the top BLOCKER)
+NEW `scripts/hermes/graphGeometry.mjs` (69L) + `graphGeometry.test.mjs` (4 tests, green). The v1 "labels share the camera transform" hand-wave is replaced by a proven formula:
+- Graph pane locked to `aspect-ratio: 1280/640` -> uniform `ppu = renderedWidth/1280` on both axes.
+- SVG `<g class="camera">` transform (user units): `translate(tx, ty) scale(s)`.
+- HTML `.label-layer` container transform (px-converted): `translate(tx*ppu, ty*ppu) scale(s)`; each label anchored ONCE at `(x*ppu, y*ppu)`, never moved per-frame.
+- **PROOF:** `svgScreenPos` == `labelScreenPos` to < 1e-9 across 4 widths x 5 pan/zoom states x 6 nodes (120 cases) + a zoom-to-cursor invariant. Slice 1 uses the identity case (static), Slice 2 animates only the container transform — no rework, because the anchor math is identical at s=1.
+
+## S0.2 — computeDigestData extraction: DONE (was BLOCKER-4, "mostly FREE" only if refactored)
+`receipt-digest.mjs` (238L, under cap) now exports `computeDigestData(vaultRoot, isoDate, {local, offsetMinutes})` -> a structured object (counts, attention, flips, floodHit, clusters, unparseable/tierless/chainBroken/armedStale, actorRows, approvalFlow{opened/approved/denied/expired/medianMin}, silence, streamDates, receipts). `renderDigest` is now a pure formatter over it. **The golden-file test is byte-identical green — zero behavior change.** brainGather (Slice 3/4) calls `computeDigestData` per day instead of parsing Markdown. New structured-data test added (11/11 digest tests green).
+
+## S0.3 — File-size budget: MEASURED, holds decisively (was BLOCKER, "no math")
+Empirical, a realistic 45-receipt day rendered through the CURRENT brain-view = **33.4KB**; the raw JSON of those 45 receipts (the today-full embed cost) = **17.0KB**. Budget model:
+`today-full (17KB) + 13-day aggregates (~5KB) + inlined JS (~25KB) + CSS+10 themes (~12KB) + HTML labels (~9KB) + shell (~20KB) = ~88KB` — comfortably under the 250KB ceiling. Even a 90-receipt day (~34KB raw) lands ~105KB. **Budget holds; no compaction beyond the today-full/13-day-aggregate split is required.**
+
+## S0.4 — Locked decisions (Codex builds to these; no re-deciding mid-build)
+1. **Module split (A2):** `graphGeometry.mjs` (DONE) · `brainGather.mjs` · `brainThemes.mjs` · `brainCamera.mjs` · `brainReplay.mjs` · `brainClient.mjs` · `brainAtmosphere.mjs` · `brainViewTemplate.mjs` · `brain-view.mjs`. Each <=300L; all inlined into one runtime file.
+2. **Routine per-day state reconstruction:** for any scrub day, re-derive a routine's state from THAT day's receipts (`receipts.filter(r => commandOf(r.what) === cmd)` -> ran/idle/fault), NOT `runnerLib.readState()` (which is current-only and reports 13/14 days wrong). `brainGather` owns this.
+3. **Replay = today-only** (locked). The 13 prior scrub-days embed derived aggregates only (per-day counts + per-node state/color from `computeDigestData` + routine re-derivation), never raw receipts. Replay-the-Day plays the current day's real receipt sequence; scrubbing to a prior day shows that day's aggregate state (no receipt-level replay for history).
+4. **Determinism boundary (B7):** the generated file is byte-identical given an identical snapshot + generation timestamp; runtime rAF (camera/particles/replay) is legitimately non-deterministic.
+5. **Hardcoded-color inventory for the Slice-1 token sweep (A6):** `--aur` (undeclared bug), `.core-glow/.core-ring/.core-spin` baked `${PAL.app}`/`${PAL.skill}` (bug), body gradient `#131a2e`/`#171229`, `.orbit #22293d`, `.star #9fb4dd`, orb gradient `#232b45`/`#101018`, `.thought code #50A0F0`, `.chip #2a3142`, `PAL.dim #39415a` (decision: fold `dim` into a new `--c-dim` 12th token — it is a first-class semantic in the current code, not a shade of muted).
+
+## S0.5 — Verification
+162/162 hermes tests green (5 new: 1 computeDigestData structured-data + 4 graphGeometry sync-proof). Golden digest byte-identical. Budget measured empirically. All files <=300L. Backend untouched. Secret scan clean. **NO UI shipped, NO runtime behavior changed** — brain-view renders exactly as before (the Desktop `.cmd` + 06:00 chain keep working); the only shipped change is the internal `computeDigestData` seam + the standalone geometry primitive.
+
+**Next slice: Slice 1 — readability + layout foundation** (grid shell, type ramp, HTML label overlay using `graphGeometry` at identity, NBA hero, embed-escaper, registry/test replacement, the S0.4.5 color-token sweep). It is unblocked: the sync math, the data seam, and the budget are all proven.

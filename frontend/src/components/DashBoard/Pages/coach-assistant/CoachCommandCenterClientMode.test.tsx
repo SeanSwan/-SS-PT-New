@@ -7,6 +7,7 @@ import {
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
   useCoachIntakeQueueMock,
+  useAIChatMock,
 } from './CoachCommandCenterPage.test.harness';
 
 const composerInput = () => screen.getByPlaceholderText(/Talk or type to Swan Coach/i);
@@ -31,20 +32,77 @@ describe('CoachCommandCenterPage client mode', () => {
     expect(screen.getByRole('tab', { name: /^History$/i })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /^Review/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^More coach actions$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Onboard client$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Use suggestion: Onboard client/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Use suggestion: Plan next workout/i })).toBeInTheDocument();
     expect(screen.queryByLabelText('Coach header quick actions')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Workout surfaces')).not.toBeInTheDocument();
 
     const tools = openCommandTools();
-    expect(within(tools).queryByRole('menuitem', { name: /^Audio$/i })).not.toBeInTheDocument();
+    expect(within(tools).queryByRole('menuitem', { name: /^Review intake$/i })).not.toBeInTheDocument();
+    expect(within(tools).queryByRole('menuitem', { name: /^Import audio$/i })).not.toBeInTheDocument();
     expect(within(tools).getByRole('menuitem', { name: /^Open workout logger$/i }))
       .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
     expect(within(tools).getByRole('menuitem', { name: /^Open workouts$/i }))
       .toHaveAttribute('href', '/dashboard/client/workouts');
-    expect(within(tools).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
+    expect(within(tools).getByRole('menuitemcheckbox', { name: /Read replies aloud/i })).toBeInTheDocument();
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });
 
+  it('never exposes an operator Review action that can blank the client workspace', () => {
+    renderPage('/dashboard/client/coach-assistant', 'client');
+
+    const tools = openCommandTools();
+
+    expect(within(tools).queryByRole('menuitem', { name: /^Review intake$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('tabpanel', { name: /^Talk$/i })).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: /Talk to Swan Coach/i })).toBeInTheDocument();
+  });
+
+  it('keeps the client History rail free of staff-only route and approval copy', () => {
+    renderPage('/dashboard/client/coach-assistant', 'client');
+
+    fireEvent.click(screen.getByRole('tab', { name: /^History$/i }));
+    const history = screen.getByRole('complementary', { name: /Coach threads and selected client context/i });
+
+    expect(within(history).getByText('client / coach-assistant')).toBeInTheDocument();
+    expect(within(history).getByText('Swan Coach History')).toBeInTheDocument();
+    expect(within(history).getByRole('button', { name: /New Coach Chat/i })).toBeInTheDocument();
+    expect(within(history).queryByText(/intake, drafts, holds, and approval work/i)).not.toBeInTheDocument();
+    expect(within(history).queryByText('admin / coach-assistant')).not.toBeInTheDocument();
+  });
+  it('labels the composer and disables an empty no-op send', () => {
+    renderPage('/dashboard/client/coach-assistant', 'client');
+
+    const composer = screen.getByRole('textbox', { name: /Message Swan Coach/i });
+    const send = sendButton();
+
+    expect(send).toBeDisabled();
+    fireEvent.change(composer, { target: { value: 'Show my recent training.' } });
+    expect(send).toBeEnabled();
+  });
+
+  it('locks the composer and blocks Enter while Swan Coach is processing a request', () => {
+    useAIChatMock.mockReturnValue({ ...useAIChatMock(), sending: true });
+    renderPage('/dashboard/client/coach-assistant', 'client');
+
+    const composer = composerInput();
+    fireEvent.change(composer, { target: { value: 'Show my recent training.' } });
+    fireEvent.keyDown(composer, { key: 'Enter' });
+
+    expect(composer).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: /Sending to Swan Coach/i })).toBeDisabled();
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+    expect(executeCommandMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['admin', 'trainer'] as const)('uses client-safe Coach mode when a %s views the client dashboard', (role) => {
+    renderPage('/dashboard/client/coach-assistant', role);
+
+    expect(useCoachIntakeQueueMock).toHaveBeenCalledWith({ scope: 'actionable', limit: 12, enabled: false });
+    expect(screen.getByText(/Your coach terminal/i)).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Review/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^More coach actions$/i })).not.toBeInTheDocument();
+  });
   it('normalizes legacy raw user accounts into the client-safe Coach bridge', async () => {
     renderPage('/dashboard/client/coach-assistant?sourcePath=%2Fdashboard%2Fclient%2Fworkouts&teachPrompt=Plan%20my%20next%20workout', 'user');
 

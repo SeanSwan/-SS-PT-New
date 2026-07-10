@@ -31,17 +31,18 @@ import {
 import { buildChatRouteRequestContext, buildCommandRouteContext, buildEffectiveRouteContext, buildRouteClientLabel, buildRouteContext, buildTeachPromptRouteContext, buildThreadSelectionSearchParams, buildWorkflowReturnLabel, getScheduledSessionRouteContextFromSearchParams, normalizeCommandCenterReturnTo, parseRouteClientId, parseRouteThreadId, readHistoricalImportRouteDraft } from './CoachCommandCenter.routeContext';
 import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 import { useCoachCommandCenterPendingFood } from './hooks/useCoachCommandCenterPendingFood';
+import { useCoachClientNotebook } from './hooks/useCoachClientNotebook';
+import { useCoachPinnedClient } from './hooks/useCoachPinnedClient';
 import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
-
 export function useCoachCommandCenterController({
   userRole = 'admin',
 }: { userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const chat = useAIChat();
-  const { cancelCommand, confirmCommand, executeCommand } = useCoachCommand();
+  const chat = useAIChat(userRole);
+  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
   const tts = usePremiumTTS();
   const operatorEnabled = userRole !== 'client';
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
@@ -59,7 +60,6 @@ export function useCoachCommandCenterController({
   const [quickClientBusy, setQuickClientBusy] = useState(false);
   const [quickClientMessage, setQuickClientMessage] = useState<string | null>(null);
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
-
   const shellRef = useRef<HTMLDivElement>(null);
   const commandFormRef = useRef<HTMLFormElement>(null);
   const commandTextRef = useRef<HTMLTextAreaElement>(null);
@@ -67,16 +67,14 @@ export function useCoachCommandCenterController({
   const rightRailRef = useRef<HTMLElement>(null);
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
-
   const coachThreads = useMemo(
-    () => buildCoachThreads(chat.conversations, threadSearch),
-    [chat.conversations, threadSearch],
+    () => buildCoachThreads(chat.conversations, threadSearch, userRole),
+    [chat.conversations, threadSearch, userRole],
   );
   const allCoachThreads = useMemo(
-    () => buildCoachThreads(chat.conversations, ''),
-    [chat.conversations],
+    () => buildCoachThreads(chat.conversations, '', userRole),
+    [chat.conversations, userRole],
   );
-
   const activeThread = useMemo(
     () => allCoachThreads.find((thread) => thread.id === activeThreadId) ?? null,
     [activeThreadId, allCoachThreads],
@@ -89,7 +87,9 @@ export function useCoachCommandCenterController({
     () => parseRouteClientId(activeThread?.targetUserId == null ? null : String(activeThread.targetUserId)),
     [activeThread?.targetUserId],
   );
-  const effectiveClientId = routeClientId || activeThreadClientId;
+  const clientPin = useCoachPinnedClient({ activeThreadClientId, chat, routeClientId, routeThreadId, searchParams,
+    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole });
+  const effectiveClientId = clientPin.effectiveClientId;
   const rawRouteIntent = searchParams.get('intent');
   const routeIntent = rawRouteIntent === 'client_onboarding' && routeClientId
     ? 'client_profile_coverage_update'
@@ -97,8 +97,8 @@ export function useCoachCommandCenterController({
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
   const autoSelectedThread = useMemo(
-    () => autoSelectSuppressed ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, routeClientId, activeThreadId),
-    [activeThreadId, allCoachThreads, autoSelectSuppressed, routeClientId, routeIntent],
+    () => autoSelectSuppressed ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, effectiveClientId, activeThreadId),
+    [activeThreadId, allCoachThreads, autoSelectSuppressed, effectiveClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),
@@ -119,7 +119,7 @@ export function useCoachCommandCenterController({
     [effectiveClientId, searchKey, userRole, workflowReturnTo],
   );
   const routeClientLabel = buildRouteClientLabel(routeClientId);
-  const effectiveClientLabel = routeClientLabel || buildRouteClientLabel(activeThreadClientId);
+  const effectiveClientLabel = clientPin.selectedClientName || routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
   const scheduledSessionContext = useMemo(() => getScheduledSessionRouteContextFromSearchParams(searchParams), [searchKey]);
   const routeContext = useMemo(
@@ -144,7 +144,6 @@ export function useCoachCommandCenterController({
     () => mergeTranscriptLogs(logs, conversationLogs),
     [conversationLogs, logs],
   );
-
   const rawMergeRequestId = searchParams.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
   const reviewNextRequested = searchParams.get('review') === 'next';
@@ -181,6 +180,8 @@ export function useCoachCommandCenterController({
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
   const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
+  const notebook = useCoachClientNotebook({ clientId: effectiveClientId, clientLabel: selectedClientLabel,
+    commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
   const actions = createCoachCommandCenterActions({
     activeThread,
@@ -207,7 +208,7 @@ export function useCoachCommandCenterController({
     speakCoachReply: tts.speak,
     workoutPlannerRoute,
     onThreadSelectRoute: (thread) => setSearchParams(buildThreadSelectionSearchParams(searchParams, thread.targetUserId, thread.id), { replace: true }),
-    onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, null, null), { replace: true }),
+    onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, effectiveClientId, null), { replace: true }),
     setActiveThreadId,
     setAutoSelectSuppressed,
     setCommandText,
@@ -219,7 +220,6 @@ export function useCoachCommandCenterController({
     setQuickClientName,
     setSelectedStatus,
   });
-
   useLoadCoachConversations(chat);
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
@@ -229,21 +229,22 @@ export function useCoachCommandCenterController({
     searchKey,
     plaudReviewRef,
   );
-
   return {
     activeIntakeId: searchParams.get('intake'),
     activeThread,
     activeThreadId,
     clientContextTiles,
+    clientPin: clientPin.barProps,
     coachQueue,
     coachThreads,
+    commandBusy: chat.sending || executingCommand,
     commandFormRef,
     commandText,
     commandTextRef,
     closeDrawer: actions.closeDrawer,
     dossierTiles,
     drawer,
-    handleAttach: actions.handleAttach,
+    handleReviewIntake: actions.handleReviewIntake,
     handleCancelCommand: actions.handleCancelCommand,
     handleConfirmCommand: actions.handleConfirmCommand,
     handleGuidePrompt,
@@ -251,13 +252,14 @@ export function useCoachCommandCenterController({
     handleQuickClientSubmit: actions.handleQuickClientSubmit,
     handleReadback: actions.handleReadback,
     handleStartPlaudUpload: actions.handleStartPlaudUpload,
-    handleSubmit: actions.handleSubmit,
+    handleSubmit: notebook.dockControls.active ? notebook.handleSubmit : actions.handleSubmit,
     handleThreadSelect: actions.handleThreadSelect,
     handleVoice: voiceCapture.handleVoice,
     initialReviewMergeRequestId,
     intakeStates,
     leftRailRef,
     logs: transcriptLogs,
+    notebook: notebook.dockControls,
     openDrawer: actions.openDrawer,
     plaudReviewRef,
     queueHealthRows,

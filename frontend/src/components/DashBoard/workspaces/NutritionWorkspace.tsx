@@ -7,6 +7,7 @@ import React, { useCallback, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
+import NutritionWorkspaceCapture from './NutritionWorkspace.capture';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
@@ -38,13 +39,10 @@ import {
   MoreToolsLabel,
   MoreToolsRow,
   MoreToolsSelect,
-  TabBtn,
-  TabRow,
   WorkspaceRoot,
 } from './NutritionWorkspace.styles';
 import {
   NUTRITION_MORE_TABS,
-  NUTRITION_PRIMARY_TABS,
   NUTRITION_TAB_LABELS,
   isMoreNutritionTab,
   nutritionPanelId,
@@ -150,25 +148,15 @@ const NutritionWorkspace: React.FC = () => {
         </HeaderActions>
       </Header>
 
-      <TabRow role="tablist" aria-label="Nutrition workspace tabs">
-        {NUTRITION_PRIMARY_TABS.map(tab => (
-          <TabBtn
-            key={tab.id}
-            id={nutritionTabId(tab.id)}
-            type="button"
-            $active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-            whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={nutritionPanelId(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </TabBtn>
-        ))}
-      </TabRow>
+      <NutritionWorkspaceCapture
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        summary={summary}
+        macroLoading={macroLoading}
+        gentleMode={gentleMode}
+        trainingDay={trainingDay}
+        reduceMotion={reduceMotion}
+      />
       <MoreToolsRow>
         <MoreToolsLabel htmlFor="nutrition-more-tools">More</MoreToolsLabel>
         <MoreToolsSelect

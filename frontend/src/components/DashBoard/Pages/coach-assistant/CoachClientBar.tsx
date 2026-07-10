@@ -1,12 +1,13 @@
 /**
  * COMPONENT: CoachClientBar
- * PURPOSE: Compact Floor Mode header for the Swan Coach terminal.
+ * PURPOSE: Compact Floor Mode header with one persistent, client-safe coaching scope.
  *
- * The header answers one question first: who is being coached right now? Deeper
- * actions move to History, Review, or More so the trainer-floor view stays calm.
+ * The main-client selector binds new conversations, notes, and downstream draft
+ * requests to one canonical client ID. Existing conversation records are never rebound.
  */
 import React from 'react';
 import { MoreHorizontal, Plus } from 'lucide-react';
+import type { CoachPinnedClientBarProps } from './hooks/useCoachPinnedClient';
 
 type CoachClientBarProps = {
   selectedClientLabel: string;
@@ -14,6 +15,7 @@ type CoachClientBarProps = {
   showOps?: boolean;
   contextLabel?: string;
   newConversationLabel?: string;
+  clientPin?: CoachPinnedClientBarProps;
   onNewConversation: () => void;
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
@@ -24,6 +26,7 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   showOps = true,
   contextLabel = 'Now coaching',
   newConversationLabel = 'New chat',
+  clientPin,
   onNewConversation,
   onOpenOps,
 }) => (
@@ -31,6 +34,25 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
     <div className="now-coaching" aria-label="Current coach context">
       <span className="now-label">{contextLabel}</span>
       <strong className="client-name">{selectedClientLabel}</strong>
+      {showOps && clientPin ? (
+        <label className="main-client-picker">
+          <span>Main client</span>
+          <select
+            aria-label="Main client"
+            value={clientPin.selectedClientId ?? ''}
+            disabled={clientPin.loadingClients}
+            onChange={(event) => {
+              const nextId = Number(event.target.value);
+              clientPin.onSelectClient(Number.isSafeInteger(nextId) && nextId > 0 ? nextId : null);
+            }}
+          >
+            <option value="">{clientPin.loadingClients ? 'Loading clients...' : 'No main client'}</option>
+            {clientPin.clients.map((client) => (
+              <option key={client.id} value={client.id}>{client.label}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
     </div>
 
     <div className="client-bar-tools">

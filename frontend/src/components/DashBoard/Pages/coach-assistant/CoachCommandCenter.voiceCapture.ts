@@ -1,8 +1,15 @@
+/**
+ * FILE: CoachCommandCenter.voiceCapture.ts
+ * PURPOSE: Unifies browser dictation, recorder transcription fallback, and reviewed composer handoff.
+ */
 import { useCallback, useMemo, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
-import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
+import {
+  useCoachBrowserSpeechInput,
+  type CoachSpeechRuntimeFailure,
+} from './hooks/useCoachBrowserSpeechInput';
 
 type VoiceCaptureMode = 'browser' | 'recorder' | 'none';
 
@@ -72,6 +79,7 @@ export function useCoachCommandVoiceCapture({
 }: VoiceCaptureParams) {
   const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
+  const recorderSupported = isCoachVoiceRecorderSupported();
 
   const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
     setCommandText((current) => resolveVoiceCommandText(next, current));
@@ -79,11 +87,13 @@ export function useCoachCommandVoiceCapture({
 
   const handleVoiceCaptured = useCallback((text: string) => {
     setCommandText((current) => capturedVoiceText(current, text));
+    setVoiceInputError(null);
     setSelectedStatus('Voice command captured - press Send to continue');
   }, [setCommandText, setSelectedStatus]);
 
   const handleVoiceOverlayEdit = useCallback((text: string) => {
     setVoiceCommandText(text);
+    setVoiceInputError(null);
     setSelectedStatus('Voice transcript staged - press Send to continue');
     setVoiceOverlayOpen(false);
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
@@ -94,14 +104,25 @@ export function useCoachCommandVoiceCapture({
     setVoiceOverlayOpen(false);
   }, [handleVoiceCaptured]);
 
+  const handleBrowserSpeechUnavailable = useCallback((failure: CoachSpeechRuntimeFailure) => {
+    if (recorderSupported && failure.canTryRecorder) {
+      setVoiceInputError('Browser dictation failed - recorder fallback opened for review.');
+      setVoiceOverlayOpen(true);
+      setSelectedStatus('Browser dictation failed - recorder fallback opened');
+      return;
+    }
+    setVoiceInputError(failure.message);
+    setSelectedStatus(failure.message);
+  }, [recorderSupported, setSelectedStatus]);
+
   const speech = useCoachBrowserSpeechInput({
     maxChars,
     onSend: handleVoiceCaptured,
+    onRuntimeUnavailable: handleBrowserSpeechUnavailable,
     setInputError: setVoiceInputError,
     setText: setVoiceCommandText,
   });
 
-  const recorderSupported = isCoachVoiceRecorderSupported();
   const handleVoice = useCallback(() => {
     runCoachVoiceCommand({
       cancelPillVisible: speech.cancelPillVisible,

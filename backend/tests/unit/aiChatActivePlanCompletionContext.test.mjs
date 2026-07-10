@@ -9,7 +9,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../services/analyticsExerciseHistoryService.mjs', () => ({
+  getExerciseHistoryFromLogs: vi.fn().mockResolvedValue({ exercises: [] }),
+}));
 
 import { enrichWithUserData } from '../../services/aiChatService.mjs';
 

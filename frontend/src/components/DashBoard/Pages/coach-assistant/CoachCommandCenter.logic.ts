@@ -71,10 +71,11 @@ function threadMatchesQuery(thread: ConversationSummary, query: string): boolean
 export function buildCoachThreads(
   conversations: ConversationSummary[] | undefined,
   threadSearch: string,
+  audienceRole?: string,
 ): ConversationSummary[] {
   const threads = Array.isArray(conversations) ? conversations : [];
   const query = threadSearch.trim().toLowerCase();
-  const coachOnly = threads.filter(isCoachThread);
+  const coachOnly = threads.filter((thread) => isCoachThread(thread) && (!audienceRole || !thread.role || thread.role === audienceRole));
   return query ? coachOnly.filter((thread) => threadMatchesQuery(thread, query)) : coachOnly;
 }
 
@@ -178,7 +179,7 @@ function queueHealthValue(healthStatus: string | undefined, isLoading: boolean):
 }
 
 const readyDraftValue = (summary: CoachQueueSummaryView): string =>
-  String(summary.preparedDrafts || summary.readyReview);
+  String(summary.pendingDrafts);
 
 export function buildStatusMetrics(
   summary: CoachQueueSummaryView,
@@ -244,7 +245,7 @@ export function buildDossierTiles(
 
 export function buildQueueHealthRows(summary: CoachQueueSummaryView): QueueHealthRow[] {
   return [
-    { label: 'Ready drafts', value: String(summary.preparedDrafts || summary.readyReview), tone: 'ready' },
+    { label: 'Ready drafts', value: String(summary.pendingDrafts), tone: 'ready' },
     { label: 'Client confirmation holds', value: String(summary.needsClient), tone: 'hold' },
     { label: 'Clarification holds', value: String(summary.needsClarification), tone: 'hold' },
     { label: 'Duplicate-risk holds', value: String(summary.duplicateHold), tone: 'stale' },

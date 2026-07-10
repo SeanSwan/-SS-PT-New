@@ -13,7 +13,7 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .bridge-shell.is-chat-tab {
-      height: calc(100dvh - max(12px, env(safe-area-inset-bottom)));
+      height: max(480px, calc(100dvh - 200px - env(safe-area-inset-bottom)));
     }
 
     .bridge-shell.is-workspace-tab {
@@ -53,7 +53,7 @@ export const coachCommandBridgeMobileDockStyles = css`
       border-radius: 14px;
       display: grid;
       gap: 4px;
-      grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
       overflow: visible;
       padding: 4px;
     }
@@ -156,6 +156,33 @@ export const coachCommandBridgeMobileDockStyles = css`
   }
 
   @media (max-width: 380px) {
+    .bridge-shell .transcript-empty {
+      margin: 0 auto;
+      padding: 12px 8px 16px;
+      width: 100%;
+    }
+
+    .bridge-shell .transcript-empty-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .bridge-shell .transcript-empty-actions button {
+      min-width: 0;
+      padding: 6px;
+    }
+
+    .dock-more-menu {
+      left: 0;
+      right: auto;
+    }
+
+    .dock-next-pill,
+    .dock-status {
+      display: none;
+    }
+
     .dock-primary-row {
       grid-template-columns: 1fr;
     }

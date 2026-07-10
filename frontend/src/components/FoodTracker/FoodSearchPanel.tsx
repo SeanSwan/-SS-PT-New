@@ -13,7 +13,7 @@
  * DATA FLOW:
  * Props In:  { onDataSent?: (success: boolean) => void }
  * State:     { query, category, allResults, loading, searched }
- * API Calls: USDA/OFF fetch via FoodSearchPanel.logic, POST /api/macros via useFoodSearchAddToLog
+ * API Calls: GET /api/nutrition/food-search via FoodSearchPanel.logic, POST /api/macros via useFoodSearchAddToLog
  * Events:    onDataSent(true|false) informs NutritionWorkspace macro refresh
  * Children:  styled primitives from FoodSearchPanel.styles
  *

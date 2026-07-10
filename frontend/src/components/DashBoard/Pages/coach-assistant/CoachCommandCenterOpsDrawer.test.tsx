@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createQuickCoachCommandClientMock,
   renderPage,
@@ -17,6 +17,32 @@ const openOpsRail = () => {
   fireEvent.click(screen.getByRole('button', { name: /^More coach actions$/i }));
   return screen.getByLabelText('Coach operations command surface');
 };
+
+const originalMatchMedia = window.matchMedia;
+const mockDrawerViewport = (matches: boolean) => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+};
+
+afterEach(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: originalMatchMedia,
+  });
+});
 
 describe('CoachCommandCenterPage Operations drawer', () => {
   beforeEach(resetCoachCommandCenterMocks);
@@ -51,6 +77,62 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(opsTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('treats the mobile operations drawer as modal and restores the page after close', async () => {
+    mockDrawerViewport(true);
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    const tabContent = document.querySelector('.tab-content') as (HTMLElement & { inert?: boolean }) | null;
+    expect(tabContent).not.toBeNull();
+    expect(tabContent).not.toHaveAttribute('aria-hidden');
+
+    const operationsRail = openOpsRail();
+    expect(operationsRail.closest('.bridge-shell')).toBeNull();
+    expect(operationsRail).toHaveAttribute('role', 'dialog');
+    expect(operationsRail).toHaveAttribute('aria-modal', 'true');
+    await waitFor(() => expect(tabContent).toHaveAttribute('aria-hidden', 'true'));
+    expect(tabContent?.inert).toBe(true);
+
+    fireEvent.click(within(operationsRail).getByRole('button', { name: /close coach operations/i }));
+    await waitFor(() => expect(tabContent).not.toHaveAttribute('aria-hidden'));
+    expect(tabContent?.inert).toBe(false);
+  });
+  it('keeps the mobile History rail operable as inline tab content', async () => {
+    mockDrawerViewport(true);
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    fireEvent.click(screen.getByRole('tab', { name: /^History$/i }));
+    const historyPanel = document.getElementById('coach-tabpanel-history') as HTMLElement;
+    const historyRail = within(historyPanel).getByLabelText('Coach threads and selected client context') as HTMLElement & { inert?: boolean };
+
+    await waitFor(() => expect(historyRail.inert).toBe(false));
+    expect(historyRail).not.toHaveAttribute('role', 'dialog');
+    expect(historyRail).not.toHaveAttribute('aria-modal');
+    expect(historyRail).not.toHaveAttribute('aria-hidden');
+    expect(within(historyRail).getByRole('button', { name: /New Coach Thread/i })).toBeEnabled();
+  });  it('does not focus a hidden operations drawer when an action closes before initial focus lands', () => {
+    vi.useFakeTimers();
+    try {
+      mockDrawerViewport(true);
+      renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+      const operationsRail = openOpsRail();
+      fireEvent.click(within(operationsRail).getByRole('button', { name: /Review next intake/i }));
+
+      const reviewPanel = document.getElementById('coach-tabpanel-review');
+      expect(reviewPanel).not.toBeNull();
+      expect(reviewPanel).toHaveFocus();
+
+      act(() => {
+        vi.runOnlyPendingTimers();
+      });
+
+      expect(operationsRail).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Coach operations command surface')).toHaveAttribute('aria-hidden', 'true');
+      expect(reviewPanel).toHaveFocus();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('uses the unified Coach intake queue and reaches the embedded PLAUD merge workflow', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=plaud&mergeRequestId=11111111-2222-3333-4444-555555555555');
 
@@ -58,7 +140,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveAttribute('data-embedded', 'true');
     expect(screen.getByTestId('mock-plaud-merge-workspace')).toHaveTextContent('11111111-2222-3333-4444-555555555555');
 
-    fireEvent.click(screen.getByRole('button', { name: /^Open intake review$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Open intake review queue$/i }));
     expect(screen.getByTestId('mock-coach-intake-workspace')).toHaveTextContent('Unified actionable 9');
   });
 
@@ -71,7 +153,7 @@ describe('CoachCommandCenterPage Operations drawer', () => {
     expect(within(operationsRail).getByRole('heading', { name: /Queue snapshot/i })).toBeInTheDocument();
     expect(within(operationsRail).queryByText(/Use Nutrition Context/i)).not.toBeInTheDocument();
     expect(within(operationsRail).queryByRole('heading', { name: /Next operator action/i })).not.toBeInTheDocument();
-    expect(within(operationsRail).getByText('Ready drafts').closest('li')).toHaveTextContent('3');
+    expect(within(operationsRail).getByText('Ready drafts').closest('li')).toHaveTextContent('1');
     expect(within(operationsRail).getByText('Client confirmation holds').closest('li')).toHaveTextContent('1');
     expect(within(operationsRail).getByText('Clarification holds').closest('li')).toHaveTextContent('5');
     expect(within(operationsRail).getByText('Duplicate-risk holds').closest('li')).toHaveTextContent('2');

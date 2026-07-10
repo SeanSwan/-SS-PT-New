@@ -4,7 +4,8 @@
  * Locks Swan Coach onto the structured proposal contract. The model prepares
  * drafts; deterministic backend services own approval and final writes.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('../../services/analyticsExerciseHistoryService.mjs', () => ({ getExerciseHistoryFromLogs: vi.fn().mockResolvedValue({ exercises: [] }) }));
 import {
   enrichWithUserData,
   getCoachClientProfileSessionsLabel,
@@ -14,7 +15,6 @@ import {
   getSystemPrompt,
 } from '../../services/aiChatService.mjs';
 import { readFileSync } from 'node:fs';
-
 function createPromptSequelize({ roster = [], workoutPlans = [] } = {}) {
   return {
     QueryTypes: { SELECT: 'SELECT' },

@@ -77,21 +77,25 @@ export function gatherBrainData(vaultRoot, switchesFile, isoDate, { now } = {}) 
   const health = anyFault ? 'red' : anyWarn ? 'amber' : 'green';
 
   // The brain's own next-best-action — the product's north-star pattern applied
-  // to the operator (highest-priority actionable truth, one line, zero clicks).
-  const nba = switches === null ? 'switches file unreadable — everything is failing closed; restore it first'
-    : anchor.level === 'fault' ? `anchor FAULT — read the doctor receipt: ${(anchor.faults[0] || '').slice(0, 80)}`
-      : open.length ? `${open.length} approval(s) waiting — resolve via Telegram phrase or queue.mjs`
-        : routines.some((r) => r.state === 'fault') ? 'a routine is auto-demoted — re-enable it in runner-state.json after fixing the cause'
-          : (liveCounts.inbox || 0) > 0 ? `${liveCounts.inbox} Hermes-inbox memo(s) pending — run the doc-170 §E pass to wire Hermes's drain`
-            : !doctor ? 'no doctor run yet today — double-click the Command Center or wait for the 06:00 chain'
-              : anchor.level === 'warn' ? 'anchor degraded — set HERMES_ANCHOR_KEY / stand up the R2 witness (E4C runbook)'
-                : 'all quiet, all green — nothing needs you';
+  // to the operator. v2 fix: collect ALL true conditions into a RANKED rail (the
+  // v1 code short-circuited to the first match and threw away real signal). The
+  // loudest (nbaRail[0]) is the hero line; the rest render under it.
+  const nbaRail = [];
+  if (switches === null) nbaRail.push('switches file unreadable — everything is failing closed; restore it first');
+  if (anchor.level === 'fault') nbaRail.push(`anchor FAULT — read the doctor receipt: ${(anchor.faults[0] || '').slice(0, 80)}`);
+  if (open.length) nbaRail.push(`${open.length} approval(s) waiting — resolve via Telegram phrase or queue.mjs`);
+  if (routines.some((r) => r.state === 'fault')) nbaRail.push('a routine is auto-demoted — re-enable it in runner-state.json after fixing the cause');
+  if ((liveCounts.inbox || 0) > 0) nbaRail.push(`${liveCounts.inbox} Hermes-inbox memo(s) pending — run the doc-170 §E pass to wire Hermes's drain`);
+  if (!doctor) nbaRail.push('no doctor run yet today — double-click the Command Center or wait for the 06:00 chain');
+  if (anchor.level === 'warn') nbaRail.push('anchor degraded — set HERMES_ANCHOR_KEY / stand up the R2 witness (E4C runbook)');
+  if (!nbaRail.length) nbaRail.push('all quiet, all green — nothing needs you');
+  const nba = nbaRail[0];
 
   return {
     when, isoDate, brain: map.brain, applications: map.applications, routines, memory, skills,
     switches, anchorLevel: anchor.level, anchorNote: (anchor.faults[0] || anchor.notes?.[0] || ''),
     queueOpen: open.length, doctorOk: doctor ? String(doctor.outcome).startsWith('ok') : null,
-    receiptCount: receipts.length, thoughts, hourly, memoriesTotal, health, nba,
+    receiptCount: receipts.length, thoughts, hourly, memoriesTotal, health, nba, nbaRail,
   };
 }
 
