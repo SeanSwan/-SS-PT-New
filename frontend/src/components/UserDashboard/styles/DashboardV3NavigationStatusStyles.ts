@@ -199,6 +199,16 @@ export const TabNavigation = styled.div`
   }
 `;
 
+/* Apex Phase 1b: Home's left rail is gone, so the tab bar is its desktop nav. Other surfaces keep it hidden >=1025px (they have sidebars).
+   display:contents is REQUIRED: TabNavigation is position:sticky, and a wrapper box would become its containing block and kill the stick. */
+export const HomeDesktopNavShell = styled.div`
+  display: contents;
+
+  @media (min-width: 1025px) {
+    ${TabNavigation} { display: flex; }
+  }
+`;
+
 export const Tab = styled(motion.button)<{ $active?: boolean }>`
   display: flex;
   align-items: center;

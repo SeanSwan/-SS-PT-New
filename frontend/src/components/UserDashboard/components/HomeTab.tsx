@@ -15,7 +15,6 @@ import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useFeedEnrichment } from '../../../hooks/social/useFeedEnrichment';
 import { useSubscription } from '../../../hooks/useSubscription';
 import { useMessageSummary, useNotificationSummary, useWorkoutSessions } from '../../../hooks/useDashboardQueries';
-import brandLogo from '../../../assets/Logo.png';
 import type { ProfileStats, TabId } from '../types/UserDashboardTypes';
 import type { FollowStats, SocialPost, UserProfile } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
@@ -28,7 +27,7 @@ import { DockSkeleton } from './HomeTabActions.styles';
 import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 import { USER_HOME_TRAINING_PROMPT, buildUserDashboardTeachCoachRoute } from '../UserDashboardTeachCoachRoute';
 import HomeTabVisionCenter from './HomeTabVisionCenter';
-import HomeTabVisionLeftRail from './HomeTabVisionLeftRail';
+import ApexHeader from './ApexHeader';
 import HomeTabVisionRightRail from './HomeTabVisionRightRail';
 import { buildSidebarQuickStats } from './UserDashboardSidebarV3';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
@@ -76,7 +75,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const messageSummary = useMessageSummary({
     enabled: isElite || user?.role === 'admin' || user?.role === 'trainer',
   });
-  const [activeLens, setActiveLens] = useState('reels');
   const [searchOpen, setSearchOpen] = useState(false);
   const posts = communityFeed.posts;
   const displayName = displayNameOverride || user?.firstName || user?.username || 'SwanCreator';
@@ -186,7 +184,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
       onTabChange('challenges');
       return;
     }
-    setActiveLens(target);
     onTabChange(target);
   };
 
@@ -210,18 +207,18 @@ const HomeTab: React.FC<HomeTabProps> = ({
         onProgress={() => onTabChange('progress')}
       />
 
-      <CreatorShell>
-        <HomeTabVisionLeftRail
-          logoSrc={brandLogo}
-          level={level}
-          points={points}
-          pointsToNext={pointsToNext}
-          progressPercent={progressPercent}
-          streakDays={streakDays}
-          activeId={activeLens}
-          onAction={runAction}
-        />
+      {/* Apex Phase 1b: absorbs Level/XP/streak from the removed left rail. */}
+      <ApexHeader
+        level={level}
+        tierName={tierName}
+        points={points}
+        pointsToNext={pointsToNext}
+        progressPercent={progressPercent}
+        streakDays={streakDays}
+        onLogWorkout={() => navigate(logWorkoutPath)}
+      />
 
+      <CreatorShell>
         <HomeTabVisionCenter
           points={points}
           postText={composer.postText}

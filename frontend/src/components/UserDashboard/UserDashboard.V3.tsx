@@ -8,6 +8,7 @@ import {
   ContentGrid,
   ContentWrapper,
   HiddenInput,
+  HomeDesktopNavShell,
   MainContentZWrapper,
   NoiseOverlay,
   ProfileContainer,
@@ -107,10 +108,13 @@ const UserDashboardV3: React.FC = () => {
           <ContentWrapper data-user-dashboard-scroll-root $belowCover>
             {isHomeTab ? (
               <>
-              <UserDashboardTabBarV3
-                activeTab={dashboard.activeTab}
-                onTabChange={handleTabChange}
-              />
+              {/* Apex Phase 1b: Home's left rail is gone, so the tab bar is the desktop nav. */}
+              <HomeDesktopNavShell>
+                <UserDashboardTabBarV3
+                  activeTab={dashboard.activeTab}
+                  onTabChange={handleTabChange}
+                />
+              </HomeDesktopNavShell>
               <DashboardTeachMeGuide
                 role="user"
                 pathname={teachMePathname}

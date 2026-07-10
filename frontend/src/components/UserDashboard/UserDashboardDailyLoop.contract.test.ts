@@ -165,6 +165,34 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(coverHookSource).toContain('bannerStickyCarousel={coverBanner.bannerStickyCarousel}');
     expect(coverHookSource).not.toContain('bannerStickyCarousel={false}');
   });
+  it('re-homes Level/XP/streak into ApexHeader and removes the Home left rail (Apex Phase 1b)', () => {
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const apexSource = readSource('src/components/UserDashboard/components/ApexHeader.tsx');
+    const shellSource = readSource('src/components/UserDashboard/UserDashboard.V3.tsx');
+
+    // The rail is unmounted; ApexHeader takes its place and receives its real data.
+    expect(homeSource).not.toContain('<HomeTabVisionLeftRail');
+    expect(homeSource).toContain('<ApexHeader');
+    expect(homeSource).toContain('streakDays={streakDays}');
+    expect(homeSource).toContain('progressPercent={progressPercent}');
+    // Dead state the rail used to own must not linger.
+    expect(homeSource).not.toContain('activeLens');
+
+    // Rings expose status as text + ARIA, never color alone (WCAG 1.4.1 / 2.4.13).
+    expect(apexSource).toContain('role="progressbar"');
+    expect(apexSource).toContain('aria-valuetext');
+    expect(apexSource).toContain(':focus-visible');
+    expect(apexSource).toContain('prefers-reduced-motion');
+    // Data truth: no invented workouts/volume numbers in the header.
+    expect(apexSource).not.toContain('15,240');
+
+    // With the rail gone, the top tab bar must be the desktop Home nav.
+    expect(shellSource).toContain('<HomeDesktopNavShell>');
+    // The nav wrapper MUST stay display:contents — a wrapper box would become the
+    // containing block for TabNavigation's position:sticky and kill the stick.
+    const navStylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
+    expect(navStylesSource).toContain('display: contents;');
+  });
   it('removes the redundant Home hero lens strip (Apex redesign Phase 1a) so the tab bar is the sole Home nav', () => {
     const centerSource = readSource('src/components/UserDashboard/components/HomeTabVisionCenter.tsx');
     // HERO_LENSES was a third parallel nav duplicating the top tab bar + Home left rail.
@@ -664,11 +692,12 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(homeHeroSource).toContain('display: none;');
     expect(homeHeroSource).toContain('@media (max-width: 1023px)');
 
-    expect(homeLayoutSource).toContain('grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);');
+    // Apex Phase 1b: the left-rail column was removed; the shell is now center + right rail.
+    expect(homeLayoutSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);');
     expect(homeLayoutSource).toContain('@media (max-width: 1500px) and (min-width: 1321px)');
-    expect(homeLayoutSource).toContain('grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);');
+    expect(homeLayoutSource).toContain('grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);');
     expect(homeLayoutSource).toContain('@media (max-width: 1320px)');
-    expect(homeLayoutSource).toContain('grid-column: 2;');
+    expect(homeLayoutSource).toContain('grid-column: 1;');
 
     expect(cardStylesSource).toContain('flex-wrap: wrap;');
     expect(cardStylesSource).toContain('min-width: min(100%, 7.6rem);');

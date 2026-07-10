@@ -58,18 +58,19 @@ export const CreatorShell = styled.div`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);
+  /* Apex Phase 1b: left-rail column removed — ApexHeader now carries its data. */
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: clamp(1rem, 1.6vw, 1.5rem);
   max-width: 1760px;
   margin: 0 auto;
 
   @media (max-width: 1500px) and (min-width: 1321px) {
-    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 340px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
     gap: 16px;
   }
 
   @media (max-width: 1320px) {
-    grid-template-columns: minmax(210px, 240px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   @media (max-width: 1023px) {
@@ -102,7 +103,8 @@ export const RightRail = styled.aside`
   min-width: 0;
 
   @media (max-width: 1320px) {
-    grid-column: 2;
+    /* Apex Phase 1b: shell is single-column here, so stack instead of column 2. */
+    grid-column: auto;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -140,7 +142,8 @@ export const SupportShell = styled(CreatorShell)`
 
   @media (min-width: 1281px) {
     > ${CenterColumn} {
-      grid-column: 2;
+      /* Apex Phase 1b: center is column 1 now that the left-rail column is gone. */
+      grid-column: 1;
     }
   }
 `;
