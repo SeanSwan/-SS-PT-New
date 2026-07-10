@@ -93,7 +93,7 @@ router.post('/create-intent', protect, async (req, res) => {
       })();
       const existingItems = Array.isArray(existingNotes.items) ? existingNotes.items : items;
       const existingDbItems = await StorefrontItem.findAll({
-        where: { id: existingItems.map(i => i.storefrontItemId).filter(Boolean) },
+        where: { id: existingItems.map(i => i.storefrontItemId).filter(Boolean), isSpecialOffer: false },
       });
       await backfillMissingPaymentOrderItems({
         order: existingOrder,
@@ -117,7 +117,7 @@ router.post('/create-intent', protect, async (req, res) => {
 
     // Server-side price validation (same as offlinePaymentRoutes)
     const itemIds = items.map(i => i.storefrontItemId);
-    const dbItems = await StorefrontItem.findAll({ where: { id: itemIds } });
+    const dbItems = await StorefrontItem.findAll({ where: { id: itemIds, isSpecialOffer: false } });
     const dbPriceMap = new Map(dbItems.map(i => [Number(i.id), new Decimal(i.price || 0)]));
 
     let serverTotal = new Decimal(0);

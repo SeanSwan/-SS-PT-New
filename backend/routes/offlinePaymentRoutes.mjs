@@ -57,7 +57,7 @@ async function calculateServerTotal(items) {
 
   // Query database for source-of-truth prices
   const dbItems = await StorefrontItem.findAll({
-    where: { id: itemIds },
+    where: { id: itemIds, isSpecialOffer: false },
     attributes: [
       'id',
       'price',

@@ -31,6 +31,10 @@ const healthSource = readFileSync(
   resolve(__dirname, '../../routes/healthRoutes.mjs'),
   'utf8',
 );
+const recommendationSource = readFileSync(
+  resolve(__dirname, '../../services/productRecommendationService.mjs'),
+  'utf8',
+);
 
 // Isolate a single route handler body: from its `router.get(...)` marker to the
 // next top-level route registration, so an assertion targets THAT handler only.
@@ -92,5 +96,19 @@ describe('public /health/store hides per-client specials (HR-007)', () => {
     for (const c of counts) {
       expect(c).toMatch(/isSpecialOffer:\s*false/);
     }
+  });
+});
+
+describe('public recommendation endpoints hide per-client specials', () => {
+  it('does not enumerate a hidden special as the complementary source item', () => {
+    expect(recommendationSource).not.toMatch(/StorefrontItem\.findByPk\(/);
+    expect(recommendationSource).toMatch(/StorefrontItem\.findOne\([\s\S]*isSpecialOffer:\s*false/);
+  });
+
+  it('adds the hidden-special filter to every active recommendation query/fallback', () => {
+    const activeClauses = recommendationSource.match(/isActive:\s*true/g) || [];
+    const hiddenFilters = recommendationSource.match(/isSpecialOffer:\s*false/g) || [];
+    expect(activeClauses.length).toBeGreaterThanOrEqual(9);
+    expect(hiddenFilters.length).toBeGreaterThanOrEqual(activeClauses.length);
   });
 });

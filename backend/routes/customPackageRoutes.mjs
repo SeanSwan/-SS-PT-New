@@ -57,7 +57,6 @@ router.post('/', protect, adminOnly, async (req, res) => {
       // UX) OR an explicit bonusSessions count. The $175 sticker never drops.
       targetEffectiveRate = null,
       bonusSessions = 0,
-      pricePerSession = STICKER_PER_SESSION,
       name = 'SwanStudios Special',
       description,
       adminNote,
@@ -94,12 +93,12 @@ router.post('/', protect, adminOnly, async (req, res) => {
         ? computeBonusForTargetRate({
             paidSessions: baseConfig.paidSessions,
             targetEffectiveRate: Number(targetEffectiveRate),
-            pricePerSession: Number(pricePerSession),
+            pricePerSession: STICKER_PER_SESSION,
           })
         : computeSpecialPricing({
             paidSessions: baseConfig.paidSessions,
             bonusSessions: Number(bonusSessions) || 0,
-            pricePerSession: Number(pricePerSession),
+            pricePerSession: STICKER_PER_SESSION,
           });
       // Data-integrity only — never a floor. Throws just on a non-positive rate.
       assertRateFloor({ effectiveHourlyRate: pricing.effectiveHourlyRate });
@@ -228,6 +227,21 @@ router.get('/my', protect, async (req, res) => {
     }
 
     const packages = await CustomPackage.findAll({
+      attributes: [
+        'id',
+        'name',
+        'description',
+        'paidSessions',
+        'bonusSessions',
+        'totalSessions',
+        'totalPrice',
+        'effectiveHourlyRate',
+        'status',
+        'expiresAt',
+        'storefrontItemId',
+        'validityType',
+        'remainingRedemptions',
+      ],
       where: {
         clientId: req.user.id,
         status: 'active',

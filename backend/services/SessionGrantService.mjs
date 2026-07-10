@@ -215,6 +215,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
         const { recordCartSpecialRedemptions } = await import('./specialOfferService.mjs');
         await recordCartSpecialRedemptions({
           cartItems: cart.cartItems,
+          userId,
           CustomPackage,
           transaction,
         });

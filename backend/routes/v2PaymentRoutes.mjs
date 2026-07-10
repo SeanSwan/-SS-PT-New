@@ -287,23 +287,6 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
-    // Launch P1-1 defense-in-depth: checkout re-verifies the store-prices
-    // grant even though cart add already enforced it. EXCEPTION: a client with
-    // an active per-client special is "invited" and may check out (the cart
-    // guard below still confirms they only bought their own special).
-    let checkoutInvited = await isPriceAccessGranted(req.user);
-    if (!checkoutInvited) {
-      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
-      const { clientHasActiveSpecial } = await import('../services/specialOfferService.mjs');
-      checkoutInvited = await clientHasActiveSpecial({ userId: req.user.id, CustomPackage });
-    }
-    if (!checkoutInvited) {
-      return res.status(403).json({
-        success: false,
-        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
-        error: { code: 'PRICE_ACCESS_REQUIRED' }
-      });
-    }
 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
     logger.info('[v2 Payment] Checkout session creation started', {
@@ -435,6 +418,18 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       }
     }
 
+    const cartContainsOnlySpecialOffers = (cartItems) => cartItems.length > 0
+      && cartItems.every((item) => item.storefrontItem?.isSpecialOffer === true);
+    const checkoutInvited = await isPriceAccessGranted(req.user)
+      || cartContainsOnlySpecialOffers(cart.cartItems);
+    if (!checkoutInvited) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        error: { code: 'PRICE_ACCESS_REQUIRED' }
+      });
+    }
+
     // Step 2: Calculate totals. Stripe Tax owns taxable physical product tax.
     const checkoutLines = cart.cartItems.map(resolveCheckoutLineItem);
     const subtotal = checkoutLines.reduce((sum, item) => sum + item.subtotal, 0);
@@ -563,6 +558,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       subtotal: subtotal,
       tax: usesStripeTax ? 0 : tax,
       paymentStatus: 'pending',
+      status: 'pending_payment',
+      checkoutSessionExpired: false,
       customerInfo: JSON.stringify({
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         email: customerInfo?.email || user.email,

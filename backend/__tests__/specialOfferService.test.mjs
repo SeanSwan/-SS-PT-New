@@ -187,6 +187,12 @@ describe('recordSpecialRedemption', () => {
     expect(last.applied).toEqual({ remainingRedemptions: 0, status: 'redeemed' });
   });
 
+  it('rejects an already-exhausted special instead of silently recording another purchase', async () => {
+    const spent = stub({ remainingRedemptions: 0, validityType: 'one_time', status: 'redeemed' });
+    await expect(recordSpecialRedemption(spent.obj)).rejects.toMatchObject({ code: 'NO_REDEMPTIONS_LEFT' });
+    expect(spent.obj.update).not.toHaveBeenCalled();
+  });
+
   it('marks a one_time special redeemed', async () => {
     const one = stub({ remainingRedemptions: null, validityType: 'one_time' });
     await recordSpecialRedemption(one.obj);
@@ -247,15 +253,57 @@ describe('recordCartSpecialRedemptions (called inside the grant transaction)', (
   it('records a redemption for each special in the purchased cart', async () => {
     const applied = {};
     const row = {
-      id: 7, storefrontItemId: 500, remainingRedemptions: 2, validityType: 'n_times',
+      id: 7, storefrontItemId: 500, clientId: 100, remainingRedemptions: 2, validityType: 'n_times',
       update: vi.fn(async (u) => Object.assign(applied, u)),
     };
     const CustomPackage = { findAll: vi.fn(async () => [row]) };
+    const transaction = { LOCK: { UPDATE: 'UPDATE' } };
     const recorded = await recordCartSpecialRedemptions({
-      cartItems: [{ storefrontItemId: 500, quantity: 1 }], CustomPackage, transaction: {},
+      cartItems: [{ storefrontItemId: 500, quantity: 1, storefrontItem: { isSpecialOffer: true } }],
+      userId: 100,
+      CustomPackage,
+      transaction,
     });
     expect(recorded).toEqual([7]);
     expect(applied).toEqual({ remainingRedemptions: 1 });
+    expect(CustomPackage.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      transaction,
+      lock: 'UPDATE',
+    }));
+  });
+
+  it('fails closed when a marked special has no linked CustomPackage row', async () => {
+    const CustomPackage = { findAll: vi.fn(async () => []) };
+    await expect(recordCartSpecialRedemptions({
+      cartItems: [{ storefrontItemId: 500, quantity: 1, storefrontItem: { isSpecialOffer: true } }],
+      userId: 100,
+      CustomPackage,
+      transaction: { LOCK: { UPDATE: 'UPDATE' } },
+    })).rejects.toMatchObject({ code: 'SPECIAL_NOT_FOUND' });
+  });
+
+  it('rechecks ownership and quantity inside the paid grant transaction', async () => {
+    const row = {
+      id: 7, storefrontItemId: 500, clientId: 100, remainingRedemptions: 1, validityType: 'one_time',
+      update: vi.fn(),
+    };
+    const CustomPackage = { findAll: vi.fn(async () => [row]) };
+    const transaction = { LOCK: { UPDATE: 'UPDATE' } };
+
+    await expect(recordCartSpecialRedemptions({
+      cartItems: [{ storefrontItemId: 500, quantity: 1, storefrontItem: { isSpecialOffer: true } }],
+      userId: 999,
+      CustomPackage,
+      transaction,
+    })).rejects.toMatchObject({ code: 'NOT_OWNER' });
+
+    await expect(recordCartSpecialRedemptions({
+      cartItems: [{ storefrontItemId: 500, quantity: 2, storefrontItem: { isSpecialOffer: true } }],
+      userId: 100,
+      CustomPackage,
+      transaction,
+    })).rejects.toMatchObject({ code: 'SPECIAL_QUANTITY' });
+    expect(row.update).not.toHaveBeenCalled();
   });
 });
 

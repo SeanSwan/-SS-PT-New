@@ -441,6 +441,13 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     });
 
     if (cartItem) {
+      if (isOwnedSpecial) {
+        return res.status(409).json({
+          success: false,
+          message: 'A special offer can only be purchased once per order.',
+          code: 'SPECIAL_QUANTITY_INVALID'
+        });
+      }
       // Update quantity if item exists
       const nextQuantity = cartItem.quantity + normalizedQuantity;
       const availableStock = getAvailableStock(snapshot.storefrontItem, snapshot.variant);
@@ -592,6 +599,14 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
       return res.status(404).json({ 
         success: false, 
         message: 'Cart item not found' 
+      });
+    }
+
+    if (cartItem.storefrontItem?.isSpecialOffer && normalizedQuantity !== 1) {
+      return res.status(409).json({
+        success: false,
+        message: 'A special offer quantity must remain one.',
+        code: 'SPECIAL_QUANTITY_INVALID'
       });
     }
 

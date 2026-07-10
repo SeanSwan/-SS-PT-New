@@ -107,22 +107,6 @@ router.post('/purchase', protect, async (req, res) => {
     const { packageId } = req.body;
     const userId = req.user.id;
 
-    // Launch P1-1: purchasing requires the admin-granted store-prices flag.
-    // EXCEPTION: a client with an active per-client special is "invited" (the
-    // ownership guard below still confirms they buy only their own special).
-    let purchaseInvited = await isPriceAccessGranted(req.user);
-    if (!purchaseInvited) {
-      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
-      const { clientHasActiveSpecial } = await import('../services/specialOfferService.mjs');
-      purchaseInvited = await clientHasActiveSpecial({ userId, CustomPackage });
-    }
-    if (!purchaseInvited) {
-      return res.status(403).json({
-        success: false,
-        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
-        code: 'PRICE_ACCESS_REQUIRED'
-      });
-    }
     const normalizedPackageId = Number(packageId);
     
     if (!Number.isInteger(normalizedPackageId) || normalizedPackageId <= 0) {
@@ -149,6 +133,7 @@ router.post('/purchase', protect, async (req, res) => {
     // HR-007-F4: a hidden per-client special can be purchased ONLY by the
     // client it belongs to. Confirm ownership + active/unexpired/redeemable
     // before this route lets anyone check it out.
+    let isOwnedSpecial = false;
     if (selectedPackage.isSpecialOffer) {
       const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
       const { assertClientOwnsActiveSpecial, findSpecialByStorefrontItemId, SpecialOfferError } =
@@ -156,12 +141,21 @@ router.post('/purchase', protect, async (req, res) => {
       try {
         const special = await findSpecialByStorefrontItemId(selectedPackage.id, { CustomPackage });
         assertClientOwnsActiveSpecial({ customPackage: special, userId: req.user.id });
+        isOwnedSpecial = true;
       } catch (e) {
         if (e instanceof SpecialOfferError) {
           return res.status(e.status || 403).json({ success: false, message: e.message, code: e.code });
         }
         throw e;
       }
+    }
+
+    if (!isOwnedSpecial && !(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
+      });
     }
 
     const packageSessions = getStorefrontSessionCredits(selectedPackage);
@@ -209,7 +203,8 @@ router.post('/purchase', protect, async (req, res) => {
       metadata: {
         source: SESSION_PACKAGE_CHECKOUT_SOURCE,
         packageId: String(normalizedPackageId),
-        sessions: String(packageSessions)
+        sessions: String(packageSessions),
+        ...(selectedPackage.isSpecialOffer ? { specialOfferId: String(selectedPackage.id) } : {})
       }
     }, {
       idempotencyKey
