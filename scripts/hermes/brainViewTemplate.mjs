@@ -7,6 +7,7 @@
  * .label-layer container, proven by graphGeometry.mjs).
  */
 import { CSS } from './brainViewStyles.mjs';
+import { cameraClientJs } from './brainCamera.mjs';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -25,7 +26,7 @@ export function escapeForEmbed(obj) {
     .replace(new RegExp('\\u2029', 'g'), '\\u2029');
 }
 
-const VB_W = 1280, VB_H = 640, CX = 640, CY = 330;
+const VB_W = 1280, VB_H = 700, CX = 640, CY = 350;
 const P = (v, total) => (v / total * 100).toFixed(3);
 const jitter = (i, m) => ((i * 2654435761) % 1000) / 1000 * m;
 
@@ -35,21 +36,32 @@ function arc(count, i, radius, startDeg, endDeg) {
   return { x: +(CX + radius * Math.cos(a)).toFixed(1), y: +(CY + radius * Math.sin(a)).toFixed(1) };
 }
 
-/** One node → its SVG vector fragment + its HTML overlay label fragment. */
-function node(p, { color, label, sub = '', state = 'live', r = 22, small = false, labelled = true, spark = false, delay = 0 }) {
+/** One node → its SVG vector fragment + its HTML overlay label fragment. When
+ *  `id` is set the node circle is a focusable target (Slice 2 keyboard/click). */
+function node(p, { color, label, sub = '', state = 'live', r = 22, small = false, labelled = true, spark = false, delay = 0, id = '', kind = '', stagger = 0 }) {
   const dim = state === 'dark' || state === 'idle';
   const fault = state === 'fault';
   const planned = state === 'planned';
   const stroke = fault ? 'var(--c-fault)' : dim ? 'var(--c-dim)' : color;
   const live = state === 'live' || state === 'on';
+  const focusAttrs = id ? ` tabindex="0" role="button" aria-label="${esc(label)}${sub ? ', ' + esc(sub) : ''}" data-node="${esc(id)}"` : '';
   const svg = `
     <line x1="${CX}" y1="${CY}" x2="${p.x}" y2="${p.y}" class="edge ${live ? 'live' : ''}" stroke="${stroke}"/>
     ${spark && live ? `<circle class="spark" r="2.2" fill="${color}" style="offset-path:path('M ${CX} ${CY} L ${p.x} ${p.y}');animation-delay:${delay}s"/>` : ''}
-    <circle cx="${p.x}" cy="${p.y}" r="${r}" class="node ${live ? 'pulse' : ''}" fill="url(#orb)" stroke="${stroke}" stroke-width="${small ? 1.4 : 2.4}" ${planned ? 'stroke-dasharray="4 4"' : ''} style="--glow:${stroke}"><title>${esc(label)}${sub ? ' — ' + esc(sub) : ''}</title></circle>
+    <circle cx="${p.x}" cy="${p.y}" r="${r}" class="node ${live ? 'pulse' : ''}" fill="url(#orb)" stroke="${stroke}" stroke-width="${small ? 1.4 : 2.4}" ${planned ? 'stroke-dasharray="4 4"' : ''} style="--glow:${stroke}"${focusAttrs}><title>${esc(label)}${sub ? ' — ' + esc(sub) : ''}</title></circle>
     ${fault ? `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="none" stroke="var(--c-fault)" stroke-width="1" opacity=".5"/>` : ''}`;
-  const cls = fault ? 'nlabel fault' : dim ? 'nlabel dim' : 'nlabel';
+  // RADIAL label placement: push the label away from the core along the node's own
+  // radius and anchor it by quadrant, so labels fan out instead of stacking. (Once
+  // the text became legible, centred-below labels collided — this is the fix.)
+  const dx = p.x - CX, dy = p.y - CY, len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len, off = r + 12 + (stagger ? 52 : 0); // stagger: neighbours ride different radii so labels can't stack
+  const lx = p.x + ux * off, ly = p.y + uy * off;
+  const anchor = ux > 0.35 ? ['translate(0,-50%)', 'left']
+    : ux < -0.35 ? ['translate(-100%,-50%)', 'right']
+      : uy > 0 ? ['translate(-50%,0)', 'center'] : ['translate(-50%,-100%)', 'center'];
+  const cls = (fault ? 'nlabel fault' : dim ? 'nlabel dim' : 'nlabel') + (kind ? ` ${kind}` : '');
   const labelHtml = labelled
-    ? `<div class="${cls}" style="left:${P(p.x, VB_W)}%;top:${P(p.y + r + 5, VB_H)}%">${esc(label)}${sub ? `<span class="nsub">${esc(sub)}</span>` : ''}</div>`
+    ? `<div class="${cls}"${id ? ` data-for="${esc(id)}"` : ''} style="left:${P(lx, VB_W)}%;top:${P(ly, VB_H)}%;transform:${anchor[0]};text-align:${anchor[1]}">${esc(label)}${sub ? `<span class="nsub">${esc(sub)}</span>` : ''}</div>`
     : '';
   return { svg, label: labelHtml };
 }
@@ -69,24 +81,35 @@ function sparkline(hours) {
 export function renderBrainHtml(d) {
   const svgParts = [];
   const labelParts = [];
-  const push = (n) => { svgParts.push(n.svg); if (n.label) labelParts.push(n.label); };
+  const nodesIndex = []; // {id,x,y} for the client camera's focus/keyboard nav
+  const addNode = (p, opts) => {
+    const n = node(p, opts);
+    svgParts.push(n.svg);
+    if (n.label) labelParts.push(n.label);
+    if (opts.id) nodesIndex.push({ id: opts.id, x: p.x, y: p.y });
+  };
 
-  d.applications.forEach((a, i) => push(node(arc(d.applications.length, i, 300, 122, 238),
-    { color: 'var(--c-app)', label: a.label, sub: a.state, state: a.state === 'live' ? 'live' : a.state, spark: true, delay: jitter(i, 3) })));
-  d.routines.forEach((r, i) => push(node(arc(Math.max(d.routines.length, 2), i, 238, 243, 297),
-    { color: 'var(--c-routine)', label: r.label, sub: r.cadence + (r.state === 'fault' ? ' · DEMOTED' : r.state === 'live' ? ' · ran today' : ''), state: r.state, spark: true, delay: jitter(i + 9, 3) })));
-  d.memory.forEach((m, i) => push(node(arc(d.memory.length, i, 262, 57, 123),
-    { color: 'var(--c-memory)', label: m.label + (m.count != null ? ` (${m.count})` : ''), sub: m.kind, state: 'live', spark: i < 3, delay: jitter(i + 17, 3) })));
-  // Skills: labelled for the first 12 (readable identity — was fully suppressed);
-  // the rest are dots and the full roster is listed in the inspector rail.
+  d.applications.forEach((a, i) => addNode(arc(d.applications.length, i, 288, 140, 224),
+    { color: 'var(--c-app)', label: a.label, sub: a.state, state: a.state === 'live' ? 'live' : a.state, spark: true, delay: jitter(i, 3), id: `app-${i}`, kind: 'k-app' }));
+  d.routines.forEach((r, i) => addNode(arc(Math.max(d.routines.length, 2), i, 232, 236, 300),
+    { color: 'var(--c-routine)', label: r.label, sub: r.cadence + (r.state === 'fault' ? ' · DEMOTED' : r.state === 'live' ? ' · ran today' : ''), state: r.state, spark: true, delay: jitter(i + 9, 3), id: `rt-${i}`, kind: 'k-rt', stagger: i % 2 }));
+  d.memory.forEach((m, i) => addNode(arc(d.memory.length, i, 236, 58, 128),
+    { color: 'var(--c-memory)', label: m.label + (m.count != null ? ` (${m.count})` : ''), sub: m.kind, state: 'live', spark: i < 3, delay: jitter(i + 17, 3), id: `mem-${i}`, kind: 'k-mem', stagger: i % 2 }));
+  // Skills: dots always; labels are a SEMANTIC-ZOOM tier (hidden at the default
+  // 'cluster' zoom, revealed on zoom-in) — the roster also lists all of them.
   const SKILL_LABEL_CAP = 12;
-  d.skills.forEach((s, i) => push(node(arc(Math.max(d.skills.length, 2), i, 302, -54, 54),
-    { color: 'var(--c-skill)', label: s, state: 'live', r: 6.5, small: true, labelled: i < SKILL_LABEL_CAP, spark: i % 5 === 0, delay: jitter(i + 29, 3.4) })));
+  d.skills.forEach((s, i) => addNode(arc(Math.max(d.skills.length, 2), i, 296, -46, 46),
+    { color: 'var(--c-skill)', label: s, state: 'live', r: 6.5, small: true, labelled: i < SKILL_LABEL_CAP, spark: i % 5 === 0, delay: jitter(i + 29, 3.4), id: `sk-${i}`, kind: 'k-sk' }));
 
-  const clusters = [
-    ['APPLICATIONS · C2', 235, 616], ['ROUTINES · C4', 640, 26], ['MEMORY · C1', 640, 632],
-    [`SKILLS · C3 (${d.skills.length})`, 1075, 616],
-  ].map(([t, x, y]) => `<div class="clabel" style="left:${P(x, VB_W)}%;top:${P(y, VB_H)}%">${esc(t)}</div>`).join('');
+  // The four families read as a fixed legend rather than four floating labels that
+  // fought the node labels for space (and clipped at the pane edge). Colour does
+  // the spatial mapping; the count makes it informative.
+  const legend = [
+    ['APPLICATIONS · C2', 'var(--c-app)', d.applications.length],
+    ['ROUTINES · C4', 'var(--c-routine)', d.routines.length],
+    ['MEMORY · C1', 'var(--c-memory)', d.memory.length],
+    ['SKILLS · C3', 'var(--c-skill)', d.skills.length],
+  ].map(([t, c, n]) => `<div class="lgd"><i style="background:${c}"></i>${esc(t)} <b>${n}</b></div>`).join('');
 
   const health = d.health;
   const nbaCls = health === 'red' ? 'nba red' : health === 'amber' ? 'nba warn' : 'nba';
@@ -128,20 +151,28 @@ export function renderBrainHtml(d) {
   <div class="hud">${tiles}</div>
   <div class="main">
     <div class="graph-pane">
-      <svg class="brain" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Hermes second-brain graph">
+      <svg class="brain" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Hermes second-brain graph — scroll to zoom, drag to pan, click a node to focus">
         <defs><radialGradient id="orb" cx="35%" cy="30%"><stop offset="0%" stop-color="var(--orb-0)"/><stop offset="100%" stop-color="var(--orb-1)"/></radialGradient></defs>
-        ${stars()}
-        <circle class="orbit" cx="${CX}" cy="${CY}" r="238"/><circle class="orbit" cx="${CX}" cy="${CY}" r="300"/>
-        ${svgParts.join('\n')}
-        <circle class="core-ring" cx="${CX}" cy="${CY}" r="46"/><circle class="core-ring r2" cx="${CX}" cy="${CY}" r="46"/>
-        <circle class="core-spin" cx="${CX}" cy="${CY}" r="58"/>
-        <circle class="core-glow" cx="${CX}" cy="${CY}" r="44" fill="url(#orb)" stroke="var(--c-app)" stroke-width="3"/>
+        <g class="camera">
+          ${stars()}
+          <circle class="orbit" cx="${CX}" cy="${CY}" r="238"/><circle class="orbit" cx="${CX}" cy="${CY}" r="300"/>
+          ${svgParts.join('\n')}
+          <circle class="core-ring" cx="${CX}" cy="${CY}" r="46"/><circle class="core-ring r2" cx="${CX}" cy="${CY}" r="46"/>
+          <circle class="core-spin" cx="${CX}" cy="${CY}" r="58"/>
+          <circle class="core-glow" cx="${CX}" cy="${CY}" r="44" fill="url(#orb)" stroke="var(--c-app)" stroke-width="3"/>
+        </g>
       </svg>
+      <div class="glegend">${legend}</div>
       <div class="label-layer">
-        ${clusters}
         ${labelParts.join('\n')}
         <div class="corelabel" style="left:50%;top:${P(CY, VB_H)}%"><span class="cn">${esc(d.brain.label)}</span><span class="cs">${esc(d.brain.sub)}</span></div>
       </div>
+      <div class="viewctl">
+        <button id="zout" type="button" aria-label="zoom out">&minus;</button>
+        <button id="zreset" type="button" aria-label="reset view">&#8862;</button>
+        <button id="zin" type="button" aria-label="zoom in">+</button>
+      </div>
+      <div id="ann" class="sr-live" aria-live="polite"></div>
     </div>
     <div class="panel">
       <h2>Thinking today <span class="muted">(${d.receiptCount} receipts by hour, UTC)</span></h2>
@@ -157,8 +188,9 @@ export function renderBrainHtml(d) {
       <div class="bar">${swChips}</div>
       <h2>Skills (${d.skills.length})</h2>
       <p class="muted">${skillList || 'none'}</p>
-      <p class="muted" style="margin-top:auto">${esc(d.anchorNote)} · detail: <a href="hermes-status.html">hermes-status.html</a> · generated ${esc(d.when)} by brain-view (T0) · read-only, zero buttons.</p>
+      <p class="muted" style="margin-top:auto">${esc(d.anchorNote)} · detail: <a href="hermes-status.html">hermes-status.html</a> · generated ${esc(d.when)} by brain-view (T0) · view-only · no network · grants nothing.</p>
     </div>
   </div>
-</div>`;
+</div>
+<script>${cameraClientJs(escapeForEmbed(nodesIndex))}</script>`;
 }

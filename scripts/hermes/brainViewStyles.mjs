@@ -7,10 +7,12 @@
  * purpose. Node/cluster labels render in an HTML overlay (real device px,
  * WCAG-tunable, crisp at any size) — the fix for the SVG-text-shrinks-to-3px bug.
  *
- * Slice 1 is STATIC (identity transform, no client JS). The label overlay sits
- * over an aspect-locked graph pane so the percentage anchors are pixel-exact;
- * Slice 2 adds the camera by transforming the overlay CONTAINER (not per-label),
- * which the graphGeometry.mjs primitive proves keeps labels on their nodes.
+ * DOCTRINE (amended Slice 2, v2 plan B2): the page now carries VIEW-ONLY client
+ * JS (zoom/pan/focus — brainCamera.mjs). It is still "grants nothing": ZERO
+ * network, ZERO action/command surface; the old "Zero JS by doctrine" line is
+ * superseded here and the brain-view.test.mjs `<script>`-ban is replaced by the
+ * real no-network invariant. The camera transforms the .label-layer CONTAINER
+ * (not per-label), which graphGeometry.mjs proves keeps labels on their nodes.
  */
 export const PAL = {
   // 5 semantic node families (locked hue per slot across future themes) + fault.
@@ -78,16 +80,20 @@ export const CSS = `
     background:currentColor;animation:pulse 1.6s ease-in-out infinite}
   /* D — main split: graph + inspector rail */
   .main{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(480px,1fr);gap:clamp(16px,1.4vw,32px);min-height:0;align-items:start}
-  .graph-pane{position:relative;aspect-ratio:1280/640;background:radial-gradient(560px 380px at 50% 47%, var(--pane) 0%, transparent 70%);
+  .graph-pane{position:relative;aspect-ratio:1280/700;background:radial-gradient(560px 380px at 50% 47%, var(--pane) 0%, transparent 70%);
     border:1px solid var(--bg-edge);border-radius:18px;overflow:hidden}
   svg.brain{position:absolute;inset:0;width:100%;height:100%;display:block}
   .label-layer{position:absolute;inset:0;pointer-events:none}
-  .nlabel{position:absolute;transform:translate(-50%,0);text-align:center;white-space:nowrap;
+  .nlabel{position:absolute;transform:translate(-50%,0);text-align:center;white-space:nowrap;line-height:1.25;
     font-size:var(--t-body);font-weight:600;color:var(--c-text);text-shadow:0 1px 4px rgba(0,0,0,.85)}
   .nlabel.dim{color:var(--c-muted)} .nlabel.fault{color:var(--c-fault)}
   .nlabel .nsub{display:block;font-size:var(--t-sub);font-weight:500;color:var(--c-muted);letter-spacing:.01em}
-  .clabel{position:absolute;transform:translate(-50%,0);font-size:var(--t-h2);letter-spacing:.24em;text-transform:uppercase;
+  /* family legend — fixed chrome (never camera-transformed), colour maps to the arcs */
+  .glegend{position:absolute;left:var(--s4);top:var(--s4);display:flex;flex-direction:column;gap:var(--s1);z-index:2;pointer-events:none}
+  .lgd{display:flex;align-items:center;gap:var(--s2);font-size:var(--t-sub);letter-spacing:.16em;text-transform:uppercase;
     color:var(--c-muted);font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+  .lgd i{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+  .lgd b{color:var(--c-text);font-weight:700;font-variant-numeric:tabular-nums}
   .corelabel{position:absolute;transform:translate(-50%,-50%);text-align:center}
   .corelabel .cn{font-size:var(--t-mark);font-weight:800;letter-spacing:.14em;color:var(--c-text)}
   .corelabel .cs{display:block;font-size:var(--t-sub);color:var(--c-muted);margin-top:2px}
@@ -103,7 +109,7 @@ export const CSS = `
   .core-glow{filter:drop-shadow(0 0 16px var(--c-app)) drop-shadow(0 0 34px color-mix(in srgb, var(--c-skill) 55%, transparent))}
   .core-ring{fill:none;stroke:var(--c-app);opacity:.28;animation:ringgrow 3.4s ease-out infinite}
   .core-ring.r2{animation-delay:1.7s;stroke:var(--c-skill)}
-  .core-spin{fill:none;stroke:var(--c-skill);stroke-dasharray:3 14;opacity:.55;transform-origin:640px 330px;animation:spin 26s linear infinite}
+  .core-spin{fill:none;stroke:var(--c-skill);stroke-dasharray:3 14;opacity:.55;transform-origin:640px 350px;animation:spin 26s linear infinite}
   /* inspector rail */
   .panel{background:var(--bg-card);border:1px solid var(--bg-edge);border-radius:18px;padding:var(--s5);display:flex;flex-direction:column;gap:var(--s2)}
   .panel h2{font-size:var(--t-h2);color:var(--c-app);letter-spacing:.14em;text-transform:uppercase;margin:var(--s3) 0 var(--s2);font-weight:700}
@@ -129,6 +135,30 @@ export const CSS = `
   @keyframes ringgrow{0%{r:46;opacity:.3}100%{r:118;opacity:0}}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes travel{0%{offset-distance:0%;opacity:0}12%{opacity:.9}88%{opacity:.9}100%{offset-distance:100%;opacity:0}}
+  /* Slice 2 — interactivity chrome (view-only) */
+  .graph-pane{cursor:grab;touch-action:none}
+  .graph-pane:active{cursor:grabbing}
+  .camera{will-change:transform}
+  .label-layer{will-change:transform}
+  [data-node]{cursor:pointer}
+  [data-node]:focus-visible{outline:2px solid var(--c-app);outline-offset:2px}
+  .sr-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .viewctl{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;z-index:3}
+  .viewctl button{width:36px;height:36px;min-width:44px;min-height:44px;display:grid;place-items:center;
+    font:600 18px/1 'Sora',system-ui,sans-serif;color:var(--c-text);background:rgba(20,21,29,.82);
+    border:1px solid var(--bg-edge);border-radius:10px;cursor:pointer}
+  .viewctl button:hover{border-color:color-mix(in srgb,var(--c-app) 50%,transparent);color:var(--c-app)}
+  .viewctl button:focus-visible{outline:2px solid var(--c-app);outline-offset:2px}
+  /* SEMANTIC ZOOM — the density ladder. Legible labels collide if all are shown at
+     once, so each zoom tier reveals one more layer of detail:
+       galaxy  (<=0.75): cluster labels only — the shape of the brain
+       cluster (default): the 4 big families, no sub-lines, no skill labels
+       macro   (>=1.4)  : sub-lines return (cadence/state)
+       detail  (>=2.4)  : skill labels appear */
+  [data-zoom="galaxy"] .nlabel{display:none}
+  [data-zoom="cluster"] .nlabel.k-sk{display:none}
+  [data-zoom="cluster"] .nlabel .nsub{display:none}
+  [data-zoom="macro"] .nlabel.k-sk{display:none}
   @media (prefers-reduced-motion: reduce){*{animation:none !important}}
   @media (max-width:1080px){.main{grid-template-columns:1fr}.panel{max-width:none}}
   @media (max-width:760px){.shell{padding-inline:var(--s4)}.gbar .meta{margin-left:0}.nba{padding:var(--s4)}

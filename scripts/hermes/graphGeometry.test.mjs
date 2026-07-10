@@ -40,8 +40,8 @@ test('identity transform: a node maps to its plain aspect-scaled position (Slice
 });
 
 test('aspect is locked to 2:1 and ppu is uniform (the invariant the whole contract needs)', () => {
-  assert.equal(VB_ASPECT, 2);
-  assert.equal(VB_W / VB_H, 2);
+  assert.equal(VB_ASPECT, VB_W / VB_H);
+  assert.equal(VB_H, 700);
   assert.equal(pxPerUnit(2560), 2);
 });
 

@@ -18,8 +18,11 @@
  * by graphGeometry.test.mjs across a matrix of pan/zoom. Pure math, no DOM.
  */
 export const VB_W = 1280;
-export const VB_H = 640;
-export const VB_ASPECT = VB_W / VB_H; // 2 — the pane must be locked to this
+// 700 (not 640): radial labels need vertical room at the top/bottom clusters or
+// they clip the pane. Any VB works — the parity proof only requires the pane be
+// LOCKED to VB_W/VB_H so px-per-unit stays uniform on both axes.
+export const VB_H = 700;
+export const VB_ASPECT = VB_W / VB_H;
 
 /** Uniform px per SVG user-unit for an aspect-locked pane of the given rendered width. */
 export function pxPerUnit(renderedWidth) {
