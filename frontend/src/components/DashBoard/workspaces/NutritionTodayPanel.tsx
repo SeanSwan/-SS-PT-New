@@ -2,16 +2,18 @@
  * FILE: NutritionTodayPanel.tsx
  * PURPOSE: Phase 2.1 client nutrition Today diary surface.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarCheck, CheckCircle2, Droplets, HeartPulse, Mic, PieChart, RefreshCw, Search, Utensils } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CalendarCheck, Droplets, HeartPulse, Mic, PieChart, RefreshCw, Search, Utensils } from 'lucide-react';
 import apiService from '../../../services/api.service';
 import { useHydration } from '../../../hooks/useHydration';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
+import type { NutritionEntryDraft } from '../../FoodTracker/nutritionDraft.types';
+import NutritionDiaryTimeline from './NutritionDiaryTimeline';
 import { loadRecentRepeatMealEntry } from './NutritionTodayPanel.latestMeal';
 import {
   calculateNutritionStreak,
   buildNutritionInsights,
-  buildRepeatMacroPayload,
+  repeatMacroEntryToNutritionDraft,
   cleanWholeCount,
   cleanWholeNumber,
   daysAgoIso,
@@ -39,7 +41,6 @@ import {
   HeroText,
   HeroTitle,
   HydrationMeter,
-  InlineStatus,
   InsightItem,
   InsightList,
   InsightTitle,
@@ -68,7 +69,7 @@ interface NutritionTodayPanelProps {
   summary: MacroSummary | null;
   loading?: boolean;
   onNavigate: (target: NutritionTodayTarget) => void;
-  onLogged?: () => void;
+  onReviewDraft?: (draft: NutritionEntryDraft) => void;
   gentleMode?: boolean;
   onAskCoach?: () => void;
   trainingDay?: boolean;
@@ -80,7 +81,7 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
   summary,
   loading = false,
   onNavigate,
-  onLogged,
+  onReviewDraft,
   gentleMode = false,
   onAskCoach,
   trainingDay = false,
@@ -88,10 +89,6 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
   const [streakDays, setStreakDays] = useState(0);
   const [latestEntry, setLatestEntry] = useState<RepeatMacroEntry | null>(null);
   const [weekDays, setWeekDays] = useState<NutritionWeekDay[]>([]);
-  const [repeatStatus, setRepeatStatus] = useState('');
-  const [repeatError, setRepeatError] = useState('');
-  const [repeatSaving, setRepeatSaving] = useState(false);
-  const repeatSavingRef = useRef(false);
   const { filled, dailyGoal, glassOz, loading: hydrationLoading, updateFilled } = useHydration();
   const hydration = getHydrationProgress({ filled, dailyGoal, glassOz });
   const hydrationForGuidance = hydrationLoading ? { ...hydration, filled: hydration.dailyGoal, percent: 100 } : hydration;
@@ -147,28 +144,10 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
     updateFilled(hydration.filled + 1);
   };
 
-  const repeatLatestMeal = async () => {
-    if (repeatSavingRef.current || !latestEntry) return;
-    const payload = buildRepeatMacroPayload(latestEntry, todayIso());
-    setRepeatStatus('');
-    setRepeatError('');
-    if (!payload) {
-      setRepeatError('Latest meal needs a food description before it can be repeated.');
-      return;
-    }
-    repeatSavingRef.current = true;
-    setRepeatSaving(true);
-    try {
-      await apiService.post('/api/macros', payload);
-      setRepeatStatus('Repeated latest meal to today\'s log.');
-      onLogged?.();
-      loadLatestEntry();
-    } catch {
-      setRepeatError('Could not repeat that meal. Open Log Meal and review before trying again.');
-    } finally {
-      repeatSavingRef.current = false;
-      setRepeatSaving(false);
-    }
+  const reviewLatestMeal = () => {
+    if (!latestEntry || !onReviewDraft) return;
+    const repeatDraft = repeatMacroEntryToNutritionDraft(latestEntry);
+    if (repeatDraft) onReviewDraft(repeatDraft);
   };
 
   return (
@@ -207,14 +186,12 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
             <ActionButton type="button" onClick={() => onNavigate('search')}>
               <Search size={16} /> Search food
             </ActionButton>
-            {latestEntry && (
-              <ActionButton type="button" onClick={repeatLatestMeal} aria-busy={repeatSaving} disabled={repeatSaving}>
-                <RefreshCw size={16} /> Repeat latest meal
+            {latestEntry && onReviewDraft && (
+              <ActionButton type="button" onClick={reviewLatestMeal}>
+                <RefreshCw size={16} /> Review and repeat latest meal
               </ActionButton>
             )}
           </ActionRow>
-          {repeatStatus && <InlineStatus role="status" aria-live="polite" aria-atomic="true"><CheckCircle2 size={14} /> {repeatStatus}</InlineStatus>}
-          {repeatError && <InlineStatus role="status" aria-live="polite" aria-atomic="true" $error><AlertTriangle size={14} /> {repeatError}</InlineStatus>}
         </HeroCopy>
       </TodayHero>
 
@@ -291,6 +268,11 @@ const NutritionTodayPanel: React.FC<NutritionTodayPanelProps> = ({
           </ActionRow>
         </RailPanel>
       </SideRail>
+      <NutritionDiaryTimeline
+        gentleMode={gentleMode}
+        refreshKey={String(summary?.date || '') + ':' + String(summary?.mealCount || 0)}
+        onReviewDraft={onReviewDraft}
+      />
     </TodayShell>
   );
 };

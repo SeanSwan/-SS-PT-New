@@ -34,6 +34,37 @@ describe('VoiceNutritionPanel (Slice 1.6)', () => {
     expect(screen.getByDisplayValue('chicken burrito bowl')).toBeInTheDocument();
   });
 
+  it('hands a parsed voice meal to the shared review contract without saving first', async () => {
+    apiMocks.post.mockResolvedValueOnce({ data: { success: true, draft: {
+      meals: [{ mealType: 'snack', description: 'chips and salsa', calories: 280, protein: 5, carbs: 42, fat: 11 }],
+      lowConfidence: true,
+      followUpQuestions: ['How much salsa did you have?'],
+    } } });
+    const onReviewDraft = vi.fn();
+    const user = userEvent.setup();
+
+    render(<VoiceNutritionPanel onReviewDraft={onReviewDraft} />);
+    await user.type(screen.getByLabelText(/what did you eat/i), 'I had chips and salsa');
+    await user.click(screen.getByRole('button', { name: /review my meal/i }));
+
+    await waitFor(() => expect(onReviewDraft).toHaveBeenCalledWith(expect.objectContaining({
+      contractVersion: '1.0',
+      source: 'voice',
+      sourceConfidence: 'ai_estimate',
+      reviewReason: 'unverified_estimate',
+      reviewNotes: ['How much salsa did you have?'],
+      foods: [expect.objectContaining({
+        description: 'chips and salsa',
+        mealType: 'snack',
+        serving: expect.objectContaining({ basis: 'estimated' }),
+        confidence: 0.35,
+      })],
+    })));
+    expect(apiMocks.post).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /approve and save meal plan/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/what did you eat/i)).toHaveValue('I had chips and salsa');
+  });
+
   it('saves drafted voice meals with voice source provenance', async () => {
     apiMocks.post
       .mockResolvedValueOnce({ data: { success: true, draft: {

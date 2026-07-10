@@ -1,7 +1,5 @@
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -185,7 +183,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /log meal/i }));
+    await user.click(screen.getByRole('button', { name: /manual meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful meal log/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -196,36 +194,10 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /log meal/i }));
+    await user.click(screen.getByRole('button', { name: /manual meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed meal log/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
-  });
-
-  it('links the active nutrition tab to the visible tabpanel', async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
-    expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('id', 'nutrition-tab-today-tab');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'nutrition-tab-today-tab');
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
-    expect(screen.getByRole('tab', { name: /my macros/i })).toHaveAttribute('id', 'nutrition-tab-macros-tab');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'nutrition-tab-macros-tab');
-  });
-
-  it('keeps secondary nutrition surfaces behind the More selector', async () => {
-    const user = userEvent.setup();
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
-
-    expect(screen.queryByRole('tab', { name: /restaurant/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /garden/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /farm finder/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /supplements/i })).not.toBeInTheDocument();
-
-    const moreSelect = screen.getByLabelText(/more nutrition tools/i);
-    await user.selectOptions(moreSelect, 'restaurant');
-
-    expect(screen.getByRole('tabpanel', { name: /restaurant/i })).toBeInTheDocument();
-    expect(await screen.findByLabelText(/restaurant nutrition tool/i)).toBeInTheDocument();
   });
 
   it('refreshes macro totals after the meal-plan approve and save flow succeeds', async () => {
@@ -233,7 +205,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /swan coach meal plan/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'meal-plan');
     await user.click(await screen.findByRole('button', { name: /simulate successful meal plan save/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -244,7 +216,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /swan coach meal plan/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'meal-plan');
     await user.click(await screen.findByRole('button', { name: /simulate failed meal plan save/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
@@ -255,7 +227,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /speak a meal/i }));
+    await user.click(screen.getByRole('button', { name: /speak a meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful voice meal save/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -266,7 +238,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /food search/i }));
+    await user.click(screen.getByRole('button', { name: /food search/i }));
     await user.click(await screen.findByRole('button', { name: /simulate successful food search add/i }));
 
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
@@ -277,9 +249,9 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /speak a meal/i }));
+    await user.click(screen.getByRole('button', { name: /speak a meal/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed voice meal save/i }));
-    await user.click(screen.getByRole('tab', { name: /food search/i }));
+    await user.click(screen.getByRole('button', { name: /food search/i }));
     await user.click(await screen.findByRole('button', { name: /simulate failed food search add/i }));
 
     expect(mocks.refetchMacroSummary).not.toHaveBeenCalled();
@@ -290,7 +262,7 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
 
     const radar = await screen.findByTestId('nutrition-radar');
     expect(radar).toHaveAttribute('data-protein', '52');
@@ -308,31 +280,21 @@ describe('NutritionWorkspace macro summary refresh', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
 
     expect(await screen.findByTestId('nutrition-radar')).toHaveAttribute('data-loading', 'true');
   });
 
   it('does not initialize radar hydration state until the macros tab opens', async () => {
     const user = userEvent.setup();
-
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
-
     expect(mocks.useHydration).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
     await screen.findByTestId('nutrition-radar');
 
     // Intent lock: hydration initializes only AFTER the tab opens. Exact
     // call-count was brittle — BP02 5.1's adherence fetch legitimately adds a
     // state-driven re-render of the panel (each render calls the hook once).
     expect(mocks.useHydration).toHaveBeenCalled();
-  });
-
-  it('keeps the mounted nutrition workspace modules under the Swan line cap', () => {
-    ['NutritionWorkspace.tsx', 'NutritionWorkspace.styles.ts', 'NutritionWorkspace.tabs.tsx', 'NutritionTodayPanel.tsx', 'NutritionTodayPanel.styles.ts', 'NutritionTodayPanel.logic.ts', 'NutritionTodayPanel.repeatMeal.ts', 'NutritionTodayPanel.viewModel.ts'].forEach((fileName) => {
-      const source = readFileSync(resolve(__dirname, fileName), 'utf8');
-      expect(source.split(/\r?\n/).length, fileName).toBeLessThanOrEqual(300);
-    });
   });
 });

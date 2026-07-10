@@ -1,6 +1,6 @@
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NutritionWorkspace from './NutritionWorkspace';
@@ -63,6 +63,14 @@ vi.mock('./NutritionTodayPanel', () => ({
   default: () => <section aria-label="today diary">Today diary</section>,
 }));
 
+vi.mock('../../FoodTracker/NutritionBarcodeCapture', () => ({
+  default: () => <section aria-label="embedded barcode capture">Embedded barcode capture</section>,
+}));
+
+vi.mock('../../FoodTracker/GardeningTab', () => ({
+  default: () => <section aria-label="garden nutrition tool">Garden nutrition tool</section>,
+}));
+
 vi.mock('../../FoodTracker/RestaurantTab', () => ({
   default: ({ onAddFood }: { onAddFood?: (food: any) => void }) => (
     <section aria-label="restaurant nutrition tool">
@@ -91,17 +99,47 @@ describe('NutritionWorkspace Nutrition OS command center', () => {
     mocks.refetchMacroSummary.mockClear();
   });
 
-  it('surfaces the unified Today capture actions', async () => {
+  it('surfaces one five-mode capture rail and keeps barcode scanning embedded', async () => {
+    const user = userEvent.setup();
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    const commandCenter = await screen.findByRole('region', { name: /log food command center/i });
-    expect(commandCenter).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /manual log/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /speak meal/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /snap meal/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /scan barcode/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /open food search/i })).toBeInTheDocument();
+    const captureRail = await screen.findByRole('navigation', { name: /nutrition capture modes/i });
+    expect(within(captureRail).getByRole('button', { name: /manual meal/i })).toBeInTheDocument();
+    expect(within(captureRail).getByRole('button', { name: /food search/i })).toBeInTheDocument();
+    expect(within(captureRail).getByRole('button', { name: /barcode/i })).toBeInTheDocument();
+    expect(within(captureRail).getByRole('button', { name: /speak a meal/i })).toBeInTheDocument();
+    expect(within(captureRail).getByRole('button', { name: /restaurant/i })).toBeInTheDocument();
+    expect(within(captureRail).queryByRole('button', { name: /snap meal/i })).not.toBeInTheDocument();
+
+    await user.click(within(captureRail).getByRole('button', { name: /barcode/i }));
+
+    expect(await screen.findByLabelText(/embedded barcode capture/i)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /log food command center/i })).not.toBeInTheDocument();
+  });
+
+  it('labels the active workbench region without exposing a second tab system', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('region', { name: /today dashboard/i })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    expect(screen.getByRole('region', { name: /my macros/i })).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
+
+  it('keeps non-capture nutrition surfaces in the Views and tools selector', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+
     expect(screen.getByRole('button', { name: /restaurant/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /garden/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /farm finder/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /supplements/i })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'garden');
+
+    expect(screen.getByRole('region', { name: /^garden$/i })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/garden nutrition tool/i)).toBeInTheDocument();
   });
 
   it('routes restaurant foods into the shared review drawer before saving macros', async () => {
@@ -109,17 +147,22 @@ describe('NutritionWorkspace Nutrition OS command center', () => {
 
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(await screen.findByRole('button', { name: /restaurant/i }));
+    const captureRail = await screen.findByRole('navigation', { name: /nutrition capture modes/i });
+    await user.click(within(captureRail).getByRole('button', { name: /restaurant/i }));
     await user.click(await screen.findByRole('button', { name: /send restaurant food to review/i }));
 
     expect(await screen.findByRole('dialog', { name: /review turkey sandwich/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /approve and save 1 item/i }));
 
-    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith('/api/macros', expect.objectContaining({
-      description: 'Panera Turkey Sandwich',
-      source: 'usda_lookup',
-      verified: false,
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith('/api/macros/drafts', expect.objectContaining({
+      contractVersion: '1.0',
+      source: 'restaurant',
+      foods: [expect.objectContaining({
+        description: 'Panera Turkey Sandwich',
+        verified: false,
+      })],
     })));
+    expect(mocks.apiPost).toHaveBeenCalledTimes(1);
     expect(mocks.refetchMacroSummary).toHaveBeenCalledTimes(1);
   });
 });

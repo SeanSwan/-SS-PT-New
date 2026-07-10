@@ -138,6 +138,12 @@ export const EstimateReviewButton = styled.button`
   }
 `;
 
+export const EstimateReviewMoreButton = styled(EstimateReviewButton)`
+  width: 100%;
+  margin-top: 10px;
+  background: var(--button-secondary-bg, #003080);
+`;
+
 export const EstimateReviewState = styled.div`
   ${swanMetricTile}
   min-height: 72px;

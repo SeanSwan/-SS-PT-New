@@ -46,7 +46,7 @@ export const SIcon = styled(Search)`
 export const SInput = styled.input`
   width: 100%; height: 48px; padding: 0 ${theme.spacing.md} 0 44px;
   background: ${foodTheme.input}; border: 1px solid ${foodTheme.border};
-  border-radius: 12px; color: ${foodTheme.text};
+  border-radius: 8px; color: ${foodTheme.text};
   font-family: 'Sora', sans-serif; font-size: ${theme.typography.scale.base}; outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
   &::placeholder { color: ${foodTheme.textDisabled}; }
@@ -74,7 +74,7 @@ export const Grid = styled.div`
 `;
 export const Card = styled.div<{ $healthRating?: HealthRating }>`
   background: ${foodTheme.panel}; backdrop-filter: blur(16px);
-  border: 1px solid ${foodTheme.borderSoft}; border-radius: 16px;
+  border: 1px solid ${foodTheme.borderSoft}; border-radius: 8px;
   border-left: 3px solid ${({ $healthRating }) => healthBorderColor($healthRating)};
   box-shadow: ${foodTheme.shadow}; padding: ${theme.spacing.lg};
   animation: ${fadeUp} 0.3s ease-out both; transition: transform 0.2s, border-color 0.2s;
@@ -118,7 +118,7 @@ export const Macro = styled.div<{ $c: string }>`
 `;
 export const AddBtn = styled.button`
   width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center;
-  gap: ${theme.spacing.sm}; background: linear-gradient(135deg, ${foodTheme.accentSecondary}, ${foodTheme.accent}); border: none; border-radius: 10px;
+  gap: ${theme.spacing.sm}; background: linear-gradient(135deg, ${foodTheme.accentSecondary}, ${foodTheme.accent}); border: none; border-radius: 8px;
   color: ${foodTheme.inverse}; font: ${theme.typography.weight.semibold} ${theme.typography.scale.sm} 'Sora', sans-serif;
   cursor: pointer; transition: box-shadow 0.2s, transform 0.15s;
   &:hover:not(:disabled) { box-shadow: 0 0 16px ${foodTheme.glow}; transform: translateY(-1px); }
@@ -131,7 +131,7 @@ export const MealRow = styled.div`
   label { color: ${foodTheme.textSoft}; font: ${theme.typography.weight.medium} ${theme.typography.scale.sm} 'Sora', sans-serif; }
 `;
 export const MealSelect = styled.select`
-  min-height: 44px; padding: 0 ${theme.spacing.md}; border-radius: 10px;
+  min-height: 44px; padding: 0 ${theme.spacing.md}; border-radius: 8px;
   border: 1px solid ${foodTheme.border}; background: ${foodTheme.input}; color: ${foodTheme.text};
   font: ${theme.typography.weight.medium} ${theme.typography.scale.sm} 'Sora', sans-serif; cursor: pointer;
 `;
@@ -147,6 +147,15 @@ export const SafetyPill = styled.span<{ $color: string; $dim?: boolean }>`
   border: 1px solid ${({ $color }) => $color};
   color: ${({ $color }) => $color};
   background: ${({ $color, $dim }) => `color-mix(in srgb, ${$color} ${$dim ? '6%' : '10%'}, transparent)`};
+`;
+export const RetryButton = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 12px; padding: 0 16px; border-radius: 8px;
+  border: 1px solid ${foodTheme.border}; background: ${foodTheme.panelDeep}; color: ${foodTheme.text};
+  font: 600 0.875rem 'Sora', sans-serif; cursor: pointer;
+  &:hover { border-color: ${foodTheme.accent}; color: ${foodTheme.accent}; }
+  &:focus-visible { outline: 2px solid ${foodTheme.accent}; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
 `;
 export const Empty = styled.div`
   text-align: center; padding: ${theme.spacing['2xl']} ${theme.spacing.lg};

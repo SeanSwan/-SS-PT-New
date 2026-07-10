@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 const componentSource = readFileSync(resolve(__dirname, 'NutritionWorkspace.tsx'), 'utf8');
 const stylesSource = readFileSync(resolve(__dirname, 'NutritionWorkspace.styles.ts'), 'utf8');
-const commandStylesSource = readFileSync(resolve(__dirname, '../../FoodTracker/LogFoodCommandCenter.styles.ts'), 'utf8');
 const todayStylesSource = readFileSync(resolve(__dirname, 'NutritionTodayPanel.styles.ts'), 'utf8');
 const captureSource = readFileSync(resolve(__dirname, 'NutritionWorkspace.capture.tsx'), 'utf8');
 const captureStylesSource = readFileSync(resolve(__dirname, 'NutritionWorkspace.capture.styles.ts'), 'utf8');
@@ -25,9 +24,6 @@ describe('NutritionWorkspace style extraction', () => {
     expect(stylesSource).toContain('container-type: inline-size;');
     expect(stylesSource).not.toContain('max-width: 1200px;');
 
-    expect(commandStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));');
-    expect(commandStylesSource).toContain('@media (max-width: 1180px)');
-
     expect(todayStylesSource).toContain('flex-wrap: wrap;');
     expect(todayStylesSource).toContain('flex: 999 1 620px;');
     expect(todayStylesSource).toContain('grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));');
@@ -37,7 +33,14 @@ describe('NutritionWorkspace style extraction', () => {
     expect(captureStylesSource).toContain('border-left: 3px solid');
     expect(captureStylesSource).toContain('var(--ice-wing, var(--accent-primary, #60C0F0))');
     expect(captureStylesSource).toContain('export const MacroPulsePanel');
-    expect(captureStylesSource).toContain('grid-template-columns: minmax(128px, 150px) minmax(0, 1fr);');
+    expect(captureStylesSource).toContain('grid-template-columns: minmax(128px, 160px) minmax(0, 1fr);');
+    expect(captureStylesSource).toContain('aspect-ratio: 1;');
+    expect(captureStylesSource).toContain('grid-auto-flow: column;');
+    expect(captureStylesSource).toContain('overflow-x: auto;');
+    expect(captureStylesSource).toContain('scroll-snap-type: inline mandatory;');
     expect(captureSource).toContain('VictoryPie');
+    expect(captureSource).toContain('innerRadius={MACRO_RING_SIZE * MACRO_RING_INNER_RATIO}');
+    expect(captureSource).toContain('LiveStatusGrid');
+    expect(captureSource).not.toContain('DECISION_STEPS');
   });
 });

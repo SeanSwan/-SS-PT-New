@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { VictoryChart, VictoryArea, VictoryPolarAxis } from 'victory';
+import { VictoryChart, VictoryArea, VictoryContainer, VictoryPolarAxis } from 'victory';
 import {
   ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer,
   CHART_COLORS, hexAlpha, victoryTheme, VICTORY_ANIMATE,
@@ -98,6 +98,10 @@ const NutritionBalanceRadar: React.FC<NutritionBalanceRadarProps> = ({
         polar
         theme={victoryTheme}
         animate={prefersReducedMotion ? undefined : VICTORY_ANIMATE}
+        containerComponent={<VictoryContainer
+          title="Current nutrition balance"
+          desc={`Protein ${data[0].y}%, carbs ${data[1].y}%, fats ${data[2].y}%, fiber ${data[3].y}%, hydration ${data[4].y}%`}
+        />}
         domain={{ y: [0, 100] }}
       >
         <VictoryPolarAxis

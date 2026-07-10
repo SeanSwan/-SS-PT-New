@@ -14,6 +14,10 @@ vi.mock('../../utils/logger.mjs', () => ({
     debug: vi.fn(),
   },
 }));
+vi.mock('../../services/encryption/encryptionService.mjs', () => ({
+  encrypt: vi.fn((value) => value),
+}));
+
 
 const { processAIDataUpdates } = await import('../../services/aiDataWriteService.mjs');
 const unsafeNutritionCopyPattern =

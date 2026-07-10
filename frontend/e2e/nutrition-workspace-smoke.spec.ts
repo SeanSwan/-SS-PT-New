@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
-
+import { openNutritionManualReview } from './nutrition-workspace-smoke.helpers';
 const clientUser = {
   id: '101',
   email: 'qa.client@swanstudios.local',
@@ -11,7 +11,6 @@ const clientUser = {
   waiverStatus: 'linked',
   isActive: true,
 };
-
 type FailedResource = {
   status: number;
   url: string;
@@ -61,6 +60,8 @@ async function mockNutritionApi(page: Page) {
 
     if (endpoint === '/api/auth/me') return fulfillJson(route, { success: true, user: clientUser });
     if (endpoint === '/api/profile') return fulfillJson(route, { success: true, user: clientUser });
+    if (endpoint === '/api/v1/gamification/profile') return fulfillJson(route, { profile: { points: 0, level: 1, tier: 'bronze' } });
+    if (/^\/api\/profile\/(?:[^/]+\/)?posts$/.test(endpoint)) return fulfillJson(route, { success: true, posts: [], pagination: { limit: 20, offset: 0, total: 0 } });
     if (endpoint === '/api/subscriptions/status') {
       return fulfillJson(route, {
         success: true,
@@ -108,6 +109,21 @@ async function mockNutritionApi(page: Page) {
         },
       });
     }
+    if (endpoint === '/api/macros/weekly') return fulfillJson(route, { success: true, days: [{ date: '2026-05-23', mealCount: 3 }] });
+    if (endpoint === '/api/macros' && route.request().method() === 'GET') {
+      return fulfillJson(route, { success: true, entries: [{
+        id: 91, date: '2026-05-23', mealType: 'lunch', description: 'Chicken bowl',
+        calories: 690, protein: 52, carbs: 78, fat: 20, fiber: 9, source: 'barcode',
+        servingBasis: 'household', servingQuantity: 1, servingUnit: 'bowl',
+        confidenceScore: 0.82, reviewStatus: 'needs_review', reviewReason: 'calorie_mismatch',
+      }] });
+    }
+    if (endpoint === '/api/macros/drafts') return fulfillJson(route, { success: true, draftId: 'qa-reviewed-draft', entries: [] });
+    if (endpoint === '/api/hydration/weekly') return fulfillJson(route, { success: true, days: [] });
+    if (endpoint === '/api/hydration') return fulfillJson(route, { success: true, hydration: { glassesFilled: 5, dailyGoal: 8, glassOz: 10 } });
+    if (endpoint === '/api/workout/sessions') return fulfillJson(route, { success: true, data: { sessions: [] } });
+    if (endpoint === '/api/cart') return fulfillJson(route, { items: [], totalSessions: 0 });
+    if (endpoint === '/api/sessions') return fulfillJson(route, { sessions: [] });
 
     return fulfillJson(route, {
       success: true,
@@ -164,7 +180,7 @@ async function inspectNutritionWorkspace(page: Page) {
 
 async function gotoNutritionWorkspace(page: Page, resetTransientSignals: () => void) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    await page.goto('/dashboard/client/meal-planner', { waitUntil: 'domcontentloaded' });
+    await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle').catch(() => undefined);
 
     try {
@@ -186,7 +202,7 @@ test.beforeEach(async ({ page }) => {
   await installClientSession(page);
 });
 
-test('client nutrition workspace renders meal logging and live macro summary tabs', async ({ page }, testInfo) => {
+test('client nutrition workspace enforces review-first logging across the responsive command center', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
   const failedResources: FailedResource[] = [];
   page.on('response', (response) => {
@@ -198,7 +214,7 @@ test('client nutrition workspace renders meal logging and live macro summary tab
     }
   });
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (['error', 'warning'].includes(message.type())) consoleErrors.push(message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
@@ -207,24 +223,78 @@ test('client nutrition workspace renders meal logging and live macro summary tab
     failedResources.length = 0;
   });
 
-  await page.getByRole('tab', { name: /log meal/i }).click();
-  await expect(page.getByRole('heading', { name: /food intake tracker/i })).toBeVisible();
-
-  await page.getByRole('tab', { name: /my macros/i }).click();
+  const captureRail = page.getByRole('navigation', { name: /nutrition capture modes/i });
+  await expect(captureRail.getByRole('button')).toHaveCount(5);
+  const reviewDialog = await openNutritionManualReview(page);
+  for (let index = 0; index < 8; index += 1) {
+    await page.keyboard.press('Tab');
+    expect(await reviewDialog.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
+  }
+  const draftRequest = page.waitForRequest((request) => (
+    request.method() === 'POST' && new URL(request.url()).pathname === '/api/macros/drafts'
+  ));
+  await page.getByRole('button', { name: /approve and save 1 item/i }).click();
+  const draftPayload = (await draftRequest).postDataJSON();
+  expect(draftPayload).toMatchObject({ contractVersion: '1.0', source: 'manual' });
+  expect(draftPayload.foods).toHaveLength(1);
+  await expect(reviewDialog).toBeHidden();
+  await expect(page.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByLabel(/more nutrition tools/i).selectOption('macros');
   await expect(page.getByRole('region', { name: /macronutrient split donut chart/i })).toBeVisible();
   await expect(page.getByText('1,940')).toBeVisible();
   await expect(page.getByText(/daily macronutrient distribution/i)).toBeVisible();
-
   const layout = await inspectNutritionWorkspace(page);
-  expect(new URL(page.url()).pathname).toBe('/dashboard/client/meal-planner');
+  expect(new URL(page.url()).pathname).toBe('/user-dashboard/nutrition');
   expect(layout.bodyText).not.toMatch(/Generate mock nutrition plan for demo/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   expect(layout.smallTargets).toEqual([]);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
     !/preloaded using link preload/i.test(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
+    && !/React Router Future Flag Warning/i.test(item)
+    && !/\[PerformanceMonitor\] Long task detected/i.test(item)
+    && !/WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost/i.test(item)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
-
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  const violations = await page.evaluate(async () => {
+    const heading = [...document.querySelectorAll('h1,h2,h3')]
+      .find((node) => /nutrition intelligence/i.test(node.textContent || ''));
+    let root = heading?.parentElement ?? document.body;
+    while (root.parentElement && !root.querySelector('[aria-label="Nutrition capture modes"]')) root = root.parentElement;
+    root.id = 'nutrition-qa-root';
+    const result = await (window as any).axe.run('#nutrition-qa-root', {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag22aa'] },
+    });
+    return result.violations.map((violation: { id: string; impact: string; nodes: unknown[] }) => ({
+      id: violation.id, impact: violation.impact, nodes: violation.nodes.length,
+    }));
+  });
+  expect(violations).toEqual([]);
+  if (testInfo.project.name === 'Desktop Chrome') {
+    const viewports = [[320, 568], [375, 667], [414, 896], [768, 1024], [1024, 768],
+      [1280, 800], [1440, 900], [1920, 1080], [2560, 1440], [3440, 1440], [3840, 2160]];
+    for (const [width, height] of viewports) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/user-dashboard/nutrition', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: 'Nutrition Intelligence' })).toBeVisible();
+      const viewportLayout = await inspectNutritionWorkspace(page);
+      expect(viewportLayout.overflowX, `${width}px horizontal overflow`).toBeLessThanOrEqual(12);
+      expect(viewportLayout.smallTargets, `${width}px touch targets`).toEqual([]);
+      if (width === 414) expect((await captureRail.getByRole('button').first().boundingBox())?.y ?? height, `${width}px capture action visibility`).toBeLessThanOrEqual(height - 44);
+      if (width <= 414) {
+        const mobileDialog = await openNutritionManualReview(page);
+        const save = mobileDialog.getByRole('button', { name: /approve and save 1 item/i });
+        await save.scrollIntoViewIfNeeded();
+        const box = await save.boundingBox();
+        expect(box?.height ?? 0, `${width}px review action height`).toBeGreaterThanOrEqual(44);
+        expect((box?.x ?? -1) + (box?.width ?? width + 1), `${width}px review action fit`).toBeLessThanOrEqual(width + 1);
+        await mobileDialog.getByRole('button', { name: /cancel/i }).click();
+      }
+      if ([414, 1440, 2560, 3840].includes(width)) {
+        await page.screenshot({ path: testInfo.outputPath(`nutrition-${width}.png`), fullPage: false });
+      }
+    }
+  }
   await page.screenshot({ path: testInfo.outputPath('nutrition-workspace-smoke.png'), fullPage: false });
 });

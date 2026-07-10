@@ -42,10 +42,11 @@ describe('FoodSearchPanel proxy search contract', () => {
     expect(results).toEqual([expect.objectContaining({ id: 'usda-1001', name: 'Chicken Breast', source: 'USDA' })]);
   });
 
-  it('returns an empty result list for proxy failures without leaking transport errors', async () => {
+  it('rejects proxy failures with a sanitized domain error', async () => {
     apiMocks.get.mockRejectedValueOnce(new Error('raw provider outage'));
 
-    await expect(fetchFoodSearchResults('chicken')).resolves.toEqual([]);
+    await expect(fetchFoodSearchResults('chicken')).rejects.toThrow('Food search is temporarily unavailable.');
+    await expect(fetchFoodSearchResults('chicken')).rejects.not.toThrow('raw provider outage');
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

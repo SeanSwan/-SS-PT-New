@@ -76,6 +76,41 @@ Design mandates from the Village/Fable output:
 
 This is the stable nutrition-specific copy of the final Village/Fable output. Use this file for implementation planning instead of relying on `AI-Village-Documentation/validation-prompts/latest/`, because `latest/` currently contains a mix of current nutrition files and older retained files.
 
+## Implementation Receipt - 2026-07-10
+
+Status: v1 locked plan implemented and verified on `codex/nutrition-seven-star-20260709`.
+
+### Implemented v1
+
+- Slice 0/1 verification and hotfix work: canonical mounts, `/api/macros` ownership, protected food-search proxy, and active scanner/admin drift were rechecked against the live repo.
+- Slice 2: one mounted `NutritionWorkspace` command center with Today Ribbon, five-mode Capture Rail, source truth, review-first drawer, and diary timeline.
+- Slice 3: typed `NutritionEntryDraft` v1.0 with serving basis, `NutrientMap`, identity fields, workout proximity, durable references, and atomic save payloads.
+- Slice 4: search/barcode convergence with stale-request protection, label-serving preservation, Open Food Facts community grading, and unmatched-barcode manual recovery.
+- Slice 5/6: additive provenance schema, universal source records, SHA-256 replay integrity, Atwater reconciliation, server-owned trust, and encrypted nutrition text.
+- Slice 7: assigned-trainer/admin review queue with bounded pagination, idempotent verification, and client-edit requeue semantics.
+- The mobile dialog is portaled above dashboard chrome; save-in-flight close actions are blocked; 414px exposes at least 44px of the first capture action after the Today ribbon.
+
+### Verification Evidence
+
+- Frontend focused suite: 21 files, 106 tests passed.
+- Backend nutrition suite: 31 files, 161 tests passed.
+- TypeScript: `tsc --noEmit` passed.
+- Production bundle: Vite 5.4.19, 6,624 modules, build passed.
+- Browser: canonical `/user-dashboard/nutrition` passed Desktop Chrome across 320, 375, 414, 768, 1024, 1280, 1440, 1920, 2560, 3440, and 3840 widths; Mobile Chrome passed separately.
+- Browser checks include axe WCAG 2A/2AA/2.2AA, 44px targets, horizontal overflow, focus trap, atomic review request, canonical route, and first-viewport capture visibility.
+- Render deployment gate: production backend has `ENCRYPTION_MASTER_KEY` present; the value was never printed.
+
+### Explicit Non-Claims And Deferrals
+
+- Label-photo OCR, recipe builder, local-produce/PLU capture, offline draft queue, full food-data operations console, and cross-theme automation remain the Fable-approved v2 roadmap. Existing garden/farm discovery tabs are not misrepresented as those capture workflows.
+- The repo-wide frontend Vitest aggregate was attempted but exceeded the process window and ended with EPIPE after the tool closed its pipe. It is not counted as a pass; scoped tests, typecheck, build, and canonical browser matrices are the release gates.
+- Two independent final subagent reviews could not start because the account usage cap was reached. Their failed starts are not review evidence; the final review in this task is the primary agent's manual dual-pass plus the executable gates above.
+- Backend tests still emit known global database-bootstrap warnings when isolated modules import `database.mjs` without the local root `.env`; assertions pass, but this unrelated cross-cutting warning debt is not labeled clean.
+
+### External Design Reference Receipt
+
+`[MOBBIN UNAVAILABLE]` - no callable Mobbin MCP was available in this Codex session. Swan's canonical design brain, cinematic design system, Fable wireframe, and responsive browser evidence remained authoritative; no external reference was invented.
+
 ---
 
 # Fusion Synthesis â€” Judge Verdict

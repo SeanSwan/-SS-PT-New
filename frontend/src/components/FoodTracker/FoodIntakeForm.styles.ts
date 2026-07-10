@@ -42,7 +42,7 @@ const focusRing = css`
 
 const buttonBase = css`
   min-height: 44px;
-  border-radius: 12px;
+  border-radius: 8px;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -55,7 +55,7 @@ const buttonBase = css`
 
 export const FormWrapper = styled.div`
   padding: 24px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: ${nutritionTheme.panel};
   border: 1px solid ${nutritionTheme.panelBorder};
   backdrop-filter: blur(16px);
@@ -117,7 +117,7 @@ export const StyledSelect = styled.select`
 
 export const FoodCard = styled.div`
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid ${nutritionTheme.inputBorderSoft};
   background: ${nutritionTheme.inputWashSoft};
 `;
@@ -223,7 +223,7 @@ export const ToastContent = styled.div`
   gap: 12px;
   max-width: min(360px, calc(100vw - 48px));
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: ${nutritionTheme.success};
   color: var(--bg-base, #0A0A0F);
   box-shadow: ${nutritionTheme.shadow};
@@ -245,7 +245,7 @@ export const SavedMealCard = styled.div`
   gap: 10px;
   padding: 16px;
   margin-bottom: 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   background: ${nutritionTheme.successWash};
   border: 1px solid ${nutritionTheme.successBorder};
 `;

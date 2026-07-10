@@ -69,6 +69,23 @@ vi.mock('../../FoodTracker/FoodSearchPanel', () => ({
   default: () => <section aria-label="food search add">Food search panel</section>,
 }));
 
+vi.mock('../../FoodTracker/FoodIntakeForm', () => ({
+  default: ({ onReviewDraft }: { onReviewDraft: (draft: object) => void }) => (
+    <button type="button" onClick={() => onReviewDraft({ id: 'manual-test' })}>Prepare manual draft</button>
+  ),
+}));
+
+vi.mock('../../FoodTracker/NutritionReviewDrawer', () => ({
+  default: ({ draft, onSaved }: {
+    draft: object | null;
+    onSaved: (success: boolean, options: object) => void;
+  }) => (
+    draft
+      ? <button type="button" onClick={() => onSaved(true, { closeDrawer: true })}>Complete reviewed save</button>
+      : null
+  ),
+}));
+
 describe('NutritionWorkspace Today landing', () => {
   beforeAll(async () => {
     await import('./NutritionTodayPanel');
@@ -85,19 +102,16 @@ describe('NutritionWorkspace Today landing', () => {
 
   it('defaults to Today and lets the Today panel route into existing tabs', async () => {
     const user = userEvent.setup();
-
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    expect(screen.getByRole('tab', { name: /today/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: /search food/i }));
-
-    expect(screen.getByRole('tab', { name: /food search/i })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /food search/i })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText('food search add')).toBeInTheDocument();
   });
 
-  it('surfaces macro-summary errors instead of rendering the Today diary as empty', async () => {
+  it('keeps the independent diary available while macro totals are unavailable', async () => {
     const user = userEvent.setup();
     mocks.macroSummary.summary = null;
     mocks.macroSummary.error = 'Macro summary unavailable. Try refreshing your dashboard.';
@@ -106,11 +120,26 @@ describe('NutritionWorkspace Today landing', () => {
 
     const alert = await screen.findByRole('alert', { name: /nutrition totals unavailable/i });
     expect(alert).toHaveTextContent(/Macro summary unavailable/i);
-    expect(screen.queryByLabelText(/nutrition today diary/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/nutrition today diary/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /today's diary timeline/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/0 calories logged today/i)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: /my macros/i }));
-    expect(await screen.findByRole('alert', { name: /nutrition totals unavailable/i })).toHaveTextContent(/Macro summary unavailable/i);
+    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    expect(await screen.findByRole('alert', { name: /nutrition totals unavailable/i }))
+      .toHaveTextContent(/Macro summary unavailable/i);
+  });
+
+  it('returns to Today and refreshes the diary after a reviewed save', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+
+    await user.click(screen.getByRole('button', { name: /manual meal/i }));
+    await user.click(await screen.findByRole('button', { name: /prepare manual draft/i }));
+    await user.click(screen.getByRole('button', { name: /complete reviewed save/i }));
+
+    expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
+    expect(mocks.macroSummary.refetch).toHaveBeenCalledTimes(1);
   });
 
   it('feeds real same-day workout sessions into training-day nutrition insights', async () => {

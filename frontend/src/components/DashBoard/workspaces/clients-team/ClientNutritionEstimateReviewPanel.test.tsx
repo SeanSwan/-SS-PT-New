@@ -52,6 +52,15 @@ describe('ClientNutritionEstimateReviewPanel', () => {
             fiber: 9,
             source: 'photo',
             verified: false,
+            servingBasis: 'estimated',
+            servingQuantity: 1,
+            servingUnit: 'serving',
+            caloriesReported: 620,
+            caloriesCalculated: 608,
+            reconciliationStatus: 'within_tolerance',
+            confidenceScore: 0.55,
+            reviewStatus: 'client_confirmed',
+            reviewReason: 'unverified_estimate',
             createdAt: `${today}T19:00:00.000Z`,
           },
         ],
@@ -67,7 +76,12 @@ describe('ClientNutritionEstimateReviewPanel', () => {
     expect(screen.getByText('Lunch')).toBeInTheDocument();
     expect(screen.getByText('620 cal - 44g protein - 9g fiber')).toBeInTheDocument();
     expect(screen.getByText('Photo estimate')).toBeInTheDocument();
-    expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7`);
+    expect(screen.getByText('Reason: Unverified estimate')).toBeInTheDocument();
+    expect(screen.getByText('Status: Client confirmed')).toBeInTheDocument();
+    expect(screen.getByText('Serving: 1 serving (Estimated)')).toBeInTheDocument();
+    expect(screen.getByText('Source confidence: 55%')).toBeInTheDocument();
+    expect(screen.getByText('Calories: Within 4-4-9 range')).toBeInTheDocument();
+    expect(apiGetMock).toHaveBeenCalledWith(`/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7&limit=25&offset=0`);
 
     await user.click(screen.getByRole('button', { name: /mark alpha client lunch verified/i }));
 
@@ -101,6 +115,42 @@ describe('ClientNutritionEstimateReviewPanel', () => {
     expect(await screen.findByText('Showing 5 of 6 pending')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /mark alpha client snack verified/i })).toHaveLength(5);
     expect(screen.queryByText('meal 6')).not.toBeInTheDocument();
+  });
+
+  it('loads the next server page when pending work exceeds the loaded queue', async () => {
+    const today = formatLocalCalendarDate();
+    apiGetMock
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          total: 6,
+          hasMore: true,
+          entries: Array.from({ length: 5 }, (_, index) => ({
+            id: 100 + index, userId: 101, mealType: 'snack',
+            description: `page one meal ${index + 1}`, source: 'voice', verified: false,
+          })),
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          total: 6,
+          hasMore: false,
+          entries: [{
+            id: 105, userId: 202, mealType: 'dinner',
+            description: 'page two meal', source: 'photo', verified: false,
+          }],
+        },
+      });
+    const user = userEvent.setup();
+    render(<ClientNutritionEstimateReviewPanel clients={clients} />);
+
+    await user.click(await screen.findByRole('button', { name: /load more pending estimates/i }));
+    expect(apiGetMock).toHaveBeenLastCalledWith(
+      `/api/macros/review-queue?date=${today}&userIds=101%2C202&days=7&limit=25&offset=5`,
+    );
+    expect(await screen.findByText('page two meal')).toBeInTheDocument();
+    expect(screen.getByText('6 pending')).toBeInTheDocument();
   });
 
   it('does not render estimates returned for clients outside the visible roster', async () => {

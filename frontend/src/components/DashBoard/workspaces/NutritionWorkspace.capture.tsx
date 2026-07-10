@@ -1,22 +1,18 @@
 import type { ReactNode } from 'react';
 import {
-  ArrowRight,
-  BookOpen,
-  Brain,
+  Building2,
   CheckCircle2,
   ClipboardCheck,
-  Droplets,
   HeartPulse,
-  PieChart,
+  Mic,
   ScanBarcode,
   Search,
   ShieldCheck,
-  Sparkles,
   Utensils,
 } from 'lucide-react';
 import { VictoryPie } from 'victory';
 import type { MacroSummary } from '../../../hooks/useMacroSummary';
-import { nutritionPanelId, nutritionTabId, type Tab } from './NutritionWorkspace.tabs';
+import type { Tab } from './NutritionWorkspace.tabs';
 import {
   CaptureCopy,
   CaptureGrid,
@@ -24,17 +20,15 @@ import {
   CaptureRail,
   CaptureShell,
   CaptureTile,
-  DecisionConnector,
-  DecisionDot,
-  DecisionRail,
-  DecisionStep,
-  DecisionStepCopy,
+  LiveStatusGrid,
+  LiveStatusRow,
   MacroPulseCenter,
   MacroPulseChart,
   MacroPulseLegend,
   MacroPulseLegendItem,
   MacroPulsePanel,
   MacroPulseSwatch,
+  RibbonAction,
   RibbonCard,
   RibbonEyebrow,
   RibbonLabel,
@@ -68,23 +62,15 @@ interface NutritionWorkspaceCaptureProps {
 }
 
 const CAPTURE_ACTIONS: CaptureAction[] = [
-  { tab: 'today', icon: <ClipboardCheck size={20} />, title: 'Today Board', meta: 'Diary, targets, and next best action', badge: 'Live', ariaLabel: 'Today' },
-  { tab: 'log', icon: <Utensils size={20} />, title: 'Manual Meal', meta: 'Controlled entry for trusted logs', badge: 'Save', ariaLabel: 'Log Meal' },
-  { tab: 'search', icon: <ScanBarcode size={20} />, title: 'Search + Barcode', meta: 'USDA and packaged-food lookup via Swan proxy', badge: 'Source', ariaLabel: 'Food Search' },
-  { tab: 'voice', icon: <Sparkles size={20} />, title: 'Speak a Meal', meta: 'Draft first, review before the diary', badge: 'Review', ariaLabel: 'Speak a Meal' },
-  { tab: 'hydration', icon: <Droplets size={20} />, title: 'Hydration', meta: 'Daily rhythm without macro pressure', badge: 'Rhythm', ariaLabel: 'Hydration' },
-  { tab: 'macros', icon: <PieChart size={20} />, title: 'Macro Lens', meta: 'Charts from saved diary entries', badge: 'Proof', ariaLabel: 'My Macros' },
-  { tab: 'meal-plan', icon: <Brain size={20} />, title: 'Meal Plan', meta: 'Coach plan drafts with an approval step', badge: 'Plan', ariaLabel: 'Swan Coach Meal Plan' },
-  { tab: 'intelligence', icon: <Search size={20} />, title: 'Food Intelligence', meta: 'Nutrition analysis behind the Guardian gate', badge: 'Coach', ariaLabel: 'Intelligence' },
-  { tab: 'learn', icon: <BookOpen size={20} />, title: 'Learn', meta: 'NASM-aligned education for better choices', badge: 'Study', ariaLabel: 'Learn' },
+  { tab: 'log', icon: <Utensils size={20} />, title: 'Manual Meal', meta: 'Typed foods and servings', badge: 'Manual', ariaLabel: 'Manual Meal' },
+  { tab: 'search', icon: <Search size={20} />, title: 'Food Search', meta: 'USDA and packaged matches', badge: 'Lookup', ariaLabel: 'Food Search' },
+  { tab: 'barcode', icon: <ScanBarcode size={20} />, title: 'Barcode', meta: 'Product label and serving', badge: 'Scan', ariaLabel: 'Barcode' },
+  { tab: 'voice', icon: <Mic size={20} />, title: 'Speak a Meal', meta: 'Spoken meal estimate', badge: 'Voice', ariaLabel: 'Speak a Meal' },
+  { tab: 'restaurant', icon: <Building2 size={20} />, title: 'Restaurant', meta: 'Brand and menu item', badge: 'Menu', ariaLabel: 'Restaurant' },
 ];
 
-const DECISION_STEPS = [
-  { title: 'Capture', copy: 'Manual, search, barcode, voice, and hydration entries stay distinct.' },
-  { title: 'Verify', copy: 'External food data is source-tagged before it reaches the log.' },
-  { title: 'Commit', copy: 'Diary writes refresh the same totals used by charts and coaching.' },
-  { title: 'Review', copy: 'Trainer review remains separate from client self-logging.' },
-];
+const MACRO_RING_SIZE = 160;
+const MACRO_RING_INNER_RATIO = 0.32;
 
 const MACRO_PULSE_META = [
   { key: 'totalProtein', label: 'Protein', color: 'var(--accent-secondary, #8B5CF6)' },
@@ -146,13 +132,29 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
       ? 'Saved protein, carbs, and fat'
       : 'Awaiting today\'s diary';
 
+  const diaryCount = summary?.mealCount || 0;
+  const diaryStatus = macroLoading
+    ? 'Syncing diary'
+    : diaryCount > 0
+      ? [diaryCount, diaryCount === 1 ? 'meal' : 'meals', 'saved'].join(' ')
+      : 'No meals saved';
+  const reviewStatus = diaryCount > 0 ? 'Diary ready' : 'Queue clear';
   return (
     <CaptureShell aria-label="Nutrition decision logger overview">
       <TodayRibbon>
-        <RibbonCard>
-          <RibbonEyebrow>Today</RibbonEyebrow>
-          <RibbonValue>{calorieValue}</RibbonValue>
-          <RibbonLabel>Calories logged</RibbonLabel>
+        <RibbonCard $primary>
+          <div>
+            <RibbonEyebrow>Today</RibbonEyebrow>
+            <RibbonValue>{calorieValue}</RibbonValue>
+            <RibbonLabel>Calories logged</RibbonLabel>
+          </div>
+          <RibbonAction
+            type="button"
+            aria-pressed={activeTab === 'today'}
+            onClick={() => onSelectTab('today')}
+          >
+            <ClipboardCheck size={16} /> Open Today
+          </RibbonAction>
         </RibbonCard>
         <RibbonCard>
           <RibbonEyebrow>Protein</RibbonEyebrow>
@@ -172,22 +174,19 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
       </TodayRibbon>
 
       <CaptureGrid>
-        <CaptureRail role="tablist" aria-label="Nutrition capture modes">
+        <CaptureRail role="navigation" aria-label="Nutrition capture modes">
           {CAPTURE_ACTIONS.map((action) => {
             const active = activeTab === action.tab;
             return (
               <CaptureTile
                 key={action.tab}
-                id={nutritionTabId(action.tab)}
                 type="button"
                 $active={active}
                 onClick={() => onSelectTab(action.tab)}
                 whileHover={reduceMotion ? undefined : { y: -2 }}
                 whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-                role="tab"
                 aria-label={action.ariaLabel}
-                aria-selected={active}
-                aria-controls={nutritionPanelId(action.tab)}
+                aria-pressed={active}
               >
                 <CaptureIcon $active={active}>{action.icon}</CaptureIcon>
                 <CaptureCopy>
@@ -204,18 +203,18 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
           <SourceTruthTitle>
             <ShieldCheck size={18} /> Source Truth
           </SourceTruthTitle>
-          <SourcePill><CheckCircle2 size={16} /> USDA lookup stays behind Swan API</SourcePill>
-          <SourcePill><CheckCircle2 size={16} /> Open Food Facts is proxied and source-tagged</SourcePill>
-          <SourcePill><HeartPulse size={16} /> Gentle Mode keeps macro pressure optional</SourcePill>
+          <SourcePill><CheckCircle2 size={16} /> Reviewed saves: Atomic</SourcePill>
+          <SourcePill><CheckCircle2 size={16} /> Source tags: Preserved</SourcePill>
+          <SourcePill><HeartPulse size={16} /> Pressure setting: {gentleMode ? 'Gentle' : 'Standard'}</SourcePill>
           <MacroPulsePanel role="group" aria-label={gentleMode ? 'Macro composition hidden by Gentle Mode' : 'Macro composition from saved diary entries'}>
             <MacroPulseChart aria-hidden="true">
               <VictoryPie
                 data={macroPulse.data}
                 x="x"
                 y="y"
-                width={150}
-                height={150}
-                innerRadius={48}
+                width={MACRO_RING_SIZE}
+                height={MACRO_RING_SIZE}
+                innerRadius={MACRO_RING_SIZE * MACRO_RING_INNER_RATIO}
                 padAngle={3}
                 padding={10}
                 labels={() => ''}
@@ -244,18 +243,11 @@ const NutritionWorkspaceCapture: React.FC<NutritionWorkspaceCaptureProps> = ({
               ))}
             </MacroPulseLegend>
           </MacroPulsePanel>
-          <DecisionRail>
-            {DECISION_STEPS.map((step, index) => (
-              <DecisionStep key={step.title}>
-                <DecisionDot>{index + 1}</DecisionDot>
-                <DecisionStepCopy>
-                  <strong>{step.title}</strong>
-                  <span>{step.copy}</span>
-                </DecisionStepCopy>
-                {index < DECISION_STEPS.length - 1 && <DecisionConnector><ArrowRight size={14} /></DecisionConnector>}
-              </DecisionStep>
-            ))}
-          </DecisionRail>
+          <LiveStatusGrid aria-label="Current nutrition status">
+            <LiveStatusRow><span>Diary</span><strong>{diaryStatus}</strong></LiveStatusRow>
+            <LiveStatusRow><span>Day context</span><strong>{dayStatus}</strong></LiveStatusRow>
+            <LiveStatusRow><span>Review state</span><strong>{reviewStatus}</strong></LiveStatusRow>
+          </LiveStatusGrid>
         </SourceTruthRail>
       </CaptureGrid>
     </CaptureShell>

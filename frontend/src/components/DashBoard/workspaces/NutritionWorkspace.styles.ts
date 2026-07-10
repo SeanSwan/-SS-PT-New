@@ -11,7 +11,7 @@ const nutritionVars = css`
 const nutritionPanelCss = css`
   ${nutritionVars}
   border: 1px solid var(--nutrition-border);
-  border-radius: 22px;
+  border-radius: 8px;
   background:
     linear-gradient(160deg, var(--nutrition-panel), var(--nutrition-panel-deep)),
     var(--bg-elevated, #141419);
@@ -24,7 +24,7 @@ const nutritionPanelCss = css`
 const nutritionCardCss = css`
   ${nutritionVars}
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  border-radius: 18px;
+  border-radius: 8px;
   background:
     linear-gradient(150deg, color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent), color-mix(in srgb, var(--bg-base, #0A0A0F) 86%, transparent)),
     var(--bg-elevated, #141419);
@@ -56,7 +56,7 @@ const nutritionAccentButtonCss = css`
   ${nutritionControlCss}
   border-color: transparent;
   background: var(--button-primary-bg, #002060);
-  color: var(--button-primary-text, #030712);
+  color: var(--button-primary-text, #E0ECF4);
   box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
 `;
 
@@ -82,6 +82,15 @@ export const Header = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+
+  @media (max-width: 640px) {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 10px;
+    > div:nth-child(2) { min-width: 0; }
+  }
 `;
 
 export const HeaderIcon = styled.div`
@@ -92,13 +101,14 @@ export const HeaderIcon = styled.div`
   align-items: center;
   justify-content: center;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
-  border-radius: 14px;
+  border-radius: 8px;
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent),
     color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)
   );
   color: var(--accent-secondary, #8B5CF6);
+  @media (max-width: 640px) { width: 44px; height: 44px; }
 `;
 
 export const HeaderTitle = styled.h1`
@@ -114,6 +124,7 @@ export const HeaderSubtitle = styled.p`
   margin: 4px 0 0;
   color: var(--text-secondary, #94a3b8);
   font-size: 14px;
+  @media (max-width: 640px) { font-size: 12px; line-height: 1.35; }
 `;
 
 export const HeaderActions = styled.div`
@@ -122,6 +133,7 @@ export const HeaderActions = styled.div`
   gap: 0.65rem;
   margin-left: auto;
   @media (max-width: 640px) {
+    grid-column: 1 / -1;
     width: 100%;
     margin-left: 0;
   }
@@ -213,7 +225,7 @@ export const MacroHiddenPanel = styled.section`
   padding: clamp(1.25rem, 2vw, 1.8rem);
   text-align: center;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
-  border-radius: 18px;
+  border-radius: 8px;
   background:
     radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent), transparent 38%),
     color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent);
