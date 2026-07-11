@@ -1,6 +1,7 @@
 ---
-originating_model: claude-fable-5
-tier_gate: PASS
+originating_model: gpt-sol-5.6-ultra   # packet prose author (Sean-designated learn-from source, 2026-07-11)
+authority: claude-fable-5              # the LOCK-WITH-CHANGES final ruling this packet summarizes
+tier_gate: PASS                        # authority is Fable-tier; author is a Sean-designated peer — stamp corrected per Fable hostile review 2026-07-11
 date: 2026-07-11
 topic: Swan Style Lens OS Default, SwanStudios Lens Pack, and Design Brain v2
 surfaces: [style-lens-os, swanstudios-lens-pack, workout-design-lab, appearance-studio, design-brain]

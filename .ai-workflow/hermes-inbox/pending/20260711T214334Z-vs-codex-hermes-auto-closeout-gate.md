@@ -20,3 +20,6 @@ tags: [hermes-inbox, hermes-learning-packet, hooks, closeout]
 - The hook, skill overrides, closeout checklist, contract test, and prior Style Lens OS learning packet are present on an isolated branch. Activation still requires an authorized merge to the production branch.
 
 ## Sean owes / blockers
+
+- Merge of branch `codex/hermes-closeout-hook-20260711` to main is Sean-gated; the Stop hook
+  stays inactive until that merge lands.
