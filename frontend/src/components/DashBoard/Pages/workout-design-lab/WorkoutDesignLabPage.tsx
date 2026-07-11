@@ -1,14 +1,71 @@
-/** Read-only comparison surface for eight unified logger concepts. */
-import React,{useMemo,useState}from'react';
-import{CheckCircle2,ChevronRight,Database,Sparkles}from'lucide-react';
-import{WORKOUT_DESIGN_CONCEPTS}from'./workoutDesignConcepts';
-import{CompareNote,ConceptButton,ConceptNav,ExerciseCard,Eyebrow,Hero,HeroNote,LabShell,Panel,Pill,PillRow,PrimaryAction,Signal,SignalNote,Workbench}from'./WorkoutDesignLab.styles';
-const exercises=[['Goblet squat','Lower body · stability','3 × 10'],['Half-kneeling cable press','Push · anti-rotation','3 × 8'],['Stability-ball row','Pull · core','3 × 12']];
-const WorkoutDesignLabPage:React.FC=()=>{const[activeId,setActiveId]=useState(WORKOUT_DESIGN_CONCEPTS[0].id);const[activeSignal,setActiveSignal]=useState('Readiness 82');const active=useMemo(()=>WORKOUT_DESIGN_CONCEPTS.find(item=>item.id===activeId)??WORKOUT_DESIGN_CONCEPTS[0],[activeId]);return <LabShell style={{'--lab-accent':active.accent,'--lab-glow':active.glow}as React.CSSProperties}>
-<Hero><div><Eyebrow>System / Workout Design Lab / {active.family} direction</Eyebrow><h1>{active.number}. {active.name}</h1><p>{active.thesis}</p></div><HeroNote><strong>Prototype only — no client data is written.</strong><br/>All directions preserve <code>/api/exercises/library</code>.</HeroNote></Hero>
-<ConceptNav aria-label="Choose a workout design concept">{WORKOUT_DESIGN_CONCEPTS.map(concept=><ConceptButton key={concept.id}$active={concept.id===active.id}onClick={()=>setActiveId(concept.id)}aria-pressed={concept.id===active.id}><strong>{concept.number} · {concept.name}</strong><span>{concept.family==='swan'?'Crystalline Swan':'Wild direction'}</span></ConceptButton>)}</ConceptNav>
-<Workbench $layout={active.layout}><Panel><Eyebrow>Orientation</Eyebrow><h3>Client & intent</h3><ExerciseCard><i/><span><strong>Demo Client</strong><small>Today · coached session</small></span><ChevronRight size={18}/></ExerciseCard><PillRow>{['Today','Tomorrow','Backfill'].map((item,index)=><Pill key={item}$active={index===0}>{item}</Pill>)}</PillRow><h3>Client-sensitive signals</h3>{['Readiness 82','Left knee 2/10','Missed Tuesday'].map(signal=><Signal key={signal}onClick={()=>setActiveSignal(signal)}><strong>{signal}</strong><br/><small>{signal===activeSignal?'Driving this draft':'Available context'}</small></Signal>)}</Panel>
-<Panel $featured><Eyebrow>{active.signature}</Eyebrow><h2>Build today without leaving the client</h2><PillRow><Pill $active><Database size={15}/> Rolodex</Pill><Pill><Sparkles size={15}/> Coach draft</Pill><Pill>History</Pill><Pill>Plan horizon</Pill></PillRow>{exercises.map(([name,meta,prescription])=><ExerciseCard key={name}><i/><span><strong>{name}</strong><small>{meta}</small></span><b>{prescription}</b></ExerciseCard>)}<PrimaryAction type="button"onClick={()=>window.alert('Prototype: final review receipt.')}>Review & log session</PrimaryAction></Panel>
-<Panel><Eyebrow>Trust before speed</Eyebrow><h3>Review receipt</h3><SignalNote><CheckCircle2 size={16}/> 3 exercises from active plan</SignalNote><SignalNote><CheckCircle2 size={16}/> Knee constraint applied</SignalNote><SignalNote><CheckCircle2 size={16}/> 1 missing day needs confirmation</SignalNote><p><strong>Suggested data is never silently presented as observed.</strong> Backfilled workouts remain pending until a trainer confirms date, source, and confidence.</p><PillRow><Pill>Generate draft</Pill><Pill>Review missing days</Pill><Pill>Save plan</Pill></PillRow></Panel></Workbench>
-<CompareNote><strong>What changes:</strong> {active.signature} Shared client, workout, exercise-library, plan, and audit contracts remain fixed so this compares interaction models—not disconnected implementations.</CompareNote></LabShell>};
+/**
+ * Workout Design Lab v2
+ * Ten independently composed, read-only workout interface directions.
+ */
+import React, { useMemo, useState } from 'react';
+import { CONCEPT_REGISTRY } from './conceptRegistry';
+import { ConceptProps } from './concepts/conceptShared';
+import { AlpinePrecision } from './concepts/AlpinePrecision';
+import { VelocityPoster } from './concepts/VelocityPoster';
+import { AfterDarkStories } from './concepts/AfterDarkStories';
+import { CommandTerminal } from './concepts/CommandTerminal';
+import { AtelierEditorial } from './concepts/AtelierEditorial';
+import { ConsoleMission } from './concepts/ConsoleMission';
+import { SpatialStudio } from './concepts/SpatialStudio';
+import { PitWall } from './concepts/PitWall';
+import { BentoMotion } from './concepts/BentoMotion';
+import { FieldManual } from './concepts/FieldManual';
+import { Lab, LabHeader, LiveReceipt, Pick, Picker, Stage } from './WorkoutDesignLabShell.styles';
+
+const conceptComponents: Record<string, React.ComponentType<ConceptProps>> = {
+  alpine: AlpinePrecision,
+  velocity: VelocityPoster,
+  stories: AfterDarkStories,
+  terminal: CommandTerminal,
+  atelier: AtelierEditorial,
+  mission: ConsoleMission,
+  spatial: SpatialStudio,
+  'pit-wall': PitWall,
+  bento: BentoMotion,
+  field: FieldManual,
+};
+
+const WorkoutDesignLabPage: React.FC = () => {
+  const [activeId, setActiveId] = useState(CONCEPT_REGISTRY[0].id);
+  const [receipt, setReceipt] = useState('Choose a direction, then try its primary action.');
+  const ActiveConcept = useMemo(() => conceptComponents[activeId] ?? AlpinePrecision, [activeId]);
+
+  return (
+    <Lab>
+      <LabHeader>
+        <div>
+          <h1>Ten independent workout interface directions</h1>
+          <p>Same workout logic. Ten different product worlds. Shared exercise truth: /api/exercises/library.</p>
+        </div>
+        <Picker aria-label="Choose a workout interface direction">
+          {CONCEPT_REGISTRY.map((concept) => (
+            <Pick
+              key={concept.id}
+              type="button"
+              $active={concept.id === activeId}
+              aria-pressed={concept.id === activeId}
+              onClick={() => {
+                setActiveId(concept.id);
+                setReceipt(`Viewing ${concept.name}: ${concept.lens}.`);
+              }}
+            >
+              <span>{concept.number}</span>
+              {concept.name}
+            </Pick>
+          ))}
+        </Picker>
+      </LabHeader>
+      <Stage>
+        <ActiveConcept onAction={setReceipt} />
+      </Stage>
+      <LiveReceipt role="status" aria-live="polite">{receipt}</LiveReceipt>
+    </Lab>
+  );
+};
+
 export default WorkoutDesignLabPage;
