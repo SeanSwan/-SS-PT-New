@@ -63,10 +63,11 @@ router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req,
       logger.error(`[ConsultRequest] capture failed: ${result.error}`);
       return res.status(500).json({ success: false, message: 'Could not record your request. Please try again.' });
     }
-    // Anti-bomb: only alert the owner on a genuinely NEW consult intent — a fresh lead, or a lead
-    // transitioning INTO 'scheduled'. A repeat submit of an already-scheduled lead updates the CRM
-    // silently (no repeat email), so a public caller can't hammer the owner inbox / SendGrid quota.
-    if (result.created || result.previousStatus !== 'scheduled') {
+    // Anti-bomb: alert the owner ONLY for a genuinely NEW lead (created). An existing lead is not
+    // mutated by a public submit (see consultRequestService), so a repeat submit — including
+    // email-rotation abuse against a known lead — cannot re-hammer the owner inbox / SendGrid quota.
+    // (Global new-lead notify cap = documented follow-up hardening item M5.)
+    if (result.created) {
       await notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result });
     }
     return res.status(201).json({ success: true, message: 'Thanks! Sean will reach out to confirm your consult.' });

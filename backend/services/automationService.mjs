@@ -328,6 +328,18 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       if (decision.action === 'fail') {
+        // A transient consent-lookup failure (suppression_unverified) is INFRA, not structural —
+        // DEFER + retry rather than permanently drop a valid message ("defer, never drop"). The
+        // fail-closed safety holds: nothing is sent while consent is unverified.
+        if (decision.reason === 'suppression_unverified') {
+          log.status = 'pending';
+          if (typeof log.changed === 'function') log.changed('status', true);
+          log.scheduledFor = new Date(now.getTime() + FREQ_COOLDOWN_HOURS * 60 * 60 * 1000);
+          log.error = 'deferred: suppression_unverified';
+          await log.save();
+          results.push({ id: log.id, status: 'deferred' });
+          continue;
+        }
         log.status = 'failed';
         log.error = reasonMessage(decision.reason, 'Send failed');
         await log.save();
@@ -384,7 +396,10 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
         log.recipient = address;
       } else {
         log.status = 'failed';
-        log.error = sendResult.error || (isEmail ? 'Email send failed' : 'SMS send failed');
+        // SMS (twilio) may return a raw Error object; coerce to a string so the TEXT column
+        // never stores "[object Object]".
+        log.error = (typeof sendResult.error === 'string' ? sendResult.error : sendResult.error?.message)
+          || (isEmail ? 'Email send failed' : 'SMS send failed');
         log.recipient = address;
       }
 

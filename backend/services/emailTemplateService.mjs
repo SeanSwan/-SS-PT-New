@@ -173,7 +173,7 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
     'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
   };
 
-  const result = await sendGridEmail({ to, subject, text, html, headers });
+  const result = await sendGridEmail({ to, subject, text, html, headers, replyTo: process.env.SWAN_REPLY_TO || undefined });
   return {
     success: Boolean(result?.success),
     subject,
@@ -196,7 +196,7 @@ export const buildNurtureEmailVars = ({ leadId, clientName } = {}) => {
   const apiBase = (process.env.API_URL || appBase || '').replace(/\/+$/, '');
   const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || ''; // dedicated secret only — never borrow JWT_SECRET (rotation would invalidate live links)
   let unsubscribeUrl;
-  if (apiBase && leadId != null && secret) {
+  if (apiBase && /^https:\/\//i.test(apiBase) && leadId != null && secret) { // https only — never send the token over cleartext http
     const token = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
     unsubscribeUrl = `${apiBase}/api/marketing/unsubscribe?lead=${encodeURIComponent(leadId)}&token=${token}`;
   }

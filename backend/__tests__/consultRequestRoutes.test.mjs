@@ -93,10 +93,11 @@ it('#2 anti-bomb: a repeat consult of an ALREADY-scheduled lead does NOT re-noti
   expect(sendEmail).not.toHaveBeenCalled();
 });
 
-it('#2 a lead transitioning INTO scheduled DOES notify', async () => {
-  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'new', status: 'scheduled' });
+it('#2/M4 a repeat submit of an EXISTING lead does NOT notify (only NEW leads notify)', async () => {
+  // Realistic repeat-submit shape: existing lead is never mutated, so status===previousStatus.
+  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'new', status: 'new' });
   await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
-  expect(sendEmail).toHaveBeenCalledTimes(1);
+  expect(sendEmail).not.toHaveBeenCalled();
 });
 
 it('#7 400s on a name longer than Lead.firstName varchar(100)', async () => {

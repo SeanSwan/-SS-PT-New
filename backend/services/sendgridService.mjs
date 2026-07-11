@@ -29,7 +29,7 @@ try {
  * @param {string} options.html - HTML version of the email (optional).
  * @returns {Promise<Object>} - Result of the email sending operation.
  */
-export async function sendGridEmail({ to, subject, text, html, headers }) {
+export async function sendGridEmail({ to, subject, text, html, headers, replyTo }) {
   // Check if SendGrid service is configured
   if (!sendgridServiceReady) {
     logger.error('Attempted to send email via SendGrid, but it is not configured.');
@@ -64,6 +64,7 @@ export async function sendGridEmail({ to, subject, text, html, headers }) {
     text,
     ...(html && { html }), // Add HTML if provided
     ...(headers && typeof headers === 'object' && { headers }), // e.g. List-Unsubscribe (RFC 8058)
+    ...(replyTo && { replyTo }), // route replies to a monitored inbox (not a noreply from-address)
   };
 
   try {

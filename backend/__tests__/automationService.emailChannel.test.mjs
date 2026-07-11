@@ -143,14 +143,14 @@ describe('processScheduledMessages — email-only lead is nurtured', () => {
     expect(res.results).toEqual([{ id: 1, status: 'cancelled' }]);
   });
 
-  it('an unverifiable-consent (checked:false) email lead FAILS CLOSED (never emailed)', async () => {
+  it('an unverifiable-consent (checked:false) email lead is NOT sent — DEFERS closed (transient, retried)', async () => {
     const log = makeEmailLog();
     logFindAll.mockResolvedValue([log]);
     resolveSuppression.mockResolvedValue({ suppressed: false, checked: false });
 
     const res = await processScheduledMessages();
 
-    expect(emailTemplated).not.toHaveBeenCalled();
-    expect(res.results).toEqual([{ id: 1, status: 'failed' }]);
+    expect(emailTemplated).not.toHaveBeenCalled();                 // fail-closed: nothing sent while consent unverified
+    expect(res.results).toEqual([{ id: 1, status: 'deferred' }]);  // transient DB blip → retry, not permanent drop
   });
 });
