@@ -52,13 +52,14 @@ describe('ProgressReportPdfButton', () => {
     expect(input.sections[0].rows).toEqual([{ id: 'Wk 1', label: 'Wk 1', value: '3 workouts' }]);
   });
 
-  it('defaults the header name and surfaces an honest failure note', async () => {
+  it('defaults the header name to a brand-neutral label and surfaces an honest failure note', async () => {
     mocks.download.mockRejectedValueOnce(new Error('boom'));
     render(<ProgressReportPdfButton charts={charts} />);
 
     fireEvent.click(screen.getByRole('button', { name: /download progress report pdf/i }));
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent(/try again/i));
-    expect(mocks.download.mock.calls[0][0].clientName).toBe('SwanStudios Client');
+    // Neutral fallback — an unnamed Move Fitness client must not be stamped "SwanStudios".
+    expect(mocks.download.mock.calls[0][0].clientName).toBe('Client');
   });
 });
