@@ -86,18 +86,21 @@ it('M4: 400s on over-length notes', async () => {
   expect(res.status).toBe(400);
 });
 
-it('#2 anti-bomb: a repeat consult of an ALREADY-scheduled lead does NOT re-notify the owner', async () => {
-  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'scheduled', status: 'scheduled' });
+it('an existing-lead consult DOES notify the owner (a returning high-intent prospect gets a signal)', async () => {
+  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'new', status: 'new' });
   const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
   expect(res.status).toBe(201);
-  expect(sendEmail).not.toHaveBeenCalled();
+  expect(sendEmail).toHaveBeenCalledTimes(1);
 });
 
-it('#2/M4 a repeat submit of an EXISTING lead does NOT notify (only NEW leads notify)', async () => {
-  // Realistic repeat-submit shape: existing lead is never mutated, so status===previousStatus.
-  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'new', status: 'new' });
-  await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
-  expect(sendEmail).not.toHaveBeenCalled();
+// NOTE: keep this LAST — it exhausts the module-level global owner-notify budget for the window.
+it('H1: owner alerts are GLOBALLY capped — an email-rotation flood cannot bomb the inbox', async () => {
+  capture.mockResolvedValue({ leadId: 5, created: true, status: 'scheduled' });
+  for (let i = 0; i < 100; i++) {
+    await request(app).post('/api/consult-request').send({ email: `flood${i}@b.com` });
+  }
+  expect(sendEmail.mock.calls.length).toBeLessThan(100);       // capping demonstrably happened
+  expect(sendEmail.mock.calls.length).toBeLessThanOrEqual(30); // within the per-window cap
 });
 
 it('#7 400s on a name longer than Lead.firstName varchar(100)', async () => {

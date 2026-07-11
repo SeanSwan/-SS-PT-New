@@ -31,6 +31,7 @@ const shell = (title, inner) => `<!doctype html><html><head><meta charset="utf-8
 
 const INVALID = shell('Link invalid', '<p style="margin:0;color:#5A5F6A;">This unsubscribe link is invalid or has expired.</p>');
 const DONE = shell('Unsubscribed', "<p style=\"margin:0;color:#5A5F6A;\">You've been removed from SwanStudios marketing emails and won't receive further messages.</p>");
+const PROCESSING = shell('Request received', "<p style=\"margin:0;color:#5A5F6A;\">We're processing your unsubscribe request. If you keep receiving marketing emails, please contact us.</p>");
 
 /** Read lead+token from body+query (POST) or query (GET) and verify the HMAC. */
 const parseReq = (req) => {
@@ -48,7 +49,7 @@ const suppressLeadEmail = async (leadId) => {
   const { default: Lead } = await import('../models/Lead.mjs');
   const lead = await Lead.findByPk(leadId, { attributes: ['id', 'email'] });
   const email = String(lead?.email || '').trim().toLowerCase();
-  if (!email) return false;
+  if (!email) return true; // no email to suppress (lead gone / never had one) — nothing to do = done
 
   const { default: Subscriber } = await import('../models/Subscriber.mjs');
   const [subscriber] = await Subscriber.findOrCreate({
@@ -83,13 +84,16 @@ router.get('/unsubscribe', limit, (req, res) => {
 router.post('/unsubscribe', async (req, res) => {
   const { leadId, valid } = parseReq(req);
   if (!valid) return res.status(400).send(INVALID);
+  let recorded = false;
   try {
-    await suppressLeadEmail(leadId);
+    recorded = await suppressLeadEmail(leadId);
   } catch (err) {
-    logger.error(`[MarketingUnsubscribe] lead#${leadId} error: ${err?.message}`);
-    // Fail safe: opt-out intent is honored on retry; never 500 a public unsubscribe.
+    logger.error(`[MarketingUnsubscribe] lead#${leadId} suppress failed: ${err?.message}`);
   }
-  return res.status(200).send(DONE);
+  // Honest: only claim "Unsubscribed" when the opt-out actually recorded. On a transient failure
+  // return a non-committal 200 (never 500 a one-click POST) instead of a FALSE success — the user/
+  // provider isn't told it worked when it didn't. (Durable retry queue = documented follow-up.)
+  return res.status(200).send(recorded ? DONE : PROCESSING);
 });
 
 export default router;

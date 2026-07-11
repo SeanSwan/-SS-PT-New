@@ -19,6 +19,21 @@ const router = express.Router();
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+// GLOBAL owner-notify throttle (independent of the per-IP request limiter): bounds the owner
+// inbox / SendGrid-quota blast from email-rotation abuse (each distinct email = a new lead + an
+// alert). In-memory rolling window — a pragmatic per-process cap; a shared/durable cap is a
+// documented follow-up. Env-tunable.
+const OWNER_NOTIFY_MAX = Number(process.env.SWAN_OWNER_NOTIFY_MAX_PER_HOUR) || 30;
+const OWNER_NOTIFY_WINDOW_MS = 60 * 60 * 1000;
+let ownerNotifyTimes = [];
+const ownerNotifyAllowed = () => {
+  const now = Date.now();
+  ownerNotifyTimes = ownerNotifyTimes.filter((t) => now - t < OWNER_NOTIFY_WINDOW_MS);
+  if (ownerNotifyTimes.length >= OWNER_NOTIFY_MAX) return false;
+  ownerNotifyTimes.push(now);
+  return true;
+};
+
 const notifyOwner = async ({ name, email, phone, preferredTime, notes, result }) => {
   const recipients = [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean);
   if (!recipients.length) return;
@@ -63,12 +78,13 @@ router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req,
       logger.error(`[ConsultRequest] capture failed: ${result.error}`);
       return res.status(500).json({ success: false, message: 'Could not record your request. Please try again.' });
     }
-    // Anti-bomb: alert the owner ONLY for a genuinely NEW lead (created). An existing lead is not
-    // mutated by a public submit (see consultRequestService), so a repeat submit — including
-    // email-rotation abuse against a known lead — cannot re-hammer the owner inbox / SendGrid quota.
-    // (Global new-lead notify cap = documented follow-up hardening item M5.)
-    if (result.created) {
-      await notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result });
+    // Owner alert for ANY genuine consult (new OR returning high-intent lead), behind the GLOBAL cap
+    // so email-rotation abuse can't flood the inbox / SendGrid quota. FIRE-AND-FORGET: the prospect
+    // isn't blocked on a SendGrid round-trip, and the response latency is constant regardless of
+    // new-vs-existing (no created-vs-existing timing oracle for lead enumeration).
+    if (ownerNotifyAllowed()) {
+      notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result })
+        .catch((err) => logger.error(`[ConsultRequest] owner notify failed (non-critical): ${err?.message}`));
     }
     return res.status(201).json({ success: true, message: 'Thanks! Sean will reach out to confirm your consult.' });
   } catch (err) {

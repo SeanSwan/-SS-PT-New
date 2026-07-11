@@ -99,10 +99,12 @@ describe('POST /api/marketing/unsubscribe (performs opt-out)', () => {
     expect(subFindOrCreate).toHaveBeenCalled();
   });
 
-  it('#11 never 500s a public unsubscribe even if the DB throws', async () => {
+  it('#11/M3 DB failure → 200 but does NOT falsely claim "Unsubscribed" (honest, never 500)', async () => {
     leadFindByPk.mockResolvedValue({ id: 5, email: 'a@b.com' });
     subFindOrCreate.mockRejectedValue(new Error('db down'));
     const res = await request(app).post('/api/marketing/unsubscribe').type('form').send({ lead: 5, token: tokenFor(5) });
     expect(res.status).toBe(200);
+    expect(res.text).not.toContain('Unsubscribed'); // no false success
+    expect(res.text).toContain('processing');
   });
 });

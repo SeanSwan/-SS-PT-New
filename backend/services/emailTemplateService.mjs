@@ -30,7 +30,7 @@ const MUTED = '#5A5F6A';      // secondary text
 const SURFACE = '#F4F8FC';    // light card surface
 const SAPPHIRE = '#002060';   // Midnight Sapphire — headings / primary
 const CYAN = '#2C7BB0';       // darkened Ice Wing for WCAG 4.5:1 on light
-const GOLD = '#9C7A1E';       // darkened Gilded Fern for contrast on light
+const GOLD = '#6B5310';       // Gilded Fern darkened to pass WCAG AA (4.5:1) on white
 
 /** Physical address is CAN-SPAM-required; sourced from env so it is never invented. */
 const businessAddressFallback = () => process.env.SWAN_BUSINESS_ADDRESS
@@ -52,6 +52,10 @@ const renderWith = (template, variables, transform) => (template || '').replace(
 );
 const renderText = (template, variables = {}) => renderWith(template, variables, (v) => String(v ?? ''));
 const renderHtml = (template, variables = {}) => renderWith(template, variables, (v) => htmlEscape(v));
+
+// Subject sanitizer: strip CR/LF + control chars (header-injection defense-in-depth even though the
+// @sendgrid v3 JSON API already blocks it), collapse whitespace, hard-cap length.
+const sanitizeSubject = (s) => String(s ?? '').replace(/[\x00-\x1F\x7F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
 
 const extractPlaceholders = (template) => {
   const found = new Set();
@@ -162,7 +166,7 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
     return { success: false, error: 'missing_business_address' };
   }
 
-  const subject = renderText(tpl.subject, vars);
+  const subject = sanitizeSubject(renderText(tpl.subject, vars));
   const text = renderText(tpl.text, vars);
   const html = renderHtml(wrapHtml(tpl.body), vars);
 

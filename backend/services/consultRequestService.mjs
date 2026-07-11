@@ -39,6 +39,7 @@ export async function captureConsultRequest({ name, email, phone = null, preferr
           source: 'website',
           sourceDetail: 'Consult request',
           status: 'scheduled',
+          scheduledAt: new Date(), // stamp the paired timestamp (funnel queries group 'scheduled' by scheduledAt)
           score: CONSULT_REQUEST_SCORE,
           tags: ['consult-request'],
           notes: notes || null,
