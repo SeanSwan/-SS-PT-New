@@ -193,16 +193,19 @@ describe('exportPopulatedPlanPDF — empty weeks edge case', () => {
 });
 
 describe('exportPopulatedPlanPDF — recommendations', () => {
-  it('emits recommendation bullets when present', () => {
+  it('emits recommendation bullets under the Swan Coach heading when present', () => {
     exportPopulatedPlanPDF(buildPlan(), 'Test');
+    // Client-facing branding rule: never surface "AI"; use Swan Coach.
+    expect(textCalls.some(t => t.includes('Swan Coach Recommendations'))).toBe(true);
+    expect(textCalls.some(t => t.includes('AI Recommendations'))).toBe(false);
     expect(textCalls.some(t => t.includes('Stay hydrated'))).toBe(true);
     expect(textCalls.some(t => t.includes('Track RPE'))).toBe(true);
   });
 
   it('omits the recommendations section when array is empty', () => {
     exportPopulatedPlanPDF(buildPlan({ recommendations: [] }), 'Test');
-    // The "AI Recommendations" section title should NOT be emitted.
-    expect(textCalls.some(t => t.includes('AI Recommendations'))).toBe(false);
+    // The "Swan Coach Recommendations" section title should NOT be emitted.
+    expect(textCalls.some(t => t.includes('Swan Coach Recommendations'))).toBe(false);
   });
 });
 

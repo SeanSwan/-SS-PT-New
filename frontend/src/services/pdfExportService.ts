@@ -741,7 +741,7 @@ const addPopulatedPlanRecommendations = (doc: jsPDF, y: number, plan: PDFPopulat
   if (plan.recommendations.length === 0) return y;
 
   let nextY = checkPageBreak(doc, y, 12 + plan.recommendations.length * 5);
-  nextY = addSectionTitle(doc, nextY, 'AI Recommendations');
+  nextY = addSectionTitle(doc, nextY, 'Swan Coach Recommendations');
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
 
