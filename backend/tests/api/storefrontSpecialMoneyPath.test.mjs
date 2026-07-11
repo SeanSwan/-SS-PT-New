@@ -98,3 +98,15 @@ describe('direct special fulfillment marker', () => {
     expect(purchase).toMatch(/specialOfferId:\s*String\(selectedPackage\.id\)/);
   });
 });
+
+describe('checkout expiration recovery', () => {
+  it('reopens only the cart tied to an expired Stripe session', () => {
+    const webhook = handlerBody(cartSource, "router.post('/webhook'");
+    const expired = webhook.slice(webhook.indexOf("case 'checkout.session.expired'"));
+    expect(expired).toMatch(/status:\s*'active'/);
+    expect(expired).toMatch(/paymentStatus:\s*'cancelled'/);
+    expect(expired).toMatch(/checkoutSessionExpired:\s*true/);
+    expect(expired).toMatch(/checkoutSessionId:\s*null/);
+    expect(expired).toMatch(/where:\s*\{[\s\S]*id:\s*normalizedCartId[\s\S]*status:\s*'pending_payment'[\s\S]*checkoutSessionId:\s*session\.id/);
+  });
+});

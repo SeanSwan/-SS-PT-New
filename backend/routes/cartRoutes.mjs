@@ -919,8 +919,16 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
         if (normalizedCartId) {
           const ShoppingCart = getShoppingCart();
           await ShoppingCart.update(
-            { checkoutSessionExpired: true },
-            { where: { id: normalizedCartId } }
+            {
+              status: 'active',
+              paymentStatus: 'cancelled',
+              checkoutSessionExpired: true,
+              checkoutSessionId: null,
+              paymentIntentId: null,
+            },
+            {
+              where: { id: normalizedCartId, status: 'pending_payment', checkoutSessionId: session.id },
+            }
           );
           logger.info('[Webhook] Checkout session expired for cart', {
             cartId: normalizedCartId
