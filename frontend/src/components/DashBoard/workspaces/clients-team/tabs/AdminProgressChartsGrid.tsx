@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
+import { useOptionalGlobalClient } from '../../../../../context/GlobalClientContext';
 import { getProgressProofStatusText } from '../../../../../utils/progressProofStatusText';
 import ProgressProofCockpit from '../../../progress-proof/ProgressProofCockpit';
 import ProgressReportPdfButton from '../../../progress-proof/ProgressReportPdfButton';
@@ -39,6 +40,14 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
     unavailableChartCount,
   } = useAdminClientProgressCharts(clientId);
 
+  // White-label the client-facing PDF by the SUBJECT client's source. Resolve it
+  // from the shared roster keyed by the charted clientId (not the "active" client),
+  // so every admin entry point (Progress tab, Workout History, View-As, modal)
+  // brands correctly without threading a prop through each chain. Fail-safe: an
+  // unknown source resolves to SwanStudios inside the exporter (brandIdentity).
+  const globalClient = useOptionalGlobalClient();
+  const clientSource = globalClient?.clientList.find((client) => client.id === clientId)?.clientSource ?? null;
+
   if (isLoading && nonEmptyChartCount === 0) {
     return <LoadingStrip>Loading {clientName}&apos;s progress charts...</LoadingStrip>;
   }
@@ -60,7 +69,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
       <SummaryLine>
         <TrendingUp size={13} />
         <span>{clientName} - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
-        <ProgressReportPdfButton charts={charts} clientName={clientName} />
+        <ProgressReportPdfButton charts={charts} clientName={clientName} clientSource={clientSource} />
       </SummaryLine>
       <ProgressChartCube
         charts={charts}

@@ -156,4 +156,14 @@ export function useGlobalClient() {
   return context;
 }
 
+/**
+ * Non-throwing variant of {@link useGlobalClient}. Returns null when rendered
+ * outside a GlobalClientProvider, so fail-safe read-only callers (e.g. resolving
+ * a client's PDF brand identity from the roster, or an isolated test harness)
+ * degrade gracefully instead of crashing the tree.
+ */
+export function useOptionalGlobalClient(): GlobalClientContextType | null {
+  return useContext(GlobalClientContext);
+}
+
 export default GlobalClientContext;

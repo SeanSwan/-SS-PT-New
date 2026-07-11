@@ -6,6 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { useAuth } from '../../../../context/AuthContext';
 import { useClientProgressCharts } from '../../../../hooks/analytics/useClientProgressCharts';
 import { getProgressProofStatusText } from '../../../../utils/progressProofStatusText';
 import { WORKOUT_LOGGED_EVENT } from '../../../../utils/workoutLoggedEvent';
@@ -54,6 +55,9 @@ import {
 
 const CanonicalProgressChartsGrid: React.FC = () => {
   const { charts, isLoading, error, refetch, nonEmptyChartCount, unavailableChartCount , lockedChartIds } = useClientProgressCharts();
+  // Client self-view: the subject IS the logged-in user, so white-label their
+  // progress-report PDF by their own source (move_fitness -> Move Fitness only).
+  const { user } = useAuth();
   const [activeLensId, setActiveLensId] = useState<ProgressChartLensId>('all');
 
   useEffect(() => {
@@ -88,7 +92,7 @@ const CanonicalProgressChartsGrid: React.FC = () => {
       <SectionHeader>
         <TrendingUp size={13} />
         <span>Progress overview - {getProgressProofStatusText(nonEmptyChartCount, unavailableChartCount)}</span>
-        <ProgressReportPdfButton charts={charts} />
+        <ProgressReportPdfButton charts={charts} clientSource={user?.clientSource} />
       </SectionHeader>
       <ExerciseCodexMatrix loggedExercises={charts.exerciseFrequency} />
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
