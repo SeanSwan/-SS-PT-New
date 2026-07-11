@@ -34,16 +34,24 @@ const ownerNotifyAllowed = () => {
   return true;
 };
 
+// Collapse CR/LF/control chars from prospect-controlled fields so a crafted name/notes can't inject
+// spoofed lines into the owner's alert (content-spoofing defense-in-depth; SMTP header injection is
+// already blocked by the SendGrid JSON API).
+const oneLine = (s) => String(s ?? '').replace(/[\r\n\t\f\v]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+
 const notifyOwner = async ({ name, email, phone, preferredTime, notes, result }) => {
   const recipients = [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean);
   if (!recipients.length) return;
-  const subject = `New consult request — ${name || email}`;
+  const n = oneLine(name), p = oneLine(phone), pt = oneLine(preferredTime), nt = oneLine(notes);
+  const subject = `New consult request — ${n || email}`.slice(0, 200);
   const text = `New free-consult request (confirm + schedule in the admin CRM):\n\n`
-    + `Name: ${name || '(none)'}\nEmail: ${email}\nPhone: ${phone || '(none)'}\n`
-    + `Preferred time: ${preferredTime || '(none)'}\nNotes: ${notes || '(none)'}\n`
+    + `Name: ${n || '(none)'}\nEmail: ${email}\nPhone: ${p || '(none)'}\n`
+    + `Preferred time: ${pt || '(none)'}\nNotes: ${nt || '(none)'}\n`
     + `Lead #${result?.leadId ?? '?'} (status now: ${result?.status ?? '?'})`;
   try {
-    await sendGridEmail({ to: recipients, subject, text }); // array → both owners notified
+    // `to: recipients` (array) = both owner addresses in one send. Trusted-internal (owner-set envs);
+    // a malformed OWNER_* would 400 the whole send — acceptable as they're Sean's own addresses.
+    await sendGridEmail({ to: recipients, subject, text });
   } catch (err) {
     logger.error(`[ConsultRequest] owner notify failed (non-critical): ${err?.message}`);
   }

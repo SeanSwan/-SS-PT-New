@@ -127,9 +127,16 @@ const envNonNegInt = (name, fallback) => {
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 };
-const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3);
-const FREQ_WINDOW_DAYS = envNonNegInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
-const FREQ_COOLDOWN_HOURS = envNonNegInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
+// WINDOW/COOLDOWN must be > 0: a 0 window disables the sent-based cap (sentAt>=now matches nothing);
+// a 0 cooldown makes a defer reschedule to `now` → re-selected every tick (busy-loop). CAP keeps 0
+// as a deliberate halt.
+const envPosInt = (name, fallback) => {
+  const v = envNonNegInt(name, fallback);
+  return v > 0 ? v : fallback;
+};
+const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3); // 0 = deliberate halt (allowed)
+const FREQ_WINDOW_DAYS = envPosInt('SWAN_AUTOMATION_WINDOW_DAYS', 7);
+const FREQ_COOLDOWN_HOURS = envPosInt('SWAN_AUTOMATION_COOLDOWN_HOURS', 24);
 const DAY_MS = 24 * 60 * 60 * 1000;
 // A log claimed ('processing') but never resolved this long ago was stranded by a crashed
 // mid-send; it becomes reclaimable so it isn't stuck forever (and stops permanently
@@ -322,6 +329,7 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
           log.changed('status', true);
         }
         log.scheduledFor = decision.nextAttempt;
+        log.error = null; // clear any stale error (e.g. a prior suppression_unverified defer)
         await log.save();
         results.push({ id: log.id, status: 'deferred' });
         continue;
