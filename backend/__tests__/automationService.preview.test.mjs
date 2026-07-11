@@ -110,6 +110,21 @@ describe('evaluateScheduledMessage (suppression decisions)', () => {
     expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
   });
 
+  // Locks the deliberate deliverable-address-BEFORE-quiet-hours order (guards defer-forever).
+  it('email with quiet hours but NO email fails immediately (not defer)', () => {
+    const d = evaluateScheduledMessage({ channel: 'email' }, { email: null, notificationPreferences: { quietHours: { start: '00:00', end: '23:59' } } }, new Date(), ALLOWED);
+    expect(d).toMatchObject({ action: 'fail', reason: 'no_email' });
+  });
+  it('sms with quiet hours but NO phone fails immediately (not defer)', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: null, notificationPreferences: { sms: true, quietHours: { start: '00:00', end: '23:59' } } }, new Date(), ALLOWED);
+    expect(d).toMatchObject({ action: 'fail', reason: 'no_phone' });
+  });
+  // Guards the zero-width quiet-hours case (equal start/end must NOT be a permanent blackout).
+  it('equal-window quiet hours is a no-op → send', () => {
+    const d = evaluateScheduledMessage({ channel: 'sms' }, { phone: '+1', notificationPreferences: { sms: true, quietHours: { start: '12:00', end: '12:00' } } }, new Date(), ALLOWED);
+    expect(d.action).toBe('send');
+  });
+
 });
 
 describe('previewScheduledMessages (dry-run)', () => {

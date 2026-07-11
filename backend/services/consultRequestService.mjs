@@ -10,7 +10,7 @@
  * Best-effort + non-blocking: returns a status object, never throws, dedupes by email,
  * and never downgrades a lead that has already `converted` into a customer.
  */
-import { splitLeadName, mergeLeadTags } from './leadCaptureShared.mjs';
+import { splitLeadName } from './leadCaptureShared.mjs';
 
 const CONSULT_REQUEST_SCORE = 60; // stronger intent than a bare contact-form touch
 
@@ -50,37 +50,27 @@ export async function captureConsultRequest({ name, email, phone = null, preferr
 
     const previousStatus = created ? null : lead.status;
 
-    // Existing lead → strengthen + move to scheduled (never downgrade a converted customer).
-    // SECURITY: a public caller is matched only by an attacker-suppliable email, so we do NOT
-    // write attacker-controlled phone onto an existing lead (CRM poisoning) — phone is accepted
-    // only on row CREATION (defaults above). The status/score advance is the intended consult signal.
-    if (!created) {
-      const updates = {
-        lastContactedAt: new Date(),
-        contactCount: (lead.contactCount || 0) + 1,
-        tags: mergeLeadTags(lead.tags, ['consult-request']),
-        score: Math.min(100, Math.max(lead.score || 0, CONSULT_REQUEST_SCORE)),
-      };
-      if (lead.status !== 'converted') updates.status = 'scheduled';
-      await lead.update(updates);
-    }
-
-    // Activity logging is BEST-EFFORT: the lead was already advanced above, so an
-    // activity-insert failure must NOT report the whole request as failed (that would 500
-    // the prospect + skip the owner notify while the lead is already 'scheduled').
-    try {
-      await LeadActivity.create({
-        leadId: lead.id,
-        type: 'meeting_scheduled',
-        performedByAI: false,
-        title: 'Consult requested (pending owner confirm)',
-        description: preferredTime
-          ? `Prospect requested a free consult — preferred time: ${preferredTime}`
-          : 'Prospect requested a free consult',
-        metadata: { preferredTime, notes, previousStatus, source: 'consult_request' },
-      });
-    } catch {
-      // swallow — the lead advancement (the important part) already succeeded.
+    // SECURITY (public, email-matched): a NEW prospect gets the full consult treatment — the
+    // findOrCreate defaults above already set status:'scheduled' + score + tags, and we write the
+    // consult timeline entry. An EXISTING lead is NOT mutated by an unauthenticated caller: no
+    // status advance, no score/tag bump, no attacker-controlled LeadActivity onto its authoritative
+    // timeline (that was an IDOR / pipeline-stage + timeline injection). The owner is still notified
+    // by the route so a genuine repeat consult is confirmed by a human, not auto-applied to the CRM.
+    if (created) {
+      try {
+        await LeadActivity.create({
+          leadId: lead.id,
+          type: 'meeting_scheduled',
+          performedByAI: false,
+          title: 'Consult requested (pending owner confirm)',
+          description: preferredTime
+            ? `Prospect requested a free consult — preferred time: ${preferredTime}`
+            : 'Prospect requested a free consult',
+          metadata: { preferredTime, notes, source: 'consult_request' },
+        });
+      } catch {
+        // best-effort — the lead was already created; an activity-insert failure must not fail the request.
+      }
     }
 
     return { leadId: lead.id, created, previousStatus, status: lead.status };

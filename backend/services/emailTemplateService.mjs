@@ -44,13 +44,12 @@ const htmlEscape = (s) => String(s ?? '')
 // Substitute {vars} using the FUNCTION form of replace so a value containing `$&`/`$1`
 // is inserted literally (never interpreted as a replacement pattern). `transform` decides
 // text-vs-HTML context: text is raw, HTML escapes each value (user-controlled clientName).
-const renderWith = (template, variables, transform) => {
-  let out = template || '';
-  for (const [key, value] of Object.entries(variables)) {
-    out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), () => transform(value));
-  }
-  return out;
-};
+const renderWith = (template, variables, transform) => (template || '').replace(
+  // SINGLE pass over the ORIGINAL template: a substituted value (e.g. a lead named "{consultUrl}")
+  // is inserted literally and never rescanned/re-expanded. Unknown placeholders are left as-is.
+  /\{([a-zA-Z0-9_]+)\}/g,
+  (match, key) => (Object.prototype.hasOwnProperty.call(variables, key) ? transform(variables[key]) : match),
+);
 const renderText = (template, variables = {}) => renderWith(template, variables, (v) => String(v ?? ''));
 const renderHtml = (template, variables = {}) => renderWith(template, variables, (v) => htmlEscape(v));
 
@@ -63,7 +62,7 @@ const extractPlaceholders = (template) => {
 };
 
 /** Shared HTML shell: light-safe, inlined hex, CAN-SPAM footer. Keeps templates DRY. */
-const wrapHtml = (innerHtml) => `<!doctype html><html><body style="margin:0;padding:0;background:${SURFACE};">
+const wrapHtml = (innerHtml) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:${SURFACE};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${SURFACE};padding:24px 12px;">
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:14px;border:1px solid #DCE6F0;overflow:hidden;">

@@ -27,19 +27,21 @@ it('creates a NEW lead as scheduled + logs a meeting_scheduled activity', async 
   expect(activityCreate).toHaveBeenCalledWith(expect.objectContaining({ type: 'meeting_scheduled', leadId: 1 }));
 });
 
-it('moves an EXISTING non-converted lead to scheduled', async () => {
+it('does NOT mutate an EXISTING lead (IDOR-safe: no status advance, no timeline write)', async () => {
   const update = vi.fn();
   findOrCreate.mockResolvedValue([{ id: 2, status: 'new', tags: [], score: 10, contactCount: 1, update }, false]);
   const res = await captureConsultRequest({ email: 'x@y.com' });
-  expect(update).toHaveBeenCalledWith(expect.objectContaining({ status: 'scheduled' }));
-  expect(res.previousStatus).toBe('new');
+  expect(update).not.toHaveBeenCalled();       // no attacker-driven status/score mutation
+  expect(activityCreate).not.toHaveBeenCalled(); // no attacker-controlled activity onto the timeline
+  expect(res).toMatchObject({ leadId: 2, created: false, previousStatus: 'new' });
 });
 
-it('NEVER downgrades a converted customer', async () => {
+it('a CONVERTED customer is untouched by a public consult submit', async () => {
   const update = vi.fn();
   findOrCreate.mockResolvedValue([{ id: 3, status: 'converted', tags: [], score: 90, contactCount: 5, update }, false]);
-  await captureConsultRequest({ email: 'c@y.com' });
-  expect(update.mock.calls[0][0].status).toBeUndefined(); // status NOT changed
+  const res = await captureConsultRequest({ email: 'c@y.com' });
+  expect(update).not.toHaveBeenCalled();
+  expect(res.status).toBe('converted');
 });
 
 it('uses leadId when provided (nurture-email consult link) — no dedupe lookup', async () => {

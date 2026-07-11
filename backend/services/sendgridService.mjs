@@ -41,7 +41,7 @@ export async function sendGridEmail({ to, subject, text, html, headers }) {
         text: text ? text.substring(0, 100) + '...' : 'No text content',
       });
     }
-    return { success: false, error: new Error('SendGrid service not configured') };
+    return { success: false, error: new Error('SendGrid service not configured'), retryable: true }; // env-fixable → caller defers
   }
 
   // Validate parameters
@@ -54,7 +54,7 @@ export async function sendGridEmail({ to, subject, text, html, headers }) {
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
   if (!fromEmail || !fromEmail.includes('@')) {
     logger.error(`Invalid 'from' address: ${fromEmail}`);
-    return { success: false, error: new Error('Invalid sender email address configured') };
+    return { success: false, error: new Error('Invalid sender email address configured'), retryable: true }; // env-fixable → caller defers
   }
 
   const msg = {
