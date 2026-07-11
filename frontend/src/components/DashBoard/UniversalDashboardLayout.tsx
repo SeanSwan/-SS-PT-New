@@ -27,6 +27,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAppDispatch } from '../../redux/hooks';
+import { useStyleLensAppearance } from '../../core/style-lens-os';
 import { 
   fetchEvents, 
   setUserContext,
@@ -49,6 +50,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const location = useLocation();
   const dispatch = useAppDispatch();
   
+  const { setPersistenceSuppressed } = useStyleLensAppearance();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryInitNonce, setRetryInitNonce] = useState(0);
@@ -75,6 +77,18 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const activeRole = (urlRole && validUrlRoles.includes(urlRole) && canViewUrlRole)
     ? urlRole
     : userRole;
+
+  const isAdministratorViewAs =
+    userRole === 'admin' &&
+    (activeRole === 'trainer' || activeRole === 'client');
+
+  useEffect(() => {
+    setPersistenceSuppressed(isAdministratorViewAs);
+
+    return () => {
+      setPersistenceSuppressed(false);
+    };
+  }, [isAdministratorViewAs, setPersistenceSuppressed]);
 
   // Initialize Redux user context and fetch role-based data
   useEffect(() => {

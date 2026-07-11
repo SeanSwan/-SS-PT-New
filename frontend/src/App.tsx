@@ -24,6 +24,7 @@ import { PaywallProvider } from './context/PaywallContext';
 import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
+import { StyleLensProvider } from './core/style-lens-os';
 import MenuStateProvider from './hooks/useMenuState';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 import AdminImpersonationBanner from './components/Admin/AdminImpersonationBanner';
@@ -236,7 +237,8 @@ const App = () => {
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <PerformanceTierProvider>
               <UniversalThemeProvider defaultTheme="crystalline-dark">
-                <ConfigProvider>
+                <StyleLensProvider>
+                  <ConfigProvider>
                   <MenuStateProvider>
                     <AuthProvider>
                       <FeatureAccessProvider>
@@ -262,7 +264,8 @@ const App = () => {
                       </FeatureAccessProvider>
                     </AuthProvider>
                   </MenuStateProvider>
-                </ConfigProvider>
+                  </ConfigProvider>
+                </StyleLensProvider>
               </UniversalThemeProvider>
             </PerformanceTierProvider>
           </StyleSheetManager>

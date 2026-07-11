@@ -1,0 +1,113 @@
+/**
+ * Brand-neutral contracts for structural application appearance.
+ * This module intentionally contains no product, route, or brand dependencies.
+ */
+
+export const STYLE_LENS_SLOTS = [
+  'shell',
+  'navigation',
+  'orientation',
+  'context-bar',
+  'current-state',
+  'insight',
+  'progress-proof',
+  'next-action',
+  'secondary-rail',
+  'action-dock',
+  'overlay-root',
+] as const;
+
+export const LAYOUT_PROFILE_IDS = [
+  'mobile-minimal',
+  'tablet',
+  'desktop-enhanced',
+] as const;
+
+export type StyleLensSlot = (typeof STYLE_LENS_SLOTS)[number];
+export type LayoutProfileId = (typeof LAYOUT_PROFILE_IDS)[number];
+export type MotionMode = 'auto' | 'reduced' | 'off';
+export type AppearanceDensity = 'comfortable' | 'compact';
+export type PalettePolicy =
+  | { mode: 'inherit-any' }
+  | { mode: 'curated'; paletteIds: readonly string[] }
+  | { mode: 'signature'; paletteId: string };
+
+export type ShellRendererId = 'default-shell';
+export type NavigationRendererId = 'default-navigation';
+export type ComponentRecipeId = 'default-recipe';
+
+export interface RendererAllowlist {
+  shell: readonly string[];
+  navigation: readonly string[];
+  recipes: readonly string[];
+}
+
+export interface AppearanceProfile {
+  profileSchemaVersion: number;
+  paletteThemeId: string;
+  styleLensId: string;
+  motionMode: MotionMode;
+  density: AppearanceDensity;
+  updatedAt: string;
+}
+
+export interface StyleLensProfile {
+  id: LayoutProfileId;
+  slotOrder: readonly StyleLensSlot[];
+}
+
+export interface MotionBudget {
+  mobileMs: number;
+  tabletMs: number;
+  desktopMs: number;
+  ambient: boolean;
+}
+
+export interface AssetReceipt {
+  id: string;
+  kind: 'static' | 'local-motion' | 'generated-motion';
+  fallbackId?: string;
+}
+
+export interface AccessibilityReceipt {
+  minimumTextContrast: number;
+  supportsReducedMotion: boolean;
+  minimumTouchTargetPx: number;
+}
+
+export interface PromotionReceipt {
+  status: 'approved' | 'experimental' | 'rejected';
+  reviewedBy?: string;
+}
+
+export interface StyleLensManifest {
+  manifestSchemaVersion: number;
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+  emotionalJob: string;
+  layoutSignature: string;
+  navigationRenderer: NavigationRendererId;
+  shellRenderer: ShellRendererId;
+  componentRecipes: Record<StyleLensSlot, ComponentRecipeId>;
+  layoutProfiles: Record<LayoutProfileId, StyleLensProfile>;
+  palettePolicy: PalettePolicy;
+  motionBudget: MotionBudget;
+  assetManifest: readonly AssetReceipt[];
+  accessibilityReceipt: AccessibilityReceipt;
+  promotion: PromotionReceipt;
+  fallbackLensId: string;
+}
+
+export interface ValidationResult {
+  ok: boolean;
+  issues: readonly string[];
+}
+
+export interface StyleLensRegistry {
+  get: (id: string) => StyleLensManifest | undefined;
+  resolve: (id: string) => StyleLensManifest;
+  available: () => StyleLensManifest[];
+  issues: (id: string) => readonly string[];
+}
