@@ -11,7 +11,7 @@ describe('Style Lens OS mounted integration', () => {
 
     expect(app).toContain("import { StyleLensProvider } from './core/style-lens-os'");
     expect(app).toMatch(
-      /<UniversalThemeProvider[^>]*>[\s\S]*<StyleLensProvider>[\s\S]*<ConfigProvider>/
+      /<UniversalThemeProvider[^>]*>[\s\S]*<StyleLensProvider[^>]*>[\s\S]*<ConfigProvider>/
     );
     expect(app).toMatch(
       /<\/ConfigProvider>[\s\S]*<\/StyleLensProvider>[\s\S]*<\/UniversalThemeProvider>/

@@ -149,5 +149,6 @@ export const createAppearanceTransitionCoordinator = ({
         pending?.resolve();
         pending = request;
       }),
+    applyImmediate: (profile: AppearanceProfile): void => void apply(profile),
   });
 };

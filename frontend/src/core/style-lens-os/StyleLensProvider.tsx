@@ -132,7 +132,7 @@ export const StyleLensProvider: React.FC<StyleLensProviderProps> = ({
 
   useEffect(() => {
     if (!coordinator) return;
-    void coordinator.transition(stateRef.current.committed);
+    coordinator.applyImmediate(stateRef.current.committed);
   }, [coordinator]);
 
   useEffect(() => {

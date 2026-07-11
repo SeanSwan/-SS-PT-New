@@ -271,3 +271,20 @@ export const SwatchChip = styled.span<{ $bg: string; $primary: string; $accent: 
     border: 1px solid rgba(0, 0, 0, 0.35);
   }
 `;
+
+export const StudioLoadingState = styled.div`
+  position: fixed;
+  top: 76px;
+  right: 12px;
+  z-index: var(--z-dropdown, 1260);
+  min-width: 260px;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing, #60c0f0) 34%, transparent);
+  border-radius: 16px;
+  background: var(--graphite, #1a1a24);
+  color: var(--frost-white, #e0ecf4);
+  font: 700 13px/1.3 'Sora', sans-serif;
+`;

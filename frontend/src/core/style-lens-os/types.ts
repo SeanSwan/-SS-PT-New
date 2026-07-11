@@ -32,9 +32,30 @@ export type PalettePolicy =
   | { mode: 'curated'; paletteIds: readonly string[] }
   | { mode: 'signature'; paletteId: string };
 
-export type ShellRendererId = 'default-shell';
-export type NavigationRendererId = 'default-navigation';
-export type ComponentRecipeId = 'default-recipe';
+export type ShellRendererId =
+  | 'default-shell'
+  | 'flagship-shell'
+  | 'calm-column-shell'
+  | 'folded-grid-shell'
+  | 'fracture-shell'
+  | 'instrument-shell'
+  | 'arcade-shell';
+export type NavigationRendererId =
+  | 'default-navigation'
+  | 'flagship-navigation'
+  | 'quiet-rail-navigation'
+  | 'blueprint-tabs-navigation'
+  | 'circuit-orbit-navigation'
+  | 'instrument-strip-navigation'
+  | 'arcade-dock-navigation';
+export type ComponentRecipeId =
+  | 'default-recipe'
+  | 'flagship-recipe'
+  | 'quiet-recipe'
+  | 'blueprint-recipe'
+  | 'kintsugi-recipe'
+  | 'instrument-recipe'
+  | 'arcade-recipe';
 
 export interface RendererAllowlist {
   shell: readonly string[];

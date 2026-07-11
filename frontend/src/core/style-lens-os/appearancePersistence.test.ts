@@ -88,6 +88,27 @@ describe('appearance persistence', () => {
     expect(storage.values.size).toBe(0);
   });
 
+  it('keeps structural appearance namespaced from color and motion storage', () => {
+    expect(APPEARANCE_STORAGE_KEY).toBe('style-lens-os:appearance-profile');
+    expect(APPEARANCE_STORAGE_KEY).not.toBe('swanstudios-theme');
+    expect(APPEARANCE_STORAGE_KEY).not.toBe('swanstudios-motion');
+  });
+
+  it('fails closed when local storage rejects a quota write', () => {
+    const storage: StorageLike = {
+      getItem: () => null,
+      setItem: () => {
+        throw new DOMException('Quota exceeded', 'QuotaExceededError');
+      },
+      removeItem: () => undefined,
+    };
+    const persistence = createAppearancePersistence({ storage, sourceId: 'tab-a' });
+
+    expect(
+      persistence.save(profile('quiet-meridian'), { suppressed: false }),
+    ).toBe(false);
+  });
+
   it('writes an origin envelope and ignores its own storage event', () => {
     const storage = createStorage();
     const persistence = createAppearancePersistence({

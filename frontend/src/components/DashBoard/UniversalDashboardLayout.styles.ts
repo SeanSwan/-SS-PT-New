@@ -132,8 +132,11 @@ export const UniversalLayoutContainer = styled.div`
 
 export const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: boolean }>`
   flex: 1;
-  margin-left: ${({ $sidebarCollapsed }) => ($sidebarCollapsed ? '64px' : '280px')};
-  padding: 24px;
+  margin-left: ${({ $sidebarCollapsed }) =>
+    $sidebarCollapsed
+      ? 'var(--lens-sidebar-collapsed, 64px)'
+      : 'var(--lens-sidebar-width, 280px)'};
+  padding: var(--lens-main-padding, 24px);
   min-height: 100vh;
   min-height: 100dvh;
   position: relative;
@@ -144,7 +147,7 @@ export const UniversalMainContent = styled(motion.main)<{ $sidebarCollapsed?: bo
 
   @media (max-width: 1024px) {
     margin-left: 0;
-    padding: 16px;
+    padding: var(--lens-main-padding-mobile, 16px);
     padding-top: 128px;
   }
 

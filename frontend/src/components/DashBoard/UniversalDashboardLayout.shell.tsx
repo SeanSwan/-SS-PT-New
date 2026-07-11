@@ -67,7 +67,7 @@ export const UniversalDashboardLayoutShell: React.FC<UniversalDashboardLayoutShe
   const themedShell = (content: React.ReactNode) => (
     <ThemeProvider theme={(parentTheme) => createUniversalDashboardTheme(activeRole, parentTheme)}>
       <UniversalGlobalStyles />
-      <UniversalLayoutContainer>{content}</UniversalLayoutContainer>
+      <UniversalLayoutContainer data-style-lens-shell>{content}</UniversalLayoutContainer>
     </ThemeProvider>
   );
 

@@ -1,6 +1,6 @@
-import React from 'react';
+import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from "vitest";
 import {
   APPEARANCE_STORAGE_KEY,
   DEFAULT_APPEARANCE_PROFILE,
@@ -14,24 +14,24 @@ import {
   type AppearanceProfile,
   type StorageLike,
   type StyleLensManifest,
-} from '.';
+} from ".";
 
 const quietManifest: StyleLensManifest = {
   ...DEFAULT_STYLE_LENS_MANIFEST,
-  id: 'quiet-meridian',
-  name: 'Quiet Meridian',
-  description: 'Restrained focus-first composition.',
-  layoutSignature: 'quiet-meridian',
+  id: "quiet-meridian",
+  name: "Quiet Meridian",
+  description: "Restrained focus-first composition.",
+  layoutSignature: "quiet-meridian",
   fallbackLensId: DEFAULT_STYLE_LENS_ID,
   componentRecipes: Object.fromEntries(
-    STYLE_LENS_SLOTS.map((slot) => [slot, 'default-recipe']),
-  ) as StyleLensManifest['componentRecipes'],
+    STYLE_LENS_SLOTS.map((slot) => [slot, "default-recipe"]),
+  ) as StyleLensManifest["componentRecipes"],
   layoutProfiles: Object.fromEntries(
     LAYOUT_PROFILE_IDS.map((id) => [
       id,
       { id, slotOrder: [...STYLE_LENS_SLOTS] },
     ]),
-  ) as StyleLensManifest['layoutProfiles'],
+  ) as StyleLensManifest["layoutProfiles"],
 };
 
 const createStorage = (): StorageLike & { values: Map<string, string> } => {
@@ -48,13 +48,17 @@ const Probe = () => {
   const appearance = useStyleLensAppearance();
   const target: AppearanceProfile = {
     ...DEFAULT_APPEARANCE_PROFILE,
-    styleLensId: 'quiet-meridian',
-    updatedAt: '2026-07-11T20:00:00.000Z',
+    styleLensId: "quiet-meridian",
+    updatedAt: "2026-07-11T20:00:00.000Z",
   };
   return (
     <>
-      <output data-testid="committed">{appearance.state.committed.styleLensId}</output>
-      <output data-testid="preview">{appearance.state.preview?.styleLensId ?? 'none'}</output>
+      <output data-testid="committed">
+        {appearance.state.committed.styleLensId}
+      </output>
+      <output data-testid="preview">
+        {appearance.state.preview?.styleLensId ?? "none"}
+      </output>
       <button type="button" onClick={() => appearance.beginPreview(target)}>
         Preview
       </button>
@@ -74,9 +78,42 @@ const Probe = () => {
   );
 };
 
-describe('StyleLensProvider', () => {
-  it('keeps preview isolated until Apply and persists the committed profile', async () => {
-    const root = document.createElement('div');
+describe("StyleLensProvider", () => {
+  it("applies the saved appearance immediately without animating first mount", () => {
+    const root = document.createElement("div");
+    const startViewTransition = vi.fn((update: () => void) => {
+      update();
+      return { finished: Promise.resolve() };
+    });
+    const original = document.startViewTransition;
+    Object.defineProperty(document, "startViewTransition", {
+      configurable: true,
+      value: startViewTransition,
+    });
+
+    try {
+      render(
+        <StyleLensProvider root={root}>
+          <Probe />
+        </StyleLensProvider>,
+      );
+
+      expect(root.dataset.styleLens).toBe(DEFAULT_STYLE_LENS_ID);
+      expect(startViewTransition).not.toHaveBeenCalled();
+    } finally {
+      if (original) {
+        Object.defineProperty(document, "startViewTransition", {
+          configurable: true,
+          value: original,
+        });
+      } else {
+        delete (document as Document & { startViewTransition?: unknown }).startViewTransition;
+      }
+    }
+  });
+
+  it("keeps preview isolated until Apply and persists the committed profile", async () => {
+    const root = document.createElement("div");
     const storage = createStorage();
     render(
       <StyleLensProvider
@@ -92,24 +129,24 @@ describe('StyleLensProvider', () => {
       </StyleLensProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
-    expect(screen.getByTestId('preview')).toHaveTextContent('quiet-meridian');
-    expect(screen.getByTestId('committed')).toHaveTextContent('default-safety');
-    expect(root.dataset.styleLens).toBe('default-safety');
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByTestId("preview")).toHaveTextContent("quiet-meridian");
+    expect(screen.getByTestId("committed")).toHaveTextContent("default-safety");
+    expect(root.dataset.styleLens).toBe("default-safety");
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+      fireEvent.click(screen.getByRole("button", { name: "Apply" }));
     });
-    expect(screen.getByTestId('committed')).toHaveTextContent('quiet-meridian');
-    expect(root.dataset.styleLens).toBe('quiet-meridian');
-    expect(storage.getItem(APPEARANCE_STORAGE_KEY)).toContain('quiet-meridian');
+    expect(screen.getByTestId("committed")).toHaveTextContent("quiet-meridian");
+    expect(root.dataset.styleLens).toBe("quiet-meridian");
+    expect(storage.getItem(APPEARANCE_STORAGE_KEY)).toContain("quiet-meridian");
   });
 
-  it('does not persist commits while suppression is active', async () => {
+  it("does not persist commits while suppression is active", async () => {
     const storage = createStorage();
     render(
       <StyleLensProvider
-        root={document.createElement('div')}
+        root={document.createElement("div")}
         storage={storage}
         sourceId="tab-a"
         registry={createStyleLensRegistry([
@@ -121,13 +158,13 @@ describe('StyleLensProvider', () => {
       </StyleLensProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Suppress' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    fireEvent.click(screen.getByRole("button", { name: "Suppress" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+      fireEvent.click(screen.getByRole("button", { name: "Apply" }));
     });
 
-    expect(screen.getByTestId('committed')).toHaveTextContent('quiet-meridian');
+    expect(screen.getByTestId("committed")).toHaveTextContent("quiet-meridian");
     expect(storage.values.size).toBe(0);
   });
 });
