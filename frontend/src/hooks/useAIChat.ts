@@ -7,7 +7,7 @@
  * Uses the production apiService so auth refresh / login redirect behavior is
  * shared with the rest of the dashboard.
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import apiService from '../services/api.service';
 import {
   buildAiApiError,
@@ -51,6 +51,7 @@ interface ConversationSummary {
   id: number;
   title: string | null;
   context: string;
+  role?: string;
   status: string;
   messageCount: number;
   lastMessageAt: string | null;
@@ -59,6 +60,7 @@ interface ConversationSummary {
 }
 
 type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
+type AIConversationRole = 'admin' | 'trainer' | 'client';
 type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
 export interface AIRequestContext {
   source?: string | null;
@@ -90,8 +92,10 @@ function activeConversationMatchesRequest(
   conversation: Conversation | null,
   context: AIContext,
   targetUserId?: number | string | null,
+  audienceRole?: AIConversationRole,
 ): conversation is Conversation {
   if (!conversation || conversation.context !== context) return false;
+  if (audienceRole && conversation.role !== audienceRole) return false;
   return normalizeTargetUserId(conversation.targetUserId) === normalizeTargetUserId(targetUserId);
 }
 
@@ -205,7 +209,7 @@ function enrichAssistantMessageWithActionMetadata(data: any): Message {
   return enrichedAssistantMsg;
 }
 
-export function useAIChat() {
+export function useAIChat(audienceRole?: AIConversationRole) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -216,6 +220,15 @@ export function useAIChat() {
   const abortRef = useRef<AbortController | null>(null);
   const convCacheTimeRef = useRef<number>(0);
   const loadConversationRequestRef = useRef(0);
+  const previousAudienceRoleRef = useRef(audienceRole);
+
+  useEffect(() => {
+    if (previousAudienceRoleRef.current === audienceRole) return;
+    previousAudienceRoleRef.current = audienceRole;
+    convCacheTimeRef.current = 0;
+    setConversations([]);
+    setActiveConversation(null);
+  }, [audienceRole]);
 
   const clearError = useCallback(() => {
     setError(null);
@@ -237,6 +250,7 @@ export function useAIChat() {
     setError(null);
     try {
       const payload: Record<string, unknown> = { context, title, responseStyle };
+      if (audienceRole) payload.audienceRole = audienceRole;
       if (targetUserId) payload.targetUserId = targetUserId;
       const res = await apiService.post('/api/ai-chat/conversations', payload);
       const data = res.data;
@@ -245,7 +259,7 @@ export function useAIChat() {
       const newConv: Conversation = {
         ...data.conversation,
         messages: [],
-        role: '',
+        role: data.conversation.role || audienceRole || '',
         metadata: {},
       };
       setActiveConversation(newConv);
@@ -257,7 +271,7 @@ export function useAIChat() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [audienceRole]);
 
   /**
    * List user's conversations
@@ -270,7 +284,8 @@ export function useAIChat() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiService.get(`/api/ai-chat/conversations?status=${status}&limit=20`);
+      const audienceQuery = audienceRole ? `&audienceRole=${audienceRole}` : '';
+      const res = await apiService.get(`/api/ai-chat/conversations?status=${status}&limit=20${audienceQuery}`);
       const data = res.data;
       if (!data.success) throw buildAiApiError(data, 'Failed to list conversations', res.status);
       setConversations(data.conversations);
@@ -283,7 +298,7 @@ export function useAIChat() {
     } finally {
       setLoading(false);
     }
-  }, [conversations]);
+  }, [audienceRole, conversations]);
 
   /**
    * Load a specific conversation with full message history
@@ -294,7 +309,8 @@ export function useAIChat() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiService.get(`/api/ai-chat/conversations/${id}`);
+      const audienceQuery = audienceRole ? `?audienceRole=${audienceRole}` : '';
+      const res = await apiService.get(`/api/ai-chat/conversations/${id}${audienceQuery}`);
       const data = res.data;
       if (!data.success) throw buildAiApiError(data, 'Failed to load conversation', res.status);
       if (loadConversationRequestRef.current === requestId) {
@@ -308,7 +324,7 @@ export function useAIChat() {
     } finally {
       if (loadConversationRequestRef.current === requestId) setLoading(false);
     }
-  }, []);
+  }, [audienceRole]);
 
   /**
    * Send a message to the active conversation and get AI response
@@ -396,7 +412,7 @@ export function useAIChat() {
     } finally {
       setSending(false);
     }
-  }, [activeConversation, clearError, setFailureState]);
+  }, [activeConversation, audienceRole, clearError, setFailureState]);
 
   /**
    * Archive or delete a conversation
@@ -440,11 +456,12 @@ export function useAIChat() {
 
     try {
       // Step 1: Ensure we have a conversation (create if needed)
-      let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId)
+      let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId, audienceRole)
         ? activeConversation.id
         : null;
       if (!convId) {
         const payload: Record<string, unknown> = { context, title, responseStyle };
+        if (audienceRole) payload.audienceRole = audienceRole;
         if (targetUserId) payload.targetUserId = targetUserId;
         const createRes = await apiService.post('/api/ai-chat/conversations', payload, {
           signal: abortRef.current.signal,
@@ -456,7 +473,7 @@ export function useAIChat() {
           ...createData.conversation,
           targetUserId: createData.conversation.targetUserId ?? targetUserId ?? null,
           messages: [],
-          role: '',
+          role: createData.conversation.role || audienceRole || '',
           metadata: {},
         };
         setActiveConversation(newConv);
@@ -515,7 +532,7 @@ export function useAIChat() {
     } finally {
       setSending(false);
     }
-  }, [activeConversation, clearError, setFailureState]);
+  }, [activeConversation, audienceRole, clearError, setFailureState]);
 
   /**
    * Start a fresh conversation (clear active)
@@ -588,4 +605,4 @@ export function useAIChat() {
   };
 }
 
-export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle };
+export type { Message, Conversation, ConversationSummary, AIContext, AIConversationRole, ResponseStyle };

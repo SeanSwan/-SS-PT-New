@@ -153,7 +153,7 @@
       ],
       "inputs": "`date`",
       "receipt": "rendered page path",
-      "description": "Render the GRAPHICAL command center: the ARMS/Four-C second-brain graph (applications, routines, memory, skills) around the Hermes core, live-lit from local stores, with thought-stream + vitals HUD - static HTML/SVG, zero buttons, no broker path (F-2/SB-2)",
+      "description": "Render the GRAPHICAL command center: the ARMS/Four-C second-brain graph (applications, routines, memory, skills) around the Hermes core, live-lit from local stores, with thought-stream + vitals HUD + ranked next-best-action. HTML/SVG + an HTML label overlay + VIEW-ONLY inlined client JS (zoom/pan/focus/keyboard; the only buttons are zoom/reset view controls). Zero network, zero action/command surface, no broker path - the page grants nothing (F-2/SB-2; redesign v2 Slice 1-2)",
       "killSwitch": null,
       "proposed": false
     },

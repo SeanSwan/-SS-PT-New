@@ -35,7 +35,7 @@ const AdherencePanel = styled.section`
   grid-column: 1 / -1;
   background: var(--surface-elevated, #141419);
   border: 1px solid var(--border-subtle, #1a1a24);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 1rem 1.125rem;
   display: flex;
   flex-direction: column;

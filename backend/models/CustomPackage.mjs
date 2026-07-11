@@ -6,11 +6,15 @@ import sequelize from '../database.mjs';
  * CustomPackage Model — "SwanStudios Special"
  *
  * Admin-created per-client custom packages that appear only in that
- * specific client's store page. Includes pricing guardrails:
- * - Base price per session: $175 minimum
- * - Warning threshold: $120/hr effective rate
- * - Absolute minimum: $100/hr effective rate
- * - Approval required below $120/hr
+ * specific client's store page.
+ *
+ * PRICING POLICY (Sean-arbitrated 2026-07-08): the admin is the FINAL DECIDER
+ * on every deal — there is NO enforced price floor, warning gate, or approval
+ * checkbox. The admin picks any effective per-session rate (down to $60 or
+ * lower) and it saves. The $175/session PAID sticker is the anchor; the whole
+ * discount is delivered as BONUS sessions (effective rate = totalPrice /
+ * (paid + bonus)). The effective rate is computed and shown as an
+ * informational readout only, never a block.
  */
 class CustomPackage extends Model {}
 
@@ -70,14 +74,15 @@ CustomPackage.init({
     allowNull: false,
     validate: { min: 1 }
   },
-  // Price per session for the PAID sessions
+  // Price per session for the PAID sessions. NO floor — the admin is the
+  // final decider (Sean 2026-07-08). Only a >0 sanity guard against a typo.
   pricePerSession: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     validate: {
       min: {
-        args: [100],
-        msg: 'Price per session cannot be below $100 (absolute minimum)'
+        args: [0.01],
+        msg: 'Price per session must be greater than $0'
       }
     }
   },
@@ -122,6 +127,36 @@ CustomPackage.init({
   // Reference to storefront item if this was linked to one
   storefrontItemId: {
     type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  // ── Special-offer validity / redemption (S1) ──────────────────────────
+  // one_time | n_times | time_window | ongoing
+  validityType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'one_time',
+  },
+  // null = unlimited (ongoing / time_window)
+  maxRedemptions: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  // null = unlimited; decremented on each purchase
+  remainingRedemptions: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  // Audit trail only (kept for record; NOT an enforced gate per the no-floor policy)
+  approvedByAdminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  approvedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  overrideReason: {
+    type: DataTypes.TEXT,
     allowNull: true,
   },
 }, {

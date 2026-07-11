@@ -16,6 +16,7 @@ type CoachCommandTabBarProps = {
   tabs?: CoachTab[];
   intakeCount?: number;
   plaudCount?: number;
+  draftCount?: number;
 };
 
 const TABS: { id: CoachTab; label: string; Icon: typeof Mic }[] = [
@@ -24,9 +25,9 @@ const TABS: { id: CoachTab; label: string; Icon: typeof Mic }[] = [
   { id: 'history', label: 'History', Icon: History },
 ];
 
-function reviewBadge(tab: CoachTab, intakeCount?: number, plaudCount?: number): string | null {
+function reviewBadge(tab: CoachTab, intakeCount?: number, plaudCount?: number, draftCount?: number): string | null {
   if (tab !== 'review') return null;
-  const count = Math.max(0, Number(intakeCount || 0)) + Math.max(0, Number(plaudCount || 0));
+  const count = Math.max(0, Number(intakeCount || 0)) + Math.max(0, Number(plaudCount || 0)) + Math.max(0, Number(draftCount || 0));
   if (!count) return null;
   return count > 99 ? '99+' : String(count);
 }
@@ -37,34 +38,74 @@ const CoachCommandTabBar: React.FC<CoachCommandTabBarProps> = ({
   tabs,
   intakeCount,
   plaudCount,
-}) => (
-  <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
-    {TABS.filter((tab) => !tabs || tabs.includes(tab.id)).map(({ id, label, Icon }) => {
-      const badge = reviewBadge(id, intakeCount, plaudCount);
-      return (
-        <button
-          type="button"
-          key={id}
-          className={`tab-button ${activeTab === id ? 'is-active' : ''}`}
-          aria-label={badge ? `${label}, ${badge} waiting` : label}
-          aria-controls={`coach-tabpanel-${id}`}
-          aria-pressed={activeTab === id}
-          aria-selected={activeTab === id}
-          id={`coach-tab-${id}`}
-          onClick={() => onTabChange(id)}
-          role="tab"
-        >
-          <Icon size={18} aria-hidden="true" />
-          <span className="tab-label">{label}</span>
-          {badge ? (
-            <span className="tab-badge" aria-hidden="true">
-              {badge}
-            </span>
-          ) : null}
-        </button>
-      );
-    })}
-  </nav>
-);
+  draftCount,
+}) => {
+  const tabRefs = React.useRef<Record<CoachTab, HTMLButtonElement | null>>({
+    talk: null,
+    review: null,
+    history: null,
+  });
+  const visibleTabs = TABS.filter((tab) => !tabs || tabs.includes(tab.id));
+  const visibleIds = visibleTabs.map((tab) => tab.id);
+
+  const focusTab = (tab: CoachTab) => {
+    onTabChange(tab);
+    window.setTimeout(() => tabRefs.current[tab]?.focus(), 0);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, id: CoachTab) => {
+    const index = visibleIds.indexOf(id);
+    if (index < 0) return;
+
+    let target: CoachTab | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      target = visibleIds[(index + 1) % visibleIds.length];
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      target = visibleIds[(index - 1 + visibleIds.length) % visibleIds.length];
+    } else if (event.key === 'Home') {
+      target = visibleIds[0];
+    } else if (event.key === 'End') {
+      target = visibleIds[visibleIds.length - 1];
+    }
+
+    if (!target) return;
+    event.preventDefault();
+    focusTab(target);
+  };
+
+  return (
+    <nav className="tab-bar" role="tablist" aria-label="Swan Coach sections">
+      {visibleTabs.map(({ id, label, Icon }) => {
+        const badge = reviewBadge(id, intakeCount, plaudCount, draftCount);
+        return (
+          <button
+            type="button"
+            key={id}
+            ref={(node) => {
+              tabRefs.current[id] = node;
+            }}
+            className={`tab-button ${activeTab === id ? 'is-active' : ''}`}
+            aria-label={badge ? `${label}, ${badge} waiting` : label}
+            aria-controls={`coach-tabpanel-${id}`}
+            aria-selected={activeTab === id}
+            id={`coach-tab-${id}`}
+            onClick={() => onTabChange(id)}
+            onKeyDown={(event) => handleKeyDown(event, id)}
+            role="tab"
+            tabIndex={activeTab === id ? 0 : -1}
+          >
+            <Icon size={18} aria-hidden="true" />
+            <span className="tab-label">{label}</span>
+            {badge ? (
+              <span className="tab-badge" aria-hidden="true">
+                {badge}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </nav>
+  );
+};
 
 export default CoachCommandTabBar;

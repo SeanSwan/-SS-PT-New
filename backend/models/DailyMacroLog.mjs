@@ -12,6 +12,7 @@
  */
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
+import nutritionProvenanceAttributes from './DailyMacroLog.provenance.mjs';
 
 class DailyMacroLog extends Model {}
 
@@ -183,6 +184,7 @@ DailyMacroLog.init({
     defaultValue: false,
     comment: 'Whether user confirmed the AI-parsed macros are correct',
   },
+  ...nutritionProvenanceAttributes,
 }, {
   sequelize,
   modelName: 'DailyMacroLog',
@@ -192,6 +194,8 @@ DailyMacroLog.init({
     { fields: ['userId', 'date'] },
     { fields: ['userId', 'date', 'mealType'] },
     { fields: ['date'] },
+    { fields: ['sourceRecordId'] },
+    { fields: ['userId', 'reviewStatus', 'date'] },
   ],
 });
 

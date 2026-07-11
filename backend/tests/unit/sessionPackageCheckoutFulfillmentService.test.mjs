@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     findOrCreate: vi.fn(),
   },
   mockUserModel: { findByPk: vi.fn() },
+  mockCustomPackage: { findOne: vi.fn() },
 }));
 
 vi.mock('../../database.mjs', () => ({
@@ -27,6 +28,10 @@ vi.mock('../../models/Order.mjs', () => ({
 
 vi.mock('../../models/User.mjs', () => ({
   default: mocks.mockUserModel,
+}));
+
+vi.mock('../../models/CustomPackage.mjs', () => ({
+  default: mocks.mockCustomPackage,
 }));
 
 vi.mock('../../utils/logger.mjs', () => ({
@@ -57,7 +62,7 @@ function makeSession(overrides = {}) {
     payment_intent: 'pi_test_pkg_123',
     metadata: {
       source: SESSION_PACKAGE_CHECKOUT_SOURCE,
-      packageId: 'starter',
+      packageId: '10',
       sessions: '5',
     },
     ...overrides,
@@ -80,6 +85,7 @@ describe('session package checkout fulfillment service', () => {
     vi.clearAllMocks();
     mocks.mockOrder.findOne.mockResolvedValue(null);
     mocks.mockOrder.findOrCreate.mockResolvedValue([{ id: 91 }, true]);
+    mocks.mockCustomPackage.findOne.mockResolvedValue(null);
   });
 
   it('detects direct session-package checkout metadata', () => {
@@ -159,5 +165,60 @@ describe('session package checkout fulfillment service', () => {
     });
     expect(mocks.mockUserModel.findByPk).not.toHaveBeenCalled();
     expect(mocks.mockOrder.findOrCreate).not.toHaveBeenCalled();
+  });
+
+  it('burns a direct-purchase special inside the fulfillment transaction', async () => {
+    const user = makeUser();
+    const applied = {};
+    const special = {
+      id: 77, storefrontItemId: 10, clientId: 3, remainingRedemptions: 1, validityType: 'one_time',
+      update: vi.fn(async (updates) => Object.assign(applied, updates)),
+    };
+    mocks.mockUserModel.findByPk.mockResolvedValue(user);
+    mocks.mockCustomPackage.findOne.mockResolvedValue(special);
+
+    const session = makeSession({
+      metadata: {
+        source: SESSION_PACKAGE_CHECKOUT_SOURCE,
+        packageId: '10',
+        sessions: '5',
+        specialOfferId: '10',
+      },
+    });
+
+    const result = await fulfillSessionPackageCheckoutSession(session);
+
+    expect(result.sessionsAdded).toBe(5);
+    expect(mocks.mockCustomPackage.findOne).toHaveBeenCalledWith({
+      where: { storefrontItemId: 10 },
+      transaction: mocks.transaction,
+      lock: 'UPDATE',
+    });
+    expect(applied).toEqual({ remainingRedemptions: 0, status: 'redeemed' });
+  });
+
+  it('rejects a second paid fulfillment after the special is exhausted', async () => {
+    const user = makeUser();
+    mocks.mockUserModel.findByPk.mockResolvedValue(user);
+    mocks.mockCustomPackage.findOne.mockResolvedValue({
+      id: 77,
+      storefrontItemId: 10,
+      clientId: 3,
+      remainingRedemptions: 0,
+      validityType: 'one_time',
+      update: vi.fn(),
+    });
+
+    const session = makeSession({
+      metadata: {
+        source: SESSION_PACKAGE_CHECKOUT_SOURCE,
+        packageId: '10',
+        sessions: '5',
+        specialOfferId: '10',
+      },
+    });
+
+    await expect(fulfillSessionPackageCheckoutSession(session)).rejects.toMatchObject({ code: 'NO_REDEMPTIONS_LEFT' });
+    expect(user.increment).not.toHaveBeenCalled();
   });
 });

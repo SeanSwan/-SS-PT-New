@@ -1270,7 +1270,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          WHERE "userId" = :userId LIMIT 1`, { userId }),
       // 12. Macro logs
       includeNutrition ? safeQuery(
-        `SELECT date, "mealType", description, calories, protein, carbs, fat, fiber
+        `SELECT date, "mealType", calories, protein, carbs, fat, fiber
          FROM daily_macro_logs
          WHERE "userId" = :userId AND date >= CURRENT_DATE - INTERVAL '2 days'
          ORDER BY date DESC, "createdAt" DESC LIMIT 20`, { userId }) : Promise.resolve([]),
@@ -1691,7 +1691,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       for (const m of macros) {
         const d = m.date?.toISOString?.()?.split('T')[0] || String(m.date);
         if (!byDate[d]) byDate[d] = { meals: [], t: { cal: 0, pro: 0, carb: 0, fat: 0 } };
-        const safeDescription = stripIdentityFromNotes(m.description, userId, clientIdentity) || 'Meal entry';
+        const safeDescription = 'Meal entry';
         byDate[d].meals.push(`${m.mealType}: ${safeDescription} (${m.calories || 0}cal ${m.protein || 0}P ${m.carbs || 0}C ${m.fat || 0}F)`);
         byDate[d].t.cal += (m.calories || 0); byDate[d].t.pro += (m.protein || 0);
         byDate[d].t.carb += (m.carbs || 0); byDate[d].t.fat += (m.fat || 0);

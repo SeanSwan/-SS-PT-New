@@ -32,6 +32,37 @@ describe('ClientNutritionEstimateReviewPanel logic', () => {
     });
   });
 
+  it('surfaces provenance and reconciliation facts a coach can act on', () => {
+    const [row] = buildNutritionEstimateReviewRows(clients, [{
+      id: 80,
+      userId: 101,
+      mealType: 'dinner',
+      description: 'restaurant bowl',
+      calories: 620,
+      protein: 38,
+      fiber: 8,
+      source: 'usda_lookup',
+      verified: false,
+      servingBasis: 'label',
+      servingQuantity: 1,
+      servingUnit: 'bowl',
+      caloriesReported: 620,
+      caloriesCalculated: 544,
+      reconciliationStatus: 'metabolic_deviation',
+      confidenceScore: 0.78,
+      reviewStatus: 'needs_review',
+      reviewReason: 'client_requested',
+    }]);
+
+    expect(row).toMatchObject({
+      reviewReasonLabel: 'Reason: Client requested review',
+      reviewStatusLabel: 'Status: Needs review',
+      servingLabel: 'Serving: 1 bowl (Label)',
+      confidenceLabel: 'Source confidence: 78%',
+      reconciliationLabel: 'Calories: 620 reported / 544 calculated',
+    });
+  });
+
   it('drops estimates for clients outside the visible roster instead of rendering fallback identities', () => {
     const rows = buildNutritionEstimateReviewRows(clients, [{
       id: 78,

@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   updateFilled: vi.fn(),
 }));
 
+vi.mock('./NutritionHydrationTab.weekStrip', () => ({
+  default: () => null,
+}));
+
 vi.mock('../../../hooks/useHydration', () => ({
   useHydration: () => ({
     filled: mocks.hydration.filled,

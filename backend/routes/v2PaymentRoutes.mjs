@@ -287,15 +287,6 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
-    // Launch P1-1 defense-in-depth: checkout re-verifies the store-prices
-    // grant even though cart add already enforced it.
-    if (!(await isPriceAccessGranted(req.user))) {
-      return res.status(403).json({
-        success: false,
-        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
-        error: { code: 'PRICE_ACCESS_REQUIRED' }
-      });
-    }
 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
     logger.info('[v2 Payment] Checkout session creation started', {
@@ -406,6 +397,36 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           requestedQuantity: stockValidationError.requestedQuantity,
           availableStock: stockValidationError.availableStock
         }
+      });
+    }
+
+    // Defense-in-depth: re-verify every per-client special in the cart belongs
+    // to this user and is still redeemable, right before we mint a Stripe
+    // session (the cart guard runs at add-time; this catches an expired/redeemed
+    // deal sitting in a stale cart). No-op for ordinary carts.
+    {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { assertCartSpecialsRedeemable, SpecialOfferError } =
+        await import('../services/specialOfferService.mjs');
+      try {
+        await assertCartSpecialsRedeemable({ cartItems: cart.cartItems, userId, CustomPackage });
+      } catch (e) {
+        if (e instanceof SpecialOfferError) {
+          return res.status(e.status || 409).json({ success: false, message: e.message, code: e.code });
+        }
+        throw e;
+      }
+    }
+
+    const cartContainsOnlySpecialOffers = (cartItems) => cartItems.length > 0
+      && cartItems.every((item) => item.storefrontItem?.isSpecialOffer === true);
+    const checkoutInvited = await isPriceAccessGranted(req.user)
+      || cartContainsOnlySpecialOffers(cart.cartItems);
+    if (!checkoutInvited) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        error: { code: 'PRICE_ACCESS_REQUIRED' }
       });
     }
 
@@ -537,6 +558,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       subtotal: subtotal,
       tax: usesStripeTax ? 0 : tax,
       paymentStatus: 'pending',
+      status: 'pending_payment',
+      checkoutSessionExpired: false,
       customerInfo: JSON.stringify({
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         email: customerInfo?.email || user.email,

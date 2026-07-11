@@ -44,9 +44,59 @@ describe('CoachCommandCenterPage keyboard submit', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const composer = composerInput();
-    fireEvent.change(composer, { target: { value: 'ã¡ã‚ƒãš' } });
+    fireEvent.change(composer, { target: { value: 'ime composition sample' } });
     fireEvent.keyDown(composer, { key: 'Enter', code: 'Enter', isComposing: true });
 
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+  });
+  it('closes the dock More menu from a window Escape when touch focus stays on the trigger', () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    const moreButton = screen.getByRole('button', { name: /^More command tools$/i });
+    fireEvent.click(moreButton);
+    expect(screen.getByRole('menu', { name: /^More command tools$/i })).toBeInTheDocument();
+
+    moreButton.focus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('menu', { name: /^More command tools$/i })).not.toBeInTheDocument();
+    expect(moreButton).toHaveFocus();
+  });
+
+  it('closes the dock More menu when keyboard focus leaves the popup', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    fireEvent.click(screen.getByRole('button', { name: /^More command tools$/i }));
+    const reviewIntake = screen.getByRole('menuitem', { name: /^Review intake$/i });
+    const composer = screen.getByRole('textbox', { name: /message swan coach/i });
+
+    await waitFor(() => expect(reviewIntake).toHaveFocus());
+    fireEvent.blur(reviewIntake, { relatedTarget: composer });
+    composer.focus();
+
+    expect(screen.queryByRole('menu', { name: /^More command tools$/i })).not.toBeInTheDocument();
+    expect(composer).toHaveFocus();
+  });
+  it('supports arrow, Home, and End keyboard navigation across Coach section tabs', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    const talkTab = screen.getByRole('tab', { name: /^Talk$/i });
+    expect(talkTab).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(talkTab, { key: 'ArrowRight' });
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
+    });
+    expect(screen.getByRole('tab', { name: /^Review/i })).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /^Review/i }), { key: 'End' });
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /^History$/i })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /^History$/i }), { key: 'Home' });
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /^Talk$/i })).toHaveAttribute('aria-selected', 'true');
+    });
   });
 });

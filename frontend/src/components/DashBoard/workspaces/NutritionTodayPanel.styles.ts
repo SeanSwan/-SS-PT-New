@@ -16,7 +16,7 @@ export const TodayHero = styled.div`
   min-height: 260px;
   padding: clamp(1rem, 2vw, 1.35rem);
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
-  border-radius: 18px;
+  border-radius: 8px;
   background:
     radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent), transparent 32%),
     linear-gradient(145deg, color-mix(in srgb, var(--surface-primary, #003080) 70%, transparent), color-mix(in srgb, var(--bg-base, #0A0A0F) 90%, transparent));
@@ -44,7 +44,7 @@ export const RingText = styled.div`
 export const RingValue = styled.span`
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
-  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  font-size: 2rem;
   font-weight: 900;
 `;
 
@@ -76,7 +76,7 @@ export const HeroTitle = styled.h2`
   margin: 0;
   color: var(--text-primary, #E0ECF4);
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(1.25rem, 2.4vw, 1.85rem);
+  font-size: 1.55rem;
   line-height: 1.12;
 `;
 
@@ -94,7 +94,7 @@ export const MilestoneNote = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | '
   max-width: 620px;
   padding: 0.75rem 0.85rem;
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-  border-radius: 12px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 44%, transparent);
   color: ${({ $tone }) => {
     if ($tone === 'purple') return 'var(--accent-secondary, #8B5CF6)';
@@ -136,11 +136,11 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   min-width: 0;
   padding: 0.55rem 0.85rem;
   border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent)')};
-  border-radius: 12px;
+  border-radius: 8px;
   background: ${({ $primary }) => ($primary
     ? 'var(--button-primary-bg, #002060)'
     : 'color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent)')};
-  color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #030712)' : 'var(--text-primary, #E0ECF4)')};
+  color: ${({ $primary }) => ($primary ? 'var(--button-primary-text, #E0ECF4)' : 'var(--text-primary, #E0ECF4)')};
   font: 900 0.8rem/1.15 var(--font-ui, 'Sora', sans-serif);
   cursor: pointer;
   white-space: normal;
@@ -173,7 +173,7 @@ export const InsightItem = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fe
   min-width: 0;
   padding: 0.85rem;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: 12px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent);
   color: ${({ $tone }) => {
     if ($tone === 'purple') return 'var(--accent-secondary, #8B5CF6)';
@@ -197,7 +197,7 @@ export const MetricPanel = styled.div<{ $tone?: 'cyan' | 'purple' | 'gold' | 'fe
   min-height: 92px;
   padding: 0.85rem;
   border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: 14px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 52%, transparent);
   color: ${({ $tone }) => {
     if ($tone === 'purple') return 'var(--accent-secondary, #8B5CF6)';
@@ -233,7 +233,7 @@ export const RailPanel = styled.div`
   min-width: 0;
   padding: 1rem;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  border-radius: 16px;
+  border-radius: 8px;
   background: color-mix(in srgb, var(--bg-elevated, #141419) 74%, transparent);
 `;
 export const RailTitle = styled.h3`

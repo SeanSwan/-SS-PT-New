@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 import { ensureLanes, seedSwitches, writeReceipt, readReceipts, vaultPaths } from './hermesRunsLib.mjs';
 import { createEntry, transitionEntry } from './queueModel.mjs';
-import { renderDigest, writeDigest } from './receipt-digest.mjs';
+import { renderDigest, writeDigest, computeDigestData } from './receipt-digest.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const GOLDEN = path.join(HERE, 'fixtures', 'golden-digest-2026-07-01.md');
@@ -199,4 +199,17 @@ test('UX-8: local mode writes a SIBLING -local.md; canonical digest + view untou
   assert.match(out.digestFile.replace(/\\/g, '/'), /digest-2026-07-01-local\.md$/);
   assert.equal(out.viewFile, null);
   assert.ok(fs.existsSync(out.digestFile));
+});
+
+test('computeDigestData: renderDigest is a pure formatter over it (structured data available to brain-view)', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-dg-'));
+  const swFile = path.join(root, 'switches.json');
+  buildFixtureDay(root, swFile);
+  const d = computeDigestData(root, DAY);
+  // structured fields brain-view's per-day gather (v2 A3) depends on
+  assert.equal(typeof d.counts.T0, 'number');
+  assert.ok(Array.isArray(d.attention) && Array.isArray(d.actorRows) && Array.isArray(d.receipts));
+  assert.equal(typeof d.approvalFlow.opened, 'number');
+  assert.ok('medianMin' in d.approvalFlow);
+  assert.ok(Array.isArray(d.silence) && Array.isArray(d.streamDates));
 });

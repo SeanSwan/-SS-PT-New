@@ -37,12 +37,16 @@ router.get('/', async (req, res) => {
       if (StorefrontItem && Op) {
         // Quick timeout for database queries with proper error handling
         try {
+          // Hidden per-client specials (isSpecialOffer) are excluded from every
+          // readiness count so a client's private deal never inflates the
+          // public "active packages" signal (HR-007).
           const queryPromise = Promise.all([
-            StorefrontItem.count(),
-            StorefrontItem.count({ where: { isActive: true } }),
+            StorefrontItem.count({ where: { isSpecialOffer: false } }),
+            StorefrontItem.count({ where: { isActive: true, isSpecialOffer: false } }),
             StorefrontItem.count({
               where: {
                 isActive: true,
+                isSpecialOffer: false,
                 price: { [Op.gt]: 0 }
               }
             })
@@ -123,9 +127,11 @@ router.get('/store', async (req, res) => {
     // Readiness diagnostics only — NO price fields. This endpoint is public
     // (mounted unauthenticated at /health and /api/health), so returning
     // price/totalCost here would bypass the invitation-only price gate that
-    // /api/storefront enforces via priceVisibilityService.
+    // /api/storefront enforces via priceVisibilityService. Hidden per-client
+    // specials (isSpecialOffer) are ALSO excluded — they must never appear in
+    // any public response, not even name/session counts (HR-007).
     const queryPromise = StorefrontItem.findAll({
-      where: { isActive: true },
+      where: { isActive: true, isSpecialOffer: false },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
       attributes: ['id', 'name', 'sessions', 'totalSessions', 'packageType']
     });

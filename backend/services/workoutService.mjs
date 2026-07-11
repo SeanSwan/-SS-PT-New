@@ -553,10 +553,10 @@ async function updateClientProgress(userId, sessionId, transaction) {
     lastWorkoutDate: session.completedAt || new Date(),
     
     // Update streak if applicable
-    currentStreak: updateStreak(clientProgress.lastWorkoutDate, clientProgress.currentStreak),
-    
-    // Update PR data
-    personalRecords: updatePersonalRecords(clientProgress.personalRecords || {}, metrics.personalRecords)
+    currentStreak: updateStreak(clientProgress.lastWorkoutDate, clientProgress.currentStreak)
+    // NOTE (Δ3/M10): the legacy `personalRecords` write was removed — ClientProgress has no
+    // such column, so Sequelize silently dropped it. PRs are the durable `personal_records`
+    // table (workoutPrDetectionService), the single source of truth.
   }, { transaction });
   
   // Update gamification data
@@ -579,8 +579,7 @@ function calculateProgressMetrics(session) {
     coreXP: 0,
     totalSets: 0,
     totalReps: 0,
-    totalWeight: 0,
-    personalRecords: {}
+    totalWeight: 0
   };
   
   // Process each exercise
@@ -606,20 +605,6 @@ function calculateProgressMetrics(session) {
       if (set.weightUsed && set.repsCompleted) {
         const weight = set.weightUsed * set.repsCompleted;
         metrics.totalWeight += weight;
-        
-        // Record potential PR
-        if (set.isPR) {
-          if (!metrics.personalRecords[exercise.id]) {
-            metrics.personalRecords[exercise.id] = [];
-          }
-          
-          metrics.personalRecords[exercise.id].push({
-            setId: set.id,
-            weight: set.weightUsed,
-            reps: set.repsCompleted,
-            date: set.completedAt || new Date()
-          });
-        }
       }
       
       // Calculate XP
@@ -763,39 +748,6 @@ function updateStreak(lastWorkoutDate, currentStreak) {
   
   // Otherwise, reset streak to 1
   return 1;
-}
-
-/**
- * Update personal records
- * @param {Object} currentPRs - Current personal records
- * @param {Object} newPRs - New personal records
- * @returns {Object} Updated personal records
- */
-function updatePersonalRecords(currentPRs, newPRs) {
-  const updatedPRs = { ...currentPRs };
-  
-  // Merge new PRs with current PRs
-  Object.keys(newPRs).forEach(exerciseId => {
-    if (!updatedPRs[exerciseId]) {
-      updatedPRs[exerciseId] = [];
-    }
-    
-    // Add new PRs
-    updatedPRs[exerciseId] = [
-      ...updatedPRs[exerciseId],
-      ...newPRs[exerciseId]
-    ];
-    
-    // Sort by date (descending)
-    updatedPRs[exerciseId].sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    // Keep only the 5 most recent PRs
-    if (updatedPRs[exerciseId].length > 5) {
-      updatedPRs[exerciseId] = updatedPRs[exerciseId].slice(0, 5);
-    }
-  });
-  
-  return updatedPRs;
 }
 
 /**
@@ -1271,12 +1223,6 @@ function sortExercisesByUserGoals(exercises, clientProgress, goal, userId) {
       default:
         // Balanced approach - no specific prioritization
         break;
-    }
-    
-    // Adjust score based on personal records
-    if (clientProgress.personalRecords && clientProgress.personalRecords[exercise.id]) {
-      // Add bonus for exercises the user has PRs in (they enjoy/succeed at these)
-      score += 3;
     }
     
     // Stable tie-breaker keeps repeated recommendations deterministic.
@@ -2005,6 +1951,5 @@ export default {
   calculateSetXP,
   calculateNewLevel,
   updateStreak,
-  updatePersonalRecords,
   parseSetScheme
 };

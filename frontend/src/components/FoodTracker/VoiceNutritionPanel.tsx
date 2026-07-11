@@ -24,12 +24,15 @@ import { useNutritionDictation } from './useNutritionDictation';
 import { voiceDraftToMealPlan } from './mealPhotoLog';
 import type { MealPlanInput } from './MealPlanApproveSavePanel.logic';
 import MealPlanApproveSavePanel from './MealPlanApproveSavePanel';
+import { voiceMealsToNutritionDraft } from './nutritionDraft.adapters';
+import type { NutritionEntryDraft } from './nutritionDraft.types';
 
 interface VoiceNutritionPanelProps {
   onDataSent?: (success: boolean) => void;
+  onReviewDraft?: (draft: NutritionEntryDraft) => void;
 }
 
-const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent }) => {
+const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent, onReviewDraft }) => {
   const [transcript, setTranscript] = useState('');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState('');
@@ -57,8 +60,17 @@ const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent })
         setParseError('We could not pick out any foods from that. Try naming what you ate.');
         return;
       }
-      setFollowUps(Array.isArray(draft.followUpQuestions) ? draft.followUpQuestions : []);
-      setLowConfidence(Boolean(draft.lowConfidence));
+      const nextFollowUps = Array.isArray(draft.followUpQuestions) ? draft.followUpQuestions : [];
+      const isLowConfidence = Boolean(draft.lowConfidence);
+      if (onReviewDraft) {
+        onReviewDraft(voiceMealsToNutritionDraft(mealPlan, {
+          lowConfidence: isLowConfidence,
+          reviewNotes: nextFollowUps,
+        }));
+        return;
+      }
+      setFollowUps(nextFollowUps);
+      setLowConfidence(isLowConfidence);
       setPlan(mealPlan);
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -109,7 +121,7 @@ const VoiceNutritionPanel: React.FC<VoiceNutritionPanelProps> = ({ onDataSent })
               </MicBtn>
             )}
             <DraftBtn type="button" onClick={handleDraft} disabled={parsing || transcript.trim().length < 3} aria-busy={parsing}>
-              {parsing ? <><Loader2 size={16} className="spin" /> Drafting...</> : <><Sparkles size={16} /> Draft my meal</>}
+              {parsing ? <><Loader2 size={16} className="spin" /> Drafting...</> : <><Sparkles size={16} /> {onReviewDraft ? 'Review my meal' : 'Draft my meal'}</>}
             </DraftBtn>
           </Row>
           {!supported && <Hint>Voice input isn't available in this browser - type your meal above.</Hint>}
@@ -144,7 +156,7 @@ export default VoiceNutritionPanel;
 // ─────────────────────────────────────────────────────────────
 const Panel = styled.section`
   display: flex; flex-direction: column; gap: 0.75rem;
-  padding: 14px; border-radius: 12px;
+  padding: 14px; border-radius: 8px;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   background: color-mix(in srgb, var(--bg-surface, #1A1A24) 82%, transparent);
 `;
@@ -152,14 +164,14 @@ const Head = styled.div`display: flex; gap: 10px; color: var(--accent-primary, #
 const Title = styled.h4`margin: 0; color: var(--text-primary, #E0ECF4); font-size: 0.95rem;`;
 const Copy = styled.p`margin: 2px 0 0; color: var(--text-secondary, rgba(224,236,244,0.68)); font-size: 0.8rem;`;
 const Box = styled.textarea`
-  width: 100%; min-height: 76px; padding: 10px; border-radius: 10px; resize: vertical;
+  width: 100%; min-height: 76px; padding: 10px; border-radius: 8px; resize: vertical;
   background: var(--bg-base, #0A0A0F); color: var(--text-primary, #E0ECF4);
   border: 1px solid var(--border-soft, rgba(96,192,240,0.2)); font: inherit; font-size: 0.9rem;
 `;
 const Row = styled.div`display: flex; gap: 0.6rem; flex-wrap: wrap;`;
 const MicBtn = styled.button<{ $on?: boolean }>`
   min-height: 44px; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0 1rem;
-  border-radius: 12px; cursor: pointer; font-weight: 600;
+  border-radius: 8px; cursor: pointer; font-weight: 600;
   color: var(--text-primary, #E0ECF4);
   background: ${({ $on }) => ($on ? 'color-mix(in srgb, var(--accent-error, #C92A54) 24%, transparent)' : 'var(--card-dark, #141419)')};
   border: 1px solid ${({ $on }) => ($on ? 'var(--accent-error, #C92A54)' : 'var(--border-soft, rgba(96,192,240,0.25))')};
@@ -167,8 +179,8 @@ const MicBtn = styled.button<{ $on?: boolean }>`
 `;
 const DraftBtn = styled.button`
   min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: 0 1.1rem; border-radius: 12px; cursor: pointer; font-weight: 700; color: var(--text-inverse, #0F172A);
-  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
+  padding: 0 1.1rem; border-radius: 8px; cursor: pointer; font-weight: 700; color: var(--text-primary, #E0ECF4);
+  background: var(--primary, #002060); box-shadow: 0 0 16px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
   border: 1px solid transparent;
   &:disabled { opacity: 0.55; cursor: not-allowed; }
   .spin { animation: vn-spin 1s linear infinite; }
@@ -182,7 +194,7 @@ const FollowUps = styled.ul`
 `;
 const ResetBtn = styled.button`
   align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0 0.9rem; border-radius: 10px; cursor: pointer; background: transparent;
+  padding: 0 0.9rem; border-radius: 8px; cursor: pointer; background: transparent;
   color: var(--text-secondary, #A0B0C0); border: 1px solid var(--border-soft, rgba(96,192,240,0.2));
 `;
 const Status = styled.div<{ $error?: boolean; $warn?: boolean }>`

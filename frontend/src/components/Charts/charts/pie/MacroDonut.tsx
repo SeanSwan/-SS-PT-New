@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
-import { VictoryPie } from 'victory';
+import { VictoryContainer, VictoryPie } from 'victory';
 import {
   ChartCard, ChartHeader, ChartTitle, ChartSubtitle, ChartContainer,
   CenterLabel, CHART_COLORS, VICTORY_ANIMATE,
@@ -82,6 +82,10 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
               x="label"
               y="value"
               innerRadius={80}
+              containerComponent={<VictoryContainer
+                title="Current macronutrient split"
+                desc={data.map((datum) => datum.label).join(', ')}
+              />}
               animate={prefersReducedMotion ? undefined : VICTORY_ANIMATE}
               labelRadius={({ innerRadius }) => (innerRadius as number) + 30}
               style={{

@@ -66,7 +66,8 @@ if (isStripeEnabled()) {
 router.get('/', async (req, res) => {
   try {
     const packages = await StorefrontItem.findAll({
-      where: { isActive: true },
+      // Hidden per-client specials never appear in the public session list (HR-007-F3).
+      where: { isActive: true, isSpecialOffer: false },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
     });
     // Launch P1-1: strip price for non-granted callers (packages stay listed)
@@ -106,14 +107,6 @@ router.post('/purchase', protect, async (req, res) => {
     const { packageId } = req.body;
     const userId = req.user.id;
 
-    // Launch P1-1: purchasing requires the admin-granted store-prices flag
-    if (!(await isPriceAccessGranted(req.user))) {
-      return res.status(403).json({
-        success: false,
-        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
-        code: 'PRICE_ACCESS_REQUIRED'
-      });
-    }
     const normalizedPackageId = Number(packageId);
     
     if (!Number.isInteger(normalizedPackageId) || normalizedPackageId <= 0) {
@@ -129,11 +122,39 @@ router.post('/purchase', protect, async (req, res) => {
         isActive: true,
       },
     });
-    
+
     if (!selectedPackage) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid package selected' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid package selected'
+      });
+    }
+
+    // HR-007-F4: a hidden per-client special can be purchased ONLY by the
+    // client it belongs to. Confirm ownership + active/unexpired/redeemable
+    // before this route lets anyone check it out.
+    let isOwnedSpecial = false;
+    if (selectedPackage.isSpecialOffer) {
+      const { default: CustomPackage } = await import('../models/CustomPackage.mjs');
+      const { assertClientOwnsActiveSpecial, findSpecialByStorefrontItemId, SpecialOfferError } =
+        await import('../services/specialOfferService.mjs');
+      try {
+        const special = await findSpecialByStorefrontItemId(selectedPackage.id, { CustomPackage });
+        assertClientOwnsActiveSpecial({ customPackage: special, userId: req.user.id });
+        isOwnedSpecial = true;
+      } catch (e) {
+        if (e instanceof SpecialOfferError) {
+          return res.status(e.status || 403).json({ success: false, message: e.message, code: e.code });
+        }
+        throw e;
+      }
+    }
+
+    if (!isOwnedSpecial && !(await isPriceAccessGranted(req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'Store purchasing is by invitation. Contact SwanStudios to request access.',
+        code: 'PRICE_ACCESS_REQUIRED'
       });
     }
 
@@ -182,7 +203,8 @@ router.post('/purchase', protect, async (req, res) => {
       metadata: {
         source: SESSION_PACKAGE_CHECKOUT_SOURCE,
         packageId: String(normalizedPackageId),
-        sessions: String(packageSessions)
+        sessions: String(packageSessions),
+        ...(selectedPackage.isSpecialOffer ? { specialOfferId: String(selectedPackage.id) } : {})
       }
     }, {
       idempotencyKey

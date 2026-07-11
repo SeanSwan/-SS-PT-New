@@ -4,17 +4,17 @@
  * HOW IT FITS: UniversalDashboardLayout -> role /meal-planner route -> NutritionWorkspace.
  */
 import React, { useCallback, useState, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
+import NutritionWorkspaceCapture from './NutritionWorkspace.capture';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
 import ErrorBoundary from '../../../utils/error-boundary';
 import { useMacroSummary } from '../../../hooks/useMacroSummary';
 import { useWorkoutSessions } from '../../../hooks/useDashboardQueries';
 import { useSubscription } from '../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
-import LogFoodCommandCenter, { type LogFoodCommand } from '../../FoodTracker/LogFoodCommandCenter';
 import NutritionReviewDrawer from '../../FoodTracker/NutritionReviewDrawer';
+import NutritionDiaryTimeline from './NutritionDiaryTimeline';
 import { restaurantFoodToNutritionDraft } from '../../FoodTracker/nutritionDraft.adapters';
 import type { RestaurantAddFoodPayload } from '../../FoodTracker/RestaurantTab.logic';
 import type { NutritionEntryDraft } from '../../FoodTracker/nutritionDraft.types';
@@ -38,21 +38,18 @@ import {
   MoreToolsLabel,
   MoreToolsRow,
   MoreToolsSelect,
-  TabBtn,
-  TabRow,
   WorkspaceRoot,
 } from './NutritionWorkspace.styles';
 import {
   NUTRITION_MORE_TABS,
-  NUTRITION_PRIMARY_TABS,
   NUTRITION_TAB_LABELS,
   isMoreNutritionTab,
   nutritionPanelId,
-  nutritionTabId,
   type Tab,
 } from './NutritionWorkspace.tabs';
 
 const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'));
+const NutritionBarcodeCapture = lazy(() => import('../../FoodTracker/NutritionBarcodeCapture'));
 const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntelligenceDashboard'));
 const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
 const NutritionHydrationTab = lazy(() => import('./NutritionHydrationTab'));
@@ -66,7 +63,6 @@ const VoiceNutritionPanel = lazy(() => import('../../FoodTracker/VoiceNutritionP
 const NutritionTodayPanel = lazy(() => import('./NutritionTodayPanel'));
 
 const NutritionWorkspace: React.FC = () => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('today');
   const [gentleMode, setGentleMode] = useState<boolean>(() => readNutritionGentleModePreference());
   const [reviewDraft, setReviewDraft] = useState<NutritionEntryDraft | null>(null);
@@ -100,27 +96,14 @@ const NutritionWorkspace: React.FC = () => {
   }, []);
 
   const handleReviewSaved = useCallback((success: boolean, options?: { closeDrawer?: boolean }) => {
-    if (success) handleMealLogResult(true);
+    if (success) {
+      handleMealLogResult(true);
+      setActiveTab('today');
+    }
     if (success && options?.closeDrawer !== false) setReviewDraft(null);
   }, [handleMealLogResult]);
 
-  const handleLogFoodCommand = useCallback((command: LogFoodCommand) => {
-    const tabByCommand: Partial<Record<LogFoodCommand, Tab>> = {
-      manual: 'log',
-      voice: 'voice',
-      snap: 'meal-plan',
-      search: 'search',
-      restaurant: 'restaurant',
-    };
-    if (command === 'scan') {
-      // BP02 5.3: SPA navigation — the old full-page reload dropped auth
-      // context and re-downloaded the bundle on every scan tap.
-      navigate('/food-scanner');
-      return;
-    }
-    const nextTab = tabByCommand[command];
-    if (nextTab) setActiveTab(nextTab);
-  }, [navigate]);
+  const handleCloseReview = useCallback(() => setReviewDraft(null), []);
 
   const macroUnavailablePanel = macroError ? (
     <MacroHiddenPanel role="alert" aria-live="assertive" aria-label="Nutrition totals unavailable">
@@ -135,7 +118,7 @@ const NutritionWorkspace: React.FC = () => {
         <HeaderIcon><Apple size={28} /></HeaderIcon>
         <div>
           <HeaderTitle>Nutrition Intelligence</HeaderTitle>
-          <HeaderSubtitle>Log meals, track macros, hydration, and learn nutrition science</HeaderSubtitle>
+          <HeaderSubtitle>Today's diary, macro balance, hydration, and trainer review</HeaderSubtitle>
         </div>
         <HeaderActions>
           <GentleModeButton
@@ -150,27 +133,17 @@ const NutritionWorkspace: React.FC = () => {
         </HeaderActions>
       </Header>
 
-      <TabRow role="tablist" aria-label="Nutrition workspace tabs">
-        {NUTRITION_PRIMARY_TABS.map(tab => (
-          <TabBtn
-            key={tab.id}
-            id={nutritionTabId(tab.id)}
-            type="button"
-            $active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            whileHover={reduceMotion ? undefined : { scale: 1.02 }}
-            whileTap={reduceMotion ? undefined : { scale: 0.98 }}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={nutritionPanelId(tab.id)}
-          >
-            {tab.icon}
-            {tab.label}
-          </TabBtn>
-        ))}
-      </TabRow>
+      <NutritionWorkspaceCapture
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        summary={summary}
+        macroLoading={macroLoading}
+        gentleMode={gentleMode}
+        trainingDay={trainingDay}
+        reduceMotion={reduceMotion}
+      />
       <MoreToolsRow>
-        <MoreToolsLabel htmlFor="nutrition-more-tools">More</MoreToolsLabel>
+        <MoreToolsLabel htmlFor="nutrition-more-tools">Views &amp; tools</MoreToolsLabel>
         <MoreToolsSelect
           id="nutrition-more-tools"
           aria-label="More nutrition tools"
@@ -189,28 +162,37 @@ const NutritionWorkspace: React.FC = () => {
       </MoreToolsRow>
 
       <ContentArea
-        role="tabpanel"
+        role="region"
         id={nutritionPanelId(activeTab)}
-        aria-labelledby={activeMoreTab ? undefined : nutritionTabId(activeTab)}
-        aria-label={activeMoreTab ? NUTRITION_TAB_LABELS[activeTab] : undefined}
+        aria-label={NUTRITION_TAB_LABELS[activeTab]}
       >
         <ErrorBoundary>
           <Suspense fallback={<CosmicSuspenseLoader />}>
-            {activeTab === 'today' && (macroUnavailablePanel || (
-              <>
-                <LogFoodCommandCenter onCommand={handleLogFoodCommand} />
+            {activeTab === 'today' && (
+              macroError ? (
+                <>
+                  {macroUnavailablePanel}
+                  <section aria-label="Nutrition Today diary">
+                    <NutritionDiaryTimeline
+                      gentleMode={gentleMode}
+                      refreshKey="summary-unavailable"
+                      onReviewDraft={setReviewDraft}
+                    />
+                  </section>
+                </>
+              ) : (
                 <NutritionTodayPanel
                   summary={summary}
                   loading={macroLoading}
                   onNavigate={(target) => setActiveTab(target)}
-                  onLogged={refetchMacroSummary}
+                  onReviewDraft={setReviewDraft}
                   gentleMode={gentleMode}
                   onAskCoach={handleGentleCoach}
                   trainingDay={trainingDay}
                 />
-              </>
-            ))}
-            {activeTab === 'log' && <FoodIntakeForm onDataSent={handleMealLogResult} />}
+              )
+            )}
+            {activeTab === 'log' && <FoodIntakeForm onDataSent={handleMealLogResult} onReviewDraft={setReviewDraft} />}
             {activeTab === 'voice' && (
               <CrystallineLockOverlay
                 isLocked={!hasAINutrition}
@@ -219,10 +201,11 @@ const NutritionWorkspace: React.FC = () => {
                 ctaLabel="Upgrade to Swan Guardian"
                 onConfigure={() => { window.location.href = '/ascension'; }}
               >
-                <VoiceNutritionPanel onDataSent={handleMealLogResult} />
+                <VoiceNutritionPanel onDataSent={handleMealLogResult} onReviewDraft={setReviewDraft} />
               </CrystallineLockOverlay>
             )}
-            {activeTab === 'search' && <FoodSearchPanel onDataSent={handleMealLogResult} />}
+            {activeTab === 'search' && <FoodSearchPanel onDataSent={handleMealLogResult} onReviewDraft={setReviewDraft} />}
+            {activeTab === 'barcode' && <NutritionBarcodeCapture onReviewDraft={setReviewDraft} />}
             {activeTab === 'restaurant' && <RestaurantTab onAddFood={handleRestaurantFood} />}
             {activeTab === 'hydration' && <NutritionHydrationTab />}
             {activeTab === 'macros' && (macroUnavailablePanel || <MacroChartsPanel summary={summary} loading={macroLoading} gentleMode={gentleMode} />)}
@@ -255,7 +238,7 @@ const NutritionWorkspace: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
       </ContentArea>
-      <NutritionReviewDrawer draft={reviewDraft} onClose={() => setReviewDraft(null)} onSaved={handleReviewSaved} />
+      <NutritionReviewDrawer draft={reviewDraft} onClose={handleCloseReview} onSaved={handleReviewSaved} />
     </WorkspaceRoot>
   );
 };

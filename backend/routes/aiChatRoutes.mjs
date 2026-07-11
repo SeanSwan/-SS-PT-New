@@ -318,10 +318,18 @@ router.get('/diagnostics', (req, res) => {
 
 // Context permissions by role
 const ROLE_CONTEXTS = {
-  client: ['general', 'macro_logging', 'form_tips', 'workout_suggestions'],
+  client: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'coach_assistant'],
   trainer: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'scheduling', 'progress_analysis', 'exercise_library', 'client_onboarding', 'coach_assistant'],
   admin: ['general', 'macro_logging', 'form_tips', 'workout_suggestions', 'workout_generation', 'client_review', 'data_management', 'scheduling', 'progress_analysis', 'exercise_library', 'gamification', 'client_onboarding', 'coach_assistant'],
 };
+
+function resolveConversationAudienceRole(userRole, requestedRole) {
+  if (requestedRole === undefined || requestedRole === null || requestedRole === '') return userRole;
+  if (requestedRole === userRole) return userRole;
+  if (userRole === 'admin' && (requestedRole === 'trainer' || requestedRole === 'client')) return requestedRole;
+  if (userRole === 'trainer' && requestedRole === 'client') return 'client';
+  return null;
+}
 
 /**
  * POST /api/ai-chat/conversations
@@ -329,14 +337,18 @@ const ROLE_CONTEXTS = {
  */
 router.post('/conversations', async (req, res) => {
   try {
-    const { context = 'general', title, targetUserId, responseStyle = 'both' } = req.body;
+    const { context = 'general', title, targetUserId, responseStyle = 'both', audienceRole } = req.body;
     const userRole = req.user.role || 'client';
-    const allowedContexts = ROLE_CONTEXTS[userRole] || ROLE_CONTEXTS.client;
+    const conversationRole = resolveConversationAudienceRole(userRole, audienceRole);
+    if (!conversationRole) {
+      return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });
+    }
+    const allowedContexts = ROLE_CONTEXTS[conversationRole] || ROLE_CONTEXTS.client;
 
     if (!allowedContexts.includes(context)) {
       return res.status(403).json({
         success: false,
-        error: `Context "${context}" not available for ${userRole} role`,
+        error: `Context "${context}" not available for ${conversationRole} role`,
         allowedContexts,
       });
     }
@@ -381,13 +393,13 @@ router.post('/conversations', async (req, res) => {
     // (column may not exist yet if migration hasn't run)
     const createPayload = {
       userId: req.user.id,
-      role: userRole,
+      role: conversationRole,
       title: title || null,
       context,
       messages: [],
       status: 'active',
       messageCount: 0,
-      metadata: { responseStyle: resolvedStyle },
+      metadata: { responseStyle: resolvedStyle, audienceRole: conversationRole },
     };
     if (resolvedTargetUserId) {
       createPayload.targetUserId = resolvedTargetUserId;
@@ -416,6 +428,7 @@ router.post('/conversations', async (req, res) => {
         id: conversation.id,
         title: conversation.title,
         context: conversation.context,
+        role: conversation.role,
         targetUserId: conversation.targetUserId,
         status: conversation.status,
         messageCount: 0,
@@ -435,7 +448,11 @@ router.post('/conversations', async (req, res) => {
  */
 router.get('/conversations', async (req, res) => {
   try {
-    const { status = 'active', limit = 20, offset = 0 } = req.query;
+    const { status = 'active', limit = 20, offset = 0, audienceRole } = req.query;
+    const conversationRole = audienceRole ? resolveConversationAudienceRole(req.user.role || 'client', audienceRole) : null;
+    if (audienceRole && !conversationRole) {
+      return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });
+    }
 
     // Only allow listing active or archived conversations (not deleted)
     const allowedStatuses = ['active', 'archived'];
@@ -445,8 +462,9 @@ router.get('/conversations', async (req, res) => {
       where: {
         userId: req.user.id,
         status: resolvedStatus,
+        ...(conversationRole ? { role: conversationRole } : {}),
       },
-      attributes: ['id', 'title', 'context', 'status', 'messageCount', 'lastMessageAt', 'createdAt', 'targetUserId'],
+      attributes: ['id', 'title', 'context', 'role', 'status', 'messageCount', 'lastMessageAt', 'createdAt', 'targetUserId'],
       order: [['lastMessageAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']],
       limit: Math.min(Number(limit) || 20, 50),
       offset: Number(offset) || 0,
@@ -469,11 +487,18 @@ router.get('/conversations', async (req, res) => {
  */
 router.get('/conversations/:id', async (req, res) => {
   try {
+    const conversationRole = req.query.audienceRole
+      ? resolveConversationAudienceRole(req.user.role || 'client', req.query.audienceRole)
+      : null;
+    if (req.query.audienceRole && !conversationRole) {
+      return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });
+    }
     const conversation = await AiConversation.findOne({
       where: {
         id: req.params.id,
         userId: req.user.id,
         status: { [Op.ne]: 'deleted' },
+        ...(conversationRole ? { role: conversationRole } : {}),
       },
     });
 
@@ -658,7 +683,8 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // Without this guard, the admin's own user ID is used as the "client", causing
     // the AI to say "Client #2" (the admin's ID) instead of operating in general coach mode.
     const isAdminOrTrainer = conversation.role === 'admin' || conversation.role === 'trainer';
-    const enrichUserId = isAdminOrTrainer
+    const requesterIsStaff = req.user.role === 'admin' || req.user.role === 'trainer';
+    const enrichUserId = requesterIsStaff
       ? (conversation.targetUserId || null)   // null = no client selected → skip enrichment
       : (conversation.targetUserId || req.user.id);  // clients always enrich with their own data
 

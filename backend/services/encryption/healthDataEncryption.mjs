@@ -1,21 +1,15 @@
 /**
- * ============================================================
- * BLUEPRINT: Health Data Encryption Hooks
- * ============================================================
- * Purpose:  Sequelize lifecycle hooks to automatically encrypt
- *           sensitive health data fields on write and decrypt
- *           on read. Transparent to the rest of the application.
- * Scope:    Pain entries, body measurements, nutrition logs,
- *           client notes, progress data.
- * Owner:    Phase 11 — E2EE Encryption
- * ============================================================
+ * Sequelize health-data encryption hooks.
+ * Sensitive scalar fields and duplicate nutrition text in JSONB are encrypted
+ * at rest, then restored on read and write responses.
  */
-
-import { encryptFields, decryptFields, isEncryptionEnabled } from './encryptionService.mjs';
-
-// ---------------------------------------------------------------------------
-// Field Definitions — Which fields get encrypted per model
-// ---------------------------------------------------------------------------
+import {
+  decrypt,
+  decryptFields,
+  encrypt,
+  encryptFields,
+  isEncryptionEnabled,
+} from './encryptionService.mjs';
 
 const ENCRYPTED_MODEL_FIELDS = {
   ClientPainEntry: {
@@ -28,7 +22,7 @@ const ENCRYPTED_MODEL_FIELDS = {
   },
   DailyMacroLog: {
     context: 'health:nutrition',
-    fields: ['notes', 'meal_description'],
+    fields: ['description'],
   },
   ClientNote: {
     context: 'health:client_note',
@@ -44,67 +38,75 @@ const ENCRYPTED_MODEL_FIELDS = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Hook Registration
-// ---------------------------------------------------------------------------
+const mapNutritionItems = (items, transform) => {
+  if (!Array.isArray(items)) return items;
+  return items.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+    const next = { ...item };
+    for (const field of ['name', 'description']) {
+      if (typeof next[field] === 'string' && next[field]) {
+        next[field] = transform(next[field], `health:nutrition:items:${field}`);
+      }
+    }
+    return next;
+  });
+};
 
-/**
- * Register encryption hooks on a Sequelize model.
- * Silently skips if encryption is not enabled (no master key).
- *
- * @param {object} Model — Sequelize model class
- * @param {string} modelName — Name key from ENCRYPTED_MODEL_FIELDS
- */
+export const encryptNutritionItems = (items) => mapNutritionItems(items, encrypt);
+export const decryptNutritionItems = (items) => mapNutritionItems(items, decrypt);
+
+const transformNutritionItems = (instance, transform) => {
+  if (!instance || typeof instance.getDataValue !== 'function') return;
+  const items = instance.getDataValue('items');
+  if (items !== undefined) instance.setDataValue('items', transform(items));
+};
+
+const decryptInstance = (instance, validFields, config, isNutrition) => {
+  if (!instance || typeof instance.getDataValue !== 'function') return;
+  decryptFields(instance, validFields, config.context);
+  if (isNutrition) transformNutritionItems(instance, decryptNutritionItems);
+};
+
 export function registerEncryptionHooks(Model, modelName) {
   const config = ENCRYPTED_MODEL_FIELDS[modelName];
-  if (!config) return; // Model not configured for encryption
+  if (!config) return;
 
-  // Filter to only fields that actually exist on the model
-  const validFields = config.fields.filter(f => {
-    const attrs = Model.rawAttributes || Model.tableAttributes || {};
-    return !!attrs[f];
-  });
+  const attrs = Model.rawAttributes || Model.tableAttributes || {};
+  const validFields = config.fields.filter((field) => Boolean(attrs[field]));
+  const isNutrition = modelName === 'DailyMacroLog' && Boolean(attrs.items);
+  if (validFields.length === 0 && !isNutrition) return;
 
-  if (validFields.length === 0) return;
-
-  // Encrypt before save
   Model.addHook('beforeCreate', `encrypt_${modelName}`, (instance) => {
     if (!isEncryptionEnabled()) return;
     encryptFields(instance, validFields, config.context);
+    if (isNutrition) transformNutritionItems(instance, encryptNutritionItems);
   });
 
   Model.addHook('beforeUpdate', `encrypt_${modelName}`, (instance) => {
     if (!isEncryptionEnabled()) return;
-    // Only encrypt changed fields to avoid re-encrypting
-    const changedFields = validFields.filter(f => instance.changed(f));
-    if (changedFields.length > 0) {
-      encryptFields(instance, changedFields, config.context);
+    const changedFields = validFields.filter((field) => instance.changed(field));
+    if (changedFields.length > 0) encryptFields(instance, changedFields, config.context);
+    if (isNutrition && instance.changed('items')) {
+      transformNutritionItems(instance, encryptNutritionItems);
     }
   });
 
-  // Decrypt after read
   Model.addHook('afterFind', `decrypt_${modelName}`, (results) => {
-    if (!isEncryptionEnabled()) return;
-    if (!results) return;
-
+    if (!isEncryptionEnabled() || !results) return;
     const instances = Array.isArray(results) ? results : [results];
-    for (const instance of instances) {
-      if (instance && typeof instance.getDataValue === 'function') {
-        decryptFields(instance, validFields, config.context);
-      }
-    }
+    instances.forEach((instance) => decryptInstance(instance, validFields, config, isNutrition));
   });
+
+  for (const event of ['afterCreate', 'afterUpdate']) {
+    Model.addHook(event, `decrypt_${modelName}_${event}`, (instance) => {
+      if (isEncryptionEnabled()) decryptInstance(instance, validFields, config, isNutrition);
+    });
+  }
 }
 
-/**
- * Register encryption hooks on all configured health data models.
- * Call this after model associations are set up.
- *
- * @param {object} models — Object of Sequelize model classes
- */
 export function registerAllHealthEncryptionHooks(models) {
   if (!isEncryptionEnabled()) {
-    console.log('[HealthEncryption] Encryption disabled — hooks not registered');
+    console.log('[HealthEncryption] Encryption disabled - hooks not registered');
     return;
   }
 
@@ -113,15 +115,16 @@ export function registerAllHealthEncryptionHooks(models) {
     const Model = models[modelName];
     if (Model) {
       registerEncryptionHooks(Model, modelName);
-      registered++;
+      registered += 1;
     }
   }
-
   console.log(`[HealthEncryption] Registered encryption hooks on ${registered} models`);
 }
 
 export default {
   registerEncryptionHooks,
   registerAllHealthEncryptionHooks,
+  encryptNutritionItems,
+  decryptNutritionItems,
   ENCRYPTED_MODEL_FIELDS,
 };

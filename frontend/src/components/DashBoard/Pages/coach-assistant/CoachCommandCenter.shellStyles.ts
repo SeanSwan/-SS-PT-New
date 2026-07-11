@@ -58,7 +58,8 @@ export const coachCommandShellStyles = css`
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
-  textarea:focus-visible {
+  textarea:focus-visible,
+  .tab-scroll:focus-visible {
     outline: 2px solid var(--coach-cyan);
     outline-offset: 3px;
   }

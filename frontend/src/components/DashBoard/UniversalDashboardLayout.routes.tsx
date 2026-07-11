@@ -49,6 +49,7 @@ import {
   ModernUserManagementSystem,
   TrainerClientsWorkspace,
   NotesManager,
+  AdminCreateSpecialManager,
   NutritionPlanBuilder,
   NutritionWorkspaceLazy,
   PendingOrdersAdminPanel,
@@ -74,6 +75,7 @@ import {
   VirtualOlympicsPage,
   WorkoutLogger,
   WorkoutPlannerPage,
+  WorkoutDesignLabPage,
 } from './UniversalDashboardLayout.routeComponents';
 
 export interface DashboardRouteDefinition {
@@ -105,6 +107,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
       { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Create and update client nutrition plans' },
+      { path: '/admin-specials', component: AdminCreateSpecialManager, title: 'Client Deals', description: 'Create per-client custom session deals (bonus-session pricing)' },
       { path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
       { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
       { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
@@ -125,6 +128,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' },
       { path: '/challenges', component: ChallengeCommandWorkspace, title: 'Challenges', description: 'Challenge templates, live campaigns, results, submissions, and settings' },
       { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
+      { path: '/workout-design-lab', component: WorkoutDesignLabPage, title: 'Workout Design Lab', description: 'Eight read-only concepts for the unified client workout workflow' },
       { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
       { path: '/feature-access', component: FeatureAccessPage, title: 'Feature Access', description: 'Per-user feature flag management' },
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },

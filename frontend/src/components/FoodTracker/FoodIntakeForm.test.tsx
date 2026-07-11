@@ -66,6 +66,30 @@ describe('FoodIntakeForm edit-after-save flow', () => {
     expect(screen.getByText(/consistency beats perfect tracking/i)).toBeInTheDocument();
   });
 
+  it('hands a new manual meal to the shared review contract without writing first', async () => {
+    const user = userEvent.setup();
+    const onReviewDraft = vi.fn();
+
+    render(<FoodIntakeForm onDataSent={vi.fn()} onReviewDraft={onReviewDraft} />);
+    await fillMeal(user);
+    await user.click(screen.getByRole('button', { name: /review meal/i }));
+
+    expect(onReviewDraft).toHaveBeenCalledWith(expect.objectContaining({
+      contractVersion: '1.0',
+      source: 'manual',
+      foods: [expect.objectContaining({
+        description: 'Eggs',
+        mealType: 'breakfast',
+        serving: expect.objectContaining({ basis: 'household', label: '2 whole' }),
+        nutrients: expect.objectContaining({ calories: 300, protein: 24, carbs: 4, fat: 20 }),
+      })],
+    }));
+    expect(mocks.post).not.toHaveBeenCalled();
+    expect(mocks.logFoodIntake).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Food Name')).toHaveValue('Eggs');
+    expect(screen.getByLabelText('Portion/Serving Size')).toHaveValue('2 whole');
+  });
+
   it('creates a manual macro row, lets the client edit it, and updates through /api/macros/:id', async () => {
     mocks.post.mockResolvedValueOnce({
       data: {

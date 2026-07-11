@@ -141,6 +141,15 @@ StorefrontItem.init({
     defaultValue: true,
     allowNull: false,
   },
+  // Hidden client-scoped "SwanStudios Special" marker (S1). true = a per-client
+  // custom deal backed by a CustomPackage; EXCLUDED from the public catalog and
+  // buyable only by the client it belongs to. Additive + defaulted false so
+  // every existing package row is unchanged.
+  isSpecialOffer: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
   displayOrder: {
     type: DataTypes.INTEGER,
     allowNull: true,

@@ -154,7 +154,8 @@ describe('direct session-package purchase catalog truth', () => {
       }),
     ]);
     expect(mocks.mockStorefrontItem.findAll).toHaveBeenCalledWith(expect.objectContaining({
-      where: { isActive: true },
+      // HR-007-F3: hidden per-client specials are excluded from the public list.
+      where: { isActive: true, isSpecialOffer: false },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
     }));
   });

@@ -13,7 +13,7 @@
  * DATA FLOW:
  * Props In:  { onDataSent?: (success: boolean) => void }
  * State:     { query, category, allResults, loading, searched }
- * API Calls: USDA/OFF fetch via FoodSearchPanel.logic, POST /api/macros via useFoodSearchAddToLog
+ * API Calls: GET /api/nutrition/food-search via FoodSearchPanel.logic, POST /api/macros via useFoodSearchAddToLog
  * Events:    onDataSent(true|false) informs NutritionWorkspace macro refresh
  * Children:  styled primitives from FoodSearchPanel.styles
  *
@@ -25,9 +25,11 @@
  *   FoodSearchPanel --> useFoodSearchAddToLog
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Filter, Plus } from 'lucide-react';
+import { Check, ClipboardCheck, Filter, Plus, RefreshCw } from 'lucide-react';
 import { MEAL_TYPE_OPTIONS } from './mealPhotoLog';
 import { formatMealLabel, useFoodSearchAddToLog } from './useFoodSearchAddToLog';
+import { searchFoodToNutritionDraft } from './nutritionDraft.adapters';
+import type { NutritionEntryDraft } from './nutritionDraft.types';
 import {
   CATEGORIES,
   type FoodResult,
@@ -49,6 +51,7 @@ import {
   MealSelect,
   Meta,
   Name,
+  RetryButton,
   SIcon,
   SInput,
   SafetyPill,
@@ -67,6 +70,7 @@ interface BadgeProps {
 
 interface FoodSearchPanelProps {
   onDataSent?: (success: boolean) => void;
+  onReviewDraft?: (draft: NutritionEntryDraft) => void;
 }
 
 const formatMacroValue = (value: number | null | undefined, unit = '') =>
@@ -82,31 +86,40 @@ const IngredientBadge: React.FC<BadgeProps> = ({ group, isEUBanned, isGMO }) => 
   </>
 );
 
-const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
+const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent, onReviewDraft }) => {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [allResults, setAllResults] = useState<FoodResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const { addError, addToLog, addedIds, addedMealTypes, mealType, savingId, setMealType } = useFoodSearchAddToLog(onDataSent);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestSequence = useRef(0);
 
   const doSearch = useCallback(async (rawQuery: string) => {
+    const requestId = ++requestSequence.current;
     const trimmed = rawQuery.trim();
     if (!trimmed) {
       setAllResults([]);
       setSearched(false);
+      setSearchError(false);
       return;
     }
 
     setLoading(true);
     setSearched(true);
+    setSearchError(false);
     try {
-      setAllResults(await fetchFoodSearchResults(trimmed));
+      const results = await fetchFoodSearchResults(trimmed);
+      if (requestId === requestSequence.current) setAllResults(results);
     } catch {
-      setAllResults([]);
+      if (requestId === requestSequence.current) {
+        setAllResults([]);
+        setSearchError(true);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
   }, []);
 
@@ -153,9 +166,17 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
         </MealSelect>
       </MealRow>
       {addError && <Empty role="alert" style={{ color: foodTheme.danger, padding: '8px' }}>{addError}</Empty>}
+      {searchError && (
+        <Empty role="alert">
+          <p>Food search is temporarily unavailable. Your Nutrition Center is still available.</p>
+          <RetryButton type="button" onClick={() => doSearch(query)}>
+            <RefreshCw size={17} /> Retry Food Search
+          </RetryButton>
+        </Empty>
+      )}
 
       {loading && <Empty><Spin size={28} /></Empty>}
-      {!loading && searched && filteredResults.length === 0 && (
+      {!loading && !searchError && searched && filteredResults.length === 0 && (
         <Empty>No foods found. Try a different search term or category.</Empty>
       )}
 
@@ -189,22 +210,28 @@ const FoodSearchPanel: React.FC<FoodSearchPanelProps> = ({ onDataSent }) => {
                   <Macro $c={foodTheme.gold}><div className="v">{formatMacroValue(food.fat, 'g')}</div><div className="l">Fat</div></Macro>
                 </Macros>
                 <AddBtn
-                  aria-busy={saving}
+                  aria-busy={onReviewDraft ? false : saving}
                   aria-label={
-                    added
+                    onReviewDraft
+                      ? ['Review', food.name, 'for', currentMeal].join(' ')
+                      : added
                       ? `${food.name} added to ${currentMeal}`
                       : saving
                         ? `Adding ${food.name} to ${currentMeal}`
                         : `Add ${food.name} to ${currentMeal}`
                   }
-                  disabled={savingId != null || added}
-                  onClick={() => addToLog(food)}
+                  disabled={!onReviewDraft && (savingId != null || added)}
+                  onClick={() => onReviewDraft
+                    ? onReviewDraft(searchFoodToNutritionDraft(food, { mealType }))
+                    : addToLog(food)}
                 >
-                  {added
-                    ? <><Check size={18} /> Added</>
-                    : saving
-                      ? <><Spin size={18} /> Adding...</>
-                      : <><Plus size={18} /> Add to {currentMeal}</>}
+                  {onReviewDraft
+                    ? <><ClipboardCheck size={18} /> Review for {currentMeal}</>
+                    : added
+                      ? <><Check size={18} /> Added</>
+                      : saving
+                        ? <><Spin size={18} /> Adding...</>
+                        : <><Plus size={18} /> Add to {currentMeal}</>}
                 </AddBtn>
               </Card>
             );

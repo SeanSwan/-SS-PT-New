@@ -19,6 +19,9 @@ const coachCommandCenterMocks = vi.hoisted(() => ({
   confirmCommandMock: vi.fn(),
   cancelCommandMock: vi.fn(),
   useAuthMock: vi.fn(),
+  useGlobalClientMock: vi.fn(),
+  setActiveClientMock: vi.fn(),
+  clearActiveClientMock: vi.fn(),
 }));
 
 export const {
@@ -35,6 +38,9 @@ export const {
   confirmCommandMock,
   cancelCommandMock,
   useAuthMock,
+  useGlobalClientMock,
+  setActiveClientMock,
+  clearActiveClientMock,
 } = coachCommandCenterMocks;
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
@@ -49,6 +55,10 @@ vi.mock('../../../../hooks/useAIChat', () => ({
 vi.mock('../../../../hooks/useAuth', () => ({
   default: coachCommandCenterMocks.useAuthMock,
   useAuth: coachCommandCenterMocks.useAuthMock,
+}));
+
+vi.mock('../../../../context/GlobalClientContext', () => ({
+  useGlobalClient: coachCommandCenterMocks.useGlobalClientMock,
 }));
 
 vi.mock('../../../../hooks/useCoachCommand', () => ({
@@ -197,6 +207,9 @@ export function resetCoachCommandCenterMocks() {
   cancelCommandMock.mockReset();
   createQuickCoachCommandClientMock.mockReset();
   useAuthMock.mockReset();
+  useGlobalClientMock.mockReset();
+  setActiveClientMock.mockReset();
+  clearActiveClientMock.mockReset();
 
   listConversationsMock.mockResolvedValue([]);
   loadConversationMock.mockResolvedValue(null);
@@ -240,6 +253,17 @@ export function resetCoachCommandCenterMocks() {
     archiveConversation: vi.fn(),
     newChat: newChatMock,
     clearError: vi.fn(),
+  });
+  useGlobalClientMock.mockReturnValue({
+    activeClient: null,
+    setActiveClient: setActiveClientMock,
+    clearActiveClient: clearActiveClientMock,
+    clientList: [
+      { id: 41, firstName: 'Ava', lastName: 'Stone', email: 'ava@example.test' },
+      { id: 52, firstName: 'Ben', lastName: 'Harbor', email: 'ben@example.test' },
+    ],
+    loadingClients: false,
+    refreshClients: vi.fn(),
   });
   setCoachCommandCenterRole('admin');
   useCoachIntakeQueueMock.mockReturnValue({

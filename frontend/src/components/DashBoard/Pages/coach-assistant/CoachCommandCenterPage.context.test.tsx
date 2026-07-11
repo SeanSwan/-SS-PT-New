@@ -167,7 +167,7 @@ describe('CoachCommandCenterPage route context', () => {
     );
 
     expect(await screen.findByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open prepared draft review/i }));
     expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument();
   });
@@ -178,7 +178,7 @@ describe('CoachCommandCenterPage route context', () => {
     );
 
     expect(await screen.findByRole('tab', { name: /^Review/i })).toHaveAttribute('aria-selected', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /open drafts/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open prepared draft review/i }));
     expect(await screen.findByRole('heading', { name: /client onboarding workbench/i })).toBeInTheDocument();
     expect(screen.getAllByText(/Client #424242/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/Selected paid client onboarding activation/i)).not.toBeInTheDocument();

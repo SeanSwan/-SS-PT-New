@@ -1,3 +1,9 @@
+/**
+ * COMPONENT: CoachCommandLeftRail
+ * SURFACE: Mounted History workspace for admin, trainer, and client Coach routes.
+ * PRIMARY JOB: Find, inspect, and resume a real Coach conversation.
+ * ROLE SAFETY: Client copy stays self-training focused; staff-only queue language is excluded.
+ */
 import React from 'react';
 import { Plus, Search } from 'lucide-react';
 
@@ -7,6 +13,7 @@ import type {
   DrawerSide,
 } from './CoachCommandCenter.types';
 import { formatThreadMeta, getConversationTitle } from './CoachCommandCenter.logic';
+import type { CoachCommandRole } from './CoachCommandCenter.roleConfig';
 
 type CoachCommandLeftRailProps = {
   activeThreadId: number | null;
@@ -16,6 +23,7 @@ type CoachCommandLeftRailProps = {
   railRef: React.RefObject<HTMLElement>;
   selectedClientLabel: string;
   threadSearch: string;
+  userRole: CoachCommandRole;
   onNewThread: () => void;
   onThreadSearchChange: (value: string) => void;
   onThreadSelect: (thread: CoachThreadSummary) => void;
@@ -29,6 +37,7 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
   railRef,
   selectedClientLabel,
   threadSearch,
+  userRole,
   onNewThread,
   onThreadSearchChange,
   onThreadSelect,
@@ -41,14 +50,14 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
     aria-label="Coach threads and selected client context"
   >
     <section className="brand-block">
-      <span className="route-chip">admin / coach-assistant</span>
+      <span className="route-chip">{userRole} / coach-assistant</span>
       <div>
-        <h2 className="brand-title">Swan Coach Command Center</h2>
-        <p className="brand-subtitle">Review-gated command console for intake, drafts, holds, and approval work.</p>
+        <h2 className="brand-title">{userRole === 'client' ? 'Swan Coach History' : 'Swan Coach Command Center'}</h2>
+        <p className="brand-subtitle">{userRole === 'client' ? 'Review your coach conversations and return to the training thread you need.' : 'Review-gated command console for intake, drafts, holds, and approval work.'}</p>
       </div>
       <button type="button" className="primary-button new-thread" onClick={onNewThread}>
         <Plus size={16} aria-hidden="true" />
-        New Coach Thread
+        {userRole === 'client' ? 'New Coach Chat' : 'New Coach Thread'}
       </button>
     </section>
 
@@ -58,6 +67,7 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
         <input
           id="coach-thread-search"
           type="search"
+          aria-label="Search coach threads"
           placeholder="Search coach threads..."
           value={threadSearch}
           onChange={(event) => onThreadSearchChange(event.target.value)}
@@ -68,10 +78,10 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
     <section className="client-card">
       <div className="client-name-row">
         <div>
-          <p className="panel-subtitle">Selected client context</p>
+          <p className="panel-subtitle">{userRole === 'client' ? 'Current training context' : 'Selected client context'}</p>
           <strong>{selectedClientLabel}</strong>
         </div>
-        <span className="status-pill processing">approval gate</span>
+        <span className="status-pill processing">{userRole === 'client' ? 'confirm gate' : 'approval gate'}</span>
       </div>
       <div className="context-grid">
         {clientContextTiles.map((tile) => (
@@ -106,7 +116,7 @@ const CoachCommandLeftRail: React.FC<CoachCommandLeftRailProps> = ({
         ) : (
           <li className="mode-item">
             <span className="mode-title">No coach threads yet</span>
-            <span className="thread-meta">Start a New Coach Thread from the command dock.</span>
+            <span className="thread-meta">Start a {userRole === 'client' ? 'New Coach Chat' : 'New Coach Thread'} from the command dock.</span>
           </li>
         )}
       </ul>

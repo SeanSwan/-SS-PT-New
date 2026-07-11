@@ -12,11 +12,13 @@
  * sessions or leave a paid user outside client-ready state.
  */
 import sequelize from '../database.mjs';
+import CustomPackage from '../models/CustomPackage.mjs';
 import Order from '../models/Order.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
+import { recordDirectSpecialRedemption } from './specialOfferService.mjs';
 
 export const SESSION_PACKAGE_CHECKOUT_SOURCE = 'session_package_checkout';
 
@@ -88,6 +90,13 @@ export async function fulfillSessionPackageCheckoutSession(session) {
     'INVALID_SESSION_PACKAGE_COUNT',
   );
   const packageId = session?.metadata?.packageId;
+  const specialOfferId = session?.metadata?.specialOfferId
+    ? parsePositiveInteger(
+        session.metadata.specialOfferId,
+        'special offer storefront item',
+        'INVALID_SPECIAL_OFFER_ID',
+      )
+    : null;
   const fulfillmentKey = getSessionPackageFulfillmentKey(sessionId);
   const paymentIntentId = session.payment_intent || sessionId;
 
@@ -110,6 +119,21 @@ export async function fulfillSessionPackageCheckoutSession(session) {
       result.orderId = existingOrder.id ?? null;
       logger.info(`Session package checkout already fulfilled for ${sessionId}`);
       return;
+    }
+
+    if (specialOfferId) {
+      if (Number(packageId) !== specialOfferId) {
+        throw new SessionPackageFulfillmentError('Special offer metadata does not match package', {
+          statusCode: 400,
+          code: 'SPECIAL_OFFER_METADATA_MISMATCH',
+        });
+      }
+      await recordDirectSpecialRedemption({
+        storefrontItemId: specialOfferId,
+        userId,
+        CustomPackage,
+        transaction,
+      });
     }
 
     const user = await User.findByPk(userId, {

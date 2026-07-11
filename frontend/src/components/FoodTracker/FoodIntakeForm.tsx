@@ -45,14 +45,17 @@ import {
   type MealType,
   type SavedMacroEntry,
 } from './FoodIntakeForm.logic';
+import { manualFoodItemsToNutritionDraft } from './nutritionDraft.adapters';
+import type { NutritionEntryDraft } from './nutritionDraft.types';
 
 interface FoodIntakeFormProps {
   onDataSent?: (success: boolean) => void;
+  onReviewDraft?: (draft: NutritionEntryDraft) => void;
 }
 
 const readResponseEntry = (response: any) => response?.data?.entry ?? response?.entry ?? null;
 
-const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
+const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent, onReviewDraft }) => {
   const { user } = useAuth();
   const { logFoodIntake } = useMcpIntegration();
   const [mealType, setMealType] = useState<MealType>('breakfast');
@@ -160,6 +163,18 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       return;
     }
 
+    if (onReviewDraft && !editing) {
+      const numericUserId = Number(user.id);
+      const userId = Number.isInteger(numericUserId) && numericUserId > 0 ? numericUserId : null;
+      setError(null);
+      onReviewDraft(manualFoodItemsToNutritionDraft(mealType, foodItems, {
+        userId,
+        loggedByUserId: userId,
+      }));
+      setStatusMessage('Meal ready for review. Confirm serving and nutrients before saving.');
+      return;
+    }
+
     const payload = buildMacroPayload(mealType, foodItems, editing && savedEntry?.date ? savedEntry.date : undefined);
     setLoading(true);
     setError(null);
@@ -227,7 +242,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
             onChange={handleFoodItemChange}
           />
           <NutritionSummary totals={totals} />
-          <SubmitRow loading={loading} editing={editing} />
+          <SubmitRow loading={loading} editing={editing} reviewMode={Boolean(onReviewDraft && !editing)} />
         </FoodFormGrid>
       </form>
       <SuccessToast

@@ -16,13 +16,23 @@
 import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
+import sequelize from '../database.mjs';
+import {
+  STICKER_PER_SESSION,
+  computeSpecialPricing,
+  computeBonusForTargetRate,
+  evaluateRateGate,
+  assertRateFloor,
+  resolveRedemptionLimit,
+  assertValidityRules,
+  createHiddenStorefrontItemForPackage,
+  SpecialOfferError,
+} from '../services/specialOfferService.mjs';
 
 const router = express.Router();
 
-// Pricing constants
-const RECOMMENDED_MIN_PER_SESSION = 175;
-const WARNING_THRESHOLD_PER_HOUR = 120;
-const ABSOLUTE_MIN_PER_HOUR = 100;
+// Sticker anchor for the informational readout ($175 never drops; discount = bonus).
+const RECOMMENDED_MIN_PER_SESSION = STICKER_PER_SESSION;
 
 // Base package configurations
 const BASE_PACKAGES = {
@@ -43,20 +53,26 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const {
       clientId,
       basePackageType,
+      // Admin picks EITHER a target effective $/session (preferred — the admin
+      // UX) OR an explicit bonusSessions count. The $175 sticker never drops.
+      targetEffectiveRate = null,
       bonusSessions = 0,
-      pricePerSession,
       name = 'SwanStudios Special',
       description,
       adminNote,
-      belowThresholdApproved = false,
       expiresAt,
+      // Validity / redemption (charter: one_time default). validityType one of
+      // one_time | n_times | time_window | ongoing; maxRedemptions for n_times.
+      validityType = 'one_time',
+      maxRedemptions = null,
+      // Optional audit note (NOT a gate — the admin is the final decider).
+      overrideReason = null,
     } = req.body;
 
-    // Validate required fields
-    if (!clientId || !basePackageType || !pricePerSession) {
+    if (!clientId || !basePackageType) {
       return res.status(400).json({
         success: false,
-        message: 'clientId, basePackageType, and pricePerSession are required'
+        message: 'clientId and basePackageType are required'
       });
     }
 
@@ -68,30 +84,33 @@ router.post('/', protect, adminOnly, async (req, res) => {
       });
     }
 
-    const paidSessions = baseConfig.paidSessions;
-    const totalSessions = paidSessions + bonusSessions;
-    const totalPrice = paidSessions * parseFloat(pricePerSession);
-    const effectiveHourlyRate = totalPrice / totalSessions;
-
-    // Pricing guardrails
-    if (effectiveHourlyRate < ABSOLUTE_MIN_PER_HOUR) {
-      return res.status(400).json({
-        success: false,
-        message: `Effective hourly rate ($${effectiveHourlyRate.toFixed(2)}) is below the absolute minimum of $${ABSOLUTE_MIN_PER_HOUR}/hr. Reduce bonus sessions or increase price.`,
-        effectiveHourlyRate,
-        absoluteMinimum: ABSOLUTE_MIN_PER_HOUR,
-      });
+    // Pure pricing math ($175 sticker anchor; discount = bonus sessions).
+    // The SERVER is authoritative: if the admin gave a target effective rate,
+    // WE compute the bonus sessions (client math is preview only).
+    let pricing;
+    try {
+      pricing = Number(targetEffectiveRate) > 0
+        ? computeBonusForTargetRate({
+            paidSessions: baseConfig.paidSessions,
+            targetEffectiveRate: Number(targetEffectiveRate),
+            pricePerSession: STICKER_PER_SESSION,
+          })
+        : computeSpecialPricing({
+            paidSessions: baseConfig.paidSessions,
+            bonusSessions: Number(bonusSessions) || 0,
+            pricePerSession: STICKER_PER_SESSION,
+          });
+      // Data-integrity only — never a floor. Throws just on a non-positive rate.
+      assertRateFloor({ effectiveHourlyRate: pricing.effectiveHourlyRate });
+      assertValidityRules({ validityType, expiresAt });
+    } catch (e) {
+      if (e instanceof SpecialOfferError) {
+        return res.status(e.status || 400).json({ success: false, message: e.message, code: e.code });
+      }
+      throw e;
     }
-
-    if (effectiveHourlyRate < WARNING_THRESHOLD_PER_HOUR && !belowThresholdApproved) {
-      return res.status(400).json({
-        success: false,
-        message: `Effective hourly rate ($${effectiveHourlyRate.toFixed(2)}) is below the recommended $${WARNING_THRESHOLD_PER_HOUR}/hr threshold. Set belowThresholdApproved=true to proceed.`,
-        effectiveHourlyRate,
-        warningThreshold: WARNING_THRESHOLD_PER_HOUR,
-        requiresApproval: true,
-      });
-    }
+    const redemptionLimit = resolveRedemptionLimit(validityType, maxRedemptions);
+    const rateTier = evaluateRateGate(pricing.effectiveHourlyRate).tier;
 
     // Verify client exists
     const { default: User } = await import('../models/User.mjs');
@@ -100,51 +119,65 @@ router.post('/', protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
-    // Create the custom package
     let CustomPackage;
+    let StorefrontItem;
     try {
-      const mod = await import('../models/CustomPackage.mjs');
-      CustomPackage = mod.default;
+      CustomPackage = (await import('../models/CustomPackage.mjs')).default;
+      StorefrontItem = (await import('../models/StorefrontItem.mjs')).default;
     } catch {
-      return res.status(503).json({ success: false, message: 'CustomPackage model not available. Run migrations first.' });
+      return res.status(503).json({ success: false, message: 'Models not available. Run migrations first.' });
     }
 
-    const pkg = await CustomPackage.create({
-      clientId,
-      createdByAdminId: req.user.id,
-      basePackageType,
-      name,
-      description: description || `${name} — ${totalSessions} sessions (${paidSessions} paid + ${bonusSessions} bonus)`,
-      paidSessions,
-      bonusSessions,
-      totalSessions,
-      pricePerSession,
-      totalPrice,
-      effectiveHourlyRate,
-      belowThresholdApproved,
-      adminNote,
-      status: 'active',
-      expiresAt: expiresAt || null,
+    // Atomic: the CustomPackage (spine) + its hidden client-scoped StorefrontItem
+    // (isSpecialOffer, sessions = paid+bonus) must both persist or neither does.
+    const result = await sequelize.transaction(async (transaction) => {
+      const pkg = await CustomPackage.create({
+        clientId,
+        createdByAdminId: req.user.id,
+        basePackageType,
+        name,
+        description: description
+          || `${name} — ${pricing.totalSessions} sessions (${pricing.paidSessions} paid + ${pricing.bonusSessions} bonus)`,
+        paidSessions: pricing.paidSessions,
+        bonusSessions: pricing.bonusSessions,
+        totalSessions: pricing.totalSessions,
+        pricePerSession: pricing.pricePerSession,
+        totalPrice: pricing.totalPrice,
+        effectiveHourlyRate: pricing.effectiveHourlyRate,
+        adminNote,
+        status: 'active',
+        expiresAt: expiresAt || null,
+        validityType,
+        maxRedemptions: redemptionLimit,
+        remainingRedemptions: redemptionLimit,
+        overrideReason: overrideReason || null,
+        approvedByAdminId: req.user.id,
+        approvedAt: new Date(),
+      }, { transaction });
+
+      // The hidden storefront item is what the client actually adds to cart.
+      const hiddenItem = await createHiddenStorefrontItemForPackage(pkg, { StorefrontItem, transaction });
+      await pkg.update({ storefrontItemId: hiddenItem.id }, { transaction });
+      return { pkg, hiddenItem };
     });
 
-    logger.info(`Admin ${req.user.id} created custom package for client ${clientId}`, {
-      packageId: pkg.id,
-      effectiveRate: effectiveHourlyRate,
-      bonusSessions,
+    logger.info(`Admin ${req.user.id} created special for client ${clientId}`, {
+      packageId: result.pkg.id,
+      storefrontItemId: result.hiddenItem.id,
+      effectiveRate: pricing.effectiveHourlyRate,
+      rateTier,
+      bonusSessions: pricing.bonusSessions,
     });
 
     res.status(201).json({
       success: true,
-      package: pkg,
+      package: result.pkg,
+      storefrontItemId: result.hiddenItem.id,
       pricing: {
-        paidSessions,
-        bonusSessions,
-        totalSessions,
-        pricePerSession: parseFloat(pricePerSession),
-        totalPrice,
-        effectiveHourlyRate: Math.round(effectiveHourlyRate * 100) / 100,
-        belowRecommended: effectiveHourlyRate < RECOMMENDED_MIN_PER_SESSION,
-        belowWarning: effectiveHourlyRate < WARNING_THRESHOLD_PER_HOUR,
+        ...pricing,
+        effectiveHourlyRate: Math.round(pricing.effectiveHourlyRate * 100) / 100,
+        rateTier, // informational label only (standard | discounted | deep_deal | custom_deal)
+        belowRecommended: pricing.effectiveHourlyRate < RECOMMENDED_MIN_PER_SESSION,
       }
     });
   } catch (error) {
@@ -194,6 +227,21 @@ router.get('/my', protect, async (req, res) => {
     }
 
     const packages = await CustomPackage.findAll({
+      attributes: [
+        'id',
+        'name',
+        'description',
+        'paidSessions',
+        'bonusSessions',
+        'totalSessions',
+        'totalPrice',
+        'effectiveHourlyRate',
+        'status',
+        'expiresAt',
+        'storefrontItemId',
+        'validityType',
+        'remainingRedemptions',
+      ],
       where: {
         clientId: req.user.id,
         status: 'active',
@@ -260,7 +308,18 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Custom package not found' });
     }
 
-    await pkg.update({ status: 'cancelled' });
+    // Cancel the deal AND deactivate its hidden storefront item in one txn, so a
+    // cancelled special can never be added to cart or bought.
+    await sequelize.transaction(async (transaction) => {
+      await pkg.update({ status: 'cancelled' }, { transaction });
+      if (pkg.storefrontItemId) {
+        const StorefrontItem = (await import('../models/StorefrontItem.mjs')).default;
+        await StorefrontItem.update(
+          { isActive: false },
+          { where: { id: pkg.storefrontItemId }, transaction },
+        );
+      }
+    });
     res.json({ success: true, message: 'Custom package cancelled' });
   } catch (error) {
     logger.error('Error cancelling custom package:', error);
@@ -285,30 +344,32 @@ router.get('/pricing-calculator', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid basePackageType' });
     }
 
-    const paidSessions = baseConfig.paidSessions;
-    const bonus = parseInt(bonusSessions) || 0;
-    const totalSessions = paidSessions + bonus;
-    const price = parseFloat(pricePerSession);
-    const totalPrice = paidSessions * price;
-    const effectiveHourlyRate = totalPrice / totalSessions;
+    let pricing;
+    try {
+      pricing = computeSpecialPricing({
+        paidSessions: baseConfig.paidSessions,
+        bonusSessions: parseInt(bonusSessions, 10) || 0,
+        pricePerSession: parseFloat(pricePerSession),
+      });
+    } catch (e) {
+      if (e instanceof SpecialOfferError) {
+        return res.status(400).json({ success: false, message: e.message, code: e.code });
+      }
+      throw e;
+    }
+    const rateTier = evaluateRateGate(pricing.effectiveHourlyRate).tier;
 
     res.json({
       success: true,
       pricing: {
         basePackageType,
-        paidSessions,
-        bonusSessions: bonus,
-        totalSessions,
-        pricePerSession: price,
-        totalPrice: Math.round(totalPrice * 100) / 100,
-        effectiveHourlyRate: Math.round(effectiveHourlyRate * 100) / 100,
-        belowRecommended: effectiveHourlyRate < RECOMMENDED_MIN_PER_SESSION,
-        belowWarning: effectiveHourlyRate < WARNING_THRESHOLD_PER_HOUR,
-        belowAbsoluteMin: effectiveHourlyRate < ABSOLUTE_MIN_PER_HOUR,
+        ...pricing,
+        effectiveHourlyRate: Math.round(pricing.effectiveHourlyRate * 100) / 100,
+        rateTier, // informational only: standard | discounted | deep_deal | custom_deal
         recommendedMin: RECOMMENDED_MIN_PER_SESSION,
-        warningThreshold: WARNING_THRESHOLD_PER_HOUR,
-        absoluteMin: ABSOLUTE_MIN_PER_HOUR,
-        savingsVsRecommended: totalSessions > 0 ? Math.round((RECOMMENDED_MIN_PER_SESSION - effectiveHourlyRate) * totalSessions * 100) / 100 : 0,
+        savingsVsRecommended: pricing.totalSessions > 0
+          ? Math.round((RECOMMENDED_MIN_PER_SESSION - pricing.effectiveHourlyRate) * pricing.totalSessions * 100) / 100
+          : 0,
       }
     });
   } catch (error) {

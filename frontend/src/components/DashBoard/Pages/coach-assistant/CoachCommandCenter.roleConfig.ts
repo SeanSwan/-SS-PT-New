@@ -43,6 +43,17 @@ export function normalizeCoachCommandRole(role: unknown): CoachCommandRole {
   return 'admin';
 }
 
+export function resolveCoachCommandDashboardRole(
+  pathname: string,
+  authenticatedRole: CoachCommandRole,
+): CoachCommandRole {
+  const routeRole = pathname.match(/^\/dashboard\/(admin|trainer|client)(?:\/|$)/)?.[1] as CoachCommandRole | undefined;
+  if (!routeRole) return authenticatedRole;
+  if (authenticatedRole === 'admin') return routeRole;
+  if (authenticatedRole === 'trainer' && routeRole === 'client') return 'client';
+  return authenticatedRole;
+}
+
 export function isClientCoachRole(role: CoachCommandRole): boolean {
   return role === 'client';
 }

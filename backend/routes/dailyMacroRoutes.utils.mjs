@@ -180,6 +180,12 @@ export const buildMacroEntryUpdates = (entry, body) => {
 
   if (Object.keys(updates).length > 0 || hasClientVerifiedInput) {
     updates.verified = false;
+    if (entry.reviewStatus === 'verified') {
+      updates.reviewStatus = 'needs_review';
+      updates.reviewReason = 'edited_after_review';
+      updates.reviewedByUserId = null;
+      updates.reviewedAt = null;
+    }
   }
 
   return updates;

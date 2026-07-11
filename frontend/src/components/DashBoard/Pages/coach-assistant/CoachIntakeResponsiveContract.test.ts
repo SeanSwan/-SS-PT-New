@@ -57,7 +57,7 @@ describe('Coach intake responsive contract', () => {
     // The talk-first shell renamed the tab id 'chat' → 'talk'; the CSS class
     // contract (is-chat-tab / is-workspace-tab) is unchanged.
     expect(pageSource).toContain("activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'");
-    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*calc\(100dvh - max\(12px,\s*env\(safe-area-inset-bottom\)\)\)/);
+    expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-chat-tab[\s\S]*height:\s*max\(480px,\s*calc\(100dvh - 200px - env\(safe-area-inset-bottom\)\)\)/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab[\s\S]*height:\s*auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-content[\s\S]*flex:\s*0\s+0\s+auto/);
     expect(bridgeMobileDockStyles).toMatch(/\.bridge-shell\.is-workspace-tab \.tab-scroll[\s\S]*overflow:\s*visible/);

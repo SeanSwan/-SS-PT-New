@@ -46,6 +46,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 
 // Existing Store Components
 import PackagesGrid from './components/PackagesGrid';
+import YourSpecialCard from './components/YourSpecialCard';
 import StoreCartDock from './components/StoreCartDock';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
@@ -878,6 +879,13 @@ const StoreV3: React.FC = () => {
         </ParallaxHero>
 
         <SectionDivider />
+
+        {/* ============================================ */}
+        {/* 1A. YOUR PERSONAL DEAL (per-client special)  */}
+        {/*   Self-hiding: renders only when the signed-in */}
+        {/*   client has an active custom deal assigned.   */}
+        {/* ============================================ */}
+        <YourSpecialCard />
 
         {/* ============================================ */}
         {/* 1B. MEMBERSHIPS SECTION                      */}

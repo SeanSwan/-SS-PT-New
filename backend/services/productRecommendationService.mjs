@@ -91,7 +91,7 @@ class ProductRecommendationService {
   async getComplementaryItems(itemId, limit = 3) {
     try {
       // Get the source item
-      const sourceItem = await StorefrontItem.findByPk(itemId);
+      const sourceItem = await StorefrontItem.findOne({ where: { id: itemId, isActive: true, isSpecialOffer: false } });
       
       if (!sourceItem) {
         logger.warn(`Cannot find complementary items for unknown item: ${itemId}`);
@@ -111,7 +111,8 @@ class ProductRecommendationService {
               { packageType: { [Op.ne]: sourceItem.packageType } },
               { itemType: { [Op.ne]: sourceItem.itemType } }
             ],
-            isActive: true
+            isActive: true,
+            isSpecialOffer: false
           },
           limit: limit * 2
         });
@@ -127,7 +128,8 @@ class ProductRecommendationService {
               { packageType: 'fixed' },
               { packageType: 'monthly' }
             ],
-            isActive: true
+            isActive: true,
+            isSpecialOffer: false
           },
           limit: limit * 2
         });
@@ -312,7 +314,8 @@ class ProductRecommendationService {
               { description: { [Op.iLike]: `%${muscleGroup}%` } }
             ]
           })),
-          isActive: true
+          isActive: true,
+          isSpecialOffer: false
         },
         limit: 10
       });
@@ -346,7 +349,8 @@ class ProductRecommendationService {
             model: StorefrontItem,
             as: 'storefrontItem',
             where: {
-              isActive: true // Only include items that are still active
+              isActive: true, // Only include items that are still active
+              isSpecialOffer: false
             }
           }]
         }],
@@ -388,7 +392,8 @@ class ProductRecommendationService {
           model: StorefrontItem,
           as: 'storefrontItem',
           where: {
-            isActive: true // Only include active items
+            isActive: true, // Only include active items
+            isSpecialOffer: false
           }
         }],
         group: ['storefrontItemId', 'storefrontItem.id'],
@@ -399,7 +404,7 @@ class ProductRecommendationService {
       if (!orderItems || orderItems.length === 0) {
         // Fallback to fetching all active items if no order data is available
         const activeItems = await StorefrontItem.findAll({
-          where: { isActive: true },
+          where: { isActive: true, isSpecialOffer: false },
           limit
         });
         
@@ -414,7 +419,7 @@ class ProductRecommendationService {
       // Fallback to fetching all active items on error
       try {
         const activeItems = await StorefrontItem.findAll({
-          where: { isActive: true },
+          where: { isActive: true, isSpecialOffer: false },
           limit
         });
         
@@ -439,7 +444,8 @@ class ProductRecommendationService {
       const categoryItems = await StorefrontItem.findAll({
         where: {
           category: { [Op.iLike]: `%${category}%` },
-          isActive: true
+          isActive: true,
+          isSpecialOffer: false
         },
         limit
       });
@@ -453,7 +459,8 @@ class ProductRecommendationService {
               { description: { [Op.iLike]: `%${category}%` } }
             ],
             id: { [Op.notIn]: categoryItems.map(item => item.id) }, // Exclude already found items
-            isActive: true
+            isActive: true,
+            isSpecialOffer: false
           },
           limit: limit - categoryItems.length
         });
