@@ -75,6 +75,7 @@ import {
   VirtualOlympicsPage,
   WorkoutLogger,
   WorkoutPlannerPage,
+  WorkoutDesignLabPage,
 } from './UniversalDashboardLayout.routeComponents';
 
 export interface DashboardRouteDefinition {
@@ -127,6 +128,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' },
       { path: '/challenges', component: ChallengeCommandWorkspace, title: 'Challenges', description: 'Challenge templates, live campaigns, results, submissions, and settings' },
       { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' },
+      { path: '/workout-design-lab', component: WorkoutDesignLabPage, title: 'Workout Design Lab', description: 'Eight read-only concepts for the unified client workout workflow' },
       { path: '/content', component: ContentStudioHub, title: 'Content Studio', description: 'Video and content management' },
       { path: '/feature-access', component: FeatureAccessPage, title: 'Feature Access', description: 'Per-user feature flag management' },
       { path: '/immigration', component: CanadaImmigrationTab, title: 'Canada Immigration', description: 'Immigration tracker & study platform' },
