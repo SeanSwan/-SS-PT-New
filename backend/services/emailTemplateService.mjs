@@ -189,7 +189,7 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
 export const buildNurtureEmailVars = ({ leadId, clientName } = {}) => {
   const appBase = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
   const apiBase = (process.env.API_URL || appBase || '').replace(/\/+$/, '');
-  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || '';
+  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || ''; // dedicated secret only — never borrow JWT_SECRET (rotation would invalidate live links)
   let unsubscribeUrl;
   if (apiBase && leadId != null && secret) {
     const token = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
@@ -201,7 +201,7 @@ export const buildNurtureEmailVars = ({ leadId, clientName } = {}) => {
 
 /** Constant-time verify of a lead unsubscribe token — for the /unsubscribe endpoint. */
 export const verifyUnsubscribeToken = (leadId, token) => {
-  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || '';
+  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || ''; // dedicated secret only — never borrow JWT_SECRET (rotation would invalidate live links)
   if (!secret || leadId == null || !token) return false;
   const expected = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
   const a = Buffer.from(String(token));

@@ -85,3 +85,21 @@ it('M4: 400s on over-length notes', async () => {
   const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com', notes: 'x'.repeat(2500) });
   expect(res.status).toBe(400);
 });
+
+it('#2 anti-bomb: a repeat consult of an ALREADY-scheduled lead does NOT re-notify the owner', async () => {
+  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'scheduled', status: 'scheduled' });
+  const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
+  expect(res.status).toBe(201);
+  expect(sendEmail).not.toHaveBeenCalled();
+});
+
+it('#2 a lead transitioning INTO scheduled DOES notify', async () => {
+  capture.mockResolvedValue({ leadId: 5, created: false, previousStatus: 'new', status: 'scheduled' });
+  await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
+  expect(sendEmail).toHaveBeenCalledTimes(1);
+});
+
+it('#7 400s on a name longer than Lead.firstName varchar(100)', async () => {
+  const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com', name: 'A'.repeat(101) });
+  expect(res.status).toBe(400);
+});

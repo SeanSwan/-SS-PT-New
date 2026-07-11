@@ -106,16 +106,17 @@ export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppr
     return { action: 'cancel', reason: 'sms_disabled', channel };
   }
 
-  // Quiet hours apply to every channel.
-  if (isWithinQuietHours(prefs.quietHours, now)) {
-    return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
-  }
-
-  // Deliverable-address gate: email needs an email, sms needs a phone.
+  // Deliverable-address gate FIRST: a permanently-undeliverable message must fail immediately,
+  // not defer on quiet-hours every tick until the window ends (terminal wins, like the freq cap).
   if (channel === 'email') {
     if (!recipient?.email) return { action: 'fail', reason: 'no_email', channel };
   } else if (!recipient?.phone) {
     return { action: 'fail', reason: 'no_phone', channel };
+  }
+
+  // Quiet hours apply to every channel (only for otherwise-deliverable messages).
+  if (isWithinQuietHours(prefs.quietHours, now)) {
+    return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
   }
 
   // Rolling per-recipient frequency cap — defer (space out), never drop.

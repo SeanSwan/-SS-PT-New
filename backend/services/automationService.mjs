@@ -359,11 +359,26 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
         sendResult = { success: false, error: 'No template or message provided' };
       }
 
+      // Config/compliance errors are ENV-FIXABLE (Sean sets SWAN_BUSINESS_ADDRESS / unsubscribe
+      // secret) so they DEFER instead of permanently burning the matured log. A missing unsubscribe
+      // URL is env-fixable only for a LEAD (has an id to sign); for a USER email log it is structural
+      // (no lead token possible) and stays terminal.
+      const configRetryable = isEmail && !sendResult.success && (
+        sendResult.error === 'missing_business_address'
+        || (sendResult.error === 'missing_unsubscribe_url' && log.leadId)
+      );
+
       if (sendResult.success) {
         log.status = 'sent';
         log.sentAt = new Date();
         log.recipient = address;
         log.error = null;
+      } else if (configRetryable) {
+        log.status = 'pending';
+        if (typeof log.changed === 'function') log.changed('status', true);
+        log.scheduledFor = new Date(now.getTime() + FREQ_COOLDOWN_HOURS * 60 * 60 * 1000);
+        log.error = `deferred: ${sendResult.error}`;
+        log.recipient = address;
       } else {
         log.status = 'failed';
         log.error = sendResult.error || (isEmail ? 'Email send failed' : 'SMS send failed');
@@ -371,7 +386,7 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       await log.save();
-      results.push({ id: log.id, status: log.status });
+      results.push({ id: log.id, status: log.status === 'pending' ? 'deferred' : log.status });
     } catch (error) {
       logger.error('Error processing automation log:', error);
       // Guard the recovery save: if persisting the failure status itself rejects (likely

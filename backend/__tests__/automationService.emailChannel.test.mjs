@@ -119,4 +119,15 @@ describe('processScheduledMessages — email-only lead is nurtured', () => {
     expect(emailTemplated).toHaveBeenCalledTimes(1);
     expect(res.results).toEqual([{ id: 1, status: 'sent' }]);
   });
+
+  it('#4 config-error email send (missing business address) DEFERS, not permanently fails', async () => {
+    const log = makeEmailLog();
+    logFindAll.mockResolvedValue([log]);
+    emailTemplated.mockResolvedValue({ success: false, error: 'missing_business_address' });
+
+    const res = await processScheduledMessages();
+
+    expect(res.results).toEqual([{ id: 1, status: 'deferred' }]);
+    expect(log.status).toBe('pending'); // re-queued for after Sean sets the env, not burned
+  });
 });

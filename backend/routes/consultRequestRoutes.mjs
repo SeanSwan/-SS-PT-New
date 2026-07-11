@@ -52,7 +52,7 @@ router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req,
   const preferredTime = body.preferredTime != null ? String(body.preferredTime).trim() : null;
   const notes = body.notes != null ? String(body.notes).trim() : null;
   const phone = body.phone != null ? String(body.phone).trim() : null;
-  if ((name && name.length > 120) || (preferredTime && preferredTime.length > 120)
+  if ((name && name.length > 100) || (preferredTime && preferredTime.length > 120) // name → Lead.firstName STRING(100)
       || (notes && notes.length > 2000) || (phone && (phone.length > 30 || !/^[\d+()\-\s]*$/.test(phone)))) {
     return res.status(400).json({ success: false, message: 'One or more fields are too long or malformed.' });
   }
@@ -63,7 +63,12 @@ router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req,
       logger.error(`[ConsultRequest] capture failed: ${result.error}`);
       return res.status(500).json({ success: false, message: 'Could not record your request. Please try again.' });
     }
-    await notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result });
+    // Anti-bomb: only alert the owner on a genuinely NEW consult intent — a fresh lead, or a lead
+    // transitioning INTO 'scheduled'. A repeat submit of an already-scheduled lead updates the CRM
+    // silently (no repeat email), so a public caller can't hammer the owner inbox / SendGrid quota.
+    if (result.created || result.previousStatus !== 'scheduled') {
+      await notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result });
+    }
     return res.status(201).json({ success: true, message: 'Thanks! Sean will reach out to confirm your consult.' });
   } catch (err) {
     logger.error(`[ConsultRequest] error: ${err?.message}`);

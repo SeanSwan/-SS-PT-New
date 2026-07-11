@@ -88,4 +88,21 @@ describe('POST /api/marketing/unsubscribe (performs opt-out)', () => {
     expect(res.status).toBe(200);
     expect(subFindOrCreate).not.toHaveBeenCalled();
   });
+
+  it('#1 one-click: reads lead+token from QUERY on POST (Gmail/Yahoo body is List-Unsubscribe=One-Click)', async () => {
+    leadFindByPk.mockResolvedValue({ id: 5, email: 'a@b.com' });
+    subFindOrCreate.mockResolvedValue([{ id: 1, status: 'unsubscribed' }, true]);
+    const res = await request(app)
+      .post(`/api/marketing/unsubscribe?lead=5&token=${tokenFor(5)}`)
+      .type('form').send({ 'List-Unsubscribe': 'One-Click' });
+    expect(res.status).toBe(200);
+    expect(subFindOrCreate).toHaveBeenCalled();
+  });
+
+  it('#11 never 500s a public unsubscribe even if the DB throws', async () => {
+    leadFindByPk.mockResolvedValue({ id: 5, email: 'a@b.com' });
+    subFindOrCreate.mockRejectedValue(new Error('db down'));
+    const res = await request(app).post('/api/marketing/unsubscribe').type('form').send({ lead: 5, token: tokenFor(5) });
+    expect(res.status).toBe(200);
+  });
 });

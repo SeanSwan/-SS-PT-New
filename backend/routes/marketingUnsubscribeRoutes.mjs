@@ -32,9 +32,11 @@ const shell = (title, inner) => `<!doctype html><html><head><meta charset="utf-8
 const INVALID = shell('Link invalid', '<p style="margin:0;color:#5A5F6A;">This unsubscribe link is invalid or has expired.</p>');
 const DONE = shell('Unsubscribed', "<p style=\"margin:0;color:#5A5F6A;\">You've been removed from SwanStudios marketing emails and won't receive further messages.</p>");
 
-/** Read lead+token from body (POST) or query (GET) and verify the HMAC. */
+/** Read lead+token from body+query (POST) or query (GET) and verify the HMAC. */
 const parseReq = (req) => {
-  const src = req.method === 'POST' ? (req.body || {}) : req.query;
+  // RFC 8058 one-click: Gmail/Yahoo POST `List-Unsubscribe=One-Click` in the BODY while lead+token
+  // ride in the URL QUERY — so on POST we must read BOTH (body overrides query for a hand form).
+  const src = req.method === 'POST' ? { ...(req.query || {}), ...(req.body || {}) } : req.query;
   const leadId = Number(src.lead);
   const token = String(src.token || '');
   const valid = Number.isInteger(leadId) && leadId > 0 && verifyUnsubscribeToken(leadId, token);
