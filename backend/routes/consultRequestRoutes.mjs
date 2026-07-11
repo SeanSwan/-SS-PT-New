@@ -1,0 +1,62 @@
+/**
+ * Consult Request Route (PUBLIC — no auth)
+ * ========================================
+ * POST /api/consult-request — a prospect's "book a free consult" submission. Records the
+ * request in the CRM (lead → `scheduled` + `meeting_scheduled` activity) and emails the
+ * owner to CONFIRM. Per the ratified plan it creates a consult REQUEST pending Sean's
+ * one-tap confirm — NOT a `Session` (no auto-booking without availability checks).
+ *
+ * Public + hardened: rate-limited, honeypot-guarded, email-validated. Owner notification
+ * is best-effort (a mail failure never fails the prospect's request).
+ */
+import express from 'express';
+import { captureConsultRequest } from '../services/consultRequestService.mjs';
+import { sendGridEmail } from '../services/sendgridService.mjs';
+import { rateLimiter } from '../middleware/authMiddleware.mjs';
+import logger from '../utils/logger.mjs';
+
+const router = express.Router();
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const notifyOwner = async ({ name, email, phone, preferredTime, notes, result }) => {
+  const recipients = [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean);
+  if (!recipients.length) return;
+  const subject = `New consult request — ${name || email}`;
+  const text = `New free-consult request (confirm + schedule in the admin CRM):\n\n`
+    + `Name: ${name || '(none)'}\nEmail: ${email}\nPhone: ${phone || '(none)'}\n`
+    + `Preferred time: ${preferredTime || '(none)'}\nNotes: ${notes || '(none)'}\n`
+    + `Lead #${result?.leadId ?? '?'} (status now: ${result?.status ?? '?'})`;
+  try {
+    await sendGridEmail({ to: recipients.join(','), subject, text });
+  } catch (err) {
+    logger.error(`[ConsultRequest] owner notify failed (non-critical): ${err?.message}`);
+  }
+};
+
+router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req, res) => {
+  const { name, email, phone, preferredTime, notes, leadId, website } = req.body || {};
+
+  // Honeypot: bots fill the hidden 'website' field — silently accept, do nothing.
+  if (website) return res.status(200).json({ success: true, message: 'Thanks!' });
+
+  const cleanEmail = String(email || '').trim();
+  if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
+    return res.status(400).json({ success: false, message: 'A valid email is required.' });
+  }
+
+  try {
+    const result = await captureConsultRequest({ name, email: cleanEmail, phone, preferredTime, notes, leadId });
+    if (result?.error) {
+      logger.error(`[ConsultRequest] capture failed: ${result.error}`);
+      return res.status(500).json({ success: false, message: 'Could not record your request. Please try again.' });
+    }
+    await notifyOwner({ name, email: cleanEmail, phone, preferredTime, notes, result });
+    return res.status(201).json({ success: true, message: 'Thanks! Sean will reach out to confirm your consult.' });
+  } catch (err) {
+    logger.error(`[ConsultRequest] error: ${err?.message}`);
+    return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+  }
+});
+
+export default router;

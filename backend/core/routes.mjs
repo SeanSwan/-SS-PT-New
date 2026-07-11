@@ -48,6 +48,7 @@ import adminPaymentSettingsRoutes from '../routes/adminPaymentSettingsRoutes.mjs
 import contactRoutes from '../routes/contactRoutes.mjs';
 import newsletterRoutes from '../routes/newsletterRoutes.mjs';
 import marketingUnsubscribeRoutes from '../routes/marketingUnsubscribeRoutes.mjs';
+import consultRequestRoutes from '../routes/consultRequestRoutes.mjs';
 import messagingRoutes from '../routes/messagingRoutes.mjs';
 import encryptionRoutes from '../routes/encryptionRoutes.mjs';
 import notificationsApiRoutes from '../routes/notificationRoutes.mjs';
@@ -338,6 +339,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/contact', contactRoutes);
   app.use('/api/newsletter', newsletterRoutes);
   app.use('/api/marketing', marketingUnsubscribeRoutes); // PUBLIC lead-nurture one-click unsubscribe (CAN-SPAM)
+  app.use('/api/consult-request', consultRequestRoutes);  // PUBLIC "book a free consult" → lead scheduled + owner confirm
   app.use('/api/messaging', messagingRoutes);
   app.use('/api/encryption', encryptionRoutes);
   app.use('/api/notifications', notificationsApiRoutes);
