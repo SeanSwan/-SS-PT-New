@@ -1,0 +1,188 @@
+/**
+ * Email Template Service
+ * ======================
+ * Centralized transactional-nurture EMAIL sending + template rendering — the email
+ * sibling of `smsService.mjs`. This is the missing "email channel" that lets the
+ * already-built `lead_nurture` automation sequence reach EMAIL-ONLY captured leads
+ * (contact-form / confirmed-newsletter prospects who carry no phone).
+ *
+ * DELIVERABILITY / COMPLIANCE (do not remove):
+ * - CAN-SPAM: every template's footer carries a working {unsubscribeUrl} + a physical
+ *   postal {businessAddress}. The automation processor MUST supply both; a missing
+ *   unsubscribe URL fails the send closed (see sendTemplatedEmail) so we can never ship
+ *   a non-compliant nurture email.
+ * - Email clients strip CSS custom properties and <style> unreliably: all colors are
+ *   INLINED HEX (never var(--token)), and the palette is LIGHT-SAFE (dark ink on light
+ *   surface) — dark-first is an APP rule, not an email rule.
+ * - Copy discipline: credentials read "26+ years" / NASM-protocol, NEVER "NASM-certified";
+ *   "stretching"/"flexibility", never "yoga"/"meditation".
+ *
+ * The template NAMES intentionally mirror the SMS template names (welcome, follow_up_day1/3/7)
+ * so a single AutomationSequence step drives whichever channel the step declares.
+ */
+
+import crypto from 'node:crypto';
+import { sendGridEmail } from './sendgridService.mjs';
+
+// Light-safe brand palette (inlined hex only — email clients drop CSS variables).
+const INK = '#0A0A0F';        // near-black body text on light
+const MUTED = '#5A5F6A';      // secondary text
+const SURFACE = '#F4F8FC';    // light card surface
+const SAPPHIRE = '#002060';   // Midnight Sapphire — headings / primary
+const CYAN = '#2C7BB0';       // darkened Ice Wing for WCAG 4.5:1 on light
+const GOLD = '#9C7A1E';       // darkened Gilded Fern for contrast on light
+
+/** Physical address is CAN-SPAM-required; sourced from env so it is never invented. */
+const businessAddressFallback = () => process.env.SWAN_BUSINESS_ADDRESS
+  || 'SwanStudios — mailing address on file (set SWAN_BUSINESS_ADDRESS)';
+
+const renderTemplate = (template, variables = {}) => {
+  let out = template || '';
+  Object.entries(variables).forEach(([key, value]) => {
+    out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
+  });
+  return out;
+};
+
+const extractPlaceholders = (template) => {
+  const found = new Set();
+  const re = /\{([a-zA-Z0-9_]+)\}/g;
+  let m;
+  while ((m = re.exec(template || '')) !== null) found.add(m[1]);
+  return [...found];
+};
+
+/** Shared HTML shell: light-safe, inlined hex, CAN-SPAM footer. Keeps templates DRY. */
+const wrapHtml = (innerHtml) => `<!doctype html><html><body style="margin:0;padding:0;background:${SURFACE};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${SURFACE};padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:14px;border:1px solid #DCE6F0;overflow:hidden;">
+<tr><td style="background:${SAPPHIRE};padding:18px 24px;">
+<span style="font:600 18px 'Segoe UI',Arial,sans-serif;color:#FFFFFF;letter-spacing:.5px;">SwanStudios</span>
+</td></tr>
+<tr><td style="padding:24px;font:400 15px/1.6 'Segoe UI',Arial,sans-serif;color:${INK};">
+${innerHtml}
+</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #ECF1F6;font:400 12px/1.5 'Segoe UI',Arial,sans-serif;color:${MUTED};">
+You are receiving this because you asked SwanStudios to get in touch.
+<a href="{unsubscribeUrl}" style="color:${CYAN};text-decoration:underline;">Unsubscribe</a> anytime.<br/>
+{businessAddress}
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+const cta = (label, url = '{consultUrl}') => `<a href="${url}" style="display:inline-block;background:${SAPPHIRE};color:#FFFFFF;font:600 15px 'Segoe UI',Arial,sans-serif;text-decoration:none;padding:12px 22px;border-radius:10px;">${label}</a>`;
+
+// name -> { subject, text(vars), body(vars) }. Body is the inner HTML; wrapHtml adds shell+footer.
+const EMAIL_TEMPLATES = {
+  welcome: {
+    subject: 'Welcome to SwanStudios, {clientName}',
+    text: `Hi {clientName},\n\nThanks for reaching out to SwanStudios. I'm Sean — 26+ years coaching real, lasting strength and movement.\n\nWhen you're ready, grab a free intro consult and we'll map your next step: {consultUrl}\n\n— Sean, SwanStudios\n\nUnsubscribe: {unsubscribeUrl}\n{businessAddress}`,
+    body: `<h1 style="margin:0 0 12px;font-size:22px;color:${SAPPHIRE};">Welcome, {clientName} 👋</h1>
+<p style="margin:0 0 16px;">Thanks for reaching out. I'm Sean — <strong>26+ years</strong> coaching real, lasting strength and movement, built around your body and your goals.</p>
+<p style="margin:0 0 20px;">When you're ready, grab a free intro consult and we'll map your next step together.</p>
+<p style="margin:0 0 8px;">${cta('Book a free consult')}</p>`,
+  },
+  follow_up_day1: {
+    subject: 'One question, {clientName}',
+    text: `Hi {clientName},\n\nQuick one: what's the single result you'd most want from training in the next 90 days?\n\nReply and tell me — or book your free consult and we'll build the plan: {consultUrl}\n\n— Sean\n\nUnsubscribe: {unsubscribeUrl}\n{businessAddress}`,
+    body: `<h1 style="margin:0 0 12px;font-size:20px;color:${SAPPHIRE};">One question, {clientName}</h1>
+<p style="margin:0 0 16px;">What's the single result you'd most want from training in the next <strong>90 days</strong>? Strength, mobility, getting back to a sport, feeling good on your feet again?</p>
+<p style="margin:0 0 20px;">Reply and tell me — or book your consult and we'll build the plan around it.</p>
+<p style="margin:0 0 8px;">${cta('Book my free consult')}</p>`,
+  },
+  follow_up_day3: {
+    subject: 'The part most people skip',
+    text: `Hi {clientName},\n\nMost programs fail on consistency and recovery, not effort. A coach who adjusts to YOUR week is the difference.\n\nWant that? Book a free consult: {consultUrl}\n\n— Sean, 26+ years coaching\n\nUnsubscribe: {unsubscribeUrl}\n{businessAddress}`,
+    body: `<h1 style="margin:0 0 12px;font-size:20px;color:${SAPPHIRE};">The part most people skip</h1>
+<p style="margin:0 0 16px;">After <strong>26+ years</strong>, here's the truth: programs don't fail on effort — they fail on consistency, recovery, and stretching/mobility that actually fits your week.</p>
+<p style="margin:0 0 20px;">A coach who adjusts to <em>your</em> life is the difference. That's what a SwanStudios plan is built to do.</p>
+<p style="margin:0 0 8px;">${cta('See if we\'re a fit')}</p>`,
+  },
+  follow_up_day7: {
+    subject: '{clientName}, ready to start?',
+    text: `Hi {clientName},\n\nStill here whenever you're ready. One free consult, no pressure — just a clear next step.\n\nBook it here: {consultUrl}\n\n— Sean, SwanStudios\n\nUnsubscribe: {unsubscribeUrl}\n{businessAddress}`,
+    body: `<h1 style="margin:0 0 12px;font-size:20px;color:${SAPPHIRE};">Ready when you are, {clientName}</h1>
+<p style="margin:0 0 16px;">No pressure — just an open door. One free consult, a clear next step, and a plan that fits.</p>
+<p style="margin:0 0 20px;color:${GOLD};font-weight:600;">This is the easiest first move you'll make all week.</p>
+<p style="margin:0 0 8px;">${cta('Book my free consult')}</p>`,
+  },
+};
+
+export const listEmailTemplates = () => Object.entries(EMAIL_TEMPLATES).map(([name, t]) => ({ name, subject: t.subject }));
+
+const SAMPLE_VARS = {
+  clientName: 'Alex',
+  consultUrl: 'https://sswanstudios.com/consult',
+  unsubscribeUrl: 'https://sswanstudios.com/unsubscribe?token=SAMPLE',
+  businessAddress: businessAddressFallback(),
+};
+
+/** Render every email template with sample (or provided) vars WITHOUT sending — the
+ *  approval/readiness surface. Flags unresolved {placeholders} so broken copy can't ship. */
+export const previewEmailTemplates = (variables = {}) => {
+  const vars = { ...SAMPLE_VARS, ...variables };
+  return Object.entries(EMAIL_TEMPLATES).map(([name, t]) => {
+    const subject = renderTemplate(t.subject, vars);
+    const text = renderTemplate(t.text, vars);
+    const placeholders = [...new Set([...extractPlaceholders(t.subject), ...extractPlaceholders(t.text), ...extractPlaceholders(t.body)])];
+    return {
+      name,
+      subject,
+      text,
+      placeholders,
+      unresolved: placeholders.filter((p) => vars[p] === undefined),
+    };
+  });
+};
+
+/**
+ * Render + send one templated nurture email. Fails CLOSED on a missing unsubscribe URL
+ * (CAN-SPAM) or unknown template — an automation step must never emit a non-compliant
+ * or empty email. Returns `{ success, body?, subject?, error? }` mirroring sendTemplatedSMS.
+ */
+export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) => {
+  const tpl = EMAIL_TEMPLATES[templateName];
+  if (!tpl) return { success: false, error: 'Template not found' };
+
+  const vars = { businessAddress: businessAddressFallback(), ...variables };
+  if (!vars.unsubscribeUrl) return { success: false, error: 'missing_unsubscribe_url' };
+
+  const subject = renderTemplate(tpl.subject, vars);
+  const text = renderTemplate(tpl.text, vars);
+  const html = renderTemplate(wrapHtml(tpl.body), vars);
+
+  const result = await sendGridEmail({ to, subject, text, html });
+  return { success: Boolean(result?.success), subject, body: text, error: result?.success ? undefined : (result?.error?.message || 'email_send_failed') };
+};
+
+/**
+ * Compose the per-lead variables the nurture email templates require: a consult CTA URL,
+ * a SIGNED unsubscribe URL (HMAC over the leadId), and the physical address. The
+ * unsubscribe URL is only built when a base URL AND a signing secret are configured;
+ * otherwise it is left undefined so `sendTemplatedEmail` fails CLOSED (a nurture email
+ * can never go out without a working unsubscribe — CAN-SPAM). The token is verifiable
+ * server-side via `verifyUnsubscribeToken`, so the link is not IDOR-enumerable.
+ */
+export const buildNurtureEmailVars = ({ leadId, clientName } = {}) => {
+  const base = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || '';
+  let unsubscribeUrl;
+  if (base && leadId != null && secret) {
+    const token = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
+    unsubscribeUrl = `${base}/unsubscribe?lead=${encodeURIComponent(leadId)}&token=${token}`;
+  }
+  const consultUrl = process.env.SWAN_CONSULT_URL || (base ? `${base}/contact` : 'https://sswanstudios.com/contact');
+  return { clientName: clientName || 'there', consultUrl, unsubscribeUrl, businessAddress: businessAddressFallback() };
+};
+
+/** Constant-time verify of a lead unsubscribe token — for the /unsubscribe endpoint. */
+export const verifyUnsubscribeToken = (leadId, token) => {
+  const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || '';
+  if (!secret || leadId == null || !token) return false;
+  const expected = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
+  const a = Buffer.from(String(token));
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+};
+
+export default { listEmailTemplates, previewEmailTemplates, sendTemplatedEmail, buildNurtureEmailVars, verifyUnsubscribeToken };

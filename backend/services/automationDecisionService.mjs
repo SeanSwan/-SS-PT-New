@@ -83,20 +83,37 @@ const getNextAllowedTime = (quietHours, now = new Date()) => {
  */
 export const evaluateScheduledMessage = (log, recipient, now = new Date(), suppression = null, frequency = null) => {
   const channel = log?.channel || 'sms';
-  if (channel !== 'sms') return { action: 'fail', reason: 'channel_not_implemented', channel };
+  // Implemented channels: sms + email. Email is what reaches the phone-less, email-only
+  // prospects that make up most contact-form leads. push/other remain unimplemented.
+  if (channel !== 'sms' && channel !== 'email') return { action: 'fail', reason: 'channel_not_implemented', channel };
 
-  // Marketing consent gate — checked FIRST, fails CLOSED.
+  // Marketing consent gate — checked FIRST, fails CLOSED (shared by every channel).
   if (suppression) {
     if (suppression.suppressed) return { action: 'cancel', reason: suppression.reason || 'marketing_suppressed', channel };
     if (suppression.checked === false) return { action: 'fail', reason: 'suppression_unverified', channel };
   }
 
   const prefs = normalizePreferences(recipient?.notificationPreferences);
-  if (prefs.sms === false) return { action: 'cancel', reason: 'sms_disabled', channel };
+
+  // Per-channel preference gate.
+  if (channel === 'email') {
+    if (prefs.email === false) return { action: 'cancel', reason: 'email_disabled', channel };
+  } else if (prefs.sms === false) {
+    return { action: 'cancel', reason: 'sms_disabled', channel };
+  }
+
+  // Quiet hours apply to every channel.
   if (isWithinQuietHours(prefs.quietHours, now)) {
     return { action: 'defer', reason: 'quiet_hours', channel, nextAttempt: getNextAllowedTime(prefs.quietHours, now) };
   }
-  if (!recipient?.phone) return { action: 'fail', reason: 'no_phone', channel };
+
+  // Deliverable-address gate: email needs an email, sms needs a phone.
+  if (channel === 'email') {
+    if (!recipient?.email) return { action: 'fail', reason: 'no_email', channel };
+  } else if (!recipient?.phone) {
+    return { action: 'fail', reason: 'no_phone', channel };
+  }
+
   // Rolling per-recipient frequency cap — defer (space out), never drop.
   if (frequency?.capped) {
     return { action: 'defer', reason: 'frequency_capped', channel, nextAttempt: frequency.nextAttempt || now };

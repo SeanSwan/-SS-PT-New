@@ -8,6 +8,7 @@ import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
 import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
+import { sendTemplatedEmail, buildNurtureEmailVars } from './emailTemplateService.mjs';
 import { evaluateScheduledMessage } from './automationDecisionService.mjs';
 import { resolveMarketingSuppression } from './marketingSuppressionService.mjs';
 import { isAutomationArmed } from './automationArmState.mjs';
@@ -39,17 +40,19 @@ const DEFAULT_SEQUENCES = [
   },
   {
     // Triggered when a prospect Lead is captured (contact form / confirmed newsletter).
-    // Seeded OFF on purpose: nurture delivers via SMS, which only reaches phone-bearing
-    // leads — email-only prospects need an email-channel sender (not yet built). Until
-    // that lands this stays inactive so capture creates NO undeliverable logs. Sean flips
-    // isActive=true (and arms SWAN_AUTOMATION_CRON_ENABLED) when the channel is deliverable.
+    // EMAIL channel: reaches the email-only prospects that make up most contact-form
+    // traffic (the email-channel sender now exists — emailTemplateService.mjs). Still
+    // seeded isActive:false ON PURPOSE so capture creates ZERO sends until Sean explicitly
+    // ARMS it — flip isActive=true on the seeded row AND set SWAN_AUTOMATION_CRON_ENABLED —
+    // AFTER the deliverability proof (SPF/DKIM/DMARC + inbox test) passes. Day 0/1/3/7.
     name: 'lead_nurture',
     triggerEvent: 'lead_captured',
     isActive: false,
     steps: [
-      { dayOffset: 0, templateName: 'welcome', channel: 'sms' },
-      { dayOffset: 3, templateName: 'follow_up_day3', channel: 'sms' },
-      { dayOffset: 7, templateName: 'follow_up_day7', channel: 'sms' }
+      { dayOffset: 0, templateName: 'welcome', channel: 'email' },
+      { dayOffset: 1, templateName: 'follow_up_day1', channel: 'email' },
+      { dayOffset: 3, templateName: 'follow_up_day3', channel: 'email' },
+      { dayOffset: 7, templateName: 'follow_up_day7', channel: 'email' }
     ]
   }
 ];
@@ -308,19 +311,27 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       const variables = log.payloadJson?.variables || {};
+      const isEmail = decision.channel === 'email';
+      const address = isEmail ? target.email : target.phone;
 
       let sendResult;
-      if (log.templateName) {
-        sendResult = await sendTemplatedSMS({
-          to: target.phone,
-          templateName: log.templateName,
-          variables
-        });
-        if (sendResult?.body) {
-          log.message = sendResult.body;
-        }
+      if (isEmail) {
+        // Email channel: templated nurture email to an (often phone-less) email lead.
+        // Merge in per-lead CAN-SPAM vars (signed unsubscribe URL + consult CTA + address);
+        // a missing unsubscribe URL makes sendTemplatedEmail fail CLOSED (never sends).
+        sendResult = log.templateName
+          ? await sendTemplatedEmail({
+              to: address,
+              templateName: log.templateName,
+              variables: { ...variables, ...buildNurtureEmailVars({ leadId: log.leadId, clientName: variables.clientName }) },
+            })
+          : { success: false, error: 'No template provided for email channel' };
+        if (sendResult?.body) log.message = sendResult.body;
+      } else if (log.templateName) {
+        sendResult = await sendTemplatedSMS({ to: address, templateName: log.templateName, variables });
+        if (sendResult?.body) log.message = sendResult.body;
       } else if (log.message) {
-        sendResult = await sendSmsMessage({ to: target.phone, body: log.message });
+        sendResult = await sendSmsMessage({ to: address, body: log.message });
       } else {
         sendResult = { success: false, error: 'No template or message provided' };
       }
@@ -328,12 +339,12 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       if (sendResult.success) {
         log.status = 'sent';
         log.sentAt = new Date();
-        log.recipient = target.phone;
+        log.recipient = address;
         log.error = null;
       } else {
         log.status = 'failed';
-        log.error = sendResult.error || 'SMS send failed';
-        log.recipient = target.phone;
+        log.error = sendResult.error || (isEmail ? 'Email send failed' : 'SMS send failed');
+        log.recipient = address;
       }
 
       await log.save();
