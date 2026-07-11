@@ -47,6 +47,7 @@ import SectionDivider from '../../components/ui-kit/cinematic/SectionDivider';
 // Existing Store Components
 import PackagesGrid from './components/PackagesGrid';
 import YourSpecialCard from './components/YourSpecialCard';
+import PricingInquiryModal from './components/PricingInquiryModal';
 import StoreCartDock from './components/StoreCartDock';
 import OrientationForm from '../../components/OrientationForm/orientationForm';
 import { CheckoutView } from '../../components/NewCheckout';
@@ -628,6 +629,9 @@ const StoreV3: React.FC = () => {
   const [revealPrices, setRevealPrices] = useState<{ [key: string]: boolean }>({});
   const [isAddingToCart, setIsAddingToCart] = useState<number | null>(null);
   const [showPulse, setShowPulse] = useState(false);
+  // Pricing-inquiry modal: prospects tap "Ask About Pricing" on a price-hidden
+  // package and their interest is routed to the admin via POST /api/contact.
+  const [inquiryPackage, setInquiryPackage] = useState<StoreItem | null>(null);
 
   // API-based package state
   const [packages, setPackages] = useState<StoreItem[]>([]);
@@ -689,6 +693,10 @@ const StoreV3: React.FC = () => {
 
   const handleTogglePrice = useCallback((packageId: number) => {
     setRevealPrices((prev) => ({ ...prev, [packageId]: !prev[packageId] }));
+  }, []);
+
+  const handleInquire = useCallback((pkg: StoreItem) => {
+    setInquiryPackage(pkg);
   }, []);
 
   const scrollCheckoutIntoView = useCallback(() => {
@@ -936,6 +944,7 @@ const StoreV3: React.FC = () => {
               isAddingToCart={isAddingToCart}
               onTogglePrice={handleTogglePrice}
               onAddToCart={handleAddToCart}
+              onInquire={handleInquire}
             />
           </PackagesWrapper>
         )}
@@ -999,6 +1008,15 @@ const StoreV3: React.FC = () => {
               }}
             />
           </CheckoutPanelMount>
+        )}
+        {inquiryPackage && (
+          <PricingInquiryModal
+            key="pricing-inquiry-modal"
+            package={inquiryPackage}
+            prefillName={[user?.firstName, user?.lastName].filter(Boolean).join(' ')}
+            prefillEmail={user?.email ?? ''}
+            onClose={() => setInquiryPackage(null)}
+          />
         )}
       </AnimatePresence>
     </StoreContainer>
