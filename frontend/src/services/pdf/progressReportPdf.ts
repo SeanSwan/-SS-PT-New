@@ -17,6 +17,7 @@ import {
   addWrappedText,
   createSwanPdfDoc,
 } from './swanPdfKit';
+import { resolveBrandIdentity } from './brandIdentity';
 
 export interface ProgressReportRow {
   label: string;
@@ -34,6 +35,8 @@ export interface ProgressReportInput {
   clientName: string;
   generatedOnLabel: string;
   sections: ProgressReportSection[];
+  /** Client's source — drives white-label branding (move_fitness -> Move Fitness only). */
+  clientSource?: string | null;
 }
 
 const safeFilenamePart = (value: string): string =>
@@ -41,7 +44,8 @@ const safeFilenamePart = (value: string): string =>
 
 export const renderProgressReportPdf = (doc: PdfDoc, input: ProgressReportInput): Blob => {
   const pageW = doc.internal.pageSize.getWidth();
-  let y = addBrandHeader(doc, { docLabel: 'PROGRESS REPORT', metaLine: input.clientName });
+  const brand = resolveBrandIdentity(input.clientSource);
+  let y = addBrandHeader(doc, { docLabel: 'PROGRESS REPORT', metaLine: input.clientName }, brand);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -87,7 +91,7 @@ export const renderProgressReportPdf = (doc: PdfDoc, input: ProgressReportInput)
     y = getLastAutoTableY(doc, y) + 8;
   });
 
-  addBrandFooter(doc);
+  addBrandFooter(doc, brand);
   return doc.output('blob');
 };
 
@@ -95,7 +99,8 @@ export const buildProgressReportPdfFile = async (input: ProgressReportInput): Pr
   if (typeof File === 'undefined') return null;
   const doc = await createSwanPdfDoc();
   const blob = renderProgressReportPdf(doc, input);
-  const filename = `SwanStudios-Progress-Report-${safeFilenamePart(input.clientName)}.pdf`;
+  const brand = resolveBrandIdentity(input.clientSource);
+  const filename = `${brand.filenamePrefix}-Progress-Report-${safeFilenamePart(input.clientName)}.pdf`;
   return new File([blob], filename, { type: 'application/pdf', lastModified: Date.now() });
 };
 

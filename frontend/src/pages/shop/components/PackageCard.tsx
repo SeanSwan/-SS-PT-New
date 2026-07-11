@@ -52,6 +52,8 @@ interface PackageCardProps {
   canPurchase: boolean;
   isAdding: boolean;
   onAddToCart: (pkg: StoreItem) => void;
+  /** Called when a prospect asks about pricing on a price-hidden card. */
+  onInquire?: (pkg: StoreItem) => void;
   activeSpecial?: {
     id: number;
     name: string;
@@ -572,6 +574,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   canPurchase,
   isAdding,
   onAddToCart,
+  onInquire,
   activeSpecial
 }) => {
   const cardTheme = (pkg.theme || 'purple') as GlowButtonColorScheme;
@@ -587,6 +590,15 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
     logger.log('Button clicked for package:', { id: pkg.id, name: pkg.name });
     onAddToCart(pkg);
   }, [onAddToCart, pkg]);
+
+  const handleInquire = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (!onInquire || !pkg?.id) return;
+    onInquire(pkg);
+  }, [onInquire, pkg]);
+
+  // Offer the inquiry CTA whenever prices are hidden AND a handler is wired.
+  const showInquiry = !canViewPrices && typeof onInquire === 'function';
 
   let badgeDisplay = '';
   if (pkg.packageType === 'fixed' && pkg.sessions) {
@@ -658,7 +670,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
                 height: '100%'
               }}
             >
-              <LoginMessage>Pricing is by invitation — contact SwanStudios for access</LoginMessage>
+              <LoginMessage>Pricing is by invitation — ask about this package below</LoginMessage>
             </motion.div>
           )}
         </PriceBox>
@@ -674,16 +686,26 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
 
         <CardActions>
           <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
-            <GlowButton
-              text={isAdding ? "Adding..." : "Add to Cart"}
-              theme={cardTheme}
-              size="medium"
-              isLoading={isAdding}
-              disabled={isAdding || !canPurchase}
-              onClick={handleAddToCart}
-              aria-busy={isAdding}
-              aria-label={`Add ${pkg.name} to cart`}
-            />
+            {showInquiry ? (
+              <GlowButton
+                text="Ask About Pricing"
+                theme={cardTheme}
+                size="medium"
+                onClick={handleInquire}
+                aria-label={`Ask about pricing for ${pkg.name}`}
+              />
+            ) : (
+              <GlowButton
+                text={isAdding ? "Adding..." : "Add to Cart"}
+                theme={cardTheme}
+                size="medium"
+                isLoading={isAdding}
+                disabled={isAdding || !canPurchase}
+                onClick={handleAddToCart}
+                aria-busy={isAdding}
+                aria-label={`Add ${pkg.name} to cart`}
+              />
+            )}
           </motion.div>
         </CardActions>
       </CardContent>

@@ -20,6 +20,12 @@ const exerciseFrequency = [
 
 const refetchCharts = vi.hoisted(() => vi.fn());
 
+// The grid reads the logged-in user's clientSource (to white-label the PDF).
+// This diary test doesn't exercise branding, so a source-less user is enough.
+vi.mock('../../../../context/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 vi.mock('../../../../hooks/analytics/useClientProgressCharts', () => ({
   useClientProgressCharts: () => ({
     charts: {
