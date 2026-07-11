@@ -164,14 +164,15 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
  * server-side via `verifyUnsubscribeToken`, so the link is not IDOR-enumerable.
  */
 export const buildNurtureEmailVars = ({ leadId, clientName } = {}) => {
-  const base = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  const appBase = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  const apiBase = (process.env.API_URL || appBase || '').replace(/\/+$/, '');
   const secret = process.env.SWAN_UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || '';
   let unsubscribeUrl;
-  if (base && leadId != null && secret) {
+  if (apiBase && leadId != null && secret) {
     const token = crypto.createHmac('sha256', secret).update(`lead:${leadId}`).digest('hex').slice(0, 32);
-    unsubscribeUrl = `${base}/unsubscribe?lead=${encodeURIComponent(leadId)}&token=${token}`;
+    unsubscribeUrl = `${apiBase}/api/marketing/unsubscribe?lead=${encodeURIComponent(leadId)}&token=${token}`;
   }
-  const consultUrl = process.env.SWAN_CONSULT_URL || (base ? `${base}/contact` : 'https://sswanstudios.com/contact');
+  const consultUrl = process.env.SWAN_CONSULT_URL || (appBase ? `${appBase}/contact` : 'https://sswanstudios.com/contact');
   return { clientName: clientName || 'there', consultUrl, unsubscribeUrl, businessAddress: businessAddressFallback() };
 };
 
