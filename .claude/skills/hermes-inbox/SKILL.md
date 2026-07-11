@@ -101,6 +101,6 @@ Layered so it doesn't:
 
 ## Automatic closeout override (Sean opted in 2026-07-11)
 
-The `SessionStart` hook still injects the pending count. A project `Stop` prompt hook now evaluates
+The `SessionStart` hook still injects the pending count. A deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs`, fail-open, zero model calls) now evaluates
 completed turns and blocks the first stop only when substantial work needs a memo. It passes trivial
 turns, already-emitted closeouts, and `stop_hook_active` continuations to avoid noise and loops.

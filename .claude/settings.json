@@ -318,8 +318,8 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Evaluate the completed turn for Hermes closeout emission. Input: $ARGUMENTS. Return ok true immediately when stop_hook_active is true, when the turn was trivial/conversational/read-only status, or when the final response already confirms that the required Hermes artifact was written. Otherwise return ok false with this reason: Before stopping, run the Hermes closeout gate. If this completed substantial implementation, feature, architecture, hard bug, deployment, security change, major review, or final design/plan with transferable facts, invoke hermes-inbox and write a privacy-safe pending memo. If the permanent lesson originated from a verified Fable-tier synthesis, also invoke hermes-learning-packet and write the durable tier-gated packet. Run the required secret/privacy scan, report the artifact path, and then stop. Do not create a durable learning packet from sub-Fable output. Treat substantial as work that changed runtime behavior, shipped or verified a meaningful feature, established a reusable architecture/decision, resolved a non-obvious root cause, changed security/data/deployment posture, or concluded a major reviewed plan. Do not block for typo fixes, formatting, ordinary questions, incomplete work, or pure mechanics.",
+            "type": "command",
+            "command": "node scripts/hooks/hermes-closeout-gate.mjs",
             "timeout": 30
           }
         ]
