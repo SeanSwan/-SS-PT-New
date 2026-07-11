@@ -200,6 +200,9 @@ const AdminAccountSwitcher: React.FC = () => {
   };
 
   const controlsAvailable = accountControl.ready && accountControl.enabled;
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && controlsAvailable && !loading && !starting && selectedTarget?.canImpersonate) { event.preventDefault(); void startTesting(); }
+  };
   const statusText = !accountControl.ready || !accountControl.enabled
     ? accountControl.message
     : loading
@@ -240,7 +243,7 @@ const AdminAccountSwitcher: React.FC = () => {
           <FieldLabel htmlFor="admin-account-test-search">Find</FieldLabel>
           <SearchBox>
             <Search size={17} aria-hidden="true" focusable="false" />
-            <input id="admin-account-test-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, username, email" disabled={!controlsAvailable} />
+            <input id="admin-account-test-search" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={handleSearchKeyDown} placeholder="Name, username, email" title="Press Enter to open the selected account" disabled={!controlsAvailable} />
             {search && (
               <ClearSearchButton type="button" onClick={() => setSearch('')} aria-label="Clear account search" disabled={!controlsAvailable}>
                 <X size={17} aria-hidden="true" focusable="false" />
