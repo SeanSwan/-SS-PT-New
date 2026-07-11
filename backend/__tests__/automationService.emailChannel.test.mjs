@@ -98,5 +98,25 @@ describe('processScheduledMessages — email-only lead is nurtured', () => {
     expect(log.status).toBe('sent');
     expect(log.recipient).toBe('lead@example.com');
     expect(res.results).toEqual([{ id: 1, status: 'sent' }]);
+    // C1: the email consent gate is email-only — NOT keyed on leadId/phone SMS-consent.
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@example.com' });
+  });
+
+  it('C1 regression: an email lead with UNKNOWN sms consent still SENDS (email suppression is email-only)', async () => {
+    const log = makeEmailLog();
+    logFindAll.mockResolvedValue([log]);
+    // Reproduce the real service: SMS-consent suppression fires ONLY when leadId is passed.
+    // Before the fix, email sends passed leadId and every email nurture was cancelled.
+    resolveSuppression.mockImplementation(async (args) => (
+      'leadId' in args
+        ? { suppressed: true, reason: 'lead_sms_consent_missing', checked: true }
+        : { suppressed: false, checked: true }
+    ));
+
+    const res = await processScheduledMessages();
+
+    expect(resolveSuppression).toHaveBeenCalledWith({ email: 'lead@example.com' }); // no leadId → SMS gate bypassed
+    expect(emailTemplated).toHaveBeenCalledTimes(1);
+    expect(res.results).toEqual([{ id: 1, status: 'sent' }]);
   });
 });

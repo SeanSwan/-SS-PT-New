@@ -63,16 +63,23 @@ export async function captureConsultRequest({ name, email, phone = null, preferr
       await lead.update(updates);
     }
 
-    await LeadActivity.create({
-      leadId: lead.id,
-      type: 'meeting_scheduled',
-      performedByAI: false,
-      title: 'Consult requested (pending owner confirm)',
-      description: preferredTime
-        ? `Prospect requested a free consult — preferred time: ${preferredTime}`
-        : 'Prospect requested a free consult',
-      metadata: { preferredTime, notes, previousStatus, source: 'consult_request' },
-    });
+    // Activity logging is BEST-EFFORT: the lead was already advanced above, so an
+    // activity-insert failure must NOT report the whole request as failed (that would 500
+    // the prospect + skip the owner notify while the lead is already 'scheduled').
+    try {
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'meeting_scheduled',
+        performedByAI: false,
+        title: 'Consult requested (pending owner confirm)',
+        description: preferredTime
+          ? `Prospect requested a free consult — preferred time: ${preferredTime}`
+          : 'Prospect requested a free consult',
+        metadata: { preferredTime, notes, previousStatus, source: 'consult_request' },
+      });
+    } catch {
+      // swallow — the lead advancement (the important part) already succeeded.
+    }
 
     return { leadId: lead.id, created, previousStatus, status: lead.status };
   } catch (err) {

@@ -16,9 +16,11 @@
  */
 import express from 'express';
 import { verifyUnsubscribeToken } from '../services/emailTemplateService.mjs';
+import { rateLimiter } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const limit = rateLimiter({ windowMs: 15 * 60 * 1000, max: 30 }); // per-IP hardening (matches consult-request)
 
 const shell = (title, inner) => `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
@@ -61,7 +63,7 @@ const suppressLeadEmail = async (leadId) => {
 };
 
 // GET — side-effect-FREE confirm page (immune to email-scanner link pre-fetch).
-router.get('/unsubscribe', (req, res) => {
+router.get('/unsubscribe', limit, (req, res) => {
   const { leadId, token, valid } = parseReq(req);
   if (!valid) return res.status(400).send(INVALID);
   const form = `<p style="margin:0 0 16px;color:#5A5F6A;">Click below to stop receiving marketing emails from SwanStudios.</p>
@@ -73,7 +75,7 @@ router.get('/unsubscribe', (req, res) => {
 });
 
 // POST — performs the opt-out (a deliberate user action, immune to pre-fetch).
-router.post('/unsubscribe', async (req, res) => {
+router.post('/unsubscribe', limit, async (req, res) => {
   const { leadId, valid } = parseReq(req);
   if (!valid) return res.status(400).send(INVALID);
   try {

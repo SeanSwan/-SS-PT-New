@@ -22,6 +22,7 @@ app.use('/api/consult-request', consultRequestRoutes);
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.OWNER_EMAIL = 'owner@x.com';
+  delete process.env.OWNER_WIFE_EMAIL;
   sendEmail.mockResolvedValue({ success: true });
 });
 
@@ -59,4 +60,28 @@ it('500s when capture returns an error, and does not notify', async () => {
   const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
   expect(res.status).toBe(500);
   expect(sendEmail).not.toHaveBeenCalled();
+});
+
+it('H3: notifies BOTH owners as an ARRAY (not a comma-joined string)', async () => {
+  process.env.OWNER_WIFE_EMAIL = 'wife@x.com';
+  capture.mockResolvedValue({ leadId: 5, created: true, status: 'scheduled' });
+  await request(app).post('/api/consult-request').send({ email: 'a@b.com' });
+  expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: ['owner@x.com', 'wife@x.com'] }));
+});
+
+it('H1: an untrusted body leadId is IGNORED (no IDOR — capture called without leadId)', async () => {
+  capture.mockResolvedValue({ leadId: 5, created: true, status: 'scheduled' });
+  await request(app).post('/api/consult-request').send({ email: 'a@b.com', leadId: 999 });
+  expect(capture).toHaveBeenCalledWith(expect.not.objectContaining({ leadId: expect.anything() }));
+});
+
+it('M4: 400s on an over-length phone (Lead.phone is STRING(30)) — never a 500', async () => {
+  const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com', phone: '1'.repeat(40) });
+  expect(res.status).toBe(400);
+  expect(capture).not.toHaveBeenCalled();
+});
+
+it('M4: 400s on over-length notes', async () => {
+  const res = await request(app).post('/api/consult-request').send({ email: 'a@b.com', notes: 'x'.repeat(2500) });
+  expect(res.status).toBe(400);
 });

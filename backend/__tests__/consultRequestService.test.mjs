@@ -62,3 +62,11 @@ it('returns an error object (never throws) when the DB fails', async () => {
   const res = await captureConsultRequest({ email: 'a@b.com' });
   expect(res.error).toContain('db down');
 });
+
+it('L3: an activity-insert failure does NOT fail the request (lead already advanced)', async () => {
+  findOrCreate.mockResolvedValue([{ id: 1, status: 'scheduled', tags: [], score: 60 }, true]);
+  activityCreate.mockRejectedValue(new Error('activity insert failed'));
+  const res = await captureConsultRequest({ email: 'a@b.com' });
+  expect(res).toMatchObject({ leadId: 1, created: true });
+  expect(res.error).toBeUndefined();
+});

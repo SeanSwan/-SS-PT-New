@@ -36,13 +36,23 @@ const GOLD = '#9C7A1E';       // darkened Gilded Fern for contrast on light
 const businessAddressFallback = () => process.env.SWAN_BUSINESS_ADDRESS
   || 'SwanStudios — mailing address on file (set SWAN_BUSINESS_ADDRESS)';
 
-const renderTemplate = (template, variables = {}) => {
+// HTML-escape a value for safe interpolation into email HTML (name/URL contexts).
+const htmlEscape = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+// Substitute {vars} using the FUNCTION form of replace so a value containing `$&`/`$1`
+// is inserted literally (never interpreted as a replacement pattern). `transform` decides
+// text-vs-HTML context: text is raw, HTML escapes each value (user-controlled clientName).
+const renderWith = (template, variables, transform) => {
   let out = template || '';
-  Object.entries(variables).forEach(([key, value]) => {
-    out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value ?? ''));
-  });
+  for (const [key, value] of Object.entries(variables)) {
+    out = out.replace(new RegExp(`\\{${key}\\}`, 'g'), () => transform(value));
+  }
   return out;
 };
+const renderText = (template, variables = {}) => renderWith(template, variables, (v) => String(v ?? ''));
+const renderHtml = (template, variables = {}) => renderWith(template, variables, (v) => htmlEscape(v));
 
 const extractPlaceholders = (template) => {
   const found = new Set();
@@ -122,8 +132,8 @@ const SAMPLE_VARS = {
 export const previewEmailTemplates = (variables = {}) => {
   const vars = { ...SAMPLE_VARS, ...variables };
   return Object.entries(EMAIL_TEMPLATES).map(([name, t]) => {
-    const subject = renderTemplate(t.subject, vars);
-    const text = renderTemplate(t.text, vars);
+    const subject = renderText(t.subject, vars);
+    const text = renderText(t.text, vars);
     const placeholders = [...new Set([...extractPlaceholders(t.subject), ...extractPlaceholders(t.text), ...extractPlaceholders(t.body)])];
     return {
       name,
@@ -145,13 +155,26 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
   if (!tpl) return { success: false, error: 'Template not found' };
 
   const vars = { businessAddress: businessAddressFallback(), ...variables };
+  // CAN-SPAM fail-closed: never send without BOTH a working unsubscribe URL and a real
+  // physical postal address. A missing SWAN_BUSINESS_ADDRESS must block the send (the
+  // placeholder is for the non-sending preview surface only), not ship non-compliant mail.
   if (!vars.unsubscribeUrl) return { success: false, error: 'missing_unsubscribe_url' };
+  if (!process.env.SWAN_BUSINESS_ADDRESS || !String(process.env.SWAN_BUSINESS_ADDRESS).trim()) {
+    return { success: false, error: 'missing_business_address' };
+  }
 
-  const subject = renderTemplate(tpl.subject, vars);
-  const text = renderTemplate(tpl.text, vars);
-  const html = renderTemplate(wrapHtml(tpl.body), vars);
+  const subject = renderText(tpl.subject, vars);
+  const text = renderText(tpl.text, vars);
+  const html = renderHtml(wrapHtml(tpl.body), vars);
 
-  const result = await sendGridEmail({ to, subject, text, html });
+  // RFC 8058 one-click unsubscribe headers (Gmail/Yahoo 2024 bulk-sender requirement) —
+  // points at the already-existing signed POST /api/marketing/unsubscribe.
+  const headers = {
+    'List-Unsubscribe': `<${vars.unsubscribeUrl}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+
+  const result = await sendGridEmail({ to, subject, text, html, headers });
   return { success: Boolean(result?.success), subject, body: text, error: result?.success ? undefined : (result?.error?.message || 'email_send_failed') };
 };
 

@@ -29,7 +29,7 @@ try {
  * @param {string} options.html - HTML version of the email (optional).
  * @returns {Promise<Object>} - Result of the email sending operation.
  */
-export async function sendGridEmail({ to, subject, text, html }) {
+export async function sendGridEmail({ to, subject, text, html, headers }) {
   // Check if SendGrid service is configured
   if (!sendgridServiceReady) {
     logger.error('Attempted to send email via SendGrid, but it is not configured.');
@@ -58,11 +58,12 @@ export async function sendGridEmail({ to, subject, text, html }) {
   }
 
   const msg = {
-    to,
+    to, // string OR array — @sendgrid/mail accepts multiple recipients as an array
     from: fromEmail,
     subject,
     text,
     ...(html && { html }), // Add HTML if provided
+    ...(headers && typeof headers === 'object' && { headers }), // e.g. List-Unsubscribe (RFC 8058)
   };
 
   try {

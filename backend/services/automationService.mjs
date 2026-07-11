@@ -9,6 +9,33 @@ import { Op } from 'sequelize';
 import { getAllModels } from '../models/index.mjs';
 import { sendTemplatedSMS, sendSmsMessage } from './smsService.mjs';
 import { sendTemplatedEmail, buildNurtureEmailVars } from './emailTemplateService.mjs';
+
+// Consent gate is CHANNEL-SCOPED: an EMAIL send is gated only by email opt-out (Subscriber
+// unsubscribe); it must NOT be blocked by SMS-consent state (a contact-form lead defaults
+// smsConsentStatus:'unknown' and can never SMS-opt-in — that would cancel every email nurture).
+// SMS keeps the full email+phone+lead consent check.
+const resolveChannelSuppression = (log, target) => resolveMarketingSuppression(
+  log?.channel === 'email'
+    ? { email: target?.email }
+    : { email: target?.email, phone: target?.phone, leadId: target?.leadId }
+);
+
+// Channel-agnostic reason → human message, so a cancelled/failed EMAIL log is never mislabeled
+// with SMS/phone-specific copy (covers email_disabled, no_email, and the lead-consent reasons).
+const REASON_MESSAGES = {
+  unsubscribed: 'Recipient unsubscribed (marketing-suppressed)',
+  marketing_suppressed: 'Recipient unsubscribed (marketing-suppressed)',
+  sms_opt_out: 'Recipient opted out of SMS',
+  lead_sms_opt_out: 'Recipient opted out of SMS',
+  lead_sms_consent_missing: 'Lead SMS consent missing',
+  sms_disabled: 'SMS disabled for recipient',
+  email_disabled: 'Email disabled for recipient',
+  channel_not_implemented: 'Channel not implemented',
+  suppression_unverified: 'Suppression status could not be verified',
+  no_phone: 'Recipient missing phone number',
+  no_email: 'Recipient missing email address',
+};
+const reasonMessage = (reason, fallback) => REASON_MESSAGES[reason] || fallback;
 import { evaluateScheduledMessage } from './automationDecisionService.mjs';
 import { resolveMarketingSuppression } from './marketingSuppressionService.mjs';
 import { isAutomationArmed } from './automationArmState.mjs';
@@ -169,7 +196,8 @@ export const triggerSequence = async (eventName, userId, data = {}) => {
     return { success: false, message: 'No active sequences for event', created: 0 };
   }
 
-  const leadId = data.leadId != null ? Number(data.leadId) : null;
+  const parsedLeadId = Number(data.leadId);
+  const leadId = Number.isInteger(parsedLeadId) && parsedLeadId > 0 ? parsedLeadId : null;
   const user = userId ? await User.findByPk(userId) : null;
 
   // Lead-nurture path: when there is no User, resolve the recipient from a captured Lead.
@@ -274,15 +302,13 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       }
 
       const target = await resolveAutomationTarget(log, { User });
-      const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
+      const suppression = await resolveChannelSuppression(log, target);
       const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
       const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
 
       if (decision.action === 'cancel') {
         log.status = 'cancelled';
-        log.error = decision.reason === 'unsubscribed' || decision.reason === 'marketing_suppressed'
-          ? 'Recipient unsubscribed (marketing-suppressed)'
-          : 'SMS disabled for recipient';
+        log.error = reasonMessage(decision.reason, 'Message cancelled');
         await log.save();
         results.push({ id: log.id, status: 'cancelled' });
         continue;
@@ -301,10 +327,7 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
 
       if (decision.action === 'fail') {
         log.status = 'failed';
-        log.error =
-          decision.reason === 'channel_not_implemented' ? 'Channel not implemented'
-          : decision.reason === 'suppression_unverified' ? 'Suppression status could not be verified'
-          : 'Recipient missing phone number';
+        log.error = reasonMessage(decision.reason, 'Send failed');
         await log.save();
         results.push({ id: log.id, status: 'failed' });
         continue;
@@ -393,7 +416,7 @@ export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
 
   for (const log of pendingLogs) {
     const target = await resolveAutomationTarget(log, { User });
-    const suppression = await resolveMarketingSuppression({ email: target?.email, phone: target?.phone, leadId: target?.leadId });
+    const suppression = await resolveChannelSuppression(log, target);
     const frequency = await resolveFrequencyCap(log, { AutomationLog }, now, target);
     const decision = evaluateScheduledMessage(log, target, now, suppression, frequency);
     summary[bucketFor[decision.action]] += 1;

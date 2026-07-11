@@ -28,25 +28,37 @@ const notifyOwner = async ({ name, email, phone, preferredTime, notes, result })
     + `Preferred time: ${preferredTime || '(none)'}\nNotes: ${notes || '(none)'}\n`
     + `Lead #${result?.leadId ?? '?'} (status now: ${result?.status ?? '?'})`;
   try {
-    await sendGridEmail({ to: recipients.join(','), subject, text });
+    await sendGridEmail({ to: recipients, subject, text }); // array → both owners notified
   } catch (err) {
     logger.error(`[ConsultRequest] owner notify failed (non-critical): ${err?.message}`);
   }
 };
 
 router.post('/', rateLimiter({ windowMs: 60 * 60 * 1000, max: 15 }), async (req, res) => {
-  const { name, email, phone, preferredTime, notes, leadId, website } = req.body || {};
+  const body = req.body || {};
 
   // Honeypot: bots fill the hidden 'website' field — silently accept, do nothing.
-  if (website) return res.status(200).json({ success: true, message: 'Thanks!' });
+  if (body.website) return res.status(200).json({ success: true, message: 'Thanks!' });
 
-  const cleanEmail = String(email || '').trim();
-  if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
+  const cleanEmail = String(body.email || '').trim();
+  if (!cleanEmail || cleanEmail.length > 255 || !EMAIL_RE.test(cleanEmail)) {
     return res.status(400).json({ success: false, message: 'A valid email is required.' });
   }
 
+  // Trim + cap public free-text (Lead.phone is STRING(30); unbounded notes/name = 500s + bloat).
+  // NOTE: body.leadId is intentionally NOT trusted here — a public caller must never target an
+  // arbitrary lead by enumerated id (IDOR); dedupe is by validated email only.
+  const name = body.name != null ? String(body.name).trim() : null;
+  const preferredTime = body.preferredTime != null ? String(body.preferredTime).trim() : null;
+  const notes = body.notes != null ? String(body.notes).trim() : null;
+  const phone = body.phone != null ? String(body.phone).trim() : null;
+  if ((name && name.length > 120) || (preferredTime && preferredTime.length > 120)
+      || (notes && notes.length > 2000) || (phone && (phone.length > 30 || !/^[\d+()\-\s]*$/.test(phone)))) {
+    return res.status(400).json({ success: false, message: 'One or more fields are too long or malformed.' });
+  }
+
   try {
-    const result = await captureConsultRequest({ name, email: cleanEmail, phone, preferredTime, notes, leadId });
+    const result = await captureConsultRequest({ name, email: cleanEmail, phone, preferredTime, notes });
     if (result?.error) {
       logger.error(`[ConsultRequest] capture failed: ${result.error}`);
       return res.status(500).json({ success: false, message: 'Could not record your request. Please try again.' });

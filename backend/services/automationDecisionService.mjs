@@ -34,6 +34,10 @@ const isWithinQuietHours = (quietHours, now = new Date()) => {
   const startMinutes = start.hours * 60 + start.minutes;
   const endMinutes = end.hours * 60 + end.minutes;
 
+  // Equal start/end is a zero-width window (NOT an all-day blackout) — otherwise the overnight
+  // branch below would return true for every minute and defer the message forever.
+  if (startMinutes === endMinutes) return false;
+
   if (startMinutes < endMinutes) {
     return currentMinutes >= startMinutes && currentMinutes < endMinutes;
   }
