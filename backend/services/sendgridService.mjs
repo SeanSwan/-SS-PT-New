@@ -72,7 +72,11 @@ export async function sendGridEmail({ to, subject, text, html, headers }) {
     return { success: true };
   } catch (error) {
     logger.error("Error sending email via SendGrid:", error);
-    return { success: false, error };
+    // Transient (rate-limit / server / network) errors are retryable so the caller can DEFER
+    // rather than permanently drop the message; a 4xx (e.g. bad recipient) stays terminal.
+    const status = error?.code || error?.response?.statusCode;
+    const retryable = !status || status === 429 || Number(status) >= 500;
+    return { success: false, error, retryable };
   }
 }
 

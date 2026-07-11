@@ -77,7 +77,10 @@ router.get('/unsubscribe', limit, (req, res) => {
 });
 
 // POST — performs the opt-out (a deliberate user action, immune to pre-fetch).
-router.post('/unsubscribe', limit, async (req, res) => {
+// NOT IP-rate-limited: Gmail/Yahoo one-click POSTs share provider egress IPs (a post-batch
+// burst would collapse into one bucket, 429, and be recorded as a FAILED unsubscribe = lost
+// opt-out / CAN-SPAM violation). The HMAC token already fails closed against abuse.
+router.post('/unsubscribe', async (req, res) => {
   const { leadId, valid } = parseReq(req);
   if (!valid) return res.status(400).send(INVALID);
   try {

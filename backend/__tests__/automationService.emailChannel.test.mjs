@@ -130,4 +130,27 @@ describe('processScheduledMessages — email-only lead is nurtured', () => {
     expect(res.results).toEqual([{ id: 1, status: 'deferred' }]);
     expect(log.status).toBe('pending'); // re-queued for after Sean sets the env, not burned
   });
+
+  it('a marketing-suppressed email lead is CANCELLED and never emailed (glue regression guard)', async () => {
+    const log = makeEmailLog();
+    logFindAll.mockResolvedValue([log]);
+    resolveSuppression.mockResolvedValue({ suppressed: true, reason: 'unsubscribed', checked: true });
+
+    const res = await processScheduledMessages();
+
+    expect(emailTemplated).not.toHaveBeenCalled();
+    expect(log.status).toBe('cancelled');
+    expect(res.results).toEqual([{ id: 1, status: 'cancelled' }]);
+  });
+
+  it('an unverifiable-consent (checked:false) email lead FAILS CLOSED (never emailed)', async () => {
+    const log = makeEmailLog();
+    logFindAll.mockResolvedValue([log]);
+    resolveSuppression.mockResolvedValue({ suppressed: false, checked: false });
+
+    const res = await processScheduledMessages();
+
+    expect(emailTemplated).not.toHaveBeenCalled();
+    expect(res.results).toEqual([{ id: 1, status: 'failed' }]);
+  });
 });

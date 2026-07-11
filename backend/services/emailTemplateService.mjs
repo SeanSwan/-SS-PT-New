@@ -175,7 +175,13 @@ export const sendTemplatedEmail = async ({ to, templateName, variables = {} }) =
   };
 
   const result = await sendGridEmail({ to, subject, text, html, headers });
-  return { success: Boolean(result?.success), subject, body: text, error: result?.success ? undefined : (result?.error?.message || 'email_send_failed') };
+  return {
+    success: Boolean(result?.success),
+    subject,
+    body: text,
+    retryable: result?.retryable === true, // transient send failure → caller defers, never drops
+    error: result?.success ? undefined : (result?.error?.message || 'email_send_failed'),
+  };
 };
 
 /**

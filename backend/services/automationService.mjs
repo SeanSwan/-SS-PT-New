@@ -122,7 +122,9 @@ const resolveAutomationTarget = async (log, { User }) => {
 // and a typo/NaN/negative falls back to the conservative default rather than silently
 // becoming it or passing through unguarded.
 const envNonNegInt = (name, fallback) => {
-  const parsed = Number(process.env[name]);
+  const raw = process.env[name];
+  if (raw == null || String(raw).trim() === '') return fallback; // blank/unset → fallback (Number('')===0 would slip through)
+  const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 };
 const FREQ_CAP = envNonNegInt('SWAN_AUTOMATION_MAX_PER_WINDOW', 3);
@@ -366,6 +368,7 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
       const configRetryable = isEmail && !sendResult.success && (
         sendResult.error === 'missing_business_address'
         || (sendResult.error === 'missing_unsubscribe_url' && log.leadId)
+        || sendResult.retryable === true // transient SendGrid 429/5xx/network — defer, never drop
       );
 
       if (sendResult.success) {
@@ -408,9 +411,11 @@ export const processScheduledMessages = async ({ force = false } = {}) => {
 
 /**
  * Dry-run: what WOULD processScheduledMessages do right now? NO sends, NO DB
- * mutation — runs the SAME decision logic (evaluateScheduledMessage) so the preview
- * cannot diverge from reality. PII-safe: reports phone PRESENCE only, never the
- * number. This is the surface to inspect BEFORE arming SWAN_AUTOMATION_CRON_ENABLED.
+ * mutation — runs the SAME send/suppress decision logic (evaluateScheduledMessage).
+ * NOTE: candidate selection differs slightly — the preview lists status:'pending' only,
+ * while a live tick ALSO reclaims stale 'processing' logs after a crash, so the preview can
+ * under-report those. PII-safe: reports phone PRESENCE only, never the number. Inspect
+ * BEFORE arming SWAN_AUTOMATION_CRON_ENABLED.
  */
 export const previewScheduledMessages = async ({ limit = 200 } = {}) => {
   const { AutomationLog, User } = getModels();
