@@ -17,8 +17,12 @@ describe('WorkoutPlanner generated plan section extraction', () => {
     expect(layoutSource).not.toContain("from './WorkoutPlannerGeneratedPlanSection'");
     expect(builderSource).toContain("from './WorkoutPlannerGeneratedPlanSection'");
     expect(pageSource).not.toContain('exportPopulatedPlanPDF');
+    expect(pageSource).not.toContain('buildPopulatedPlanPdfBlob');
     expect(pageSource).not.toContain('<LongHorizonScheduleView');
-    expect(sectionSource).toContain('exportPopulatedPlanPDF');
+    // A3: the section now owns PDF export via the Approval Vault preview path
+    // (buildPopulatedPlanPdfBlob + PdfApprovalVault) instead of a direct download.
+    expect(sectionSource).toContain('buildPopulatedPlanPdfBlob');
+    expect(sectionSource).toContain('PdfApprovalVault');
     expect(sectionSource).toContain('<LongHorizonScheduleView');
     expect(sectionSource).toContain('workoutPlannerRecommendationKey');
     expect(sectionSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);

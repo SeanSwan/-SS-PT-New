@@ -115,12 +115,16 @@ function checkPageBreak(doc: jsPDF, y: number, needed: number): number {
   return y;
 }
 
-function finalizeAndDownload(doc: jsPDF, filename: string, brand: BrandIdentity = resolveBrandIdentity()) {
+function addAllFooters(doc: jsPDF, brand: BrandIdentity = resolveBrandIdentity()) {
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addFooter(doc, i, totalPages, brand);
   }
+}
+
+function finalizeAndDownload(doc: jsPDF, filename: string, brand: BrandIdentity = resolveBrandIdentity()) {
+  addAllFooters(doc, brand);
   doc.save(filename);
 }
 
@@ -892,11 +896,11 @@ const buildPopulatedPlanFilename = (
  * client is an MF-tier client (text mark for now; image asset can drop
  * in later when MF approves logo licensing per receipt §G8).
  */
-export function exportPopulatedPlanPDF(
+const buildPopulatedPlanDoc = (
   plan: PDFPopulatedPlan,
   clientName?: string,
   clientSource?: PDFClientSource,
-): void {
+): { doc: jsPDF; filename: string; brand: BrandIdentity } => {
   const doc = createPDF();
   const brand = resolveBrandIdentity(clientSource);
   const horizon = closestWorkoutPlanHorizon(plan.planSummary.durationWeeks);
@@ -905,5 +909,29 @@ export function exportPopulatedPlanPDF(
   y = addPopulatedPlanMesocycles(doc, y, plan);
   y = addPopulatedPlanRecommendations(doc, y, plan, brand);
   addPopulatedPlanWeeks(doc, y, plan);
-  finalizeAndDownload(doc, buildPopulatedPlanFilename(horizon.token, clientName, brand), brand);
+  return { doc, filename: buildPopulatedPlanFilename(horizon.token, clientName, brand), brand };
+};
+
+export function exportPopulatedPlanPDF(
+  plan: PDFPopulatedPlan,
+  clientName?: string,
+  clientSource?: PDFClientSource,
+): void {
+  const { doc, filename, brand } = buildPopulatedPlanDoc(plan, clientName, clientSource);
+  finalizeAndDownload(doc, filename, brand);
+}
+
+/**
+ * Build the populated-plan PDF as a blob (footers included) WITHOUT downloading,
+ * for the Approval Vault preview: the same bytes are previewed and then saved,
+ * so preview == print. `brandWordmark` feeds the modal's branding-safety chip.
+ */
+export function buildPopulatedPlanPdfBlob(
+  plan: PDFPopulatedPlan,
+  clientName?: string,
+  clientSource?: PDFClientSource,
+): { blob: Blob; filename: string; brandWordmark: string } {
+  const { doc, filename, brand } = buildPopulatedPlanDoc(plan, clientName, clientSource);
+  addAllFooters(doc, brand);
+  return { blob: doc.output('blob'), filename, brandWordmark: brand.wordmark };
 }
