@@ -942,3 +942,7 @@ Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOF
    - Use the existing Swan upload/parse pipeline as the default starting point; do not assume official Plaud account sync is ready yet.
 5. **Then:** Swan Coach premium gating aligned to package tiers
 6. **Then:** client dashboard audit → user/social dashboard audit → broader site polish
+
+### Rules 68-69 automatic closeout override (Sean opted in 2026-07-11)
+
+The earlier manual-default wording is superseded. The project `Stop` prompt hook evaluates every completed turn. Substantial terminal work must emit a privacy-safe Hermes Inbox memo before the agent stops. A substantial permanent lesson with verified Fable-tier provenance must also emit a durable Hermes Learning Packet. Trivial work, incomplete work, already-emitted closeouts, and `stop_hook_active` continuations pass without emission. The durable Fable-tier gate remains fail-closed.

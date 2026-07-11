@@ -137,6 +137,13 @@ Did this work create:
   [ ] New obsolete files? — [list]
 If any yes, add to cleanup backlog or archive plan.
 
+=== SECTION 6.5 ? Hermes Closeout Emission (rules 68-69) ===
+Substantial transferable work completed? [Y/N + reason]
+Hermes Inbox memo: [path | not required]
+Fable-tier permanent lesson? [Y/N + originating model]
+Hermes Learning Packet: [path | not required | QUARANTINE]
+Privacy/secret scan: [command + result | not applicable]
+
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:
   - [explicit list]
