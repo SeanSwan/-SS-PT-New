@@ -152,7 +152,8 @@ const WorkoutDayDrilldown: React.FC<{
       const { downloadWorkoutSessionPdf } = await import('../../../../services/pdf/workoutSessionPdf');
       const clientName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
       await downloadWorkoutSessionPdf({
-        clientName: clientName || 'SwanStudios Client',
+        clientName: clientName || 'Client',
+        clientSource: user?.clientSource,
         title,
         days: days.map((day) => ({
           dateLabel: day.date ?? (mode === 'week' ? 'Training day' : md),
