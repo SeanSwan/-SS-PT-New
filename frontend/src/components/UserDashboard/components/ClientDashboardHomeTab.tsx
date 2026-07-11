@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
+import { getSafeGamificationIdSegment } from '../../../hooks/gamification/gamificationRewardRedemption';
 import { getTier, getTierDisplay } from '../../../types/gamification';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useSubscription } from '../../../hooks/useSubscription';
@@ -39,6 +40,8 @@ import {
   sumUnreadConversations,
 } from './HomeTabViewModel';
 import ClientDashboardHome from './ClientDashboardHome';
+import ClientCompanionDock from './ClientCompanionDock';
+import { isCompanionDockEnabled } from './companionDockPreferences';
 import type { ClientDashboardAction, ClientDashboardTarget } from './ClientDashboardHome.types';
 import {
   buildAssignmentView,
@@ -81,6 +84,8 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   const { summary: macroSummary, loading: macroSummaryLoading } = useMacroSummary();
   const communityFeed = useSocialFeed();
   const notificationSummary = useNotificationSummary();
+  const companionDockEnabled = isCompanionDockEnabled(import.meta.env?.VITE_ENABLE_COMPANION_DOCK);
+  const companionUserIdSegment = getSafeGamificationIdSegment(user?.id);
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   const messageSummary = useMessageSummary({ enabled: hasEliteAccess });
   const workoutSessions = useWorkoutSessions({ limit: 50 });
@@ -244,6 +249,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         onTarget={handleTarget}
         onShareProgress={shareProgress}
       />
+      {companionDockEnabled && companionUserIdSegment && <ClientCompanionDock userIdSegment={companionUserIdSegment} onNavigate={navigate} />}
       <input
         ref={composer.mediaInputRef}
         type="file"

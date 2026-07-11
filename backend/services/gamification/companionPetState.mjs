@@ -4,6 +4,15 @@ import { EVOLUTION_STAGES, PET_MOODS } from './companionPetConfig.mjs';
 export const PET_STATE_ATTRIBUTES = ['petSpecies', 'petName', 'petState', 'petInventory', 'needsState', 'level'];
 
 const NEED_KEYS = ['athletic', 'recovery', 'social', 'discipline', 'vitality'];
+const ACTIVITY_AFFINITY_MAP = {
+  strength_workouts: 'athletic',
+  cardio_workouts: 'athletic',
+  nutrition_logs: 'vitality',
+  recovery_actions: 'recovery',
+  streak_days: 'discipline',
+  social_actions: 'social',
+  personal_records: 'athletic',
+};
 
 const isPetRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -64,16 +73,9 @@ export const getMood = (avgWellbeing) => {
   return PET_MOODS[PET_MOODS.length - 1];
 };
 
-export const activityMatchesAffinity = (activityKey, affinity) => {
-  const map = {
-    strength_workouts: 'athletic',
-    cardio_workouts: 'athletic',
-    streak_days: 'discipline',
-    social_actions: 'social',
-    personal_records: 'athletic',
-  };
-  return map[activityKey] === affinity;
-};
+export const activityMatchesAffinity = (activityKey, affinity) => (
+  ACTIVITY_AFFINITY_MAP[activityKey] === affinity
+);
 
 export const getActiveAppearanceMods = (counters) => {
   const active = [];
