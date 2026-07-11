@@ -98,6 +98,8 @@ describe('variationRoutes /suggest equipment IDOR (P0.5)', () => {
 
   it('reads and filters equipment when the trainer owns the profile', async () => {
     mocks.equipmentProfile.findByPk.mockResolvedValue({ id: 5, trainerId: 10, isActive: true });
+    // protect stores JWT user ids as strings; Sequelize returns INTEGER trainerId.
+    mocks.currentUser = { id: '10', role: 'trainer' };
     mocks.equipmentItem.findAll.mockResolvedValue([
       { toJSON: () => ({ category: 'dumbbell', name: 'DB' }) },
     ]);

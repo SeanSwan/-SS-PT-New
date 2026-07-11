@@ -111,7 +111,7 @@ router.post('/suggest', async (req, res) => {
                 attributes: ['id', 'trainerId', 'isActive'],
               });
           const ownsProfile = !!profile && profile.isActive
-            && (req.user.role === 'admin' || profile.trainerId === req.user.id);
+            && (req.user.role === 'admin' || Number(profile.trainerId) === Number(req.user.id));
           if (!ownsProfile) {
             return res.status(403).json({ success: false, error: 'Access denied' });
           }
